@@ -87,22 +87,29 @@
     position: relative;
     width: 100%;
     overflow: hidden;
-    /* border-radius: 16px; */
-    background: var(--bg-surface-3);
-    /* border: 1px solid var(--border-glass); */
+    background: transparent;
 }
-
 .NEB-track {
     display: flex;
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .NEB-slide {
-    min-width: 100%;
+    min-width: 80%;
     position: relative;
     cursor: pointer;
     aspect-ratio: 16 / 7;
     overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.9);
+    opacity: 0.5;
+    z-index: 1;
+}
+
+.NEB-slide.is-active {
+    transform: scale(1);
+    opacity: 1;
+    z-index: 2;
 }
 
 /* === 배경 이미지 === */

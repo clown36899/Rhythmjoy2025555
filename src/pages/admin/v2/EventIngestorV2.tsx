@@ -2,8 +2,15 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
+import { createClient } from '@supabase/supabase-js';
+import { createResizedImages } from '../../../utils/imageResize';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import './EventIngestorV2.css';
+
+const prodSupabase = createClient(
+  import.meta.env.VITE_PROD_SUPABASE_URL,
+  import.meta.env.VITE_PROD_SUPABASE_ANON_KEY
+);
 
 interface ScrapedEvent {
   id: string;
@@ -36,6 +43,8 @@ const EventIngestorV2: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'new' | 'collected' | 'ignored'>('new');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkProgress, setBulkProgress] = useState<string | null>(null);
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -136,6 +145,143 @@ const EventIngestorV2: React.FC = () => {
     setIsVenueModalOpen(true);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredEvents.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredEvents.map(e => e.id)));
+    }
+  };
+
+  const handleBulkIgnore = async () => {
+    if (!selectedIds.size) return;
+    setBulkProgress(`제외 처리 중... (0/${selectedIds.size})`);
+    let i = 0;
+    for (const id of selectedIds) {
+      await handleUpdateStatus(id, { status: 'ignored' });
+      setBulkProgress(`제외 처리 중... (${++i}/${selectedIds.size})`);
+    }
+    setSelectedIds(new Set());
+    setBulkProgress(null);
+  };
+
+  const handleBulkCollect = async () => {
+    if (!selectedIds.size) return;
+    setBulkProgress(`완료 처리 중... (0/${selectedIds.size})`);
+    let i = 0;
+    for (const id of selectedIds) {
+      await handleUpdateStatus(id, { is_collected: true });
+      setBulkProgress(`완료 처리 중... (${++i}/${selectedIds.size})`);
+    }
+    setSelectedIds(new Set());
+    setBulkProgress(null);
+  };
+
+  const registerEventToProd = async (event: ScrapedEvent): Promise<string> => {
+    const sd = event.structured_data;
+    let imageUrls: any = {};
+    let storagePath: string | null = null;
+
+    if (event.poster_url) {
+      try {
+        const imgRes = await fetch(event.poster_url);
+        const imgBlob = await imgRes.blob();
+        const imgFile = new File([imgBlob], 'poster.png', { type: imgBlob.type });
+        const imageFiles = await createResizedImages(imgFile);
+        const timestamp = Date.now();
+        const folderName = `${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
+        storagePath = `social-events/${folderName}`;
+        const upload = async (size: string, file: File) => {
+          const path = `${storagePath}/${size}.webp`;
+          const { error } = await prodSupabase.storage.from('images').upload(path, file, { contentType: 'image/webp', upsert: true });
+          if (error) throw error;
+          return prodSupabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+        };
+        const [micro, thumb, med, full] = await Promise.all([
+          upload('micro', imageFiles.micro),
+          upload('thumbnail', imageFiles.thumbnail),
+          upload('medium', imageFiles.medium),
+          upload('full', imageFiles.full),
+        ]);
+        imageUrls = { micro, thumb, med, full };
+      } catch (e) {
+        console.error('[BulkRegister] 이미지 처리 실패, 이미지 없이 계속:', e);
+      }
+    }
+
+    const formattedTitle = sd.djs?.length
+      ? `DJ ${sd.djs.join(', ')} | ${sd.title}`
+      : sd.title;
+
+    const { data: result, error } = await prodSupabase
+      .from('events')
+      .insert([{
+        title: formattedTitle,
+        date: sd.date,
+        start_date: sd.date,
+        location: sd.location || '',
+        address: sd.address || '',
+        venue_id: sd.venue_id || null,
+        venue_name: sd.location || null,
+        image: imageUrls.full || event.poster_url || null,
+        image_micro: imageUrls.micro || null,
+        image_thumbnail: imageUrls.thumb || null,
+        image_medium: imageUrls.med || null,
+        image_full: imageUrls.full || null,
+        storage_path: storagePath,
+        description: event.extracted_text,
+        category: 'event',
+        scope: 'domestic',
+        link1: event.source_url || '',
+        link_name1: event.keyword || '',
+        genre: 'DJ,소셜',
+        user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
+        group_id: 2,
+      }])
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+
+    await fetch('/.netlify/functions/scraped-events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...event, is_collected: true }),
+    });
+
+    return result?.id;
+  };
+
+  const handleBulkRegister = async () => {
+    if (!selectedIds.size) return;
+    const targets = filteredEvents.filter(e => selectedIds.has(e.id));
+    setBulkProgress(`등록 중... (0/${targets.length})`);
+    const errors: string[] = [];
+    let i = 0;
+    for (const event of targets) {
+      try {
+        await registerEventToProd(event);
+        setBulkProgress(`등록 중... (${++i}/${targets.length})`);
+      } catch (e: any) {
+        errors.push(`${event.structured_data.title}: ${e.message}`);
+        i++;
+      }
+    }
+    setSelectedIds(new Set());
+    await fetchScrapedEvents();
+    setBulkProgress(null);
+    if (errors.length) alert(`일부 실패:\n${errors.join('\n')}`);
+    else alert(`${targets.length}개 등록 완료`);
+  };
+
   const handleRegistrationSuccess = async (id: string) => {
     setIsEditModalOpen(false);
     setSelectedEvent(null);
@@ -147,11 +293,29 @@ const EventIngestorV2: React.FC = () => {
       <header className="ingestor-v2-header">
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
-          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => setActiveTab('new')}>신규 ({scrapedEvents.filter(e => !e.is_collected && e.status !== 'ignored').length})</button>
-          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => setActiveTab('collected')}>완료 ({scrapedEvents.filter(e => e.is_collected).length})</button>
-          <button className={activeTab === 'ignored' ? 'active' : ''} onClick={() => setActiveTab('ignored')}>제외 ({scrapedEvents.filter(e => e.status === 'ignored').length})</button>
+          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 ({scrapedEvents.filter(e => !e.is_collected && e.status !== 'ignored').length})</button>
+          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 ({scrapedEvents.filter(e => e.is_collected).length})</button>
+          <button className={activeTab === 'ignored' ? 'active' : ''} onClick={() => { setActiveTab('ignored'); setSelectedIds(new Set()); }}>제외 ({scrapedEvents.filter(e => e.status === 'ignored').length})</button>
         </div>
       </header>
+
+      {/* 일괄 액션 바 */}
+      {selectedIds.size > 0 && (
+        <div className="bulk-action-bar">
+          <span className="bulk-count">{selectedIds.size}개 선택됨</span>
+          {bulkProgress ? (
+            <span className="bulk-progress">{bulkProgress}</span>
+          ) : (
+            <>
+              <button className="bulk-btn bulk-btn-ignore" onClick={handleBulkIgnore}>일괄 제외</button>
+              <button className="bulk-btn bulk-btn-collect" onClick={handleBulkCollect}>일괄 완료(이미등록)</button>
+              {activeTab === 'new' && (
+                <button className="bulk-btn bulk-btn-register" onClick={handleBulkRegister}>일괄 등록</button>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="loading-state">데이터를 불러오는 중...</div>
@@ -160,6 +324,13 @@ const EventIngestorV2: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={filteredEvents.length > 0 && selectedIds.size === filteredEvents.length}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th>미리보기</th>
                 <th>날짜 / 제목</th>
                 <th>장소</th>
@@ -169,16 +340,19 @@ const EventIngestorV2: React.FC = () => {
             </thead>
             <tbody>
               {filteredEvents.map(event => (
-                <tr key={event.id} className={processingId === event.id ? 'row-processing' : ''}>
-                  <td className="col-preview">
+                <tr key={event.id} className={`${processingId === event.id ? 'row-processing' : ''} ${selectedIds.has(event.id) ? 'row-selected' : ''}`}>
+                  <td className="col-check">
+                    <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)} />
+                  </td>
+                  <td className="col-preview col-clickable" onClick={() => toggleSelect(event.id)}>
                     {event.poster_url ? (
-                      <div className="thumbnail-box" onClick={() => setZoomImage(event.poster_url || null)}>
+                      <div className="thumbnail-box" onClick={e => { e.stopPropagation(); setZoomImage(event.poster_url || null); }}>
                         <img src={event.poster_url} alt="thumbnail" />
                         <span className="zoom-hint">🔍 크게보기</span>
                       </div>
                     ) : <div className="no-image">이미지 미수집</div>}
                   </td>
-                  <td className="col-info">
+                  <td className="col-info col-clickable" onClick={() => toggleSelect(event.id)}>
                     <div className="row-date">{event.structured_data.date} ({event.structured_data.day || '요일미정'})</div>
                     <div className="row-title">{event.structured_data.title}</div>
                     <div className="row-keyword">출처 키워드: {event.keyword}</div>

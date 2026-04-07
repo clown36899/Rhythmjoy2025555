@@ -152,9 +152,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 <div className="NEB-slider">
                     <div
                         className="NEB-track"
-                        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                        style={{ transform: `translateX(calc(-${currentIndex * 80}% + 10%))` }}
                     >
-                        {events.map((event) => {
+                        {events.map((event, index) => {
                             const eventThumbnail = event.image_full ||
                                 event.image ||
                                 event.image_medium ||
@@ -176,7 +176,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             return (
                                 <div
                                     key={event.id}
-                                    className="NEB-slide"
+                                    className={`NEB-slide ${index === currentIndex ? 'is-active' : ''}`}
                                     onClick={() => onEventClick(event)}
                                 >
                                     <div className="NEB-imageWrapper">

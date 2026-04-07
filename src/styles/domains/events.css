@@ -87,9 +87,7 @@
     --els-icon-color: var(--color-orange-500);
 }
 
-.ELS-section.ELS-section--global {
-    --els-icon-color: var(--color-blue-400);
-}
+
 
 .ELS-section.ELS-section--classes {
     --els-icon-color: var(--color-green-500);
@@ -304,61 +302,7 @@
     padding-right: 8px;
 }
 
-/* Global Scope Switcher */
-.ELS-scopeSwitcherContainer {
-    padding: 20px 16px 10px;
-    display: flex;
-    justify-content: center;
-}
 
-.ELS-scopeSwitcher {
-    display: flex;
-    background: var(--bg-surface-2);
-    padding: 4px;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 400px;
-    position: relative;
-    border: 1px solid var(--border-subtle);
-}
-
-.ELS-scopeBtn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    z-index: 2;
-    transition: color var(--transition-normal);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.ELS-scopeBtn.is-active {
-    color: var(--text-primary);
-}
-
-.ELS-scopeIndicator {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: calc(50% - 4px);
-    height: calc(100% - 8px);
-    background: var(--bg-surface-1);
-    border-radius: 8px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-primary);
-}
-
-.ELS-scopeSwitcher[data-scope="overseas"] .ELS-scopeIndicator {
-    transform: translateX(100%);
-}
 
 .ELS-empty {
     padding: 2rem;

@@ -81,7 +81,7 @@ export default memo(function EventRegistrationModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<"class" | "event" | "">("");
   const [genre, setGenre] = useState("");
-  const [scope, setScope] = useState<"domestic" | "overseas">("domestic");
+  const scope = "domestic"; // 통합 이후 기본값으로 고정
   // Password state removed - using RLS-based ownership
 
   const [link1, setLink1] = useState("");
@@ -256,7 +256,7 @@ export default memo(function EventRegistrationModal({
         setCategory((editEventData.category as "class" | "event") || "event");
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
-        setScope(((editEventData as any).scope as "domestic" | "overseas") || "domestic");
+
         setGroupId((editEventData as any).group_id || null);
 
 
@@ -290,7 +290,7 @@ export default memo(function EventRegistrationModal({
         setCategory("");
         setCategory("");
         setGenre("");
-        setScope("domestic");
+
         setGroupId(initialGroupId);
         setDayOfWeek(initialDayOfWeek);
         // setPassword removed
@@ -1033,9 +1033,7 @@ export default memo(function EventRegistrationModal({
           setEndDate={setEndDate}
           eventDates={eventDates}
           setEventDates={setEventDates}
-          // Scope Props
-          scope={scope}
-          setScope={setScope}
+
           // Footer Props
           // password props removed
 

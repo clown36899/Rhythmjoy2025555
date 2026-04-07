@@ -300,40 +300,30 @@ export default memo(function FullEventCalendar({
 
     let combined: any[] = [];
 
-    if (tabFilter === 'overseas') {
-      // 국외: scope가 'overseas'인 것만 포함
-      const overseasEvents = events.filter(event => event.scope === 'overseas');
-      // socialSchedules는 기본적으로 국내라고 가정하므로 제외하거나, 추후 scope 추가 시 로직 변경
-      // 현재는 events 테이블의 scope만 활용
-      combined = [...overseasEvents];
-    } else {
-      // 그 외 탭(전체, 소셜, 강습): 국외 행사 제외 (scope !== 'overseas')
-      // 사용자가 "글로벌 행사는 거기서만 표시하게"라고 했으므로 여기서 제외함
-      const domesticEvents = categoryFilteredEvents.filter(e => e.scope !== 'overseas');
+    // domesticEvents 필터 제거: 모든 이벤트를 카테고리별로 필터링
+    const allCategoryFilteredEvents = categoryFilteredEvents;
 
-      // socialSchedules는 scope 필드가 없거나 domestic으로 간주
-      // (만약 social_schedules에도 scope가 있다면 여기서 필터링 필요)
-
-      if (tabFilter === 'all') {
-        combined = [...domesticEvents, ...socialEvents];
-      } else if (tabFilter === 'social-events') {
-        const nonClassEvents = domesticEvents.filter(event =>
-          event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
-        );
-        const nonClassSocialEvents = socialEvents.filter(event =>
-          event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
-        );
-        combined = [...nonClassEvents, ...nonClassSocialEvents];
-      } else if (tabFilter === 'classes') {
-        const classEvents = domesticEvents.filter(event =>
-          event.category === 'class' || event.category === 'regular' || event.category === 'club'
-        );
-        const classSocialEvents = socialEvents.filter(event =>
-          event.category === 'class' || event.category === 'regular' || event.category === 'club'
-        );
-        combined = [...classEvents, ...classSocialEvents];
-      }
+    if (tabFilter === 'all') {
+      combined = [...allCategoryFilteredEvents, ...socialEvents];
+    } else if (tabFilter === 'social-events') {
+      const nonClassEvents = allCategoryFilteredEvents.filter(event =>
+        event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
+      );
+      const nonClassSocialEvents = socialEvents.filter(event =>
+        event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
+      );
+      combined = [...nonClassEvents, ...nonClassSocialEvents];
+    } else if (tabFilter === 'classes') {
+      const classEvents = allCategoryFilteredEvents.filter(event =>
+        event.category === 'class' || event.category === 'regular' || event.category === 'club'
+      );
+      const classSocialEvents = socialEvents.filter(event =>
+        event.category === 'class' || event.category === 'regular' || event.category === 'club'
+      );
+      combined = [...classEvents, ...classSocialEvents];
     }
+
+    return combined as AppEvent[];
 
     return combined as AppEvent[];
   }, [categoryFilteredEvents, socialSchedules, tabFilter, events]);

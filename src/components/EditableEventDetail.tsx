@@ -60,9 +60,7 @@ interface EditableEventDetailProps {
     onExtractThumbnail?: () => void;
     // Venue Selection
     onVenueSelectClick?: () => void;
-    // Scope Selection
-    scope?: "domestic" | "overseas";
-    setScope?: (scope: "domestic" | "overseas") => void;
+
 }
 
 // getGenreColor was removed in favor of getGenreColorClass from constants
@@ -108,8 +106,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     videoUrl,
     onVideoChange,
     onVenueSelectClick,
-    scope,
-    setScope,
+
 }, ref) => {
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -450,27 +447,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         </div>
                                                     </div>
 
-                                                    {event.category === 'event' && (
-                                                        <div className="EED-inputGroup">
-                                                            <label className="EED-label">지역</label>
-                                                            <div className="EED-sheetActions">
-                                                                <button
-                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setScope?.('domestic'); }}
-                                                                    className={`EED-sheetBtn ${scope === 'domestic' ? 'is-active' : ''}`}
-                                                                >
-                                                                    <span>🇰🇷 국내</span>
-                                                                    {scope === 'domestic' && <i className="ri-check-line"></i>}
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setScope?.('overseas'); }}
-                                                                    className={`EED-sheetBtn is-overseas ${scope === 'overseas' ? 'is-active' : ''}`}
-                                                                >
-                                                                    <span>🌏 국외 (Global)</span>
-                                                                    {scope === 'overseas' && <i className="ri-check-line"></i>}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
+
 
                                                     {event.category && (
                                                         <div className="EED-inputGroup">

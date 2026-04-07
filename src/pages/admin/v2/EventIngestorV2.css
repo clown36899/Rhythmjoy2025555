@@ -277,3 +277,79 @@
     font-weight: 600;
     color: #6366f1;
 }
+
+/* 체크박스 */
+.col-check {
+  width: 36px;
+  text-align: center;
+}
+.col-check input[type="checkbox"],
+thead input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #27272a;
+  border: 1.5px solid #52525b;
+  border-radius: 3px;
+  flex-shrink: 0;
+  position: relative;
+}
+.col-check input[type="checkbox"]:checked,
+thead input[type="checkbox"]:checked {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+.col-check input[type="checkbox"]:checked::after,
+thead input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: #fff;
+  font-size: 11px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.row-selected {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* 일괄 액션 바 */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+}
+.bulk-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  margin-right: 0.5rem;
+}
+.bulk-progress {
+  font-size: 0.875rem;
+  color: #fbbf24;
+}
+.bulk-btn {
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bulk-btn-ignore { background: #3f3f46; color: #d4d4d8; }
+.bulk-btn-ignore:hover { background: #52525b; }
+.bulk-btn-collect { background: #16a34a; color: #fff; }
+.bulk-btn-collect:hover { background: #15803d; }
+.bulk-btn-register { background: #6366f1; color: #fff; }
+.bulk-btn-register:hover { background: #4f46e5; }
+
+.col-clickable { cursor: pointer; }
+.col-clickable:hover { background: rgba(99, 102, 241, 0.05); }

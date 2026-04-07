@@ -51,7 +51,7 @@ export default function CalendarPage() {
         return 'all';
     }, []);
 
-    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes' | 'overseas'>(initialTabFilter as any);
+    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -167,33 +167,15 @@ export default function CalendarPage() {
             const socialSchedules = (calendarData.socialSchedules || []) as any[];
 
             // [Logic Sync] FullEventCalendar.tsx의 filteredEvents 로직과 1:1 매칭
-            if (tabFilter === 'overseas') {
-                // 국외: scope === 'overseas'
-                localEventsToCount = allEvents.filter(e => e.scope === 'overseas');
-            } else {
-                // 국내/그 외: scope !== 'overseas' 제외
-                const domesticEvents = allEvents.filter(e => e.scope !== 'overseas');
-                const domesticSocialSchedules = socialSchedules;
+            // [Logic Sync] 모든 행사를 통합 집계 (scope 필터 제거)
+            localEventsToCount = [...allEvents, ...socialSchedules];
 
-                const socialAsEvents = domesticSocialSchedules;
-
-                if (tabFilter === 'all') {
-                    localEventsToCount = [...domesticEvents, ...socialAsEvents];
-                } else if (tabFilter === 'social-events') {
-                    // 강습 카테고리(class, regular, club) 제외
-                    const isNotClass = (e: any) => !['class', 'regular', 'club'].includes(e.category?.toLowerCase());
-                    localEventsToCount = [
-                        ...domesticEvents.filter(isNotClass),
-                        ...socialAsEvents.filter(isNotClass)
-                    ];
-                } else if (tabFilter === 'classes') {
-                    // 강습 카테고리만 포함
-                    const isClass = (e: any) => ['class', 'regular', 'club'].includes(e.category?.toLowerCase());
-                    localEventsToCount = [
-                        ...domesticEvents.filter(isClass),
-                        ...socialAsEvents.filter(isClass)
-                    ];
-                }
+            if (tabFilter === 'social-events') {
+                const isNotClass = (e: any) => !['class', 'regular', 'club'].includes(e.category?.toLowerCase());
+                localEventsToCount = localEventsToCount.filter(isNotClass);
+            } else if (tabFilter === 'classes') {
+                const isClass = (e: any) => ['class', 'regular', 'club'].includes(e.category?.toLowerCase());
+                localEventsToCount = localEventsToCount.filter(isClass);
             }
         }
 
@@ -341,26 +323,51 @@ export default function CalendarPage() {
         if (!forced && userInteractedRef.current) return;
         if (!calendarMetrics.isSameMonth && !forced) return;
 
-        const { targetY } = calendarMetrics;
-
-        // [그리드 기준 수학 계산 방식]
-        // 오늘 셀 DOM 위치에 의존하지 않으므로 초기 진입, 달 이동 후, 렌더링 전 모두 정확
-        // - 그리드 컨테이너 top: CSS 고정 높이 기반, 카드 높이/이미지 로드와 무관
-        // - targetY: 이벤트 데이터로 미리 계산된 상대 위치
-        // - headerBottom: 고정 헤더 CSS 기반
         const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
         const weekdayHeaderEl = document.querySelector('.calendar-page-weekday-header');
+        
         if (!gridEl) return;
 
-        const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
-        const headerBottom = weekdayHeaderEl
-            ? weekdayHeaderEl.getBoundingClientRect().bottom
-            : 102;
+        let retryCount = 0;
+        const maxRetries = 10; // 렌더링 시차를 기다리는 최대 프레임 수
 
-        const scrollTarget = Math.max(0, gridAbsoluteTop + targetY - headerBottom);
-        window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
+        const performWarp = () => {
+            const todayEl = document.querySelector('.calendar-grid-cell.is-today');
+            
+            // 아직 엘리먼트가 그려지지 않았다면 재시도 (최대 0.3~0.5초 대응)
+            if (!todayEl && retryCount < maxRetries) {
+                retryCount++;
+                requestAnimationFrame(performWarp);
+                return;
+            }
+
+            // [Dynamic Measure] 고정 헤더 실측
+            const headerBottom = weekdayHeaderEl
+                ? weekdayHeaderEl.getBoundingClientRect().bottom
+                : 198;
+
+            const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
+            
+            let finalY = 0;
+            if (todayEl) {
+                const todayRect = todayEl.getBoundingClientRect();
+                finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
+            } else {
+                // [Fallback] 요소를 못 찾았을 경우에만 극히 예외적으로 이전의 수학 계산값 사용
+                finalY = calendarMetrics.targetY;
+            }
+
+            const scrollTarget = Math.max(0, gridAbsoluteTop + finalY - headerBottom);
+            
+            console.log(`📏 [Warp-Final] mode: ${todayEl ? 'DOM' : 'FALLBACK'}, retry: ${retryCount}, result: ${scrollTarget.toFixed(1)}`);
+            window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
+        };
+
+        performWarp();
 
     }, [calendarMetrics]);
+
+
 
     useLayoutEffect(() => {
         // [Modal Guard] 모달 열림 상태에서는 body가 position:fixed이므로 워프 스킵
@@ -402,7 +409,7 @@ export default function CalendarPage() {
         setSelectedDate(null);
     }, []);
 
-    const handleTabClick = (filter: 'all' | 'social-events' | 'classes' | 'overseas') => {
+    const handleTabClick = (filter: 'all' | 'social-events' | 'classes') => {
         userInteractedRef.current = false;
 
         const today = new Date();
@@ -438,9 +445,7 @@ export default function CalendarPage() {
                         const isSocial = !!data.group_id || data.category === 'social';
                         const isLesson = ['class', 'regular', 'club'].includes(data.category);
 
-                        if (data.scope === 'overseas') {
-                            setTabFilter('overseas');
-                        } else if (isSocial) {
+                        if (isSocial) {
                             setTabFilter('social-events');
                         } else if (isLesson) {
                             setTabFilter('classes');
@@ -640,17 +645,17 @@ export default function CalendarPage() {
                         <span className="fixed-part en" translate="no">Class</span>
                     </div>
                 </button>
-                <button
-                    className={`calendar-tab-btn ${tabFilter === 'overseas' ? 'active' : ''}`}
-                    onClick={() => handleTabClick('overseas')}
-                >
-                    <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🌏</span>
-                    <div className="tab-label-wrapper">
-                        <span className="translated-part">Global</span>
-                        <span className="fixed-part ko" translate="no">국외</span>
-                        <span className="fixed-part en" translate="no">Global</span>
-                    </div>
-                </button>
+            </div>
+            
+            {/* Weekday Header (H4) - 로직의 동적 측위 기준점 */}
+            <div className="calendar-page-weekday-header">
+                <div className="calendar-page-weekday-item">{t('Sun')}</div>
+                <div className="calendar-page-weekday-item">{t('Mon')}</div>
+                <div className="calendar-page-weekday-item">{t('Tue')}</div>
+                <div className="calendar-page-weekday-item">{t('Wed')}</div>
+                <div className="calendar-page-weekday-item">{t('Thu')}</div>
+                <div className="calendar-page-weekday-item">{t('Fri')}</div>
+                <div className="calendar-page-weekday-item">{t('Sat')}</div>
             </div>
 
             <div
@@ -675,7 +680,7 @@ export default function CalendarPage() {
                     isAnimating={isAnimating}
                     onEventClick={(event: any, date: Date, dayEvents: AppEvent[]) => {
                         // [Optimization] 해외 이벤트(overseas)는 지도를 띄우지 않고 즉시 상세 모달 오픈
-                        const isOverseas = event.scope === 'overseas' || tabFilter === 'overseas';
+                        const isOverseas = false; // 통합 정책에 따라 구분 제거
 
                         if (isMapView && !isOverseas) {
                             setSelectedDate(date);
@@ -691,7 +696,7 @@ export default function CalendarPage() {
                     isMapView={isMapView}
                     onDateClickWithEvents={(date, events) => {
                         // [Optimization] 국외 탭(overseas)인 경우 날짜 클릭 시 지도를 띄우지 않음
-                        if (isMapView && tabFilter !== 'overseas') {
+                        if (isMapView) {
                             setSelectedDate(date);
                             setMapDateEvents(events);
                             setShowMapModal(true);

@@ -8,7 +8,7 @@ import ShoppingBanner from "../../ShoppingBanner";
 import type { Event } from "../../../utils/eventListUtils";
 import type { SocialSchedule } from "../../../../social/types";
 import { UnifiedScheduleSection } from "../../UnifiedScheduleSection";
-import { QuickNoticeInput } from "../../../../../components/QuickNoticeInput";
+
 import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
 import { HomeNavButtonsSection } from "../../HomeNavButtonsSection";
@@ -109,17 +109,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         setSearchParams(p);
     };
 
-    // State for Global Section Toggle
-    const [showGlobal, setShowGlobal] = React.useState(false);
 
-    // Split events by scope
-    const domesticEvents = React.useMemo(() =>
-        futureEvents.filter(e => !e.scope || e.scope === 'domestic'),
-        [futureEvents]);
 
-    const overseasEvents = React.useMemo(() =>
-        futureEvents.filter(e => e.scope === 'overseas'),
-        [futureEvents]);
+
 
     // 강습 노출 필터 로직: 시작일이 지났으면 노출하지 않음 (Today > StartDate -> Hide)
     // 4,6,7일 수업이어도 오늘(5일)이면 미노출. 오늘(4일)이면 노출.
@@ -144,7 +136,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         const list = socialSchedules || [];
         const items = list
             .filter(s => s.category === 'social')
-            .filter(s => s.image_url || s.image_thumbnail || s.image_medium || s.image)
             .map(s => ({
                 imageUrl: getCardThumbnail(s as any) || '',
                 title: s.title || '',
@@ -172,7 +163,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
     const recentEventImages = useMemo(() => {
         return futureEvents
-            .filter(e => !e.scope || e.scope === 'domestic')
             .filter(e => e.image || e.image_thumbnail || e.image_medium)
             .slice(0, 10)
             .map(e => getCardThumbnail(e))
@@ -218,41 +208,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             /> 
             */}
 
-            {/* Quick Notice Input */}
-            <QuickNoticeInput />
 
-            {/* 2. Global Scope Switcher */}
-            <div className="ELS-scopeSwitcherContainer">
-                <div className="ELS-scopeSwitcher" data-scope={showGlobal ? "overseas" : "domestic"}>
-                    <div className="ELS-scopeIndicator" />
-                    <button
-                        className={`ELS-scopeBtn manual-label-wrapper ${!showGlobal ? 'is-active' : ''}`}
-                        onClick={() => setShowGlobal(false)}
-                        data-analytics-id="scope_domestic"
-                        data-analytics-type="tab"
-                        data-analytics-title="국내 행사 검색"
-                        data-analytics-section="event_preview_scope"
-                    >
-                        <i className="ri-map-pin-2-line"></i>
-                        <span className="translated-part">Domestic</span>
-                        <span className="fixed-part ko" translate="no">국내 행사</span>
-                        <span className="fixed-part en" translate="no">Domestic</span>
-                    </button>
-                    <button
-                        className={`ELS-scopeBtn manual-label-wrapper ${showGlobal ? 'is-active' : ''}`}
-                        onClick={() => setShowGlobal(true)}
-                        data-analytics-id="scope_overseas"
-                        data-analytics-type="tab"
-                        data-analytics-title="국외 행사 검색"
-                        data-analytics-section="event_preview_scope"
-                    >
-                        <i className="ri-earth-line"></i>
-                        <span className="translated-part">Global</span>
-                        <span className="fixed-part ko" translate="no">국외 행사</span>
-                        <span className="fixed-part en" translate="no">Global</span>
-                    </button>
-                </div>
-            </div>
+
+
 
             {/* 4. Slot A: Random Banner (Practice Room or Shopping) */}
             {isBannerSwapped ? (
@@ -282,19 +240,18 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 />
             )}
 
-            {/* 6. Events Rows (Domestic or Overseas based on Global Scope) */}
             <EventPreviewRow
-                title={showGlobal ? 'Global Events' : '예정된 행사'}
-                icon={showGlobal ? "ri-earth-line" : "ri-fire-fill"}
-                className={showGlobal ? "ELS-section--global" : "ELS-section--upcoming"}
-                count={showGlobal ? overseasEvents.length : domesticEvents.length}
-                viewAllUrl={!showGlobal ? "/calendar" : undefined}
+                title="예정된 행사"
+                icon="ri-fire-fill"
+                className="ELS-section--upcoming"
+                count={futureEvents.length}
+                viewAllUrl="/calendar"
                 viewAllLabel="달력보기"
-                genres={!showGlobal ? ['전체', ...allGenresStructured.event] : undefined}
+                genres={['전체', ...allGenresStructured.event]}
                 selectedGenre={selectedEventGenre}
                 onGenreChange={(g) => setGenreParam('event_genre', g)}
                 renderGenreLabel={renderGenreLabel}
-                events={showGlobal ? overseasEvents : domesticEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre))}
+                events={futureEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre))}
                 onEventClick={onEventClick}
                 onEventHover={onEventHover}
                 highlightEventId={highlightEvent?.id}
@@ -305,8 +262,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             />
 
             {/* 7. Classes Row */}
-            {!showGlobal && (
-                <EventPreviewRow
+            <EventPreviewRow
                     title="강습"
                     icon="ri-calendar-check-fill"
                     className="ELS-section--classes"
@@ -326,10 +282,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     effectiveFavoriteIds={effectiveFavoriteIds}
                     handleToggleFavorite={handleToggleFavorite}
                 />
-            )}
 
             {/* 8. Club Lesson Row */}
-            {!showGlobal && (
+
                 <EventPreviewRow
                     title="동호회 강습"
                     icon="ri-group-fill"
@@ -350,11 +305,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     effectiveFavoriteIds={effectiveFavoriteIds}
                     handleToggleFavorite={handleToggleFavorite}
                 />
-            )}
+
 
             {/* 9. Club Regular Class Row */}
-            {!showGlobal && clubRegularClasses.length > 0 && (
-                <EventPreviewRow
+            <EventPreviewRow
                     title="동호회 정규강습"
                     icon="ri-group-2-fill"
                     className="ELS-section--club-regular"
@@ -368,7 +322,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     effectiveFavoriteIds={effectiveFavoriteIds}
                     handleToggleFavorite={handleToggleFavorite}
                 />
-            )}
 
             {/* 10. Slot B: Random Banner (Shopping or Practice Room) */}
             <div className="ELS-banner-wrapper">

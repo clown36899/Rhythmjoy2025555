@@ -56,7 +56,8 @@
 }
 
 .layout-full .header-content-inner {
-  max-width: none !important;
+  /* [Fix] 인제스터 모드에서도 헤더 컨텐츠는 중앙 정렬 유지 */
+  max-width: 650px !important;
 }
 
 .shell-bottom-nav {
@@ -312,22 +313,18 @@
   align-items: center;
 }
 
-/* Global Header Styles */
 .shell-header.global-header-fixed {
   position: fixed;
   top: 0;
   left: 0;
-  border: none !important;
+  right: 0;
   width: 100%;
-  height: calc(60px + env(safe-area-inset-top));
+  border: none !important;
+  height: 60px;
   padding-top: env(safe-area-inset-top);
-  /* background-color: var(--bg-header-backdrop); */
-  /* 마스크로 투명해지므로 기본 농도 상향 */
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  /* -webkit-mask-image: var(--header-mask-image);
-  mask-image: var(--header-mask-image); */
-  z-index: 49;
+  box-sizing: content-box;
+  background-color: var(--bg-base); /* 불투명 배경 */
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -337,27 +334,43 @@
 
 .header-nav-v2 {
   position: fixed;
-  top: calc(56px + env(safe-area-inset-top));
+  top: calc(60px + env(safe-area-inset-top));
   left: 0;
   width: 100%;
   height: 48px;
-  background-color: transparent;
+  background-color: var(--bg-base); /* 불투명 배경 */
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 48;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  z-index: 999;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .header-nav-v2-inner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6vw;
+  gap: 12px; /* 간격을 고정 픽셀로 변경 */
   width: 100%;
   max-width: 650px;
+  padding: 0 16px;
 }
+
+.nav-refresh-btn {
+  margin-right: 4px;
+  font-size: 1.4rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.nav-refresh-btn:hover {
+  opacity: 1;
+  color: var(--color-blue-500);
+}
+
 
 .header-nav-v2-item {
   background: none;
@@ -394,8 +407,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 0.5vw;
-  padding-right: 1vw;
+  padding: 0 16px; /* 좌우 패딩 통일 */
   margin: 0 auto;
 }
 
@@ -445,8 +457,11 @@
 
 .layout-compact .shell-main-content,
 .layout-wide .shell-main-content {
-  padding-top: calc(104px + env(safe-area-inset-top)) !important;
+  padding-top: calc(108px + env(safe-area-inset-top)) !important; 
+  /* H1(60)+H2(48) = 108px 공간을 상시 확보하여 레이아웃 시동 시 좌표 튐 방지 */
 }
+
+
 
 /* Events Page Header */
 .header-events-content {

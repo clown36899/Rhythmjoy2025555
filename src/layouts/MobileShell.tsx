@@ -548,12 +548,26 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </header >
       )}
 
-      {/* New Header Navigation for Events Page */}
-      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && isEventsPage && (
+      {/* New Header Navigation for Events Page & Calendar Page */}
+      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isCalendarPage) && (
         <nav className="header-nav-v2">
           <div className="header-nav-v2-inner">
             <button
-              className="header-nav-v2-item"
+              className="header-nav-v2-item nav-refresh-btn"
+              onClick={() => {
+                if (window.location.pathname === '/v2' || window.location.pathname === '/') {
+                  window.location.reload();
+                } else {
+                  navigate('/v2');
+                }
+              }}
+              aria-label="Home"
+              data-analytics-id="header_nav_home_refresh"
+            >
+              <i className="ri-refresh-line"></i>
+            </button>
+            <button
+              className={`header-nav-v2-item ${isCalendarPage ? 'is-active' : ''}`}
               onClick={() => navigate('/calendar')}
               data-analytics-id="header_nav_calendar"
             >
@@ -577,7 +591,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </nav>
       )}
 
-      <div className={isAdminV2Ingestor ? "shell-main-content layout-full" : ""} style={{ paddingTop: isEventsPage ? '0' : '0' }}>
+      <div className={`shell-main-content ${isAdminV2Ingestor ? 'layout-full' : ''}`}>
         <Outlet context={{ category, isFullscreen }} />
       </div>
 

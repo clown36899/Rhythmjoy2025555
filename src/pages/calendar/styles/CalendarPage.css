@@ -2,7 +2,7 @@
 
 /* Apply scroll-padding to html for window-level scrolling */
 html {
-    scroll-padding-top: calc(60px + env(safe-area-inset-top));
+    scroll-padding-top: calc(156px + env(safe-area-inset-top)); /* 60+48+48 */
 }
 
 .calendar-page-container {
@@ -17,51 +17,40 @@ html {
     /* 웹 기본값 */
 }
 
-/* Tab Menu */
+/* Tab Menu as Header 3 */
 .calendar-tab-menu {
     position: fixed;
-    top: auto;
-    bottom: calc(70px + env(safe-area-inset-bottom));
-    /* 안개 효과 위로 충분히 올림 */
+    top: calc(108px + env(safe-area-inset-top)); /* H1(60) + H2(48) */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 650px;
-    z-index: 999;
-    /* 하단 네비게이션(50)보다 높게 설정 */
-    background-color: transparent;
-    /* 배경 투명화 */
+    height: 48px;
+    z-index: 998;
+    background-color: var(--bg-surface-1);
     display: flex;
-    gap: 8px;
-    padding: 0 16px;
-    box-shadow: none;
-    /* 컨테이너 그림자 제거 */
-    pointer-events: none;
-    /* 버튼 외 영역 클릭 통과 */
+    gap: 0;
+    padding: 0;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .calendar-tab-btn {
     flex: 1;
-    padding: 8px 12px;
-    background-color: var(--bg-glass-heavy);
-    /* 시맨틱 반투명 배경 */
-    backdrop-filter: blur(10px);
+    height: 100%;
+    background-color: transparent;
     color: var(--text-secondary);
-    border: 1px solid var(--border-glass-strong);
-    border-radius: 40px;
-    /* 캡슐형 */
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: auto;
-    /* 버튼 클릭 활성화 */
-    box-shadow: var(--shadow-md);
-    /* 버튼 자체 그림자 */
+    gap: 6px;
 }
 
 .calendar-tab-btn i {
@@ -75,62 +64,48 @@ html {
 }
 
 .calendar-tab-btn.active {
-    background-color: var(--color-blue-600);
-    color: var(--color-white);
-    border-color: var(--color-blue-600);
-    font-weight: 600;
+    background-color: transparent;
+    color: var(--color-blue-500);
+    border-bottom: 3px solid var(--color-blue-500);
+    font-weight: 800;
 }
 
-/* Sticky Weekday Header */
 .calendar-page-weekday-header {
     position: fixed;
-    top: calc(60px + env(safe-area-inset-top));
+    top: calc(156px + env(safe-area-inset-top)); /* 60+48+48 */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 650px;
     z-index: 40;
-    /* BoardTabBar와 동일한 레벨 */
     background-color: var(--bg-base);
-    /* padding-top: 10px; */
-    /* padding-bottom: 10px; */
     border-bottom: 1px solid var(--border-primary);
+    
+    /* [Alignment Fix] 7칸 그리드 정렬 추가 */
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
 }
+
 
 /* 요일 헤더가 fixed로 변경됨에 따라 본문이 가려지지 않도록 여백 추가 */
 .calendar-page-main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    /* overflow: hidden; - Removed to allow pull-to-refresh */
     position: relative;
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: calc(60px + env(safe-area-inset-top));
-    /* 글로벌 헤더(60px)만 - 요일 헤더는 제거됨 */
+    padding-top: calc(90px + env(safe-area-inset-top)); 
+    /* Shell(108px) + Page(90px) = 198px (H1~H4 합계) */
     padding-bottom: calc(56px + env(safe-area-inset-bottom));
-    /* 탭 메뉴 + 바텀 내비게이션 공간 확보 */
 }
 
 /* 요일 헤더 레이아웃 스타일 */
-.calendar-weekday-header {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0;
-    text-align: center;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    flex-shrink: 0;
-    background-color: var(--bg-surface-1);
-}
-
-.calendar-weekday-item {
-    padding: 10px 0;
-    /* Padding restored */
+.calendar-page-weekday-item {
     height: 42px;
-    /* Fixed height to prevent any layout shifts */
+    padding: 10px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -138,13 +113,17 @@ html {
     color: var(--text-secondary);
     transition: all 0.2s ease;
     position: relative;
-    /* For absolute icon */
+    background-color: var(--bg-surface-1);
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
-.calendar-weekday-item.selected {
+
+.calendar-page-weekday-item.selected {
     color: var(--color-blue-400) !important;
     font-weight: bold;
 }
+
 
 /* Close Icon: Positioned absolutely to never affect height */
 .absolute-icon {
