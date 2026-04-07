@@ -324,27 +324,27 @@ export default function CalendarPage() {
         if (!calendarMetrics.isSameMonth && !forced) return;
 
         const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
-        const weekdayHeaderEl = document.querySelector('.calendar-page-weekday-header');
+        // 요일 바가 제거되었으므로 탭 헤더(H3)를 기준점으로 삼음
+        const navHeaderEl = document.querySelector('.calendar-tabs-header');
         
         if (!gridEl) return;
 
         let retryCount = 0;
-        const maxRetries = 10; // 렌더링 시차를 기다리는 최대 프레임 수
+        const maxRetries = 10; 
 
         const performWarp = () => {
             const todayEl = document.querySelector('.calendar-grid-cell.is-today');
             
-            // 아직 엘리먼트가 그려지지 않았다면 재시도 (최대 0.3~0.5초 대응)
             if (!todayEl && retryCount < maxRetries) {
                 retryCount++;
                 requestAnimationFrame(performWarp);
                 return;
             }
 
-            // [Dynamic Measure] 고정 헤더 실측
-            const headerBottom = weekdayHeaderEl
-                ? weekdayHeaderEl.getBoundingClientRect().bottom
-                : 198;
+            // [Dynamic Measure] 탭 헤더(H3)의 바닥 지점을 실측
+            const headerBottom = navHeaderEl
+                ? navHeaderEl.getBoundingClientRect().bottom
+                : 156; // (60 + 48 + 48)
 
             const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
             
@@ -353,19 +353,19 @@ export default function CalendarPage() {
                 const todayRect = todayEl.getBoundingClientRect();
                 finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
             } else {
-                // [Fallback] 요소를 못 찾았을 경우에만 극히 예외적으로 이전의 수학 계산값 사용
                 finalY = calendarMetrics.targetY;
             }
 
             const scrollTarget = Math.max(0, gridAbsoluteTop + finalY - headerBottom);
             
-            console.log(`📏 [Warp-Final] mode: ${todayEl ? 'DOM' : 'FALLBACK'}, retry: ${retryCount}, result: ${scrollTarget.toFixed(1)}`);
+            console.log(`📏 [Warp-Final] mode: ${todayEl ? 'DOM' : 'FALLBACK'}, result: ${scrollTarget.toFixed(1)}`);
             window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
         };
 
         performWarp();
 
     }, [calendarMetrics]);
+
 
 
 
@@ -617,7 +617,6 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
                     onClick={() => handleTabClick('all')}
                 >
-                    <i className="ri-calendar-line"></i>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('all')}</span>
                         <span className="fixed-part ko" translate="no">전체</span>
@@ -638,7 +637,6 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
                     onClick={() => handleTabClick('classes')}
                 >
-                    <i className="ri-graduation-cap-fill"></i>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('classes')}</span>
                         <span className="fixed-part ko" translate="no">강습</span>
@@ -647,16 +645,6 @@ export default function CalendarPage() {
                 </button>
             </div>
             
-            {/* Weekday Header (H4) - 로직의 동적 측위 기준점 */}
-            <div className="calendar-page-weekday-header">
-                <div className="calendar-page-weekday-item">{t('Sun')}</div>
-                <div className="calendar-page-weekday-item">{t('Mon')}</div>
-                <div className="calendar-page-weekday-item">{t('Tue')}</div>
-                <div className="calendar-page-weekday-item">{t('Wed')}</div>
-                <div className="calendar-page-weekday-item">{t('Thu')}</div>
-                <div className="calendar-page-weekday-item">{t('Fri')}</div>
-                <div className="calendar-page-weekday-item">{t('Sat')}</div>
-            </div>
 
             <div
                 className="calendar-page-main"

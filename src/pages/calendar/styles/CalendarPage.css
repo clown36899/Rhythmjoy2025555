@@ -70,22 +70,6 @@ html {
     font-weight: 800;
 }
 
-.calendar-page-weekday-header {
-    position: fixed;
-    top: calc(156px + env(safe-area-inset-top)); /* 60+48+48 */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 650px;
-    z-index: 40;
-    background-color: var(--bg-base);
-    border-bottom: 1px solid var(--border-primary);
-    
-    /* [Alignment Fix] 7칸 그리드 정렬 추가 */
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-}
 
 
 /* 요일 헤더가 fixed로 변경됨에 따라 본문이 가려지지 않도록 여백 추가 */
@@ -97,26 +81,11 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: calc(90px + env(safe-area-inset-top)); 
-    /* Shell(108px) + Page(90px) = 198px (H1~H4 합계) */
+    padding-top: calc(48px + env(safe-area-inset-top)); 
+    /* Shell(108px) + Page(48px) = 156px (H1~H3 합계) */
     padding-bottom: calc(56px + env(safe-area-inset-bottom));
 }
 
-/* 요일 헤더 레이아웃 스타일 */
-.calendar-page-weekday-item {
-    height: 42px;
-    padding: 10px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-    position: relative;
-    background-color: var(--bg-surface-1);
-    font-size: 0.9rem;
-    font-weight: 600;
-}
 
 
 .calendar-page-weekday-item.selected {
