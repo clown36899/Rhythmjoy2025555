@@ -2,11 +2,12 @@
 .links-page-glass-container {
     max-width: 900px;
     margin: 0 auto;
-    padding: calc(60px + env(safe-area-inset-top) + 20px) 20px calc(100px + env(safe-area-inset-bottom));
+    /* padding-top: calc(60px + env(safe-area-inset-top) + 20px) -> Shell 패딩(108px) 활용 위해 제거 */
+    padding: 20px 20px calc(100px + env(safe-area-inset-bottom));
     min-height: 100vh;
-    background: var(--color-bg-primary);
+    background: var(--bg-surface-1);
     position: relative;
-    overflow-x: hidden;
+    /* overflow-x: hidden; - sticky 동작 방해 방지 */
     animation: fadeIn 0.4s ease-out;
 }
 
@@ -106,11 +107,11 @@
 
 .links-glass-filter-wrapper {
     position: sticky;
-    top: calc(60px + env(safe-area-inset-top));
+    top: calc(108px + env(safe-area-inset-top)); /* 60px -> 108px (H1+H2) */
     z-index: 10;
     margin-bottom: 24px;
     padding: 12px 0;
-    background: linear-gradient(to bottom, var(--color-bg-primary) 70%, transparent);
+    background: linear-gradient(to bottom, var(--bg-surface-1) 70%, transparent);
 }
 
 .links-category-filter {

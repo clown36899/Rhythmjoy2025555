@@ -205,12 +205,6 @@ export default function HomePageV2() {
                 onSelectSocial: () => {
                     closeModal('registrationChoice');
                     openModal('weeklySocial');
-                },
-                onSelectPublic: () => {
-                    closeModal('registrationChoice');
-                    const dateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
-                    const url = dateStr ? `/social?action=register_social&date=${dateStr}` : '/social?action=register_social';
-                    navigate(url);
                 }
             });
         }

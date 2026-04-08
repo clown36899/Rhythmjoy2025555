@@ -1,11 +1,11 @@
 .forum-hub-container {
     width: 100%;
     height: 100svh;
-    padding-top: calc(70px + env(safe-area-inset-top));
+    /*  padding-top: calc(70px + env(safe-area-inset-top)); - 중첩 방지 위해 제거 */
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
-    background: var(--bg-base);
+    background: var(--bg-surface-1);
     /* Respects global theme */
     display: flex;
     flex-direction: column;
@@ -33,6 +33,7 @@
     max-width: 500px;
     margin: 0 auto;
     height: 100%;
+    padding: 20px 0 0 0;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -169,8 +170,8 @@
 
 /* Specific Theme Overrides for Premium Feel */
 [data-theme='dark'] .forum-hub-container {
-    background: #0f172a;
-    /* Keep the premium deep navy specifically for dark mode */
+    background: var(--bg-surface-1);
+    /* 상단 메뉴와 연결성 확보를 위해 배경색 통일 */
 }
 
 [data-theme='dark'] .forum-hub-container::before {

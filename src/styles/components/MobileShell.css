@@ -323,7 +323,8 @@
   height: 60px;
   padding-top: env(safe-area-inset-top);
   box-sizing: content-box;
-  background-color: var(--bg-base); /* 불투명 배경 */
+  background-color: var(--bg-base);
+  /* 불투명 배경 */
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -338,19 +339,22 @@
   left: 0;
   width: 100%;
   height: 48px;
-  background-color: var(--bg-base); /* 불투명 배경 */
+  background-color: var(--bg-base);
+  /* 불투명 배경 */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
-  border-bottom: 1px solid var(--border-subtle);
+  /* border-bottom 제거: 3단계 메뉴의 상단 border와 융합하기 위함 */
+  border-bottom: none;
 }
 
 .header-nav-v2-inner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px; /* 간격을 고정 픽셀로 변경 */
+  gap: 0px;
+  /* 간격을 고정 픽셀로 변경 */
   width: 100%;
   max-width: 650px;
   padding: 0 16px;
@@ -374,23 +378,43 @@
 
 .header-nav-v2-item {
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-bottom: none;
   color: var(--text-primary);
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1.15rem;
+  font-weight: 700;
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 8px 16px;
   transition: all 0.2s ease;
   white-space: nowrap;
   letter-spacing: -0.02em;
   font-family: 'Outfit', 'Inter', sans-serif;
-  opacity: 0.9;
+  opacity: 0.8;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  position: relative;
+  top: 5px;
+  /* 하단 바와 닿도록 아래로 밀어줌 (전체 높이 48px 중 38px 아이템) */
 }
 
 .header-nav-v2-item:hover {
   opacity: 1;
-  transform: translateY(-2px);
   color: var(--color-blue-400);
+}
+
+.header-nav-v2-item.is-active {
+  opacity: 1;
+  background-color: var(--bg-surface-1);
+  border-color: var(--border-subtle);
+  color: var(--color-blue-500);
+  font-weight: 800;
+  z-index: 1000;
+  /* 하단 바의 top border를 덮기 위해 1px 더 연장 */
+  height: 39px;
 }
 
 .header-nav-v2-item:active {
@@ -407,7 +431,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px; /* 좌우 패딩 통일 */
+  padding: 0 16px;
+  /* 좌우 패딩 통일 */
   margin: 0 auto;
 }
 
@@ -457,7 +482,7 @@
 
 .layout-compact .shell-main-content,
 .layout-wide .shell-main-content {
-  padding-top: calc(108px + env(safe-area-inset-top)) !important; 
+  padding-top: calc(108px + env(safe-area-inset-top)) !important;
   /* H1(60)+H2(48) = 108px 공간을 상시 확보하여 레이아웃 시동 시 좌표 튐 방지 */
 }
 
@@ -1050,4 +1075,49 @@
 /* ===== Calendar Header Refinements ===== */
 .calendar-month-label-clickable {
   cursor: pointer;
+}
+/* ===== Floating Action Button (FAB) ===== */
+.shell-fab-btn {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--color-blue-500);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 
+              0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 998;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shell-fab-btn:hover {
+  transform: scale(1.1) translateY(-2px);
+  background: var(--color-blue-600);
+}
+
+.shell-fab-btn:active {
+  transform: scale(0.9) translateY(0);
+}
+
+.shell-fab-btn i {
+  font-size: 24px;
+}
+
+/* Wide Layout Adjustment */
+.layout-wide .shell-fab-btn {
+  right: calc(50% - 325px + 20px);
+}
+
+@media (max-width: 650px) {
+  .layout-wide .shell-fab-btn {
+    right: 20px;
+  }
 }

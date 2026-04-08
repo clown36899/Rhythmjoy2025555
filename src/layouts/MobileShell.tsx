@@ -57,10 +57,13 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isShoppingPage = currentPath.startsWith('/shopping');
   const isGuidePage = currentPath.startsWith('/guide');
   const isCalendarPage = currentPath === '/calendar';
+  const isForumPage = currentPath === '/forum';
   const isMyActivitiesPage = currentPath === '/my-activities';
   const isArchivePage = currentPath.startsWith('/learning') || currentPath.startsWith('/history') || (currentPath === '/board' && category === 'history');
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
   const isMetronomePage = currentPath === '/metronome';
+  const isBpmTapperPage = currentPath === '/bpm-tapper';
+  const isLinksPage = currentPath === '/links';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
 
@@ -314,7 +317,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   return (
     <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''}`}>
       {/* Global Fixed Header */}
-      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && (
+      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (
         <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
           <div className="header-content-inner">
             {/* Left/Center Content based on Route */}
@@ -549,7 +552,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       )}
 
       {/* New Header Navigation for Events Page & Calendar Page */}
-      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isCalendarPage) && (
+      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
         <nav className="header-nav-v2">
           <div className="header-nav-v2-inner">
             <button
@@ -574,18 +577,18 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               전체달력
             </button>
             <button
-              className="header-nav-v2-item"
+              className={`header-nav-v2-item ${isBoardPage ? 'is-active' : ''}`}
               onClick={() => navigate('/board')}
-              data-analytics-id="header_nav_forum"
-            >
-              포럼
-            </button>
-            <button
-              className="header-nav-v2-item"
-              onClick={() => navigate('/board?category=free')}
               data-analytics-id="header_nav_free_board"
             >
               자유게시판
+            </button>
+            <button
+              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
+              onClick={() => navigate('/forum')}
+              data-analytics-id="header_nav_forum"
+            >
+              포럼
             </button>
           </div>
         </nav>
@@ -604,7 +607,19 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       )}
       */}
 
-      {/* Organic FAB */}
+      {/* Global Floating Action Button (FAB) */}
+      {!isFullscreen && pageAction && (
+        <button
+          className="shell-fab-btn"
+          onClick={handlePageAction}
+          aria-label={pageAction.label || 'Action'}
+          data-analytics-id="global_fab_action"
+          data-analytics-type="action"
+          data-analytics-title={pageAction.label || 'Floating Action'}
+        >
+          <i className={pageAction.icon}></i>
+        </button>
+      )}
 
       <SideDrawer
         onLoginClick={() => {

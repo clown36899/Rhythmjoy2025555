@@ -3,8 +3,8 @@
 /* ===== 페이지 컨테이너 ===== */
 /* ===== 페이지 컨테이너 ===== */
 .board-page-container {
-  padding-top: calc(60px + env(safe-area-inset-top));
-  /* Safe Area for Header (60px + Notch) */
+  padding-top: 0;
+  /* Shell handles main padding (108px + Notch) */
   position: relative;
   min-height: 100vh;
   /* Mobile Address Bar Fix */
@@ -14,6 +14,7 @@
   flex-direction: column;
   flex: 1;
   /* NEW: Fill available height */
+  background-color: var(--bg-surface-1);
 }
 
 /* History Mode: Height and Overflow Management */
@@ -22,8 +23,8 @@
   height: 100dvh;
   /* Use dynamic viewport height */
   overflow: hidden;
-  padding-top: calc(60px + env(safe-area-inset-top)) !important;
-  /* Always keep header space */
+  padding-top: 0 !important;
+  /* Shell handles main padding */
 }
 
 /* Tab Bar Positioning - Standardized */
@@ -197,7 +198,7 @@
 body .board-posts-container.is-standard-board-v2 .board-post-card {
   background-color: var(--bg-card) !important;
   border-bottom: 1px solid var(--border-subtle) !important;
-  padding: 1.5rem 1rem !important;
+  padding: 1rem 1rem !important;
   transition: none !important;
   transform: none !important;
   box-shadow: none !important;

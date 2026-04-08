@@ -30,7 +30,7 @@ const MetronomePage: React.FC = () => {
     const [userPresets, setUserPresets] = useState<MetronomePreset[]>([]);
     const [activeUserPreset, setActiveUserPreset] = useState<MetronomePreset | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush' | 'kick' | 'hat' | 'cowbell' | 'clave'>('brush');
+    const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush' | 'kick' | 'hat' | 'cowbell' | 'clave'>('classic');
     const [beatVolumes, setBeatVolumes] = useState<number[]>(() => Array(4).fill(3));
 
     const sounds = [
@@ -680,15 +680,6 @@ const MetronomePage: React.FC = () => {
 
     return (
         <div className="metronome-container" onClick={() => setShowRhythmList(false)}>
-            {/* 전용 뒤로가기 버튼 추가 */}
-            <button
-                className="metronome-back-btn"
-                onClick={() => navigate('/forum')}
-                title="포럼 허브로 돌아가기"
-            >
-                <i className="ri-arrow-left-line"></i>
-            </button>
-
             <div className="metronome-content">
                 {/* P4: Enhanced Info Modal */}
                 {showInfo && (

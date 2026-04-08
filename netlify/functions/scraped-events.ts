@@ -67,7 +67,7 @@ export const handler: Handler = async (event) => {
     try {
         // ===== GET: 전체 목록 조회 =====
         if (event.httpMethod === 'GET') {
-            const rows = await db.all('SELECT * FROM scraped_events ORDER BY created_at DESC');
+            const rows = await db.all("SELECT * FROM scraped_events WHERE status IS NULL OR status != 'excluded' ORDER BY created_at DESC");
             
             // SQLite 0/1 값을 Boolean으로, JSONB 데이터를 객체로 변환
             const events = rows.map(row => ({
@@ -97,8 +97,32 @@ export const handler: Handler = async (event) => {
             }
 
             const now = new Date().toISOString();
+            const skipped: { id: string; reason: string; existingId: string }[] = [];
 
             for (const item of incoming) {
+                // 중복 체크: 같은 날짜 + 같은 제목이 이미 존재하면 스킵 (신규 수집 시에만)
+                // is_collected 업데이트(등록 처리)는 id 기반 upsert이므로 그대로 진행
+                if (!item.is_collected) {
+                    const sd = item.structured_data || {};
+                    const date = sd.date || '';
+                    const title = (sd.title || '').trim();
+
+                    if (date && title) {
+                        const existing = await db.get(
+                            `SELECT id FROM scraped_events
+                             WHERE json_extract(structured_data, '$.date') = ?
+                               AND TRIM(json_extract(structured_data, '$.title')) = ?
+                               AND id != ?`,
+                            [date, title, item.id]
+                        );
+                        if (existing) {
+                            skipped.push({ id: item.id, reason: '날짜+제목 중복', existingId: existing.id });
+                            console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id} (${date} / ${title})`);
+                            continue;
+                        }
+                    }
+                }
+
                 let posterUrl = item.poster_url;
 
                 // Base64 이미지가 포함된 경우 파일로 저장
@@ -127,8 +151,8 @@ export const handler: Handler = async (event) => {
 
                 await db.run(`
                     INSERT INTO scraped_events (
-                        id, keyword, source_url, poster_url, extracted_text, structured_data, is_collected, updated_at, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        id, keyword, source_url, poster_url, extracted_text, structured_data, is_collected, status, updated_at, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         keyword=excluded.keyword,
                         source_url=excluded.source_url,
@@ -136,6 +160,7 @@ export const handler: Handler = async (event) => {
                         extracted_text=excluded.extracted_text,
                         structured_data=excluded.structured_data,
                         is_collected=excluded.is_collected,
+                        status=excluded.status,
                         updated_at=excluded.updated_at
                 `, [
                     item.id,
@@ -145,6 +170,7 @@ export const handler: Handler = async (event) => {
                     item.extracted_text,
                     JSON.stringify(item.structured_data || {}),
                     item.is_collected ? 1 : 0,
+                    item.status || null,
                     now,
                     item.created_at || now
                 ]);
@@ -153,7 +179,11 @@ export const handler: Handler = async (event) => {
             return {
                 statusCode: 201,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ success: true, count: incoming.length }),
+                body: JSON.stringify({
+                    success: true,
+                    count: incoming.length - skipped.length,
+                    skipped,
+                }),
             };
         }
 

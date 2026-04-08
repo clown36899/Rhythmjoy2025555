@@ -7,15 +7,13 @@ interface RegistrationChoiceModalProps {
     onClose: () => void;
     onSelectMain: () => void;
     onSelectSocial?: () => void;
-    onSelectPublic?: () => void; // Optional handler for public recruitment
 }
 
 const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
     isOpen,
     onClose,
     onSelectMain,
-    onSelectSocial,
-    onSelectPublic
+    onSelectSocial
 }) => {
     const navigate = useNavigate();
 
@@ -29,14 +27,6 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
         }
     };
 
-    const handlePublicSelect = () => {
-        if (onSelectPublic) {
-            onSelectPublic();
-        } else {
-            // 임시 알림
-            alert('준비 중입니다.');
-        }
-    };
 
     if (!isOpen) return null;
 
@@ -71,16 +61,6 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
                         <i className="ri-arrow-right-s-line"></i>
                     </button>
 
-                    <button className="choice-option-btn public" onClick={handlePublicSelect}>
-                        <div className="choice-icon-wrapper">
-                            <i className="ri-user-heart-line"></i>
-                        </div>
-                        <div className="choice-text-content">
-                            <span className="choice-label">민간인 모집 원데이등록</span>
-                            <span className="choice-desc">댄서대상이 아닌 신규모집등록</span>
-                        </div>
-                        <i className="ri-arrow-right-s-line" style={{ color: '#6b7280' }}></i>
-                    </button>
                 </div>
 
                 <button className="choice-modal-close" onClick={onClose}>

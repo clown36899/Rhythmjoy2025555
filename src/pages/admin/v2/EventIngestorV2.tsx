@@ -7,6 +7,16 @@ import { createResizedImages } from '../../../utils/imageResize';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import './EventIngestorV2.css';
 
+type EventType = '소셜' | '파티/행사' | '강습';
+
+function detectEventType(event: { structured_data: { title?: string; event_type?: EventType | null }; extracted_text?: string; keyword?: string }): EventType {
+  if (event.structured_data.event_type) return event.structured_data.event_type;
+  const text = `${event.structured_data.title || ''} ${event.extracted_text || ''} ${event.keyword || ''}`.toLowerCase();
+  if (/수업|강습|레슨|lesson|workshop|워크샵|class/.test(text)) return '강습';
+  if (/소셜/.test(text)) return '소셜';
+  return '파티/행사';
+}
+
 const prodSupabase = createClient(
   import.meta.env.VITE_PROD_SUPABASE_URL,
   import.meta.env.VITE_PROD_SUPABASE_ANON_KEY
@@ -30,6 +40,7 @@ interface ScrapedEvent {
     venue_id?: string | number | null;
     fee?: string;
     note?: string;
+    event_type?: '소셜' | '파티/행사' | '강습' | null;
   };
   is_collected?: boolean;
   status?: 'ignored' | 'collected' | 'pending';
@@ -42,9 +53,10 @@ const EventIngestorV2: React.FC = () => {
   const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'new' | 'collected' | 'ignored'>('new');
+  const [activeTab, setActiveTab] = useState<'new' | 'collected'>('new');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'전체' | '소셜' | '파티/행사' | '강습'>('전체');
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -76,11 +88,12 @@ const EventIngestorV2: React.FC = () => {
   }, []);
 
   const filteredEvents = useMemo(() => {
-    if (activeTab === 'new') return scrapedEvents.filter(e => !e.is_collected && e.status !== 'ignored');
-    if (activeTab === 'collected') return scrapedEvents.filter(e => e.is_collected);
-    if (activeTab === 'ignored') return scrapedEvents.filter(e => e.status === 'ignored');
-    return [];
-  }, [scrapedEvents, activeTab]);
+    let list: ScrapedEvent[] = [];
+    if (activeTab === 'new') list = scrapedEvents.filter(e => !e.is_collected);
+    else if (activeTab === 'collected') list = scrapedEvents.filter(e => e.is_collected);
+    if (typeFilter !== '전체') list = list.filter(e => detectEventType(e) === typeFilter);
+    return list;
+  }, [scrapedEvents, activeTab, typeFilter]);
 
   const handleUpdateStatus = async (id: string, updates: Partial<ScrapedEvent>) => {
     try {
@@ -163,12 +176,15 @@ const EventIngestorV2: React.FC = () => {
 
   const handleBulkIgnore = async () => {
     if (!selectedIds.size) return;
+    if (!confirm(`${selectedIds.size}개를 삭제할까요?`)) return;
     setBulkProgress(`제외 처리 중... (0/${selectedIds.size})`);
-    let i = 0;
-    for (const id of selectedIds) {
-      await handleUpdateStatus(id, { status: 'ignored' });
-      setBulkProgress(`제외 처리 중... (${++i}/${selectedIds.size})`);
-    }
+    const ids = Array.from(selectedIds);
+    await fetch('/.netlify/functions/scraped-events', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
     setSelectedIds(new Set());
     setBulkProgress(null);
   };
@@ -293,9 +309,13 @@ const EventIngestorV2: React.FC = () => {
       <header className="ingestor-v2-header">
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
-          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 ({scrapedEvents.filter(e => !e.is_collected && e.status !== 'ignored').length})</button>
+          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 ({scrapedEvents.filter(e => !e.is_collected).length})</button>
           <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 ({scrapedEvents.filter(e => e.is_collected).length})</button>
-          <button className={activeTab === 'ignored' ? 'active' : ''} onClick={() => { setActiveTab('ignored'); setSelectedIds(new Set()); }}>제외 ({scrapedEvents.filter(e => e.status === 'ignored').length})</button>
+        </div>
+        <div className="type-filter-group">
+          {(['전체', '소셜', '파티/행사', '강습'] as const).map(t => (
+            <button key={t} className={`type-filter-btn ${typeFilter === t ? 'active' : ''} type-${t === '전체' ? 'all' : t === '소셜' ? 'social' : t === '파티/행사' ? 'party' : 'lesson'}`} onClick={() => { setTypeFilter(t); setSelectedIds(new Set()); }}>{t}</button>
+          ))}
         </div>
       </header>
 
@@ -353,7 +373,10 @@ const EventIngestorV2: React.FC = () => {
                     ) : <div className="no-image">이미지 미수집</div>}
                   </td>
                   <td className="col-info col-clickable" onClick={() => toggleSelect(event.id)}>
-                    <div className="row-date">{event.structured_data.date} ({event.structured_data.day || '요일미정'})</div>
+                    <div className="row-date-line">
+                      <span className="row-date">{event.structured_data.date} ({event.structured_data.day || '요일미정'})</span>
+                      <span className={`event-type-badge type-badge-${detectEventType(event) === '소셜' ? 'social' : detectEventType(event) === '강습' ? 'lesson' : 'party'}`}>{detectEventType(event)}</span>
+                    </div>
                     <div className="row-title">{event.structured_data.title}</div>
                     <div className="row-keyword">출처 키워드: {event.keyword}</div>
                   </td>
@@ -386,7 +409,15 @@ const EventIngestorV2: React.FC = () => {
                           } catch { setCropImageSrc(event.poster_url); setIsCropModalOpen(true); }
                         } else { setCropImageSrc(null); setIsCropModalOpen(true); }
                       }}>이미지</button>
-                      <button className="btn-dismiss" onClick={() => handleUpdateStatus(event.id, { status: 'ignored' })}>제외</button>
+                      <button className="btn-dismiss" onClick={async () => {
+                        if (!confirm(`"${event.structured_data.title}" 을 삭제할까요?`)) return;
+                        await fetch('/.netlify/functions/scraped-events', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ id: event.id }),
+                        });
+                        setScrapedEvents(prev => prev.filter(e => e.id !== event.id));
+                      }}>제외</button>
                     </div>
                   </td>
                 </tr>

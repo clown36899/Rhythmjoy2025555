@@ -96,7 +96,7 @@ export default function BoardMainContainer() {
         // Use prefixes from BoardDataContext to get metadata (name, color, etc.)
         const allPrefixes = boardData?.prefixes?.[category] || [];
         return allPrefixes.filter((prefix: any) =>
-            usedPrefixIds.has(prefix.id)
+            usedPrefixIds.has(prefix.id) && prefix.name !== '전광판'
         );
     }, [posts, boardData, category]);
 
@@ -289,10 +289,10 @@ export default function BoardMainContainer() {
 
     return (
         <div
-            className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''}`}
+            className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''} ${category === 'free' ? 'is-free-mode' : ''}`}
             data-theme={category === 'history' ? 'dark' : undefined}
         >
-            {category !== 'history' && (
+            {category !== 'history' && category !== 'free' && (
                 <BoardTabBar
                     activeCategory={category}
                     onCategoryChange={handleCategoryChange}
@@ -315,7 +315,7 @@ export default function BoardMainContainer() {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
                 style={{
-                    paddingTop: category === 'history' ? (prefixes.length > 0 ? '56px' : '10px') : (prefixes.length > 0 ? '96px' : '48px'),
+                    paddingTop: (category === 'history' || category === 'free') ? (prefixes.length > 0 ? '48px' : '10px') : (prefixes.length > 0 ? '96px' : '48px'),
                     display: category === 'history' ? 'flex' : 'block',
                     flexDirection: 'column',
                     flex: 1

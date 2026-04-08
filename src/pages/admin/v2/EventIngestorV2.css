@@ -353,3 +353,40 @@ thead input[type="checkbox"]:checked::after {
 
 .col-clickable { cursor: pointer; }
 .col-clickable:hover { background: rgba(99, 102, 241, 0.05); }
+
+/* 타입 필터 */
+.type-filter-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.type-filter-btn {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  border: 1.5px solid #3f3f46;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.type-filter-btn.active,
+.type-filter-btn:hover { border-color: currentColor; }
+.type-filter-btn.type-all.active { color: #e4e4e7; border-color: #71717a; background: #27272a; }
+.type-filter-btn.type-social.active { color: #34d399; border-color: #34d399; background: rgba(52,211,153,0.1); }
+.type-filter-btn.type-party.active { color: #f472b6; border-color: #f472b6; background: rgba(244,114,182,0.1); }
+.type-filter-btn.type-lesson.active { color: #60a5fa; border-color: #60a5fa; background: rgba(96,165,250,0.1); }
+
+/* 타입 배지 */
+.row-date-line { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.event-type-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.type-badge-social { background: rgba(52,211,153,0.15); color: #34d399; }
+.type-badge-party   { background: rgba(244,114,182,0.15); color: #f472b6; }
+.type-badge-lesson  { background: rgba(96,165,250,0.15); color: #60a5fa; }

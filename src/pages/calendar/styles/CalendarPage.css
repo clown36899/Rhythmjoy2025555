@@ -2,7 +2,8 @@
 
 /* Apply scroll-padding to html for window-level scrolling */
 html {
-    scroll-padding-top: calc(156px + env(safe-area-inset-top)); /* 60+48+48 */
+    scroll-padding-top: calc(156px + env(safe-area-inset-top));
+    /* 60+48+48 */
 }
 
 .calendar-page-container {
@@ -20,17 +21,20 @@ html {
 /* Tab Menu as Header 3 */
 .calendar-tab-menu {
     position: fixed;
-    top: calc(108px + env(safe-area-inset-top)); /* H1(60) + H2(48) */
+    top: calc(108px + env(safe-area-inset-top));
+    /* H1(60) + H2(48) */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 650px;
-    height: 48px;
+    height: 38px;
     z-index: 998;
     background-color: var(--bg-surface-1);
     display: flex;
     gap: 0;
     padding: 0;
+    /* 상단 border 추가: 2단계 메뉴 아이템과 융합됨 */
+    border-top: 1px solid var(--border-subtle);
     border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -68,6 +72,8 @@ html {
     color: var(--color-blue-500);
     border-bottom: 3px solid var(--color-blue-500);
     font-weight: 800;
+    /* 텍스트를 약간 위로 올려서 하단 바와 균형을 맞춤 */
+    padding-bottom: 2px;
 }
 
 
@@ -81,7 +87,7 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: calc(48px + env(safe-area-inset-top)); 
+    padding-top: calc(48px + env(safe-area-inset-top));
     /* Shell(108px) + Page(48px) = 156px (H1~H3 합계) */
     padding-bottom: calc(56px + env(safe-area-inset-bottom));
 }

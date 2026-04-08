@@ -26,6 +26,13 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
 
     useEffect(() => {
         if (event) {
+            // event_type → category 자동 매핑
+            const eventType = event.structured_data?.event_type;
+            let defaultCategory = 'event';
+            if (eventType === '소셜') defaultCategory = 'social';
+            else if (eventType === '강습') defaultCategory = 'class';
+            else if (eventType === '파티/행사') defaultCategory = 'event';
+
             setFormData({
                 title: event.structured_data?.title || '',
                 date: event.structured_data?.date || '',
@@ -34,7 +41,8 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 description: event.extracted_text || '',
                 djs: event.structured_data?.djs || [],
                 venue_id: event.structured_data?.venue_id || null,
-                poster_url: event.poster_url || ''
+                poster_url: event.poster_url || '',
+                category: defaultCategory,
             });
         }
     }, [event, isOpen]);
@@ -137,7 +145,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     image_full: imageUrls.full || null,
                     storage_path: storagePath,
                     description: formData.description,
-                    category: 'event',
+                    category: formData.category || 'event',
                     scope: 'domestic',
                     link1: event.source_url || '',
                     link_name1: event.keyword || '',
@@ -212,6 +220,16 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                             </div>
 
                             <div className="form-row">
+                                <div className="form-group">
+                                    <label>장르 <span className="required">*</span></label>
+                                    <select name="category" value={formData.category} onChange={(e) => setFormData((prev: any) => ({ ...prev, category: e.target.value }))} className="category-select">
+                                        <option value="social">소셜</option>
+                                        <option value="event">파티/행사</option>
+                                        <option value="class">강습</option>
+                                        <option value="club">동호회</option>
+                                        <option value="party">파티</option>
+                                    </select>
+                                </div>
                                 <div className="form-group">
                                     <label>날짜 <span className="required">*</span></label>
                                     <input type="date" name="date" value={formData.date} onChange={handleChange} />
