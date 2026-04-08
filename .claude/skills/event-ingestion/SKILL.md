@@ -1,6 +1,6 @@
 ---
 name: event-ingestion
-description: "Event Ingestion Recipe: 인스타그램 및 네이버를 통한 이벤트 포스터 정밀 수집 및 데이터 파싱. '수집 시작', '이벤트 긁어줘', '스윙 이벤트 수집해라' 요청 시 실행. 앵커 게시물(가장 최신 게시물) 방식으로 신규 업로드 여부 판별."
+description: "[DEPRECATED - 사용 금지] 구버전 수집 스킬. web-search-ingestion으로 대체됨. 절대 실행하지 말 것."
 ---
 
 # 이벤트 정밀 수집 스킬 (Event Ingestion Recipe)
