@@ -152,7 +152,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 <div className="NEB-slider">
                     <div
                         className="NEB-track"
-                        style={{ transform: `translateX(calc(-${currentIndex * 80}% + 10%))` }}
+                        style={{ transform: `translateX(calc(-${currentIndex * 95}% - ${currentIndex * 3}px + 2.5%))` }}
                     >
                         {events.map((event, index) => {
                             const eventThumbnail = event.image_full ||

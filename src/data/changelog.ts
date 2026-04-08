@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.9.6',
+        date: '2026-04-09',
+        changes: [
+            '[🎨 UI] 신규 이벤트 배너 레이아웃 최적화 (95% 너비, 3px 간격 반영)',
+            '[🎨 UI] 좌우 여백 2.5% 및 비활성 슬라이드 Peeking 효과(scale 1, opacity 0.6) 적용'
+        ]
+    },
+    {
         version: '3.9.5',
         date: '2026-03-16',
         changes: [
