@@ -51,7 +51,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
-  const isBoardPage = currentPath.startsWith('/board');
+  const isBoardPage = currentPath.startsWith('/board') && category !== 'history';
   const isSocialPage = currentPath.startsWith('/social');
   const isPracticePage = currentPath.startsWith('/practice');
   const isShoppingPage = currentPath.startsWith('/shopping');
@@ -622,6 +622,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       )}
 
       <SideDrawer
+        pageAction={pageAction}
+        onPageActionClick={handlePageAction}
         onLoginClick={() => {
           window.dispatchEvent(new CustomEvent('closeDrawer'));
           loginModal.open({

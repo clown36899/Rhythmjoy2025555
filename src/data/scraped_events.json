@@ -1,5 +1,125 @@
 [
   {
+    "id": "neo_260426_sun",
+    "keyword": "네오스윙 졸업파티",
+    "source_url": "https://www.instagram.com/neo_swing/p/DVNnI7ND9TL/",
+    "poster_url": "https://www.instagram.com/neo_swing/p/DVNnI7ND9TL/",
+    "extracted_text": "네오스윙 138기 2026.3.8~4.19 (6주강습), 4.26 졸업파티",
+    "structured_data": {
+      "date": "2026-04-26",
+      "day": "일",
+      "title": "네오스윙 138기 졸업파티",
+      "status": "정상운영",
+      "djs": [],
+      "times": [],
+      "location": "해피홀",
+      "fee": "미기재",
+      "note": "네오스윙 138기 졸업파티"
+    },
+    "is_collected": false,
+    "created_at": "2026-04-07T08:35:00+09:00"
+  },
+  {
+    "id": "neo_260412_sun",
+    "keyword": "네오스윙",
+    "source_url": "https://www.instagram.com/neo_swing/p/DW0I6LKD6vm/",
+    "poster_url": "https://www.instagram.com/neo_swing/p/DW0I6LKD6vm/",
+    "extracted_text": "WEEKLY NEO comeback!! 04.12.(일) DJ 꼬냥이 / 축하빵 있어요",
+    "structured_data": {
+      "date": "2026-04-12",
+      "day": "일",
+      "title": "일요 소셜 (DJ 꼬냥이)",
+      "status": "정상운영",
+      "djs": ["꼬냥이"],
+      "times": [],
+      "location": "해피홀",
+      "fee": "미기재",
+      "note": "축하빵 있어요"
+    },
+    "is_collected": false,
+    "created_at": "2026-04-07T08:35:00+09:00"
+  },
+  {
+    "id": "aas_260411_sat",
+    "keyword": "올어바웃스윙 졸업공연",
+    "source_url": "https://allaboutswing.co.kr/20",
+    "poster_url": "https://allaboutswing.co.kr/20",
+    "extracted_text": "올어바웃스윙 96학기 졸업공연 (2026년 4월 11일)",
+    "structured_data": {
+      "date": "2026-04-11",
+      "day": "토",
+      "title": "올어바웃스윙 96학기 졸업공연",
+      "status": "정상운영",
+      "djs": [],
+      "times": [],
+      "location": "미기재",
+      "fee": "미기재",
+      "note": "96학기 졸업공연/파티"
+    },
+    "is_collected": false,
+    "created_at": "2026-04-07T08:35:00+09:00"
+  },
+  {
+    "id": "hh_260411_sat",
+    "keyword": "해피홀 오픈파티",
+    "source_url": "https://www.instagram.com/happyhall2004/p/DWtKCP8EZgR/",
+    "poster_url": "https://www.instagram.com/happyhall2004/p/DWtKCP8EZgR/",
+    "extracted_text": "4월 11일 오픈파티 신청자 무료입장!!!!! 당일 티켓으로 맥주 교환(카스) 8시 이전 입장시 2천원 할인",
+    "structured_data": {
+      "date": "2026-04-11",
+      "day": "토",
+      "title": "해피홀 오픈파티",
+      "status": "정상운영",
+      "djs": [],
+      "times": [],
+      "location": "해피홀",
+      "fee": "미기재",
+      "note": "사전 신청자 무료입장, 당일 맥주 티켓 교환, 8시 이전 2천원 할인"
+    },
+    "is_collected": false,
+    "created_at": "2026-04-07T08:35:00+09:00"
+  },
+  {
+    "id": "neo_260410_fri",
+    "keyword": "네오스윙",
+    "source_url": "https://www.instagram.com/neo_swing/p/DW0I6LKD6vm/",
+    "poster_url": "https://www.instagram.com/neo_swing/p/DW0I6LKD6vm/",
+    "extracted_text": "WEEKLY NEO comeback!! 04.10.(금) DJ 해림 / 라인강습: 트리커레이션 (짱디)",
+    "structured_data": {
+      "date": "2026-04-10",
+      "day": "금",
+      "title": "금요 소셜 (DJ 해림)",
+      "status": "정상운영",
+      "djs": ["해림"],
+      "times": [],
+      "location": "해피홀",
+      "fee": "미기재",
+      "note": "라인강습: 트리커레이션 (짱디)"
+    },
+    "is_collected": false,
+    "created_at": "2026-04-07T08:35:00+09:00"
+  },
+  {
+    "id": "hh_260408_wed",
+    "keyword": "해피홀 수요 소셜",
+    "source_url": "https://www.instagram.com/happyhall2004/p/DWtKCP8EZgR/",
+    "poster_url": "https://www.instagram.com/happyhall2004/p/DWtKCP8EZgR/",
+    "extracted_text": "수요일이 돌아왔다. DJ: BT.C / T.C / 4월 11일 오픈파티 신청자 무료입장 / 8시 이전 입장시 2천원 할인",
+    "structured_data": {
+      "date": "2026-04-08",
+      "day": "수",
+      "title": "수요 소셜 (DJ T.C)",
+      "status": "정상운영",
+      "djs": ["T.C"],
+      "times": [],
+      "location": "해피홀",
+      "fee": "미기재",
+      "note": "4/11 오픈파티 신청자 무료입장, 8시 이전 2천원 할인"
+    },
+    "is_collected": false,
+    "created_at": "2026-04-07T08:35:00+09:00"
+  },
+  {
     "id": "ps_260605_fri",
     "keyword": "펄스인서울 2026",
     "source_url": "https://www.instagram.com/p/C-iQ6LPSf-S/",

@@ -45,30 +45,6 @@ const ForumPage: React.FC = () => {
             icon: 'ri-timer-flash-line',
             path: '/metronome',
             color: '#f59e0b'
-        },
-        {
-            id: 'anonymous',
-            title: '익명게시판',
-            description: '익명으로 남기는 이야기',
-            icon: 'ri-user-secret-line',
-            path: '/board?category=anonymous',
-            color: '#64748b'
-        },
-        {
-            id: 'trade',
-            title: '양도/양수',
-            description: '소중한 티켓 양도',
-            icon: 'ri-exchange-line',
-            path: '/board?category=trade',
-            color: '#8b5cf6'
-        },
-        {
-            id: 'market',
-            title: '벼룩시장',
-            description: '중고 물품 거래',
-            icon: 'ri-store-2-line',
-            path: '/board?category=market',
-            color: '#f43f5e'
         }
     ];
 

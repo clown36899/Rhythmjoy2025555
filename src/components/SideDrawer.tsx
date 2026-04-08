@@ -12,10 +12,13 @@ import {
 import { SITE_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { isLegacyIOS } from '../lib/pwaDetect';
+import type { PageAction } from '../contexts/PageActionContext';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
     onLoginClick: () => void;
+    pageAction?: PageAction | null;
+    onPageActionClick?: () => void;
 }
 
 interface BoardCategory {
@@ -25,7 +28,7 @@ interface BoardCategory {
     is_active: boolean;
 }
 
-export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
+export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick }: SideDrawerProps) {
     const navigate = useNavigate();
     const { user, billboardUserName, signOut, userProfile, isAdmin, refreshUserProfile } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
@@ -357,6 +360,28 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                         </span>
                                     </div>
                                 </div>
+
+                                {pageAction && (
+                                    <div
+                                        className="SD-menuItem SD-registrationEntry"
+                                        onClick={() => {
+                                            if (onPageActionClick) {
+                                                onClose();
+                                                onPageActionClick();
+                                            }
+                                        }}
+                                        data-analytics-id="side_drawer_page_action"
+                                        data-analytics-type="action"
+                                        data-analytics-title={pageAction.label}
+                                        data-analytics-section="side_drawer_quick"
+                                    >
+                                        <i className={pageAction.icon}></i>
+                                        <div className="SD-menuLabelWithStatus">
+                                            <span>{pageAction.label}</span>
+                                            <i className="ri-add-circle-line SD-smallIndicatorIcon"></i>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
