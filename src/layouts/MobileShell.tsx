@@ -584,11 +584,18 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               자유게시판
             </button>
             <button
-              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
+              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
               onClick={() => navigate('/forum')}
               data-analytics-id="header_nav_forum"
             >
               포럼
+            </button>
+            <button
+              className={`header-nav-v2-item ${isShoppingPage ? 'is-active' : ''}`}
+              onClick={() => navigate('/shopping')}
+              data-analytics-id="header_nav_shop"
+            >
+              SHOP
             </button>
           </div>
         </nav>
