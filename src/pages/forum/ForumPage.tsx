@@ -7,14 +7,6 @@ const ForumPage: React.FC = () => {
 
     const menuItems = [
         {
-            id: 'board',
-            title: '게시판',
-            description: '자유로운 소통 공간',
-            icon: 'ri-chat-3-line',
-            path: '/board?category=free',
-            color: '#a855f7'
-        },
-        {
             id: 'library',
             title: '라이브러리',
             description: '자료 보관소',

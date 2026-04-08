@@ -196,7 +196,7 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
 
     if (!isOpen) return null;
 
-    const categories = ['연습실', '스윙바', '직접입력'];
+    const categories = ['연습실', '스윙바', '직접입력', '장소미정'];
 
     return createPortal(
         <div className="venue-select-overlay" onClick={onClose}>
@@ -225,11 +225,19 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                                 <button
                                     key={cat}
                                     className={`venue-tab-item-inline ${activeCategory === cat ? 'active' : ''}`}
-                                    onClick={() => setActiveCategory(cat)}
+                                    onClick={() => {
+                                        if (cat === '장소미정') {
+                                            if (onManualInput) onManualInput('장소 미정', '', '');
+                                            onClose();
+                                        } else {
+                                            setActiveCategory(cat);
+                                        }
+                                    }}
                                 >
                                     <i className={`${cat === '연습실' ? 'ri-music-2-line' :
                                         cat === '스윙바' ? 'ri-goblet-line' :
-                                            'ri-edit-line'
+                                            cat === '장소미정' ? 'ri-map-pin-time-line' :
+                                                'ri-edit-line'
                                         } venue-tab-icon`}></i>
                                     <span className="venue-tab-label">{cat}</span>
                                 </button>

@@ -80,7 +80,6 @@ export default function LinksPage() {
         <div className="links-page-glass-container">
             <header className="links-hero-header">
                 <div className="links-hero-content">
-                    <h2 className="title-gradient">댄스 사이트 모음</h2>
                     <p className="subtitle-glass">당신의 댄스 라이프를 풍성하게 해줄 유용한 링크 모음</p>
                 </div>
                 <button className="links-action-btn glass-btn-primary" onClick={() => { setEditTarget(null); setIsModalOpen(true); }}>
