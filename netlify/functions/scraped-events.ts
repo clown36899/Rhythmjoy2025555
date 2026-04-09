@@ -45,13 +45,16 @@ export const handler: Handler = async (event) => {
     const supabase = getSupabase();
 
     try {
-        // ===== GET: 전체 목록 조회 =====
+        // ===== GET: 미수집 + 오늘 이후 데이터만 조회 =====
         if (event.httpMethod === 'GET') {
+            const today = new Date().toISOString().slice(0, 10);
             const { data, error } = await supabase
                 .from('scraped_events')
                 .select('*')
                 .or('status.is.null,status.neq.excluded')
-                .order('created_at', { ascending: false });
+                .eq('is_collected', false)
+                .gte('structured_data->>date', today)
+                .order('structured_data->>date', { ascending: true });
 
             if (error) throw error;
 

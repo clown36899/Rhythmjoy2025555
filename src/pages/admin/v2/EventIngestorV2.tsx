@@ -363,7 +363,7 @@ const EventIngestorV2: React.FC = () => {
                   <td className="col-preview col-clickable" onClick={() => toggleSelect(event.id)}>
                     {event.poster_url ? (
                       <div className="thumbnail-box" onClick={e => { e.stopPropagation(); setZoomImage(event.poster_url || null); }}>
-                        <img src={event.poster_url} alt="thumbnail" />
+                        <img src={event.poster_url} alt="thumbnail" loading="lazy" />
                         <span className="zoom-hint">🔍 크게보기</span>
                       </div>
                     ) : <div className="no-image">이미지 미수집</div>}
