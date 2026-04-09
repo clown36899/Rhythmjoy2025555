@@ -2,14 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
 import { createResizedImages } from '../../../../utils/imageResize';
-import { createClient } from '@supabase/supabase-js';
+import { supabase as prodSupabase } from '../../../../lib/supabase';
 import './EventEditModal.css';
-
-// 등록 버튼 전용 — 운영 DB
-const prodSupabase = createClient(
-    import.meta.env.VITE_PROD_SUPABASE_URL,
-    import.meta.env.VITE_PROD_SUPABASE_ANON_KEY
-);
 
 interface EventEditModalProps {
     isOpen: boolean;
