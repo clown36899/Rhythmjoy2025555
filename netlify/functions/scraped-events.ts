@@ -84,23 +84,42 @@ export const handler: Handler = async (event) => {
             const skipped: { id: string; reason: string; existingId: string }[] = [];
 
             for (const item of incoming) {
-                // 중복 체크: 같은 날짜 + 같은 제목 (신규 수집 시에만)
+                // 중복 체크 (신규 수집 시에만)
                 if (!item.is_collected) {
                     const sd = item.structured_data || {};
                     const date = sd.date || '';
+                    const eventType = (sd.event_type || '').trim();
+                    const djs: string[] = sd.djs || [];
                     const title = (sd.title || '').trim();
 
-                    if (date && title) {
-                        const { data: existing } = await supabase
+                    let existing: any = null;
+
+                    // 소셜: 날짜 + DJ 이름으로 중복 체크
+                    if (eventType === '소셜' && date && djs.length > 0) {
+                        for (const dj of djs) {
+                            const { data } = await supabase
+                                .from('scraped_events')
+                                .select('id')
+                                .eq('structured_data->>date', date)
+                                .contains('structured_data->djs', JSON.stringify([dj]))
+                                .neq('id', item.id)
+                                .maybeSingle();
+                            if (data) { existing = data; break; }
+                        }
+                    } else if (date && title) {
+                        // 기타: 날짜 + 제목으로 중복 체크
+                        const { data } = await supabase
                             .from('scraped_events')
                             .select('id')
                             .eq('structured_data->>date', date)
                             .eq('structured_data->>title', title)
                             .neq('id', item.id)
                             .maybeSingle();
+                        existing = data;
+                    }
 
-                        if (existing) {
-                            skipped.push({ id: item.id, reason: '날짜+제목 중복', existingId: existing.id });
+                    if (existing) {
+                            skipped.push({ id: item.id, reason: eventType === '소셜' ? '날짜+DJ 중복' : '날짜+제목 중복', existingId: existing.id });
                             console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id}`);
                             continue;
                         }
