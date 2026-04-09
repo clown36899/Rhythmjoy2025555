@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
-import { createClient } from '@supabase/supabase-js';
 import { createResizedImages } from '../../../utils/imageResize';
+import { supabase as prodSupabase } from '../../../lib/supabase';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import './EventIngestorV2.css';
 
@@ -17,10 +17,6 @@ function detectEventType(event: { structured_data: { title?: string; event_type?
   return '파티/행사';
 }
 
-const prodSupabase = createClient(
-  import.meta.env.VITE_PROD_SUPABASE_URL,
-  import.meta.env.VITE_PROD_SUPABASE_ANON_KEY
-);
 
 interface ScrapedEvent {
   id: string;
