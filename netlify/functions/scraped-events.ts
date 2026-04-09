@@ -45,23 +45,25 @@ export const handler: Handler = async (event) => {
     const supabase = getSupabase();
 
     try {
-        // ===== GET: 미수집 + 오늘 이후 데이터만 조회 =====
+        // ===== GET: 전체 목록 조회 (페이지네이션) =====
         if (event.httpMethod === 'GET') {
-            const today = new Date().toISOString().slice(0, 10);
-            const { data, error } = await supabase
+            const page = parseInt(event.queryStringParameters?.page || '1', 10);
+            const limit = 30;
+            const offset = (page - 1) * limit;
+
+            const { data, error, count } = await supabase
                 .from('scraped_events')
-                .select('*')
+                .select('*', { count: 'exact' })
                 .or('status.is.null,status.neq.excluded')
-                .eq('is_collected', false)
-                .gte('structured_data->>date', today)
-                .order('structured_data->>date', { ascending: true });
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1);
 
             if (error) throw error;
 
             return {
                 statusCode: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify(data || []),
+                body: JSON.stringify({ data: data || [], total: count || 0, page, limit }),
             };
         }
 

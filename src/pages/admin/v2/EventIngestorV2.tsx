@@ -53,6 +53,8 @@ const EventIngestorV2: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'전체' | '소셜' | '파티/행사' | '강습'>('전체');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -65,13 +67,15 @@ const EventIngestorV2: React.FC = () => {
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchScrapedEvents = async () => {
+  const fetchScrapedEvents = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await fetch('/.netlify/functions/scraped-events');
+      const res = await fetch(`/.netlify/functions/scraped-events?page=${page}`);
       if (!res.ok) throw new Error('데이터를 불러오지 못했습니다.');
-      const data = await res.json();
-      setScrapedEvents(data);
+      const json = await res.json();
+      setScrapedEvents(json.data || json);
+      setTotalCount(json.total || 0);
+      setCurrentPage(page);
     } catch (err) {
       console.error(err);
     } finally {
@@ -80,7 +84,7 @@ const EventIngestorV2: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchScrapedEvents();
+    fetchScrapedEvents(1);
   }, []);
 
   const filteredEvents = useMemo(() => {
@@ -484,6 +488,15 @@ const EventIngestorV2: React.FC = () => {
                 }}
             />
         </>
+      )}
+
+      {/* 페이지네이션 */}
+      {totalCount > 30 && (
+        <div className="pagination">
+          <button disabled={currentPage === 1} onClick={() => fetchScrapedEvents(currentPage - 1)}>◀</button>
+          <span>{currentPage} / {Math.ceil(totalCount / 30)} 페이지 ({totalCount}건)</span>
+          <button disabled={currentPage >= Math.ceil(totalCount / 30)} onClick={() => fetchScrapedEvents(currentPage + 1)}>▶</button>
+        </div>
       )}
 
       {/* 이미지 파일 선택용 hidden input */}
