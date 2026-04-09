@@ -121,10 +121,8 @@ export const handler: Handler = async (event) => {
                     if (existing) {
                             skipped.push({ id: item.id, reason: eventType === '소셜' ? '날짜+DJ 중복' : '날짜+제목 중복', existingId: existing.id });
                             console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id}`);
-                            continue;
                         }
                     }
-                }
 
                 let posterUrl = item.poster_url;
 
