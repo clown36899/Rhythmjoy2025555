@@ -596,6 +596,16 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                             <i className="ri-layout-grid-line"></i>
                                             <span>쇼케이스 뷰어</span>
                                         </div>
+                                        <div className="SD-submenuItem"
+                                            onClick={() => handleNavigation('/admin/v2/ingestor')}
+                                            data-analytics-id="admin_ingestor"
+                                            data-analytics-type="nav_item"
+                                            data-analytics-title="이벤트 인제스터"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
+                                            <i className="ri-database-2-line"></i>
+                                            <span>이벤트 인제스터</span>
+                                        </div>
                                         <div className="SD-submenuItem" onClick={() => {
                                             const newValue = !showDevTools;
                                             setShowDevTools(newValue);
