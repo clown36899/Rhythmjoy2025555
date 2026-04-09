@@ -35,17 +35,19 @@ export default function NewEventsListModal({
     const [v5GridPage, setV5GridPage] = useState(0);
     const [dbEvents, setDbEvents] = useState<AppEvent[]>([]);
 
-    // Fetch latest events (Class & Party only)
+    // Fetch latest events (NEB와 동일 카테고리: class, party, event / 미래 데이터만)
     useEffect(() => {
         if (isOpen) {
             const fetchLatestEvents = async () => {
                 try {
+                    const today = new Date().toISOString().slice(0, 10);
                     const { data, error } = await supabase
                         .from('events')
                         .select('*')
-                        .in('category', ['class', 'party'])
+                        .in('category', ['class', 'party', 'event'])
+                        .gte('date', today)
                         .order('created_at', { ascending: false })
-                        .limit(20);
+                        .limit(50);
 
                     if (error) throw error;
                     if (data) setDbEvents(data as AppEvent[]);
@@ -57,7 +59,13 @@ export default function NewEventsListModal({
         }
     }, [isOpen]);
 
-    const activeEvents = useMemo(() => dbEvents.length > 0 ? dbEvents : events, [dbEvents, events]);
+    // NEB에 노출된 이벤트를 맨 앞에, 나머지를 뒤에 합침
+    const activeEvents = useMemo(() => {
+        const base = dbEvents.length > 0 ? dbEvents : events;
+        const nebIds = new Set(events.map(e => e.id));
+        const rest = base.filter(e => !nebIds.has(e.id));
+        return [...events, ...rest];
+    }, [dbEvents, events]);
     const v1Events = useMemo(() => activeEvents.slice(0, 15), [activeEvents]);
 
     // V1 Cinema Sequence Controller 
