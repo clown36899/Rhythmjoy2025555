@@ -66,3 +66,16 @@ test-*.png
 !public/**/*.png
 !src/**/*.png
 
+# Ignore root/scraped images, but allow inside public/src
+*.jpg
+!public/**/*.jpg
+!src/**/*.jpg
+*.jpeg
+!public/**/*.jpeg
+!src/**/*.jpeg
+*.webp
+!public/**/*.webp
+!src/**/*.webp
+*.gif
+!public/**/*.gif
+!src/**/*.gif
