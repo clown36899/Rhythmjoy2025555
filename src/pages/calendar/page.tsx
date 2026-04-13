@@ -376,7 +376,7 @@ export default function CalendarPage() {
 
         // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
         if (calendarMetrics.isSameMonth && calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
-            console.log('⚡ [useLayoutEffect] 데이터/탭 전환 워프 실행');
+            console.log('⚡ [useLayoutEffect] CalendarPage 워프 실행');
             handleScrollToToday('instant', true);
             initialJumpDoneRef.current = true;
             shouldScrollToTodayRef.current = false; // 플래그 소모
@@ -658,9 +658,9 @@ export default function CalendarPage() {
                     calendarData={calendarData}
                     isLoading={isLoading}
                     refetchCalendarData={refetchCalendarData}
-                    onDataLoaded={() => {
+                    onDataLoaded={useCallback(() => {
                         console.log('📡 [CalendarPage] Data and Layout ready.');
-                    }}
+                    }, [])}
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
                     calendarHeightPx={window.innerHeight - 100}

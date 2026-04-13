@@ -85,10 +85,10 @@ export function useEventModal(): UseEventModalReturn {
     const handleDeleteEvent = useCallback(async (eventId: number | string, password?: string) => {
         // [Final Analysis] 
         // 수정(Mutation) 로직은 EventDetailModal 내부의 saveChangesToDB에서 이미 'social-'을 떼고 처리하고 있었습니다.
-        // 반면 삭제(Deletion) 로직인 이 함수는 그동안 그 처리가 누락되어 실패했던 것입니다.
+        // 삭제(Deletion) 로직인 이 함수는 그동안 그 처리가 누락되어 실패했던 것입니다.
         // 이제 수정 로직과 동일하게 ID 정제를 수행합니다.
 
-        console.log('[useEventModal] handleDeleteEvent 시작', { originalEventId: eventId, hasPassword: !!password });
+        console.log(`[useEventModal] 🗑️ handleDeleteEvent 시작`, { originalEventId: eventId, hasPassword: !!password });
 
         try {
             setIsDeleting(true);
@@ -137,12 +137,12 @@ export function useEventModal(): UseEventModalReturn {
             }
 
 
-            console.log('[useEventModal] 삭제 성공! 캐시 무효화 및 상태 초기화 진행');
+            console.log('[useEventModal] ✅ 삭제 성공! 캐시 무효화 및 상태 초기화 진행 진행 시간');
             alert("삭제되었습니다.");
 
             // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-
+            
             // Clean up state
 
             setSelectedEvent(null);
@@ -151,15 +151,15 @@ export function useEventModal(): UseEventModalReturn {
 
             // 다른 컴포넌트에 삭제 이벤트 알림
 
-            console.log('[useEventModal] eventDeleted 커스텀 이벤트 디스패치');
+            console.log(`[useEventModal] 📤 eventDeleted 커스텀 이벤트 디스패치`);
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
         } catch (error: any) {
-            console.error("[useEventModal] 이벤트 삭제 중 오류 발생:", error);
+            console.error(`[useEventModal] 🚨 이벤트 삭제 중 오류 발생:`, error);
             alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
         } finally {
 
             setIsDeleting(false);
-            console.log('[useEventModal] handleDeleteEvent 종료');
+            console.log(`[useEventModal] 🏁 handleDeleteEvent 종료`);
         }
     }, []);
 

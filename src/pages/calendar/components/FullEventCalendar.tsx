@@ -440,8 +440,11 @@ export default memo(function FullEventCalendar({
 
   // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
   useEffect(() => {
-    const handleEventDeleted = () => refetchCalendarData();
-    const handleEventChanged = () => refetchCalendarData();
+    // [Performance Fix] 이미 queryClient.invalidateQueries()로 인해 
+    // 부모 측에서 캐시 무효화 및 refetch가 발생하므로 여기서 중복 호출하지 않습니다.
+    // 중복 호출은 심각한 Re-rendering 폭주를 초래합니다.
+    const handleEventDeleted = () => { /* refetchCalendarData(); */ };
+    const handleEventChanged = () => { /* refetchCalendarData(); */ };
 
     window.addEventListener("eventDeleted", handleEventDeleted);
     window.addEventListener("eventUpdated", handleEventChanged);
@@ -452,7 +455,7 @@ export default memo(function FullEventCalendar({
       window.removeEventListener("eventUpdated", handleEventChanged);
       window.removeEventListener("eventCreated", handleEventChanged);
     };
-  }, [refetchCalendarData]);
+  }, [/* refetchCalendarData */]);
 
   const fetchEvents = useCallback(() => {
     if (refetchCalendarData) refetchCalendarData();
