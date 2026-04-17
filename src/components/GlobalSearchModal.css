@@ -9,7 +9,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    z-index: 49;
+    z-index: 1100;
     padding-top: calc(60px + env(safe-area-inset-top));
     overflow-y: auto;
 }

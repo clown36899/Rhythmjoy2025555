@@ -38,6 +38,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   const userRegistrationModal = useModal('userRegistration');
   const loginModal = useModal('login');
+  const globalSearchModal = useModal('globalSearch');
 
   const siteAnalyticsModal = useModal('siteAnalytics');
 
@@ -504,7 +505,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     if (isCalendarPage) {
                       window.dispatchEvent(new CustomEvent('openCalendarSearch'));
                     } else {
-                      window.dispatchEvent(new CustomEvent('openGlobalSearch'));
+                      globalSearchModal.open();
                     }
                   }}
                   data-analytics-id="header_search"

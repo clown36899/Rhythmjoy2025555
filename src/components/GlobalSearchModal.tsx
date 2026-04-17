@@ -23,10 +23,11 @@ interface SearchResult {
 interface GlobalSearchModalProps {
     isOpen: boolean;
     onClose: () => void;
-    searchQuery: string;
+    searchQuery?: string;
 }
 
-export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }: GlobalSearchModalProps) {
+export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: initialQuery = '' }: GlobalSearchModalProps) {
+    const [localQuery, setLocalQuery] = useState(initialQuery);
     const [results, setResults] = useState<{
         events: SearchResult[];
         practice_rooms: SearchResult[];
@@ -48,26 +49,40 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
     const [showShopDetail, setShowShopDetail] = useState(false);
 
     useEffect(() => {
-        if (isOpen && searchQuery.trim() && searchQuery !== lastSearchQuery.current) {
-            lastSearchQuery.current = searchQuery;
-            performSearch(searchQuery);
-        }
-    }, [isOpen, searchQuery]);
+        setLocalQuery(initialQuery);
+    }, [initialQuery]);
 
-    // Enable mobile back gesture to close modal
-    useModalHistory(isOpen, onClose);
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (localQuery.trim() === '') {
+            setResults({ events: [], practice_rooms: [], shopping: [], social_places: [] });
+            return;
+        }
+
+        if (localQuery === lastSearchQuery.current) return;
+
+        const timer = setTimeout(() => {
+            lastSearchQuery.current = localQuery;
+            performSearch(localQuery);
+        }, 400);
+
+        return () => clearTimeout(timer);
+    }, [isOpen, localQuery]);
 
     const performSearch = async (query: string) => {
         setLoading(true);
         const searchTerm = query.toLowerCase();
+        const cleanQuery = query.replace(/\s+/g, '').toLowerCase();
+        const wildcardQuery = cleanQuery.split('').join('%'); // '조제빠코' -> '조%제%빠%코'
 
         try {
             // Search events
             const { data: eventsData, error: eventsError } = await supabase
                 .from('events')
                 .select('id, title, description, image_thumbnail, start_date')
-                .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
-                .limit(10);
+                .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
+                .limit(15);
 
             if (eventsError) {
                 console.error('Events search error:', eventsError);
@@ -78,7 +93,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 .from('venues')
                 .select('id, name, description, images, address')
                 .eq('category', '연습실')
-                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
+                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,name.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
                 .limit(10);
 
             if (practiceError) {
@@ -90,7 +105,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 .from('events')
                 .select('id, title, location, description, address, group_id')
                 .not('group_id', 'is', null)
-                .or(`title.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
+                .or(`title.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,location.ilike.%${wildcardQuery}%`)
                 .limit(10);
 
             if (socialError) {
@@ -215,14 +230,26 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
     const totalResults = results.events.length + results.practice_rooms.length +
         results.shopping.length + results.social_places.length;
 
+    useModalHistory(isOpen, onClose);
+
     if (!isOpen) return null;
 
     return createPortal(
         <div className="search-modal-overlay" onClick={onClose}>
             <div className="search-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="search-modal-header">
-                    <h2 className="search-modal-title">검색 결과</h2>
-                    <button onClick={onClose} className="search-modal-close">
+                    <div className="search-modal-input-wrapper" style={{ flex: 1, marginRight: '12px', position: 'relative' }}>
+                        <i className="ri-search-line" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}></i>
+                        <input
+                            type="text"
+                            value={localQuery}
+                            onChange={(e) => setLocalQuery(e.target.value)}
+                            placeholder="이벤트, 연습실, 소셜, 쇼핑 검색..."
+                            style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '8px', border: '1px solid #e5e7eb', outline: 'none', boxSizing: 'border-box', fontSize: '1rem' }}
+                            autoFocus
+                        />
+                    </div>
+                    <button onClick={onClose} className="search-modal-close" style={{ flexShrink: 0 }}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
@@ -232,10 +259,15 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                         <div className="search-loading">
                             <LocalLoading message="검색 중..." size="md" />
                         </div>
+                    ) : localQuery.trim() === '' ? (
+                        <div className="search-empty">
+                            <i className="ri-search-line"></i>
+                            <p>검색어를 입력해주세요.</p>
+                        </div>
                     ) : totalResults === 0 ? (
                         <div className="search-empty">
                             <i className="ri-search-line"></i>
-                            <p>"{searchQuery}"에 대한 검색 결과가 없습니다.</p>
+                            <p>"{localQuery}"에 대한 검색 결과가 없습니다.</p>
                         </div>
                     ) : (
                         <>
