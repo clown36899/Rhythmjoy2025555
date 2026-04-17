@@ -8,8 +8,9 @@
     border-radius: 0.7rem;
     overflow: hidden;
     cursor: pointer;
-    margin: 1rem 1.5rem;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    margin: 1rem auto; /* 사이드 여백 대신 중앙 정렬 */
+    max-width: 650px;
+    width: calc(100% - 3rem); /* 기존 마진값(1.5rem x 2)을 고려한 너비 */
     user-select: text;
     touch-action: pan-y pinch-zoom;
 }

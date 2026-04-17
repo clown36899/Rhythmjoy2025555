@@ -98,7 +98,9 @@
     .mw-dashboard {
         display: grid;
         grid-template-rows: auto 1fr;
-        height: 75vh;
+        height: 500px;
+        max-width: 650px;
+        margin: 0 auto;
         gap: 0;
     }
 

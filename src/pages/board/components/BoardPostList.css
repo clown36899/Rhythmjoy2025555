@@ -74,7 +74,7 @@
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
     /* padding: 20px 16px; */
     width: 100%;
-    gap: 7px;
+    gap: 0;
     box-sizing: border-box;
     align-items: start;
 }

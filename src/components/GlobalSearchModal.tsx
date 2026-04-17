@@ -15,7 +15,7 @@ interface SearchResult {
     id: string;
     title: string;
     description?: string;
-    type: 'event' | 'practice_room' | 'shopping' | 'social_place';
+    type: 'event' | 'practice_room' | 'shopping' | 'social_place' | 'board_post';
     thumbnail?: string;
     date?: string;
 }
@@ -33,11 +33,13 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         practice_rooms: SearchResult[];
         shopping: SearchResult[];
         social_places: SearchResult[];
+        board_posts: SearchResult[];
     }>({
         events: [],
         practice_rooms: [],
         shopping: [],
-        social_places: []
+        social_places: [],
+        board_posts: []
     });
     const [loading, setLoading] = useState(false);
     const lastSearchQuery = useRef('');
@@ -56,7 +58,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         if (!isOpen) return;
 
         if (localQuery.trim() === '') {
-            setResults({ events: [], practice_rooms: [], shopping: [], social_places: [] });
+            setResults({ events: [], practice_rooms: [], shopping: [], social_places: [], board_posts: [] });
             return;
         }
 
@@ -112,6 +114,28 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 console.error('Social schedules search error:', socialError);
             }
 
+            // Search shops
+            const { data: shopsData, error: shopsError } = await supabase
+                .from('shops')
+                .select('id, name, description, logo_url')
+                .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,name.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
+                .limit(10);
+
+            if (shopsError) {
+                console.error('Shops search error:', shopsError);
+            }
+
+            // Search board posts
+            const { data: boardData, error: boardError } = await supabase
+                .from('board_posts')
+                .select('id, title, content, author_nickname')
+                .or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,content.ilike.%${wildcardQuery}%`)
+                .limit(10);
+
+            if (boardError) {
+                console.error('Board posts search error:', boardError);
+            }
+
             setResults({
                 events: (eventsData || []).map(e => ({
                     id: e.id,
@@ -128,12 +152,25 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     type: 'practice_room' as const,
                     thumbnail: getOptimizedImageUrl(Array.isArray(p.images) ? p.images[0] : typeof p.images === 'string' ? JSON.parse(p.images)[0] : undefined, 100)
                 })),
-                shopping: [], // Shopping table doesn't exist
+                shopping: (shopsData || []).map(s => ({
+                    id: String(s.id),
+                    title: s.name,
+                    description: s.description,
+                    type: 'shopping' as const,
+                    thumbnail: s.logo_url
+                })),
                 social_places: (socialData || []).map(sp => ({
                     id: String(sp.id),
                     title: sp.title, // Use title as the main identifier
                     description: sp.location ? `${sp.location} - ${sp.description || ''}` : sp.description, // Show place name in description
                     type: 'social_place' as const,
+                    thumbnail: undefined
+                })),
+                board_posts: (boardData || []).map(bp => ({
+                    id: String(bp.id),
+                    title: bp.title,
+                    description: bp.content,
+                    type: 'board_post' as const,
                     thumbnail: undefined
                 }))
             });
@@ -199,6 +236,10 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     window.location.href = `/social?id=${result.id}`;
                     break;
                 }
+                case 'board_post': {
+                    window.location.href = `/board/${result.id}`;
+                    break;
+                }
             }
         } catch (error) {
             console.error('상세 정보 조회 오류:', error);
@@ -222,13 +263,15 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 return '쇼핑';
             case 'social_places':
                 return '소셜 장소';
+            case 'board_posts':
+                return '자유게시판';
             default:
                 return '';
         }
     };
 
     const totalResults = results.events.length + results.practice_rooms.length +
-        results.shopping.length + results.social_places.length;
+        results.shopping.length + results.social_places.length + results.board_posts.length;
 
     useModalHistory(isOpen, onClose);
 
@@ -354,6 +397,31 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                                     <h3 className="search-section-title">{getSectionTitle('social_places')}</h3>
                                     <div className="search-results-grid">
                                         {results.social_places.map((result) => (
+                                            <div
+                                                key={result.id}
+                                                className="search-result-item"
+                                                onClick={() => handleResultClick(result)}
+                                            >
+                                                {result.thumbnail && (
+                                                    <img src={result.thumbnail} alt={result.title} className="search-result-image" />
+                                                )}
+                                                <div className="search-result-info">
+                                                    <h4 className="search-result-title">{result.title}</h4>
+                                                    {result.description && (
+                                                        <p className="search-result-description">{result.description}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {results.board_posts.length > 0 && (
+                                <div className="search-section">
+                                    <h3 className="search-section-title">{getSectionTitle('board_posts')}</h3>
+                                    <div className="search-results-grid">
+                                        {results.board_posts.map((result) => (
                                             <div
                                                 key={result.id}
                                                 className="search-result-item"

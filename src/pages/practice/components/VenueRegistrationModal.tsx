@@ -21,7 +21,9 @@ interface VenueFormData {
     phone: string;
     description: string;
     website_url: string;
-    map_url: string;
+    map_kakao: string;
+    map_naver: string;
+    map_google: string;
     images: (string | any)[]; // Supports legacy strings and new objects
 }
 
@@ -48,7 +50,9 @@ export default function VenueRegistrationModal({
         phone: "",
         description: "",
         website_url: "",
-        map_url: "",
+        map_kakao: "",
+        map_naver: "",
+        map_google: "",
         images: []
     });
 
@@ -124,7 +128,9 @@ export default function VenueRegistrationModal({
                 phone: "",
                 description: "",
                 website_url: "",
-                map_url: "",
+                map_kakao: "",
+                map_naver: "",
+                map_google: "",
                 images: []
             });
             setImages([]);
@@ -236,6 +242,17 @@ export default function VenueRegistrationModal({
                 return;
             }
 
+            let parsedMapUrls = { kakao: '', naver: '', google: '' };
+            if (data.map_url) {
+                if (data.map_url.startsWith('{')) {
+                    try { parsedMapUrls = JSON.parse(data.map_url); } catch(e){}
+                } else if (data.map_url.includes('naver')) {
+                    parsedMapUrls.naver = data.map_url;
+                } else {
+                    parsedMapUrls.kakao = data.map_url;
+                }
+            }
+
             setFormData({
                 category: data.category,
                 name: data.name,
@@ -243,7 +260,9 @@ export default function VenueRegistrationModal({
                 phone: data.phone || "",
                 description: data.description || "",
                 website_url: data.website_url || "",
-                map_url: data.map_url || "",
+                map_kakao: parsedMapUrls.kakao || "",
+                map_naver: parsedMapUrls.naver || "",
+                map_google: parsedMapUrls.google || "",
                 images: typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || [])
             });
 
@@ -400,7 +419,17 @@ export default function VenueRegistrationModal({
                 : finalImages;
 
             const payload = {
-                ...formData,
+                category: formData.category,
+                name: formData.name,
+                address: formData.address,
+                phone: formData.phone,
+                description: formData.description,
+                website_url: formData.website_url,
+                map_url: JSON.stringify({
+                    kakao: formData.map_kakao,
+                    naver: formData.map_naver,
+                    google: formData.map_google
+                }),
                 images: allImages, // JSONB array of gallery images (thumbnail at index 0)
                 updated_at: new Date().toISOString()
             };
@@ -515,7 +544,7 @@ export default function VenueRegistrationModal({
                                             e.preventDefault();
                                             handleChange('name', place.place_name);
                                             handleChange('address', place.road_address_name || place.address_name);
-                                            handleChange('map_url', place.place_url);
+                                            handleChange('map_kakao', place.place_url);
                                             if (place.phone) handleChange('phone', place.phone);
                                             setSearchResults([]);
                                             skipNextSearch.current = true;
@@ -574,7 +603,7 @@ export default function VenueRegistrationModal({
                         </div>
 
                         <div className="vrm-input-group">
-                            <label>웹사이트/링크</label>
+                            <label>웹사이트/링크 <span style={{ fontSize: '11px', fontWeight: 'normal', opacity: 0.6, marginLeft: '4px' }}>(사진 클릭 시 이동)</span></label>
                             <input
                                 value={formData.website_url}
                                 onChange={e => handleChange('website_url', e.target.value)}
@@ -582,11 +611,27 @@ export default function VenueRegistrationModal({
                             />
                         </div>
                         <div className="vrm-input-group">
-                            <label>지도 링크</label>
+                            <label>카카오 지도 링크</label>
                             <input
-                                value={formData.map_url}
-                                onChange={e => handleChange('map_url', e.target.value)}
-                                placeholder="네이버/카카오맵 URL"
+                                value={formData.map_kakao}
+                                onChange={e => handleChange('map_kakao', e.target.value)}
+                                placeholder="카카오맵 공유 URL"
+                            />
+                        </div>
+                        <div className="vrm-input-group">
+                            <label>네이버 지도 링크</label>
+                            <input
+                                value={formData.map_naver}
+                                onChange={e => handleChange('map_naver', e.target.value)}
+                                placeholder="네이버 지도 공유 URL"
+                            />
+                        </div>
+                        <div className="vrm-input-group">
+                            <label>구글 지도 링크</label>
+                            <input
+                                value={formData.map_google}
+                                onChange={e => handleChange('map_google', e.target.value)}
+                                placeholder="구글 지도 공유 URL"
                             />
                         </div>
                     </div>

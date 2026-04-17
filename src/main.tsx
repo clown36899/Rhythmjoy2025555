@@ -112,6 +112,7 @@ const WebzineViewer = lazy(() => import('./pages/webzine/WebzineViewer'));
 const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineList'));
 const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
 const LinksPage = lazy(() => import('./pages/links/Page'));
+const PlacesPage = lazy(() => import('./pages/places/page'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
@@ -217,6 +218,7 @@ const router = createBrowserRouter([
       { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
       { path: "/admin/v2/ingestor", element: <Suspense fallback={null}><EventIngestorV2Page /></Suspense> },
       { path: "/links", element: <LinksPage /> },
+      { path: "/places", element: <PlacesPage /> },
 
       // Webzine Routes
       { path: "/webzine/:id", element: <WebzineViewer /> },

@@ -65,6 +65,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isMetronomePage = currentPath === '/metronome';
   const isBpmTapperPage = currentPath === '/bpm-tapper';
   const isLinksPage = currentPath === '/links';
+  const isPlacesPage = currentPath === '/places';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
 
@@ -281,8 +282,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     return currentPath.startsWith('/learning') || 
            currentPath.startsWith('/history') || 
            (currentPath === '/board' && category === 'history') ||
+           isPlacesPage ||
            isAdminV2Ingestor;
-  }, [currentPath, location.search, isAdminV2Ingestor]);
+  }, [currentPath, location.search, isAdminV2Ingestor, isPlacesPage]);
 
   // Apply global layout class to html (to override index.css max-width constraint on html & body)
   useEffect(() => {
@@ -384,7 +386,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     </div>
                   ) : (
                     /* Other Pages: Simple Title Text */
-                    <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <h1 className="header-title-simple">
                         {(() => {
                           if (isSocialPage) return '소셜';
@@ -396,7 +398,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                           if (isShoppingPage) return '쇼핑';
                           if (isGuidePage) return '안내';
                           if (isArchivePage) return '자료실';
-                          if (isMyActivitiesPage) return '내 활동';
+                          if (currentPath === '/places') return '장소 안내';
+                          if (currentPath === '/links') return '사이트 모음';
                           return '댄스빌보드';
                         })()}
                       </h1>
@@ -413,7 +416,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                           <i className="ri-question-line"></i>
                         </button>
                       )}
-                    </>
+                    </div>
                   )}
 
                   {/* 이벤트·활동 페이지에 adminStats 표시 (Optional: Keep specifically for events page or strictly follow logic) */}
@@ -553,7 +556,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       )}
 
       {/* New Header Navigation for Events Page & Calendar Page */}
-      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
+      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
         <nav className="header-nav-v2">
           <div className="header-nav-v2-inner">
             <button
@@ -585,7 +588,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               자유게시판
             </button>
             <button
-              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
+              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
               onClick={() => navigate('/forum')}
               data-analytics-id="header_nav_forum"
             >

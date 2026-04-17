@@ -216,69 +216,6 @@ export default function BoardMainContainer() {
     }, []);
 
 
-
-    const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
-    const [touchEnd, setTouchEnd] = useState<{ x: number, y: number } | null>(null);
-    const minSwipeDistance = 70; // Increased from 50px for better intentionality
-
-    const onTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null);
-        setTouchStart({
-            x: e.targetTouches[0].clientX,
-            y: e.targetTouches[0].clientY
-        });
-    };
-    const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd({
-            x: e.targetTouches[0].clientX,
-            y: e.targetTouches[0].clientY
-        });
-    };
-    const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
-
-        const deltaX = touchStart.x - touchEnd.x;
-        const deltaY = touchStart.y - touchEnd.y;
-
-        const absX = Math.abs(deltaX);
-        const absY = Math.abs(deltaY);
-
-        // Prevent swipe if vertical movement is dominant (scrolling)
-        // Only trigger if horizontal movement is at least 1.5x greater than vertical movement
-        if (absX < absY * 1.5) return;
-
-
-        const isLeftSwipe = deltaX > minSwipeDistance;
-        const isRightSwipe = deltaX < -minSwipeDistance;
-
-        // Dynamic Board Order for Swipe Navigation
-        // Filter active categories and map to codes
-        const boardOrder = boardData?.categories
-            ? boardData.categories
-                .filter(c => c.is_active)
-                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                .map(c => c.code)
-            : ['free', 'anonymous', 'trade', 'market']; // Fallback
-
-        // Add history and dev-log manually if needed, or rely on categories if they are in DB
-        // Assuming 'history' is not a board category in DB but a special page
-        const fullSwipeOrder = [...boardOrder];
-        if (!fullSwipeOrder.includes('history')) fullSwipeOrder.push('history');
-
-        const currentIndex = fullSwipeOrder.indexOf(category);
-
-        if (currentIndex === -1) return; // Not in swipeable boards
-
-        // Swipe left: go to next board
-        if (isLeftSwipe && currentIndex < fullSwipeOrder.length - 1) {
-            handleCategoryChange(fullSwipeOrder[currentIndex + 1]);
-        }
-        // Swipe right: go to previous board
-        else if (isRightSwipe && currentIndex > 0) {
-            handleCategoryChange(fullSwipeOrder[currentIndex - 1]);
-        }
-    };
-
     // Anonymous Editing State
     const [editingAnonymousData, setEditingAnonymousData] = useState<{ post: AnonymousBoardPost, password?: string } | null>(null);
 
@@ -311,9 +248,6 @@ export default function BoardMainContainer() {
 
             <div
                 className={`board-posts-container ${category === 'history' ? 'is-history' : ''} ${['free', 'notice', 'market', 'trade', 'anonymous'].includes(category || '') ? 'is-standard-board-v2' : ''} ${category === 'anonymous' ? 'is-anonymous-board' : ''}`}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
                 style={{
                     paddingTop: (category === 'history' || category === 'free') ? (prefixes.length > 0 ? '48px' : '10px') : (prefixes.length > 0 ? '96px' : '48px'),
                     display: category === 'history' ? 'flex' : 'block',

@@ -56,8 +56,8 @@
 }
 
 .layout-full .header-content-inner {
-  /* [Fix] 인제스터 모드에서도 헤더 컨텐츠는 중앙 정렬 유지 */
-  max-width: 650px !important;
+  /* [Fix] 인제스터 모드에서도 헤더 컨텐츠는 중앙 정렬 유지... 했으나 사용자 요청으로 제한 해제 */
+  max-width: none !important;
 }
 
 .shell-bottom-nav {
@@ -356,8 +356,18 @@
   gap: 0px;
   /* 간격을 고정 픽셀로 변경 */
   width: 100%;
-  max-width: 650px;
+  max-width: none;
   padding: 0 16px;
+}
+
+@media (max-width: 650px) {
+  .header-nav-v2-inner {
+    max-width: 100%;
+  }
+}
+
+.layout-wide .header-nav-v2-inner {
+  max-width: none;
 }
 
 .nav-refresh-btn {
@@ -437,12 +447,11 @@
 }
 
 .layout-compact .header-content-inner {
-  max-width: 650px;
+  max-width: none;
 }
 
 .layout-wide .header-content-inner {
-  max-width: 650px;
-
+  max-width: none;
 }
 
 /* Old hack removed */
@@ -1111,13 +1120,25 @@
   font-size: 24px;
 }
 
-/* Wide Layout Adjustment */
+/* Wide Layout Adjustment - Use full width right for FAB */
 .layout-wide .shell-fab-btn {
-  right: calc(50% - 325px + 20px);
+  right: 20px;
 }
 
-@media (max-width: 650px) {
-  .layout-wide .shell-fab-btn {
-    right: 20px;
-  }
+.shell-global-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: -4px;
+  transition: opacity 0.2s;
+}
+
+.shell-global-back-btn:hover {
+  opacity: 0.7;
 }

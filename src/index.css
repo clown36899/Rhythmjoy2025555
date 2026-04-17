@@ -20,6 +20,14 @@
     min-height: 100svh;
   }
 
+  /* 데스크탑 환경에서는 가로 제약 해제 */
+  @media (min-width: 768px) {
+    #root {
+      max-width: none !important;
+      margin: 0 !important;
+    }
+  }
+
   /* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
   /* @media (min-width: 769px) removed to enforce 650px */
 
@@ -30,7 +38,6 @@
     max-width: none !important;
     margin: 0 !important;
     width: 100% !important;
-    height: 100svh !important;
   }
 
   /* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */

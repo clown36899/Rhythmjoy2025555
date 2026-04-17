@@ -198,7 +198,7 @@
 body .board-posts-container.is-standard-board-v2 .board-post-card {
   background-color: var(--bg-card) !important;
   border-bottom: 1px solid var(--border-subtle) !important;
-  padding: 1rem 1rem !important;
+  padding: 0.5rem 1rem !important;
   transition: none !important;
   transform: none !important;
   box-shadow: none !important;
@@ -518,7 +518,7 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 
 .standard-view .board-post-content {
   color: var(--text-tertiary);
-  padding: 4px 0 0 0;
+  padding: 0;
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
@@ -537,7 +537,7 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   font-size: 12px;
   color: var(--text-muted);
   width: 100%;
-  padding-top: 8px;
+  padding-top: 0;
   padding-left: 0;
 }
 
