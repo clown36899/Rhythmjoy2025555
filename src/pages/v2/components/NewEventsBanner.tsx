@@ -28,6 +28,19 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const [isManualPaused, setIsManualPaused] = useState(false);
+    const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    // 수동 조작 시 8초간 자동 슬라이드 중지 로직
+    const triggerManualPause = useCallback(() => {
+        setIsManualPaused(true);
+        if (manualPauseTimeoutRef.current) {
+            clearTimeout(manualPauseTimeoutRef.current);
+        }
+        manualPauseTimeoutRef.current = setTimeout(() => {
+            setIsManualPaused(false);
+        }, 8000);
+    }, []);
 
     // 최소 스와이프 거리 (픽셀)
     const minSwipeDistance = 50;
@@ -49,26 +62,29 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         const isRightSwipe = distance < -minSwipeDistance;
 
         if (isLeftSwipe) {
+            triggerManualPause();
             goToNext();
         } else if (isRightSwipe) {
+            triggerManualPause();
             goToPrevious();
         }
     };
 
     // 자동 슬라이드 (5초마다)
     useEffect(() => {
-        if (events.length <= 1 || isPaused) return;
+        if (events.length <= 1 || isPaused || isManualPaused) return;
 
         const interval = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % events.length);
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [events.length, isPaused]);
+    }, [events.length, isPaused, isManualPaused]);
 
     const goToSlide = useCallback((index: number) => {
+        triggerManualPause();
         setCurrentIndex(index);
-    }, []);
+    }, [triggerManualPause]);
 
     const goToPrevious = useCallback(() => {
         setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
