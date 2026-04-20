@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { StandardBoardPost as BoardPost } from '../../../types/board';
 import './PostDetailModal.css';
+import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 
 interface PostDetailModalProps {
   isOpen: boolean;
@@ -138,10 +139,18 @@ export default function PostDetailModal({
         </div>
 
         {/* Content */}
-        <div className="pdm-modal-body">
-          <div className="pdm-content">
-            {post.content}
-          </div>
+        <div className="pdm-modal-body universal-editor-content">
+          {/* [NEW] Render featured image if not already present in content HTML */}
+          {(post as any).image && !(post.content || '').includes((post as any).image) && (
+            <div className="board-detail-featured-image">
+              <img src={(post as any).image} alt="Featured" draggable={false} />
+            </div>
+          )}
+
+          <div
+            dangerouslySetInnerHTML={{ __html: post.content || '' }}
+            style={{ width: '100%' }}
+          />
         </div>
 
         {/* Footer */}

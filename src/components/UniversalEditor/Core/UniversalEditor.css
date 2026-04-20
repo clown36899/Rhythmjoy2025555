@@ -120,10 +120,40 @@
     /* Reset default styles */
     color: #e5e7eb;
     font-size: 16px;
-    line-height: 1.0;
+    line-height: 1.6; /* [UPDATED] More readable line height */
     /* min-height removed to prevent large gaps in list view */
     width: 100%;
-    /* [UPDATED] Check alignment reference */
+    word-break: break-all;
+}
+
+.universal-editor-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 1rem 0;
+}
+
+.universal-editor-content p {
+    margin-bottom: 0.8rem; /* [UPDATED] Standard paragraph spacing */
+    min-height: 1.25em;
+}
+
+/* [NEW] Featured image styles for board posts */
+.board-detail-featured-image {
+    width: 100%;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.board-detail-featured-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    object-fit: contain;
 }
 
 /* Target the inner ProseMirror editable div */
@@ -169,7 +199,7 @@
 }
 
 .universal-editor-content p {
-    margin-bottom: 0em;
+    margin-bottom: 0.8rem;
 }
 
 .universal-editor-content ul {

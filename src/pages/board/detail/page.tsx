@@ -8,6 +8,7 @@ import CommentSection from '../components/CommentSection';
 import { type UserData } from '../components/UserRegistrationModal';
 import '../board.css';
 import './detail.css';
+import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 import type { BoardPost } from '../hooks/useBoardPosts';
 
 export default function BoardDetailPage() {
@@ -347,18 +348,19 @@ export default function BoardDetailPage() {
                 </div>
 
                 {/* Body Section */}
-                <div className="board-detail-body">
-                    {/* Image Display in Detail View (Moved here) */}
-                    {(post as any).image && (
-                        <div className="board-detail-image-container" style={{ marginBottom: '20px' }}>
-                            <img
-                                src={(post as any).image}
-                                alt="Post Image"
-                                style={{ maxWidth: '100%', borderRadius: '8px', maxHeight: '500px', objectFit: 'contain' }}
-                            />
+                <div className="board-detail-body universal-editor-content">
+                    {/* [NEW] Render featured image if not already present in content HTML */}
+                    {(post as any).image && !(post.content || '').includes((post as any).image) && (
+                        <div className="board-detail-featured-image">
+                            <img src={(post as any).image} alt="Featured" draggable={false} />
                         </div>
                     )}
-                    {post.content}
+
+                    {/* [UPDATED] Use dangerouslySetInnerHTML for rich text & images */}
+                    <div
+                        dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                        style={{ width: '100%' }}
+                    />
                 </div>
 
                 {/* Comment Section */}

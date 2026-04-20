@@ -236,6 +236,12 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
 
                         {/* Body Section */}
                         <div className="board-detail-body universal-editor-content">
+                            {/* [NEW] Render featured image if not already present in content HTML */}
+                            {(post as any).image && !(post.content || '').includes((post as any).image) && (
+                                <div className="board-detail-featured-image">
+                                    <img src={(post as any).image} alt="Featured" draggable={false} />
+                                </div>
+                            )}
 
                             <div
                                 dangerouslySetInnerHTML={{ __html: post.content || '' }}
