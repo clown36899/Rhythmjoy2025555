@@ -620,16 +620,21 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
       {/* Global Floating Action Button (FAB) */}
       {!isFullscreen && pageAction && (
-        <button
-          className="shell-fab-btn"
-          onClick={handlePageAction}
-          aria-label={pageAction.label || 'Action'}
-          data-analytics-id="global_fab_action"
-          data-analytics-type="action"
-          data-analytics-title={pageAction.label || 'Floating Action'}
-        >
-          <i className={pageAction.icon}></i>
-        </button>
+        <div className="shell-fab-container">
+          {pageAction.label && (
+            <span className="shell-fab-label">{pageAction.label}</span>
+          )}
+          <button
+            className="shell-fab-btn"
+            onClick={handlePageAction}
+            aria-label={pageAction.label || 'Action'}
+            data-analytics-id="global_fab_action"
+            data-analytics-type="action"
+            data-analytics-title={pageAction.label || 'Floating Action'}
+          >
+            <i className={pageAction.icon}></i>
+          </button>
+        </div>
       )}
 
       <SideDrawer

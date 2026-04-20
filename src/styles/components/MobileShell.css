@@ -1086,10 +1086,36 @@
   cursor: pointer;
 }
 /* ===== Floating Action Button (FAB) ===== */
-.shell-fab-btn {
+.shell-fab-container {
   position: fixed;
   right: 20px;
   bottom: calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 998;
+}
+
+.shell-fab-label {
+  background: var(--color-blue-500);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: fab-label-fade-in 0.3s ease;
+}
+
+@keyframes fab-label-fade-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.shell-fab-btn {
   width: 56px;
   height: 56px;
   border-radius: 28px;
@@ -1101,7 +1127,6 @@
   justify-content: center;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4), 
               0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 998;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   -webkit-tap-highlight-color: transparent;
@@ -1121,7 +1146,7 @@
 }
 
 /* Wide Layout Adjustment - Use full width right for FAB */
-.layout-wide .shell-fab-btn {
+.layout-wide .shell-fab-container {
   right: 20px;
 }
 

@@ -189,13 +189,17 @@ export default function CalendarDateMapModal({
         };
 
         // 서비스 라이브러리는 core 로딩 후에 사용 가능하므로 load 콜백 권장
-        if (window.kakao.maps && window.kakao.maps.load) {
-            window.kakao.maps.load(performGeocoding);
-        } else {
-            // 혹시라도 load가 없는 경우를 대비한 fallback
-            const timer = setTimeout(performGeocoding, 100);
-            return () => clearTimeout(timer);
-        }
+        const initGeocodingWithDelay = () => {
+            if (window.kakao.maps && window.kakao.maps.load) {
+                window.kakao.maps.load(performGeocoding);
+            } else {
+                performGeocoding();
+            }
+        };
+
+        // 모달 오픈 애니메이션(300ms) 종료 후 지오코딩 등 무거운 작업 시작
+        const timer = setTimeout(initGeocodingWithDelay, 350);
+        return () => clearTimeout(timer);
     }, [isOpen, filteredEvents]);
 
     // 2. 주소 검색 완료 후 맵 초기화

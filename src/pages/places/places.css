@@ -228,7 +228,11 @@
 .place-neon-icon img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* places usually have photos, so cover is better */
+    object-fit: cover;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
 }
 
 .icon-placeholder {
@@ -414,3 +418,98 @@
     animation: bounce 2s ease-in-out infinite;
     text-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
 }
+
+/* ===== 장소안내 전용 화이트 테마 (포럼 장소추가) ===== */
+
+
+body.places-white-theme .places-page-glass-container {
+    background: #ffffff !important;
+    min-height: 100vh;
+}
+
+body.places-white-theme .places-hero-header .subtitle-glass {
+    color: #4b5563;
+}
+
+body.places-white-theme .place-title {
+    color: #111827;
+}
+
+body.places-white-theme .place-desc,
+body.places-white-theme .place-address,
+body.places-white-theme .places-hero-header .title-gradient-places {
+    color: #1f2937;
+}
+
+body.places-white-theme .title-gradient-places {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: #111827;
+}
+
+body.places-white-theme .glass-card-places {
+    background: #ffffff;
+}
+
+body.places-white-theme .places-glass-filter-wrapper {
+    background: linear-gradient(to bottom, #ffffff 80%, rgba(255, 255, 255, 0));
+}
+
+body.places-white-theme .glass-pill-places {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+body.places-white-theme .glass-pill-places.active {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+    border-color: #8b5cf6;
+}
+
+body.places-white-theme .glass-pill-places:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+body.places-white-theme .category-count {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #d1d5db;
+}
+
+body.places-white-theme .glass-pill-places.active .category-count {
+    background: #8b5cf6;
+    color: white;
+}
+
+body.places-white-theme .place-neon-icon {
+    background: #f3f4f6;
+}
+
+body.places-white-theme .glass-action-btn {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    backdrop-filter: none;
+}
+
+body.places-white-theme .glass-action-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+body.places-white-theme .glass-action-btn.delete {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+body.places-white-theme .glass-action-btn.edit {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #d97706;
+}
+
+
+

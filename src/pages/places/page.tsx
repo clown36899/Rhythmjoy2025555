@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import VenueRegistrationModal from '../practice/components/VenueRegistrationModal';
+import VenueDetailModal from '../practice/components/VenueDetailModal';
+import { useSetPageAction } from '../../contexts/PageActionContext';
 import './places.css';
 
 export interface Venue {
@@ -25,6 +27,7 @@ export default function PlacesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTargetId, setEditTargetId] = useState<string | null>(null);
     const [filterCategory, setFilterCategory] = useState<string>('전체');
+    const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
 
     const fetchPlaces = async () => {
         setLoading(true);
@@ -45,10 +48,26 @@ export default function PlacesPage() {
 
     useEffect(() => {
         fetchPlaces();
+
+        // 화이트 테마 클래스 추가
+        document.body.classList.add('places-white-theme');
+        return () => {
+            document.body.classList.remove('places-white-theme');
+        };
     }, []);
 
     // 동적으로 존재하는 카테고리 추출 ('연습실', '스윙바' 등)
     const allCategories = Array.from(new Set(places.map(place => place.category))).filter(Boolean).sort();
+
+    useSetPageAction(React.useMemo(() => ({
+        icon: 'ri-add-line',
+        label: '장소 추가',
+        requireAuth: true,
+        onClick: () => {
+            setEditTargetId(null);
+            setIsModalOpen(true);
+        }
+    }), []));
 
     // 필터링된 배열 계산
     const filteredPlaces = filterCategory === '전체'
@@ -78,13 +97,8 @@ export default function PlacesPage() {
         <div className="places-page-glass-container">
             <header className="places-hero-header">
                 <div className="places-hero-content">
-                    <h1 className="title-gradient-places">장소 안내</h1>
                     <p className="subtitle-glass">더 즐거운 댄스 라이프를 만들어 줄 연습실과 모임 장소들</p>
                 </div>
-                <button className="glass-btn-primary-places" onClick={() => { setEditTargetId(null); setIsModalOpen(true); }}>
-                    <i className="ri-add-line"></i>
-                    <span>새로운 장소 등록</span>
-                </button>
             </header>
 
             <div className="places-glass-filter-wrapper">
@@ -140,16 +154,12 @@ export default function PlacesPage() {
 
                         return (
                             <div key={place.id} className="glass-card-places"
-                                onClick={() => {
-                                    if (place.website_url) {
-                                        window.open(place.website_url, '_blank', 'noopener noreferrer');
-                                    }
-                                }}>
+                                onClick={() => setSelectedVenueId(place.id)}>
                                 
                                 <div className="place-card-body">
                                     <div className="place-neon-icon">
                                         {thumb ? (
-                                            <img src={thumb} alt={place.name} />
+                                            <img src={thumb} alt={place.name} draggable={false} />
                                         ) : (
                                             <div className="icon-placeholder">
                                                 <i className="ri-map-pin-user-fill"></i>
@@ -204,6 +214,19 @@ export default function PlacesPage() {
                         )
                     })}
                 </div>
+            )}
+
+            {/* 장소 상세 모달 */}
+            {selectedVenueId && (
+                <VenueDetailModal
+                    venueId={selectedVenueId}
+                    onClose={() => setSelectedVenueId(null)}
+                    onEdit={() => {
+                        setEditTargetId(selectedVenueId);
+                        setSelectedVenueId(null);
+                        setIsModalOpen(true);
+                    }}
+                />
             )}
 
             {/* 기존 카카오 방식의 장소 등록/수정 모달 활용 */}

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import LocalLoading from './LocalLoading';
+import VenueDetailModal from '../pages/practice/components/VenueDetailModal';
 
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
 import type { Event } from '../lib/supabase';
@@ -30,15 +31,13 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
     const [localQuery, setLocalQuery] = useState(initialQuery);
     const [results, setResults] = useState<{
         events: SearchResult[];
-        practice_rooms: SearchResult[];
+        venues: SearchResult[];
         shopping: SearchResult[];
-        social_places: SearchResult[];
         board_posts: SearchResult[];
     }>({
         events: [],
-        practice_rooms: [],
+        venues: [],
         shopping: [],
-        social_places: [],
         board_posts: []
     });
     const [loading, setLoading] = useState(false);
@@ -47,6 +46,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
     // 상세 모달 상태 관리
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+    const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
     const [showEventDetail, setShowEventDetail] = useState(false);
     const [showShopDetail, setShowShopDetail] = useState(false);
 
@@ -58,7 +58,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         if (!isOpen) return;
 
         if (localQuery.trim() === '') {
-            setResults({ events: [], practice_rooms: [], shopping: [], social_places: [], board_posts: [] });
+            setResults({ events: [], venues: [], shopping: [], board_posts: [] });
             return;
         }
 
@@ -90,28 +90,15 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 console.error('Events search error:', eventsError);
             }
 
-            // Search practice rooms (from venues table)
-            const { data: practiceData, error: practiceError } = await supabase
+            // 포럼 장소안내 검색 (venues 테이블 전체, 카테고리 무관)
+            const { data: venuesData, error: venuesError } = await supabase
                 .from('venues')
-                .select('id, name, description, images, address')
-                .eq('category', '연습실')
+                .select('id, name, description, images, address, category')
                 .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,name.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
                 .limit(10);
 
-            if (practiceError) {
-                console.error('Practice rooms search error:', practiceError);
-            }
-
-            // Search social schedules (from events table with group_id)
-            const { data: socialData, error: socialError } = await supabase
-                .from('events')
-                .select('id, title, location, description, address, group_id')
-                .not('group_id', 'is', null)
-                .or(`title.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,location.ilike.%${wildcardQuery}%`)
-                .limit(10);
-
-            if (socialError) {
-                console.error('Social schedules search error:', socialError);
+            if (venuesError) {
+                console.error('Venues search error:', venuesError);
             }
 
             // Search shops
@@ -145,7 +132,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     thumbnail: e.image_thumbnail,
                     date: e.start_date
                 })),
-                practice_rooms: (practiceData || []).map(p => ({
+                venues: (venuesData || []).map(p => ({
                     id: String(p.id),
                     title: p.name,
                     description: p.description,
@@ -158,13 +145,6 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     description: s.description,
                     type: 'shopping' as const,
                     thumbnail: s.logo_url
-                })),
-                social_places: (socialData || []).map(sp => ({
-                    id: String(sp.id),
-                    title: sp.title, // Use title as the main identifier
-                    description: sp.location ? `${sp.location} - ${sp.description || ''}` : sp.description, // Show place name in description
-                    type: 'social_place' as const,
-                    thumbnail: undefined
                 })),
                 board_posts: (boardData || []).map(bp => ({
                     id: String(bp.id),
@@ -206,8 +186,8 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     break;
                 }
                 case 'practice_room': {
-                    // 연습실 페이지로 라우팅
-                    window.location.href = `/practice?id=${result.id}`;
+                    // VenueDetailModal로 상세 표시
+                    setSelectedVenueId(result.id);
                     break;
                 }
                 case 'shopping': {
@@ -251,6 +231,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         setShowShopDetail(false);
         setSelectedEvent(null);
         setSelectedShop(null);
+        setSelectedVenueId(null);
     };
 
     const getSectionTitle = (type: string) => {
@@ -258,7 +239,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
             case 'events':
                 return '행사';
             case 'practice_rooms':
-                return '연습실';
+                return '장소 안내';
             case 'shopping':
                 return '쇼핑';
             case 'social_places':
@@ -270,8 +251,8 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         }
     };
 
-    const totalResults = results.events.length + results.practice_rooms.length +
-        results.shopping.length + results.social_places.length + results.board_posts.length;
+    const totalResults = results.events.length + results.venues.length +
+        results.shopping.length + results.board_posts.length;
 
     useModalHistory(isOpen, onClose);
 
@@ -342,11 +323,11 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                                 </div>
                             )}
 
-                            {results.practice_rooms.length > 0 && (
+                            {results.venues.length > 0 && (
                                 <div className="search-section">
-                                    <h3 className="search-section-title">{getSectionTitle('practice_rooms')}</h3>
+                                    <h3 className="search-section-title">장소 안내</h3>
                                     <div className="search-results-grid">
-                                        {results.practice_rooms.map((result) => (
+                                        {results.venues.map((result) => (
                                             <div
                                                 key={result.id}
                                                 className="search-result-item"
@@ -392,30 +373,6 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                                 </div>
                             )}
 
-                            {results.social_places.length > 0 && (
-                                <div className="search-section">
-                                    <h3 className="search-section-title">{getSectionTitle('social_places')}</h3>
-                                    <div className="search-results-grid">
-                                        {results.social_places.map((result) => (
-                                            <div
-                                                key={result.id}
-                                                className="search-result-item"
-                                                onClick={() => handleResultClick(result)}
-                                            >
-                                                {result.thumbnail && (
-                                                    <img src={result.thumbnail} alt={result.title} className="search-result-image" />
-                                                )}
-                                                <div className="search-result-info">
-                                                    <h4 className="search-result-title">{result.title}</h4>
-                                                    {result.description && (
-                                                        <p className="search-result-description">{result.description}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
                             {results.board_posts.length > 0 && (
                                 <div className="search-section">
@@ -445,6 +402,14 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     )}
                 </div>
             </div>
+
+            {/* 장소 상세 모달 */}
+            {selectedVenueId && (
+                <VenueDetailModal
+                    venueId={selectedVenueId}
+                    onClose={handleCloseDetailModals}
+                />
+            )}
 
             {/* 이벤트 상세 모달 */}
             {showEventDetail && selectedEvent && (
