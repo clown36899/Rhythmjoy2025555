@@ -38,6 +38,11 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
+        document.body.style.overflow = "hidden";
+        return () => { document.body.style.overflow = ""; };
+    }, []);
+
+    useEffect(() => {
         if (venueId) fetchVenue();
     }, [venueId]);
 
@@ -157,8 +162,8 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                 <div className="vdm-scroll-body">
 
                     {/* ── 이미지 히어로 (썸네일 포함 전체) ── */}
-                    {allImages.length > 0 && (
-                        <div className="vdm-hero-section">
+                    <div className="vdm-hero-section">
+                        {allImages.length > 0 ? (
                             <img
                                 key={currentImageIndex}
                                 src={allImages[currentImageIndex]}
@@ -166,35 +171,38 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                                 className="vdm-hero-image"
                                 draggable={false}
                             />
-                            {allImages.length > 1 && (
-                                <>
-                                    <button
-                                        className="vdm-nav-btn vdm-nav-prev"
-                                        onClick={() => setCurrentImageIndex((i) => (i - 1 + allImages.length) % allImages.length)}
-                                    >
-                                        <i className="ri-arrow-left-s-line"></i>
-                                    </button>
-                                    <button
-                                        className="vdm-nav-btn vdm-nav-next"
-                                        onClick={() => setCurrentImageIndex((i) => (i + 1) % allImages.length)}
-                                    >
-                                        <i className="ri-arrow-right-s-line"></i>
-                                    </button>
-                                    <div className="vdm-image-counter">{currentImageIndex + 1} / {allImages.length}</div>
-                                    {/* 인디케이터 도트 */}
-                                    <div className="vdm-dots">
-                                        {allImages.map((_, idx) => (
-                                            <button
-                                                key={idx}
-                                                className={`vdm-dot${idx === currentImageIndex ? " active" : ""}`}
-                                                onClick={() => setCurrentImageIndex(idx)}
-                                            />
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
+                        ) : (
+                            <div className="vdm-hero-placeholder">
+                                <i className="ri-map-pin-line"></i>
+                            </div>
+                        )}
+                        {allImages.length > 1 && (
+                            <>
+                                <button
+                                    className="vdm-nav-btn vdm-nav-prev"
+                                    onClick={() => setCurrentImageIndex((i) => (i - 1 + allImages.length) % allImages.length)}
+                                >
+                                    <i className="ri-arrow-left-s-line"></i>
+                                </button>
+                                <button
+                                    className="vdm-nav-btn vdm-nav-next"
+                                    onClick={() => setCurrentImageIndex((i) => (i + 1) % allImages.length)}
+                                >
+                                    <i className="ri-arrow-right-s-line"></i>
+                                </button>
+                                <div className="vdm-image-counter">{currentImageIndex + 1} / {allImages.length}</div>
+                                <div className="vdm-dots">
+                                    {allImages.map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            className={`vdm-dot${idx === currentImageIndex ? " active" : ""}`}
+                                            onClick={() => setCurrentImageIndex(idx)}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     {/* ── 장소 정보 ── */}
                     <div className="vdm-info-section">
