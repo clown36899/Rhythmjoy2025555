@@ -228,21 +228,14 @@ export default function CalendarDateMapModal({
                     newMap.setBounds(bounds, 60, 30, 10, 30);
                 }
 
-                // 모달 애니메이션(0.3s) 후 레이아웃 갱신
-                setTimeout(() => {
-                    newMap.relayout();
-                    if (geocodedData.length > 0) {
-                        const bounds = new window.kakao.maps.LatLngBounds();
-                        geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
-                        newMap.setBounds(bounds, 60, 30, 10, 30);
-                    }
-                }, 400);
+                newMap.relayout();
 
                 setMap(newMap);
             });
         };
 
-        const timer = setTimeout(initMap, 100);
+        // 모달 slideUp 애니메이션(0.3s) 완전 완료 후 초기화해야 relayout 깜빡임 없음
+        const timer = setTimeout(initMap, 350);
         return () => clearTimeout(timer);
     }, [isOpen, map, isGeocoding, geocodedData]);
 
