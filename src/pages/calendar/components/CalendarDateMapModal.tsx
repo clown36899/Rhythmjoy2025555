@@ -27,6 +27,7 @@ export default function CalendarDateMapModal({
     onEventClick,
 }: CalendarDateMapModalProps) {
     const [map, setMap] = useState<any>(null);
+    const [mapVisible, setMapVisible] = useState(false);
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<any[]>([]);
     const overlaysRef = useRef<any[]>([]);
@@ -39,6 +40,17 @@ export default function CalendarDateMapModal({
     useEffect(() => {
         setLocalEvents(events);
     }, [events]);
+
+    // 모달 닫힐 때 map/mapVisible 리셋
+    useEffect(() => {
+        if (!isOpen) {
+            setMap(null);
+            setMapVisible(false);
+            setGeocodedData([]);
+            overlaysRef.current.forEach(o => o.setMap(null));
+            overlaysRef.current = [];
+        }
+    }, [isOpen]);
 
     // eventUpdated 커스텀 이벤트 수신하여 로컬 데이터 즉시 갱신
     useEffect(() => {
@@ -221,15 +233,7 @@ export default function CalendarDateMapModal({
 
                 const newMap = new window.kakao.maps.Map(container, options);
 
-                // 검색된 데이터가 있으면 즉시 바운드 설정
-                if (geocodedData.length > 0) {
-                    const bounds = new window.kakao.maps.LatLngBounds();
-                    geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
-                    newMap.setBounds(bounds, 60, 30, 10, 30);
-                }
-
                 newMap.relayout();
-
                 setMap(newMap);
             });
         };
@@ -239,16 +243,13 @@ export default function CalendarDateMapModal({
         return () => clearTimeout(timer);
     }, [isOpen, map, isGeocoding, geocodedData]);
 
-    // 맵 가시성 확보 및 바운드 재조정 (지역 필터링 시)
+    // 바운드 재조정 (geocodedData 확정 후 또는 지역 필터 변경 시)
     useEffect(() => {
         if (isOpen && map && geocodedData.length > 0) {
             const bounds = new window.kakao.maps.LatLngBounds();
             geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
             map.setBounds(bounds, 60, 30, 10, 30);
-
-            setTimeout(() => {
-                map.relayout();
-            }, 500);
+            setMapVisible(true);
         }
     }, [isOpen, map, geocodedData]);
 
@@ -340,7 +341,7 @@ export default function CalendarDateMapModal({
 
                 <div className="CDMM-body">
                     <div className="CDMM-mapArea">
-                        <div ref={mapContainerRef} className="CDMM-map"></div>
+                        <div ref={mapContainerRef} className="CDMM-map" style={{ visibility: mapVisible ? 'visible' : 'hidden' }}></div>
                         {map && geocodedData.length > 0 && (
                             <button className="CDMM-resetBtn" onClick={resetMapBounds} title="초기 위치로 이동">
                                 <i className="ri-focus-3-line"></i>
