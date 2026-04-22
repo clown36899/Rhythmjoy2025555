@@ -32,6 +32,7 @@ interface PracticeRoomListProps {
   activeCategory: string;
   onVenueClick: (venueId: string) => void;
   refreshTrigger?: number;
+  regionFilter?: "all" | "seoul" | "other";
 }
 
 export default function PracticeRoomList({
@@ -44,7 +45,8 @@ export default function PracticeRoomList({
   setSortBy,
   activeCategory,
   onVenueClick,
-  refreshTrigger = 0
+  refreshTrigger = 0,
+  regionFilter = "all",
 }: PracticeRoomListProps) {
   const { user, signInWithKakao } = useAuth();
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
@@ -222,6 +224,9 @@ export default function PracticeRoomList({
 
     // 먼저 필터링
     let filtered = sourceRooms.filter((room) => {
+      if (regionFilter === "seoul" && !room.address?.startsWith("서울")) return false;
+      if (regionFilter === "other" && room.address?.startsWith("서울")) return false;
+
       if (!searchQuery.trim()) return true;
 
       const query = searchQuery.toLowerCase();
@@ -239,7 +244,7 @@ export default function PracticeRoomList({
     // 연습실에는 "time" 정렬이 없음 (이벤트만 해당)
 
     return filtered;
-  }, [rooms, randomizedRooms, searchQuery, sortBy]);
+  }, [rooms, randomizedRooms, searchQuery, sortBy, regionFilter]);
 
   // 자동완성 제안 생성
   const generateSearchSuggestions = (query: string) => {

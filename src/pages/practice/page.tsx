@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import PracticeRoomList from "./components/PracticeRoomList";
 import VenueTabBar from "./components/VenueTabBar";
+import VenueMapView from "./components/VenueMapView";
 import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSetPageAction } from "../../contexts/PageActionContext";
@@ -19,6 +20,8 @@ export default function PracticeRoomsPage() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("연습실");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [regionFilter, setRegionFilter] = useState<"all" | "seoul" | "other">("all");
 
   const { user, isAdmin } = useAuth();
   const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
@@ -209,6 +212,45 @@ export default function PracticeRoomsPage() {
           onCategoryChange={setActiveCategory}
         />
 
+        {/* View Controls */}
+        <div className="practice-view-controls">
+          <div className="practice-view-toggle">
+            <button
+              className={`practice-view-btn${viewMode === "list" ? " active" : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              <i className="ri-list-check"></i> 리스트
+            </button>
+            <button
+              className={`practice-view-btn${viewMode === "map" ? " active" : ""}`}
+              onClick={() => setViewMode("map")}
+            >
+              <i className="ri-map-2-line"></i> 지도
+            </button>
+          </div>
+          <div className="practice-region-filter">
+            {(["all", "seoul", "other"] as const).map(r => (
+              <button
+                key={r}
+                className={`practice-region-btn${regionFilter === r ? " active" : ""}`}
+                onClick={() => setRegionFilter(r)}
+              >
+                {r === "all" ? "전체" : r === "seoul" ? "서울" : "다른 지역"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Map View */}
+        {viewMode === "map" && (
+          <VenueMapView
+            activeCategory={activeCategory}
+            regionFilter={regionFilter}
+            onVenueClick={handleVenueClick}
+            refreshTrigger={refreshTrigger}
+          />
+        )}
+
         {/* Venue List */}
         <PracticeRoomList
           adminType={isEffectiveAdmin ? "super" : null}
@@ -221,6 +263,7 @@ export default function PracticeRoomsPage() {
           activeCategory={activeCategory}
           onVenueClick={handleVenueClick}
           refreshTrigger={refreshTrigger}
+          regionFilter={regionFilter}
         />
       </div>
 

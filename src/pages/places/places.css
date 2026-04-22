@@ -1,4 +1,67 @@
 /* places.css */
+
+/* ===== 뷰 컨트롤 ===== */
+.places-view-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.places-view-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.places-view-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 13px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.places-view-btn.active {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.places-region-filter {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.places-region-btn {
+    padding: 5px 11px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    background: transparent;
+    color: rgba(255,255,255,0.45);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.places-region-btn.active {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.12);
+}
 .places-page-glass-container {
     max-width: 100%;
     margin: 0 auto;
@@ -174,6 +237,7 @@
 
 .places-glass-grid {
     display: grid;
+    margin: 10px 0 0 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     position: relative;
@@ -509,6 +573,36 @@ body.places-white-theme .glass-action-btn.edit {
     background: rgba(245, 158, 11, 0.08);
     border-color: rgba(245, 158, 11, 0.2);
     color: #d97706;
+}
+
+body.places-white-theme .places-page-glass-container::before,
+body.places-white-theme .places-page-glass-container::after {
+    display: none;
+}
+
+/* 화이트 테마 — 뷰 컨트롤 오버라이드 */
+body.places-white-theme .places-view-toggle {
+    background: #f3f4f6;
+}
+
+body.places-white-theme .places-view-btn {
+    color: #6b7280;
+}
+
+body.places-white-theme .places-view-btn.active {
+    background: #3b82f6;
+    color: #fff;
+}
+
+body.places-white-theme .places-region-btn {
+    border-color: #d1d5db;
+    color: #6b7280;
+}
+
+body.places-white-theme .places-region-btn.active {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
 }
 
 

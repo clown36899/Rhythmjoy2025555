@@ -253,7 +253,9 @@ body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
   letter-spacing: -0.03em !important;
   font-weight: 700 !important;
   color: var(--text-primary) !important;
-  white-space: normal !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   line-height: 1.4 !important;
   margin: 0 !important;
 }

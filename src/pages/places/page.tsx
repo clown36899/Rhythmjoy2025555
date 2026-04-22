@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import VenueRegistrationModal from '../practice/components/VenueRegistrationModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
+import VenueMapView from '../practice/components/VenueMapView';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import './places.css';
 
@@ -26,8 +27,10 @@ export default function PlacesPage() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTargetId, setEditTargetId] = useState<string | null>(null);
-    const [filterCategory, setFilterCategory] = useState<string>('전체');
+    const [filterCategory, setFilterCategory] = useState<string>('스윙바');
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
+    const [regionFilter, setRegionFilter] = useState<'all' | 'seoul' | 'other'>('seoul');
 
     const fetchPlaces = async () => {
         setLoading(true);
@@ -35,7 +38,7 @@ export default function PlacesPage() {
             const { data, error } = await supabase
                 .from('venues')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('name', { ascending: true });
 
             if (error) throw error;
             setPlaces(data || []);
@@ -70,9 +73,18 @@ export default function PlacesPage() {
     }), []));
 
     // 필터링된 배열 계산
-    const filteredPlaces = filterCategory === '전체'
+    const categoryFiltered = filterCategory === '전체'
         ? places
         : places.filter(place => place.category === filterCategory);
+
+    const SEOUL_KEYWORDS = ['서울', '서울시', '종로구', '중구', '용산구', '성동구', '광진구', '동대문구', '중랑구', '성북구', '강북구', '도봉구', '노원구', '은평구', '서대문구', '마포구', '양천구', '강서구', '구로구', '금천구', '영등포구', '동작구', '관악구', '서초구', '강남구', '송파구', '강동구'];
+    const isSeoul = (addr: string | undefined) => !!addr && SEOUL_KEYWORDS.some(k => addr.startsWith(k));
+
+    const filteredPlaces = categoryFiltered.filter(place => {
+        if (regionFilter === 'seoul') return isSeoul(place.address);
+        if (regionFilter === 'other') return place.address && !isSeoul(place.address);
+        return true;
+    });
 
     const getThumbnail = (place: Venue): string => {
         if (!place.images) return '';
@@ -124,7 +136,44 @@ export default function PlacesPage() {
                         );
                     })}
                 </div>
+
+                {/* 뷰 모드 + 지역 필터 */}
+                <div className="places-view-controls">
+                    <div className="places-view-toggle">
+                        <button
+                            className={`places-view-btn${viewMode === 'list' ? ' active' : ''}`}
+                            onClick={() => setViewMode('list')}
+                        >
+                            <i className="ri-list-check"></i> 리스트
+                        </button>
+                        <button
+                            className={`places-view-btn${viewMode === 'map' ? ' active' : ''}`}
+                            onClick={() => setViewMode('map')}
+                        >
+                            <i className="ri-map-2-line"></i> 지도
+                        </button>
+                    </div>
+                    <div className="places-region-filter">
+                        {(['all', 'seoul', 'other'] as const).map(r => (
+                            <button
+                                key={r}
+                                className={`places-region-btn${regionFilter === r ? ' active' : ''}`}
+                                onClick={() => setRegionFilter(r)}
+                            >
+                                {r === 'all' ? '전체' : r === 'seoul' ? '서울' : '다른 지역'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
+
+            {/* 지도 뷰 */}
+            {viewMode === 'map' && !loading && (
+                <VenueMapView
+                    venues={filteredPlaces}
+                    onVenueClick={(id) => setSelectedVenueId(id)}
+                />
+            )}
 
             {loading ? (
                 <div className="places-glass-loading">
