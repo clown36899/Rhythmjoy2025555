@@ -109,7 +109,9 @@ export default function CalendarPage() {
         initialJumpDoneRef.current = false;
         userInteractedRef.current = false;
         shouldScrollToTodayRef.current = true;
-        skipCurrentMonthEffectRef.current = true; // 다음 useEffect([currentMonth]) 한 번 skip
+        skipCurrentMonthEffectRef.current = true;
+        // React state 배치로 인해 state 대신 ref로 직접 DOM 숨김
+        if (containerRef.current) containerRef.current.style.visibility = 'hidden';
     }, [location.key]);
 
     useEffect(() => {
@@ -319,35 +321,33 @@ export default function CalendarPage() {
         };
     }, [currentMonth, calendarData, tabFilter]);
 
-    const handleScrollToToday = useCallback((behavior: 'smooth' | 'auto' | 'instant' = 'smooth', forced = false) => {
-        if (!forced && userInteractedRef.current) return;
-        if (!calendarMetrics.isSameMonth && !forced) return;
+    const handleScrollToToday = useCallback((behavior: 'smooth' | 'auto' | 'instant' = 'smooth', forced = false, onDone?: () => void) => {
+        if (!forced && userInteractedRef.current) { onDone?.(); return; }
+        if (!calendarMetrics.isSameMonth && !forced) { onDone?.(); return; }
 
         const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
-        // 요일 바가 제거되었으므로 탭 헤더(H3)를 기준점으로 삼음
         const navHeaderEl = document.querySelector('.calendar-tabs-header');
-        
-        if (!gridEl) return;
+
+        if (!gridEl) { onDone?.(); return; }
 
         let retryCount = 0;
-        const maxRetries = 10; 
+        const maxRetries = 10;
 
         const performWarp = () => {
             const todayEl = document.querySelector('.calendar-grid-cell.is-today');
-            
+
             if (!todayEl && retryCount < maxRetries) {
                 retryCount++;
                 requestAnimationFrame(performWarp);
                 return;
             }
 
-            // [Dynamic Measure] 탭 헤더(H3)의 바닥 지점을 실측
             const headerBottom = navHeaderEl
                 ? navHeaderEl.getBoundingClientRect().bottom
-                : 156; // (60 + 48 + 48)
+                : 156;
 
             const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
-            
+
             let finalY = 0;
             if (todayEl) {
                 const todayRect = todayEl.getBoundingClientRect();
@@ -357,9 +357,10 @@ export default function CalendarPage() {
             }
 
             const scrollTarget = Math.max(0, gridAbsoluteTop + finalY - headerBottom);
-            
+
             console.log(`📏 [Warp-Final] mode: ${todayEl ? 'DOM' : 'FALLBACK'}, result: ${scrollTarget.toFixed(1)}`);
             window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
+            onDone?.();
         };
 
         performWarp();
@@ -375,11 +376,18 @@ export default function CalendarPage() {
         if (isAnyModalOpen) return;
 
         // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
-        if (calendarMetrics.isSameMonth && calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
+        if (calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
             console.log('⚡ [useLayoutEffect] CalendarPage 워프 실행');
-            handleScrollToToday('instant', true);
             initialJumpDoneRef.current = true;
-            shouldScrollToTodayRef.current = false; // 플래그 소모
+            shouldScrollToTodayRef.current = false;
+            const showPage = () => {
+                if (containerRef.current) containerRef.current.style.visibility = 'visible';
+            };
+            if (calendarMetrics.isSameMonth) {
+                handleScrollToToday('instant', true, showPage);
+            } else {
+                showPage();
+            }
         }
     }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday, tabFilter, calendarMetrics.targetY, location.key]);
 
