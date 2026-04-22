@@ -101,6 +101,15 @@
     position: absolute;
     top: 0;
     left: 0;
+    transition: opacity 0.2s ease;
+}
+
+.CDMM-map[style*="hidden"] {
+    opacity: 0;
+}
+
+.CDMM-map[style*="visible"] {
+    opacity: 1;
 }
 
 .CDMM-resetBtn {

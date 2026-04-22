@@ -249,19 +249,20 @@ export default function CalendarDateMapModal({
             const bounds = new window.kakao.maps.LatLngBounds();
             geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
             map.setBounds(bounds, 60, 30, 10, 30);
-            setMapVisible(true);
+            // setBounds는 비동기로 렌더링되므로 한 프레임 후 공개
+            setTimeout(() => setMapVisible(true), 150);
         }
     }, [isOpen, map, geocodedData]);
 
-    // 2. 단일 개별 렌더링 (클러스터링 없이 오버랩 허용)
+    // 2. 마커 렌더링 — 전부 생성 후 한번에 지도에 올려서 깜빡임 방지
     useEffect(() => {
         if (!map || !window.kakao || !window.kakao.maps || geocodedData.length === 0) return;
 
-        // 기존 마커 등 정리
         overlaysRef.current.forEach(o => o.setMap(null));
         overlaysRef.current = [];
 
-        geocodedData.forEach((item, idx) => {
+        // 모든 overlay 객체를 먼저 생성 (setMap 없이)
+        const newOverlays = geocodedData.map((item, idx) => {
             const { lat, lng, event } = item;
             const position = new window.kakao.maps.LatLng(lat, lng);
             const defaultZIndex = 100 + idx;
@@ -270,11 +271,7 @@ export default function CalendarDateMapModal({
             markerContainer.className = 'CDMM-marker-container';
             markerContainer.style.zIndex = defaultZIndex.toString();
 
-            markerContainer.onclick = (e) => {
-                e.stopPropagation();
-                onEventClick(event);
-            };
-
+            markerContainer.onclick = (e) => { e.stopPropagation(); onEventClick(event); };
             markerContainer.onmouseenter = () => { markerContainer.style.zIndex = '9999'; };
             markerContainer.onmouseleave = () => { markerContainer.style.zIndex = defaultZIndex.toString(); };
 
@@ -295,16 +292,17 @@ export default function CalendarDateMapModal({
                 </div>
             `;
 
-            const customOverlay = new window.kakao.maps.CustomOverlay({
+            return new window.kakao.maps.CustomOverlay({
                 position,
                 content: markerContainer,
                 yAnchor: 1,
                 zIndex: defaultZIndex
             });
-
-            customOverlay.setMap(map);
-            overlaysRef.current.push(customOverlay);
         });
+
+        // 한번에 일괄 추가
+        newOverlays.forEach(o => o.setMap(map));
+        overlaysRef.current = newOverlays;
     }, [geocodedData, map, onEventClick]);
 
     if (!isOpen || !date) return null;
@@ -341,7 +339,7 @@ export default function CalendarDateMapModal({
 
                 <div className="CDMM-body">
                     <div className="CDMM-mapArea">
-                        <div ref={mapContainerRef} className="CDMM-map" style={{ visibility: mapVisible ? 'visible' : 'hidden' }}></div>
+                        <div ref={mapContainerRef} className="CDMM-map" style={{ opacity: mapVisible ? 1 : 0 }}></div>
                         {map && geocodedData.length > 0 && (
                             <button className="CDMM-resetBtn" onClick={resetMapBounds} title="초기 위치로 이동">
                                 <i className="ri-focus-3-line"></i>
