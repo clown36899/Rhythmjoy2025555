@@ -1037,6 +1037,8 @@
     z-index: 99999;
     backdrop-filter: blur(12px);
     animation: fadeInOverlay 0.2s ease-out;
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 .vdm-container {
@@ -1124,6 +1126,7 @@
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     padding-bottom: env(safe-area-inset-bottom);
+    touch-action: pan-y;
 }
 
 /* 히어로 이미지 */
@@ -1134,6 +1137,7 @@
     background: #111;
     overflow: hidden;
     flex-shrink: 0;
+    touch-action: pan-y;
 }
 
 .vdm-hero-placeholder {
@@ -1156,6 +1160,7 @@
     user-select: none;
     -webkit-user-select: none;
     pointer-events: none;
+    touch-action: pan-y;
 }
 
 .vdm-nav-btn {
@@ -1384,6 +1389,11 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     cursor: pointer;
     transition: opacity 0.2s;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+    touch-action: pan-y;
 }
 
 .vdm-gallery-image:hover { opacity: 0.9; }

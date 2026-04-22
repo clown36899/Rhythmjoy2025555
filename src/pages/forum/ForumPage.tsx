@@ -18,7 +18,7 @@ const ForumPage: React.FC = () => {
             id: 'links',
             title: '사이트 모음',
             description: '유용한 관련 링크',
-            icon: 'ri-links-line',
+            icon: 'ri-earth-line',
             path: '/links',
             color: '#10b981'
         },
@@ -26,7 +26,7 @@ const ForumPage: React.FC = () => {
             id: 'places',
             title: '장소 안내',
             description: '연습실 및 등등',
-            icon: 'ri-map-pin-line',
+            icon: 'ri-building-4-line',
             path: '/places',
             color: '#8b5cf6'
         },

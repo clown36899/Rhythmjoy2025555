@@ -139,6 +139,18 @@
     border-color: rgba(245, 158, 11, 0.2);
 }
 
+.forum-icon-item--links .forum-icon-box {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.forum-icon-item--places .forum-icon-box {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
 /* Glass shine on icons */
 /* Subtle hover state for premium feel */
 .forum-icon-item:hover .forum-icon-box {

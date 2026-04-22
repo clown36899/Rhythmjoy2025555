@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
 import { useModalHistory } from "../../../hooks/useModalHistory";
@@ -36,6 +36,19 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
     const [authorNickname, setAuthorNickname] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const touchStartX = useRef<number | null>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (e: React.TouchEvent, total: number) => {
+        if (touchStartX.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX.current;
+        if (Math.abs(dx) > 40) {
+            setCurrentImageIndex(i => dx < 0 ? (i + 1) % total : (i - 1 + total) % total);
+        }
+        touchStartX.current = null;
+    };
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -80,10 +93,11 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
         }
     };
 
-    // 모든 이미지 목록 구성 (썸네일 포함, URL만 추출)
+    // 썸네일 제외한 이미지 목록 구성
     const getAllImages = (venue: Venue): string[] => {
         if (!venue.images || !Array.isArray(venue.images)) return [];
         return venue.images
+            .filter((img: any) => !(typeof img === "object" && img?.isThumbnail))
             .map((img: any) => {
                 if (typeof img === "string") return img;
                 return img.url || img.medium || img.full || img.thumbnail || "";
@@ -161,8 +175,12 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                 {/* ── 스크롤 영역 ── */}
                 <div className="vdm-scroll-body">
 
-                    {/* ── 이미지 히어로 (썸네일 포함 전체) ── */}
-                    <div className="vdm-hero-section">
+                    {/* ── 이미지 히어로 ── */}
+                    <div
+                        className="vdm-hero-section"
+                        onTouchStart={allImages.length > 1 ? handleTouchStart : undefined}
+                        onTouchEnd={allImages.length > 1 ? (e) => handleTouchEnd(e, allImages.length) : undefined}
+                    >
                         {allImages.length > 0 ? (
                             <img
                                 key={currentImageIndex}
