@@ -67,10 +67,10 @@ const EventIngestorV2: React.FC = () => {
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchScrapedEvents = async (page = 1) => {
+  const fetchScrapedEvents = async (page = 1, tab = activeTab) => {
     try {
       setLoading(true);
-      const res = await fetch(`/.netlify/functions/scraped-events?page=${page}`);
+      const res = await fetch(`/.netlify/functions/scraped-events?page=${page}&tab=${tab}`);
       if (!res.ok) throw new Error('데이터를 불러오지 못했습니다.');
       const json = await res.json();
       setScrapedEvents(json.data || json);
@@ -84,16 +84,14 @@ const EventIngestorV2: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchScrapedEvents(1);
-  }, []);
+    fetchScrapedEvents(1, activeTab);
+  }, [activeTab]);
 
   const filteredEvents = useMemo(() => {
-    let list: ScrapedEvent[] = [];
-    if (activeTab === 'new') list = scrapedEvents.filter(e => !e.is_collected);
-    else if (activeTab === 'collected') list = scrapedEvents.filter(e => e.is_collected);
-    if (typeFilter !== '전체') list = list.filter(e => detectEventType(e) === typeFilter);
-    return list;
-  }, [scrapedEvents, activeTab, typeFilter]);
+    // 서버에서 tab 기준으로 이미 필터됨 — typeFilter만 클라이언트에서 적용
+    if (typeFilter === '전체') return scrapedEvents;
+    return scrapedEvents.filter(e => detectEventType(e) === typeFilter);
+  }, [scrapedEvents, typeFilter]);
 
   const handleUpdateStatus = async (id: string, updates: Partial<ScrapedEvent>) => {
     try {
@@ -309,8 +307,8 @@ const EventIngestorV2: React.FC = () => {
       <header className="ingestor-v2-header">
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
-          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 ({scrapedEvents.filter(e => !e.is_collected).length})</button>
-          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 ({scrapedEvents.filter(e => e.is_collected).length})</button>
+          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규</button>
+          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료</button>
         </div>
         <div className="type-filter-group">
           {(['전체', '소셜', '파티/행사', '강습'] as const).map(t => (

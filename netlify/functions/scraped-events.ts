@@ -48,13 +48,19 @@ export const handler: Handler = async (event) => {
         // ===== GET: 전체 목록 조회 (페이지네이션) =====
         if (event.httpMethod === 'GET') {
             const page = parseInt(event.queryStringParameters?.page || '1', 10);
+            const tab = event.queryStringParameters?.tab; // 'new' | 'collected' | undefined
             const limit = 30;
             const offset = (page - 1) * limit;
 
-            const { data, error, count } = await supabase
+            let query = supabase
                 .from('scraped_events')
                 .select('*', { count: 'exact' })
-                .or('status.is.null,status.neq.excluded')
+                .or('status.is.null,status.neq.excluded');
+
+            if (tab === 'new') query = query.eq('is_collected', false);
+            else if (tab === 'collected') query = query.eq('is_collected', true);
+
+            const { data, error, count } = await query
                 .order('created_at', { ascending: false })
                 .range(offset, offset + limit - 1);
 
@@ -84,7 +90,7 @@ export const handler: Handler = async (event) => {
             const skipped: { id: string; reason: string; existingId: string }[] = [];
 
             for (const item of incoming) {
-                // 중복 체크 (신규 수집 시에만)
+                // 중복 체크 (신규 수집 시에만) — 중복이면 upsert 자체를 건너뜀
                 if (!item.is_collected) {
                     const sd = item.structured_data || {};
                     const date = sd.date || '';
@@ -119,10 +125,23 @@ export const handler: Handler = async (event) => {
                     }
 
                     if (existing) {
-                            skipped.push({ id: item.id, reason: eventType === '소셜' ? '날짜+DJ 중복' : '날짜+제목 중복', existingId: existing.id });
-                            console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id}`);
-                        }
+                        skipped.push({ id: item.id, reason: eventType === '소셜' ? '날짜+DJ 중복' : '날짜+제목 중복', existingId: existing.id });
+                        console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id}`);
+                        continue; // ← 중복이면 upsert 건너뜀
                     }
+
+                    // 같은 ID로 이미 존재하는 경우 is_collected 보존
+                    const { data: sameId } = await supabase
+                        .from('scraped_events')
+                        .select('id, is_collected')
+                        .eq('id', item.id)
+                        .maybeSingle();
+                    if (sameId?.is_collected) {
+                        skipped.push({ id: item.id, reason: '이미 완료 처리됨', existingId: sameId.id });
+                        console.log(`[scraped-events] SKIP already collected: ${item.id}`);
+                        continue; // ← 완료 처리된 항목 덮어쓰기 방지
+                    }
+                }
 
                 let posterUrl = item.poster_url;
 
