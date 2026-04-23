@@ -55,6 +55,7 @@ const EventIngestorV2: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'전체' | '소셜' | '파티/행사' | '강습'>('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [tabCounts, setTabCounts] = useState<{ new: number; collected: number }>({ new: 0, collected: 0 });
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -83,8 +84,22 @@ const EventIngestorV2: React.FC = () => {
     }
   };
 
+  const fetchTabCounts = async () => {
+    try {
+      const [resNew, resCollected] = await Promise.all([
+        fetch('/.netlify/functions/scraped-events?page=1&tab=new'),
+        fetch('/.netlify/functions/scraped-events?page=1&tab=collected'),
+      ]);
+      const [jsonNew, jsonCollected] = await Promise.all([resNew.json(), resCollected.json()]);
+      setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0 });
+    } catch (err) {
+      console.error('탭 카운트 로드 실패:', err);
+    }
+  };
+
   useEffect(() => {
     fetchScrapedEvents(1, activeTab);
+    fetchTabCounts();
   }, [activeTab]);
 
   const filteredEvents = useMemo(() => {
@@ -109,6 +124,7 @@ const EventIngestorV2: React.FC = () => {
       if (!res.ok) throw new Error('상태 업데이트 실패');
 
       setScrapedEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+      fetchTabCounts();
     } catch (err) {
       console.error(err);
       alert('업데이트 중 에러 발생');
@@ -307,8 +323,8 @@ const EventIngestorV2: React.FC = () => {
       <header className="ingestor-v2-header">
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
-          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규</button>
-          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료</button>
+          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
+          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
         </div>
         <div className="type-filter-group">
           {(['전체', '소셜', '파티/행사', '강습'] as const).map(t => (

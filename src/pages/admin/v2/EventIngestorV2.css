@@ -50,6 +50,25 @@
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  padding: 0 0.3rem;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 0.3rem;
+}
+
+.tab-group button.active .tab-badge {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .table-responsive {
   background: rgba(24, 24, 27, 0.6);
   backdrop-filter: blur(12px);
