@@ -56,6 +56,8 @@
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
@@ -411,4 +413,151 @@ thead input[type="checkbox"]:checked::after {
 .pagination button:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+/* ── 모바일 카드 레이아웃 ── */
+@media (max-width: 768px) {
+  .ingestor-v2-container {
+    padding: 0.6rem;
+    padding-top: calc(0.6rem + env(safe-area-inset-top));
+  }
+
+  .ingestor-v2-header {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .ingestor-v2-header h1 { font-size: 1rem; }
+
+  /* 테이블 → 카드 */
+  .data-table thead { display: none; }
+  .data-table,
+  .data-table tbody { display: block; width: 100%; }
+
+  /*
+   * 카드 Grid (td 순서: check / preview / info / venue / source / actions)
+   *
+   *  [thumb] [info ................] [chk]
+   *  [venue ....] [src] [act act act    ]
+   */
+  .data-table tr {
+    display: grid;
+    grid-template-columns: 56px 1fr auto 20px;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "thumb info  info  check"
+      "venue src   acts  acts";
+    column-gap: 0.55rem;
+    row-gap: 0.4rem;
+    background: rgba(30, 30, 35, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    padding: 0.6rem;
+  }
+
+  .data-table tr:hover { background: rgba(40, 40, 48, 0.9); }
+
+  .data-table td { padding: 0; border-bottom: none; }
+
+  /* 체크 */
+  .col-check  { grid-area: check; align-self: start; padding-top: 2px; }
+
+  /* 썸네일 */
+  .col-preview { grid-area: thumb; }
+
+  .thumbnail-box { width: 56px; height: 72px; }
+
+  .no-image {
+    width: 56px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    color: #52525b;
+    background: #18181b;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 1.3;
+    padding: 4px;
+  }
+
+  /* 정보 */
+  .col-info { grid-area: info; min-width: 0; align-self: start; }
+
+  .row-title   { font-size: 0.88rem; line-height: 1.3; margin-bottom: 0.1rem; }
+  .row-date    { font-size: 0.75rem; margin-bottom: 0.1rem; }
+  .row-keyword { font-size: 0.68rem; }
+
+  /* 장소 */
+  .col-venue {
+    grid-area: venue;
+    align-self: center;
+    min-width: 0;
+    padding-top: 0.35rem !important;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .col-venue .venue-cell {
+    font-size: 0.72rem;
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px;
+  }
+
+  .col-venue .venue-addr { display: none; }
+
+  /* 출처 */
+  .col-source {
+    grid-area: src;
+    align-self: center;
+    padding-top: 0.35rem !important;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .btn-source-link {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  /* 액션 버튼 */
+  .col-actions {
+    grid-area: acts;
+    align-self: center;
+    padding-top: 0.35rem !important;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .btn-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3rem;
+  }
+
+  .btn-group button {
+    padding: 0.38rem 0;
+    font-size: 0.75rem;
+    text-align: center;
+    border-radius: 5px;
+  }
+
+  /* 일괄 액션 바 모바일 */
+  .bulk-action-bar {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .bulk-btn {
+    flex: 1;
+    min-width: 68px;
+    text-align: center;
+    font-size: 0.75rem;
+    padding: 0.38rem 0.4rem;
+  }
 }
