@@ -588,7 +588,14 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               자유게시판
             </button>
             <button
-              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
+              className={`header-nav-v2-item ${isPlacesPage ? 'is-active' : ''}`}
+              onClick={() => navigate('/places')}
+              data-analytics-id="header_nav_places"
+            >
+              장소
+            </button>
+            <button
+              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
               onClick={() => navigate('/forum')}
               data-analytics-id="header_nav_forum"
             >

@@ -252,10 +252,10 @@ export default function PlacesPage() {
                                     )}
                                 </div>
 
-                                {(isAdmin || (user && user.id === place.user_id)) && (
+                                {user && (
                                     <div className="place-glass-actions" onClick={e => e.stopPropagation()}>
                                         <button onClick={() => { setEditTargetId(place.id); setIsModalOpen(true); }} className="glass-action-btn edit">
-                                            <i className="ri-pencil-line"></i> 관리
+                                            <i className="ri-pencil-line"></i> 수정
                                         </button>
                                     </div>
                                 )}

@@ -36,7 +36,23 @@ export default function VenueRegistrationModal({
     onVenueDeleted,
     editVenueId
 }: VenueRegistrationModalProps) {
-    const { user, isAdmin } = useAuth(); // Destructure required auth methods
+    const { user, isAdmin, userProfile } = useAuth(); // Destructure required auth methods
+
+    const logVenueEdit = async (action: 'created' | 'updated' | 'deleted', venueId: string, venueName: string, changes?: object) => {
+        if (!user) return;
+        try {
+            await supabase.from('venue_edit_logs').insert({
+                venue_id: venueId,
+                venue_name: venueName,
+                user_id: user.id,
+                user_nickname: userProfile?.nickname || user.email?.split('@')[0] || user.id,
+                action,
+                changes: changes || null,
+            });
+        } catch (e) {
+            console.error('[VRM] Failed to log venue edit:', e);
+        }
+    };
 
 
 
@@ -437,10 +453,12 @@ export default function VenueRegistrationModal({
             if (editVenueId) {
                 const { error } = await supabase.from('venues').update(payload).eq('id', editVenueId);
                 if (error) throw error;
+                await logVenueEdit('updated', editVenueId, payload.name, payload);
                 alert("수정되었습니다.");
             } else {
-                const { error } = await supabase.from('venues').insert([{ ...payload, user_id: user.id }]);
+                const { data: inserted, error } = await supabase.from('venues').insert([{ ...payload, user_id: user.id }]).select('id').single();
                 if (error) throw error;
+                if (inserted) await logVenueEdit('created', inserted.id, payload.name, payload);
                 alert("등록되었습니다.");
             }
 
@@ -461,8 +479,10 @@ export default function VenueRegistrationModal({
 
         setLoading(true);
         try {
+            const venueName = formData.name;
             const { error } = await supabase.from('venues').delete().eq('id', editVenueId);
             if (error) throw error;
+            await logVenueEdit('deleted', editVenueId, venueName);
             alert("삭제되었습니다.");
             onVenueDeleted?.();
             onClose();
