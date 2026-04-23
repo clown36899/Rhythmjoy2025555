@@ -99,9 +99,22 @@ export const handler: Handler = async (event) => {
                     const title = (sd.title || '').trim();
 
                     let existing: any = null;
+                    let skipReason = '';
 
-                    // 소셜: 날짜 + DJ 이름으로 중복 체크
-                    if (eventType === '소셜' && date && djs.length > 0) {
+                    // 1순위: source_url + 날짜 중복 체크 (타이틀이 달라도 같은 포스트+날짜면 동일 이벤트)
+                    if (date && item.source_url) {
+                        const { data } = await supabase
+                            .from('scraped_events')
+                            .select('id')
+                            .eq('source_url', item.source_url)
+                            .eq('structured_data->>date', date)
+                            .neq('id', item.id)
+                            .maybeSingle();
+                        if (data) { existing = data; skipReason = '동일 소스URL+날짜 중복'; }
+                    }
+
+                    // 2순위: 소셜 — 날짜 + DJ 이름 중복 체크
+                    if (!existing && eventType === '소셜' && date && djs.length > 0) {
                         for (const dj of djs) {
                             const { data } = await supabase
                                 .from('scraped_events')
@@ -110,10 +123,12 @@ export const handler: Handler = async (event) => {
                                 .contains('structured_data->djs', JSON.stringify([dj]))
                                 .neq('id', item.id)
                                 .maybeSingle();
-                            if (data) { existing = data; break; }
+                            if (data) { existing = data; skipReason = '날짜+DJ 중복'; break; }
                         }
-                    } else if (date && title) {
-                        // 기타: 날짜 + 제목으로 중복 체크
+                    }
+
+                    // 3순위: 날짜 + 제목 중복 체크 (ilike로 부분 매칭)
+                    if (!existing && date && title) {
                         const { data } = await supabase
                             .from('scraped_events')
                             .select('id')
@@ -121,12 +136,12 @@ export const handler: Handler = async (event) => {
                             .eq('structured_data->>title', title)
                             .neq('id', item.id)
                             .maybeSingle();
-                        existing = data;
+                        if (data) { existing = data; skipReason = '날짜+제목 중복'; }
                     }
 
                     if (existing) {
-                        skipped.push({ id: item.id, reason: eventType === '소셜' ? '날짜+DJ 중복' : '날짜+제목 중복', existingId: existing.id });
-                        console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id}`);
+                        skipped.push({ id: item.id, reason: skipReason, existingId: existing.id });
+                        console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id} (${skipReason})`);
                         continue; // ← 중복이면 upsert 건너뜀
                     }
 
