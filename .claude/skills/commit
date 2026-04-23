@@ -1,0 +1,29 @@
+Commit and push all security-safe changes in /Users/inteyeo/vampire-game.
+
+The user invokes this skill by saying "커밋" or "커밋해" or "커밋푸시" or "/commit".
+
+Steps:
+1. Run `git -C /Users/inteyeo/vampire-game status` to see all changed/untracked files
+2. Identify files that should be EXCLUDED (never stage these):
+   - NOTES.md (personal dev notes)
+   - .env files
+   - Any file containing API keys or secrets
+   - Files explicitly gitignored that somehow appear
+3. Stage all OTHER changed files using `git -C /Users/inteyeo/vampire-game add` with specific file paths (not -A)
+4. Run `git -C /Users/inteyeo/vampire-game diff --staged --stat` to confirm what will be committed
+5. Create a commit with a concise Korean or English message summarizing the changes. Use HEREDOC format:
+   git -C /Users/inteyeo/vampire-game commit -m "$(cat <<'EOF'
+   feat: [변경 내용 요약]
+
+   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+   EOF
+   )"
+6. Push: `git -C /Users/inteyeo/vampire-game push`
+7. Confirm success to the user
+
+Important rules:
+- NEVER stage NOTES.md or .env files
+- NEVER use `git add -A` or `git add .` — always add specific files
+- NEVER use --no-verify
+- NEVER force push
+- If nothing to commit, tell the user

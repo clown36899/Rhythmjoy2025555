@@ -39,8 +39,9 @@ attached_assets/
 # Local Netlify folder
 .netlify
 
-# AI Tool Worktrees
-.claude
+# AI Tool Worktrees — skills 폴더만 추적, 나머지 무시
+.claude/*
+!.claude/skills
 
 # Scraped Data
 scraped/

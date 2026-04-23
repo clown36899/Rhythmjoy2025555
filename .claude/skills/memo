@@ -1,0 +1,10 @@
+Save a game development memo to /Users/inteyeo/vampire-game/NOTES.md.
+
+The user invokes this skill by saying "메모해: [내용]" or "/memo [내용]".
+
+Steps:
+1. Get the memo content from the user's message (everything after "메모해:" or "/memo")
+2. Append it to /Users/inteyeo/vampire-game/NOTES.md in this format:
+   - [YYYY-MM-DD] 내용
+3. If the file doesn't exist, create it with a header "# 게임 개발 메모\n\n" first
+4. Confirm to the user that the memo was saved
