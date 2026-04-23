@@ -354,15 +354,23 @@
   align-items: center;
   justify-content: center;
   gap: 0px;
-  /* 간격을 고정 픽셀로 변경 */
   width: 100%;
   max-width: none;
-  padding: 0 16px;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.header-nav-v2-inner::-webkit-scrollbar {
+  display: none;
 }
 
 @media (max-width: 650px) {
   .header-nav-v2-inner {
-    max-width: 100%;
+    justify-content: flex-start;
+    padding: 0 4px;
   }
 }
 
@@ -401,6 +409,7 @@
   font-family: 'Outfit', 'Inter', sans-serif;
   opacity: 0.8;
   height: 38px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -408,7 +417,13 @@
   border-top-right-radius: 10px;
   position: relative;
   top: 5px;
-  /* 하단 바와 닿도록 아래로 밀어줌 (전체 높이 48px 중 38px 아이템) */
+}
+
+@media (max-width: 420px) {
+  .header-nav-v2-item {
+    font-size: 0.82rem;
+    padding: 8px 5px;
+  }
 }
 
 .header-nav-v2-item:hover {
