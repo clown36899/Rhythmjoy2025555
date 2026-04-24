@@ -414,6 +414,7 @@
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   transform: translateY(5px);
+  transform-origin: bottom center;
 }
 
 @media (max-width: 420px) {
@@ -439,7 +440,8 @@
 }
 
 .header-nav-v2-item:active {
-  transform: scale(0.95);
+  transform: translateY(5px) scaleY(0.92);
+  transform-origin: bottom center;
 }
 
 
