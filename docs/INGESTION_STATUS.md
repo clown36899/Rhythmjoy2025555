@@ -1,0 +1,262 @@
+# 스윙씬 이벤트 자동 수집 — 현황 및 인계 보고서
+
+> 📌 **이 파일은 git 관리 대상** (`docs/INGESTION_STATUS.md`).  
+> 수집 에이전트가 매 실행 후 자동 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.  
+> 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
+
+**최종 업데이트**: 2026-04-24 18:17
+
+---
+
+## 🏗️ 현재 아키텍처
+
+### 구성요소
+| 구성 | 경로/내용 | 상태 |
+|------|-----------|------|
+| LaunchAgent plist | `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist` | ✅ 로드됨 (매일 08:00) |
+| 실행 스크립트 | `/Users/inteyeo/scripts/run-ingestion.sh` | ✅ `claude -p` 방식 (2026-04-24 복구) |
+| 수집 스킬 | `/Users/inteyeo/Rhythmjoy2025555-5/.claude/skills/web-search-ingestion/SKILL.md` | ✅ 존재 |
+| 실행 로그 | `/Users/inteyeo/claude_ingestion.log` | ✅ 기록 중 |
+| 데이터 저장소 | Supabase `scraped_events` 테이블 (REST API) | ✅ 정상 |
+
+### 실행 흐름
+```
+LaunchAgent (매일 08:00) 
+→ run-ingestion.sh
+  → Telegram: 수집 시작 알림
+  → Chrome CDP 포트 9222 확인/실행 (headless)
+  → claude -p "/web-search-ingestion" --allowedTools (Playwright MCP 포함)
+    → 인스타그램/네이버카페 스크랩 (Playwright browser → 봇판정 방지)
+    → 이미지 Supabase Storage 업로드
+    → scraped_events 테이블 INSERT
+  → Telegram: 수집 완료/실패 알림 (exit code 기반)
+```
+
+### Playwright MCP 구성
+```bash
+claude mcp get playwright
+# Scope: Local config (private to you in this project)
+# Command: npx @playwright/mcp@latest --cdp-endpoint http://localhost:9222
+# Status: ✓ Connected (2026-04-24 확인)
+```
+- Chrome headless 모드로 CDP 9222 포트에서 실행
+- MCP가 CDP endpoint에 연결 → 실제 브라우저 제어 (봇판정 방지 핵심)
+- 2026-04-24 18:02 테스트 실행 exit=0 확인
+
+---
+
+## 📊 실행 로그
+
+> 최신 회차가 맨 위. 수집 완료 시마다 SKILL.md 지시에 따라 자동 갱신됨.
+
+---
+
+### 2026-04-24 18:15 수동 실행 (전체 소스 순회)
+- **신규 수집**: 5건
+- **중복 스킵**: 6건 (SNL 재즈소셜 4/25 ×2, April Savoy 4/26, 버니클리닉 4/30, 문탄이화 5/4, 다이나믹 발보아 5/4)
+- **접근 불가**: Instagram 전체 프로필 (로그인 리다이렉트), 스윙스캔들 게시글 (로그인 필요), BAT SWING (DNS 오류), 스위티스윙 Daum 카페 (SPA 렌더링 실패)
+- **이슈**:
+  - Instagram 프로필 페이지 로그인 리다이렉트 지속 (개별 포스트 URL은 접근 가능)
+  - 해피홀 5월 수요일 소셜 DJ 미명시 → 수집 규칙상 스킵
+- **개선 필요**:
+  - 경성홀 등 주요 계정 개별 포스트 URL 직접 접근 방식 고려
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | 2026-04-24 (금) | 해피홀 금요 소셜 (DJ 피터팬) | 소셜 | 피터팬 |
+  | 2026-05-04 (월) | 다이나믹 발보아 패턴&스타일링 | 강습 | 라디앙/소피아 |
+  | 2026-05-07 (목) | 5월의 솔로재즈 강습 (리코) | 강습 | 리코 |
+  | 2026-05-20 (수) | 따끔한 베이직 with 나나씨 | 강습 | 나나씨 |
+  | 2026-06-05 (금) | 펄스인서울2026 (Javi & Lucia) | 파티/행사 | Javi & Lucia |
+
+---
+
+### 2026-04-24 18:00 수동 실행 (경성홀 인스타그램 단독 테스트)
+- **신규 수집**: 0건
+- **중복 스킵**: 2건 (경성홀 어린이날 워크샵/소셜 — 이미 수집됨)
+- **접근 불가**: 없음
+- **이슈**:
+  - 없음
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | (없음 — 기존 데이터 중복) | | | |
+
+---
+
+### 2026-04-24 수동 실행 (스캔들 네이버 카페 단독)
+- **신규 수집**: 1건
+- **중복 스킵**: 0건
+- **접근 방식**: Playwright MCP 불가 → Naver cafe JSON API (`apis.naver.com/cafe-web/cafe2/ArticleListV2.json`) + 이미지 직접 다운로드
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ |
+  |------|----------|------|----|
+  | 2026-04-25 | 스윙스캔들 토요소셜 | 소셜 | 짜장 |
+- **이슈**:
+  - 게시글 본문은 CSR로 API 접근 불가 → 썸네일 이미지로 DJ명 확인
+  - Playwright MCP 세션 종료 시 네이버 카페 API로 대체 가능
+
+---
+
+### 2026-04-23 09:42 실행
+- **신규 수집**: 9건
+- **중복 스킵**: 4/22 수소셜, 4/18-19 토/일소셜, DDPlay DDP 4/22, 스윙타운 5/6월 강습 (동일 포스트 중복 태그)
+- **접근 불가**: 마얀, sosyalclub_swing, swingfactory_kr, swingtown_kr, gangnam_westies, swingkids_kr, allaboutswing_kr, seoulindyfest, badaje_jeju, busan_lindy_weekend, spa_swingdance, lq_studio_swing, kpdancehall, stepupdance_swing (비공개), batswing.co.kr (SSL 오류), 스윙스캔들/스윙패밀리 네이버카페 (게시글 로그인 필요)
+- **이슈**:
+  - 비공개 인스타 계정이 더 늘어남 (총 14개 접근 불가)
+  - 네이버 카페 이미지는 pstatic CDN 인증 필요 — 브라우저 fetch도 CORS 차단. 스크린샷으로 대체 업로드
+- **개선 필요**:
+  - 비공개 계정 URL 정비 필요 (새 계정으로 교체 또는 삭제)
+  - 네이버 카페 이미지: 브라우저 세션 공유 방식 검토
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | 2026-04-24 (금) | 슬로우잼 소셜 @ 스윙타임바 | 소셜 | 로젤, 휘모리 |
+  | 2026-05-05 (화) | 경성홀 어린이날 워크숍 | 강습 | Adrian |
+  | 2026-05-02 (토) | 스윙팝 초급반 강습 | 강습 | - |
+  | 2026-05-02 (토) | 박쥐스윙 119시즌 Starter LV1 | 강습 | - |
+  | 2026-05-02 (토) | 박쥐스윙 119시즌 Walker LV2 | 강습 | - |
+  | 2026-05-09 (토) | 스윙타운 린디 엘리 LV.2 (주니어&헤네시) | 강습 | 주니어/헤네시 |
+  | 2026-05-09 (토) | 스윙타운 린디 미들 LV.3 (붐바스틱&클라라) | 강습 | 붐바스틱/클라라 |
+  | 2026-05-09 (토) | 스윙타운 린디 하이 LV.4 (진&루비) | 강습 | 진/루비 |
+  | 2026-05-16 (토) | 스윙타운 린디 킨더 LV.1 (도도&화초) | 강습 | 도도/화초 |
+
+---
+
+### 2026-04-24 수동 수집 (스캔들 목요소셜 과거 데이터)
+- **신규 수집**: 1건
+- **중복 스킵**: 0건
+- **접근 불가**: 없음
+- **이슈**: 사용자 요청으로 과거 날짜(2026-04-23) 데이터 예외 수집
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | 2026-04-23 (목) | 스윙스캔들 목요소셜 | 소셜 | 저스틴 |
+
+---
+
+### 2026-04-21 13:33 실행
+- **신규 수집**: 2건
+- **중복 스킵**: SNL Jazz Social 시즌8 전 회차, DDPlay DDP 4/22, 스윙타임 슬로우잼, 스윙스캔들 101회 강습 (이미 존재)
+- **접근 불가**: 봉천살롱, 비밥바, 사보이볼룸, 올어바웃스윙, Dialogue, 243, 아수라장, 스윙잇, 루나, 인더무드신림, KP댄스홀, 스윙키즈, 스윙프렌즈 (비공개 또는 URL 불일치), batswing.co.kr (SSL 오류)
+- **이슈**:
+  - Instagram 다수 계정 "Profile을 이용할 수 없습니다" 상태 — 비공개 전환 혹은 URL 변경 가능성
+- **개선 필요**:
+  - 접근 불가 계정 URL 재확인 및 목록 정비 필요
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | 2026-04-21 (화) | 경성홀 화요 소셜 (DJ 스톰) | 소셜 | 스톰 |
+  | 2026-05-04 (월) | 문탄+이화 Monthly Jazz 5월 | 강습 | 문탄/이화 |
+
+---
+
+### 2026-04-17 07:08 실행
+- **신규 수집**: 3건 (발보아 패턴&스타일링, 봄날의 스윙팍 DDP, 다이나믹 발보아)
+- **중복 스킵**: 로빈 JAZZSEASON 솔로재즈, April Savoy Live Night, 린디랩 Vol.5, 시옷x피치봉 버니합 (이미 존재)
+- **접근 불가**: Instagram 전체 계정 (로그인 리다이렉트), batswing.co.kr (DNS 오류), 다음카페 스위티스윙 (iframe 구조), 스윙스캔들 네이버카페 (게시글 로그인 필요)
+- **이슈**:
+  - Instagram 모든 계정이 로그인 페이지로 리다이렉트됨 (로그인 없이 접근 불가)
+  - 네이버 카페 게시글 본문은 로그인 없이 접근 불가 (목록만 확인 가능)
+  - batswing.co.kr SSL 오류 및 DNS 오류
+- **개선 필요**:
+  - Instagram 수집 방법 재검토 필요 (공개 계정도 로그인 요구)
+  - 네이버 카페는 목록 확인 후 iframe URL 직접 접근 방식으로 일부 가능
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | 2026-04-22 (수) | 봄날의 스윙팍 @ DDP | 파티/행사 | 스윙제리 라이브 밴드 |
+  | 2026-05-04 (월) | 다이나믹 발보아 패턴&스타일링 (라디앙&소피아) | 강습 | 라디앙/소피아 |
+
+---
+
+### 2026-04-15 00:10 실행
+- **신규 수집**: 10건
+- **중복 스킵**: 해피홀 4/17, DDPlay 4/22 DDP, April Savoy Live Night 4/26
+- **접근 불가**: 봉천살롱, 비밥바, 사보이볼룸, 루나, 인더무드신림 (비공개/URL 불일치)
+- **이슈**:
+  - `API Error: Stream idle timeout - partial response received` x2 발생
+  - 수집 자체는 완료됨 (stream timeout 후에도 claude가 재시도)
+- **개선 필요**:
+  - 소스가 너무 많아 한 세션에서 순회 시 timeout 발생. 배치 분할 고려.
+- **수집 목록**:
+  | 날짜 | 이벤트명 | 타입 | DJ/강사 |
+  |------|----------|------|---------|
+  | 2026-04-18 (토) | 스윙타임바 소셜 | 소셜 | DJ 홍 |
+  | 2026-04-19 (일) | 스윙타임바 소셜 | 소셜 | DJ 비비비 |
+  | 2026-04-18 (토) | 스윙스캔들 토요소셜 @ 사보이볼룸 | 소셜 | DJ 탁이 |
+  | 2026-04-24 (금) | 스윙타임바 슬로우잼 Q2 | 파티/행사 | 추후 공지 |
+  | 2026-05-15 (금) | 스윙타임바 슬로우잼 Q2 | 파티/행사 | - |
+  | 2026-06-02 (화) | 스윙타임바 슬로우잼 Q2 | 파티/행사 | - |
+  | 2026-06-12 (금) | 스윙타임바 슬로우잼 Q2 | 파티/행사 | - |
+  | 2026-04-20 (월~) | 로빈 JAZZSEASON 솔로재즈 루틴 클래스 | 강습 | 로빈 |
+  | 2026-04-27 (월~) | 시옷x피치봉 버니합 팀 강습 | 강습 | 시옷/피치봉 |
+  | 2026-05-11 (월) | 한보&은댕 린디랩 Vol.5 - Close Connection | 강습 | 한보/은댕 |
+
+---
+
+### 2026-04-14 00:00 실행
+- **신규 수집**: 0건 (rate limit으로 실행 불가)
+- **이슈**:
+  - `You've hit your limit · resets 3am (Asia/Seoul)` — 자정 실행이 API 한도와 겹침
+- **개선 필요**: 스케줄을 오전으로 변경 → **2026-04-17 오전 10시로 수정 완료**
+
+---
+
+## ✅ 변경 이력
+
+### 2026-04-24 — run-ingestion.sh 복구 (claude -p 방식)
+- **변경 전**: `node scrape-events-v2.mjs` 호출 → 파일 없어서 매일 exit=1 실패
+- **변경 후**: `claude -p "/web-search-ingestion" --allowedTools` (Playwright MCP 포함)
+- **이유**: Playwright MCP 필수 — 실제 브라우저로 접근해야 봇판정 없음
+- **Telegram 알림**: 시작/완료 양쪽 전송 (JSON body 방식으로 수정)
+- **테스트 결과**: 2026-04-24 18:02~18:17 exit=0, 신규 5건 수집 확인
+
+### 이전 — 스케줄 변경: 자정 → 오전 8시
+- **변경 전**: `Hour=0` (자정) → Claude API rate limit 초과
+- **변경 후**: `Hour=8` (오전 8시) — 현재 plist 설정
+
+---
+
+## 🚨 잔존 문제 (날짜별 기록)
+
+### ❌ [영구 불가] Instagram 비로그인 접근
+- **최초 확인**: 2026-04-17
+- **현상**: 공개 계정도 로그인 페이지 리다이렉트 — 세션마다 다름
+- **2026-04-24 상태**: 전체 인스타 프로필 접근 불가 (로그인 리다이렉트)
+- **대응**: 수집 시 자동 스킵. 계정 정비는 사용자 판단에 맡김.
+
+### ❌ [영구 불가] BAT SWING (batswing.co.kr) DNS/SSL 오류
+- **최초 확인**: 2026-04-17
+- **현상**: 사이트 자체가 죽어있음
+- **대응**: 수집 시 자동 스킵
+
+### ⚠️ [어려움] 스위티스윙 Daum 카페
+- **최초 확인**: 2026-04-24
+- **현상**: SPA 구조로 Playwright 렌더링 실패, iframe 차단
+- **대응**: 수집 시 자동 스킵. 직접 URL 방식 추후 검토.
+
+### ⚠️ [간헐적] Stream idle timeout
+- **최초 확인**: 2026-04-15
+- **현상**: `API Error: Stream idle timeout` — 전체 소스 순회 시 발생
+- **2026-04-24 상태**: 발생 안함 (16분 내 완료)
+- **대응**: 현재는 양호. 재발 시 소스 배치 분할 고려.
+
+---
+
+## 🔧 현재 파일 요약
+
+### `/Users/inteyeo/scripts/run-ingestion.sh`
+- Telegram 시작 알림 → Chrome CDP 확인/실행 → `claude -p "/web-search-ingestion"` → Telegram 완료/실패 알림
+- `--allowedTools`: Bash, Read/Write/Edit/Glob/Grep, WebFetch/WebSearch, mcp__playwright__browser_* 전체
+
+### `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist`
+- 실행: `/bin/bash /Users/inteyeo/scripts/run-ingestion.sh`
+- 스케줄: **매일 오전 08:00**
+- 로그: `/Users/inteyeo/claude_ingestion.log`
+- 상태: `launchctl list | grep rhythmjoy` → 로드 확인됨
+
+### 로그 확인 명령
+```bash
+tail -50 /Users/inteyeo/claude_ingestion.log
+```

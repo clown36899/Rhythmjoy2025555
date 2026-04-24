@@ -292,14 +292,16 @@ curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
 
 ## 📝 수집 완료 후 — 실행 로그 보고서 갱신 (필수)
 
-수집이 끝나면 **반드시** `/Users/inteyeo/scripts/INGESTION_STATUS.md` 파일의 `## 📊 실행 로그` 섹션에 이번 회차 결과를 추가한다.
+수집이 끝나면 **반드시** `/Users/inteyeo/Rhythmjoy2025555-5/docs/INGESTION_STATUS.md` 파일의 `## 📊 실행 로그` 섹션에 이번 회차 결과를 추가한다.
+
+> ⚠️ **경로 고정**: 이 파일은 git 관리 대상. `/Users/inteyeo/scripts/INGESTION_STATUS.md` (구 경로)는 더 이상 사용하지 않는다.
 
 ### 추가 형식
 ```markdown
 ### YYYY-MM-DD HH:MM 실행
 - **신규 수집**: N건
 - **중복 스킵**: N건
-- **접근 불가**: [계정명, 계정명, ...]
+- **접근 불가**: [계정명(사유), 계정명(사유), ...]
 - **이슈**:
   - [발생한 문제 — 예: Stream timeout, 이미지 업로드 실패, 비공개 계정 등]
 - **개선 필요**:
@@ -311,7 +313,7 @@ curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
 ```
 
 ### 갱신 절차
-1. `/Users/inteyeo/scripts/INGESTION_STATUS.md` 파일을 Read로 읽는다.
+1. `/Users/inteyeo/Rhythmjoy2025555-5/docs/INGESTION_STATUS.md` 파일을 Read로 읽는다.
 2. `## 📊 실행 로그` 섹션이 없으면 만든다.
 3. **최신 회차를 맨 위에 추가**한다 (오래된 것이 아래).
 4. 잔존 문제(`## 🚨 잔존 문제`) 섹션도 최신 상태로 업데이트한다.
