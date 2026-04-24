@@ -98,9 +98,12 @@ TELEGRAM_CHAT_ID="8639707405"
 LOG_FILE="/Users/inteyeo/claude_ingestion.log"
 
 telegram_notify() {
+    local text="$1"
+    local escaped
+    escaped=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -H "Content-Type: application/json" \
-        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":\"$1\",\"parse_mode\":\"Markdown\"}" \
+        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${escaped},\"parse_mode\":\"Markdown\"}" \
         > /dev/null 2>&1
 }
 
@@ -134,13 +137,29 @@ EXIT_CODE=$?
 
 echo "--- 수집 종료: $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE ---" >> "$LOG_FILE"
 
-SUMMARY=$(tail -n 40 "$LOG_FILE" | grep -E '신규|수집|스킵|완료|오류|실패|건' | tail -n 8 | sed 's/"/\\"/g')
+# 에이전트가 출력한 ==TELEGRAM_SUMMARY_START== 블록 파싱
+SUMMARY_BLOCK=$(awk '/==TELEGRAM_SUMMARY_START==/,/==TELEGRAM_SUMMARY_END==/' "$LOG_FILE" | tail -n 20 | grep -v "==TELEGRAM_SUMMARY")
+
+if [ -n "$SUMMARY_BLOCK" ]; then
+    PARSED_NEW=$(echo "$SUMMARY_BLOCK"    | grep "^신규:"      | tail -1)
+    PARSED_SKIP=$(echo "$SUMMARY_BLOCK"   | grep "^스킵:"      | tail -1)
+    PARSED_BLOCK=$(echo "$SUMMARY_BLOCK"  | grep "^접근불가:"  | tail -1)
+    PARSED_ISSUE=$(echo "$SUMMARY_BLOCK"  | grep "^이슈:"      | tail -1)
+else
+    PARSED_NEW=$(grep -E '^신규:' "$LOG_FILE" | tail -1)
+    PARSED_SKIP=$(grep -E '^스킵:' "$LOG_FILE" | tail -1)
+    PARSED_BLOCK=""
+    PARSED_ISSUE=""
+fi
 
 if [ $EXIT_CODE -eq 0 ]; then
     telegram_notify "✅ *스윙씬 수집 완료*
 📅 $(date '+%Y-%m-%d %H:%M')
 
-${SUMMARY:-수집이 완료되었습니다.}
+${PARSED_NEW:-신규: -}
+${PARSED_SKIP:-스킵: -}
+${PARSED_BLOCK:-접근불가: -}
+${PARSED_ISSUE:-이슈: 없음}
 
 🔗 https://swingenjoy.com/admin/v2/ingestor"
 else
@@ -148,7 +167,9 @@ else
 📅 $(date '+%Y-%m-%d %H:%M')
 Exit: $EXIT_CODE
 
-${SUMMARY:-로그를 확인하세요.}
+${PARSED_NEW:-}
+${PARSED_BLOCK:-}
+${PARSED_ISSUE:-}
 
 🔗 https://swingenjoy.com/admin/v2/ingestor"
 fi
