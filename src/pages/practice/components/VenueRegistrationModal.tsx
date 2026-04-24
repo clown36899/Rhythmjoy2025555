@@ -72,8 +72,6 @@ export default function VenueRegistrationModal({
         images: []
     });
 
-    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-    const [thumbnailPreview, setThumbnailPreview] = useState<string>("");
 
     const [loading, setLoading] = useState(false);
 
@@ -150,8 +148,6 @@ export default function VenueRegistrationModal({
                 images: []
             });
             setImages([]);
-            setThumbnailFile(null);
-            setThumbnailPreview("");
             setSearchKeyword('');
             setSearchResults([]);
         }
@@ -282,23 +278,13 @@ export default function VenueRegistrationModal({
                 images: typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || [])
             });
 
-            // Set existing images
+            // Load all images (first = thumbnail)
             const rawImages: any[] = typeof data.images === 'string' ? JSON.parse(data.images) : (data.images || []);
-
-            // Identify dedicated thumbnail (it's at index 0 and has isThumbnail: true)
-            const hasDedicatedThumbnail = rawImages.length > 0 && rawImages[0].isThumbnail;
-            const dbThumbnail = hasDedicatedThumbnail ? rawImages[0].url : (data.image || "");
-            const galleryPhotos = hasDedicatedThumbnail ? rawImages.slice(1) : rawImages;
-
-            const loadedImages: ImageItem[] = galleryPhotos.map((img: any) => {
-                let preview = "";
-                if (typeof img === 'string') preview = img;
-                else preview = img.url || img.medium || img.full || img.thumbnail || "";
-
+            const loadedImages: ImageItem[] = rawImages.map((img: any) => {
+                const preview = typeof img === 'string' ? img : (img.url || img.medium || img.full || img.thumbnail || "");
                 return { type: 'existing', url: img, preview };
             });
             setImages(loadedImages);
-            setThumbnailPreview(dbThumbnail);
         }
         setLoading(false);
     };
@@ -341,46 +327,22 @@ export default function VenueRegistrationModal({
         setImages(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setThumbnailFile(file);
-            setThumbnailPreview(URL.createObjectURL(file));
-        }
-    };
-
-    const uploadThumbnail = async (file: File): Promise<string> => {
-        try {
-            // 썸네일 리사이징 (세로 기준 170px)
-            const thumbImage = await resizeImage(file, 170, 0.75, 'thumb.webp', 'height');
-
-            const timestamp = Date.now();
-            const fileName = `${timestamp}_thumb.webp`;
-            const filePath = `venue-images/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('images')
-                .upload(filePath, thumbImage, {
-                    contentType: 'image/webp',
-                    upsert: true
-                });
-
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-            return data.publicUrl;
-        } catch (err) {
-            console.error("Thumbnail upload failed:", err);
-            return "";
-        }
+    const moveImage = (index: number, direction: -1 | 1) => {
+        const newIdx = index + direction;
+        setImages(prev => {
+            if (newIdx < 0 || newIdx >= prev.length) return prev;
+            const arr = [...prev];
+            [arr[index], arr[newIdx]] = [arr[newIdx], arr[index]];
+            return arr;
+        });
     };
 
     const handleSubmit = async () => {
         if (!formData.name.trim()) return alert("이름을 입력해주세요.");
 
         // Photo Validation
-        if (!thumbnailPreview && images.length === 0) {
-            return alert("대표 썸네일 또는 이미지를 최소 1장 이상 등록해주세요.");
+        if (images.length === 0) {
+            return alert("이미지를 최소 1장 이상 등록해주세요.");
         }
 
         // Auth check is handled by Overlay, but for safety:
@@ -393,46 +355,45 @@ export default function VenueRegistrationModal({
 
         setLoading(true);
         try {
-            // 1. Thumbnail Upload
-            let thumbnailUrl = thumbnailPreview;
-            if (thumbnailFile) {
-                thumbnailUrl = await uploadThumbnail(thumbnailFile);
+            // 폴더 기반 업로드: venue-images/{venueId}/{idx}.webp
+            const venueId = editVenueId || crypto.randomUUID();
+            const folderPath = `venue-images/${venueId}`;
+
+            // 수정 시 기존 폴더 파일 삭제 (새로 덮어쓰기 위해)
+            if (editVenueId) {
+                const { data: oldFiles } = await supabase.storage.from('images').list(folderPath);
+                if (oldFiles && oldFiles.length > 0) {
+                    await supabase.storage.from('images').remove(oldFiles.map(f => `${folderPath}/${f.name}`));
+                }
             }
 
-            // 2. Gallery Images Upload (Resized to 700px width)
-            const finalImages = await Promise.all(images.map(async (item) => {
+            const finalImages = await Promise.all(images.map(async (item, idx) => {
+                const fullPath = `${folderPath}/${idx}.webp`;
+
                 if (item.type === 'existing') {
+                    // 기존 이미지는 이미 폴더 형식 → 그대로 유지
                     return item.url;
-                } else {
-                    // Upload new image
-                    const file = item.file;
-                    const baseName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
-
-                    // 리사이징 (연습실 이미지 최적화: 가로 700px)
-                    const targetImage = await resizeImage(file, 700, 0.85, 'image.webp', 'width');
-
-                    const filePath = `venue-images/${baseName}.webp`;
-
-                    const { error: uploadError } = await supabase.storage
-                        .from('images')
-                        .upload(filePath, targetImage, {
-                            contentType: 'image/webp',
-                            cacheControl: '31536000',
-                            upsert: true
-                        });
-
-                    if (uploadError) throw uploadError;
-
-                    const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
-                    return publicData.publicUrl;
                 }
+
+                const file = item.file;
+                const fullImage = await resizeImage(file, 700, 0.85, 'image.webp', 'width');
+                const { error: uploadError } = await supabase.storage
+                    .from('images')
+                    .upload(fullPath, fullImage, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
+                if (uploadError) throw uploadError;
+                const fullUrl = supabase.storage.from('images').getPublicUrl(fullPath).data.publicUrl;
+
+                if (idx === 0) {
+                    const thumbImage = await resizeImage(file, 200, 0.8, 'thumb.webp', 'width');
+                    const thumbPath = `${folderPath}/0_thumb.webp`;
+                    await supabase.storage.from('images').upload(thumbPath, thumbImage, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
+                    const thumbUrl = supabase.storage.from('images').getPublicUrl(thumbPath).data.publicUrl;
+                    return { url: fullUrl, thumb: thumbUrl };
+                }
+                return fullUrl;
             }));
 
-            // Combine thumbnail and gallery images
-            // Tag explicitly provided thumbnail to hide it from the photo gallery in detail view
-            const allImages = thumbnailUrl
-                ? [{ url: thumbnailUrl, isThumbnail: true }, ...finalImages.filter(img => img !== thumbnailUrl)]
-                : finalImages;
+            const allImages = finalImages;
 
             const payload = {
                 category: formData.category,
@@ -456,7 +417,7 @@ export default function VenueRegistrationModal({
                 await logVenueEdit('updated', editVenueId, payload.name, payload);
                 alert("수정되었습니다.");
             } else {
-                const { data: inserted, error } = await supabase.from('venues').insert([{ ...payload, user_id: user.id }]).select('id').single();
+                const { data: inserted, error } = await supabase.from('venues').insert([{ ...payload, id: venueId, user_id: user.id }]).select('id').single();
                 if (error) throw error;
                 if (inserted) await logVenueEdit('created', inserted.id, payload.name, payload);
                 alert("등록되었습니다.");
@@ -480,6 +441,12 @@ export default function VenueRegistrationModal({
         setLoading(true);
         try {
             const venueName = formData.name;
+            // storage 폴더 삭제
+            const folderPath = `venue-images/${editVenueId}`;
+            const { data: files } = await supabase.storage.from('images').list(folderPath);
+            if (files && files.length > 0) {
+                await supabase.storage.from('images').remove(files.map(f => `${folderPath}/${f.name}`));
+            }
             const { error } = await supabase.from('venues').delete().eq('id', editVenueId);
             if (error) throw error;
             await logVenueEdit('deleted', editVenueId, venueName);
@@ -656,27 +623,9 @@ export default function VenueRegistrationModal({
                         </div>
                     </div>
 
-                    {/* Section: Thumbnail */}
+                    {/* Section: Images */}
                     <div className="vrm-section">
-                        <label className="vrm-label">대표 썸네일 (최소 150px)</label>
-                        <div className="vrm-thumbnail-upload">
-                            <label className="vrm-thumb-btn">
-                                {thumbnailPreview ? (
-                                    <img src={thumbnailPreview} alt="Thumbnail" className="vrm-thumb-preview" />
-                                ) : (
-                                    <div className="vrm-thumb-placeholder">
-                                        <i className="ri-image-add-line"></i>
-                                        <span>썸네일 추가</span>
-                                    </div>
-                                )}
-                                <input type="file" accept="image/*" onChange={handleThumbnailChange} hidden />
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Section 4: Images */}
-                    <div className="vrm-section">
-                        <label className="vrm-label">이미지 ({images.length}/{MAX_GALLERY_IMAGES})</label>
+                        <label className="vrm-label">이미지 ({images.length}/{MAX_GALLERY_IMAGES}) — 첫 번째 = 썸네일</label>
                         <div className="vrm-image-upload">
                             {images.length < MAX_GALLERY_IMAGES && (
                                 <label className="vrm-upload-btn">
@@ -688,9 +637,18 @@ export default function VenueRegistrationModal({
 
                             <div className="vrm-image-list">
                                 {images.map((item, idx) => (
-                                    <div key={idx} className="vrm-image-preview">
+                                    <div key={idx} className={`vrm-image-preview${idx === 0 ? ' vrm-image-thumb' : ''}`}>
                                         <img src={item.preview} alt="" />
-                                        <button onClick={() => removeImage(idx)}><i className="ri-close-circle-fill"></i></button>
+                                        {idx === 0 && <span className="vrm-thumb-badge">썸네일</span>}
+                                        <div className="vrm-image-controls">
+                                            {idx > 0 && (
+                                                <button className="vrm-move-btn" onClick={() => moveImage(idx, -1)}><i className="ri-arrow-left-s-line"></i></button>
+                                            )}
+                                            {idx < images.length - 1 && (
+                                                <button className="vrm-move-btn" onClick={() => moveImage(idx, 1)}><i className="ri-arrow-right-s-line"></i></button>
+                                            )}
+                                        </div>
+                                        <button className="vrm-remove-btn" onClick={() => removeImage(idx)}><i className="ri-close-circle-fill"></i></button>
                                     </div>
                                 ))}
                             </div>

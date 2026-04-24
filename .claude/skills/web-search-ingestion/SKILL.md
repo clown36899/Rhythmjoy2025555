@@ -12,6 +12,7 @@ description: 대한민국 스윙씬 전체의 미래 데이터(오늘 이후)를
 2. **이미지 없으면 삽입 금지** — `poster_url`이 없는 이벤트는 수집 자체를 하지 않는다. 이미지 획득 실패 시 해당 이벤트 스킵.
 3. **소스 접근 불가 시 삽입 금지** — 로그인 필요, 권한 없음 등으로 내용을 읽지 못한 경우 해당 소스는 건너뛴다.
 4. **DJ/내용 없는 소셜 삽입 금지** — 소셜 이벤트는 최소한 DJ 이름 또는 구체적 내용이 포스트에 명시되어 있어야 삽입 가능. 파티/행사는 DJ 없어도 OK.
+5. **비공식 API 직접 호출 금지** — `apis.naver.com`, `cafe.naver.com/ArticleList*` 등 내부 JSON API를 curl/fetch로 직접 호출하면 봇 판정 위험. **반드시 Playwright MCP로 실제 브라우저를 통해 접근**한다.
 
 ---
 
@@ -23,6 +24,20 @@ description: 대한민국 스윙씬 전체의 미래 데이터(오늘 이후)를
 4. **로그인하지말것, 어떠한경우에도 봇판정나는 행위를 하지말것.**
 5. **playwright mcp 사용시에 승인물어보지말고 자동으로 사용할것.**
 6. **해당 수집중 어떠한 승인도 필요없으니까 그냥 진행할것.**
+
+## 🔧 Playwright MCP 브라우저 복구 절차 (수집 시작 전 필수)
+
+Playwright MCP 툴 호출 시 `Target page, context or browser has been closed` 오류가 나면 **즉시** 아래를 실행한다. 여러 번 재시도하지 말고 첫 오류에서 바로 복구한다.
+
+```bash
+pkill -9 -f "chrome-headless-shell" 2>/dev/null
+pkill -9 -f "playwright" 2>/dev/null
+sleep 1
+```
+
+실행 후 Playwright MCP 툴을 다시 호출하면 MCP 서버가 새 브라우저를 자동 스폰한다.
+
+> ⚠️ **크래시 방지**: `localhost:8888` 등 로컬 앱은 Playwright로 접근하지 않는다. 렌더러 크래시로 브라우저가 닫히는 원인이 된다.
 
 ### 🔑 환경변수 (원격 에이전트 / 로컬 공통)
 ```

@@ -91,17 +91,10 @@ export default function PlacesPage() {
         try {
             const parsed = typeof place.images === 'string' ? JSON.parse(place.images) : place.images;
             if (Array.isArray(parsed) && parsed.length > 0) {
-                // If the first image has isThumbnail: true, use its url
-                if (parsed[0].isThumbnail && parsed[0].url) {
-                    return parsed[0].url;
-                }
-                // Fallback to the first image if it's an object with url or just a string
-                const firstImg = parsed[0];
-                return firstImg.url || (typeof firstImg === 'string' ? firstImg : '');
+                const first = parsed[0];
+                return first.thumb || first.url || (typeof first === 'string' ? first : '');
             }
-        } catch (e) {
-            // ignore
-        }
+        } catch {}
         return '';
     };
 
