@@ -371,8 +371,8 @@
 
 .place-hover-arrow {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
+    top: 16px;
+    right: 16px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -383,7 +383,7 @@
     justify-content: center;
     color: var(--color-text-secondary);
     opacity: 0;
-    transform: translate(-10px, 10px);
+    transform: translate(10px, -10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(4px);
 }
