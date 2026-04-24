@@ -345,7 +345,6 @@
   align-items: center;
   justify-content: center;
   z-index: 999;
-  /* border-bottom 제거: 3단계 메뉴의 상단 border와 융합하기 위함 */
   border-bottom: none;
 }
 
@@ -357,8 +356,7 @@
   width: 100%;
   max-width: none;
   padding: 0 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  /* overflow-x: auto; */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -369,8 +367,8 @@
 
 @media (max-width: 650px) {
   .header-nav-v2-inner {
-    justify-content: flex-start;
-    padding: 0 4px;
+    /* justify-content: flex-start; */
+    padding: 0 18px;
   }
 }
 
@@ -415,8 +413,7 @@
   justify-content: center;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
-  position: relative;
-  top: 5px;
+  transform: translateY(5px);
 }
 
 @media (max-width: 420px) {
@@ -438,7 +435,6 @@
   color: var(--color-blue-500);
   font-weight: 800;
   z-index: 1000;
-  /* 하단 바의 top border를 덮기 위해 1px 더 연장 */
   height: 39px;
 }
 
