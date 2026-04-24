@@ -211,20 +211,25 @@ curl -s -X POST "$SUPABASE_URL/storage/v1/object/scraped/파일명.png" \
 
 ### 3. 중복 확인 후 저장 (필수!)
 
-**삽입 전 반드시 중복 체크 실행:**
+**삽입 전 반드시 중복 체크 실행 — source_url + 날짜 우선:**
 ```bash
 SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
 SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_SERVICE_KEY")
 
-# 같은 날짜 + 같은 제목이 이미 있는지 확인
+# 1차: 같은 source_url + 같은 날짜가 이미 있는지 확인 (가장 강한 중복 신호)
+curl -s "$SUPABASE_URL/rest/v1/scraped_events?source_url=eq.https://source_url&structured_data->>date=eq.2026-MM-DD&select=id,structured_data->>title" \
+  -H "apikey: $SUPABASE_KEY" \
+  -H "Authorization: Bearer $SUPABASE_KEY"
+
+# 2차: source_url이 달라도 같은 날짜 + 같은 주최(제목 키워드)면 중복으로 판단
 curl -s "$SUPABASE_URL/rest/v1/scraped_events?structured_data->>date=eq.2026-MM-DD&structured_data->>title=ilike.*이벤트명키워드*&select=id,structured_data->>title" \
   -H "apikey: $SUPABASE_KEY" \
   -H "Authorization: Bearer $SUPABASE_KEY"
 ```
-- 결과 배열이 비어있으면(`[]`) INSERT 진행
-- 결과가 있으면 **삽입 생략**, 기존 ID를 기록
+- 1차 또는 2차 결과가 있으면 **삽입 생략**, 기존 ID를 기록
+- 둘 다 `[]`이면 INSERT 진행
 
-> ⚠️ 하나의 인스타 포스트(source_url)가 여러 이벤트를 포함할 수 있으므로 source_url 중복이 곧 중복 이벤트는 아님. 반드시 **(날짜 + 제목)** 기준으로 체크할 것.
+> ⚠️ `Prefer: resolution=ignore-duplicates`는 **ID 충돌만** 막는다. 제목/날짜/URL 중복은 위 체크로만 걸러진다. 반드시 수동으로 실행할 것.
 
 ### 4. 데이터 저장 — Supabase DB
 - **실제 데이터 소스는 Supabase `scraped_events` 테이블**이다.
