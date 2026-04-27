@@ -30,20 +30,18 @@ export interface GenreWeightSettings {
     [genre: string]: number;
 }
 
-export const CLUB_LESSON_GENRE = '동호회강습';
-
 // Default Weights (Fallback)
 export const DEFAULT_GENRE_WEIGHTS: GenreWeightSettings = {
     "린디합": 1.0,
-    "지터벅": 1.0,
     "솔로재즈": 1.0,
-    "정규강습": 1.0,
     "발보아": 1.0,
     "블루스": 1.0,
-    "탭댄스": 1.0,
-    "웨스트코스트스윙": 1.0,
-    "부기우기": 1.0,
-    "샤그": 1.0,
+    "정규강습": 1.0,
+    "팀원모집": 1.0,
+    "워크샵": 1.0,
+    "파티": 1.0,
+    "대회": 1.0,
+    "라이브밴드": 1.0,
     "기타": 1.0
 };
 

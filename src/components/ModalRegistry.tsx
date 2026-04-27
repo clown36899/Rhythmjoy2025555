@@ -61,6 +61,8 @@ const BoardUserManagementModal = lazy(() => import('../components/BoardUserManag
 const AdminFavoritesModal = lazy(() => import('../components/AdminFavoritesModal'));
 const AdminSecureMembersModal = lazy(() => import('../components/AdminSecureMembersModal'));
 const GenreWeightSettingsModal = lazy(() => import('../components/GenreWeightSettingsModal'));
+const HomeSectionSettingsModal = lazy(() => import('../components/HomeSectionSettingsModal'));
+const NebFilterSettingsModal = lazy(() => import('../components/NebFilterSettingsModal'));
 const SiteAnalyticsModal = lazy(() => import('../components/SiteAnalyticsModal'));
 const AdminPushTestModal = lazy(() => import('../components/AdminPushTestModal'));
 const OnlineUsersModal = lazy(() => import('../components/OnlineUsersModal').then(module => ({ default: module.OnlineUsersModal })));
@@ -139,6 +141,8 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'adminFavorites': AdminFavoritesModal,
     'adminSecureMembers': AdminSecureMembersModal,
     'genreWeightSettings': GenreWeightSettingsModal,
+    'homeSectionSettings': HomeSectionSettingsModal,
+    'nebFilterSettings': NebFilterSettingsModal,
     'globalNoticeEditor': GlobalNoticeEditor,
     'siteAnalytics': SiteAnalyticsModal,
     'adminPushTest': AdminPushTestModal,

@@ -454,7 +454,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                             <label className="EED-label">장르</label>
                                                             {event.category === 'event' ? (
                                                                 <div className="EED-genreGrid">
-                                                                    {['워크샵', '파티', '대회', '기타'].map((option) => {
+                                                                    {['워크샵', '파티', '대회', '라이브밴드', '기타'].map((option) => {
                                                                         const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
                                                                         const isActive = currentGenres.includes(option);
                                                                         return (

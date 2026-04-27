@@ -119,6 +119,8 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const onlineUsersModal = useModal('onlineUsers');
     const adminAppStatusModal = useModal('adminAppStatus');
     const genreWeightSettingsModal = useModal('genreWeightSettings');
+    const homeSectionSettingsModal = useModal('homeSectionSettings');
+    const nebFilterSettingsModal = useModal('nebFilterSettings');
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
     const notificationSettingsModal = useModal('notificationSettings');
@@ -530,7 +532,27 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                             <i className="ri-megaphone-line"></i>
                                             <span>공지사항 관리</span>
                                         </div>
-                                        <div className="SD-submenuItem" 
+                                        <div className="SD-submenuItem"
+                                            onClick={() => homeSectionSettingsModal.open()}
+                                            data-analytics-id="admin_home_sections"
+                                            data-analytics-type="action"
+                                            data-analytics-title="메인 화면 섹션 설정"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
+                                            <i className="ri-layout-row-line"></i>
+                                            <span>메인 화면 섹션 설정</span>
+                                        </div>
+                                        <div className="SD-submenuItem"
+                                            onClick={() => nebFilterSettingsModal.open()}
+                                            data-analytics-id="admin_neb_filter"
+                                            data-analytics-type="action"
+                                            data-analytics-title="광고 섹션 노출 설정"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
+                                            <i className="ri-advertisement-line"></i>
+                                            <span>광고 섹션 노출 설정</span>
+                                        </div>
+                                        <div className="SD-submenuItem"
                                             onClick={() => genreWeightSettingsModal.open()}
                                             data-analytics-id="admin_weights"
                                             data-analytics-type="action"

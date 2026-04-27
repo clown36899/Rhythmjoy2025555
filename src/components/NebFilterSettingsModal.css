@@ -1,0 +1,200 @@
+.neb-settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+    padding: 20px;
+}
+
+.neb-settings-container {
+    background: #1f2937;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.neb-settings-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    flex-shrink: 0;
+}
+
+.neb-settings-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: white;
+    font-weight: 600;
+}
+
+.neb-close-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+.neb-close-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+
+.neb-loading {
+    padding: 40px;
+    text-align: center;
+    color: #9ca3af;
+}
+
+.neb-settings-body {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.neb-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.neb-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.neb-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.neb-radio, .neb-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    color: #e5e7eb;
+    font-size: 0.9rem;
+}
+
+.neb-radio input, .neb-checkbox input {
+    margin-top: 2px;
+    accent-color: #3b82f6;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.neb-radio em, .neb-checkbox em {
+    display: block;
+    font-style: normal;
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.neb-checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.neb-sub-checkbox {
+    margin-left: 20px;
+    color: #9ca3af;
+}
+
+.neb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.neb-number-input {
+    width: 80px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.neb-number-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.neb-unit {
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+.neb-settings-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.02);
+    flex-shrink: 0;
+}
+
+.neb-reset-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #9ca3af;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.neb-reset-btn:hover { color: #e5e7eb; background: rgba(255,255,255,0.05); }
+
+.neb-action-buttons { display: flex; gap: 10px; }
+
+.neb-cancel-btn {
+    background: transparent;
+    border: none;
+    color: #e5e7eb;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.neb-cancel-btn:hover { background: rgba(255,255,255,0.05); }
+
+.neb-save-btn {
+    background: #3b82f6;
+    border: none;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.neb-save-btn:hover { background: #2563eb; }
+.neb-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }

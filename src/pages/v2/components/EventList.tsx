@@ -14,6 +14,8 @@ import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useBoardStaticData } from "../../../contexts/BoardDataContext";
 import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
+import { useHomeSectionVisibility } from "./EventList/hooks/useHomeSectionVisibility";
+import { useNebFilterSettings } from "./EventList/hooks/useNebFilterSettings";
 
 // Styles
 import "../../../styles/domains/events.css";
@@ -75,6 +77,8 @@ const EventList: React.FC<EventListProps> = ({
   // 3.5 Genre Weights from BoardDataContext
   const { data: boardData } = useBoardStaticData();
   const genreWeights = boardData?.genre_weights || null;
+  const sectionVisibility = useHomeSectionVisibility();
+  const nebFilterSettings = useNebFilterSettings();
 
   // 3.6 Memoized Randomized Lists (Moved to custom hook for cleanliness and re-randomization on menu click)
   const {
@@ -87,54 +91,70 @@ const EventList: React.FC<EventListProps> = ({
     genreWeights
   });
 
-  // 3.65 Newly Registered Events (72 hours, fallback to latest 24)
+  // 3.65 Newly Registered Events — NEB 광고 섹션 (관리자 설정 기반)
   const newlyRegisteredEvents = useMemo(() => {
+    const {
+      sort_by,
+      time_window_hours,
+      max_items,
+      use_fallback,
+      include_genres,
+    } = nebFilterSettings;
+
     const now = new Date();
-    const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000);
+    const windowAgo = new Date(now.getTime() - time_window_hours * 60 * 60 * 1000);
     const todayStr = getLocalDateString();
 
     const isEligible = (event: Event) => {
-      const isLiveBand = event.genre?.includes('라이브밴드');
-      const isSocial = event.category === 'social';
+      // 장르 필터: 이벤트의 장르 중 하나라도 포함 장르 목록에 있으면 통과
+      const eventGenres = (event.genre || '').split(',').map(g => g.trim()).filter(Boolean);
+      // 장르가 없는 이벤트는 제외
+      if (eventGenres.length === 0) return false;
+      if (!eventGenres.some(g => include_genres.includes(g))) return false;
 
-      // 1. 카테고리 필터 (강습, 파티, 일반 이벤트 + 라이브밴드 소셜만 포함)
-      const validCategories = ['class', 'party', 'event'];
-      if (!validCategories.includes(event.category || '') && !(isSocial && isLiveBand)) return false;
-
-      // 2. 미래/오늘 일정만 포함 (지난 일정 제거)
+      // 미래/오늘 일정만 포함
       const eventEndDate = event.end_date || event.date || "";
       if (eventEndDate < todayStr) return false;
 
       return true;
     };
 
-    const within72h = events.filter(event => {
+    if (sort_by === 'date') {
+      // 이벤트 날짜 임박순
+      return events
+        .filter(isEligible)
+        .sort((a, b) => {
+          const da = a.date || a.start_date || '';
+          const db = b.date || b.start_date || '';
+          return da.localeCompare(db);
+        })
+        .slice(0, max_items);
+    }
+
+    // 등록일 기준
+    const withinWindow = events.filter(event => {
       if (!isEligible(event) || !event.created_at) return false;
-      const isWithin72Hours = new Date(event.created_at) > seventyTwoHoursAgo;
-      const isLiveBand = event.genre?.includes('라이브밴드');
-      return isWithin72Hours || isLiveBand;
+      return new Date(event.created_at) > windowAgo;
     }).sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
 
-    // 72시간 내 등록된 이벤트가 없거나 부족하면 전체에서 최근 6개 폴백
-    if (within72h.length < 6) {
-      const fallback = events.filter(isEligible)
+    if (use_fallback && withinWindow.length < max_items) {
+      const fallback = events
+        .filter(isEligible)
         .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
-        .slice(0, 6);
-      
-      // 중복 제거 및 병합 (72시간 이내 것 우선)
-      const seenIds = new Set(within72h.map(e => e.id));
-      const combined = [...within72h];
+        .slice(0, max_items);
+      const seenIds = new Set(withinWindow.map(e => e.id));
+      const combined = [...withinWindow];
       for (const e of fallback) {
         if (!seenIds.has(e.id)) {
           combined.push(e);
-          if (combined.length >= 6) break;
+          if (combined.length >= max_items) break;
         }
       }
       return combined;
     }
 
-    return within72h.slice(0, 6);
-  }, [events]);
+    return withinWindow.slice(0, max_items);
+  }, [events, nebFilterSettings]);
 
   // 3.7 Realtime Subscription to sync data immediately
   useEffect(() => {
@@ -505,6 +525,7 @@ const EventList: React.FC<EventListProps> = ({
           handleToggleFavorite={handleToggleFavorite}
           searchParams={searchParams}
           setSearchParams={setSearchParams}
+          sectionVisibility={sectionVisibility}
         />
       )}
 

@@ -7,6 +7,8 @@ import PracticeRoomBanner from "../../PracticeRoomBanner";
 import ShoppingBanner from "../../ShoppingBanner";
 import type { Event } from "../../../utils/eventListUtils";
 import type { SocialSchedule } from "../../../../social/types";
+import type { HomeSectionVisibility } from "../hooks/useHomeSectionVisibility";
+import { DEFAULT_HOME_SECTION_VISIBILITY } from "../hooks/useHomeSectionVisibility";
 import { UnifiedScheduleSection } from "../../UnifiedScheduleSection";
 
 import { EventPreviewRow } from "./EventPreviewRow";
@@ -42,6 +44,7 @@ interface EventPreviewSectionProps {
     handleToggleFavorite: (id: number | string, e: React.MouseEvent) => void;
     searchParams: URLSearchParams;
     setSearchParams: (params: URLSearchParams) => void;
+    sectionVisibility?: HomeSectionVisibility;
     // onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
@@ -70,7 +73,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     handleToggleFavorite,
     searchParams,
     setSearchParams,
+    sectionVisibility = DEFAULT_HOME_SECTION_VISIBILITY,
 }) => {
+    const vis = sectionVisibility;
 
 
     // 장르 라벨 렌더러 - '전체'와 '대회'만 Double-Span 적용
@@ -181,7 +186,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     return (
         <div className="ELS-section">
             {/* 1.5 Newly Registered Events Section (24 hours) */}
-            {newlyRegisteredEvents.length > 0 && (
+            {vis.show_new_events_banner && newlyRegisteredEvents.length > 0 && (
                 <NewEventsBanner
                     events={newlyRegisteredEvents}
                     onEventClick={onEventClick}
@@ -224,7 +229,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             )}
 
             {/* 5. Favorites (Horizontal) */}
-            {favoriteEventsList.length > 0 && (
+            {vis.show_favorites && favoriteEventsList.length > 0 && (
                 <EventPreviewRow
                     title="즐겨찾기한 내 이벤트"
                     icon="ri-star-fill"
@@ -240,7 +245,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 />
             )}
 
-            <EventPreviewRow
+            {vis.show_upcoming_events && <EventPreviewRow
                 title="예정된 행사"
                 icon="ri-fire-fill"
                 className="ELS-section--upcoming"
@@ -259,10 +264,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 defaultThumbnailEvent={defaultThumbnailEvent}
                 effectiveFavoriteIds={effectiveFavoriteIds}
                 handleToggleFavorite={handleToggleFavorite}
-            />
+            />}
 
             {/* 7. Classes Row */}
-            <EventPreviewRow
+            {vis.show_classes && <EventPreviewRow
                     title="강습"
                     icon="ri-calendar-check-fill"
                     className="ELS-section--classes"
@@ -281,11 +286,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     defaultThumbnailEvent={defaultThumbnailEvent}
                     effectiveFavoriteIds={effectiveFavoriteIds}
                     handleToggleFavorite={handleToggleFavorite}
-                />
+                />}
 
             {/* 8. Club Lesson Row */}
-
-                <EventPreviewRow
+            {vis.show_club_lessons && <EventPreviewRow
                     title="동호회 강습"
                     icon="ri-group-fill"
                     className="ELS-section--club-lessons"
@@ -304,16 +308,21 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     defaultThumbnailEvent={defaultThumbnailEvent}
                     effectiveFavoriteIds={effectiveFavoriteIds}
                     handleToggleFavorite={handleToggleFavorite}
-                />
-
+                />}
 
             {/* 9. Club Regular Class Row */}
-            <EventPreviewRow
+            {vis.show_club_regular_classes && <EventPreviewRow
                     title="동호회 정규강습"
                     icon="ri-group-2-fill"
                     className="ELS-section--club-regular"
                     count={clubRegularClasses.filter(shouldShowClass).length}
-                    events={clubRegularClasses.filter(shouldShowClass)}
+                    viewAllUrl="/calendar?category=club&scrollToToday=true"
+                    viewAllLabel="달력보기"
+                    genres={['전체', ...allGenresStructured.club]}
+                    selectedGenre={selectedClubGenre}
+                    onGenreChange={(g) => setGenreParam('club_genre', g)}
+                    renderGenreLabel={renderGenreLabel}
+                    events={clubRegularClasses.filter(shouldShowClass).filter(e => !selectedClubGenre || e.genre?.includes(selectedClubGenre))}
                     onEventClick={onEventClick}
                     onEventHover={onEventHover}
                     highlightEventId={highlightEvent?.id}
@@ -321,7 +330,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     defaultThumbnailEvent={defaultThumbnailEvent}
                     effectiveFavoriteIds={effectiveFavoriteIds}
                     handleToggleFavorite={handleToggleFavorite}
-                />
+                />}
 
             {/* 10. Slot B: Random Banner (Shopping or Practice Room) */}
             <div className="ELS-banner-wrapper">

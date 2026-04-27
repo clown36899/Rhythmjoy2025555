@@ -44,10 +44,11 @@ export function useRandomizedEvents({
     const randomizedClubRegularClasses = useMemo(() => {
         const filtered = events.filter(e =>
             e.category === 'club' &&
-            e.genre?.includes('정규강습')
+            e.genre?.includes('정규강습') &&
+            (e.end_date || e.date || "") >= today
         );
         return sortEvents(filtered, 'random', false, genreWeights, true, randomSeed);
-    }, [events, genreWeights, randomSeed]);
+    }, [events, genreWeights, today, randomSeed]);
 
     return {
         randomizedFutureEvents,
