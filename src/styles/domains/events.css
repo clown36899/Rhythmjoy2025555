@@ -113,6 +113,34 @@
     margin-left: 0;
 }
 
+.ELS-sortBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: min(0.8vw, 5px) min(1.6vw, 9px);
+    color: var(--text-secondary);
+    background: var(--bg-surface-1);
+    border-radius: 1rem;
+    border: 1px solid var(--border-secondary);
+    cursor: pointer;
+    font-size: min(3.2vw, 12px);
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.ELS-sortBtn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+}
+
+.ELS-sortBtn.is-active {
+    background: var(--color-orange-500, #f97316);
+    color: white;
+    border-color: transparent;
+}
+
 .ELS-viewAllBtn {
     margin-left: min(0.8vw, 6px);
     padding: min(0.8vw, 6px) min(1.8vw, 10px);

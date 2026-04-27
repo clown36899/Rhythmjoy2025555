@@ -31,10 +31,152 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 9px 24px 5px 24px;
+    padding: 9px 12px 9px 16px;
     border-bottom: 1px solid #e5e7eb;
     background: white;
+    gap: 8px;
 }
+
+.search-modal-input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-icon {
+    position: absolute;
+    left: 10px;
+    color: #9ca3af;
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 9px 12px 9px 32px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    outline: none;
+    box-sizing: border-box;
+    font-size: 1rem;
+    background: #f9fafb;
+}
+
+.search-input:focus {
+    border-color: #3b82f6;
+    background: white;
+}
+
+.search-options-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fafafa;
+    flex-wrap: wrap;
+}
+
+.search-scope-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.search-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.search-chip.is-active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+
+.search-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.search-toggle input { accent-color: #3b82f6; cursor: pointer; }
+
+.search-category-bar {
+    display: flex;
+    gap: 6px;
+    padding: 6px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.search-category-bar::-webkit-scrollbar { display: none; }
+
+.search-cat-chip {
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.search-cat-chip.is-active { background: #111827; border-color: #111827; color: white; }
+.search-cat-chip.cat-class.is-active { background: #10b981; border-color: #10b981; }
+.search-cat-chip.cat-club.is-active { background: #8b5cf6; border-color: #8b5cf6; }
+.search-cat-chip.cat-social.is-active { background: #f59e0b; border-color: #f59e0b; }
+.search-cat-chip.cat-event.is-active { background: #ef4444; border-color: #ef4444; }
+
+.search-section-count { font-size: 0.8rem; font-weight: 500; color: #6b7280; margin-left: 6px; }
+
+.search-future-badge {
+    font-size: 0.7rem;
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    font-weight: 500;
+}
+
+.search-result-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.search-cat-badge {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.search-cat-badge.cat-class { background: #d1fae5; color: #065f46; }
+.search-cat-badge.cat-club { background: #ede9fe; color: #4c1d95; }
+.search-cat-badge.cat-social { background: #fef3c7; color: #92400e; }
+.search-cat-badge.cat-event { background: #fee2e2; color: #991b1b; }
 
 .search-modal-title {
     font-size: 1.25rem;
@@ -202,4 +344,32 @@
     font-size: 0.75rem;
     color: #9ca3af;
     margin: 0;
+}
+.search-modal-options {
+    padding: 8px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.search-option-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #6b7280;
+    user-select: none;
+}
+
+.search-option-checkbox input[type="checkbox"] {
+    accent-color: #3b82f6;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+}
+
+.search-option-checkbox span {
+    color: #374151;
 }

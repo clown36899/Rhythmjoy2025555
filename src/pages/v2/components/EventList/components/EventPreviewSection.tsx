@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 // Styles
 // Styles
 // import "../../../styles/EventListSections.css"; // Migrated to events.css
@@ -103,6 +103,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         // 나머지는 그냥 일반 텍스트 (Google Translate가 번역)
         return <span>{genre}</span>;
     };
+
+    // 예정된 행사 정렬 (random = 기본 랜덤, date = 날짜 빠른 순)
+    const [eventSortOrder, setEventSortOrder] = useState<'random' | 'date'>('random');
 
     // 배너 위치 랜덤화를 위한 상태 (새로고침 시마다 결정)
     const isBannerSwapped = useMemo(() => Math.random() > 0.5, []);
@@ -256,7 +259,17 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 selectedGenre={selectedEventGenre}
                 onGenreChange={(g) => setGenreParam('event_genre', g)}
                 renderGenreLabel={renderGenreLabel}
-                events={futureEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre))}
+                events={(() => {
+                    const filtered = futureEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre));
+                    if (eventSortOrder === 'date') {
+                        return [...filtered].sort((a, b) => {
+                            const da = a.date || a.start_date || '';
+                            const db = b.date || b.start_date || '';
+                            return da.localeCompare(db);
+                        });
+                    }
+                    return filtered;
+                })()}
                 onEventClick={onEventClick}
                 onEventHover={onEventHover}
                 highlightEventId={highlightEvent?.id}
@@ -264,6 +277,16 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 defaultThumbnailEvent={defaultThumbnailEvent}
                 effectiveFavoriteIds={effectiveFavoriteIds}
                 handleToggleFavorite={handleToggleFavorite}
+                rightElement={
+                    <button
+                        className={`ELS-sortBtn ${eventSortOrder === 'date' ? 'is-active' : ''}`}
+                        onClick={() => setEventSortOrder(p => p === 'date' ? 'random' : 'date')}
+                        title={eventSortOrder === 'date' ? '날짜순 정렬 중' : '랜덤 정렬 중'}
+                    >
+                        <i className={eventSortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'}></i>
+                        {eventSortOrder === 'date' ? '날짜순' : '랜덤'}
+                    </button>
+                }
             />}
 
             {/* 7. Classes Row */}
