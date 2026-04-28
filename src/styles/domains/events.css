@@ -221,7 +221,7 @@
 
 /* Genre Scroller */
 .ELS-genreContainer {
-    padding: 0 16px 0 16px;
+    /* padding: 0 16px 0 16px; */
     position: relative;
     z-index: 1;
     display: flex;
@@ -309,8 +309,8 @@
 .ELS-folderBody {
     background: var(--bg-surface-1);
     border: 1px solid var(--border-glass);
-    border-radius: 0 0px 12px 12px;
-    margin: 0 0px 0 16px;
+    /* border-radius: 0 0px 12px 12px; */
+    /* margin: 0 0px 0 16px; */
     padding: 8px 0;
     position: relative;
 }
