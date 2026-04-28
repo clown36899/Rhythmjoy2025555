@@ -99,7 +99,7 @@ SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY)
 | 해피홀 | instagram | https://www.instagram.com/happyhall2004/ |
 | 스윙타임 | instagram | https://www.instagram.com/swingtimebar/ |
 | 피에스타 | instagram | https://www.instagram.com/fiesta_swingdance/ |
-| 봉천살롱 | instagram | https://www.instagram.com/bongcheon_salon/ |
+| 봉천살롱 | instagram | https://www.instagram.com/bongcheonsalon/ |
 | 비밥바 | instagram | https://www.instagram.com/bebopbar_swing/ |
 | 사보이볼룸 | instagram | https://www.instagram.com/savoiballroom/ |
 | 루나 | instagram | https://www.instagram.com/luna_swingbar/ |
@@ -127,9 +127,10 @@ SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY)
 | 사보이 | instagram | https://www.instagram.com/savoiballroom/ |
 | 강남웨스티스 | instagram | https://www.instagram.com/gangnam_westies/ |
 | 스윙키즈 | instagram | https://www.instagram.com/swingkids_kr/ |
-| 스윙프렌즈 | instagram | https://www.instagram.com/swingfriends_kr/ |
+| 스윙프렌즈 (카페) | naver_cafe | https://cafe.naver.com/f-e/cafes/10026855/menus/85?viewType=L | ⚠️ URL 접근 불가 시 https://cafe.naver.com/swingfriends 에서 타임바 게시판 메뉴를 찾아 URL 업데이트 |
+| 스윙프렌즈 (페이스북) | facebook | https://www.facebook.com/Swingfriendstimebar |
 | 스윙팩토리 | instagram | https://www.instagram.com/swingfactory_kr/ |
-| 스윙타운 | instagram | https://www.instagram.com/swingtown_kr/ |
+| 스윙타운 | naver_cafe | https://cafe.naver.com/f-e/cafes/10342583/menus/264?viewType=L |
 | 스윙홀릭 (광주) | instagram | https://www.instagram.com/swingholic/ |
 
 ### 🎓 강습/워크숍
