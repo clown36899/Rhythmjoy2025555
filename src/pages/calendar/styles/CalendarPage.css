@@ -78,6 +78,128 @@ html {
 
 
 
+/* 뷰 전환 버튼 */
+.calendar-tab-btn--view {
+    flex: 0 0 40px;
+    font-size: 18px;
+}
+
+.calendar-tab-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border-subtle);
+    align-self: center;
+    flex-shrink: 0;
+}
+
+/* 리스트 뷰 */
+.calendar-page-main--list {
+    padding-top: calc(146px + env(safe-area-inset-top));
+}
+
+.cal-list-container {
+    padding: 8px 12px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.cal-list-group {
+    margin-bottom: 12px;
+}
+
+.cal-list-date-header {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    padding: 4px 4px 4px 2px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 4px;
+}
+
+.cal-list-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cal-list-card:last-child {
+    border-bottom: none;
+}
+
+.cal-list-card:hover {
+    background: var(--bg-hover);
+}
+
+.cal-list-card__img {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.cal-list-card__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cal-list-card__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cal-list-card__loc {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cal-list-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    align-self: flex-start;
+}
+
+.cal-list-badge--social { background: #fef3c7; color: #92400e; }
+.cal-list-badge--class  { background: #d1fae5; color: #065f46; }
+.cal-list-badge--club   { background: #ede9fe; color: #4c1d95; }
+.cal-list-badge--event  { background: #fee2e2; color: #991b1b; }
+
+.cal-list-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-tertiary);
+    gap: 8px;
+}
+
+.cal-list-empty i { font-size: 40px; }
+.cal-list-empty p { margin: 0; font-size: 0.875rem; }
+
 /* 요일 헤더가 fixed로 변경됨에 따라 본문이 가려지지 않도록 여백 추가 */
 .calendar-page-main {
     flex: 1;

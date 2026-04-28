@@ -6,10 +6,12 @@ import type { Event as AppEvent } from "../../lib/supabase";
 import { lazy, Suspense } from "react";
 
 import FullEventCalendar from "./components/FullEventCalendar";
+import CalendarListView from "./components/CalendarListView";
 import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import { useEventModal } from "../../hooks/useEventModal";
 import { useCalendarEventsQuery } from "../../hooks/queries/useCalendarEventsQuery";
+import { useListViewEvents } from "../../hooks/queries/useListViewEvents";
 
 import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
@@ -52,6 +54,16 @@ export default function CalendarPage() {
     }, []);
 
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
+    const [displayMode, setDisplayMode] = useState<'calendar' | 'list'>('calendar');
+    const handleSetDisplayMode = useCallback((mode: 'calendar' | 'list') => {
+        setDisplayMode(mode);
+        if (mode === 'list') {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+            userInteractedRef.current = false;
+            shouldScrollToTodayRef.current = true;
+        }
+    }, []);
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -69,6 +81,9 @@ export default function CalendarPage() {
 
     // [New] 데이터 훅을 부모로 끌어올림 (사전 높이 계산을 위함)
     const { data: calendarData, isLoading, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth);
+
+    // 리스트 뷰 전용: 오늘~6개월 후 이벤트 (캘린더 쿼리와 완전히 분리)
+    const listViewData = useListViewEvents(displayMode === 'list');
 
     // Favorites
     const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
@@ -376,6 +391,8 @@ export default function CalendarPage() {
         if (isAnyModalOpen) return;
 
         // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
+        if (displayMode !== 'calendar') return;
+
         if (calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
             console.log('⚡ [useLayoutEffect] CalendarPage 워프 실행');
             initialJumpDoneRef.current = true;
@@ -389,7 +406,7 @@ export default function CalendarPage() {
                 showPage();
             }
         }
-    }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday, tabFilter, calendarMetrics.targetY, location.key]);
+    }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday, tabFilter, calendarMetrics.targetY, location.key, displayMode]);
 
     useEffect(() => {
         // [Fix] 마운트/재진입 직후 첫 발동은 skip - location.key useLayoutEffect에서 이미 처리됨
@@ -418,6 +435,11 @@ export default function CalendarPage() {
     }, []);
 
     const handleTabClick = (filter: 'all' | 'social-events' | 'classes') => {
+        if (displayMode === 'list') {
+            setTabFilter(filter);
+            return;
+        }
+
         userInteractedRef.current = false;
 
         const today = new Date();
@@ -621,6 +643,22 @@ export default function CalendarPage() {
         <div className="calendar-page-container" ref={containerRef}>
             {/* Tab Menu */}
             <div className="calendar-tab-menu">
+                {/* 뷰 모드 토글 버튼 */}
+                <button
+                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'calendar' ? 'active' : ''}`}
+                    onClick={() => handleSetDisplayMode('calendar')}
+                    title="캘린더 보기"
+                >
+                    <i className="ri-calendar-2-line" />
+                </button>
+                <button
+                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'list' ? 'active' : ''}`}
+                    onClick={() => handleSetDisplayMode('list')}
+                    title="리스트 보기"
+                >
+                    <i className="ri-list-check" />
+                </button>
+                <div className="calendar-tab-divider" />
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
                     onClick={() => handleTabClick('all')}
@@ -654,9 +692,21 @@ export default function CalendarPage() {
             </div>
             
 
+            {displayMode === 'list' && (
+                <div className="calendar-page-main calendar-page-main--list">
+                    <CalendarListView
+                        events={listViewData.data?.events || []}
+                        socialSchedules={listViewData.data?.socialSchedules || []}
+                        tabFilter={tabFilter}
+                        onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
+                        isLoading={listViewData.isLoading}
+                    />
+                </div>
+            )}
+
             <div
                 className="calendar-page-main"
-                style={{ minHeight: calendarMetrics.totalHeight }}
+                style={{ minHeight: calendarMetrics.totalHeight, display: displayMode === 'list' ? 'none' : undefined }}
             >
                 <FullEventCalendar
                     currentMonth={currentMonth}
