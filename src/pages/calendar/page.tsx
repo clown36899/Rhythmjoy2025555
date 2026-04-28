@@ -440,19 +440,19 @@ export default function CalendarPage() {
             return;
         }
 
-        userInteractedRef.current = false;
-
         const today = new Date();
         const isTodayMonth = currentMonth.getFullYear() === today.getFullYear() &&
             currentMonth.getMonth() === today.getMonth();
 
         if (isTodayMonth) {
             shouldScrollToTodayRef.current = true;
-        } else {
-            shouldScrollToTodayRef.current = false;
-            window.scrollTo({ top: 0, behavior: 'instant' });
+            userInteractedRef.current = false;
         }
         setTabFilter(filter);
+
+        if (isTodayMonth && tabFilter === filter) {
+            handleScrollToToday('instant', true);
+        }
     };
 
     useEffect(() => {
