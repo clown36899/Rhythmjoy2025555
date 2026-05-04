@@ -228,54 +228,58 @@ curl -s -X POST "$SUPABASE_URL/storage/v1/object/scraped/파일명.png" \
 > 형식: `https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/scraped/파일명.jpg`
 > 로컬 `/scraped/` 경로 및 `/.netlify/functions/scraped-image?file=` 형식은 **원격 에이전트에서 사용 금지**.
 
-### 3. 중복 확인 후 저장 (필수!)
+### 3. ID 생성 규칙 (중복 방지 핵심 — 반드시 준수)
 
-**삽입 전 반드시 중복 체크 실행 — source_url + 날짜 우선:**
+**ID는 `source_url + date`를 조합한 결정론적 해시로 고정 생성한다.**
+같은 포스트 + 같은 날짜면 항상 같은 ID → DB의 PK 중복 제약이 자동으로 재삽입을 막는다.
+
 ```bash
-SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
-SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_SERVICE_KEY")
-
-# 1차: 같은 source_url + 같은 날짜가 이미 있는지 확인 (가장 강한 중복 신호)
-curl -s "$SUPABASE_URL/rest/v1/scraped_events?source_url=eq.https://source_url&structured_data->>date=eq.2026-MM-DD&select=id,structured_data->>title" \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY"
-
-# 2차: source_url이 달라도 같은 날짜 + 같은 주최(제목 키워드)면 중복으로 판단
-curl -s "$SUPABASE_URL/rest/v1/scraped_events?structured_data->>date=eq.2026-MM-DD&structured_data->>title=ilike.*이벤트명키워드*&select=id,structured_data->>title" \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY"
+# ID 생성 방법 (python3)
+ID=$(python3 -c "
+import hashlib
+source_url = 'https://실제_소스_URL'
+date = '2026-MM-DD'
+raw = f'{source_url}|{date}'
+print(hashlib.md5(raw.encode()).hexdigest()[:16])
+")
+echo "생성된 ID: $ID"
 ```
-- 1차 또는 2차 결과가 있으면 **삽입 생략**, 기존 ID를 기록
-- 둘 다 `[]`이면 INSERT 진행
 
-> ⚠️ `Prefer: resolution=ignore-duplicates`는 **ID 충돌만** 막는다. 제목/날짜/URL 중복은 위 체크로만 걸러진다. 반드시 수동으로 실행할 것.
+**규칙:**
+- 하나의 포스트에서 날짜가 다른 여러 이벤트를 파싱할 때는 날짜가 달라지므로 ID도 달라진다 → 정상
+- 하나의 포스트에서 같은 날짜에 두 이벤트(예: 소셜 + 워크숍)가 있을 때는 접미사 `_2` 추가: `{hash}_2`
+- **절대 UUID를 임의 생성하거나 임의 문자열로 ID를 만들지 말 것**
 
 ### 4. 데이터 저장 — Supabase DB
 - **실제 데이터 소스는 Supabase `scraped_events` 테이블**이다.
 - `sqlite3` 명령 및 로컬 DB 파일은 **원격 에이전트에서 사용 금지**.
 - **반드시 Supabase REST API(PostgREST)로 삽입**한다.
+- `Prefer: resolution=ignore-duplicates` 헤더로 같은 ID 재삽입 시 자동 스킵된다 (별도 중복 체크 불필요).
 
 ```bash
 SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
 SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_SERVICE_KEY")
+
+# ID 생성
+ID=$(python3 -c "import hashlib; print(hashlib.md5('https://source_url|2026-MM-DD'.encode()).hexdigest()[:16])")
 
 curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
   -H "apikey: $SUPABASE_KEY" \
   -H "Authorization: Bearer $SUPABASE_KEY" \
   -H "Content-Type: application/json" \
   -H "Prefer: resolution=ignore-duplicates" \
-  -d '{
-    "id": "id_here",
-    "keyword": "키워드",
-    "source_url": "https://source_url",
-    "poster_url": "https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/scraped/파일명.jpg",
-    "extracted_text": "본문 요약",
-    "structured_data": {"date":"2026-MM-DD","day":"요일","title":"이벤트명","event_type":"소셜","status":"정상운영","djs":[],"times":[],"location":"장소","fee":"금액","note":""},
-    "is_collected": false
-  }'
+  -d "{
+    \"id\": \"$ID\",
+    \"keyword\": \"키워드\",
+    \"source_url\": \"https://source_url\",
+    \"poster_url\": \"https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/scraped/파일명.jpg\",
+    \"extracted_text\": \"본문 요약\",
+    \"structured_data\": {\"date\":\"2026-MM-DD\",\"day\":\"요일\",\"title\":\"이벤트명\",\"event_type\":\"소셜\",\"status\":\"정상운영\",\"djs\":[],\"times\":[],\"location\":\"장소\",\"fee\":\"금액\",\"note\":\"\"},
+    \"is_collected\": false
+  }"
 ```
 
-> ⚠️ `Prefer: resolution=ignore-duplicates` 헤더로 중복 ID는 자동 스킵된다.
+> ✅ 이제 중복 체크를 별도로 할 필요 없다. ID가 고정이므로 재삽입 시 `ignore-duplicates`가 자동 처리한다.
 
 ### 4. event_type 분류 기준
 - `소셜` — 소셜댄스, 위클리 소셜, 오픈파티 (입문자 포함 누구나 참여)
@@ -352,6 +356,10 @@ curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
 
 INGESTION_STATUS.md 갱신이 끝나면 **반드시** 아래 형식을 stdout에 출력한다.  
 run-ingestion.sh가 이 블록을 파싱해서 Telegram으로 전송한다. **형식 절대 변경 금지.**
+
+> ⚠️ **호출 방식과 무관하게 항상 출력 필수**: LaunchAgent 자동실행이든, 터미널 수동 실행이든, "직접 호출이라 생략" 같은 판단 절대 금지. 항상 출력한다.
+
+> ⚠️ **신규/스킵 카운팅 기준**: `신규`는 DB에 실제로 새로 삽입된 건수. `ignore-duplicates`로 스킵된 건수는 `스킵`으로 기록한다. DB insert 응답이 빈 배열 `[]`이면 스킵된 것.
 
 ```
 ==TELEGRAM_SUMMARY_START==
