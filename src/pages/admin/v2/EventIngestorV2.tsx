@@ -40,6 +40,7 @@ interface ScrapedEvent {
   };
   is_collected?: boolean;
   status?: 'ignored' | 'collected' | 'pending';
+  display_no?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -211,14 +212,26 @@ const EventIngestorV2: React.FC = () => {
       await handleUpdateStatus(id, { is_collected: true });
       setBulkProgress(`완료 처리 중... (${++i}/${selectedIds.size})`);
     }
+    // 탭이 'new'면 완료 처리된 항목 즉시 제거
+    if (activeTab === 'new') {
+      setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
+    }
     setSelectedIds(new Set());
     setBulkProgress(null);
+    fetchTabCounts();
   };
 
   const registerEventToProd = async (event: ScrapedEvent): Promise<string> => {
     const sd = event.structured_data;
     let imageUrls: any = {};
     let storagePath: string | null = null;
+
+    // extracted_text는 목록 조회 시 제외되므로 등록 시 별도 조회
+    let extractedText = event.extracted_text || '';
+    if (!extractedText) {
+      const { data: full } = await prodSupabase.from('scraped_events' as any).select('extracted_text').eq('id', event.id).maybeSingle();
+      extractedText = (full as any)?.extracted_text || '';
+    }
 
     if (event.poster_url) {
       try {
@@ -267,7 +280,7 @@ const EventIngestorV2: React.FC = () => {
         image_medium: imageUrls.med || null,
         image_full: imageUrls.full || null,
         storage_path: storagePath,
-        description: event.extracted_text,
+        description: extractedText,
         category: 'event',
         scope: 'domestic',
         link1: event.source_url || '',
@@ -305,9 +318,10 @@ const EventIngestorV2: React.FC = () => {
         i++;
       }
     }
+    setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
     setSelectedIds(new Set());
-    await fetchScrapedEvents();
     setBulkProgress(null);
+    fetchTabCounts();
     if (errors.length) alert(`일부 실패:\n${errors.join('\n')}`);
     else alert(`${targets.length}개 등록 완료`);
   };
@@ -365,6 +379,7 @@ const EventIngestorV2: React.FC = () => {
                     onChange={toggleSelectAll}
                   />
                 </th>
+                <th style={{ width: 32, textAlign: 'center', color: '#888', fontSize: '0.75rem' }}>#</th>
                 <th>미리보기</th>
                 <th>날짜 / 제목</th>
                 <th>장소</th>
@@ -373,10 +388,13 @@ const EventIngestorV2: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredEvents.map(event => (
+              {filteredEvents.map((event, idx) => (
                 <tr key={event.id} className={`${processingId === event.id ? 'row-processing' : ''} ${selectedIds.has(event.id) ? 'row-selected' : ''}`}>
                   <td className="col-check">
                     <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)} />
+                  </td>
+                  <td style={{ textAlign: 'center', fontSize: '0.75rem', color: '#888', fontWeight: 700, minWidth: 28 }}>
+                    #{event.display_no ?? idx + 1}
                   </td>
                   <td className="col-preview col-clickable" onClick={() => toggleSelect(event.id)}>
                     {event.poster_url ? (

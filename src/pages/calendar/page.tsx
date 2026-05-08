@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 
 import FullEventCalendar from "./components/FullEventCalendar";
 import CalendarListView from "./components/CalendarListView";
+import CalendarMapView from "./components/CalendarMapView";
 import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import { useEventModal } from "../../hooks/useEventModal";
@@ -54,10 +55,10 @@ export default function CalendarPage() {
     }, []);
 
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
-    const [displayMode, setDisplayMode] = useState<'calendar' | 'list'>('calendar');
-    const handleSetDisplayMode = useCallback((mode: 'calendar' | 'list') => {
+    const [displayMode, setDisplayMode] = useState<'calendar' | 'list' | 'map'>('calendar');
+    const handleSetDisplayMode = useCallback((mode: 'calendar' | 'list' | 'map') => {
         setDisplayMode(mode);
-        if (mode === 'list') {
+        if (mode === 'list' || mode === 'map') {
             window.scrollTo({ top: 0, behavior: 'instant' });
         } else {
             userInteractedRef.current = false;
@@ -391,7 +392,7 @@ export default function CalendarPage() {
         if (isAnyModalOpen) return;
 
         // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
-        if (displayMode !== 'calendar') return;
+        if (displayMode !== 'calendar') return; // list/map 모드에서는 스크롤 워프 스킵
 
         if (calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
             console.log('⚡ [useLayoutEffect] CalendarPage 워프 실행');
@@ -658,6 +659,13 @@ export default function CalendarPage() {
                 >
                     <i className="ri-list-check" />
                 </button>
+                <button
+                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'map' ? 'active' : ''}`}
+                    onClick={() => handleSetDisplayMode('map')}
+                    title="지도 보기"
+                >
+                    <i className="ri-map-2-line" />
+                </button>
                 <div className="calendar-tab-divider" />
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
@@ -692,6 +700,12 @@ export default function CalendarPage() {
             </div>
             
 
+            {displayMode === 'map' && (
+                <CalendarMapView
+                    onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
+                />
+            )}
+
             {displayMode === 'list' && (
                 <div className="calendar-page-main calendar-page-main--list">
                     <CalendarListView
@@ -706,7 +720,7 @@ export default function CalendarPage() {
 
             <div
                 className="calendar-page-main"
-                style={{ minHeight: calendarMetrics.totalHeight, display: displayMode === 'list' ? 'none' : undefined }}
+                style={{ minHeight: calendarMetrics.totalHeight, display: (displayMode === 'list' || displayMode === 'map') ? 'none' : undefined }}
             >
                 <FullEventCalendar
                     currentMonth={currentMonth}

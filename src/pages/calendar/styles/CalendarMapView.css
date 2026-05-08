@@ -1,0 +1,370 @@
+/* CalendarMapView — 맵 모드 전용 스타일 */
+
+.cmv-root {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 650px;
+    margin: 0 auto;
+    padding-top: 38px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    min-height: 100vh;
+}
+
+/* ── 미니 달력 ─────────────────────────── */
+.cmv-mini-cal {
+    background: var(--bg-surface-1);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 8px 12px 10px;
+    flex-shrink: 0;
+}
+
+.cmv-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.cmv-nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s;
+}
+.cmv-nav-btn:hover { background: var(--bg-hover); }
+
+.cmv-cal-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.cmv-weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 4px;
+}
+
+.cmv-weekday {
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    padding: 2px 0;
+}
+
+.cmv-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px 0;
+}
+
+.cmv-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    cursor: pointer;
+    border-radius: 6px;
+    position: relative;
+    transition: background 0.12s;
+    gap: 2px;
+}
+
+.cmv-day:not(.cmv-day--empty):hover {
+    background: var(--bg-hover);
+}
+
+.cmv-day--empty {
+    cursor: default;
+}
+
+.cmv-day-num {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.cmv-day--sun .cmv-day-num { color: #ef4444; }
+.cmv-day--sat .cmv-day-num { color: #3b82f6; }
+
+.cmv-day--today .cmv-day-num {
+    background: var(--color-blue-500);
+    color: #fff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.cmv-day--selected:not(.cmv-day--today) .cmv-day-num {
+    background: var(--color-blue-100, #dbeafe);
+    color: var(--color-blue-600, #2563eb);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.cmv-day-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-blue-500);
+    flex-shrink: 0;
+}
+
+.cmv-day--today .cmv-day-dot,
+.cmv-day--selected .cmv-day-dot {
+    background: #fff;
+}
+
+/* ── 지도 섹션 ─────────────────────────── */
+.cmv-map-section {
+    flex-shrink: 0;
+    background: var(--bg-base);
+}
+
+.cmv-map-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px 6px;
+    min-height: 36px;
+}
+
+.cmv-map-date-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cmv-map-date-label--hint {
+    color: var(--text-tertiary);
+    font-weight: 400;
+}
+
+.cmv-reset-btn {
+    background: var(--bg-surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-secondary);
+    transition: background 0.15s;
+}
+.cmv-reset-btn:hover { background: var(--bg-hover); }
+
+.cmv-map-wrapper {
+    position: relative;
+    height: 260px;
+    background: var(--bg-surface-2);
+}
+
+.cmv-map {
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.3s;
+}
+
+.cmv-map-loading,
+.cmv-map-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+    background: rgba(var(--bg-base-rgb, 255,255,255), 0.7);
+    pointer-events: none;
+}
+
+.cmv-map-placeholder i {
+    font-size: 36px;
+    opacity: 0.4;
+}
+
+.cmv-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--color-blue-500);
+    border-radius: 50%;
+    animation: cmv-spin 0.8s linear infinite;
+}
+
+@keyframes cmv-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── 마커 ─────────────────────────────── */
+.cmv-marker-container {
+    cursor: pointer;
+    position: relative;
+}
+.cmv-marker-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.cmv-marker-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.cmv-marker {
+    width: 40px;
+    height: 40px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background: #fff;
+    border: 2px solid #4f46e5;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cmv-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: rotate(45deg);
+}
+.cmv-marker i {
+    transform: rotate(45deg);
+    font-size: 20px;
+    color: #4f46e5;
+}
+.cmv-marker-tail {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 8px solid #4f46e5;
+    margin-top: -2px;
+}
+.cmv-marker-label {
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* ── 이벤트 리스트 ─────────────────────── */
+.cmv-event-list {
+    flex: 1;
+    padding: 0 12px;
+}
+
+.cmv-event-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.12s;
+    border-radius: 6px;
+}
+.cmv-event-item:hover { background: var(--bg-hover); }
+.cmv-event-item:last-child { border-bottom: none; }
+
+.cmv-event-img {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--bg-surface-2);
+}
+.cmv-event-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.cmv-event-img--fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 22px;
+}
+
+.cmv-event-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.cmv-event-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    align-self: flex-start;
+}
+
+.cmv-event-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cmv-event-loc {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cmv-event-arrow {
+    color: var(--text-tertiary);
+    font-size: 18px;
+    flex-shrink: 0;
+}

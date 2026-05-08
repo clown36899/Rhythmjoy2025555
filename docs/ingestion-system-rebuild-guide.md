@@ -83,101 +83,17 @@ claude mcp get playwright
 
 ```bash
 mkdir -p /Users/inteyeo/scripts
-```
-
-`/Users/inteyeo/scripts/run-ingestion.sh` 파일 내용:
-
-```bash
-#!/bin/bash
-
-export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin
-export HOME=/Users/inteyeo
-
-TELEGRAM_BOT_TOKEN="8729202565:AAGUm9aGEFxDneskGyPrV0EAcz1KP7z6WcM"
-TELEGRAM_CHAT_ID="8639707405"
-LOG_FILE="/Users/inteyeo/claude_ingestion.log"
-
-telegram_notify() {
-    local text="$1"
-    local escaped
-    escaped=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
-    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -H "Content-Type: application/json" \
-        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${escaped},\"parse_mode\":\"Markdown\"}" \
-        > /dev/null 2>&1
-}
-
-echo "--- 🚀 수집 시작: $(date '+%Y-%m-%d %H:%M:%S') ---" >> "$LOG_FILE"
-
-telegram_notify "🔄 *스윙씬 수집 시작*
-📅 $(date '+%Y-%m-%d %H:%M')"
-
-# Chrome CDP 모드 확인 및 실행
-if ! curl -s http://localhost:9222/json/version > /dev/null 2>&1; then
-    echo "Chrome CDP 시작 중..." >> "$LOG_FILE"
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-        --remote-debugging-port=9222 \
-        --user-data-dir="/Users/inteyeo/.chrome-automation" \
-        --headless=new \
-        --no-first-run \
-        --no-default-browser-check &
-    sleep 6
-fi
-
-sleep 2
-
-cd /Users/inteyeo/Rhythmjoy2025555-5
-
-/opt/homebrew/bin/claude -p "/web-search-ingestion" \
-    --output-format text \
-    --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot,mcp__playwright__browser_click,mcp__playwright__browser_take_screenshot,mcp__playwright__browser_evaluate,mcp__playwright__browser_wait_for,mcp__playwright__browser_close,mcp__playwright__browser_navigate_back,mcp__playwright__browser_type,mcp__playwright__browser_press_key,mcp__playwright__browser_select_option,mcp__playwright__browser_tabs,mcp__playwright__browser_resize,mcp__playwright__browser_network_requests,mcp__playwright__browser_console_messages,mcp__playwright__browser_handle_dialog,mcp__playwright__browser_hover,mcp__playwright__browser_drag,mcp__playwright__browser_fill_form,mcp__playwright__browser_file_upload" \
-    >> "$LOG_FILE" 2>&1
-
-EXIT_CODE=$?
-
-echo "--- 수집 종료: $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE ---" >> "$LOG_FILE"
-
-# 에이전트가 출력한 ==TELEGRAM_SUMMARY_START== 블록 파싱
-SUMMARY_BLOCK=$(awk '/==TELEGRAM_SUMMARY_START==/,/==TELEGRAM_SUMMARY_END==/' "$LOG_FILE" | tail -n 20 | grep -v "==TELEGRAM_SUMMARY")
-
-if [ -n "$SUMMARY_BLOCK" ]; then
-    PARSED_NEW=$(echo "$SUMMARY_BLOCK"    | grep "^신규:"      | tail -1)
-    PARSED_SKIP=$(echo "$SUMMARY_BLOCK"   | grep "^스킵:"      | tail -1)
-    PARSED_BLOCK=$(echo "$SUMMARY_BLOCK"  | grep "^접근불가:"  | tail -1)
-    PARSED_ISSUE=$(echo "$SUMMARY_BLOCK"  | grep "^이슈:"      | tail -1)
-else
-    PARSED_NEW=$(grep -E '^신규:' "$LOG_FILE" | tail -1)
-    PARSED_SKIP=$(grep -E '^스킵:' "$LOG_FILE" | tail -1)
-    PARSED_BLOCK=""
-    PARSED_ISSUE=""
-fi
-
-if [ $EXIT_CODE -eq 0 ]; then
-    telegram_notify "✅ *스윙씬 수집 완료*
-📅 $(date '+%Y-%m-%d %H:%M')
-
-${PARSED_NEW:-신규: -}
-${PARSED_SKIP:-스킵: -}
-${PARSED_BLOCK:-접근불가: -}
-${PARSED_ISSUE:-이슈: 없음}
-
-🔗 https://swingenjoy.com/admin/v2/ingestor"
-else
-    telegram_notify "❌ *스윙씬 수집 실패*
-📅 $(date '+%Y-%m-%d %H:%M')
-Exit: $EXIT_CODE
-
-${PARSED_NEW:-}
-${PARSED_BLOCK:-}
-${PARSED_ISSUE:-}
-
-🔗 https://swingenjoy.com/admin/v2/ingestor"
-fi
-```
-
-```bash
+cp /Users/inteyeo/Rhythmjoy2025555-5/scripts/run-ingestion.sh /Users/inteyeo/scripts/run-ingestion.sh
 chmod +x /Users/inteyeo/scripts/run-ingestion.sh
 ```
+
+`scripts/run-ingestion.sh`는 git 관리 대상이다. 운영 파일을 직접 편집하지 말고 repo 스크립트를 수정한 뒤 위 명령으로 설치한다.
+
+핵심 안전장치:
+- macOS에 없는 `setsid`를 사용하지 않는다.
+- `/tmp/rhythmjoy-ingestion.lock`으로 중복 실행을 차단한다.
+- 20분 watchdog으로 hang 된 Claude/Playwright 자식 프로세스를 정리한다.
+- `==TELEGRAM_SUMMARY_*==` 블록이 없어도 실패/완료 알림을 보낸다.
 
 ---
 

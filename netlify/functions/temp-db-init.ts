@@ -4,7 +4,8 @@ import pg from 'pg';
 const { Client } = pg;
 
 // PROD DB 연결 정보
-const connectionString = 'postgresql://postgres:5Go7aHutmffqk8Je@db.mkoryudscamnopvxdelk.supabase.co:5432/postgres';
+// ⚠️ 비밀번호는 Supabase 대시보드 → Project Settings → Database → Reset database password 에서 재생성 후 여기에 입력
+const connectionString = 'postgresql://postgres:NC9gJvJTgpJWSfUt@db.mkoryudscamnopvxdelk.supabase.co:5432/postgres';
 
 export const handler: Handler = async (event) => {
     const client = new Client({

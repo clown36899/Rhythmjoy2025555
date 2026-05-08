@@ -54,7 +54,7 @@ export const handler: Handler = async (event) => {
 
             let query = supabase
                 .from('scraped_events')
-                .select('*', { count: 'exact' })
+                .select('id,keyword,source_url,poster_url,structured_data,is_collected,status,display_no,created_at,updated_at', { count: 'exact' })
                 .or('status.is.null,status.neq.excluded');
 
             if (tab === 'new') query = query.eq('is_collected', false);
@@ -127,7 +127,7 @@ export const handler: Handler = async (event) => {
                         }
                     }
 
-                    // 3순위: 날짜 + 제목 중복 체크 (ilike로 부분 매칭)
+                    // 3순위: 날짜 + 제목 중복 체크 (scraped_events)
                     if (!existing && date && title) {
                         const { data } = await supabase
                             .from('scraped_events')
@@ -137,6 +137,26 @@ export const handler: Handler = async (event) => {
                             .neq('id', item.id)
                             .maybeSingle();
                         if (data) { existing = data; skipReason = '날짜+제목 중복'; }
+                    }
+
+                    // 4순위: events 테이블(이미 수집 완료)과 제목 중복 체크
+                    if (!existing && title) {
+                        // 제목 앞 10자로 fuzzy 매칭 (이모지·조사 차이 흡수)
+                        const titlePrefix = title.slice(0, 10);
+                        const { data } = await supabase
+                            .from('events')
+                            .select('id,title,start_date')
+                            .ilike('title', `%${titlePrefix}%`)
+                            .limit(5);
+                        if (data && data.length > 0) {
+                            // 날짜가 있으면 날짜도 비교, 없으면 제목만으로 판단
+                            const matchedEvent = data.find(ev => {
+                                if (!date || !ev.start_date) return true; // 날짜 없으면 제목만으로 중복 판정
+                                const evDate = ev.start_date.slice(0, 10);
+                                return evDate === date || Math.abs(new Date(evDate).getTime() - new Date(date).getTime()) < 30 * 24 * 3600 * 1000;
+                            });
+                            if (matchedEvent) { existing = { id: matchedEvent.id }; skipReason = `events 테이블 중복 (${matchedEvent.title})`; }
+                        }
                     }
 
                     if (existing) {
@@ -186,6 +206,19 @@ export const handler: Handler = async (event) => {
                     }
                 }
 
+                // 신규 항목에만 display_no 부여 (기존 항목은 유지)
+                let displayNo: number | undefined;
+                const isExisting = await supabase.from('scraped_events').select('id').eq('id', item.id).maybeSingle().then(r => !!r.data);
+                if (!isExisting) {
+                    const { data: maxRow } = await supabase
+                        .from('scraped_events')
+                        .select('display_no')
+                        .order('display_no', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+                    displayNo = ((maxRow?.display_no as number | null) ?? 0) + 1;
+                }
+
                 const { error: upsertError } = await supabase
                     .from('scraped_events')
                     .upsert({
@@ -199,6 +232,7 @@ export const handler: Handler = async (event) => {
                         status: item.status || null,
                         updated_at: now,
                         created_at: item.created_at || now,
+                        ...(displayNo !== undefined ? { display_no: displayNo } : {}),
                     }, { onConflict: 'id' });
 
                 if (upsertError) {
