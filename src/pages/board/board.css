@@ -204,6 +204,9 @@ body .board-posts-container.is-standard-board-v2 .board-post-card {
   box-shadow: none !important;
   margin: 0 !important;
   cursor: default !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* 2. 공지사항: Quiet Luxury (웜 뉴트럴 프리미엄 디자인) */
@@ -253,18 +256,42 @@ body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
   letter-spacing: -0.03em !important;
   font-weight: 700 !important;
   color: var(--text-primary) !important;
-  white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  white-space: normal !important;
   line-height: 1.4 !important;
   margin: 0 !important;
+  min-width: 0 !important;
 }
 
-.is-standard-board-v2 .board-post-content {
-  font-size: 0.9rem;
-  color: var(--text-tertiary);
-  margin-top: 6px;
-  line-height: 1.6;
+.is-free-mode .is-standard-board-v2 .board-post-content {
+  display: none !important;
+}
+
+.is-free-mode .standard-view .board-post-thumbnail {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.is-free-mode .board-post-author-avatar-container {
+  display: none !important;
+}
+
+.is-free-mode .standard-view .board-post-meta {
+  padding-left: 0;
+}
+
+.is-free-mode .standard-view .board-post-meta-left {
+  padding-left: 37px;
+  gap: 6px;
 }
 
 .is-standard-board-v2 .board-post-meta {
@@ -427,6 +454,9 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   align-items: stretch;
   gap: 12px;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Thumbnail on the LEFT */
@@ -470,9 +500,11 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 
 .standard-view .board-post-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   margin-bottom: 2px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .standard-view .board-notice-badge {
@@ -509,6 +541,7 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 /* Hide separate title colors, just use white for consistency */
@@ -608,6 +641,70 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   background-color: transparent !important;
   padding: 8px 16px !important;
   border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+@media (max-width: 640px) {
+  .is-free-mode .board-posts-container {
+    overflow-x: hidden;
+  }
+
+  .is-free-mode .standard-mode .standard-view {
+    max-width: 100%;
+  }
+
+  body .is-free-mode .board-posts-container.is-standard-board-v2 .board-post-card {
+    padding: 0.65rem 0.75rem !important;
+  }
+
+  .is-free-mode .standard-view .board-post-top-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 9px;
+    align-items: start;
+  }
+
+  .is-free-mode .standard-view .board-post-main-content,
+  .is-free-mode .standard-view .board-post-header {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .is-free-mode .standard-view .board-post-main-content {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .is-free-mode .standard-view .board-post-thumbnail,
+  .is-free-mode .is-free-board .board-post-thumbnail {
+    grid-column: 2;
+    grid-row: 1;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .is-free-mode .is-standard-board-v2 .board-post-title {
+    font-size: 1rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .is-free-mode .standard-view .board-post-meta {
+    margin-top: 8px;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .is-free-mode .standard-view .board-post-meta-left {
+    gap: 5px;
+    padding-left: 37px;
+  }
+
+  .is-free-mode .standard-view .board-post-meta-right {
+    flex-shrink: 0;
+  }
 }
 
 .is-free-board .board-search-input {
