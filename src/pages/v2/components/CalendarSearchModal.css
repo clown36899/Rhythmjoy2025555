@@ -79,11 +79,16 @@
 
 .cal-search-options {
     display: flex;
+    align-items: center;
     gap: 0.4rem;
     padding: 0.65rem 0.75rem;
     border-bottom: 1px solid #2d2d2d;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
+    flex: 0 0 auto;
+    min-height: 45px;
+    box-sizing: border-box;
 }
 
 .cal-search-options::-webkit-scrollbar {
@@ -92,6 +97,8 @@
 
 .cal-search-sort-btn {
     flex: 0 0 auto;
+    min-width: max-content;
+    height: 30px;
     border: 1px solid #3f3f46;
     background: #242424;
     color: #a1a1aa;
@@ -101,6 +108,10 @@
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cal-search-sort-btn.active {
@@ -228,11 +239,13 @@
 
     .cal-search-options {
         padding: 0.55rem 0.65rem;
+        min-height: 41px;
     }
 
     .cal-search-sort-btn {
         padding: 0.35rem 0.55rem;
         font-size: 0.7rem;
+        height: 28px;
     }
 
     .cal-search-item {
