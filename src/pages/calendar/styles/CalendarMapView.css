@@ -146,6 +146,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     padding: 8px 14px 6px;
     min-height: 36px;
 }
@@ -154,6 +155,10 @@
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .cmv-map-date-label--hint {
@@ -161,7 +166,15 @@
     font-weight: 400;
 }
 
-.cmv-reset-btn {
+.cmv-map-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.cmv-reset-btn,
+.cmv-map-control-btn {
     background: var(--bg-surface-1);
     border: 1px solid var(--border-subtle);
     border-radius: 50%;
@@ -175,23 +188,47 @@
     color: var(--text-secondary);
     transition: background 0.15s;
 }
-.cmv-reset-btn:hover { background: var(--bg-hover); }
+.cmv-reset-btn:hover,
+.cmv-map-control-btn:hover,
+.cmv-map-control-btn.active {
+    background: var(--bg-hover);
+}
+
+.cmv-map-control-btn.active {
+    color: var(--color-blue-500);
+    border-color: rgba(59, 130, 246, 0.45);
+}
 
 .cmv-map-wrapper {
     position: relative;
-    height: 260px;
+    height: clamp(190px, 32dvh, 260px);
     background: var(--bg-surface-2);
+    touch-action: pan-y;
 }
 
 .cmv-map {
     width: 100%;
     height: 100%;
     transition: opacity 0.3s;
+    touch-action: pan-y;
+}
+
+.cmv-map-wrapper--locked .cmv-map {
+    pointer-events: none;
+}
+
+.cmv-map-touch-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: transparent;
+    touch-action: pan-y;
 }
 
 .cmv-map-loading,
 .cmv-map-placeholder {
     position: absolute;
+    z-index: 10;
     inset: 0;
     display: flex;
     flex-direction: column;
@@ -288,7 +325,7 @@
 /* ── 이벤트 리스트 ─────────────────────── */
 .cmv-event-list {
     flex: 1;
-    padding: 0 12px;
+    padding: 8px 12px 0;
 }
 
 .cmv-event-item {

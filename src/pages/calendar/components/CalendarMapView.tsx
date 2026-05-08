@@ -13,10 +13,31 @@ interface Props {
     onEventClick: (event: AppEvent) => void;
 }
 
+const toLocalDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const getDefaultSelectedDate = (month: Date) => {
+    const now = new Date();
+    if (month.getFullYear() === now.getFullYear() && month.getMonth() === now.getMonth()) {
+        return toLocalDay(now);
+    }
+    return new Date(month.getFullYear(), month.getMonth(), 1);
+};
+
+const getVenueAddress = (event: AppEvent) =>
+    (Array.isArray(event.venues) ? event.venues[0]?.address : (event.venues as any)?.address) ||
+    event.address ||
+    '';
+
+const getVenueSearchText = (event: AppEvent) =>
+    [getVenueAddress(event), event.venue_name, event.location]
+        .filter(Boolean)
+        .join(' ');
+
 export default function CalendarMapView({ onEventClick }: Props) {
     const today = new Date();
-    const [currentMonth, setCurrentMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const initialMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const [currentMonth, setCurrentMonth] = useState(initialMonth);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(() => getDefaultSelectedDate(initialMonth));
     const [allEvents, setAllEvents] = useState<AppEvent[]>([]);
     const [isLoadingEvents, setIsLoadingEvents] = useState(false);
 
@@ -28,11 +49,18 @@ export default function CalendarMapView({ onEventClick }: Props) {
     const [geocodedData, setGeocodedData] = useState<{ lat: number; lng: number; event: AppEvent }[]>([]);
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [mapVisible, setMapVisible] = useState(false);
+    const [isMapInteractive, setIsMapInteractive] = useState(false);
 
     // 달력 메타
     const firstDay = currentMonth.getDay();
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const totalCells = Math.ceil((daysInMonth + firstDay) / 7) * 7;
+
+    useEffect(() => {
+        if (!selectedDate) {
+            setSelectedDate(getDefaultSelectedDate(currentMonth));
+        }
+    }, [currentMonth, selectedDate]);
 
     // 현재 달 이벤트 로드
     useEffect(() => {
@@ -88,6 +116,9 @@ export default function CalendarMapView({ onEventClick }: Props) {
         ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
         : null;
     const selectedEvents = selectedDateStr ? (eventsByDate[selectedDateStr] || []) : [];
+    const selectedEventsGeoKey = selectedEvents
+        .map(event => `${event.id}:${getVenueSearchText(event)}`)
+        .join('|');
 
     // 맵 초기화 (컴포넌트 마운트 후 1회)
     useEffect(() => {
@@ -116,34 +147,53 @@ export default function CalendarMapView({ onEventClick }: Props) {
             setMapVisible(false);
             return;
         }
-        if (!window.kakao?.maps?.services) return;
+        if (!mapReady || !window.kakao?.maps?.services) return;
 
         setIsGeocoding(true);
         const geocoder = new window.kakao.maps.services.Geocoder();
-        const eventsWithLoc = selectedEvents.filter(e =>
-            (Array.isArray(e.venues) ? e.venues[0]?.address : (e.venues as any)?.address) || e.address || e.location || e.venue_name
-        );
+        const places = new window.kakao.maps.services.Places();
+        const eventsWithLoc = selectedEvents.filter(e => getVenueSearchText(e));
+        const okStatus = window.kakao.maps.services.Status.OK;
+
+        const geocodeByAddress = (event: AppEvent, address: string) =>
+            new Promise<{ lat: number; lng: number; event: AppEvent } | null>(resolve => {
+                geocoder.addressSearch(address, (result: any, status: any) => {
+                    if (status === okStatus && result?.[0]) {
+                        resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x), event });
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
+
+        const geocodeByKeyword = (event: AppEvent, keyword: string) =>
+            new Promise<{ lat: number; lng: number; event: AppEvent } | null>(resolve => {
+                places.keywordSearch(keyword, (result: any, status: any) => {
+                    if (status === okStatus && result?.[0]) {
+                        resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x), event });
+                    } else {
+                        resolve(null);
+                    }
+                });
+            });
 
         Promise.all(
-            eventsWithLoc.map(ev => {
-                const addr = (Array.isArray(ev.venues) ? ev.venues[0]?.address : (ev.venues as any)?.address) || ev.address || ev.location || ev.venue_name || '';
-                return new Promise<{ lat: number; lng: number; event: AppEvent } | null>(resolve => {
-                    if (!addr) { resolve(null); return; }
-                    geocoder.addressSearch(addr, (result: any, status: any) => {
-                        if (status === window.kakao.maps.services.Status.OK) {
-                            resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x), event: ev });
-                        } else {
-                            resolve(null);
-                        }
-                    });
-                });
+            eventsWithLoc.map(async ev => {
+                const address = getVenueAddress(ev);
+                if (address) {
+                    const byAddress = await geocodeByAddress(ev, address);
+                    if (byAddress) return byAddress;
+                }
+                return geocodeByKeyword(ev, getVenueSearchText(ev));
             })
         ).then(results => {
             setGeocodedData(results.filter(Boolean) as any[]);
             setIsGeocoding(false);
+        }).catch(() => {
+            setGeocodedData([]);
+            setIsGeocoding(false);
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDateStr, selectedEvents.length]);
+    }, [selectedDate, selectedDateStr, selectedEvents, selectedEventsGeoKey, mapReady]);
 
     // 마커 렌더링
     useEffect(() => {
@@ -196,14 +246,13 @@ export default function CalendarMapView({ onEventClick }: Props) {
         }
     }, [selectedDate, map]);
 
-    const handlePrevMonth = () => {
-        setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-        setSelectedDate(null);
+    const handleMonthMove = (offset: number) => {
+        const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1);
+        setCurrentMonth(nextMonth);
+        setSelectedDate(getDefaultSelectedDate(nextMonth));
     };
-    const handleNextMonth = () => {
-        setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-        setSelectedDate(null);
-    };
+    const handlePrevMonth = () => handleMonthMove(-1);
+    const handleNextMonth = () => handleMonthMove(1);
 
     const getCategoryLabel = (category?: string) => {
         const cat = category?.toLowerCase();
@@ -273,7 +322,7 @@ export default function CalendarMapView({ onEventClick }: Props) {
                                 onClick={() => {
                                     if (!inMonth) return;
                                     const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-                                    setSelectedDate(prev => prev?.getTime() === d.getTime() ? null : d);
+                                    setSelectedDate(d);
                                 }}
                             >
                                 {inMonth && (
@@ -298,23 +347,34 @@ export default function CalendarMapView({ onEventClick }: Props) {
                     ) : (
                         <span className="cmv-map-date-label cmv-map-date-label--hint">날짜를 선택하면 지도에 이벤트가 표시됩니다</span>
                     )}
-                    {geocodedData.length > 0 && map && (
-                        <button className="cmv-reset-btn" onClick={() => {
-                            const bounds = new window.kakao.maps.LatLngBounds();
-                            geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
-                            map.setBounds(bounds, 60, 30, 10, 30);
-                        }}>
-                            <i className="ri-focus-3-line" />
+                    <div className="cmv-map-actions">
+                        <button
+                            className={`cmv-map-control-btn ${isMapInteractive ? 'active' : ''}`}
+                            onClick={() => setIsMapInteractive(prev => !prev)}
+                            title={isMapInteractive ? '지도 이동 잠금' : '지도 이동 켜기'}
+                            aria-label={isMapInteractive ? '지도 이동 잠금' : '지도 이동 켜기'}
+                        >
+                            <i className={isMapInteractive ? 'ri-lock-unlock-line' : 'ri-lock-line'} />
                         </button>
-                    )}
+                        {geocodedData.length > 0 && map && (
+                            <button className="cmv-reset-btn" onClick={() => {
+                                const bounds = new window.kakao.maps.LatLngBounds();
+                                geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
+                                map.setBounds(bounds, 60, 30, 10, 30);
+                            }}>
+                                <i className="ri-focus-3-line" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                <div className="cmv-map-wrapper">
+                <div className={`cmv-map-wrapper ${isMapInteractive ? '' : 'cmv-map-wrapper--locked'}`}>
                     <div
                         ref={mapContainerRef}
                         className="cmv-map"
                         style={{ opacity: mapVisible ? 1 : 0.3 }}
                     />
+                    {!isMapInteractive && <div className="cmv-map-touch-shield" aria-hidden="true" />}
                     {(isGeocoding || (!mapReady && selectedDate)) && (
                         <div className="cmv-map-loading">
                             <div className="cmv-spinner" />
