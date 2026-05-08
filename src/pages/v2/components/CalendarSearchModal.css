@@ -10,19 +10,22 @@
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    z-index: 49;
+    z-index: 1000;
     padding-top: calc(60px + env(safe-area-inset-top));
+    box-sizing: border-box;
 }
 
 .cal-search-modal {
     background-color: #1a1a1a;
     border-radius: 12px;
-    width: 90%;
+    width: min(500px, calc(100vw - 24px));
     max-width: 500px;
-    max-height: 70vh;
+    max-height: min(70vh, calc(100dvh - 84px - env(safe-area-inset-top)));
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .cal-search-header {
@@ -34,6 +37,7 @@
 }
 
 .cal-search-input {
+    min-width: 0;
     flex: 1;
     background-color: #2d2d2d;
     border: none;
@@ -70,6 +74,39 @@
     overflow-y: auto;
     flex: 1;
     padding: 0 0.5rem;
+    min-height: 0;
+}
+
+.cal-search-options {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #2d2d2d;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.cal-search-options::-webkit-scrollbar {
+    display: none;
+}
+
+.cal-search-sort-btn {
+    flex: 0 0 auto;
+    border: 1px solid #3f3f46;
+    background: #242424;
+    color: #a1a1aa;
+    border-radius: 999px;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.cal-search-sort-btn.active {
+    background: #f4f4f5;
+    border-color: #f4f4f5;
+    color: #18181b;
 }
 
 .cal-search-loading,
@@ -90,6 +127,9 @@
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.2s;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .cal-search-item:hover {
@@ -142,6 +182,10 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .cal-search-item-location i {
@@ -154,6 +198,8 @@
     padding: 0.25rem 0.5rem;
     background-color: #1a1a1a;
     border-radius: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .cal-search-category-title {
@@ -163,4 +209,53 @@
     padding: 0.75rem 1rem;
     /* margin-top: 0.5rem;
     background-color: #1f1f1f; */
+}
+
+@media (max-width: 480px) {
+    .cal-search-overlay {
+        padding: calc(56px + env(safe-area-inset-top)) 8px 12px;
+    }
+
+    .cal-search-modal {
+        width: 100%;
+        max-height: calc(100dvh - 76px - env(safe-area-inset-top));
+        border-radius: 10px;
+    }
+
+    .cal-search-header {
+        padding: 0.75rem;
+    }
+
+    .cal-search-options {
+        padding: 0.55rem 0.65rem;
+    }
+
+    .cal-search-sort-btn {
+        padding: 0.35rem 0.55rem;
+        font-size: 0.7rem;
+    }
+
+    .cal-search-item {
+        gap: 0.55rem;
+        padding: 0.62rem;
+    }
+
+    .cal-search-item-image {
+        width: 42px;
+        height: 42px;
+    }
+
+    .cal-search-item-date {
+        min-width: 42px;
+        font-size: 0.68rem;
+    }
+
+    .cal-search-item-title {
+        font-size: 0.82rem;
+    }
+
+    .cal-search-item-category {
+        font-size: 0.68rem;
+        padding: 0.2rem 0.38rem;
+    }
 }

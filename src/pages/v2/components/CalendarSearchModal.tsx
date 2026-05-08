@@ -12,6 +12,20 @@ interface CalendarSearchModalProps {
     searchMode?: 'events-only' | 'all';
 }
 
+const stripHtml = (value: string | null | undefined) => (value || '').replace(/<[^>]*>?/gm, ' ');
+type SearchSortMode = 'relevance' | 'event-date' | 'latest';
+
+const safeParseImages = (images: unknown): unknown[] => {
+    if (Array.isArray(images)) return images;
+    if (typeof images !== 'string' || !images.trim()) return [];
+    try {
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
 export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, searchMode = 'events-only' }: CalendarSearchModalProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [events, setEvents] = useState<Event[]>([]);
@@ -23,11 +37,13 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
     const [filteredShoppingItems, setFilteredShoppingItems] = useState<any[]>([]);
     const [filteredBoardPosts, setFilteredBoardPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [sortMode, setSortMode] = useState<SearchSortMode>('relevance');
 
     useEffect(() => {
         if (isOpen) {
             fetchAllData();
             setSearchQuery('');
+            setSortMode('relevance');
         }
     }, [isOpen, searchMode]);
 
@@ -47,7 +63,8 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                     location.includes(query) ||
                     organizer.includes(query);
             });
-            setFilteredEvents(filtered);
+            const sortedEvents = sortEvents(filtered, sortMode);
+            setFilteredEvents(sortedEvents.slice(0, searchMode === 'all' ? 80 : 120));
 
             // Filter practice rooms and shopping if searchMode is 'all'
             if (searchMode === 'all') {
@@ -57,22 +74,22 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                     const address = room.address?.toLowerCase() || '';
                     return name.includes(query) || description.includes(query) || address.includes(query);
                 });
-                setFilteredPracticeRooms(filteredPractice);
+                setFilteredPracticeRooms(sortGenericItems(filteredPractice, sortMode).slice(0, 30));
 
                 const filteredShopping = shoppingItems.filter(item => {
                     const name = item.name?.toLowerCase() || '';
                     const description = item.description?.toLowerCase() || '';
                     return name.includes(query) || description.includes(query);
                 });
-                setFilteredShoppingItems(filteredShopping);
+                setFilteredShoppingItems(sortGenericItems(filteredShopping, sortMode).slice(0, 30));
 
                 const filteredPosts = boardPosts.filter(post => {
                     const title = post.title?.toLowerCase() || '';
-                    const content = post.content?.toLowerCase() || '';
+                    const content = stripHtml(post.content).toLowerCase();
                     const nickname = post.author_nickname?.toLowerCase() || '';
                     return title.includes(query) || content.includes(query) || nickname.includes(query);
                 });
-                setFilteredBoardPosts(filteredPosts);
+                setFilteredBoardPosts(sortGenericItems(filteredPosts, sortMode).slice(0, 30));
             }
         } else {
             setFilteredEvents([]);
@@ -80,7 +97,37 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
             setFilteredShoppingItems([]);
             setFilteredBoardPosts([]);
         }
-    }, [searchQuery, events, practiceRooms, shoppingItems, boardPosts, searchMode]);
+    }, [searchQuery, events, practiceRooms, shoppingItems, boardPosts, searchMode, sortMode]);
+
+    const getTimeValue = (value: string | null | undefined, fallback = 0) => {
+        if (!value) return fallback;
+        const time = new Date(value).getTime();
+        return Number.isFinite(time) ? time : fallback;
+    };
+
+    const sortEvents = (items: Event[], mode: SearchSortMode) => {
+        if (mode === 'relevance') return items;
+        return [...items].sort((a: any, b: any) => {
+            if (mode === 'event-date') {
+                return getTimeValue(a.start_date || a.date, Number.MAX_SAFE_INTEGER) - getTimeValue(b.start_date || b.date, Number.MAX_SAFE_INTEGER);
+            }
+            return getTimeValue(b.created_at || b.updated_at || b.start_date || b.date) - getTimeValue(a.created_at || a.updated_at || a.start_date || a.date);
+        });
+    };
+
+    const sortGenericItems = <T extends Record<string, any>>(items: T[], mode: SearchSortMode) => {
+        if (mode === 'relevance') return items;
+        return [...items].sort((a, b) => {
+            if (mode === 'event-date') {
+                const aDate = a.start_date || a.date || a.created_at || a.updated_at;
+                const bDate = b.start_date || b.date || b.created_at || b.updated_at;
+                return getTimeValue(aDate, Number.MAX_SAFE_INTEGER) - getTimeValue(bDate, Number.MAX_SAFE_INTEGER);
+            }
+            const aLatest = a.created_at || a.updated_at || a.start_date || a.date;
+            const bLatest = b.created_at || b.updated_at || b.start_date || b.date;
+            return getTimeValue(bLatest) - getTimeValue(aLatest);
+        });
+    };
 
     const fetchAllData = async () => {
         setLoading(true);
@@ -108,10 +155,9 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                 if (practiceError) {
                     console.error('Error fetching practice rooms:', practiceError);
                 } else {
-                    // Parse images JSON string to array
                     const processedPractice = (practiceData || []).map(room => ({
                         ...room,
-                        images: typeof room.images === 'string' ? JSON.parse(room.images) : (room.images ?? [])
+                        images: safeParseImages(room.images)
                     }));
                     setPracticeRooms(processedPractice);
                 }
@@ -169,13 +215,37 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                     <input
                         type="text"
                         className="cal-search-input"
-                        placeholder="이벤트 검색..."
+                        placeholder={searchMode === 'all' ? '전체 검색...' : '이벤트 검색...'}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         autoFocus
                     />
                     <button className="cal-search-close" onClick={onClose}>
                         <i className="ri-close-line"></i>
+                    </button>
+                </div>
+
+                <div className="cal-search-options" role="radiogroup" aria-label="검색 결과 정렬">
+                    <button
+                        type="button"
+                        className={`cal-search-sort-btn ${sortMode === 'relevance' ? 'active' : ''}`}
+                        onClick={() => setSortMode('relevance')}
+                    >
+                        관련도순
+                    </button>
+                    <button
+                        type="button"
+                        className={`cal-search-sort-btn ${sortMode === 'event-date' ? 'active' : ''}`}
+                        onClick={() => setSortMode('event-date')}
+                    >
+                        일정 빠른순
+                    </button>
+                    <button
+                        type="button"
+                        className={`cal-search-sort-btn ${sortMode === 'latest' ? 'active' : ''}`}
+                        onClick={() => setSortMode('latest')}
+                    >
+                        최신 등록순
                     </button>
                 </div>
 
@@ -318,12 +388,13 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                                         <div
                                             key={post.id}
                                             className="cal-search-item"
-                                            onClick={() => window.location.href = `/board/${post.id}`}
+                                            onClick={() => window.location.href = `/board?category=free&postId=${post.id}`}
                                         >
                                             <div className="cal-search-item-content" style={{ flex: 1 }}>
                                                 <div className="cal-search-item-title">{post.title}</div>
                                                 <div className="cal-search-item-location">
-                                                    {post.content ? post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '') : ''}
+                                                    {stripHtml(post.content).substring(0, 50)}
+                                                    {stripHtml(post.content).length > 50 ? '...' : ''}
                                                 </div>
                                             </div>
                                             <div className="cal-search-item-category">자유게시판</div>

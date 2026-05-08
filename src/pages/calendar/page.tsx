@@ -872,6 +872,7 @@ export default function CalendarPage() {
                         <CalendarSearchModal
                             isOpen={showCalendarSearch}
                             onClose={() => setShowCalendarSearch(false)}
+                            searchMode="all"
                             onSelectEvent={(event: any) => {
                                 setShowCalendarSearch(false);
                                 const eventDate = new Date(event.start_date || event.date || new Date());
