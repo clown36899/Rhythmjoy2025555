@@ -16,7 +16,9 @@ const TYPE_NAMES: Record<string, string> = {
     'auto_link': '자동 링크',
     'action': '액션',
     'social_regular': '정기 소셜',
-    'day_select': '날짜 선택'
+    'day_select': '날짜 선택',
+    'event_registration': '이벤트 등록',
+    'event_update': '이벤트 수정'
 };
 
 const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
@@ -204,6 +206,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // [PHASE 22] 특정 사용자 제외 (앱테스트계정 ID Prefix)
             // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
             const excludedPrefix = '91b04b25';
+            const getSixHourBucket = (iso: string) => Math.floor(new Date(iso).getTime() / (6 * 60 * 60 * 1000));
 
             // Raw Data Fetch (Pagination to bypass Supabase 1000 limit)
             let allLogs: any[] = [];
@@ -288,6 +291,79 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const sessionsError = null;
 
             const sessionData = sessions || [];
+            const sessionVisitorMap = new Map<string, any>();
+            sessionData.forEach((s: any) => {
+                const identifier = s.user_id || s.fingerprint || s.session_id;
+                if (!identifier || !s.session_start) return;
+                const visitorType = s.user_id ? 'user' : 'guest';
+                const uniqueKey = `${visitorType}:${identifier}:${getSixHourBucket(s.session_start)}`;
+                if (!sessionVisitorMap.has(uniqueKey)) {
+                    sessionVisitorMap.set(uniqueKey, s);
+                }
+            });
+            const sessionVisitors = Array.from(sessionVisitorMap.values());
+            const sessionLoggedInVisits = sessionVisitors.filter((s: any) => !!s.user_id).length;
+            const sessionAnonVisits = sessionVisitors.filter((s: any) => !s.user_id).length;
+            const hasSessionVisitorData = sessionVisitors.length > 0;
+            const displayLoggedInVisits = hasSessionVisitorData ? sessionLoggedInVisits : clickBasedLoggedIn;
+            const displayAnonVisits = hasSessionVisitorData ? sessionAnonVisits : clickBasedAnon;
+
+            const sessionUserMap = new Map<string, UserInfo & { durationTotal: number; durationCount: number }>();
+            sessionVisitors
+                .filter((s: any) => !!s.user_id)
+                .forEach((s: any) => {
+                    const userId = String(s.user_id);
+                    const existing = sessionUserMap.get(userId) || {
+                        user_id: userId,
+                        nickname: null,
+                        visitCount: 0,
+                        visitLogs: [],
+                        avgDuration: 0,
+                        durationTotal: 0,
+                        durationCount: 0
+                    };
+                    existing.visitCount += 1;
+                    existing.visitLogs.push(s.session_start);
+                    if (typeof s.duration_seconds === 'number') {
+                        existing.durationTotal += s.duration_seconds;
+                        existing.durationCount += 1;
+                    }
+                    sessionUserMap.set(userId, existing);
+                });
+
+            const sessionUserIds = Array.from(sessionUserMap.keys());
+            const nicknameMap = new Map<string, string | null>();
+            if (sessionUserIds.length > 0) {
+                const { data: sessionUsers, error: sessionUsersError } = await supabase
+                    .from('board_users')
+                    .select('user_id, nickname')
+                    .in('user_id', sessionUserIds);
+
+                if (sessionUsersError) {
+                    console.warn('[Analytics] Failed to fetch session user nicknames:', sessionUsersError);
+                } else {
+                    (sessionUsers || []).forEach((u: any) => nicknameMap.set(u.user_id, u.nickname));
+                }
+            }
+
+            const sessionUserList = Array.from(sessionUserMap.values())
+                .map(userInfo => {
+                    const avgDuration = userInfo.durationCount > 0 ? Math.round(userInfo.durationTotal / userInfo.durationCount) : 0;
+                    return {
+                        user_id: userInfo.user_id,
+                        nickname: nicknameMap.get(userInfo.user_id) || userInfo.nickname,
+                        visitCount: userInfo.visitCount,
+                        visitLogs: userInfo.visitLogs.sort((a, b) => new Date(b).getTime() - new Date(a).getTime()),
+                        avgDuration
+                    };
+                })
+                .sort((a, b) => b.visitCount - a.visitCount);
+
+            if (sessionUserList.length > 0) {
+                localUserList = sessionUserList;
+                setUserList(sessionUserList);
+            }
+
             let sessionStats = { total_sessions: 0, avg_duration: 0, bounce_rate: 0 };
 
             // [PHASE 21] Visitor Analysis Logic
@@ -611,8 +687,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             const newSummary = {
                 total_clicks: visitorUniqueData.length,
-                user_clicks: clickBasedLoggedIn,
-                anon_clicks: clickBasedAnon,
+                user_clicks: displayLoggedInVisits,
+                anon_clicks: displayAnonVisits,
+                session_users: sessionLoggedInVisits,
+                session_anon: sessionAnonVisits,
                 admin_clicks: validData.length - visitorUniqueData.length, // Rough estimate or just exclude admin
                 type_breakdown: typeStats,
                 daily_details: dailyDetails,
@@ -637,8 +715,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // Auto Snapshot
             if (dateRange.end === getKRDateString(new Date())) {
                 checkAndAutoSnapshot({
-                    user_clicks: clickBasedLoggedIn,
-                    anon_clicks: clickBasedAnon,
+                    user_clicks: displayLoggedInVisits,
+                    anon_clicks: displayAnonVisits,
                     admin_clicks: 0 // Admin excluded from this logic
                 } as any);
             }
@@ -800,7 +878,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 <div className="analytics-modal-body">
                     {loading ? (
                         <div className="analytics-loading">데이터 분석 중...</div>
-                    ) : summary && summary.total_clicks > 0 ? (
+                    ) : summary && (summary.total_clicks > 0 || (summary.user_clicks || 0) + (summary.anon_clicks || 0) > 0) ? (
                         <div className="analytics-scroll-container">
 
                             {/* ===== 전체 요약 탭 ===== */}
@@ -814,7 +892,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             <div className="analytics-hero-card">
                                                 <h3 className="hero-title">
                                                     누적 방문자 (Unique Access)
-                                                    <span className="hero-title-desc">6시간 내 중복 제외</span>
+                                                    <span className="hero-title-desc">세션 기준 · 6시간 내 중복 제외</span>
                                                 </h3>
                                                 <div className="hero-number">
                                                     {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
@@ -1131,7 +1209,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     {dateRange.start === dateRange.end && dateRange.end === getKRDateString(new Date())
                                                         ? '오늘의 총 방문자 (Unique Access)'
                                                         : '기간 내 누적 방문자 (Unique Access)'}
-                                                    <span className="hero-title-desc">6시간 내 중복 제외</span>
+                                                    <span className="hero-title-desc">세션 기준 · 6시간 내 중복 제외</span>
                                                 </h3>
                                                 <div className="hero-number">
                                                     {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}

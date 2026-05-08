@@ -83,16 +83,20 @@ sleep 1
 실행 후 Playwright MCP 툴을 다시 호출하면 MCP 서버가 새 브라우저를 자동 스폰한다.
 
 > ⚠️ **크래시 방지**: `localhost:8888` 등 로컬 앱은 Playwright로 접근하지 않는다. 렌더러 크래시로 브라우저가 닫히는 원인이 된다.
+> ⚠️ **이미지 처리 실패 방지**: 자동 수집 중에는 `browser_take_screenshot`을 사용하지 않는다. 화면 확인은 `browser_snapshot`/`browser_evaluate`로 DOM 텍스트와 이미지 URL을 추출하고, 포스터는 브라우저 컨텍스트의 `fetch()`로 blob/base64를 받아 저장한다.
 
 ### 🔑 환경변수 (원격 에이전트 / 로컬 공통)
 ```
 SUPABASE_URL=https://mkoryudscamnopvxdelk.supabase.co
 SUPABASE_SERVICE_KEY=<Netlify env SUPABASE_SERVICE_KEY>
 ```
-로컬 실행 시에는 `netlify env:get`으로 가져와서 사용:
+로컬 실행 시에는 **반드시 `.env` 또는 이미 export된 환경변수를 우선 사용**한다. `netlify env:get`은 응답 없이 멈출 수 있으므로 수집 중 직접 호출 금지.
 ```bash
-SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL)
-SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY)
+set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 ```
 
 ---
@@ -106,8 +110,9 @@ SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY)
 
 > 새 제외 URL 추가 시:
 > ```bash
-> SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL)
-> SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY)
+> set -a; [ -f .env ] && . .env; set +a
+> SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+> SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 > curl -s -X PATCH "$SUPABASE_URL/rest/v1/scraped_events?source_url=eq.제외할URL" \
 >   -H "apikey: $SUPABASE_KEY" \
 >   -H "Authorization: Bearer $SUPABASE_KEY" \
@@ -197,8 +202,11 @@ SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY)
 수집을 시작하기 전에 **반드시** `is_collected=true`이면서 이벤트 날짜(`structured_data.date`)가 오늘 이전인 레코드를 삭제한다.
 
 ```bash
-SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
-SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_KEY")
+set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 TODAY=$(date +%Y-%m-%d)
 
 curl -s -X DELETE "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.true&structured_data->>date=lt.$TODAY" \
@@ -219,8 +227,11 @@ curl -s -X DELETE "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.true&str
 **방법 A — Playwright로 CDN URL 추출 후 Supabase Storage 업로드 (권장)**
 ```bash
 # 환경변수 세팅
-SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
-SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_SERVICE_KEY")
+set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 
 # 1. Playwright로 이미지 CDN URL 추출 후 임시 파일로 다운로드
 curl -s -L "CDN_URL" -o /tmp/파일명.jpg
@@ -303,8 +314,11 @@ print('sem_' + hashlib.md5(raw.encode()).hexdigest()[:12])
 ")
 
 # DB에서 같은 시맨틱 ID가 있는지 확인
-SUPABASE_URL=\$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "\$SUPABASE_URL")
-SUPABASE_KEY=\$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "\$SUPABASE_KEY")
+set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="\${SUPABASE_URL:-\$VITE_PUBLIC_SUPABASE_URL}"
+SUPABASE_KEY="\${SUPABASE_KEY:-\$SUPABASE_SERVICE_KEY}"
 
 EXISTING=\$(curl -s "\$SUPABASE_URL/rest/v1/scraped_events?semantic_id=eq.\$SEMANTIC_ID&select=id,structured_data->>title" \
   -H "apikey: \$SUPABASE_KEY" \
@@ -328,8 +342,11 @@ fi
 DATE="2026-MM-DD"
 TITLE="삽입할 이벤트 제목"
 
-SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
-SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_KEY")
+set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 
 # 같은 날짜 기존 이벤트 조회 (수집완료/미수집 모두 포함 — is_collected 필터 제거 필수)
 SAME_DATE=$(curl -s "$SUPABASE_URL/rest/v1/scraped_events?structured_data->>date=eq.$DATE&select=id,structured_data->>title" \
@@ -414,8 +431,11 @@ fi
 - L2/L3 체크를 통과한 경우에만 아래 삽입을 실행한다.
 
 ```bash
-SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
-SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_SERVICE_KEY")
+set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 
 # L1 ID 생성
 ID=$(python3 -c "import hashlib; print(hashlib.md5('https://source_url|2026-MM-DD'.encode()).hexdigest()[:16])")
@@ -451,6 +471,24 @@ curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
 
 > ⚠️ `event_type` 필드가 structured_data에 있으면 자동 분류를 덮어씀. 반드시 명시할 것.
 
+### 4-B. 운영 DB 등록 매핑 기준
+
+수집 데이터는 관리자 검수용 원천 데이터이고, 운영 `events` 테이블 등록 시에는 아래 내부 코드로 변환된다.  
+수집 시 `structured_data.event_type`, `structured_data.location`, `structured_data.address`, `structured_data.venue_id`를 가능한 한 정확히 채워서 등록 화면의 재입력을 줄인다.
+
+| 수집 `event_type` | 운영 `category` | 운영 `genre` | `group_id` |
+|---|---|---|---|
+| `소셜` | `social` | `소셜` | `2` |
+| `강습` | `class` | `강습` | `null` |
+| `파티/행사` | `event` | `파티` | `null` |
+
+장소는 다음 우선순위로 저장한다.
+1. 실제 포스트에 명시된 정확한 장소명
+2. 소스 계정의 고정 장소명(예: `swingtimebar` → `스윙타임`)
+3. 기존 `venues` 테이블과 매칭 가능한 표준 이름
+
+DJ 이름은 장르가 아니다. DJ는 `structured_data.djs`와 제목/설명에만 사용하고, 소셜 장르는 `소셜`로 저장한다.
+
 ---
 
 ## 📋 완료 검증 (Final Checklist)
@@ -466,8 +504,11 @@ curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
   (`https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/scraped/파일명.jpg`)
 - [ ] Supabase DB에 정상 삽입되었는가?
   ```bash
-  SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null || echo "$SUPABASE_URL")
-  SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null || echo "$SUPABASE_SERVICE_KEY")
+  set -a
+[ -f .env ] && . .env
+set +a
+SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
+  SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
   curl -s "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.false&order=created_at.desc&limit=5&select=id,poster_url,structured_data->>title" \
     -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY"
   ```

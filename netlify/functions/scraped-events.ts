@@ -19,6 +19,100 @@ function storagePublicUrl(filename: string) {
     return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${filename}`;
 }
 
+function normalizeText(value: string | null | undefined): string {
+    return (value || '')
+        .toLowerCase()
+        .replace(/dj\s*/gi, '')
+        .replace(/[^\w가-힣]/g, '');
+}
+
+function uniqueValues(values: Array<string | null | undefined>): string[] {
+    return Array.from(new Set(values.filter((v): v is string => !!v)));
+}
+
+function textSimilarity(a: string, b: string): number {
+    const left = normalizeText(a);
+    const right = normalizeText(b);
+    if (!left || !right) return 0;
+    if (left === right) return 1;
+    if (left.includes(right) || right.includes(left)) return 0.86;
+
+    const grams = (value: string) => {
+        if (value.length <= 2) return new Set([value]);
+        const result = new Set<string>();
+        for (let i = 0; i <= value.length - 2; i++) result.add(value.slice(i, i + 2));
+        return result;
+    };
+    const aGrams = grams(left);
+    const bGrams = grams(right);
+    const intersection = [...aGrams].filter(g => bGrams.has(g)).length;
+    const union = new Set([...aGrams, ...bGrams]).size;
+    return union ? intersection / union : 0;
+}
+
+function dateMatchesEvent(date: string, eventRow: any): boolean {
+    if (!date) return false;
+    const directDates = [eventRow.date, eventRow.start_date].filter(Boolean).map((d: string) => d.slice(0, 10));
+    if (directDates.includes(date)) return true;
+
+    const eventDates = Array.isArray(eventRow.event_dates) ? eventRow.event_dates : [];
+    if (eventDates.some((d: string) => String(d).slice(0, 10) === date)) return true;
+
+    const start = (eventRow.start_date || eventRow.date || '').slice(0, 10);
+    const end = (eventRow.end_date || eventRow.date || '').slice(0, 10);
+    return !!start && !!end && date >= start && date <= end;
+}
+
+async function findExistingCalendarEvent(
+    supabase: ReturnType<typeof getSupabase>,
+    item: any,
+): Promise<{ id: string; title: string; reason: string } | null> {
+    const sd = item.structured_data || {};
+    const date = sd.date || '';
+    const title = (sd.title || '').trim();
+    if (!date || !title) return null;
+
+    const selectCols = 'id,title,date,start_date,end_date,event_dates,location,venue_name,venue_id,genre,category,link1';
+    const { data: rangeRows } = await supabase
+        .from('events')
+        .select(selectCols)
+        .or(`date.eq.${date},start_date.eq.${date},and(start_date.lte.${date},end_date.gte.${date})`)
+        .limit(80);
+
+    const { data: eventDateRows } = await supabase
+        .from('events')
+        .select(selectCols)
+        .contains('event_dates', JSON.stringify([date]))
+        .limit(80);
+
+    const rows = Array.from(new Map([...(rangeRows || []), ...(eventDateRows || [])].map((row: any) => [row.id, row])).values())
+        .filter((row: any) => dateMatchesEvent(date, row));
+
+    const incomingVenue = normalizeText(sd.location || sd.venue_name || '');
+    const incomingVenueId = sd.venue_id ? String(sd.venue_id) : '';
+    const incomingSource = item.source_url || '';
+
+    for (const row of rows) {
+        if (incomingSource && row.link1 && incomingSource === row.link1) {
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 원본URL+날짜' };
+        }
+
+        const rowVenue = normalizeText(row.venue_name || row.location || '');
+        const venueMatches = !!incomingVenueId && row.venue_id && String(row.venue_id) === incomingVenueId
+            || !!incomingVenue && !!rowVenue && (incomingVenue.includes(rowVenue) || rowVenue.includes(incomingVenue));
+        const titleScore = textSimilarity(title, row.title || '');
+
+        if (titleScore >= 0.9) {
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+제목' };
+        }
+        if (titleScore >= 0.64 && venueMatches) {
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+장소+유사 제목' };
+        }
+    }
+
+    return null;
+}
+
 async function deleteStorageFile(supabase: ReturnType<typeof getSupabase>, posterUrl: string | null | undefined): Promise<boolean> {
     if (!posterUrl) return false;
 
@@ -35,6 +129,27 @@ async function deleteStorageFile(supabase: ReturnType<typeof getSupabase>, poste
 
     const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([filename]);
     return !error;
+}
+
+async function deleteStorageFileIfUnused(
+    supabase: ReturnType<typeof getSupabase>,
+    posterUrl: string | null | undefined,
+    excludingIds: string[] = [],
+): Promise<boolean> {
+    if (!posterUrl) return false;
+
+    let query = supabase
+        .from('scraped_events')
+        .select('id')
+        .eq('poster_url', posterUrl)
+        .limit(1);
+
+    if (excludingIds.length === 1) query = query.neq('id', excludingIds[0]);
+    else if (excludingIds.length > 1) query = query.not('id', 'in', `(${excludingIds.map(id => `"${id}"`).join(',')})`);
+
+    const { data } = await query;
+    if (data && data.length > 0) return false;
+    return deleteStorageFile(supabase, posterUrl);
 }
 
 export const handler: Handler = async (event) => {
@@ -139,23 +254,12 @@ export const handler: Handler = async (event) => {
                         if (data) { existing = data; skipReason = '날짜+제목 중복'; }
                     }
 
-                    // 4순위: events 테이블(이미 수집 완료)과 제목 중복 체크
-                    if (!existing && title) {
-                        // 제목 앞 10자로 fuzzy 매칭 (이모지·조사 차이 흡수)
-                        const titlePrefix = title.slice(0, 10);
-                        const { data } = await supabase
-                            .from('events')
-                            .select('id,title,start_date')
-                            .ilike('title', `%${titlePrefix}%`)
-                            .limit(5);
-                        if (data && data.length > 0) {
-                            // 날짜가 있으면 날짜도 비교, 없으면 제목만으로 판단
-                            const matchedEvent = data.find(ev => {
-                                if (!date || !ev.start_date) return true; // 날짜 없으면 제목만으로 중복 판정
-                                const evDate = ev.start_date.slice(0, 10);
-                                return evDate === date || Math.abs(new Date(evDate).getTime() - new Date(date).getTime()) < 30 * 24 * 3600 * 1000;
-                            });
-                            if (matchedEvent) { existing = { id: matchedEvent.id }; skipReason = `events 테이블 중복 (${matchedEvent.title})`; }
+                    // 4순위: 운영 events 테이블과 같은 날짜 후보 안에서 정밀 중복 체크
+                    if (!existing && title && date) {
+                        const matchedEvent = await findExistingCalendarEvent(supabase, item);
+                        if (matchedEvent) {
+                            existing = { id: matchedEvent.id };
+                            skipReason = `${matchedEvent.reason} (${matchedEvent.title})`;
                         }
                     }
 
@@ -189,8 +293,8 @@ export const handler: Handler = async (event) => {
                         const filename = `edited_${item.id}_${Date.now()}.${ext}`;
                         const mimeType = `image/${ext}`;
 
-                        // 기존 이미지 삭제 시도
-                        await deleteStorageFile(supabase, item.poster_url);
+                        // 기존 이미지가 다른 수집 row와 공유되지 않을 때만 삭제
+                        await deleteStorageFileIfUnused(supabase, item.poster_url, [item.id]);
 
                         const { error: uploadError } = await supabase.storage
                             .from(STORAGE_BUCKET)
@@ -267,16 +371,8 @@ export const handler: Handler = async (event) => {
             // 이미지 삭제를 위해 poster_url 조회
             const { data: targets } = await supabase
                 .from('scraped_events')
-                .select('poster_url')
+                .select('id,poster_url')
                 .in('id', idsToDelete);
-
-            const deletedImages: string[] = [];
-            for (const target of targets || []) {
-                if (target.poster_url) {
-                    const deleted = await deleteStorageFile(supabase, target.poster_url);
-                    if (deleted) deletedImages.push(target.poster_url);
-                }
-            }
 
             const { error, count } = await supabase
                 .from('scraped_events')
@@ -284,6 +380,13 @@ export const handler: Handler = async (event) => {
                 .in('id', idsToDelete);
 
             if (error) throw error;
+
+            const deletedImages: string[] = [];
+            const posterUrls = uniqueValues((targets || []).map((target: any) => target.poster_url));
+            for (const posterUrl of posterUrls) {
+                const deleted = await deleteStorageFileIfUnused(supabase, posterUrl);
+                if (deleted) deletedImages.push(posterUrl);
+            }
 
             return {
                 statusCode: 200,

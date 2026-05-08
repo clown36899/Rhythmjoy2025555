@@ -4,19 +4,9 @@ import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
 import { createResizedImages } from '../../../utils/imageResize';
 import { supabase as prodSupabase } from '../../../lib/supabase';
+import { detectEventType, mapIngestorEvent, titleLooksDuplicate, type MappedIngestorEvent, type VenueRecord } from './utils/ingestorMapping';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import './EventIngestorV2.css';
-
-type EventType = '소셜' | '파티/행사' | '강습';
-
-function detectEventType(event: { structured_data: { title?: string; event_type?: EventType | null }; extracted_text?: string; keyword?: string }): EventType {
-  if (event.structured_data.event_type) return event.structured_data.event_type;
-  const text = `${event.structured_data.title || ''} ${event.extracted_text || ''} ${event.keyword || ''}`.toLowerCase();
-  if (/수업|강습|레슨|lesson|workshop|워크샵|class/.test(text)) return '강습';
-  if (/소셜/.test(text)) return '소셜';
-  return '파티/행사';
-}
-
 
 interface ScrapedEvent {
   id: string;
@@ -57,6 +47,7 @@ const EventIngestorV2: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [tabCounts, setTabCounts] = useState<{ new: number; collected: number }>({ new: 0, collected: 0 });
+  const [venues, setVenues] = useState<VenueRecord[]>([]);
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -102,6 +93,21 @@ const EventIngestorV2: React.FC = () => {
     fetchScrapedEvents(1, activeTab);
     fetchTabCounts();
   }, [activeTab]);
+
+  useEffect(() => {
+    const fetchVenues = async () => {
+      const { data, error } = await prodSupabase
+        .from('venues')
+        .select('id, name, address')
+        .eq('is_active', true);
+      if (error) {
+        console.error('장소 목록 로드 실패:', error);
+        return;
+      }
+      setVenues((data || []) as VenueRecord[]);
+    };
+    fetchVenues();
+  }, []);
 
   const filteredEvents = useMemo(() => {
     // 서버에서 tab 기준으로 이미 필터됨 — typeFilter만 클라이언트에서 적용
@@ -176,7 +182,8 @@ const EventIngestorV2: React.FC = () => {
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -263,6 +270,13 @@ const EventIngestorV2: React.FC = () => {
     const formattedTitle = sd.djs?.length
       ? `DJ ${sd.djs.join(', ')} | ${sd.title}`
       : sd.title;
+    const mapped = mapIngestorEvent(event, venues);
+    const duplicate = await findRegisteredDuplicate(event, formattedTitle, mapped);
+    if (duplicate) {
+      await handleUpdateStatus(event.id, { is_collected: true });
+      console.log(`[IngestorV2] 운영 DB 중복으로 등록 스킵: ${event.id} → ${duplicate.id} (${duplicate.title})`);
+      return String(duplicate.id);
+    }
 
     const { data: result, error } = await prodSupabase
       .from('events')
@@ -270,10 +284,11 @@ const EventIngestorV2: React.FC = () => {
         title: formattedTitle,
         date: sd.date,
         start_date: sd.date,
-        location: sd.location || '',
-        address: sd.address || '',
-        venue_id: sd.venue_id || null,
-        venue_name: sd.location || null,
+        time: mapped.time,
+        location: mapped.location,
+        address: mapped.address,
+        venue_id: mapped.venue_id,
+        venue_name: mapped.venue_name,
         image: imageUrls.full || event.poster_url || null,
         image_micro: imageUrls.micro || null,
         image_thumbnail: imageUrls.thumb || null,
@@ -281,13 +296,13 @@ const EventIngestorV2: React.FC = () => {
         image_full: imageUrls.full || null,
         storage_path: storagePath,
         description: extractedText,
-        category: 'event',
+        category: mapped.category,
         scope: 'domestic',
         link1: event.source_url || '',
         link_name1: event.keyword || '',
-        genre: 'DJ,소셜',
+        genre: mapped.genre,
         user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
-        group_id: 2,
+        group_id: mapped.group_id,
       }])
       .select()
       .maybeSingle();
@@ -301,6 +316,24 @@ const EventIngestorV2: React.FC = () => {
     });
 
     return result?.id;
+  };
+
+  const findRegisteredDuplicate = async (event: ScrapedEvent, formattedTitle: string, mapped: MappedIngestorEvent) => {
+    const date = event.structured_data.date;
+    if (!date) return null;
+    const { data, error } = await prodSupabase
+      .from('events')
+      .select('id,title,date,start_date,end_date,location,venue_name,venue_id,link1')
+      .or(`date.eq.${date},start_date.eq.${date},and(start_date.lte.${date},end_date.gte.${date})`)
+      .limit(80);
+    if (error) throw error;
+
+    return (data || []).find((row: any) => {
+      if (event.source_url && row.link1 === event.source_url) return true;
+      const sameVenue = mapped.venue_id && row.venue_id === mapped.venue_id
+        || mapped.venue_name && [row.venue_name, row.location].filter(Boolean).some((v: string) => v.includes(mapped.venue_name || '') || (mapped.venue_name || '').includes(v));
+      return sameVenue && titleLooksDuplicate(formattedTitle, row.title || '');
+    }) || null;
   };
 
   const handleBulkRegister = async () => {
@@ -477,6 +510,7 @@ const EventIngestorV2: React.FC = () => {
                 isOpen={isEditModalOpen}
                 onClose={() => { setIsEditModalOpen(false); setSelectedEvent(null); }}
                 event={selectedEvent}
+                venues={venues}
                 onSuccess={handleRegistrationSuccess}
             />
             <ImageCropModal

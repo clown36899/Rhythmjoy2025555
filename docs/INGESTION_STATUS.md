@@ -4,11 +4,21 @@
 > 수집 에이전트가 매 실행 후 자동 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.  
 > 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
 
-**최종 업데이트**: 2026-05-08 14:13
+**최종 업데이트**: 2026-05-08 14:55
 
 ---
 
 ## 📊 실행 로그
+
+### 2026-05-08 14:50 실행
+- **신규 수집**: 0건
+- **중복 스킵**: 다수 (해피홀, 봉천살롱, 경성홀, 스윙타운 등 기존 이미 수집됨)
+- **접근 불가**: luna_swingbar(계정 없음), bebopbar_swing(계정 없음), dialogue_swing(계정 없음), 243_swingbar(계정 없음), asurajang_swing(계정 없음), sosyalclub_swing(미확인), swingit_seoul(계정 없음), lq_studio_swing(미확인), swingfactory_kr(계정 없음), gangnam_westies(계정 없음), swingkids_kr(계정 없음), allaboutswing_kr(계정 없음), inthemood_sillim(계정 없음), batswing.co.kr(SSL 오류), 스위티스윙 다음카페(렌더링 실패), 스윙홀릭(5월 일정 미게시)
+- **이슈**: Static Collection List의 다수 Instagram 계정이 "페이지를 찾을 수 없습니다" — 계정 비활성화 또는 핸들 변경 가능성 높음. 목록 전면 업데이트 필요.
+- **개선 필요**: 접근 불가 계정 핸들 재확인 및 Static Collection List 업데이트. 피에스타 월요 발보아 소셜 이미지에서 5월 날짜 확인 필요.
+- **수집 목록**: 없음 (신규 0건)
+
+---
 
 ### 2026-05-08 14:00 실행
 - **신규 수집**: 4건

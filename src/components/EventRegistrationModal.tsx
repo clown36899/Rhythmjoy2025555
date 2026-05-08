@@ -9,6 +9,7 @@ import {
 import { downloadThumbnailAsBlob, getVideoThumbnail } from "../utils/videoThumbnail";
 import { useAuth } from "../contexts/AuthContext";
 import { logEvent } from "../lib/analytics";
+import { trackEvent } from "../utils/analyticsEngine";
 import ImageCropModal from "./ImageCropModal";
 const VenueSelectModal = React.lazy(() => import("../pages/v2/components/VenueSelectModal"));
 import "../styles/domains/events.css";
@@ -752,12 +753,33 @@ export default memo(function EventRegistrationModal({
 
           if (resultData && resultData[0]) {
             if (editEventData && onEventUpdated) {
-              onEventUpdated(resultData[0] as AppEvent);
+              const updatedEvent = resultData[0] as AppEvent;
+              onEventUpdated(updatedEvent);
+              trackEvent({
+                target_id: String(updatedEvent.id),
+                target_type: 'event_update',
+                target_title: updatedEvent.title,
+                section: 'event_registration',
+                category: updatedEvent.category || undefined,
+                route: window.location.pathname,
+                user_id: user?.id,
+                is_admin: isAdmin,
+              });
               // Analytics: Log Update
               logEvent('Event', 'Update', `${title} (ID: ${editEventData.id})`);
             } else {
               const createdEvent = resultData[0] as AppEvent;
               onEventCreated(date || new Date(), createdEvent.id);
+              trackEvent({
+                target_id: String(createdEvent.id),
+                target_type: 'event_registration',
+                target_title: createdEvent.title,
+                section: 'event_registration',
+                category: createdEvent.category || undefined,
+                route: window.location.pathname,
+                user_id: user?.id,
+                is_admin: isAdmin,
+              });
               window.dispatchEvent(new CustomEvent("eventCreated", {
                 detail: { event: createdEvent }
               }));

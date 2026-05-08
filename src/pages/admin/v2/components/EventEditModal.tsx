@@ -3,16 +3,18 @@ import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
 import { createResizedImages } from '../../../../utils/imageResize';
 import { supabase as prodSupabase } from '../../../../lib/supabase';
+import { detectEventType, mapIngestorEvent, titleLooksDuplicate, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
 import './EventEditModal.css';
 
 interface EventEditModalProps {
     isOpen: boolean;
     onClose: () => void;
     event: any;
+    venues?: VenueRecord[];
     onSuccess: (id: string) => void;
 }
 
-const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event, onSuccess }) => {
+const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event, venues = [], onSuccess }) => {
     const [formData, setFormData] = useState<any>(null);
     const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,26 +22,25 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
 
     useEffect(() => {
         if (event) {
-            // event_type → category 자동 매핑
-            const eventType = event.structured_data?.event_type;
-            let defaultCategory = 'event';
-            if (eventType === '소셜') defaultCategory = 'social';
-            else if (eventType === '강습') defaultCategory = 'class';
-            else if (eventType === '파티/행사') defaultCategory = 'event';
+            const mapped = mapIngestorEvent(event, venues);
 
             setFormData({
                 title: event.structured_data?.title || '',
                 date: event.structured_data?.date || '',
-                location: event.structured_data?.location || '',
-                address: event.structured_data?.address || '',
+                location: mapped.location,
+                address: mapped.address,
                 description: event.extracted_text || '',
                 djs: event.structured_data?.djs || [],
-                venue_id: event.structured_data?.venue_id || null,
+                venue_id: mapped.venue_id,
                 poster_url: event.poster_url || '',
-                category: defaultCategory,
+                category: mapped.category,
+                genre: mapped.genre,
+                time: mapped.time,
+                group_id: mapped.group_id,
+                venue_name: mapped.venue_name,
             });
         }
-    }, [event, isOpen]);
+    }, [event, isOpen, venues]);
 
     if (!isOpen || !formData) return null;
 
@@ -51,6 +52,34 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
     const handleDJsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const djs = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
         setFormData((prev: any) => ({ ...prev, djs }));
+    };
+
+    const handleCategoryChange = (category: string) => {
+        const genre = category === 'social' ? '소셜' : category === 'class' ? '강습' : '파티';
+        setFormData((prev: any) => ({
+            ...prev,
+            category,
+            genre,
+            group_id: category === 'social' ? 2 : null,
+        }));
+    };
+
+    const findRegisteredDuplicate = async (formattedTitle: string, mapped: MappedIngestorEvent) => {
+        const date = formData.date;
+        if (!date) return null;
+        const { data, error } = await prodSupabase
+            .from('events')
+            .select('id,title,date,start_date,end_date,location,venue_name,venue_id,link1')
+            .or(`date.eq.${date},start_date.eq.${date},and(start_date.lte.${date},end_date.gte.${date})`)
+            .limit(80);
+        if (error) throw error;
+
+        return (data || []).find((row: any) => {
+            if (event.source_url && row.link1 === event.source_url) return true;
+            const sameVenue = mapped.venue_id && row.venue_id === mapped.venue_id
+                || mapped.venue_name && [row.venue_name, row.location].filter(Boolean).some((v: string) => v.includes(mapped.venue_name || '') || (mapped.venue_name || '').includes(v));
+            return sameVenue && titleLooksDuplicate(formattedTitle, row.title || '');
+        }) || null;
     };
 
     const handleVenueSelect = (venue: any) => {
@@ -120,6 +149,34 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
             const formattedTitle = formData.djs.length > 0
                 ? `DJ ${formData.djs.join(', ')} | ${formData.title}`
                 : formData.title;
+            const mapped = {
+                ...mapIngestorEvent({
+                    ...event,
+                    structured_data: {
+                        ...event.structured_data,
+                        event_type: event.structured_data?.event_type || detectEventType(event),
+                        location: formData.location,
+                        address: formData.address,
+                        venue_id: formData.venue_id,
+                        times: formData.time ? [formData.time] : event.structured_data?.times,
+                    },
+                }, venues),
+                category: formData.category,
+                genre: formData.genre || mapIngestorEvent(event, venues).genre,
+                group_id: formData.category === 'social' ? 2 : null,
+            };
+            const duplicate = await findRegisteredDuplicate(formattedTitle, mapped);
+            if (duplicate) {
+                await fetch('/.netlify/functions/scraped-events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...event, is_collected: true }),
+                });
+                alert(`이미 운영 DB에 등록된 이벤트라 신규 등록을 건너뛰고 완료 처리했습니다.\n기존: ${duplicate.title}`);
+                onSuccess(event.id);
+                onClose();
+                return;
+            }
 
             // 2. Supabase Insert
             const { data: result, error: insertError } = await prodSupabase
@@ -128,10 +185,11 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     title: formattedTitle,
                     date: formData.date,
                     start_date: formData.date,
-                    location: formData.location || '',
-                    address: formData.address || '',
-                    venue_id: formData.venue_id || null,
-                    venue_name: formData.location || null,
+                    time: mapped.time,
+                    location: mapped.location,
+                    address: mapped.address,
+                    venue_id: mapped.venue_id,
+                    venue_name: mapped.venue_name,
                     image: imageUrls.full || formData.poster_url || null,
                     image_micro: imageUrls.micro || null,
                     image_thumbnail: imageUrls.thumb || null,
@@ -139,13 +197,13 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     image_full: imageUrls.full || null,
                     storage_path: storagePath,
                     description: formData.description,
-                    category: formData.category || 'event',
+                    category: mapped.category || 'event',
                     scope: 'domestic',
                     link1: event.source_url || '',
                     link_name1: event.keyword || '',
-                    genre: 'DJ,소셜',
+                    genre: mapped.genre,
                     user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
-                    group_id: 2,
+                    group_id: mapped.group_id,
                 }])
                 .select()
                 .maybeSingle();
@@ -215,14 +273,14 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>장르 <span className="required">*</span></label>
-                                    <select name="category" value={formData.category} onChange={(e) => setFormData((prev: any) => ({ ...prev, category: e.target.value }))} className="category-select">
+                                    <label>분류 <span className="required">*</span></label>
+                                    <select name="category" value={formData.category} onChange={(e) => handleCategoryChange(e.target.value)} className="category-select">
                                         <option value="social">소셜</option>
                                         <option value="event">파티/행사</option>
                                         <option value="class">강습</option>
                                         <option value="club">동호회</option>
-                                        <option value="party">파티</option>
                                     </select>
+                                    <input type="text" name="genre" value={formData.genre || ''} onChange={handleChange} placeholder="장르" />
                                 </div>
                                 <div className="form-group">
                                     <label>날짜 <span className="required">*</span></label>

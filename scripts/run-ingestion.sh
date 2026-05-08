@@ -14,6 +14,18 @@ LOCK_DIR="/tmp/rhythmjoy-ingestion.lock"
 LOCK_MAX_AGE_SECONDS=21600
 TIMEOUT_SECONDS=1200
 
+load_supabase_env() {
+    if [ -f "$PROJECT_ROOT/.env" ]; then
+        set -a
+        # shellcheck disable=SC1091
+        . "$PROJECT_ROOT/.env"
+        set +a
+    fi
+
+    export SUPABASE_URL="${SUPABASE_URL:-${VITE_PUBLIC_SUPABASE_URL:-}}"
+    export SUPABASE_KEY="${SUPABASE_KEY:-${SUPABASE_SERVICE_KEY:-}}"
+}
+
 telegram_notify() {
     local text="$1"
     local escaped
@@ -92,13 +104,14 @@ fi
 
 sleep 2
 cd "$PROJECT_ROOT" || exit 1
+load_supabase_env
 
 # macOS 기본 환경에는 setsid가 없다. job control로 background job을 별도 process group으로 실행한다.
 set -m
 /opt/homebrew/bin/claude -p "/web-search-ingestion" \
     --output-format text \
     --max-turns 120 \
-    --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot,mcp__playwright__browser_click,mcp__playwright__browser_take_screenshot,mcp__playwright__browser_evaluate,mcp__playwright__browser_wait_for,mcp__playwright__browser_close,mcp__playwright__browser_navigate_back,mcp__playwright__browser_type,mcp__playwright__browser_press_key,mcp__playwright__browser_select_option,mcp__playwright__browser_tabs,mcp__playwright__browser_resize,mcp__playwright__browser_network_requests,mcp__playwright__browser_console_messages,mcp__playwright__browser_handle_dialog,mcp__playwright__browser_hover,mcp__playwright__browser_drag,mcp__playwright__browser_fill_form,mcp__playwright__browser_file_upload" \
+    --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot,mcp__playwright__browser_click,mcp__playwright__browser_evaluate,mcp__playwright__browser_wait_for,mcp__playwright__browser_close,mcp__playwright__browser_navigate_back,mcp__playwright__browser_type,mcp__playwright__browser_press_key,mcp__playwright__browser_select_option,mcp__playwright__browser_tabs,mcp__playwright__browser_resize,mcp__playwright__browser_network_requests,mcp__playwright__browser_console_messages,mcp__playwright__browser_handle_dialog,mcp__playwright__browser_hover,mcp__playwright__browser_drag,mcp__playwright__browser_fill_form,mcp__playwright__browser_file_upload" \
     > "$RUN_OUTPUT" 2>&1 &
 
 CLAUDE_PID=$!
@@ -132,8 +145,7 @@ if [ -n "$SUMMARY_BLOCK" ]; then
     PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:"    | tail -1)
 else
     TODAY=$(date +%Y-%m-%d)
-    SUPABASE_URL=$(netlify env:get VITE_PUBLIC_SUPABASE_URL 2>/dev/null)
-    SUPABASE_KEY=$(netlify env:get SUPABASE_SERVICE_KEY 2>/dev/null)
+    load_supabase_env
     if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
         NEW_COUNT=$(curl -s "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.false&created_at=gte.${TODAY}T00:00:00&select=id" \
             -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" \
