@@ -224,6 +224,19 @@ curl -s -X DELETE "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.true&str
 
 ### 2. 이미지 수집 및 Supabase Storage 업로드 (필수)
 
+#### 이미지 품질 규칙 — 크롭/썸네일 금지
+
+- Instagram/Facebook의 `twitter:image`, `og:image`는 미리보기용 정사각 크롭인 경우가 많으므로 **1순위로 사용 금지**.
+- Instagram 개별 포스트는 반드시 **큰 데스크탑 뷰포트(예: 1600x1200, deviceScaleFactor 2)** 로 직접 열고, 렌더링된 `article img`의 `currentSrc`/`naturalWidth`/`naturalHeight`를 기준으로 고른다. 작은 뷰포트나 프로필 그리드에서 얻은 URL은 `p240x240` 저해상도 후보가 되기 쉽다.
+- Instagram 메타 이미지가 크롭/저해상도이면 곧바로 스킵하지 말고, 큰 뷰포트로 포스트를 다시 로드해서 실제 본문 이미지를 재추출한다. 이 재추출 후에도 500px 미만/크롭 후보뿐일 때만 스킵한다.
+- 아래 URL 패턴은 크롭/저해상도 가능성이 높다. 원본 포스터임을 별도 확인하지 못하면 사용하지 않는다.
+  - `p240x240`, `s240x240`
+  - `s640x640`
+  - `stp=c...` 또는 `c숫자.숫자.숫자.숫자a_dst`
+- 포스터를 고를 때는 페이지 안의 후보 이미지를 모두 모아 `naturalWidth * naturalHeight`가 가장 크고, 프로필 이미지/썸네일이 아닌 것을 선택한다.
+- 저장 전 내려받은 파일의 크기와 비율을 확인한다. 포스터의 제목/날짜/본문이 이미지 가장자리에서 잘려 보이면 삽입하지 말고 스킵한다.
+- 원본 또는 충분히 큰 비크롭 이미지를 확보하지 못하면 **후보를 저장하지 않는다**. 잘린 이미지를 넣는 것보다 스킵이 낫다.
+
 **방법 A — Playwright로 CDN URL 추출 후 Supabase Storage 업로드 (권장)**
 ```bash
 # 환경변수 세팅
@@ -235,6 +248,10 @@ SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 
 # 1. Playwright로 이미지 CDN URL 추출 후 임시 파일로 다운로드
 curl -s -L "CDN_URL" -o /tmp/파일명.jpg
+
+# 1-B. 이미지 크기 확인. 크롭/썸네일이면 저장 금지.
+file /tmp/파일명.jpg
+sips -g pixelWidth -g pixelHeight /tmp/파일명.jpg 2>/dev/null
 
 # 2. Supabase Storage에 업로드
 curl -s -X POST "$SUPABASE_URL/storage/v1/object/scraped/파일명.jpg" \
@@ -423,28 +440,23 @@ fi
 
 ---
 
-### 4. 데이터 저장 — Supabase DB
+### 4. 데이터 저장 — Netlify 수집 API
 
 - **실제 데이터 소스는 Supabase `scraped_events` 테이블**이다.
 - `sqlite3` 명령 및 로컬 DB 파일은 **원격 에이전트에서 사용 금지**.
-- **반드시 Supabase REST API(PostgREST)로 삽입**한다.
-- L2/L3 체크를 통과한 경우에만 아래 삽입을 실행한다.
+- **신규 후보 삽입은 반드시 `https://swingenjoy.com/.netlify/functions/scraped-events`로만 실행한다.**
+- **Supabase REST API(PostgREST)로 `scraped_events`에 직접 INSERT/UPSERT 금지.**
+  - 직접 INSERT는 운영 `events` 테이블 중복 검사와 `display_no` 부여를 우회한다.
+  - 예: 이미 운영 DB에 있는 `Rockin' & Swingin' Festival 2026` 같은 행사가 새 후보로 다시 들어올 수 있다.
+- L2/L3 자체 체크를 수행하더라도, 최종 삽입은 Netlify 함수가 한 번 더 검증하게 해야 한다.
+- Netlify 응답의 `count: 0` + `skipped`는 정상 중복 스킵이다. 실패로 간주하지 말고 스킵 카운터에 반영한다.
 
 ```bash
-set -a
-[ -f .env ] && . .env
-set +a
-SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
-SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
-
 # L1 ID 생성
 ID=$(python3 -c "import hashlib; print(hashlib.md5('https://source_url|2026-MM-DD'.encode()).hexdigest()[:16])")
 
-curl -s -X POST "$SUPABASE_URL/rest/v1/scraped_events" \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
+curl -s -X POST "https://swingenjoy.com/.netlify/functions/scraped-events" \
   -H "Content-Type: application/json" \
-  -H "Prefer: resolution=ignore-duplicates" \
   -d "{
     \"id\": \"$ID\",
     \"keyword\": \"키워드\",

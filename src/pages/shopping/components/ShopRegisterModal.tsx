@@ -5,6 +5,7 @@ import ImageCropModal from '../../../components/ImageCropModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 
 import { useAuth } from '../../../contexts/AuthContext';
+import { trackActivitySuccess } from '../../../utils/analyticsEvents';
 import './ShopRegisterModal.css';
 
 interface ShopRegisterModalProps {
@@ -26,7 +27,7 @@ interface FeaturedItem {
 
 export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRegisterModalProps) {
 
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     // const navigate = useNavigate(); // Unused
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -270,6 +271,15 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             }
 
             alert('쇼핑몰이 성공적으로 등록되었습니다.');
+            trackActivitySuccess({
+                id: shopData.id,
+                type: 'shop_create',
+                title: shopData.name || shopName,
+                section: 'shopping',
+                category: 'shop',
+                userId: user.id,
+                isAdmin,
+            });
 
             // Reset form
             setShopName('');

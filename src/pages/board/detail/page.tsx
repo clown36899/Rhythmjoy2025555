@@ -6,6 +6,7 @@ import UniversalPostEditor from '../components/UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import CommentSection from '../components/CommentSection';
 import { type UserData } from '../components/UserRegistrationModal';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import '../board.css';
 import './detail.css';
 import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
@@ -358,7 +359,7 @@ export default function BoardDetailPage() {
 
                     {/* [UPDATED] Use dangerouslySetInnerHTML for rich text & images */}
                     <div
-                        dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
                         style={{ width: '100%' }}
                     />
                 </div>

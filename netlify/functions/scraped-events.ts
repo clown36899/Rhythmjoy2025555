@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.VITE_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const STORAGE_BUCKET = 'scraped';
+const translationCache = new Map<string, string>();
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -22,8 +23,22 @@ function storagePublicUrl(filename: string) {
 function normalizeText(value: string | null | undefined): string {
     return (value || '')
         .toLowerCase()
+        .replace(/seoul/g, '서울')
+        .replace(/blues?/g, '블루스')
+        .replace(/dance/g, '댄스')
+        .replace(/festival/g, '페스티벌')
+        .replace(/swingin[’']?/g, 'swinging')
+        .replace(/rockin[’']?/g, 'rocking')
         .replace(/dj\s*/gi, '')
         .replace(/[^\w가-힣]/g, '');
+}
+
+function venueMatchesStrong(a: string | null | undefined, b: string | null | undefined): boolean {
+    const left = normalizeText(a);
+    const right = normalizeText(b);
+    if (!left || !right) return false;
+    if (left.includes(right) || right.includes(left)) return true;
+    return textSimilarity(left, right) >= 0.55;
 }
 
 function uniqueValues(values: Array<string | null | undefined>): string[] {
@@ -50,6 +65,79 @@ function textSimilarity(a: string, b: string): number {
     return union ? intersection / union : 0;
 }
 
+async function translateText(value: string, target: 'ko' | 'en'): Promise<string> {
+    const text = (value || '').trim();
+    if (!text) return '';
+
+    const cacheKey = `${target}:${text}`;
+    if (translationCache.has(cacheKey)) return translationCache.get(cacheKey) || '';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1800);
+
+    try {
+        const params = new URLSearchParams({
+            client: 'gtx',
+            sl: 'auto',
+            tl: target,
+            dt: 't',
+            q: text,
+        });
+        const response = await fetch(`https://translate.googleapis.com/translate_a/single?${params.toString()}`, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+        if (!response.ok) return '';
+        const json: any = await response.json();
+        const translated = Array.isArray(json?.[0])
+            ? json[0].map((part: any[]) => part?.[0] || '').join('').trim()
+            : '';
+        translationCache.set(cacheKey, translated);
+        return translated;
+    } catch {
+        translationCache.set(cacheKey, '');
+        return '';
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function semanticTitleSimilarity(a: string, b: string): Promise<number> {
+    const base = textSimilarity(a, b);
+    if (base >= 0.9) return base;
+
+    const [aKo, bKo, aEn, bEn] = await Promise.all([
+        translateText(a, 'ko'),
+        translateText(b, 'ko'),
+        translateText(a, 'en'),
+        translateText(b, 'en'),
+    ]);
+
+    return Math.max(
+        base,
+        textSimilarity(aKo || a, bKo || b),
+        textSimilarity(aEn || a, bEn || b),
+        textSimilarity(aKo || a, b),
+        textSimilarity(a, bKo || b),
+        textSimilarity(aEn || a, b),
+        textSimilarity(a, bEn || b),
+    );
+}
+
+function daysBetween(a: string, b: string): number {
+    const left = Date.parse(a);
+    const right = Date.parse(b);
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return Number.POSITIVE_INFINITY;
+    return Math.abs(left - right) / 86400000;
+}
+
+function eventSpanDays(start: string | null | undefined, end: string | null | undefined): number {
+    const left = Date.parse(String(start || '').slice(0, 10));
+    const right = Date.parse(String(end || start || '').slice(0, 10));
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return 0;
+    return Math.max(0, (right - left) / 86400000);
+}
+
 function dateMatchesEvent(date: string, eventRow: any): boolean {
     if (!date) return false;
     const directDates = [eventRow.date, eventRow.start_date].filter(Boolean).map((d: string) => d.slice(0, 10));
@@ -61,6 +149,101 @@ function dateMatchesEvent(date: string, eventRow: any): boolean {
     const start = (eventRow.start_date || eventRow.date || '').slice(0, 10);
     const end = (eventRow.end_date || eventRow.date || '').slice(0, 10);
     return !!start && !!end && date >= start && date <= end;
+}
+
+function scrapedDateMatches(date: string, row: any): boolean {
+    const sd = row.structured_data || {};
+    const start = String(sd.date || '').slice(0, 10);
+    const end = String(sd.end_date || sd.date || '').slice(0, 10);
+    if (!date || !start) return false;
+    if (start === date) return true;
+    return !!end && start <= date && date <= end;
+}
+
+function dateRangesOverlap(aStart: string, aEnd: string | null | undefined, bStart: string, bEnd: string | null | undefined): boolean {
+    const as = String(aStart || '').slice(0, 10);
+    const ae = String(aEnd || aStart || '').slice(0, 10);
+    const bs = String(bStart || '').slice(0, 10);
+    const be = String(bEnd || bStart || '').slice(0, 10);
+    return !!as && !!bs && as <= be && bs <= ae;
+}
+
+function isRecurringSameSource(item: any, row: any): boolean {
+    const incoming = item.structured_data || {};
+    const existing = row.structured_data || {};
+    const titleScore = textSimilarity(incoming.title || '', existing.title || '');
+    return !!item.source_url
+        && item.source_url === row.source_url
+        && incoming.date
+        && existing.date
+        && incoming.date !== existing.date
+        && titleScore >= 0.75;
+}
+
+async function findExistingScrapedEvent(
+    supabase: ReturnType<typeof getSupabase>,
+    item: any,
+): Promise<{ id: string; title: string; reason: string } | null> {
+    const sd = item.structured_data || {};
+    const date = sd.date || '';
+    const title = (sd.title || '').trim();
+    if (!date || !title) return null;
+
+    const { data: sameDateRows } = await supabase
+        .from('scraped_events')
+        .select('id,source_url,structured_data')
+        .eq('structured_data->>date', date)
+        .neq('id', item.id)
+        .limit(120);
+
+    const { data: futureRows } = await supabase
+        .from('scraped_events')
+        .select('id,source_url,structured_data')
+        .neq('id', item.id)
+        .gte('structured_data->>date', new Date().toISOString().slice(0, 10))
+        .limit(300);
+
+    const rows = Array.from(new Map([...(sameDateRows || []), ...(futureRows || [])].map((row: any) => [row.id, row])).values());
+    const incomingVenue = normalizeText(sd.location || sd.venue_name || '');
+    const incomingType = normalizeText(sd.event_type || '');
+
+    for (const row of rows) {
+        if (isRecurringSameSource(item, row)) continue;
+
+        const rowSd = row.structured_data || {};
+        const rowTitle = (rowSd.title || '').trim();
+        const rowDate = String(rowSd.date || '').slice(0, 10);
+        if (!rowTitle || !rowDate) continue;
+
+        const rowVenue = rowSd.location || rowSd.venue_name || '';
+        const venueMatches = venueMatchesStrong(incomingVenue, rowVenue);
+        const titleScore = await semanticTitleSimilarity(title, rowTitle);
+        const gap = daysBetween(date, rowDate);
+        const rowMatchesIncomingRange = scrapedDateMatches(date, row);
+        const incomingMatchesRowDate = rowDate === date || (sd.end_date && rowDate >= date && rowDate <= sd.end_date);
+        const rangesOverlap = dateRangesOverlap(date, sd.end_date, rowDate, rowSd.end_date);
+        const incomingSpan = eventSpanDays(date, sd.end_date);
+        const rowSpan = eventSpanDays(rowDate, rowSd.end_date);
+        const isMultiDayMatch = incomingSpan > 0 || rowSpan > 0;
+        const typeMatches = !incomingType || !rowSd.event_type || incomingType === normalizeText(rowSd.event_type || '');
+
+        if (rowMatchesIncomingRange || incomingMatchesRowDate || rangesOverlap) {
+            if (titleScore >= 0.9) return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+제목' };
+            if (titleScore >= 0.64 && venueMatches) return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+유사 제목' };
+            if (isMultiDayMatch && venueMatches) {
+                return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+다일행사 검토' };
+            }
+        }
+
+        if (gap <= 45 && typeMatches && titleScore >= 0.86) {
+            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+강한 제목 유사도' };
+        }
+        if (gap <= 90 && typeMatches && titleScore >= 0.78 && venueMatches) {
+            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+장소+유사 제목' };
+        }
+    }
+
+    return null;
 }
 
 async function findExistingCalendarEvent(
@@ -97,16 +280,22 @@ async function findExistingCalendarEvent(
             return { id: String(row.id), title: row.title, reason: '운영DB 동일 원본URL+날짜' };
         }
 
-        const rowVenue = normalizeText(row.venue_name || row.location || '');
-        const venueMatches = !!incomingVenueId && row.venue_id && String(row.venue_id) === incomingVenueId
-            || !!incomingVenue && !!rowVenue && (incomingVenue.includes(rowVenue) || rowVenue.includes(incomingVenue));
-        const titleScore = textSimilarity(title, row.title || '');
+        const rowVenue = row.venue_name || row.location || '';
+        const venueMatches = (!!incomingVenueId && row.venue_id && String(row.venue_id) === incomingVenueId)
+            || venueMatchesStrong(incomingVenue, rowVenue);
+        const titleScore = await semanticTitleSimilarity(title, row.title || '');
+        const incomingSpan = eventSpanDays(sd.date, sd.end_date);
+        const rowSpan = eventSpanDays(row.start_date || row.date, row.end_date || row.date);
+        const isMultiDayMatch = incomingSpan > 0 || rowSpan > 0 || (Array.isArray(row.event_dates) && row.event_dates.length > 1);
 
         if (titleScore >= 0.9) {
             return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+제목' };
         }
         if (titleScore >= 0.64 && venueMatches) {
             return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+장소+유사 제목' };
+        }
+        if (isMultiDayMatch && venueMatches) {
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 기간+장소+다일행사 검토' };
         }
     }
 
@@ -163,16 +352,21 @@ export const handler: Handler = async (event) => {
         // ===== GET: 전체 목록 조회 (페이지네이션) =====
         if (event.httpMethod === 'GET') {
             const page = parseInt(event.queryStringParameters?.page || '1', 10);
-            const tab = event.queryStringParameters?.tab; // 'new' | 'collected' | undefined
+            const tab = event.queryStringParameters?.tab; // 'new' | 'collected' | 'duplicate' | undefined
             const limit = 30;
             const offset = (page - 1) * limit;
 
             let query = supabase
                 .from('scraped_events')
                 .select('id,keyword,source_url,poster_url,structured_data,is_collected,status,display_no,created_at,updated_at', { count: 'exact' })
-                .or('status.is.null,status.neq.excluded');
+                .or('status.is.null,and(status.neq.excluded,status.neq.duplicate)');
 
-            if (tab === 'new') query = query.eq('is_collected', false);
+            if (tab === 'duplicate') {
+                query = supabase
+                    .from('scraped_events')
+                    .select('id,keyword,source_url,poster_url,structured_data,is_collected,status,display_no,created_at,updated_at', { count: 'exact' })
+                    .eq('status', 'duplicate');
+            } else if (tab === 'new') query = query.eq('is_collected', false);
             else if (tab === 'collected') query = query.eq('is_collected', true);
 
             const { data, error, count } = await query
@@ -254,7 +448,16 @@ export const handler: Handler = async (event) => {
                         if (data) { existing = data; skipReason = '날짜+제목 중복'; }
                     }
 
-                    // 4순위: 운영 events 테이블과 같은 날짜 후보 안에서 정밀 중복 체크
+                    // 4순위: 수집 DB 내부 크로스소스/근접 날짜 정밀 중복 체크
+                    if (!existing && title && date) {
+                        const matchedScraped = await findExistingScrapedEvent(supabase, item);
+                        if (matchedScraped) {
+                            existing = { id: matchedScraped.id };
+                            skipReason = `${matchedScraped.reason} (${matchedScraped.title})`;
+                        }
+                    }
+
+                    // 5순위: 운영 events 테이블과 같은 날짜 후보 안에서 정밀 중복 체크
                     if (!existing && title && date) {
                         const matchedEvent = await findExistingCalendarEvent(supabase, item);
                         if (matchedEvent) {
@@ -266,6 +469,32 @@ export const handler: Handler = async (event) => {
                     if (existing) {
                         skipped.push({ id: item.id, reason: skipReason, existingId: existing.id });
                         console.log(`[scraped-events] SKIP duplicate: ${item.id} → existing=${existing.id} (${skipReason})`);
+                        const duplicateStructuredData = {
+                            ...(item.structured_data || {}),
+                            _duplicate: {
+                                reason: skipReason,
+                                existingId: existing.id,
+                                detected_at: now,
+                            },
+                        };
+                        const { error: duplicateSaveError } = await supabase
+                            .from('scraped_events')
+                            .upsert({
+                                id: item.id,
+                                keyword: item.keyword,
+                                source_url: item.source_url,
+                                poster_url: item.poster_url,
+                                extracted_text: item.extracted_text,
+                                structured_data: duplicateStructuredData,
+                                is_collected: false,
+                                status: 'duplicate',
+                                updated_at: now,
+                                created_at: item.created_at || now,
+                            }, { onConflict: 'id' });
+
+                        if (duplicateSaveError) {
+                            console.error(`[scraped-events] duplicate 저장 실패 id=${item.id}:`, duplicateSaveError);
+                        }
                         continue; // ← 중복이면 upsert 건너뜀
                     }
 
@@ -317,6 +546,7 @@ export const handler: Handler = async (event) => {
                     const { data: maxRow } = await supabase
                         .from('scraped_events')
                         .select('display_no')
+                        .not('display_no', 'is', null)
                         .order('display_no', { ascending: false })
                         .limit(1)
                         .maybeSingle();

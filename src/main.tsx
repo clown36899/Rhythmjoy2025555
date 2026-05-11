@@ -1,3 +1,8 @@
+if (import.meta.env.PROD) {
+  console.log = () => { };
+  console.debug = () => { };
+  console.info = () => { };
+}
 console.log('%c[Main] 🏁 JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
 (window as any).__APP_STARTED = true;
 

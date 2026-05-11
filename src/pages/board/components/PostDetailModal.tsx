@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { StandardBoardPost as BoardPost } from '../../../types/board';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import './PostDetailModal.css';
 import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 
@@ -148,7 +149,7 @@ export default function PostDetailModal({
           )}
 
           <div
-            dangerouslySetInnerHTML={{ __html: post.content || '' }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
             style={{ width: '100%' }}
           />
         </div>

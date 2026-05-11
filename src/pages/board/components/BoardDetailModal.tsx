@@ -6,6 +6,7 @@ import UniversalPostEditor from './UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import CommentSection from './CommentSection';
 import { type UserData } from './UserRegistrationModal';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import '../board.css';
 import '../detail/detail.css';
 import './BoardDetailModal.css';
@@ -244,7 +245,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                             )}
 
                             <div
-                                dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
                                 style={{ width: '100%' }}
                             />
                         </div>

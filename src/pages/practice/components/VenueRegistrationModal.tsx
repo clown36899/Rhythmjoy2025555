@@ -4,6 +4,7 @@ import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import { resizeImage } from "../../../utils/imageResize";
+import { trackActivitySuccess } from "../../../utils/analyticsEvents";
 import "./VenueRegistrationModal.css";
 
 interface VenueRegistrationModalProps {
@@ -415,11 +416,29 @@ export default function VenueRegistrationModal({
                 const { error } = await supabase.from('venues').update(payload).eq('id', editVenueId);
                 if (error) throw error;
                 await logVenueEdit('updated', editVenueId, payload.name, payload);
+                trackActivitySuccess({
+                    id: editVenueId,
+                    type: 'venue_update',
+                    title: payload.name,
+                    section: 'venue',
+                    category: payload.category,
+                    userId: user.id,
+                    isAdmin,
+                });
                 alert("수정되었습니다.");
             } else {
                 const { data: inserted, error } = await supabase.from('venues').insert([{ ...payload, id: venueId, user_id: user.id }]).select('id').single();
                 if (error) throw error;
                 if (inserted) await logVenueEdit('created', inserted.id, payload.name, payload);
+                trackActivitySuccess({
+                    id: inserted?.id || venueId,
+                    type: 'venue_create',
+                    title: payload.name,
+                    section: 'venue',
+                    category: payload.category,
+                    userId: user.id,
+                    isAdmin,
+                });
                 alert("등록되었습니다.");
             }
 

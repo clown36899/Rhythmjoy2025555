@@ -1,7 +1,7 @@
 # 스윙씬 자동 수집 시스템 — 재구축 가이드
 
 > 이 문서는 컴퓨터가 교체/초기화되었을 때 수집 시스템 전체를 그대로 복구하기 위한 기록입니다.  
-> **마지막 검증**: 2026-04-24 (테스트 실행 exit=0 확인)
+> **마지막 검증**: 2026-05-10 (Codex smoke test exit=0 확인)
 
 ---
 
@@ -12,13 +12,13 @@ macOS LaunchAgent (매일 08:00 자동 실행)
   └─ /Users/inteyeo/scripts/run-ingestion.sh
        ├─ Telegram: 수집 시작 알림
        ├─ Chrome headless (CDP 포트 9222) 실행
-       ├─ claude -p "/web-search-ingestion" --allowedTools (Playwright MCP 포함)
+       ├─ codex exec + Web Search Ingestion V2
        │    └─ SKILL.md 지침에 따라 Instagram/네이버카페 등 순회
-       │         → Playwright MCP로 실제 브라우저 제어 (봇판정 방지 핵심)
+       │         → Codex가 브라우저/웹 검색/쉘 도구로 실제 소스 확인
        │         → 이미지 Supabase Storage 업로드
        │         → scraped_events 테이블 INSERT
-       │         → INGESTION_STATUS.md 결과 기록
-       └─ Telegram: 수집 완료/실패 알림 + 인제스터 링크
+       │         → /Users/inteyeo/ingestion-runs 에 JSONL/최종 요약 기록
+       └─ Telegram: 수집 완료/실패 알림 + 알림 전송 결과 로그
 ```
 
 ---
@@ -29,11 +29,12 @@ macOS LaunchAgent (매일 08:00 자동 실행)
 # Homebrew (없으면)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Claude Code CLI
-brew install claude  # 또는 npm install -g @anthropic-ai/claude-code
+# Codex CLI
+# Codex 앱 설치 후 `codex --version` 이 동작해야 한다.
 
-# Node.js (npx 필요)
+# Node.js (npx 필요) + ripgrep
 brew install node
+brew install ripgrep
 
 # Netlify CLI (환경변수 조회용)
 npm install -g netlify-cli
@@ -55,27 +56,15 @@ netlify link  # 프로젝트 선택: Rhythmjoy2025555
 
 ---
 
-## 3단계 — Playwright MCP 등록
-
-Playwright MCP는 **프로젝트 로컬 scope**으로 등록되어야 합니다.
+## 3단계 — Codex 실행 확인
 
 ```bash
 cd /Users/inteyeo/Rhythmjoy2025555-5
-
-claude mcp add playwright \
-  --scope local \
-  npx @playwright/mcp@latest --cdp-endpoint http://localhost:9222
+codex --version
+codex exec --cd /Users/inteyeo/Rhythmjoy2025555-5 "Do not edit files. Reply CODEX_OK"
 ```
 
-확인:
-```bash
-claude mcp get playwright
-# Scope: Local config 이어야 함
-# Command: npx @playwright/mcp@latest --cdp-endpoint http://localhost:9222
-```
-
-> **왜 Playwright MCP인가**: Instagram, 네이버 카페 등은 headless fetch로 접근 시 봇 차단됨.  
-> 실제 Chrome 브라우저를 CDP로 제어해야 정상 접근 가능.
+> Codex 자동 실행은 `codex exec` 비대화 모드로 동작한다. 실행 로그는 JSONL로 남긴다.
 
 ---
 
@@ -90,51 +79,26 @@ chmod +x /Users/inteyeo/scripts/run-ingestion.sh
 `scripts/run-ingestion.sh`는 git 관리 대상이다. 운영 파일을 직접 편집하지 말고 repo 스크립트를 수정한 뒤 위 명령으로 설치한다.
 
 핵심 안전장치:
-- macOS에 없는 `setsid`를 사용하지 않는다.
+- Claude CLI를 사용하지 않고 `codex exec`로 실행한다.
+- `/Users/inteyeo/ingestion-runs/{run_id}.jsonl`, `.last.txt`, `.meta`를 남긴다.
 - `/tmp/rhythmjoy-ingestion.lock`으로 중복 실행을 차단한다.
-- 20분 watchdog으로 hang 된 Claude/Playwright 자식 프로세스를 정리한다.
+- `gtimeout`으로 hang 된 Codex 실행을 정리한다.
+- Telegram 전송 성공/실패를 로그에 남긴다.
 - `==TELEGRAM_SUMMARY_*==` 블록이 없어도 실패/완료 알림을 보낸다.
 
 ---
 
 ## 5단계 — LaunchAgent 등록 (매일 08:00 자동 실행)
 
-`/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist` 파일 내용:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.rhythmjoy.claude-ingestion</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/bin/bash</string>
-        <string>/Users/inteyeo/scripts/run-ingestion.sh</string>
-    </array>
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>8</integer>
-        <key>Minute</key>
-        <integer>0</integer>
-    </dict>
-    <key>StandardOutPath</key>
-    <string>/Users/inteyeo/claude_ingestion.log</string>
-    <key>StandardErrorPath</key>
-    <string>/Users/inteyeo/claude_ingestion.log</string>
-</dict>
-</plist>
-```
+`/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.codex-ingestion.plist` 파일은 repo의 `scripts/com.rhythmjoy.codex-ingestion.plist`를 설치한다.
 
 ```bash
-# LaunchAgent 로드
-launchctl load ~/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist
+cp scripts/com.rhythmjoy.codex-ingestion.plist ~/Library/LaunchAgents/com.rhythmjoy.codex-ingestion.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.rhythmjoy.codex-ingestion.plist
 
 # 로드 확인
 launchctl list | grep rhythmjoy
-# 출력: -  0  com.rhythmjoy.claude-ingestion  ← 정상
+# 출력: -  0  com.rhythmjoy.codex-ingestion
 ```
 
 > **macOS 동작 조건**: 전원 연결(충전기) 상태에서 덮개를 닫아도 08:00에 실행됨.  
@@ -162,7 +126,7 @@ launchctl list | grep rhythmjoy
 | Supabase Service Key | Netlify 환경변수 `SUPABASE_SERVICE_KEY` — `netlify env:get SUPABASE_SERVICE_KEY` |
 | Telegram Bot Token | `8729202565:AAGUm9aGEFxDneskGyPrV0EAcz1KP7z6WcM` |
 | Telegram Chat ID | `8639707405` |
-| Claude API Key | `~/.claude` 에 저장됨 — `claude` CLI 로그인으로 복구 |
+| Codex 인증 | `~/.codex/auth.json` — Codex 앱/CLI 로그인으로 복구 |
 
 ---
 
@@ -171,10 +135,10 @@ launchctl list | grep rhythmjoy
 | 파일 | 역할 |
 |------|------|
 | `/Users/inteyeo/scripts/run-ingestion.sh` | 수집 실행 스크립트 |
-| `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist` | 자동 실행 스케줄러 |
+| `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.codex-ingestion.plist` | 자동 실행 스케줄러 |
 | `/Users/inteyeo/claude_ingestion.log` | 실행 로그 |
-| `/Users/inteyeo/scripts/INGESTION_STATUS.md` | 수집 이력 및 잔존 문제 기록 |
-| `.claude/skills/web-search-ingestion/SKILL.md` | 수집 에이전트 지침 (수집 소스 목록 포함) |
+| `/Users/inteyeo/ingestion-runs/` | 실행별 JSONL/최종 요약/메타 로그 |
+| `.agents/skills/web-search-ingestion/SKILL.md` | 수집 에이전트 지침 (수집 소스 목록 포함) |
 
 ---
 

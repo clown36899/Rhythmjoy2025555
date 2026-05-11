@@ -172,6 +172,13 @@
     color: #71717a;
 }
 
+.duplicate-reason {
+    margin: 0.3rem 0;
+    color: #f59e0b;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
 .btn-source-link {
     display: inline-flex;
     align-items: center;

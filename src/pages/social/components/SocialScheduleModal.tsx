@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
+import { trackActivitySuccess } from '../../../utils/analyticsEvents';
 import { useLoading } from '../../../contexts/LoadingContext';
 import ImageCropModal from '../../../components/ImageCropModal';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
@@ -441,6 +442,15 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 event: mappedData
                             }
                         }));
+                        trackActivitySuccess({
+                            id: data.id,
+                            type: 'social_schedule_update',
+                            title: data.title,
+                            section: 'social_schedule',
+                            category: data.category,
+                            userId: user.id,
+                            isAdmin,
+                        });
                         onSuccess(mappedData);
                     } else {
                         onSuccess();
@@ -467,6 +477,15 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 event: mappedData
                             }
                         }));
+                        trackActivitySuccess({
+                            id: data.id,
+                            type: 'social_schedule_create',
+                            title: data.title,
+                            section: 'social_schedule',
+                            category: data.category,
+                            userId: user.id,
+                            isAdmin,
+                        });
                         onSuccess(mappedData);
                     } else {
                         onSuccess();

@@ -9,10 +9,21 @@ TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-8729202565:AAGUm9aGEFxDneskGyPrV0EAcz1
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-8639707405}"
 LOG_FILE="${LOG_FILE:-/Users/inteyeo/claude_ingestion.log}"
 PROJECT_ROOT="${PROJECT_ROOT:-/Users/inteyeo/Rhythmjoy2025555-5}"
-RUN_OUTPUT="/tmp/ingestion_run_$$.txt"
 LOCK_DIR="/tmp/rhythmjoy-ingestion.lock"
 LOCK_MAX_AGE_SECONDS=21600
-TIMEOUT_SECONDS=1200
+TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-1500}"
+RUN_ID="$(date '+%Y%m%d_%H%M%S')_$$"
+RUN_DIR="${RUN_DIR:-/Users/inteyeo/ingestion-runs}"
+RUN_OUTPUT="$RUN_DIR/${RUN_ID}.jsonl"
+RUN_LAST="$RUN_DIR/${RUN_ID}.last.txt"
+RUN_META="$RUN_DIR/${RUN_ID}.meta"
+PROMPT_FILE="$PROJECT_ROOT/scripts/codex-ingestion-prompt.md"
+
+mkdir -p "$RUN_DIR"
+
+log() {
+    echo "$*" >> "$LOG_FILE"
+}
 
 load_supabase_env() {
     if [ -f "$PROJECT_ROOT/.env" ]; then
@@ -28,12 +39,24 @@ load_supabase_env() {
 
 telegram_notify() {
     local text="$1"
-    local escaped
-    escaped=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
-    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+    local payload http_code response_file
+    response_file="/tmp/rhythmjoy_telegram_${RUN_ID}.json"
+    payload=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps({'chat_id':'${TELEGRAM_CHAT_ID}','text':sys.stdin.read()}))")
+
+    http_code=$(curl -sS --max-time 15 -o "$response_file" -w "%{http_code}" \
+        -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -H "Content-Type: application/json" \
-        -d "{\"chat_id\":\"${TELEGRAM_CHAT_ID}\",\"text\":${escaped},\"parse_mode\":\"Markdown\"}" \
-        > /dev/null 2>&1
+        -d "$payload" 2>> "$LOG_FILE" || echo "000")
+
+    if [ "$http_code" = "200" ]; then
+        log "--- Telegram 전송 성공: http=$http_code ---"
+        rm -f "$response_file"
+        return 0
+    fi
+
+    log "--- Telegram 전송 실패: http=$http_code / response=$(cat "$response_file" 2>/dev/null) ---"
+    rm -f "$response_file"
+    return 1
 }
 
 cleanup_lock() {
@@ -69,14 +92,14 @@ acquire_lock() {
     age=$((now - started_at))
 
     if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null && [ "$age" -lt "$LOCK_MAX_AGE_SECONDS" ]; then
-        echo "--- 중복 실행 차단: 기존 PID=$old_pid / age=${age}s ---" >> "$LOG_FILE"
-        telegram_notify "⚠️ *스윙씬 수집 중복 실행 차단*
+        log "--- 중복 실행 차단: 기존 PID=$old_pid / age=${age}s ---"
+        telegram_notify "스윙씬 수집 중복 실행 차단
 기존 실행 PID: $old_pid
 경과: ${age}s"
         exit 75
     fi
 
-    echo "--- stale lock 정리: PID=${old_pid:-unknown} / age=${age}s ---" >> "$LOG_FILE"
+    log "--- stale lock 정리: PID=${old_pid:-unknown} / age=${age}s ---"
     rm -rf "$LOCK_DIR"
     mkdir "$LOCK_DIR" || exit 75
     echo "$$" > "$LOCK_DIR/pid"
@@ -84,15 +107,65 @@ acquire_lock() {
     trap cleanup_lock EXIT INT TERM
 }
 
-echo "--- 🚀 수집 시작: $(date '+%Y-%m-%d %H:%M:%S') ---" >> "$LOG_FILE"
+find_codex() {
+    if [ -n "${CODEX_BIN:-}" ] && [ -x "$CODEX_BIN" ]; then
+        echo "$CODEX_BIN"
+        return 0
+    fi
+
+    command -v codex 2>/dev/null && return 0
+    [ -x "/Applications/Codex.app/Contents/Resources/codex" ] && echo "/Applications/Codex.app/Contents/Resources/codex" && return 0
+    return 1
+}
+
+count_new_today() {
+    local today
+    today=$(date +%Y-%m-%d)
+    load_supabase_env
+    if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ]; then
+        curl -s "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.false&created_at=gte.${today}T00:00:00&select=id" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            2>/dev/null | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "?"
+    else
+        echo "?"
+    fi
+}
+
+extract_summary() {
+    awk '
+        /==TELEGRAM_SUMMARY_START==/ { found=1; block=""; next }
+        /==TELEGRAM_SUMMARY_END==/ { if(found) last=block; found=0; next }
+        found { block = block "\n" $0 }
+        END { print last }
+    ' "$RUN_LAST" "$RUN_OUTPUT" 2>/dev/null
+}
+
+build_smoke_prompt() {
+    cat <<'EOF'
+Do not edit files. Do not run ingestion. This is a smoke test for scheduled Codex execution.
+Confirm that you can read the repository and then print exactly:
+
+==TELEGRAM_SUMMARY_START==
+신규: 0건
+스킵: 0건
+과거데이터삭제: 0건
+접근불가: smoke-test(none)
+이슈: smoke test ok
+==TELEGRAM_SUMMARY_END==
+EOF
+}
+
+log "--- Codex 수집 시작: $(date '+%Y-%m-%d %H:%M:%S') / run=$RUN_ID ---"
 
 acquire_lock
 
-telegram_notify "🔄 *스윙씬 수집 시작*
-📅 $(date '+%Y-%m-%d %H:%M')"
+telegram_notify "스윙씬 Codex 수집 시작
+$(date '+%Y-%m-%d %H:%M')
+run: $RUN_ID"
 
 if ! curl -s http://localhost:9222/json/version > /dev/null 2>&1; then
-    echo "Chrome CDP 시작 중..." >> "$LOG_FILE"
+    log "Chrome CDP 시작 중..."
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
         --remote-debugging-port=9222 \
         --user-data-dir="/Users/inteyeo/.chrome-automation" \
@@ -102,92 +175,101 @@ if ! curl -s http://localhost:9222/json/version > /dev/null 2>&1; then
     sleep 6
 fi
 
-sleep 2
 cd "$PROJECT_ROOT" || exit 1
 load_supabase_env
 
-# macOS 기본 환경에는 setsid가 없다. job control로 background job을 별도 process group으로 실행한다.
-set -m
-/opt/homebrew/bin/claude -p "/web-search-ingestion" \
-    --output-format text \
-    --max-turns 120 \
-    --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot,mcp__playwright__browser_click,mcp__playwright__browser_evaluate,mcp__playwright__browser_wait_for,mcp__playwright__browser_close,mcp__playwright__browser_navigate_back,mcp__playwright__browser_type,mcp__playwright__browser_press_key,mcp__playwright__browser_select_option,mcp__playwright__browser_tabs,mcp__playwright__browser_resize,mcp__playwright__browser_network_requests,mcp__playwright__browser_console_messages,mcp__playwright__browser_handle_dialog,mcp__playwright__browser_hover,mcp__playwright__browser_drag,mcp__playwright__browser_fill_form,mcp__playwright__browser_file_upload" \
-    > "$RUN_OUTPUT" 2>&1 &
-
-CLAUDE_PID=$!
-
-(sleep "$TIMEOUT_SECONDS"; echo "--- ⏱ watchdog: ${TIMEOUT_SECONDS}s 초과, PID/PGID=$CLAUDE_PID 정리 ---" >> "$LOG_FILE"; kill -- -$CLAUDE_PID 2>/dev/null; kill_tree "$CLAUDE_PID" TERM; sleep 30; kill -- -$CLAUDE_PID 2>/dev/null; kill_tree "$CLAUDE_PID" KILL) &
-WATCHDOG_PID=$!
-
-wait $CLAUDE_PID
-EXIT_CODE=$?
-
-kill -- -$WATCHDOG_PID 2>/dev/null
-kill_tree "$WATCHDOG_PID" TERM
-kill $WATCHDOG_PID 2>/dev/null
-kill -- -$CLAUDE_PID 2>/dev/null
-kill_tree "$CLAUDE_PID" TERM
-
-cat "$RUN_OUTPUT" >> "$LOG_FILE"
-echo "--- 수집 종료: $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE ---" >> "$LOG_FILE"
-
-SUMMARY_BLOCK=$(awk '
-    /==TELEGRAM_SUMMARY_START==/ { found=1; block=""; next }
-    /==TELEGRAM_SUMMARY_END==/ { if(found) last=block; found=0; next }
-    found { block = block "\n" $0 }
-    END { print last }
-' "$RUN_OUTPUT")
-
-if [ -n "$SUMMARY_BLOCK" ]; then
-    PARSED_NEW=$(echo "$SUMMARY_BLOCK"   | grep "^신규:"    | tail -1)
-    PARSED_SKIP=$(echo "$SUMMARY_BLOCK"  | grep "^스킵:"    | tail -1)
-    PARSED_BLOCK=$(echo "$SUMMARY_BLOCK" | grep "^접근불가:" | tail -1)
-    PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:"    | tail -1)
-else
-    TODAY=$(date +%Y-%m-%d)
-    load_supabase_env
-    if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_KEY" ]; then
-        NEW_COUNT=$(curl -s "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.false&created_at=gte.${TODAY}T00:00:00&select=id" \
-            -H "apikey: $SUPABASE_KEY" -H "Authorization: Bearer $SUPABASE_KEY" \
-            2>/dev/null | python3 -c "import sys,json; data=json.load(sys.stdin); print(len(data))" 2>/dev/null || echo "?")
-        PARSED_NEW="신규: ${NEW_COUNT}건 (오늘 DB 기준)"
-    else
-        PARSED_NEW="신규: 조회불가"
-    fi
-    PARSED_SKIP=""
-    PARSED_BLOCK=""
-    PARSED_ISSUE="⚠️ 에이전트가 요약 블록 미출력"
+CODEX="$(find_codex || true)"
+if [ -z "$CODEX" ]; then
+    log "--- Codex 실행 파일 없음 ---"
+    telegram_notify "스윙씬 Codex 수집 실패
+Codex CLI를 찾을 수 없습니다."
+    exit 127
 fi
 
-rm -f "$RUN_OUTPUT"
+if [ "${INGESTION_SMOKE_TEST:-0}" = "1" ]; then
+    build_smoke_prompt > "$RUN_DIR/${RUN_ID}.prompt.md"
+else
+    cp "$PROMPT_FILE" "$RUN_DIR/${RUN_ID}.prompt.md"
+fi
+
+echo "run_id=$RUN_ID" > "$RUN_META"
+echo "started_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
+echo "codex=$CODEX" >> "$RUN_META"
+echo "prompt=$RUN_DIR/${RUN_ID}.prompt.md" >> "$RUN_META"
+echo "output=$RUN_OUTPUT" >> "$RUN_META"
+echo "last=$RUN_LAST" >> "$RUN_META"
+
+set -m
+/opt/homebrew/bin/gtimeout --kill-after=60 "$TIMEOUT_SECONDS" \
+    "$CODEX" --search exec \
+    --cd "$PROJECT_ROOT" \
+    --sandbox danger-full-access \
+    --dangerously-bypass-approvals-and-sandbox \
+    -c shell_environment_policy.inherit=all \
+    --json \
+    --output-last-message "$RUN_LAST" \
+    - < "$RUN_DIR/${RUN_ID}.prompt.md" \
+    > "$RUN_OUTPUT" 2>&1 &
+
+CODEX_PID=$!
+wait $CODEX_PID
+EXIT_CODE=$?
+
+kill_tree "$CODEX_PID" TERM
+
+echo "ended_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
+echo "exit_code=$EXIT_CODE" >> "$RUN_META"
+
+perl -pe 's/(SUPABASE_(?:SERVICE_)?KEY[=:]\s*)[A-Za-z0-9._-]+/${1}[REDACTED]/g; s/(TELEGRAM_BOT_TOKEN[=:]\s*)[A-Za-z0-9:_-]+/${1}[REDACTED]/g; s/(Bearer\s+)[A-Za-z0-9._-]+/${1}[REDACTED]/g; s/(apikey:\s*)[A-Za-z0-9._-]+/${1}[REDACTED]/gi' "$RUN_OUTPUT" >> "$LOG_FILE"
+log "--- Codex 수집 종료: $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE / run=$RUN_ID ---"
+
+SUMMARY_BLOCK="$(extract_summary)"
+
+if [ -n "$SUMMARY_BLOCK" ]; then
+    PARSED_NEW=$(echo "$SUMMARY_BLOCK" | grep "^신규:" | tail -1)
+    PARSED_SKIP=$(echo "$SUMMARY_BLOCK" | grep "^스킵:" | tail -1)
+    PARSED_CLEANUP=$(echo "$SUMMARY_BLOCK" | grep "^과거데이터삭제:" | tail -1)
+    PARSED_BLOCK=$(echo "$SUMMARY_BLOCK" | grep "^접근불가:" | tail -1)
+    PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:" | tail -1)
+else
+    PARSED_NEW="신규: $(count_new_today)건 (오늘 DB 기준)"
+    PARSED_SKIP="스킵: -"
+    PARSED_CLEANUP="과거데이터삭제: -"
+    PARSED_BLOCK="접근불가: -"
+    PARSED_ISSUE="이슈: Codex summary block missing"
+fi
 
 if [ $EXIT_CODE -eq 0 ]; then
-    telegram_notify "✅ *스윙씬 수집 완료*
-📅 $(date '+%Y-%m-%d %H:%M')
+    telegram_notify "스윙씬 Codex 수집 완료
+$(date '+%Y-%m-%d %H:%M')
 
 ${PARSED_NEW:-신규: -}
 ${PARSED_SKIP:-스킵: -}
+${PARSED_CLEANUP:-과거데이터삭제: -}
 ${PARSED_BLOCK:-접근불가: -}
 ${PARSED_ISSUE:-이슈: 없음}
 
-🔗 https://swingenjoy.com/admin/v2/ingestor"
+run: $RUN_ID
+https://swingenjoy.com/admin/v2/ingestor"
 else
-    if [ $EXIT_CODE -eq 75 ]; then
+    if [ $EXIT_CODE -eq 124 ] || [ $EXIT_CODE -eq 137 ]; then
+        FAIL_REASON="타임아웃/강제종료"
+    elif [ $EXIT_CODE -eq 75 ]; then
         FAIL_REASON="중복 실행 차단"
-    elif [ $EXIT_CODE -eq 124 ] || [ $EXIT_CODE -eq 137 ]; then
-        FAIL_REASON="⏱ 타임아웃/강제종료"
     else
         FAIL_REASON="Exit: $EXIT_CODE"
     fi
-    telegram_notify "❌ *스윙씬 수집 실패*
-📅 $(date '+%Y-%m-%d %H:%M')
+
+    telegram_notify "스윙씬 Codex 수집 실패
+$(date '+%Y-%m-%d %H:%M')
 ${FAIL_REASON}
 
 ${PARSED_NEW:-}
 ${PARSED_BLOCK:-}
 ${PARSED_ISSUE:-}
 
-🔗 https://swingenjoy.com/admin/v2/ingestor"
+run: $RUN_ID
+log: $RUN_OUTPUT"
 fi
 
 exit $EXIT_CODE

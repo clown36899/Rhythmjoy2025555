@@ -10,6 +10,8 @@ import { type BoardCategory } from './BoardTabBar';
 import { resizeImage } from '../../../utils/imageResize'; // [UPDATED] Only resizeImage needed
 // import { retryOperation } from '../../../utils/asyncUtils'; // [UPDATED] Unused
 import { useModalHistory } from '../../../hooks/useModalHistory';
+import { trackActivitySuccess } from '../../../utils/analyticsEvents';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import UniversalEditor from '../../../components/UniversalEditor/Core/UniversalEditor'; // [UPDATED] Import UniversalEditor
 import './PostEditorModal.css';
 import './UniversalPostEditor.css';
@@ -213,6 +215,7 @@ export default function UniversalPostEditor({
                     }
                 }
             }
+            finalContent = sanitizeHtml(finalContent);
 
             const imageUrls = {
                 image: null as string | null,
@@ -258,6 +261,15 @@ export default function UniversalPostEditor({
                     .eq('id', post.id);
 
                 if (error) throw error;
+                trackActivitySuccess({
+                    id: post.id,
+                    type: 'board_post_update',
+                    title: formData.title,
+                    section: 'board',
+                    category: formData.category,
+                    userId: user?.id,
+                    isAdmin,
+                });
                 alert('게시글이 수정되었습니다!');
 
             } else {
@@ -285,11 +297,22 @@ export default function UniversalPostEditor({
                     views: 0
                 };
 
-                const { error } = await supabase
+                const { data: insertedPost, error } = await supabase
                     .from('board_posts')
-                    .insert([newPost]);
+                    .insert([newPost])
+                    .select('id')
+                    .maybeSingle();
 
                 if (error) throw error;
+                trackActivitySuccess({
+                    id: insertedPost?.id || 'new',
+                    type: 'board_post_create',
+                    title: formData.title,
+                    section: 'board',
+                    category: formData.category,
+                    userId: user?.id,
+                    isAdmin,
+                });
 
 
                 alert('게시글이 등록되었습니다!');

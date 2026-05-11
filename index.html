@@ -20,7 +20,9 @@
       window.__BOOT_LOG = function (m, d) {
         var entry = { t: new Date().toISOString(), m: m, d: d };
         window.__LOGS.push(entry);
-        console.log('%c[Bootstrap] ' + m, 'background: #333; color: #ffeb3b; font-weight: bold;', d || '');
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+          console.log('%c[Bootstrap] ' + m, 'background: #333; color: #ffeb3b; font-weight: bold;', d || '');
+        }
       };
 
       window.__BOOT_LOG('Stage 1: Head reached', {

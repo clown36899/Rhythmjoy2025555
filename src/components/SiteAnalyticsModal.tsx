@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { isLikelyBotTraffic } from '../utils/analyticsEngine';
 import './SiteAnalyticsModal.css';
 
 // [PHASE 18] 타입명 한글화
@@ -18,7 +19,16 @@ const TYPE_NAMES: Record<string, string> = {
     'social_regular': '정기 소셜',
     'day_select': '날짜 선택',
     'event_registration': '이벤트 등록',
-    'event_update': '이벤트 수정'
+    'event_update': '이벤트 수정',
+    'social_schedule_create': '소셜 등록',
+    'social_schedule_update': '소셜 수정',
+    'shop_create': '쇼핑몰 등록',
+    'venue_create': '장소 등록',
+    'venue_update': '장소 수정',
+    'board_post_create': '게시글 등록',
+    'board_post_update': '게시글 수정',
+    'board_memo_create': '익명 메모 등록',
+    'board_memo_update': '익명 메모 수정'
 };
 
 const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
@@ -239,7 +249,19 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             }
             const data = allLogs;
 
-            const validData = data.filter(d => !d.is_admin && (d.user_id ? !d.user_id.startsWith(excludedPrefix) : true));
+            const botSessionIds = new Set<string>();
+            const botFingerprints = new Set<string>();
+            data.forEach(d => {
+                if (!d.user_agent || !isLikelyBotTraffic(d.user_agent, false)) return;
+                if (d.session_id) botSessionIds.add(String(d.session_id));
+                if (d.fingerprint) botFingerprints.add(String(d.fingerprint));
+            });
+
+            const validData = data.filter(d =>
+                !d.is_admin &&
+                (d.user_id ? !d.user_id.startsWith(excludedPrefix) : true) &&
+                (d.user_agent ? !isLikelyBotTraffic(d.user_agent, false) : true)
+            );
             const visitorUniqueSet = new Set<string>();
             const visitorUniqueData = validData.filter(d => {
                 const userIdentifier = d.user_id || d.fingerprint || 'unknown';
@@ -287,7 +309,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // Use 'sessions' identifier to match downstream code usage (if checking !sessionsError)
             // But downstream checks { data: sessions, error: sessionsError }. 
             // We need to simulate that structure or modify downstream
-            const sessions = allSessions.filter(s => !s.is_admin && (s.user_id ? !s.user_id.startsWith(excludedPrefix) : true));
+            const sessions = allSessions.filter(s =>
+                !s.is_admin &&
+                (s.user_id ? !s.user_id.startsWith(excludedPrefix) : true) &&
+                (s.session_id ? !botSessionIds.has(String(s.session_id)) : true) &&
+                (s.fingerprint ? !botFingerprints.has(String(s.fingerprint)) : true) &&
+                (s.user_agent ? !isLikelyBotTraffic(s.user_agent, false) : true)
+            );
             const sessionsError = null;
 
             const sessionData = sessions || [];
@@ -785,6 +813,135 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const visitTrendData = summary && summary.daily_visit_trend ? [...summary.daily_visit_trend].reverse() : [];
     const maxVisitCount = visitTrendData.length > 0 ? Math.max(...visitTrendData.map(d => d.count)) : 0;
 
+    const renderTypeShareChart = () => {
+        if (!summary || summary.type_breakdown.length === 0) return null;
+        const maxCount = Math.max(...summary.type_breakdown.map(tb => tb.count), 1);
+
+        return (
+            <div className="type-share-chart">
+                {summary.type_breakdown.slice(0, 8).map(tb => {
+                    const percent = summary.total_clicks > 0 ? (tb.count / summary.total_clicks) * 100 : 0;
+                    const width = (tb.count / maxCount) * 100;
+                    const items = summary.items_by_type?.[tb.type];
+
+                    return (
+                        <button
+                            key={tb.type}
+                            className="type-share-row"
+                            onClick={() => items && setSelectedTypeDetail({ type: getTypeName(tb.type), items })}
+                            title="클릭하여 상세 보기"
+                            disabled={!items}
+                        >
+                            <span className="type-share-label">{getTypeName(tb.type)}</span>
+                            <span className="type-share-track">
+                                <span className="type-share-fill" style={{ width: `${width}%` }}></span>
+                            </span>
+                            <span className="type-share-value">{tb.count}</span>
+                            <span className="type-share-percent">{percent.toFixed(1)}%</span>
+                        </button>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderQuickInsights = () => {
+        if (!summary) return null;
+
+        const totalVisitors = (summary.user_clicks || 0) + (summary.anon_clicks || 0);
+        const loginRatio = totalVisitors > 0 ? ((summary.user_clicks || 0) / totalVisitors) * 100 : 0;
+        const topType = summary.type_breakdown[0];
+        const topTypeShare = topType && summary.total_clicks > 0 ? (topType.count / summary.total_clicks) * 100 : 0;
+        const topReferrer = summary.referrer_stats?.[0];
+        const totalReferrerCount = (summary.referrer_stats || []).reduce((sum, ref) => sum + ref.count, 0);
+        const topReferrerShare = topReferrer && totalReferrerCount > 0 ? (topReferrer.count / totalReferrerCount) * 100 : 0;
+        const bounceRate = summary.session_stats?.bounce_rate ?? 0;
+        const avgDuration = summary.session_stats?.avg_duration ?? 0;
+
+        return (
+            <div className="insight-panel">
+                <div className="insight-panel-title"><i className="ri-sparkling-line"></i> 운영 체크</div>
+                <div className="insight-grid">
+                    <div className="insight-card">
+                        <span className="insight-label">회원 전환</span>
+                        <strong>{loginRatio.toFixed(1)}%</strong>
+                        <small>{loginRatio >= 35 ? '로그인 방문 양호' : '비로그인 방문 중심'}</small>
+                        <div className="insight-meter"><span style={{ width: `${loginRatio}%` }}></span></div>
+                    </div>
+                    <div className="insight-card">
+                        <span className="insight-label">활동 집중도</span>
+                        <strong>{topType ? getTypeName(topType.type) : '-'}</strong>
+                        <small>{topType ? `${topType.count}회 · ${topTypeShare.toFixed(1)}%` : '데이터 없음'}</small>
+                    </div>
+                    <div className="insight-card">
+                        <span className="insight-label">유입 의존도</span>
+                        <strong>{topReferrer?.source || '-'}</strong>
+                        <small>{topReferrer ? `${topReferrer.count}회 · ${topReferrerShare.toFixed(1)}%` : '데이터 없음'}</small>
+                    </div>
+                    <div className="insight-card">
+                        <span className="insight-label">체류 품질</span>
+                        <strong>{Math.floor(avgDuration / 60)}분 {avgDuration % 60}초</strong>
+                        <small>이탈률 {bounceRate.toFixed(1)}%</small>
+                        <div className="insight-meter danger"><span style={{ width: `${Math.min(bounceRate, 100)}%` }}></span></div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderSessionPwaPanel = (periodLabel?: string) => {
+        if (!summary?.session_stats && !summary?.pwa_stats) return null;
+
+        return (
+            <div className="analytics-section-group top-kpi-card session-pwa-section">
+                <div className="analytics-section-title">
+                    <i className="ri-dashboard-3-line"></i> 세션 & PWA
+                    {periodLabel && <span className="section-period">{periodLabel}</span>}
+                </div>
+                <div className="session-pwa-layout">
+                    {summary.session_stats && (
+                        <div className="session-panel">
+                            <div className="panel-kicker">세션 품질</div>
+                            <div className="session-main-number">
+                                {Math.floor(summary.session_stats.avg_duration / 60)}분 {summary.session_stats.avg_duration % 60}초
+                                <span>평균 체류시간</span>
+                            </div>
+                            <div className="session-metric-row">
+                                <div>
+                                    <span>총 세션</span>
+                                    <strong>{summary.session_stats.total_sessions}</strong>
+                                </div>
+                                <div>
+                                    <span>이탈률</span>
+                                    <strong>{summary.session_stats.bounce_rate.toFixed(1)}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {summary.pwa_stats && (
+                        <div className="pwa-panel">
+                            <div className="panel-kicker">앱 사용 비율</div>
+                            <div className="pwa-donut-panel">
+                                <div className="pwa-donut" style={{ '--pwa-ratio': `${summary.pwa_stats.pwa_percentage * 3.6}deg` } as React.CSSProperties}>
+                                    <span>{summary.pwa_stats.pwa_percentage.toFixed(0)}%</span>
+                                </div>
+                                <div className="donut-legend">
+                                    <span><i className="legend-dot pwa"></i>PWA {summary.pwa_stats.pwa_sessions}</span>
+                                    <span><i className="legend-dot browser"></i>브라우저 {summary.pwa_stats.browser_sessions}</span>
+                                    <span><i className="legend-dot install"></i>설치 {summary.pwa_stats.total_installs}</span>
+                                </div>
+                            </div>
+                            <div className="pwa-duration-comparison compact">
+                                <div className="comparison-row"><span>PWA 체류</span><strong>{Math.floor(summary.pwa_stats.avg_pwa_duration / 60)}분 {summary.pwa_stats.avg_pwa_duration % 60}초</strong></div>
+                                <div className="comparison-row"><span>브라우저 체류</span><strong>{Math.floor(summary.pwa_stats.avg_browser_duration / 60)}분 {summary.pwa_stats.avg_browser_duration % 60}초</strong></div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -886,7 +1043,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                 <div className={isMobile ? "summary-view-content" : "desktop-summary-content"}>
 
                                     {/* S1: 방문자 현황 */}
-                                    <div className="analytics-section-group">
+                                    <div className="analytics-section-group top-kpi-card">
                                         <div className="analytics-section-title"><i className="ri-user-3-line"></i> 방문자 현황 <span className="section-period">최근 1년</span></div>
                                         {(summary.user_clicks !== undefined || summary.anon_clicks !== undefined) && (
                                             <div className="analytics-hero-card">
@@ -932,49 +1089,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         </div>
                                     </div>
 
-                                    {/* S2: 세션 통계 */}
-                                    {summary.session_stats && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-time-line"></i> 세션 통계</div>
-                                            <div className="pwa-stats-summary">
-                                                <div className="stat-card">
-                                                    <div className="stat-label">총 세션 수</div>
-                                                    <div className="stat-value">{summary.session_stats.total_sessions}</div>
-                                                </div>
-                                                <div className="stat-card">
-                                                    <div className="stat-label">평균 체류시간</div>
-                                                    <div className="stat-value">{Math.floor(summary.session_stats.avg_duration / 60)}분 {summary.session_stats.avg_duration % 60}초</div>
-                                                </div>
-                                                <div className="stat-card">
-                                                    <div className="stat-label">이탈률</div>
-                                                    <div className="stat-value">{summary.session_stats.bounce_rate.toFixed(1)}%</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* S3: PWA 통계 (S6에서 위치 이동 — Row 1 채우기) */}
-                                    {summary.pwa_stats && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-smartphone-line"></i> PWA 통계 <span className="section-period">최근 1년</span></div>
-                                            <div className="pwa-stats-summary">
-                                                <div className="stat-card"><div className="stat-label">총 설치 수</div><div className="stat-value">{summary.pwa_stats.total_installs}</div></div>
-                                                <div className="stat-card"><div className="stat-label">PWA 세션</div><div className="stat-value">{summary.pwa_stats.pwa_sessions}</div></div>
-                                                <div className="stat-card"><div className="stat-label">브라우저 세션</div><div className="stat-value">{summary.pwa_stats.browser_sessions}</div></div>
-                                                <div className="stat-card"><div className="stat-label">PWA 사용 비율</div><div className="stat-value">{summary.pwa_stats.pwa_percentage.toFixed(1)}%</div></div>
-                                            </div>
-                                            <div className="pwa-duration-comparison" style={{ marginTop: '12px' }}>
-                                                <div className="comparison-row"><span>PWA 평균 체류시간</span><strong>{Math.floor(summary.pwa_stats.avg_pwa_duration / 60)}분 {summary.pwa_stats.avg_pwa_duration % 60}초</strong></div>
-                                                <div className="comparison-row"><span>브라우저 평균 체류시간</span><strong>{Math.floor(summary.pwa_stats.avg_browser_duration / 60)}분 {summary.pwa_stats.avg_browser_duration % 60}초</strong></div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    {renderSessionPwaPanel('최근 1년')}
 
                                     {/* S4: 방문 패턴 분석 (요일/시간대/월별) */}
                                     {summary.visitor_stats && (
                                         <div className="analytics-section-group">
                                             <div className="analytics-section-title"><i className="ri-pulse-line"></i> 방문 패턴 분석</div>
-                                            <div className="analytics-grid">
+                                            <div className="analytics-grid visitor-stats-grid">
                                                 <div className="grid-section full-width">
                                                     <h3><i className="ri-calendar-event-line"></i> 요일별 방문 집중도</h3>
                                                     <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', alignItems: 'flex-end' }}>
@@ -1029,26 +1150,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
 
                                     {/* S4: 콘텐츠 분석 */}
-                                    <div className="analytics-section-group">
+                                    <div className="analytics-section-group top-kpi-card">
                                         <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
-                                        {summary.type_breakdown.length > 0 && (
-                                            <div className="type-breakdown-mini">
-                                                {summary.type_breakdown.map(tb => (
-                                                    <span
-                                                        key={tb.type}
-                                                        className="type-stat clickable"
-                                                        onClick={() => {
-                                                            if (summary.items_by_type && summary.items_by_type[tb.type]) {
-                                                                setSelectedTypeDetail({ type: getTypeName(tb.type), items: summary.items_by_type[tb.type] });
-                                                            }
-                                                        }}
-                                                        title="클릭하여 상세 보기"
-                                                    >
-                                                        {getTypeName(tb.type)}: <strong>{tb.count}</strong> ({((tb.count / summary.total_clicks) * 100).toFixed(1)}%)
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
+                                        {renderTypeShareChart()}
                                         <div className="analytics-grid" style={{ marginTop: '16px' }}>
                                             <div className="grid-section">
                                                 <h3><i className="ri-trophy-line"></i> 기간 통합 인기 콘텐츠 (Top 20)</h3>
@@ -1095,13 +1199,14 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     {((summary.referrer_stats && summary.referrer_stats.length > 0) || (summary.journey_patterns && summary.journey_patterns.length > 0)) && (
                                         <div className="analytics-section-group">
                                             <div className="analytics-section-title"><i className="ri-route-line"></i> 유입 & 행동 분석</div>
-                                            <div className="analytics-grid">
+                                            <div className="analytics-grid behavior-grid">
                                                 {summary.referrer_stats && summary.referrer_stats.length > 0 && (
                                                     <div className="grid-section">
                                                         <h3><i className="ri-links-line"></i> 유입 경로 분석</h3>
                                                         <div className="ranking-list">
                                                             {summary.referrer_stats.map((ref, idx) => (
-                                                                <div key={idx} className="ranking-item">
+                                                                <div key={idx} className="ranking-item ranking-item-bar">
+                                                                    <span className="ranking-item-fill" style={{ width: `${(ref.count / Math.max(...summary.referrer_stats!.map(r => r.count), 1)) * 100}%` }}></span>
                                                                     <span className="item-rank">{idx + 1}</span>
                                                                     <div className="item-info"><span className="item-title">{ref.source}</span></div>
                                                                     <span className="item-count">{ref.count}</span>
@@ -1129,6 +1234,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     </div>
                                                 )}
                                             </div>
+                                            {renderQuickInsights()}
                                         </div>
                                     )}
 
@@ -1249,40 +1355,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         </div>
                                     </div>
 
-                                    {/* D2: 세션 통계 */}
-                                    {summary.session_stats && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-time-line"></i> 세션 통계</div>
-                                            <div className="pwa-stats-summary">
-                                                <div className="stat-card"><div className="stat-label">총 세션 수</div><div className="stat-value">{summary.session_stats.total_sessions}</div></div>
-                                                <div className="stat-card"><div className="stat-label">평균 체류시간</div><div className="stat-value">{Math.floor(summary.session_stats.avg_duration / 60)}분 {summary.session_stats.avg_duration % 60}초</div></div>
-                                                <div className="stat-card"><div className="stat-label">이탈률</div><div className="stat-value">{summary.session_stats.bounce_rate.toFixed(1)}%</div></div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* D3: PWA 통계 (D7에서 위치 이동 — 3열 Row 1을 채우기 위함) */}
-                                    {summary.pwa_stats && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-smartphone-line"></i> PWA 통계</div>
-                                            <div className="pwa-stats-summary">
-                                                <div className="stat-card"><div className="stat-label">총 설치 수</div><div className="stat-value">{summary.pwa_stats.total_installs}</div></div>
-                                                <div className="stat-card"><div className="stat-label">PWA 세션</div><div className="stat-value">{summary.pwa_stats.pwa_sessions}</div></div>
-                                                <div className="stat-card"><div className="stat-label">브라우저 세션</div><div className="stat-value">{summary.pwa_stats.browser_sessions}</div></div>
-                                                <div className="stat-card"><div className="stat-label">PWA 비율</div><div className="stat-value">{summary.pwa_stats.pwa_percentage.toFixed(1)}%</div></div>
-                                            </div>
-                                            <div className="pwa-duration-comparison" style={{ marginTop: '12px' }}>
-                                                <div className="comparison-row">
-                                                    <span>PWA 평균 체류시간</span>
-                                                    <strong>{Math.floor(summary.pwa_stats.avg_pwa_duration / 60)}분 {summary.pwa_stats.avg_pwa_duration % 60}초</strong>
-                                                </div>
-                                                <div className="comparison-row">
-                                                    <span>브라우저 평균 체류시간</span>
-                                                    <strong>{Math.floor(summary.pwa_stats.avg_browser_duration / 60)}분 {summary.pwa_stats.avg_browser_duration % 60}초</strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    {renderSessionPwaPanel()}
 
                                     {/* D4: 클릭 & 방문 트렌드 (다일 기간일 때만) */}
                                     {dateRange.start !== dateRange.end && trendData.length > 1 && (
@@ -1337,24 +1410,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     {/* D4: 콘텐츠 분석 */}
                                     <div className="analytics-section-group">
                                         <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
-                                        {summary.type_breakdown.length > 0 && (
-                                            <div className="type-breakdown-mini">
-                                                {summary.type_breakdown.map(tb => (
-                                                    <span
-                                                        key={tb.type}
-                                                        className="type-stat clickable"
-                                                        onClick={() => {
-                                                            if (summary.items_by_type && summary.items_by_type[tb.type]) {
-                                                                setSelectedTypeDetail({ type: getTypeName(tb.type), items: summary.items_by_type[tb.type] });
-                                                            }
-                                                        }}
-                                                        title="클릭하여 상세 보기"
-                                                    >
-                                                        {getTypeName(tb.type)}: <strong>{tb.count}</strong> ({((tb.count / summary.total_clicks) * 100).toFixed(1)}%)
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
+                                        {renderTypeShareChart()}
                                         <div className="analytics-grid" style={{ marginTop: '16px' }}>
                                             <div className="grid-section">
                                                 <h3><i className="ri-trophy-line"></i> 인기 콘텐츠 (Top 20)</h3>
@@ -1403,13 +1459,14 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     {((summary.referrer_stats && summary.referrer_stats.length > 0) || (summary.journey_patterns && summary.journey_patterns.length > 0)) && (
                                         <div className="analytics-section-group">
                                             <div className="analytics-section-title"><i className="ri-route-line"></i> 유입 & 행동 분석</div>
-                                            <div className="analytics-grid">
+                                            <div className="analytics-grid behavior-grid">
                                                 {summary.referrer_stats && summary.referrer_stats.length > 0 && (
                                                     <div className="grid-section">
                                                         <h3><i className="ri-links-line"></i> 유입 경로</h3>
                                                         <div className="ranking-list">
                                                             {summary.referrer_stats.map((ref, idx) => (
-                                                                <div key={idx} className="ranking-item">
+                                                                <div key={idx} className="ranking-item ranking-item-bar">
+                                                                    <span className="ranking-item-fill" style={{ width: `${(ref.count / Math.max(...summary.referrer_stats!.map(r => r.count), 1)) * 100}%` }}></span>
                                                                     <span className="item-rank">{idx + 1}</span>
                                                                     <div className="item-info"><span className="item-title">{ref.source}</span></div>
                                                                     <span className="item-count">{ref.count}</span>
@@ -1437,6 +1494,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     </div>
                                                 )}
                                             </div>
+                                            {renderQuickInsights()}
                                         </div>
                                     )}
 

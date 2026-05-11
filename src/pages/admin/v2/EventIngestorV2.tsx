@@ -27,9 +27,14 @@ interface ScrapedEvent {
     fee?: string;
     note?: string;
     event_type?: '소셜' | '파티/행사' | '강습' | null;
+    _duplicate?: {
+      reason?: string;
+      existingId?: string;
+      detected_at?: string;
+    };
   };
   is_collected?: boolean;
-  status?: 'ignored' | 'collected' | 'pending';
+  status?: 'ignored' | 'collected' | 'pending' | 'duplicate';
   display_no?: number | null;
   created_at?: string;
   updated_at?: string;
@@ -40,13 +45,13 @@ const EventIngestorV2: React.FC = () => {
   const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'new' | 'collected'>('new');
+  const [activeTab, setActiveTab] = useState<'new' | 'collected' | 'duplicate'>('new');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'전체' | '소셜' | '파티/행사' | '강습'>('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [tabCounts, setTabCounts] = useState<{ new: number; collected: number }>({ new: 0, collected: 0 });
+  const [tabCounts, setTabCounts] = useState<{ new: number; collected: number; duplicate: number }>({ new: 0, collected: 0, duplicate: 0 });
   const [venues, setVenues] = useState<VenueRecord[]>([]);
 
   // Modals
@@ -78,12 +83,13 @@ const EventIngestorV2: React.FC = () => {
 
   const fetchTabCounts = async () => {
     try {
-      const [resNew, resCollected] = await Promise.all([
+      const [resNew, resCollected, resDuplicate] = await Promise.all([
         fetch('/.netlify/functions/scraped-events?page=1&tab=new'),
         fetch('/.netlify/functions/scraped-events?page=1&tab=collected'),
+        fetch('/.netlify/functions/scraped-events?page=1&tab=duplicate'),
       ]);
-      const [jsonNew, jsonCollected] = await Promise.all([resNew.json(), resCollected.json()]);
-      setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0 });
+      const [jsonNew, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resCollected.json(), resDuplicate.json()]);
+      setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
     } catch (err) {
       console.error('탭 카운트 로드 실패:', err);
     }
@@ -372,6 +378,7 @@ const EventIngestorV2: React.FC = () => {
         <div className="tab-group">
           <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
           <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
+          <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => { setActiveTab('duplicate'); setSelectedIds(new Set()); }}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
         </div>
         <div className="type-filter-group">
           {(['전체', '소셜', '파티/행사', '강습'] as const).map(t => (
@@ -421,13 +428,16 @@ const EventIngestorV2: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredEvents.map((event, idx) => (
+              {filteredEvents.map((event) => (
                 <tr key={event.id} className={`${processingId === event.id ? 'row-processing' : ''} ${selectedIds.has(event.id) ? 'row-selected' : ''}`}>
                   <td className="col-check">
                     <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)} />
                   </td>
-                  <td style={{ textAlign: 'center', fontSize: '0.75rem', color: '#888', fontWeight: 700, minWidth: 28 }}>
-                    #{event.display_no ?? idx + 1}
+                  <td
+                    style={{ textAlign: 'center', fontSize: '0.75rem', color: '#888', fontWeight: 700, minWidth: 28 }}
+                    title={event.display_no ? `표시번호 #${event.display_no}` : `DB ID: ${event.id}`}
+                  >
+                    {event.display_no ? `#${event.display_no}` : event.id.slice(0, 6)}
                   </td>
                   <td className="col-preview col-clickable" onClick={() => toggleSelect(event.id)}>
                     {event.poster_url ? (
@@ -443,6 +453,12 @@ const EventIngestorV2: React.FC = () => {
                       <span className={`event-type-badge type-badge-${detectEventType(event) === '소셜' ? 'social' : detectEventType(event) === '강습' ? 'lesson' : 'party'}`}>{detectEventType(event)}</span>
                     </div>
                     <div className="row-title">{event.structured_data.title}</div>
+                    {activeTab === 'duplicate' && event.structured_data._duplicate && (
+                      <div className="row-keyword duplicate-reason">
+                        중복 판단: {event.structured_data._duplicate.reason || '사유 미기록'}
+                        {event.structured_data._duplicate.existingId && ` / 기존: ${event.structured_data._duplicate.existingId}`}
+                      </div>
+                    )}
                     <div className="row-keyword">출처 키워드: {event.keyword}</div>
                   </td>
                   <td className="col-venue">

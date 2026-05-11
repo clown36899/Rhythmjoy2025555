@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { AnonymousBoardPost } from '../../../types/board';
 import CommentSection from './CommentSection';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import './BoardPostList.css';
 import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 
@@ -175,7 +176,7 @@ export default function AnonymousPostList({
                                         <div
                                             onClick={() => onPostClick(post)}
                                             style={{ cursor: 'pointer' }}
-                                            dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
                                         />
 
                                         {post.image && (

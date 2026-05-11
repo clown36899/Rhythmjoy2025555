@@ -4,6 +4,8 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { resizeImage } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
+import { trackActivitySuccess } from '../../../utils/analyticsEvents';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import LocalLoading from '../../../components/LocalLoading';
 import './QuickMemoEditor.css';
 
@@ -218,6 +220,7 @@ export default function QuickMemoEditor({
                     URL.revokeObjectURL(fileUrl);
                 }
             }
+            finalContent = sanitizeHtml(finalContent);
 
             if (editData?.id) {
                 if (isAdmin) {
@@ -234,6 +237,14 @@ export default function QuickMemoEditor({
                     }
                     const { error } = await supabase.from('board_anonymous_posts').update(updates).eq('id', editData.id);
                     if (error) throw error;
+                    trackActivitySuccess({
+                        id: editData.id,
+                        type: 'board_memo_update',
+                        title: title.trim() || '익명 메모',
+                        section: 'board',
+                        category,
+                        isAdmin,
+                    });
                     alert('관리자 권한으로 메모가 수정되었습니다!');
                 } else {
                     const finalPassword = (providedPassword || password).trim();
@@ -248,10 +259,18 @@ export default function QuickMemoEditor({
                     });
                     if (error) throw error;
                     if (!success) { alert('비밀번호가 틀렸거나 수정에 실패했습니다.'); return; }
+                    trackActivitySuccess({
+                        id: editData.id,
+                        type: 'board_memo_update',
+                        title: title.trim() || '익명 메모',
+                        section: 'board',
+                        category,
+                        isAdmin,
+                    });
                     alert('메모가 수정되었습니다!');
                 }
             } else {
-                const { error } = await supabase.from('board_anonymous_posts').insert({
+                const { data: insertedMemo, error } = await supabase.from('board_anonymous_posts').insert({
                     title: title.trim(),
                     content: finalContent,
                     author_name: nickname,
@@ -264,8 +283,16 @@ export default function QuickMemoEditor({
                     dislikes: 0,
                     is_notice: isNotice,
                     is_hidden: false
-                });
+                }).select('id').maybeSingle();
                 if (error) throw error;
+                trackActivitySuccess({
+                    id: insertedMemo?.id || 'new',
+                    type: 'board_memo_create',
+                    title: title.trim() || '익명 메모',
+                    section: 'board',
+                    category,
+                    isAdmin,
+                });
                 alert('메모가 등록되었습니다!');
             }
 

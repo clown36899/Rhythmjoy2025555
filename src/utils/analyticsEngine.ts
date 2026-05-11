@@ -27,6 +27,29 @@ export interface AnalyticsLog {
 let sessionId: string | null = null;
 let sessionSequence = 0;
 let sessionStartTime: number | null = null;
+let lastFinalizeAt = 0;
+
+const BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests/i;
+
+export const isLikelyBotTraffic = (userAgent = navigator.userAgent, includeRuntimeSignals = true): boolean => {
+    if (!userAgent || BOT_UA_PATTERN.test(userAgent)) return true;
+    if (!includeRuntimeSignals) return false;
+    if (navigator.webdriver) return true;
+    if (document.visibilityState === 'prerender') return true;
+    return false;
+};
+
+const isLocalAnalyticsBlocked = () => {
+    if (typeof window === 'undefined') return true;
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.endsWith('.local') ||
+        hostname.includes('localhost') ||
+        /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/.test(hostname);
+};
+
+const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED && !isLocalAnalyticsBlocked() && !isLikelyBotTraffic();
 
 /**
  * 세션 ID 생성 또는 가져오기
@@ -140,6 +163,8 @@ export const detectPWAMode = (): { isPWA: boolean; displayMode: string | null } 
  * PWA 설치 이벤트 기록
  */
 export const trackPWAInstall = async (user?: { id: string }) => {
+    if (!shouldTrackAnalytics()) return;
+
     const currentSessionId = getOrCreateSessionId();
     const utm = parseUTMParams();
     const referrer = document.referrer;
@@ -187,19 +212,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
  * 세션 초기화 및 사이트 접속 기록 (순수 로그인 집계용)
  */
 export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?: boolean) => {
-    if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
-
-    // [개발 환경 차단] trackEvent와 동일한 로컬 환경 필터 — session_logs 오염 방지
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-        if (
-            hostname === 'localhost' || hostname === '127.0.0.1' ||
-            hostname.endsWith('.local') || hostname.includes('localhost') ||
-            /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/.test(hostname)
-        ) {
-            return;
-        }
-    }
+    if (!shouldTrackAnalytics()) return;
 
     const currentSessionId = getOrCreateSessionId();
     const utm = parseUTMParams();
@@ -227,6 +240,8 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
             session_start: new Date(sessionStartTime).toISOString(),
             is_pwa: isPWA,
             pwa_display_mode: displayMode,
+            user_agent: navigator.userAgent,
+            platform: navigator.platform,
         }, {
             onConflict: 'session_id'
         });
@@ -250,20 +265,31 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
  * 세션 종료 (페이지 이탈 시)
  */
 const finalizeSession = async () => {
-    if (!sessionId || !sessionStartTime) return;
+    if (!sessionId || !sessionStartTime || !shouldTrackAnalytics()) return;
+    const now = Date.now();
+    if (now - lastFinalizeAt < 5000) return;
+    lastFinalizeAt = now;
 
-    const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const duration = Math.floor((now - sessionStartTime) / 1000);
+    const payload = {
+        session_id: sessionId,
+        exit_page: window.location.pathname,
+        duration_seconds: duration,
+        total_clicks: sessionSequence,
+    };
+
+    if (SITE_ANALYTICS_CONFIG.OPTIMIZATION.USE_BEACON && navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        if (navigator.sendBeacon('/.netlify/functions/analytics-session', blob)) return;
+    }
 
     try {
-        await supabase
-            .from('session_logs')
-            .update({
-                session_end: new Date().toISOString(),
-                exit_page: window.location.pathname,
-                duration_seconds: duration,
-                total_clicks: sessionSequence,
-            })
-            .eq('session_id', sessionId);
+        await fetch('/.netlify/functions/analytics-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
     } catch (error) {
         console.error('[Analytics] Failed to finalize session:', error);
     }
@@ -288,32 +314,7 @@ const clickCache = new Map<string, number>();
  * 로그 데이터를 Supabase에 전송 (비동기 Sidecar)
  */
 export const trackEvent = (log: AnalyticsLog) => {
-    if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
-
-    // [개발 환경 차단] localhost 및 로컬 네트워크 IP 차단
-    if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname;
-
-        // localhost, 127.0.0.1 차단
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-
-            return;
-        }
-
-        // .local 도메인 차단
-        if (hostname.endsWith('.local') || hostname.includes('localhost')) {
-
-            return;
-        }
-
-        // 로컬 네트워크 IP 대역 차단 (192.168.x.x, 172.16-31.x.x, 10.x.x.x)
-        const ipPattern = /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/;
-        if (ipPattern.test(hostname)) {
-
-            return;
-        }
-
-    }
+    if (!shouldTrackAnalytics()) return;
 
     // [PHASE 6] DB 용량 절약을 위해 관리자 로그 원천 차단
     if (log.is_admin) return;
