@@ -98,6 +98,7 @@ const BillboardPage = lazy(() => import('./pages/billboard/page'));
 const BillboardPreviewPage = lazy(() => import('./pages/billboard/preview/page'));
 const BillboardCatalogPage = lazy(() => import('./pages/billboard/preview/CatalogPage'));
 const CalendarPage = lazy(() => import('./pages/calendar/page'));
+const EventsInfoPage = lazy(() => import('./pages/events/page'));
 const MyActivitiesPage = lazy(() => import('./pages/user/MyActivitiesPage'));
 const ArchiveLayout = lazy(() => import('./layouts/ArchiveLayout'));
 const LearningPage = lazy(() => import('./pages/learning/Page'));
@@ -211,6 +212,7 @@ const router = createBrowserRouter([
       { path: "/v2", element: <HomePageV2 /> },
       // { path: "/v2/events/:id", element: <EventDetailPage /> }, // Disabled
       { path: "/calendar", element: <CalendarPage /> },
+      { path: "/events", element: <EventsInfoPage /> },
       { path: "/social", element: <SocialPage /> },
       { path: "/practice", element: <PracticePage /> },
       { path: "/shopping", element: <ShoppingPage /> },

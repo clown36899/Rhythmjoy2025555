@@ -52,6 +52,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
+  const isEventsInfoPage = currentPath === '/events';
   const isBoardPage = currentPath.startsWith('/board') && category !== 'history';
   const isSocialPage = currentPath.startsWith('/social');
   const isPracticePage = currentPath.startsWith('/practice');
@@ -367,7 +368,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       data-analytics-title="댄스빌보드 로고"
                       data-analytics-section="header"
                     >
-                      {/* <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" referrerPolicy="no-referrer" /> */}
+                      <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" referrerPolicy="no-referrer" />
                       <div className="header-logo-text-wrapper">
                         <div className="header-logo-title-row">
                           <h1 className="header-logo-title">
@@ -391,6 +392,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                         {(() => {
                           if (isSocialPage) return '소셜';
                           if (currentPath === '/forum') return '포럼';
+                          if (isEventsInfoPage) return '강습&행사정보';
                           if (isBoardPage) return '게시판';
                           if (currentPath === '/bpm-tapper') return 'BPM 측정기';
                           if (currentPath === '/metronome') return '메트로놈';
@@ -556,29 +558,22 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       )}
 
       {/* New Header Navigation for Events Page & Calendar Page */}
-      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
+      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isEventsInfoPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
         <nav className="header-nav-v2">
           <div className="header-nav-v2-inner">
-            <button
-              className="header-nav-v2-item nav-refresh-btn"
-              onClick={() => {
-                if (window.location.pathname === '/v2' || window.location.pathname === '/') {
-                  window.location.reload();
-                } else {
-                  navigate('/v2');
-                }
-              }}
-              aria-label="Home"
-              data-analytics-id="header_nav_home_refresh"
-            >
-              <i className="ri-refresh-line"></i>
-            </button>
             <button
               className={`header-nav-v2-item ${isCalendarPage ? 'is-active' : ''}`}
               onClick={() => navigate('/calendar')}
               data-analytics-id="header_nav_calendar"
             >
-              전체달력
+              캘린더
+            </button>
+            <button
+              className={`header-nav-v2-item ${isEventsInfoPage ? 'is-active' : ''}`}
+              onClick={() => navigate('/events')}
+              data-analytics-id="header_nav_events_info"
+            >
+              강습&행사정보
             </button>
             <button
               className={`header-nav-v2-item ${isBoardPage ? 'is-active' : ''}`}
@@ -606,7 +601,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               onClick={() => navigate('/shopping')}
               data-analytics-id="header_nav_shop"
             >
-              SHOP
+              쇼핑
             </button>
           </div>
         </nav>
