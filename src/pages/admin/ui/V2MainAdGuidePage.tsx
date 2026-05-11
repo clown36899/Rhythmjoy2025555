@@ -273,6 +273,70 @@ const classPreviewEvents: NebEventSample[] = [
   nebEvents[4],
 ];
 
+const clubLessonPreviewEvents: NebEventSample[] = [
+  {
+    id: 949,
+    title: '유수의 타이트로프 무료워크샵',
+    date: '2026-05-12',
+    start_date: '2026-05-12',
+    end_date: '2026-05-12',
+    category: 'club',
+    genre: '기타',
+    location: '봉천살롱',
+    venue_name: '봉천살롱',
+    image_thumbnail: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1778461540613_tt894/thumbnail.webp',
+    image_full: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1778461540613_tt894/full.webp',
+    created_at: '2026-05-11T01:05:41.657+00:00',
+  },
+  {
+    id: 954,
+    title: '붐바스틱 솔로 워크샵!',
+    date: '2026-05-19',
+    start_date: '2026-05-19',
+    end_date: '2026-05-19',
+    category: 'club',
+    genre: '솔로재즈',
+    location: '봉천살롱',
+    venue_name: '봉천살롱',
+    image_thumbnail: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1778493210902_yt6i1/thumbnail.webp',
+    image_full: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1778493210902_yt6i1/full.webp',
+    created_at: '2026-05-11T09:53:31.68+00:00',
+  },
+];
+
+const clubRegularPreviewEvents: NebEventSample[] = [
+  {
+    id: 893,
+    title: '43회 발보아랜드 강습안내',
+    date: '2026-05-23',
+    start_date: '2026-05-23',
+    end_date: '2026-07-11',
+    event_dates: ['2026-05-23', '2026-05-30', '2026-06-13', '2026-06-20', '2026-06-27', '2026-07-04', '2026-07-11'],
+    category: 'club',
+    genre: '정규강습',
+    location: '스윙댄스피에스타',
+    venue_name: '스윙댄스피에스타',
+    image_thumbnail: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1776958673809_2iqx1/thumbnail.webp',
+    image_full: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1776958673809_2iqx1/full.webp',
+    created_at: '2026-04-23T15:37:54.59+00:00',
+  },
+  {
+    id: 929,
+    title: '드림발 52회 초급,초중급,중급,섀그종합 수강생 모집',
+    date: '2026-06-07',
+    start_date: '2026-06-07',
+    end_date: '2026-07-24',
+    event_dates: ['2026-06-07', '2026-06-12', '2026-06-14', '2026-06-19', '2026-06-21', '2026-06-26', '2026-06-28', '2026-07-03', '2026-07-05', '2026-07-10', '2026-07-12', '2026-07-17', '2026-07-19', '2026-07-24'],
+    category: 'club',
+    genre: '정규강습',
+    location: '인더무드(신림)',
+    venue_name: '인더무드(신림)',
+    image_thumbnail: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1777896036871_0ysm7/thumbnail.webp',
+    image_full: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1777896036871_0ysm7/full.webp',
+    created_at: '2026-05-04T12:00:37.671+00:00',
+  },
+];
+
 const routePreviewSamples: RoutePreviewSample[] = [
   {
     key: 'social',
@@ -445,29 +509,55 @@ const swingBars: PracticeRoomSample[] = [
 ];
 
 const placeCategoryFilters = [
-  { label: '전체 장소', count: 32 },
+  { label: '전체', count: 32 },
   { label: '스윙바', count: 16, active: true },
   { label: '연습실', count: 16 },
 ];
 
 const placeRegionFilters = [
-  { label: '전체 지역', count: 32 },
+  { label: '전체', count: 32 },
   { label: '서울', count: 24, active: true },
   { label: '다른 지역', count: 8 },
 ];
 
-const eventInfoCategoryFilters = [
-  { label: '전체', count: 22, active: true },
-  { label: '행사', count: 13 },
-  { label: '강습', count: 9 },
-];
-
-const eventInfoGenreFilters = [
-  { label: '전체', count: 22, active: true },
-  { label: '파티', count: 7 },
-  { label: '린디합', count: 5 },
-  { label: '발보아', count: 4 },
-  { label: '블루스', count: 2 },
+const eventDestinationSections = [
+  {
+    title: '예정된 행사',
+    icon: 'ri-fire-fill',
+    count: 13,
+    tone: 'event',
+    viewLabel: '달력보기',
+    sortLabel: '랜덤',
+    genres: ['전체', 'DJ', '파티', '대회', '기타'],
+    events: eventPreviewEvents,
+  },
+  {
+    title: '강습',
+    icon: 'ri-calendar-check-fill',
+    count: 9,
+    tone: 'class',
+    viewLabel: '달력보기',
+    genres: ['전체', '린디합', '발보아', '블루스'],
+    events: classPreviewEvents,
+  },
+  {
+    title: '동호회 강습',
+    icon: 'ri-group-fill',
+    count: 3,
+    tone: 'club',
+    viewLabel: '이벤트등록',
+    genres: ['전체', '기타', '솔로재즈'],
+    events: clubLessonPreviewEvents,
+  },
+  {
+    title: '동호회 정규강습',
+    icon: 'ri-group-2-fill',
+    count: 2,
+    tone: 'regular',
+    viewLabel: '달력보기',
+    genres: ['전체', '정규강습'],
+    events: clubRegularPreviewEvents,
+  },
 ];
 
 const shops: ShopSample[] = [
@@ -723,45 +813,44 @@ function BoardPreviewCard() {
 
 function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey }) {
   if (menuKey === 'events') {
-    const rows = [eventPreviewEvents[0], classPreviewEvents[0], eventPreviewEvents[1]];
-
     return (
       <div className="v2ag-menu-event-list">
         <div className="v2ag-menu-event-summary">
-          <strong>예정된 행사 + 강습</strong>
-          <span>EventPreviewRow의 장르 필터, 카운트, 정렬, 달력보기 흐름을 합친 목적지 샘플</span>
+          <strong>기존 메인 하단 섹션 구조</strong>
+          <span>예정된 행사, 강습, 동호회 강습, 동호회 정규강습을 각각 가로 카드 섹션으로 유지</span>
         </div>
-        <div className="v2ag-menu-event-filters" aria-hidden="true">
-          <div>
-            <em>정보 분류</em>
-            <span>
-              {eventInfoCategoryFilters.map((filter) => (
-                <b key={filter.label} className={filter.active ? 'is-active' : ''}>
-                  {filter.label}<i>{filter.count}</i>
-                </b>
-              ))}
-            </span>
-          </div>
-          <div>
-            <em>장르 분류</em>
-            <span>
-              {eventInfoGenreFilters.map((filter) => (
-                <b key={filter.label} className={filter.active ? 'is-active' : ''}>
-                  {filter.label}<i>{filter.count}</i>
-                </b>
-              ))}
-            </span>
-          </div>
-        </div>
-        {rows.map((event) => (
-          <div key={event.id} className="v2ag-menu-event-row">
-            <EventThumb event={event} className="v2ag-menu-event-thumb" />
-            <div>
-              <strong>{event.title}</strong>
-              <em><i className="ri-map-pin-line" />{getEventPlace(event)}</em>
-              <span>{getCategoryLabel(event)} · {getDateText(event)}</span>
+
+        {eventDestinationSections.map((section) => (
+          <section key={section.title} className={`v2ag-menu-event-section is-${section.tone}`}>
+            <div className="v2ag-menu-section-head">
+              <div>
+                <i className={section.icon} />
+                <strong>{section.title}</strong>
+                <b>{section.count}</b>
+              </div>
+              <span>
+                {section.sortLabel && <em>{section.sortLabel}</em>}
+                {section.viewLabel}
+              </span>
             </div>
-          </div>
+            <div className="v2ag-menu-genre-row" aria-hidden="true">
+              {section.genres.map((genre, index) => (
+                <b key={`${section.title}-${genre}`} className={index === 0 ? 'is-active' : ''}>{genre}</b>
+              ))}
+            </div>
+            <div className="v2ag-menu-card-rail">
+              {section.events.map((event) => (
+                <article key={event.id} className="v2ag-menu-mini-card">
+                  <EventThumb event={event} className="v2ag-menu-mini-thumb" />
+                  <div>
+                    <span>{getCategoryLabel(event)} · {getDateText(event)}</span>
+                    <strong>{event.title}</strong>
+                    <em><i className="ri-map-pin-line" />{getEventPlace(event)}</em>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     );
@@ -778,7 +867,7 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
         </div>
         <div className="v2ag-menu-place-controls">
           <div className="v2ag-menu-place-filter-group" aria-hidden="true">
-            <em>장소 분류</em>
+            <em>장소 카테고리</em>
             <div className="v2ag-menu-place-cats">
               {placeCategoryFilters.map((filter) => (
                 <span key={filter.label} className={filter.active ? 'is-active' : ''}>
@@ -792,7 +881,7 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
             <span><i className="ri-list-check" />리스트</span>
           </div>
           <div className="v2ag-menu-place-filter-group" aria-hidden="true">
-            <em>지역 필터</em>
+            <em>지역</em>
             <div className="v2ag-menu-place-regions">
               {placeRegionFilters.map((filter) => (
                 <span key={filter.label} className={filter.active ? 'is-active' : ''}>
@@ -804,7 +893,7 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
         </div>
         <div className="v2ag-menu-place-body">
           <div className="v2ag-menu-map-preview" aria-hidden="true">
-            <b>스윙바 · 서울</b>
+            <b>스윙바 / 서울</b>
             <span className="pin-a" />
             <span className="pin-b" />
             <span className="pin-c" />
@@ -818,6 +907,7 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
                   <strong>{place.name}</strong>
                   <em>{place.address}</em>
                   <div className="v2ag-place-map-links">
+                    <small><i className="ri-road-map-line" />카카오</small>
                     <small><i className="ri-map-pin-2-fill" />네이버</small>
                     <small><i className="ri-google-fill" />구글</small>
                   </div>
