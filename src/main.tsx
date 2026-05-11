@@ -113,6 +113,10 @@ const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
 const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
 const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
+const AdminUiSamplesPage = lazy(() => import('./pages/admin/ui/AdminUiSamplesPage'));
+const FreeBoardGuidePage = lazy(() => import('./pages/admin/ui/FreeBoardGuidePage'));
+const CalendarGuidePage = lazy(() => import('./pages/admin/ui/CalendarGuidePage'));
+const V2MainAdGuidePage = lazy(() => import('./pages/admin/ui/V2MainAdGuidePage'));
 const WebzineViewer = lazy(() => import('./pages/webzine/WebzineViewer'));
 const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineList'));
 const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
@@ -222,6 +226,11 @@ const router = createBrowserRouter([
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
       { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
       { path: "/admin/v2/ingestor", element: <Suspense fallback={null}><EventIngestorV2Page /></Suspense> },
+      { path: "/admin/ui", element: <Suspense fallback={null}><AdminUiSamplesPage /></Suspense> },
+      { path: "/admin/ui/samples", element: <Suspense fallback={null}><AdminUiSamplesPage /></Suspense> },
+      { path: "/admin/ui/free-board-guide", element: <Suspense fallback={null}><FreeBoardGuidePage /></Suspense> },
+      { path: "/admin/ui/calendar-guide", element: <Suspense fallback={null}><CalendarGuidePage /></Suspense> },
+      { path: "/admin/ui/v2-main-ad-guide", element: <Suspense fallback={null}><V2MainAdGuidePage /></Suspense> },
       { path: "/links", element: <LinksPage /> },
       { path: "/places", element: <PlacesPage /> },
 
