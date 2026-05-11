@@ -445,15 +445,29 @@ const swingBars: PracticeRoomSample[] = [
 ];
 
 const placeCategoryFilters = [
-  { label: '전체', count: 32 },
+  { label: '전체 장소', count: 32 },
   { label: '스윙바', count: 16, active: true },
   { label: '연습실', count: 16 },
 ];
 
 const placeRegionFilters = [
-  { label: '전체', count: 32 },
+  { label: '전체 지역', count: 32 },
   { label: '서울', count: 24, active: true },
   { label: '다른 지역', count: 8 },
+];
+
+const eventInfoCategoryFilters = [
+  { label: '전체', count: 22, active: true },
+  { label: '행사', count: 13 },
+  { label: '강습', count: 9 },
+];
+
+const eventInfoGenreFilters = [
+  { label: '전체', count: 22, active: true },
+  { label: '파티', count: 7 },
+  { label: '린디합', count: 5 },
+  { label: '발보아', count: 4 },
+  { label: '블루스', count: 2 },
 ];
 
 const shops: ShopSample[] = [
@@ -713,10 +727,31 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
 
     return (
       <div className="v2ag-menu-event-list">
-        <div className="v2ag-menu-tabs" aria-hidden="true">
-          <span className="is-active">전체</span>
-          <span>행사</span>
-          <span>강습</span>
+        <div className="v2ag-menu-event-summary">
+          <strong>예정된 행사 + 강습</strong>
+          <span>EventPreviewRow의 장르 필터, 카운트, 정렬, 달력보기 흐름을 합친 목적지 샘플</span>
+        </div>
+        <div className="v2ag-menu-event-filters" aria-hidden="true">
+          <div>
+            <em>정보 분류</em>
+            <span>
+              {eventInfoCategoryFilters.map((filter) => (
+                <b key={filter.label} className={filter.active ? 'is-active' : ''}>
+                  {filter.label}<i>{filter.count}</i>
+                </b>
+              ))}
+            </span>
+          </div>
+          <div>
+            <em>장르 분류</em>
+            <span>
+              {eventInfoGenreFilters.map((filter) => (
+                <b key={filter.label} className={filter.active ? 'is-active' : ''}>
+                  {filter.label}<i>{filter.count}</i>
+                </b>
+              ))}
+            </span>
+          </div>
         </div>
         {rows.map((event) => (
           <div key={event.id} className="v2ag-menu-event-row">
@@ -737,24 +772,34 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
 
     return (
       <div className="v2ag-menu-place">
+        <div className="v2ag-menu-place-hero">
+          <span>더 즐거운 댄스 라이프를 만들어 줄 연습실과 모임 장소들</span>
+          <button type="button"><i className="ri-add-line" />장소 추가</button>
+        </div>
         <div className="v2ag-menu-place-controls">
-          <div className="v2ag-menu-place-cats" aria-hidden="true">
-            {placeCategoryFilters.map((filter) => (
-              <span key={filter.label} className={filter.active ? 'is-active' : ''}>
-                {filter.label}<b>{filter.count}</b>
-              </span>
-            ))}
+          <div className="v2ag-menu-place-filter-group" aria-hidden="true">
+            <em>장소 분류</em>
+            <div className="v2ag-menu-place-cats">
+              {placeCategoryFilters.map((filter) => (
+                <span key={filter.label} className={filter.active ? 'is-active' : ''}>
+                  {filter.label}<b>{filter.count}</b>
+                </span>
+              ))}
+            </div>
           </div>
           <div className="v2ag-menu-place-subcontrols" aria-hidden="true">
             <span className="is-active"><i className="ri-map-2-line" />지도</span>
             <span><i className="ri-list-check" />리스트</span>
           </div>
-          <div className="v2ag-menu-place-regions" aria-hidden="true">
-            {placeRegionFilters.map((filter) => (
-              <span key={filter.label} className={filter.active ? 'is-active' : ''}>
-                {filter.label}<b>{filter.count}</b>
-              </span>
-            ))}
+          <div className="v2ag-menu-place-filter-group" aria-hidden="true">
+            <em>지역 필터</em>
+            <div className="v2ag-menu-place-regions">
+              {placeRegionFilters.map((filter) => (
+                <span key={filter.label} className={filter.active ? 'is-active' : ''}>
+                  {filter.label}<b>{filter.count}</b>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
         <div className="v2ag-menu-place-body">
@@ -772,7 +817,10 @@ function SecondaryMenuDesignBody({ menuKey }: { menuKey: SecondaryDestinationKey
                   <span className="v2ag-place-category">{place.category}</span>
                   <strong>{place.name}</strong>
                   <em>{place.address}</em>
-                  <small><i className="ri-map-pin-2-fill" />네이버 · 구글</small>
+                  <div className="v2ag-place-map-links">
+                    <small><i className="ri-map-pin-2-fill" />네이버</small>
+                    <small><i className="ri-google-fill" />구글</small>
+                  </div>
                 </div>
               </div>
             ))}
