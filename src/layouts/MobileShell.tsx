@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../hooks/useModal';
@@ -49,6 +49,22 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all'; // Derived from URL query
+
+  // 2차 메뉴 스크롤 위치 추적 (scroll-rail 인디케이터용)
+  const navScrollRef = useRef<HTMLDivElement>(null);
+  const [navScrollProgress, setNavScrollProgress] = useState(0);
+
+  const handleNavScroll = useCallback(() => {
+    const el = navScrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll <= 0) {
+      setNavScrollProgress(0);
+      return;
+    }
+    const progress = (el.scrollLeft / maxScroll) * 100;
+    setNavScrollProgress(Math.min(100, Math.max(0, progress)));
+  }, []);
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
@@ -386,25 +402,30 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       </div>
                     </div>
                   ) : (
-                    /* Other Pages: Simple Title Text */
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h1 className="header-title-simple">
-                        {(() => {
-                          if (isSocialPage) return '소셜';
-                          if (currentPath === '/forum') return '포럼';
-                          if (isEventsInfoPage) return '강습&행사정보';
-                          if (isBoardPage) return '게시판';
-                          if (currentPath === '/bpm-tapper') return 'BPM 측정기';
-                          if (currentPath === '/metronome') return '메트로놈';
-                          if (isPracticePage) return '연습실';
-                          if (isShoppingPage) return '쇼핑';
-                          if (isGuidePage) return '안내';
-                          if (isArchivePage) return '자료실';
-                          if (currentPath === '/places') return '장소 안내';
-                          if (currentPath === '/links') return '사이트 모음';
-                          return '댄스빌보드';
-                        })()}
-                      </h1>
+                    <div
+                      onClick={() => navigate('/')}
+                      className="header-logo-container header-logo-container--compact"
+                      data-analytics-id="logo_home"
+                      data-analytics-type="nav_item"
+                      data-analytics-title="댄스빌보드 로고"
+                      data-analytics-section="header"
+                    >
+                      <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" referrerPolicy="no-referrer" />
+                      <div className="header-logo-text-wrapper">
+                        <div className="header-logo-title-row">
+                          <h1 className="header-logo-title">
+                            댄스빌보드
+                          </h1>
+                          <span className="header-logo-tag">
+                            korea
+                          </span>
+                        </div>
+                        <span className="header-logo-domain">
+                          {'swingenjoy.com'.split('').map((char, i) => (
+                            <span key={`page-char-${i}-${char}`}>{char}</span>
+                          ))}
+                        </span>
+                      </div>
                       {currentPath === '/metronome' && (
                         <button
                           className="header-metronome-info-btn-inline"
@@ -502,25 +523,23 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                 </div>
               </button>
 
-              {/* Search button - only visible when logged in */}
-              {(user || userProfile) && (
-                <button
-                  className="header-search-btn"
-                  onClick={() => {
-                    if (isCalendarPage) {
-                      window.dispatchEvent(new CustomEvent('openCalendarSearch'));
-                    } else {
-                      globalSearchModal.open();
-                    }
-                  }}
-                  data-analytics-id="header_search"
-                  data-analytics-type="action"
-                  data-analytics-title="검색"
-                  data-analytics-section="header"
-                >
-                  <i className="ri-search-line"></i>
-                </button>
-              )}
+              <button
+                className="header-search-btn"
+                onClick={() => {
+                  if (isCalendarPage) {
+                    window.dispatchEvent(new CustomEvent('openCalendarSearch'));
+                  } else {
+                    globalSearchModal.open();
+                  }
+                }}
+                title="검색"
+                data-analytics-id="header_search"
+                data-analytics-type="action"
+                data-analytics-title="검색"
+                data-analytics-section="header"
+              >
+                <i className="ri-search-line"></i>
+              </button>
 
               {/* User/Login button */}
               {user || userProfile ? (
@@ -539,19 +558,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     <i className="ri-user-3-fill"></i>
                   )}
                 </button>
-              ) : (
-                <button
-                  className="header-login-btn"
-                  onClick={() => loginModal.open({ message: '댄스빌보드 로그인' })}
-                  title="로그인"
-                  data-analytics-id="header_login"
-                  data-analytics-type="action"
-                  data-analytics-title="로그인"
-                  data-analytics-section="header"
-                >
-                  로그인
-                </button>
-              )}
+              ) : null}
             </div>
           </div>
         </header >
@@ -560,7 +567,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       {/* New Header Navigation for Events Page & Calendar Page */}
       {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isEventsInfoPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
         <nav className="header-nav-v2">
-          <div className="header-nav-v2-inner">
+          <div className="header-nav-v2-inner" ref={navScrollRef} onScroll={handleNavScroll}>
             <button
               className={`header-nav-v2-item ${isCalendarPage ? 'is-active' : ''}`}
               onClick={() => navigate('/calendar')}
@@ -604,6 +611,14 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               쇼핑
             </button>
           </div>
+          <span className="header-nav-v2-scroll-cue" aria-hidden="true">
+            <i className="ri-arrow-right-s-line" />
+          </span>
+          <span
+            className="header-nav-v2-scroll-rail"
+            aria-hidden="true"
+            style={{ '--nav-scroll-progress': `${navScrollProgress}%` } as React.CSSProperties}
+          />
         </nav>
       )}
 

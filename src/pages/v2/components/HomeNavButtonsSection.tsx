@@ -20,31 +20,11 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
     };
 
     const handleEventsClick = () => {
-        const target = document.querySelector('.ELS-section--upcoming');
-        if (target) {
-            const headerOffset = 110;
-            const elementPosition = target.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-        }
+        navigate('/events?section=events');
     };
 
     const handleClassesClick = () => {
-        const target = document.querySelector('.ELS-section--classes');
-        if (target) {
-            const headerOffset = 110;
-            const elementPosition = target.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-        }
+        navigate('/events?section=classes');
     };
 
     // Default placeholders if data is missing
@@ -77,84 +57,80 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
     const displayClassImages = classImages.length >= 3 ? classImages.slice(0, 3) : defaultClassImages;
 
 
-    return (
-        <section className="HNBS-container">
+    const renderNavCard = (
+        type: 'social' | 'event' | 'class',
+        label: string,
+        onClick: () => void,
+        images: any[],
+        behavior: string,
+        target: string
+    ) => {
+        return (
             <button
-                className="HNBS-button HNBS-button--social"
-                onClick={handleSocialClick}
-                aria-label="소셜 정보 바로가기"
-                data-analytics-id="home_quick_social"
-                data-analytics-type="nav_item"
-                data-analytics-title="소셜정보 퀵링크"
-                data-analytics-section="home_v2_nav"
+                className={`HNBS-button HNBS-button--${type}`}
+                onClick={onClick}
+                aria-label={`${label} 보기`}
             >
-                <div className="HNBS-bubble">소셜정보</div>
-                <div className="HNBS-stack">
-                    {displaySocialData.map((item, i) => {
-                        const isFront = i === 2; // Last item in array becomes the top-most z-index item
+                <div className="HNBS-bubble">{label}</div>
+                
+                <div className="HNBS-stack" aria-hidden="true">
+                    {images.slice(0, 3).map((item, index) => {
+                        const isFront = index === 2;
+                        const imgUrl = typeof item === 'string' ? item : item.imageUrl;
                         return (
-                            <div
-                                key={i}
-                                className={`HNBS-stack-item ${isFront ? 'HNBS-stack-item--front' : ''}`}
-                                style={isFront ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
-                            >
-                                {isFront ? (
-                                    <div className="HNBS-card-content">
-                                        <div className="HNBS-circle-image">
-                                            <img src={item.imageUrl} alt="" />
-                                        </div>
-                                        <div className="HNBS-card-info">
-                                            <div className="HNBS-card-location">{item.location}</div>
-                                            <div className="HNBS-card-title">{item.title}</div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <img src={item.imageUrl} alt="" />
+                            <span key={index} className={isFront ? 'is-front' : ''}>
+                                <img src={imgUrl} alt="" loading="lazy" draggable={false} />
+                                {isFront && typeof item === 'object' && item.title && (
+                                    <b>
+                                        <small>{item.location}</small>
+                                        {item.title}
+                                    </b>
                                 )}
-                            </div>
+                            </span>
                         );
                     })}
                 </div>
-            </button>
 
-            <button
-                className="HNBS-button HNBS-button--events"
-                onClick={handleEventsClick}
-                aria-label="행사 정보 보기"
-                data-analytics-id="home_quick_events"
-                data-analytics-type="action"
-                data-analytics-title="행사정보 스크롤"
-                data-analytics-section="home_v2_nav"
-            >
-                <div className="HNBS-bubble">행사정보</div>
-                <div className="HNBS-stack">
-                    {displayEventImages.map((img, i) => (
-                        <div key={i} className="HNBS-stack-item">
-                            <img src={img} alt="" />
-                        </div>
-                    ))}
+                <div className="HNBS-copy">
+                    <strong>{behavior}</strong>
+                    <span>{target}</span>
                 </div>
             </button>
+        );
+    };
 
-            <button
-                className="HNBS-button HNBS-button--classes"
-                onClick={handleClassesClick}
-                aria-label="강습 정보 보기"
-                data-analytics-id="home_quick_classes"
-                data-analytics-type="action"
-                data-analytics-title="강습정보 스크롤"
-                data-analytics-section="home_v2_nav"
-            >
-                <div className="HNBS-bubble">강습정보</div>
-                <div className="HNBS-stack">
-                    {displayClassImages.map((img, i) => (
-                        <div key={i} className="HNBS-stack-item">
-                            <img src={img} alt="" />
-                        </div>
-                    ))}
-                </div>
-            </button>
+    return (
+        <section className="HNBS-container">
+            <div className="HNBS-title-area">
+                <strong>바로 보기</strong>
+                <span>실제 홈 네비게이션 구조</span>
+            </div>
+            <div className="HNBS-grid">
+                {renderNavCard(
+                    'social', 
+                    '소셜정보', 
+                    handleSocialClick, 
+                    displaySocialData, 
+                    '달력의 소셜 탭으로 바로 이동', 
+                    '/calendar?category=social'
+                )}
+                {renderNavCard(
+                    'event', 
+                    '행사정보', 
+                    handleEventsClick, 
+                    displayEventImages, 
+                    '행사 전용 페이지로 이동', 
+                    '/events'
+                )}
+                {renderNavCard(
+                    'class', 
+                    '강습정보', 
+                    handleClassesClick, 
+                    displayClassImages, 
+                    '강습 전용 페이지로 이동', 
+                    '/classes'
+                )}
+            </div>
         </section>
     );
 };
-

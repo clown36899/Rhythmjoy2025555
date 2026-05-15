@@ -2476,6 +2476,200 @@
    - Moved to src/styles/components/EditablePreviewCard.css
    ========================================================================== */
 
+.home-route-preview-hub {
+    margin: 8px 12px 14px;
+    padding: 10px;
+    border: 1px solid var(--border-secondary, rgba(148, 163, 184, 0.24));
+    border-radius: 12px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--bg-surface-1, #ffffff) 92%, transparent), color-mix(in srgb, var(--bg-surface-2, #f8fafc) 88%, transparent));
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.home-route-preview-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px 9px;
+}
+
+.home-route-preview-head strong {
+    color: var(--text-primary, #0f172a);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.home-route-preview-head span {
+    color: var(--text-tertiary, #64748b);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.home-route-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.home-route-card {
+    --route-accent: #2563eb;
+    position: relative;
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 9px;
+    min-height: 72px;
+    padding: 8px;
+    border: 1px solid color-mix(in srgb, var(--route-accent) 22%, var(--border-secondary, rgba(148, 163, 184, 0.24)));
+    border-radius: 10px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--route-accent) 8%, var(--bg-surface-1, #ffffff)), var(--bg-surface-1, #ffffff) 62%);
+    color: var(--text-primary, #0f172a);
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.home-route-card:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--route-accent) 42%, var(--border-secondary, rgba(148, 163, 184, 0.24)));
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--route-accent) 18%, transparent);
+}
+
+.home-route-card:active {
+    transform: translateY(0) scale(0.99);
+}
+
+.home-route-card-media {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 56px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--route-accent) 14%, var(--bg-surface-2, #f8fafc));
+    color: var(--route-accent);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.home-route-card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.home-route-card-media i {
+    font-size: 23px;
+    line-height: 1;
+}
+
+.home-route-card-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.home-route-card-copy strong {
+    color: var(--text-primary, #0f172a);
+    font-size: 13px;
+    font-weight: 850;
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-route-card-copy em {
+    color: var(--text-tertiary, #64748b);
+    font-size: 10.5px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-route-card-arrow {
+    color: var(--route-accent);
+    font-size: 18px;
+}
+
+.home-route-card.is-green {
+    --route-accent: #10b981;
+}
+
+.home-route-card.is-amber {
+    --route-accent: #f59e0b;
+}
+
+.home-route-card.is-blue {
+    --route-accent: #2563eb;
+}
+
+.home-route-card.is-violet {
+    --route-accent: #7c3aed;
+}
+
+.home-route-card.is-pink {
+    --route-accent: #db2777;
+}
+
+.home-route-card.is-emerald {
+    --route-accent: #059669;
+}
+
+@media (max-width: 760px) {
+    .home-route-preview-hub {
+        margin: 2px 10px 12px;
+        padding: 8px;
+        border-radius: 11px;
+    }
+
+    .home-route-preview-head {
+        padding-bottom: 8px;
+    }
+
+    .home-route-preview-head span {
+        display: none;
+    }
+
+    .home-route-preview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .home-route-card {
+        grid-template-columns: 42px minmax(0, 1fr);
+        min-height: 60px;
+        gap: 7px;
+        padding: 7px;
+    }
+
+    .home-route-card-media {
+        width: 42px;
+        height: 46px;
+        border-radius: 7px;
+    }
+
+    .home-route-card-copy strong {
+        font-size: 12px;
+    }
+
+    .home-route-card-copy em {
+        font-size: 9.5px;
+    }
+
+    .home-route-card-arrow {
+        display: none;
+    }
+}
+
 
 /* ==========================================================================
        Shared View Styles (Favorites / My Activities)

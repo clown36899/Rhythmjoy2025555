@@ -67,37 +67,17 @@
     margin: 0 auto;
     padding: 20px 20px calc(100px + env(safe-area-inset-bottom));
     min-height: 100vh;
-    background: var(--bg-surface-1);
+    background: var(--bg-deep);
     position: relative;
     animation: none;
 }
 
-/* Background Glowing Orbs */
 .places-page-glass-container::before {
-    content: '';
-    position: fixed;
-    top: -10vw;
-    right: -10vw;
-    width: 40vw;
-    height: 40vw;
-    border-radius: 50%;
-    /* Use a nice amber/orange for places */
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 60%);
-    z-index: 0;
-    pointer-events: none;
+    display: none;
 }
 
 .places-page-glass-container::after {
-    content: '';
-    position: fixed;
-    bottom: -10vw;
-    left: -10vw;
-    width: 50vw;
-    height: 50vw;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 60%);
-    z-index: 0;
-    pointer-events: none;
+    display: none;
 }
 
 @keyframes fadeIn {
@@ -172,7 +152,7 @@
     z-index: 10;
     margin-bottom: 24px;
     padding: 12px 0;
-    background: linear-gradient(to bottom, var(--bg-surface-1) 70%, transparent);
+    background: linear-gradient(to bottom, var(--bg-deep) 82%, transparent);
 }
 
 .places-category-filter {
@@ -194,16 +174,14 @@
     align-items: center;
     gap: 6px;
     padding: 10px 18px;
-    border-radius: 100px;
-    background: rgba(var(--color-bg-secondary-rgb, 20, 20, 20), 0.6);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-surface-1) 86%, transparent);
+    border: 1px solid var(--border-secondary);
+    color: var(--text-secondary);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 }
 
 .glass-pill-places:hover {
@@ -213,10 +191,10 @@
 }
 
 .glass-pill-places.active {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: #8b5cf6;
-    color: #a78bfa;
-    box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+    background: color-mix(in srgb, var(--color-blue-500) 18%, var(--bg-surface-1));
+    border-color: color-mix(in srgb, var(--color-blue-500) 56%, var(--border-secondary));
+    color: var(--color-blue-300);
+    box-shadow: none;
 }
 
 .category-count {
@@ -257,6 +235,10 @@
     overflow: visible;
     display: flex;
     flex-direction: column;
+    padding: 10px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
 }
 
 .glass-card-places:hover .place-neon-icon img {
@@ -324,12 +306,12 @@
 
 .glass-tag-places {
     font-size: 10.5px;
-    background: rgba(139, 92, 246, 0.15);
-    color: #a78bfa;
+    background: color-mix(in srgb, var(--color-blue-500) 16%, transparent);
+    color: var(--color-blue-300);
     padding: 3px 8px;
     border-radius: 6px;
     font-weight: 700;
-    letter-spacing: 0.2px;
+    letter-spacing: 0;
 }
 
 .place-address {
@@ -346,7 +328,7 @@
     font-size: 18px;
     font-weight: 800;
     margin: 0 0 6px 0;
-    color: var(--color-text-primary);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -354,7 +336,7 @@
 }
 
 .glass-card-places:hover .place-title {
-    color: #fbbf24;
+    color: var(--color-blue-300);
 }
 
 .place-desc {
@@ -609,6 +591,5 @@ body.places-white-theme .places-region-btn.active {
     color: #3b82f6;
     background: rgba(59, 130, 246, 0.08);
 }
-
 
 

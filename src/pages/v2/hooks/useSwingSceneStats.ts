@@ -64,6 +64,54 @@ let fetchPromise: Promise<SceneStats | null> | null = null;
 // 인스턴스 카운터 (디버깅용)
 let instanceCounter = 0;
 
+const createEmptyStats = (): SceneStats => ({
+    monthly: [],
+    totalWeekly: [],
+    monthlyWeekly: [],
+    topGenresList: [],
+    summary: {
+        totalItems: 0,
+        dailyAverage: 0,
+        topDay: '-',
+        memberCount: 0,
+        pwaCount: 0,
+        pushCount: 0
+    }
+});
+
+const normalizeSceneStats = (data: any): SceneStats => ({
+    monthly: data?.monthly || [],
+    totalWeekly: (data?.totalWeekly || []).map((d: any) => ({
+        ...d,
+        items: Array.isArray(d.items) ? d.items.flat() : []
+    })),
+    monthlyWeekly: (data?.monthlyWeekly || []).map((d: any) => ({
+        ...d,
+        items: Array.isArray(d.items) ? d.items.flat() : []
+    })),
+    topGenresList: data?.topGenresList || [],
+    summary: {
+        totalItems: data?.summary?.totalItems || 0,
+        dailyAverage: data?.summary?.dailyAverage || 0,
+        topDay: data?.summary?.topDay || '-',
+        memberCount: data?.summary?.memberCount || 0,
+        pwaCount: data?.summary?.pwaCount || 0,
+        pushCount: data?.summary?.pushCount || 0
+    },
+    leadTimeAnalysis: data?.leadTimeAnalysis
+});
+
+const shouldUseStatsFunction = () => {
+    if (typeof window === 'undefined') return true;
+
+    const isDirectLocalVite =
+        import.meta.env.DEV &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+        window.location.port === '5173';
+
+    return !isDirectLocalVite;
+};
+
 export const useSwingSceneStats = () => {
     const instanceId = useRef(++instanceCounter);
     const [stats, setStats] = useState<SceneStats | null>(sessionCache);
@@ -112,27 +160,7 @@ export const useSwingSceneStats = () => {
                 const data = await response.json();
                 console.log(`[Stats#${instanceId.current}] 데이터 파싱 완료 - monthly:${data.monthly?.length}개, summary:`, data.summary);
 
-                const newStats: SceneStats = {
-                    monthly: data.monthly || [],
-                    totalWeekly: (data.totalWeekly || []).map((d: any) => ({
-                        ...d,
-                        items: Array.isArray(d.items) ? d.items.flat() : []
-                    })),
-                    monthlyWeekly: (data.monthlyWeekly || []).map((d: any) => ({
-                        ...d,
-                        items: Array.isArray(d.items) ? d.items.flat() : []
-                    })),
-                    topGenresList: data.topGenresList || [],
-                    summary: {
-                        totalItems: data.summary?.totalItems || 0,
-                        dailyAverage: data.summary?.dailyAverage || 0,
-                        topDay: data.summary?.topDay || '-',
-                        memberCount: data.summary?.memberCount || 0,
-                        pwaCount: data.summary?.pwaCount || 0,
-                        pushCount: data.summary?.pushCount || 0
-                    },
-                    leadTimeAnalysis: data.leadTimeAnalysis
-                };
+                const newStats = normalizeSceneStats(data);
 
                 sessionCache = newStats;
                 console.log(`[Stats#${instanceId.current}] sessionCache 업데이트 완료. isMounted:${isMounted.current}`);
@@ -176,10 +204,10 @@ export const useSwingSceneStats = () => {
         return fetchPromise;
     }, []);
 
-    const loadServerCache = useCallback(async () => {
+    const loadServerCache = useCallback(async (): Promise<SceneStats | null> => {
         if (sessionCache || isFetching) {
             console.log(`[Stats#${instanceId.current}] loadServerCache 스킵 - sessionCache:${sessionCache ? '있음' : '없음'}, isFetching:${isFetching}`);
-            return;
+            return sessionCache;
         }
 
         console.log(`[Stats#${instanceId.current}] loadServerCache: DB에서 캐시 로드 시도`);
@@ -191,29 +219,26 @@ export const useSwingSceneStats = () => {
                 .maybeSingle();
 
             if (isMounted.current && data?.value) {
-                const cached = data.value as any;
-                const newStats: SceneStats = {
-                    monthly: cached.monthly || [],
-                    summary: cached.summary || { totalItems: 0, dailyAverage: 0, topDay: '-' },
-                    totalWeekly: [],
-                    monthlyWeekly: [],
-                    topGenresList: [],
-                    leadTimeAnalysis: cached.leadTimeAnalysis
-                };
+                const newStats = normalizeSceneStats(data.value);
 
                 if (!sessionCache) {
                     console.log(`[Stats#${instanceId.current}] loadServerCache: DB 캐시로 임시 표시 (totalItems:${newStats.summary.totalItems})`);
+                    sessionCache = newStats;
                     setStats(newStats);
                     setLoading(false);
+                    return newStats;
                 } else {
                     console.log(`[Stats#${instanceId.current}] loadServerCache: API fetch가 먼저 완료됨 - DB 캐시 무시`);
+                    return sessionCache;
                 }
             } else {
                 console.log(`[Stats#${instanceId.current}] loadServerCache: DB 캐시 없음 또는 언마운트`);
             }
         } catch (e) {
-            console.error(`[Stats#${instanceId.current}] loadServerCache 실패:`, e);
+            console.warn(`[Stats#${instanceId.current}] loadServerCache 실패:`, e);
         }
+
+        return null;
     }, []);
 
     const manualRefresh = useCallback(async () => {
@@ -224,7 +249,12 @@ export const useSwingSceneStats = () => {
             const { error } = await supabase.rpc('refresh_site_stats_index');
             if (error) throw error;
             console.log(`[Stats#${instanceId.current}] refresh_site_stats_index 완료`);
-            await fetchSceneStats(true);
+            if (shouldUseStatsFunction()) {
+                await fetchSceneStats(true);
+            } else {
+                sessionCache = null;
+                await loadServerCache();
+            }
             alert('통계 인덱스가 성공적으로 최신화되었습니다.');
         } catch (err) {
             console.error(`[Stats#${instanceId.current}] 수동 갱신 실패:`, err);
@@ -232,15 +262,32 @@ export const useSwingSceneStats = () => {
         } finally {
             if (isMounted.current) setRefreshing(false);
         }
-    }, [fetchSceneStats]);
+    }, [fetchSceneStats, loadServerCache]);
 
     // Initial load logic
     useEffect(() => {
         const id = instanceId.current;
         if (!sessionCache && !isFetching) {
             console.log(`[Stats#${id}] 초기 로드: 새 fetch 시작`);
-            loadServerCache();
-            fetchSceneStats();
+            const canUseFunction = shouldUseStatsFunction();
+            loadServerCache().then((cachedStats) => {
+                if (cachedStats) {
+                    if (canUseFunction) fetchSceneStats();
+                    return;
+                }
+
+                if (canUseFunction) {
+                    fetchSceneStats();
+                    return;
+                }
+
+                const fallbackStats = createEmptyStats();
+                sessionCache = fallbackStats;
+                if (isMounted.current) {
+                    setStats(fallbackStats);
+                    setLoading(false);
+                }
+            });
         } else if (!sessionCache && isFetching && fetchPromise) {
             // 다른 컴포넌트 인스턴스가 시작한 fetch가 진행 중인 경우,
             // 해당 promise에 구독하여 이 컴포넌트도 결과를 받을 수 있도록 처리
@@ -270,6 +317,19 @@ export const useSwingSceneStats = () => {
         prefetch: () => {
             if (!sessionCache && !isFetching) {
                 console.log(`[Stats#${instanceId.current}] prefetch 호출`);
+                if (!shouldUseStatsFunction()) {
+                    loadServerCache().then((cachedStats) => {
+                        if (cachedStats || sessionCache) return;
+
+                        const fallbackStats = createEmptyStats();
+                        sessionCache = fallbackStats;
+                        if (isMounted.current) {
+                            setStats(fallbackStats);
+                            setLoading(false);
+                        }
+                    });
+                    return;
+                }
                 fetchSceneStats();
             }
         }

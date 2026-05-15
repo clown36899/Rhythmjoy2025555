@@ -71,7 +71,7 @@ export default function CalendarPage() {
     const [highlightedEventId, setHighlightedEventId] = useState<number | string | null>(null);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
-    const [isMapView, setIsMapView] = useState(true); // [New] 지도 뷰 모드 상태 (기본값 true로 변경)
+    const isMapView = displayMode === 'map';
     const [mapDateEvents, setMapDateEvents] = useState<AppEvent[]>([]); // [New] 지도에 표시할 이벤트들
     const [showMapModal, setShowMapModal] = useState(false); // [New] 지도 모달 표시 상태
 
@@ -651,6 +651,7 @@ export default function CalendarPage() {
                     title="캘린더 보기"
                 >
                     <i className="ri-calendar-2-line" />
+                    <span className="calendar-view-tab-label">캘린더</span>
                 </button>
                 <button
                     className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'list' ? 'active' : ''}`}
@@ -658,6 +659,7 @@ export default function CalendarPage() {
                     title="리스트 보기"
                 >
                     <i className="ri-list-check" />
+                    <span className="calendar-view-tab-label">리스트</span>
                 </button>
                 <button
                     className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'map' ? 'active' : ''}`}
@@ -665,6 +667,7 @@ export default function CalendarPage() {
                     title="지도 보기"
                 >
                     <i className="ri-map-2-line" />
+                    <span className="calendar-view-tab-label">지도</span>
                 </button>
                 <div className="calendar-tab-divider" />
                 <button

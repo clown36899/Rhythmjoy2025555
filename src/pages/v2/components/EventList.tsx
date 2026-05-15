@@ -506,11 +506,7 @@ const EventList: React.FC<EventListProps> = ({
           newlyRegisteredEvents={newlyRegisteredEvents}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(Number(e.id)))}
           // events={events} // Removed
-          allGenres={allGenres}
-          allGenresStructured={allGenresStructured}
-          selectedEventGenre={searchParams.get('event_genre')}
-          selectedClassGenre={searchParams.get('class_genre')}
-          selectedClubGenre={searchParams.get('club_genre')}
+
           onEventClick={onEventClick || (() => { })}
           onEventHover={(id) => {
             if (!onEventHover) return;

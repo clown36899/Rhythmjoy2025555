@@ -51,12 +51,6 @@ export default function PlacesPage() {
 
     useEffect(() => {
         fetchPlaces();
-
-        // 화이트 테마 클래스 추가
-        document.body.classList.add('places-white-theme');
-        return () => {
-            document.body.classList.remove('places-white-theme');
-        };
     }, []);
 
     // 동적으로 존재하는 카테고리 추출 ('연습실', '스윙바' 등)

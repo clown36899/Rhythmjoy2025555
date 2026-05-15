@@ -88,6 +88,15 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
         });
     };
 
+    const getPrefixTone = (name?: string) => {
+        if (!name) return 'slate';
+        if (name.includes('질문') || name.includes('건의')) return 'blue';
+        if (name.includes('후기')) return 'violet';
+        if (name.includes('정보')) return 'cyan';
+        if (name.includes('잡담')) return 'green';
+        return 'slate';
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -124,8 +133,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                                 <div className="board-detail-title-section">
                                     {(post as any).prefix && (
                                         <span
-                                            className="board-detail-prefix manual-label-wrapper"
-                                            style={{ backgroundColor: (post as any).prefix.color }}
+                                            className={`board-detail-prefix board-detail-prefix--${getPrefixTone((post as any).prefix.name)} manual-label-wrapper`}
                                         >
                                             <span className="translated-part">{
                                                 (post as any).prefix.name === '잡담' ? 'Discussion' :

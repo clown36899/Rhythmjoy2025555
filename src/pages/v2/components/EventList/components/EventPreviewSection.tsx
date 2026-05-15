@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 // Styles
 // Styles
 // import "../../../styles/EventListSections.css"; // Migrated to events.css
@@ -30,11 +31,7 @@ interface EventPreviewSectionProps {
     newlyRegisteredEvents: Event[]; // 👈 신규 등록 이벤트 (24시간)
     favoriteEventsList: Event[];
     // events: Event[]; // Removed for BillboardSection
-    allGenres: string[];
-    allGenresStructured: { class: string[]; club: string[]; event: string[] };
-    selectedEventGenre: string | null;
-    selectedClassGenre: string | null;
-    selectedClubGenre: string | null;
+
     onEventClick: (event: Event) => void;
     onEventHover?: (id: number | string | null) => void;
     highlightEvent: { id: number | string } | null;
@@ -48,6 +45,106 @@ interface EventPreviewSectionProps {
     // onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
+interface HomeRoutePreviewHubProps {
+    socialData: { imageUrl: string; title: string; location: string }[];
+    futureEvents: Event[];
+    regularClasses: Event[];
+}
+
+const getPreviewImage = (event?: Event) => event ? getCardThumbnail(event) : undefined;
+
+const HomeRoutePreviewHub: React.FC<HomeRoutePreviewHubProps> = ({ socialData, futureEvents, regularClasses }) => {
+    const navigate = useNavigate();
+    const featuredSocial = socialData[0];
+    const featuredEvent = futureEvents[0];
+    const featuredClass = regularClasses[0];
+
+    const routes = [
+        {
+            key: 'calendar',
+            label: '캘린더',
+            meta: '소셜&행사 / 강습',
+            target: '/calendar',
+            image: featuredSocial?.imageUrl || getPreviewImage(featuredEvent),
+            icon: 'ri-calendar-event-line',
+            accent: 'green',
+        },
+        {
+            key: 'events',
+            label: '강습&행사정보',
+            meta: `${futureEvents.length} 행사 · ${regularClasses.length} 강습`,
+            target: '/events',
+            image: getPreviewImage(featuredEvent) || getPreviewImage(featuredClass),
+            icon: 'ri-stack-line',
+            accent: 'amber',
+        },
+        {
+            key: 'board',
+            label: '자유게시판',
+            meta: '말머리와 반응',
+            target: '/board?category=free',
+            icon: 'ri-chat-3-line',
+            accent: 'blue',
+        },
+        {
+            key: 'places',
+            label: '장소',
+            meta: '분류 · 지역 · 지도',
+            target: '/places',
+            icon: 'ri-map-pin-2-line',
+            accent: 'violet',
+        },
+        {
+            key: 'forum',
+            label: '포럼',
+            meta: '도구형 허브',
+            target: '/forum',
+            icon: 'ri-layout-grid-line',
+            accent: 'pink',
+        },
+        {
+            key: 'shopping',
+            label: '쇼핑',
+            meta: '스윙 아이템',
+            target: '/shopping',
+            icon: 'ri-shopping-bag-3-line',
+            accent: 'emerald',
+        },
+    ];
+
+    return (
+        <section className="home-route-preview-hub" aria-label="주요 메뉴 미리보기">
+            <div className="home-route-preview-head">
+                <strong>주요 메뉴</strong>
+                <span>각 영역의 실제 페이지로 바로 이동</span>
+            </div>
+            <div className="home-route-preview-grid">
+                {routes.map((route) => (
+                    <button
+                        key={route.key}
+                        type="button"
+                        className={`home-route-card is-${route.accent}`}
+                        onClick={() => navigate(route.target)}
+                    >
+                        <span className="home-route-card-media">
+                            {route.image ? (
+                                <img src={route.image} alt="" loading="lazy" draggable={false} />
+                            ) : (
+                                <i className={route.icon} />
+                            )}
+                        </span>
+                        <span className="home-route-card-copy">
+                            <strong>{route.label}</strong>
+                            <em>{route.meta}</em>
+                        </span>
+                        <i className="ri-arrow-right-s-line home-route-card-arrow" />
+                    </button>
+                ))}
+            </div>
+        </section>
+    );
+};
+
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     todaySocialSchedules,
     thisWeekSocialSchedules,
@@ -60,10 +157,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     newlyRegisteredEvents,
     favoriteEventsList,
     // events, // Removed
-    allGenresStructured,
-    selectedEventGenre,
-    selectedClassGenre,
-    selectedClubGenre,
     onEventClick,
     onEventHover,
     highlightEvent,
@@ -78,64 +171,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     const vis = sectionVisibility;
 
 
-    // 장르 라벨 렌더러 - '전체'와 '대회'만 Double-Span 적용
-    const renderGenreLabel = (genre: string) => {
-        // '전체' 특별 처리
-        if (genre === '전체') {
-            return (
-                <span className="manual-label-wrapper">
-                    <span className="translated-part">All</span>
-                    <span className="fixed-part ko" translate="no">전체</span>
-                    <span className="fixed-part en" translate="no">All</span>
-                </span>
-            );
-        }
-        // '대회' 특별 처리
-        if (genre === '대회') {
-            return (
-                <span className="manual-label-wrapper">
-                    <span className="translated-part">Competition</span>
-                    <span className="fixed-part ko" translate="no">대회</span>
-                    <span className="fixed-part en" translate="no">Competition</span>
-                </span>
-            );
-        }
-        // 나머지는 그냥 일반 텍스트 (Google Translate가 번역)
-        return <span>{genre}</span>;
-    };
-
-    // 예정된 행사 정렬 (random = 기본 랜덤, date = 날짜 빠른 순)
-    const [eventSortOrder, setEventSortOrder] = useState<'random' | 'date'>('random');
-
-    // 배너 위치 랜덤화를 위한 상태 (새로고침 시마다 결정)
-    const isBannerSwapped = useMemo(() => Math.random() > 0.5, []);
-
-    const setGenreParam = (key: string, val: string | null) => {
-        const p = new URLSearchParams(searchParams);
-        if (val) p.set(key, val);
-        else p.delete(key);
-        setSearchParams(p);
-    };
-
-
-
-
-
-    // 강습 노출 필터 로직: 시작일이 지났으면 노출하지 않음 (Today > StartDate -> Hide)
-    // 4,6,7일 수업이어도 오늘(5일)이면 미노출. 오늘(4일)이면 노출.
-    const shouldShowClass = (e: Event) => {
-        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
-        let startDate = e.start_date || e.date;
-        if (e.event_dates && e.event_dates.length > 0) {
-            const sorted = [...e.event_dates].sort();
-            startDate = sorted[0];
-        }
-        if (!startDate) return true;
-        // 오늘이 시작일보다 크면(지났으면) 숨김
-        // today(5) > start(4) -> true -> Hide
-        // today(4) > start(4) -> false -> Show
-        return !(today > startDate);
-    };
 
     // Extract real images for HomeNavButtonsSection (안정화: 데이터가 실제로 바뀔 때만 재셔플)
     const socialDataRef = useRef<{ imageUrl: string; title: string; location: string }[]>([]);
@@ -205,6 +240,12 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 classImages={recentClassImages}
             />
 
+            <HomeRoutePreviewHub
+                socialData={recentSocialData}
+                futureEvents={futureEvents}
+                regularClasses={regularClasses}
+            />
+
             {/* 1. New Unified Schedule Section (Test Mode) - Hidden by User Request 2026-02-23 */}
             {/* 
             <UnifiedScheduleSection
@@ -220,18 +261,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
 
 
-            {/* 4. Slot A: Random Banner (Practice Room or Shopping) */}
-            {isBannerSwapped ? (
-                <div className="ELS-banner-wrapper">
-                    <ShoppingBanner />
-                </div>
-            ) : (
-                <div className="ELS-banner-wrapper">
-                    <PracticeRoomBanner />
-                </div>
-            )}
-
-            {/* 5. Favorites (Horizontal) */}
+            {/* 4. Favorites (Horizontal) */}
             {vis.show_favorites && favoriteEventsList.length > 0 && (
                 <EventPreviewRow
                     title="즐겨찾기한 내 이벤트"
@@ -248,120 +278,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 />
             )}
 
-            {vis.show_upcoming_events && <EventPreviewRow
-                title="예정된 행사"
-                icon="ri-fire-fill"
-                className="ELS-section--upcoming"
-                count={futureEvents.length}
-                viewAllUrl="/calendar"
-                viewAllLabel="달력보기"
-                genres={['전체', ...allGenresStructured.event]}
-                selectedGenre={selectedEventGenre}
-                onGenreChange={(g) => setGenreParam('event_genre', g)}
-                renderGenreLabel={renderGenreLabel}
-                events={(() => {
-                    const filtered = futureEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre));
-                    if (eventSortOrder === 'date') {
-                        return [...filtered].sort((a, b) => {
-                            const da = a.date || a.start_date || '';
-                            const db = b.date || b.start_date || '';
-                            return da.localeCompare(db);
-                        });
-                    }
-                    return filtered;
-                })()}
-                onEventClick={onEventClick}
-                onEventHover={onEventHover}
-                highlightEventId={highlightEvent?.id}
-                defaultThumbnailClass={defaultThumbnailClass}
-                defaultThumbnailEvent={defaultThumbnailEvent}
-                effectiveFavoriteIds={effectiveFavoriteIds}
-                handleToggleFavorite={handleToggleFavorite}
-                rightElement={
-                    <button
-                        className={`ELS-sortBtn ${eventSortOrder === 'date' ? 'is-active' : ''}`}
-                        onClick={() => setEventSortOrder(p => p === 'date' ? 'random' : 'date')}
-                        title={eventSortOrder === 'date' ? '날짜순 정렬 중' : '랜덤 정렬 중'}
-                    >
-                        <i className={eventSortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'}></i>
-                        {eventSortOrder === 'date' ? '날짜순' : '랜덤'}
-                    </button>
-                }
-            />}
-
-            {/* 7. Classes Row */}
-            {vis.show_classes && <EventPreviewRow
-                    title="강습"
-                    icon="ri-calendar-check-fill"
-                    className="ELS-section--classes"
-                    count={regularClasses.filter(shouldShowClass).length}
-                    viewAllUrl="/calendar?category=classes&scrollToToday=true"
-                    viewAllLabel="달력보기"
-                    genres={['전체', ...allGenresStructured.class]}
-                    selectedGenre={selectedClassGenre}
-                    onGenreChange={(g) => setGenreParam('class_genre', g)}
-                    renderGenreLabel={renderGenreLabel}
-                    events={regularClasses.filter(shouldShowClass).filter(e => !selectedClassGenre || e.genre?.includes(selectedClassGenre))}
-                    onEventClick={onEventClick}
-                    onEventHover={onEventHover}
-                    highlightEventId={highlightEvent?.id}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    effectiveFavoriteIds={effectiveFavoriteIds}
-                    handleToggleFavorite={handleToggleFavorite}
-                />}
-
-            {/* 8. Club Lesson Row */}
-            {vis.show_club_lessons && <EventPreviewRow
-                    title="동호회 강습"
-                    icon="ri-group-fill"
-                    className="ELS-section--club-lessons"
-                    count={clubLessons.filter(shouldShowClass).length}
-                    viewAllUrl="/social"
-                    viewAllLabel="이벤트등록"
-                    genres={['전체', ...allGenresStructured.club]}
-                    selectedGenre={selectedClubGenre}
-                    onGenreChange={(g) => setGenreParam('club_genre', g)}
-                    renderGenreLabel={renderGenreLabel}
-                    events={clubLessons.filter(shouldShowClass).filter(e => !selectedClubGenre || e.genre?.includes(selectedClubGenre))}
-                    onEventClick={onEventClick}
-                    onEventHover={onEventHover}
-                    highlightEventId={highlightEvent?.id}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    effectiveFavoriteIds={effectiveFavoriteIds}
-                    handleToggleFavorite={handleToggleFavorite}
-                />}
-
-            {/* 9. Club Regular Class Row */}
-            {vis.show_club_regular_classes && <EventPreviewRow
-                    title="동호회 정규강습"
-                    icon="ri-group-2-fill"
-                    className="ELS-section--club-regular"
-                    count={clubRegularClasses.filter(shouldShowClass).length}
-                    viewAllUrl="/calendar?category=club&scrollToToday=true"
-                    viewAllLabel="달력보기"
-                    genres={['전체', ...allGenresStructured.club]}
-                    selectedGenre={selectedClubGenre}
-                    onGenreChange={(g) => setGenreParam('club_genre', g)}
-                    renderGenreLabel={renderGenreLabel}
-                    events={clubRegularClasses.filter(shouldShowClass).filter(e => !selectedClubGenre || e.genre?.includes(selectedClubGenre))}
-                    onEventClick={onEventClick}
-                    onEventHover={onEventHover}
-                    highlightEventId={highlightEvent?.id}
-                    defaultThumbnailClass={defaultThumbnailClass}
-                    defaultThumbnailEvent={defaultThumbnailEvent}
-                    effectiveFavoriteIds={effectiveFavoriteIds}
-                    handleToggleFavorite={handleToggleFavorite}
-                />}
-
-            {/* 10. Slot B: Random Banner (Shopping or Practice Room) */}
-            <div className="ELS-banner-wrapper">
-                {isBannerSwapped ? (
-                    <PracticeRoomBanner />
-                ) : (
-                    <ShoppingBanner />
-                )}
+            {/* 5. Support Grid (Banners) */}
+            <div className="ELS-support-grid" style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                <PracticeRoomBanner />
+                <ShoppingBanner />
             </div>
         </div >
     );

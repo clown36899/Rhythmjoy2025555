@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
-import type { MouseEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModalActions } from '../../contexts/ModalContext';
@@ -7,7 +7,7 @@ import { useSetPageAction } from '../../contexts/PageActionContext';
 import { useEventsQuery } from '../../hooks/queries/useEventsQuery';
 import { useUserInteractions } from '../../hooks/useUserInteractions';
 import '../../styles/domains/events.css';
-import { EventPreviewRow } from '../v2/components/EventList/components/EventPreviewRow';
+import { getCardThumbnail, getEventThumbnail } from '../../utils/getEventThumbnail';
 import { getLocalDateString, sortEvents } from '../v2/utils/eventListUtils';
 import type { Event } from '../v2/utils/eventListUtils';
 import './events.css';
@@ -18,6 +18,27 @@ type GenreGroups = {
   class: string[];
   club: string[];
   event: string[];
+};
+
+type EventsInfoSectionTone = 'event' | 'class' | 'club' | 'regular';
+
+type EventsInfoSectionProps = {
+  title: string;
+  sectionKey: string;
+  icon: string;
+  tone: EventsInfoSectionTone;
+  count: number;
+  genres: string[];
+  selectedGenre: string | null;
+  onGenreChange: (genre: string | null) => void;
+  renderGenreLabel: (genre: string) => ReactNode;
+  events: Event[];
+  actionLabel: string;
+  onAction: () => void;
+  rightElement?: ReactNode;
+  favoriteEventIds: Set<number | string>;
+  onEventClick: (event: Event) => void;
+  onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
 };
 
 const shouldShowClass = (event: Event) => {
@@ -33,6 +54,29 @@ const shouldShowClass = (event: Event) => {
 };
 
 const isFutureEvent = (event: Event) => (event.end_date || event.date || '') >= getLocalDateString();
+
+const getEventDateText = (event: Event) => {
+  const date = event.event_dates?.[0] || event.start_date || event.date;
+  if (!date) return '날짜 미정';
+
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  const week = ['일', '월', '화', '수', '목', '금', '토'][parsed.getDay()];
+  const text = `${parsed.getMonth() + 1}.${parsed.getDate()} ${week}`;
+  return event.category === 'class' || event.category === 'club' ? `${text} 시작` : text;
+};
+
+const getEventPlace = (event: Event) => {
+  return event.venue_name || event.place_name || event.location || event.address || '장소 정보 없음';
+};
+
+const getEventCategoryLabel = (event: Event) => {
+  if (event.category === 'class') return '강습';
+  if (event.category === 'club') return '동호회';
+  if (event.category === 'social') return '소셜';
+  return '행사';
+};
 
 const buildGenreGroups = (events: Event[]): GenreGroups => {
   const today = getLocalDateString();
@@ -87,6 +131,141 @@ const renderGenreLabel = (genre: string) => {
 
   return <span>{genre}</span>;
 };
+
+function EventsInfoThumb({ event }: { event: Event }) {
+  const src = getCardThumbnail(event) || getEventThumbnail(event);
+
+  return (
+    <span className="events-info-card-thumb">
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        draggable={false}
+        onError={(e) => {
+          e.currentTarget.src = getEventThumbnail(null);
+        }}
+      />
+    </span>
+  );
+}
+
+function EventsInfoCard({
+  event,
+  isFavorite,
+  onEventClick,
+  onToggleFavorite,
+}: {
+  event: Event;
+  isFavorite: boolean;
+  onEventClick: (event: Event) => void;
+  onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
+}) {
+  const place = getEventPlace(event);
+  const genre = event.genre?.split(',').map((item) => item.trim()).filter(Boolean)[0] || getEventCategoryLabel(event);
+
+  return (
+    <article
+      className="events-info-card"
+      onClick={() => onEventClick(event)}
+      data-event-id={event.id}
+      data-analytics-id={event.id}
+      data-analytics-type={event.category === 'class' ? 'class' : 'event'}
+      data-analytics-title={event.title}
+      data-analytics-section="events_info_route"
+    >
+      <EventsInfoThumb event={event} />
+      <div className="events-info-card-body">
+        <span className="events-info-card-place">
+          <i className="ri-map-pin-line" />
+          {place}
+        </span>
+        <strong>{event.title}</strong>
+        <div className="events-info-card-meta">
+          <span>{genre}</span>
+          <span>{getEventDateText(event)}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        className={`events-info-card-favorite ${isFavorite ? 'is-active' : ''}`}
+        onClick={(clickEvent) => onToggleFavorite(event.id, clickEvent)}
+        aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+      >
+        <i className={isFavorite ? 'ri-star-fill' : 'ri-star-line'} />
+      </button>
+    </article>
+  );
+}
+
+function EventsInfoSection({
+  title,
+  sectionKey,
+  icon,
+  tone,
+  count,
+  genres,
+  selectedGenre,
+  onGenreChange,
+  renderGenreLabel,
+  events,
+  actionLabel,
+  onAction,
+  rightElement,
+  favoriteEventIds,
+  onEventClick,
+  onToggleFavorite,
+}: EventsInfoSectionProps) {
+  return (
+    <section className={`events-info-section is-${tone}`} data-section-key={sectionKey}>
+      <div className="events-info-section-head">
+        <div className="events-info-section-title">
+          <i className={icon} />
+          <strong>{title}</strong>
+          <b>{count}</b>
+        </div>
+        <div className="events-info-section-actions">
+          {rightElement}
+          <button type="button" onClick={onAction}>
+            {actionLabel}
+            <i className="ri-arrow-right-s-line" />
+          </button>
+        </div>
+      </div>
+
+      {genres.length > 0 && (
+        <div className="events-info-genre-row" aria-label={`${title} 장르 필터`}>
+          {genres.map((genre) => (
+            <button
+              key={`${title}-${genre}`}
+              type="button"
+              className={(selectedGenre || '전체') === genre ? 'is-active' : ''}
+              onClick={() => onGenreChange(genre === '전체' ? null : genre)}
+            >
+              {renderGenreLabel(genre)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="events-info-card-rail">
+        {events.length > 0 ? (
+          events.map((event) => (
+            <EventsInfoCard
+              key={event.id}
+              event={event}
+              isFavorite={favoriteEventIds.has(Number(event.id)) || favoriteEventIds.has(event.id)}
+              onEventClick={onEventClick}
+              onToggleFavorite={onToggleFavorite}
+            />
+          ))
+        ) : (
+          <div className="events-info-empty">표시할 항목이 없습니다.</div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export default function EventsInfoPage() {
   const navigate = useNavigate();
@@ -238,6 +417,16 @@ export default function EventsInfoPage() {
     { label: '동호회 정규강습', count: clubRegularClasses.filter(shouldShowClass).length, icon: 'ri-group-2-fill' },
   ];
 
+  useEffect(() => {
+    const section = searchParams.get('section');
+    if (!section) return;
+
+    window.requestAnimationFrame(() => {
+      const target = document.querySelector(`[data-section-key="${section}"]`);
+      target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+  }, [searchParams, isLoading]);
+
   return (
     <main className="events-info-page">
       <section className="events-info-hero">
@@ -265,27 +454,26 @@ export default function EventsInfoPage() {
         <div className="events-info-state">정보를 불러오는 중입니다...</div>
       ) : (
         <section className="events-info-rows">
-          <EventPreviewRow
+          <EventsInfoSection
             title="예정된 행사"
+            sectionKey="events"
             icon="ri-fire-fill"
-            className="ELS-section--upcoming"
+            tone="event"
             count={futureEvents.length}
-            viewAllUrl="/calendar"
-            viewAllLabel="달력보기"
             genres={['전체', ...genreGroups.event]}
             selectedGenre={selectedEventGenre}
             onGenreChange={(genre) => setGenreParam('event_genre', genre)}
             renderGenreLabel={renderGenreLabel}
             events={filteredFutureEvents}
+            actionLabel="달력보기"
+            onAction={() => navigate('/calendar')}
             onEventClick={handleEventClick}
-            defaultThumbnailClass="default-class"
-            defaultThumbnailEvent="default-event"
-            effectiveFavoriteIds={favoriteEventIds}
-            handleToggleFavorite={handleToggleFavorite}
+            favoriteEventIds={favoriteEventIds}
+            onToggleFavorite={handleToggleFavorite}
             rightElement={
               <button
                 type="button"
-                className={`ELS-sortBtn ${eventSortOrder === 'date' ? 'is-active' : ''}`}
+                className={`events-info-sort-btn ${eventSortOrder === 'date' ? 'is-active' : ''}`}
                 onClick={() => setEventSortOrder((order) => order === 'date' ? 'random' : 'date')}
                 title={eventSortOrder === 'date' ? '날짜순 정렬 중' : '랜덤 정렬 중'}
               >
@@ -295,61 +483,58 @@ export default function EventsInfoPage() {
             }
           />
 
-          <EventPreviewRow
+          <EventsInfoSection
             title="강습"
+            sectionKey="classes"
             icon="ri-calendar-check-fill"
-            className="ELS-section--classes"
+            tone="class"
             count={regularClasses.filter(shouldShowClass).length}
-            viewAllUrl="/calendar?category=classes&scrollToToday=true"
-            viewAllLabel="달력보기"
             genres={['전체', ...genreGroups.class]}
             selectedGenre={selectedClassGenre}
             onGenreChange={(genre) => setGenreParam('class_genre', genre)}
             renderGenreLabel={renderGenreLabel}
             events={filteredRegularClasses}
+            actionLabel="달력보기"
+            onAction={() => navigate('/calendar?category=classes&scrollToToday=true')}
             onEventClick={handleEventClick}
-            defaultThumbnailClass="default-class"
-            defaultThumbnailEvent="default-event"
-            effectiveFavoriteIds={favoriteEventIds}
-            handleToggleFavorite={handleToggleFavorite}
+            favoriteEventIds={favoriteEventIds}
+            onToggleFavorite={handleToggleFavorite}
           />
 
-          <EventPreviewRow
+          <EventsInfoSection
             title="동호회 강습"
+            sectionKey="club-lessons"
             icon="ri-group-fill"
-            className="ELS-section--club-lessons"
+            tone="club"
             count={clubLessons.filter(shouldShowClass).length}
-            viewAllUrl="/social"
-            viewAllLabel="이벤트등록"
             genres={['전체', ...genreGroups.club]}
             selectedGenre={selectedClubGenre}
             onGenreChange={(genre) => setGenreParam('club_genre', genre)}
             renderGenreLabel={renderGenreLabel}
             events={filteredClubLessons}
+            actionLabel="이벤트등록"
+            onAction={() => navigate('/social')}
             onEventClick={handleEventClick}
-            defaultThumbnailClass="default-class"
-            defaultThumbnailEvent="default-event"
-            effectiveFavoriteIds={favoriteEventIds}
-            handleToggleFavorite={handleToggleFavorite}
+            favoriteEventIds={favoriteEventIds}
+            onToggleFavorite={handleToggleFavorite}
           />
 
-          <EventPreviewRow
+          <EventsInfoSection
             title="동호회 정규강습"
+            sectionKey="club-regular"
             icon="ri-group-2-fill"
-            className="ELS-section--club-regular"
+            tone="regular"
             count={clubRegularClasses.filter(shouldShowClass).length}
-            viewAllUrl="/calendar?category=club&scrollToToday=true"
-            viewAllLabel="달력보기"
             genres={['전체', ...genreGroups.club]}
             selectedGenre={selectedClubGenre}
             onGenreChange={(genre) => setGenreParam('club_genre', genre)}
             renderGenreLabel={renderGenreLabel}
             events={filteredClubRegularClasses}
+            actionLabel="달력보기"
+            onAction={() => navigate('/calendar?category=club&scrollToToday=true')}
             onEventClick={handleEventClick}
-            defaultThumbnailClass="default-class"
-            defaultThumbnailEvent="default-event"
-            effectiveFavoriteIds={favoriteEventIds}
-            handleToggleFavorite={handleToggleFavorite}
+            favoriteEventIds={favoriteEventIds}
+            onToggleFavorite={handleToggleFavorite}
           />
         </section>
       )}

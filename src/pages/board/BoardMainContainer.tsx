@@ -151,7 +151,7 @@ export default function BoardMainContainer() {
 
     // Register FAB action
     useSetPageAction(
-        category === 'dev-log' ? null : {
+        category === 'dev-log' || selectedPostId ? null : {
             icon: 'ri-edit-line',
             label: category === 'anonymous' ? '익명 글쓰기' : '글쓰기',
             onClick: () => {

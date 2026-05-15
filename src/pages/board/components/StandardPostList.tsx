@@ -44,6 +44,7 @@ interface StandardPostListProps {
 export default function StandardPostList({
     posts,
     onPostClick,
+    category,
     likedPostIds,
     favoritedPostIds,
     onToggleLike,
@@ -58,6 +59,139 @@ export default function StandardPostList({
 
     const notices = posts.filter(post => post.is_notice);
     const regularPosts = posts.filter(post => !post.is_notice);
+    const isFreeBoard = category === 'free';
+
+    const getPrefixLabel = (post: StandardBoardPost) => {
+        if (post.is_notice) return '공지';
+        return post.prefix?.name || '일반';
+    };
+
+    const getPrefixTone = (post: StandardBoardPost) => {
+        const label = getPrefixLabel(post);
+        if (post.is_notice) return 'slate';
+        if (label.includes('질문') || label.includes('건의')) return 'blue';
+        if (label.includes('후기')) return 'violet';
+        if (label.includes('정보')) return 'cyan';
+        return 'green';
+    };
+
+    const formatDate = (value: string) => new Date(value).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    const renderFreePrefix = (post: StandardBoardPost) => (
+        <span className={`free-board-prefix free-board-prefix--${getPrefixTone(post)}`}>
+            {getPrefixLabel(post)}
+        </span>
+    );
+
+    const renderFreeThumbnail = (post: StandardBoardPost) => {
+        const src = post.image_thumbnail || post.image;
+        if (!src) return <span className="free-board-no-thumb" aria-hidden="true" />;
+
+        return (
+            <div className="free-board-thumb">
+                <img src={src} alt="" loading="lazy" draggable={false} />
+            </div>
+        );
+    };
+
+    const renderFavoriteButton = (post: StandardBoardPost, className = 'free-board-stat-btn') => {
+        if (!onToggleFavorite) return null;
+        return (
+            <button
+                className={`${className} ${favoritedPostIds?.has(post.id) ? 'active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(post.id); }}
+                title="즐겨찾기"
+                data-analytics-id="board_list_favorite"
+                data-analytics-type="action"
+                data-analytics-title="게시물 즐겨찾기"
+                data-analytics-section="board_list_free"
+            >
+                <i className={favoritedPostIds?.has(post.id) ? "ri-star-fill" : "ri-star-line"}></i>
+                {post.favorites || 0}
+            </button>
+        );
+    };
+
+    const renderLikeButton = (post: StandardBoardPost, className = 'free-board-stat-btn') => {
+        if (!onToggleLike) return null;
+        return (
+            <button
+                className={`${className} ${likedPostIds?.has(post.id) ? 'active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
+                title="좋아요"
+                data-analytics-id="board_list_like"
+                data-analytics-type="action"
+                data-analytics-title="게시물 좋아요"
+                data-analytics-section="board_list_free"
+            >
+                <i className={likedPostIds?.has(post.id) ? "ri-heart-fill" : "ri-heart-line"}></i>
+                {post.likes || 0}
+            </button>
+        );
+    };
+
+    const renderFreeDesktopPost = (post: StandardBoardPost) => (
+        <article
+            key={`desktop-${post.id}`}
+            onClick={() => onPostClick(post)}
+            className={`free-board-row ${post.is_notice ? 'is-notice' : ''}`}
+            style={{ opacity: (isAdmin && post.is_hidden) ? 0.6 : 1 }}
+        >
+            <div className="free-board-row-accent" />
+            <div className="free-board-prefix-cell">
+                {renderFreePrefix(post)}
+            </div>
+            <div className="free-board-main">
+                <div className="free-board-title-line">
+                    {isAdmin && post.is_hidden && (
+                        <span className="board-hidden-badge">
+                            <i className="ri-eye-off-line"></i> 숨김
+                        </span>
+                    )}
+                    <h3>{post.title}</h3>
+                </div>
+                <div className="free-board-meta">
+                    <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
+                    <span>{formatDate(post.created_at)}</span>
+                </div>
+            </div>
+            <div className="free-board-stats">
+                <span><i className="ri-eye-line"></i>{post.views || 0}</span>
+                {renderFavoriteButton(post)}
+                {renderLikeButton(post)}
+                <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>
+            </div>
+            <div className="free-board-thumb-cell">
+                {renderFreeThumbnail(post)}
+            </div>
+        </article>
+    );
+
+    const renderFreeMobilePost = (post: StandardBoardPost) => (
+        <article
+            key={`mobile-${post.id}`}
+            onClick={() => onPostClick(post)}
+            className={`free-board-mobile-row ${post.is_notice ? 'is-notice' : ''}`}
+            style={{ opacity: (isAdmin && post.is_hidden) ? 0.6 : 1 }}
+        >
+            <div className="free-board-mobile-main">
+                <div className="free-board-mobile-title-line">
+                    {renderFreePrefix(post)}
+                    <h3>{post.title}</h3>
+                </div>
+                <div className="free-board-mobile-meta">
+                    <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
+                    <span>{formatDate(post.created_at)}</span>
+                    <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>
+                </div>
+            </div>
+            {(post.image_thumbnail || post.image) && renderFreeThumbnail(post)}
+        </article>
+    );
 
     const renderPost = (post: StandardBoardPost) => (
         <div
@@ -246,6 +380,20 @@ export default function StandardPostList({
                         <i className="ri-pencil-line"></i>
                         첫 글 쓰기
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (isFreeBoard) {
+        const orderedPosts = [...notices, ...regularPosts];
+        return (
+            <div className="board-posts-list standard-mode free-board-mode">
+                <div className="free-board-desktop-list">
+                    {orderedPosts.map(renderFreeDesktopPost)}
+                </div>
+                <div className="free-board-mobile-list">
+                    {orderedPosts.map(renderFreeMobilePost)}
                 </div>
             </div>
         );

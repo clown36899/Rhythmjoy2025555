@@ -232,6 +232,14 @@ export default function BoardDetailPage() {
         });
     };
 
+    const getPrefixTone = (name?: string) => {
+        if (!name) return 'slate';
+        if (name.includes('질문') || name.includes('건의')) return 'blue';
+        if (name.includes('후기')) return 'violet';
+        if (name.includes('정보')) return 'cyan';
+        if (name.includes('잡담')) return 'green';
+        return 'slate';
+    };
 
     if (!post) {
         return (
@@ -270,8 +278,7 @@ export default function BoardDetailPage() {
                         <div className="board-detail-title-section">
                             {post.prefix && (
                                 <span
-                                    className="board-detail-prefix"
-                                    style={{ backgroundColor: post.prefix.color }}
+                                    className={`board-detail-prefix board-detail-prefix--${getPrefixTone(post.prefix.name)}`}
                                 >
                                     {post.prefix.name}
                                 </span>

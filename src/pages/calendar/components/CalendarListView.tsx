@@ -22,6 +22,10 @@ function getCategoryLabel(e: AppEvent): { label: string; cls: string } {
     return { label: "행사", cls: "list-badge--event" };
 }
 
+function getPlaceText(e: AppEvent): string {
+    return e.venue_name || e.place_name || e.location || e.address || "장소 정보 없음";
+}
+
 function formatDate(dateStr: string): string {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -45,8 +49,8 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
         events.forEach(e => {
             const startDate = getEventDate(e);
             if (startDate < today) return;
-            if (tabFilter === 'social-events' && e.category === 'class') return;
-            if (tabFilter === 'classes' && e.category !== 'class') return;
+            if (tabFilter === 'social-events' && ['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
+            if (tabFilter === 'classes' && !['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
             allItems.push(e);
         });
 
@@ -95,6 +99,7 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
                     {items.map(e => {
                         const thumb = getCardThumbnail(e as any);
                         const { label, cls } = getCategoryLabel(e);
+                        const place = getPlaceText(e);
                         return (
                             <div
                                 key={e.id}
@@ -110,13 +115,11 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
                                     />
                                 )}
                                 <div className="cal-list-card__body">
-                                    <span className={`cal-list-badge ${cls}`}>{label}</span>
+                                    <p className="cal-list-card__loc">
+                                        <i className="ri-map-pin-line" />{place}
+                                    </p>
                                     <p className="cal-list-card__title">{e.title}</p>
-                                    {e.location && (
-                                        <p className="cal-list-card__loc">
-                                            <i className="ri-map-pin-line" />{e.location}
-                                        </p>
-                                    )}
+                                    <span className={`cal-list-badge ${cls}`}>{label}</span>
                                 </div>
                             </div>
                         );

@@ -128,12 +128,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 onTouchEnd={onTouchEnd}
             >
                 <div className="NEB-header">
-                    <div className="NEB-headerLeft">
-                        {/* <i className="ri-sparkling-fill NEB-icon"></i> */}
-                        <h3 className="NEB-title">신규 이벤트</h3>
+                    <div>
+                        <strong>신규 이벤트</strong>
                         <span className="NEB-badge">NEW</span>
                         <button
-                            className="NEB-infoBtn"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setShowInfoModal(true);
@@ -143,9 +141,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             <i className="ri-information-line"></i>
                         </button>
                     </div>
-                    <div className="NEB-headerRight">
+                    <div>
                         <button
-                            className="NEB-viewAllBtn"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 openModal('newEventsList', {
@@ -158,9 +155,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             모아보기 <i className="ri-arrow-right-s-line"></i>
                         </button>
                         {events.length > 1 && (
-                            <div className="NEB-counter">
+                            <em>
                                 {currentIndex + 1} / {events.length}
-                            </div>
+                            </em>
                         )}
                     </div>
                 </div>
@@ -168,7 +165,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 <div className="NEB-slider">
                     <div
                         className="NEB-track"
-                        style={{ transform: `translateX(calc(-${currentIndex * 95}% - ${currentIndex * 3}px + 2.5%))` }}
+                        style={{ transform: `translateX(calc(-${currentIndex * 100}% - ${currentIndex * 8}px))` }}
                     >
                         {events.map((event, index) => {
                             const eventThumbnail = event.image_full ||
@@ -201,10 +198,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             alt={event.title}
                                             className="NEB-image"
                                         />
-                                        <div className="NEB-overlay"></div>
-                                        <div className="NEB-category">
+                                        <span className="NEB-category">
                                             {event.category === 'class' ? '강습' : '행사'}
-                                        </div>
+                                        </span>
                                     </div>
 
                                     <div className="NEB-content">
@@ -212,26 +208,18 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             <img
                                                 src={eventThumbnail}
                                                 alt="Full Preview"
-                                                className="NEB-mini-image"
                                             />
                                         </div>
                                         <div className="NEB-textContent">
                                             {event.genre && (
-                                                <div className="NEB-genre">{event.genre}</div>
+                                                <em className="NEB-genre">{event.genre}</em>
                                             )}
-                                            <div className="NEB-info">
-                                                <i className="ri-calendar-line"></i>
-                                                <span>{slideDateText}</span>
+                                            <div className="NEB-eventMeta">
+                                                <span><i className="ri-map-pin-line" /> {event.location || event.place_name || '장소 미정'}</span>
+                                                <span><i className="ri-calendar-line" /> {slideDateText}</span>
                                             </div>
-                                            {event.location && (
-                                                <div className="NEB-info">
-                                                    <i className="ri-map-pin-line"></i>
-                                                    <span>{event.location}</span>
-                                                </div>
-                                            )}
-                                            <h4 className="NEB-eventTitle">{event.title}</h4>
+                                            <strong className="NEB-eventTitle">{event.title}</strong>
                                         </div>
-
                                     </div>
                                 </div>
                             );

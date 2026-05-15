@@ -17,15 +17,7 @@
 
 /* Background Atmosphere (Aurora Effect) */
 .forum-hub-container::before {
-    content: '';
-    position: absolute;
-    top: -10%;
-    right: -10%;
-    width: 70%;
-    height: 70%;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0) 70%);
-    filter: blur(80px);
-    z-index: 0;
+    display: none;
 }
 
 .forum-hub-content {
@@ -52,7 +44,7 @@
     font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 6px;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
     transition: color 0.3s ease;
 }
 
@@ -176,7 +168,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     transition: color 0.3s ease;
 }
 
@@ -184,14 +176,6 @@
 [data-theme='dark'] .forum-hub-container {
     background: var(--bg-surface-1);
     /* 상단 메뉴와 연결성 확보를 위해 배경색 통일 */
-}
-
-[data-theme='dark'] .forum-hub-container::before {
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
-}
-
-[data-theme='light'] .forum-hub-container::before {
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 70%);
 }
 
 .forum-icon-box {
