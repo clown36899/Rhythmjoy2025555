@@ -4,6 +4,7 @@
 .places-view-controls {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     flex-wrap: wrap;
     margin-top: 10px;
@@ -63,9 +64,9 @@
     background: rgba(59, 130, 246, 0.12);
 }
 .places-page-glass-container {
-    max-width: 100%;
+    width: min(100%, 1180px);
     margin: 0 auto;
-    padding: 20px 20px calc(100px + env(safe-area-inset-bottom));
+    padding: 16px 16px calc(100px + env(safe-area-inset-bottom));
     min-height: 100vh;
     background: var(--bg-deep);
     position: relative;
@@ -95,7 +96,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 12px;
     gap: 16px;
     flex-wrap: wrap;
     position: relative;
@@ -150,8 +151,8 @@
     position: sticky;
     top: calc(108px + env(safe-area-inset-top)); 
     z-index: 10;
-    margin-bottom: 24px;
-    padding: 12px 0;
+    margin: 0 -2px 16px;
+    padding: 10px 2px 12px;
     background: linear-gradient(to bottom, var(--bg-deep) 82%, transparent);
 }
 
@@ -173,7 +174,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 10px 18px;
+    padding: 9px 14px;
     border-radius: 999px;
     background: color-mix(in srgb, var(--bg-surface-1) 86%, transparent);
     border: 1px solid var(--border-secondary);
@@ -213,9 +214,33 @@
     border-color: #8b5cf6;
 }
 
+.places-results-layout {
+    display: grid;
+    gap: 14px;
+}
+
+.places-results-layout.is-map {
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: start;
+}
+
+.places-map-panel {
+    position: sticky;
+    top: calc(190px + env(safe-area-inset-top));
+    overflow: hidden;
+    border: 1px solid var(--border-secondary);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
+}
+
+.places-map-panel .vmv-wrapper {
+    height: min(54vh, 520px);
+    min-height: 360px;
+}
+
 .places-glass-grid {
     display: grid;
-    margin: 10px 0 0 0;
+    margin: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     position: relative;
@@ -223,9 +248,90 @@
 }
 
 @media (min-width: 650px) {
-    .places-glass-grid {
+    .places-results-layout.is-list .places-glass-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 20px;
+    }
+
+    .places-results-layout.is-map .places-glass-grid {
+        grid-template-columns: 1fr;
+        max-height: min(54vh, 520px);
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .places-results-layout.is-map .glass-card-places {
+        padding: 8px;
+    }
+
+    .places-results-layout.is-map .place-card-body {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .places-results-layout.is-map .place-neon-icon {
+        width: 82px;
+        max-height: none;
+        aspect-ratio: 1;
+    }
+}
+
+@media (max-width: 900px) {
+    .places-results-layout.is-map {
+        grid-template-columns: 1fr;
+    }
+
+    .places-map-panel {
+        position: relative;
+        top: auto;
+    }
+
+    .places-map-panel .vmv-wrapper {
+        height: 320px;
+        min-height: 320px;
+    }
+}
+
+@media (max-width: 640px) {
+    .places-page-glass-container {
+        padding: 12px 12px calc(96px + env(safe-area-inset-bottom));
+    }
+
+    .places-hero-header {
+        margin-bottom: 8px;
+    }
+
+    .subtitle-glass {
+        font-size: 13px;
+    }
+
+    .places-view-controls {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 6px;
+        scrollbar-width: none;
+    }
+
+    .places-view-controls::-webkit-scrollbar {
+        display: none;
+    }
+
+    .places-view-toggle {
+        flex: 0 0 auto;
+    }
+
+    .places-region-filter {
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+    }
+
+    .places-view-btn {
+        min-width: 104px;
+        justify-content: center;
+    }
+
+    .places-region-btn {
+        min-width: 92px;
     }
 }
 
@@ -237,8 +343,14 @@
     flex-direction: column;
     padding: 10px;
     border: 1px solid var(--border-secondary);
-    border-radius: 10px;
+    border-radius: 8px;
     background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.glass-card-places:hover {
+    border-color: color-mix(in srgb, var(--color-blue-500) 44%, var(--border-secondary));
+    background: color-mix(in srgb, var(--bg-surface-2) 88%, transparent);
 }
 
 .glass-card-places:hover .place-neon-icon img {
@@ -257,7 +369,7 @@
     width: 100%;
     aspect-ratio: 4 / 3;
     max-height: 120px;
-    border-radius: 8px;
+    border-radius: 7px;
     background: rgba(255, 255, 255, 0.03);
     display: flex;
     align-items: center;
@@ -325,7 +437,7 @@
 }
 
 .place-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
     margin: 0 0 6px 0;
     color: var(--text-primary);
@@ -333,6 +445,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     transition: color 0.3s ease;
+}
+
+.place-map-links {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
 }
 
 .glass-card-places:hover .place-title {
@@ -391,9 +510,9 @@
 }
 
 .glass-action-btn {
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 12px;
     font-weight: 600;
     border: 1px solid var(--color-border);
     background: rgba(255, 255, 255, 0.03);
@@ -591,5 +710,3 @@ body.places-white-theme .places-region-btn.active {
     color: #3b82f6;
     background: rgba(59, 130, 246, 0.08);
 }
-
-

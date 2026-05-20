@@ -4,7 +4,17 @@ import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
 import { createResizedImages } from '../../../utils/imageResize';
 import { supabase as prodSupabase } from '../../../lib/supabase';
-import { detectEventType, mapIngestorEvent, titleLooksDuplicate, type MappedIngestorEvent, type VenueRecord } from './utils/ingestorMapping';
+import {
+  detectIngestorActivity,
+  getIngestorActivityLabel,
+  getIngestorGenreMeta,
+  getIngestorTagLabel,
+  getIngestorTags,
+  mapIngestorEvent,
+  titleLooksDuplicate,
+  type MappedIngestorEvent,
+  type VenueRecord,
+} from './utils/ingestorMapping';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import './EventIngestorV2.css';
 
@@ -27,6 +37,14 @@ interface ScrapedEvent {
     fee?: string;
     note?: string;
     event_type?: '소셜' | '파티/행사' | '강습' | null;
+    activity_type?: 'class' | 'social' | 'event' | 'recruit' | null;
+    activity_label?: string;
+    genre_family?: 'partner' | 'street' | 'art' | 'commercial' | 'unknown' | null;
+    genre_family_label?: string;
+    dance_genre?: string | null;
+    dance_genre_label?: string;
+    tags?: string[];
+    tag_labels?: string[];
     _duplicate?: {
       reason?: string;
       existingId?: string;
@@ -48,7 +66,9 @@ const EventIngestorV2: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'new' | 'collected' | 'duplicate'>('new');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<'전체' | '소셜' | '파티/행사' | '강습'>('전체');
+  const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집'>('전체');
+  const [familyFilter, setFamilyFilter] = useState<'all' | 'partner' | 'street' | 'art' | 'commercial' | 'unknown'>('all');
+  const [tagFilter, setTagFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [tabCounts, setTabCounts] = useState<{ new: number; collected: number; duplicate: number }>({ new: 0, collected: 0, duplicate: 0 });
@@ -115,11 +135,53 @@ const EventIngestorV2: React.FC = () => {
     fetchVenues();
   }, []);
 
+  const familyOptions = useMemo(() => {
+    const counts = new Map<string, { label: string; count: number }>();
+    scrapedEvents.forEach((event) => {
+      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
+      const meta = getIngestorGenreMeta(event);
+      counts.set(meta.family, { label: meta.familyLabel, count: (counts.get(meta.family)?.count || 0) + 1 });
+    });
+    const order = ['partner', 'street', 'art', 'commercial', 'unknown'];
+    return order
+      .filter((key) => counts.has(key))
+      .map((key) => ({ key, ...(counts.get(key) as { label: string; count: number }) }));
+  }, [activityFilter, scrapedEvents]);
+
+  const tagOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    scrapedEvents.forEach((event) => {
+      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
+      const meta = getIngestorGenreMeta(event);
+      if (familyFilter !== 'all' && meta.family !== familyFilter) return;
+      getIngestorTags(event).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
+    });
+    return Array.from(counts.entries())
+      .map(([key, count]) => ({ key, label: getIngestorTagLabel(key), count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'));
+  }, [activityFilter, familyFilter, scrapedEvents]);
+
+  useEffect(() => {
+    if (familyFilter !== 'all' && !familyOptions.some((option) => option.key === familyFilter)) {
+      setFamilyFilter('all');
+    }
+  }, [familyFilter, familyOptions]);
+
+  useEffect(() => {
+    if (tagFilter !== 'all' && !tagOptions.some((option) => option.key === tagFilter)) {
+      setTagFilter('all');
+    }
+  }, [tagFilter, tagOptions]);
+
   const filteredEvents = useMemo(() => {
-    // 서버에서 tab 기준으로 이미 필터됨 — typeFilter만 클라이언트에서 적용
-    if (typeFilter === '전체') return scrapedEvents;
-    return scrapedEvents.filter(e => detectEventType(e) === typeFilter);
-  }, [scrapedEvents, typeFilter]);
+    return scrapedEvents.filter((event) => {
+      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return false;
+      const meta = getIngestorGenreMeta(event);
+      if (familyFilter !== 'all' && meta.family !== familyFilter) return false;
+      if (tagFilter !== 'all' && !getIngestorTags(event).includes(tagFilter)) return false;
+      return true;
+    });
+  }, [activityFilter, familyFilter, scrapedEvents, tagFilter]);
 
   const handleUpdateStatus = async (id: string, updates: Partial<ScrapedEvent>) => {
     try {
@@ -380,10 +442,59 @@ const EventIngestorV2: React.FC = () => {
           <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
           <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => { setActiveTab('duplicate'); setSelectedIds(new Set()); }}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
         </div>
-        <div className="type-filter-group">
-          {(['전체', '소셜', '파티/행사', '강습'] as const).map(t => (
-            <button key={t} className={`type-filter-btn ${typeFilter === t ? 'active' : ''} type-${t === '전체' ? 'all' : t === '소셜' ? 'social' : t === '파티/행사' ? 'party' : 'lesson'}`} onClick={() => { setTypeFilter(t); setSelectedIds(new Set()); }}>{t}</button>
-          ))}
+        <div className="ingestor-taxonomy-filters">
+          <div className="type-filter-group" aria-label="활동 분류 필터">
+            {(['전체', '강습', '소셜', '행사', '모집'] as const).map(t => (
+              <button
+                key={t}
+                className={`type-filter-btn ${activityFilter === t ? 'active' : ''} type-${t === '전체' ? 'all' : t === '소셜' ? 'social' : t === '강습' ? 'lesson' : t === '모집' ? 'recruit' : 'party'}`}
+                onClick={() => { setActivityFilter(t); setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {familyOptions.length > 0 && (
+            <div className="family-filter-group" aria-label="장르 계열 필터">
+              <button
+                className={`family-filter-btn ${familyFilter === 'all' ? 'active' : ''}`}
+                onClick={() => { setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
+              >
+                전체 계열
+              </button>
+              {familyOptions.map(option => (
+                <button
+                  key={option.key}
+                  className={`family-filter-btn ${familyFilter === option.key ? 'active' : ''}`}
+                  onClick={() => { setFamilyFilter(option.key as typeof familyFilter); setTagFilter('all'); setSelectedIds(new Set()); }}
+                >
+                  {option.label} <span>{option.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {tagOptions.length > 0 && (
+            <div className="tag-filter-group" aria-label="수집된 세부 태그 필터">
+              <span>세부 태그</span>
+              <button
+                className={`tag-filter-btn ${tagFilter === 'all' ? 'active' : ''}`}
+                onClick={() => { setTagFilter('all'); setSelectedIds(new Set()); }}
+              >
+                전체
+              </button>
+              {tagOptions.map(option => (
+                <button
+                  key={option.key}
+                  className={`tag-filter-btn ${tagFilter === option.key ? 'active' : ''}`}
+                  onClick={() => { setTagFilter(option.key); setSelectedIds(new Set()); }}
+                >
+                  {option.label} <em>{option.count}</em>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
@@ -428,7 +539,13 @@ const EventIngestorV2: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredEvents.map((event) => (
+              {filteredEvents.map((event) => {
+                const activity = detectIngestorActivity(event);
+                const activityLabel = getIngestorActivityLabel(event);
+                const genreMeta = getIngestorGenreMeta(event);
+                const rowTags = getIngestorTags(event);
+
+                return (
                 <tr key={event.id} className={`${processingId === event.id ? 'row-processing' : ''} ${selectedIds.has(event.id) ? 'row-selected' : ''}`}>
                   <td className="col-check">
                     <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)} />
@@ -450,9 +567,16 @@ const EventIngestorV2: React.FC = () => {
                   <td className="col-info col-clickable" onClick={() => toggleSelect(event.id)}>
                     <div className="row-date-line">
                       <span className="row-date">{event.structured_data.date} ({event.structured_data.day || '요일미정'})</span>
-                      <span className={`event-type-badge type-badge-${detectEventType(event) === '소셜' ? 'social' : detectEventType(event) === '강습' ? 'lesson' : 'party'}`}>{detectEventType(event)}</span>
+                      <span className={`event-type-badge type-badge-${activity}`}>{activityLabel}</span>
                     </div>
                     <div className="row-title">{event.structured_data.title}</div>
+                    <div className="row-taxonomy">
+                      <span>{genreMeta.familyLabel}</span>
+                      <span>{genreMeta.genreLabel}</span>
+                      {rowTags.slice(0, 4).map((tag) => (
+                        <em key={tag}>{getIngestorTagLabel(tag)}</em>
+                      ))}
+                    </div>
                     {activeTab === 'duplicate' && event.structured_data._duplicate && (
                       <div className="row-keyword duplicate-reason">
                         중복 판단: {event.structured_data._duplicate.reason || '사유 미기록'}
@@ -502,7 +626,8 @@ const EventIngestorV2: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {filteredEvents.length === 0 && <div className="empty-state">해당 탭에 데이터가 없습니다.</div>}

@@ -1,7 +1,8 @@
 Use the "Web Search Ingestion V2" skill.
 
 Task:
-Run the daily Rhythmjoy swing-event ingestion for future events only.
+Run the daily Rhythmjoy dance-event ingestion for future events only.
+Swing remains the core collection target, but expanded collection is limited to verified street, salsa, tango, and bachata candidates when a real source post and poster image are available.
 
 Hard constraints:
 - Read and follow `.agents/skills/web-search-ingestion/SKILL.md`.
@@ -20,6 +21,13 @@ Hard constraints:
 - The Netlify `scraped-events` function is the canonical duplicate gate. It checks both `scraped_events` and the production `events` table and assigns `display_no`.
 - Treat a Netlify response with `count: 0` and `skipped` entries as a successful duplicate skip, not as a failed insert.
 - Store enough source detail for `/admin/v2/ingestor` to show the candidate, source URL, poster, extracted text, and structured data.
+- For every candidate, fill dynamic taxonomy fields when possible:
+  - `structured_data.activity_type`: `class`, `social`, `event`, or `recruit`
+  - `structured_data.genre_family`: `partner` or `street` for saved candidates. `unknown`, `art`, and `commercial` may be detected only to exclude or re-check them.
+  - `structured_data.dance_genre`: e.g. `swing`, `lindyhop`, `wcs`, `salsa`, `tango`, `bachata`, `hiphop`, `waacking`, `popping`, `locking`, `house`, `breaking`, `krump`
+  - `structured_data.tags`: only tags actually visible in the source text, such as `audition`, `team_recruit`, `participant`, `choreo`, `workshop`, `battle`, `dj`, `performance`
+- Classify auditions, team/crew recruitment, and participant recruitment as `activity_type: "recruit"`, not as a generic event.
+- Exclude modern dance, classical/traditional dance, ballet, K-pop, coverdance, heels, and other art/commercial performance candidates from saved ingestion output.
 
 At the end, always print this exact summary block, even on failure:
 

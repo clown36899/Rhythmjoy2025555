@@ -160,7 +160,7 @@ log "--- Codex 수집 시작: $(date '+%Y-%m-%d %H:%M:%S') / run=$RUN_ID ---"
 
 acquire_lock
 
-telegram_notify "스윙씬 Codex 수집 시작
+telegram_notify "댄스 이벤트 Codex 수집 시작
 $(date '+%Y-%m-%d %H:%M')
 run: $RUN_ID"
 
@@ -181,7 +181,7 @@ load_supabase_env
 CODEX="$(find_codex || true)"
 if [ -z "$CODEX" ]; then
     log "--- Codex 실행 파일 없음 ---"
-    telegram_notify "스윙씬 Codex 수집 실패
+    telegram_notify "댄스 이벤트 Codex 수집 실패
 Codex CLI를 찾을 수 없습니다."
     exit 127
 fi
@@ -240,7 +240,7 @@ else
 fi
 
 if [ $EXIT_CODE -eq 0 ]; then
-    telegram_notify "스윙씬 Codex 수집 완료
+    telegram_notify "댄스 이벤트 Codex 수집 완료
 $(date '+%Y-%m-%d %H:%M')
 
 ${PARSED_NEW:-신규: -}
@@ -260,7 +260,7 @@ else
         FAIL_REASON="Exit: $EXIT_CODE"
     fi
 
-    telegram_notify "스윙씬 Codex 수집 실패
+    telegram_notify "댄스 이벤트 Codex 수집 실패
 $(date '+%Y-%m-%d %H:%M')
 ${FAIL_REASON}
 

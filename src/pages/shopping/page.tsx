@@ -108,6 +108,16 @@ export default function ShoppingPage() {
     }
   };
 
+  const handleShuffleShops = () => {
+    const shuffled = [...shops].sort(() => Math.random() - 0.5);
+    setRandomizedShops(shuffled);
+    sessionStorage.setItem('shopsRandomOrder', JSON.stringify(shuffled.map(s => s.id)));
+  };
+
+  const featuredItemCount = shops.reduce((count, shop) => {
+    return count + (shop.featured_items || []).filter(item => item.item_name).length;
+  }, 0);
+
   const handleToggleFavorite = async (shopId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
 
@@ -199,14 +209,33 @@ export default function ShoppingPage() {
 
   return (
     <div className="shop-page-container" >
-      {/* 고정 헤더 */}
-
-
-      {/* 쇼핑몰 목록 */}
+      <div className="shop-page-toolbar">
+        <div className="shop-page-summary">
+          <span className="shop-page-kicker">
+            <i className="ri-shopping-bag-3-line" aria-hidden="true"></i>
+            쇼핑
+          </span>
+          <strong>스윙 아이템 링크</strong>
+          <em>
+            {shops.length}곳
+            {featuredItemCount > 0 && ` · 상품 ${featuredItemCount}개`}
+            {user && favoriteShopIds.size > 0 && ` · 찜 ${favoriteShopIds.size}`}
+          </em>
+        </div>
+        <button
+          type="button"
+          className="shop-page-shuffle-btn"
+          onClick={handleShuffleShops}
+          disabled={shops.length < 2}
+        >
+          <i className="ri-shuffle-line" aria-hidden="true"></i>
+          랜덤
+        </button>
+      </div>
 
       <div className="shop-list-section">
         {loading ? (
-          <div className="shop-loading-container">로딩 중...</div>
+          <div className="shop-loading-container">쇼핑몰을 불러오는 중...</div>
         ) : shops.length === 0 ? (
           <div className="shop-empty-container">등록된 쇼핑몰이 없습니다.</div>
         ) : (

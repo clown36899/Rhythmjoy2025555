@@ -2,54 +2,204 @@
 
 /* Apply scroll-padding to html for window-level scrolling */
 html {
-    scroll-padding-top: calc(156px + env(safe-area-inset-top));
-    /* 60+48+48 */
+    scroll-padding-top: calc(256px + env(safe-area-inset-top));
 }
 
 .calendar-page-container {
+    --cal-sample-bg: #101114;
+    --cal-sample-panel: #181a1f;
+    --cal-sample-panel-soft: #20232a;
+    --cal-sample-row: #1d2026;
+    --cal-sample-surface-top: #15171c;
+    --cal-sample-control-bg: #111318;
+    --cal-sample-control-soft: #22252d;
+    --cal-sample-thumb-bg: #0f1115;
+    --cal-sample-event-bg: rgba(255, 255, 255, 0.06);
+    --cal-sample-border: rgba(255, 255, 255, 0.11);
+    --cal-sample-text: #f6f7f9;
+    --cal-sample-muted: #a8b0bd;
+    --cal-sample-soft: #767f8d;
+    --cal-sample-blue: #4f83ff;
+    --cal-sample-lower-active-bg: rgba(216, 160, 45, 0.13);
+    --cal-sample-lower-active-border: rgba(216, 160, 45, 0.46);
+    --cal-sample-lower-active-text: #f2cf82;
     min-height: auto;
     display: flex;
     flex-direction: column;
-    /* overflow: hidden; - Removed to allow pull-to-refresh */
     user-select: none;
     -webkit-user-select: none;
-    background-color: var(--bg-base);
-    padding-bottom: 60px;
-    /* 웹 기본값 */
+    background: var(--cal-sample-bg);
+    color: var(--cal-sample-text);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
-/* Tab Menu as Header 3 */
-.calendar-tab-menu {
+.calendar-live-shell {
+    overflow: visible;
+    width: min(1320px, calc(100vw - 48px));
+    margin: 0 auto;
+    border: 1px solid var(--cal-sample-border);
+    border-radius: 14px;
+    background: var(--cal-sample-panel);
+}
+
+.calendar-live-shell--calendar {
+    padding-top: 138px;
+}
+
+.calendar-live-shell--list,
+.calendar-live-shell--map {
+    padding-top: 106px;
+}
+
+.calendar-live-sticky-controls {
     position: fixed;
-    top: calc(108px + env(safe-area-inset-top));
-    /* H1(60) + H2(48) */
+    top: calc(118px + env(safe-area-inset-top));
     left: 50%;
+    width: min(1320px, calc(100vw - 48px));
     transform: translateX(-50%);
-    width: 100%;
-    max-width: 650px;
-    height: 38px;
-    z-index: 998;
-    background-color: var(--bg-surface-1);
+    z-index: 990;
+    overflow: hidden;
+    border-radius: 14px 14px 0 0;
+    border: 1px solid var(--cal-sample-border);
+    border-bottom: 0;
+    background: var(--cal-sample-panel);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+    backdrop-filter: blur(18px) saturate(145%);
+}
+
+.calendar-live-topbar {
     display: flex;
-    gap: 0;
-    padding: 0;
-    /* 상단 border 추가: 2단계 메뉴 아이템과 융합됨 */
-    border-top: 1px solid var(--border-subtle);
-    border-bottom: 1px solid var(--border-subtle);
+    min-height: 64px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--cal-sample-border);
+    background: var(--cal-sample-surface-top);
+}
+
+.calendar-live-topbar-title {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+    padding-left: 12px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.calendar-live-topbar-title::before {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--cal-sample-blue);
+    content: "";
+}
+
+.calendar-live-topbar-title span {
+    color: var(--cal-sample-soft);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.calendar-live-topbar-title strong {
+    color: var(--cal-sample-text);
+    font-size: 23px;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: 0;
+}
+
+.calendar-live-topbar-title:hover strong {
+    color: #ffffff;
+}
+
+.calendar-live-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.calendar-view-switch {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--cal-sample-border);
+    border-radius: 10px;
+    background: var(--cal-sample-control-bg);
+}
+
+.calendar-filter-switch {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px 16px 0;
+}
+
+.calendar-sticky-weekdays {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    padding: 10px 12px 7px;
+    border-bottom: 1px solid var(--cal-sample-border);
+    background: var(--cal-sample-panel);
+}
+
+.calendar-sticky-weekday-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: var(--cal-sample-soft);
+    font-size: 12px;
+    font-weight: 900;
+    text-align: center;
+}
+
+.calendar-sticky-weekday-text {
+    color: inherit;
+    font: inherit;
+}
+
+.calendar-sticky-date-text {
+    display: inline-flex;
+    min-width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 1px solid var(--cal-sample-lower-active-border);
+    border-radius: 999px;
+    background: var(--cal-sample-lower-active-bg);
+    color: var(--cal-sample-lower-active-text);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 1;
 }
 
 .calendar-tab-btn {
-    flex: 1;
-    height: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 13px;
     background-color: transparent;
-    color: var(--text-secondary);
+    color: var(--cal-sample-muted);
     border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    font-size: 14px;
-    font-weight: 700;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 900;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -63,108 +213,442 @@ html {
 }
 
 .calendar-tab-btn:hover {
-    background-color: var(--bg-hover);
-    border-color: var(--border-glass);
+    background: var(--cal-sample-control-soft);
 }
 
 .calendar-tab-btn.active {
-    background-color: transparent;
-    color: var(--color-blue-500);
-    border-bottom: 3px solid var(--color-blue-500);
-    font-weight: 800;
-    /* 텍스트를 약간 위로 올려서 하단 바와 균형을 맞춤 */
-    padding-bottom: 2px;
+    background: rgba(92, 141, 246, 0.22);
+    color: #ffffff;
+    font-weight: 900;
+    box-shadow: inset 0 0 0 1px rgba(92, 141, 246, 0.55);
 }
 
-
-
-/* 뷰 전환 버튼 */
 .calendar-tab-btn--view {
-    flex: 0 0 78px;
-    margin: 4px 2px;
-    height: calc(100% - 8px);
-    border: 1px solid var(--border-subtle);
-    border-radius: 9px;
-    background: color-mix(in srgb, var(--bg-base) 62%, transparent);
-    font-size: 13px;
-    font-weight: 800;
+    border: 0;
+    background: transparent;
 }
 
 .calendar-tab-btn--view.active {
-    border-color: color-mix(in srgb, var(--color-blue-500) 54%, transparent);
-    background: var(--color-blue-500);
+    background: rgba(92, 141, 246, 0.2);
     color: white;
-    padding-bottom: 0;
 }
 
-.calendar-view-tab-label {
+.calendar-live-today-btn {
+    min-height: 34px;
+    padding: 0 13px;
+    border: 1px solid rgba(92, 141, 246, 0.38);
+    border-radius: 8px;
+    background: rgba(92, 141, 246, 0.2);
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.calendar-navigator-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: grid;
+    place-items: start center;
+    padding: calc(86px + env(safe-area-inset-top)) 16px 24px;
+    background: rgba(0, 0, 0, 0.48);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+.calendar-navigator-panel {
+    width: min(380px, 100%);
+    overflow: hidden;
+    border: 1px solid var(--cal-sample-border);
+    border-radius: 16px;
+    background: var(--cal-sample-panel);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+}
+
+.calendar-navigator-header {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 36px 36px;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    border-bottom: 1px solid var(--cal-sample-border);
+    background: var(--cal-sample-surface-top);
+}
+
+.calendar-navigator-title {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+
+.calendar-navigator-title span {
+    color: var(--cal-sample-soft);
     font-size: 11px;
-    font-weight: 850;
+    font-weight: 900;
+}
+
+.calendar-navigator-title strong {
+    color: var(--cal-sample-text);
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.calendar-navigator-icon-btn,
+.calendar-navigator-close {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--cal-sample-control-bg);
+    color: var(--cal-sample-muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.calendar-navigator-close {
+    border-color: var(--cal-sample-border);
+    background: var(--cal-sample-control-soft);
+}
+
+.calendar-navigator-icon-btn:hover,
+.calendar-navigator-close:hover {
+    color: #ffffff;
+    border-color: rgba(92, 141, 246, 0.38);
+}
+
+.calendar-navigator-month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+}
+
+.calendar-navigator-month-btn {
+    display: grid;
+    min-height: 52px;
+    place-items: center;
+    gap: 3px;
+    border: 1px solid var(--cal-sample-border);
+    border-radius: 12px;
+    background: var(--cal-sample-control-bg);
+    color: var(--cal-sample-text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.calendar-navigator-month-btn:hover {
+    border-color: rgba(92, 141, 246, 0.44);
+    background: var(--cal-sample-control-soft);
+}
+
+.calendar-navigator-month-btn.is-current {
+    border-color: rgba(92, 141, 246, 0.7);
+    background: rgba(92, 141, 246, 0.22);
+    color: #ffffff;
+}
+
+.calendar-navigator-month-btn.is-today-month em {
+    display: inline-flex;
+    min-height: 16px;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--cal-sample-lower-active-bg);
+    color: var(--cal-sample-lower-active-text);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.calendar-navigator-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 0 12px 12px;
+}
+
+.calendar-navigator-footer button {
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--cal-sample-border);
+    border-radius: 10px;
+    background: var(--cal-sample-control-soft);
+    color: var(--cal-sample-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.calendar-navigator-footer button:first-child {
+    border-color: rgba(92, 141, 246, 0.44);
+    background: rgba(92, 141, 246, 0.2);
 }
 
 .calendar-tab-divider {
-    width: 1px;
-    height: 20px;
-    background: var(--border-subtle);
-    align-self: center;
-    flex-shrink: 0;
+    display: none;
 }
 
-@media (max-width: 430px) {
+.calendar-page-overview {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--cal-sample-border);
+}
+
+.calendar-page-overview-card {
+    display: flex;
+    min-width: 0;
+    min-height: 40px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--cal-sample-panel-soft);
+}
+
+.calendar-page-overview-card span {
+    overflow: hidden;
+    color: var(--cal-sample-muted);
+    font-size: 12px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-page-overview-card strong {
+    color: var(--cal-sample-text);
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+@media (max-width: 720px) {
     html {
-        scroll-padding-top: calc(146px + env(safe-area-inset-top));
+        scroll-padding-top: calc(208px + env(safe-area-inset-top));
     }
 
-    .calendar-tab-menu {
-        top: calc(98px + env(safe-area-inset-top));
+    .calendar-live-shell {
+        width: 100%;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
     }
 
-    .calendar-page-main--list {
-        padding-top: calc(136px + env(safe-area-inset-top));
+    .calendar-live-shell--calendar {
+        padding-top: 98px;
+    }
+
+    .calendar-live-shell--list,
+    .calendar-live-shell--map {
+        padding-top: 78px;
+    }
+
+    .calendar-live-sticky-controls {
+        top: calc(110px + env(safe-area-inset-top));
+        left: 0;
+        width: 100%;
+        transform: none;
+        border-radius: 0;
+        border: 0;
+        background: var(--cal-sample-bg);
+    }
+
+    .calendar-live-topbar {
+        display: block;
+        min-height: 0;
+        padding: 0;
+        border-bottom: 0;
+        background: var(--cal-sample-control-bg);
+    }
+
+    .calendar-live-topbar-title,
+    .calendar-live-today-btn {
+        display: none;
+    }
+
+    .calendar-live-toolbar {
+        display: block;
+    }
+
+    .calendar-view-switch {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 5px;
+        border: 0;
+        border-radius: 0;
+        background: var(--cal-sample-control-bg);
+    }
+
+    .calendar-sticky-weekdays {
+        gap: 2px;
+        padding: 4px 3px 3px;
+        background: var(--cal-sample-bg);
+    }
+
+    .calendar-sticky-weekday-item {
+        gap: 3px;
+        font-size: 10px;
+    }
+
+    .calendar-sticky-date-text {
+        min-width: 14px;
+        height: 14px;
+        padding: 0 3px;
+        font-size: 9px;
     }
 
     .calendar-tab-btn--view {
-        flex-basis: 54px;
-        gap: 3px;
-        font-size: 14px;
+        min-height: 34px;
+        border-radius: 8px;
+        background: var(--cal-sample-control-soft);
     }
 
-    .calendar-view-tab-label {
-        font-size: 9px;
+    .calendar-tab-btn {
+        min-height: 32px;
+        font-size: 12px;
+        gap: 4px;
+    }
+
+    .calendar-tab-btn--view.active {
+        background: var(--cal-sample-blue);
+        color: #ffffff;
+        box-shadow: 0 7px 18px rgba(92, 141, 246, 0.28);
+    }
+
+    .calendar-filter-switch {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        padding: 5px 6px 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        scrollbar-width: none;
+    }
+
+    .calendar-filter-switch::-webkit-scrollbar {
+        display: none;
+    }
+
+    .calendar-filter-switch .calendar-tab-btn {
+        flex: 0 0 auto;
+        min-height: 26px;
+        padding: 0 10px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--cal-sample-muted);
+        font-size: 11px;
+    }
+
+    .calendar-filter-switch .calendar-tab-btn.active {
+        border-color: var(--cal-sample-lower-active-border);
+        background: var(--cal-sample-lower-active-bg);
+        color: var(--cal-sample-lower-active-text);
+        box-shadow: none;
+    }
+
+    .calendar-page-overview {
+        display: none;
+    }
+
+    .calendar-page-overview-card {
+        min-height: 42px;
+    }
+
+    .calendar-page-overview-card strong {
+        font-size: 18px;
+    }
+
+    .calendar-navigator-overlay {
+        padding-top: calc(118px + env(safe-area-inset-top));
+        place-items: start center;
+    }
+
+    .calendar-navigator-panel {
+        width: min(342px, calc(100vw - 20px));
+        border-radius: 14px;
+    }
+
+    .calendar-navigator-month-grid {
+        gap: 6px;
+        padding: 10px;
+    }
+
+    .calendar-navigator-month-btn {
+        min-height: 48px;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 420px) {
+    html {
+        scroll-padding-top: calc(196px + env(safe-area-inset-top));
+    }
+
+    .calendar-live-sticky-controls {
+        top: calc(98px + env(safe-area-inset-top));
+    }
+
+    .calendar-navigator-overlay {
+        padding-top: calc(106px + env(safe-area-inset-top));
     }
 }
 
 /* 리스트 뷰 */
 .calendar-page-main--list {
-    padding-top: calc(146px + env(safe-area-inset-top));
+    padding-top: 0;
 }
 
 .cal-list-container {
-    padding: 8px 12px 80px;
+    padding: 2px 12px 80px;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 10px;
 }
 
 .cal-list-group {
-    margin-bottom: 12px;
+    overflow: hidden;
+    margin-bottom: 2px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
 }
 
 .cal-list-date-header {
     font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-    padding: 4px 4px 4px 2px;
+    font-weight: 900;
+    color: var(--text-primary);
+    padding: 10px 12px;
     border-bottom: 1px solid var(--border-subtle);
-    margin-bottom: 4px;
+    margin-bottom: 0;
+    background: color-mix(in srgb, var(--bg-surface-2) 72%, transparent);
 }
 
 .cal-list-card {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 6px;
-    border-radius: 8px;
+    padding: 10px 12px;
+    border-radius: 0;
     cursor: pointer;
     transition: background 0.15s;
     border-bottom: 1px solid var(--border-subtle);
@@ -249,11 +733,9 @@ html {
     flex-direction: column;
     position: relative;
     width: 100%;
-    max-width: 650px;
+    max-width: none;
     margin: 0 auto;
-    padding-top: calc(48px + env(safe-area-inset-top));
-    /* Shell(108px) + Page(48px) = 156px (H1~H3 합계) */
-    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    padding: 0;
 }
 
 
@@ -261,6 +743,12 @@ html {
 .calendar-page-weekday-item.selected {
     color: var(--color-blue-400) !important;
     font-weight: bold;
+}
+
+@media (min-width: 900px) {
+    .calendar-page-main {
+        max-width: none;
+    }
 }
 
 

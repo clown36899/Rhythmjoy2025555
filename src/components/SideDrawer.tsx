@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -30,6 +30,7 @@ interface BoardCategory {
 
 export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick }: SideDrawerProps) {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, billboardUserName, signOut, userProfile, isAdmin, refreshUserProfile } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
@@ -252,6 +253,23 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const handleNavigation = (path: string) => {
         navigate(path);
         onClose();
+    };
+
+    const isPathActive = (path: string) => {
+        const pathname = location.pathname;
+        const params = new URLSearchParams(location.search);
+
+        if (path === '/v2') return pathname === '/v2' || pathname === '/';
+        if (path === '/?view=favorites') return (pathname === '/' || pathname === '/v2') && params.get('view') === 'favorites';
+        if (path === '/board') return pathname.startsWith('/board') && !params.get('category');
+        if (path.startsWith('/board?category=')) {
+            return pathname.startsWith('/board') && params.get('category') === path.split('category=')[1];
+        }
+        return pathname === path || (path !== '/' && pathname.startsWith(`${path}/`));
+    };
+
+    const menuItemClass = (path: string, extra = '') => {
+        return `SD-menuItem ${extra} ${isPathActive(path) ? 'is-active' : ''}`.trim();
     };
 
     const handleLogout = async () => {
@@ -653,20 +671,23 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                  if (item.path === '/board' && item.type === 'board') {
                                      return (
                                          <div key={`${sectionIdx}-${itemIdx}`}>
-                                             <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
+                                             <div className={menuItemClass(item.path, 'SD-isExpandable')} onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
                                                  <i className={item.icon}></i>
-                                                 <span className="manual-label-wrapper">
-                                                     <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                                     <span className="fixed-part ko" translate="no">{item.title}</span>
-                                                     <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                                 </span>
+                                                 <div className="SD-menuCopy">
+                                                     <span className="manual-label-wrapper">
+                                                         <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                         <span className="fixed-part ko" translate="no">{item.title}</span>
+                                                         <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                     </span>
+                                                     <small>{item.desc}</small>
+                                                 </div>
                                                  <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
                                              </div>
                                              {isBoardExpanded && (
                                                  <div className="SD-submenu">
                                                      {boardCategories.map((category) => (
                                                          <div key={category.code} 
-                                                            className="SD-submenuItem" 
+                                                            className={`SD-submenuItem ${isPathActive(`/board?category=${category.code}`) ? 'is-active' : ''}`}
                                                             onClick={() => handleNavigation(`/board?category=${category.code}`)}
                                                             data-analytics-id={`nav_board_${category.code}`}
                                                             data-analytics-type="nav_item"
@@ -681,7 +702,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                                              </span>
                                                          </div>
                                                      ))}
-                                                     <div className="SD-submenuItem" 
+                                                     <div className={`SD-submenuItem ${isPathActive('/board?category=history') ? 'is-active' : ''}`}
                                                         onClick={() => {
                                                             if (isLegacyIOS()) {
                                                                 alert('알림: 구형 기기에서는 라이브러리 기능이 작동하지 않습니다.');
@@ -701,7 +722,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                                              <span className="fixed-part en" translate="no">Library</span>
                                                          </span>
                                                      </div>
-                                                     <div className="SD-submenuItem" 
+                                                     <div className={`SD-submenuItem ${isPathActive('/board?category=dev-log') ? 'is-active' : ''}`}
                                                         onClick={() => handleNavigation('/board?category=dev-log')}
                                                         data-analytics-id="nav_board_devlog"
                                                         data-analytics-type="nav_item"
@@ -724,7 +745,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                  // 일반 메뉴 항목
                                  return (
                                      <div key={`${sectionIdx}-${itemIdx}`} 
-                                        className="SD-menuItem" 
+                                        className={menuItemClass(item.path)}
                                         onClick={() => handleNavigation(item.path)}
                                         data-analytics-id={`nav_${item.path.replace(/\//g, '_')}`}
                                         data-analytics-type="nav_item"
@@ -732,11 +753,14 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                         data-analytics-section="side_drawer_dynamic"
                                      >
                                          <i className={item.icon}></i>
-                                         <span className="manual-label-wrapper">
-                                             <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                             <span className="fixed-part ko" translate="no">{item.title}</span>
-                                             <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                         </span>
+                                         <div className="SD-menuCopy">
+                                             <span className="manual-label-wrapper">
+                                                 <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                 <span className="fixed-part ko" translate="no">{item.title}</span>
+                                                 <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                             </span>
+                                             <small>{item.desc}</small>
+                                         </div>
                                      </div>
                                  );
                              })}

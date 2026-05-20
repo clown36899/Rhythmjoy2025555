@@ -1307,7 +1307,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                 <div className={isMobile ? "daily-view-content" : "desktop-daily-content"}>
 
                                     {/* D1: 방문자 현황 */}
-                                    <div className="analytics-section-group">
+                                    <div className="analytics-section-group daily-visitor-section">
                                         <div className="analytics-section-title"><i className="ri-user-3-line"></i> 방문자 현황</div>
                                         {(summary.user_clicks !== undefined || summary.anon_clicks !== undefined) && (
                                             <div className="analytics-hero-card">
@@ -1359,7 +1359,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                                     {/* D4: 클릭 & 방문 트렌드 (다일 기간일 때만) */}
                                     {dateRange.start !== dateRange.end && trendData.length > 1 && (
-                                        <div className="analytics-section-group">
+                                        <div className="analytics-section-group analytics-trend-group">
                                             <div className="analytics-section-title"><i className="ri-line-chart-line"></i> 클릭 & 방문 트렌드</div>
                                             <div className="analytics-trend-section">
                                                 <h3><i className="ri-mouse-line"></i> 클릭 트렌드 (Click)</h3>
@@ -1408,7 +1408,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
 
                                     {/* D4: 콘텐츠 분석 */}
-                                    <div className="analytics-section-group">
+                                    <div className="analytics-section-group analytics-content-section">
                                         <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
                                         {renderTypeShareChart()}
                                         <div className="analytics-grid" style={{ marginTop: '16px' }}>
@@ -1457,7 +1457,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                                     {/* D5: 유입 & 행동 분석 */}
                                     {((summary.referrer_stats && summary.referrer_stats.length > 0) || (summary.journey_patterns && summary.journey_patterns.length > 0)) && (
-                                        <div className="analytics-section-group">
+                                        <div className="analytics-section-group analytics-behavior-section">
                                             <div className="analytics-section-title"><i className="ri-route-line"></i> 유입 & 행동 분석</div>
                                             <div className="analytics-grid behavior-grid">
                                                 {summary.referrer_stats && summary.referrer_stats.length > 0 && (
@@ -1500,7 +1500,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                                     {/* D6: 패턴 분석 (기간 2일 이상일 때만) */}
                                     {dateRange.start !== dateRange.end && summary.visitor_stats && (
-                                        <div className="analytics-section-group">
+                                        <div className="analytics-section-group analytics-pattern-section">
                                             <div className="analytics-section-title"><i className="ri-pulse-line"></i> 패턴 분석</div>
                                             <div className="analytics-grid">
                                                 <div className="grid-section full-width">

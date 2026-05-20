@@ -1701,7 +1701,7 @@
 .calendar-fullscreen-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
   backface-visibility: hidden;
@@ -1751,6 +1751,328 @@
   box-shadow: 0 2px 4px var(--bg-overlay);
   z-index: 10;
   white-space: nowrap;
+}
+
+/* ===== Calendar guide sample application ===== */
+.calendar-page-container .calendar-main-container {
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.calendar-page-container .calendar-carousel-container {
+  min-height: auto;
+}
+
+.calendar-page-container .calendar-month-head {
+  display: none;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  padding: 12px 12px 0;
+}
+
+.calendar-page-container .calendar-month-head span {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.calendar-page-container .calendar-grid-container {
+  gap: 5px;
+  padding: 12px;
+  border-radius: 0;
+  background: transparent;
+}
+
+.calendar-page-container .calendar-cell-fullscreen {
+  display: flex;
+  min-width: 0;
+  min-height: max(var(--cell-min-height, 112px), 112px);
+  flex-direction: column;
+  gap: 5px;
+  overflow: visible;
+  padding: 5px;
+  border: 1px solid var(--cal-sample-border, rgba(255, 255, 255, 0.11)) !important;
+  border-radius: 8px !important;
+  background: var(--cal-sample-row, #1d2026);
+  color: var(--cal-sample-text, #f6f7f9);
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.calendar-page-container .calendar-cell-fullscreen:hover {
+  border-color: rgba(92, 141, 246, 0.42) !important;
+  background: var(--cal-sample-panel-soft, #20232a);
+}
+
+.calendar-page-container .calendar-cell-fullscreen.is-today {
+  border-color: rgba(92, 141, 246, 0.72) !important;
+  background: rgba(92, 141, 246, 0.13);
+}
+
+.calendar-page-container .calendar-cell-fullscreen.is-last-row {
+  padding-bottom: 5px;
+}
+
+.calendar-page-container .calendar-cell-fullscreen.is-outside-month {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.calendar-page-container .calendar-cell-fullscreen-header {
+  height: auto;
+  min-height: 18px;
+  padding: 0;
+  gap: 6px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.calendar-page-container .calendar-date-number-fullscreen {
+  width: auto;
+  align-items: flex-start !important;
+  text-align: left !important;
+  color: var(--cal-sample-text, #f6f7f9);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.calendar-page-container .calendar-date-number-today {
+  min-width: 24px;
+  border-radius: 7px;
+  padding: 4px 6px;
+  background: var(--cal-sample-blue, #4f83ff);
+  color: #ffffff;
+}
+
+.calendar-page-container .calendar-day-count {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--cal-sample-muted, #a8b0bd);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 20px;
+}
+
+.calendar-page-container .weekday-wrapper {
+  display: none !important;
+}
+
+.calendar-page-container .calendar-cell-fullscreen-body {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+}
+
+.calendar-page-container .calendar-fullscreen-event-card {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  margin-bottom: 0;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--cal-sample-event-bg, rgba(255, 255, 255, 0.06));
+  color: var(--cal-sample-text, #f6f7f9);
+  text-align: left;
+}
+
+.calendar-page-container .calendar-fullscreen-event-card.calendar-event-tone-blue,
+.calendar-page-container .calendar-fullscreen-placeholder.calendar-event-tone-blue {
+  background: rgba(92, 141, 246, 0.16);
+}
+
+.calendar-page-container .calendar-fullscreen-event-card.calendar-event-tone-green,
+.calendar-page-container .calendar-fullscreen-placeholder.calendar-event-tone-green {
+  background: rgba(59, 194, 139, 0.15);
+}
+
+.calendar-page-container .calendar-fullscreen-event-card.calendar-event-tone-amber,
+.calendar-page-container .calendar-fullscreen-placeholder.calendar-event-tone-amber {
+  background: rgba(232, 184, 74, 0.15);
+}
+
+.calendar-page-container .calendar-fullscreen-event-card.calendar-event-tone-violet,
+.calendar-page-container .calendar-fullscreen-placeholder.calendar-event-tone-violet {
+  background: rgba(183, 131, 255, 0.15);
+}
+
+.calendar-page-container .calendar-fullscreen-card-inner {
+  height: auto;
+  min-width: 0;
+}
+
+.calendar-page-container .calendar-fullscreen-image-container,
+.calendar-page-container .calendar-fullscreen-placeholder {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  min-height: 58px;
+  height: auto;
+  border-radius: 6px;
+  background: var(--cal-sample-thumb-bg, #0f1115);
+}
+
+.calendar-page-container .calendar-fullscreen-image-container.is-social,
+.calendar-page-container .calendar-fullscreen-placeholder.is-social {
+  border-radius: 6px;
+}
+
+.calendar-page-container .calendar-fullscreen-image {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+}
+
+.calendar-page-container .calendar-fullscreen-location-overlay {
+  display: none;
+}
+
+.calendar-page-container .calendar-fullscreen-title-container {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 1px;
+  padding: 1px 2px 2px;
+}
+
+.calendar-page-container .calendar-fullscreen-place {
+  display: block;
+  min-width: 0;
+  color: var(--cal-sample-text, #f6f7f9);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.calendar-page-container .calendar-fullscreen-title {
+  display: block;
+  min-width: 0;
+  color: var(--cal-sample-muted, #a8b0bd);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.18;
+  word-break: break-word;
+  letter-spacing: 0;
+}
+
+@media (max-width: 720px) {
+  .calendar-page-container .calendar-main-container {
+    background: transparent;
+  }
+
+  .calendar-page-container .calendar-month-head {
+    gap: 2px;
+    padding: 3px 3px 0;
+  }
+
+  .calendar-page-container .calendar-month-head span {
+    font-size: 10px;
+  }
+
+  .calendar-page-container .calendar-grid-container {
+    gap: 1px;
+    padding: 3px 3px 8px;
+  }
+
+  .calendar-page-container .calendar-cell-fullscreen {
+    min-height: max(var(--cell-min-height, 30px), 30px);
+    gap: 1px;
+    padding: 1px;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    background: transparent;
+  }
+
+  .calendar-page-container .calendar-cell-fullscreen.is-today {
+    border-color: rgba(92, 141, 246, 0.42) !important;
+    border-radius: 7px !important;
+    background: rgba(92, 141, 246, 0.07);
+  }
+
+  .calendar-page-container .calendar-cell-fullscreen-header {
+    min-height: 14px;
+  }
+
+  .calendar-page-container .calendar-date-number-fullscreen {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .calendar-page-container .calendar-date-number-today {
+    min-width: 18px;
+    padding: 3px 4px;
+    border-radius: 999px;
+  }
+
+  .calendar-page-container .calendar-day-count {
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    font-size: 9px;
+    line-height: 14px;
+  }
+
+  .calendar-page-container .calendar-cell-fullscreen-body {
+    gap: 3px;
+  }
+
+  .calendar-page-container .calendar-fullscreen-event-card {
+    display: block;
+    min-height: 0;
+    padding: 0 0 3px;
+    border-radius: 6px;
+    background: var(--cal-sample-thumb-bg, #0f1115);
+  }
+
+  .calendar-page-container .calendar-fullscreen-image-container,
+  .calendar-page-container .calendar-fullscreen-placeholder {
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+  }
+
+  .calendar-page-container .calendar-fullscreen-image {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+  }
+
+  .calendar-page-container .calendar-fullscreen-title-container {
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .calendar-page-container .calendar-fullscreen-place,
+  .calendar-page-container .calendar-fullscreen-title {
+    font-size: 9px;
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .calendar-page-container .calendar-fullscreen-title {
+    color: var(--cal-sample-muted, #a8b0bd);
+    font-size: 8px;
+  }
+
 }
 
 /* Highlighted Event (from search) */

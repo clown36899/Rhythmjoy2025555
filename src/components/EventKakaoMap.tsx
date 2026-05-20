@@ -26,6 +26,8 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
         mapContainerRef.current.innerHTML = '';
 
         let isMounted = true;
+        let resizeObserver: ResizeObserver | null = null;
+        const relayoutTimers: number[] = [];
 
         window.kakao.maps.load(() => {
             if (!isMounted) return;
@@ -48,6 +50,23 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
                 };
 
                 const map = new window.kakao.maps.Map(mapContainerRef.current, options);
+                const mapCenter = new window.kakao.maps.LatLng(lat + 0.001, lng);
+                const relayoutMap = () => {
+                    if (!isMounted) return;
+                    map.relayout();
+                    map.setCenter(mapCenter);
+                };
+
+                requestAnimationFrame(relayoutMap);
+                [160, 420, 900].forEach((delay) => {
+                    relayoutTimers.push(window.setTimeout(relayoutMap, delay));
+                });
+
+                if (typeof ResizeObserver !== 'undefined') {
+                    resizeObserver?.disconnect();
+                    resizeObserver = new ResizeObserver(relayoutMap);
+                    resizeObserver.observe(mapContainerRef.current);
+                }
 
                 // 동그란 마커 렌더링 (이벤트 부착을 위해 DOM 객체 생성)
                 const markerContainer = document.createElement('div');
@@ -111,6 +130,8 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
 
         return () => {
             isMounted = false;
+            resizeObserver?.disconnect();
+            relayoutTimers.forEach((timer) => window.clearTimeout(timer));
             if (mapContainerRef.current) {
                 mapContainerRef.current.innerHTML = '';
             }

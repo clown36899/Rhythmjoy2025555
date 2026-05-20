@@ -79,6 +79,8 @@ export default function PlacesPage() {
         if (regionFilter === 'other') return place.address && !isSeoul(place.address);
         return true;
     });
+    const seoulCount = categoryFiltered.filter(place => isSeoul(place.address)).length;
+    const otherRegionCount = categoryFiltered.filter(place => place.address && !isSeoul(place.address)).length;
 
     const getThumbnail = (place: Venue): string => {
         if (!place.images) return '';
@@ -130,12 +132,14 @@ export default function PlacesPage() {
                         <button
                             className={`places-view-btn${viewMode === 'list' ? ' active' : ''}`}
                             onClick={() => setViewMode('list')}
+                            aria-label="장소 리스트 보기"
                         >
                             <i className="ri-list-check"></i> 리스트
                         </button>
                         <button
                             className={`places-view-btn${viewMode === 'map' ? ' active' : ''}`}
                             onClick={() => setViewMode('map')}
+                            aria-label="장소 지도 보기"
                         >
                             <i className="ri-map-2-line"></i> 지도
                         </button>
@@ -147,110 +151,113 @@ export default function PlacesPage() {
                                 className={`places-region-btn${regionFilter === r ? ' active' : ''}`}
                                 onClick={() => setRegionFilter(r)}
                             >
-                                {r === 'all' ? '전체' : r === 'seoul' ? '서울' : '다른 지역'}
+                                {r === 'all' ? `전체 ${categoryFiltered.length}` : r === 'seoul' ? `서울 ${seoulCount}` : `기타 ${otherRegionCount}`}
                             </button>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* 지도 뷰 */}
-            {viewMode === 'map' && !loading && (
-                <VenueMapView
-                    venues={filteredPlaces}
-                    onVenueClick={(id) => setSelectedVenueId(id)}
-                />
-            )}
+            <div className={`places-results-layout ${viewMode === 'map' ? 'is-map' : 'is-list'}`}>
+                {viewMode === 'map' && !loading && filteredPlaces.length > 0 && (
+                    <div className="places-map-panel">
+                        <VenueMapView
+                            venues={filteredPlaces}
+                            onVenueClick={(id) => setSelectedVenueId(id)}
+                        />
+                    </div>
+                )}
 
-            {loading ? (
-                <div className="places-glass-loading">
-                    <div className="spinner-glow-places"></div>
-                    <p>장소 정보를 불러오는 중입니다...</p>
-                </div>
-            ) : filteredPlaces.length === 0 ? (
-                <div className="places-glass-empty">
-                    <div className="empty-icon-glow"><i className="ri-map-pin-line"></i></div>
-                    <h3>등록된 장소가 없습니다</h3>
-                    <p>당신이 아는 좋은 장소를 처음으로 등록해보세요!</p>
-                </div>
-            ) : (
-                <div className="places-glass-grid">
-                    {filteredPlaces.map((place) => {
-                        const thumb = getThumbnail(place);
-                        let parsedMapUrls = { kakao: '', naver: '', google: '' };
-                        if (place.map_url) {
-                            if (place.map_url.startsWith('{')) {
-                                try { parsedMapUrls = JSON.parse(place.map_url); } catch(e){}
-                            } else if (place.map_url.includes('naver')) {
-                                parsedMapUrls.naver = place.map_url;
-                            } else {
-                                parsedMapUrls.kakao = place.map_url;
+                {loading ? (
+                    <div className="places-glass-loading">
+                        <div className="spinner-glow-places"></div>
+                        <p>장소 정보를 불러오는 중입니다...</p>
+                    </div>
+                ) : filteredPlaces.length === 0 ? (
+                    <div className="places-glass-empty">
+                        <div className="empty-icon-glow"><i className="ri-map-pin-line"></i></div>
+                        <h3>등록된 장소가 없습니다</h3>
+                        <p>조건을 바꾸거나 새 장소를 등록해보세요.</p>
+                    </div>
+                ) : (
+                    <div className="places-glass-grid">
+                        {filteredPlaces.map((place) => {
+                            const thumb = getThumbnail(place);
+                            let parsedMapUrls = { kakao: '', naver: '', google: '' };
+                            if (place.map_url) {
+                                if (place.map_url.startsWith('{')) {
+                                    try { parsedMapUrls = JSON.parse(place.map_url); } catch(e){}
+                                } else if (place.map_url.includes('naver')) {
+                                    parsedMapUrls.naver = place.map_url;
+                                } else {
+                                    parsedMapUrls.kakao = place.map_url;
+                                }
                             }
-                        }
 
-                        return (
-                            <div key={place.id} className="glass-card-places"
-                                onClick={() => setSelectedVenueId(place.id)}>
-                                
-                                <div className="place-card-body">
-                                    <div className="place-neon-icon">
-                                        {thumb ? (
-                                            <img src={thumb} alt={place.name} draggable={false} />
-                                        ) : (
-                                            <div className="icon-placeholder">
-                                                <i className="ri-map-pin-user-fill"></i>
+                            return (
+                                <div key={place.id} className="glass-card-places"
+                                    onClick={() => setSelectedVenueId(place.id)}>
+
+                                    <div className="place-card-body">
+                                        <div className="place-neon-icon">
+                                            {thumb ? (
+                                                <img src={thumb} alt={place.name} draggable={false} />
+                                            ) : (
+                                                <div className="icon-placeholder">
+                                                    <i className="ri-map-pin-user-fill"></i>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="place-content">
+                                            <div className="place-meta">
+                                                <span className="glass-tag-places">{place.category}</span>
+                                                {place.address && (
+                                                    <span className="place-address" title={place.address}>
+                                                        <i className="ri-map-pin-line" style={{ marginRight: '4px' }}></i>
+                                                        {place.address.split(' ').slice(0, 2).join(' ')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h3 className="place-title" title={place.name}>{place.name}</h3>
+
+                                            <div className="place-map-links">
+                                                {parsedMapUrls.kakao && (
+                                                    <button onClick={(e) => { e.stopPropagation(); window.open(parsedMapUrls.kakao, '_blank'); }} className="glass-action-btn">
+                                                        <i className="ri-road-map-line" style={{ color: '#FEE500' }}></i> 카카오
+                                                    </button>
+                                                )}
+                                                {parsedMapUrls.naver && (
+                                                    <button onClick={(e) => { e.stopPropagation(); window.open(parsedMapUrls.naver, '_blank'); }} className="glass-action-btn">
+                                                        <i className="ri-map-pin-2-fill" style={{ color: '#03C75A' }}></i> 네이버
+                                                    </button>
+                                                )}
+                                                {parsedMapUrls.google && (
+                                                    <button onClick={(e) => { e.stopPropagation(); window.open(parsedMapUrls.google, '_blank'); }} className="glass-action-btn">
+                                                        <i className="ri-google-fill" style={{ color: '#4285F4' }}></i> 구글
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {place.website_url && (
+                                            <div className="place-hover-arrow">
+                                                <i className="ri-arrow-right-up-line"></i>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="place-content">
-                                        <div className="place-meta">
-                                            <span className="glass-tag-places">{place.category}</span>
-                                            {place.address && (
-                                                <span className="place-address" title={place.address}>
-                                                    <i className="ri-map-pin-line" style={{ marginRight: '4px' }}></i>
-                                                    {place.address.split(' ').slice(0, 2).join(' ')}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <h3 className="place-title" title={place.name}>{place.name}</h3>
-                                        
-                                        <div className="place-map-links" style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-                                            {parsedMapUrls.kakao && (
-                                                <button onClick={(e) => { e.stopPropagation(); window.open(parsedMapUrls.kakao, '_blank'); }} className="glass-action-btn" style={{ padding: '6px 10px' }}>
-                                                    <i className="ri-road-map-line" style={{ color: '#FEE500' }}></i> 카카오
-                                                </button>
-                                            )}
-                                            {parsedMapUrls.naver && (
-                                                <button onClick={(e) => { e.stopPropagation(); window.open(parsedMapUrls.naver, '_blank'); }} className="glass-action-btn" style={{ padding: '6px 10px' }}>
-                                                    <i className="ri-map-pin-2-fill" style={{ color: '#03C75A' }}></i> 네이버
-                                                </button>
-                                            )}
-                                            {parsedMapUrls.google && (
-                                                <button onClick={(e) => { e.stopPropagation(); window.open(parsedMapUrls.google, '_blank'); }} className="glass-action-btn" style={{ padding: '6px 10px' }}>
-                                                    <i className="ri-google-fill" style={{ color: '#4285F4' }}></i> 구글
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {place.website_url && (
-                                        <div className="place-hover-arrow">
-                                            <i className="ri-arrow-right-up-line"></i>
+
+                                    {user && (
+                                        <div className="place-glass-actions" onClick={e => e.stopPropagation()}>
+                                            <button onClick={() => { setEditTargetId(place.id); setIsModalOpen(true); }} className="glass-action-btn edit">
+                                                <i className="ri-pencil-line"></i> 수정
+                                            </button>
                                         </div>
                                     )}
                                 </div>
-
-                                {user && (
-                                    <div className="place-glass-actions" onClick={e => e.stopPropagation()}>
-                                        <button onClick={() => { setEditTargetId(place.id); setIsModalOpen(true); }} className="glass-action-btn edit">
-                                            <i className="ri-pencil-line"></i> 수정
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    })}
-                </div>
-            )}
+                            )
+                        })}
+                    </div>
+                )}
+            </div>
 
             {/* 장소 상세 모달 */}
             {selectedVenueId && (

@@ -40,10 +40,10 @@ const CalendarCell = memo(({
   day,
   isToday,
   isLastRow,
+  isOutsideMonth,
   cellHeight,
   events,
   highlightedEventId,
-  getEventColor,
   onDateClick,
   onDateNumberClick,
   onEventClick,
@@ -52,10 +52,10 @@ const CalendarCell = memo(({
   day: Date;
   isToday: boolean;
   isLastRow: boolean;
+  isOutsideMonth: boolean;
   cellHeight: number;
   events: AppEvent[];
   highlightedEventId: number | string | null;
-  getEventColor: (id: number | string) => string;
   onDateClick: (date: Date, e?: React.MouseEvent) => void;
   onDateNumberClick: (e: React.MouseEvent, date: Date) => void;
   onEventClick: (event: AppEvent, date: Date, dayEvents: AppEvent[]) => void;
@@ -85,8 +85,8 @@ const CalendarCell = memo(({
     <div
       data-date={dateString}
       id={isToday ? 'calendar-today-cell' : undefined}
-      onClick={(e) => onDateClick(day, e)}
-      className={`calendar-cell-fullscreen ${isToday ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''}`}
+      onClick={(e) => !isOutsideMonth && onDateClick(day, e)}
+      className={`calendar-cell-fullscreen ${isToday ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''} ${isOutsideMonth ? 'is-outside-month' : ''}`}
       style={{ '--cell-min-height': `${cellHeight}px` } as any}
     >
       <div className="calendar-cell-fullscreen-header">
@@ -114,15 +114,26 @@ const CalendarCell = memo(({
             </span>
           </span>
         </span>
+        {events.length > 0 && (
+          <span className="calendar-day-count">{events.length}</span>
+        )}
       </div>
 
       <div className="calendar-cell-fullscreen-body">
         {shouldRenderEvents ? (
-          events.map((event) => {
-            const categoryColor = getEventColor(event.id);
+          <>
+          {events.map((event) => {
             const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
-            const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
+            const locationText = event.venue_name || event.place_name || event.location || '';
+            const category = String(event.category || '').toLowerCase();
+            const toneClass = category === 'class' || category === 'regular'
+              ? 'calendar-event-tone-blue'
+              : category === 'social'
+                ? 'calendar-event-tone-green'
+                : category === 'club'
+                  ? 'calendar-event-tone-violet'
+                  : 'calendar-event-tone-amber';
 
             const eStart = (event.start_date || event.date || '').substring(0, 10);
             const eEnd = (event.end_date || event.date || '').substring(0, 10);
@@ -133,7 +144,7 @@ const CalendarCell = memo(({
             return (
               <div
                 key={event.id}
-                className={`calendar-fullscreen-event-card ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
+                className={`calendar-fullscreen-event-card ${toneClass} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
                 data-event-id={event.id}
                 role="button"
                 onClick={(e) => {
@@ -159,7 +170,7 @@ const CalendarCell = memo(({
                       )}
                     </div>
                   ) : (
-                    <div className={`calendar-fullscreen-placeholder ${categoryColor} ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                    <div className={`calendar-fullscreen-placeholder ${toneClass} ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                       <span className="calendar-placeholder-text">
                         {event.title.charAt(0)}
                       </span>
@@ -167,11 +178,15 @@ const CalendarCell = memo(({
                   )}
                 </div>
                 <div className="calendar-fullscreen-title-container">
+                  {locationText && (
+                    <div className="calendar-fullscreen-place">{locationText}</div>
+                  )}
                   <div className="calendar-fullscreen-title">{event.title}</div>
                 </div>
               </div>
             );
-          })
+          })}
+          </>
         ) : (
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
           /* [Social Fix] 소셜 이벤트는 is-social 클래스 적용 → 실제 카드와 동일한 1:1 비율 유지 */
@@ -263,7 +278,7 @@ export default memo(function FullEventCalendar({
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const startingDayOfWeek = firstDay.getDay();
+    const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
     const daysInMonth = lastDay.getDate();
     const totalDays = startingDayOfWeek + daysInMonth;
     return Math.ceil(totalDays / 7);
@@ -327,59 +342,6 @@ export default memo(function FullEventCalendar({
 
     return combined as AppEvent[];
   }, [categoryFilteredEvents, socialSchedules, tabFilter, events]);
-
-  // 현재 달의 이벤트별 색상 맵 생성
-  const eventColorMap = useMemo(() => {
-    const colors = [
-      'calendar-bg-red-500', 'calendar-bg-orange-500', 'calendar-bg-amber-500', 'calendar-bg-yellow-500',
-      'calendar-bg-lime-500', 'calendar-bg-green-500', 'calendar-bg-emerald-500', 'calendar-bg-teal-500',
-      'calendar-bg-cyan-500', 'calendar-bg-sky-500', 'calendar-bg-blue-500', 'calendar-bg-indigo-500',
-      'calendar-bg-violet-500', 'calendar-bg-purple-500', 'calendar-bg-fuchsia-500', 'calendar-bg-pink-500',
-      'calendar-bg-rose-500', 'calendar-bg-red-600', 'calendar-bg-orange-600', 'calendar-bg-amber-600',
-      'calendar-bg-yellow-600', 'calendar-bg-lime-600', 'calendar-bg-green-600', 'calendar-bg-emerald-600',
-      'calendar-bg-teal-600', 'calendar-bg-cyan-600', 'calendar-bg-sky-600', 'calendar-bg-indigo-600',
-      'calendar-bg-violet-600', 'calendar-bg-purple-600', 'calendar-bg-fuchsia-600', 'calendar-bg-pink-600'
-    ];
-
-    const map = new Map<number | string, string>();
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-
-    // 현재 달에 표시되는 모든 이벤트 수집
-    const currentMonthEvents = filteredEvents.filter(event => {
-      // event_dates 배열 체크
-      if (event.event_dates && event.event_dates.length > 0) {
-        return event.event_dates.some(dateStr => dateStr.startsWith(monthStr));
-      }
-
-      // start_date/end_date 체크
-      const startDate = event.start_date || event.date || '';
-      const endDate = event.end_date || event.date || '';
-
-      if (!startDate || !endDate) return false;
-
-      const monthStart = `${monthStr}-01`;
-      const monthEnd = `${monthStr}-31`;
-
-      return (startDate <= monthEnd && endDate >= monthStart);
-    });
-
-    // ID 순으로 정렬하여 일관성 유지
-    currentMonthEvents.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-
-    // 각 이벤트에 순차적으로 다른 색상 할당
-    currentMonthEvents.forEach((event, index) => {
-      map.set(event.id, colors[index % colors.length]);
-    });
-
-    return map;
-  }, [filteredEvents, currentMonth]);
-
-  // 이벤트 색상 가져오기 함수
-  const getEventColor = (eventId: number | string) => {
-    return eventColorMap.get(eventId) || 'calendar-bg-gray-500';
-  };
 
   // 현재 월/뷰모드 변경 시 이벤트 발생
   useEffect(() => {
@@ -503,7 +465,7 @@ export default memo(function FullEventCalendar({
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+    const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
 
     const days = [];
 
@@ -521,7 +483,7 @@ export default memo(function FullEventCalendar({
     }
 
     // 그 달의 마지막 날이 포함된 주까지만 표시
-    const lastDayOfWeek = lastDay.getDay();
+    const lastDayOfWeek = (lastDay.getDay() + 6) % 7;
     const daysToAdd = 6 - lastDayOfWeek;
     for (let i = 1; i <= daysToAdd; i++) {
       days.push(new Date(year, month + 1, i));
@@ -671,18 +633,19 @@ export default memo(function FullEventCalendar({
 
     return days.map((day, index) => {
       const isLastRow = index >= days.length - 7;
-      const dayEvents = getEventsForDate(day);
+      const isOutsideMonth = day.getMonth() !== monthDate.getMonth();
+      const dayEvents = isOutsideMonth ? [] : getEventsForDate(day);
 
       return (
         <CalendarCell
           key={day.toISOString()}
           day={day}
-          isToday={isToday(day)}
+          isToday={!isOutsideMonth && isToday(day)}
           isLastRow={isLastRow}
+          isOutsideMonth={isOutsideMonth}
           cellHeight={cellHeight}
           events={dayEvents}
           highlightedEventId={highlightedEventId}
-          getEventColor={getEventColor}
           onDateClick={handleFullscreenDateClick}
           onDateNumberClick={handleDateNumberClick}
           onEventClick={onEventClick}
@@ -691,6 +654,8 @@ export default memo(function FullEventCalendar({
       );
     });
   };
+
+  const weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
   const renderYearView = () => {
     const years = Array.from({ length: 11 }, (_, i) => yearRangeBase - 5 + i);
@@ -754,14 +719,21 @@ export default memo(function FullEventCalendar({
                     style={!isCurrentMonth && !effectiveIsAnimating ? { height: 0, overflow: 'hidden' } : {}}
                   >
                     {shouldRenderContent && (
-                      <div
-                        className="calendar-grid-container"
-                        style={{
-                          '--weeks-count': getActualWeeksCount(month),
-                        } as any}
-                      >
-                        {renderFullscreenGrid(days, month)}
-                      </div>
+                      <>
+                        <div className="calendar-month-head" aria-hidden="true">
+                          {weekdayLabels.map((dayLabel) => (
+                            <span key={dayLabel}>{dayLabel}</span>
+                          ))}
+                        </div>
+                        <div
+                          className="calendar-grid-container"
+                          style={{
+                            '--weeks-count': getActualWeeksCount(month),
+                          } as any}
+                        >
+                          {renderFullscreenGrid(days, month)}
+                        </div>
+                      </>
                     )}
                   </div>
                 );

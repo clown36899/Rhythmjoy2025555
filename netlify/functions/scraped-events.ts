@@ -1,10 +1,15 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import { getDanceCollectionScopeExclusionReason, mergeDanceTaxonomyStructuredData } from '../../src/utils/danceTaxonomy';
 
 const SUPABASE_URL = process.env.VITE_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const STORAGE_BUCKET = 'scraped';
 const translationCache = new Map<string, string>();
+const excludedSourceRules: Array<{ pattern: RegExp; reason: string }> = [
+    { pattern: /^https?:\/\/(www\.)?meroniswing\.com(\/|$)/i, reason: '사용자 지정 제외 소스: meroniswing.com' },
+    { pattern: /^https?:\/\/allaboutswing\.co\.kr\/20(\/|$)/i, reason: '사용자 지정 제외 소스: allaboutswing.co.kr/20' },
+];
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -18,6 +23,40 @@ function getSupabase() {
 
 function storagePublicUrl(filename: string) {
     return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${filename}`;
+}
+
+function getExcludedSourceReason(sourceUrl: string | null | undefined): string | null {
+    if (!sourceUrl) return null;
+    return excludedSourceRules.find((rule) => rule.pattern.test(sourceUrl))?.reason || null;
+}
+
+async function saveExcludedScrapedEvent(
+    supabase: ReturnType<typeof getSupabase>,
+    item: any,
+    reason: string,
+    now: string,
+) {
+    const sd = item.structured_data || {};
+    return supabase
+        .from('scraped_events')
+        .upsert({
+            id: item.id,
+            keyword: item.keyword,
+            source_url: item.source_url,
+            poster_url: item.poster_url,
+            extracted_text: item.extracted_text,
+            structured_data: {
+                ...sd,
+                _excluded: {
+                    reason,
+                    detected_at: now,
+                },
+            },
+            is_collected: false,
+            status: 'excluded',
+            updated_at: now,
+            created_at: item.created_at || now,
+        }, { onConflict: 'id' });
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -217,7 +256,7 @@ async function findExistingScrapedEvent(
 
         const rowVenue = rowSd.location || rowSd.venue_name || '';
         const venueMatches = venueMatchesStrong(incomingVenue, rowVenue);
-        const titleScore = await semanticTitleSimilarity(title, rowTitle);
+        const cheapTitleScore = textSimilarity(title, rowTitle);
         const gap = daysBetween(date, rowDate);
         const rowMatchesIncomingRange = scrapedDateMatches(date, row);
         const incomingMatchesRowDate = rowDate === date || (sd.end_date && rowDate >= date && rowDate <= sd.end_date);
@@ -226,8 +265,19 @@ async function findExistingScrapedEvent(
         const rowSpan = eventSpanDays(rowDate, rowSd.end_date);
         const isMultiDayMatch = incomingSpan > 0 || rowSpan > 0;
         const typeMatches = !incomingType || !rowSd.event_type || incomingType === normalizeText(rowSd.event_type || '');
+        const samePeriod = rowMatchesIncomingRange || incomingMatchesRowDate || rangesOverlap;
+        const shouldRunSemanticTitleCheck =
+            cheapTitleScore >= 0.55
+            || (samePeriod && venueMatches)
+            || (samePeriod && isMultiDayMatch)
+            || (gap <= 90 && typeMatches && venueMatches);
+        if (!shouldRunSemanticTitleCheck) continue;
 
-        if (rowMatchesIncomingRange || incomingMatchesRowDate || rangesOverlap) {
+        const titleScore = cheapTitleScore >= 0.9
+            ? cheapTitleScore
+            : await semanticTitleSimilarity(title, rowTitle);
+
+        if (samePeriod) {
             if (titleScore >= 0.9) return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+제목' };
             if (titleScore >= 0.64 && venueMatches) return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+유사 제목' };
             if (isMultiDayMatch && venueMatches) {
@@ -399,6 +449,27 @@ export const handler: Handler = async (event) => {
             const skipped: { id: string; reason: string; existingId: string }[] = [];
 
             for (const item of incoming) {
+                const excludedReason = getExcludedSourceReason(item.source_url);
+                if (excludedReason) {
+                    skipped.push({ id: item.id, reason: excludedReason, existingId: item.id });
+                    await saveExcludedScrapedEvent(supabase, item, excludedReason, now);
+                    continue;
+                }
+
+                item.structured_data = mergeDanceTaxonomyStructuredData({
+                    keyword: item.keyword,
+                    source_url: item.source_url,
+                    extracted_text: item.extracted_text,
+                    structured_data: item.structured_data || {},
+                });
+
+                const scopeExcludedReason = getDanceCollectionScopeExclusionReason(item.structured_data);
+                if (scopeExcludedReason) {
+                    skipped.push({ id: item.id, reason: scopeExcludedReason, existingId: item.id });
+                    await saveExcludedScrapedEvent(supabase, item, scopeExcludedReason, now);
+                    continue;
+                }
+
                 // 중복 체크 (신규 수집 시에만) — 중복이면 upsert 자체를 건너뜀
                 if (!item.is_collected) {
                     const sd = item.structured_data || {};

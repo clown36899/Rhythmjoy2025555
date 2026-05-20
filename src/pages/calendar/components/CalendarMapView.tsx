@@ -8,6 +8,7 @@ declare global {
 }
 
 const WEEK_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const EMPTY_EVENTS: AppEvent[] = [];
 
 interface Props {
     onEventClick: (event: AppEvent) => void;
@@ -50,6 +51,7 @@ export default function CalendarMapView({ onEventClick }: Props) {
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [mapVisible, setMapVisible] = useState(false);
     const [isMapInteractive, setIsMapInteractive] = useState(false);
+    const [mapLoadFailed, setMapLoadFailed] = useState(false);
 
     // 달력 메타
     const firstDay = currentMonth.getDay();
@@ -115,18 +117,36 @@ export default function CalendarMapView({ onEventClick }: Props) {
     const selectedDateStr = selectedDate
         ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
         : null;
-    const selectedEvents = selectedDateStr ? (eventsByDate[selectedDateStr] || []) : [];
-    const selectedEventsGeoKey = selectedEvents
-        .map(event => `${event.id}:${getVenueSearchText(event)}`)
-        .join('|');
+    const selectedEvents = useMemo(
+        () => selectedDateStr ? (eventsByDate[selectedDateStr] || EMPTY_EVENTS) : EMPTY_EVENTS,
+        [eventsByDate, selectedDateStr]
+    );
+    const selectedEventsGeoKey = useMemo(
+        () => selectedEvents.map(event => `${event.id}:${getVenueSearchText(event)}`).join('|'),
+        [selectedEvents]
+    );
 
     // 맵 초기화 (컴포넌트 마운트 후 1회)
     useEffect(() => {
         if (mapReady) return;
+        let cancelled = false;
+        let attempts = 0;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
         const init = () => {
-            if (!window.kakao?.maps || !mapContainerRef.current) return;
+            if (cancelled) return;
+            if (!window.kakao?.maps || !mapContainerRef.current) {
+                attempts += 1;
+                if (attempts < 40) {
+                    timer = setTimeout(init, 250);
+                } else {
+                    setMapLoadFailed(true);
+                }
+                return;
+            }
+
             window.kakao.maps.load(() => {
-                if (!mapContainerRef.current) return;
+                if (cancelled || !mapContainerRef.current) return;
                 const newMap = new window.kakao.maps.Map(mapContainerRef.current, {
                     center: new window.kakao.maps.LatLng(37.5665, 126.9780),
                     level: 7,
@@ -134,10 +154,14 @@ export default function CalendarMapView({ onEventClick }: Props) {
                 newMap.relayout();
                 setMap(newMap);
                 setMapReady(true);
+                setMapLoadFailed(false);
             });
         };
-        const timer = setTimeout(init, 300);
-        return () => clearTimeout(timer);
+        timer = setTimeout(init, 100);
+        return () => {
+            cancelled = true;
+            if (timer) clearTimeout(timer);
+        };
     }, [mapReady]);
 
     // 선택 날짜 변경 → 지오코딩
@@ -375,7 +399,7 @@ export default function CalendarMapView({ onEventClick }: Props) {
                         style={{ opacity: mapVisible ? 1 : 0.3 }}
                     />
                     {!isMapInteractive && <div className="cmv-map-touch-shield" aria-hidden="true" />}
-                    {(isGeocoding || (!mapReady && selectedDate)) && (
+                    {(isGeocoding || (!mapLoadFailed && !mapReady && selectedDate)) && (
                         <div className="cmv-map-loading">
                             <div className="cmv-spinner" />
                             <span>장소 찾는 중...</span>
@@ -387,7 +411,13 @@ export default function CalendarMapView({ onEventClick }: Props) {
                             <span>날짜를 선택해주세요</span>
                         </div>
                     )}
-                    {selectedDate && !isGeocoding && geocodedData.length === 0 && selectedEvents.length > 0 && (
+                    {selectedDate && mapLoadFailed && (
+                        <div className="cmv-map-placeholder">
+                            <i className="ri-map-pin-off-line" />
+                            <span>지도를 불러오지 못했습니다</span>
+                        </div>
+                    )}
+                    {selectedDate && mapReady && !isGeocoding && geocodedData.length === 0 && selectedEvents.length > 0 && (
                         <div className="cmv-map-placeholder">
                             <i className="ri-map-pin-off-line" />
                             <span>위치 정보가 없는 이벤트입니다</span>

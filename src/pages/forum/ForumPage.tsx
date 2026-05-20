@@ -43,6 +43,10 @@ const ForumPage: React.FC = () => {
     return (
         <div className="forum-hub-container">
             <div className="forum-hub-content">
+                <header className="forum-hub-header">
+                    <h1 className="forum-hub-title">포럼</h1>
+                    <p className="forum-hub-subtitle">자료, 링크, 연습 도구를 한 곳에서 엽니다.</p>
+                </header>
                 <div className="forum-grid">
                     {menuItems.map((item) => (
                         <button
@@ -58,7 +62,10 @@ const ForumPage: React.FC = () => {
                             <div className="forum-icon-box">
                                 <i className={`${item.icon} forum-icon-glyph`}></i>
                             </div>
-                            <span className="forum-icon-label">{item.title}</span>
+                            <span className="forum-icon-copy">
+                                <strong className="forum-icon-label">{item.title}</strong>
+                                <em>{item.description}</em>
+                            </span>
                         </button>
                     ))}
                 </div>

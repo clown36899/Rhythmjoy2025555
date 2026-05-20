@@ -10,6 +10,8 @@ interface NewEventsBannerProps {
     onEventClick: (event: Event) => void;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
+    currentIndex?: number;
+    onCurrentIndexChange?: (index: number) => void;
 }
 
 export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
@@ -17,12 +19,18 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     onEventClick,
     defaultThumbnailClass,
     defaultThumbnailEvent,
+    currentIndex: controlledCurrentIndex,
+    onCurrentIndexChange,
 }) => {
     const { openModal } = useModalContext();
-    const [currentIndex, setCurrentIndex] = useState(() => {
+    const [internalCurrentIndex, setInternalCurrentIndex] = useState(() => {
         if (!events || events.length === 0) return 0;
         return Math.floor(Math.random() * events.length);
     });
+    const isControlled = typeof controlledCurrentIndex === 'number';
+    const currentIndex = isControlled
+        ? Math.min(Math.max(controlledCurrentIndex ?? 0, 0), Math.max(events.length - 1, 0))
+        : internalCurrentIndex;
     const [isPaused, setIsPaused] = useState(false);
     const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -41,6 +49,20 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
             setIsManualPaused(false);
         }, 8000);
     }, []);
+
+    const setCurrentIndex = useCallback((nextIndex: number | ((prev: number) => number)) => {
+        if (events.length === 0) return;
+
+        const rawNext = typeof nextIndex === 'function' ? nextIndex(currentIndex) : nextIndex;
+        const normalizedNext = (rawNext + events.length) % events.length;
+
+        if (isControlled) {
+            onCurrentIndexChange?.(normalizedNext);
+            return;
+        }
+
+        setInternalCurrentIndex(normalizedNext);
+    }, [currentIndex, events.length, isControlled, onCurrentIndexChange]);
 
     // 최소 스와이프 거리 (픽셀)
     const minSwipeDistance = 50;
@@ -79,20 +101,20 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [events.length, isPaused, isManualPaused]);
+    }, [events.length, isPaused, isManualPaused, setCurrentIndex]);
 
     const goToSlide = useCallback((index: number) => {
         triggerManualPause();
         setCurrentIndex(index);
-    }, [triggerManualPause]);
+    }, [setCurrentIndex, triggerManualPause]);
 
     const goToPrevious = useCallback(() => {
         setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
-    }, [events.length]);
+    }, [events.length, setCurrentIndex]);
 
     const goToNext = useCallback(() => {
         setCurrentIndex((prev) => (prev + 1) % events.length);
-    }, [events.length]);
+    }, [events.length, setCurrentIndex]);
 
     if (events.length === 0) return null;
 

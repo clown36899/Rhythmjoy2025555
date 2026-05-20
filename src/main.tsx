@@ -118,6 +118,7 @@ const AdminUiSamplesPage = lazy(() => import('./pages/admin/ui/AdminUiSamplesPag
 const FreeBoardGuidePage = lazy(() => import('./pages/admin/ui/FreeBoardGuidePage'));
 const CalendarGuidePage = lazy(() => import('./pages/admin/ui/CalendarGuidePage'));
 const V2MainAdGuidePage = lazy(() => import('./pages/admin/ui/V2MainAdGuidePage'));
+const DanceExpansionGuidePage = lazy(() => import('./pages/admin/ui/DanceExpansionGuidePage'));
 const WebzineViewer = lazy(() => import('./pages/webzine/WebzineViewer'));
 const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineList'));
 const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
@@ -233,6 +234,7 @@ const router = createBrowserRouter([
       { path: "/admin/ui/free-board-guide", element: <Suspense fallback={null}><FreeBoardGuidePage /></Suspense> },
       { path: "/admin/ui/calendar-guide", element: <Suspense fallback={null}><CalendarGuidePage /></Suspense> },
       { path: "/admin/ui/v2-main-ad-guide", element: <Suspense fallback={null}><V2MainAdGuidePage /></Suspense> },
+      { path: "/admin/ui/dance-expansion-guide", element: <Suspense fallback={null}><DanceExpansionGuidePage /></Suspense> },
       { path: "/links", element: <LinksPage /> },
       { path: "/places", element: <PlacesPage /> },
 

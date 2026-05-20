@@ -15,12 +15,13 @@ import './events.css';
 const EventRegistrationModal = lazy(() => import('../../components/EventRegistrationModal'));
 
 type GenreGroups = {
+  social: string[];
+  event: string[];
   class: string[];
   club: string[];
-  event: string[];
 };
 
-type EventsInfoSectionTone = 'event' | 'class' | 'club' | 'regular';
+type EventsInfoSectionTone = 'social' | 'event' | 'class' | 'club';
 
 type EventsInfoSectionProps = {
   title: string;
@@ -33,12 +34,25 @@ type EventsInfoSectionProps = {
   onGenreChange: (genre: string | null) => void;
   renderGenreLabel: (genre: string) => ReactNode;
   events: Event[];
-  actionLabel: string;
-  onAction: () => void;
-  rightElement?: ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
   favoriteEventIds: Set<number | string>;
   onEventClick: (event: Event) => void;
   onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
+};
+
+type EventsInfoCategory = 'social' | 'event' | 'class' | 'club';
+type EventsInfoSortOrder = 'random' | 'date';
+
+const getEventsInfoCategory = (event: Event): EventsInfoCategory => {
+  if (event.category === 'class') return 'class';
+  if (event.category === 'club') return 'club';
+  if (event.category === 'social') return 'social';
+
+  const text = `${event.genre || ''} ${event.title || ''}`.toLowerCase();
+  if (/(^|,|\s)(dj|소셜|social)(,|\s|$)/i.test(text)) return 'social';
+
+  return 'event';
 };
 
 const shouldShowClass = (event: Event) => {
@@ -46,17 +60,45 @@ const shouldShowClass = (event: Event) => {
   let startDate = event.start_date || event.date;
 
   if (event.event_dates && event.event_dates.length > 0) {
-    startDate = [...event.event_dates].sort()[0];
+    const sortedDates = [...event.event_dates].sort();
+    startDate = sortedDates.find((date) => date >= today) || sortedDates[0];
   }
 
   if (!startDate) return true;
   return !(today > startDate);
 };
 
-const isFutureEvent = (event: Event) => (event.end_date || event.date || '') >= getLocalDateString();
+const isFutureEvent = (event: Event) => {
+  const today = getLocalDateString();
+  if (event.event_dates?.some((date) => date >= today)) return true;
+  return (event.end_date || event.start_date || event.date || '') >= today;
+};
+
+const getNextRelevantEventDate = (event: Event) => {
+  const today = getLocalDateString();
+  const candidates = [
+    ...(Array.isArray(event.event_dates) ? event.event_dates : []),
+    event.start_date || event.date || '',
+  ].filter(Boolean).sort();
+
+  return candidates.find((date) => date >= today) || candidates[0] || '';
+};
+
+const getEventSortDateValue = (event: Event) => {
+  const date = getNextRelevantEventDate(event);
+  return `${date} ${event.time || ''}`.trim();
+};
+
+const sortEventsInfoItems = (items: Event[], sortOrder: EventsInfoSortOrder, randomSeed: number) => {
+  if (sortOrder === 'date') {
+    return [...items].sort((a, b) => getEventSortDateValue(a).localeCompare(getEventSortDateValue(b)));
+  }
+
+  return sortEvents(items, 'random', false, null, false, randomSeed);
+};
 
 const getEventDateText = (event: Event) => {
-  const date = event.event_dates?.[0] || event.start_date || event.date;
+  const date = getNextRelevantEventDate(event);
   if (!date) return '날짜 미정';
 
   const parsed = new Date(`${date}T00:00:00`);
@@ -72,20 +114,23 @@ const getEventPlace = (event: Event) => {
 };
 
 const getEventCategoryLabel = (event: Event) => {
-  if (event.category === 'class') return '강습';
-  if (event.category === 'club') return '동호회';
-  if (event.category === 'social') return '소셜';
+  const category = getEventsInfoCategory(event);
+  if (category === 'class') return '강습';
+  if (category === 'club') return '동호회';
+  if (category === 'social') return '소셜';
   return '행사';
 };
 
 const buildGenreGroups = (events: Event[]): GenreGroups => {
   const today = getLocalDateString();
+  const socialGenres = new Set<string>();
+  const eventGenres = new Set<string>();
   const classGenres = new Set<string>();
   const clubGenres = new Set<string>();
-  const eventGenres = new Set<string>();
 
   events.forEach((event) => {
     if (!event.genre) return;
+    const category = getEventsInfoCategory(event);
     const endDate = event.end_date || event.date;
     if (endDate && endDate < today) return;
 
@@ -93,18 +138,20 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
       const genre = rawGenre.trim();
       if (!genre) return;
 
-      if (event.category === 'class') classGenres.add(genre);
-      if (event.category === 'club' && !genre.includes('정규강습')) clubGenres.add(genre);
-      if (event.category === 'event') eventGenres.add(genre);
+      if (category === 'social') socialGenres.add(genre);
+      if (category === 'event') eventGenres.add(genre);
+      if (category === 'class') classGenres.add(genre);
+      if (category === 'club') clubGenres.add(genre);
     });
   });
 
   const sortKo = (a: string, b: string) => a.localeCompare(b, 'ko');
 
   return {
+    social: Array.from(socialGenres).sort(sortKo),
+    event: Array.from(eventGenres).sort(sortKo),
     class: Array.from(classGenres).sort(sortKo),
     club: Array.from(clubGenres).sort(sortKo),
-    event: Array.from(eventGenres).sort(sortKo),
   };
 };
 
@@ -163,6 +210,7 @@ function EventsInfoCard({
 }) {
   const place = getEventPlace(event);
   const genre = event.genre?.split(',').map((item) => item.trim()).filter(Boolean)[0] || getEventCategoryLabel(event);
+  const displayCategory = getEventsInfoCategory(event);
 
   return (
     <article
@@ -170,7 +218,7 @@ function EventsInfoCard({
       onClick={() => onEventClick(event)}
       data-event-id={event.id}
       data-analytics-id={event.id}
-      data-analytics-type={event.category === 'class' ? 'class' : 'event'}
+      data-analytics-type={displayCategory === 'class' ? 'class' : displayCategory === 'social' ? 'social' : 'event'}
       data-analytics-title={event.title}
       data-analytics-section="events_info_route"
     >
@@ -211,7 +259,6 @@ function EventsInfoSection({
   events,
   actionLabel,
   onAction,
-  rightElement,
   favoriteEventIds,
   onEventClick,
   onToggleFavorite,
@@ -224,13 +271,14 @@ function EventsInfoSection({
           <strong>{title}</strong>
           <b>{count}</b>
         </div>
-        <div className="events-info-section-actions">
-          {rightElement}
-          <button type="button" onClick={onAction}>
-            {actionLabel}
-            <i className="ri-arrow-right-s-line" />
-          </button>
-        </div>
+        {onAction && (
+          <div className="events-info-section-actions">
+            <button type="button" onClick={onAction}>
+              {actionLabel || '보기'}
+              <i className="ri-arrow-right-s-line" />
+            </button>
+          </div>
+        )}
       </div>
 
       {genres.length > 0 && (
@@ -275,7 +323,7 @@ export default function EventsInfoPage() {
   const { data: events = [], isLoading, refetch } = useEventsQuery();
   const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
 
-  const [eventSortOrder, setEventSortOrder] = useState<'random' | 'date'>('random');
+  const [sortOrder, setSortOrder] = useState<EventsInfoSortOrder>('random');
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationDate, setRegistrationDate] = useState<Date | null>(null);
   const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
@@ -286,6 +334,7 @@ export default function EventsInfoPage() {
 
   const genreGroups = useMemo(() => buildGenreGroups(events), [events]);
 
+  const selectedSocialGenre = searchParams.get('social_genre');
   const selectedEventGenre = searchParams.get('event_genre');
   const selectedClassGenre = searchParams.get('class_genre');
   const selectedClubGenre = searchParams.get('club_genre');
@@ -297,57 +346,44 @@ export default function EventsInfoPage() {
     setSearchParams(nextParams, { replace: false });
   }, [searchParams, setSearchParams]);
 
-  const futureEvents = useMemo(() => {
-    const filtered = events.filter((event) => event.category === 'event' && isFutureEvent(event));
+  const socialEvents = useMemo(() => {
+    return sortEventsInfoItems(
+      events.filter((event) => getEventsInfoCategory(event) === 'social' && isFutureEvent(event)),
+      sortOrder,
+      randomSeed
+    );
+  }, [events, randomSeed, sortOrder]);
 
-    if (eventSortOrder === 'date') {
-      return [...filtered].sort((a, b) => {
-        const dateA = a.start_date || a.date || '';
-        const dateB = b.start_date || b.date || '';
-        return dateA.localeCompare(dateB);
-      });
-    }
-
-    return sortEvents(filtered, 'random', false, null, false, randomSeed);
-  }, [eventSortOrder, events, randomSeed]);
+  const eventItems = useMemo(() => {
+    const filtered = events.filter((event) => getEventsInfoCategory(event) === 'event' && isFutureEvent(event));
+    return sortEventsInfoItems(filtered, sortOrder, randomSeed);
+  }, [events, randomSeed, sortOrder]);
 
   const regularClasses = useMemo(() => {
-    return sortEvents(
+    return sortEventsInfoItems(
       events.filter((event) => event.category === 'class' && isFutureEvent(event)),
-      'random',
-      false,
-      null,
-      false,
+      sortOrder,
       randomSeed
     );
-  }, [events, randomSeed]);
+  }, [events, randomSeed, sortOrder]);
 
-  const clubLessons = useMemo(() => {
-    return sortEvents(
-      events.filter((event) => event.category === 'club' && !event.genre?.includes('정규강습') && isFutureEvent(event)),
-      'random',
-      false,
-      null,
-      false,
+  const clubEvents = useMemo(() => {
+    return sortEventsInfoItems(
+      events.filter((event) => event.category === 'club' && isFutureEvent(event)),
+      sortOrder,
       randomSeed
     );
-  }, [events, randomSeed]);
+  }, [events, randomSeed, sortOrder]);
 
-  const clubRegularClasses = useMemo(() => {
-    return sortEvents(
-      events.filter((event) => event.category === 'club' && event.genre?.includes('정규강습') && isFutureEvent(event)),
-      'random',
-      false,
-      null,
-      false,
-      randomSeed
-    );
-  }, [events, randomSeed]);
+  const filteredSocialEvents = useMemo(() => {
+    if (!selectedSocialGenre) return socialEvents;
+    return socialEvents.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedSocialGenre));
+  }, [socialEvents, selectedSocialGenre]);
 
   const filteredFutureEvents = useMemo(() => {
-    if (!selectedEventGenre) return futureEvents;
-    return futureEvents.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedEventGenre));
-  }, [futureEvents, selectedEventGenre]);
+    if (!selectedEventGenre) return eventItems;
+    return eventItems.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedEventGenre));
+  }, [eventItems, selectedEventGenre]);
 
   const filteredRegularClasses = useMemo(() => {
     return regularClasses
@@ -355,17 +391,11 @@ export default function EventsInfoPage() {
       .filter((event) => !selectedClassGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClassGenre));
   }, [regularClasses, selectedClassGenre]);
 
-  const filteredClubLessons = useMemo(() => {
-    return clubLessons
+  const filteredClubEvents = useMemo(() => {
+    return clubEvents
       .filter(shouldShowClass)
       .filter((event) => !selectedClubGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClubGenre));
-  }, [clubLessons, selectedClubGenre]);
-
-  const filteredClubRegularClasses = useMemo(() => {
-    return clubRegularClasses
-      .filter(shouldShowClass)
-      .filter((event) => !selectedClubGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClubGenre));
-  }, [clubRegularClasses, selectedClubGenre]);
+  }, [clubEvents, selectedClubGenre]);
 
   const handleToggleFavorite = useCallback(async (eventId: number | string, event?: MouseEvent) => {
     event?.stopPropagation();
@@ -387,9 +417,9 @@ export default function EventsInfoPage() {
       currentUserId: user?.id,
       isFavorite: favoriteEventIds.has(Number(event.id)),
       onToggleFavorite: (clickEvent: MouseEvent) => handleToggleFavorite(event.id, clickEvent),
-      allGenres: { class: genreGroups.class, event: genreGroups.event },
+      allGenres: { class: genreGroups.class, event: [...genreGroups.social, ...genreGroups.event] },
     });
-  }, [favoriteEventIds, genreGroups.class, genreGroups.event, handleToggleFavorite, isAdmin, openModal, user?.id]);
+  }, [favoriteEventIds, genreGroups.class, genreGroups.event, genreGroups.social, handleToggleFavorite, isAdmin, openModal, user?.id]);
 
   useSetPageAction(useMemo(() => ({
     icon: 'ri-add-line',
@@ -410,13 +440,6 @@ export default function EventsInfoPage() {
     },
   }), [closeModal, openModal]));
 
-  const summaryItems = [
-    { label: '예정된 행사', count: futureEvents.length, icon: 'ri-fire-fill' },
-    { label: '강습', count: regularClasses.filter(shouldShowClass).length, icon: 'ri-calendar-check-fill' },
-    { label: '동호회 강습', count: clubLessons.filter(shouldShowClass).length, icon: 'ri-group-fill' },
-    { label: '동호회 정규강습', count: clubRegularClasses.filter(shouldShowClass).length, icon: 'ri-group-2-fill' },
-  ];
-
   useEffect(() => {
     const section = searchParams.get('section');
     if (!section) return;
@@ -429,58 +452,38 @@ export default function EventsInfoPage() {
 
   return (
     <main className="events-info-page">
-      <section className="events-info-hero">
-        <div>
-          <strong>강습&행사정보</strong>
-          <span>메인 하단에 있던 행사와 강습 섹션을 그대로 모아 봅니다.</span>
-        </div>
-        <button type="button" onClick={() => navigate('/calendar')}>
-          <i className="ri-calendar-event-line" />
-          캘린더
+      <div className="events-info-toolbar" aria-label="행사정보 정렬">
+        <button
+          type="button"
+          className={`events-info-sort-btn ${sortOrder === 'date' ? 'is-active' : ''}`}
+          onClick={() => setSortOrder((order) => order === 'date' ? 'random' : 'date')}
+          title={sortOrder === 'date' ? '시간순 정렬 중' : '랜덤 정렬 중'}
+        >
+          <i className={sortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'} />
+          {sortOrder === 'date' ? '시간순' : '랜덤'}
         </button>
-      </section>
-
-      <section className="events-info-summary" aria-label="강습 행사 요약">
-        {summaryItems.map((item) => (
-          <div key={item.label}>
-            <i className={item.icon} />
-            <span>{item.label}</span>
-            <strong>{item.count}</strong>
-          </div>
-        ))}
-      </section>
+      </div>
 
       {isLoading && events.length === 0 ? (
         <div className="events-info-state">정보를 불러오는 중입니다...</div>
       ) : (
         <section className="events-info-rows">
           <EventsInfoSection
-            title="예정된 행사"
+            title="행사"
             sectionKey="events"
             icon="ri-fire-fill"
             tone="event"
-            count={futureEvents.length}
+            count={eventItems.length}
             genres={['전체', ...genreGroups.event]}
             selectedGenre={selectedEventGenre}
             onGenreChange={(genre) => setGenreParam('event_genre', genre)}
             renderGenreLabel={renderGenreLabel}
             events={filteredFutureEvents}
             actionLabel="달력보기"
-            onAction={() => navigate('/calendar')}
+            onAction={() => navigate('/calendar?category=social&scrollToToday=true')}
             onEventClick={handleEventClick}
             favoriteEventIds={favoriteEventIds}
             onToggleFavorite={handleToggleFavorite}
-            rightElement={
-              <button
-                type="button"
-                className={`events-info-sort-btn ${eventSortOrder === 'date' ? 'is-active' : ''}`}
-                onClick={() => setEventSortOrder((order) => order === 'date' ? 'random' : 'date')}
-                title={eventSortOrder === 'date' ? '날짜순 정렬 중' : '랜덤 정렬 중'}
-              >
-                <i className={eventSortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'} />
-                {eventSortOrder === 'date' ? '날짜순' : '랜덤'}
-              </button>
-            }
           />
 
           <EventsInfoSection
@@ -502,36 +505,34 @@ export default function EventsInfoPage() {
           />
 
           <EventsInfoSection
-            title="동호회 강습"
-            sectionKey="club-lessons"
+            title="동호회"
+            sectionKey="club"
             icon="ri-group-fill"
             tone="club"
-            count={clubLessons.filter(shouldShowClass).length}
+            count={clubEvents.filter(shouldShowClass).length}
             genres={['전체', ...genreGroups.club]}
             selectedGenre={selectedClubGenre}
             onGenreChange={(genre) => setGenreParam('club_genre', genre)}
             renderGenreLabel={renderGenreLabel}
-            events={filteredClubLessons}
-            actionLabel="이벤트등록"
-            onAction={() => navigate('/social')}
+            events={filteredClubEvents}
+            actionLabel="달력보기"
+            onAction={() => navigate('/calendar?category=classes&scrollToToday=true')}
             onEventClick={handleEventClick}
             favoriteEventIds={favoriteEventIds}
             onToggleFavorite={handleToggleFavorite}
           />
 
           <EventsInfoSection
-            title="동호회 정규강습"
-            sectionKey="club-regular"
-            icon="ri-group-2-fill"
-            tone="regular"
-            count={clubRegularClasses.filter(shouldShowClass).length}
-            genres={['전체', ...genreGroups.club]}
-            selectedGenre={selectedClubGenre}
-            onGenreChange={(genre) => setGenreParam('club_genre', genre)}
+            title="소셜"
+            sectionKey="social"
+            icon="ri-music-2-fill"
+            tone="social"
+            count={socialEvents.length}
+            genres={['전체', ...genreGroups.social]}
+            selectedGenre={selectedSocialGenre}
+            onGenreChange={(genre) => setGenreParam('social_genre', genre)}
             renderGenreLabel={renderGenreLabel}
-            events={filteredClubRegularClasses}
-            actionLabel="달력보기"
-            onAction={() => navigate('/calendar?category=club&scrollToToday=true')}
+            events={filteredSocialEvents}
             onEventClick={handleEventClick}
             favoriteEventIds={favoriteEventIds}
             onToggleFavorite={handleToggleFavorite}

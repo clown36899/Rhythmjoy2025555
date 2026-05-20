@@ -1,39 +1,29 @@
 .events-info-page {
   min-height: 100vh;
-  padding: 18px 0 calc(104px + env(safe-area-inset-bottom));
+  padding: 62px 0 calc(104px + env(safe-area-inset-bottom));
   background: var(--bg-deep);
   color: var(--text-primary);
 }
 
-.events-info-hero {
+.events-info-toolbar {
+  position: fixed;
+  top: calc(118px + env(safe-area-inset-top));
+  right: 0;
+  left: 0;
+  z-index: 998;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-  max-width: 1120px;
-  margin: 0 auto 12px;
-  padding: 0 16px;
+  height: 48px;
+  margin: 0;
+  padding: 6px max(16px, calc((100vw - 1120px) / 2 + 16px));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  background: color-mix(in srgb, var(--bg-deep) 86%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
 }
 
-.events-info-hero div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.events-info-hero strong {
-  font-size: 25px;
-  line-height: 1.16;
-}
-
-.events-info-hero span {
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 750;
-  line-height: 1.4;
-}
-
-.events-info-hero button,
 .events-info-section-actions button,
 .events-info-sort-btn {
   flex: 0 0 auto;
@@ -54,46 +44,6 @@
   white-space: nowrap;
 }
 
-.events-info-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  max-width: 1120px;
-  margin: 0 auto 18px;
-  padding: 0 16px;
-}
-
-.events-info-summary div {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid var(--border-glass);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-surface-1) 86%, transparent);
-}
-
-.events-info-summary i {
-  color: var(--color-orange-400);
-  font-size: 16px;
-}
-
-.events-info-summary span {
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.events-info-summary strong {
-  color: var(--text-primary);
-  font-size: 15px;
-}
-
 .events-info-rows {
   display: grid;
   gap: 16px;
@@ -107,7 +57,11 @@
   display: grid;
   gap: 0;
   min-width: 0;
-  scroll-margin-top: calc(122px + env(safe-area-inset-top));
+  scroll-margin-top: calc(176px + env(safe-area-inset-top));
+}
+
+.events-info-section.is-social {
+  --events-info-accent: #34d399;
 }
 
 .events-info-section.is-class {
@@ -116,10 +70,6 @@
 
 .events-info-section.is-club {
   --events-info-accent: #a78bfa;
-}
-
-.events-info-section.is-regular {
-  --events-info-accent: #34d399;
 }
 
 .events-info-section-head {
@@ -169,8 +119,7 @@
 }
 
 .events-info-section-actions button:hover,
-.events-info-sort-btn:hover,
-.events-info-hero button:hover {
+.events-info-sort-btn:hover {
   border-color: color-mix(in srgb, var(--events-info-accent, var(--color-blue-400)) 44%, var(--border-secondary));
   color: var(--events-info-accent, var(--color-blue-400));
 }
@@ -374,39 +323,14 @@
 
 @media (max-width: 760px) {
   .events-info-page {
-    padding-top: 12px;
+    padding-top: 56px;
     background: var(--bg-deep);
   }
 
-  .events-info-hero {
-    display: grid;
-    gap: 9px;
-    margin-bottom: 10px;
-    padding: 0 12px;
-  }
-
-  .events-info-hero strong {
-    font-size: 21px;
-  }
-
-  .events-info-hero span {
-    font-size: 12px;
-  }
-
-  .events-info-hero button {
-    width: fit-content;
-    min-height: 32px;
-  }
-
-  .events-info-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    margin-bottom: 14px;
-    padding: 0 12px;
-  }
-
-  .events-info-summary div {
-    padding: 8px;
+  .events-info-toolbar {
+    top: calc(110px + env(safe-area-inset-top));
+    height: 46px;
+    padding: 6px 12px;
   }
 
   .events-info-rows {
@@ -433,6 +357,10 @@
     min-height: 30px;
     padding: 0 8px;
     font-size: 11px;
+  }
+
+  .events-info-section {
+    scroll-margin-top: calc(162px + env(safe-area-inset-top));
   }
 
   .events-info-genre-row button {
@@ -489,5 +417,20 @@
   .events-info-card-thumb,
   .events-info-card-thumb img {
     min-height: 174px;
+  }
+}
+
+@media (max-width: 420px) {
+  .events-info-page {
+    padding-top: 52px;
+  }
+
+  .events-info-toolbar {
+    top: calc(98px + env(safe-area-inset-top));
+    height: 44px;
+  }
+
+  .events-info-section {
+    scroll-margin-top: calc(148px + env(safe-area-inset-top));
   }
 }

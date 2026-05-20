@@ -1,3 +1,13 @@
+import {
+  type DanceActivity,
+  type DanceGenreFamily,
+  getDanceActivityLabel,
+  getDanceFamilyLabel,
+  getDanceGenreLabel,
+  getDanceTagLabel,
+  inferDanceTaxonomy,
+} from '../../../../utils/danceTaxonomy';
+
 type EventType = '소셜' | '파티/행사' | '강습';
 
 export interface VenueRecord {
@@ -24,6 +34,10 @@ interface ScrapedLike {
   structured_data?: {
     title?: string;
     event_type?: EventType | null;
+    activity_type?: DanceActivity | null;
+    genre_family?: DanceGenreFamily | null;
+    dance_genre?: string | null;
+    tags?: string[] | null;
     location?: string;
     address?: string;
     venue_id?: string | number | null;
@@ -53,6 +67,11 @@ const SOURCE_VENUE_ALIASES: Array<[RegExp, string]> = [
 ];
 
 export function detectEventType(event: ScrapedLike): EventType {
+  const activity = detectIngestorActivity(event);
+  if (activity === 'class') return '강습';
+  if (activity === 'social') return '소셜';
+  if (activity === 'recruit') return '파티/행사';
+
   const explicit = event.structured_data?.event_type;
   if (explicit) return explicit;
 
@@ -60,6 +79,38 @@ export function detectEventType(event: ScrapedLike): EventType {
   if (/수업|강습|레슨|lesson|workshop|워크샵|class|초급|중급|입문/.test(text)) return '강습';
   if (/소셜|social|dj/.test(text)) return '소셜';
   return '파티/행사';
+}
+
+export function detectIngestorActivity(event: ScrapedLike): DanceActivity {
+  const explicit = event.structured_data?.activity_type;
+  if (explicit && ['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
+  return inferDanceTaxonomy(event).activity_type;
+}
+
+export function getIngestorActivityLabel(event: ScrapedLike): string {
+  return getDanceActivityLabel(detectIngestorActivity(event));
+}
+
+export function getIngestorGenreMeta(event: ScrapedLike) {
+  const inferred = inferDanceTaxonomy(event);
+  const family = event.structured_data?.genre_family || inferred.genre_family;
+  const genre = event.structured_data?.dance_genre || inferred.dance_genre;
+  return {
+    family,
+    familyLabel: getDanceFamilyLabel(family),
+    genre,
+    genreLabel: getDanceGenreLabel(genre),
+  };
+}
+
+export function getIngestorTags(event: ScrapedLike): string[] {
+  const existing = event.structured_data?.tags;
+  if (Array.isArray(existing) && existing.length > 0) return existing.filter(Boolean);
+  return inferDanceTaxonomy(event).tags;
+}
+
+export function getIngestorTagLabel(tag: string): string {
+  return getDanceTagLabel(tag);
 }
 
 export function normalizeVenueName(value: string): string {
@@ -123,12 +174,12 @@ export function matchVenue(event: ScrapedLike, venues: VenueRecord[]): VenueReco
 }
 
 export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): MappedIngestorEvent {
-  const eventType = detectEventType(event);
+  const activity = detectIngestorActivity(event);
   const matchedVenue = matchVenue(event, venues);
   const sd = event.structured_data || {};
 
-  const category = eventType === '강습' ? 'class' : eventType === '소셜' ? 'social' : 'event';
-  const genre = eventType === '강습' ? '강습' : eventType === '소셜' ? '소셜' : '파티';
+  const category = activity === 'class' ? 'class' : activity === 'social' ? 'social' : 'event';
+  const genre = activity === 'class' ? '강습' : activity === 'social' ? '소셜' : activity === 'recruit' ? '모집' : '행사';
   const location = matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '';
   const address = sd.address || matchedVenue?.address || '';
 

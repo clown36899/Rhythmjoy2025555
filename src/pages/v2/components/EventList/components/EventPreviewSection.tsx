@@ -16,6 +16,7 @@ import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
 import { HomeNavButtonsSection } from "../../HomeNavButtonsSection";
 import { getCardThumbnail } from "../../../../../utils/getEventThumbnail";
+import { formatEventDate } from "../../../../../utils/dateUtils";
 
 
 interface EventPreviewSectionProps {
@@ -51,7 +52,128 @@ interface HomeRoutePreviewHubProps {
     regularClasses: Event[];
 }
 
+interface HomeNewEventsDesktopSplitProps {
+    events: Event[];
+    onEventClick: (event: Event) => void;
+    defaultThumbnailClass: string;
+    defaultThumbnailEvent: string;
+}
+
 const getPreviewImage = (event?: Event) => event ? getCardThumbnail(event) : undefined;
+
+const getHomeEventDateText = (event: Event) => {
+    if (event.event_dates && event.event_dates.length > 0) {
+        return formatEventDate(event.event_dates[0]) + (event.event_dates.length > 1 ? " ..." : "");
+    }
+
+    const startDate = event.start_date || event.date;
+    const endDate = event.end_date || event.date;
+    if (!startDate && !endDate) return "날짜 미정";
+    if (startDate && endDate && startDate !== endDate) {
+        return `${formatEventDate(startDate)}~${formatEventDate(endDate)}`;
+    }
+
+    return formatEventDate(startDate || endDate || "");
+};
+
+const getHomeEventLocationText = (event: Event) => event.location || event.place_name || "장소 미정";
+
+const getHomeEventKindText = (event: Event) => {
+    if (event.category === "class" || event.is_class) return "강습";
+    return event.genre || "행사";
+};
+
+const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
+    events,
+    onEventClick,
+    defaultThumbnailClass,
+    defaultThumbnailEvent,
+}) => {
+    const navigate = useNavigate();
+    const [activeIndex, setActiveIndex] = useState(() => {
+        if (!events || events.length === 0) return 0;
+        return Math.floor(Math.random() * events.length);
+    });
+    const safeActiveIndex = events.length > 0 ? activeIndex % events.length : 0;
+    const featuredEvent = events[safeActiveIndex] || events[0];
+    const queueEvents = featuredEvent
+        ? [featuredEvent, ...events.filter(event => event.id !== featuredEvent.id)].slice(0, 4)
+        : events.slice(0, 4);
+    const venueCount = new Set(events.map(getHomeEventLocationText).filter(location => location !== "장소 미정")).size;
+
+    return (
+        <section className="home-neb-desktop-layout" aria-label="신규 이벤트 광고">
+            <div className="home-neb-main-slot">
+                <NewEventsBanner
+                    events={events}
+                    onEventClick={onEventClick}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                    currentIndex={safeActiveIndex}
+                    onCurrentIndexChange={setActiveIndex}
+                />
+            </div>
+
+            <aside className="home-neb-side-panel" aria-label="신규 이벤트 목록">
+                <div className="home-neb-side-head">
+                    <span>신규 큐</span>
+                    <strong>{events.length}개 노출중</strong>
+                </div>
+
+                {featuredEvent && (
+                    <button
+                        type="button"
+                        className="home-neb-feature-card"
+                        onClick={() => onEventClick(featuredEvent)}
+                    >
+                        <span className="home-neb-feature-kicker">{getHomeEventKindText(featuredEvent)}</span>
+                        <strong>{featuredEvent.title}</strong>
+                        <em>
+                            {getHomeEventDateText(featuredEvent)} · {getHomeEventLocationText(featuredEvent)}
+                        </em>
+                    </button>
+                )}
+
+                <div className="home-neb-side-stats" aria-label="신규 이벤트 요약">
+                    <span>
+                        <b>{events.length}</b>
+                        <em>신규</em>
+                    </span>
+                    <span>
+                        <b>{venueCount}</b>
+                        <em>장소</em>
+                    </span>
+                </div>
+
+                <div className="home-neb-queue-list">
+                    {queueEvents.map((event, index) => (
+                        <button
+                            type="button"
+                            key={event.id}
+                            className="home-neb-queue-item"
+                            onClick={() => onEventClick(event)}
+                        >
+                            <span className="home-neb-queue-rank">{index + 1}</span>
+                            <span className="home-neb-queue-copy">
+                                <strong>{event.title}</strong>
+                                <em>{getHomeEventDateText(event)} · {getHomeEventLocationText(event)}</em>
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                <button
+                    type="button"
+                    className="home-neb-calendar-link"
+                    onClick={() => navigate("/calendar?scrollToToday=true")}
+                >
+                    캘린더에서 보기
+                    <i className="ri-arrow-right-line" />
+                </button>
+            </aside>
+        </section>
+    );
+};
 
 const HomeRoutePreviewHub: React.FC<HomeRoutePreviewHubProps> = ({ socialData, futureEvents, regularClasses }) => {
     const navigate = useNavigate();
@@ -225,7 +347,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         <div className="ELS-section">
             {/* 1.5 Newly Registered Events Section (24 hours) */}
             {vis.show_new_events_banner && newlyRegisteredEvents.length > 0 && (
-                <NewEventsBanner
+                <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
                     onEventClick={onEventClick}
                     defaultThumbnailClass={defaultThumbnailClass}

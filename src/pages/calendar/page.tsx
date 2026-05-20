@@ -27,6 +27,56 @@ const EventRegistrationModal = lazy(() => import("../../components/EventRegistra
 const SocialScheduleModal = lazy(() => import("../social/components/SocialScheduleModal"));
 const CalendarDateMapModal = lazy(() => import("./components/CalendarDateMapModal"));
 
+const getCalendarLocalDateString = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const getCalendarEventVenue = (event: any) =>
+    event.venue_name || event.place_name || event.location || event.address || '';
+
+const getCalendarEventDateStrings = (event: any) => {
+    const dates = new Set<string>();
+    const addDate = (value: any) => {
+        if (!value) return;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return;
+        dates.add(getCalendarLocalDateString(date));
+    };
+
+    if (Array.isArray(event.event_dates) && event.event_dates.length > 0) {
+        event.event_dates.forEach(addDate);
+        return Array.from(dates);
+    }
+
+    const startValue = event.start_date || event.date || event.schedule_date;
+    const endValue = event.end_date || event.date || event.schedule_date;
+    const startDate = startValue ? new Date(startValue) : null;
+    const endDate = endValue ? new Date(endValue) : null;
+
+    if (startDate && endDate && !Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())) {
+        const current = new Date(startDate);
+        let guard = 0;
+        while (current <= endDate && guard < 365) {
+            addDate(current);
+            current.setDate(current.getDate() + 1);
+            guard++;
+        }
+        return Array.from(dates);
+    }
+
+    addDate(startValue);
+    return Array.from(dates);
+};
+
+const isCalendarEventInFilter = (event: any, filter: 'all' | 'social-events' | 'classes') => {
+    const category = String(event.category || '').toLowerCase();
+    const isClassLike = ['class', 'regular', 'club'].includes(category);
+    if (filter === 'social-events') return !isClassLike;
+    if (filter === 'classes') return isClassLike;
+    return true;
+};
+
+const CALENDAR_WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+const CALENDAR_MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
 export default function CalendarPage() {
     const { t } = useTranslation();
@@ -56,6 +106,7 @@ export default function CalendarPage() {
 
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
     const [displayMode, setDisplayMode] = useState<'calendar' | 'list' | 'map'>('calendar');
+    const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<string[]>(() => Array(7).fill(''));
     const handleSetDisplayMode = useCallback((mode: 'calendar' | 'list' | 'map') => {
         setDisplayMode(mode);
         if (mode === 'list' || mode === 'map') {
@@ -68,9 +119,14 @@ export default function CalendarPage() {
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
+    const handleCalendarMapEventClick = useCallback((event: AppEvent) => {
+        eventModal.setSelectedEvent(event as any);
+    }, [eventModal.setSelectedEvent]);
     const [highlightedEventId, setHighlightedEventId] = useState<number | string | null>(null);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
+    const [showCalendarNavigator, setShowCalendarNavigator] = useState(false);
+    const [navigatorYear, setNavigatorYear] = useState(() => new Date().getFullYear());
     const isMapView = displayMode === 'map';
     const [mapDateEvents, setMapDateEvents] = useState<AppEvent[]>([]); // [New] 지도에 표시할 이벤트들
     const [showMapModal, setShowMapModal] = useState(false); // [New] 지도 모달 표시 상태
@@ -86,9 +142,111 @@ export default function CalendarPage() {
     // 리스트 뷰 전용: 오늘~6개월 후 이벤트 (캘린더 쿼리와 완전히 분리)
     const listViewData = useListViewEvents(displayMode === 'list');
 
+    useEffect(() => {
+        if (displayMode !== 'calendar') {
+            setScrollWeekDateLabels(Array(7).fill(''));
+            return;
+        }
+
+        let frame = 0;
+        let lastLabelKey = '';
+
+        const updateScrollDateLabel = () => {
+            frame = 0;
+            const stickyWeekdays = document.querySelector('.calendar-sticky-weekdays');
+            const cells = Array.from(document.querySelectorAll<HTMLElement>('.calendar-cell-fullscreen[data-date]'));
+            if (!stickyWeekdays || cells.length === 0) return;
+
+            const switchLineY = stickyWeekdays.getBoundingClientRect().bottom + 1;
+            const rows = new Map<number, HTMLElement[]>();
+
+            cells.forEach((cell) => {
+                const rowTop = Math.round(cell.getBoundingClientRect().top);
+                const existing = rows.get(rowTop);
+                if (existing) existing.push(cell);
+                else rows.set(rowTop, [cell]);
+            });
+
+            const sortedRows = Array.from(rows.entries())
+                .sort(([topA], [topB]) => topA - topB)
+                .map(([top, rowCells]) => ({
+                    top,
+                    cells: rowCells.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left),
+                }));
+
+            let activeRow = sortedRows[0];
+            for (const row of sortedRows) {
+                if (row.top <= switchLineY) activeRow = row;
+                else break;
+            }
+
+            const nextLabels = Array(7).fill('');
+            activeRow?.cells.slice(0, 7).forEach((cell, index) => {
+                const dateString = cell.dataset.date;
+                if (!dateString) return;
+                const [, , day] = dateString.split('-').map(Number);
+                nextLabels[index] = String(day);
+            });
+
+            const nextLabelKey = nextLabels.join('|');
+            if (nextLabelKey !== lastLabelKey) {
+                lastLabelKey = nextLabelKey;
+                setScrollWeekDateLabels(nextLabels);
+            }
+        };
+
+        const scheduleUpdate = () => {
+            if (frame) return;
+            frame = requestAnimationFrame(updateScrollDateLabel);
+        };
+
+        scheduleUpdate();
+        window.addEventListener('scroll', scheduleUpdate, { passive: true });
+        window.addEventListener('resize', scheduleUpdate);
+
+        return () => {
+            if (frame) cancelAnimationFrame(frame);
+            window.removeEventListener('scroll', scheduleUpdate);
+            window.removeEventListener('resize', scheduleUpdate);
+        };
+    }, [displayMode, currentMonth, tabFilter, calendarData]);
+
     // Favorites
     const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
     const favoriteEventIds = useMemo(() => new Set((interactions?.event_favorites || []).map(id => Number(id))), [interactions]);
+
+    const calendarPageStats = useMemo(() => {
+        const now = new Date();
+        const todayStr = getCalendarLocalDateString(now);
+        const weekEnd = new Date(now);
+        weekEnd.setDate(now.getDate() + 6);
+        const weekEndStr = getCalendarLocalDateString(weekEnd);
+
+        const rawEvents = [
+            ...((calendarData?.events || []) as any[]),
+            ...((calendarData?.socialSchedules || []) as any[]),
+        ].filter(event => isCalendarEventInFilter(event, tabFilter));
+
+        const todayEventIds = new Set<number | string>();
+        const weekEventIds = new Set<number | string>();
+        const venueNames = new Set<string>();
+
+        rawEvents.forEach((event) => {
+            const dates = getCalendarEventDateStrings(event);
+            if (dates.includes(todayStr)) todayEventIds.add(event.id);
+            if (dates.some(date => date >= todayStr && date <= weekEndStr)) weekEventIds.add(event.id);
+
+            const venue = getCalendarEventVenue(event).trim();
+            if (venue) venueNames.add(venue);
+        });
+
+        return {
+            todayCount: todayEventIds.size,
+            weekCount: weekEventIds.size,
+            venueCount: venueNames.size,
+            todayLabel: `${now.getMonth() + 1}.${now.getDate()}`,
+        };
+    }, [calendarData, tabFilter]);
 
     // Venue Modal State
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
@@ -153,7 +311,7 @@ export default function CalendarPage() {
     }, []);
 
     useEffect(() => {
-        const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
+        const isAnyModalOpen = showRegisterModal || showCalendarNavigator || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
 
         if (isAnyModalOpen) {
             // [Fix] overflow:hidden 방식으로 스크롤 잠금
@@ -162,13 +320,13 @@ export default function CalendarPage() {
         } else {
             document.body.style.overflow = '';
         }
-    }, [showRegisterModal, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
+    }, [showRegisterModal, showCalendarNavigator, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
 
 
     // [Precision Fix] 캘린더 위치 및 높이 사전 계산기 (Self-Healing Logic)
     const calendarMetrics = useMemo(() => {
         const today = new Date();
-        const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+        const firstDay = (new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay() + 6) % 7;
         const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
         const totalWeeks = Math.ceil((daysInMonth + firstDay) / 7);
 
@@ -176,9 +334,6 @@ export default function CalendarPage() {
         // [Dynamic Fix] window.innerWidth(스크롤바 포함) 대신 clientWidth(스크롤바 제외) 사용
         // 실제 CSS Grid가 사용하는 가용 너비와 100% 일치시킴
         const vw = typeof document !== 'undefined' ? document.documentElement.clientWidth : 650;
-        const boundedVw = Math.min(650, vw);
-        const cellWidth = (boundedVw - 10) / 7; // .calendar-grid-container padding: 5px (좌우 합 10px)
-        console.log('cellWidth', cellWidth);
         let localEventsToCount: AppEvent[] = [];
         if (calendarData) {
             const allEvents = (calendarData.events || []) as AppEvent[];
@@ -197,13 +352,7 @@ export default function CalendarPage() {
             }
         }
 
-        // [Social Fix] 소셜(1:1)과 일반(4:5) 이벤트를 분리 집계하여 정확한 높이 계산
-        const socialByDate: Record<string, number> = {};
-        const regularByDate: Record<string, number> = {};
-
-        // FullEventCalendar.tsx의 isSocialEvent 로직과 1:1 동일
-        const isSocialEvt = (event: any) =>
-            !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
+        const eventsByDate: Record<string, number> = {};
 
         const addToDate = (map: Record<string, number>, dateStr: string) => {
             map[dateStr] = (map[dateStr] || 0) + 1;
@@ -217,7 +366,6 @@ export default function CalendarPage() {
         };
 
         localEventsToCount.forEach((event: any) => {
-            const targetMap = isSocialEvt(event) ? socialByDate : regularByDate;
             if (event.event_dates && event.event_dates.length > 0) {
                 const isClass = event.category && ['class', 'regular', 'club'].includes(event.category.toLowerCase());
                 const sortedDates = [...event.event_dates].sort();
@@ -225,10 +373,9 @@ export default function CalendarPage() {
                     const dateStr = getLocalStr(d);
                     if (!dateStr) return;
                     if (isClass && dateStr !== getLocalStr(sortedDates[0])) return;
-                    addToDate(targetMap, dateStr);
+                    addToDate(eventsByDate, dateStr);
                 });
             } else {
-                // [Fix] FullEventCalendar.tsx eventsByDate와 동일하게 start_date~end_date 전체 범위 카운트
                 const startStr = event.start_date || event.date || event.schedule_date;
                 const endStr = event.end_date || event.date || event.schedule_date;
                 const startDate = startStr ? new Date(startStr) : null;
@@ -239,101 +386,66 @@ export default function CalendarPage() {
                     let limit = 0;
                     while (curr <= endDate && limit < 365) {
                         const dateStr = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
-                        addToDate(targetMap, dateStr);
+                        addToDate(eventsByDate, dateStr);
                         curr.setDate(curr.getDate() + 1);
                         limit++;
                     }
                 } else {
                     const dateStr = getLocalStr(startStr);
-                    if (dateStr) addToDate(targetMap, dateStr);
+                    if (dateStr) addToDate(eventsByDate, dateStr);
                 }
             }
         });
 
         let sumPrecedingHeight = 0;
         let cumulativePageHeight = 0;
+        const rowGap = vw <= 430 ? 4 : 5;
+        const minCellHeight = vw <= 430 ? 30 : 112;
+        const dayHeaderHeight = vw <= 430 ? 18 : 28;
+        const eventChipHeight = vw <= 430 ? 64 : 68;
+        const eventGap = vw <= 430 ? 3 : 4;
         const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
             currentMonth.getMonth() === today.getMonth();
         const todayWeekIndex = Math.floor((today.getDate() + firstDay - 1) / 7);
 
-        const debugTable: any[] = [];
-        const containerPaddingTop = 5;
+        const containerPaddingTop = 12;
 
-        // [Dynamic Title Math] CSS clamp(0rem, 2.5vw, 0.85rem) & line-height: 1.25 구현
-        // 2.5vw가 13.6px(0.85rem)을 넘지 않도록 제한
-        const titleFontSize = Math.min(13.6, vw * 0.025);
-        const titleLineHeight = titleFontSize * 1.25;
-
-        // CSS -webkit-line-clamp: 2 → 최대 2줄까지 표시됨
-        // min-height: 24px (.calendar-fullscreen-title-container) + padding-top: 3px
-        const dynamicTitleHeight = Math.max(24, titleLineHeight * 2) + 3;
-        console.log('dynamicTitleHeight', dynamicTitleHeight);
-        const cardVerticalPadding = 8; // .calendar-fullscreen-event-card margin-bottom: 8px
-
-        // [정밀 오늘이동 수치] 날짜 숫자 헤더(56px) + 이벤트 카드
-        // 일반 이벤트: aspect-ratio 4/5, 소셜 이벤트: aspect-ratio 1/1
-        // cellWidth - 5 = 실제 이미지 너비 (card padding 2px*2 + border 1px)
-        const imageWidth = cellWidth - 5;
-        const regularCardHeight = imageWidth * (5 / 4) + dynamicTitleHeight + cardVerticalPadding;
-        const socialCardHeight = imageWidth * 1 + dynamicTitleHeight + cardVerticalPadding;
-        console.log('imageWidth', imageWidth, 'regularCardH', regularCardHeight.toFixed(1), 'socialCardH', socialCardHeight.toFixed(1));
-
-        // [Pixel Perfect Fix] 주차별 높이 계산 루프 (소셜/일반 분리)
         for (let w = 0; w < totalWeeks; w++) {
-            let maxDayHeight = 56;
-            let debugSoc = 0, debugReg = 0;
+            let maxDayHeight = minCellHeight;
             for (let d = 0; d < 7; d++) {
                 const dayOffset = (w * 7) + d - firstDay;
                 if (dayOffset >= 0 && dayOffset < daysInMonth) {
                     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayOffset + 1);
                     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                    const sCount = socialByDate[dateStr] || 0;
-                    const rCount = regularByDate[dateStr] || 0;
-                    const dayHeight = 56 + sCount * socialCardHeight + rCount * regularCardHeight;
-                    if (dayHeight > maxDayHeight) {
-                        maxDayHeight = dayHeight;
-                        debugSoc = sCount;
-                        debugReg = rCount;
-                    }
+                    const eventCount = eventsByDate[dateStr] || 0;
+                    const dayHeight = Math.max(
+                        minCellHeight,
+                        dayHeaderHeight + eventCount * eventChipHeight + Math.max(0, eventCount - 1) * eventGap + 12
+                    );
+                    if (dayHeight > maxDayHeight) maxDayHeight = dayHeight;
                 }
             }
 
-            // [One-Shot Fix] 이벤트가 없으면 최소 높이(56px)만 유지하고, 강제로 늘리지 않음
-            const actualWeekHeight = maxDayHeight;
-
             if (isSameMonth && w < todayWeekIndex) {
-                // 그리드 row-gap(16px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
-                sumPrecedingHeight += (actualWeekHeight + 16);
+                sumPrecedingHeight += (maxDayHeight + rowGap);
             }
 
-            cumulativePageHeight += actualWeekHeight;
-            if (w < totalWeeks - 1) cumulativePageHeight += 16; // 주차 간 간격(16px)만 합산
-
-            debugTable.push({ week: w, soc: debugSoc, reg: debugReg, height: actualWeekHeight.toFixed(1) });
+            cumulativePageHeight += maxDayHeight;
+            if (w < totalWeeks - 1) cumulativePageHeight += rowGap;
         }
 
         let finalScrollTargetY = 0;
         if (isSameMonth) {
-            // [Relative Target] 그리드 내부에서의 상대적 위치만 계산함.
-            // 실제 절대 좌표(safe area 등 포함)는 handleScrollToToday에서 실측 좌표와 결합함.
             finalScrollTargetY = containerPaddingTop + sumPrecedingHeight;
-
-            console.log(`🔎 [Metrics] --- 픽셀 퍼펙트 계산 리포트 ---`);
-            console.log(`📏 [Metrics] VIEWPORT: vw=${vw}px, bounded=${boundedVw}px, cellWidth=${cellWidth.toFixed(2)}px`);
-            console.table(debugTable);
-            console.log(`🎯 [Metrics] 그리드 내 타겟 상대 좌표: ${finalScrollTargetY.toFixed(1)}`);
         }
 
-        // .calendar-cell-fullscreen.is-last-row { padding-bottom: calc(60px + env(safe-area-inset-bottom)) }
-        const lastRowExtraPadding = 60; // + safe-area-inset-bottom (기기별 상이)
+        const lastRowExtraPadding = 36;
 
         return {
             targetY: finalScrollTargetY,
-            // [Optimization] "딱 맞게" 요청 반영: vh 가산량을 완전히 제거하고 컨텐츠 높이만 유지.
-            // 오늘 날짜 이동은 페이지 하단 한계 내에서 최대한 수행됨.
             totalHeight: cumulativePageHeight + containerPaddingTop + lastRowExtraPadding,
             isSameMonth,
-            debugTitleHeight: dynamicTitleHeight
+            debugTitleHeight: eventChipHeight
         };
     }, [currentMonth, calendarData, tabFilter]);
 
@@ -342,7 +454,8 @@ export default function CalendarPage() {
         if (!calendarMetrics.isSameMonth && !forced) { onDone?.(); return; }
 
         const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
-        const navHeaderEl = document.querySelector('.calendar-tabs-header');
+        const navHeaderEl = document.querySelector('.calendar-live-sticky-controls')
+            || document.querySelector('.shell-header.global-header-fixed');
 
         if (!gridEl) { onDone?.(); return; }
 
@@ -350,7 +463,7 @@ export default function CalendarPage() {
         const maxRetries = 10;
 
         const performWarp = () => {
-            const todayEl = document.querySelector('.calendar-grid-cell.is-today');
+            const todayEl = document.querySelector('.calendar-cell-fullscreen.is-today');
 
             if (!todayEl && retryCount < maxRetries) {
                 retryCount++;
@@ -360,7 +473,7 @@ export default function CalendarPage() {
 
             const headerBottom = navHeaderEl
                 ? navHeaderEl.getBoundingClientRect().bottom
-                : 156;
+                : 0;
 
             const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
 
@@ -391,16 +504,21 @@ export default function CalendarPage() {
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
         if (isAnyModalOpen) return;
 
-        // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
+        // 초기 진입은 샘플처럼 상단 구조를 보여주고, 명시적인 오늘 이동 때만 워프한다.
         if (displayMode !== 'calendar') return; // list/map 모드에서는 스크롤 워프 스킵
 
         if (calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
-            console.log('⚡ [useLayoutEffect] CalendarPage 워프 실행');
-            initialJumpDoneRef.current = true;
-            shouldScrollToTodayRef.current = false;
             const showPage = () => {
                 if (containerRef.current) containerRef.current.style.visibility = 'visible';
             };
+
+            if (!initialJumpDoneRef.current) {
+                initialJumpDoneRef.current = true;
+                showPage();
+                return;
+            }
+
+            shouldScrollToTodayRef.current = false;
             if (calendarMetrics.isSameMonth) {
                 handleScrollToToday('instant', true, showPage);
             } else {
@@ -434,6 +552,46 @@ export default function CalendarPage() {
         setCurrentMonth(newMonth);
         setSelectedDate(null);
     }, []);
+
+    const moveToToday = useCallback(() => {
+        userInteractedRef.current = false;
+        const today = new Date();
+        const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
+            currentMonth.getMonth() === today.getMonth();
+
+        if (isSameMonth) {
+            shouldScrollToTodayRef.current = true;
+            handleScrollToToday('instant', true);
+        } else {
+            shouldScrollToTodayRef.current = true;
+            handleMonthChange(new Date(today.getFullYear(), today.getMonth(), 1));
+        }
+    }, [currentMonth, handleMonthChange, handleScrollToToday]);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        if (urlParams.get('scrollToToday') !== 'true') return;
+
+        setDisplayMode('calendar');
+        userInteractedRef.current = false;
+        shouldScrollToTodayRef.current = true;
+
+        const frame = requestAnimationFrame(() => {
+            moveToToday();
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [location.search, moveToToday]);
+
+    const handleNavigatorMonthSelect = useCallback((monthIndex: number) => {
+        setShowCalendarNavigator(false);
+        handleMonthChange(new Date(navigatorYear, monthIndex, 1));
+    }, [handleMonthChange, navigatorYear]);
+
+    const handleNavigatorToday = useCallback(() => {
+        setShowCalendarNavigator(false);
+        moveToToday();
+    }, [moveToToday]);
 
     const handleTabClick = (filter: 'all' | 'social-events' | 'classes') => {
         if (displayMode === 'list') {
@@ -554,40 +712,33 @@ export default function CalendarPage() {
         const handleOpenCalendarSearch = () => {
             setShowCalendarSearch(true);
         };
+        const handleOpenCalendarNavigator = () => {
+            setNavigatorYear(currentMonth.getFullYear());
+            setShowCalendarNavigator(true);
+        };
         const handlePrevMonth = () => {
             handleNavigateMonth('prev');
         };
         const handleNextMonth = () => {
             handleNavigateMonth('next');
         };
-        const handleGoToToday = () => {
-            userInteractedRef.current = false;
-            const today = new Date();
-            const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
-                currentMonth.getMonth() === today.getMonth();
-
-            if (isSameMonth) {
-                handleScrollToToday();
-            } else {
-                shouldScrollToTodayRef.current = true;
-                handleMonthChange(today);
-            }
-        };
 
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
+        window.addEventListener('openCalendarNavigator', handleOpenCalendarNavigator);
         window.addEventListener('prevMonth', handlePrevMonth);
         window.addEventListener('nextMonth', handleNextMonth);
-        window.addEventListener('goToToday', handleGoToToday);
+        window.addEventListener('goToToday', moveToToday);
 
         return () => {
             window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
+            window.removeEventListener('openCalendarNavigator', handleOpenCalendarNavigator);
             window.removeEventListener('prevMonth', handlePrevMonth);
             window.removeEventListener('nextMonth', handleNextMonth);
-            window.removeEventListener('goToToday', handleGoToToday);
+            window.removeEventListener('goToToday', moveToToday);
         };
-    }, [navigate, handleNavigateMonth, handleMonthChange, handleScrollToToday, currentMonth]);
+    }, [navigate, handleNavigateMonth, currentMonth, moveToToday]);
 
     useEffect(() => {
         window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: "fullscreen" }));
@@ -642,131 +793,265 @@ export default function CalendarPage() {
 
     return (
         <div className="calendar-page-container" ref={containerRef}>
-            {/* Tab Menu */}
-            <div className="calendar-tab-menu">
-                {/* 뷰 모드 토글 버튼 */}
-                <button
-                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'calendar' ? 'active' : ''}`}
-                    onClick={() => handleSetDisplayMode('calendar')}
-                    title="캘린더 보기"
-                >
-                    <i className="ri-calendar-2-line" />
-                    <span className="calendar-view-tab-label">캘린더</span>
-                </button>
-                <button
-                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'list' ? 'active' : ''}`}
-                    onClick={() => handleSetDisplayMode('list')}
-                    title="리스트 보기"
-                >
-                    <i className="ri-list-check" />
-                    <span className="calendar-view-tab-label">리스트</span>
-                </button>
-                <button
-                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'map' ? 'active' : ''}`}
-                    onClick={() => handleSetDisplayMode('map')}
-                    title="지도 보기"
-                >
-                    <i className="ri-map-2-line" />
-                    <span className="calendar-view-tab-label">지도</span>
-                </button>
-                <div className="calendar-tab-divider" />
-                <button
-                    className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => handleTabClick('all')}
-                >
-                    <div className="tab-label-wrapper">
-                        <span className="translated-part">{t('all')}</span>
-                        <span className="fixed-part ko" translate="no">전체</span>
-                        <span className="fixed-part en" translate="no">ALL</span>
-                    </div>
-                </button>
-                <button
-                    className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
-                    onClick={() => handleTabClick('social-events')}
-                >
-                    <div className="tab-label-wrapper">
-                        <span className="translated-part">{t('socialEvents')}</span>
-                        <span className="fixed-part ko" translate="no">소셜&행사</span>
-                        <span className="fixed-part en" translate="no">Social & event</span>
-                    </div>
-                </button>
-                <button
-                    className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
-                    onClick={() => handleTabClick('classes')}
-                >
-                    <div className="tab-label-wrapper">
-                        <span className="translated-part">{t('classes')}</span>
-                        <span className="fixed-part ko" translate="no">강습</span>
-                        <span className="fixed-part en" translate="no">Class</span>
-                    </div>
-                </button>
-            </div>
-            
+            <section className={`calendar-live-shell calendar-live-shell--${displayMode}`}>
+                <div className={`calendar-live-sticky-controls ${displayMode === 'calendar' ? 'has-weekdays' : ''}`}>
+                    <header className="calendar-live-topbar">
+                        <button
+                            type="button"
+                            className="calendar-live-topbar-title"
+                            onClick={() => {
+                                setNavigatorYear(currentMonth.getFullYear());
+                                setShowCalendarNavigator(true);
+                            }}
+                            aria-label={`${currentMonth.getFullYear()}년 ${currentMonth.getMonth() + 1}월 선택`}
+                        >
+                            <span>{displayMode === 'calendar' ? '월간 캘린더' : displayMode === 'list' ? 'List View' : 'Map View'}</span>
+                            <strong>{currentMonth.getFullYear()}.{String(currentMonth.getMonth() + 1).padStart(2, '0')}</strong>
+                        </button>
 
-            {displayMode === 'map' && (
-                <CalendarMapView
-                    onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
-                />
-            )}
+                        <div className="calendar-live-toolbar">
+                            <div className="calendar-view-switch" aria-label="캘린더 보기 방식">
+                                <button
+                                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'calendar' ? 'active' : ''}`}
+                                    onClick={() => handleSetDisplayMode('calendar')}
+                                    title="캘린더 보기"
+                                >
+                                    캘린더
+                                </button>
+                                <button
+                                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'list' ? 'active' : ''}`}
+                                    onClick={() => handleSetDisplayMode('list')}
+                                    title="리스트 보기"
+                                >
+                                    리스트
+                                </button>
+                                <button
+                                    className={`calendar-tab-btn calendar-tab-btn--view ${displayMode === 'map' ? 'active' : ''}`}
+                                    onClick={() => handleSetDisplayMode('map')}
+                                    title="지도 보기"
+                                >
+                                    지도
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                className="calendar-live-today-btn"
+                                onClick={moveToToday}
+                            >
+                                오늘
+                            </button>
+                        </div>
+                    </header>
 
-            {displayMode === 'list' && (
-                <div className="calendar-page-main calendar-page-main--list">
-                    <CalendarListView
-                        events={listViewData.data?.events || []}
-                        socialSchedules={listViewData.data?.socialSchedules || []}
+                    <div className="calendar-filter-switch" aria-label="캘린더 필터">
+                        <button
+                            className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => handleTabClick('all')}
+                        >
+                            <div className="tab-label-wrapper">
+                                <span className="translated-part">{t('all')}</span>
+                                <span className="fixed-part ko" translate="no">전체</span>
+                                <span className="fixed-part en" translate="no">ALL</span>
+                            </div>
+                        </button>
+                        <button
+                            className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
+                            onClick={() => handleTabClick('social-events')}
+                        >
+                            <div className="tab-label-wrapper">
+                                <span className="translated-part">{t('socialEvents')}</span>
+                                <span className="fixed-part ko" translate="no">소셜&행사</span>
+                                <span className="fixed-part en" translate="no">Social & event</span>
+                            </div>
+                        </button>
+                        <button
+                            className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
+                            onClick={() => handleTabClick('classes')}
+                        >
+                            <div className="tab-label-wrapper">
+                                <span className="translated-part">{t('classes')}</span>
+                                <span className="fixed-part ko" translate="no">강습</span>
+                                <span className="fixed-part en" translate="no">Class</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    {displayMode === 'calendar' && (
+                        <div className="calendar-sticky-weekdays" aria-hidden="true">
+                            {CALENDAR_WEEKDAY_LABELS.map((dayLabel, index) => (
+                                <span key={dayLabel} className="calendar-sticky-weekday-item">
+                                    <span className="calendar-sticky-weekday-text">{dayLabel}</span>
+                                    {scrollWeekDateLabels[index] && (
+                                        <em className="calendar-sticky-date-text">{scrollWeekDateLabels[index]}</em>
+                                    )}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <section className="calendar-page-overview" aria-label="캘린더 요약">
+                    <div className="calendar-page-overview-card">
+                        <span>오늘 일정</span>
+                        <strong>{calendarPageStats.todayCount}</strong>
+                    </div>
+                    <div className="calendar-page-overview-card">
+                        <span>선택 범위</span>
+                        <strong>{calendarPageStats.weekCount}</strong>
+                    </div>
+                    <div className="calendar-page-overview-card">
+                        <span>장소</span>
+                        <strong>{calendarPageStats.venueCount}</strong>
+                    </div>
+                    <div className="calendar-page-overview-card">
+                        <span>필터</span>
+                        <strong>{tabFilter === 'all' ? '전체' : tabFilter === 'social-events' ? '소셜&행사' : '강습'}</strong>
+                    </div>
+                </section>
+
+                {displayMode === 'map' && (
+                    <CalendarMapView
+                        onEventClick={handleCalendarMapEventClick}
+                    />
+                )}
+
+                {displayMode === 'list' && (
+                    <div className="calendar-page-main calendar-page-main--list">
+                        <CalendarListView
+                            events={listViewData.data?.events || []}
+                            socialSchedules={listViewData.data?.socialSchedules || []}
+                            tabFilter={tabFilter}
+                            onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
+                            isLoading={listViewData.isLoading}
+                        />
+                    </div>
+                )}
+
+                <div
+                    className="calendar-page-main"
+                    style={{ minHeight: calendarMetrics.totalHeight, display: (displayMode === 'list' || displayMode === 'map') ? 'none' : undefined }}
+                >
+                    <FullEventCalendar
+                        currentMonth={currentMonth}
+                        selectedDate={selectedDate}
+                        onDateSelect={handleDateSelect}
+                        onMonthChange={handleMonthChange}
+                        calendarData={calendarData}
+                        isLoading={isLoading}
+                        refetchCalendarData={refetchCalendarData}
+                        onDataLoaded={useCallback(() => {
+                            console.log('📡 [CalendarPage] Data and Layout ready.');
+                        }, [])}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        calendarHeightPx={window.innerHeight - 100}
+                        dragOffset={dragOffset}
+                        isAnimating={isAnimating}
+                        onEventClick={(event: any, date: Date, dayEvents: AppEvent[]) => {
+                            // [Optimization] 해외 이벤트(overseas)는 지도를 띄우지 않고 즉시 상세 모달 오픈
+                            const isOverseas = false; // 통합 정책에 따라 구분 제거
+
+                            if (isMapView && !isOverseas) {
+                                setSelectedDate(date);
+                                setMapDateEvents(dayEvents);
+                                setShowMapModal(true);
+                            } else {
+                                eventModal.setSelectedEvent(event);
+                            }
+                        }}
+                        highlightedEventId={highlightedEventId}
                         tabFilter={tabFilter}
-                        onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
-                        isLoading={listViewData.isLoading}
+                        seed={randomSeed}
+                        isMapView={isMapView}
+                        onDateClickWithEvents={(date, events) => {
+                            // [Optimization] 국외 탭(overseas)인 경우 날짜 클릭 시 지도를 띄우지 않음
+                            if (isMapView) {
+                                setSelectedDate(date);
+                                setMapDateEvents(events);
+                                setShowMapModal(true);
+                            }
+                        }}
                     />
                 </div>
+            </section>
+
+            {showCalendarNavigator && (
+                <div
+                    className="calendar-navigator-overlay"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setShowCalendarNavigator(false);
+                        }
+                    }}
+                >
+                    <section
+                        className="calendar-navigator-panel"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="달력 월 선택"
+                    >
+                        <header className="calendar-navigator-header">
+                            <button
+                                type="button"
+                                className="calendar-navigator-icon-btn"
+                                onClick={() => setNavigatorYear((year) => year - 1)}
+                                aria-label="이전 해"
+                            >
+                                <i className="ri-arrow-left-s-line" />
+                            </button>
+                            <div className="calendar-navigator-title">
+                                <span>이동할 달 선택</span>
+                                <strong>{navigatorYear}</strong>
+                            </div>
+                            <button
+                                type="button"
+                                className="calendar-navigator-icon-btn"
+                                onClick={() => setNavigatorYear((year) => year + 1)}
+                                aria-label="다음 해"
+                            >
+                                <i className="ri-arrow-right-s-line" />
+                            </button>
+                            <button
+                                type="button"
+                                className="calendar-navigator-close"
+                                onClick={() => setShowCalendarNavigator(false)}
+                                aria-label="닫기"
+                            >
+                                <i className="ri-close-line" />
+                            </button>
+                        </header>
+                        <div className="calendar-navigator-month-grid">
+                            {CALENDAR_MONTH_LABELS.map((monthLabel, monthIndex) => {
+                                const today = new Date();
+                                const isCurrentMonth = navigatorYear === currentMonth.getFullYear() && monthIndex === currentMonth.getMonth();
+                                const isTodayMonth = navigatorYear === today.getFullYear() && monthIndex === today.getMonth();
+
+                                return (
+                                    <button
+                                        key={monthLabel}
+                                        type="button"
+                                        className={`calendar-navigator-month-btn ${isCurrentMonth ? 'is-current' : ''} ${isTodayMonth ? 'is-today-month' : ''}`}
+                                        onClick={() => handleNavigatorMonthSelect(monthIndex)}
+                                        aria-current={isCurrentMonth ? 'date' : undefined}
+                                    >
+                                        <span>{monthLabel}</span>
+                                        {isTodayMonth && <em>오늘</em>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <footer className="calendar-navigator-footer">
+                            <button type="button" onClick={handleNavigatorToday}>
+                                오늘로 이동
+                            </button>
+                            <button type="button" onClick={() => setShowCalendarNavigator(false)}>
+                                닫기
+                            </button>
+                        </footer>
+                    </section>
+                </div>
             )}
-
-            <div
-                className="calendar-page-main"
-                style={{ minHeight: calendarMetrics.totalHeight, display: (displayMode === 'list' || displayMode === 'map') ? 'none' : undefined }}
-            >
-                <FullEventCalendar
-                    currentMonth={currentMonth}
-                    selectedDate={selectedDate}
-                    onDateSelect={handleDateSelect}
-                    onMonthChange={handleMonthChange}
-                    calendarData={calendarData}
-                    isLoading={isLoading}
-                    refetchCalendarData={refetchCalendarData}
-                    onDataLoaded={useCallback(() => {
-                        console.log('📡 [CalendarPage] Data and Layout ready.');
-                    }, [])}
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                    calendarHeightPx={window.innerHeight - 100}
-                    dragOffset={dragOffset}
-                    isAnimating={isAnimating}
-                    onEventClick={(event: any, date: Date, dayEvents: AppEvent[]) => {
-                        // [Optimization] 해외 이벤트(overseas)는 지도를 띄우지 않고 즉시 상세 모달 오픈
-                        const isOverseas = false; // 통합 정책에 따라 구분 제거
-
-                        if (isMapView && !isOverseas) {
-                            setSelectedDate(date);
-                            setMapDateEvents(dayEvents);
-                            setShowMapModal(true);
-                        } else {
-                            eventModal.setSelectedEvent(event);
-                        }
-                    }}
-                    highlightedEventId={highlightedEventId}
-                    tabFilter={tabFilter}
-                    seed={randomSeed}
-                    isMapView={isMapView}
-                    onDateClickWithEvents={(date, events) => {
-                        // [Optimization] 국외 탭(overseas)인 경우 날짜 클릭 시 지도를 띄우지 않음
-                        if (isMapView) {
-                            setSelectedDate(date);
-                            setMapDateEvents(events);
-                            setShowMapModal(true);
-                        }
-                    }}
-                />
-            </div>
 
             {/* Event Detail Modal */}
             {

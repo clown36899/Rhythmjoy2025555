@@ -12,12 +12,31 @@ interface ShopCardProps {
 
 export default function ShopCard({ shop, onUpdate, isFavorite = false, onToggleFavorite }: ShopCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const featuredItemCount = (shop.featured_items || []).filter(item => item.item_name).length;
+  const shopHost = (() => {
+    try {
+      return new URL(shop.website_url).hostname.replace(/^www\./, '');
+    } catch {
+      return '외부 링크';
+    }
+  })();
+
+  const openModal = () => setShowModal(true);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openModal();
+    }
+  };
 
   return (
     <>
       <div
         className="shopcard-banner"
-        onClick={() => setShowModal(true)}
+        onClick={openModal}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
         data-analytics-id={shop.id}
         data-analytics-type="shop"
         data-analytics-title={shop.name}
@@ -54,14 +73,29 @@ export default function ShopCard({ shop, onUpdate, isFavorite = false, onToggleF
         <div className="shopcard-content-section">
           {/* Content */}
           <div className="shopcard-banner-content">
-            <h3 className="shopcard-banner-title">{shop.name}</h3>
+            <div className="shopcard-title-row">
+              <h3 className="shopcard-banner-title">{shop.name}</h3>
+              <span className="shopcard-host">{shopHost}</span>
+            </div>
             {shop.description && (
               <p className="shopcard-banner-desc">{shop.description}</p>
             )}
-            <button className="shopcard-banner-btn">
-              {/* <span>자세히 보기</span> */}
-              <i className="ri-arrow-right-line"></i>
-            </button>
+            <div className="shopcard-footer">
+              <span className="shopcard-product-count">
+                <i className="ri-price-tag-3-line" aria-hidden="true"></i>
+                {featuredItemCount > 0 ? `상품 ${featuredItemCount}` : '상세'}
+              </span>
+              <a
+                className="shopcard-visit-link"
+                href={shop.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+              >
+                방문
+                <i className="ri-external-link-line" aria-hidden="true"></i>
+              </a>
+            </div>
           </div>
         </div>
       </div>

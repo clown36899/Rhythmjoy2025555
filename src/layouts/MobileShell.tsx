@@ -52,19 +52,95 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   // 2차 메뉴 스크롤 위치 추적 (scroll-rail 인디케이터용)
   const navScrollRef = useRef<HTMLDivElement>(null);
-  const [navScrollProgress, setNavScrollProgress] = useState(0);
+  const [navScrollState, setNavScrollState] = useState({
+    thumbLeft: 0,
+    thumbWidth: 100,
+    canScrollLeft: false,
+    canScrollRight: false,
+    isScrollable: false,
+  });
 
   const handleNavScroll = useCallback(() => {
     const el = navScrollRef.current;
     if (!el) return;
     const maxScroll = el.scrollWidth - el.clientWidth;
     if (maxScroll <= 0) {
-      setNavScrollProgress(0);
+      setNavScrollState({
+        thumbLeft: 0,
+        thumbWidth: 100,
+        canScrollLeft: false,
+        canScrollRight: false,
+        isScrollable: false,
+      });
       return;
     }
-    const progress = (el.scrollLeft / maxScroll) * 100;
-    setNavScrollProgress(Math.min(100, Math.max(0, progress)));
+    const rawThumbWidth = (el.clientWidth / el.scrollWidth) * 100;
+    const thumbWidth = Math.min(100, Math.max(18, rawThumbWidth));
+    const thumbTravel = 100 - thumbWidth;
+    const thumbLeft = Math.min(thumbTravel, Math.max(0, (el.scrollLeft / maxScroll) * thumbTravel));
+    const nextState = {
+      thumbLeft,
+      thumbWidth,
+      canScrollLeft: el.scrollLeft > 4,
+      canScrollRight: el.scrollLeft < maxScroll - 4,
+      isScrollable: true,
+    };
+
+    setNavScrollState(prev => {
+      if (
+        Math.abs(prev.thumbLeft - nextState.thumbLeft) < 0.25 &&
+        Math.abs(prev.thumbWidth - nextState.thumbWidth) < 0.25 &&
+        prev.canScrollLeft === nextState.canScrollLeft &&
+        prev.canScrollRight === nextState.canScrollRight &&
+        prev.isScrollable === nextState.isScrollable
+      ) {
+        return prev;
+      }
+      return nextState;
+    });
   }, []);
+
+  const revealActiveNavItem = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const el = navScrollRef.current;
+    if (!el) return;
+
+    const activeItem = el.querySelector<HTMLElement>('.header-nav-v2-item.is-active');
+    if (!activeItem) {
+      if (el.scrollLeft > 1) {
+        el.scrollTo({ left: 0, behavior });
+      } else {
+        handleNavScroll();
+      }
+      return;
+    }
+
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll <= 0) {
+      handleNavScroll();
+      return;
+    }
+
+    const sidePeek = window.innerWidth <= 650 ? 72 : 92;
+    const currentLeft = el.scrollLeft;
+    const currentRight = currentLeft + el.clientWidth;
+    const itemLeft = activeItem.offsetLeft;
+    const itemRight = itemLeft + activeItem.offsetWidth;
+
+    let nextLeft = currentLeft;
+    if (itemLeft < currentLeft + sidePeek) {
+      nextLeft = itemLeft - sidePeek;
+    } else if (itemRight > currentRight - sidePeek) {
+      nextLeft = itemRight - el.clientWidth + sidePeek;
+    }
+
+    nextLeft = Math.min(maxScroll, Math.max(0, nextLeft));
+    if (Math.abs(nextLeft - currentLeft) > 1) {
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      el.scrollTo({ left: nextLeft, behavior: reduceMotion ? 'auto' : behavior });
+    } else {
+      handleNavScroll();
+    }
+  }, [handleNavScroll]);
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
@@ -85,8 +161,32 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isPlacesPage = currentPath === '/places';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
+  const isDanceExpansionGuidePage = currentPath === '/admin/ui/dance-expansion-guide';
 
   const isAdmin = isAdminProp || authIsAdmin;
+
+  const handleCalendarNavClick = useCallback(() => {
+    const target = `/calendar?scrollToToday=true&nav=${Date.now()}`;
+    navigate(target);
+
+    if (currentPath === '/calendar') {
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent('goToToday'));
+      });
+    }
+  }, [currentPath, navigate]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      revealActiveNavItem('smooth');
+      requestAnimationFrame(handleNavScroll);
+    });
+    window.addEventListener('resize', handleNavScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', handleNavScroll);
+    };
+  }, [handleNavScroll, revealActiveNavItem, currentPath, category]);
 
   // Fetch total registered users count
   useEffect(() => {
@@ -335,7 +435,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   };
 
   return (
-    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''}`}>
       {/* Global Fixed Header */}
       {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (
         <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
@@ -451,9 +551,52 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               )}
               {/* 2. Calendar Page (Full Screen) */}
               {isCalendarPage && (
-                <div className="calendar-header-nav">
-                  {/* Month Navigation Buttons */}
-                  <div className="calendar-month-nav">
+                <div className="calendar-header-sample">
+                  <button
+                    className="header-hamburger-btn calendar-header-menu-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.dispatchEvent(new CustomEvent('openDrawer'));
+                    }}
+                    data-analytics-id="header_hamburger"
+                    data-analytics-type="action"
+                    data-analytics-title="사이드 메뉴"
+                    data-analytics-section="header"
+                    aria-label="사이드 메뉴"
+                  >
+                    <i className="ri-menu-line"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="calendar-header-title-lockup"
+                    onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
+                    data-analytics-id="cal_open_month_navigator_title"
+                    data-analytics-type="action"
+                    data-analytics-title="월 선택 열기(캘린더 헤더)"
+                    data-analytics-section="header_calendar"
+                    aria-label={`${calendarView.year}년 ${calendarView.month + 1}월 선택`}
+                  >
+                    <strong>
+                      <span>{calendarView.year}</span>
+                      <em>{String(calendarView.month + 1).padStart(2, '0')}</em>
+                    </strong>
+                    <small>캘린더</small>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="calendar-header-today-compact"
+                    onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                    data-analytics-id="cal_goto_today_compact"
+                    data-analytics-type="action"
+                    data-analytics-title="오늘로 이동"
+                    data-analytics-section="header_calendar"
+                  >
+                    오늘
+                  </button>
+
+                  <div className="calendar-month-nav calendar-month-nav--sample">
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
                       className="calendar-month-btn"
@@ -466,10 +609,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     </button>
                     <span
                       className="calendar-month-label calendar-month-label-clickable"
-                      onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
-                      data-analytics-id="cal_goto_today_label"
+                      onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
+                      data-analytics-id="cal_open_month_navigator_label"
                       data-analytics-type="action"
-                      data-analytics-title="오늘로 이동(라벨)"
+                      data-analytics-title="월 선택 열기"
                       data-analytics-section="header_calendar"
                     >
                       {String(calendarView.year).slice(-2)}년 <span className="calendar-month-digit">{String(calendarView.month + 1).padStart(2, '0')}</span>
@@ -565,22 +708,40 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       )}
 
       {/* New Header Navigation for Events Page & Calendar Page */}
-      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isEventsPage || isEventsInfoPage || isCalendarPage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
-        <nav className="header-nav-v2">
+      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isCalendarPage || isEventsPage || isEventsInfoPage || isDanceExpansionGuidePage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
+        <nav
+          className="header-nav-v2"
+          style={{
+            '--nav-scroll-thumb-left': `${navScrollState.thumbLeft}%`,
+            '--nav-scroll-thumb-width': `${navScrollState.thumbWidth}%`,
+            '--nav-scroll-left-opacity': navScrollState.canScrollLeft ? 1 : 0,
+            '--nav-scroll-right-opacity': navScrollState.canScrollRight ? 1 : 0,
+            '--nav-scroll-rail-opacity': navScrollState.isScrollable ? 1 : 0,
+          } as React.CSSProperties}
+        >
           <div className="header-nav-v2-inner" ref={navScrollRef} onScroll={handleNavScroll}>
             <button
+              className={`header-nav-v2-item header-nav-v2-home ${isEventsPage ? 'is-active' : ''}`}
+              onClick={() => navigate('/v2')}
+              data-analytics-id="header_nav_home"
+              aria-label="홈"
+            >
+              <i className="ri-home-5-line" aria-hidden="true"></i>
+              <span>홈</span>
+            </button>
+            <button
               className={`header-nav-v2-item ${isCalendarPage ? 'is-active' : ''}`}
-              onClick={() => navigate('/calendar')}
+              onClick={handleCalendarNavClick}
               data-analytics-id="header_nav_calendar"
             >
               캘린더
             </button>
             <button
-              className={`header-nav-v2-item ${isEventsInfoPage ? 'is-active' : ''}`}
+              className={`header-nav-v2-item ${(isEventsInfoPage || isDanceExpansionGuidePage) ? 'is-active' : ''}`}
               onClick={() => navigate('/events')}
               data-analytics-id="header_nav_events_info"
             >
-              강습&행사정보
+              행사정보
             </button>
             <button
               className={`header-nav-v2-item ${isBoardPage ? 'is-active' : ''}`}
@@ -611,14 +772,13 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               쇼핑
             </button>
           </div>
-          <span className="header-nav-v2-scroll-cue" aria-hidden="true">
+          <span className="header-nav-v2-scroll-cue header-nav-v2-scroll-cue--left" aria-hidden="true">
+            <i className="ri-arrow-left-s-line" />
+          </span>
+          <span className="header-nav-v2-scroll-cue header-nav-v2-scroll-cue--right" aria-hidden="true">
             <i className="ri-arrow-right-s-line" />
           </span>
-          <span
-            className="header-nav-v2-scroll-rail"
-            aria-hidden="true"
-            style={{ '--nav-scroll-progress': `${navScrollProgress}%` } as React.CSSProperties}
-          />
+          <span className="header-nav-v2-scroll-rail" aria-hidden="true" />
         </nav>
       )}
 

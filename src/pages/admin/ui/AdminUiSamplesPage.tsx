@@ -35,6 +35,14 @@ const samples: SampleCard[] = [
     tone: 'green',
     points: ['대표 광고 영역', '신규 등록 큐', '수집 품질 지표'],
   },
+  {
+    title: '장르 확장 UI 샘플',
+    eyebrow: 'Expansion',
+    description: '커플·파트너댄스와 스트릿까지 확장할 때의 장르/활동/태그 필터 구조를 확인합니다.',
+    path: '/admin/ui/dance-expansion-guide',
+    tone: 'blue',
+    points: ['전체·강습·소셜·행사·모집', '장르 계열/장르 필터', '모집 태그 강조'],
+  },
 ];
 
 function SamplePreview({ tone }: { tone: SampleCard['tone'] }) {

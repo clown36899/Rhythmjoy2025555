@@ -6,16 +6,19 @@
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: 38px;
+    padding: 0 12px;
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
-    min-height: 100vh;
+    min-height: auto;
+    gap: 10px;
 }
 
 /* ── 미니 달력 ─────────────────────────── */
 .cmv-mini-cal {
-    background: var(--bg-surface-1);
-    border-bottom: 1px solid var(--border-subtle);
-    padding: 8px 12px 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
+    padding: 10px 12px 12px;
     flex-shrink: 0;
 }
 
@@ -43,8 +46,8 @@
 .cmv-nav-btn:hover { background: var(--bg-hover); }
 
 .cmv-cal-title {
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 900;
     color: var(--text-primary);
 }
 
@@ -65,7 +68,7 @@
 .cmv-days-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px 0;
+    gap: 6px;
 }
 
 .cmv-day {
@@ -73,15 +76,17 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 36px;
+    min-height: 40px;
     cursor: pointer;
-    border-radius: 6px;
+    border: 1px solid transparent;
+    border-radius: 10px;
     position: relative;
     transition: background 0.12s;
     gap: 2px;
 }
 
 .cmv-day:not(.cmv-day--empty):hover {
+    border-color: var(--border-subtle);
     background: var(--bg-hover);
 }
 
@@ -112,8 +117,8 @@
 }
 
 .cmv-day--selected:not(.cmv-day--today) .cmv-day-num {
-    background: var(--color-blue-100, #dbeafe);
-    color: var(--color-blue-600, #2563eb);
+    background: var(--color-blue-500);
+    color: #ffffff;
     border-radius: 50%;
     width: 24px;
     height: 24px;
@@ -139,7 +144,10 @@
 /* ── 지도 섹션 ─────────────────────────── */
 .cmv-map-section {
     flex-shrink: 0;
-    background: var(--bg-base);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
 }
 
 .cmv-map-header {
@@ -147,13 +155,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 8px 14px 6px;
-    min-height: 36px;
+    padding: 12px 14px;
+    min-height: 44px;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .cmv-map-date-label {
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: 0.88rem;
+    font-weight: 900;
     color: var(--text-primary);
     min-width: 0;
     overflow: hidden;
@@ -201,7 +210,7 @@
 
 .cmv-map-wrapper {
     position: relative;
-    height: clamp(190px, 32dvh, 260px);
+    height: clamp(190px, 30dvh, 250px);
     background: var(--bg-surface-2);
     touch-action: pan-y;
 }
@@ -237,7 +246,7 @@
     gap: 8px;
     color: var(--text-tertiary);
     font-size: 0.85rem;
-    background: rgba(var(--bg-base-rgb, 255,255,255), 0.7);
+    background: color-mix(in srgb, var(--bg-base) 76%, transparent);
     pointer-events: none;
 }
 
@@ -324,22 +333,25 @@
 
 /* ── 이벤트 리스트 ─────────────────────── */
 .cmv-event-list {
+    display: grid;
     flex: 1;
-    padding: 8px 12px 0;
+    gap: 8px;
+    padding: 0 0 8px;
 }
 
 .cmv-event-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 4px;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px;
+    border: 1px solid var(--border-subtle);
     cursor: pointer;
     transition: background 0.12s;
-    border-radius: 6px;
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--bg-surface-1) 88%, transparent);
 }
 .cmv-event-item:hover { background: var(--bg-hover); }
-.cmv-event-item:last-child { border-bottom: none; }
+.cmv-event-item:last-child { border-bottom: 1px solid var(--border-subtle); }
 
 .cmv-event-img {
     width: 52px;
