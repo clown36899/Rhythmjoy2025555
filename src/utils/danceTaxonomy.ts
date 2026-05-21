@@ -42,6 +42,15 @@ interface MatchRule {
   patterns: RegExp[];
 }
 
+export interface DanceGenreOption {
+  key: string;
+  label: string;
+  family: DanceGenreFamily;
+  scope: DanceScope;
+  aliases: string[];
+  source?: 'preset' | 'event';
+}
+
 const activityLabels: Record<DanceActivity, string> = {
   class: '강습',
   social: '소셜',
@@ -139,6 +148,27 @@ const genreRules: MatchRule[] = [
   { key: 'choreo_lab', label: '코레오그래피', family: 'commercial', patterns: [/코레오/i, /choreo/i, /choreography/i] },
 ];
 
+export const presetDanceGenreOptions: DanceGenreOption[] = [
+  { key: 'swing', label: '스윙', family: 'partner', scope: 'swing', aliases: ['swing', '스윙댄스', 'swing dance'], source: 'preset' },
+  { key: 'lindyhop', label: '린디합', family: 'partner', scope: 'swing', aliases: ['린디 합', 'lindyhop', 'lindy hop'], source: 'preset' },
+  { key: 'solojazz', label: '솔로재즈', family: 'partner', scope: 'swing', aliases: ['솔로 재즈', 'solo jazz', 'solo'], source: 'preset' },
+  { key: 'balboa', label: '발보아', family: 'partner', scope: 'swing', aliases: ['balboa'], source: 'preset' },
+  { key: 'blues', label: '블루스', family: 'partner', scope: 'swing', aliases: ['blues', 'blues dance'], source: 'preset' },
+  { key: 'jitterbug', label: '지터벅', family: 'partner', scope: 'swing', aliases: ['jitterbug'], source: 'preset' },
+  { key: 'wcs', label: 'WCS', family: 'partner', scope: 'swing', aliases: ['웨코', '웨스트코스트스윙', 'west coast swing', 'westie'], source: 'preset' },
+  { key: 'salsa', label: '살사', family: 'partner', scope: 'salsa', aliases: ['salsa'], source: 'preset' },
+  { key: 'bachata', label: '바차타', family: 'partner', scope: 'bachata', aliases: ['bachata'], source: 'preset' },
+  { key: 'tango', label: '탱고', family: 'partner', scope: 'tango', aliases: ['tango', '아르헨티나탱고', '아르헨티나 탱고', '밀롱가', 'milonga', '프랙티카', 'practica'], source: 'preset' },
+  { key: 'street', label: '스트릿', family: 'street', scope: 'street', aliases: ['street', 'street dance', '스트릿댄스'], source: 'preset' },
+  { key: 'hiphop', label: '힙합', family: 'street', scope: 'street', aliases: ['hiphop', 'hip hop'], source: 'preset' },
+  { key: 'waacking', label: '왁킹', family: 'street', scope: 'street', aliases: ['waacking', 'waack', '왁'], source: 'preset' },
+  { key: 'popping', label: '팝핑', family: 'street', scope: 'street', aliases: ['popping', '팝핀'], source: 'preset' },
+  { key: 'locking', label: '락킹', family: 'street', scope: 'street', aliases: ['locking', '락킨'], source: 'preset' },
+  { key: 'house', label: '하우스', family: 'street', scope: 'street', aliases: ['house'], source: 'preset' },
+  { key: 'breaking', label: '브레이킹', family: 'street', scope: 'street', aliases: ['breaking', '비보잉', 'bboy', 'b-boy', 'bgirl', 'b-girl'], source: 'preset' },
+  { key: 'krump', label: '크럼프', family: 'street', scope: 'street', aliases: ['krump'], source: 'preset' },
+];
+
 const tagRules: Array<{ key: string; label: string; patterns: RegExp[] }> = [
   { key: 'audition', label: '오디션', patterns: [/오디션/i, /audition/i] },
   { key: 'team_recruit', label: '팀원모집', patterns: [/팀원\s*모집/i, /팀\s*모집/i, /프로젝트\s*팀/i, /team\s*recruit/i] },
@@ -191,6 +221,164 @@ function tagTextOf(input: DanceTaxonomyInput): string {
 
 function hasAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
+}
+
+export function normalizeGenreText(value: string | null | undefined): string {
+  return (value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[·ㆍ・]/g, '')
+    .replace(/[\s_\-.,/()[\]{}'"!?~:;|\\]+/g, '')
+    .trim();
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  const current = Array.from({ length: b.length + 1 }, () => 0);
+
+  for (let i = 1; i <= a.length; i += 1) {
+    current[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      current[j] = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + cost,
+      );
+    }
+    for (let j = 0; j <= b.length; j += 1) previous[j] = current[j];
+  }
+
+  return previous[b.length];
+}
+
+function optionSearchTerms(option: DanceGenreOption): string[] {
+  return [option.key, option.label, ...option.aliases].map(normalizeGenreText).filter(Boolean);
+}
+
+function inferOptionFromText(value: string, fallbackScope: DanceScope = 'unknown'): DanceGenreOption {
+  const inferred = inferDanceTaxonomy({ extracted_text: value });
+  const scope = inferred.dance_scope === 'unknown' ? fallbackScope : inferred.dance_scope;
+  const family = inferred.genre_family === 'unknown' && scope === 'street' ? 'street' : inferred.genre_family;
+  const key = inferred.dance_genre === 'unknown' ? normalizeGenreText(value) : inferred.dance_genre;
+
+  return {
+    key: key || value.trim(),
+    label: value.trim(),
+    family,
+    scope,
+    aliases: [],
+    source: 'event',
+  };
+}
+
+export function buildDanceGenreOptions(existingGenres: string[] = []): DanceGenreOption[] {
+  const optionMap = new Map<string, DanceGenreOption>();
+  presetDanceGenreOptions.forEach((option) => {
+    optionMap.set(option.key, option);
+  });
+
+  existingGenres
+    .flatMap((genre) => genre.split(','))
+    .map((genre) => genre.trim())
+    .filter(Boolean)
+    .forEach((genre) => {
+      const resolved = resolveDanceGenreInput(genre, { options: Array.from(optionMap.values()) });
+      if (resolved.matchType === 'preset') return;
+
+      const inferred = inferOptionFromText(genre);
+      const mapKey = inferred.key || normalizeGenreText(inferred.label);
+      if (mapKey && !optionMap.has(mapKey)) {
+        optionMap.set(mapKey, inferred);
+      }
+    });
+
+  return Array.from(optionMap.values());
+}
+
+export function suggestDanceGenres(
+  input: string,
+  options: DanceGenreOption[] = presetDanceGenreOptions,
+  scope?: DanceScope | null,
+  limit = 8,
+): Array<DanceGenreOption & { score: number; matchType: 'exact' | 'contains' | 'fuzzy' }> {
+  const normalized = normalizeGenreText(input);
+  const scopedOptions = scope && scope !== 'unknown'
+    ? options.filter((option) => option.scope === scope || option.scope === 'unknown')
+    : options;
+
+  if (!normalized) {
+    return scopedOptions.slice(0, limit).map((option) => ({ ...option, score: 0.5, matchType: 'contains' }));
+  }
+
+  return scopedOptions
+    .map((option) => {
+      const terms = optionSearchTerms(option);
+      const exact = terms.some((term) => term === normalized);
+      if (exact) return { ...option, score: 1, matchType: 'exact' as const };
+
+      const contains = terms.some((term) => term.includes(normalized) || normalized.includes(term));
+      if (contains) return { ...option, score: 0.82, matchType: 'contains' as const };
+
+      const minDistance = Math.min(...terms.map((term) => levenshteinDistance(normalized, term)));
+      const shortest = Math.min(...terms.map((term) => term.length).filter(Boolean));
+      const maxLen = Math.max(normalized.length, shortest || 1);
+      const fuzzyAllowed = normalized.length <= 3 ? minDistance <= 1 : minDistance <= 2;
+      const score = fuzzyAllowed ? 1 - minDistance / maxLen : 0;
+      return { ...option, score, matchType: 'fuzzy' as const };
+    })
+    .filter((option) => option.score >= 0.5)
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label, 'ko'))
+    .slice(0, limit);
+}
+
+export function resolveDanceGenreInput(
+  value: string,
+  config: {
+    options?: DanceGenreOption[];
+    fallbackScope?: DanceScope | null;
+  } = {},
+): {
+  key: string;
+  label: string;
+  scope: DanceScope;
+  family: DanceGenreFamily;
+  matchType: 'preset' | 'existing' | 'custom' | 'empty';
+  suggestion?: DanceGenreOption;
+} {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { key: 'unknown', label: '', scope: config.fallbackScope || 'unknown', family: 'unknown', matchType: 'empty' };
+  }
+
+  const options = config.options || presetDanceGenreOptions;
+  const suggestions = suggestDanceGenres(trimmed, options, null, 1);
+  const top = suggestions[0];
+  if (top && (top.matchType === 'exact' || top.score >= 0.67 || (top.matchType === 'fuzzy' && normalizeGenreText(trimmed).length <= 3 && top.score >= 0.5))) {
+    const resolvedScope = top.scope === 'unknown' ? (config.fallbackScope || top.scope) : top.scope;
+    return {
+      key: top.key,
+      label: top.label,
+      scope: resolvedScope,
+      family: top.family === 'unknown' && resolvedScope === 'street' ? 'street' : top.family,
+      matchType: top.source === 'event' ? 'existing' : 'preset',
+      suggestion: top,
+    };
+  }
+
+  const inferred = inferOptionFromText(trimmed, config.fallbackScope || 'unknown');
+  return {
+    key: inferred.key,
+    label: inferred.label,
+    scope: inferred.scope,
+    family: inferred.family,
+    matchType: 'custom',
+    suggestion: top,
+  };
 }
 
 function inferActivity(input: DanceTaxonomyInput, text: string): DanceActivity {

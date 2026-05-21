@@ -14,6 +14,14 @@ import "../styles/components/EditableEventDetail.css";
 import { parseDateSafe } from '../pages/v2/utils/eventListUtils';
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import LocalLoading from './LocalLoading';
+import {
+    buildDanceGenreOptions,
+    calendarDanceScopeOptions,
+    getDanceScopeLabel,
+    resolveDanceGenreInput,
+    suggestDanceGenres,
+    type DanceScope,
+} from '../utils/danceTaxonomy';
 
 // Register locale
 registerLocale("ko", ko);
@@ -60,6 +68,8 @@ interface EditableEventDetailProps {
     onExtractThumbnail?: () => void;
     // Venue Selection
     onVenueSelectClick?: () => void;
+    danceScope?: DanceScope;
+    onDanceScopeChange?: (scope: DanceScope) => void;
 
 }
 
@@ -81,7 +91,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     event,
     onUpdate,
     onImageUpload,
-    // genreSuggestions, // Unused
+    genreSuggestions,
     className = "",
     // password props removed
 
@@ -106,6 +116,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     videoUrl,
     onVideoChange,
     onVenueSelectClick,
+    danceScope = 'swing',
+    onDanceScopeChange,
 
 }, ref) => {
     // Refs
@@ -149,8 +161,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     const [tempLocationLink, setTempLocationLink] = useState("");
     const [tempTitle, setTempTitle] = useState("");
     const [tempVideoUrl, setTempVideoUrl] = useState("");
-    // const [customGenreInput, setCustomGenreInput] = useState(""); // Removed
-    // const [showCustomGenreInput, setShowCustomGenreInput] = useState(false); // Removed
+    const [genreQuery, setGenreQuery] = useState("");
 
     // Repositioning State - 기능을 제거하되 코드는 유지
     /*
@@ -227,6 +238,15 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
     const hasImage = !!event.image;
+    const genreOptions = React.useMemo(() => buildDanceGenreOptions(genreSuggestions), [genreSuggestions]);
+    const selectedScope = (danceScope && danceScope !== 'unknown' ? danceScope : 'swing') as DanceScope;
+    const visibleGenreOptions = React.useMemo(() => {
+        return suggestDanceGenres(genreQuery, genreOptions, genreQuery.trim() ? null : selectedScope, genreQuery.trim() ? 8 : 12);
+    }, [genreOptions, genreQuery, selectedScope]);
+    const customGenreResolution = React.useMemo(() => {
+        return resolveDanceGenreInput(genreQuery, { options: genreOptions, fallbackScope: selectedScope });
+    }, [genreOptions, genreQuery, selectedScope]);
+    const canUseCustomGenre = genreQuery.trim().length > 0 && customGenreResolution.matchType === 'custom';
 
     // handleSave removed // Unused
 
@@ -392,7 +412,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             <div className="EED-headerContent">
                                 <div
                                     className="EED-classification"
-                                    onClick={(e) => { e.stopPropagation(); setActiveModal('classification'); }}
+                                    onClick={(e) => { e.stopPropagation(); setGenreQuery(event.genre || ''); setActiveModal('classification'); }}
                                 >
                                     <div className={`EED-category is-${event.category || 'default'}`}>
                                         {!event.category ? "분류" : (event.category === "class" ? "강습" : event.category === "club" ? "동호회" : "행사")}
@@ -417,7 +437,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.preventDefault(); e.stopPropagation();
-                                                                    if (event.category !== 'event') { onUpdate('category', 'event'); onUpdate('genre', ''); }
+                                                                    if (event.category !== 'event') onUpdate('category', 'event');
                                                                 }}
                                                                 className={`EED-sheetBtn ${event.category === 'event' ? 'is-active' : ''}`}
                                                             >
@@ -427,7 +447,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.preventDefault(); e.stopPropagation();
-                                                                    if (event.category !== 'class') { onUpdate('category', 'class'); onUpdate('genre', ''); }
+                                                                    if (event.category !== 'class') onUpdate('category', 'class');
                                                                 }}
                                                                 className={`EED-sheetBtn ${event.category === 'class' ? 'is-active' : ''}`}
                                                             >
@@ -437,7 +457,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.preventDefault(); e.stopPropagation();
-                                                                    if (event.category !== 'club') { onUpdate('category', 'club'); onUpdate('genre', ''); }
+                                                                    if (event.category !== 'club') onUpdate('category', 'club');
                                                                 }}
                                                                 className={`EED-sheetBtn ${event.category === 'club' ? 'is-active' : ''}`}
                                                             >
@@ -451,38 +471,88 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                                                     {event.category && (
                                                         <div className="EED-inputGroup">
-                                                            <label className="EED-label">장르</label>
-                                                            {event.category === 'event' ? (
-                                                                <div className="EED-genreGrid">
-                                                                    {['워크샵', '파티', '대회', '라이브밴드', '기타'].map((option) => {
-                                                                        const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
-                                                                        const isActive = currentGenres.includes(option);
-                                                                        return (
-                                                                            <button
-                                                                                key={option}
-                                                                                onClick={(e) => {
-                                                                                    e.preventDefault(); e.stopPropagation();
-                                                                                    const newGenres = isActive ? currentGenres.filter(g => g !== option) : [...currentGenres.filter(g => !(option === '파티' && g === '대회' || option === '대회' && g === '파티')), option];
-                                                                                    onUpdate('genre', newGenres.join(','));
-                                                                                }}
-                                                                                className={`EED-genreBtn ${isActive ? 'is-active' : ''}`}
-                                                                            >
-                                                                                {option}
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="EED-genreGrid is-columns">
-                                                                    {(event.category === 'club' ? ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'] : ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타']).map(g => {
-                                                                        const isActive = event.genre === g;
-                                                                        return (
-                                                                            <button key={g} onClick={() => onUpdate('genre', isActive ? '' : g)} className={`EED-genreBtn ${isActive ? 'is-active' : ''}`}>
-                                                                                {g}
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
+                                                            <label className="EED-label">장르 범위</label>
+                                                            <div className="EED-scopeRail">
+                                                                {calendarDanceScopeOptions.map((scopeOption) => (
+                                                                    <button
+                                                                        key={scopeOption.key}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault(); e.stopPropagation();
+                                                                            onDanceScopeChange?.(scopeOption.key);
+                                                                        }}
+                                                                        className={`EED-scopeBtn ${selectedScope === scopeOption.key ? 'is-active' : ''}`}
+                                                                    >
+                                                                        <strong>{scopeOption.label}</strong>
+                                                                        <span>{scopeOption.desc}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+
+                                                            <label className="EED-label">세부 장르</label>
+                                                            <div className="EED-genreSearchBox">
+                                                                <i className="ri-search-line"></i>
+                                                                <input
+                                                                    value={genreQuery}
+                                                                    onChange={(e) => setGenreQuery(e.target.value)}
+                                                                    className="EED-genreSearchInput"
+                                                                    placeholder={`${getDanceScopeLabel(selectedScope)} 장르 검색 또는 직접 입력`}
+                                                                />
+                                                            </div>
+
+                                                            {genreQuery.trim() && customGenreResolution.suggestion && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="EED-genreCorrection"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault(); e.stopPropagation();
+                                                                        const suggestion = customGenreResolution.suggestion!;
+                                                                        onUpdate('genre', suggestion.label);
+                                                                        onDanceScopeChange?.(suggestion.scope);
+                                                                        setGenreQuery(suggestion.label);
+                                                                    }}
+                                                                >
+                                                                    <i className="ri-magic-line"></i>
+                                                                    <span>혹시 <strong>{customGenreResolution.suggestion.label}</strong>인가요?</span>
+                                                                </button>
+                                                            )}
+
+                                                            <div className="EED-genreGrid is-compact">
+                                                                {visibleGenreOptions.map((option) => {
+                                                                    const isActive = event.genre === option.label;
+                                                                    return (
+                                                                        <button
+                                                                            key={`${option.source || 'preset'}-${option.key}`}
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault(); e.stopPropagation();
+                                                                                onUpdate('genre', isActive ? '' : option.label);
+                                                                                onDanceScopeChange?.(option.scope);
+                                                                                setGenreQuery(option.label);
+                                                                            }}
+                                                                            className={`EED-genreBtn ${isActive ? 'is-active' : ''}`}
+                                                                        >
+                                                                            <span>{option.label}</span>
+                                                                            {option.source === 'event' && <small>기존</small>}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+
+                                                            {canUseCustomGenre && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="EED-customGenreBtn"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault(); e.stopPropagation();
+                                                                        onUpdate('genre', customGenreResolution.label);
+                                                                        onDanceScopeChange?.(customGenreResolution.scope === 'unknown' ? selectedScope : customGenreResolution.scope);
+                                                                        setGenreQuery(customGenreResolution.label);
+                                                                    }}
+                                                                >
+                                                                    <i className="ri-add-line"></i>
+                                                                    <span>새 장르로 사용: <strong>{customGenreResolution.label}</strong></span>
+                                                                </button>
                                                             )}
                                                         </div>
                                                     )}

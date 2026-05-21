@@ -797,6 +797,10 @@
     grid-template-columns: repeat(3, 1fr);
 }
 
+.EED-genreGrid.is-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .EED-genreBtn {
     padding: 10px;
     border-radius: 10px;
@@ -809,6 +813,14 @@
     transition: all 0.2s;
 }
 
+.EED-genreBtn small {
+    display: block;
+    margin-top: 2px;
+    color: color-mix(in srgb, currentColor 62%, transparent);
+    font-size: 0.65rem;
+    font-weight: 800;
+}
+
 .EED-genreBtn:hover {
     background: var(--bg-surface-3);
 }
@@ -817,6 +829,102 @@
     background: var(--color-blue-600);
     border-color: var(--color-blue-500);
     color: var(--text-on-accent);
+}
+
+.EED-scopeRail {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.EED-scopeBtn {
+    min-width: 0;
+    min-height: 50px;
+    padding: 8px 7px;
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 12px;
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.EED-scopeBtn strong,
+.EED-scopeBtn span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.EED-scopeBtn strong {
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+
+.EED-scopeBtn span {
+    margin-top: 3px;
+    color: var(--text-tertiary);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.EED-scopeBtn.is-active {
+    border-color: color-mix(in srgb, var(--color-blue-400) 68%, transparent);
+    background: color-mix(in srgb, var(--color-blue-600) 22%, var(--bg-surface-2));
+    box-shadow: inset 0 2px 0 var(--color-blue-400);
+}
+
+.EED-genreSearchBox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 13px;
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    background: var(--bg-surface-2);
+}
+
+.EED-genreSearchBox i {
+    color: var(--text-tertiary);
+    font-size: 1.05rem;
+}
+
+.EED-genreSearchInput {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.95rem;
+}
+
+.EED-genreCorrection,
+.EED-customGenreBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 42px;
+    border-radius: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.EED-genreCorrection {
+    border: 1px solid color-mix(in srgb, var(--color-blue-400) 52%, transparent);
+    background: color-mix(in srgb, var(--color-blue-500) 13%, var(--bg-surface-2));
+    color: var(--text-primary);
+}
+
+.EED-customGenreBtn {
+    border: 1px dashed var(--border-glass-strong);
+    background: transparent;
+    color: var(--text-secondary);
 }
 
 /* Animations */
@@ -1066,6 +1174,27 @@
 
 .EED-calendar .react-datepicker__day--keyboard-selected {
     background: transparent;
+}
+
+@media (max-width: 767px) {
+    .EED-scopeRail {
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+    }
+
+    .EED-scopeRail::-webkit-scrollbar {
+        display: none;
+    }
+
+    .EED-scopeBtn {
+        flex: 0 0 92px;
+    }
+
+    .EED-genreGrid.is-compact {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 /* Desktop Adjustments */

@@ -21,6 +21,13 @@ import { useModalHistory } from "../hooks/useModalHistory";
 import { useLoading } from "../contexts/LoadingContext";
 import { retryOperation } from "../utils/asyncUtils";
 import { parseDateSafe, formatDateForInput, getLocalDateString } from "../pages/v2/utils/eventListUtils";
+import {
+  buildDanceGenreOptions,
+  inferDanceScopeForEvent,
+  inferDanceTaxonomy,
+  resolveDanceGenreInput,
+  type DanceScope,
+} from "../utils/danceTaxonomy";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -80,8 +87,9 @@ export default memo(function EventRegistrationModal({
   const [address, setAddress] = useState("");
   const [locationLink, setLocationLink] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<"class" | "event" | "">("");
+  const [category, setCategory] = useState<"class" | "event" | "club" | "">("");
   const [genre, setGenre] = useState("");
+  const [danceScope, setDanceScope] = useState<DanceScope>("swing");
   const scope = "domestic"; // 통합 이후 기본값으로 고정
   // Password state removed - using RLS-based ownership
 
@@ -222,11 +230,14 @@ export default memo(function EventRegistrationModal({
       const fetchGenres = async () => {
         const { data, error } = await supabase
           .from('events')
-          .select('genre')
+          .select('genre,dance_scope,dance_genre')
           .not('genre', 'is', null);
 
         if (!error && data) {
-          const uniqueGenres = Array.from(new Set(data.map(d => d.genre).filter(Boolean))) as string[];
+          const uniqueGenres = Array.from(new Set(data.flatMap((d: any) => [
+            d.genre,
+            d.dance_genre,
+          ]).filter(Boolean))) as string[];
           setAllGenres(uniqueGenres);
         }
       };
@@ -253,10 +264,11 @@ export default memo(function EventRegistrationModal({
         setVenueName((editEventData as any).venue_name || "");
         setVenueCustomLink((editEventData as any).venue_custom_link || "");
         setDescription(editEventData.description || "");
-        setCategory((editEventData.category as "class" | "event") || "event");
-        setCategory((editEventData.category as "class" | "event") || "event");
+        setCategory((editEventData.category as "class" | "event" | "club") || "event");
+        setCategory((editEventData.category as "class" | "event" | "club") || "event");
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
+        setDanceScope(inferDanceScopeForEvent(editEventData as any));
 
         setGroupId((editEventData as any).group_id || null);
 
@@ -291,6 +303,7 @@ export default memo(function EventRegistrationModal({
         setCategory("");
         setCategory("");
         setGenre("");
+        setDanceScope("swing");
 
         setGroupId(initialGroupId);
         setDayOfWeek(initialDayOfWeek);
@@ -658,6 +671,27 @@ export default memo(function EventRegistrationModal({
             ? sortedDates[sortedDates.length - 1]
             : (endDate ? formatDateForInput(endDate) : null);
 
+          const activityType = category === 'class' || category === 'club' ? 'class' : 'event';
+          const genreOptions = buildDanceGenreOptions(allGenres);
+          const resolvedGenre = resolveDanceGenreInput(genre, {
+            options: genreOptions,
+            fallbackScope: danceScope,
+          });
+          const taxonomy = inferDanceTaxonomy({
+            extracted_text: [title, description, location, link1, resolvedGenre.label].filter(Boolean).join(' '),
+            structured_data: {
+              title,
+              event_type: category === 'class' || category === 'club' ? '강습' : '행사',
+              dance_scope: resolvedGenre.scope,
+              dance_genre: resolvedGenre.key,
+              activity_type: activityType,
+              subgenre: resolvedGenre.label,
+              location,
+              note: description,
+              tags: [],
+            },
+          });
+
           const eventData = {
             title,
             date: effectiveStartDate,
@@ -669,8 +703,12 @@ export default memo(function EventRegistrationModal({
             location_link: locationLink,
             description,
             category,
-            genre: genre || undefined,
+            genre: resolvedGenre.label || genre || undefined,
             scope,
+            dance_scope: resolvedGenre.scope,
+            dance_genre: resolvedGenre.key,
+            activity_type: activityType,
+            dance_tags: taxonomy.tags,
             // password 필드 제거 (RLS 기반 권한 관리로 전환)
             link1,
             link_name1: linkName1,
@@ -935,6 +973,7 @@ export default memo(function EventRegistrationModal({
     description: description,
     category: category,
     genre: genre,
+    dance_scope: danceScope,
     image: imagePreview || editEventData?.image || "",
     link1: link1,
     link_name1: linkName1,
@@ -959,7 +998,17 @@ export default memo(function EventRegistrationModal({
       case 'category': setCategory(value); break;
       case 'genre':
         console.log(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
-        setGenre(value);
+        {
+          const resolved = resolveDanceGenreInput(String(value || ''), {
+            options: buildDanceGenreOptions(allGenres),
+            fallbackScope: danceScope,
+          });
+          setGenre(resolved.label || value);
+          if (resolved.scope !== 'unknown') setDanceScope(resolved.scope);
+        }
+        break;
+      case 'dance_scope':
+        setDanceScope(value || 'swing');
         break;
       // Date handling
       case 'date':
@@ -1046,6 +1095,8 @@ export default memo(function EventRegistrationModal({
           imagePosition={imagePosition}
           onImagePositionChange={setImagePosition}
           genreSuggestions={allGenres}
+          danceScope={danceScope}
+          onDanceScopeChange={setDanceScope}
           className="h-full"
           ref={detailRef}
           // DatePicker Props
