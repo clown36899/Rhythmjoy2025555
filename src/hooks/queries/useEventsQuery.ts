@@ -5,7 +5,7 @@ import type { Event } from '../../pages/v2/utils/eventListUtils';
 
 export const useEventsQuery = () => {
     return useQuery({
-        queryKey: ['events'],
+        queryKey: ['events', 'dance-expansion-local-v4'],
         queryFn: async () => {
             const now = new Date();
             const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);

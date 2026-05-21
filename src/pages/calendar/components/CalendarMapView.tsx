@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Event as AppEvent } from '../../../lib/supabase';
 import { fetchCalendarEvents } from '../../../hooks/queries/useCalendarEventsQuery';
+import { isEventInDanceScope, type DanceScope } from '../../../utils/danceTaxonomy';
 import '../styles/CalendarMapView.css';
 
 declare global {
@@ -11,6 +12,7 @@ const WEEK_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const EMPTY_EVENTS: AppEvent[] = [];
 
 interface Props {
+    danceScope?: DanceScope | string;
     onEventClick: (event: AppEvent) => void;
 }
 
@@ -34,7 +36,7 @@ const getVenueSearchText = (event: AppEvent) =>
         .filter(Boolean)
         .join(' ');
 
-export default function CalendarMapView({ onEventClick }: Props) {
+export default function CalendarMapView({ danceScope = 'swing', onEventClick }: Props) {
     const today = new Date();
     const initialMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const [currentMonth, setCurrentMonth] = useState(initialMonth);
@@ -71,10 +73,10 @@ export default function CalendarMapView({ onEventClick }: Props) {
         const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
         const s = start.toISOString().split('T')[0];
         const e = end.toISOString().split('T')[0];
-        fetchCalendarEvents(s, e)
-            .then(data => setAllEvents(data.events))
+        fetchCalendarEvents(s, e, danceScope)
+            .then(data => setAllEvents(data.events.filter(event => isEventInDanceScope(event as any, danceScope))))
             .finally(() => setIsLoadingEvents(false));
-    }, [currentMonth]);
+    }, [currentMonth, danceScope]);
 
     // 날짜별 이벤트 맵
     const eventsByDate = useMemo(() => {

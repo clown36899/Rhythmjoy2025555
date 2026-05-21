@@ -178,10 +178,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 return;
             }
 
-            // 2. Supabase Insert
-            const { data: result, error: insertError } = await prodSupabase
-                .from('events')
-                .insert([{
+            const insertPayload = {
                     title: formattedTitle,
                     date: formData.date,
                     start_date: formData.date,
@@ -202,9 +199,18 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     link1: event.source_url || '',
                     link_name1: event.keyword || '',
                     genre: mapped.genre,
+                    dance_scope: mapped.dance_scope,
+                    dance_genre: mapped.dance_genre,
+                    activity_type: mapped.activity_type,
+                    dance_tags: mapped.dance_tags,
                     user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
                     group_id: mapped.group_id,
-                }])
+                } as any;
+
+            // 2. Supabase Insert
+            const { data: result, error: insertError } = await prodSupabase
+                .from('events' as any)
+                .insert([insertPayload])
                 .select()
                 .maybeSingle();
 
@@ -246,7 +252,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
         <div className="event-edit-overlay" onClick={onClose}>
             <div className="event-edit-container" onClick={e => e.stopPropagation()}>
                 <header className="event-edit-header">
-                    <h2>운영 DB 등록 및 수정</h2>
+                    <h2>캘린더 DB 등록 및 수정</h2>
                     <button className="btn-close" onClick={onClose}>✕</button>
                 </header>
 
@@ -313,7 +319,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     <div className="btn-group">
                         <button className="btn-cancel" onClick={onClose} disabled={isSubmitting}>취소</button>
                         <button className="btn-submit" onClick={handleRegister} disabled={isSubmitting}>
-                            {isSubmitting ? '처리 중...' : '실제 운영 서버 등록 🔥'}
+                            {isSubmitting ? '처리 중...' : '캘린더 DB 등록'}
                         </button>
                     </div>
                 </footer>

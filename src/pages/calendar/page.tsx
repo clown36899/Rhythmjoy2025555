@@ -21,6 +21,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
+import { calendarDanceScopeOptions, getDanceScopeLabel, normalizeDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -75,14 +76,23 @@ const isCalendarEventInFilter = (event: any, filter: 'all' | 'social-events' | '
     return true;
 };
 
+type CalendarDanceScope = Exclude<DanceScope, 'unknown'>;
+type CalendarDisplayMode = 'calendar' | 'list' | 'map';
+
 const CALENDAR_WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 const CALENDAR_MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+const normalizeCalendarDisplayMode = (value: string | null): CalendarDisplayMode => {
+    if (value === 'list' || value === 'map') return value;
+    return 'calendar';
+};
 
 export default function CalendarPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const lastHandledEventIdRef = useRef<string | null>(null);
+    const scrollToTodayConsumedRef = useRef(false);
     const { user, signInWithKakao, isAdmin: authIsAdmin } = useAuth();
     const { openModal, closeModal } = useModalActions();
 
@@ -105,17 +115,32 @@ export default function CalendarPage() {
     }, []);
 
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
-    const [displayMode, setDisplayMode] = useState<'calendar' | 'list' | 'map'>('calendar');
+    const [danceScope, setDanceScope] = useState<CalendarDanceScope>(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return normalizeDanceScope(urlParams.get('dance'));
+    });
+    const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return normalizeCalendarDisplayMode(urlParams.get('view'));
+    });
     const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<string[]>(() => Array(7).fill(''));
-    const handleSetDisplayMode = useCallback((mode: 'calendar' | 'list' | 'map') => {
+    const handleSetDisplayMode = useCallback((mode: CalendarDisplayMode) => {
         setDisplayMode(mode);
+        const nextParams = new URLSearchParams(location.search);
+        nextParams.set('view', mode);
+        nextParams.delete('scrollToToday');
+        nextParams.delete('nav');
+        const nextSearch = nextParams.toString();
+        if (nextSearch !== location.search.replace(/^\?/, '')) {
+            navigate({ pathname: location.pathname, search: nextSearch }, { replace: true });
+        }
         if (mode === 'list' || mode === 'map') {
             window.scrollTo({ top: 0, behavior: 'instant' });
         } else {
             userInteractedRef.current = false;
             shouldScrollToTodayRef.current = true;
         }
-    }, []);
+    }, [location.pathname, location.search, navigate]);
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -137,10 +162,10 @@ export default function CalendarPage() {
     const [adminType] = useState<"super" | "sub" | null>(authIsAdmin ? "super" : null);
 
     // [New] 데이터 훅을 부모로 끌어올림 (사전 높이 계산을 위함)
-    const { data: calendarData, isLoading, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth);
+    const { data: calendarData, isLoading, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth, danceScope);
 
     // 리스트 뷰 전용: 오늘~6개월 후 이벤트 (캘린더 쿼리와 완전히 분리)
-    const listViewData = useListViewEvents(displayMode === 'list');
+    const listViewData = useListViewEvents(displayMode === 'list', danceScope);
 
     useEffect(() => {
         if (displayMode !== 'calendar') {
@@ -209,7 +234,7 @@ export default function CalendarPage() {
             window.removeEventListener('scroll', scheduleUpdate);
             window.removeEventListener('resize', scheduleUpdate);
         };
-    }, [displayMode, currentMonth, tabFilter, calendarData]);
+    }, [displayMode, currentMonth, tabFilter, danceScope, calendarData]);
 
     // Favorites
     const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
@@ -246,7 +271,7 @@ export default function CalendarPage() {
             venueCount: venueNames.size,
             todayLabel: `${now.getMonth() + 1}.${now.getDate()}`,
         };
-    }, [calendarData, tabFilter]);
+    }, [calendarData, tabFilter, danceScope]);
 
     // Venue Modal State
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
@@ -447,52 +472,79 @@ export default function CalendarPage() {
             isSameMonth,
             debugTitleHeight: eventChipHeight
         };
-    }, [currentMonth, calendarData, tabFilter]);
+    }, [currentMonth, calendarData, tabFilter, danceScope]);
 
     const handleScrollToToday = useCallback((behavior: 'smooth' | 'auto' | 'instant' = 'smooth', forced = false, onDone?: () => void) => {
         if (!forced && userInteractedRef.current) { onDone?.(); return; }
         if (!calendarMetrics.isSameMonth && !forced) { onDone?.(); return; }
 
-        const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
-        const navHeaderEl = document.querySelector('.calendar-live-sticky-controls')
-            || document.querySelector('.shell-header.global-header-fixed');
-
-        if (!gridEl) { onDone?.(); return; }
-
         let retryCount = 0;
-        const maxRetries = 10;
+        let didFinish = false;
+        const maxRetries = 14;
+
+        const finish = () => {
+            if (didFinish) return;
+            didFinish = true;
+            onDone?.();
+        };
+
+        const computeTarget = () => {
+            const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
+            const todayEl = document.querySelector('.calendar-cell-fullscreen.is-today');
+            const navHeaderEl = document.querySelector('.calendar-live-sticky-controls')
+                || document.querySelector('.shell-header.global-header-fixed');
+
+            if (!gridEl) return null;
+            if (!todayEl && retryCount < maxRetries) return null;
+
+            const headerBottom = navHeaderEl ? navHeaderEl.getBoundingClientRect().bottom : 0;
+            const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
+
+            if (todayEl) {
+                const todayRect = todayEl.getBoundingClientRect();
+                const finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
+                return Math.max(0, gridAbsoluteTop + finalY - headerBottom);
+            }
+
+            return Math.max(0, gridAbsoluteTop + calendarMetrics.targetY - headerBottom);
+        };
 
         const performWarp = () => {
-            const todayEl = document.querySelector('.calendar-cell-fullscreen.is-today');
-
-            if (!todayEl && retryCount < maxRetries) {
+            const scrollTarget = computeTarget();
+            if (scrollTarget === null) {
+                if (retryCount >= maxRetries) {
+                    finish();
+                    return;
+                }
                 retryCount++;
                 requestAnimationFrame(performWarp);
                 return;
             }
 
-            const headerBottom = navHeaderEl
-                ? navHeaderEl.getBoundingClientRect().bottom
-                : 0;
+            const scrollToComputedTarget = (scrollBehavior: ScrollBehavior) => {
+                const nextTarget = computeTarget();
+                if (nextTarget === null) return;
+                if (Math.abs(window.scrollY - nextTarget) > 2) {
+                    window.scrollTo({ top: nextTarget, behavior: scrollBehavior });
+                }
+            };
 
-            const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
-
-            let finalY = 0;
-            if (todayEl) {
-                const todayRect = todayEl.getBoundingClientRect();
-                finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
-            } else {
-                finalY = calendarMetrics.targetY;
-            }
-
-            const scrollTarget = Math.max(0, gridAbsoluteTop + finalY - headerBottom);
-
-            console.log(`📏 [Warp-Final] mode: ${todayEl ? 'DOM' : 'FALLBACK'}, result: ${scrollTarget.toFixed(1)}`);
             window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
-            onDone?.();
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    scrollToComputedTarget('auto');
+                    [140, 360, 760].forEach((delay) => {
+                        window.setTimeout(() => scrollToComputedTarget('auto'), delay);
+                    });
+                    finish();
+                });
+            });
         };
 
-        performWarp();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(performWarp);
+        });
 
     }, [calendarMetrics]);
 
@@ -504,8 +556,13 @@ export default function CalendarPage() {
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
         if (isAnyModalOpen) return;
 
-        // 초기 진입은 샘플처럼 상단 구조를 보여주고, 명시적인 오늘 이동 때만 워프한다.
-        if (displayMode !== 'calendar') return; // list/map 모드에서는 스크롤 워프 스킵
+        // 리스트/지도 모드는 오늘 위치 워프 대상이 아니므로 숨김 상태만 즉시 해제한다.
+        if (displayMode !== 'calendar') {
+            initialJumpDoneRef.current = true;
+            shouldScrollToTodayRef.current = false;
+            if (containerRef.current) containerRef.current.style.visibility = 'visible';
+            return;
+        }
 
         if (calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
             const showPage = () => {
@@ -570,7 +627,17 @@ export default function CalendarPage() {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
-        if (urlParams.get('scrollToToday') !== 'true') return;
+        const nextMode = normalizeCalendarDisplayMode(urlParams.get('view'));
+        if (nextMode !== displayMode) {
+            setDisplayMode(nextMode);
+        }
+
+        if (urlParams.get('scrollToToday') !== 'true') {
+            scrollToTodayConsumedRef.current = false;
+            return;
+        }
+        if (scrollToTodayConsumedRef.current) return;
+        scrollToTodayConsumedRef.current = true;
 
         setDisplayMode('calendar');
         userInteractedRef.current = false;
@@ -581,7 +648,7 @@ export default function CalendarPage() {
         });
 
         return () => cancelAnimationFrame(frame);
-    }, [location.search, moveToToday]);
+    }, [displayMode, location.search, moveToToday]);
 
     const handleNavigatorMonthSelect = useCallback((monthIndex: number) => {
         setShowCalendarNavigator(false);
@@ -613,6 +680,36 @@ export default function CalendarPage() {
             handleScrollToToday('instant', true);
         }
     };
+
+    const handleDanceScopeClick = (scope: CalendarDanceScope) => {
+        if (scope === danceScope) return;
+
+        setDanceScope(scope);
+        setSelectedDate(null);
+
+        const nextParams = new URLSearchParams(location.search);
+        nextParams.set('dance', scope);
+        nextParams.set('view', displayMode);
+        nextParams.delete('scrollToToday');
+        nextParams.delete('nav');
+        navigate({ pathname: location.pathname, search: nextParams.toString() }, { replace: false });
+
+        if (displayMode === 'calendar') {
+            userInteractedRef.current = false;
+            shouldScrollToTodayRef.current = true;
+        } else {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+    };
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const nextScope = normalizeDanceScope(urlParams.get('dance'));
+        if (nextScope !== danceScope) {
+            setDanceScope(nextScope);
+            setSelectedDate(null);
+        }
+    }, [danceScope, location.search]);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
@@ -843,6 +940,21 @@ export default function CalendarPage() {
                         </div>
                     </header>
 
+                    <div className="calendar-dance-scope-switch" aria-label="장르 선택">
+                        {calendarDanceScopeOptions.map((option) => (
+                            <button
+                                key={option.key}
+                                type="button"
+                                className={`calendar-dance-scope-btn ${danceScope === option.key ? 'active' : ''}`}
+                                onClick={() => handleDanceScopeClick(option.key)}
+                                title={option.desc}
+                            >
+                                <strong>{option.label}</strong>
+                                <span>{option.desc}</span>
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="calendar-filter-switch" aria-label="캘린더 필터">
                         <button
                             className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
@@ -905,12 +1017,13 @@ export default function CalendarPage() {
                     </div>
                     <div className="calendar-page-overview-card">
                         <span>필터</span>
-                        <strong>{tabFilter === 'all' ? '전체' : tabFilter === 'social-events' ? '소셜&행사' : '강습'}</strong>
+                        <strong>{getDanceScopeLabel(danceScope)} · {tabFilter === 'all' ? '전체' : tabFilter === 'social-events' ? '소셜&행사' : '강습'}</strong>
                     </div>
                 </section>
 
                 {displayMode === 'map' && (
                     <CalendarMapView
+                        danceScope={danceScope}
                         onEventClick={handleCalendarMapEventClick}
                     />
                 )}
@@ -921,6 +1034,7 @@ export default function CalendarPage() {
                             events={listViewData.data?.events || []}
                             socialSchedules={listViewData.data?.socialSchedules || []}
                             tabFilter={tabFilter}
+                            danceScope={danceScope}
                             onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
                             isLoading={listViewData.isLoading}
                         />
@@ -961,6 +1075,7 @@ export default function CalendarPage() {
                         }}
                         highlightedEventId={highlightedEventId}
                         tabFilter={tabFilter}
+                        danceScope={danceScope}
                         seed={randomSeed}
                         isMapView={isMapView}
                         onDateClickWithEvents={(date, events) => {

@@ -14,7 +14,7 @@ interface UseCalendarGestureProps {
 
 const EXPANDED_HEIGHT = 200;
 const FOOTER_HEIGHT = 130; // 하단 네비게이션 고정 높이
-const MIN_SWIPE_DISTANCE = 50;
+const MIN_SWIPE_DISTANCE = 40;
 
 export function useCalendarGesture({
   headerHeight,
@@ -35,6 +35,12 @@ export function useCalendarGesture({
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 600);
 
   const swipeAnimationRef = useRef<number | null>(null);
+  const gestureEndFallbackRef = useRef<number | null>(null);
+  const onHorizontalSwipeRef = useRef(onHorizontalSwipe);
+
+  useEffect(() => {
+    onHorizontalSwipeRef.current = onHorizontalSwipe;
+  }, [onHorizontalSwipe]);
 
   const latestStateRef = useRef({ isAnimating, calendarMode, isYearView });
   useEffect(() => {
@@ -91,142 +97,60 @@ export function useCalendarGesture({
     initialScrollTop: number;
     startTime: number;
     isActive: boolean;
-  }>({ startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0, startTime: 0, isActive: false });
+    lastX: number;
+    lastY: number;
+    pointerCaptureTarget: HTMLElement | null;
+    pointerId: number | null;
+  }>({ startX: 0, startY: 0, startHeight: 0, isLocked: null, initialScrollTop: 0, startTime: 0, isActive: false, lastX: 0, lastY: 0, pointerCaptureTarget: null, pointerId: null });
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const getCoords = (e: TouchEvent | MouseEvent): { clientX: number; clientY: number } | null => {
-      if (e instanceof TouchEvent) return e.touches.length > 0 ? e.touches[0] : null;
+    type GestureEvent = TouchEvent | MouseEvent | PointerEvent;
+
+    const getCoords = (e: GestureEvent): { clientX: number; clientY: number } | null => {
+      if (isTouchGestureEvent(e)) return e.touches.length > 0 ? e.touches[0] : null;
       return e;
     };
 
-    const getEndCoords = (e: TouchEvent | MouseEvent): { clientX: number; clientY: number } | null => {
-      if (e instanceof TouchEvent) return e.changedTouches.length > 0 ? e.changedTouches[0] : null;
+    const getEndCoords = (e: GestureEvent): { clientX: number; clientY: number } | null => {
+      if (isTouchGestureEvent(e)) return e.changedTouches.length > 0 ? e.changedTouches[0] : null;
       return e;
     };
 
-    const handleGestureStart = (e: TouchEvent | MouseEvent) => {
-      // [Definitive Fix] If a modal is open, don't intercept ANY gestures.
-      // Check both html and body for maximum compatibility.
-      if (document.documentElement.classList.contains('modal-open') ||
-        document.body.classList.contains('modal-open')) return;
+    const isTouchGestureEvent = (e: GestureEvent): e is TouchEvent =>
+      typeof TouchEvent !== 'undefined' && e instanceof TouchEvent;
 
-      if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
-      const target = e.target as HTMLElement;
-      // Allow gestures on calendar cells and event cards even if they have role="button"
-      const isCalendarCell = target.closest('.calendar-cell-fullscreen, .calendar-cell-base');
-      const isEventCard = target.closest('.calendar-fullscreen-event-card');
-      if (!isCalendarCell && !isEventCard && target.closest('button, a, input, select, .clickable, [role="button"]')) {
-        return;
-      }
-      if (latestStateRef.current.isYearView && calendarContentRef?.current?.contains(target)) return;
+    const isMouseGestureEvent = (e: GestureEvent): e is MouseEvent =>
+      typeof MouseEvent !== 'undefined' && e instanceof MouseEvent;
 
-      const coords = getCoords(e);
-      if (!coords) return;
+    const isPointerGestureEvent = (e: GestureEvent): e is PointerEvent =>
+      typeof PointerEvent !== 'undefined' && e instanceof PointerEvent;
 
-      const eventList = eventListElementRef.current;
-      const scrollTop = eventList ? eventList.scrollTop : 0;
-      const currentHeight = calendarContentRef?.current ? calendarContentRef.current.getBoundingClientRect().height : getTargetHeight();
-
-      if (calendarRef?.current && calendarContentRef?.current) {
-        calendarRef.current.style.touchAction = 'pan-y'; // vertical scroll allowed
-        calendarContentRef.current.style.touchAction = 'pan-y';
-      } else if (containerRef.current) {
-        // If strictly separated calendar page, we might want horizontal swipe on container
-        containerRef.current.style.touchAction = 'pan-y';
-      }
-      gestureRef.current = {
-        startX: coords.clientX, startY: coords.clientY, startHeight: currentHeight,
-        isLocked: null, initialScrollTop: scrollTop, startTime: Date.now(), isActive: true
-      };
-      if (e instanceof MouseEvent) {
-        window.addEventListener('mousemove', handleGestureMove, { passive: false });
-        window.addEventListener('mouseup', handleGestureEnd, { passive: false });
+    const clearGestureEndFallback = () => {
+      if (gestureEndFallbackRef.current) {
+        window.clearTimeout(gestureEndFallbackRef.current);
+        gestureEndFallbackRef.current = null;
       }
     };
 
-    const handleGestureMove = (e: TouchEvent | MouseEvent) => {
-      if (!gestureRef.current.isActive) return;
-      const coords = getCoords(e);
-      if (!coords) return;
-      const { startX, startY, isLocked, startHeight, initialScrollTop } = gestureRef.current;
-      const diffX = coords.clientX - startX;
-      const diffY = coords.clientY - startY;
-
-      if (!isLocked) {
-        // If the browser has already claimed the event for scrolling, we can't lock it.
-        // However, we should still try to detect if it's a horizontal swipe we want to capture.
-
-        const absX = Math.abs(diffX);
-        const absY = Math.abs(diffY);
-
-        // 임계값 상향 (3 -> 10)으로 클릭 미스 방지 및 반응서 확보
-        if (absX > 10 || absY > 10) {
-          // Reduced threshold (1.2 -> 1.0) for easier horizontal swipe detection
-          // 프리뷰 모드(collapsed)에서는 가로 스와이프 비활성화
-          if (absX > absY && latestStateRef.current.calendarMode !== 'collapsed') {
-            gestureRef.current.isLocked = 'horizontal';
-            const target = e.target as HTMLElement;
-            const isCalendarArea = calendarRef?.current?.contains(target) || containerRef.current?.contains(target); // Fallback to container
-
-            // If explicitly strictly calendar page (no calendarRef provided but containerRef exists)
-            // effectively treat container as calendar area for horizontal swipes.
-            if (!isCalendarArea) return;
-          } else if (absY > absX) {
-            const isTouchingCalendar = calendarRef?.current?.contains(e.target as Node);
-
-            // DISABLED: Pull-down to expand calendar from event list
-            // Users reported this feature was interfering with normal scrolling
-            // Only allow resize when directly touching the calendar area
-
-            // Allow resize ONLY if touching calendar directly AND NOT in fullscreen mode
-            const shouldResize = (isTouchingCalendar && latestStateRef.current.calendarMode !== 'fullscreen');
-
-            if (shouldResize) {
-              gestureRef.current.isLocked = 'vertical-resize';
-              setIsDragging(true);
-              setLiveCalendarHeight(startHeight);
-            } else if (e instanceof MouseEvent) {
-              gestureRef.current.isLocked = 'vertical-scroll';
-            } else {
-              // Allow native scrolling for event list
-              gestureRef.current.isLocked = 'native-scroll';
-            }
-          }
-        }
-      }
-
-      const currentLock = gestureRef.current.isLocked;
-      if (currentLock === 'horizontal') {
-        if (e.cancelable && !(e.target as HTMLElement)?.closest('input[type="range"]')) e.preventDefault();
-        if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
-        swipeAnimationRef.current = requestAnimationFrame(() => setDragOffset(diffX));
-      } else if (currentLock === 'vertical-resize') {
-        if (e.cancelable) e.preventDefault();
-        // Apply damping factor for "gum-like" resistance
-        const DAMPING_FACTOR = 0.12; //저항력
-        const dampedDiffY = diffY * DAMPING_FACTOR;
-        const newHeight = startHeight + dampedDiffY;
-
-        const maxAllowedHeight = calculateFullscreenHeight();
-        const clampedHeight = Math.max(0, Math.min(newHeight, maxAllowedHeight));
-        if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
-        swipeAnimationRef.current = requestAnimationFrame(() => setLiveCalendarHeight(clampedHeight));
-      } else if (currentLock === 'vertical-scroll' && e instanceof MouseEvent) {
-        if (e.cancelable) e.preventDefault();
-        const eventList = eventListElementRef.current;
-        if (eventList) eventList.scrollTop = initialScrollTop - diffY;
-      }
+    const removeWindowGestureListeners = () => {
+      window.removeEventListener('mousemove', handleGestureMove);
+      window.removeEventListener('mouseup', handleGestureEnd);
+      window.removeEventListener('touchmove', handleGestureMove);
+      window.removeEventListener('touchend', handleGestureEnd);
+      window.removeEventListener('touchcancel', handleGestureEnd);
+      window.removeEventListener('pointermove', handleGestureMove);
+      window.removeEventListener('pointerup', handleGestureEnd);
+      window.removeEventListener('pointercancel', handleGestureEnd);
     };
 
-    const handleGestureEnd = (e: TouchEvent | MouseEvent) => {
+    const finishGesture = (endCoords: { clientX: number; clientY: number }) => {
       if (!gestureRef.current.isActive) return;
+      clearGestureEndFallback();
 
       const { isLocked, startX, startY } = gestureRef.current;
-      const endCoords = getEndCoords(e);
-      if (!endCoords) return;
 
       const diffX = endCoords.clientX - startX;
       const diffY = endCoords.clientY - startY;
@@ -244,7 +168,7 @@ export function useCalendarGesture({
           setDragOffset(targetOffset);
           setIsAnimating(true);
           setTimeout(() => {
-            onHorizontalSwipe(direction);
+            onHorizontalSwipeRef.current(direction);
             setDragOffset(0);
             setIsAnimating(false);
           }, 300);
@@ -283,18 +207,186 @@ export function useCalendarGesture({
         setIsDragging(false);
       }
 
-      if (e instanceof MouseEvent) {
-        window.removeEventListener('mousemove', handleGestureMove);
-        window.removeEventListener('mouseup', handleGestureEnd);
+      const { pointerCaptureTarget, pointerId } = gestureRef.current;
+      if (pointerCaptureTarget && pointerId !== null && pointerCaptureTarget.releasePointerCapture) {
+        try {
+          pointerCaptureTarget.releasePointerCapture(pointerId);
+        } catch {
+          // Pointer capture may already be released by the browser on pointerup.
+        }
       }
+
+      removeWindowGestureListeners();
       gestureRef.current.isLocked = null;
       gestureRef.current.isActive = false;
+      gestureRef.current.lastX = 0;
+      gestureRef.current.lastY = 0;
+      gestureRef.current.pointerCaptureTarget = null;
+      gestureRef.current.pointerId = null;
+    };
+
+    const scheduleGestureEndFallback = () => {
+      clearGestureEndFallback();
+      gestureEndFallbackRef.current = window.setTimeout(() => {
+        const { isActive, isLocked, lastX, lastY } = gestureRef.current;
+        if (isActive && isLocked === 'horizontal') {
+          finishGesture({ clientX: lastX, clientY: lastY });
+        }
+      }, 220);
+    };
+
+    const handleGestureStart = (e: GestureEvent) => {
+      // [Definitive Fix] If a modal is open, don't intercept ANY gestures.
+      // Check both html and body for maximum compatibility.
+      if (document.documentElement.classList.contains('modal-open') ||
+        document.body.classList.contains('modal-open')) return;
+
+      if (gestureRef.current.isActive) return;
+      if (latestStateRef.current.isAnimating || (isTouchGestureEvent(e) && e.touches.length > 1)) return;
+      if (isPointerGestureEvent(e) && e.isPrimary === false) return;
+      const target = e.target as HTMLElement;
+      // Allow gestures on calendar cells and event cards even if they have role="button"
+      const isCalendarCell = target.closest('.calendar-cell-fullscreen, .calendar-cell-base');
+      const isEventCard = target.closest('.calendar-fullscreen-event-card');
+      if (!isCalendarCell && !isEventCard && target.closest('button, a, input, select, .clickable, [role="button"]')) {
+        return;
+      }
+      if (latestStateRef.current.isYearView && calendarContentRef?.current?.contains(target)) return;
+
+      const coords = getCoords(e);
+      if (!coords) return;
+
+      const eventList = eventListElementRef.current;
+      const scrollTop = eventList ? eventList.scrollTop : 0;
+      const currentHeight = calendarContentRef?.current ? calendarContentRef.current.getBoundingClientRect().height : getTargetHeight();
+
+      if (calendarRef?.current && calendarContentRef?.current) {
+        calendarRef.current.style.touchAction = 'pan-y'; // vertical scroll allowed
+        calendarContentRef.current.style.touchAction = 'pan-y';
+      } else if (containerRef.current) {
+        // If strictly separated calendar page, we might want horizontal swipe on container
+        containerRef.current.style.touchAction = 'pan-y';
+      }
+      gestureRef.current = {
+        startX: coords.clientX, startY: coords.clientY, startHeight: currentHeight,
+        isLocked: null, initialScrollTop: scrollTop, startTime: Date.now(), isActive: true,
+        lastX: coords.clientX, lastY: coords.clientY,
+        pointerCaptureTarget: null, pointerId: null,
+      };
+      if (isPointerGestureEvent(e)) {
+        if (target.setPointerCapture) {
+          try {
+            target.setPointerCapture(e.pointerId);
+            gestureRef.current.pointerCaptureTarget = target;
+            gestureRef.current.pointerId = e.pointerId;
+          } catch {
+            gestureRef.current.pointerCaptureTarget = null;
+            gestureRef.current.pointerId = null;
+          }
+        }
+        window.addEventListener('pointermove', handleGestureMove, { passive: false });
+        window.addEventListener('pointerup', handleGestureEnd, { passive: false });
+        window.addEventListener('pointercancel', handleGestureEnd, { passive: false });
+      } else if (isMouseGestureEvent(e)) {
+        window.addEventListener('mousemove', handleGestureMove, { passive: false });
+        window.addEventListener('mouseup', handleGestureEnd, { passive: false });
+      } else if (isTouchGestureEvent(e)) {
+        window.addEventListener('touchmove', handleGestureMove, { passive: false });
+        window.addEventListener('touchend', handleGestureEnd, { passive: true });
+        window.addEventListener('touchcancel', handleGestureEnd, { passive: true });
+      }
+    };
+
+    const handleGestureMove = (e: GestureEvent) => {
+      if (!gestureRef.current.isActive) return;
+      const coords = getCoords(e);
+      if (!coords) return;
+      const { startX, startY, isLocked, startHeight, initialScrollTop } = gestureRef.current;
+      const diffX = coords.clientX - startX;
+      const diffY = coords.clientY - startY;
+      gestureRef.current.lastX = coords.clientX;
+      gestureRef.current.lastY = coords.clientY;
+
+      if (!isLocked) {
+        // If the browser has already claimed the event for scrolling, we can't lock it.
+        // However, we should still try to detect if it's a horizontal swipe we want to capture.
+
+        const absX = Math.abs(diffX);
+        const absY = Math.abs(diffY);
+
+        // 임계값 상향 (3 -> 10)으로 클릭 미스 방지 및 반응서 확보
+        if (absX > 10 || absY > 10) {
+          // Reduced threshold (1.2 -> 1.0) for easier horizontal swipe detection
+          // 프리뷰 모드(collapsed)에서는 가로 스와이프 비활성화
+          if (absX > absY && latestStateRef.current.calendarMode !== 'collapsed') {
+            gestureRef.current.isLocked = 'horizontal';
+            const target = e.target as HTMLElement;
+            const isCalendarArea = calendarRef?.current?.contains(target) || containerRef.current?.contains(target); // Fallback to container
+
+            // If explicitly strictly calendar page (no calendarRef provided but containerRef exists)
+            // effectively treat container as calendar area for horizontal swipes.
+            if (!isCalendarArea) return;
+          } else if (absY > absX) {
+            const isTouchingCalendar = calendarRef?.current?.contains(e.target as Node);
+
+            // DISABLED: Pull-down to expand calendar from event list
+            // Users reported this feature was interfering with normal scrolling
+            // Only allow resize when directly touching the calendar area
+
+            // Allow resize ONLY if touching calendar directly AND NOT in fullscreen mode
+            const shouldResize = (isTouchingCalendar && latestStateRef.current.calendarMode !== 'fullscreen');
+
+            if (shouldResize) {
+              gestureRef.current.isLocked = 'vertical-resize';
+              setIsDragging(true);
+              setLiveCalendarHeight(startHeight);
+            } else if (isMouseGestureEvent(e)) {
+              gestureRef.current.isLocked = 'vertical-scroll';
+            } else {
+              // Allow native scrolling for event list
+              gestureRef.current.isLocked = 'native-scroll';
+            }
+          }
+        }
+      }
+
+      const currentLock = gestureRef.current.isLocked;
+      if (currentLock === 'horizontal') {
+        if (e.cancelable && !(e.target as HTMLElement)?.closest('input[type="range"]')) e.preventDefault();
+        if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
+        swipeAnimationRef.current = requestAnimationFrame(() => setDragOffset(diffX));
+        scheduleGestureEndFallback();
+      } else if (currentLock === 'vertical-resize') {
+        if (e.cancelable) e.preventDefault();
+        // Apply damping factor for "gum-like" resistance
+        const DAMPING_FACTOR = 0.12; //저항력
+        const dampedDiffY = diffY * DAMPING_FACTOR;
+        const newHeight = startHeight + dampedDiffY;
+
+        const maxAllowedHeight = calculateFullscreenHeight();
+        const clampedHeight = Math.max(0, Math.min(newHeight, maxAllowedHeight));
+        if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
+        swipeAnimationRef.current = requestAnimationFrame(() => setLiveCalendarHeight(clampedHeight));
+      } else if (currentLock === 'vertical-scroll' && isMouseGestureEvent(e)) {
+        if (e.cancelable) e.preventDefault();
+        const eventList = eventListElementRef.current;
+        if (eventList) eventList.scrollTop = initialScrollTop - diffY;
+      }
+    };
+
+    const handleGestureEnd = (e: GestureEvent) => {
+      if (!gestureRef.current.isActive) return;
+
+      const { lastX, lastY } = gestureRef.current;
+      const endCoords = getEndCoords(e) || { clientX: lastX, clientY: lastY };
+      finishGesture(endCoords);
     };
 
     container.addEventListener('touchstart', handleGestureStart, { passive: true });
     container.addEventListener('touchmove', handleGestureMove, { passive: false });
     container.addEventListener('touchend', handleGestureEnd, { passive: true });
     container.addEventListener('touchcancel', handleGestureEnd, { passive: true });
+    container.addEventListener('pointerdown', handleGestureStart, { passive: true });
     container.addEventListener('mousedown', handleGestureStart, { passive: true });
 
     return () => {
@@ -302,15 +394,22 @@ export function useCalendarGesture({
       container.removeEventListener('touchmove', handleGestureMove);
       container.removeEventListener('touchend', handleGestureEnd);
       container.removeEventListener('touchcancel', handleGestureEnd);
+      container.removeEventListener('pointerdown', handleGestureStart);
       container.removeEventListener('mousedown', handleGestureStart);
       window.removeEventListener('mousemove', handleGestureMove);
       window.removeEventListener('mouseup', handleGestureEnd);
+      window.removeEventListener('touchmove', handleGestureMove);
+      window.removeEventListener('touchend', handleGestureEnd);
+      window.removeEventListener('touchcancel', handleGestureEnd);
+      window.removeEventListener('pointermove', handleGestureMove);
+      window.removeEventListener('pointerup', handleGestureEnd);
+      window.removeEventListener('pointercancel', handleGestureEnd);
+      clearGestureEndFallback();
       if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
     };
-  }, [containerRef, calendarRef, calendarContentRef, eventListElementRef, calculateFullscreenHeight, onHorizontalSwipe, getTargetHeight]);
+  }, [containerRef, calendarRef, calendarContentRef, eventListElementRef, calculateFullscreenHeight, getTargetHeight]);
 
   return {
     calendarMode, setCalendarMode, isDragging, liveCalendarHeight, dragOffset, setDragOffset, isAnimating, setIsAnimating, getTargetHeight, calculateFullscreenHeight,
   };
 }
-

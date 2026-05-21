@@ -258,7 +258,11 @@ export default function VenueRegistrationModal({
             let parsedMapUrls = { kakao: '', naver: '', google: '' };
             if (data.map_url) {
                 if (data.map_url.startsWith('{')) {
-                    try { parsedMapUrls = JSON.parse(data.map_url); } catch(e){}
+                    try {
+                        parsedMapUrls = JSON.parse(data.map_url);
+                    } catch {
+                        parsedMapUrls = { kakao: '', naver: '', google: '' };
+                    }
                 } else if (data.map_url.includes('naver')) {
                     parsedMapUrls.naver = data.map_url;
                 } else {

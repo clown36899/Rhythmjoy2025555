@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
 import { createResizedImages } from '../../../utils/imageResize';
@@ -39,6 +38,8 @@ interface ScrapedEvent {
     event_type?: '소셜' | '파티/행사' | '강습' | null;
     activity_type?: 'class' | 'social' | 'event' | 'recruit' | null;
     activity_label?: string;
+    dance_scope?: 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown' | null;
+    dance_scope_label?: string;
     genre_family?: 'partner' | 'street' | 'art' | 'commercial' | 'unknown' | null;
     genre_family_label?: string;
     dance_genre?: string | null;
@@ -48,6 +49,10 @@ interface ScrapedEvent {
     _duplicate?: {
       reason?: string;
       existingId?: string;
+      existingTitle?: string;
+      existingDate?: string;
+      existingSourceUrl?: string;
+      target?: 'scraped_events' | 'events';
       detected_at?: string;
     };
   };
@@ -59,13 +64,13 @@ interface ScrapedEvent {
 }
 
 const EventIngestorV2: React.FC = () => {
-  const { user } = useAuth();
   const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'new' | 'collected' | 'duplicate'>('new');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'swing' | 'salsa' | 'bachata' | 'tango' | 'street'>('all');
   const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집'>('전체');
   const [familyFilter, setFamilyFilter] = useState<'all' | 'partner' | 'street' | 'art' | 'commercial' | 'unknown'>('all');
   const [tagFilter, setTagFilter] = useState('all');
@@ -84,6 +89,20 @@ const EventIngestorV2: React.FC = () => {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const resetReviewFilters = () => {
+    setScopeFilter('all');
+    setActivityFilter('전체');
+    setFamilyFilter('all');
+    setTagFilter('all');
+  };
+
+  const handleTabChange = (tab: 'new' | 'collected' | 'duplicate') => {
+    setActiveTab(tab);
+    setSelectedIds(new Set());
+    setCurrentPage(1);
+    resetReviewFilters();
+  };
 
   const fetchScrapedEvents = async (page = 1, tab = activeTab) => {
     try {
@@ -135,31 +154,62 @@ const EventIngestorV2: React.FC = () => {
     fetchVenues();
   }, []);
 
+  const scopeOptions = useMemo(() => {
+    const labels: Record<string, string> = {
+      swing: '스윙',
+      salsa: '살사',
+      bachata: '바차타',
+      tango: '탱고',
+      street: '스트릿',
+    };
+    const counts = new Map<string, number>();
+    scrapedEvents.forEach((event) => {
+      const meta = getIngestorGenreMeta(event);
+      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
+      if (['swing', 'salsa', 'bachata', 'tango', 'street'].includes(scope)) {
+        counts.set(scope, (counts.get(scope) || 0) + 1);
+      }
+    });
+    return (['swing', 'salsa', 'bachata', 'tango', 'street'] as const)
+      .filter((key) => counts.has(key))
+      .map((key) => ({ key, label: labels[key], count: counts.get(key) || 0 }));
+  }, [scrapedEvents]);
+
+  useEffect(() => {
+    if (scopeFilter !== 'all' && !scopeOptions.some((option) => option.key === scopeFilter)) {
+      setScopeFilter('all');
+    }
+  }, [scopeFilter, scopeOptions]);
+
   const familyOptions = useMemo(() => {
     const counts = new Map<string, { label: string; count: number }>();
     scrapedEvents.forEach((event) => {
-      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
       const meta = getIngestorGenreMeta(event);
+      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
+      if (scopeFilter !== 'all' && scope !== scopeFilter) return;
+      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
       counts.set(meta.family, { label: meta.familyLabel, count: (counts.get(meta.family)?.count || 0) + 1 });
     });
     const order = ['partner', 'street', 'art', 'commercial', 'unknown'];
     return order
       .filter((key) => counts.has(key))
       .map((key) => ({ key, ...(counts.get(key) as { label: string; count: number }) }));
-  }, [activityFilter, scrapedEvents]);
+  }, [activityFilter, scopeFilter, scrapedEvents]);
 
   const tagOptions = useMemo(() => {
     const counts = new Map<string, number>();
     scrapedEvents.forEach((event) => {
-      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
       const meta = getIngestorGenreMeta(event);
+      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
+      if (scopeFilter !== 'all' && scope !== scopeFilter) return;
+      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
       if (familyFilter !== 'all' && meta.family !== familyFilter) return;
       getIngestorTags(event).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
     });
     return Array.from(counts.entries())
       .map(([key, count]) => ({ key, label: getIngestorTagLabel(key), count }))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'));
-  }, [activityFilter, familyFilter, scrapedEvents]);
+  }, [activityFilter, familyFilter, scopeFilter, scrapedEvents]);
 
   useEffect(() => {
     if (familyFilter !== 'all' && !familyOptions.some((option) => option.key === familyFilter)) {
@@ -175,13 +225,15 @@ const EventIngestorV2: React.FC = () => {
 
   const filteredEvents = useMemo(() => {
     return scrapedEvents.filter((event) => {
-      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return false;
       const meta = getIngestorGenreMeta(event);
+      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
+      if (scopeFilter !== 'all' && scope !== scopeFilter) return false;
+      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return false;
       if (familyFilter !== 'all' && meta.family !== familyFilter) return false;
       if (tagFilter !== 'all' && !getIngestorTags(event).includes(tagFilter)) return false;
       return true;
     });
-  }, [activityFilter, familyFilter, scrapedEvents, tagFilter]);
+  }, [activityFilter, familyFilter, scopeFilter, scrapedEvents, tagFilter]);
 
   const handleUpdateStatus = async (id: string, updates: Partial<ScrapedEvent>) => {
     try {
@@ -198,13 +250,33 @@ const EventIngestorV2: React.FC = () => {
 
       if (!res.ok) throw new Error('상태 업데이트 실패');
 
-      setScrapedEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+      const normalizedUpdates = updates.is_collected ? { ...updates, status: 'collected' as ScrapedEvent['status'] } : updates;
+      setScrapedEvents(prev => {
+        const updated = prev.map(e => e.id === id ? { ...e, ...normalizedUpdates } : e);
+        if ((activeTab === 'new' || activeTab === 'duplicate') && normalizedUpdates.is_collected) {
+          return updated.filter(e => e.id !== id);
+        }
+        return updated;
+      });
       fetchTabCounts();
     } catch (err) {
       console.error(err);
       alert('업데이트 중 에러 발생');
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleRestoreDuplicate = async (event: ScrapedEvent) => {
+    const cleanStructuredData = { ...(event.structured_data || {}) };
+    delete cleanStructuredData._duplicate;
+    await handleUpdateStatus(event.id, {
+      is_collected: false,
+      status: 'pending',
+      structured_data: cleanStructuredData as ScrapedEvent['structured_data'],
+    });
+    if (activeTab === 'duplicate') {
+      setScrapedEvents(prev => prev.filter(e => e.id !== event.id));
     }
   };
 
@@ -346,9 +418,7 @@ const EventIngestorV2: React.FC = () => {
       return String(duplicate.id);
     }
 
-    const { data: result, error } = await prodSupabase
-      .from('events')
-      .insert([{
+    const insertPayload = {
         title: formattedTitle,
         date: sd.date,
         start_date: sd.date,
@@ -369,9 +439,17 @@ const EventIngestorV2: React.FC = () => {
         link1: event.source_url || '',
         link_name1: event.keyword || '',
         genre: mapped.genre,
+        dance_scope: mapped.dance_scope,
+        dance_genre: mapped.dance_genre,
+        activity_type: mapped.activity_type,
+        dance_tags: mapped.dance_tags,
         user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
         group_id: mapped.group_id,
-      }])
+      } as any;
+
+    const { data: result, error } = await prodSupabase
+      .from('events' as any)
+      .insert([insertPayload])
       .select()
       .maybeSingle();
 
@@ -438,11 +516,29 @@ const EventIngestorV2: React.FC = () => {
       <header className="ingestor-v2-header">
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
-          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => { setActiveTab('new'); setSelectedIds(new Set()); }}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
-          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => { setActiveTab('collected'); setSelectedIds(new Set()); }}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
-          <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => { setActiveTab('duplicate'); setSelectedIds(new Set()); }}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
+          <button className={activeTab === 'new' ? 'active' : ''} onClick={() => handleTabChange('new')}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
+          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => handleTabChange('collected')}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
+          <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => handleTabChange('duplicate')}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
         </div>
         <div className="ingestor-taxonomy-filters">
+          <div className="scope-filter-group" aria-label="장르 필터">
+            <button
+              className={`scope-filter-btn ${scopeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => { setScopeFilter('all'); setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
+            >
+              전체 장르 <span>{scrapedEvents.length}</span>
+            </button>
+            {scopeOptions.map(option => (
+              <button
+                key={option.key}
+                className={`scope-filter-btn scope-${option.key} ${scopeFilter === option.key ? 'active' : ''}`}
+                onClick={() => { setScopeFilter(option.key); setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
+              >
+                {option.label} <span>{option.count}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="type-filter-group" aria-label="활동 분류 필터">
             {(['전체', '강습', '소셜', '행사', '모집'] as const).map(t => (
               <button
@@ -508,7 +604,7 @@ const EventIngestorV2: React.FC = () => {
             <>
               <button className="bulk-btn bulk-btn-ignore" onClick={handleBulkIgnore}>일괄 제외</button>
               <button className="bulk-btn bulk-btn-collect" onClick={handleBulkCollect}>일괄 완료(이미등록)</button>
-              {activeTab === 'new' && (
+              {activeTab !== 'collected' && (
                 <button className="bulk-btn bulk-btn-register" onClick={handleBulkRegister}>일괄 등록</button>
               )}
             </>
@@ -578,9 +674,28 @@ const EventIngestorV2: React.FC = () => {
                       ))}
                     </div>
                     {activeTab === 'duplicate' && event.structured_data._duplicate && (
-                      <div className="row-keyword duplicate-reason">
-                        중복 판단: {event.structured_data._duplicate.reason || '사유 미기록'}
-                        {event.structured_data._duplicate.existingId && ` / 기존: ${event.structured_data._duplicate.existingId}`}
+                      <div className="duplicate-match-card">
+                        <div className="duplicate-match-head">
+                          <strong>중복 후보</strong>
+                          <span>{event.structured_data._duplicate.target === 'events' ? '캘린더 등록DB' : '수집DB'} #{event.structured_data._duplicate.existingId}</span>
+                        </div>
+                        <div className="duplicate-match-title">
+                          {event.structured_data._duplicate.existingTitle || '기존 제목 확인 필요'}
+                        </div>
+                        <div className="duplicate-match-meta">
+                          <span>{event.structured_data._duplicate.existingDate || '날짜 미기록'}</span>
+                          <span>{event.structured_data._duplicate.reason || '사유 미기록'}</span>
+                        </div>
+                        {event.structured_data._duplicate.existingSourceUrl && (
+                          <a
+                            href={event.structured_data._duplicate.existingSourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            기존 원본 열기
+                          </a>
+                        )}
                       </div>
                     )}
                     <div className="row-keyword">출처 키워드: {event.keyword}</div>
@@ -614,6 +729,9 @@ const EventIngestorV2: React.FC = () => {
                           } catch { setCropImageSrc(event.poster_url); setIsCropModalOpen(true); }
                         } else { setCropImageSrc(null); setIsCropModalOpen(true); }
                       }}>이미지</button>
+                      {activeTab === 'duplicate' && (
+                        <button className="btn-restore" onClick={() => handleRestoreDuplicate(event)}>신규전환</button>
+                      )}
                       <button className="btn-dismiss" onClick={async () => {
                         if (!confirm(`"${event.structured_data.title}" 을 삭제할까요?`)) return;
                         await fetch('/.netlify/functions/scraped-events', {

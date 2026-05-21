@@ -41,7 +41,7 @@ const EventEditBottomSheet = React.memo(({
         if (activeField === 'genre') {
             setEditValue(initialValue.genre || '');
             setEditScope(initialValue.scope || 'domestic');
-            let category = initialValue.category;
+            const category = initialValue.category;
             if (category === 'class' || category === 'club' || category === 'social') {
                 setEditCategory(category);
             } else {

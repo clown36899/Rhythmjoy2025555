@@ -46,7 +46,7 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
 
         setLoading(true);
         try {
-            let selectFields = `
+            const selectFields = `
         *,
         board_users(nickname)
       `;

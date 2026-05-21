@@ -13,7 +13,7 @@ with classified as (
       when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(바차타|bachata)' then 'bachata'
       when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(살사|salsa)' then 'salsa'
       when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(힙합|hip.?hop|왁킹|waack|팝핑|popping|락킹|locking|하우스|house|브레이킹|breaking|비보잉|bboy|크럼프|krump)' then 'street'
-      else 'unknown'
+      else 'swing'
     end as inferred_dance_scope,
     case
       when category in ('class', 'regular', 'club') then 'class'
@@ -31,7 +31,7 @@ from classified
 group by inferred_dance_scope, inferred_activity_type
 order by inferred_dance_scope, inferred_activity_type;
 
--- Inspect unknown rows before applying any backfill.
+-- Inspect rows that are still explicitly unknown after applying the legacy swing fallback.
 with classified as (
   select
     id,
@@ -44,7 +44,7 @@ with classified as (
       when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(바차타|bachata)' then 'bachata'
       when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(살사|salsa)' then 'salsa'
       when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(힙합|hip.?hop|왁킹|waack|팝핑|popping|락킹|locking|하우스|house|브레이킹|breaking|비보잉|bboy|크럼프|krump)' then 'street'
-      else 'unknown'
+      else 'swing'
     end as inferred_dance_scope
   from public.events
 )

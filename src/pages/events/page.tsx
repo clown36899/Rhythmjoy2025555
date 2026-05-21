@@ -8,6 +8,17 @@ import { useEventsQuery } from '../../hooks/queries/useEventsQuery';
 import { useUserInteractions } from '../../hooks/useUserInteractions';
 import '../../styles/domains/events.css';
 import { getCardThumbnail, getEventThumbnail } from '../../utils/getEventThumbnail';
+import {
+  calendarDanceScopeOptions,
+  getDanceActivityLabel,
+  getDanceGenreLabel,
+  getDanceScopeLabel,
+  getDanceTagLabel,
+  inferDanceTaxonomy,
+  isEventInDanceScope,
+  normalizeDanceScope,
+  type DanceActivity,
+} from '../../utils/danceTaxonomy';
 import { getLocalDateString, sortEvents } from '../v2/utils/eventListUtils';
 import type { Event } from '../v2/utils/eventListUtils';
 import './events.css';
@@ -18,10 +29,10 @@ type GenreGroups = {
   social: string[];
   event: string[];
   class: string[];
-  club: string[];
+  recruit: string[];
 };
 
-type EventsInfoSectionTone = 'social' | 'event' | 'class' | 'club';
+type EventsInfoSectionTone = DanceActivity;
 
 type EventsInfoSectionProps = {
   title: string;
@@ -41,16 +52,88 @@ type EventsInfoSectionProps = {
   onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
 };
 
-type EventsInfoCategory = 'social' | 'event' | 'class' | 'club';
+type EventsInfoCategory = DanceActivity;
 type EventsInfoSortOrder = 'random' | 'date';
+type EventsInfoActivityFilter = 'all' | DanceActivity;
+
+const eventsInfoActivityOptions: Array<{ key: EventsInfoActivityFilter; label: string; icon: string }> = [
+  { key: 'all', label: '전체', icon: 'ri-apps-2-line' },
+  { key: 'class', label: '강습', icon: 'ri-graduation-cap-line' },
+  { key: 'social', label: '소셜', icon: 'ri-music-2-line' },
+  { key: 'event', label: '행사', icon: 'ri-calendar-event-line' },
+  { key: 'recruit', label: '모집', icon: 'ri-user-search-line' },
+];
+
+const eventsInfoSections: Array<{ key: DanceActivity; title: string; icon: string; tone: EventsInfoSectionTone }> = [
+  { key: 'event', title: '행사', icon: 'ri-fire-fill', tone: 'event' },
+  { key: 'class', title: '강습', icon: 'ri-calendar-check-fill', tone: 'class' },
+  { key: 'social', title: '소셜', icon: 'ri-music-2-fill', tone: 'social' },
+  { key: 'recruit', title: '모집', icon: 'ri-user-search-fill', tone: 'recruit' },
+];
+
+const isDanceActivity = (value: string | null): value is DanceActivity => {
+  return value === 'class' || value === 'social' || value === 'event' || value === 'recruit';
+};
+
+const normalizeActivityFilter = (value: string | null): EventsInfoActivityFilter => {
+  return value === 'all' || isDanceActivity(value) ? value : 'all';
+};
+
+const getEventTaxonomy = (event: Event) => {
+  const metadata = event as Event & {
+    dance_scope?: string | null;
+    dance_genre?: string | null;
+    activity_type?: string | null;
+    dance_tags?: string[] | null;
+  };
+
+  return inferDanceTaxonomy({
+    extracted_text: [
+      event.title,
+      event.genre,
+      event.category,
+      event.location,
+      event.venue_name,
+      event.description,
+    ].filter(Boolean).join(' '),
+    structured_data: {
+      title: event.title,
+      dance_scope: metadata.dance_scope as any,
+      dance_genre: metadata.dance_genre,
+      activity_type: metadata.activity_type as any,
+      tags: Array.isArray(metadata.dance_tags) ? metadata.dance_tags : null,
+      location: event.location || event.venue_name,
+      note: event.description,
+    },
+  });
+};
+
+const getEventDanceTags = (event: Event) => {
+  const metadata = event as Event & {
+    dance_scope?: string | null;
+    dance_genre?: string | null;
+    activity_type?: string | null;
+    dance_tags?: string[] | null;
+  };
+  const metadataTags = metadata.dance_tags;
+  const hasExplicitTaxonomy = Boolean(
+    metadata.dance_scope ||
+    metadata.dance_genre ||
+    metadata.activity_type ||
+    (Array.isArray(metadataTags) && metadataTags.length > 0)
+  );
+  const inferredTags = hasExplicitTaxonomy ? getEventTaxonomy(event).tags : [];
+  return Array.from(new Set([...(Array.isArray(metadataTags) ? metadataTags : []), ...inferredTags].filter(Boolean)));
+};
 
 const getEventsInfoCategory = (event: Event): EventsInfoCategory => {
-  if (event.category === 'class') return 'class';
-  if (event.category === 'club') return 'club';
-  if (event.category === 'social') return 'social';
+  const explicit = (event as Event & { activity_type?: string | null }).activity_type;
+  if (isDanceActivity(explicit || null)) return explicit;
 
-  const text = `${event.genre || ''} ${event.title || ''}`.toLowerCase();
-  if (/(^|,|\s)(dj|소셜|social)(,|\s|$)/i.test(text)) return 'social';
+  if (event.category === 'class') return 'class';
+  if (event.category === 'regular' || event.category === 'club') return 'class';
+  if (event.category === 'social') return 'social';
+  if (event.category === 'event' || event.category === 'party') return 'event';
 
   return 'event';
 };
@@ -115,10 +198,16 @@ const getEventPlace = (event: Event) => {
 
 const getEventCategoryLabel = (event: Event) => {
   const category = getEventsInfoCategory(event);
-  if (category === 'class') return '강습';
-  if (category === 'club') return '동호회';
-  if (category === 'social') return '소셜';
-  return '행사';
+  return getDanceActivityLabel(category);
+};
+
+const getEventGenreLabel = (event: Event) => {
+  const existingGenre = event.genre?.split(',').map((item) => item.trim()).filter(Boolean)[0];
+  if (existingGenre) return existingGenre;
+
+  const taxonomy = getEventTaxonomy(event);
+  if (taxonomy.dance_genre && taxonomy.dance_genre !== 'unknown') return getDanceGenreLabel(taxonomy.dance_genre);
+  return getEventCategoryLabel(event);
 };
 
 const buildGenreGroups = (events: Event[]): GenreGroups => {
@@ -126,23 +215,30 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
   const socialGenres = new Set<string>();
   const eventGenres = new Set<string>();
   const classGenres = new Set<string>();
-  const clubGenres = new Set<string>();
+  const recruitGenres = new Set<string>();
 
   events.forEach((event) => {
-    if (!event.genre) return;
     const category = getEventsInfoCategory(event);
     const endDate = event.end_date || event.date;
     if (endDate && endDate < today) return;
 
-    event.genre.split(',').forEach((rawGenre) => {
+    (event.genre || '').split(',').forEach((rawGenre) => {
       const genre = rawGenre.trim();
       if (!genre) return;
 
       if (category === 'social') socialGenres.add(genre);
       if (category === 'event') eventGenres.add(genre);
       if (category === 'class') classGenres.add(genre);
-      if (category === 'club') clubGenres.add(genre);
+      if (category === 'recruit') recruitGenres.add(genre);
     });
+
+    const taxonomyGenre = getEventGenreLabel(event);
+    if (taxonomyGenre && taxonomyGenre !== '장르 미정') {
+      if (category === 'social') socialGenres.add(taxonomyGenre);
+      if (category === 'event') eventGenres.add(taxonomyGenre);
+      if (category === 'class') classGenres.add(taxonomyGenre);
+      if (category === 'recruit') recruitGenres.add(taxonomyGenre);
+    }
   });
 
   const sortKo = (a: string, b: string) => a.localeCompare(b, 'ko');
@@ -151,7 +247,7 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
     social: Array.from(socialGenres).sort(sortKo),
     event: Array.from(eventGenres).sort(sortKo),
     class: Array.from(classGenres).sort(sortKo),
-    club: Array.from(clubGenres).sort(sortKo),
+    recruit: Array.from(recruitGenres).sort(sortKo),
   };
 };
 
@@ -209,8 +305,9 @@ function EventsInfoCard({
   onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
 }) {
   const place = getEventPlace(event);
-  const genre = event.genre?.split(',').map((item) => item.trim()).filter(Boolean)[0] || getEventCategoryLabel(event);
+  const genre = getEventGenreLabel(event);
   const displayCategory = getEventsInfoCategory(event);
+  const scopeLabel = getDanceScopeLabel((event as Event & { dance_scope?: string | null }).dance_scope || 'swing');
 
   return (
     <article
@@ -230,6 +327,7 @@ function EventsInfoCard({
         </span>
         <strong>{event.title}</strong>
         <div className="events-info-card-meta">
+          <span>{scopeLabel}</span>
           <span>{genre}</span>
           <span>{getEventDateText(event)}</span>
         </div>
@@ -332,12 +430,61 @@ export default function EventsInfoPage() {
     return new Set((interactions?.event_favorites || []).map((id) => Number(id)));
   }, [interactions?.event_favorites]);
 
-  const genreGroups = useMemo(() => buildGenreGroups(events), [events]);
+  const selectedDanceScope = normalizeDanceScope(searchParams.get('dance'));
+  const selectedActivity = normalizeActivityFilter(searchParams.get('type'));
+  const selectedTag = searchParams.get('tag');
+
+  const futureEvents = useMemo(() => {
+    return events.filter(isFutureEvent);
+  }, [events]);
+
+  const danceScopedEvents = useMemo(() => {
+    return futureEvents.filter((event) => isEventInDanceScope(event, selectedDanceScope));
+  }, [futureEvents, selectedDanceScope]);
+
+  const recruitBaseEvents = useMemo(() => {
+    return futureEvents.filter((event) => getEventsInfoCategory(event) === 'recruit');
+  }, [futureEvents]);
+
+  const activityScopedEvents = useMemo(() => {
+    if (selectedActivity === 'recruit') return recruitBaseEvents;
+    if (selectedActivity === 'all') return danceScopedEvents;
+    return danceScopedEvents.filter((event) => getEventsInfoCategory(event) === selectedActivity);
+  }, [danceScopedEvents, recruitBaseEvents, selectedActivity]);
+
+  const scopedEvents = useMemo(() => {
+    return activityScopedEvents
+      .filter((event) => !selectedTag || getEventDanceTags(event).includes(selectedTag));
+  }, [activityScopedEvents, selectedTag]);
+
+  const recruitScopedEvents = useMemo(() => {
+    if (selectedActivity !== 'all' && selectedActivity !== 'recruit') return [];
+    return recruitBaseEvents
+      .filter((event) => !selectedTag || getEventDanceTags(event).includes(selectedTag));
+  }, [recruitBaseEvents, selectedActivity, selectedTag]);
+
+  const dynamicTags = useMemo(() => {
+    const tags = new Set<string>();
+    const tagSource = selectedActivity === 'all'
+      ? [...activityScopedEvents, ...recruitBaseEvents]
+      : activityScopedEvents;
+    tagSource.forEach((event) => getEventDanceTags(event).forEach((tag) => tags.add(tag)));
+    return Array.from(tags).sort((a, b) => getDanceTagLabel(a).localeCompare(getDanceTagLabel(b), 'ko'));
+  }, [activityScopedEvents, recruitBaseEvents, selectedActivity]);
+
+  const genreGroups = useMemo(() => {
+    const scopedGroups = buildGenreGroups(scopedEvents);
+    const recruitGroups = buildGenreGroups(recruitScopedEvents);
+    return {
+      ...scopedGroups,
+      recruit: recruitGroups.recruit,
+    };
+  }, [recruitScopedEvents, scopedEvents]);
 
   const selectedSocialGenre = searchParams.get('social_genre');
   const selectedEventGenre = searchParams.get('event_genre');
   const selectedClassGenre = searchParams.get('class_genre');
-  const selectedClubGenre = searchParams.get('club_genre');
+  const selectedRecruitGenre = searchParams.get('recruit_genre');
 
   const setGenreParam = useCallback((key: string, value: string | null) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -346,56 +493,71 @@ export default function EventsInfoPage() {
     setSearchParams(nextParams, { replace: false });
   }, [searchParams, setSearchParams]);
 
+  const setFilterParam = useCallback((key: string, value: string | null) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set(key, value);
+    else nextParams.delete(key);
+    if (key === 'dance' || key === 'type' || key === 'tag') {
+      nextParams.delete('event_genre');
+      nextParams.delete('class_genre');
+      nextParams.delete('social_genre');
+      nextParams.delete('recruit_genre');
+    }
+    setSearchParams(nextParams, { replace: false });
+  }, [searchParams, setSearchParams]);
+
   const socialEvents = useMemo(() => {
     return sortEventsInfoItems(
-      events.filter((event) => getEventsInfoCategory(event) === 'social' && isFutureEvent(event)),
+      scopedEvents.filter((event) => getEventsInfoCategory(event) === 'social'),
       sortOrder,
       randomSeed
     );
-  }, [events, randomSeed, sortOrder]);
+  }, [randomSeed, scopedEvents, sortOrder]);
 
   const eventItems = useMemo(() => {
-    const filtered = events.filter((event) => getEventsInfoCategory(event) === 'event' && isFutureEvent(event));
+    const filtered = scopedEvents.filter((event) => getEventsInfoCategory(event) === 'event');
     return sortEventsInfoItems(filtered, sortOrder, randomSeed);
-  }, [events, randomSeed, sortOrder]);
+  }, [randomSeed, scopedEvents, sortOrder]);
 
   const regularClasses = useMemo(() => {
     return sortEventsInfoItems(
-      events.filter((event) => event.category === 'class' && isFutureEvent(event)),
+      scopedEvents.filter((event) => getEventsInfoCategory(event) === 'class'),
       sortOrder,
       randomSeed
     );
-  }, [events, randomSeed, sortOrder]);
+  }, [randomSeed, scopedEvents, sortOrder]);
 
-  const clubEvents = useMemo(() => {
+  const recruitEvents = useMemo(() => {
     return sortEventsInfoItems(
-      events.filter((event) => event.category === 'club' && isFutureEvent(event)),
+      recruitScopedEvents,
       sortOrder,
       randomSeed
     );
-  }, [events, randomSeed, sortOrder]);
+  }, [randomSeed, recruitScopedEvents, sortOrder]);
 
   const filteredSocialEvents = useMemo(() => {
     if (!selectedSocialGenre) return socialEvents;
-    return socialEvents.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedSocialGenre));
+    return socialEvents.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedSocialGenre) || getEventGenreLabel(event) === selectedSocialGenre);
   }, [socialEvents, selectedSocialGenre]);
 
   const filteredFutureEvents = useMemo(() => {
     if (!selectedEventGenre) return eventItems;
-    return eventItems.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedEventGenre));
+    return eventItems.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedEventGenre) || getEventGenreLabel(event) === selectedEventGenre);
   }, [eventItems, selectedEventGenre]);
 
   const filteredRegularClasses = useMemo(() => {
     return regularClasses
       .filter(shouldShowClass)
-      .filter((event) => !selectedClassGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClassGenre));
+      .filter((event) => !selectedClassGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClassGenre) || getEventGenreLabel(event) === selectedClassGenre);
   }, [regularClasses, selectedClassGenre]);
 
-  const filteredClubEvents = useMemo(() => {
-    return clubEvents
+  const filteredRecruitEvents = useMemo(() => {
+    return recruitEvents
       .filter(shouldShowClass)
-      .filter((event) => !selectedClubGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClubGenre));
-  }, [clubEvents, selectedClubGenre]);
+      .filter((event) => !selectedRecruitGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedRecruitGenre) || getEventGenreLabel(event) === selectedRecruitGenre);
+  }, [recruitEvents, selectedRecruitGenre]);
+
+  const hasVisibleEvents = scopedEvents.length > 0 || recruitScopedEvents.length > 0;
 
   const handleToggleFavorite = useCallback(async (eventId: number | string, event?: MouseEvent) => {
     event?.stopPropagation();
@@ -451,92 +613,135 @@ export default function EventsInfoPage() {
   }, [searchParams, isLoading]);
 
   return (
-    <main className="events-info-page">
+    <main className={`events-info-page ${dynamicTags.length > 0 ? 'has-tag-tabs' : ''}`}>
       <div className="events-info-toolbar" aria-label="행사정보 정렬">
-        <button
-          type="button"
-          className={`events-info-sort-btn ${sortOrder === 'date' ? 'is-active' : ''}`}
-          onClick={() => setSortOrder((order) => order === 'date' ? 'random' : 'date')}
-          title={sortOrder === 'date' ? '시간순 정렬 중' : '랜덤 정렬 중'}
-        >
-          <i className={sortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'} />
-          {sortOrder === 'date' ? '시간순' : '랜덤'}
-        </button>
+        <div className="events-info-scope-tabs" aria-label="댄스 장르 선택">
+          {calendarDanceScopeOptions.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={selectedDanceScope === option.key ? 'is-active' : ''}
+              onClick={() => setFilterParam('dance', option.key === 'swing' ? null : option.key)}
+            >
+              <strong>{option.label}</strong>
+              <span>{option.desc}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="events-info-toolbar-bottom">
+          <div className="events-info-activity-tabs" aria-label="활동 분류">
+            {eventsInfoActivityOptions.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={selectedActivity === option.key ? 'is-active' : ''}
+                onClick={() => setFilterParam('type', option.key === 'all' ? null : option.key)}
+              >
+                <i className={option.icon} />
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className={`events-info-sort-btn ${sortOrder === 'date' ? 'is-active' : ''}`}
+            onClick={() => setSortOrder((order) => order === 'date' ? 'random' : 'date')}
+            title={sortOrder === 'date' ? '시간순 정렬 중' : '랜덤 정렬 중'}
+          >
+            <i className={sortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'} />
+            {sortOrder === 'date' ? '시간순' : '랜덤'}
+          </button>
+        </div>
+
+        {dynamicTags.length > 0 && (
+          <div className="events-info-tag-tabs" aria-label="세부 태그">
+            <button
+              type="button"
+              className={!selectedTag ? 'is-active' : ''}
+              onClick={() => setFilterParam('tag', null)}
+            >
+              전체태그
+            </button>
+            {dynamicTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={selectedTag === tag ? 'is-active' : ''}
+                onClick={() => setFilterParam('tag', selectedTag === tag ? null : tag)}
+              >
+                {getDanceTagLabel(tag)}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading && events.length === 0 ? (
         <div className="events-info-state">정보를 불러오는 중입니다...</div>
       ) : (
         <section className="events-info-rows">
-          <EventsInfoSection
-            title="행사"
-            sectionKey="events"
-            icon="ri-fire-fill"
-            tone="event"
-            count={eventItems.length}
-            genres={['전체', ...genreGroups.event]}
-            selectedGenre={selectedEventGenre}
-            onGenreChange={(genre) => setGenreParam('event_genre', genre)}
-            renderGenreLabel={renderGenreLabel}
-            events={filteredFutureEvents}
-            actionLabel="달력보기"
-            onAction={() => navigate('/calendar?category=social&scrollToToday=true')}
-            onEventClick={handleEventClick}
-            favoriteEventIds={favoriteEventIds}
-            onToggleFavorite={handleToggleFavorite}
-          />
+          {!hasVisibleEvents ? (
+            <div className="events-info-state">
+              {selectedActivity === 'recruit'
+                ? '표시할 모집 항목이 없습니다.'
+                : `${getDanceScopeLabel(selectedDanceScope)} 범위에 표시할 항목이 없습니다.`}
+            </div>
+          ) : eventsInfoSections
+            .filter((section) => selectedActivity === 'all' || selectedActivity === section.key)
+            .filter((section) => {
+              if (selectedActivity !== 'all') return true;
+              if (section.key === 'event') return eventItems.length > 0;
+              if (section.key === 'class') return regularClasses.filter(shouldShowClass).length > 0;
+              if (section.key === 'social') return socialEvents.length > 0;
+              return recruitEvents.filter(shouldShowClass).length > 0;
+            })
+            .map((section) => {
+              const sectionEvents = section.key === 'event'
+                ? filteredFutureEvents
+                : section.key === 'class'
+                  ? filteredRegularClasses
+                  : section.key === 'social'
+                    ? filteredSocialEvents
+                    : filteredRecruitEvents;
+              const sectionCount = section.key === 'event'
+                ? eventItems.length
+                : section.key === 'class'
+                  ? regularClasses.filter(shouldShowClass).length
+                  : section.key === 'social'
+                    ? socialEvents.length
+                    : recruitEvents.filter(shouldShowClass).length;
+              const genreKey = `${section.key}_genre`;
+              const selectedGenre = section.key === 'event'
+                ? selectedEventGenre
+                : section.key === 'class'
+                  ? selectedClassGenre
+                  : section.key === 'social'
+                    ? selectedSocialGenre
+                    : selectedRecruitGenre;
 
-          <EventsInfoSection
-            title="강습"
-            sectionKey="classes"
-            icon="ri-calendar-check-fill"
-            tone="class"
-            count={regularClasses.filter(shouldShowClass).length}
-            genres={['전체', ...genreGroups.class]}
-            selectedGenre={selectedClassGenre}
-            onGenreChange={(genre) => setGenreParam('class_genre', genre)}
-            renderGenreLabel={renderGenreLabel}
-            events={filteredRegularClasses}
-            actionLabel="달력보기"
-            onAction={() => navigate('/calendar?category=classes&scrollToToday=true')}
-            onEventClick={handleEventClick}
-            favoriteEventIds={favoriteEventIds}
-            onToggleFavorite={handleToggleFavorite}
-          />
-
-          <EventsInfoSection
-            title="동호회"
-            sectionKey="club"
-            icon="ri-group-fill"
-            tone="club"
-            count={clubEvents.filter(shouldShowClass).length}
-            genres={['전체', ...genreGroups.club]}
-            selectedGenre={selectedClubGenre}
-            onGenreChange={(genre) => setGenreParam('club_genre', genre)}
-            renderGenreLabel={renderGenreLabel}
-            events={filteredClubEvents}
-            actionLabel="달력보기"
-            onAction={() => navigate('/calendar?category=classes&scrollToToday=true')}
-            onEventClick={handleEventClick}
-            favoriteEventIds={favoriteEventIds}
-            onToggleFavorite={handleToggleFavorite}
-          />
-
-          <EventsInfoSection
-            title="소셜"
-            sectionKey="social"
-            icon="ri-music-2-fill"
-            tone="social"
-            count={socialEvents.length}
-            genres={['전체', ...genreGroups.social]}
-            selectedGenre={selectedSocialGenre}
-            onGenreChange={(genre) => setGenreParam('social_genre', genre)}
-            renderGenreLabel={renderGenreLabel}
-            events={filteredSocialEvents}
-            onEventClick={handleEventClick}
-            favoriteEventIds={favoriteEventIds}
-            onToggleFavorite={handleToggleFavorite}
-          />
+              return (
+                <EventsInfoSection
+                  key={section.key}
+                  title={section.title}
+                  sectionKey={section.key === 'event' ? 'events' : section.key}
+                  icon={section.icon}
+                  tone={section.tone}
+                  count={sectionCount}
+                  genres={['전체', ...genreGroups[section.key]]}
+                  selectedGenre={selectedGenre}
+                  onGenreChange={(genre) => setGenreParam(genreKey, genre)}
+                  renderGenreLabel={renderGenreLabel}
+                  events={sectionEvents}
+                  actionLabel="달력보기"
+                  onAction={() => navigate(`/calendar?dance=${selectedDanceScope}&scrollToToday=true`)}
+                  onEventClick={handleEventClick}
+                  favoriteEventIds={favoriteEventIds}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              );
+            })}
         </section>
       )}
 

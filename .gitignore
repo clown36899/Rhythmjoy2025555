@@ -50,6 +50,7 @@ public/scraped/
 # Database dumps and sensitive data
 *.sql
 !supabase/migrations/*.sql
+!supabase/db_tasks/**/*.sql
 *.json
 !package.json
 !package-lock.json

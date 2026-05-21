@@ -4,8 +4,16 @@ import { createClient } from '@supabase/supabase-js'
 import { authLogger } from '../utils/authLogger';
 import { isPWAMode } from './pwaDetect';
 
-const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+const envSupabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const envSupabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+const localSupabaseUrl = 'http://127.0.0.1:54321'
+const localSupabaseAnonKey = 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
+const isLocalHost = typeof window !== 'undefined'
+  && ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)
+  && import.meta.env.VITE_FORCE_PROD_SUPABASE !== 'true'
+
+const supabaseUrl = isLocalHost ? localSupabaseUrl : envSupabaseUrl
+const supabaseAnonKey = isLocalHost ? localSupabaseAnonKey : envSupabaseAnonKey
 
 // 환경변수 디버깅 (외부 브라우저 확인용)
 // console.log('[Supabase] 환경변수 확인:', {
@@ -52,6 +60,10 @@ export interface Event {
   location_link?: string;
   category: string;
   genre?: string | null; // [New] 장르 추가
+  dance_scope?: 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown' | string | null;
+  dance_genre?: string | null;
+  activity_type?: 'class' | 'social' | 'event' | 'recruit' | string | null;
+  dance_tags?: string[] | null;
   price: string;
   image: string;
   image_micro?: string;

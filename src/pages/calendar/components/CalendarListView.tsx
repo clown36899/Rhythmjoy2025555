@@ -1,17 +1,23 @@
 import React, { useMemo } from "react";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import { getCardThumbnail } from "../../../utils/getEventThumbnail";
+import { isEventInDanceScope, type DanceScope } from "../../../utils/danceTaxonomy";
 
 interface CalendarListViewProps {
     events: AppEvent[];
     socialSchedules: any[];
     tabFilter: 'all' | 'social-events' | 'classes';
+    danceScope?: DanceScope | string;
     onEventClick: (event: AppEvent) => void;
     isLoading?: boolean;
 }
 
 function getEventDate(e: AppEvent): string {
     return e.start_date || e.date || "";
+}
+
+function getEventVisibleUntil(e: AppEvent): string {
+    return e.end_date || e.start_date || e.date || "";
 }
 
 function getCategoryLabel(e: AppEvent): { label: string; cls: string } {
@@ -33,13 +39,7 @@ function formatDate(dateStr: string): string {
     return `${d.getMonth() + 1}/${d.getDate()}(${days[d.getDay()]})`;
 }
 
-export default function CalendarListView({ events, socialSchedules, tabFilter, onEventClick, isLoading }: CalendarListViewProps) {
-    if (isLoading) return (
-        <div className="cal-list-empty">
-            <i className="ri-loader-4-line" style={{ animation: 'spin 1s linear infinite' }} />
-            <p>불러오는 중...</p>
-        </div>
-    );
+export default function CalendarListView({ events, socialSchedules, tabFilter, danceScope = 'swing', onEventClick, isLoading }: CalendarListViewProps) {
     const today = new Date().toLocaleDateString('en-CA');
 
     const filtered = useMemo(() => {
@@ -47,8 +47,9 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
 
         // 이벤트 필터링 (end_date 또는 date가 오늘 이상인 것)
         events.forEach(e => {
-            const startDate = getEventDate(e);
-            if (startDate < today) return;
+            const visibleUntil = getEventVisibleUntil(e);
+            if (visibleUntil < today) return;
+            if (!isEventInDanceScope(e as any, danceScope)) return;
             if (tabFilter === 'social-events' && ['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
             if (tabFilter === 'classes' && !['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
             allItems.push(e);
@@ -59,6 +60,7 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
             socialSchedules.forEach(s => {
                 const dateStr = s.date || s.start_date || "";
                 if (dateStr < today) return;
+                if (!isEventInDanceScope(s as any, danceScope)) return;
                 allItems.push({ ...s, _isSocial: true } as any);
             });
         }
@@ -69,7 +71,7 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
             const db = getEventDate(b);
             return da.localeCompare(db);
         });
-    }, [events, socialSchedules, tabFilter, today]);
+    }, [danceScope, events, socialSchedules, tabFilter, today]);
 
     // 날짜별 그룹핑
     const grouped = useMemo(() => {
@@ -81,6 +83,13 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, o
         });
         return Array.from(map.entries());
     }, [filtered]);
+
+    if (isLoading) return (
+        <div className="cal-list-empty">
+            <i className="ri-loader-4-line" style={{ animation: 'spin 1s linear infinite' }} />
+            <p>불러오는 중...</p>
+        </div>
+    );
 
     if (filtered.length === 0) {
         return (

@@ -27,7 +27,7 @@ export default function LinksPage() {
     const fetchLinks = async () => {
         setLoading(true);
         try {
-            let query = supabase.from('site_links').select('*').order('created_at', { ascending: false });
+            const query = supabase.from('site_links').select('*').order('created_at', { ascending: false });
 
             // RLS 정책에 의해 일반 유저는 승인된 항목과 자신이 쓴 승인대기 항목만 보이고,
             // 관리자는 모든 항목이 보이므로 프론트엔드쪽 쿼리 필터 제거 

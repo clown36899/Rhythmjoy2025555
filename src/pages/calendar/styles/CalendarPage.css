@@ -31,6 +31,16 @@ html {
     background: var(--cal-sample-bg);
     color: var(--cal-sample-text);
     padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    touch-action: pan-y;
+}
+
+.calendar-page-container .calendar-carousel-container,
+.calendar-page-container .calendar-carousel-track,
+.calendar-page-container .calendar-month-slide,
+.calendar-page-container .calendar-grid-container,
+.calendar-page-container .calendar-cell-fullscreen,
+.calendar-page-container .calendar-cell-fullscreen-body {
+    touch-action: pan-y;
 }
 
 .calendar-live-shell {
@@ -143,6 +153,63 @@ html {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     padding: 8px 16px 0;
+}
+
+.calendar-dance-scope-switch {
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.calendar-dance-scope-switch::-webkit-scrollbar {
+    display: none;
+}
+
+.calendar-dance-scope-btn {
+    flex: 1 0 118px;
+    display: grid;
+    min-width: 0;
+    min-height: 46px;
+    align-content: center;
+    gap: 2px;
+    padding: 7px 10px;
+    border: 1px solid var(--cal-sample-border);
+    border-radius: 10px;
+    background: var(--cal-sample-control-bg);
+    color: var(--cal-sample-muted);
+    text-align: left;
+    cursor: pointer;
+}
+
+.calendar-dance-scope-btn strong,
+.calendar-dance-scope-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-dance-scope-btn strong {
+    color: var(--cal-sample-text);
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.calendar-dance-scope-btn span {
+    color: var(--cal-sample-soft);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.calendar-dance-scope-btn.active {
+    border-color: rgba(92, 141, 246, 0.62);
+    background: rgba(92, 141, 246, 0.18);
+    box-shadow: inset 0 2px 0 rgba(92, 141, 246, 0.78);
+}
+
+.calendar-dance-scope-btn.active span {
+    color: #b9ccff;
 }
 
 .calendar-sticky-weekdays {
@@ -453,12 +520,12 @@ html {
     }
 
     .calendar-live-shell--calendar {
-        padding-top: 98px;
+        padding-top: 142px;
     }
 
     .calendar-live-shell--list,
     .calendar-live-shell--map {
-        padding-top: 78px;
+        padding-top: 118px;
     }
 
     .calendar-live-sticky-controls {
@@ -532,6 +599,28 @@ html {
         background: var(--cal-sample-blue);
         color: #ffffff;
         box-shadow: 0 7px 18px rgba(92, 141, 246, 0.28);
+    }
+
+    .calendar-dance-scope-switch {
+        gap: 5px;
+        padding: 5px 6px 0;
+    }
+
+    .calendar-dance-scope-btn {
+        flex: 0 0 84px;
+        min-height: 34px;
+        gap: 0;
+        padding: 5px 8px;
+        border-radius: 9px;
+        text-align: center;
+    }
+
+    .calendar-dance-scope-btn strong {
+        font-size: 11px;
+    }
+
+    .calendar-dance-scope-btn span {
+        display: none;
     }
 
     .calendar-filter-switch {

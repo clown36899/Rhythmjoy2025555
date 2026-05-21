@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { supabase } from '../../../lib/supabase';
 import { getDanceCollectionScopeExclusionReason, inferDanceTaxonomy } from '../../../utils/danceTaxonomy';
 import './DanceExpansionGuidePage.css';
 
@@ -70,6 +71,29 @@ interface ScrapedEventRow {
     fee?: string | null;
     note?: string | null;
   } | null;
+}
+
+interface CalendarEventRow {
+  id: number | string;
+  title?: string | null;
+  date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  time?: string | null;
+  location?: string | null;
+  venue_name?: string | null;
+  address?: string | null;
+  category?: string | null;
+  genre?: string | null;
+  description?: string | null;
+  image?: string | null;
+  image_thumbnail?: string | null;
+  image_medium?: string | null;
+  image_full?: string | null;
+  dance_scope?: string | null;
+  dance_genre?: string | null;
+  activity_type?: ActivityKey | null;
+  dance_tags?: string[] | null;
 }
 
 const familyOptions: FamilyOption[] = [
@@ -283,7 +307,8 @@ const genreLabelMap = Object.fromEntries(genreOptions.map((genre) => [genre.key,
 const activityLabelMap = Object.fromEntries(activityOptions.map((activity) => [activity.key, activity.label]));
 const tagPriority = Object.keys(tagLabels);
 
-function getTagLabel(tag: string) {
+function getTagLabel(tag?: string | null) {
+  if (!tag) return '기타';
   return tagLabels[tag] || tag.replaceAll('_', ' ');
 }
 
@@ -360,6 +385,53 @@ function mapScrapedEvent(row: ScrapedEventRow): SampleEvent {
   };
 }
 
+function mapCalendarEvent(row: CalendarEventRow): SampleEvent {
+  const inferred = inferDanceTaxonomy({
+    extracted_text: [
+      row.title,
+      row.genre,
+      row.category,
+      row.location,
+      row.venue_name,
+      row.description,
+    ].filter(Boolean).join(' '),
+    structured_data: {
+      title: row.title,
+      dance_scope: row.dance_scope as any,
+      dance_genre: row.dance_genre,
+      activity_type: row.activity_type as any,
+      tags: Array.isArray(row.dance_tags) ? row.dance_tags : null,
+      location: row.location || row.venue_name,
+      note: row.description,
+    },
+  });
+  const family = normalizeFamily(inferred.genre_family);
+  const activity = row.activity_type && row.activity_type !== 'all' ? row.activity_type : inferred.activity_type;
+  const genre = row.dance_genre || inferred.dance_genre || 'unknown';
+  const date = row.start_date || row.date || '';
+  const tags = Array.isArray(row.dance_tags) && row.dance_tags.length > 0 ? row.dance_tags : inferred.tags;
+
+  return {
+    id: row.id,
+    title: row.title || '제목 미정',
+    family,
+    familyLabel: familyLabelMap[family] || family,
+    genre,
+    genreLabel: inferred.dance_genre_label || genreLabelMap[genre] || genre,
+    activity,
+    tags,
+    date: formatDateLabel(date),
+    time: row.time || '시간 미정',
+    venue: row.venue_name || row.location || '장소 미정',
+    area: row.address || row.location || '지역 미정',
+    imageTone: getTone(String(row.id), family),
+    note: row.description || '로컬 이벤트 DB 데이터',
+    posterUrl: normalizePosterUrl(row.image_thumbnail || row.image_medium || row.image_full || row.image),
+    sourceUrl: null,
+    isLive: true,
+  };
+}
+
 function getEventGenreLabel(event: SampleEvent) {
   return event.genreLabel || genreLabelMap[event.genre] || event.genre;
 }
@@ -420,6 +492,22 @@ export default function DanceExpansionGuidePage() {
     const fetchLiveEvents = async () => {
       try {
         setIsLoadingLiveEvents(true);
+        const { data: eventRows, error: eventError } = await supabase
+          .from('events' as any)
+          .select('id,title,date,start_date,end_date,time,location,venue_name,address,category,genre,description,image,image_thumbnail,image_medium,image_full,dance_scope,dance_genre,activity_type,dance_tags')
+          .not('dance_scope', 'is', null)
+          .order('start_date', { ascending: true })
+          .limit(160);
+
+        if (eventError) throw eventError;
+        if (Array.isArray(eventRows) && eventRows.length > 0) {
+          if (!ignore) {
+            setLiveEvents(eventRows.map((row) => mapCalendarEvent(row as CalendarEventRow)).filter(isEventWithinCollectionScope));
+            setLiveError(null);
+          }
+          return;
+        }
+
         const res = await fetch('/.netlify/functions/scraped-events?page=1&tab=new');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();

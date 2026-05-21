@@ -1,11 +1,11 @@
 ---
 name: Web Search Ingestion V2
-description: 대한민국 스윙씬 전체의 미래 데이터(오늘 이후)를 수집하기 위한 자율 에이전트 지침서
+description: 대한민국 스윙 및 확장 댄스 장르의 미래 데이터(오늘 이후)를 수집하기 위한 자율 에이전트 지침서
 ---
 
-# Web Search Ingestion V2: 전국구 스윙씬 미래 이벤트 수집 가이드
+# Web Search Ingestion V2: 전국구 스윙/확장 장르 미래 이벤트 수집 가이드
 
-이 지침의 목적은 대한민국 스윙댄스 씬의 모든 이벤트를 **미래 지향적(Future-only)**으로 수집하고, 이미지와 정보를 유실 없이 관리하는 것이다.
+이 지침의 목적은 대한민국 스윙댄스 씬과 승인된 확장 장르(스트릿/살사/탱고/바차타)의 이벤트를 **미래 지향적(Future-only)**으로 수집하고, 이미지와 정보를 유실 없이 관리하는 것이다.
 
 ## ⏱ 실행 규율 (Execution Discipline) — 최우선 준수
 
@@ -83,6 +83,29 @@ sleep 1
 
 사용 가능한 예시:
 `audition`, `team_recruit`, `crew_recruit`, `participant`, `choreo`, `technique`, `basic`, `partnering`, `freestyle`, `workshop`, `party`, `battle`, `dj`, `performance`, `open_class`, `cover`
+
+### 🌐 확장 장르 수집 소스 우선순위
+
+확장 장르는 아직 스윙만큼 검증된 고정 루트가 적으므로, 매 실행마다 아래 순서로 소스를 평가한다.
+
+1. **공식 사이트/공식 인스타그램/전문 일정 허브** — 저장 가능 후보.
+2. **장르별 커뮤니티 링크트리/공식 카페/공식 채널** — 실제 게시물과 이미지가 확인되면 저장 가능.
+3. **Meetup, 소모임, 블로그, 여행/리뷰 사이트** — 원칙적으로 **발견용 보조 자료만**. 여기에만 있는 정보는 저장하지 말고, 연결된 공식 인스타그램/웹사이트/원본 포스트를 찾아 확인한다.
+
+#### 확장 장르 기준 소스 레지스트리
+
+| 장르 | 소스 | 타입 | URL | 사용 기준 |
+|---|---|---|---|---|
+| 탱고 | Tango Calendar Korea | website | https://tangocalendar.kr/ | 서울 밀롱가/프랙티카 일정 허브. 개별 이벤트 제목/날짜/시간/DJ 확인 후 이미지 후보 확보 시 저장 |
+| 살사/바차타 | Latin in Seoul | website | https://salsa.atoo.kr/ | 홍대/강남 라틴 소셜 주간 업데이트. DJ/비율/시간이 있는 소셜 확인용 |
+| 살사/바차타 | Place Ocean | website | https://www.placeocean.kr/ | 코리아 소셜댄스 허브. 세부 이벤트 페이지 또는 공식 원본 링크 확인 후 저장 |
+| 살사/바차타 | SA Latin | linktree/community | https://linktr.ee/sa.latin.official | 공식 채널 진입점. 실제 카페/인스타/유튜브 원본으로 들어가 확인 |
+| 살사/바차타 | La Conexión / AK Salsa | website | https://www.aksalsa.com/about-1 | 살사/바차타 클래스/소셜 커뮤니티. 일정 페이지나 공식 공지 확인 후 저장 |
+| 스트릿 | Freeze KR | website | https://www.freezekr.com/stage | 스트릿 행사/배틀/공연/클래스 허브. 날짜와 이미지가 명확한 항목만 저장 |
+| 스트릿 | HY Dance Studio | website | https://www.hydancestudio.com/class/streetdance | 힙합/락킹/왁킹/소울댄스 클래스. 시간표/팝업/프로모션 원문 확인 |
+| 스트릿 | 이댄스학원 | website | https://e-dance.co.kr/street-dance | 힙합/팝핑/락킹/왁킹/하우스/비보잉 클래스. 단순 소개 페이지는 저장 금지, 실제 모집/원데이 공지만 저장 |
+
+> 소스 레지스트리는 “시작점”이다. 저장은 항상 실제 날짜/장소/이미지/원본 URL이 확인된 항목만 한다. 같은 행사가 여러 허브에 동시에 있으면 공식 원본 또는 가장 정보가 완전한 원본 하나만 저장하고 나머지는 중복 후보로 기록한다.
 
 ## 🤖 봇판정 방지 규칙 (필수 준수)
 
@@ -232,6 +255,11 @@ SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 ### 확장 장르 검색 키워드
 실제 포스트와 이미지가 확인된 경우에만 수집한다. 검색 결과가 홍보성 목록/블로그 요약뿐이면 삽입하지 않는다.
 
+- `"site:instagram.com 서울 탱고 밀롱가"`
+- `"site:instagram.com 서울 바차타 소셜"`
+- `"site:instagram.com 서울 살사 소셜"`
+- `"site:instagram.com 서울 힙합 워크샵"`
+- `"site:instagram.com 왁킹 팝핑 락킹 워크샵 서울"`
 - `"힙합 댄스 워크샵 2026"`
 - `"왁킹 오디션 모집"`
 - `"팝핑 워크샵 서울"`

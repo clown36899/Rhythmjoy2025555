@@ -1,5 +1,6 @@
 export type DanceActivity = 'class' | 'social' | 'event' | 'recruit';
 export type DanceGenreFamily = 'partner' | 'street' | 'art' | 'commercial' | 'unknown';
+export type DanceScope = 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown';
 
 export interface DanceTaxonomyInput {
   keyword?: string | null;
@@ -8,6 +9,7 @@ export interface DanceTaxonomyInput {
   structured_data?: {
     title?: string | null;
     event_type?: string | null;
+    dance_scope?: DanceScope | null;
     activity_type?: DanceActivity | null;
     genre_family?: DanceGenreFamily | null;
     dance_genre?: string | null;
@@ -26,6 +28,8 @@ export interface DanceTaxonomyResult {
   genre_family_label: string;
   dance_genre: string;
   dance_genre_label: string;
+  dance_scope: DanceScope;
+  dance_scope_label: string;
   tags: string[];
   tag_labels: string[];
   confidence: 'high' | 'medium' | 'low';
@@ -53,6 +57,23 @@ const familyLabels: Record<DanceGenreFamily, string> = {
   unknown: '장르 미정',
 };
 
+const danceScopeLabels: Record<DanceScope, string> = {
+  swing: '스윙',
+  salsa: '살사',
+  bachata: '바차타',
+  tango: '탱고',
+  street: '스트릿',
+  unknown: '장르 미정',
+};
+
+export const calendarDanceScopeOptions: Array<{ key: Exclude<DanceScope, 'unknown'>; label: string; desc: string }> = [
+  { key: 'swing', label: '스윙', desc: '린디합, 솔로재즈, 발보아, 블루스' },
+  { key: 'salsa', label: '살사', desc: '살사 일정만' },
+  { key: 'bachata', label: '바차타', desc: '바차타 일정만' },
+  { key: 'tango', label: '탱고', desc: '탱고, 밀롱가, 프랙티카' },
+  { key: 'street', label: '스트릿', desc: '힙합, 왁킹, 팝핑, 락킹' },
+];
+
 const collectionScopePartnerGenres = new Set([
   'swing',
   'lindyhop',
@@ -75,6 +96,16 @@ const collectionScopeStreetGenres = new Set([
   'breaking',
   'krump',
 ]);
+
+const danceScopeGenreMap: Record<Exclude<DanceScope, 'unknown'>, Set<string>> = {
+  swing: new Set(['swing', 'lindyhop', 'balboa', 'blues', 'solojazz', 'jitterbug', 'wcs']),
+  salsa: new Set(['salsa']),
+  bachata: new Set(['bachata']),
+  tango: new Set(['tango']),
+  street: collectionScopeStreetGenres,
+};
+
+const validDanceScopes = new Set<DanceScope>(['swing', 'salsa', 'bachata', 'tango', 'street', 'unknown']);
 
 const genreRules: MatchRule[] = [
   { key: 'lindyhop', label: '린디합', family: 'partner', patterns: [/린디\s*합/i, /lindy\s*hop/i] },
@@ -132,6 +163,8 @@ function textOf(input: DanceTaxonomyInput): string {
   return [
     sd.title,
     sd.event_type,
+    sd.dance_scope,
+    sd.dance_genre,
     sd.subgenre,
     sd.location,
     sd.note,
@@ -193,6 +226,30 @@ function inferGenre(text: string): Pick<DanceTaxonomyResult, 'genre_family' | 'g
   };
 }
 
+function scopeFromGenre(genre: string | null | undefined): DanceScope {
+  if (!genre) return 'unknown';
+  for (const [scope, genres] of Object.entries(danceScopeGenreMap) as Array<[Exclude<DanceScope, 'unknown'>, Set<string>]>) {
+    if (genres.has(genre)) return scope;
+  }
+  return 'unknown';
+}
+
+function inferDanceScope(input: DanceTaxonomyInput, text: string, genre: string): DanceScope {
+  const explicit = input.structured_data?.dance_scope;
+  if (explicit && validDanceScopes.has(explicit)) return explicit;
+
+  const byGenre = scopeFromGenre(genre);
+  if (byGenre !== 'unknown') return byGenre;
+
+  if (/(탱고|tango|밀롱가|milonga|프랙티카|practica)/i.test(text)) return 'tango';
+  if (/(바차타|bachata)/i.test(text)) return 'bachata';
+  if (/(살사|salsa)/i.test(text)) return 'salsa';
+  if (/(힙합|hip\s*hop|왁킹|waack|팝핑|popping|락킹|locking|하우스|house|브레이킹|breaking|비보잉|bboy|b-girl|크럼프|krump)/i.test(text)) return 'street';
+  if (/(린디\s*합|lindy\s*hop|스윙|swing|지터벅|jitterbug|발보아|balboa|블루스|blues|솔로\s*재즈|solo\s*jazz|웨스트\s*코스트|웨코|\bwcs\b|west\s*coast\s*swing)/i.test(text)) return 'swing';
+
+  return 'unknown';
+}
+
 function inferTags(activity: DanceActivity, input: DanceTaxonomyInput): string[] {
   const tags = new Set<string>();
   const tagText = tagTextOf(input);
@@ -221,6 +278,53 @@ export function getDanceGenreLabel(genre: string): string {
   return genreRules.find((rule) => rule.key === genre)?.label || (genre === 'unknown' ? '장르 미정' : genre);
 }
 
+export function getDanceScopeLabel(scope: DanceScope | string | null | undefined): string {
+  return danceScopeLabels[(scope || 'unknown') as DanceScope] || danceScopeLabels.unknown;
+}
+
+export function normalizeDanceScope(value: string | null | undefined): Exclude<DanceScope, 'unknown'> {
+  return value === 'salsa' || value === 'bachata' || value === 'tango' || value === 'street' ? value : 'swing';
+}
+
+export function inferDanceScopeForEvent(event: {
+  title?: string | null;
+  genre?: string | null;
+  category?: string | null;
+  dance_scope?: DanceScope | string | null;
+  dance_genre?: string | null;
+  activity_type?: DanceActivity | string | null;
+  link1?: string | null;
+  location?: string | null;
+  venue_name?: string | null;
+}): DanceScope {
+  const explicit = event.dance_scope;
+  if (explicit && validDanceScopes.has(explicit as DanceScope)) return explicit as DanceScope;
+
+  const byGenre = scopeFromGenre(event.dance_genre);
+  if (byGenre !== 'unknown') return byGenre;
+
+  const text = [
+    event.genre,
+    event.title,
+    event.category,
+    event.activity_type,
+    event.link1,
+    event.location,
+    event.venue_name,
+  ].filter(Boolean).join(' ');
+
+  const inferred = inferDanceScope({ extracted_text: text }, text, 'unknown');
+  if (inferred !== 'unknown') return inferred;
+
+  // Legacy calendar data was mostly swing before expansion. Keep it visible under swing
+  // until explicit metadata is backfilled.
+  return 'swing';
+}
+
+export function isEventInDanceScope(event: Parameters<typeof inferDanceScopeForEvent>[0], scope: DanceScope | string | null | undefined): boolean {
+  return inferDanceScopeForEvent(event) === normalizeDanceScope(scope as string | null | undefined);
+}
+
 export function getDanceCollectionScopeExclusionReason(value: {
   genre_family?: DanceGenreFamily | string | null;
   dance_genre?: string | null;
@@ -247,12 +351,15 @@ export function inferDanceTaxonomy(input: DanceTaxonomyInput): DanceTaxonomyResu
   const text = textOf(input);
   const activity = inferActivity(input, text);
   const genre = inferGenre(text);
+  const danceScope = inferDanceScope(input, text, genre.dance_genre);
   const tags = inferTags(activity, input);
 
   return {
     activity_type: activity,
     activity_label: activityLabels[activity],
     ...genre,
+    dance_scope: danceScope,
+    dance_scope_label: getDanceScopeLabel(danceScope),
     tags,
     tag_labels: tags.map(getDanceTagLabel),
     confidence: genre.confidence === 'low' && tags.length > 0 ? 'medium' : genre.confidence,
@@ -267,9 +374,12 @@ export function mergeDanceTaxonomyStructuredData(input: DanceTaxonomyInput) {
   const activityType = sd.activity_type || inferred.activity_type;
   const genreFamily = sd.genre_family || inferred.genre_family;
   const danceGenre = sd.dance_genre || inferred.dance_genre;
+  const danceScope = sd.dance_scope || inferred.dance_scope;
 
   return {
     ...sd,
+    dance_scope: danceScope,
+    dance_scope_label: getDanceScopeLabel(danceScope),
     activity_type: activityType,
     activity_label: getDanceActivityLabel(activityType),
     genre_family: genreFamily,

@@ -156,6 +156,25 @@ const EventList: React.FC<EventListProps> = ({
     return withinWindow.slice(0, max_items);
   }, [events, nebFilterSettings]);
 
+  const homeAdCandidateEvents = useMemo(() => {
+    const todayStr = getLocalDateString();
+
+    return events
+      .filter((event) => {
+        if (event.event_dates?.some((date) => date >= todayStr)) return true;
+        const endDate = event.end_date || event.date || event.start_date || "";
+        return Boolean(endDate) && endDate >= todayStr;
+      })
+      .sort((a, b) => {
+        const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+        if (aCreated !== bCreated) return bCreated - aCreated;
+        const aDate = a.date || a.start_date || '';
+        const bDate = b.date || b.start_date || '';
+        return aDate.localeCompare(bDate);
+      });
+  }, [events]);
+
   // 3.7 Realtime Subscription to sync data immediately
   useEffect(() => {
     const channel = supabase
@@ -504,6 +523,7 @@ const EventList: React.FC<EventListProps> = ({
           clubLessons={randomizedClubLessons}
           clubRegularClasses={randomizedClubRegularClasses}
           newlyRegisteredEvents={newlyRegisteredEvents}
+          homeAdCandidateEvents={homeAdCandidateEvents}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(Number(e.id)))}
           // events={events} // Removed
 

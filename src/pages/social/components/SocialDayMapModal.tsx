@@ -188,9 +188,9 @@ export default function SocialDayMapModal({
                         // If there's only one marker, the map might zoom in too much. Let's adjust zoom.
                         // setTimeout prevents immediate override
                         setTimeout(() => {
-                            let level = map.getLevel();
+                            const level = map.getLevel();
                             // Zoom out by 1 level to create padding around markers so labels aren't cut off
-                            let newLevel = Math.max(4, level + 1);
+                            const newLevel = Math.max(4, level + 1);
                             map.setLevel(newLevel);
                         }, 50);
                     } else {

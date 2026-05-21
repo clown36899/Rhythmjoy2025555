@@ -1,9 +1,11 @@
 import {
   type DanceActivity,
   type DanceGenreFamily,
+  type DanceScope,
   getDanceActivityLabel,
   getDanceFamilyLabel,
   getDanceGenreLabel,
+  getDanceScopeLabel,
   getDanceTagLabel,
   inferDanceTaxonomy,
 } from '../../../../utils/danceTaxonomy';
@@ -19,6 +21,10 @@ export interface VenueRecord {
 export interface MappedIngestorEvent {
   category: 'social' | 'event' | 'class';
   genre: string;
+  dance_scope: DanceScope;
+  dance_genre: string;
+  activity_type: DanceActivity;
+  dance_tags: string[];
   group_id: number | null;
   location: string;
   address: string;
@@ -34,9 +40,11 @@ interface ScrapedLike {
   structured_data?: {
     title?: string;
     event_type?: EventType | null;
+    dance_scope?: DanceScope | null;
     activity_type?: DanceActivity | null;
     genre_family?: DanceGenreFamily | null;
     dance_genre?: string | null;
+    dance_genre_label?: string | null;
     tags?: string[] | null;
     location?: string;
     address?: string;
@@ -95,7 +103,10 @@ export function getIngestorGenreMeta(event: ScrapedLike) {
   const inferred = inferDanceTaxonomy(event);
   const family = event.structured_data?.genre_family || inferred.genre_family;
   const genre = event.structured_data?.dance_genre || inferred.dance_genre;
+  const scope = event.structured_data?.dance_scope || inferred.dance_scope;
   return {
+    scope,
+    scopeLabel: getDanceScopeLabel(scope),
     family,
     familyLabel: getDanceFamilyLabel(family),
     genre,
@@ -174,18 +185,30 @@ export function matchVenue(event: ScrapedLike, venues: VenueRecord[]): VenueReco
 }
 
 export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): MappedIngestorEvent {
+  const taxonomy = inferDanceTaxonomy(event);
   const activity = detectIngestorActivity(event);
   const matchedVenue = matchVenue(event, venues);
   const sd = event.structured_data || {};
 
   const category = activity === 'class' ? 'class' : activity === 'social' ? 'social' : 'event';
-  const genre = activity === 'class' ? '강습' : activity === 'social' ? '소셜' : activity === 'recruit' ? '모집' : '행사';
+  const tagLabels = getIngestorTags(event).map(getDanceTagLabel);
+  const genreParts = [
+    getDanceActivityLabel(activity),
+    getDanceScopeLabel(taxonomy.dance_scope),
+    sd.dance_genre_label || getDanceGenreLabel(sd.dance_genre || taxonomy.dance_genre),
+    ...tagLabels,
+  ].filter((item) => item && item !== '장르 미정');
+  const genre = Array.from(new Set(genreParts)).join(', ');
   const location = matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '';
   const address = sd.address || matchedVenue?.address || '';
 
   return {
     category,
     genre,
+    dance_scope: taxonomy.dance_scope,
+    dance_genre: sd.dance_genre || taxonomy.dance_genre,
+    activity_type: activity,
+    dance_tags: getIngestorTags(event),
     group_id: category === 'social' ? 2 : null,
     location,
     address,

@@ -113,6 +113,10 @@
     min-width: 0;
 }
 
+.home-neb-mobile-scope-strip {
+    display: none;
+}
+
 .home-neb-desktop-layout .NEB-container {
     display: grid;
     height: 100%;
@@ -160,6 +164,44 @@
     color: var(--text-primary, #f6f7f9);
     font-size: 15px;
     font-weight: 900;
+}
+
+.home-neb-scope-picker {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.home-neb-scope-picker button {
+    min-width: 0;
+    min-height: 30px;
+    padding: 0 5px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-tertiary, #a8b0bd);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.home-neb-scope-picker button.is-active {
+    border-color: color-mix(in srgb, var(--color-blue-400, #8db2ff) 46%, transparent);
+    background: color-mix(in srgb, var(--color-blue-500, #4f83ff) 18%, transparent);
+    color: var(--text-primary, #f6f7f9);
+}
+
+.home-neb-scope-note {
+    margin: -4px 0 0;
+    color: var(--text-tertiary, #a8b0bd);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.35;
 }
 
 .home-neb-feature-card,
@@ -2863,6 +2905,37 @@
     .home-neb-desktop-layout {
         display: block;
         margin: 14px 10px 0;
+    }
+
+    .home-neb-mobile-scope-strip {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        padding: 0 0 8px;
+        scrollbar-width: none;
+    }
+
+    .home-neb-mobile-scope-strip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .home-neb-mobile-scope-strip button {
+        flex: 0 0 auto;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid var(--border-secondary, rgba(255, 255, 255, 0.12));
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--bg-surface-1, #1b1d22) 86%, transparent);
+        color: var(--text-secondary, #a8b0bd);
+        font: inherit;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .home-neb-mobile-scope-strip button.is-active {
+        border-color: color-mix(in srgb, var(--color-blue-400, #8db2ff) 48%, transparent);
+        background: color-mix(in srgb, var(--color-blue-500, #4f83ff) 18%, var(--bg-surface-1, #1b1d22));
+        color: var(--text-primary, #f6f7f9);
     }
 
     .home-neb-desktop-layout .NEB-container {

@@ -90,7 +90,9 @@ export default function PlacesPage() {
                 const first = parsed[0];
                 return first.thumb || first.url || (typeof first === 'string' ? first : '');
             }
-        } catch {}
+        } catch {
+            return '';
+        }
         return '';
     };
 
@@ -186,7 +188,11 @@ export default function PlacesPage() {
                             let parsedMapUrls = { kakao: '', naver: '', google: '' };
                             if (place.map_url) {
                                 if (place.map_url.startsWith('{')) {
-                                    try { parsedMapUrls = JSON.parse(place.map_url); } catch(e){}
+                                    try {
+                                        parsedMapUrls = JSON.parse(place.map_url);
+                                    } catch {
+                                        parsedMapUrls = { kakao: '', naver: '', google: '' };
+                                    }
                                 } else if (place.map_url.includes('naver')) {
                                     parsedMapUrls.naver = place.map_url;
                                 } else {

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 // Styles
 // Styles
@@ -17,6 +17,12 @@ import { NewEventsBanner } from "../../NewEventsBanner";
 import { HomeNavButtonsSection } from "../../HomeNavButtonsSection";
 import { getCardThumbnail } from "../../../../../utils/getEventThumbnail";
 import { formatEventDate } from "../../../../../utils/dateUtils";
+import {
+    calendarDanceScopeOptions,
+    getDanceScopeLabel,
+    inferDanceScopeForEvent,
+    normalizeDanceScope,
+} from "../../../../../utils/danceTaxonomy";
 
 
 interface EventPreviewSectionProps {
@@ -30,6 +36,7 @@ interface EventPreviewSectionProps {
     clubLessons: Event[];
     clubRegularClasses: Event[];
     newlyRegisteredEvents: Event[]; // 👈 신규 등록 이벤트 (24시간)
+    homeAdCandidateEvents: Event[];
     favoriteEventsList: Event[];
     // events: Event[]; // Removed for BillboardSection
 
@@ -54,10 +61,35 @@ interface HomeRoutePreviewHubProps {
 
 interface HomeNewEventsDesktopSplitProps {
     events: Event[];
+    fallbackEvents: Event[];
     onEventClick: (event: Event) => void;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
 }
+
+type HomeAdDanceScope = (typeof calendarDanceScopeOptions)[number]["key"];
+
+const HOME_AD_DANCE_SCOPE_KEY = "home_ad_dance_scope";
+const HOME_AD_MIN_SELECTED_COUNT = 2;
+
+const getHomeAdEventScope = (event: Event): HomeAdDanceScope => {
+    return normalizeDanceScope((event as Event & { dance_scope?: string | null }).dance_scope || inferDanceScopeForEvent(event as any));
+};
+
+const isHomeAdDanceScope = (value: string | null): value is HomeAdDanceScope => {
+    return calendarDanceScopeOptions.some((option) => option.key === value);
+};
+
+const mergeUniqueEvents = (...groups: Event[][]) => {
+    const seen = new Set<number | string>();
+    const merged: Event[] = [];
+    groups.flat().forEach((event) => {
+        if (seen.has(event.id)) return;
+        seen.add(event.id);
+        merged.push(event);
+    });
+    return merged;
+};
 
 const getPreviewImage = (event?: Event) => event ? getCardThumbnail(event) : undefined;
 
@@ -85,27 +117,71 @@ const getHomeEventKindText = (event: Event) => {
 
 const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     events,
+    fallbackEvents,
     onEventClick,
     defaultThumbnailClass,
     defaultThumbnailEvent,
 }) => {
     const navigate = useNavigate();
-    const [activeIndex, setActiveIndex] = useState(() => {
-        if (!events || events.length === 0) return 0;
-        return Math.floor(Math.random() * events.length);
+    const [preferredScope, setPreferredScope] = useState<HomeAdDanceScope>(() => {
+        if (typeof window === "undefined") return "swing";
+        const saved = window.localStorage.getItem(HOME_AD_DANCE_SCOPE_KEY);
+        return isHomeAdDanceScope(saved) ? saved : "swing";
     });
-    const safeActiveIndex = events.length > 0 ? activeIndex % events.length : 0;
-    const featuredEvent = events[safeActiveIndex] || events[0];
+    const selectedScopeEvents = useMemo(() => {
+        const primarySelected = events.filter((event) => getHomeAdEventScope(event) === preferredScope);
+        const fallbackSelected = fallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
+        return mergeUniqueEvents(primarySelected, fallbackSelected);
+    }, [events, fallbackEvents, preferredScope]);
+    const displayEvents = useMemo(() => {
+        if (selectedScopeEvents.length >= HOME_AD_MIN_SELECTED_COUNT) return selectedScopeEvents;
+        const otherScopeEvents = mergeUniqueEvents(events, fallbackEvents)
+            .filter((event) => getHomeAdEventScope(event) !== preferredScope);
+        return mergeUniqueEvents(selectedScopeEvents, otherScopeEvents);
+    }, [events, fallbackEvents, preferredScope, selectedScopeEvents]);
+    const isFallbackMixed = selectedScopeEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeEvents.length;
+    const [activeIndex, setActiveIndex] = useState(() => {
+        if (!displayEvents || displayEvents.length === 0) return 0;
+        return Math.floor(Math.random() * displayEvents.length);
+    });
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            window.localStorage.setItem(HOME_AD_DANCE_SCOPE_KEY, preferredScope);
+        }
+    }, [preferredScope]);
+    useEffect(() => {
+        if (displayEvents.length === 0) {
+            setActiveIndex(0);
+            return;
+        }
+        setActiveIndex((index) => index % displayEvents.length);
+    }, [displayEvents.length, preferredScope]);
+    const safeActiveIndex = displayEvents.length > 0 ? activeIndex % displayEvents.length : 0;
+    const featuredEvent = displayEvents[safeActiveIndex] || displayEvents[0];
     const queueEvents = featuredEvent
-        ? [featuredEvent, ...events.filter(event => event.id !== featuredEvent.id)].slice(0, 4)
-        : events.slice(0, 4);
-    const venueCount = new Set(events.map(getHomeEventLocationText).filter(location => location !== "장소 미정")).size;
+        ? [featuredEvent, ...displayEvents.filter(event => event.id !== featuredEvent.id)].slice(0, 4)
+        : displayEvents.slice(0, 4);
+    const venueCount = new Set(displayEvents.map(getHomeEventLocationText).filter(location => location !== "장소 미정")).size;
+
+    if (displayEvents.length === 0) return null;
 
     return (
         <section className="home-neb-desktop-layout" aria-label="신규 이벤트 광고">
+            <div className="home-neb-mobile-scope-strip" aria-label="메인 광고 장르 선택">
+                {calendarDanceScopeOptions.map((option) => (
+                    <button
+                        key={option.key}
+                        type="button"
+                        className={preferredScope === option.key ? "is-active" : ""}
+                        onClick={() => setPreferredScope(option.key)}
+                    >
+                        {option.label}
+                    </button>
+                ))}
+            </div>
             <div className="home-neb-main-slot">
                 <NewEventsBanner
-                    events={events}
+                    events={displayEvents}
                     onEventClick={onEventClick}
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}
@@ -116,9 +192,29 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
 
             <aside className="home-neb-side-panel" aria-label="신규 이벤트 목록">
                 <div className="home-neb-side-head">
-                    <span>신규 큐</span>
-                    <strong>{events.length}개 노출중</strong>
+                    <span>장르 광고</span>
+                    <strong>{getDanceScopeLabel(preferredScope)}</strong>
                 </div>
+
+                <div className="home-neb-scope-picker" aria-label="메인 광고 장르 선택">
+                    {calendarDanceScopeOptions.map((option) => (
+                        <button
+                            key={option.key}
+                            type="button"
+                            className={preferredScope === option.key ? "is-active" : ""}
+                            onClick={() => setPreferredScope(option.key)}
+                            title={option.desc}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+
+                <p className="home-neb-scope-note">
+                    {isFallbackMixed
+                        ? `${getDanceScopeLabel(preferredScope)} 후보가 적어 다른 장르를 함께 노출 중`
+                        : `${getDanceScopeLabel(preferredScope)}만 노출 중`}
+                </p>
 
                 {featuredEvent && (
                     <button
@@ -136,7 +232,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
 
                 <div className="home-neb-side-stats" aria-label="신규 이벤트 요약">
                     <span>
-                        <b>{events.length}</b>
+                        <b>{displayEvents.length}</b>
                         <em>신규</em>
                     </span>
                     <span>
@@ -165,7 +261,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                 <button
                     type="button"
                     className="home-neb-calendar-link"
-                    onClick={() => navigate("/calendar?scrollToToday=true")}
+                    onClick={() => navigate(`/calendar?dance=${preferredScope}&scrollToToday=true`)}
                 >
                     캘린더에서 보기
                     <i className="ri-arrow-right-line" />
@@ -193,7 +289,7 @@ const HomeRoutePreviewHub: React.FC<HomeRoutePreviewHubProps> = ({ socialData, f
         },
         {
             key: 'events',
-            label: '강습&행사정보',
+            label: '강습&행사',
             meta: `${futureEvents.length} 행사 · ${regularClasses.length} 강습`,
             target: '/events',
             image: getPreviewImage(featuredEvent) || getPreviewImage(featuredClass),
@@ -277,6 +373,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     clubLessons,
     clubRegularClasses,
     newlyRegisteredEvents,
+    homeAdCandidateEvents,
     favoriteEventsList,
     // events, // Removed
     onEventClick,
@@ -346,9 +443,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     return (
         <div className="ELS-section">
             {/* 1.5 Newly Registered Events Section (24 hours) */}
-            {vis.show_new_events_banner && newlyRegisteredEvents.length > 0 && (
+            {vis.show_new_events_banner && (newlyRegisteredEvents.length > 0 || homeAdCandidateEvents.length > 0) && (
                 <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
+                    fallbackEvents={homeAdCandidateEvents}
                     onEventClick={onEventClick}
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}

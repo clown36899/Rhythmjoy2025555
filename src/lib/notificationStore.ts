@@ -15,22 +15,33 @@ export interface NotificationRecord {
     data?: any;
 }
 
-const dbPromise = openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        }
-    },
-});
+const canUseIndexedDB = typeof indexedDB !== 'undefined';
+
+const dbPromise = canUseIndexedDB
+    ? openDB(DB_NAME, DB_VERSION, {
+        upgrade(db) {
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        },
+    })
+    : null;
+
+const getDB = async () => {
+    if (!dbPromise) return null;
+    return dbPromise;
+};
 
 export const notificationStore = {
     async getAll() {
-        const db = await dbPromise;
+        const db = await getDB();
+        if (!db) return [];
         return db.getAll(STORE_NAME);
     },
 
     async getUnread() {
-        const db = await dbPromise;
+        const db = await getDB();
+        if (!db) return [];
         const all = await db.getAll(STORE_NAME);
         return all.filter(n => !n.is_read).sort((a, b) =>
             new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
@@ -38,7 +49,8 @@ export const notificationStore = {
     },
 
     async markAsRead(id: string) {
-        const db = await dbPromise;
+        const db = await getDB();
+        if (!db) return;
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         const notification = await store.get(id);
@@ -50,7 +62,8 @@ export const notificationStore = {
     },
 
     async markAllAsRead() {
-        const db = await dbPromise;
+        const db = await getDB();
+        if (!db) return;
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         const notifications = await store.getAll();
@@ -64,7 +77,8 @@ export const notificationStore = {
     },
 
     async deleteOld() {
-        const db = await dbPromise;
+        const db = await getDB();
+        if (!db) return;
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         const notifications = await store.getAll();

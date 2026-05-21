@@ -166,7 +166,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isAdmin = isAdminProp || authIsAdmin;
 
   const handleCalendarNavClick = useCallback(() => {
-    const target = `/calendar?scrollToToday=true&nav=${Date.now()}`;
+    const target = `/calendar?view=calendar&scrollToToday=true&nav=${Date.now()}`;
     navigate(target);
 
     if (currentPath === '/calendar') {
@@ -567,22 +567,50 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     <i className="ri-menu-line"></i>
                   </button>
 
-                  <button
-                    type="button"
-                    className="calendar-header-title-lockup"
-                    onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
-                    data-analytics-id="cal_open_month_navigator_title"
-                    data-analytics-type="action"
-                    data-analytics-title="월 선택 열기(캘린더 헤더)"
-                    data-analytics-section="header_calendar"
-                    aria-label={`${calendarView.year}년 ${calendarView.month + 1}월 선택`}
-                  >
-                    <strong>
-                      <span>{calendarView.year}</span>
-                      <em>{String(calendarView.month + 1).padStart(2, '0')}</em>
-                    </strong>
-                    <small>캘린더</small>
-                  </button>
+                  <div className="calendar-header-title-control">
+                    <button
+                      type="button"
+                      className="calendar-header-month-step"
+                      onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
+                      data-analytics-id="cal_prev_month_title"
+                      data-analytics-type="action"
+                      data-analytics-title="이전 달 이동(캘린더 헤더)"
+                      data-analytics-section="header_calendar"
+                      aria-label="이전 달"
+                    >
+                      <i className="ri-arrow-left-s-line"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="calendar-header-title-lockup"
+                      onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
+                      data-analytics-id="cal_open_month_navigator_title"
+                      data-analytics-type="action"
+                      data-analytics-title="월 선택 열기(캘린더 헤더)"
+                      data-analytics-section="header_calendar"
+                      aria-label={`${calendarView.year}년 ${calendarView.month + 1}월 선택`}
+                    >
+                      <strong>
+                        <span>{calendarView.year}</span>
+                        <em>{String(calendarView.month + 1).padStart(2, '0')}</em>
+                      </strong>
+                      <small>캘린더</small>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="calendar-header-month-step"
+                      onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
+                      data-analytics-id="cal_next_month_title"
+                      data-analytics-type="action"
+                      data-analytics-title="다음 달 이동(캘린더 헤더)"
+                      data-analytics-section="header_calendar"
+                      aria-label="다음 달"
+                    >
+                      <i className="ri-arrow-right-s-line"></i>
+                    </button>
+                  </div>
 
                   <button
                     type="button"
@@ -598,36 +626,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
                   <div className="calendar-month-nav calendar-month-nav--sample">
                     <button
-                      onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
-                      className="calendar-month-btn"
-                      data-analytics-id="cal_prev_month"
-                      data-analytics-type="action"
-                      data-analytics-title="이전 달 이동"
-                      data-analytics-section="header_calendar"
-                    >
-                      <i className="ri-arrow-left-s-line"></i>
-                    </button>
-                    <span
-                      className="calendar-month-label calendar-month-label-clickable"
-                      onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
-                      data-analytics-id="cal_open_month_navigator_label"
-                      data-analytics-type="action"
-                      data-analytics-title="월 선택 열기"
-                      data-analytics-section="header_calendar"
-                    >
-                      {String(calendarView.year).slice(-2)}년 <span className="calendar-month-digit">{String(calendarView.month + 1).padStart(2, '0')}</span>
-                    </span>
-                    <button
-                      onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
-                      className="calendar-month-btn"
-                      data-analytics-id="cal_next_month"
-                      data-analytics-type="action"
-                      data-analytics-title="다음 달 이동"
-                      data-analytics-section="header_calendar"
-                    >
-                      <i className="ri-arrow-right-s-line"></i>
-                    </button>
-                    <button
+                      type="button"
                       className="calendar-today-header-btn"
                       onClick={() => {
                         console.log('[MobileShell] Today button clicked, dispatching goToToday');
@@ -741,7 +740,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               onClick={() => navigate('/events')}
               data-analytics-id="header_nav_events_info"
             >
-              행사정보
+              강습&행사
             </button>
             <button
               className={`header-nav-v2-item ${isBoardPage ? 'is-active' : ''}`}

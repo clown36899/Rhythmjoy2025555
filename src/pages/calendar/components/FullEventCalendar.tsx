@@ -4,6 +4,7 @@ import type { Event as AppEvent } from "../../../lib/supabase";
 import { useCalendarEventsQuery } from "../../../hooks/queries/useCalendarEventsQuery";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import DateEventsModal from "./DateEventsModal";
+import type { DanceScope } from "../../../utils/danceTaxonomy";
 import "../styles/FullEventCalendar.css";
 // import { getEventThumbnail } from "../../../utils/getEventThumbnail"; // Removed unused import
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
@@ -25,6 +26,7 @@ interface FullEventCalendarProps {
   highlightedEventId?: number | string | null;
   hoveredEventId?: number | string | null;
   tabFilter?: 'all' | 'social-events' | 'classes' | 'overseas';
+  danceScope?: DanceScope | string;
   seed?: number;
   onDataLoaded?: () => void;
   // 부모로부터 전달받는 데이터 프롭스 추가
@@ -229,6 +231,7 @@ export default memo(function FullEventCalendar({
   selectedCategory = "all",
   highlightedEventId = null,
   tabFilter = 'all',
+  danceScope: _danceScope = 'swing',
   seed = 42,
   onDataLoaded,
   calendarData,
@@ -519,7 +522,7 @@ export default memo(function FullEventCalendar({
         if (startStr && endStr) {
           // 성능을 위해 문자열 비교로 범위 내 날짜들 매핑 (현재 달 범위 내만)
           // 실제로는 렌더링 시점에 map[dateStr]을 조회하므로, 필요한 모든 날짜를 채워야 함
-          let curr = new Date(startStr);
+          const curr = new Date(startStr);
           const end = new Date(endStr);
           // 안전을 위해 최대 365일 제한
           let limit = 0;
@@ -760,9 +763,8 @@ export default memo(function FullEventCalendar({
         events={modalEvents}
         onEventClick={(event) => {
           setShowDateModal(false);
-          // @ts-ignore - DateEventsModal 내부에서 넘겨주는 인수가 1개뿐임. 
-          // 실제 동작에는 문제 없으나 타입 일치를 위해 무시하거나 상세 수정 필요.
-          if (onEventClick) onEventClick(event);
+          const clickedDate = selectedDate ?? new Date(event.start_date || event.date || Date.now());
+          onEventClick(event, clickedDate, modalEvents);
         }}
       />
     </>

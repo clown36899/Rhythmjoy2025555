@@ -219,10 +219,19 @@ function isRecurringSameSource(item: any, row: any): boolean {
         && titleScore >= 0.75;
 }
 
+type DuplicateMatch = {
+    id: string;
+    title: string;
+    reason: string;
+    target: 'scraped_events' | 'events';
+    date?: string;
+    source_url?: string;
+};
+
 async function findExistingScrapedEvent(
     supabase: ReturnType<typeof getSupabase>,
     item: any,
-): Promise<{ id: string; title: string; reason: string } | null> {
+): Promise<DuplicateMatch | null> {
     const sd = item.structured_data || {};
     const date = sd.date || '';
     const title = (sd.title || '').trim();
@@ -278,18 +287,22 @@ async function findExistingScrapedEvent(
             : await semanticTitleSimilarity(title, rowTitle);
 
         if (samePeriod) {
-            if (titleScore >= 0.9) return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+제목' };
-            if (titleScore >= 0.64 && venueMatches) return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+유사 제목' };
+            if (titleScore >= 0.9) {
+                return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+제목', target: 'scraped_events', date: rowDate, source_url: row.source_url };
+            }
+            if (titleScore >= 0.64 && venueMatches) {
+                return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+유사 제목', target: 'scraped_events', date: rowDate, source_url: row.source_url };
+            }
             if (isMultiDayMatch && venueMatches) {
-                return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+다일행사 검토' };
+                return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+다일행사 검토', target: 'scraped_events', date: rowDate, source_url: row.source_url };
             }
         }
 
         if (gap <= 45 && typeMatches && titleScore >= 0.86) {
-            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+강한 제목 유사도' };
+            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+강한 제목 유사도', target: 'scraped_events', date: rowDate, source_url: row.source_url };
         }
         if (gap <= 90 && typeMatches && titleScore >= 0.78 && venueMatches) {
-            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+장소+유사 제목' };
+            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+장소+유사 제목', target: 'scraped_events', date: rowDate, source_url: row.source_url };
         }
     }
 
@@ -299,7 +312,7 @@ async function findExistingScrapedEvent(
 async function findExistingCalendarEvent(
     supabase: ReturnType<typeof getSupabase>,
     item: any,
-): Promise<{ id: string; title: string; reason: string } | null> {
+): Promise<DuplicateMatch | null> {
     const sd = item.structured_data || {};
     const date = sd.date || '';
     const title = (sd.title || '').trim();
@@ -327,7 +340,7 @@ async function findExistingCalendarEvent(
 
     for (const row of rows) {
         if (incomingSource && row.link1 && incomingSource === row.link1) {
-            return { id: String(row.id), title: row.title, reason: '운영DB 동일 원본URL+날짜' };
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 원본URL+날짜', target: 'events', date: (row.start_date || row.date || '').slice(0, 10), source_url: row.link1 };
         }
 
         const rowVenue = row.venue_name || row.location || '';
@@ -339,13 +352,13 @@ async function findExistingCalendarEvent(
         const isMultiDayMatch = incomingSpan > 0 || rowSpan > 0 || (Array.isArray(row.event_dates) && row.event_dates.length > 1);
 
         if (titleScore >= 0.9) {
-            return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+제목' };
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+제목', target: 'events', date: (row.start_date || row.date || '').slice(0, 10), source_url: row.link1 };
         }
         if (titleScore >= 0.64 && venueMatches) {
-            return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+장소+유사 제목' };
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 날짜+장소+유사 제목', target: 'events', date: (row.start_date || row.date || '').slice(0, 10), source_url: row.link1 };
         }
         if (isMultiDayMatch && venueMatches) {
-            return { id: String(row.id), title: row.title, reason: '운영DB 동일 기간+장소+다일행사 검토' };
+            return { id: String(row.id), title: row.title, reason: '운영DB 동일 기간+장소+다일행사 검토', target: 'events', date: (row.start_date || row.date || '').slice(0, 10), source_url: row.link1 };
         }
     }
 
@@ -471,14 +484,15 @@ export const handler: Handler = async (event) => {
                 }
 
                 // 중복 체크 (신규 수집 시에만) — 중복이면 upsert 자체를 건너뜀
-                if (!item.is_collected) {
+                // 관리자가 중복이 아니라고 판단해 신규전환한 항목은 pending으로 저장해 재검사를 우회한다.
+                if (!item.is_collected && item.status !== 'pending') {
                     const sd = item.structured_data || {};
                     const date = sd.date || '';
                     const eventType = (sd.event_type || '').trim();
                     const djs: string[] = sd.djs || [];
                     const title = (sd.title || '').trim();
 
-                    let existing: any = null;
+                    let existing: DuplicateMatch | null = null;
                     let skipReason = '';
 
                     // 1순위: source_url + 날짜 중복 체크 (타이틀이 달라도 같은 포스트+날짜면 동일 이벤트)
@@ -490,7 +504,7 @@ export const handler: Handler = async (event) => {
                             .eq('structured_data->>date', date)
                             .neq('id', item.id)
                             .maybeSingle();
-                        if (data) { existing = data; skipReason = '동일 소스URL+날짜 중복'; }
+                        if (data) { existing = { id: String(data.id), title, reason: '동일 소스URL+날짜 중복', target: 'scraped_events', date, source_url: item.source_url }; skipReason = existing.reason; }
                     }
 
                     // 2순위: 소셜 — 날짜 + DJ 이름 중복 체크
@@ -503,7 +517,7 @@ export const handler: Handler = async (event) => {
                                 .contains('structured_data->djs', JSON.stringify([dj]))
                                 .neq('id', item.id)
                                 .maybeSingle();
-                            if (data) { existing = data; skipReason = '날짜+DJ 중복'; break; }
+                            if (data) { existing = { id: String(data.id), title, reason: '날짜+DJ 중복', target: 'scraped_events', date, source_url: item.source_url }; skipReason = existing.reason; break; }
                         }
                     }
 
@@ -516,14 +530,14 @@ export const handler: Handler = async (event) => {
                             .eq('structured_data->>title', title)
                             .neq('id', item.id)
                             .maybeSingle();
-                        if (data) { existing = data; skipReason = '날짜+제목 중복'; }
+                        if (data) { existing = { id: String(data.id), title, reason: '날짜+제목 중복', target: 'scraped_events', date, source_url: item.source_url }; skipReason = existing.reason; }
                     }
 
                     // 4순위: 수집 DB 내부 크로스소스/근접 날짜 정밀 중복 체크
                     if (!existing && title && date) {
                         const matchedScraped = await findExistingScrapedEvent(supabase, item);
                         if (matchedScraped) {
-                            existing = { id: matchedScraped.id };
+                            existing = matchedScraped;
                             skipReason = `${matchedScraped.reason} (${matchedScraped.title})`;
                         }
                     }
@@ -532,7 +546,7 @@ export const handler: Handler = async (event) => {
                     if (!existing && title && date) {
                         const matchedEvent = await findExistingCalendarEvent(supabase, item);
                         if (matchedEvent) {
-                            existing = { id: matchedEvent.id };
+                            existing = matchedEvent;
                             skipReason = `${matchedEvent.reason} (${matchedEvent.title})`;
                         }
                     }
@@ -545,6 +559,10 @@ export const handler: Handler = async (event) => {
                             _duplicate: {
                                 reason: skipReason,
                                 existingId: existing.id,
+                                existingTitle: existing.title,
+                                existingDate: existing.date,
+                                existingSourceUrl: existing.source_url,
+                                target: existing.target,
                                 detected_at: now,
                             },
                         };
@@ -624,6 +642,10 @@ export const handler: Handler = async (event) => {
                     displayNo = ((maxRow?.display_no as number | null) ?? 0) + 1;
                 }
 
+                const finalStatus = item.is_collected
+                    ? 'collected'
+                    : item.status || null;
+
                 const { error: upsertError } = await supabase
                     .from('scraped_events')
                     .upsert({
@@ -634,7 +656,7 @@ export const handler: Handler = async (event) => {
                         extracted_text: item.extracted_text,
                         structured_data: item.structured_data || {},
                         is_collected: item.is_collected || false,
-                        status: item.status || null,
+                        status: finalStatus,
                         updated_at: now,
                         created_at: item.created_at || now,
                         ...(displayNo !== undefined ? { display_no: displayNo } : {}),

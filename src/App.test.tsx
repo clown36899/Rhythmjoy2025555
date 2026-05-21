@@ -1,7 +1,12 @@
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import App from './App';
 import { describe, it, expect, vi } from 'vitest';
+import App from './App';
+import { ModalProvider } from './contexts/ModalContext';
+
+vi.mock('./layouts/MobileShell', () => ({
+    MobileShell: () => <div data-testid="mobile-shell" />,
+}));
 
 // AuthContext 모킹
 vi.mock('./contexts/AuthContext', () => ({
@@ -24,7 +29,9 @@ describe('App', () => {
     it('renders without crashing', () => {
         render(
             <MemoryRouter>
-                <App />
+                <ModalProvider>
+                    <App />
+                </ModalProvider>
             </MemoryRouter>
         );
         expect(true).toBeTruthy();

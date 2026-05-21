@@ -172,7 +172,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
     const { displayMode } = detectPWAMode();
 
     // 입력받은 유저가 없으면 현재 supabase 세션에서 확인
-    let userId = user?.id;
+    const userId = user?.id;
     // [FIX] 회원만 PWA 설치 기록 허용 (비회원 차단)
     if (!userId) {
         return;

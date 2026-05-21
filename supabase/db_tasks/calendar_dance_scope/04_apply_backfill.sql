@@ -17,7 +17,7 @@ set
     when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(바차타|bachata)' then 'bachata'
     when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(살사|salsa)' then 'salsa'
     when coalesce(genre, '') || ' ' || coalesce(title, '') ~* '(힙합|hip.?hop|왁킹|waack|팝핑|popping|락킹|locking|하우스|house|브레이킹|breaking|비보잉|bboy|크럼프|krump)' then 'street'
-    else 'unknown'
+    else 'swing'
   end,
   activity_type = case
     when category in ('class', 'regular', 'club') then 'class'
