@@ -16,8 +16,9 @@ import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import LocalLoading from './LocalLoading';
 import {
     buildDanceGenreOptions,
-    calendarDanceScopeOptions,
     getDanceScopeLabel,
+    getVisibleDanceScopeOptions,
+    normalizeVisibleDanceScope,
     resolveDanceGenreInput,
     suggestDanceGenres,
     type DanceScope,
@@ -70,6 +71,7 @@ interface EditableEventDetailProps {
     onVenueSelectClick?: () => void;
     danceScope?: DanceScope;
     onDanceScopeChange?: (scope: DanceScope) => void;
+    canUseExpandedDanceScopes?: boolean;
 
 }
 
@@ -118,6 +120,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onVenueSelectClick,
     danceScope = 'swing',
     onDanceScopeChange,
+    canUseExpandedDanceScopes = false,
 
 }, ref) => {
     // Refs
@@ -239,14 +242,28 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
     const hasImage = !!event.image;
     const genreOptions = React.useMemo(() => buildDanceGenreOptions(genreSuggestions), [genreSuggestions]);
-    const selectedScope = (danceScope && danceScope !== 'unknown' ? danceScope : 'swing') as DanceScope;
+    const scopeOptions = React.useMemo(
+        () => getVisibleDanceScopeOptions(canUseExpandedDanceScopes),
+        [canUseExpandedDanceScopes]
+    );
+    const allowedGenreOptions = React.useMemo(() => {
+        if (canUseExpandedDanceScopes) return genreOptions;
+        return genreOptions.filter((option) => option.scope === 'swing' || option.scope === 'unknown');
+    }, [canUseExpandedDanceScopes, genreOptions]);
+    const selectedScope = normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes) as DanceScope;
     const visibleGenreOptions = React.useMemo(() => {
-        return suggestDanceGenres(genreQuery, genreOptions, genreQuery.trim() ? null : selectedScope, genreQuery.trim() ? 8 : 12);
-    }, [genreOptions, genreQuery, selectedScope]);
+        return suggestDanceGenres(genreQuery, allowedGenreOptions, genreQuery.trim() ? null : selectedScope, genreQuery.trim() ? 8 : 12);
+    }, [allowedGenreOptions, genreQuery, selectedScope]);
     const customGenreResolution = React.useMemo(() => {
-        return resolveDanceGenreInput(genreQuery, { options: genreOptions, fallbackScope: selectedScope });
-    }, [genreOptions, genreQuery, selectedScope]);
-    const canUseCustomGenre = genreQuery.trim().length > 0 && customGenreResolution.matchType === 'custom';
+        return resolveDanceGenreInput(genreQuery, { options: allowedGenreOptions, fallbackScope: selectedScope });
+    }, [allowedGenreOptions, genreQuery, selectedScope]);
+    const canUseCustomGenre = genreQuery.trim().length > 0
+        && customGenreResolution.matchType === 'custom'
+        && (canUseExpandedDanceScopes || customGenreResolution.scope === 'swing');
+    const canApplyGenreSuggestion = !customGenreResolution.suggestion
+        || canUseExpandedDanceScopes
+        || customGenreResolution.suggestion.scope === 'swing'
+        || customGenreResolution.suggestion.scope === 'unknown';
 
     // handleSave removed // Unused
 
@@ -473,7 +490,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         <div className="EED-inputGroup">
                                                             <label className="EED-label">장르 범위</label>
                                                             <div className="EED-scopeRail">
-                                                                {calendarDanceScopeOptions.map((scopeOption) => (
+                                                                {scopeOptions.map((scopeOption) => (
                                                                     <button
                                                                         key={scopeOption.key}
                                                                         type="button"
@@ -500,7 +517,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                                 />
                                                             </div>
 
-                                                            {genreQuery.trim() && customGenreResolution.suggestion && (
+                                                            {genreQuery.trim() && customGenreResolution.suggestion && canApplyGenreSuggestion && (
                                                                 <button
                                                                     type="button"
                                                                     className="EED-genreCorrection"

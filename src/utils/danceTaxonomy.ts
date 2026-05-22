@@ -83,6 +83,12 @@ export const calendarDanceScopeOptions: Array<{ key: Exclude<DanceScope, 'unknow
   { key: 'street', label: '스트릿', desc: '힙합, 왁킹, 팝핑, 락킹' },
 ];
 
+export function getVisibleDanceScopeOptions(canViewExpandedScopes = false) {
+  return canViewExpandedScopes
+    ? calendarDanceScopeOptions
+    : calendarDanceScopeOptions.filter((option) => option.key === 'swing');
+}
+
 const collectionScopePartnerGenres = new Set([
   'swing',
   'lindyhop',
@@ -476,6 +482,11 @@ export function getDanceScopeLabel(scope: DanceScope | string | null | undefined
 
 export function normalizeDanceScope(value: string | null | undefined): Exclude<DanceScope, 'unknown'> {
   return value === 'salsa' || value === 'bachata' || value === 'tango' || value === 'street' ? value : 'swing';
+}
+
+export function normalizeVisibleDanceScope(value: string | null | undefined, canViewExpandedScopes = false): Exclude<DanceScope, 'unknown'> {
+  const scope = normalizeDanceScope(value);
+  return canViewExpandedScopes || scope === 'swing' ? scope : 'swing';
 }
 
 export function inferDanceScopeForEvent(event: {

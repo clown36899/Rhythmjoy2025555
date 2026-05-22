@@ -274,7 +274,7 @@ export default function HomePageV2() {
     // 렌더링
     // --------------------------------------------------------------------------------
     return (
-        <div ref={containerRef} className="home-container home-v2-carbon">
+        <div ref={containerRef} className="home-container">
             <div className="home-main" ref={eventListElementRef}>
                 {/* Floating Admin Webzine Tab */}
                 {effectiveIsAdmin && (

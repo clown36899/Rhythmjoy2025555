@@ -21,7 +21,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
-import { calendarDanceScopeOptions, getDanceScopeLabel, normalizeDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
+import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -93,7 +93,7 @@ export default function CalendarPage() {
     const location = useLocation();
     const lastHandledEventIdRef = useRef<string | null>(null);
     const scrollToTodayConsumedRef = useRef(false);
-    const { user, signInWithKakao, isAdmin: authIsAdmin } = useAuth();
+    const { user, signInWithKakao, isAdmin: authIsAdmin, isAuthCheckComplete } = useAuth();
     const { openModal, closeModal } = useModalActions();
 
     // 상태 관리
@@ -117,7 +117,7 @@ export default function CalendarPage() {
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
     const [danceScope, setDanceScope] = useState<CalendarDanceScope>(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        return normalizeDanceScope(urlParams.get('dance'));
+        return normalizeVisibleDanceScope(urlParams.get('dance'), false);
     });
     const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -172,6 +172,7 @@ export default function CalendarPage() {
     // Auth
     const isAdmin = authIsAdmin || false;
     const [adminType] = useState<"super" | "sub" | null>(authIsAdmin ? "super" : null);
+    const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(isAdmin), [isAdmin]);
 
     // [New] 데이터 훅을 부모로 끌어올림 (사전 높이 계산을 위함)
     const { data: calendarData, isLoading, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth, danceScope);
@@ -756,12 +757,16 @@ export default function CalendarPage() {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
-        const nextScope = normalizeDanceScope(urlParams.get('dance'));
+        const nextScope = normalizeVisibleDanceScope(urlParams.get('dance'), isAdmin);
         if (nextScope !== danceScope) {
             setDanceScope(nextScope);
             setSelectedDate(null);
         }
-    }, [danceScope, location.search]);
+        if (isAuthCheckComplete && !isAdmin && urlParams.has('dance')) {
+            urlParams.delete('dance');
+            navigate({ pathname: location.pathname, search: urlParams.toString() }, { replace: true });
+        }
+    }, [danceScope, isAdmin, isAuthCheckComplete, location.pathname, location.search, navigate]);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
@@ -993,7 +998,7 @@ export default function CalendarPage() {
                     </header>
 
                     <div className="calendar-dance-scope-switch" aria-label="장르 선택">
-                        {calendarDanceScopeOptions.map((option) => (
+                        {visibleDanceScopeOptions.map((option) => (
                             <button
                                 key={option.key}
                                 type="button"

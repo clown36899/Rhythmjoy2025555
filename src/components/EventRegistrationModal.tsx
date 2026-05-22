@@ -25,6 +25,7 @@ import {
   buildDanceGenreOptions,
   inferDanceScopeForEvent,
   inferDanceTaxonomy,
+  normalizeVisibleDanceScope,
   resolveDanceGenreInput,
   type DanceScope,
 } from "../utils/danceTaxonomy";
@@ -143,6 +144,7 @@ export default memo(function EventRegistrationModal({
 
   // Dummy Events State - fetch real events from this month
   const [dummyEvents, setDummyEvents] = useState<ExtendedEvent[]>([]);
+  const canUseExpandedDanceScopes = isAdmin;
 
   // Sync loading message with isDeleting prop
   useEffect(() => {
@@ -268,7 +270,7 @@ export default memo(function EventRegistrationModal({
         setCategory((editEventData.category as "class" | "event" | "club") || "event");
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
-        setDanceScope(inferDanceScopeForEvent(editEventData as any));
+        setDanceScope(normalizeVisibleDanceScope(inferDanceScopeForEvent(editEventData as any), canUseExpandedDanceScopes));
 
         setGroupId((editEventData as any).group_id || null);
 
@@ -322,7 +324,12 @@ export default memo(function EventRegistrationModal({
       setPreviewMode('detail');
       setIsSubmitting(false);
     }
-  }, [isOpen, selectedDate, editEventData]);
+  }, [isOpen, selectedDate, editEventData, canUseExpandedDanceScopes, initialGroupId, initialDayOfWeek]);
+
+  useEffect(() => {
+    if (!isOpen || canUseExpandedDanceScopes || danceScope === "swing") return;
+    setDanceScope("swing");
+  }, [canUseExpandedDanceScopes, danceScope, isOpen]);
 
   // Video URL Handler
   const handleVideoChange = (url: string) => {
@@ -675,14 +682,15 @@ export default memo(function EventRegistrationModal({
           const genreOptions = buildDanceGenreOptions(allGenres);
           const resolvedGenre = resolveDanceGenreInput(genre, {
             options: genreOptions,
-            fallbackScope: danceScope,
+            fallbackScope: normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes),
           });
+          const resolvedDanceScope = normalizeVisibleDanceScope(resolvedGenre.scope, canUseExpandedDanceScopes);
           const taxonomy = inferDanceTaxonomy({
             extracted_text: [title, description, location, link1, resolvedGenre.label].filter(Boolean).join(' '),
             structured_data: {
               title,
               event_type: category === 'class' || category === 'club' ? '강습' : '행사',
-              dance_scope: resolvedGenre.scope,
+              dance_scope: resolvedDanceScope,
               dance_genre: resolvedGenre.key,
               activity_type: activityType,
               subgenre: resolvedGenre.label,
@@ -705,7 +713,7 @@ export default memo(function EventRegistrationModal({
             category,
             genre: resolvedGenre.label || genre || undefined,
             scope,
-            dance_scope: resolvedGenre.scope,
+            dance_scope: resolvedDanceScope,
             dance_genre: resolvedGenre.key,
             activity_type: activityType,
             dance_tags: taxonomy.tags,
@@ -1001,14 +1009,14 @@ export default memo(function EventRegistrationModal({
         {
           const resolved = resolveDanceGenreInput(String(value || ''), {
             options: buildDanceGenreOptions(allGenres),
-            fallbackScope: danceScope,
+            fallbackScope: normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes),
           });
           setGenre(resolved.label || value);
-          if (resolved.scope !== 'unknown') setDanceScope(resolved.scope);
+          if (resolved.scope !== 'unknown') setDanceScope(normalizeVisibleDanceScope(resolved.scope, canUseExpandedDanceScopes));
         }
         break;
       case 'dance_scope':
-        setDanceScope(value || 'swing');
+        setDanceScope(normalizeVisibleDanceScope(value || 'swing', canUseExpandedDanceScopes));
         break;
       // Date handling
       case 'date':
@@ -1032,6 +1040,10 @@ export default memo(function EventRegistrationModal({
       case 'link1': setLink1(value); break;
       case 'link_name1': setLinkName1(value); break;
     }
+  };
+
+  const handleDanceScopeChange = (scope: DanceScope) => {
+    setDanceScope(normalizeVisibleDanceScope(scope, canUseExpandedDanceScopes));
   };
 
   // Venue selection handler
@@ -1096,7 +1108,8 @@ export default memo(function EventRegistrationModal({
           onImagePositionChange={setImagePosition}
           genreSuggestions={allGenres}
           danceScope={danceScope}
-          onDanceScopeChange={setDanceScope}
+          onDanceScopeChange={handleDanceScopeChange}
+          canUseExpandedDanceScopes={canUseExpandedDanceScopes}
           className="h-full"
           ref={detailRef}
           // DatePicker Props

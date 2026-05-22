@@ -9,14 +9,14 @@ import { useUserInteractions } from '../../hooks/useUserInteractions';
 import '../../styles/domains/events.css';
 import { getCardThumbnail, getEventThumbnail } from '../../utils/getEventThumbnail';
 import {
-  calendarDanceScopeOptions,
   getDanceActivityLabel,
   getDanceGenreLabel,
   getDanceScopeLabel,
   getDanceTagLabel,
+  getVisibleDanceScopeOptions,
   inferDanceTaxonomy,
   isEventInDanceScope,
-  normalizeDanceScope,
+  normalizeVisibleDanceScope,
   type DanceActivity,
 } from '../../utils/danceTaxonomy';
 import { getLocalDateString, sortEvents } from '../v2/utils/eventListUtils';
@@ -416,7 +416,7 @@ function EventsInfoSection({
 export default function EventsInfoPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isAuthCheckComplete } = useAuth();
   const { openModal, closeModal } = useModalActions();
   const { data: events = [], isLoading, refetch } = useEventsQuery();
   const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
@@ -430,7 +430,8 @@ export default function EventsInfoPage() {
     return new Set((interactions?.event_favorites || []).map((id) => Number(id)));
   }, [interactions?.event_favorites]);
 
-  const selectedDanceScope = normalizeDanceScope(searchParams.get('dance'));
+  const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(isAdmin), [isAdmin]);
+  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), isAdmin);
   const selectedActivity = normalizeActivityFilter(searchParams.get('type'));
   const selectedTag = searchParams.get('tag');
 
@@ -438,13 +439,18 @@ export default function EventsInfoPage() {
     return events.filter(isFutureEvent);
   }, [events]);
 
+  const visibleFutureEvents = useMemo(() => {
+    if (isAdmin) return futureEvents;
+    return futureEvents.filter((event) => isEventInDanceScope(event, 'swing'));
+  }, [futureEvents, isAdmin]);
+
   const danceScopedEvents = useMemo(() => {
-    return futureEvents.filter((event) => isEventInDanceScope(event, selectedDanceScope));
-  }, [futureEvents, selectedDanceScope]);
+    return visibleFutureEvents.filter((event) => isEventInDanceScope(event, selectedDanceScope));
+  }, [selectedDanceScope, visibleFutureEvents]);
 
   const recruitBaseEvents = useMemo(() => {
-    return futureEvents.filter((event) => getEventsInfoCategory(event) === 'recruit');
-  }, [futureEvents]);
+    return visibleFutureEvents.filter((event) => getEventsInfoCategory(event) === 'recruit');
+  }, [visibleFutureEvents]);
 
   const activityScopedEvents = useMemo(() => {
     if (selectedActivity === 'recruit') return recruitBaseEvents;
@@ -505,6 +511,13 @@ export default function EventsInfoPage() {
     }
     setSearchParams(nextParams, { replace: false });
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!isAuthCheckComplete || isAdmin || !searchParams.has('dance')) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('dance');
+    setSearchParams(nextParams, { replace: true });
+  }, [isAdmin, isAuthCheckComplete, searchParams, setSearchParams]);
 
   const socialEvents = useMemo(() => {
     return sortEventsInfoItems(
@@ -616,7 +629,7 @@ export default function EventsInfoPage() {
     <main className={`events-info-page ${dynamicTags.length > 0 ? 'has-tag-tabs' : ''}`}>
       <div className="events-info-toolbar" aria-label="행사정보 정렬">
         <div className="events-info-scope-tabs" aria-label="댄스 장르 선택">
-          {calendarDanceScopeOptions.map((option) => (
+          {visibleDanceScopeOptions.map((option) => (
             <button
               key={option.key}
               type="button"
