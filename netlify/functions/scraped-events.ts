@@ -9,6 +9,11 @@ const translationCache = new Map<string, string>();
 const excludedSourceRules: Array<{ pattern: RegExp; reason: string }> = [
     { pattern: /^https?:\/\/(www\.)?meroniswing\.com(\/|$)/i, reason: '사용자 지정 제외 소스: meroniswing.com' },
     { pattern: /^https?:\/\/allaboutswing\.co\.kr\/20(\/|$)/i, reason: '사용자 지정 제외 소스: allaboutswing.co.kr/20' },
+    { pattern: /newspim\.com/i, reason: '일반 대중 뉴스 포털 제외' },
+    { pattern: /yna\.co\.kr/i, reason: '연합뉴스 포털 제외' },
+    { pattern: /\.go\.kr/i, reason: '공공기관/지자체 공고 사이트 제외' },
+    { pattern: /\.or\.kr/i, reason: '공공기관/비영리 단체 공고 제외' },
+    { pattern: /visitkorea\.or\.kr/i, reason: '단순 여행/관광공사 허브 제외' },
 ];
 
 const corsHeaders = {

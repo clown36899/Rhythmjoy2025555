@@ -18,7 +18,6 @@ import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
 import '../styles/components/MobileShell.css';
-import NoticeTicker from '../components/NoticeTicker';
 
 interface MobileShellProps {
   isAdmin?: boolean;
@@ -435,10 +434,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   };
 
   return (
-    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'home-v2-carbon-shell' : ''}`}>
       {/* Global Fixed Header */}
       {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (
-        <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
+        <header className="shell-header global-header-fixed">
           <div className="header-content-inner">
             {/* Left/Center Content based on Route */}
             <div className="header-left-content">

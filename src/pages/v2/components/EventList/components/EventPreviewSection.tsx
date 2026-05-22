@@ -23,6 +23,7 @@ import {
     inferDanceScopeForEvent,
     normalizeDanceScope,
 } from "../../../../../utils/danceTaxonomy";
+import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
 
 
 interface EventPreviewSectionProps {
@@ -134,10 +135,13 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         return mergeUniqueEvents(primarySelected, fallbackSelected);
     }, [events, fallbackEvents, preferredScope]);
     const displayEvents = useMemo(() => {
-        if (selectedScopeEvents.length >= HOME_AD_MIN_SELECTED_COUNT) return selectedScopeEvents;
-        const otherScopeEvents = mergeUniqueEvents(events, fallbackEvents)
-            .filter((event) => getHomeAdEventScope(event) !== preferredScope);
-        return mergeUniqueEvents(selectedScopeEvents, otherScopeEvents);
+        const nextEvents = selectedScopeEvents.length >= HOME_AD_MIN_SELECTED_COUNT
+            ? selectedScopeEvents
+            : mergeUniqueEvents(
+                selectedScopeEvents,
+                mergeUniqueEvents(events, fallbackEvents).filter((event) => getHomeAdEventScope(event) !== preferredScope),
+            );
+        return nextEvents.slice(0, NEB_MAX_ITEMS);
     }, [events, fallbackEvents, preferredScope, selectedScopeEvents]);
     const isFallbackMixed = selectedScopeEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeEvents.length;
     const [activeIndex, setActiveIndex] = useState(() => {

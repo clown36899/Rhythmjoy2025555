@@ -38,6 +38,7 @@ const SUPABASE_KEY = env.VITE_PUBLIC_SUPABASE_ANON_KEY;
 
 // ── 수집 소스 정의 ────────────────────────────────────
 const SOURCES = [
+  // 1. 스윙 댄스 소스
   { name: '네오스윙',   type: 'ig',     handle: 'neo_swing',       url: 'https://www.instagram.com/neo_swing/' },
   { name: '스윙스캔들', type: 'naver',  handle: null,              url: 'https://cafe.naver.com/f-e/cafes/14933600/menus/501?viewType=I' },
   { name: '경성홀',     type: 'ig',     handle: 'kyungsunghall',   url: 'https://www.instagram.com/kyungsunghall/' },
@@ -48,17 +49,76 @@ const SOURCES = [
   { name: '박쥐스윙',   type: 'ig',     handle: 'batswing2003',    url: 'https://www.instagram.com/batswing2003/' },
   { name: '대전스윙피버',type: 'ig',    handle: 'daejeon.swingfever', url: 'https://www.instagram.com/daejeon.swingfever/' },
   { name: '스윙홀릭',   type: 'ig',     handle: 'swingholic',      url: 'https://www.instagram.com/swingholic/' },
+
+  // 2. 살사 / 바차타 소스 (강화)
+  { name: '턴라틴바',     type: 'ig',     handle: 'turn_latin_bar',  url: 'https://www.instagram.com/turn_latin_bar/' },
+  { name: '보니따살사',   type: 'ig',     handle: 'bonitasalsabar',  url: 'https://www.instagram.com/bonitasalsabar/' },
+  { name: '라틴인서울',   type: 'ig',     handle: 'latin_in_seoul',  url: 'https://www.instagram.com/latin_in_seoul/' },
+  { name: '클럽하바나',   type: 'ig',     handle: 'club_havana',     url: 'https://www.instagram.com/club_havana/' },
+  { name: '까리베',       type: 'ig',     handle: 'caribe0804',      url: 'https://www.instagram.com/caribe0804/' },
+
+  // 3. 탱고 소스 (강화)
+  { name: '엘땅고',       type: 'ig',     handle: 'eltango_seoul',   url: 'https://www.instagram.com/eltango_seoul/' },
+  { name: '까사밀롱가',   type: 'ig',     handle: 'casamilonga_seoul', url: 'https://www.instagram.com/casamilonga_seoul/' },
+  { name: '탱고피플',     type: 'ig',     handle: 'tangopeople_korea', url: 'https://www.instagram.com/tangopeople_korea/' },
+
+  // 4. WCS 소스 (강화)
+  { name: '코리아웨스티스', type: 'ig',   handle: 'koreawesties',    url: 'https://www.instagram.com/koreawesties/' },
+  { name: '코오챔',         type: 'ig',   handle: 'koreanopen_wcs_championships', url: 'https://www.instagram.com/koreanopen_wcs_championships/' },
+  { name: '웨스티코리아',   type: 'ig',   handle: 'westiekorea_dance', url: 'https://www.instagram.com/westiekorea_dance/' },
+  { name: '올스타모던스윙', type: 'ig',   handle: 'allstar_modernswing_korea', url: 'https://www.instagram.com/allstar_modernswing_korea/' },
+
+  // 5. 스트릿 댄스 소스 (강화)
+  { name: '플로우메이커',   type: 'ig',   handle: 'flowmaker_official', url: 'https://www.instagram.com/flowmaker_official/' },
+  { name: '댄스인사이드',   type: 'ig',   handle: 'danceinside_official', url: 'https://www.instagram.com/danceinside_official/' },
+  { name: '원밀리언',       type: 'ig',   handle: '1milliondance',   url: 'https://www.instagram.com/1milliondance/' },
+  { name: '저스트절크',     type: 'ig',   handle: 'justjerkcrew',    url: 'https://www.instagram.com/justjerkcrew/' },
 ];
 
-// ── DJ 소셜 판별 ───────────────────────────────────────
-const SOCIAL_KW = ['소셜', 'social', '파티', 'party', 'dj', '디제이'];
-const SKIP_KW   = ['강습', '클래스', '워크숍', 'workshop', '공연', '발표', '대회', '후기', '리뷰'];
+// ── 확장형 댄스 씬 이벤트 판별 ───────────────────────────
+const JUNK_DOMAINS = [
+  'newspim.com', 'yna.co.kr', 'gn.go.kr', 'visitkorea.or.kr',
+  'korean.visitkorea.or.kr', 'culture.seoul.go.kr', 'seoul.go.kr'
+];
 
-function isSocialParty(text) {
+function isJunkData(text, url = '') {
+  if (url) {
+    if (JUNK_DOMAINS.some(d => url.includes(d))) return true;
+  }
   const lower = text.toLowerCase();
-  const hasSocial = SOCIAL_KW.some(k => lower.includes(k));
-  const onlyClass = !hasSocial && SKIP_KW.some(k => lower.includes(k));
-  return hasSocial && !onlyClass;
+  const junkKws = ['청소년수련관', '지자체', '지자체축제', '문화관광체육', '국제춤축제', '전국댄스페스티벌', '시민축제', '뉴스핌', '연합뉴스', '보도자료'];
+  if (junkKws.some(k => lower.includes(k))) return true;
+  return false;
+}
+
+const GENRE_KWS = [
+  '스윙', 'swing', '린디합', 'lindyhop', '발보아', 'balboa', '블루스', 'blues',
+  '솔로재즈', 'solojazz', '지터벅', 'jitterbug', '웨코', 'wcs', 'west coast swing', 'westie',
+  '살사', 'salsa', '바차타', 'bachata', '라틴', 'latin', '강턴', '홍턴', '보니따',
+  '탱고', 'tango', '밀롱가', 'milonga', '프랙티카', 'practica', '루미노소', '까사밀롱가',
+  '스트릿', 'street', '배틀', 'battle', '팝업', 'pop-up', '왁킹', 'waacking',
+  '팝핑', 'popping', '락킹', 'locking', '하우스', 'house', '브레이킹', 'breaking'
+];
+
+const ACTIVITY_KWS = [
+  '파티', 'party', '소셜', 'social', '배틀', 'battle', '세션', 'session',
+  '강습', '클래스', 'class', '워크숍', '특강', '워크샵', 'workshop',
+  '모집', '밀롱가', 'milonga', '프랙티카', 'practica', '오픈', 'open', '파티', '소셜파티'
+];
+
+function isValidEvent(text, url = '') {
+  if (!text) return false;
+  if (isJunkData(text, url)) return false;
+  
+  const lower = text.toLowerCase();
+  
+  // 1. 장르 키워드 매칭
+  const hasGenre = GENRE_KWS.some(kw => lower.includes(kw));
+  if (!hasGenre) return false;
+  
+  // 2. 활동 유형 매칭
+  const hasActivity = ACTIVITY_KWS.some(kw => lower.includes(kw));
+  return hasActivity;
 }
 
 // ── 캡션 파싱 ─────────────────────────────────────────
@@ -79,7 +139,9 @@ function parseCaption(caption, sourceName) {
       if (m[0].includes('년') || m[1]?.length === 4) {
         date = `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
       } else if (m[0].includes('월')) {
-        const firstDay = m[2].match(/\d+/)[0]; // 14,15일 중 14만 추출
+        const dayDigits = m[2] ? m[2].match(/\d+/) : null;
+        const firstDay = dayDigits ? dayDigits[0] : null;
+        if (!firstDay) continue; // 날짜 숫자 추출 불가 → 다음 패턴 시도
         date = `${year}-${String(m[1]).padStart(2,'0')}-${String(firstDay).padStart(2,'0')}`;
       } else {
         date = `${year}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
@@ -124,7 +186,9 @@ function makeId(sourceName, date, idx) {
   const prefixMap = {
     '해피홀': 'hh', '스윙타임': 'st', '경성홀': 'ks', '박쥐스윙': 'bs',
     '대전스윙피버': 'dsf', '스윙홀릭': 'sh', '네오스윙': 'ns',
-    '스윙스캔들': 'ss', '스윙프렌즈': 'sf'
+    '스윙스캔들': 'ss', '스윙프렌즈': 'sf',
+    '턴라틴바': 'tl', '보니따살사': 'bn', '엘땅고': 'et', '까사밀롱가': 'cm',
+    '코리아웨스티스': 'kw', '플로우메이커': 'fm', '댄스인사이드': 'di'
   };
   const prefix = prefixMap[sourceName] || sourceName.slice(0,2);
   if (date) {
@@ -330,8 +394,8 @@ async function scrapeInstagram(page, source) {
 
     console.log(`    캡션 수집 완료 (${caption.length}자)`);
 
-    if (caption && !isSocialParty(caption)) {
-      console.log(`    → 소셜 아님 → 스킵`);
+    if (caption && !isValidEvent(caption, postUrl)) {
+      console.log(`    → 유효한 댄스 이벤트 아님 → 스킵`);
       continue;
     }
 
@@ -412,18 +476,23 @@ async function scrapeInstagram(page, source) {
 
     const structured = parseCaption(caption, source.name);
 
-    // 날짜 미확인 플래그
+    // ★ 날짜 미확인 피드 → 100% 무조건 스킵 (가짜 정보 원천 차단)
     if (!structured.date) {
-      structured.note = (structured.note ? structured.note + ' | ' : '') + '⚠️ 날짜 미확인 - 이미지 확인 필요';
+      console.log(`    → ❌ 날짜 파싱 실패 → 가짜 정보 방지를 위해 스킵`);
+      continue;
     }
 
-    // 미래 이벤트만 수집 (날짜 파싱 성공한 경우만 필터)
-    if (structured.date) {
-      const today = new Date().toISOString().split('T')[0];
-      if (structured.date < today) {
-        console.log(`    → 과거 이벤트 (${structured.date}) → 스킵`);
-        continue;
-      }
+    // 미래 이벤트만 수집
+    const today = new Date().toISOString().split('T')[0];
+    if (structured.date < today) {
+      console.log(`    → 과거 이벤트 (${structured.date}) → 스킵`);
+      continue;
+    }
+
+    // ★ 이미지(포스터) 없는 피드 → 스킵 (깨진 이미지 방지)
+    if (!posterRelPath) {
+      console.log(`    → ❌ 포스터 이미지 수집 실패 → 스킵`);
+      continue;
     }
 
     const id = makeId(source.name, structured.date, i);
@@ -432,14 +501,14 @@ async function scrapeInstagram(page, source) {
       id,
       keyword: source.name,
       source_url: postUrl,
-      poster_url: posterRelPath || `/scraped/${verifyFile}`,
+      poster_url: posterRelPath,
       extracted_text: caption,
       structured_data: structured,
       evidence: { screenshot_path: `/scraped/${verifyFile}` },
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-    console.log(`    ✅ 수집: ${structured.date || '⚠️날짜미상'} / DJ: ${structured.djs.join(', ') || '미상'}`);
+    console.log(`    ✅ 수집: ${structured.date} / DJ: ${structured.djs.join(', ') || '미상'} / 이미지: ${posterRelPath}`);
   }
 
   return collected;
@@ -467,7 +536,7 @@ async function scrapeNaver(page, source) {
   if (!posts.length) { console.log(`  결과 없음 → 스킵`); return collected; }
 
   for (const post of posts.slice(0, 5)) {
-    if (!isSocialParty(post.title)) continue;
+    if (!isValidEvent(post.title, post.href)) continue;
     if (isInJson(post.href)) { console.log(`  이미 수집됨 → 스킵`); continue; }
 
     console.log(`  DJ 소셜 발견: ${post.title}`);
@@ -481,13 +550,27 @@ async function scrapeNaver(page, source) {
     } catch {}
 
     const structured = parseCaption(post.title, source.name);
+
+    // ★ 날짜 미확인 → 100% 스킵 (가짜 정보 차단)
+    if (!structured.date) {
+      console.log(`  → ❌ 날짜 파싱 실패 → 스킵: ${post.title}`);
+      continue;
+    }
+
+    // 미래 이벤트만
+    const today = new Date().toISOString().split('T')[0];
+    if (structured.date < today) {
+      console.log(`  → 과거 이벤트 (${structured.date}) → 스킵`);
+      continue;
+    }
+
     const id = makeId(source.name, structured.date, Date.now());
 
     collected.push({
       id,
       keyword: source.name,
       source_url: post.href,
-      poster_url: `/scraped/${verifyFile}`, // 스크린샷을 포스터 대용으로 사용
+      poster_url: `/scraped/${verifyFile}`,
       extracted_text: post.title,
       structured_data: structured,
       evidence: { screenshot_path: `/scraped/${verifyFile}` },
@@ -521,8 +604,8 @@ async function scrapeGoogle(page, source) {
 
   console.log(`  결과 ${results.length}개`);
   for (const r of results) {
-    if (isSocialParty(r.title)) {
-      console.log(`  DJ 소셜 발견: ${r.title}`);
+    if (isValidEvent(r.title, r.href)) {
+      console.log(`  유효한 댄스 이벤트 발견: ${r.title}`);
       
       // 인스타그램 게시물로 이동 + 로그인 팝업 닫기
       const ts = Date.now();
@@ -614,11 +697,31 @@ async function scrapeGoogle(page, source) {
       console.log(`    본문 수집 완료 (${caption.length}자)`);
 
       const structured = parseCaption(caption || r.title, source.name);
+
+      // ★ 날짜 미확인 → 100% 스킵 (가짜 정보 차단)
+      if (!structured.date) {
+        console.log(`    → ❌ 날짜 파싱 실패 → 스킵`);
+        continue;
+      }
+
+      // 미래 이벤트만
+      const today = new Date().toISOString().split('T')[0];
+      if (structured.date < today) {
+        console.log(`    → 과거 이벤트 (${structured.date}) → 스킵`);
+        continue;
+      }
+
+      // ★ 이미지(포스터) 없는 피드 → 스킵
+      if (!posterRelPath) {
+        console.log(`    → ❌ 포스터 이미지 수집 실패 → 스킵`);
+        continue;
+      }
+
       collected.push({
         id: makeId(source.name, structured.date, Date.now()),
         keyword: source.name,
         source_url: r.href,
-        poster_url: posterRelPath || `/scraped/${verifyFile}`,
+        poster_url: posterRelPath,
         extracted_text: caption || r.title,
         structured_data: structured,
         evidence: { screenshot_path: `/scraped/${verifyFile}` },
@@ -642,9 +745,12 @@ async function main() {
   console.log('\n[0] 기존 DB 확인 중...');
   try { execSync('node scripts/check-db-events.js ' + new Date().toISOString().split('T')[0] + ' ' + new Date(Date.now()+21*86400000).toISOString().split('T')[0], { stdio: 'inherit', cwd: PROJECT_ROOT }); } catch {}
 
-  // Chrome 실행파일 + 봇감지 우회 설정
-  // Chrome 프로필 사용 시도 (Chrome 닫혀있을 때), 실패 시 Chrome 바이너리로 fallback
-  const CHROME_PROFILE = `${process.env.HOME}/Library/Application Support/Google/Chrome`;
+  // Chrome 연결 전략:
+  // 1순위: CDP(localhost:9222) 자동화 전용 Chrome에 연결 (run-ingestion.sh가 띄워둔 세션, 인스타 로그인 유지)
+  // 2순위: 자동화 전용 프로필로 launchPersistentContext
+  // 3순위: 새 Chrome 바이너리 (비로그인 — 최후 수단)
+  const CDP_URL = 'http://localhost:9222';
+  const AUTOMATION_PROFILE = `${process.env.HOME}/.chrome-automation`;
   const ANTI_BOT_ARGS = [
     '--disable-blink-features=AutomationControlled',
     '--no-first-run',
@@ -655,35 +761,55 @@ async function main() {
     '--mute-audio',
   ];
   let browser, page;
+
+  // 1순위: CDP 연결 시도 (이미 실행 중인 자동화 Chrome)
   try {
-    const context = await chromium.launchPersistentContext(CHROME_PROFILE, {
-      channel: 'chrome',
-      headless: false,
-      slowMo: 300,
-      args: ANTI_BOT_ARGS,
-    });
-    // webdriver 속성 숨기기
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    });
-    page = await context.newPage();
-    browser = { close: () => context.close() };
-    console.log('✅ Chrome 프로필 사용 (쿠키/세션 유지)');
-  } catch (e) {
-    console.log('⚠️  Chrome 프로필 사용 불가 (Chrome 실행 중?), Chrome 바이너리로 실행');
-    const b = await chromium.launch({
-      channel: 'chrome',
-      headless: false,
-      slowMo: 400,
-      args: ANTI_BOT_ARGS,
-    });
-    const context = await b.newContext();
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    });
-    page = await context.newPage();
-    browser = { close: () => b.close() };
-    console.log('✅ Chrome 바이너리 실행 (새 세션)');
+    const cdpCheck = await fetch(`${CDP_URL}/json/version`).then(r => r.json()).catch(() => null);
+    if (cdpCheck) {
+      const b = await chromium.connectOverCDP(CDP_URL);
+      const contexts = b.contexts();
+      const context = contexts.length > 0 ? contexts[0] : await b.newContext();
+      page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
+      // 새 페이지가 필요하면 생성
+      if (page.url() !== 'about:blank') page = await context.newPage();
+      browser = { close: () => { /* CDP 연결은 닫지 않음 — 세션 유지 */ } };
+      console.log('✅ CDP 연결 성공 (localhost:9222 자동화 Chrome, 인스타 로그인 세션 유지)');
+    } else {
+      throw new Error('CDP not available');
+    }
+  } catch (cdpErr) {
+    console.log('⚠️  CDP 연결 불가, 자동화 전용 프로필로 시도...');
+    // 2순위: 자동화 전용 프로필로 launchPersistentContext
+    try {
+      const context = await chromium.launchPersistentContext(AUTOMATION_PROFILE, {
+        channel: 'chrome',
+        headless: false,
+        slowMo: 300,
+        args: ANTI_BOT_ARGS,
+      });
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      });
+      page = await context.newPage();
+      browser = { close: () => context.close() };
+      console.log('✅ 자동화 전용 프로필 사용 (~/.chrome-automation)');
+    } catch (profileErr) {
+      console.log('⚠️  자동화 프로필도 불가, 새 Chrome 바이너리로 실행');
+      // 3순위: 새 Chrome 바이너리 (최후 수단)
+      const b = await chromium.launch({
+        channel: 'chrome',
+        headless: false,
+        slowMo: 400,
+        args: ANTI_BOT_ARGS,
+      });
+      const context = await b.newContext();
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      });
+      page = await context.newPage();
+      browser = { close: () => b.close() };
+      console.log('⚠️ 새 Chrome 바이너리 실행 (비로그인 — 인스타 수집 제한될 수 있음)');
+    }
   }
 
   const allResults = [];

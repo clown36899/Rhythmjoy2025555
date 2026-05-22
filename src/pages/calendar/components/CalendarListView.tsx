@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import { getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { isEventInDanceScope, type DanceScope } from "../../../utils/danceTaxonomy";
@@ -10,6 +10,7 @@ interface CalendarListViewProps {
     danceScope?: DanceScope | string;
     onEventClick: (event: AppEvent) => void;
     isLoading?: boolean;
+    todayScrollSignal?: number;
 }
 
 function getEventDate(e: AppEvent): string {
@@ -18,6 +19,13 @@ function getEventDate(e: AppEvent): string {
 
 function getEventVisibleUntil(e: AppEvent): string {
     return e.end_date || e.start_date || e.date || "";
+}
+
+function getEventListDate(e: AppEvent, today: string): string {
+    const eventDate = getEventDate(e);
+    const visibleUntil = getEventVisibleUntil(e);
+    if (eventDate && eventDate < today && visibleUntil >= today) return today;
+    return eventDate;
 }
 
 function getCategoryLabel(e: AppEvent): { label: string; cls: string } {
@@ -39,8 +47,9 @@ function formatDate(dateStr: string): string {
     return `${d.getMonth() + 1}/${d.getDate()}(${days[d.getDay()]})`;
 }
 
-export default function CalendarListView({ events, socialSchedules, tabFilter, danceScope = 'swing', onEventClick, isLoading }: CalendarListViewProps) {
+export default function CalendarListView({ events, socialSchedules, tabFilter, danceScope = 'swing', onEventClick, isLoading, todayScrollSignal = 0 }: CalendarListViewProps) {
     const today = new Date().toLocaleDateString('en-CA');
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     const filtered = useMemo(() => {
         const allItems: AppEvent[] = [];
@@ -67,8 +76,8 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
 
         // 날짜순 정렬
         return allItems.sort((a, b) => {
-            const da = getEventDate(a);
-            const db = getEventDate(b);
+            const da = getEventListDate(a, today);
+            const db = getEventListDate(b, today);
             return da.localeCompare(db);
         });
     }, [danceScope, events, socialSchedules, tabFilter, today]);
@@ -77,12 +86,34 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
     const grouped = useMemo(() => {
         const map = new Map<string, AppEvent[]>();
         filtered.forEach(e => {
-            const d = getEventDate(e);
+            const d = getEventListDate(e, today);
             if (!map.has(d)) map.set(d, []);
             map.get(d)!.push(e);
         });
         return Array.from(map.entries());
-    }, [filtered]);
+    }, [filtered, today]);
+
+    useEffect(() => {
+        if (!todayScrollSignal || isLoading || grouped.length === 0) return;
+
+        const frame = requestAnimationFrame(() => {
+            const container = containerRef.current;
+            if (!container) return;
+
+            const dateGroups = Array.from(container.querySelectorAll<HTMLElement>('[data-list-date]'));
+            const todayGroup = dateGroups.find(group => group.dataset.listDate === today);
+            const nextUpcomingGroup = dateGroups.find(group => (group.dataset.listDate || '') >= today);
+            const target = todayGroup || nextUpcomingGroup || dateGroups[0];
+            if (!target) return;
+
+            const stickyControls = document.querySelector<HTMLElement>('.calendar-live-sticky-controls');
+            const stickyBottom = stickyControls?.getBoundingClientRect().bottom || 0;
+            const targetY = target.getBoundingClientRect().top + window.scrollY - stickyBottom - 10;
+            window.scrollTo({ top: Math.max(0, targetY), behavior: 'instant' });
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [grouped, isLoading, today, todayScrollSignal]);
 
     if (isLoading) return (
         <div className="cal-list-empty">
@@ -101,9 +132,9 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
     }
 
     return (
-        <div className="cal-list-container">
+        <div className="cal-list-container" ref={containerRef}>
             {grouped.map(([dateStr, items]) => (
-                <div key={dateStr} className="cal-list-group">
+                <div key={dateStr} className="cal-list-group" data-list-date={dateStr}>
                     <div className="cal-list-date-header">{formatDate(dateStr)}</div>
                     {items.map(e => {
                         const thumb = getCardThumbnail(e as any);

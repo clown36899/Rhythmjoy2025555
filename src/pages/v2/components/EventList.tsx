@@ -15,7 +15,7 @@ import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useBoardStaticData } from "../../../contexts/BoardDataContext";
 import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
 import { useHomeSectionVisibility } from "./EventList/hooks/useHomeSectionVisibility";
-import { useNebFilterSettings } from "./EventList/hooks/useNebFilterSettings";
+import { clampNebMaxItems, useNebFilterSettings } from "./EventList/hooks/useNebFilterSettings";
 
 // Styles
 import "../../../styles/domains/events.css";
@@ -100,6 +100,7 @@ const EventList: React.FC<EventListProps> = ({
       use_fallback,
       include_genres,
     } = nebFilterSettings;
+    const maxItems = clampNebMaxItems(max_items);
 
     const now = new Date();
     const windowAgo = new Date(now.getTime() - time_window_hours * 60 * 60 * 1000);
@@ -128,7 +129,7 @@ const EventList: React.FC<EventListProps> = ({
           const db = b.date || b.start_date || '';
           return da.localeCompare(db);
         })
-        .slice(0, max_items);
+        .slice(0, maxItems);
     }
 
     // 등록일 기준
@@ -137,23 +138,23 @@ const EventList: React.FC<EventListProps> = ({
       return new Date(event.created_at) > windowAgo;
     }).sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
 
-    if (use_fallback && withinWindow.length < max_items) {
+    if (use_fallback && withinWindow.length < maxItems) {
       const fallback = events
         .filter(isEligible)
         .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
-        .slice(0, max_items);
+        .slice(0, maxItems);
       const seenIds = new Set(withinWindow.map(e => e.id));
       const combined = [...withinWindow];
       for (const e of fallback) {
         if (!seenIds.has(e.id)) {
           combined.push(e);
-          if (combined.length >= max_items) break;
+          if (combined.length >= maxItems) break;
         }
       }
       return combined;
     }
 
-    return withinWindow.slice(0, max_items);
+    return withinWindow.slice(0, maxItems);
   }, [events, nebFilterSettings]);
 
   const homeAdCandidateEvents = useMemo(() => {

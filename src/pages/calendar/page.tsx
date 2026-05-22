@@ -124,23 +124,35 @@ export default function CalendarPage() {
         return normalizeCalendarDisplayMode(urlParams.get('view'));
     });
     const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<string[]>(() => Array(7).fill(''));
+    const [listTodayScrollSignal, setListTodayScrollSignal] = useState(0);
     const handleSetDisplayMode = useCallback((mode: CalendarDisplayMode) => {
         setDisplayMode(mode);
-        const nextParams = new URLSearchParams(location.search);
+        const nextParams = new URLSearchParams(window.location.search);
         nextParams.set('view', mode);
         nextParams.delete('scrollToToday');
         nextParams.delete('nav');
         const nextSearch = nextParams.toString();
-        if (nextSearch !== location.search.replace(/^\?/, '')) {
-            navigate({ pathname: location.pathname, search: nextSearch }, { replace: true });
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash}`;
+        if (nextUrl !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+            window.history.replaceState(window.history.state, '', nextUrl);
         }
-        if (mode === 'list' || mode === 'map') {
+        scrollToTodayConsumedRef.current = true;
+        if (mode === 'list') {
+            const today = new Date();
+            userInteractedRef.current = false;
+            shouldScrollToTodayRef.current = false;
+            setCurrentMonth(prev => {
+                if (prev.getFullYear() === today.getFullYear() && prev.getMonth() === today.getMonth()) return prev;
+                return new Date(today.getFullYear(), today.getMonth(), 1);
+            });
+            setListTodayScrollSignal(signal => signal + 1);
+        } else if (mode === 'map') {
             window.scrollTo({ top: 0, behavior: 'instant' });
         } else {
             userInteractedRef.current = false;
             shouldScrollToTodayRef.current = true;
         }
-    }, [location.pathname, location.search, navigate]);
+    }, []);
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -294,6 +306,7 @@ export default function CalendarPage() {
     const shouldScrollToTodayRef = useRef(false);
     const initialJumpDoneRef = useRef(false);
     const mountTimeRef = useRef(Date.now());
+    const lastCalendarEntryKeyRef = useRef<string | null>(null);
     // [Fix] useEffect([currentMonth])가 마운트/재진입 직후 shouldScrollToToday를 덮어쓰는 것을 방지
     const skipCurrentMonthEffectRef = useRef(true);
 
@@ -305,13 +318,36 @@ export default function CalendarPage() {
 
     // 바텀 내비게이션 재클릭 등 라우트 재진입 감지 → scroll useLayoutEffect보다 먼저 선언해야 순서 보장
     useLayoutEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const entryKey = [
+            location.pathname,
+            params.get('nav') || '',
+            params.get('scrollToToday') === 'true' ? 'today' : '',
+            params.get('id') || '',
+            params.get('highlightOnly') || '',
+        ].join('|');
+
+        const isFirstEntry = lastCalendarEntryKeyRef.current === null;
+        const isRouteReentry = isFirstEntry || lastCalendarEntryKeyRef.current !== entryKey;
+        lastCalendarEntryKeyRef.current = entryKey;
+
+        if (!isRouteReentry) return;
+
         initialJumpDoneRef.current = false;
         userInteractedRef.current = false;
-        shouldScrollToTodayRef.current = true;
+        shouldScrollToTodayRef.current = displayMode === 'calendar';
         skipCurrentMonthEffectRef.current = true;
+
+        if (displayMode !== 'calendar') {
+            initialJumpDoneRef.current = true;
+            shouldScrollToTodayRef.current = false;
+            if (containerRef.current) containerRef.current.style.visibility = 'visible';
+            return;
+        }
+
         // React state 배치로 인해 state 대신 ref로 직접 DOM 숨김
         if (containerRef.current) containerRef.current.style.visibility = 'hidden';
-    }, [location.key]);
+    }, [displayMode, location.pathname, location.search]);
 
     useEffect(() => {
         const handleInteraction = (e: Event) => {
@@ -610,7 +646,7 @@ export default function CalendarPage() {
         setSelectedDate(null);
     }, []);
 
-    const moveToToday = useCallback(() => {
+    const moveCalendarToToday = useCallback(() => {
         userInteractedRef.current = false;
         const today = new Date();
         const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
@@ -624,6 +660,22 @@ export default function CalendarPage() {
             handleMonthChange(new Date(today.getFullYear(), today.getMonth(), 1));
         }
     }, [currentMonth, handleMonthChange, handleScrollToToday]);
+
+    const moveToToday = useCallback(() => {
+        if (displayMode === 'list') {
+            const today = new Date();
+            shouldScrollToTodayRef.current = false;
+            userInteractedRef.current = false;
+            setCurrentMonth(prev => {
+                if (prev.getFullYear() === today.getFullYear() && prev.getMonth() === today.getMonth()) return prev;
+                return new Date(today.getFullYear(), today.getMonth(), 1);
+            });
+            setListTodayScrollSignal(signal => signal + 1);
+            return;
+        }
+
+        moveCalendarToToday();
+    }, [displayMode, moveCalendarToToday]);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
@@ -644,11 +696,11 @@ export default function CalendarPage() {
         shouldScrollToTodayRef.current = true;
 
         const frame = requestAnimationFrame(() => {
-            moveToToday();
+            moveCalendarToToday();
         });
 
         return () => cancelAnimationFrame(frame);
-    }, [displayMode, location.search, moveToToday]);
+    }, [location.search, moveCalendarToToday]);
 
     const handleNavigatorMonthSelect = useCallback((monthIndex: number) => {
         setShowCalendarNavigator(false);
@@ -1037,6 +1089,7 @@ export default function CalendarPage() {
                             danceScope={danceScope}
                             onEventClick={(event) => eventModal.setSelectedEvent(event as any)}
                             isLoading={listViewData.isLoading}
+                            todayScrollSignal={listTodayScrollSignal}
                         />
                     </div>
                 )}

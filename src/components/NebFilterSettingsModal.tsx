@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import {
     DEFAULT_NEB_FILTER_SETTINGS,
+    NEB_MAX_ITEMS,
+    clampNebMaxItems,
+    normalizeNebFilterSettings,
     ALL_NEB_GENRES,
     type NebFilterSettings,
 } from '../pages/v2/components/EventList/hooks/useNebFilterSettings';
@@ -27,7 +30,7 @@ export default function NebFilterSettingsModal({ isOpen, onClose }: Props) {
             .eq('key', 'neb_filter_settings')
             .maybeSingle()
             .then(({ data }) => {
-                if (data?.value) setSettings({ ...DEFAULT_NEB_FILTER_SETTINGS, ...data.value });
+                if (data?.value) setSettings(normalizeNebFilterSettings(data.value));
                 else setSettings(DEFAULT_NEB_FILTER_SETTINGS);
                 setIsLoading(false);
             });
@@ -48,10 +51,11 @@ export default function NebFilterSettingsModal({ isOpen, onClose }: Props) {
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            const normalizedSettings = normalizeNebFilterSettings(settings);
             const { error } = await supabase
                 .from('app_settings')
                 .upsert(
-                    { key: 'neb_filter_settings', value: settings, description: 'NEB 광고 섹션 노출 필터 설정' },
+                    { key: 'neb_filter_settings', value: normalizedSettings, description: 'NEB 광고 섹션 노출 필터 설정' },
                     { onConflict: 'key' }
                 );
             if (error) throw error;
@@ -129,12 +133,12 @@ export default function NebFilterSettingsModal({ isOpen, onClose }: Props) {
                                 <input
                                     type="number"
                                     min={1}
-                                    max={20}
+                                    max={NEB_MAX_ITEMS}
                                     className="neb-number-input"
                                     value={settings.max_items}
-                                    onChange={e => setSettings(p => ({ ...p, max_items: Number(e.target.value) }))}
+                                    onChange={e => setSettings(p => ({ ...p, max_items: clampNebMaxItems(e.target.value) }))}
                                 />
-                                <span className="neb-unit">개</span>
+                                <span className="neb-unit">개 (최대 {NEB_MAX_ITEMS})</span>
                             </div>
                         </div>
 
