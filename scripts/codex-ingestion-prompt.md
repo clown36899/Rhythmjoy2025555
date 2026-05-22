@@ -6,6 +6,9 @@ Swing remains the core collection target, but expanded collection is limited to 
 
 Hard constraints:
 - Read and follow `.agents/skills/web-search-ingestion/SKILL.md`.
+- Treat `scripts/ingestion/collection-registry.mjs` as the machine-readable source registry. Do not invent ad hoc source lists.
+- Normalize and validate every candidate with `scripts/ingestion/candidate-utils.mjs` (`prepareCandidate` / `buildNetlifyPayload`) or produce an exactly equivalent payload.
+- If you change collection rules, source lists, or candidate shaping, run `node scripts/test-ingestion-standards.mjs` before ingestion.
 - Do not edit application source code, docs, git history, or configuration during ingestion.
 - Do not commit or push.
 - Do not ask for approval. Proceed autonomously.
@@ -16,6 +19,7 @@ Hard constraints:
 - Do not use cropped social preview images as posters. For Instagram, avoid `twitter:image`, `og:image`, `p240x240`, `s640x640`, or URLs with crop parameters such as `stp=c...` unless you have verified that the original post image itself is square and not cut off.
 - Before skipping an Instagram candidate for image quality, retry image extraction by opening the individual post URL with a large desktop viewport such as 1600x1200 and deviceScaleFactor 2, then choose the rendered `article img` `currentSrc` with the largest `naturalWidth * naturalHeight`. Small viewport/profile-grid extraction often returns only `p240x240` thumbnails.
 - If only a cropped/thumbnail image is still available after that large-viewport retry, skip the candidate and count it as skipped with an image issue. A bad cropped poster is worse than no candidate.
+- Do not use `scripts/scrape-events.mjs` as the canonical ingestion path unless it has first been aligned with the current registry and candidate validator.
 - Preserve already collected data. Do not overwrite `is_collected=true` records.
 - Do not insert directly into Supabase `scraped_events` with PostgREST. All candidate inserts must go through `https://swingenjoy.com/.netlify/functions/scraped-events`.
 - The Netlify `scraped-events` function is the canonical duplicate gate. It checks both `scraped_events` and the production `events` table and assigns `display_no`.

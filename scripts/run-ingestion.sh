@@ -132,6 +132,26 @@ count_new_today() {
     fi
 }
 
+run_ingestion_preflight() {
+    if [ ! -f "$PROJECT_ROOT/scripts/test-ingestion-standards.mjs" ]; then
+        log "--- 수집 기준 테스트 파일 없음: scripts/test-ingestion-standards.mjs ---"
+        telegram_notify "댄스 이벤트 Codex 수집 실패
+수집 기준 테스트 파일이 없습니다.
+run: $RUN_ID"
+        exit 78
+    fi
+
+    if ! node "$PROJECT_ROOT/scripts/test-ingestion-standards.mjs" >> "$LOG_FILE" 2>&1; then
+        log "--- 수집 기준 테스트 실패 ---"
+        telegram_notify "댄스 이벤트 Codex 수집 실패
+수집 기준 사전검사 실패
+run: $RUN_ID"
+        exit 78
+    fi
+
+    log "--- 수집 기준 테스트 통과 ---"
+}
+
 extract_summary() {
     awk '
         /==TELEGRAM_SUMMARY_START==/ { found=1; block=""; next }
@@ -177,6 +197,7 @@ fi
 
 cd "$PROJECT_ROOT" || exit 1
 load_supabase_env
+run_ingestion_preflight
 
 CODEX="$(find_codex || true)"
 if [ -z "$CODEX" ]; then

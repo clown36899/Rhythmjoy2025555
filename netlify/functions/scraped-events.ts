@@ -35,6 +35,40 @@ function getExcludedSourceReason(sourceUrl: string | null | undefined): string |
     return excludedSourceRules.find((rule) => rule.pattern.test(sourceUrl))?.reason || null;
 }
 
+function todayKST(): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+}
+
+function hasBadPosterUrl(url: string | null | undefined): boolean {
+    const value = String(url || '');
+    return /(?:p240x240|s240x240|s640x640|stp=c\d|\/s\d+x\d+\/)/i.test(value);
+}
+
+function getCandidateDate(item: any): string {
+    return String(item?.structured_data?.date || item?.date || '').slice(0, 10);
+}
+
+function getInvalidCandidateReason(item: any): string | null {
+    const date = getCandidateDate(item);
+    const today = todayKST();
+    const hasReplacementImage = typeof item?.imageData === 'string' && item.imageData.startsWith('data:image');
+
+    if (!item?.source_url) return 'source_url 없음';
+    if (!date) return '이벤트 날짜 없음';
+    if (date < today) return `과거 이벤트 제외: ${date} < ${today}`;
+    if (!item?.poster_url && !hasReplacementImage) return '포스터 이미지 없음';
+    if (item?.poster_url && hasBadPosterUrl(item.poster_url) && !hasReplacementImage) {
+        return '크롭/썸네일 포스터 URL 제외';
+    }
+
+    return null;
+}
+
 async function saveExcludedScrapedEvent(
     supabase: ReturnType<typeof getSupabase>,
     item: any,
@@ -302,13 +336,6 @@ async function findExistingScrapedEvent(
                 return { id: String(row.id), title: rowTitle, reason: '수집DB 동일 기간+장소+다일행사 검토', target: 'scraped_events', date: rowDate, source_url: row.source_url };
             }
         }
-
-        if (gap <= 45 && typeMatches && titleScore >= 0.86) {
-            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+강한 제목 유사도', target: 'scraped_events', date: rowDate, source_url: row.source_url };
-        }
-        if (gap <= 90 && typeMatches && titleScore >= 0.78 && venueMatches) {
-            return { id: String(row.id), title: rowTitle, reason: '수집DB 근접 날짜+장소+유사 제목', target: 'scraped_events', date: rowDate, source_url: row.source_url };
-        }
     }
 
     return null;
@@ -467,6 +494,13 @@ export const handler: Handler = async (event) => {
             const skipped: { id: string; reason: string; existingId: string }[] = [];
 
             for (const item of incoming) {
+                const invalidReason = getInvalidCandidateReason(item);
+                if (invalidReason) {
+                    skipped.push({ id: item.id, reason: invalidReason, existingId: item.id });
+                    await saveExcludedScrapedEvent(supabase, item, invalidReason, now);
+                    continue;
+                }
+
                 const excludedReason = getExcludedSourceReason(item.source_url);
                 if (excludedReason) {
                     skipped.push({ id: item.id, reason: excludedReason, existingId: item.id });

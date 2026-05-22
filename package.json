@@ -11,6 +11,7 @@
     "build:analyze": "ANALYZE=true vite build",
     "preview": "vite preview --host",
     "test": "vitest",
+    "test:ingestion": "node scripts/test-ingestion-standards.mjs",
     "test:ui": "vitest --ui",
     "lint": "eslint ."
   },
