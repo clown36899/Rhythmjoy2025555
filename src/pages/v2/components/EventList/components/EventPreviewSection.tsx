@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../../contexts/AuthContext";
 // Styles
 // Styles
@@ -56,12 +55,6 @@ interface EventPreviewSectionProps {
     // onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
-interface HomeRoutePreviewHubProps {
-    socialData: { imageUrl: string; title: string; location: string }[];
-    futureEvents: Event[];
-    regularClasses: Event[];
-}
-
 interface HomeNewEventsDesktopSplitProps {
     events: Event[];
     fallbackEvents: Event[];
@@ -93,8 +86,6 @@ const mergeUniqueEvents = (...groups: Event[][]) => {
     });
     return merged;
 };
-
-const getPreviewImage = (event?: Event) => event ? getCardThumbnail(event) : undefined;
 
 const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     events,
@@ -197,98 +188,6 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     );
 };
 
-const HomeRoutePreviewHub: React.FC<HomeRoutePreviewHubProps> = ({ socialData, futureEvents, regularClasses }) => {
-    const navigate = useNavigate();
-    const featuredSocial = socialData[0];
-    const featuredEvent = futureEvents[0];
-    const featuredClass = regularClasses[0];
-
-    const routes = [
-        {
-            key: 'calendar',
-            label: '캘린더',
-            meta: '소셜&행사 / 강습',
-            target: '/calendar',
-            image: featuredSocial?.imageUrl || getPreviewImage(featuredEvent),
-            icon: 'ri-calendar-event-line',
-            accent: 'green',
-        },
-        {
-            key: 'events',
-            label: '강습&행사',
-            meta: `${futureEvents.length} 행사 · ${regularClasses.length} 강습`,
-            target: '/events',
-            image: getPreviewImage(featuredEvent) || getPreviewImage(featuredClass),
-            icon: 'ri-stack-line',
-            accent: 'amber',
-        },
-        {
-            key: 'board',
-            label: '자유게시판',
-            meta: '말머리와 반응',
-            target: '/board?category=free',
-            icon: 'ri-chat-3-line',
-            accent: 'blue',
-        },
-        {
-            key: 'places',
-            label: '장소',
-            meta: '분류 · 지역 · 지도',
-            target: '/places',
-            icon: 'ri-map-pin-2-line',
-            accent: 'violet',
-        },
-        {
-            key: 'forum',
-            label: '포럼',
-            meta: '도구형 허브',
-            target: '/forum',
-            icon: 'ri-layout-grid-line',
-            accent: 'pink',
-        },
-        {
-            key: 'shopping',
-            label: '쇼핑',
-            meta: '스윙 아이템',
-            target: '/shopping',
-            icon: 'ri-shopping-bag-3-line',
-            accent: 'emerald',
-        },
-    ];
-
-    return (
-        <section className="home-route-preview-hub" aria-label="주요 메뉴 미리보기">
-            <div className="home-route-preview-head">
-                <strong>주요 메뉴</strong>
-                <span>각 영역의 실제 페이지로 바로 이동</span>
-            </div>
-            <div className="home-route-preview-grid">
-                {routes.map((route) => (
-                    <button
-                        key={route.key}
-                        type="button"
-                        className={`home-route-card is-${route.accent}`}
-                        onClick={() => navigate(route.target)}
-                    >
-                        <span className="home-route-card-media">
-                            {route.image ? (
-                                <img src={route.image} alt="" loading="lazy" draggable={false} />
-                            ) : (
-                                <i className={route.icon} />
-                            )}
-                        </span>
-                        <span className="home-route-card-copy">
-                            <strong>{route.label}</strong>
-                            <em>{route.meta}</em>
-                        </span>
-                        <i className="ri-arrow-right-s-line home-route-card-arrow" />
-                    </button>
-                ))}
-            </div>
-        </section>
-    );
-};
-
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     todaySocialSchedules,
     thisWeekSocialSchedules,
@@ -384,12 +283,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 socialData={recentSocialData}
                 eventImages={recentEventImages}
                 classImages={recentClassImages}
-            />
-
-            <HomeRoutePreviewHub
-                socialData={recentSocialData}
-                futureEvents={futureEvents}
-                regularClasses={regularClasses}
             />
 
             {/* 1. New Unified Schedule Section (Test Mode) - Hidden by User Request 2026-02-23 */}

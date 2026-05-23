@@ -62,16 +62,16 @@ const SOURCES = [
   { name: '까사밀롱가',   type: 'ig',     handle: 'casamilonga_seoul', url: 'https://www.instagram.com/casamilonga_seoul/' },
   { name: '탱고피플',     type: 'ig',     handle: 'tangopeople_korea', url: 'https://www.instagram.com/tangopeople_korea/' },
 
-  // 4. WCS 소스 (강화)
-  { name: '코리아웨스티스', type: 'ig',   handle: 'koreawesties',    url: 'https://www.instagram.com/koreawesties/' },
-  { name: '코오챔',         type: 'ig',   handle: 'koreanopen_wcs_championships', url: 'https://www.instagram.com/koreanopen_wcs_championships/' },
-  { name: '웨스티코리아',   type: 'ig',   handle: 'westiekorea_dance', url: 'https://www.instagram.com/westiekorea_dance/' },
-  { name: '올스타모던스윙', type: 'ig',   handle: 'allstar_modernswing_korea', url: 'https://www.instagram.com/allstar_modernswing_korea/' },
+  // 4. 웨스트코스트스윙 (WCS) (강화)
+  { name: '코리아웨스티스',type: 'ig',    handle: 'koreawesties',    url: 'https://www.instagram.com/koreawesties/' },
+  { name: '코오챔',       type: 'ig',     handle: 'koreanopen_wcs_championships', url: 'https://www.instagram.com/koreanopen_wcs_championships/' },
+  { name: '웨스티코리아', type: 'ig',     handle: 'westiekorea_dance', url: 'https://www.instagram.com/westiekorea_dance/' },
+  { name: '올스타모던스윙',type: 'ig',    handle: 'allstar_modernswing_korea', url: 'https://www.instagram.com/allstar_modernswing_korea/' },
 
-  // 5. 스트릿 댄스 소스 (강화)
-  { name: '플로우메이커',   type: 'ig',   handle: 'flowmaker_official', url: 'https://www.instagram.com/flowmaker_official/' },
-  { name: '댄스인사이드',   type: 'ig',   handle: 'danceinside_official', url: 'https://www.instagram.com/danceinside_official/' },
-  { name: '원밀리언',       type: 'ig',   handle: '1milliondance',   url: 'https://www.instagram.com/1milliondance/' },
+  // 5. 스트릿댄스 (배틀, 팝업 클래스) (강화)
+  { name: '플로우메이커', type: 'ig',     handle: 'flowmaker_official', url: 'https://www.instagram.com/flowmaker_official/' },
+  { name: '댄스인사이드', type: 'ig',     handle: 'danceinside_official', url: 'https://www.instagram.com/danceinside_official/' },
+  { name: '원밀리언',     type: 'ig',     handle: '1milliondance',   url: 'https://www.instagram.com/1milliondance/' },
   { name: '저스트절크',     type: 'ig',   handle: 'justjerkcrew',    url: 'https://www.instagram.com/justjerkcrew/' },
 ];
 
@@ -127,7 +127,8 @@ function parseCaption(caption, sourceName) {
   let day = '';
   const datePatterns = [
     /(\d{1,2})월\s*([\d,\s]+)일/,                // 3월 14,15일
-    /(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/,   // 2026.03.22
+    /(\d{4})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/,   // 2026.03.22
+    /(\d{1,2})\s*[\/\.]\s*(\d{1,2})\s*(?:일|[\(\（][월화수목금토일][\)\）])/, // 3. 22 (토)
     /(\d{1,2})[\/\.](\d{1,2})\s*[\(\（]/,           // 3/22( or 3.22(
     /(\d{4})-(\d{1,2})-(\d{1,2})/,                // 2026-03-18
   ];
@@ -147,6 +148,24 @@ function parseCaption(caption, sourceName) {
         date = `${year}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
       }
       break;
+    }
+  }
+
+  // ★ 날짜 명시가 없는 위클리/주간 공지사항 스마트 파싱
+  if (!date && (caption.match(/\d+월\s*\d+주/) || caption.match(/위클리|주간/))) {
+    const dayMatch = caption.match(/(금|토|일|월|화|수|목)(?:요일|욜|햅|라이브|소셜)/);
+    if (dayMatch) {
+      const dayStr = dayMatch[1];
+      const dayMap = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+      const targetDay = dayMap[dayStr];
+      const today = new Date();
+      const currentDay = today.getDay();
+      let daysUntil = targetDay - currentDay;
+      if (daysUntil < 0) daysUntil += 7; // 다음 주로
+      
+      const targetDateObj = new Date(today.getTime() + daysUntil * 24 * 60 * 60 * 1000);
+      date = targetDateObj.toISOString().split('T')[0];
+      console.log(`      [스마트파싱] 위클리 일정 감지 -> 다가오는 ${dayStr}요일(${date})로 추정`);
     }
   }
 
@@ -476,17 +495,17 @@ async function scrapeInstagram(page, source) {
 
     const structured = parseCaption(caption, source.name);
 
-    // ★ 날짜 미확인 피드 → 100% 무조건 스킵 (가짜 정보 원천 차단)
     if (!structured.date) {
-      console.log(`    → ❌ 날짜 파싱 실패 → 가짜 정보 방지를 위해 스킵`);
-      continue;
+      console.log(`    → ⚠️ 본문에서 날짜 파싱 실패 (이미지/포스터에 날짜가 있을 수 있으므로 수집 진행)`);
     }
 
-    // 미래 이벤트만 수집
-    const today = new Date().toISOString().split('T')[0];
-    if (structured.date < today) {
-      console.log(`    → 과거 이벤트 (${structured.date}) → 스킵`);
-      continue;
+    // 미래 이벤트만
+    if (structured.date) {
+      const today = new Date().toISOString().split('T')[0];
+      if (structured.date < today) {
+        console.log(`    → 과거 이벤트 (${structured.date}) → 스킵`);
+        continue;
+      }
     }
 
     // ★ 이미지(포스터) 없는 피드 → 스킵 (깨진 이미지 방지)
@@ -833,6 +852,44 @@ async function main() {
 
   if (allResults.length === 0) {
     console.log('\n[저장] 이번 실행에서 새로 수집된 이벤트 없음');
+  } else {
+    // ★ DB 업로드 (Netlify Function API)
+    console.log(`\n[DB 업로드] ${allResults.length}건 → scraped_events 테이블`);
+    try {
+      // 로컬 파일에서 이미지를 읽어 base64로 첨부 (Supabase Storage 업로드용)
+      const payload = allResults.map(item => {
+        const payloadItem = { ...item };
+        if (item.poster_url && item.poster_url.startsWith('/scraped/')) {
+          const posterPath = `${PROJECT_ROOT}/public${item.poster_url}`;
+          if (existsSync(posterPath)) {
+            const imgBuffer = readFileSync(posterPath);
+            const ext = posterPath.split('.').pop() || 'png';
+            payloadItem.imageData = `data:image/${ext};base64,${imgBuffer.toString('base64')}`;
+          }
+        }
+        return payloadItem;
+      });
+
+      const response = await fetch('http://localhost:8888/.netlify/functions/scraped-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      const logs = data.logs || [];
+      for (const log of logs) {
+        if (log.includes('업로드 성공')) {
+          console.log(`  ✅ ${log}`);
+        } else if (log.includes('중복')) {
+          console.log(`  ⚠️ ${log}`);
+        } else {
+          console.log(`  ℹ️ ${log}`);
+        }
+      }
+      console.log(`[DB 업로드 완료] 성공: ${data.success_count || 0}건, 실패: ${data.failed_count || 0}건`);
+    } catch (e) {
+      console.log(`  ❌ DB API 전송 실패: ${e.message}`);
+    }
   }
 
   // 파일 무결성 검사

@@ -573,25 +573,26 @@ html {
 
     .calendar-sticky-weekday-item {
         gap: 3px;
-        font-size: 10px;
+        font-size: 14px;
+        line-height: 1;
     }
 
     .calendar-sticky-date-text {
-        min-width: 14px;
-        height: 14px;
-        padding: 0 3px;
-        font-size: 9px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 4px;
+        font-size: 12px;
     }
 
     .calendar-tab-btn--view {
-        min-height: 34px;
+        min-height: 38px;
         border-radius: 8px;
         background: var(--cal-sample-control-soft);
     }
 
     .calendar-tab-btn {
-        min-height: 32px;
-        font-size: 12px;
+        min-height: 36px;
+        font-size: 14px;
         gap: 4px;
     }
 
@@ -607,8 +608,8 @@ html {
     }
 
     .calendar-dance-scope-btn {
-        flex: 0 0 84px;
-        min-height: 34px;
+        flex: 0 0 92px;
+        min-height: 38px;
         gap: 0;
         padding: 5px 8px;
         border-radius: 9px;
@@ -616,7 +617,7 @@ html {
     }
 
     .calendar-dance-scope-btn strong {
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .calendar-dance-scope-btn span {
@@ -638,13 +639,13 @@ html {
 
     .calendar-filter-switch .calendar-tab-btn {
         flex: 0 0 auto;
-        min-height: 26px;
-        padding: 0 10px;
+        min-height: 30px;
+        padding: 0 12px;
         border: 1px solid transparent;
         border-radius: 999px;
         background: transparent;
         color: var(--cal-sample-muted);
-        font-size: 11px;
+        font-size: 13px;
     }
 
     .calendar-filter-switch .calendar-tab-btn.active {

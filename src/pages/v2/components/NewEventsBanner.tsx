@@ -139,6 +139,15 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         }
     }
 
+    const hasMultipleEvents = events.length > 1;
+    const slideWidthPercent = hasMultipleEvents ? 88 : 100;
+    const slideGapPx = hasMultipleEvents ? 8 : 0;
+    const sidePeekPercent = (100 - slideWidthPercent) / 2;
+    const displayEvents = hasMultipleEvents
+        ? [events[events.length - 1], ...events, events[0]]
+        : events;
+    const trackIndex = hasMultipleEvents ? currentIndex + 1 : 0;
+
     return (
         <>
             <div
@@ -184,12 +193,18 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     </div>
                 </div>
 
-                <div className="NEB-slider">
+                <div
+                    className="NEB-slider"
+                    style={{
+                        '--neb-slide-width': `${slideWidthPercent}%`,
+                        '--neb-slide-gap': `${slideGapPx}px`,
+                    } as React.CSSProperties}
+                >
                     <div
                         className="NEB-track"
-                        style={{ transform: `translateX(calc(-${currentIndex * 100}% - ${currentIndex * 8}px))` }}
+                        style={{ transform: `translateX(calc(${sidePeekPercent}% - ${trackIndex * slideWidthPercent}% - ${trackIndex * slideGapPx}px))` }}
                     >
-                        {events.map((event, index) => {
+                        {displayEvents.map((event, index) => {
                             const eventThumbnail = event.image_full ||
                                 event.image ||
                                 event.image_medium ||
@@ -210,8 +225,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
                             return (
                                 <div
-                                    key={event.id}
-                                    className={`NEB-slide ${index === currentIndex ? 'is-active' : ''}`}
+                                    key={`${event.id}-${index}`}
+                                    className={`NEB-slide ${index === trackIndex ? 'is-active' : ''}`}
                                     onClick={() => onEventClick(event)}
                                 >
                                     <div className="NEB-imageWrapper">

@@ -466,29 +466,29 @@
 @media (max-width: 650px) {
   .layout-compact .shell-main-content,
   .layout-wide .shell-main-content {
-    padding-top: calc(110px + env(safe-area-inset-top)) !important;
+    padding-top: calc(114px + env(safe-area-inset-top)) !important;
   }
 
   .header-nav-v2 {
     top: calc(62px + env(safe-area-inset-top));
-    height: 48px;
+    height: 52px;
   }
 
   .header-nav-v2-inner {
     gap: 4px;
-    padding: 0 58px 7px 8px;
+    padding: 0 58px 8px 8px;
   }
 
   .header-nav-v2-item {
-    min-width: 88px;
-    min-height: 30px;
-    height: 30px;
-    padding: 0 9px;
-    font-size: 12px;
+    min-width: 96px;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 14px;
   }
 
   .header-nav-v2-home {
-    min-width: 60px;
+    min-width: 66px;
   }
 
   .header-nav-v2-scroll-cue {
@@ -592,28 +592,28 @@
 
 @media (max-width: 650px) {
   .header-nav-v2-item {
-    font-size: 12px;
-    min-width: 88px;
-    min-height: 30px;
-    height: 30px;
-    padding: 0 9px;
+    font-size: 14px;
+    min-width: 96px;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 10px;
   }
 
   .header-nav-v2-home {
-    min-width: 60px;
+    min-width: 66px;
   }
 
   .header-nav-v2-home i {
-    flex-basis: 15px;
-    width: 15px;
-    height: 15px;
-    font-size: 14px;
+    flex-basis: 16px;
+    width: 16px;
+    height: 16px;
+    font-size: 15px;
     transform: none;
   }
 
   .header-nav-v2-home span {
-    height: 15px;
-    line-height: 15px;
+    height: 16px;
+    line-height: 16px;
   }
 }
 
@@ -1264,15 +1264,15 @@
   }
 
   .calendar-shell-page .header-nav-v2-item {
-    min-width: 88px;
-    min-height: 30px;
-    height: 30px;
-    padding: 0 9px;
-    font-size: 12px;
+    min-width: 94px;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 14px;
   }
 
   .calendar-shell-page .header-nav-v2-home {
-    min-width: 60px;
+    min-width: 66px;
   }
 
   .calendar-shell-page .header-nav-v2-home i {
@@ -1610,13 +1610,13 @@
 
   .header-nav-v2 {
     top: calc(54px + env(safe-area-inset-top));
-    height: 44px;
+    height: 48px;
     background: color-mix(in srgb, var(--bg-surface-1) 94%, transparent);
   }
 
   .layout-compact .shell-main-content,
   .layout-wide .shell-main-content {
-    padding-top: calc(98px + env(safe-area-inset-top)) !important;
+    padding-top: calc(102px + env(safe-area-inset-top)) !important;
   }
 
   .header-content-inner {
@@ -1644,13 +1644,13 @@
 
   .header-logo-domain,
   .header-logo-tag {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .header-nav-v2-item,
   .header-nav-v2-item.is-active {
-    height: 30px;
-    min-height: 30px;
+    height: 34px;
+    min-height: 34px;
   }
 
   .header-logo-mini {

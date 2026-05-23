@@ -336,5 +336,87 @@
     },
     "created_at": "2026-05-21T07:59:05.353Z",
     "updated_at": "2026-05-21T07:59:05.353Z"
+  },
+  {
+    "id": "ns_260522",
+    "keyword": "네오스윙",
+    "source_url": "https://www.instagram.com/neo_swing/p/DYgxi4sq9nj/",
+    "poster_url": "/scraped/poster_neo_swing_1779458587954.png",
+    "extracted_text": "☁️ 5월 3주 위클리네오\n\n⊹₊⋆☁︎⋆⁺₊⋆ ☀︎ ⋆⁺₊⋆☁︎⋆₊ ⊹\n🎧 금햅 DJ 나나씨\n🕺🏻 금햅 라인 강습 : 심샘(나뮨)\n\n⊹₊⋆☁︎⋆⁺₊⋆ ☀︎ ⋆⁺₊⋆☁︎⋆₊ ⊹\n🎧 일햅 DJ 쓴귤\n🎉 생일빵 & 잼서클 있어요 ! 🎉 \n\n⊹₊⋆☁︎⋆⁺₊⋆ ☀︎ ⋆⁺₊⋆☁︎⋆₊ ⊹\n💛수햅은 당분간 쉬어갑니다. 재정비 후 다시 만나요 !\n💛 좋은 소식 가득! 축하빵 & 생일빵 가보자구요 ~ 🎊\n\n#네오스윙 #스윙댄스 #재즈 #동호회 #스윙\".",
+    "structured_data": {
+      "date": "2026-05-22",
+      "day": "",
+      "title": "네오스윙 소셜 (나나씨, 쓴귤)",
+      "status": "정상운영",
+      "djs": [
+        "나나씨",
+        "쓴귤"
+      ],
+      "times": [],
+      "location": "네오스윙",
+      "fee": "",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_neo_swing_4_1779458587954.png"
+    },
+    "created_at": "2026-05-22T14:03:11.054Z",
+    "updated_at": "2026-05-22T14:03:11.054Z"
+  },
+  {
+    "id": "ns_260527",
+    "keyword": "네오스윙",
+    "source_url": "https://www.instagram.com/neo_swing/p/DX_ZgJ3ijlb/",
+    "poster_url": "/scraped/poster_neo_swing_1779458601809.png",
+    "extracted_text": "☁️ 5월 1주 위클리네오\n\n⊹₊⋆☁︎⋆⁺₊⋆ ☀︎ ⋆⁺₊⋆☁︎⋆₊ ⊹\n🎧  수햅 DJ 피터팬\n\n⊹₊⋆☁︎⋆⁺₊⋆ ☀︎ ⋆⁺₊⋆☁︎⋆₊ ⊹\n🎧 금햅 DJ 고즈\n🕺🏻 금햅 라인 강습은 쉬어가요\n\n⊹₊⋆☁︎⋆⁺₊⋆ ☀︎ ⋆⁺₊⋆☁︎⋆₊ ⊹\n🎧 일햅 DJ 달로\n💃🏻 재공 있어요 ✨\n\n이번주 일요일, 139기 첫 강습 day !\n💛 스윙초보 지터벅 절찬리 모집 중\n💛 뜨거운 린디합의 세계로! 입문 모집 중\n💛 더더욱 즐거운 린디합 속으로, 초중급 모집 중\n💛 기본을 다지며 레벨업하러! 베이직 모집 중\n\n네오스윙과 함께 즐거운 5-6월 보내실 분, 바로 여러분 !\".",
+    "structured_data": {
+      "date": "2026-05-27",
+      "day": "일",
+      "title": "네오스윙 소셜 (피터팬, 고즈, 달로)",
+      "status": "정상운영",
+      "djs": [
+        "피터팬",
+        "고즈",
+        "달로"
+      ],
+      "times": [],
+      "location": "네오스윙",
+      "fee": "",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_neo_swing_6_1779458601809.png"
+    },
+    "created_at": "2026-05-22T14:03:24.894Z",
+    "updated_at": "2026-05-22T14:03:24.894Z"
+  },
+  {
+    "id": "sf_260523",
+    "keyword": "스윙프렌즈",
+    "source_url": "https://www.instagram.com/p/DYmsszrmt_3/",
+    "poster_url": "/scraped/poster_스윙프렌즈_1779458626692.png",
+    "extracted_text": "■ 스윙타임빠 (5월 23,24일) 토,일 소셜 공지\n- 토요일\n저녁 7시30분부터 소셜이 진행 됩니다.\nDJ ' 비비비' PM 8:1500~10:15\n\n- 일요일\n저녁 7시30분부터 소셜이 진행 됩니다.\n1부 DJ '비비비' PM 8:00~9:30\n2부 DJ '비비비' PM 9:30~11:00\n\n■ 타임빠소셜 실시간 스트리밍 서비스 안내\n수, 일요일 소셜은 스윙프렌즈 유튜브채널에서 실시간으로 현장을 보실수 있습니다.\n바로가기 : https://youtube.com/@Swingfriendslive\".",
+    "structured_data": {
+      "date": "2026-05-23",
+      "day": "일",
+      "title": "스윙프렌즈 소셜 (비비비, 비비비, 비비비)",
+      "status": "정상운영",
+      "djs": [
+        "비비비",
+        "비비비",
+        "비비비"
+      ],
+      "times": [
+        "10:15 ~"
+      ],
+      "location": "스윙프렌즈",
+      "fee": "",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_google_1779458626692.png"
+    },
+    "created_at": "2026-05-22T14:03:55.369Z",
+    "updated_at": "2026-05-22T14:03:55.369Z"
   }
 ]

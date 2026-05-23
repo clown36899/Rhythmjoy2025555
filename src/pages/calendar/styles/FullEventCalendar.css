@@ -1981,7 +1981,8 @@
   }
 
   .calendar-page-container .calendar-month-head span {
-    font-size: 10px;
+    font-size: 14px;
+    line-height: 1;
   }
 
   .calendar-page-container .calendar-grid-container {
@@ -2009,7 +2010,7 @@
   }
 
   .calendar-page-container .calendar-date-number-fullscreen {
-    font-size: 11px;
+    font-size: 14px;
     line-height: 1;
   }
 
@@ -2020,11 +2021,11 @@
   }
 
   .calendar-page-container .calendar-day-count {
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
-    font-size: 9px;
-    line-height: 14px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 16px;
   }
 
   .calendar-page-container .calendar-cell-fullscreen-body {
@@ -2062,15 +2063,18 @@
 
   .calendar-page-container .calendar-fullscreen-place,
   .calendar-page-container .calendar-fullscreen-title {
-    font-size: 9px;
-    line-height: 1.08;
-    overflow-wrap: anywhere;
-    white-space: normal;
+    overflow: hidden;
+    font-size: 12.5px;
+    line-height: 1.12;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: keep-all;
   }
 
   .calendar-page-container .calendar-fullscreen-title {
     color: var(--cal-sample-muted, #a8b0bd);
-    font-size: 8px;
+    font-size: 12px;
   }
 
 }

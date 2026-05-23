@@ -1,9 +1,7 @@
 .HNBS-container {
   margin: 14px;
   padding: 12px;
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.11));
   border-radius: 12px;
-  background: var(--bg-surface-2, #20232a);
 }
 
 .HNBS-title-area {
@@ -15,13 +13,13 @@
 }
 
 .HNBS-title-area strong {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-primary, #f6f7f9);
 }
 
 .HNBS-title-area span {
   color: var(--text-tertiary, #767f8d);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 900;
 }
 
@@ -36,9 +34,9 @@
   min-width: 0;
   min-height: 206px;
   overflow: hidden;
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.11));
+  border: 0;
   border-radius: 12px;
-  background: var(--bg-surface-1, #1d2026);
+  background: transparent;
   padding: 0;
   cursor: pointer;
   text-align: left;
@@ -129,7 +127,7 @@
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.58);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.15;
   letter-spacing: 0;
 }
@@ -137,7 +135,7 @@
 .HNBS-stack small {
   overflow: hidden;
   color: var(--color-yellow-300, #f2cf82);
-  font-size: 9px;
+  font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -150,7 +148,7 @@
 
 .HNBS-copy strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14.5px;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -160,13 +158,31 @@
 .HNBS-copy span {
   overflow: hidden;
   color: var(--text-tertiary, #767f8d);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 @media (max-width: 640px) {
+    .HNBS-container {
+        margin: 12px 14px;
+        padding: 8px 0 6px;
+    }
+
+    .HNBS-title-area {
+        margin-bottom: 6px;
+    }
+
+    .HNBS-grid {
+        gap: 8px;
+    }
+
+    .HNBS-stack {
+        height: 112px;
+        margin: 30px 4px 0;
+    }
+
     .HNBS-stack span {
         width: 68px;
         height: 86px;
@@ -178,6 +194,11 @@
     }
     
     .HNBS-button {
-        min-height: 190px;
+        min-height: 174px;
+    }
+
+    .HNBS-copy {
+        gap: 3px;
+        padding: 0 4px 6px;
     }
 }
