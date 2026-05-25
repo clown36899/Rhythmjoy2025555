@@ -11,6 +11,7 @@ import {
   getIngestorTags,
   mapIngestorEvent,
   titleLooksDuplicate,
+  toMapSafeVenueName,
   type MappedIngestorEvent,
   type VenueRecord,
 } from './utils/ingestorMapping';
@@ -33,6 +34,8 @@ interface ScrapedEvent {
     location?: string;
     address?: string;
     venue_id?: string | number | null;
+    venue_name?: string | null;
+    location_link?: string | null;
     fee?: string;
     note?: string;
     event_type?: '소셜' | '파티/행사' | '강습' | null;
@@ -143,7 +146,7 @@ const EventIngestorV2: React.FC = () => {
     const fetchVenues = async () => {
       const { data, error } = await prodSupabase
         .from('venues')
-        .select('id, name, address')
+        .select('id, name, address, map_url')
         .eq('is_active', true);
       if (error) {
         console.error('장소 목록 로드 실패:', error);
@@ -281,11 +284,12 @@ const EventIngestorV2: React.FC = () => {
   };
 
   // V1 방식: 장소 필드 수정 후 scraped-events에 저장
-  const handleUpdateVenueField = async (id: string, location: string, address: string, venue_id: any) => {
-    console.log('[IngestorV2] handleUpdateVenueField:', { id, location, address, venue_id });
+  const handleUpdateVenueField = async (id: string, location: string, address: string, venue_id: any, location_link = '') => {
+    const mapSafeLocation = toMapSafeVenueName(location);
+    console.log('[IngestorV2] handleUpdateVenueField:', { id, location: mapSafeLocation, address, venue_id, location_link });
     setScrapedEvents(prev => prev.map(e => {
       if (e.id !== id) return e;
-      return { ...e, structured_data: { ...e.structured_data, location, address, venue_id } };
+      return { ...e, structured_data: { ...e.structured_data, location: mapSafeLocation, venue_name: mapSafeLocation, address, venue_id, location_link } };
     }));
 
     try {
@@ -294,7 +298,7 @@ const EventIngestorV2: React.FC = () => {
       if (!target) return;
       const updated = {
         ...target,
-        structured_data: { ...target.structured_data, location, address, venue_id }
+        structured_data: { ...target.structured_data, location: mapSafeLocation, venue_name: mapSafeLocation, address, venue_id, location_link }
       };
       const res = await fetch('/.netlify/functions/scraped-events', {
         method: 'POST',
@@ -309,7 +313,7 @@ const EventIngestorV2: React.FC = () => {
 
   const handleVenueSelect = (venue: any) => {
     if (!venueTargetId) return;
-    handleUpdateVenueField(venueTargetId, venue.name, venue.address, venue.id);
+    handleUpdateVenueField(venueTargetId, venue.name, venue.address, venue.id, venue.map_url || '');
     setIsVenueModalOpen(false);
     setVenueTargetId(null);
   };
@@ -427,6 +431,7 @@ const EventIngestorV2: React.FC = () => {
         address: mapped.address,
         venue_id: mapped.venue_id,
         venue_name: mapped.venue_name,
+        location_link: mapped.location_link,
         image: imageUrls.full || event.poster_url || null,
         image_micro: imageUrls.micro || null,
         image_thumbnail: imageUrls.thumb || null,
@@ -443,7 +448,7 @@ const EventIngestorV2: React.FC = () => {
         dance_genre: mapped.dance_genre,
         activity_type: mapped.activity_type,
         dance_tags: mapped.dance_tags,
-        user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
+        user_id: (await prodSupabase.auth.getUser()).data.user?.id || '508e4c9e-b180-4c0f-aa98-3e99562a147a',
         group_id: mapped.group_id,
       } as any;
 
@@ -857,7 +862,7 @@ const EventIngestorV2: React.FC = () => {
           onManualInput={(name, _link, addr) => {
             console.log('[IngestorV2] onManualInput 호출:', { name, _link, addr, venueTargetId });
             if (!venueTargetId) { console.warn('[IngestorV2] venueTargetId가 null! 적용 불가'); return; }
-            handleUpdateVenueField(venueTargetId, name, addr || '', null);
+            handleUpdateVenueField(venueTargetId, name, addr || '', null, _link || '');
             setIsVenueModalOpen(false);
             setVenueTargetId(null);
           }}

@@ -1201,7 +1201,7 @@
 @media (max-width: 720px) {
   .calendar-shell-page.layout-compact .shell-main-content,
   .calendar-shell-page.layout-wide .shell-main-content {
-    padding-top: calc(110px + env(safe-area-inset-top)) !important;
+    padding-top: calc(114px + env(safe-area-inset-top)) !important;
   }
 
   .calendar-shell-page .header-content-inner {
@@ -1217,8 +1217,8 @@
 
   .calendar-header-title-control {
     justify-content: center;
-    grid-template-columns: 30px minmax(74px, auto) 30px;
-    gap: 3px;
+    grid-template-columns: 30px minmax(118px, auto) 30px;
+    gap: 4px;
   }
 
   .calendar-header-month-step {
@@ -1232,14 +1232,26 @@
 
   .calendar-header-title-lockup {
     justify-items: center;
+    gap: 0;
   }
 
   .calendar-header-title-lockup strong span {
-    font-size: 11px;
+    align-self: flex-start;
+    margin-top: 7px;
+    color: #a8b0bd;
+    font-size: 12px;
+    line-height: 1;
   }
 
   .calendar-header-title-lockup strong em {
-    font-size: 22px;
+    font-size: 45px;
+    line-height: 0.82;
+  }
+
+  .calendar-header-title-lockup small {
+    margin-top: -1px;
+    font-size: 11px;
+    line-height: 1;
   }
 
   .calendar-header-today-compact {
@@ -1255,12 +1267,12 @@
 
   .calendar-shell-page .header-nav-v2 {
     top: calc(62px + env(safe-area-inset-top));
-    height: 48px;
+    height: 52px;
   }
 
   .calendar-shell-page .header-nav-v2-inner {
     gap: 4px;
-    padding: 0 58px 7px 8px;
+    padding: 0 58px 8px 8px;
   }
 
   .calendar-shell-page .header-nav-v2-item {
@@ -1305,16 +1317,16 @@
 @media (max-width: 420px) {
   .calendar-shell-page.layout-compact .shell-main-content,
   .calendar-shell-page.layout-wide .shell-main-content {
-    padding-top: calc(98px + env(safe-area-inset-top)) !important;
+    padding-top: calc(102px + env(safe-area-inset-top)) !important;
   }
 
   .calendar-shell-page .header-nav-v2 {
     top: calc(54px + env(safe-area-inset-top));
-    height: 44px;
+    height: 48px;
   }
 
   .calendar-header-title-control {
-    grid-template-columns: 28px minmax(66px, auto) 28px;
+    grid-template-columns: 28px minmax(112px, auto) 28px;
     gap: 2px;
   }
 

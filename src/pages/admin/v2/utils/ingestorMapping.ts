@@ -9,13 +9,21 @@ import {
   getDanceTagLabel,
   inferDanceTaxonomy,
 } from '../../../../utils/danceTaxonomy';
+import {
+  getVenueMapUrl,
+  matchVenueRecord,
+  normalizeVenueName,
+  toMapSafeVenueName,
+  type VenueLike,
+} from '../../../../utils/venueNormalization';
 
 type EventType = '소셜' | '파티/행사' | '강습';
 
-export interface VenueRecord {
+export interface VenueRecord extends VenueLike {
   id: string;
   name: string;
   address: string | null;
+  map_url?: string | null;
 }
 
 export interface MappedIngestorEvent {
@@ -30,6 +38,7 @@ export interface MappedIngestorEvent {
   address: string;
   venue_id: string | null;
   venue_name: string | null;
+  location_link: string | null;
   time: string;
 }
 
@@ -49,6 +58,8 @@ interface ScrapedLike {
     location?: string;
     address?: string;
     venue_id?: string | number | null;
+    venue_name?: string | null;
+    location_link?: string | null;
     times?: string[];
   };
 }
@@ -124,15 +135,6 @@ export function getIngestorTagLabel(tag: string): string {
   return getDanceTagLabel(tag);
 }
 
-export function normalizeVenueName(value: string): string {
-  return value
-    .replace(/\s+/g, '')
-    .replace(/[()（）\-_.,]/g, '')
-    .replace(/바$/i, '')
-    .replace(/홀$/i, '')
-    .toLowerCase();
-}
-
 export function normalizeEventText(value: string): string {
   return value
     .toLowerCase()
@@ -157,31 +159,23 @@ function sourceVenueHint(sourceUrl?: string, keyword?: string): string {
 
 export function matchVenue(event: ScrapedLike, venues: VenueRecord[]): VenueRecord | null {
   const rawCandidates = [
-    event.structured_data?.venue_id ? String(event.structured_data.venue_id) : '',
     event.structured_data?.location || '',
+    event.structured_data?.venue_name || '',
     sourceVenueHint(event.source_url, event.keyword),
     event.keyword || '',
   ].filter(Boolean);
 
-  const idCandidate = rawCandidates[0];
-  const byId = venues.find(v => String(v.id) === idCandidate);
-  if (byId) return byId;
+  return matchVenueRecord({
+    venue_id: event.structured_data?.venue_id,
+    location: event.structured_data?.location,
+    venue_name: event.structured_data?.venue_name,
+    address: event.structured_data?.address,
+    candidates: rawCandidates,
+  }, venues) as VenueRecord | null;
+}
 
-  const candidates = rawCandidates.map(normalizeVenueName).filter(Boolean);
-  for (const candidate of candidates) {
-    const exact = venues.find(v => normalizeVenueName(v.name) === candidate);
-    if (exact) return exact;
-  }
-
-  for (const candidate of candidates) {
-    const fuzzy = venues.find(v => {
-      const venueName = normalizeVenueName(v.name);
-      return candidate.length >= 2 && (venueName.includes(candidate) || candidate.includes(venueName));
-    });
-    if (fuzzy) return fuzzy;
-  }
-
-  return null;
+function buildOperatingGenre(activity: DanceActivity): string {
+  return getDanceActivityLabel(activity);
 }
 
 export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): MappedIngestorEvent {
@@ -191,16 +185,10 @@ export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): Map
   const sd = event.structured_data || {};
 
   const category = activity === 'class' ? 'class' : activity === 'social' ? 'social' : 'event';
-  const tagLabels = getIngestorTags(event).map(getDanceTagLabel);
-  const genreParts = [
-    getDanceActivityLabel(activity),
-    getDanceScopeLabel(taxonomy.dance_scope),
-    sd.dance_genre_label || getDanceGenreLabel(sd.dance_genre || taxonomy.dance_genre),
-    ...tagLabels,
-  ].filter((item) => item && item !== '장르 미정');
-  const genre = Array.from(new Set(genreParts)).join(', ');
-  const location = matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '';
-  const address = sd.address || matchedVenue?.address || '';
+  const genre = buildOperatingGenre(activity);
+  const location = toMapSafeVenueName(matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '');
+  const address = matchedVenue?.address || sd.address || '';
+  const locationLink = sd.location_link || getVenueMapUrl(matchedVenue);
 
   return {
     category,
@@ -213,7 +201,10 @@ export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): Map
     location,
     address,
     venue_id: matchedVenue?.id || (sd.venue_id ? String(sd.venue_id) : null),
-    venue_name: matchedVenue?.name || location || null,
+    venue_name: location || null,
+    location_link: locationLink || null,
     time: sd.times?.[0]?.split(/[~-]/)[0]?.trim() || '',
   };
 }
+
+export { normalizeVenueName, toMapSafeVenueName };

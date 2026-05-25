@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
 import { createResizedImages } from '../../../../utils/imageResize';
 import { supabase as prodSupabase } from '../../../../lib/supabase';
-import { detectEventType, mapIngestorEvent, titleLooksDuplicate, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
+import { detectEventType, mapIngestorEvent, titleLooksDuplicate, toMapSafeVenueName, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
 import './EventEditModal.css';
 
 interface EventEditModalProps {
@@ -32,6 +32,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 description: event.extracted_text || '',
                 djs: event.structured_data?.djs || [],
                 venue_id: mapped.venue_id,
+                location_link: mapped.location_link,
                 poster_url: event.poster_url || '',
                 category: mapped.category,
                 genre: mapped.genre,
@@ -83,11 +84,14 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
     };
 
     const handleVenueSelect = (venue: any) => {
+        const mapSafeLocation = toMapSafeVenueName(venue.name);
         setFormData((prev: any) => ({
             ...prev,
-            location: venue.name,
+            location: mapSafeLocation,
+            venue_name: mapSafeLocation,
             address: venue.address,
-            venue_id: venue.id
+            venue_id: venue.id,
+            location_link: venue.map_url || ''
         }));
         setIsVenueModalOpen(false);
     };
@@ -158,6 +162,8 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                         location: formData.location,
                         address: formData.address,
                         venue_id: formData.venue_id,
+                        venue_name: formData.venue_name,
+                        location_link: formData.location_link,
                         times: formData.time ? [formData.time] : event.structured_data?.times,
                     },
                 }, venues),
@@ -187,6 +193,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     address: mapped.address,
                     venue_id: mapped.venue_id,
                     venue_name: mapped.venue_name,
+                    location_link: mapped.location_link,
                     image: imageUrls.full || formData.poster_url || null,
                     image_micro: imageUrls.micro || null,
                     image_thumbnail: imageUrls.thumb || null,
@@ -203,7 +210,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     dance_genre: mapped.dance_genre,
                     activity_type: mapped.activity_type,
                     dance_tags: mapped.dance_tags,
-                    user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a',
+                    user_id: (await prodSupabase.auth.getUser()).data.user?.id || '508e4c9e-b180-4c0f-aa98-3e99562a147a',
                     group_id: mapped.group_id,
                 } as any;
 
@@ -230,6 +237,8 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                         location: formData.location,
                         address: formData.address,
                         venue_id: formData.venue_id,
+                        venue_name: formData.venue_name,
+                        location_link: formData.location_link,
                         djs: formData.djs,
                     }
                 }),
@@ -330,11 +339,14 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     onClose={() => setIsVenueModalOpen(false)}
                     onSelect={handleVenueSelect}
                     onManualInput={(name, _link, addr) => {
+                        const mapSafeLocation = toMapSafeVenueName(name);
                         setFormData((prev: any) => ({
                             ...prev,
-                            location: name,
+                            location: mapSafeLocation,
+                            venue_name: mapSafeLocation,
                             address: addr || '',
-                            venue_id: null
+                            venue_id: null,
+                            location_link: _link || ''
                         }));
                         setIsVenueModalOpen(false);
                     }}

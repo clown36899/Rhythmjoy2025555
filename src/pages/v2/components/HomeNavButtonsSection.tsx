@@ -101,10 +101,6 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
 
     return (
         <section className="HNBS-container">
-            <div className="HNBS-title-area">
-                <strong>바로 보기</strong>
-                <span>실제 홈 네비게이션 구조</span>
-            </div>
             <div className="HNBS-grid">
                 {renderNavCard(
                     'social', 

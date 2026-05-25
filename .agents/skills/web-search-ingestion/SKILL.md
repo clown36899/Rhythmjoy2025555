@@ -587,7 +587,7 @@ curl -s -X POST "https://swingenjoy.com/.netlify/functions/scraped-events" \
 ### 4-B. 운영 DB 등록 매핑 기준
 
 수집 데이터는 관리자 검수용 원천 데이터이고, 운영 `events` 테이블 등록 시에는 아래 내부 코드로 변환된다.  
-수집 시 `structured_data.event_type`, `structured_data.location`, `structured_data.address`, `structured_data.venue_id`를 가능한 한 정확히 채워서 등록 화면의 재입력을 줄인다.
+수집 시 `structured_data.event_type`, `structured_data.location`, `structured_data.address`, `structured_data.venue_id`, `structured_data.location_link`를 가능한 한 정확히 채워서 등록 화면의 재입력을 줄인다.
 
 | 수집 `activity_type` | 운영 `category` | 운영 `genre` | `group_id` |
 |---|---|---|---|
@@ -597,9 +597,13 @@ curl -s -X POST "https://swingenjoy.com/.netlify/functions/scraped-events" \
 | `recruit` | `event` | `모집` | `null` |
 
 장소는 다음 우선순위로 저장한다.
-1. 실제 포스트에 명시된 정확한 장소명
-2. 소스 계정의 고정 장소명(예: `swingtimebar` → `스윙타임`)
-3. 기존 `venues` 테이블과 매칭 가능한 표준 이름
+1. 기존 `venues` 테이블과 매칭 가능한 `venue_id`, `address`, Kakao 지도 링크(`location_link`)
+2. 카카오 지도 검색에 안전한 짧은 장소명
+3. 소스 계정의 고정 장소명(예: `swingtimebar` → `스윙타임`)
+
+장소명에 지역 보조표기가 붙어 있으면 `structured_data.location`에는 넣지 않는다.  
+예: `경성홀(신촌)`은 `location: "경성홀"`, `address: "서울 마포구 신촌로16길 30 지하 1층"`, `venue_id: "..."`, `location_link: "http://place.map.kakao.com/..."`로 저장한다.  
+지역/층/부가설명은 주소나 `note`에 둔다. 장소명에 섞으면 운영 등록 후 카카오 지도 인식률이 떨어진다.
 
 DJ 이름은 장르가 아니다. DJ는 `structured_data.djs`와 제목/설명에만 사용하고, 소셜 장르는 `소셜`로 저장한다.
 

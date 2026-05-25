@@ -520,16 +520,16 @@ html {
     }
 
     .calendar-live-shell--calendar {
-        padding-top: 142px;
+        padding-top: 146px;
     }
 
     .calendar-live-shell--list,
     .calendar-live-shell--map {
-        padding-top: 118px;
+        padding-top: 122px;
     }
 
     .calendar-live-sticky-controls {
-        top: calc(110px + env(safe-area-inset-top));
+        top: calc(114px + env(safe-area-inset-top));
         left: 0;
         width: 100%;
         transform: none;
@@ -695,7 +695,7 @@ html {
     }
 
     .calendar-live-sticky-controls {
-        top: calc(98px + env(safe-area-inset-top));
+        top: calc(102px + env(safe-area-inset-top));
     }
 
     .calendar-navigator-overlay {

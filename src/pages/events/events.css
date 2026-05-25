@@ -518,7 +518,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    scroll-snap-type: x proximity;
+    scroll-snap-type: none;
   }
 
   .events-info-card {
@@ -526,7 +526,7 @@
     grid-template-columns: 1fr;
     gap: 5px;
     padding: 5px;
-    scroll-snap-align: start;
+    scroll-snap-align: none;
     background: color-mix(in srgb, var(--bg-surface-1) 86%, var(--bg-base));
   }
 

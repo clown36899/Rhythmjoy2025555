@@ -1,6 +1,7 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { getDanceCollectionScopeExclusionReason, mergeDanceTaxonomyStructuredData } from '../../src/utils/danceTaxonomy';
+import { normalizeVenueStructuredData, type VenueLike } from '../../src/utils/venueNormalization';
 
 const SUPABASE_URL = process.env.VITE_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
@@ -492,6 +493,21 @@ export const handler: Handler = async (event) => {
 
             const now = new Date().toISOString();
             const skipped: { id: string; reason: string; existingId: string }[] = [];
+            let venuesCache: VenueLike[] | null = null;
+            const getVenues = async () => {
+                if (venuesCache) return venuesCache;
+                const { data, error } = await supabase
+                    .from('venues')
+                    .select('id,name,address,map_url')
+                    .limit(800);
+                if (error) {
+                    console.error('[scraped-events] 장소 표준화용 venues 로드 실패:', error);
+                    venuesCache = [];
+                    return venuesCache;
+                }
+                venuesCache = (data || []) as VenueLike[];
+                return venuesCache;
+            };
 
             for (const item of incoming) {
                 const invalidReason = getInvalidCandidateReason(item);
@@ -514,6 +530,7 @@ export const handler: Handler = async (event) => {
                     extracted_text: item.extracted_text,
                     structured_data: item.structured_data || {},
                 });
+                item.structured_data = normalizeVenueStructuredData(item.structured_data, await getVenues());
 
                 const scopeExcludedReason = getDanceCollectionScopeExclusionReason(item.structured_data);
                 if (scopeExcludedReason) {
