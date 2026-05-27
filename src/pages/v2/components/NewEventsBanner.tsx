@@ -147,6 +147,17 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         ? [events[events.length - 1], ...events, events[0]]
         : events;
     const trackIndex = hasMultipleEvents ? currentIndex + 1 : 0;
+    const getBannerImage = (event: Event) =>
+        event.image_medium ||
+        event.image_thumbnail ||
+        event.image ||
+        event.image_full ||
+        getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+    const getSmallPreviewImage = (event: Event) =>
+        event.image_micro ||
+        event.image_thumbnail ||
+        event.image_medium ||
+        getBannerImage(event);
 
     return (
         <>
@@ -205,11 +216,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         style={{ transform: `translateX(calc(${sidePeekPercent}% - ${trackIndex * slideWidthPercent}% - ${trackIndex * slideGapPx}px))` }}
                     >
                         {displayEvents.map((event, index) => {
-                            const eventThumbnail = event.image_full ||
-                                event.image ||
-                                event.image_medium ||
-                                event.image_thumbnail ||
-                                getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+                            const eventThumbnail = getBannerImage(event);
+                            const previewThumbnail = getSmallPreviewImage(event);
+                            const isActiveSlide = index === trackIndex;
 
                             // 슬라이드별 날짜 계산
                             let slideDateText = '';
@@ -234,6 +243,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             src={eventThumbnail}
                                             alt={event.title}
                                             className="NEB-image"
+                                            loading={isActiveSlide ? 'eager' : 'lazy'}
+                                            decoding="async"
+                                            fetchPriority={isActiveSlide ? 'high' : 'low'}
                                         />
                                         <span className="NEB-category">
                                             {event.category === 'class' ? '강습' : '행사'}
@@ -243,8 +255,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     <div className="NEB-content">
                                         <div className="NEB-mini-thumbnail">
                                             <img
-                                                src={eventThumbnail}
+                                                src={previewThumbnail}
                                                 alt="Full Preview"
+                                                loading={isActiveSlide ? 'eager' : 'lazy'}
+                                                decoding="async"
                                             />
                                         </div>
                                         <div className="NEB-textContent">

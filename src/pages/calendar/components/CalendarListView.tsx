@@ -17,15 +17,25 @@ function getEventDate(e: AppEvent): string {
     return e.start_date || e.date || "";
 }
 
-function getEventVisibleUntil(e: AppEvent): string {
-    return e.end_date || e.start_date || e.date || "";
+function getExplicitEventDates(e: AppEvent): string[] {
+    if (!Array.isArray(e.event_dates) || e.event_dates.length === 0) return [];
+
+    return Array.from(
+        new Set(
+            e.event_dates
+                .map((date) => String(date || "").substring(0, 10))
+                .filter(Boolean)
+        )
+    ).sort();
 }
 
-function getEventListDate(e: AppEvent, today: string): string {
-    const eventDate = getEventDate(e);
-    const visibleUntil = getEventVisibleUntil(e);
-    if (eventDate && eventDate < today && visibleUntil >= today) return today;
-    return eventDate;
+function getEventListDate(e: AppEvent): string {
+    const explicitDates = getExplicitEventDates(e);
+    if (explicitDates.length > 0) {
+        return explicitDates[0];
+    }
+
+    return getEventDate(e);
 }
 
 function getCategoryLabel(e: AppEvent): { label: string; cls: string } {
@@ -54,10 +64,10 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
     const filtered = useMemo(() => {
         const allItems: AppEvent[] = [];
 
-        // 이벤트 필터링 (end_date 또는 date가 오늘 이상인 것)
+        // 이벤트 필터링: 리스트도 캘린더와 같은 시작 날짜 기준으로만 노출한다.
         events.forEach(e => {
-            const visibleUntil = getEventVisibleUntil(e);
-            if (visibleUntil < today) return;
+            const listDate = getEventListDate(e);
+            if (!listDate || listDate < today) return;
             if (!isEventInDanceScope(e as any, danceScope)) return;
             if (tabFilter === 'social-events' && ['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
             if (tabFilter === 'classes' && !['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
@@ -76,8 +86,8 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
 
         // 날짜순 정렬
         return allItems.sort((a, b) => {
-            const da = getEventListDate(a, today);
-            const db = getEventListDate(b, today);
+            const da = getEventListDate(a);
+            const db = getEventListDate(b);
             return da.localeCompare(db);
         });
     }, [danceScope, events, socialSchedules, tabFilter, today]);
@@ -86,12 +96,12 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
     const grouped = useMemo(() => {
         const map = new Map<string, AppEvent[]>();
         filtered.forEach(e => {
-            const d = getEventListDate(e, today);
+            const d = getEventListDate(e);
             if (!map.has(d)) map.set(d, []);
             map.get(d)!.push(e);
         });
         return Array.from(map.entries());
-    }, [filtered, today]);
+    }, [filtered]);
 
     useEffect(() => {
         if (!todayScrollSignal || isLoading || grouped.length === 0) return;
@@ -104,10 +114,10 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
             const todayGroup = dateGroups.find(group => group.dataset.listDate === today);
             const nextUpcomingGroup = dateGroups.find(group => (group.dataset.listDate || '') >= today);
             const target = todayGroup || nextUpcomingGroup || dateGroups[0];
-            if (!target) return;
+            if (!target || !target.isConnected) return;
 
             const stickyControls = document.querySelector<HTMLElement>('.calendar-live-sticky-controls');
-            const stickyBottom = stickyControls?.getBoundingClientRect().bottom || 0;
+            const stickyBottom = stickyControls?.isConnected ? stickyControls.getBoundingClientRect().bottom : 0;
             const targetY = target.getBoundingClientRect().top + window.scrollY - stickyBottom - 10;
             window.scrollTo({ top: Math.max(0, targetY), behavior: 'instant' });
         });

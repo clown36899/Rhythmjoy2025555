@@ -11,9 +11,54 @@ export const excludedSourceRules = [
     pattern: /^https?:\/\/allaboutswing\.co\.kr\/20(\/|$)/i,
     reason: '사용자 지정 제외 소스: allaboutswing.co.kr/20',
   },
+  {
+    id: 'batswing',
+    pattern: /^https?:\/\/(www\.)?batswing\.co\.kr(\/|$)/i,
+    reason: '사용자 지정 제외 소스: BAT SWING',
+  },
   { id: 'news', pattern: /(newspim\.com|yna\.co\.kr|newsis\.com|seoul\.co\.kr)/i, reason: '뉴스/보도자료 소스 제외' },
   { id: 'public-office', pattern: /(\.go\.kr|visitkorea\.or\.kr)/i, reason: '공공기관/관광 허브 소스 제외' },
 ];
+
+export const collectionProfiles = {
+  swingDaily: {
+    id: 'swing-daily',
+    label: '스윙 안정 자동 수집',
+    scopes: ['swing'],
+    saveExpandedCandidates: false,
+    purpose: '매일 자동 실행. 검증된 스윙 소셜/강습/행사만 저장한다.',
+  },
+  expandedResearch: {
+    id: 'expanded-research',
+    label: '타장르 씬 조사',
+    scopes: ['salsa', 'bachata', 'tango', 'street'],
+    saveExpandedCandidates: false,
+    purpose: '소스/씬 구조 조사 전용. 후보 저장 없이 출처와 패턴을 검증한다.',
+  },
+  expandedIngestion: {
+    id: 'expanded-ingestion',
+    label: '타장르 검증 수집',
+    scopes: ['salsa', 'bachata', 'tango', 'street'],
+    saveExpandedCandidates: true,
+    purpose: '검증 완료된 타장르 소스만 신규 후보로 저장한다.',
+  },
+  all: {
+    id: 'all',
+    label: '전체 점검',
+    scopes: allowedCollectionScopes,
+    saveExpandedCandidates: true,
+    purpose: '수동 점검용. 자동 daily 기본값으로 사용하지 않는다.',
+  },
+};
+
+function resolveProfile(profile = 'swing-daily') {
+  const aliases = {
+    'swing-daily': 'swingDaily',
+    'expanded-research': 'expandedResearch',
+    'expanded-ingestion': 'expandedIngestion',
+  };
+  return aliases[profile] || profile;
+}
 
 const source = ({
   id,
@@ -27,6 +72,7 @@ const source = ({
   priority = 3,
   savePolicy = 'verified-post-and-image',
   discoveryOnly = false,
+  phase = scope === 'swing' ? 'stable' : 'research',
   notes = '',
 }) => ({
   id,
@@ -40,6 +86,7 @@ const source = ({
   priority,
   savePolicy,
   discoveryOnly,
+  phase,
   notes,
 });
 
@@ -68,8 +115,9 @@ export const collectionSources = [
   source({ id: 'swingfriends-cafe', name: '스윙프렌즈 카페', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10026855/menus/85?viewType=L', priority: 2 }),
   source({ id: 'swingfactory_kr', name: '스윙팩토리', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingfactory_kr/', priority: 2 }),
   source({ id: 'swingtown-cafe', name: '스윙타운', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/264?viewType=L', priority: 2 }),
+  source({ id: 'swingfamily-lessons', name: '스윙패밀리 강습/행사', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/13?viewType=L', priority: 1, notes: '스윙 강습/워크숍 핵심 소스. 이미지가 확인된 미래 시작일 강습만 저장' }),
+  source({ id: 'sweetyswing-lessons', name: '스위티스윙 공지/신청', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sweetyswing/5ngW', priority: 2, notes: '모바일 Daum 카페 URL 우선. 미래 시작일 강습만 저장' }),
   source({ id: 'swingholic', name: '스윙홀릭', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingholic/', priority: 2 }),
-  source({ id: 'batswing', name: 'BAT SWING', scope: 'swing', genre: 'swing', type: 'website', url: 'https://batswing.co.kr/', priority: 2 }),
   source({ id: 'campswingit', name: 'CSI', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/campswingit/', priority: 2 }),
   source({ id: 'badaje_jeju', name: '바다제', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/badaje_jeju/', priority: 2 }),
   source({ id: 'busan_lindy_weekend', name: '부산 린디합 위켄드', scope: 'swing', genre: 'lindyhop', type: 'instagram', url: 'https://www.instagram.com/busan_lindy_weekend/', priority: 2 }),
@@ -142,6 +190,14 @@ export function getCollectionSources(scope = 'all') {
     .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, 'ko'));
 }
 
+export function getCollectionSourcesForProfile(profile = 'swing-daily') {
+  const normalized = resolveProfile(profile);
+  const selected = collectionProfiles[normalized] || collectionProfiles.swingDaily;
+  return collectionSources
+    .filter((item) => selected.scopes.includes(item.scope))
+    .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, 'ko'));
+}
+
 export function findSourceByUrl(url = '') {
   const normalized = String(url || '').toLowerCase();
   return collectionSources.find((item) => {
@@ -151,8 +207,11 @@ export function findSourceByUrl(url = '') {
   }) || null;
 }
 
-export function getAutomationSourceList() {
-  return getCollectionSources('all').map((item) => ({
+export function getAutomationSourceList(profile = 'swing-daily') {
+  const normalized = resolveProfile(profile);
+  const selected = collectionProfiles[normalized] || collectionProfiles.swingDaily;
+  return getCollectionSourcesForProfile(normalized).map((item) => ({
+    id: item.id,
     name: item.name,
     type: item.type,
     url: item.url,
@@ -161,6 +220,9 @@ export function getAutomationSourceList() {
     dance_genre: item.genre,
     priority: item.priority,
     discoveryOnly: item.discoveryOnly,
+    phase: item.phase,
+    automationProfile: selected.id,
+    saveEnabled: item.scope === 'swing' || selected.saveExpandedCandidates,
     notes: item.notes,
   }));
 }

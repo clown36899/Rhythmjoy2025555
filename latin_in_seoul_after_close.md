@@ -1,0 +1,94 @@
+- generic [ref=e11]:
+  - generic [ref=e13]:
+    - link "Instagram" [ref=e385] [cursor=pointer]:
+      - /url: /
+      - img "Instagram" [ref=e386]
+    - generic [ref=e24]:
+      - link "로그인" [ref=e387] [cursor=pointer]:
+        - /url: /accounts/login/?next=%2Flatin_in_seoul%2F&source=desktop_nav
+      - link "가입하기" [ref=e388] [cursor=pointer]:
+        - /url: /accounts/emailsignup/
+  - main [ref=e29]:
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - button "latin_in_seoul님의 프로필 사진" [ref=e389] [cursor=pointer]:
+          - link "latin_in_seoul님의 프로필 사진" [ref=e390]
+        - generic [ref=e38]:
+          - generic [ref=e39]
+          - generic [ref=e50]: Latin In Seoul/살사.바차타.salsa.bachata.SeoulSalsabar
+          - list [ref=e52]
+          - generic [ref=e69]
+      - menu [ref=e77]:
+        - generic [ref=e79]:
+          - list [ref=e81]
+          - button "다음" [ref=e428] [cursor=pointer]
+      - generic [ref=e163]:
+        - tablist [ref=e164]:
+          - link "게시물" [ref=e429] [cursor=pointer]:
+            - /url: /latin_in_seoul/
+          - link "릴스" [ref=e431] [cursor=pointer]:
+            - /url: "#"
+          - link "태그됨" [ref=e433] [cursor=pointer]:
+            - /url: "#"
+        - tabpanel
+      - article [ref=e190]:
+        - generic [ref=e192]:
+          - generic [ref=e193]
+          - generic [ref=e212]
+          - generic [ref=e231]
+          - generic [ref=e250]
+        - progressbar [ref=e270]:
+          - img "읽어들이는 중..." [ref=e459]
+  - contentinfo [ref=e284]:
+    - generic [ref=e285]:
+      - generic [ref=e287]:
+        - link "Meta" [ref=e460] [cursor=pointer]:
+          - /url: https://about.meta.com/
+          - generic [ref=e290]: Meta
+        - link "소개" [ref=e461] [cursor=pointer]:
+          - /url: https://about.instagram.com/
+          - generic [ref=e293]: 소개
+        - link "블로그" [ref=e462] [cursor=pointer]:
+          - /url: https://about.instagram.com/blog/
+          - generic [ref=e296]: 블로그
+        - link "채용 정보" [ref=e463] [cursor=pointer]:
+          - /url: https://about.instagram.com/about-us/careers
+          - generic [ref=e299]: 채용 정보
+        - link "도움말" [ref=e464] [cursor=pointer]:
+          - /url: https://help.instagram.com/
+          - generic [ref=e302]: 도움말
+        - link "API" [ref=e465] [cursor=pointer]:
+          - /url: https://developers.facebook.com/docs/instagram
+          - generic [ref=e305]: API
+        - link "개인정보처리방침" [ref=e466] [cursor=pointer]:
+          - /url: /legal/privacy/
+          - generic [ref=e308]: 개인정보처리방침
+        - link "약관" [ref=e467] [cursor=pointer]:
+          - /url: /legal/terms/
+          - generic [ref=e311]: 약관
+        - link "위치" [ref=e468] [cursor=pointer]:
+          - /url: /explore/locations/
+          - generic [ref=e314]: 위치
+        - link "인기" [ref=e469] [cursor=pointer]:
+          - /url: /popular/
+          - generic [ref=e317]: 인기
+        - link "Instagram Lite" [ref=e470] [cursor=pointer]:
+          - /url: /web/lite/
+          - generic [ref=e320]: Instagram Lite
+        - link "Meta AI" [ref=e471] [cursor=pointer]:
+          - /url: https://www.meta.ai/?utm_source=foa_web_footer
+          - generic [ref=e323]: Meta AI
+        - link "Threads" [ref=e472] [cursor=pointer]:
+          - /url: https://www.threads.com/
+          - generic [ref=e326]: Threads
+        - link "연락처 업로드 & 비사용자" [ref=e473] [cursor=pointer]:
+          - /url: https://www.facebook.com/help/instagram/261704639352628
+          - generic [ref=e329]: 연락처 업로드 & 비사용자
+        - link "Meta Verified" [ref=e474] [cursor=pointer]:
+          - /url: /accounts/meta_verified/?entrypoint=web_footer
+          - generic [ref=e332]: Meta Verified
+      - generic [ref=e333]:
+        - generic [ref=e334] [cursor=pointer]:
+          - generic [ref=e335]
+          - combobox "표시 언어 변경" [ref=e476]
+        - generic [ref=e343]: © 2026 Instagram from Meta

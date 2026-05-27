@@ -10,6 +10,7 @@ const translationCache = new Map<string, string>();
 const excludedSourceRules: Array<{ pattern: RegExp; reason: string }> = [
     { pattern: /^https?:\/\/(www\.)?meroniswing\.com(\/|$)/i, reason: '사용자 지정 제외 소스: meroniswing.com' },
     { pattern: /^https?:\/\/allaboutswing\.co\.kr\/20(\/|$)/i, reason: '사용자 지정 제외 소스: allaboutswing.co.kr/20' },
+    { pattern: /^https?:\/\/(www\.)?batswing\.co\.kr(\/|$)/i, reason: '사용자 지정 제외 소스: BAT SWING' },
     { pattern: /newspim\.com/i, reason: '일반 대중 뉴스 포털 제외' },
     { pattern: /yna\.co\.kr/i, reason: '연합뉴스 포털 제외' },
     { pattern: /\.go\.kr/i, reason: '공공기관/지자체 공고 사이트 제외' },
@@ -52,6 +53,34 @@ function hasBadPosterUrl(url: string | null | undefined): boolean {
 
 function getCandidateDate(item: any): string {
     return String(item?.structured_data?.date || item?.date || '').slice(0, 10);
+}
+
+function mergeCollectedStructuredData(existing: any = {}, incoming: any = {}) {
+    const next = { ...existing };
+    [
+        'location',
+        'venue_name',
+        'address',
+        'venue_id',
+        'location_link',
+        'activity_type',
+        'activity_label',
+        'genre_family',
+        'genre_family_label',
+        'dance_genre',
+        'dance_genre_label',
+        'dance_scope',
+        'dance_scope_label',
+        'tags',
+        'tag_labels',
+        'taxonomy_confidence',
+    ].forEach((key) => {
+        const value = incoming?.[key];
+        if (value !== undefined && value !== null && value !== '') {
+            next[key] = value;
+        }
+    });
+    return next;
 }
 
 function getInvalidCandidateReason(item: any): string | null {
@@ -646,10 +675,22 @@ export const handler: Handler = async (event) => {
                     // 같은 ID로 이미 존재하는 경우 is_collected 보존
                     const { data: sameId } = await supabase
                         .from('scraped_events')
-                        .select('id, is_collected')
+                        .select('id, is_collected, status, structured_data')
                         .eq('id', item.id)
                         .maybeSingle();
                     if (sameId?.is_collected) {
+                        const normalizedStructuredData = mergeCollectedStructuredData(sameId.structured_data || {}, item.structured_data || {});
+                        const { error: preserveError } = await supabase
+                            .from('scraped_events')
+                            .update({
+                                structured_data: normalizedStructuredData,
+                                status: sameId.status || 'collected',
+                                updated_at: now,
+                            })
+                            .eq('id', item.id);
+                        if (preserveError) {
+                            console.error(`[scraped-events] 완료 항목 메타 보존 업데이트 실패 id=${item.id}:`, preserveError);
+                        }
                         skipped.push({ id: item.id, reason: '이미 완료 처리됨', existingId: sameId.id });
                         console.log(`[scraped-events] SKIP already collected: ${item.id}`);
                         continue; // ← 완료 처리된 항목 덮어쓰기 방지

@@ -3,15 +3,21 @@
  * 
  * [목적]
  * 1. PC (Chrome/Firefox): navigator.locks를 사용하여 가장 안정적인 탭 간 동기화 제공 (Deployment Race Condition 방지)
- * 2. Mobile/Safari: navigator.locks의 데드락 이슈(탭 백그라운드 전환 시 멈춤)를 피하기 위해 localStorage 기반 Mutex 사용
+ * 2. iOS/Safari: navigator.locks의 데드락 이슈(탭 백그라운드 전환 시 멈춤)를 피하기 위해 localStorage 기반 Mutex 사용
  */
 
-const isSafariOrMobile = () => {
+const shouldUseLocalStorageLock = () => {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent.toLowerCase();
     const isSafari = ua.includes('safari') && !ua.includes('chrome') && !ua.includes('android');
-    const isMobile = /iphone|ipad|ipod|android/i.test(ua);
-    return isSafari || isMobile;
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    return isSafari || isIOS;
+};
+
+const warnLock = (...args: unknown[]) => {
+    if (!import.meta.env.DEV) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    console.warn(...args);
 };
 
 // LocalStorage Mutex Polyfill
@@ -34,7 +40,7 @@ class LocalStorageLock {
             localStorage.setItem(`${this.lockKey}-test`, '1');
             localStorage.removeItem(`${this.lockKey}-test`);
         } catch (e) {
-            console.warn('[HybridLock] LocalStorage access blocked (Secret Mode?). Bypassing lock.');
+            warnLock('[HybridLock] LocalStorage access blocked (Secret Mode?). Bypassing lock.');
             return await fn();
         }
 
@@ -43,7 +49,7 @@ class LocalStorageLock {
         const initialDrift = beforeLoop - start;
 
         if (initialDrift >= this.timeout) {
-            console.warn(`[HybridLock] Main thread was blocked for ${initialDrift}ms (Timeout: ${this.timeout}ms). This is a 'Long Task' issue in the app, bypassing lock.`);
+            warnLock(`[HybridLock] Main thread was blocked for ${initialDrift}ms (Timeout: ${this.timeout}ms). This is a 'Long Task' issue in the app, bypassing lock.`);
         }
 
         // Polling loop
@@ -76,7 +82,7 @@ class LocalStorageLock {
                     }
                 }
             } catch (e) {
-                console.warn('[HybridLock] Error during lock acquisition:', e);
+                warnLock('[HybridLock] Error during lock acquisition:', e);
                 break; // 에러 발생 시 루프 중단 후 Fallback 실행
             }
 
@@ -88,14 +94,14 @@ class LocalStorageLock {
             // 메인 스레드가 심각하게 잠긴 것이므로 락 획득 시도를 잠시 멈추거나 조건부 우회 검토
             const gap = Date.now() - loopTick;
             if (gap > 200) {
-                console.warn(`[HybridLock] High main thread saturation detected (${gap}ms gap). Extending tolerance.`);
+                warnLock(`[HybridLock] High main thread saturation detected (${gap}ms gap). Extending tolerance.`);
                 start += gap;
                 await new Promise(r => setTimeout(r, 100)); // 휴식 시간 연장
             }
         }
 
         // Timeout fallback: Just run it (unsafe but better than crash)
-        console.warn(`[HybridLock] Lock acquisition timed out (${this.timeout}ms), bypassing lock`);
+        warnLock(`[HybridLock] Lock acquisition timed out (${this.timeout}ms), bypassing lock`);
         return await fn();
     }
 }
@@ -104,8 +110,8 @@ export const hybridLock = async (name: string, timeout: number = 1500, fn: () =>
     // [Safety] Supabase 내부에서 timeout을 0이나 undefined로 넘길 경우 기본값 적용
     const effectiveTimeout = (!timeout || timeout <= 0) ? 1500 : timeout;
 
-    // 1. Safari나 모바일 환경이면 무조건 커스텀 락 사용 (안전 최우선)
-    if (isSafariOrMobile()) {
+    // 1. iOS/Safari 환경이면 커스텀 락 사용. Android Chrome은 Web Locks API가 안정적이라 네이티브 락을 우선한다.
+    if (shouldUseLocalStorageLock()) {
         const locker = new LocalStorageLock(name, effectiveTimeout);
         return locker.acquire(fn);
     }
@@ -115,7 +121,7 @@ export const hybridLock = async (name: string, timeout: number = 1500, fn: () =>
         try {
             return await navigator.locks.request(name, { mode: 'exclusive' }, fn);
         } catch (e) {
-            console.warn('[HybridLock] Native lock failed, falling back to direct execution', e);
+            warnLock('[HybridLock] Native lock failed, falling back to direct execution', e);
             return await fn();
         }
     }

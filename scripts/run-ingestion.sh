@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "${BASH_SOURCE[0]}" != "$0" ]; then
+    echo "run-ingestion.sh는 source로 실행하지 말고 bash scripts/run-ingestion.sh 형태로 실행하세요." >&2
+    return 2
+fi
+
 set -u
 
 export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin
@@ -17,7 +22,18 @@ RUN_DIR="${RUN_DIR:-/Users/inteyeo/ingestion-runs}"
 RUN_OUTPUT="$RUN_DIR/${RUN_ID}.jsonl"
 RUN_LAST="$RUN_DIR/${RUN_ID}.last.txt"
 RUN_META="$RUN_DIR/${RUN_ID}.meta"
-PROMPT_FILE="$PROJECT_ROOT/scripts/codex-ingestion-prompt.md"
+INGESTION_PROFILE="${INGESTION_PROFILE:-swing-daily}"
+
+if [ -z "${PROMPT_FILE:-}" ]; then
+    case "$INGESTION_PROFILE" in
+        expanded-research)
+            PROMPT_FILE="$PROJECT_ROOT/scripts/codex-expanded-research-prompt.md"
+            ;;
+        *)
+            PROMPT_FILE="$PROJECT_ROOT/scripts/codex-ingestion-prompt.md"
+            ;;
+    esac
+fi
 
 mkdir -p "$RUN_DIR"
 
@@ -40,6 +56,13 @@ load_supabase_env() {
 telegram_notify() {
     local text="$1"
     local payload http_code response_file
+
+    if [ "${TELEGRAM_DRY_RUN:-0}" = "1" ]; then
+        log "--- Telegram dry-run ---"
+        log "$text"
+        return 0
+    fi
+
     response_file="/tmp/rhythmjoy_telegram_${RUN_ID}.json"
     payload=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps({'chat_id':'${TELEGRAM_CHAT_ID}','text':sys.stdin.read()}))")
 
@@ -70,11 +93,21 @@ kill_tree() {
     local signal="${2:-TERM}"
     local child
 
+    if [ -z "$pid" ]; then
+        return 0
+    fi
+
     for child in $(pgrep -P "$pid" 2>/dev/null); do
         kill_tree "$child" "$signal"
     done
 
     kill "-$signal" "$pid" 2>/dev/null || true
+}
+
+cleanup_playwright_mcp() {
+    local signal="${1:-TERM}"
+    pkill "-$signal" -f "npm exec @playwright/mcp@latest --cdp-endpoint http://localhost:9222" 2>/dev/null || true
+    pkill "-$signal" -f "playwright-mcp --cdp-endpoint http://localhost:9222" 2>/dev/null || true
 }
 
 acquire_lock() {
@@ -150,6 +183,67 @@ run: $RUN_ID"
     fi
 
     log "--- 수집 기준 테스트 통과 ---"
+
+    if [ "$INGESTION_PROFILE" = "swing-daily" ]; then
+        if ! node --input-type=module <<'NODE' >> "$LOG_FILE" 2>&1
+import { getAutomationSourceList } from './scripts/ingestion/collection-registry.mjs';
+
+const sources = getAutomationSourceList('swing-daily');
+const invalid = sources.filter((source) => {
+  const url = String(source.url || '');
+  return source.scope !== 'swing'
+    || source.saveEnabled !== true
+    || /batswing\.co\.kr|meroniswing\.com/i.test(url);
+});
+
+if (!sources.length) {
+  console.error('swing-daily source list is empty');
+  process.exit(1);
+}
+
+if (invalid.length) {
+  console.error('swing-daily contains invalid sources:', JSON.stringify(invalid, null, 2));
+  process.exit(1);
+}
+
+console.log(`swing-daily source guard passed: ${sources.length} sources`);
+NODE
+        then
+            log "--- swing-daily 소스 가드 실패 ---"
+            telegram_notify "댄스 이벤트 Codex 수집 실패
+swing-daily 소스 가드 실패
+run: $RUN_ID"
+            exit 78
+        fi
+
+        log "--- swing-daily 소스 가드 통과 ---"
+    fi
+}
+
+run_past_cleanup() {
+    local cleanup_log result cleanup_count cleanup_deleted
+    cleanup_log="$RUN_DIR/${RUN_ID}.cleanup.json"
+
+    if ! result=$(node "$PROJECT_ROOT/scripts/ingestion/cleanup-past-collected.mjs" --apply --out "$cleanup_log" 2>> "$LOG_FILE"); then
+        log "--- 과거 완료 데이터 정리 실패: log=$cleanup_log ---"
+        telegram_notify "댄스 이벤트 Codex 수집 실패
+과거 완료 데이터 정리 사전검사 실패
+run: $RUN_ID
+log: $cleanup_log"
+        exit 78
+    fi
+
+    cleanup_count=$(node -e "const data=JSON.parse(process.argv[1]); console.log(data.count ?? '?')" "$result" 2>/dev/null || echo "?")
+    cleanup_deleted=$(node -e "const data=JSON.parse(process.argv[1]); console.log(data.deleted ?? '?')" "$result" 2>/dev/null || echo "?")
+
+    export INGESTION_PRE_CLEANUP_COUNT="$cleanup_deleted"
+    export INGESTION_PRE_CLEANUP_CANDIDATES="$cleanup_count"
+    export INGESTION_PRE_CLEANUP_LOG="$cleanup_log"
+
+    echo "cleanup_log=$cleanup_log" >> "$RUN_META"
+    echo "cleanup_candidates=$cleanup_count" >> "$RUN_META"
+    echo "cleanup_deleted=$cleanup_deleted" >> "$RUN_META"
+    log "--- 과거 완료 데이터 정리: candidates=$cleanup_count / deleted=$cleanup_deleted / log=$cleanup_log ---"
 }
 
 extract_summary() {
@@ -179,6 +273,7 @@ EOF
 log "--- Codex 수집 시작: $(date '+%Y-%m-%d %H:%M:%S') / run=$RUN_ID ---"
 
 acquire_lock
+cleanup_playwright_mcp TERM
 
 telegram_notify "댄스 이벤트 Codex 수집 시작
 $(date '+%Y-%m-%d %H:%M')
@@ -216,13 +311,27 @@ fi
 echo "run_id=$RUN_ID" > "$RUN_META"
 echo "started_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
 echo "codex=$CODEX" >> "$RUN_META"
+echo "profile=$INGESTION_PROFILE" >> "$RUN_META"
 echo "prompt=$RUN_DIR/${RUN_ID}.prompt.md" >> "$RUN_META"
 echo "output=$RUN_OUTPUT" >> "$RUN_META"
 echo "last=$RUN_LAST" >> "$RUN_META"
 
-set -m
-/opt/homebrew/bin/gtimeout --kill-after=60 "$TIMEOUT_SECONDS" \
-    "$CODEX" --search exec \
+if [ "${INGESTION_SKIP_CLEANUP:-0}" = "1" ]; then
+    export INGESTION_PRE_CLEANUP_COUNT=0
+    export INGESTION_PRE_CLEANUP_CANDIDATES=0
+    export INGESTION_PRE_CLEANUP_LOG=""
+    echo "cleanup_skipped=true" >> "$RUN_META"
+    echo "cleanup_candidates=0" >> "$RUN_META"
+    echo "cleanup_deleted=0" >> "$RUN_META"
+    log "--- 과거 완료 데이터 정리 스킵: INGESTION_SKIP_CLEANUP=1 ---"
+else
+    run_past_cleanup
+fi
+
+TIMEOUT_FLAG="$RUN_DIR/${RUN_ID}.timeout"
+rm -f "$TIMEOUT_FLAG"
+
+"$CODEX" --search exec \
     --cd "$PROJECT_ROOT" \
     --sandbox danger-full-access \
     --dangerously-bypass-approvals-and-sandbox \
@@ -233,10 +342,51 @@ set -m
     > "$RUN_OUTPUT" 2>&1 &
 
 CODEX_PID=$!
-wait $CODEX_PID
-EXIT_CODE=$?
+echo "codex_pid=$CODEX_PID" >> "$RUN_META"
+
+DEADLINE=$(( $(date +%s) + TIMEOUT_SECONDS ))
+EXIT_CODE=0
+TIMED_OUT=0
+
+while kill -0 "$CODEX_PID" 2>/dev/null; do
+    if [ "$(date +%s)" -ge "$DEADLINE" ]; then
+        TIMED_OUT=1
+        {
+            echo "timeout_at=$(date '+%Y-%m-%d %H:%M:%S')"
+            echo "timeout_after_seconds=$TIMEOUT_SECONDS"
+        } > "$TIMEOUT_FLAG"
+
+        log "--- Codex 수집 타임아웃: pid=$CODEX_PID / ${TIMEOUT_SECONDS}s ---"
+        kill_tree "$CODEX_PID" TERM
+        cleanup_playwright_mcp TERM
+        sleep 10
+
+        if kill -0 "$CODEX_PID" 2>/dev/null; then
+            log "--- Codex 수집 강제 종료: pid=$CODEX_PID ---"
+            kill_tree "$CODEX_PID" KILL
+        fi
+        cleanup_playwright_mcp KILL
+        break
+    fi
+
+    sleep 5
+done
+
+if [ "$TIMED_OUT" -eq 1 ]; then
+    wait "$CODEX_PID" 2>/dev/null || true
+    EXIT_CODE=124
+else
+    wait "$CODEX_PID"
+    EXIT_CODE=$?
+fi
+
+if [ -f "$TIMEOUT_FLAG" ]; then
+    EXIT_CODE=124
+    cat "$TIMEOUT_FLAG" >> "$RUN_META"
+fi
 
 kill_tree "$CODEX_PID" TERM
+cleanup_playwright_mcp TERM
 
 echo "ended_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
 echo "exit_code=$EXIT_CODE" >> "$RUN_META"

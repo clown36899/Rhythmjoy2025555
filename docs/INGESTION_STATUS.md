@@ -4,11 +4,54 @@
 > 수집 에이전트가 매 실행 후 자동 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.  
 > 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
 
-**최종 업데이트**: 2026-05-08 14:55
+**최종 업데이트**: 2026-05-27 23:05
 
 ---
 
 ## 📊 실행 로그
+
+### 2026-05-27 08:11 자동 실행 (Codex/MCP hang, 부모 감시 루프로 개선)
+- **신규 수집**: 미완료
+- **중복 스킵**: 미완료
+- **접근 불가**: 미완료
+- **실제 상태**: `/Users/inteyeo/ingestion-runs/20260527_081105_7223.*` 실행이 14시간 이상 종료되지 않고 `codex --search exec`, Playwright MCP, `/tmp/rhythmjoy-ingestion.lock`을 유지했다. 23:00경 수동으로 프로세스와 stale MCP를 종료하고 lock을 제거했다.
+- **DB 정리 확인**: pre-cleanup은 정상 작동했다. `2026-05-27` 기준 과거 완료 데이터 2건만 삭제됨: `2026-05-26` 스윙타운 화봉 DJ 루나, `2026-05-26` 경성홀 화요 소셜. 삭제 대상은 `{run_id}.cleanup.json`에 기록됨.
+- **현재 DB 현황 점검**: visible 34건, 신규 9건, 완료 23건, 중복 2건, 미래 완료 23건, 과거 완료 0건. cleanup 재점검 결과 삭제 후보 0건.
+- **원인**: 2026-05-26에 추가한 별도 watchdog 방식이 실제 장시간 Codex/WebSocket idle hang에서 충분하지 않았다. 부모 스크립트는 `wait $CODEX_PID`에 묶였고, watchdog 자식도 실효 종료를 만들지 못해 lock과 MCP가 남았다.
+- **조치**:
+  - `scripts/run-ingestion.sh`를 부모 감시 루프로 변경. 부모가 5초마다 Codex PID를 직접 확인하고 `TIMEOUT_SECONDS` 초과 시 `TERM` → 10초 대기 → `KILL`을 수행한다.
+  - 타임아웃 시 Playwright MCP(`@playwright/mcp`, `playwright-mcp --cdp-endpoint http://localhost:9222`)도 함께 정리한다.
+  - `swing-daily` 실행 직전에 source guard를 추가해 스윙 scope, 저장 가능 source, BAT/Meroni 제외 조건을 검사한다.
+  - 테스트 전용 `INGESTION_SKIP_CLEANUP=1`을 추가해 smoke/timeout 검증 중 운영 DB cleanup을 반복 실행하지 않도록 했다.
+  - LaunchAgent plist에는 종료 보조값 `ExitTimeOut=15`만 둔다. 실행 시간 제한은 launchd가 아니라 `run-ingestion.sh` 부모 감시 루프가 담당한다.
+- **검증**:
+  - `bash -n scripts/run-ingestion.sh`
+  - `node scripts/test-ingestion-standards.mjs`
+  - fake Codex 30초 sleep + `TIMEOUT_SECONDS=3` → `exit_code=124`, timeout meta 기록, lock 해제 확인.
+  - 실제 Codex smoke prompt + `INGESTION_SMOKE_TEST=1` → `exit_code=0`, summary 추출, lock 해제 확인.
+- **운영 원칙**: 매일 자동 실행은 `swing-daily`만 사용한다. 타장르는 scene map 조사/후보 검증을 위해 `expanded-research` 또는 `expanded-ingestion`으로 수동 분리한다.
+
+### 2026-05-26 08:00 자동 실행 (타임아웃 미작동으로 수동 종료)
+- **신규 수집**: 0건
+- **중복 스킵**: 0건
+- **접근 불가**: 미완료
+- **실제 상태**: `/Users/inteyeo/ingestion-runs/20260526_080031_95979.*` 실행이 08:00부터 14:20까지 종료되지 않고 `codex --search exec` 프로세스와 `/tmp/rhythmjoy-ingestion.lock`을 유지했다. 수동으로 종료했고 최종 `exit_code=143`, 종료 Telegram은 전송됨.
+- **DB 확인**: 운영 DB 전량 삭제 아님. 확인 시점 기준 `scraped_events` visible 36건, 신규 11건, 완료 25건, 중복 2건, 미래 완료 25건, 과거 완료 0건. 과거 완료 0건은 의도된 과거 완료 cleanup 결과다.
+- **원인**: `scripts/run-ingestion.sh`가 `/opt/homebrew/bin/gtimeout`에 Codex 실행 종료를 맡겼는데 실제 Codex/자식 프로세스가 제한 시간 이후에도 남았다. 그래서 완료 summary와 종료 문자가 정상 경로로 나오지 않았다.
+- **조치**: `gtimeout` 의존을 제거하고 별도 watchdog 프로세스를 추가했다. 제한 시간 초과 시 Codex 자식 프로세스까지 `TERM` 후 `KILL`, `exit_code=124`, timeout meta 기록, 실패 Telegram 경로로 들어간다. `TELEGRAM_DRY_RUN=1`을 추가해 로컬 검증 시 실제 문자 발송 없이 테스트 가능하게 했다.
+- **데이터 보존 조치**: 과거 완료 데이터 정리를 LLM raw `DELETE`에서 `scripts/ingestion/cleanup-past-collected.mjs`로 이동했다. 이제 자동 실행은 삭제 전 대상 `id/display_no/date/title/location/source_url`을 `{run_id}.cleanup.json`에 남기고, `is_collected=true` 및 `structured_data.date < 오늘` 조건을 재검증한 뒤 ID 기반으로만 삭제한다.
+- **검증**:
+  - 가짜 Codex 60초 sleep + `TIMEOUT_SECONDS=2` → `exit_code=124`, timeout meta/log 기록, 잔여 프로세스 없음.
+  - 실제 Codex smoke prompt + `INGESTION_SMOKE_TEST=1` → `exit_code=0`, cleanup JSON 기록, summary 추출, 완료 Telegram dry-run 경로 확인.
+- **개선 필요**: 다음 실제 08:00 자동 실행에서 25분 내 정상 종료 또는 timeout 실패 문자가 오는지 확인. 정기 실행에는 `swing-daily`만 사용하고 타장르 조사는 별도 `expanded-research`로 분리 유지.
+
+### 2026-05-26 02:29 실행 (expanded-research 검증 중단)
+- **신규 수집**: 0건
+- **중복 스킵**: 0건
+- **접근 불가**: 없음
+- **이슈**: 수집 안정화 검증 중 `INGESTION_PROFILE=expanded-research` 래퍼가 실수로 시작되어 즉시 중단함. Telegram 실패 알림 1건이 전송되었으나 정기 수집 실패가 아니며, research 프로필은 저장 금지 프롬프트라 DB/Storage 쓰기 없이 웹 조사 단계에서 종료됨.
+- **개선 필요**: 수동 검증 시 `source scripts/run-ingestion.sh` 금지. dry-run 검증은 `node scripts/test-ingestion-standards.mjs`, `bash -n scripts/run-ingestion.sh`, `getAutomationSourceList(...)` 출력 확인으로만 수행.
+- **수집 목록**: 없음
 
 ### 2026-05-21 15:15 실행 (스윙스캔들 최우선 수집)
 - **신규 수집**: 2건 (스윙스캔들 5/21 목요소셜, 5/23 토요소셜)
@@ -223,9 +266,9 @@
 ### 구성요소
 | 구성 | 경로/내용 | 상태 |
 |------|-----------|------|
-| LaunchAgent plist | `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist` | ✅ 로드됨 (매일 08:00) |
-| 실행 스크립트 | `/Users/inteyeo/scripts/run-ingestion.sh` | ✅ `claude -p` 방식 (2026-04-24 복구) |
-| 수집 스킬 | `/Users/inteyeo/Rhythmjoy2025555-5/.claude/skills/web-search-ingestion/SKILL.md` | ✅ 존재 |
+| LaunchAgent plist | `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.codex-ingestion.plist` | ✅ 로드됨 (매일 08:00) |
+| 실행 스크립트 | `/Users/inteyeo/scripts/run-ingestion.sh` | ✅ Codex 실행 + watchdog + cleanup 로그 |
+| 수집 스킬 | `/Users/inteyeo/Rhythmjoy2025555-5/.agents/skills/web-search-ingestion/SKILL.md` | ✅ 존재 |
 | 실행 로그 | `/Users/inteyeo/claude_ingestion.log` | ✅ 기록 중 |
 | 데이터 저장소 | Supabase `scraped_events` 테이블 (REST API) | ✅ 정상 |
 
@@ -235,10 +278,11 @@ LaunchAgent (매일 08:00)
 → run-ingestion.sh
   → Telegram: 수집 시작 알림
   → Chrome CDP 포트 9222 확인/실행 (headless)
-  → claude -p "/web-search-ingestion" --allowedTools (Playwright MCP 포함)
+  → cleanup-past-collected.mjs: 과거 완료 데이터 대상 JSON 기록 후 삭제
+  → codex --search exec (Web Search Ingestion V2 지침)
     → 인스타그램/네이버카페 스크랩 (Playwright browser → 봇판정 방지)
     → 이미지 Supabase Storage 업로드
-    → scraped_events 테이블 INSERT
+    → Netlify scraped-events 함수로 후보 저장/중복 처리
   → Telegram: 수집 완료/실패 알림 (exit code 기반)
 ```
 

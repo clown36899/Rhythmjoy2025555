@@ -1,7 +1,7 @@
 # 스윙씬 자동 수집 시스템 — 재구축 가이드
 
 > 이 문서는 컴퓨터가 교체/초기화되었을 때 수집 시스템 전체를 그대로 복구하기 위한 기록입니다.  
-> **마지막 검증**: 2026-05-10 (Codex smoke test exit=0 확인)
+> **마지막 검증**: 2026-05-27 (Codex smoke test exit=0, fake timeout exit=124 확인)
 
 ---
 
@@ -81,8 +81,10 @@ chmod +x /Users/inteyeo/scripts/run-ingestion.sh
 핵심 안전장치:
 - Claude CLI를 사용하지 않고 `codex exec`로 실행한다.
 - `/Users/inteyeo/ingestion-runs/{run_id}.jsonl`, `.last.txt`, `.meta`를 남긴다.
+- `/Users/inteyeo/ingestion-runs/{run_id}.cleanup.json`에 과거 완료 데이터 정리 대상과 삭제 수를 남긴다.
 - `/tmp/rhythmjoy-ingestion.lock`으로 중복 실행을 차단한다.
-- `gtimeout`으로 hang 된 Codex 실행을 정리한다.
+- 부모 감시 루프가 hang 된 Codex 실행과 자식 프로세스를 정리한다. 제한 시간이 지나면 Codex와 Playwright MCP를 `TERM` 후 `KILL`하고 `exit_code=124`를 기록한다.
+- `swing-daily` 실행 직전 source guard가 스윙 scope만 포함되는지, BAT/Meroni 같은 제외 소스가 섞이지 않았는지 검사한다.
 - Telegram 전송 성공/실패를 로그에 남긴다.
 - `==TELEGRAM_SUMMARY_*==` 블록이 없어도 실패/완료 알림을 보낸다.
 
@@ -103,6 +105,7 @@ launchctl list | grep rhythmjoy
 
 > **macOS 동작 조건**: 전원 연결(충전기) 상태에서 덮개를 닫아도 08:00에 실행됨.  
 > 배터리만으로 덮개 닫으면 깊은 잠자기로 실행 안 될 수 있음.
+> 실행 시간 제한은 `run-ingestion.sh`의 부모 감시 루프가 담당한다. LaunchAgent의 `ExitTimeOut=15`는 launchd가 작업을 멈출 때 SIGTERM 이후 SIGKILL까지 기다리는 종료 보조값이다.
 
 ---
 

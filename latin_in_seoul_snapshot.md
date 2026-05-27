@@ -1,0 +1,14 @@
+- generic [ref=e1]:
+  - generic [ref=e11]:
+    - generic [ref=e13]:
+      - link [ref=e16] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e24]
+    - main [ref=e29]:
+      - generic [ref=e31]
+    - contentinfo [ref=e284]:
+      - generic [ref=e285]
+  - dialog [ref=e355]:
+    - generic [ref=e356]:
+      - button "닫기" [active] [ref=e358] [cursor=pointer]
+      - generic [ref=e364]

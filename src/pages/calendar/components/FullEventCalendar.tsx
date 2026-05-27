@@ -125,7 +125,7 @@ const CalendarCell = memo(({
         {shouldRenderEvents ? (
           <>
           {events.map((event) => {
-            const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
+            const thumbnailUrl = event.image_micro || event.image_thumbnail || event.image_medium;
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = event.venue_name || event.place_name || event.location || '';
             const category = String(event.category || '').toLowerCase();
@@ -446,7 +446,7 @@ export default memo(function FullEventCalendar({
     if (highlightedEventId) {
       requestAnimationFrame(() => {
         const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
-        if (eventCard) {
+        if (eventCard && eventCard.isConnected) {
           // Custom scroll logic to center the element reliably
           const elementRect = eventCard.getBoundingClientRect();
           const absoluteElementTop = elementRect.top + window.scrollY;

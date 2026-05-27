@@ -29,12 +29,15 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
 
                 // Then, wait a bit and do horizontal scroll
                 setTimeout(() => {
-                    // Find the horizontal scroll container (correct class name)
-                    const slideContainer = eventCard.closest('.ELS-scroller, .USS-scroller, .EHLV-list');
+                    const freshEventCard = document.querySelector(`[data-event-id="${eventId}"]`);
+                    if (!freshEventCard || !freshEventCard.isConnected) return;
 
-                    if (slideContainer) {
+                    // Find the horizontal scroll container (correct class name)
+                    const slideContainer = freshEventCard.closest('.ELS-scroller, .USS-scroller, .EHLV-list');
+
+                    if (slideContainer && slideContainer.isConnected) {
                         // Get fresh positions after vertical scroll
-                        const cardRect = eventCard.getBoundingClientRect();
+                        const cardRect = freshEventCard.getBoundingClientRect();
                         const containerRect = slideContainer.getBoundingClientRect();
 
                         // Calculate scroll position to center the card

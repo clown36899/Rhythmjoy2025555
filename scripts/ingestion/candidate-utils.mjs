@@ -112,6 +112,53 @@ const tagRules = [
   ['popup', [/팝업/i, /pop-up/i, /special\s*class/i]],
 ];
 
+const regionSuffixRe = /\s*[()（）]\s*(신촌|합정|선릉|사당|강남|강북|홍대|상수|망원|연남|서교|마포|신림|봉천|건대|성수|이태원|서울|부산|대구|인천|대전|광주|수원|분당|판교)\s*[()（）]\s*$/i;
+const parenContentRe = /\s*[()（）][^()（）]{1,12}[()（）]\s*$/;
+
+const canonicalVenueAliases = [
+  [/^경성홀(?:신촌)?$/i, '경성홀'],
+  [/^해피홀(?:신촌)?$/i, '해피홀'],
+  [/^(?:소셜클럽|쏘셜클럽|sosyalclub)(?:합정)?$/i, '소셜클럽'],
+  [/^스윙타임(?:바)?(?:선릉)?$/i, '스윙타임'],
+  [/^인더무드(?:신림)?$/i, '인더무드'],
+  [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
+];
+
+function compactVenueText(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[()（）\-_.,·]/g, '');
+}
+
+function stripTrailingQualifier(value = '') {
+  return String(value || '')
+    .trim()
+    .replace(regionSuffixRe, '')
+    .replace(parenContentRe, '')
+    .trim();
+}
+
+export function toMapSafeVenueName(value = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const stripped = stripTrailingQualifier(raw) || raw;
+  const compact = compactVenueText(stripped);
+  const matched = canonicalVenueAliases.find(([pattern]) => pattern.test(compact));
+  return matched?.[1] || stripped;
+}
+
+function normalizeCandidateVenueStructuredData(structuredData = {}) {
+  const location = toMapSafeVenueName(structuredData.location || structuredData.venue_name || '');
+  const venueName = toMapSafeVenueName(structuredData.venue_name || location);
+  return {
+    ...structuredData,
+    ...(location ? { location } : {}),
+    ...(venueName ? { venue_name: venueName } : {}),
+  };
+}
+
 export function todayISO(now = new Date()) {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -301,10 +348,10 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
 export function prepareCandidate(rawCandidate, config = {}) {
   const normalizedSourceUrl = normalizeSourceUrl(rawCandidate.source_url);
   const taxonomy = inferCandidateTaxonomy({ ...rawCandidate, source_url: normalizedSourceUrl });
-  const structuredData = {
+  const structuredData = normalizeCandidateVenueStructuredData({
     ...(rawCandidate.structured_data || {}),
     ...taxonomy,
-  };
+  });
   const date = String(structuredData.date || '').slice(0, 10);
   const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, date, rawCandidate.id_suffix || '');
   const candidate = {

@@ -16,6 +16,15 @@ const EXPANDED_HEIGHT = 200;
 const FOOTER_HEIGHT = 130; // 하단 네비게이션 고정 높이
 const MIN_SWIPE_DISTANCE = 40;
 
+const getSafeRect = (element: Element | null | undefined) => {
+  if (!element || !element.isConnected) return null;
+  try {
+    return element.getBoundingClientRect();
+  } catch {
+    return null;
+  }
+};
+
 export function useCalendarGesture({
   headerHeight,
   containerRef,
@@ -244,7 +253,8 @@ export function useCalendarGesture({
       if (gestureRef.current.isActive) return;
       if (latestStateRef.current.isAnimating || (isTouchGestureEvent(e) && e.touches.length > 1)) return;
       if (isPointerGestureEvent(e) && e.isPrimary === false) return;
-      const target = e.target as HTMLElement;
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      if (!target) return;
       // Allow gestures on calendar cells and event cards even if they have role="button"
       const isCalendarCell = target.closest('.calendar-cell-fullscreen, .calendar-cell-base');
       const isEventCard = target.closest('.calendar-fullscreen-event-card');
@@ -258,7 +268,8 @@ export function useCalendarGesture({
 
       const eventList = eventListElementRef.current;
       const scrollTop = eventList ? eventList.scrollTop : 0;
-      const currentHeight = calendarContentRef?.current ? calendarContentRef.current.getBoundingClientRect().height : getTargetHeight();
+      const calendarContent = calendarContentRef?.current;
+      const currentHeight = getSafeRect(calendarContent)?.height ?? getTargetHeight();
 
       if (calendarRef?.current && calendarContentRef?.current) {
         calendarRef.current.style.touchAction = 'pan-y'; // vertical scroll allowed
@@ -320,14 +331,15 @@ export function useCalendarGesture({
           // 프리뷰 모드(collapsed)에서는 가로 스와이프 비활성화
           if (absX > absY && latestStateRef.current.calendarMode !== 'collapsed') {
             gestureRef.current.isLocked = 'horizontal';
-            const target = e.target as HTMLElement;
-            const isCalendarArea = calendarRef?.current?.contains(target) || containerRef.current?.contains(target); // Fallback to container
+            const target = e.target instanceof Node ? e.target : null;
+            const isCalendarArea = target && (calendarRef?.current?.contains(target) || containerRef.current?.contains(target)); // Fallback to container
 
             // If explicitly strictly calendar page (no calendarRef provided but containerRef exists)
             // effectively treat container as calendar area for horizontal swipes.
             if (!isCalendarArea) return;
           } else if (absY > absX) {
-            const isTouchingCalendar = calendarRef?.current?.contains(e.target as Node);
+            const target = e.target instanceof Node ? e.target : null;
+            const isTouchingCalendar = !!target && calendarRef?.current?.contains(target);
 
             // DISABLED: Pull-down to expand calendar from event list
             // Users reported this feature was interfering with normal scrolling
@@ -352,7 +364,8 @@ export function useCalendarGesture({
 
       const currentLock = gestureRef.current.isLocked;
       if (currentLock === 'horizontal') {
-        if (e.cancelable && !(e.target as HTMLElement)?.closest('input[type="range"]')) e.preventDefault();
+        const target = e.target instanceof HTMLElement ? e.target : null;
+        if (e.cancelable && !target?.closest('input[type="range"]')) e.preventDefault();
         if (swipeAnimationRef.current) cancelAnimationFrame(swipeAnimationRef.current);
         swipeAnimationRef.current = requestAnimationFrame(() => setDragOffset(diffX));
         scheduleGestureEndFallback();

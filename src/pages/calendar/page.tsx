@@ -31,6 +31,15 @@ const CalendarDateMapModal = lazy(() => import("./components/CalendarDateMapModa
 const getCalendarLocalDateString = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+const getSafeRect = (element: Element | null | undefined) => {
+    if (!element || !element.isConnected) return null;
+    try {
+        return element.getBoundingClientRect();
+    } catch {
+        return null;
+    }
+};
+
 const getCalendarEventVenue = (event: any) =>
     event.venue_name || event.place_name || event.location || event.address || '';
 
@@ -193,13 +202,16 @@ export default function CalendarPage() {
             frame = 0;
             const stickyWeekdays = document.querySelector('.calendar-sticky-weekdays');
             const cells = Array.from(document.querySelectorAll<HTMLElement>('.calendar-cell-fullscreen[data-date]'));
-            if (!stickyWeekdays || cells.length === 0) return;
+            const stickyRect = getSafeRect(stickyWeekdays);
+            if (!stickyRect || cells.length === 0) return;
 
-            const switchLineY = stickyWeekdays.getBoundingClientRect().bottom + 1;
+            const switchLineY = stickyRect.bottom + 1;
             const rows = new Map<number, HTMLElement[]>();
 
             cells.forEach((cell) => {
-                const rowTop = Math.round(cell.getBoundingClientRect().top);
+                const rect = getSafeRect(cell);
+                if (!rect) return;
+                const rowTop = Math.round(rect.top);
                 const existing = rows.get(rowTop);
                 if (existing) existing.push(cell);
                 else rows.set(rowTop, [cell]);
@@ -209,7 +221,11 @@ export default function CalendarPage() {
                 .sort(([topA], [topB]) => topA - topB)
                 .map(([top, rowCells]) => ({
                     top,
-                    cells: rowCells.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left),
+                    cells: rowCells
+                        .map(cell => ({ cell, rect: getSafeRect(cell) }))
+                        .filter((entry): entry is { cell: HTMLElement; rect: DOMRect } => !!entry.rect)
+                        .sort((a, b) => a.rect.left - b.rect.left)
+                        .map(entry => entry.cell),
                 }));
 
             let activeRow = sortedRows[0];
@@ -306,6 +322,7 @@ export default function CalendarPage() {
     const userInteractedRef = useRef(false);
     const shouldScrollToTodayRef = useRef(false);
     const initialJumpDoneRef = useRef(false);
+    const todayScrollRunIdRef = useRef(0);
     const mountTimeRef = useRef(Date.now());
     const lastCalendarEntryKeyRef = useRef<string | null>(null);
     // [Fix] useEffect([currentMonth])가 마운트/재진입 직후 shouldScrollToToday를 덮어쓰는 것을 방지
@@ -352,11 +369,13 @@ export default function CalendarPage() {
 
     useEffect(() => {
         const handleInteraction = (e: Event) => {
-            if (Date.now() - mountTimeRef.current < 1500) return;
+            const isAutoTodayScrollPending = shouldScrollToTodayRef.current || !initialJumpDoneRef.current;
+            if (Date.now() - mountTimeRef.current < 1500 && !isAutoTodayScrollPending) return;
             const target = e.target as HTMLElement;
             if (target.closest('button') || target.closest('a') || target.getAttribute('role') === 'button') {
                 return;
             }
+            todayScrollRunIdRef.current += 1;
             if (!userInteractedRef.current) {
                 console.log(`👤 [캘린더] 사용자 조작 감지 (${e.type}) - 스크롤 중단`);
                 userInteractedRef.current = true;
@@ -518,6 +537,8 @@ export default function CalendarPage() {
         let retryCount = 0;
         let didFinish = false;
         const maxRetries = 14;
+        const runId = ++todayScrollRunIdRef.current;
+        const isCurrentRun = () => todayScrollRunIdRef.current === runId;
 
         const finish = () => {
             if (didFinish) return;
@@ -530,23 +551,33 @@ export default function CalendarPage() {
             const todayEl = document.querySelector('.calendar-cell-fullscreen.is-today');
             const navHeaderEl = document.querySelector('.calendar-live-sticky-controls')
                 || document.querySelector('.shell-header.global-header-fixed');
+            const gridRect = getSafeRect(gridEl);
 
-            if (!gridEl) return null;
+            if (!gridRect) return null;
             if (!todayEl && retryCount < maxRetries) return null;
 
-            const headerBottom = navHeaderEl ? navHeaderEl.getBoundingClientRect().bottom : 0;
-            const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
+            const navRect = getSafeRect(navHeaderEl);
+            const headerBottom = navRect ? navRect.bottom : 0;
+            const gridAbsoluteTop = gridRect.top + window.scrollY;
 
             if (todayEl) {
-                const todayRect = todayEl.getBoundingClientRect();
-                const finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
-                return Math.max(0, gridAbsoluteTop + finalY - headerBottom);
+                const todayRect = getSafeRect(todayEl);
+                if (todayRect) {
+                    const finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
+                    return Math.max(0, gridAbsoluteTop + finalY - headerBottom);
+                }
+                if (retryCount < maxRetries) return null;
             }
 
             return Math.max(0, gridAbsoluteTop + calendarMetrics.targetY - headerBottom);
         };
 
         const performWarp = () => {
+            if (!isCurrentRun()) {
+                finish();
+                return;
+            }
+
             const scrollTarget = computeTarget();
             if (scrollTarget === null) {
                 if (retryCount >= maxRetries) {
@@ -559,6 +590,7 @@ export default function CalendarPage() {
             }
 
             const scrollToComputedTarget = (scrollBehavior: ScrollBehavior) => {
+                if (!isCurrentRun()) return;
                 const nextTarget = computeTarget();
                 if (nextTarget === null) return;
                 if (Math.abs(window.scrollY - nextTarget) > 2) {
@@ -570,6 +602,10 @@ export default function CalendarPage() {
 
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
+                    if (!isCurrentRun()) {
+                        finish();
+                        return;
+                    }
                     scrollToComputedTarget('auto');
                     [140, 360, 760].forEach((delay) => {
                         window.setTimeout(() => scrollToComputedTarget('auto'), delay);
@@ -580,7 +616,13 @@ export default function CalendarPage() {
         };
 
         requestAnimationFrame(() => {
-            requestAnimationFrame(performWarp);
+            requestAnimationFrame(() => {
+                if (!isCurrentRun()) {
+                    finish();
+                    return;
+                }
+                performWarp();
+            });
         });
 
     }, [calendarMetrics]);

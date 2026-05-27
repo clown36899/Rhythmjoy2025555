@@ -16,6 +16,8 @@
         <key>Minute</key>
         <integer>0</integer>
     </dict>
+    <key>ExitTimeOut</key>
+    <integer>15</integer>
     <key>StandardOutPath</key>
     <string>/Users/inteyeo/claude_ingestion.log</string>
     <key>StandardErrorPath</key>

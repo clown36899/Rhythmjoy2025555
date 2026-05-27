@@ -198,7 +198,8 @@ export const EventCard = memo(({
               alt={event.title}
               className="ECARD-image"
               loading={loading}
-              decoding="sync"
+              decoding={loading === "eager" ? "sync" : "async"}
+              fetchPriority={loading === "eager" ? "high" : "auto"}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = event.category === 'class'
