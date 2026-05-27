@@ -30,7 +30,8 @@ sleep 1
 ### 종료 시 절대 규칙
 - **어떤 상황에서도 summary 블록을 출력하고 종료한다** — 에러, 타임아웃, 소스 전부 실패, 신규 0건 모두 해당.
 - summary 없이 종료하는 것은 **실패**로 간주 (run-ingestion.sh가 오류 처리함).
-- INGESTION_STATUS.md 갱신이 오래 걸리면 생략해도 되나, **summary 출력은 절대 생략 불가**.
+- 자동 실행(`swing-daily`)에서는 수집 루프가 끝나는 즉시 summary를 먼저 출력하고 종료한다. DB 후검증, 수동 보정, 문서 갱신은 summary 전에 하지 않는다.
+- 문서 갱신이 필요한 수동 점검은 별도 작업으로 분리한다. 자동 실행의 1차 로그는 `/Users/inteyeo/ingestion-runs/*.jsonl`, `.meta`, `.last.txt`, `/Users/inteyeo/claude_ingestion.log`다.
 
 ---
 
@@ -46,6 +47,7 @@ sleep 1
 ## 🚨 수집 및 필터링 핵심 규칙 (The Golden Rules)
 1. **미래 데이터만 수집**: 수집 시작일 기준 **오늘 혹은 내일 이후에 열리는 행사**만 수집한다. 이미 종료된 행사는 수집 대상에서 즉시 제외(Fast-fail)한다.
    - **반복 강습 예외**: "4/6, 13, 20일" 같이 여러 날짜가 있는 강습은 **첫 회 날짜**가 오늘 이전이면 수집 제외. 중간에 합류 권장이 아닌 이상 시작일 기준으로 판단한다.
+   - **마감일 오인식 금지**: 입금 마감, 얼리버드 마감, 신청 마감, 공지 작성일, 게시물 날짜는 이벤트 날짜가 아니다. 강습은 실제 시작일이 보일 때만 수집하고, 마감일만 보이면 스킵한다.
 2. **이미지 수집 필수**: CDN URL 추출 후 Supabase Storage에 업로드. 실패시 원본 URL을 poster_url로 기록.
 3. **씬 전체 순회**: 아래 Static Collection List + 동적 검색 키워드 양쪽 모두 사용.
 4. **로그인하지말것, 어떠한경우에도 봇판정나는 행위를 하지말것.**
@@ -481,7 +483,7 @@ fi
 
 #### L3 — 같은 날짜 DB 조회 + 문자 trigram + 공통 접두어 유사도 체크
 
-같은 날짜 이벤트를 DB에서 조회하고, 문자 trigram 유사도와 장소명 접두어 일치로 중복을 판단한다.  
+같은 날짜 이벤트를 DB에서 조회하고, 문자 trigram 유사도와 장소명 접두어 일치로 중복을 판단한다.
 (단어 토큰 방식은 한글 복합어에 취약하므로 문자 단위 n-gram을 사용한다.)
 
 ```bash
@@ -564,7 +566,7 @@ fi
 | 공통 접두어 ≥ 3자 + trigram ≥ 0.45 | 중복 | 해피홀금요소셜 ↔ 해피홀금요일소셜 |
 | 나머지 | 독립 이벤트 (삽입 OK) | 경성홀소셜 ↔ 봉천살롱소셜 |
 
-> ✅ **같은 기수 다른 레벨 강습 자동 통과**: "네오스윙 139기 베이직" ↔ "네오스윙 139기 초중급" — suffix가 길고 달라서 자동으로 독립 이벤트 판정. 실 DB 검증 완료.  
+> ✅ **같은 기수 다른 레벨 강습 자동 통과**: "네오스윙 139기 베이직" ↔ "네오스윙 139기 초중급" — suffix가 길고 달라서 자동으로 독립 이벤트 판정. 실 DB 검증 완료.
 > ✅ **날짜 필터 선행**: 다른 날의 정기소셜끼리 오탐하는 케이스는 실전에서 발생하지 않음.
 
 ---
@@ -614,7 +616,7 @@ curl -s -X POST "https://swingenjoy.com/.netlify/functions/scraped-events" \
 
 ### 4-B. 운영 DB 등록 매핑 기준
 
-수집 데이터는 관리자 검수용 원천 데이터이고, 운영 `events` 테이블 등록 시에는 아래 내부 코드로 변환된다.  
+수집 데이터는 관리자 검수용 원천 데이터이고, 운영 `events` 테이블 등록 시에는 아래 내부 코드로 변환된다.
 수집 시 `structured_data.event_type`, `structured_data.location`, `structured_data.address`, `structured_data.venue_id`, `structured_data.location_link`를 가능한 한 정확히 채워서 등록 화면의 재입력을 줄인다.
 
 | 수집 `activity_type` | 운영 `category` | 운영 `genre` | `group_id` |
@@ -629,8 +631,8 @@ curl -s -X POST "https://swingenjoy.com/.netlify/functions/scraped-events" \
 2. 카카오 지도 검색에 안전한 짧은 장소명
 3. 소스 계정의 고정 장소명(예: `swingtimebar` → `스윙타임`)
 
-장소명에 지역 보조표기가 붙어 있으면 `structured_data.location`에는 넣지 않는다.  
-예: `경성홀(신촌)`은 `location: "경성홀"`, `address: "서울 마포구 신촌로16길 30 지하 1층"`, `venue_id: "..."`, `location_link: "http://place.map.kakao.com/..."`로 저장한다.  
+장소명에 지역 보조표기가 붙어 있으면 `structured_data.location`에는 넣지 않는다.
+예: `경성홀(신촌)`은 `location: "경성홀"`, `address: "서울 마포구 신촌로16길 30 지하 1층"`, `venue_id: "..."`, `location_link: "http://place.map.kakao.com/..."`로 저장한다.
 지역/층/부가설명은 주소나 `note`에 둔다. 장소명에 섞으면 운영 등록 후 카카오 지도 인식률이 떨어진다.
 
 DJ 이름은 장르가 아니다. DJ는 `structured_data.djs`와 제목/설명에만 사용하고, 소셜 장르는 `소셜`로 저장한다.
@@ -665,9 +667,11 @@ SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
 
 ---
 
-## 📝 수집 완료 후 — 실행 로그 보고서 갱신 (필수)
+## 📝 수집 완료 후 — 실행 로그 보고서 갱신 (수동 점검 전용)
 
-수집이 끝나면 **반드시** `/Users/inteyeo/Rhythmjoy2025555-5/docs/INGESTION_STATUS.md` 파일의 `## 📊 실행 로그` 섹션에 이번 회차 결과를 추가한다.
+`swing-daily` 자동 실행 중에는 이 섹션을 수행하지 않는다. 자동 실행은 summary 출력이 최우선이며, 실행 기록은 래퍼가 run 파일과 Telegram으로 남긴다.
+
+사용자가 별도 수동 보고서 갱신을 지시했을 때만 `/Users/inteyeo/Rhythmjoy2025555-5/docs/INGESTION_STATUS.md` 파일의 `## 📊 실행 로그` 섹션에 이번 회차 결과를 추가한다.
 
 > ⚠️ **경로 고정**: 이 파일은 git 관리 대상. `/Users/inteyeo/scripts/INGESTION_STATUS.md` (구 경로)는 더 이상 사용하지 않는다.
 
@@ -706,7 +710,8 @@ SUPABASE_URL="${SUPABASE_URL:-$VITE_PUBLIC_SUPABASE_URL}"
 
 ## 📤 수집 종료 시 — Telegram 요약 출력 (필수 마지막 단계)
 
-INGESTION_STATUS.md 갱신이 끝나면 **반드시** 아래 형식을 stdout에 출력한다.  
+자동 실행에서는 수집 루프 직후 **반드시** 아래 형식을 stdout에 출력한다.
+수동 점검으로 INGESTION_STATUS.md를 갱신하는 경우에도 마지막에는 같은 블록을 출력한다.
 run-ingestion.sh가 이 블록을 파싱해서 Telegram으로 전송한다. **형식 절대 변경 금지.**
 
 > ⚠️ **호출 방식과 무관하게 항상 출력 필수**: LaunchAgent 자동실행이든, 터미널 수동 실행이든, "직접 호출이라 생략" 같은 판단 절대 금지. 항상 출력한다.

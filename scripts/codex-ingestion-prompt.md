@@ -12,7 +12,7 @@ Hard constraints:
 - Normalize and validate every candidate with `scripts/ingestion/candidate-utils.mjs` (`prepareCandidate` / `buildNetlifyPayload`) or produce an exactly equivalent payload.
 - If you change collection rules, source lists, or candidate shaping, run `node scripts/test-ingestion-standards.mjs` before ingestion.
 - Do not edit application source code, git history, or configuration during ingestion.
-- You may update only `docs/INGESTION_STATUS.md` at the end of the run, because it is the required run log. Do not edit other docs.
+- Do not edit repository files during the scheduled daily run. Runtime logs under `/Users/inteyeo/ingestion-runs` and `/Users/inteyeo/claude_ingestion.log` are the run log.
 - Do not commit or push.
 - Do not ask for approval. Proceed autonomously.
 - Keep the whole run within the time budget defined by the skill.
@@ -20,6 +20,7 @@ Hard constraints:
 - The wrapper has already run the mandatory past-collected cleanup through `scripts/ingestion/cleanup-past-collected.mjs`.
 - Do not run raw Supabase `DELETE` cleanup yourself during daily automation. Use `INGESTION_PRE_CLEANUP_COUNT` as the `과거데이터삭제` summary count.
 - Only insert events that have a verified source URL and a poster image.
+- Treat dates attached to payment deadlines, early-bird deadlines, registration deadlines, notice dates, or post timestamps as non-event dates. For classes, collect only when the actual class/workshop start date is visible. If the post only exposes a deadline date, skip it and record the reason.
 - Do not use cropped social preview images as posters. For Instagram, avoid `twitter:image`, `og:image`, `p240x240`, `s640x640`, or URLs with crop parameters such as `stp=c...` unless you have verified that the original post image itself is square and not cut off.
 - Before skipping an Instagram candidate for image quality, retry image extraction by opening the individual post URL with a large desktop viewport such as 1600x1200 and deviceScaleFactor 2, then choose the rendered `article img` `currentSrc` with the largest `naturalWidth * naturalHeight`. Small viewport/profile-grid extraction often returns only `p240x240` thumbnails.
 - If only a cropped/thumbnail image is still available after that large-viewport retry, skip the candidate and count it as skipped with an image issue. A bad cropped poster is worse than no candidate.
@@ -28,6 +29,7 @@ Hard constraints:
 - Do not insert directly into Supabase `scraped_events` with PostgREST. All candidate inserts must go through `https://swingenjoy.com/.netlify/functions/scraped-events`.
 - The Netlify `scraped-events` function is the canonical duplicate gate. It checks both `scraped_events` and the production `events` table and assigns `display_no`.
 - Treat a Netlify response with `count: 0` and `skipped` entries as a successful duplicate skip, not as a failed insert.
+- After the bounded collection loop finishes, immediately print the required `==TELEGRAM_SUMMARY_START==` block and stop. Do not perform extra DB correction passes, manual cleanup, documentation updates, or exploratory verification before the summary. If anything looks suspicious, report it in `이슈:` so a separate manual review can handle it.
 - Store enough source detail for `/admin/v2/ingestor` to show the candidate, source URL, poster, extracted text, and structured data.
 - BAT SWING (`https://batswing.co.kr/`) is excluded from collection. Do not access it, retry it, or report it as a transient failure.
 - For every candidate, fill dynamic taxonomy fields when possible:

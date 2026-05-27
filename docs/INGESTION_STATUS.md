@@ -1,14 +1,33 @@
 # 스윙씬 이벤트 자동 수집 — 현황 및 인계 보고서
 
-> 📌 **이 파일은 git 관리 대상** (`docs/INGESTION_STATUS.md`).  
-> 수집 에이전트가 매 실행 후 자동 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.  
+> 📌 **이 파일은 git 관리 대상** (`docs/INGESTION_STATUS.md`).
+> 자동 실행은 run 파일과 Telegram 요약을 우선한다. 이 문서는 수동 점검/인계 시 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.
 > 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
 
-**최종 업데이트**: 2026-05-28 00:55
+**최종 업데이트**: 2026-05-28 01:45
 
 ---
 
 ## 📊 실행 로그
+
+### 2026-05-28 01:03 실제 swing-daily 수동 실행 및 timeout 원인 확정
+- **실행 ID**: `/Users/inteyeo/ingestion-runs/20260528_010319_23262.*`
+- **결과**: 수집 루프와 후보 보정은 완료됐지만, 마지막 문서 갱신/summary 출력 전에 래퍼 25분 제한에 걸려 `exit_code=124` 처리됨. 실패 Telegram은 정상 전송.
+- **실제 DB 반영**:
+  - 신규 후보 3건: 봉천살롱 2026-06-04 정기 소셜, SNL Jazz Social 시즌8 4회차, 해피홀 5월 마지막주 금햎 DJ 메이저.
+  - 완료/이미수집 3건: 경성홀 2026-05-30, 2026-05-31, 2026-06-02.
+  - 중복 2건: 봉천살롱 2026-05-28, 해피홀/SNL 2026-05-30. 중복 탭 검증용으로 유지.
+  - 오수집 1건(`경성홀 deladonghyunyoo`, RSF 얼리버드/마감일 오인식)은 Netlify DELETE로 제거했고 연결 Storage 이미지도 삭제됨.
+- **과거 완료 데이터 정리**: candidates=0 / deleted=0. 재확인 결과 `is_collected=true AND structured_data.date < 2026-05-28` 잔여 0건.
+- **원인**: 실제 수집 뒤 추가 DB 검증/수동 보정/`INGESTION_STATUS.md` 갱신까지 nested Codex가 계속 수행하면서 summary 블록 출력이 늦어짐. 래퍼는 의도대로 timeout/프로세스 정리/실패 알림까지 수행했다.
+- **조치**:
+  - `scripts/codex-ingestion-prompt.md`: daily 실행 중 repo 파일 수정 금지, 수집 루프 직후 summary 출력 후 종료, 후검증/문서갱신은 별도 작업으로 분리.
+  - `.agents/skills/web-search-ingestion/SKILL.md`: `swing-daily` 종료 규칙을 summary-first로 변경하고 문서 갱신은 수동 점검 전용으로 조정.
+  - `scripts/run-ingestion.sh`: fallback summary의 신규 수를 KST 날짜 오인식 대신 run 시작 UTC 이후 DB 기준으로 계산. 수집 결과 JSON의 `skipCount`, `accessFailures`, `issues`도 fallback에 반영.
+  - 마감일/얼리버드/입금일/공지일을 이벤트 날짜로 오인하지 말라는 규칙을 prompt와 skill에 추가.
+- **검증**:
+  - `bash -n scripts/run-ingestion.sh`
+  - `node scripts/test-ingestion-standards.mjs`
 
 ### 2026-05-28 00:55 자동 실행 안정화/타장르 리서치 보강
 - **신규 수집**: 0건 (실제 수집 실행 아님, 안정화/검증 작업)
@@ -294,7 +313,7 @@
 
 ### 실행 흐름
 ```
-LaunchAgent (매일 08:00) 
+LaunchAgent (매일 08:00)
 → run-ingestion.sh
   → Telegram: 수집 시작 알림
   → Chrome CDP 포트 9222 확인/실행 (headless)

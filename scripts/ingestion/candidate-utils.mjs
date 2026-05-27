@@ -218,6 +218,53 @@ function anyMatch(text, rules) {
   return rules.some((rule) => rule.test(text));
 }
 
+function escapeRegex(value = '') {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function dateVariants(date = '') {
+  const match = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return [];
+  const month = String(Number(match[2]));
+  const day = String(Number(match[3]));
+  const month2 = match[2];
+  const day2 = match[3];
+  return [
+    `${month}/${day}`,
+    `${month2}/${day2}`,
+    `${month}.${day}`,
+    `${month2}.${day2}`,
+    `${month}월 ${day}일`,
+    `${month2}월 ${day2}일`,
+    `${month}월${day}일`,
+    `${month2}월${day2}일`,
+  ];
+}
+
+function contextsAroundDate(text = '', date = '') {
+  const value = String(text || '');
+  const contexts = [];
+  for (const variant of dateVariants(date)) {
+    const pattern = new RegExp(escapeRegex(variant), 'gi');
+    let match;
+    while ((match = pattern.exec(value))) {
+      contexts.push(value.slice(Math.max(0, match.index - 45), Math.min(value.length, match.index + variant.length + 45)));
+    }
+  }
+  return contexts;
+}
+
+function looksLikeDeadlineOnlyDate(text = '', date = '', activity = '') {
+  if (!date) return false;
+  const contexts = contextsAroundDate(text, date);
+  if (!contexts.length) return false;
+  const deadlineRe = /마감|얼리\s*버드|얼리버드|입금|결제|할인|등록|신청|접수|납부|deadline|early\s*bird|payment/i;
+  const eventDateRe = /일시|날짜|시작|개강|첫\s*수업|(강습|수업|워크샵|워크숍)\s*(시작|개강|진행|일시|날짜)|소셜|파티|행사|열립니다|진행|start|starts|class|lesson|workshop|social|party/i;
+  const hasDeadlineContext = contexts.some((context) => deadlineRe.test(context));
+  const hasEventContext = contexts.some((context) => eventDateRe.test(context));
+  return hasDeadlineContext && !hasEventContext && ['class', 'event', 'recruit'].includes(activity);
+}
+
 function textOf(candidate) {
   const sd = candidate.structured_data || {};
   return [
@@ -326,6 +373,9 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
   if (!date) errors.push('structured_data.date required');
   if (date && date < today) errors.push(`past event date: ${date} < ${today}`);
+  if (looksLikeDeadlineOnlyDate(text, date, taxonomy.activity_type)) {
+    errors.push('event date looks like a deadline/registration/payment date, not an actual event date');
+  }
   if (!candidate.poster_url && !candidate.imageData) errors.push('poster_url or imageData required');
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) errors.push('poster_url looks cropped or thumbnail-sized');
   if (scopeExcludedReason) errors.push(scopeExcludedReason);

@@ -103,6 +103,14 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'K-pop cover dance audition 2026.06.01',
   structured_data: { title: 'K-pop cover audition', date: '2026-06-01' },
 }), { today: TODAY }).ok, false);
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: 'RSF 참가 신청 안내. 얼리버드 입금 마감 5/29. 실제 강습 일정은 추후 공지됩니다.',
+  structured_data: { title: 'RSF 스윙 강습 신청 안내', date: '2026-05-29', event_type: '강습', activity_type: 'class' },
+}), { today: TODAY }).ok, false, 'deadline/payment dates must not be accepted as class event dates');
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: '스윙 입문 강습 시작일 6월 5일 금요일 20:00. 신청은 5월 29일까지.',
+  structured_data: { title: '스윙 입문 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
+}), { today: TODAY }).ok, true, 'visible class start dates should still pass even when the post has a separate deadline');
 
 assert.ok(textSimilarity('국제 스윙 댄스 페스티벌', '스윙댄스 국제 페스티벌') >= 0.4);
 assert.ok(getCollectionSources('swing').length >= 20, 'swing sources should remain broad');

@@ -26,6 +26,7 @@ LOCK_DIR="/tmp/rhythmjoy-ingestion.lock"
 LOCK_MAX_AGE_SECONDS=21600
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-1500}"
 RUN_ID="$(date '+%Y%m%d_%H%M%S')_$$"
+RUN_STARTED_AT_UTC="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 RUN_DIR="${RUN_DIR:-/Users/inteyeo/ingestion-runs}"
 RUN_OUTPUT="$RUN_DIR/${RUN_ID}.jsonl"
 RUN_LAST="$RUN_DIR/${RUN_ID}.last.txt"
@@ -208,17 +209,62 @@ find_codex() {
 }
 
 count_new_today() {
-    local today
-    today=$(date +%Y-%m-%d)
+    local today_utc_start
+    today_utc_start=$(python3 - <<'PY' 2>/dev/null || date -u '+%Y-%m-%dT00:00:00Z'
+from datetime import datetime
+from zoneinfo import ZoneInfo
+print(datetime.now(ZoneInfo("Asia/Seoul")).replace(hour=0, minute=0, second=0, microsecond=0).astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+)
     load_supabase_env
     if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ]; then
-        curl -s "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.false&created_at=gte.${today}T00:00:00&select=id" \
+        curl -s "$SUPABASE_URL/rest/v1/scraped_events?is_collected=eq.false&created_at=gte.${today_utc_start}&select=id,status" \
             -H "apikey: $SUPABASE_KEY" \
             -H "Authorization: Bearer $SUPABASE_KEY" \
-            2>/dev/null | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "?"
+            2>/dev/null | python3 -c "import sys,json; rows=json.load(sys.stdin); print(sum(1 for r in rows if r.get('status') not in ('duplicate','excluded','collected')))" 2>/dev/null || echo "?"
     else
         echo "?"
     fi
+}
+
+count_run_rows() {
+    local mode="$1"
+    load_supabase_env
+    if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_KEY:-}" ]; then
+        curl -s "$SUPABASE_URL/rest/v1/scraped_events?created_at=gte.${RUN_STARTED_AT_UTC}&select=id,status,is_collected" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            2>/dev/null | python3 -c 'import json,sys; mode=sys.argv[1]; rows=json.load(sys.stdin); print(sum(1 for row in rows if (not row.get("is_collected") and row.get("status") not in ("duplicate","excluded","collected"))) if mode=="new" else sum(1 for row in rows if row.get("status")=="duplicate") if mode=="duplicate" else len(rows))' "$mode" 2>/dev/null || echo "?"
+    else
+        echo "?"
+    fi
+}
+
+extract_result_field() {
+    local field="$1"
+    python3 - "$RUN_OUTPUT" "$field" <<'PY' 2>/dev/null || true
+import json
+import re
+import sys
+
+path, field = sys.argv[1], sys.argv[2]
+try:
+    text = open(path, encoding="utf-8", errors="ignore").read()
+except OSError:
+    sys.exit(0)
+blocks = re.findall(r"INGESTION_RESULT_JSON_START\s*(\{.*?\})\s*INGESTION_RESULT_JSON_END", text, flags=re.S)
+if not blocks:
+    sys.exit(0)
+try:
+    data = json.loads(blocks[-1])
+except Exception:
+    sys.exit(0)
+value = data.get(field)
+if isinstance(value, list):
+    print(", ".join(str(item) for item in value[:8]) or "-")
+elif value is not None:
+    print(value)
+PY
 }
 
 run_ingestion_preflight() {
@@ -313,19 +359,30 @@ extract_summary() {
 
 build_fallback_summary() {
     local issue_line="$1"
-    local new_line skip_line cleanup_line block_line
+    local new_line skip_line cleanup_line block_line result_skip result_block result_issues duplicate_count
 
-    new_line="신규: $(count_new_today)건 (오늘 DB 기준)"
-    skip_line="스킵: -"
+    result_skip="$(extract_result_field skipCount)"
+    result_block="$(extract_result_field accessFailures)"
+    result_issues="$(extract_result_field issues)"
+    duplicate_count="$(count_run_rows duplicate)"
+
+    new_line="신규: $(count_run_rows new)건 (run DB 기준)"
+    if [ -n "$result_skip" ]; then
+        skip_line="스킵: ${result_skip}건"
+    elif [ "$duplicate_count" != "?" ]; then
+        skip_line="스킵: ${duplicate_count}건 (중복 DB 기준)"
+    else
+        skip_line="스킵: -"
+    fi
     cleanup_line="과거데이터삭제: ${INGESTION_PRE_CLEANUP_COUNT:--}"
-    block_line="접근불가: -"
+    block_line="접근불가: ${result_block:--}"
 
     cat <<EOF
 ${new_line}
 ${skip_line}
 ${cleanup_line}
 ${block_line}
-이슈: ${issue_line}
+이슈: ${issue_line}${result_issues:+ / ${result_issues}}
 EOF
 }
 
@@ -384,6 +441,7 @@ fi
 
 echo "run_id=$RUN_ID" > "$RUN_META"
 echo "started_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
+echo "started_at_utc=$RUN_STARTED_AT_UTC" >> "$RUN_META"
 echo "codex=$CODEX" >> "$RUN_META"
 echo "profile=$INGESTION_PROFILE" >> "$RUN_META"
 echo "prompt=$RUN_DIR/${RUN_ID}.prompt.md" >> "$RUN_META"
