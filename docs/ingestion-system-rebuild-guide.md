@@ -127,8 +127,8 @@ launchctl list | grep rhythmjoy
 |------|---------|
 | Supabase URL | `https://mkoryudscamnopvxdelk.supabase.co` |
 | Supabase Service Key | Netlify 환경변수 `SUPABASE_SERVICE_KEY` — `netlify env:get SUPABASE_SERVICE_KEY` |
-| Telegram Bot Token | `8729202565:AAGUm9aGEFxDneskGyPrV0EAcz1KP7z6WcM` |
-| Telegram Chat ID | `8639707405` |
+| Telegram Bot Token | `/Users/inteyeo/.rhythmjoy-ingestion.env`의 `TELEGRAM_BOT_TOKEN` |
+| Telegram Chat ID | `/Users/inteyeo/.rhythmjoy-ingestion.env`의 `TELEGRAM_CHAT_ID` |
 | Codex 인증 | `~/.codex/auth.json` — Codex 앱/CLI 로그인으로 복구 |
 
 ---

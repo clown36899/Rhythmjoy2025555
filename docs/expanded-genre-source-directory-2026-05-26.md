@@ -72,6 +72,14 @@ Instagram은 검색 결과만으로는 정보가 부정확할 수 있으므로, 
 
 ## 5. 현재 판단
 
+### 2026-05-28 실제 확인 메모
+
+- `SalsaVida Seoul`은 서울 살사 소셜을 list/calendar/map 형태로 제공하고, 2026-05-27 이후 날짜별로 Latin Official, Bonita, TURN, Havana, Latin Club Sol, La Bamba, Club Bonita 등 반복 소셜을 노출한다. 다만 글로벌 디렉터리 성격이므로 자체 페이지를 `source_url`로 저장하지 않고 venue 공식 계정/원본 포스터를 역추적한다.
+- `Latin in Seoul`은 2026-05-27~31 weekly update에서 홍대/강남 venue별 시간, DJ, Salsa/Bachata 비율, 무료 워크샵/퍼포먼스 정보를 직접 제공한다. 라틴 씬의 “이번 주 현황판”으로 가장 유용하지만, 저장 후보 승격은 venue 공식 포스터 확인 후로 제한한다.
+- `tango.bien.ltd`의 탱고맵은 검색에는 잡히지만 `서울시 강남구 역삼동 123-45`, `김민수`, `탱고팔레스`처럼 예시/더미성 데이터가 포함되어 있다. 현 단계에서는 실제 수집 소스로 쓰지 않고 `Reject`에 가깝게 둔다.
+- `PlaceOcean`은 여전히 mixed social dance hub로 유효하지만, 직접 HTML 텍스트 추출이 빈약해 Playwright 렌더링 또는 링크 목적지 추출이 필요하다. 저장 원본보다는 Tango/Salsa/Bachata/WCS 허브 진입점으로 본다.
+- 레지스트리 반영: `SalsaVida Seoul`, `Korea Latin Dance Hub`, `Social Dance Today`, `Flowdat`은 discovery-only로 추가했다. `expanded-ingestion`에서도 `discoveryOnly` 소스는 저장 불가로 유지한다.
+
 ### 2026-05-26 실제 확인 메모
 
 - `latin_in_seoul` Instagram은 Playwright로 실제 프로필/게시물 alt를 확인했다. 게시물 2,070개, 팔로워 3,811명 규모이며, 2026년 5월 20~25일 일자별 살사/바차타 소셜 요약과 클래스 홍보가 반복 노출된다. 라틴 씬 “일일 현황판” 역할이 강하다.

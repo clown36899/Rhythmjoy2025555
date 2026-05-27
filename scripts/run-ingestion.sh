@@ -10,8 +10,16 @@ set -u
 export PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin
 export HOME=/Users/inteyeo
 
-TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-8729202565:AAGUm9aGEFxDneskGyPrV0EAcz1KP7z6WcM}"
-TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-8639707405}"
+INGESTION_ENV_FILE="${INGESTION_ENV_FILE:-/Users/inteyeo/.rhythmjoy-ingestion.env}"
+if [ -f "$INGESTION_ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$INGESTION_ENV_FILE"
+    set +a
+fi
+
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
 LOG_FILE="${LOG_FILE:-/Users/inteyeo/claude_ingestion.log}"
 PROJECT_ROOT="${PROJECT_ROOT:-/Users/inteyeo/Rhythmjoy2025555-5}"
 LOCK_DIR="/tmp/rhythmjoy-ingestion.lock"
@@ -63,6 +71,12 @@ telegram_notify() {
         return 0
     fi
 
+    if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+        log "--- Telegram 전송 스킵: TELEGRAM_BOT_TOKEN 또는 TELEGRAM_CHAT_ID 없음 ---"
+        log "$text"
+        return 0
+    fi
+
     response_file="/tmp/rhythmjoy_telegram_${RUN_ID}.json"
     payload=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps({'chat_id':'${TELEGRAM_CHAT_ID}','text':sys.stdin.read()}))")
 
@@ -86,6 +100,44 @@ cleanup_lock() {
     if [ -d "$LOCK_DIR" ] && [ "$(cat "$LOCK_DIR/pid" 2>/dev/null)" = "$$" ]; then
         rm -rf "$LOCK_DIR"
     fi
+}
+
+handle_termination() {
+    local signal_name="${1:-TERM}"
+    log "--- Codex 수집 외부 종료 신호 수신: signal=$signal_name / run=$RUN_ID ---"
+
+    if [ -n "${CODEX_PID:-}" ] && kill -0 "$CODEX_PID" 2>/dev/null; then
+        kill_tree "$CODEX_PID" TERM
+        sleep 3
+        if kill -0 "$CODEX_PID" 2>/dev/null; then
+            kill_tree "$CODEX_PID" KILL
+        fi
+    fi
+
+    cleanup_playwright_mcp TERM
+    cleanup_playwright_mcp KILL
+
+    {
+        echo "ended_at=$(date '+%Y-%m-%d %H:%M:%S')"
+        echo "exit_code=143"
+        echo "terminated_by=$signal_name"
+    } >> "$RUN_META" 2>/dev/null || true
+
+    telegram_notify "댄스 이벤트 Codex 수집 실패
+$(date '+%Y-%m-%d %H:%M')
+외부 종료 신호: $signal_name
+
+신규: -
+스킵: -
+과거데이터삭제: ${INGESTION_PRE_CLEANUP_COUNT:--}
+접근불가: -
+이슈: 수집 프로세스가 summary 없이 중단됨
+
+run: $RUN_ID
+log: $RUN_OUTPUT" || true
+
+    cleanup_lock
+    exit 143
 }
 
 kill_tree() {
@@ -114,7 +166,9 @@ acquire_lock() {
     if mkdir "$LOCK_DIR" 2>/dev/null; then
         echo "$$" > "$LOCK_DIR/pid"
         date +%s > "$LOCK_DIR/started_at"
-        trap cleanup_lock EXIT INT TERM
+        trap cleanup_lock EXIT
+        trap 'handle_termination INT' INT
+        trap 'handle_termination TERM' TERM
         return 0
     fi
 
@@ -137,7 +191,9 @@ acquire_lock() {
     mkdir "$LOCK_DIR" || exit 75
     echo "$$" > "$LOCK_DIR/pid"
     date +%s > "$LOCK_DIR/started_at"
-    trap cleanup_lock EXIT INT TERM
+    trap cleanup_lock EXIT
+    trap 'handle_termination INT' INT
+    trap 'handle_termination TERM' TERM
 }
 
 find_codex() {
@@ -253,6 +309,24 @@ extract_summary() {
         found { block = block "\n" $0 }
         END { print last }
     ' "$RUN_LAST" "$RUN_OUTPUT" 2>/dev/null
+}
+
+build_fallback_summary() {
+    local issue_line="$1"
+    local new_line skip_line cleanup_line block_line
+
+    new_line="신규: $(count_new_today)건 (오늘 DB 기준)"
+    skip_line="스킵: -"
+    cleanup_line="과거데이터삭제: ${INGESTION_PRE_CLEANUP_COUNT:--}"
+    block_line="접근불가: -"
+
+    cat <<EOF
+${new_line}
+${skip_line}
+${cleanup_line}
+${block_line}
+이슈: ${issue_line}
+EOF
 }
 
 build_smoke_prompt() {
@@ -396,19 +470,29 @@ log "--- Codex 수집 종료: $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE / r
 
 SUMMARY_BLOCK="$(extract_summary)"
 
-if [ -n "$SUMMARY_BLOCK" ]; then
-    PARSED_NEW=$(echo "$SUMMARY_BLOCK" | grep "^신규:" | tail -1)
-    PARSED_SKIP=$(echo "$SUMMARY_BLOCK" | grep "^스킵:" | tail -1)
-    PARSED_CLEANUP=$(echo "$SUMMARY_BLOCK" | grep "^과거데이터삭제:" | tail -1)
-    PARSED_BLOCK=$(echo "$SUMMARY_BLOCK" | grep "^접근불가:" | tail -1)
-    PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:" | tail -1)
-else
-    PARSED_NEW="신규: $(count_new_today)건 (오늘 DB 기준)"
-    PARSED_SKIP="스킵: -"
-    PARSED_CLEANUP="과거데이터삭제: -"
-    PARSED_BLOCK="접근불가: -"
-    PARSED_ISSUE="이슈: Codex summary block missing"
+if [ -z "$SUMMARY_BLOCK" ]; then
+    if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
+        SUMMARY_BLOCK="$(build_fallback_summary "타임아웃/강제종료로 Codex summary block missing")"
+    elif [ "$EXIT_CODE" -eq 143 ]; then
+        SUMMARY_BLOCK="$(build_fallback_summary "외부 종료 신호로 Codex summary block missing")"
+    else
+        SUMMARY_BLOCK="$(build_fallback_summary "Codex summary block missing")"
+    fi
+
+    {
+        echo "==TELEGRAM_SUMMARY_START=="
+        echo "$SUMMARY_BLOCK"
+        echo "==TELEGRAM_SUMMARY_END=="
+    } > "$RUN_LAST"
+
+    log "--- fallback summary 생성: run=$RUN_ID / exit=$EXIT_CODE ---"
 fi
+
+PARSED_NEW=$(echo "$SUMMARY_BLOCK" | grep "^신규:" | tail -1)
+PARSED_SKIP=$(echo "$SUMMARY_BLOCK" | grep "^스킵:" | tail -1)
+PARSED_CLEANUP=$(echo "$SUMMARY_BLOCK" | grep "^과거데이터삭제:" | tail -1)
+PARSED_BLOCK=$(echo "$SUMMARY_BLOCK" | grep "^접근불가:" | tail -1)
+PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:" | tail -1)
 
 if [ $EXIT_CODE -eq 0 ]; then
     telegram_notify "댄스 이벤트 Codex 수집 완료

@@ -4,11 +4,31 @@
 > 수집 에이전트가 매 실행 후 자동 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.  
 > 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
 
-**최종 업데이트**: 2026-05-27 23:05
+**최종 업데이트**: 2026-05-28 00:55
 
 ---
 
 ## 📊 실행 로그
+
+### 2026-05-28 00:55 자동 실행 안정화/타장르 리서치 보강
+- **신규 수집**: 0건 (실제 수집 실행 아님, 안정화/검증 작업)
+- **중복 스킵**: 0건
+- **접근 불가**: 없음
+- **DB 정리 확인**: 운영 `scraped_events`에서 완료 처리된 과거 데이터 3건(`2026-05-27`)을 전용 cleanup 스크립트로 삭제했다. 삭제 대상은 `/Users/inteyeo/ingestion-runs/manual-cleanup-*.json`에 날짜/제목/장소/source_url과 함께 기록됨. 정리 후 `is_collected=true AND structured_data.date < today` 잔여 0건 확인.
+- **자동수집 안정화**:
+  - `scripts/run-ingestion.sh`에 `INT/TERM` trap을 추가해 외부 종료 시 Codex 자식 프로세스와 Playwright MCP를 정리하고 실패 알림을 보내게 했다.
+  - Codex가 summary 블록 없이 끝나거나 타임아웃되는 경우 `build_fallback_summary()`로 신규 수/cleanup 수/이슈를 포함한 fallback summary를 생성하게 했다.
+  - 실제 LaunchAgent 대상인 `/Users/inteyeo/scripts/run-ingestion.sh`도 repo 스크립트와 동일하게 동기화했다.
+  - Telegram 인증값은 repo/docs에서 제거하고 `/Users/inteyeo/.rhythmjoy-ingestion.env`에서 읽도록 변경했다. 파일 권한은 `600`.
+- **타장르 분리 확인**:
+  - `swing-daily`는 스윙 scope만 반환하고 BAT SWING/meroniswing 제외 조건을 유지한다.
+  - `expanded-research`는 저장 금지, `expanded-ingestion`은 검증된 타장르 후보만 저장 가능하도록 유지한다.
+  - `SalsaVida Seoul`, `Korea Latin Dance Hub`, `Social Dance Today`, `Flowdat`은 discovery-only 허브로 추가했다. 이 URL 자체는 저장 불가이며, 공식 venue/원본 포스터로 역추적해야 저장 가능하다.
+- **검증**:
+  - `bash -n scripts/run-ingestion.sh`
+  - `INGESTION_SMOKE_TEST=1 TELEGRAM_DRY_RUN=1 INGESTION_SKIP_CLEANUP=1 ... bash scripts/run-ingestion.sh` → exit 0, summary 추출 정상
+  - fake Codex sleep + `TIMEOUT_SECONDS=3` → exit 124, fallback summary 생성 및 실패 알림 dry-run 정상
+- **운영 원칙**: 스윙 자동 수집은 안정화 대상이고, 타장르는 씬 지도 작성/출처 검증을 별도 프로필로만 진행한다.
 
 ### 2026-05-27 08:11 자동 실행 (Codex/MCP hang, 부모 감시 루프로 개선)
 - **신규 수집**: 미완료

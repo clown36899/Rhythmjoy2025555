@@ -148,13 +148,18 @@ node scripts/test-ingestion-standards.mjs
 | 탱고 | Tango Calendar Korea | website | https://tangocalendar.kr/ | 서울 밀롱가/프랙티카 일정 허브. 개별 이벤트 제목/날짜/시간/DJ 확인 후 이미지 후보 확보 시 저장 |
 | 살사/바차타 | Latin in Seoul | website | https://salsa.atoo.kr/ | 홍대/강남 라틴 소셜 주간 업데이트. DJ/비율/시간이 있는 소셜 확인용 |
 | 살사/바차타 | Place Ocean | website | https://www.placeocean.kr/ | 코리아 소셜댄스 허브. 세부 이벤트 페이지 또는 공식 원본 링크 확인 후 저장 |
+| 살사/바차타 | SalsaVida Seoul | website | https://www.salsavida.com/guides/south-korea/seoul/socials/ | 서울 라틴 소셜 캘린더. 반복 소셜/venue 발견용이며 자체 페이지를 source_url로 저장 금지 |
+| 살사/바차타 | Korea Latin Dance Hub | directory | https://latindance.kr/clubs-en | 전국 라틴 클럽/커뮤니티 디렉터리. 원본 SNS/웹사이트 역추적용 |
 | 살사/바차타 | SA Latin | linktree/community | https://linktr.ee/sa.latin.official | 공식 채널 진입점. 실제 카페/인스타/유튜브 원본으로 들어가 확인 |
 | 살사/바차타 | La Conexión / AK Salsa | website | https://www.aksalsa.com/about-1 | 살사/바차타 클래스/소셜 커뮤니티. 일정 페이지나 공식 공지 확인 후 저장 |
+| 살사/바차타 | Social Dance Today | website | https://social-dance.today/ | 글로벌 소셜댄스 검색. 한국 이벤트 발견 후 공식 원본으로 역추적 |
+| 살사/바차타 | Flowdat | website | https://flowdat.co/ | 글로벌 댄스 이벤트 플랫폼. 한국 이벤트 원본 Instagram/공식 페이지 확인 전 저장 금지 |
 | 스트릿 | Freeze KR | website | https://www.freezekr.com/stage | 스트릿 행사/배틀/공연/클래스 허브. 날짜와 이미지가 명확한 항목만 저장 |
 | 스트릿 | HY Dance Studio | website | https://www.hydancestudio.com/class/streetdance | 힙합/락킹/왁킹/소울댄스 클래스. 시간표/팝업/프로모션 원문 확인 |
 | 스트릿 | 이댄스학원 | website | https://e-dance.co.kr/street-dance | 힙합/팝핑/락킹/왁킹/하우스/비보잉 클래스. 단순 소개 페이지는 저장 금지, 실제 모집/원데이 공지만 저장 |
 
 > 소스 레지스트리는 “시작점”이다. 저장은 항상 실제 날짜/장소/이미지/원본 URL이 확인된 항목만 한다. 같은 행사가 여러 허브에 동시에 있으면 공식 원본 또는 가장 정보가 완전한 원본 하나만 저장하고 나머지는 중복 후보로 기록한다.
+> `discoveryOnly` 허브는 후보 저장 URL로 쓰지 않는다. 발견한 항목은 venue 공식 Instagram, 공식 웹사이트, 예약/공지 원본으로 이동한 뒤 그 URL을 `source_url`로 사용한다.
 
 ## 🤖 봇판정 방지 규칙 (필수 준수)
 

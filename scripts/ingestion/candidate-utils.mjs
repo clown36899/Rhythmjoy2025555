@@ -329,7 +329,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (!candidate.poster_url && !candidate.imageData) errors.push('poster_url or imageData required');
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) errors.push('poster_url looks cropped or thumbnail-sized');
   if (scopeExcludedReason) errors.push(scopeExcludedReason);
-  if (source?.discoveryOnly) warnings.push('discovery-only source: verify official source URL before saving');
+  if (source?.discoveryOnly) errors.push('discovery-only source: official source URL required before saving');
   if (taxonomy.activity_type === 'social' && !Array.isArray(sd.djs) && !/\bdj\b|디제이|밀롱가|프랙티카|소셜|social/i.test(text)) {
     warnings.push('social candidate lacks visible DJ or concrete social context');
   }

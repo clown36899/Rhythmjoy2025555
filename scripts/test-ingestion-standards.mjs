@@ -88,6 +88,11 @@ assert.equal(getExcludedSourceReason('https://www.meroniswing.com/social-dance')
 assert.equal(validateCandidate(baseCandidate({ source_url: 'https://www.meroniswing.com/social-dance' }), { today: TODAY }).ok, false);
 assert.equal(getExcludedSourceReason('https://batswing.co.kr/'), '사용자 지정 제외 소스: BAT SWING');
 assert.equal(validateCandidate(baseCandidate({ source_url: 'https://batswing.co.kr/' }), { today: TODAY }).ok, false);
+assert.equal(validateCandidate(baseCandidate({
+  source_url: 'https://www.salsavida.com/guides/south-korea/seoul/socials/',
+  extracted_text: 'Hongdae Bonita Latin Club Socials Seoul Thursday, May 28, 2026 8:00 PM',
+  structured_data: { title: 'Hongdae Bonita Latin Club Socials', date: '2026-05-28', location: 'Bonita' },
+}), { today: TODAY }).ok, false, 'discovery-only hubs must not be saved directly');
 
 assert.equal(hasBadPosterUrl('https://cdn.example.com/post/p240x240/photo.jpg'), true);
 assert.equal(validateCandidate(baseCandidate({ poster_url: 'https://cdn.example.com/post/p240x240/photo.jpg' }), { today: TODAY }).ok, false);
@@ -112,5 +117,6 @@ assert.ok(getAutomationSourceList().every((source) => source.scope === 'swing'),
 assert.ok(getAutomationSourceList().every((source) => source.id), 'automation sources should expose stable source ids for logs');
 assert.ok(getAutomationSourceList('expanded-research').every((source) => source.scope !== 'swing' && source.saveEnabled === false), 'expanded research should not save candidates by default');
 assert.ok(getAutomationSourceList('expanded-ingestion').some((source) => source.scope === 'salsa' && source.saveEnabled === true), 'expanded ingestion profile can save verified expanded candidates');
+assert.ok(getAutomationSourceList('expanded-ingestion').filter((source) => source.discoveryOnly).every((source) => source.saveEnabled === false), 'discovery-only hubs should stay read-only even in expanded ingestion');
 
 console.log('ingestion standards ok');

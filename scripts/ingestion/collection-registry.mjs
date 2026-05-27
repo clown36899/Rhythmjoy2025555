@@ -131,9 +131,13 @@ export const collectionSources = [
 
   source({ id: 'latin-in-seoul', name: 'Latin in Seoul', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://salsa.atoo.kr/', priority: 1, notes: '살사/바차타 혼합 공지는 본문 기준으로 scope를 재판정' }),
   source({ id: 'place-ocean', name: 'Place Ocean', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://www.placeocean.kr/', priority: 2 }),
+  source({ id: 'salsavida-seoul', name: 'SalsaVida Seoul', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://www.salsavida.com/guides/south-korea/seoul/socials/', priority: 2, discoveryOnly: true, notes: '서울 살사 소셜 캘린더. recurring venue/event 발견용이며 저장은 공식 venue/원본 포스터 확인 후만 허용' }),
+  source({ id: 'korea-latin-dance-hub', name: 'Korea Latin Dance Hub', scope: 'salsa', genre: 'salsa', type: 'directory', url: 'https://latindance.kr/clubs-en', priority: 3, discoveryOnly: true, notes: '전국 라틴 클럽/커뮤니티 디렉터리. 원본 SNS/웹사이트 역추적용' }),
   source({ id: 'sa-latin', name: 'SA Latin', scope: 'salsa', genre: 'salsa', type: 'linktree', url: 'https://linktr.ee/sa.latin.official', priority: 3, discoveryOnly: true, notes: '공식 원본 링크로 들어가 확인 후 저장' }),
   source({ id: 'aksalsa', name: 'AK Salsa', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://www.aksalsa.com/about-1', priority: 3 }),
   source({ id: 'bsbachata', name: 'BS Bachata', scope: 'bachata', genre: 'bachata', type: 'website', url: 'https://bsbachata.com/', priority: 2 }),
+  source({ id: 'social-dance-today', name: 'Social Dance Today', scope: 'bachata', genre: 'bachata', type: 'website', url: 'https://social-dance.today/', priority: 3, discoveryOnly: true, notes: '글로벌 소셜댄스 검색. 서울 라틴 이벤트 발견용이며 자체 정보만으로 저장 금지' }),
+  source({ id: 'flowdat-korea', name: 'Flowdat Korea Search', scope: 'bachata', genre: 'bachata', type: 'website', url: 'https://flowdat.co/', priority: 3, discoveryOnly: true, notes: '글로벌 댄스 이벤트 플랫폼. 한국 이벤트 원본 Instagram/공식 페이지 확인 전 저장 금지' }),
   source({ id: 'turn_latin_bar', name: '턴라틴바', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/turn_latin_bar/', priority: 2 }),
   source({ id: 'bonitasalsabar', name: '보니따살사', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/bonitasalsabar/', priority: 2 }),
   source({ id: 'latin_in_seoul', name: '라틴인서울', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/latin_in_seoul/', priority: 2 }),
@@ -222,7 +226,7 @@ export function getAutomationSourceList(profile = 'swing-daily') {
     discoveryOnly: item.discoveryOnly,
     phase: item.phase,
     automationProfile: selected.id,
-    saveEnabled: item.scope === 'swing' || selected.saveExpandedCandidates,
+    saveEnabled: (item.scope === 'swing' || selected.saveExpandedCandidates) && !item.discoveryOnly,
     notes: item.notes,
   }));
 }
