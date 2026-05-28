@@ -42,6 +42,7 @@
 
 - `discoveryOnly` 소스는 `expanded-ingestion`에서도 저장하지 않는다. SalsaVida, Korea Latin Dance Hub, Social Dance Today, Flowdat 같은 허브는 원본 계정/포스터를 찾는 지도 역할만 한다.
 - 저장 후보의 `source_url`은 허브 URL이 아니라 공식 venue Instagram, 공식 웹사이트, 예약/공지 원본이어야 한다.
+- 레지스트리의 각 타장르 소스는 `sourceKind`, `sceneRole`, `promotionPolicy`를 가진다. 이는 “전문 허브 링크로 소개할지”, “공식 원본 확인 후 선별 저장할지”, “조사 전용으로 둘지”를 실행자에게 고정해 주기 위한 값이다.
 - 자동 수집 래퍼는 Codex가 summary 없이 타임아웃/외부 종료되는 경우에도 fallback summary를 만들고 실패 알림을 보낸다.
 - 과거 완료 cleanup은 실제 삭제 대상 JSON을 남긴 뒤 ID 기반으로만 삭제한다. 오늘 기준 과거 완료 데이터가 남아 있으면 수동 cleanup으로 먼저 정리한 뒤 다음 daily에서 같은 기준을 유지한다.
 

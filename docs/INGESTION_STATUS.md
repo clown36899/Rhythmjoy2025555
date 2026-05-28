@@ -4,11 +4,31 @@
 > 자동 실행은 run 파일과 Telegram 요약을 우선한다. 이 문서는 수동 점검/인계 시 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.
 > 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
 
-**최종 업데이트**: 2026-05-28 01:45
+**최종 업데이트**: 2026-05-28 08:18
 
 ---
 
 ## 📊 실행 로그
+
+### 2026-05-28 08:00 LaunchAgent 자동 실행 성공
+- **실행 ID**: `/Users/inteyeo/ingestion-runs/20260528_080001_31109.*`
+- **결과**: `exit_code=0`, 08:00 시작 후 08:17:54 정상 종료. Telegram 전송 성공.
+- **요약**:
+  - 신규: 0건
+  - 스킵: 14건
+  - 과거데이터삭제: 0건
+  - 접근불가: none
+  - 이슈: 초기 경성홀 3건 중복스킵은 로컬 응답 집계 재시작 후 복구 집계
+- **상태 확인**: LaunchAgent는 loaded 상태이며 다음 08:00 calendar interval을 대기한다. 실행 후 lock 파일과 잔여 Playwright/수집 프로세스 없음.
+- **동기화**: repo의 최신 `scripts/run-ingestion.sh`를 실제 LaunchAgent 대상 `/Users/inteyeo/scripts/run-ingestion.sh`로 재동기화했고 `cmp`로 동일함을 확인했다.
+
+### 2026-05-28 02:12 수집 안정화 후속 점검
+- **BAT SWING 제외 강화**: 기존에는 `batswing.co.kr`만 제외했으나, 구버전 스크래퍼와 사람이 만든 후보에서 `instagram.com/batswing2003`가 들어올 수 있어 제외 규칙을 URL 패턴 기준으로 확장했다. Netlify `scraped-events` 저장 API, `collection-registry`, daily source guard, 테스트 모두 같은 기준으로 맞춤.
+- **구버전 스크래퍼 차단**: `scripts/scrape-events.mjs`와 deprecated `event-ingestion` 스크립트는 기본 실행 시 78 코드로 종료되게 막았다. 현재 수집 기준은 `web-search-ingestion` + `scripts/run-ingestion.sh` + `collection-registry`만 유효하다.
+- **운영 DB 확인**: 운영 `scraped_events`는 총 60건이며 완료 미래/오늘 24건, 완료 과거 0건, 중복 8건, BAT 후보 0건으로 확인했다. 운영 `events`는 오늘 포함 미래 `date` 기준 36건이며 현재 운영 반영된 타장르 이벤트는 0건이다.
+- **인제스터 조회 보정**: `/admin/v2/ingestor` 조회 API가 `structured_data.date >= 오늘(KST)` 조건을 기본 적용하도록 조정했다. 서버 기준 탭 카운트는 신규 8, 완료 24, 중복 8로 확인했다. 과거 미처리 후보는 신규 탭에서 숨겨진다.
+- **타장르 리서치 분리 강화**: 레지스트리에 `sourceKind`, `sceneRole`, `promotionPolicy`를 추가해 외부 허브 소개/공식 원본 선별 저장/조사 전용을 실행자가 구분할 수 있게 했다. 신규 리서치 로그는 `docs/expanded-genre-research-log-2026-05-28.md`에 기록했다.
+- **검증**: `node scripts/test-ingestion-standards.mjs`, `bash -n scripts/run-ingestion.sh`, `git diff --check`, `npm run build:only` 통과. Vite의 기존 dynamic/static import chunk warning은 재현되었으나 이번 변경과 무관하다.
 
 ### 2026-05-28 01:03 실제 swing-daily 수동 실행 및 timeout 원인 확정
 - **실행 ID**: `/Users/inteyeo/ingestion-runs/20260528_010319_23262.*`

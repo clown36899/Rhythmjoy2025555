@@ -295,7 +295,7 @@ const invalid = sources.filter((source) => {
   const url = String(source.url || '');
   return source.scope !== 'swing'
     || source.saveEnabled !== true
-    || /batswing\.co\.kr|meroniswing\.com/i.test(url);
+    || /batswing\.co\.kr|instagram\.com\/batswing2003\b|meroniswing\.com/i.test(url);
 });
 
 if (!sources.length) {

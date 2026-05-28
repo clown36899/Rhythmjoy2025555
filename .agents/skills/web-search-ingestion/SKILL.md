@@ -152,8 +152,11 @@ node scripts/test-ingestion-standards.mjs
 | 살사/바차타 | Place Ocean | website | https://www.placeocean.kr/ | 코리아 소셜댄스 허브. 세부 이벤트 페이지 또는 공식 원본 링크 확인 후 저장 |
 | 살사/바차타 | SalsaVida Seoul | website | https://www.salsavida.com/guides/south-korea/seoul/socials/ | 서울 라틴 소셜 캘린더. 반복 소셜/venue 발견용이며 자체 페이지를 source_url로 저장 금지 |
 | 살사/바차타 | Korea Latin Dance Hub | directory | https://latindance.kr/clubs-en | 전국 라틴 클럽/커뮤니티 디렉터리. 원본 SNS/웹사이트 역추적용 |
+| 살사/바차타 | LatinDanceHub Seoul Guide | website | https://latindancehub.co/blog/where-to-dance-salsa-bachata-in-seoul | 서울 라틴 venue 규모/구조 파악용. 이벤트 원본으로 저장 금지 |
 | 살사/바차타 | SA Latin | linktree/community | https://linktr.ee/sa.latin.official | 공식 채널 진입점. 실제 카페/인스타/유튜브 원본으로 들어가 확인 |
 | 살사/바차타 | La Conexión / AK Salsa | website | https://www.aksalsa.com/about-1 | 살사/바차타 클래스/소셜 커뮤니티. 일정 페이지나 공식 공지 확인 후 저장 |
+| 살사/바차타 | LSK Latin Dance Meetup | meetup | https://www.meetup.com/ko-KR/seoul-latin-dance-meetup-group/ | 영어권 입문/커뮤니티 반복 일정 조사용. 공식 포스터 원본 확인 전 저장 금지 |
+| 살사/바차타 | SIDF | website | https://sidf.kr/ | 서울 국제 살사/바차타 페스티벌 축. 날짜/라인업/이미지 확인 시 선별 저장 |
 | 살사/바차타 | Social Dance Today | website | https://social-dance.today/ | 글로벌 소셜댄스 검색. 한국 이벤트 발견 후 공식 원본으로 역추적 |
 | 살사/바차타 | Flowdat | website | https://flowdat.co/ | 글로벌 댄스 이벤트 플랫폼. 한국 이벤트 원본 Instagram/공식 페이지 확인 전 저장 금지 |
 | 스트릿 | Freeze KR | website | https://www.freezekr.com/stage | 스트릿 행사/배틀/공연/클래스 허브. 날짜와 이미지가 명확한 항목만 저장 |
@@ -220,9 +223,11 @@ SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 | https://allaboutswing.co.kr/20 | 사용자 지정 제외 |
 | https://www.meroniswing.com/ | 사용자 지정 제외 — 자동 수집 대상에서 제외 |
 | https://batswing.co.kr/ | 사용자 지정 제외 — 자동 수집 대상에서 제외 |
+| https://www.instagram.com/batswing2003/ | 사용자 지정 제외 — BAT SWING 인스타그램도 수집 대상에서 제외 |
 
 수집 중 `source_url`이 `https://www.meroniswing.com/` 하위 URL이면 저장하지 말고 즉시 스킵한다.
 수집 중 `source_url`이 `https://batswing.co.kr/` 하위 URL이면 저장하지 말고 즉시 스킵한다.
+수집 중 `source_url`이 `https://www.instagram.com/batswing2003/` 하위 URL이면 저장하지 말고 즉시 스킵한다.
 
 > 새 제외 URL 추가 시:
 > ```bash

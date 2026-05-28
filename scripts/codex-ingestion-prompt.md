@@ -31,7 +31,7 @@ Hard constraints:
 - Treat a Netlify response with `count: 0` and `skipped` entries as a successful duplicate skip, not as a failed insert.
 - After the bounded collection loop finishes, immediately print the required `==TELEGRAM_SUMMARY_START==` block and stop. Do not perform extra DB correction passes, manual cleanup, documentation updates, or exploratory verification before the summary. If anything looks suspicious, report it in `이슈:` so a separate manual review can handle it.
 - Store enough source detail for `/admin/v2/ingestor` to show the candidate, source URL, poster, extracted text, and structured data.
-- BAT SWING (`https://batswing.co.kr/`) is excluded from collection. Do not access it, retry it, or report it as a transient failure.
+- BAT SWING (`https://batswing.co.kr/`, `https://www.instagram.com/batswing2003/`) is excluded from collection. Do not access it, retry it, or report it as a transient failure.
 - For every candidate, fill dynamic taxonomy fields when possible:
   - `structured_data.activity_type`: `class`, `social`, `event`, or `recruit`
   - `structured_data.genre_family`: `partner` or `street` for saved candidates. `unknown`, `art`, and `commercial` may be detected only to exclude or re-check them.

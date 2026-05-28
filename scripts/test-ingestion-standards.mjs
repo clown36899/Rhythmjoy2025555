@@ -88,6 +88,8 @@ assert.equal(getExcludedSourceReason('https://www.meroniswing.com/social-dance')
 assert.equal(validateCandidate(baseCandidate({ source_url: 'https://www.meroniswing.com/social-dance' }), { today: TODAY }).ok, false);
 assert.equal(getExcludedSourceReason('https://batswing.co.kr/'), '사용자 지정 제외 소스: BAT SWING');
 assert.equal(validateCandidate(baseCandidate({ source_url: 'https://batswing.co.kr/' }), { today: TODAY }).ok, false);
+assert.equal(getExcludedSourceReason('https://www.instagram.com/batswing2003/'), '사용자 지정 제외 소스: BAT SWING');
+assert.equal(validateCandidate(baseCandidate({ source_url: 'https://www.instagram.com/batswing2003/p/ABC123/' }), { today: TODAY }).ok, false);
 assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://www.salsavida.com/guides/south-korea/seoul/socials/',
   extracted_text: 'Hongdae Bonita Latin Club Socials Seoul Thursday, May 28, 2026 8:00 PM',
@@ -117,14 +119,17 @@ assert.ok(getCollectionSources('swing').length >= 20, 'swing sources should rema
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'swingfamily-lessons'), 'swing lesson cafe should be in stable registry');
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'sweetyswing-lessons'), 'sweetyswing mobile cafe should be in stable registry');
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');
+assert.equal(getAutomationSourceList('swing-daily').some((source) => /batswing/i.test(source.id + source.url)), false, 'daily automation must not include BAT SWING url or handle');
 assert.ok(getCollectionSources('street').length >= 5, 'street sources should be expanded');
 assert.ok(getCollectionSources('salsa').length >= 5, 'salsa sources should be expanded');
 assert.ok(getCollectionSources('tango').length >= 4, 'tango sources should be expanded');
 assert.ok(getCollectionSources('bachata').length >= 1, 'bachata sources should be present');
 assert.ok(getAutomationSourceList().every((source) => source.scope === 'swing'), 'daily automation should only run stable swing sources');
 assert.ok(getAutomationSourceList().every((source) => source.id), 'automation sources should expose stable source ids for logs');
+assert.ok(getAutomationSourceList('expanded-research').every((source) => source.sourceKind && source.sceneRole && source.promotionPolicy), 'expanded research sources should expose scene-map metadata');
 assert.ok(getAutomationSourceList('expanded-research').every((source) => source.scope !== 'swing' && source.saveEnabled === false), 'expanded research should not save candidates by default');
 assert.ok(getAutomationSourceList('expanded-ingestion').some((source) => source.scope === 'salsa' && source.saveEnabled === true), 'expanded ingestion profile can save verified expanded candidates');
 assert.ok(getAutomationSourceList('expanded-ingestion').filter((source) => source.discoveryOnly).every((source) => source.saveEnabled === false), 'discovery-only hubs should stay read-only even in expanded ingestion');
+assert.ok(getAutomationSourceList('expanded-ingestion').filter((source) => source.promotionPolicy === 'external_hub_only').every((source) => source.saveEnabled === false), 'external hubs should never become direct event rows');
 
 console.log('ingestion standards ok');

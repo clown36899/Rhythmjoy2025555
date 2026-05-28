@@ -10,7 +10,7 @@ const translationCache = new Map<string, string>();
 const excludedSourceRules: Array<{ pattern: RegExp; reason: string }> = [
     { pattern: /^https?:\/\/(www\.)?meroniswing\.com(\/|$)/i, reason: '사용자 지정 제외 소스: meroniswing.com' },
     { pattern: /^https?:\/\/allaboutswing\.co\.kr\/20(\/|$)/i, reason: '사용자 지정 제외 소스: allaboutswing.co.kr/20' },
-    { pattern: /^https?:\/\/(www\.)?batswing\.co\.kr(\/|$)/i, reason: '사용자 지정 제외 소스: BAT SWING' },
+    { pattern: /(^https?:\/\/(www\.)?batswing\.co\.kr(\/|$)|instagram\.com\/batswing2003\b)/i, reason: '사용자 지정 제외 소스: BAT SWING' },
     { pattern: /newspim\.com/i, reason: '일반 대중 뉴스 포털 제외' },
     { pattern: /yna\.co\.kr/i, reason: '연합뉴스 포털 제외' },
     { pattern: /\.go\.kr/i, reason: '공공기관/지자체 공고 사이트 제외' },
@@ -480,17 +480,20 @@ export const handler: Handler = async (event) => {
             const tab = event.queryStringParameters?.tab; // 'new' | 'collected' | 'duplicate' | undefined
             const limit = 30;
             const offset = (page - 1) * limit;
+            const minDate = todayKST();
 
             let query = supabase
                 .from('scraped_events')
                 .select('id,keyword,source_url,poster_url,structured_data,is_collected,status,display_no,created_at,updated_at', { count: 'exact' })
-                .or('status.is.null,and(status.neq.excluded,status.neq.duplicate)');
+                .or('status.is.null,and(status.neq.excluded,status.neq.duplicate)')
+                .gte('structured_data->>date', minDate);
 
             if (tab === 'duplicate') {
                 query = supabase
                     .from('scraped_events')
                     .select('id,keyword,source_url,poster_url,structured_data,is_collected,status,display_no,created_at,updated_at', { count: 'exact' })
-                    .eq('status', 'duplicate');
+                    .eq('status', 'duplicate')
+                    .gte('structured_data->>date', minDate);
             } else if (tab === 'new') query = query.eq('is_collected', false);
             else if (tab === 'collected') query = query.eq('is_collected', true);
 

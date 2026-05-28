@@ -25,6 +25,7 @@
 | A | tango | Tango Calendar Korea | https://tangocalendar.kr/ | 서울 탱고 밀롱가/이벤트/DJ 공연 캘린더. 반복 이벤트와 iCal, 모바일/다국어를 지원한다고 설명한다. | JS 렌더링으로 event 목록 추출, 이미지 없는 일정 처리 원칙 정하기 |
 | A | partner/street mixed | Flowdat | https://flowdat.co/ | 전 세계 댄스 클래스/워크샵/배틀/쇼/캠프/오디션 검색 플랫폼. 한국 라틴 이벤트도 Instagram 원본 링크와 함께 노출된다. | Korea 필터 검색, Instagram 원본 링크 안정성 |
 | A- | social dance mixed | PlaceOcean | https://www.placeocean.kr/ | Salsa/Bachata/Tango/WCS 허브를 표방. 한국 소셜댄스 정보 진입점으로 보인다. | 내부 Link 버튼 목적지 추출, 실제 업데이트 빈도 |
+| A- | salsa/bachata | SIDF | https://sidf.kr/ | 서울 국제 살사/바차타 페스티벌 축. 단발 대형 행사/라인업/소셜 파티 구조 파악용. | 일정/라인업/티켓/포스터 이미지 추출 가능성 |
 
 ## 2. 장르별 발견용 허브
 
@@ -33,6 +34,7 @@
 | B | salsa/bachata | Korea Latin Dance Hub | https://latindance.kr/clubs-en | 전국 Latin community directory. 서울/부산/대구 등 지역별 클럽과 커뮤니티 이름을 넓게 제공한다. | listed communities의 실제 SNS/웹 원본 찾기 |
 | B | salsa/bachata | SA Latin Linktree | https://linktr.ee/sa.latin.official | SA Latin Salsa Dance Club의 링크 허브. Instagram/Facebook/TikTok/Daum Cafe/KakaoTalk/WhatsApp 진입점. | 링크별 실제 공지 주기, 신규회원/강습/소셜 분리 |
 | B | salsa/bachata | SalsaVida | https://www.salsavida.com/ | Salsa/Bachata venue/event directory. Latin Club Sol 같은 서울 recurring social이 노출된다. | 서울/부산 등 Korea query 결과 수집, 원본 인스타 역추적 |
+| B | salsa/bachata | LatinDanceHub Seoul Guide | https://latindancehub.co/blog/where-to-dance-salsa-bachata-in-seoul | 서울 라틴 venue 규모와 흐름을 설명하는 가이드. 자체 이벤트 원본은 아님. | venue별 공식 계정/운영 상태 대조 |
 | B | salsa/bachata | Social Dance Today | https://social-dance.today/ | 글로벌 social dance party 검색 사이트. 서울 Club LATIN의 Bachata/Zouk weekly party가 노출된다. | “Event found via web search” 표기라 원본 확인 필수 |
 | B | salsa/bachata | LatinDanceHub.co | https://latindancehub.co/ | 전 세계 Latin dance school/venue directory. Hong Turn, Rueda 등 한국 venue profile이 검색된다. | venue 원본 링크 추출, 업데이트 날짜 확인 |
 | B | tango | Enjoy Tango | https://www.enjoytango.com/ | 글로벌 탱고 milonga directory. Seoul milonga 페이지에 시간/venue/organizer/연락처가 노출된다. | 서울 event 목록 검색, 중복/반복 일정 처리 |

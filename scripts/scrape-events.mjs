@@ -1,4 +1,16 @@
 /**
+ * DEPRECATED.
+ *
+ * 이 구버전 스크래퍼는 현재 자동/수동 수집 기준이 아니다.
+ * 반드시 scripts/run-ingestion.sh + scripts/ingestion/collection-registry.mjs 경로를 사용한다.
+ * 잘못 실행하면 BAT SWING 등 제외 소스와 타장르 실험 소스가 섞일 수 있으므로 기본 실행을 차단한다.
+ */
+if (process.env.ALLOW_DEPRECATED_SCRAPE_EVENTS !== '1') {
+  console.error('scripts/scrape-events.mjs is deprecated. Use bash scripts/run-ingestion.sh instead.');
+  process.exit(78);
+}
+
+/**
  * 스윙댄스 이벤트 수집 스크립트
  * 가이드: .claude/skills/scrape-events/SKILL.md
  *

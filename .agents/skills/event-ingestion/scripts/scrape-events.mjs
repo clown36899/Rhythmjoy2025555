@@ -1,4 +1,15 @@
 /**
+ * DEPRECATED.
+ *
+ * 이 구버전 스크래퍼는 사용 금지다.
+ * 현재 수집은 .agents/skills/web-search-ingestion/SKILL.md 와 scripts/run-ingestion.sh 기준으로만 실행한다.
+ */
+if (process.env.ALLOW_DEPRECATED_SCRAPE_EVENTS !== '1') {
+  console.error('Deprecated event-ingestion scraper is disabled. Use web-search-ingestion + scripts/run-ingestion.sh.');
+  process.exit(78);
+}
+
+/**
  * 스윙댄스 이벤트 수집 스크립트
  * 가이드: .claude/skills/scrape-events/SKILL.md
  *
