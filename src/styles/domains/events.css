@@ -102,7 +102,9 @@
 }
 
 .home-neb-standard-layout {
-    margin: 12px 0 0;
+    width: min(100%, 1280px);
+    margin: 16px auto 0;
+    padding: 0 clamp(16px, 3vw, 28px);
 }
 
 .home-neb-standard-layout .NEB-container {
@@ -121,6 +123,244 @@
 .home-neb-standard-layout .NEB-slide {
     border-right: 0;
     border-left: 0;
+}
+
+.home-neb-desktop-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.home-neb-hero-pane {
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--bg-surface-1, #1a1c21) 84%, transparent);
+}
+
+.home-neb-hero-pane .NEB-slide {
+    min-height: clamp(300px, 27vw, 390px);
+}
+
+.home-neb-hero-pane .NEB-content {
+    grid-template-columns: clamp(140px, 26%, 184px) minmax(0, 1fr);
+    gap: clamp(14px, 2vw, 18px);
+}
+
+.home-neb-hero-pane .NEB-mini-thumbnail {
+    align-self: end;
+    max-width: 184px;
+}
+
+.home-neb-side-panel {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid color-mix(in srgb, var(--border-glass, rgba(255, 255, 255, 0.11)) 85%, transparent);
+    border-radius: 16px;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%),
+        color-mix(in srgb, var(--bg-surface-2, #20232a) 92%, #000 8%);
+}
+
+.home-neb-side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.home-neb-side-head span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--color-blue-400, #8db2ff) 42%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-blue-500, #4f83ff) 18%, transparent);
+    color: var(--text-primary, #f6f7f9);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.home-neb-side-head strong {
+    color: var(--text-secondary, #c9d0dc);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.home-neb-feature-summary {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid color-mix(in srgb, var(--border-glass, rgba(255, 255, 255, 0.11)) 90%, transparent);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.home-neb-feature-summary:hover {
+    border-color: color-mix(in srgb, var(--color-blue-400, #8db2ff) 40%, transparent);
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.home-neb-feature-thumb {
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 0.72;
+    border-radius: 11px;
+    background: var(--bg-deep, #0f1115);
+}
+
+.home-neb-feature-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.home-neb-feature-copy {
+    display: grid;
+    align-content: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.home-neb-feature-copy em {
+    width: fit-content;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(216, 160, 45, 0.18);
+    color: var(--color-yellow-300, #f2cf82);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.home-neb-feature-copy strong {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--text-primary, #f6f7f9);
+    font-size: clamp(18px, 1.45vw, 23px);
+    line-height: 1.15;
+    letter-spacing: 0;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.home-neb-feature-copy small {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-secondary, #c9d0dc);
+    font-size: 13px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-neb-feature-copy small i {
+    color: var(--color-yellow-300, #f2cf82);
+}
+
+.home-neb-next-list {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.home-neb-next-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 2px 0;
+}
+
+.home-neb-next-title strong {
+    color: var(--text-primary, #f6f7f9);
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.home-neb-next-title span {
+    color: var(--text-tertiary, #767f8d);
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.home-neb-next-item {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 54px;
+    padding: 8px;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.055);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.home-neb-next-item:hover {
+    background: rgba(255, 255, 255, 0.085);
+}
+
+.home-neb-next-item em {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(79, 131, 255, 0.16);
+    color: var(--color-blue-300, #a8c3ff);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.home-neb-next-item span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.home-neb-next-item strong,
+.home-neb-next-item small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-neb-next-item strong {
+    color: var(--text-primary, #f6f7f9);
+    font-size: 13.5px;
+    font-weight: 900;
+}
+
+.home-neb-next-item small {
+    color: var(--text-tertiary, #a8b0bd);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.home-neb-next-item i {
+    color: var(--text-tertiary, #a8b0bd);
+    font-size: 18px;
 }
 
 .home-neb-admin-scope-strip {
@@ -2540,6 +2780,20 @@
 @media (max-width: 760px) {
     .home-neb-standard-layout {
         margin-top: 12px;
+        padding: 0;
+    }
+
+    .home-neb-desktop-grid {
+        display: block;
+    }
+
+    .home-neb-hero-pane {
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .home-neb-side-panel {
+        display: none;
     }
 
     .home-neb-standard-layout .NEB-slide {

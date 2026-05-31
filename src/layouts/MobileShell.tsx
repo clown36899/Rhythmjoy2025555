@@ -23,6 +23,18 @@ interface MobileShellProps {
   isAdmin?: boolean;
 }
 
+type CalendarHeaderDisplayMode = 'calendar' | 'list' | 'map';
+
+const isCalendarHeaderDisplayMode = (value: unknown): value is CalendarHeaderDisplayMode => (
+  value === 'calendar' || value === 'list' || value === 'map'
+);
+
+const getCalendarHeaderDisplayMode = (search: string): CalendarHeaderDisplayMode => {
+  const params = new URLSearchParams(search);
+  const view = params.get('view');
+  return isCalendarHeaderDisplayMode(view) ? view : 'calendar';
+};
+
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,6 +56,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const notificationSettingsModal = useModal('notificationSettings');
   const { isGlobalLoading, globalLoadingMessage } = useLoading();
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
+  const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
   // unused state removed
   const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
   const [searchParams] = useSearchParams();
@@ -174,6 +187,33 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       });
     }
   }, [currentPath, navigate]);
+
+  const handleCalendarHeaderDisplayMode = useCallback((mode: CalendarHeaderDisplayMode) => {
+    setCalendarHeaderDisplayMode(mode);
+    window.dispatchEvent(new CustomEvent('calendarDisplayModeRequest', {
+      detail: { mode }
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (!isCalendarPage) return;
+    setCalendarHeaderDisplayMode(getCalendarHeaderDisplayMode(location.search));
+  }, [isCalendarPage, location.search]);
+
+  useEffect(() => {
+    const handleDisplayModeChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ mode?: unknown } | CalendarHeaderDisplayMode>).detail;
+      const nextMode = typeof detail === 'string' ? detail : detail?.mode;
+      if (isCalendarHeaderDisplayMode(nextMode)) {
+        setCalendarHeaderDisplayMode(nextMode);
+      }
+    };
+
+    window.addEventListener('calendarDisplayModeChanged', handleDisplayModeChanged as EventListener);
+    return () => {
+      window.removeEventListener('calendarDisplayModeChanged', handleDisplayModeChanged as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -622,6 +662,25 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   >
                     오늘
                   </button>
+
+                  <div className="calendar-header-view-switch" aria-label="캘린더 보기 방식">
+                    {([
+                      ['calendar', '캘린더'],
+                      ['list', '리스트'],
+                      ['map', '지도'],
+                    ] as const).map(([mode, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className={calendarHeaderDisplayMode === mode ? 'active' : ''}
+                        onClick={() => handleCalendarHeaderDisplayMode(mode)}
+                        aria-pressed={calendarHeaderDisplayMode === mode}
+                        title={`${label} 보기`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
 
                   <div className="calendar-month-nav calendar-month-nav--sample">
                     <button

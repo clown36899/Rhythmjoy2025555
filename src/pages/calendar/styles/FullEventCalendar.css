@@ -1679,6 +1679,12 @@
   aspect-ratio: 1 / 1;
 }
 
+.calendar-fullscreen-image-container picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .calendar-fullscreen-location-overlay {
   position: absolute;
   bottom: 0;

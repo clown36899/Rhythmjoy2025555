@@ -1,0 +1,139 @@
+.mobile-log-viewer {
+  display: none;
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .mobile-log-viewer {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 2147483000;
+    display: block;
+    font-family: inherit;
+    pointer-events: none;
+  }
+
+  .mobile-log-viewer__trigger,
+  .mobile-log-viewer__panel {
+    pointer-events: auto;
+  }
+
+  .mobile-log-viewer__trigger {
+    position: relative;
+    width: 42px;
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    background: rgba(10, 12, 16, 0.78);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .mobile-log-viewer__dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 9px;
+    height: 9px;
+    border: 2px solid #111318;
+    border-radius: 50%;
+    background: #ff5a5f;
+  }
+
+  .mobile-log-viewer__panel {
+    width: min(94vw, 420px);
+    max-height: min(74vh, 620px);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    background: rgba(17, 19, 24, 0.96);
+    color: #f3f5f7;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .mobile-log-viewer__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 12px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mobile-log-viewer__header div {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+  }
+
+  .mobile-log-viewer__header strong {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .mobile-log-viewer__header span,
+  .mobile-log-viewer__summary,
+  .mobile-log-viewer__status {
+    color: rgba(243, 245, 247, 0.66);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .mobile-log-viewer__header button,
+  .mobile-log-viewer__actions button {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #f3f5f7;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mobile-log-viewer__header button {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+  }
+
+  .mobile-log-viewer__summary {
+    margin: 0;
+    padding: 9px 12px 0;
+    word-break: break-word;
+  }
+
+  .mobile-log-viewer__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    padding: 10px 12px 0;
+  }
+
+  .mobile-log-viewer__actions button {
+    min-height: 36px;
+  }
+
+  .mobile-log-viewer__status {
+    display: block;
+    padding: 8px 12px 0;
+  }
+
+  .mobile-log-viewer__textarea {
+    width: calc(100% - 24px);
+    height: min(46vh, 420px);
+    margin: 10px 12px 12px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: #08090c;
+    color: #e8edf2;
+    font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    resize: none;
+    white-space: pre;
+  }
+}

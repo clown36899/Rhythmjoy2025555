@@ -10,6 +10,19 @@
 
 ## 📊 실행 로그
 
+### 2026-05-28 Expanded Genre Hub Watch
+- `expanded-research` 우선 허브 워처를 추가했다: `scripts/ingestion/expanded-hub-watch.mjs`
+- 실행 결과 문서:
+  - `docs/expanded-genre-hub-watch-2026-05-28.md`
+  - `docs/expanded-genre-hub-discovery-2026-05-28.md`
+- 운영 저장은 하지 않았다. DB/Storage write 없음.
+- `swing-daily`는 여전히 스윙 소스만 사용한다.
+- 결과:
+  - 라틴/바차타는 주기적 허브가 충분히 살아있음: Latin in Seoul, Where to Dance Salsa/Bachata, SalsaVida
+  - 탱고는 공식 행사 후보가 명확함: TangotoCUP Seoul, Jeju SUMM Milonga, Chuncheon Tango Festival
+  - Tango Calendar Korea는 살아있지만 JS 렌더링 경로 분석 필요
+  - 스트릿은 DanceCode/DanceChives 중심, FREEZE는 DNS 실패로 자동화 안정성 재검증 필요
+
 ### 2026-05-28 08:00 LaunchAgent 자동 실행 성공
 - **실행 ID**: `/Users/inteyeo/ingestion-runs/20260528_080001_31109.*`
 - **결과**: `exit_code=0`, 08:00 시작 후 08:17:54 정상 종료. Telegram 전송 성공.
@@ -667,15 +680,33 @@ claude mcp get playwright
 
 ## 🔧 현재 파일 요약
 
-### `/Users/inteyeo/scripts/run-ingestion.sh`
-- Telegram 시작 알림 → Chrome CDP 확인/실행 → `claude -p "/web-search-ingestion"` → Telegram 완료/실패 알림
-- `--allowedTools`: Bash, Read/Write/Edit/Glob/Grep, WebFetch/WebSearch, mcp__playwright__browser_* 전체
+### 2026-05-31 — 자동수집 안정화 변경
+- **확인된 실패 원인**
+  - 2026-05-30: Codex 사용량 제한으로 수집 시작 전 실패
+  - 2026-05-31: Codex 모델/프로세스 시작 대기에서 멈춘 뒤 전체 타임아웃
+  - 실패 알림도 Telegram DNS 지연으로 장시간 대기해 도착하지 않음
+  - 기존 `claude-ingestion` LaunchAgent와 `codex-ingestion` LaunchAgent가 중복 로드되어 상태가 혼란스러웠음
+- **수정**
+  - `swing-daily` 기본 엔진을 Codex 자율 실행에서 `scripts/ingestion/swing-daily-native.mjs` 네이티브 Node/Playwright 수집기로 전환
+  - Codex 엔진을 쓰는 경우에도 시작 검증을 먼저 통과해야 cleanup이 실행되도록 순서 변경
+  - Telegram 전송을 Python timeout 방식으로 바꿔 DNS 지연이 전체 작업을 붙잡지 않게 변경
+  - old `com.rhythmjoy.claude-ingestion`, `com.rhythmjoy.claude-test`는 비활성화하고 `com.rhythmjoy.codex-ingestion`만 유지
+  - 잘못된 테스트 수집 row `5f0af35912ae734d`, `e4aced0937ad9ce7`, `c81820d6ed772a4d` 삭제 완료
+- **검증**
+  - `bash -n scripts/run-ingestion.sh`
+  - `node --check scripts/ingestion/swing-daily-native.mjs`
+  - `node scripts/test-ingestion-standards.mjs`
+  - `TELEGRAM_DRY_RUN=1 INGESTION_NATIVE_DRY_RUN=1 INGESTION_SKIP_CLEANUP=1 ... bash scripts/run-ingestion.sh`
 
-### `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.claude-ingestion.plist`
+### `/Users/inteyeo/scripts/run-ingestion.sh`
+- Telegram 시작 알림 → Chrome CDP 확인/실행 → 수집 기준 테스트 → 과거 완료 데이터 정리 → `swing-daily-native.mjs` 실행 → Telegram 완료/실패 알림
+- `INGESTION_ENGINE=codex`로 지정할 때만 Codex 프롬프트 경로를 사용한다.
+
+### `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.codex-ingestion.plist`
 - 실행: `/bin/bash /Users/inteyeo/scripts/run-ingestion.sh`
 - 스케줄: **매일 오전 08:00**
 - 로그: `/Users/inteyeo/claude_ingestion.log`
-- 상태: `launchctl list | grep rhythmjoy` → 로드 확인됨
+- 상태: `launchctl list | grep rhythmjoy` → `com.rhythmjoy.codex-ingestion`만 로드
 
 ### 로그 확인 명령
 ```bash

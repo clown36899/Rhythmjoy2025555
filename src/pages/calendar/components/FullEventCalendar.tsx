@@ -126,6 +126,7 @@ const CalendarCell = memo(({
           <>
           {events.map((event) => {
             const thumbnailUrl = event.image_micro || event.image_thumbnail || event.image_medium;
+            const desktopThumbnailUrl = event.image_thumbnail || event.image_medium || event.image_micro;
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = event.venue_name || event.place_name || event.location || '';
             const category = String(event.category || '').toLowerCase();
@@ -157,14 +158,19 @@ const CalendarCell = memo(({
                 <div className="calendar-fullscreen-card-inner">
                   {thumbnailUrl ? (
                     <div className={`calendar-fullscreen-image-container ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                      <img
-                        src={thumbnailUrl}
-                        alt=""
-                        className="calendar-fullscreen-image"
-                        loading="lazy"
-                        decoding="async"
-                        draggable="false"
-                      />
+                      <picture>
+                        {desktopThumbnailUrl && (
+                          <source media="(min-width: 1024px)" srcSet={desktopThumbnailUrl} />
+                        )}
+                        <img
+                          src={thumbnailUrl}
+                          alt=""
+                          className="calendar-fullscreen-image"
+                          loading="lazy"
+                          decoding="async"
+                          draggable="false"
+                        />
+                      </picture>
                       {locationText && (
                         <span className="calendar-fullscreen-location-overlay">
                           {locationText}

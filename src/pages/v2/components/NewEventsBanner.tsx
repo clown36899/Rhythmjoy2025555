@@ -154,9 +154,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         event.image_full ||
         getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
     const getSmallPreviewImage = (event: Event) =>
-        event.image_micro ||
         event.image_thumbnail ||
         event.image_medium ||
+        event.image_micro ||
         getBannerImage(event);
 
     return (

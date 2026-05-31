@@ -1,8 +1,6 @@
-if (import.meta.env.PROD) {
-  console.log = () => { };
-  console.debug = () => { };
-  console.info = () => { };
-}
+import { initClientLogBuffer } from './utils/clientLogBuffer';
+
+initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
 console.log('%c[Main] 🏁 JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
 (window as any).__APP_STARTED = true;
 
@@ -79,6 +77,7 @@ import { queryClient } from './lib/queryClient';
 
 import App from './App.tsx'
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
+import MobileLogViewer from './components/MobileLogViewer';
 import { ModalRegistry } from './components/ModalRegistry';
 import { initGAWithEngagement } from './lib/analytics';
 import LocalLoading from './components/LocalLoading';
@@ -201,6 +200,7 @@ const router = createBrowserRouter([
                     <App />
                     <ModalRegistry />
                   </GlobalErrorBoundary>
+                  <MobileLogViewer />
                 </LoadingProvider>
               </ModalProvider>
             </BoardDataProvider>
@@ -343,7 +343,15 @@ function RootApp() {
       // 이미 에러 화면이 떠있다면 중복 렌더링 방지
       if (document.getElementById('crash-fallback-overlay')) return;
 
+      const escapeHtml = (value: string) => value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
       const overlay = document.createElement('div');
+      const clientLogText = (window as any).__RHYTHMJOY_GET_LOG_TEXT__?.() || '';
       overlay.id = 'crash-fallback-overlay';
       overlay.innerHTML = `
         <div class="crash-fallback-container" style="
@@ -356,18 +364,26 @@ function RootApp() {
           <h2 class="crash-fallback-title" style="color: #ef4444; margin-bottom: 20px;">오류가 발생했습니다</h2>
           <p class="crash-fallback-desc" style="margin-bottom: 20px;">앱을 실행하는 도중 예기치 못한 문제가 발생했습니다.</p>
           
-          <div class="crash-error-code" style="
+          <div id="crash-error-log" class="crash-error-code" style="
             font-size: 11px; color: #a1a1aa; background: #18181b; 
             padding: 15px; border-radius: 8px; margin: 10px 0; width: 100%; 
             overflow-x: auto; white-space: pre-wrap; text-align: left;
             border: 1px solid #333; max-height: 300px;
           ">
-            <strong>Error:</strong> ${message}<br/><br/>
-            <strong>UA:</strong> ${navigator.userAgent}<br/><br/>
-            <strong>Stack:</strong><br/>${stack}
+            <strong>Error:</strong> ${escapeHtml(message)}<br/><br/>
+            <strong>UA:</strong> ${escapeHtml(navigator.userAgent)}<br/><br/>
+            <strong>Stack:</strong><br/>${escapeHtml(stack)}<br/><br/>
+            <strong>Client Logs:</strong><br/>${escapeHtml(clientLogText)}
           </div>
 
           <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('crash-error-log').innerText)" 
+              class="crash-fallback-btn" style="
+              padding: 12px 18px; background: #16a34a; color: white; border: none; 
+              border-radius: 8px; font-weight: bold; font-size: 14px;
+            ">
+              로그 복사
+            </button>
             <button onclick="sessionStorage.clear(); localStorage.clear(); if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))}; window.location.reload();" 
               class="crash-fallback-btn" style="
               padding: 12px 24px; background: #2563eb; color: white; border: none; 

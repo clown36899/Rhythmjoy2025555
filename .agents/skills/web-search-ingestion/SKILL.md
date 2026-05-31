@@ -199,6 +199,19 @@ sleep 1
 > ⚠️ **크래시 방지**: `localhost:8888` 등 로컬 앱은 Playwright로 접근하지 않는다. 렌더러 크래시로 브라우저가 닫히는 원인이 된다.
 > ⚠️ **이미지 처리 실패 방지**: 자동 수집 중에는 `browser_take_screenshot`을 사용하지 않는다. 화면 확인은 `browser_snapshot`/`browser_evaluate`로 DOM 텍스트와 이미지 URL을 추출하고, 포스터는 브라우저 컨텍스트의 `fetch()`로 blob/base64를 받아 저장한다.
 
+### 네이버 카페 수집 주의사항
+
+네이버 카페의 개별 글은 최상위 문서가 아니라 `cafe_main` iframe 안에 본문과 포스터가 들어오는 경우가 많다. 따라서 카페 글에서 이미지가 없다고 판단하기 전에 반드시 아래 순서로 확인한다.
+
+1. 목록에서 얻은 실제 글 URL(`/articles/{id}`)을 연다.
+2. `page.frames().find(frame => frame.name() === 'cafe_main')` 또는 동등한 방식으로 본문 프레임을 선택한다.
+3. 본문 프레임 안의 텍스트와 이미지를 추출한다.
+4. 포스터 후보는 `.se-image-resource`, `cafeptthumb`, `postfiles` 중 `naturalWidth * naturalHeight`가 가장 큰 이미지를 우선한다.
+5. 브라우저 프레임 안의 `fetch()`가 CORS로 막히면, 같은 이미지 URL을 일반 HTTP 요청으로 내려받되 `Referer: https://cafe.naver.com/` 헤더를 붙인다.
+6. `?type=f200_200` 같은 목록 썸네일은 포스터로 쓰지 않고, 글 본문의 `?type=w1600` 등 원본 크기 이미지를 사용한다.
+
+최상위 문서만 보고 `no article poster image`로 스킵하면 스윙스캔들/스윙타운/스윙패밀리 같은 카페 소스가 누락될 수 있다.
+
 ### 🔑 환경변수 (원격 에이전트 / 로컬 공통)
 ```
 SUPABASE_URL=https://mkoryudscamnopvxdelk.supabase.co

@@ -16,6 +16,7 @@ import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
 import { HomeNavButtonsSection } from "../../HomeNavButtonsSection";
 import { getCardThumbnail } from "../../../../../utils/getEventThumbnail";
+import { formatEventDate } from "../../../../../utils/dateUtils";
 import {
     calendarDanceScopeOptions,
     getDanceScopeLabel,
@@ -87,6 +88,23 @@ const mergeUniqueEvents = (...groups: Event[][]) => {
     return merged;
 };
 
+const getHomeAdDateLabel = (event?: Event) => {
+    if (!event) return "날짜 미정";
+    if (event.event_dates && event.event_dates.length > 0) {
+        return formatEventDate(event.event_dates[0]) + (event.event_dates.length > 1 ? " ..." : "");
+    }
+    const startDate = event.start_date || event.date;
+    const endDate = event.end_date || event.date;
+    if (!startDate) return "날짜 미정";
+    if (endDate && endDate !== startDate) return `${formatEventDate(startDate)}~${formatEventDate(endDate)}`;
+    return formatEventDate(startDate);
+};
+
+const getHomeAdPlaceLabel = (event?: Event) => {
+    if (!event) return "장소 미정";
+    return event.location || event.place_name || "장소 미정";
+};
+
 const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     events,
     fallbackEvents,
@@ -152,6 +170,9 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     }, [displayEvents.length, preferredScope]);
     const safeActiveIndex = displayEvents.length > 0 ? activeIndex % displayEvents.length : 0;
     const featuredEvent = displayEvents[safeActiveIndex] || displayEvents[0];
+    const nextEvents = displayEvents
+        .filter((event) => event.id !== featuredEvent?.id)
+        .slice(0, 4);
 
     if (displayEvents.length === 0) return null;
 
@@ -171,14 +192,78 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                 ))}
             </div>
             )}
-            <NewEventsBanner
-                events={displayEvents}
-                onEventClick={onEventClick}
-                defaultThumbnailClass={defaultThumbnailClass}
-                defaultThumbnailEvent={defaultThumbnailEvent}
-                currentIndex={safeActiveIndex}
-                onCurrentIndexChange={setActiveIndex}
-            />
+            <div className="home-neb-desktop-grid">
+                <div className="home-neb-hero-pane">
+                    <NewEventsBanner
+                        events={displayEvents}
+                        onEventClick={onEventClick}
+                        defaultThumbnailClass={defaultThumbnailClass}
+                        defaultThumbnailEvent={defaultThumbnailEvent}
+                        currentIndex={safeActiveIndex}
+                        onCurrentIndexChange={setActiveIndex}
+                    />
+                </div>
+
+                <aside className="home-neb-side-panel" aria-label="신규 이벤트 요약">
+                    <div className="home-neb-side-head">
+                        <span>{getDanceScopeLabel(getHomeAdEventScope(featuredEvent))}</span>
+                        <strong>지금 노출 중</strong>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="home-neb-feature-summary"
+                        onClick={() => featuredEvent && onEventClick(featuredEvent)}
+                    >
+                        <span className="home-neb-feature-thumb">
+                            {featuredEvent && (
+                                <img
+                                    src={getCardThumbnail(featuredEvent) || defaultThumbnailEvent}
+                                    alt=""
+                                    loading="eager"
+                                    decoding="async"
+                                />
+                            )}
+                        </span>
+                        <span className="home-neb-feature-copy">
+                            <em>{featuredEvent?.category === "class" ? "강습" : "행사"}</em>
+                            <strong>{featuredEvent?.title}</strong>
+                            <small>
+                                <i className="ri-map-pin-line" />
+                                {getHomeAdPlaceLabel(featuredEvent)}
+                            </small>
+                            <small>
+                                <i className="ri-calendar-line" />
+                                {getHomeAdDateLabel(featuredEvent)}
+                            </small>
+                        </span>
+                    </button>
+
+                    {nextEvents.length > 0 && (
+                        <div className="home-neb-next-list">
+                            <div className="home-neb-next-title">
+                                <strong>다음 후보</strong>
+                                <span>{displayEvents.length}개 중 일부</span>
+                            </div>
+                            {nextEvents.map((event, index) => (
+                                <button
+                                    key={event.id}
+                                    type="button"
+                                    className="home-neb-next-item"
+                                    onClick={() => setActiveIndex(displayEvents.findIndex((item) => item.id === event.id))}
+                                >
+                                    <em>{index + 1}</em>
+                                    <span>
+                                        <strong>{event.title}</strong>
+                                        <small>{getHomeAdDateLabel(event)} · {getHomeAdPlaceLabel(event)}</small>
+                                    </span>
+                                    <i className="ri-arrow-right-s-line" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </aside>
+            </div>
             {isAdmin && isFallbackMixed && (
                 <p className="home-neb-admin-scope-note">
                     {getDanceScopeLabel(preferredScope)} 후보가 적어 다른 장르를 함께 노출 중

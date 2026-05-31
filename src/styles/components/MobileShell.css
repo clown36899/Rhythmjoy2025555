@@ -1123,6 +1123,54 @@
   display: none;
 }
 
+.calendar-header-view-switch {
+  display: none;
+}
+
+@media (min-width: 721px) {
+  .calendar-header-view-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 36px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .calendar-header-view-switch button {
+    min-width: 68px;
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #a8b0bd;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, transform 0.12s ease;
+  }
+
+  .calendar-header-view-switch button:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .calendar-header-view-switch button.active {
+    color: #ffffff;
+    background: rgba(92, 141, 246, 0.9);
+    box-shadow: 0 8px 18px rgba(52, 100, 220, 0.22);
+  }
+
+  .calendar-header-view-switch button:active {
+    transform: scale(0.96);
+  }
+}
+
 .calendar-shell-page .header-nav-v2 {
   height: 56px;
   background: color-mix(in srgb, var(--bg-surface-1) 96%, transparent);

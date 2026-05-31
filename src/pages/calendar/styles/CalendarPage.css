@@ -77,6 +77,35 @@ html {
     backdrop-filter: blur(18px) saturate(145%);
 }
 
+@media (min-width: 1024px) {
+    .calendar-live-shell--calendar {
+        width: min(700px, calc(100vw - 96px));
+    }
+
+    .calendar-live-shell--calendar .calendar-live-sticky-controls {
+        width: min(700px, calc(100vw - 96px));
+    }
+
+    .calendar-live-shell--calendar .calendar-page-main {
+        width: 100%;
+        max-width: 700px;
+    }
+}
+
+@media (min-width: 1480px) {
+    .calendar-live-shell--calendar {
+        width: min(760px, calc(100vw - 220px));
+    }
+
+    .calendar-live-shell--calendar .calendar-live-sticky-controls {
+        width: min(760px, calc(100vw - 220px));
+    }
+
+    .calendar-live-shell--calendar .calendar-page-main {
+        max-width: 760px;
+    }
+}
+
 .calendar-live-topbar {
     display: flex;
     min-height: 64px;
@@ -131,6 +160,12 @@ html {
 
 .calendar-live-topbar-title:hover strong {
     color: #ffffff;
+}
+
+@media (min-width: 721px) {
+    .calendar-live-topbar {
+        display: none;
+    }
 }
 
 .calendar-live-toolbar {

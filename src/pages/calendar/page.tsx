@@ -163,6 +163,27 @@ export default function CalendarPage() {
         }
     }, []);
 
+    useEffect(() => {
+        const handleHeaderDisplayModeRequest = (event: Event) => {
+            const detail = (event as CustomEvent<{ mode?: CalendarDisplayMode }>).detail;
+            const nextMode = detail?.mode;
+            if (nextMode === 'calendar' || nextMode === 'list' || nextMode === 'map') {
+                handleSetDisplayMode(nextMode);
+            }
+        };
+
+        window.addEventListener('calendarDisplayModeRequest', handleHeaderDisplayModeRequest as EventListener);
+        return () => {
+            window.removeEventListener('calendarDisplayModeRequest', handleHeaderDisplayModeRequest as EventListener);
+        };
+    }, [handleSetDisplayMode]);
+
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('calendarDisplayModeChanged', {
+            detail: { mode: displayMode }
+        }));
+    }, [displayMode]);
+
     // Event Modal States - using Hook
     const eventModal = useEventModal();
     const handleCalendarMapEventClick = useCallback((event: AppEvent) => {

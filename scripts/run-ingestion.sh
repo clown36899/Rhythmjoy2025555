@@ -25,6 +25,9 @@ PROJECT_ROOT="${PROJECT_ROOT:-/Users/inteyeo/Rhythmjoy2025555-5}"
 LOCK_DIR="/tmp/rhythmjoy-ingestion.lock"
 LOCK_MAX_AGE_SECONDS=21600
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-1500}"
+CODEX_STARTUP_CHECK="${CODEX_STARTUP_CHECK:-1}"
+CODEX_STARTUP_TIMEOUT="${CODEX_STARTUP_TIMEOUT:-75}"
+TELEGRAM_SEND_TIMEOUT="${TELEGRAM_SEND_TIMEOUT:-12}"
 RUN_ID="$(date '+%Y%m%d_%H%M%S')_$$"
 RUN_STARTED_AT_UTC="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 RUN_DIR="${RUN_DIR:-/Users/inteyeo/ingestion-runs}"
@@ -32,6 +35,13 @@ RUN_OUTPUT="$RUN_DIR/${RUN_ID}.jsonl"
 RUN_LAST="$RUN_DIR/${RUN_ID}.last.txt"
 RUN_META="$RUN_DIR/${RUN_ID}.meta"
 INGESTION_PROFILE="${INGESTION_PROFILE:-swing-daily}"
+if [ -z "${INGESTION_ENGINE:-}" ]; then
+    if [ "$INGESTION_PROFILE" = "swing-daily" ]; then
+        INGESTION_ENGINE="native"
+    else
+        INGESTION_ENGINE="codex"
+    fi
+fi
 
 if [ -z "${PROMPT_FILE:-}" ]; then
     case "$INGESTION_PROFILE" in
@@ -64,7 +74,7 @@ load_supabase_env() {
 
 telegram_notify() {
     local text="$1"
-    local payload http_code response_file
+    local http_code response_file
 
     if [ "${TELEGRAM_DRY_RUN:-0}" = "1" ]; then
         log "--- Telegram dry-run ---"
@@ -79,12 +89,54 @@ telegram_notify() {
     fi
 
     response_file="/tmp/rhythmjoy_telegram_${RUN_ID}.json"
-    payload=$(printf '%s' "$text" | python3 -c "import sys,json; print(json.dumps({'chat_id':'${TELEGRAM_CHAT_ID}','text':sys.stdin.read()}))")
+    http_code=$(TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN" TELEGRAM_CHAT_ID="$TELEGRAM_CHAT_ID" TELEGRAM_SEND_TIMEOUT="$TELEGRAM_SEND_TIMEOUT" TELEGRAM_TEXT="$text" RESPONSE_FILE="$response_file" python3 <<'PY' 2>> "$LOG_FILE" || echo "000"
+import json
+import os
+import signal
+import sys
+import urllib.error
+import urllib.request
 
-    http_code=$(curl -sS --max-time 15 -o "$response_file" -w "%{http_code}" \
-        -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -H "Content-Type: application/json" \
-        -d "$payload" 2>> "$LOG_FILE" || echo "000")
+timeout = int(os.environ.get("TELEGRAM_SEND_TIMEOUT", "12"))
+token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+text = os.environ.get("TELEGRAM_TEXT", "")
+response_file = os.environ.get("RESPONSE_FILE", "")
+
+def alarm_handler(signum, frame):
+    raise TimeoutError(f"telegram send timed out after {timeout}s")
+
+signal.signal(signal.SIGALRM, alarm_handler)
+signal.alarm(timeout)
+
+try:
+    payload = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+        body = res.read()
+        if response_file:
+            open(response_file, "wb").write(body)
+        print(res.status)
+except urllib.error.HTTPError as exc:
+    body = exc.read()
+    if response_file:
+        open(response_file, "wb").write(body)
+    print(exc.code)
+    sys.exit(1)
+except Exception as exc:
+    if response_file:
+        open(response_file, "w", encoding="utf-8").write(str(exc))
+    print("000")
+    sys.exit(1)
+finally:
+    signal.alarm(0)
+PY
+)
 
     if [ "$http_code" = "200" ]; then
         log "--- Telegram 전송 성공: http=$http_code ---"
@@ -105,7 +157,7 @@ cleanup_lock() {
 
 handle_termination() {
     local signal_name="${1:-TERM}"
-    log "--- Codex 수집 외부 종료 신호 수신: signal=$signal_name / run=$RUN_ID ---"
+    log "--- 이벤트 수집 외부 종료 신호 수신: signal=$signal_name / run=$RUN_ID ---"
 
     if [ -n "${CODEX_PID:-}" ] && kill -0 "$CODEX_PID" 2>/dev/null; then
         kill_tree "$CODEX_PID" TERM
@@ -124,7 +176,7 @@ handle_termination() {
         echo "terminated_by=$signal_name"
     } >> "$RUN_META" 2>/dev/null || true
 
-    telegram_notify "댄스 이벤트 Codex 수집 실패
+    telegram_notify "댄스 이벤트 수집 실패
 $(date '+%Y-%m-%d %H:%M')
 외부 종료 신호: $signal_name
 
@@ -270,7 +322,7 @@ PY
 run_ingestion_preflight() {
     if [ ! -f "$PROJECT_ROOT/scripts/test-ingestion-standards.mjs" ]; then
         log "--- 수집 기준 테스트 파일 없음: scripts/test-ingestion-standards.mjs ---"
-        telegram_notify "댄스 이벤트 Codex 수집 실패
+        telegram_notify "댄스 이벤트 수집 실패
 수집 기준 테스트 파일이 없습니다.
 run: $RUN_ID"
         exit 78
@@ -278,7 +330,7 @@ run: $RUN_ID"
 
     if ! node "$PROJECT_ROOT/scripts/test-ingestion-standards.mjs" >> "$LOG_FILE" 2>&1; then
         log "--- 수집 기준 테스트 실패 ---"
-        telegram_notify "댄스 이벤트 Codex 수집 실패
+        telegram_notify "댄스 이벤트 수집 실패
 수집 기준 사전검사 실패
 run: $RUN_ID"
         exit 78
@@ -312,7 +364,7 @@ console.log(`swing-daily source guard passed: ${sources.length} sources`);
 NODE
         then
             log "--- swing-daily 소스 가드 실패 ---"
-            telegram_notify "댄스 이벤트 Codex 수집 실패
+            telegram_notify "댄스 이벤트 수집 실패
 swing-daily 소스 가드 실패
 run: $RUN_ID"
             exit 78
@@ -328,7 +380,7 @@ run_past_cleanup() {
 
     if ! result=$(node "$PROJECT_ROOT/scripts/ingestion/cleanup-past-collected.mjs" --apply --out "$cleanup_log" 2>> "$LOG_FILE"); then
         log "--- 과거 완료 데이터 정리 실패: log=$cleanup_log ---"
-        telegram_notify "댄스 이벤트 Codex 수집 실패
+        telegram_notify "댄스 이벤트 수집 실패
 과거 완료 데이터 정리 사전검사 실패
 run: $RUN_ID
 log: $cleanup_log"
@@ -401,12 +453,77 @@ Confirm that you can read the repository and then print exactly:
 EOF
 }
 
-log "--- Codex 수집 시작: $(date '+%Y-%m-%d %H:%M:%S') / run=$RUN_ID ---"
+run_codex_startup_check() {
+    if [ "$CODEX_STARTUP_CHECK" != "1" ] || [ "${INGESTION_SMOKE_TEST:-0}" = "1" ]; then
+        return 0
+    fi
+
+    local check_prompt check_output check_last check_pid check_deadline check_exit
+    check_prompt="$RUN_DIR/${RUN_ID}.startup.prompt.md"
+    check_output="$RUN_DIR/${RUN_ID}.startup.jsonl"
+    check_last="$RUN_DIR/${RUN_ID}.startup.last.txt"
+
+    cat > "$check_prompt" <<'EOF'
+Do not edit files. Do not use browser tools. Reply exactly:
+INGESTION_STARTUP_OK
+EOF
+
+    "$CODEX" exec \
+        --cd "$PROJECT_ROOT" \
+        --sandbox read-only \
+        --json \
+        --output-last-message "$check_last" \
+        - < "$check_prompt" \
+        > "$check_output" 2>&1 &
+
+    check_pid=$!
+    check_deadline=$(( $(date +%s) + CODEX_STARTUP_TIMEOUT ))
+    check_exit=0
+
+    while kill -0 "$check_pid" 2>/dev/null; do
+        if [ "$(date +%s)" -ge "$check_deadline" ]; then
+            log "--- Codex startup check timeout: pid=$check_pid / ${CODEX_STARTUP_TIMEOUT}s ---"
+            kill_tree "$check_pid" TERM
+            sleep 3
+            if kill -0 "$check_pid" 2>/dev/null; then
+                kill_tree "$check_pid" KILL
+            fi
+            check_exit=124
+            break
+        fi
+        sleep 2
+    done
+
+    if [ "$check_exit" -eq 0 ]; then
+        wait "$check_pid" || check_exit=$?
+    else
+        wait "$check_pid" 2>/dev/null || true
+    fi
+
+    if [ "$check_exit" -ne 0 ] || ! grep -q "INGESTION_STARTUP_OK" "$check_last" "$check_output" 2>/dev/null; then
+        echo "startup_check_exit=$check_exit" >> "$RUN_META" 2>/dev/null || true
+        log "--- Codex startup check 실패: exit=$check_exit / run=$RUN_ID ---"
+        perl -pe 's/(SUPABASE_(?:SERVICE_)?KEY[=:]\s*)[A-Za-z0-9._-]+/${1}[REDACTED]/g; s/(TELEGRAM_BOT_TOKEN[=:]\s*)[A-Za-z0-9:_-]+/${1}[REDACTED]/g; s/(Bearer\s+)[A-Za-z0-9._-]+/${1}[REDACTED]/g; s/(apikey:\s*)[A-Za-z0-9._-]+/${1}[REDACTED]/gi' "$check_output" >> "$LOG_FILE" 2>/dev/null || true
+        telegram_notify "댄스 이벤트 수집 실패
+$(date '+%Y-%m-%d %H:%M')
+Codex 시작 검증 실패
+
+cleanup은 실행하지 않았습니다.
+run: $RUN_ID
+log: $check_output" || true
+        exit 78
+    fi
+
+    echo "startup_check=ok" >> "$RUN_META" 2>/dev/null || true
+    log "--- Codex startup check 통과 ---"
+}
+
+log "--- 이벤트 수집 시작: engine=$INGESTION_ENGINE / $(date '+%Y-%m-%d %H:%M:%S') / run=$RUN_ID ---"
 
 acquire_lock
 cleanup_playwright_mcp TERM
 
-telegram_notify "댄스 이벤트 Codex 수집 시작
+telegram_notify "댄스 이벤트 수집 시작
 $(date '+%Y-%m-%d %H:%M')
 run: $RUN_ID"
 
@@ -425,28 +542,38 @@ cd "$PROJECT_ROOT" || exit 1
 load_supabase_env
 run_ingestion_preflight
 
-CODEX="$(find_codex || true)"
-if [ -z "$CODEX" ]; then
+CODEX=""
+if [ "$INGESTION_ENGINE" != "native" ]; then
+    CODEX="$(find_codex || true)"
+fi
+if [ "$INGESTION_ENGINE" != "native" ] && [ -z "$CODEX" ]; then
     log "--- Codex 실행 파일 없음 ---"
-    telegram_notify "댄스 이벤트 Codex 수집 실패
+    telegram_notify "댄스 이벤트 수집 실패
 Codex CLI를 찾을 수 없습니다."
     exit 127
-fi
-
-if [ "${INGESTION_SMOKE_TEST:-0}" = "1" ]; then
-    build_smoke_prompt > "$RUN_DIR/${RUN_ID}.prompt.md"
-else
-    cp "$PROMPT_FILE" "$RUN_DIR/${RUN_ID}.prompt.md"
 fi
 
 echo "run_id=$RUN_ID" > "$RUN_META"
 echo "started_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
 echo "started_at_utc=$RUN_STARTED_AT_UTC" >> "$RUN_META"
-echo "codex=$CODEX" >> "$RUN_META"
+echo "engine=$INGESTION_ENGINE" >> "$RUN_META"
+echo "codex=${CODEX:-}" >> "$RUN_META"
 echo "profile=$INGESTION_PROFILE" >> "$RUN_META"
 echo "prompt=$RUN_DIR/${RUN_ID}.prompt.md" >> "$RUN_META"
 echo "output=$RUN_OUTPUT" >> "$RUN_META"
 echo "last=$RUN_LAST" >> "$RUN_META"
+
+if [ "$INGESTION_ENGINE" != "native" ]; then
+    run_codex_startup_check
+
+    if [ "${INGESTION_SMOKE_TEST:-0}" = "1" ]; then
+        build_smoke_prompt > "$RUN_DIR/${RUN_ID}.prompt.md"
+    else
+        cp "$PROMPT_FILE" "$RUN_DIR/${RUN_ID}.prompt.md"
+    fi
+else
+    echo "Native swing-daily ingestion" > "$RUN_DIR/${RUN_ID}.prompt.md"
+fi
 
 if [ "${INGESTION_SKIP_CLEANUP:-0}" = "1" ]; then
     export INGESTION_PRE_CLEANUP_COUNT=0
@@ -463,18 +590,26 @@ fi
 TIMEOUT_FLAG="$RUN_DIR/${RUN_ID}.timeout"
 rm -f "$TIMEOUT_FLAG"
 
-"$CODEX" --search exec \
-    --cd "$PROJECT_ROOT" \
-    --sandbox danger-full-access \
-    --dangerously-bypass-approvals-and-sandbox \
-    -c shell_environment_policy.inherit=all \
-    --json \
-    --output-last-message "$RUN_LAST" \
-    - < "$RUN_DIR/${RUN_ID}.prompt.md" \
-    > "$RUN_OUTPUT" 2>&1 &
+if [ "$INGESTION_ENGINE" = "native" ]; then
+    node "$PROJECT_ROOT/scripts/ingestion/swing-daily-native.mjs" \
+        > "$RUN_OUTPUT" 2>&1 &
+else
+    "$CODEX" --search exec \
+        --cd "$PROJECT_ROOT" \
+        --sandbox danger-full-access \
+        --dangerously-bypass-approvals-and-sandbox \
+        -c shell_environment_policy.inherit=all \
+        --json \
+        --output-last-message "$RUN_LAST" \
+        - < "$RUN_DIR/${RUN_ID}.prompt.md" \
+        > "$RUN_OUTPUT" 2>&1 &
+fi
 
 CODEX_PID=$!
-echo "codex_pid=$CODEX_PID" >> "$RUN_META"
+echo "worker_pid=$CODEX_PID" >> "$RUN_META"
+if [ "$INGESTION_ENGINE" != "native" ]; then
+    echo "codex_pid=$CODEX_PID" >> "$RUN_META"
+fi
 
 DEADLINE=$(( $(date +%s) + TIMEOUT_SECONDS ))
 EXIT_CODE=0
@@ -488,13 +623,13 @@ while kill -0 "$CODEX_PID" 2>/dev/null; do
             echo "timeout_after_seconds=$TIMEOUT_SECONDS"
         } > "$TIMEOUT_FLAG"
 
-        log "--- Codex 수집 타임아웃: pid=$CODEX_PID / ${TIMEOUT_SECONDS}s ---"
+        log "--- 이벤트 수집 타임아웃: pid=$CODEX_PID / ${TIMEOUT_SECONDS}s ---"
         kill_tree "$CODEX_PID" TERM
         cleanup_playwright_mcp TERM
         sleep 10
 
         if kill -0 "$CODEX_PID" 2>/dev/null; then
-            log "--- Codex 수집 강제 종료: pid=$CODEX_PID ---"
+            log "--- 이벤트 수집 강제 종료: pid=$CODEX_PID ---"
             kill_tree "$CODEX_PID" KILL
         fi
         cleanup_playwright_mcp KILL
@@ -523,8 +658,12 @@ cleanup_playwright_mcp TERM
 echo "ended_at=$(date '+%Y-%m-%d %H:%M:%S')" >> "$RUN_META"
 echo "exit_code=$EXIT_CODE" >> "$RUN_META"
 
+if [ "$INGESTION_ENGINE" = "native" ] && [ ! -f "$RUN_LAST" ]; then
+    cp "$RUN_OUTPUT" "$RUN_LAST" 2>/dev/null || true
+fi
+
 perl -pe 's/(SUPABASE_(?:SERVICE_)?KEY[=:]\s*)[A-Za-z0-9._-]+/${1}[REDACTED]/g; s/(TELEGRAM_BOT_TOKEN[=:]\s*)[A-Za-z0-9:_-]+/${1}[REDACTED]/g; s/(Bearer\s+)[A-Za-z0-9._-]+/${1}[REDACTED]/g; s/(apikey:\s*)[A-Za-z0-9._-]+/${1}[REDACTED]/gi' "$RUN_OUTPUT" >> "$LOG_FILE"
-log "--- Codex 수집 종료: $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE / run=$RUN_ID ---"
+log "--- 이벤트 수집 종료: engine=$INGESTION_ENGINE / $(date '+%Y-%m-%d %H:%M:%S') / exit=$EXIT_CODE / run=$RUN_ID ---"
 
 SUMMARY_BLOCK="$(extract_summary)"
 
@@ -553,7 +692,7 @@ PARSED_BLOCK=$(echo "$SUMMARY_BLOCK" | grep "^접근불가:" | tail -1)
 PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:" | tail -1)
 
 if [ $EXIT_CODE -eq 0 ]; then
-    telegram_notify "댄스 이벤트 Codex 수집 완료
+    telegram_notify "댄스 이벤트 수집 완료
 $(date '+%Y-%m-%d %H:%M')
 
 ${PARSED_NEW:-신규: -}
@@ -573,7 +712,7 @@ else
         FAIL_REASON="Exit: $EXIT_CODE"
     fi
 
-    telegram_notify "댄스 이벤트 Codex 수집 실패
+    telegram_notify "댄스 이벤트 수집 실패
 $(date '+%Y-%m-%d %H:%M')
 ${FAIL_REASON}
 
