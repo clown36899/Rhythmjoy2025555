@@ -9,6 +9,15 @@ import "../styles/FullEventCalendar.css";
 // import { getEventThumbnail } from "../../../utils/getEventThumbnail"; // Removed unused import
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
+const getSafeRect = (element: Element | null | undefined) => {
+  if (!element || !element.isConnected) return null;
+  try {
+    return element.getBoundingClientRect();
+  } catch {
+    return null;
+  }
+};
+
 interface FullEventCalendarProps {
   currentMonth: Date;
   selectedDate: Date | null;
@@ -454,7 +463,8 @@ export default memo(function FullEventCalendar({
         const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
         if (eventCard && eventCard.isConnected) {
           // Custom scroll logic to center the element reliably
-          const elementRect = eventCard.getBoundingClientRect();
+          const elementRect = getSafeRect(eventCard);
+          if (!elementRect) return;
           const absoluteElementTop = elementRect.top + window.scrollY;
           const middleOfScreen = window.innerHeight / 2;
           const scrollTarget = absoluteElementTop - middleOfScreen + (elementRect.height / 2);

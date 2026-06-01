@@ -11,6 +11,9 @@ export interface ClientLogEntry {
 const STORAGE_KEY = 'rhythmjoy_client_logs_v1';
 const MAX_LOGS = 160;
 const MAX_ARG_LENGTH = 2400;
+const SENSITIVE_PARAM_RE = /([?&#](?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token)=)[^&#\s]+/gi;
+const SENSITIVE_JSON_RE = /("(?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token)"\s*:\s*")[^"]+/gi;
+const JWT_RE = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 
 let logs: ClientLogEntry[] = [];
 let nextId = 1;
@@ -61,27 +64,38 @@ function scheduleFlush(immediate = false) {
 }
 
 function safeStringify(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (value instanceof Error) return value.stack || value.message;
+  if (typeof value === 'string') return sanitizeLogText(value);
+  if (value instanceof Error) return sanitizeLogText(value.stack || value.message);
   if (value === undefined) return 'undefined';
   if (value === null) return 'null';
 
   try {
     const seen = new WeakSet<object>();
-    return JSON.stringify(value, (_key, item) => {
+    return sanitizeLogText(JSON.stringify(value, (_key, item) => {
       if (typeof item === 'object' && item !== null) {
         if (seen.has(item)) return '[Circular]';
         seen.add(item);
       }
       return item;
-    });
+    }));
   } catch {
     try {
-      return String(value);
+      return sanitizeLogText(String(value));
     } catch {
       return '[Unserializable]';
     }
   }
+}
+
+function sanitizeLogText(value: string) {
+  return value
+    .replace(SENSITIVE_PARAM_RE, '$1[REDACTED]')
+    .replace(SENSITIVE_JSON_RE, '$1[REDACTED]')
+    .replace(JWT_RE, '[JWT_REDACTED]');
+}
+
+function sanitizeUrl(value: string) {
+  return sanitizeLogText(value);
 }
 
 function serializeArgs(args: unknown[]) {
@@ -98,7 +112,7 @@ export function addClientLog(level: ClientLogLevel, ...args: unknown[]) {
     id: nextId++,
     timestamp: new Date().toISOString(),
     level,
-    route: `${window.location.pathname}${window.location.search}`,
+    route: sanitizeUrl(`${window.location.pathname}${window.location.search}`),
     message: serializeArgs(args),
   };
 
@@ -119,7 +133,7 @@ export function getClientLogText() {
 
   const header = [
     `Generated: ${new Date().toISOString()}`,
-    `URL: ${window.location.href}`,
+    `URL: ${sanitizeUrl(window.location.href)}`,
     `UA: ${window.navigator.userAgent}`,
     `Viewport: ${window.innerWidth}x${window.innerHeight} DPR:${window.devicePixelRatio || 1}`,
     `Online: ${window.navigator.onLine}`,

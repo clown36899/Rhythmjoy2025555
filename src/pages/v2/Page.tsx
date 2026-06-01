@@ -33,10 +33,22 @@ export default function HomePageV2() {
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { openModal, closeModal } = useModalActions();
 
-    // [Optimization] Pre-fetch stats in background when home page loads
-    const { prefetch } = useSwingSceneStats();
+    // [Optimization] 홈 첫 화면 렌더와 통계 함수 호출을 분리한다.
+    const { prefetch } = useSwingSceneStats({ autoLoad: false });
     useEffect(() => {
-        prefetch();
+        const run = () => prefetch();
+        const win = window as typeof window & {
+            requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+            cancelIdleCallback?: (id: number) => void;
+        };
+
+        if (typeof win.requestIdleCallback === 'function') {
+            const idleId = win.requestIdleCallback(run, { timeout: 3000 });
+            return () => win.cancelIdleCallback?.(idleId);
+        }
+
+        const timer = window.setTimeout(run, 1800);
+        return () => window.clearTimeout(timer);
     }, [prefetch]);
 
     registerLocale("ko", ko);

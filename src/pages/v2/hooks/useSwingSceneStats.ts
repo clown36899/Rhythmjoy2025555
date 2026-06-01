@@ -112,7 +112,8 @@ const shouldUseStatsFunction = () => {
     return !isDirectLocalVite;
 };
 
-export const useSwingSceneStats = () => {
+export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
+    const autoLoad = options.autoLoad ?? true;
     const instanceId = useRef(++instanceCounter);
     const [stats, setStats] = useState<SceneStats | null>(sessionCache);
     const [loading, setLoading] = useState(!sessionCache);
@@ -266,6 +267,12 @@ export const useSwingSceneStats = () => {
 
     // Initial load logic
     useEffect(() => {
+        if (!autoLoad) {
+            console.log(`[Stats#${instanceId.current}] 자동 로드 비활성화 - explicit prefetch 대기`);
+            if (!sessionCache) setLoading(false);
+            return;
+        }
+
         const id = instanceId.current;
         if (!sessionCache && !isFetching) {
             console.log(`[Stats#${id}] 초기 로드: 새 fetch 시작`);
@@ -307,7 +314,7 @@ export const useSwingSceneStats = () => {
         } else if (sessionCache) {
             console.log(`[Stats#${id}] 초기 로드: sessionCache 있음 - 즉시 표시 (totalItems:${sessionCache.summary.totalItems})`);
         }
-    }, [loadServerCache, fetchSceneStats]);
+    }, [autoLoad, loadServerCache, fetchSceneStats]);
 
     return {
         stats,

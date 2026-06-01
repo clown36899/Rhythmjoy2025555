@@ -17,6 +17,15 @@ function getEventDate(e: AppEvent): string {
     return e.start_date || e.date || "";
 }
 
+function getSafeRect(element: Element | null | undefined) {
+    if (!element || !element.isConnected) return null;
+    try {
+        return element.getBoundingClientRect();
+    } catch {
+        return null;
+    }
+}
+
 function getExplicitEventDates(e: AppEvent): string[] {
     if (!Array.isArray(e.event_dates) || e.event_dates.length === 0) return [];
 
@@ -117,8 +126,10 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
             if (!target || !target.isConnected) return;
 
             const stickyControls = document.querySelector<HTMLElement>('.calendar-live-sticky-controls');
-            const stickyBottom = stickyControls?.isConnected ? stickyControls.getBoundingClientRect().bottom : 0;
-            const targetY = target.getBoundingClientRect().top + window.scrollY - stickyBottom - 10;
+            const stickyBottom = getSafeRect(stickyControls)?.bottom ?? 0;
+            const targetRect = getSafeRect(target);
+            if (!targetRect) return;
+            const targetY = targetRect.top + window.scrollY - stickyBottom - 10;
             window.scrollTo({ top: Math.max(0, targetY), behavior: 'instant' });
         });
 

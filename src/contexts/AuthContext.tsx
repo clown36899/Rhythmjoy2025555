@@ -530,8 +530,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const urlParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
     const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
+    const isKakaoCallbackPath = window.location.pathname === '/auth/kakao-callback';
+    const isKakaoCallbackOwner =
+      isKakaoCallbackPath &&
+      urlParams.has('code') &&
+      !urlParams.has('error');
     // [Optimization] 일반 진입 시 5초, 인증 콜백 시 12초로 단축하여 사용자 대기 시간 감소
-    const safetyTimeoutMillis = hasAuthParams ? 12000 : 5000;
+    const safetyTimeoutMillis = isKakaoCallbackOwner ? 30000 : hasAuthParams ? 12000 : 5000;
 
     authLogger.log('[AuthContext] 🛡️ Initial URL Analysis:', {
       path: window.location.pathname,
@@ -539,6 +544,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasError: urlParams.has('error'),
       hasTokenInHash: hash.includes('access_token='),
       hasAuthParams,
+      isKakaoCallbackOwner,
       userAgent: navigator.userAgent
     });
 
@@ -608,7 +614,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    checkInitialSession();
+    if (isKakaoCallbackOwner) {
+      authLogger.log('[AuthContext] 🛡️ Kakao callback owns session setup - skipping initial validation race');
+      setLoading(false);
+      setIsAuthCheckComplete(true);
+    } else {
+      checkInitialSession();
+    }
 
     return () => {
       isMounted = false;
@@ -870,6 +882,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthProcessing(true); // 즉시 스피너 표시
     sessionStorage.setItem('kakao_login_in_progress', 'true'); // Persist across page navigation
     sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
+    sessionStorage.removeItem('kakao_callback_active');
+    try {
+      localStorage.removeItem('sb-auth-token-code-verifier');
+    } catch {
+      // Ignore localStorage restrictions; callback will retry cleanup.
+    }
     try {
       // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
 

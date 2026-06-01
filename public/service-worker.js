@@ -57,10 +57,13 @@ self.addEventListener('fetch', (event) => {
   // [Fix] 외부 요청(Supabase API, 에지 함수, 외부 리소스)은 SW 간섭 없이 즉시 네트워크로 연결
   // Workbox가 이 요청들을 가로채서 "No route found" 경고를 내지 않도록 최상단에서 처리합니다.
   const isSupabaseRequest = url.port === '54321' || url.pathname.includes('/functions/v1/');
+  const isAuthApiRequest =
+    url.pathname === '/api/kakao-login' ||
+    url.pathname === '/auth/kakao-callback';
   const isExternalRequest = url.hostname !== self.location.hostname;
   
   // 인증 관련 및 외부/Supabase 요청 바이패스
-  const isBypassRequest = isSupabaseRequest || isExternalRequest ||
+  const isBypassRequest = isAuthApiRequest || isSupabaseRequest || isExternalRequest ||
     url.search.includes('code=') ||
     url.search.includes('error=') ||
     url.hash.includes('access_token=') ||

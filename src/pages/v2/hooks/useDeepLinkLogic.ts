@@ -3,6 +3,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
 
+const getSafeRect = (element: Element | null | undefined) => {
+    if (!element || !element.isConnected) return null;
+    try {
+        return element.getBoundingClientRect();
+    } catch {
+        return null;
+    }
+};
+
 interface UseDeepLinkLogicProps {
     setCurrentMonth: (date: Date) => void;
 }
@@ -37,8 +46,9 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
 
                     if (slideContainer && slideContainer.isConnected) {
                         // Get fresh positions after vertical scroll
-                        const cardRect = freshEventCard.getBoundingClientRect();
-                        const containerRect = slideContainer.getBoundingClientRect();
+                        const cardRect = getSafeRect(freshEventCard);
+                        const containerRect = getSafeRect(slideContainer);
+                        if (!cardRect || !containerRect) return;
 
                         // Calculate scroll position to center the card
                         const cardCenter = cardRect.left + (cardRect.width / 2);
