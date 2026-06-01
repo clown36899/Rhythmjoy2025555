@@ -4,9 +4,11 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import '../../../styles/pages/auth-callback.css';
 
-const SESSION_SETUP_TIMEOUT_MS = 15000;
+const SESSION_SETUP_TIMEOUT_MS = 8000;
 const SESSION_CONFIRM_TIMEOUT_MS = 8000;
 const SESSION_CONFIRM_INTERVAL_MS = 250;
+const SUPABASE_STORAGE_KEY = 'sb-auth-token';
+const SESSION_VALIDATION_KEY = 'sb-validation-time';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -36,6 +38,41 @@ const removeStaleSupabasePkceVerifier = () => {
     } catch {
         // localStorage can be unavailable in some private/mobile contexts.
     }
+};
+
+const getJwtExpiry = (accessToken: string): number | null => {
+    try {
+        const encodedPayload = accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const paddedPayload = encodedPayload.padEnd(
+            encodedPayload.length + ((4 - encodedPayload.length % 4) % 4),
+            '='
+        );
+        const payload = JSON.parse(atob(paddedPayload));
+        return typeof payload.exp === 'number' ? payload.exp : null;
+    } catch {
+        return null;
+    }
+};
+
+const persistSessionDirectly = (session: any) => {
+    if (!session?.access_token || !session?.refresh_token || !session?.user) {
+        throw new Error('직접 저장할 세션 정보가 부족합니다');
+    }
+
+    const expiresAt = typeof session.expires_at === 'number'
+        ? session.expires_at
+        : getJwtExpiry(session.access_token);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+
+    const normalizedSession = {
+        ...session,
+        token_type: session.token_type || 'bearer',
+        expires_at: expiresAt || nowSeconds + Number(session.expires_in || 3600),
+        expires_in: Number(session.expires_in || ((expiresAt || nowSeconds + 3600) - nowSeconds)),
+    };
+
+    localStorage.setItem(SUPABASE_STORAGE_KEY, JSON.stringify(normalizedSession));
+    localStorage.setItem(SESSION_VALIDATION_KEY, String(Date.now()));
 };
 
 export default function KakaoCallbackPage() {
@@ -152,22 +189,35 @@ export default function KakaoCallbackPage() {
 
                     console.log('[Kakao Callback] 🔐 Supabase 세션 설정 시작');
 
-                    const setSessionResult = await withTimeout(supabase.auth.setSession({
-                        access_token: accessToken,
-                        refresh_token: refreshToken,
-                    }), SESSION_SETUP_TIMEOUT_MS, 'setSession timeout');
+                    let setSessionResult: Awaited<ReturnType<typeof supabase.auth.setSession>> | null = null;
+                    let usedDirectPersistFallback = false;
+
+                    try {
+                        setSessionResult = await withTimeout(supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken,
+                        }), SESSION_SETUP_TIMEOUT_MS, 'setSession timeout');
+                    } catch (sessionError: any) {
+                        if (sessionError?.message !== 'setSession timeout') {
+                            throw sessionError;
+                        }
+
+                        console.warn('[Kakao Callback] ⚠️ setSession timeout - 직접 세션 저장 fallback 실행');
+                        persistSessionDirectly(authData.session);
+                        usedDirectPersistFallback = true;
+                    }
 
                     if (cancelled) return;
 
-                    if (setSessionResult.error) {
+                    if (setSessionResult?.error) {
                         console.error('[Kakao Callback] ❌ 세션 설정 에러:', setSessionResult.error);
                         throw new Error('세션 설정에 실패했습니다: ' + setSessionResult.error.message);
                     }
 
-                    let confirmedSession = setSessionResult.data?.session ?? null;
+                    let confirmedSession = setSessionResult?.data?.session ?? (usedDirectPersistFallback ? authData.session : null);
                     const confirmDeadline = Date.now() + SESSION_CONFIRM_TIMEOUT_MS;
 
-                    while (!confirmedSession && Date.now() < confirmDeadline) {
+                    while (!usedDirectPersistFallback && !confirmedSession && Date.now() < confirmDeadline) {
                         const { data, error: confirmError } = await withTimeout(
                             supabase.auth.getSession(),
                             4000,
@@ -190,6 +240,7 @@ export default function KakaoCallbackPage() {
 
                     console.log('[Kakao Callback] ✅ 세션 저장 확인 완료', {
                         userId: confirmedSession.user.id,
+                        fallback: usedDirectPersistFallback,
                         elapsedMs: Date.now() - Number(sessionStorage.getItem('kakao_login_start_time') || Date.now())
                     });
 
@@ -208,6 +259,10 @@ export default function KakaoCallbackPage() {
 
                     // 성공적으로 이동
                     console.log('[Kakao Callback] ✅ 로그인 성공, 이동:', returnUrl);
+                    if (usedDirectPersistFallback) {
+                        window.location.replace(returnUrl);
+                        return;
+                    }
                     navigate(returnUrl, { replace: true });
                 } else {
                     console.error('[Kakao Callback] ❌ 세션 정보 없음');

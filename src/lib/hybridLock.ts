@@ -11,7 +11,13 @@ const shouldUseLocalStorageLock = () => {
     const ua = navigator.userAgent.toLowerCase();
     const isSafari = ua.includes('safari') && !ua.includes('chrome') && !ua.includes('android');
     const isIOS = /iphone|ipad|ipod/i.test(ua);
-    return isSafari || isIOS;
+    const isAndroid = ua.includes('android');
+    const isMobile = /mobile|iphone|ipad|ipod|android/i.test(ua);
+
+    // Mobile Chrome can leave Web Locks pending while OAuth redirects and service-worker
+    // startup compete for the main thread. Supabase auth calls are short, so the
+    // localStorage mutex is safer for all mobile browsers.
+    return isSafari || isIOS || isAndroid || isMobile;
 };
 
 const warnLock = (...args: unknown[]) => {
