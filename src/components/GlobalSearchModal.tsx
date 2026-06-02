@@ -21,6 +21,8 @@ interface SearchResult {
     category?: string;
 }
 
+type EventSortMode = 'nearest' | 'dateAsc' | 'latest';
+
 interface GlobalSearchModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -41,9 +43,60 @@ const SEARCH_SCOPES = [
     { key: 'board', label: '게시판' },
 ];
 
+const EVENT_SEARCH_FUTURE_LIMIT = 60;
+const EVENT_SEARCH_WITH_PAST_LIMIT = 120;
+
+const getLocalDateString = (date = new Date()) => {
+    const local = new Date(date);
+    local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+    return local.toISOString().slice(0, 10);
+};
+
+const getSearchDateMs = (value?: string) => {
+    const datePart = value?.slice(0, 10);
+    if (!datePart) return Number.MAX_SAFE_INTEGER;
+    const [year, month, day] = datePart.split('-').map(Number);
+    if (!year || !month || !day) return Number.MAX_SAFE_INTEGER;
+    return new Date(year, month - 1, day).getTime();
+};
+
+const dedupeRowsById = <T extends { id: string | number }>(rows: T[]) => {
+    const seen = new Set<string>();
+    return rows.filter(row => {
+        const id = String(row.id);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
+};
+
+const sortEventSearchResults = (events: SearchResult[], mode: EventSortMode, includePast: boolean) => {
+    const todayMs = getSearchDateMs(getLocalDateString());
+    return [...events].sort((a, b) => {
+        const aMs = getSearchDateMs(a.date);
+        const bMs = getSearchDateMs(b.date);
+
+        if (mode === 'latest') return bMs - aMs || a.title.localeCompare(b.title, 'ko');
+        if (mode === 'dateAsc') return aMs - bMs || a.title.localeCompare(b.title, 'ko');
+
+        if (!includePast) return aMs - bMs || a.title.localeCompare(b.title, 'ko');
+
+        const aDistance = Math.abs(aMs - todayMs);
+        const bDistance = Math.abs(bMs - todayMs);
+        if (aDistance !== bDistance) return aDistance - bDistance;
+
+        const aIsFuture = aMs >= todayMs;
+        const bIsFuture = bMs >= todayMs;
+        if (aIsFuture !== bIsFuture) return aIsFuture ? -1 : 1;
+
+        return aMs - bMs || a.title.localeCompare(b.title, 'ko');
+    });
+};
+
 export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: initialQuery = '' }: GlobalSearchModalProps) {
     const [localQuery, setLocalQuery] = useState(initialQuery);
     const [includePast, setIncludePast] = useState(false);
+    const [eventSortMode, setEventSortMode] = useState<EventSortMode>('nearest');
     const [activeScopes, setActiveScopes] = useState<Set<string>>(new Set(['events', 'venues', 'shopping', 'board']));
     const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
     const [results, setResults] = useState<{
@@ -99,21 +152,45 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         const searchTerm = query.toLowerCase();
         const cleanQuery = query.replace(/\s+/g, '').toLowerCase();
         const wildcardQuery = cleanQuery.split('').join('%');
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalDateString();
 
         try {
             const promises: Promise<any>[] = [];
 
             if (activeScopes.has('events')) {
-                let q = supabase
-                    .from('events')
-                    .select('id, title, description, image_thumbnail, start_date, date, end_date, category')
-                    .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
-                    .limit(20);
-                if (!includePast) {
-                    q = q.or(`end_date.gte.${today},date.gte.${today}`);
-                }
-                promises.push(q.then(r => ({ type: 'events', data: r.data, error: r.error })));
+                const buildEventQuery = (futureOnly: boolean, ascending: boolean, limit: number) => {
+                    let q = supabase
+                        .from('events')
+                        .select('id, title, description, image_thumbnail, start_date, date, end_date, category')
+                        .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`);
+
+                    if (futureOnly) {
+                        q = q.or(`end_date.gte.${today},date.gte.${today}`);
+                    }
+
+                    return q
+                        .order('date', { ascending })
+                        .order('start_date', { ascending })
+                        .limit(limit);
+                };
+
+                promises.push((async () => {
+                    if (!includePast) {
+                        const r = await buildEventQuery(true, true, EVENT_SEARCH_FUTURE_LIMIT);
+                        return { type: 'events', data: r.data, error: r.error };
+                    }
+
+                    const [futureRes, recentRes] = await Promise.all([
+                        buildEventQuery(true, true, EVENT_SEARCH_FUTURE_LIMIT),
+                        buildEventQuery(false, false, EVENT_SEARCH_WITH_PAST_LIMIT),
+                    ]);
+
+                    return {
+                        type: 'events',
+                        data: dedupeRowsById([...(futureRes.data || []), ...(recentRes.data || [])]),
+                        error: futureRes.error || recentRes.error,
+                    };
+                })());
             } else {
                 promises.push(Promise.resolve({ type: 'events', data: [], error: null }));
             }
@@ -156,8 +233,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             const [eventsRes, venuesRes, shoppingRes, boardRes] = await Promise.all(promises);
 
-            setResults({
-                events: (eventsRes.data || []).map((e: any) => ({
+            const eventResults = (eventsRes.data || []).map((e: any) => ({
                     id: e.id,
                     title: e.title,
                     description: e.description,
@@ -165,7 +241,10 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     thumbnail: e.image_thumbnail,
                     date: e.start_date || e.date,
                     category: e.category,
-                })),
+                }));
+
+            setResults({
+                events: sortEventSearchResults(eventResults, eventSortMode, includePast),
                 venues: (venuesRes.data || []).map((p: any) => ({
                     id: String(p.id),
                     title: p.name,
@@ -244,8 +323,8 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
     };
 
     const filteredEvents = activeCategoryFilter
-        ? results.events.filter(e => e.category === activeCategoryFilter)
-        : results.events;
+        ? sortEventSearchResults(results.events.filter(e => e.category === activeCategoryFilter), eventSortMode, includePast)
+        : sortEventSearchResults(results.events, eventSortMode, includePast);
 
     const totalResults = filteredEvents.length + results.venues.length +
         results.shopping.length + results.board_posts.length;
@@ -344,9 +423,21 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                             {filteredEvents.length > 0 && (
                                 <div className="search-section">
                                     <h3 className="search-section-title">
-                                        행사
-                                        <span className="search-section-count">{filteredEvents.length}</span>
-                                        {!includePast && <span className="search-future-badge">미래만</span>}
+                                        <span>
+                                            행사
+                                            <span className="search-section-count">{filteredEvents.length}</span>
+                                            {!includePast && <span className="search-future-badge">미래만</span>}
+                                        </span>
+                                        <select
+                                            className="search-sort-select"
+                                            value={eventSortMode}
+                                            onChange={(event) => setEventSortMode(event.target.value as EventSortMode)}
+                                            aria-label="행사 검색 결과 정렬"
+                                        >
+                                            <option value="nearest">가까운순</option>
+                                            <option value="dateAsc">날짜순</option>
+                                            <option value="latest">최신순</option>
+                                        </select>
                                     </h3>
                                     <div className="search-results-grid">
                                         {filteredEvents.map((result) => (
