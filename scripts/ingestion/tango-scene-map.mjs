@@ -460,16 +460,34 @@ function uniqueCandidates(candidates) {
   });
 }
 
+function hasCandidateImage(candidate) {
+  return Boolean(
+    candidate.poster_url ||
+    (typeof candidate.imageData === 'string' && candidate.imageData.startsWith('data:image'))
+  );
+}
+
+function splitImageBackedCandidates(candidates) {
+  const imageBacked = [];
+  const noPoster = [];
+  for (const candidate of candidates) {
+    if (hasCandidateImage(candidate)) imageBacked.push(candidate);
+    else noPoster.push(candidate);
+  }
+  return { imageBacked, noPoster };
+}
+
 async function saveTangoCandidatesViaFunction(candidates) {
-  if (!candidates.length) {
-    return { target: 'function', saved: 0, skipped: 0, total: 0 };
+  const { imageBacked, noPoster } = splitImageBackedCandidates(candidates);
+  if (!imageBacked.length) {
+    return { target: 'function', saved: 0, skipped: 0, skippedNoPoster: noPoster.length, total: candidates.length };
   }
 
   const endpoint = process.env.SCRAPED_EVENTS_ENDPOINT || 'https://swingenjoy.com/.netlify/functions/scraped-events';
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(candidates),
+    body: JSON.stringify(imageBacked),
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -480,13 +498,15 @@ async function saveTangoCandidatesViaFunction(candidates) {
     endpoint,
     saved: payload.count ?? 0,
     skipped: payload.skipped?.length ?? 0,
+    skippedNoPoster: noPoster.length,
     total: candidates.length,
   };
 }
 
 async function saveTangoCandidatesDirect(candidates) {
-  if (!candidates.length) {
-    return { target: 'direct', saved: 0, skippedCollected: 0, total: 0 };
+  const { imageBacked, noPoster } = splitImageBackedCandidates(candidates);
+  if (!imageBacked.length) {
+    return { target: 'direct', saved: 0, skippedCollected: 0, skippedNoPoster: noPoster.length, total: candidates.length };
   }
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_PUBLIC_SUPABASE_URL;
@@ -500,7 +520,7 @@ async function saveTangoCandidatesDirect(candidates) {
   });
 
   const now = new Date().toISOString();
-  const ids = candidates.map((candidate) => candidate.id);
+  const ids = imageBacked.map((candidate) => candidate.id);
   const { data: existingRows, error: existingError } = await supabase
     .from('scraped_events')
     .select('id,display_no,is_collected,status,created_at')
@@ -521,7 +541,7 @@ async function saveTangoCandidatesDirect(candidates) {
   let skippedCollected = 0;
   const rows = [];
 
-  for (const candidate of candidates) {
+  for (const candidate of imageBacked) {
     const existing = existingById.get(candidate.id);
     if (existing?.is_collected) {
       skippedCollected += 1;
@@ -537,7 +557,7 @@ async function saveTangoCandidatesDirect(candidates) {
   }
 
   if (!rows.length) {
-    return { target: 'direct', saved: 0, skippedCollected, total: candidates.length };
+    return { target: 'direct', saved: 0, skippedCollected, skippedNoPoster: noPoster.length, total: candidates.length };
   }
 
   const { error: upsertError } = await supabase
@@ -545,7 +565,7 @@ async function saveTangoCandidatesDirect(candidates) {
     .upsert(rows, { onConflict: 'id' });
   if (upsertError) throw upsertError;
 
-  return { target: 'direct', saved: rows.length, skippedCollected, total: candidates.length };
+  return { target: 'direct', saved: rows.length, skippedCollected, skippedNoPoster: noPoster.length, total: candidates.length };
 }
 
 async function saveTangoCandidates(candidates, args) {
@@ -675,9 +695,17 @@ async function main() {
   const sources = await Promise.all(buildSourceList().map(probeSource));
   const candidateRange = ranges.find((range) => range.label === args.candidateRange);
   const candidates = uniqueCandidates((candidateRange?.events || []).map(buildTangoCandidate));
-  const candidateWrite = args.saveCandidates
+  const dryRunCandidateSplit = splitImageBackedCandidates(candidates);
+  const candidateWrite = args.saveCandidates && !args.dryRun
     ? await saveTangoCandidates(candidates, args)
-    : { saved: 0, skippedCollected: 0, total: candidates.length };
+    : {
+        dryRun: args.dryRun,
+        saved: 0,
+        skippedCollected: 0,
+        skippedNoPoster: dryRunCandidateSplit.noPoster.length,
+        imageBacked: dryRunCandidateSplit.imageBacked.length,
+        total: candidates.length,
+      };
 
   const report = {
     generatedAt: new Date().toISOString(),

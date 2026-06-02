@@ -55,16 +55,6 @@ function getCandidateDate(item: any): string {
     return String(item?.structured_data?.date || item?.date || '').slice(0, 10);
 }
 
-function allowsMissingPosterCandidate(item: any): boolean {
-    const sd = item?.structured_data || {};
-    return (
-        sd.research_candidate === true &&
-        sd.candidate_origin === 'tango-calendar' &&
-        sd.dance_scope === 'tango' &&
-        sd.needs_image === true
-    );
-}
-
 function mergeCollectedStructuredData(existing: any = {}, incoming: any = {}) {
     const next = { ...existing };
     [
@@ -101,7 +91,7 @@ function getInvalidCandidateReason(item: any): string | null {
     if (!item?.source_url) return 'source_url 없음';
     if (!date) return '이벤트 날짜 없음';
     if (date < today) return `과거 이벤트 제외: ${date} < ${today}`;
-    if (!item?.poster_url && !hasReplacementImage && !allowsMissingPosterCandidate(item)) return '포스터 이미지 없음';
+    if (!item?.poster_url && !hasReplacementImage) return '포스터 이미지 없음';
     if (item?.poster_url && hasBadPosterUrl(item.poster_url) && !hasReplacementImage) {
         return '크롭/썸네일 포스터 URL 제외';
     }
