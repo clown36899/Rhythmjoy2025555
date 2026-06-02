@@ -103,6 +103,7 @@ const collectionScopePartnerGenres = new Set([
 ]);
 
 const collectionScopeStreetGenres = new Set([
+  'street',
   'hiphop',
   'waacking',
   'popping',

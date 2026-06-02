@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDanceGenreOptions,
+  getDanceCollectionScopeExclusionReason,
   resolveDanceGenreInput,
   suggestDanceGenres,
   inferDanceTaxonomy,
@@ -57,9 +58,19 @@ describe('danceTaxonomy advanced inference and tags', () => {
     expect(result.tags).toContain('session');
   });
 
+  it('allows generic street/open-style battle collection candidates', () => {
+    const reason = getDanceCollectionScopeExclusionReason({
+      genre_family: 'street',
+      dance_genre: 'street',
+      genre_family_label: '스트릿',
+      dance_genre_label: '스트릿',
+    });
+
+    expect(reason).toBeNull();
+  });
+
   it('tags academy regular classes correctly', () => {
     const result = inferDanceTaxonomy({ extracted_text: '원밀리언 5월 정규 시간표 및 월정액 안내' });
     expect(result.tags).toContain('academy_regular');
   });
 });
-

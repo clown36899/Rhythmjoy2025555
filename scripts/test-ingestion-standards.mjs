@@ -77,6 +77,24 @@ assert.equal(street.candidate.structured_data.dance_scope, 'street');
 assert.equal(street.candidate.structured_data.activity_type, 'recruit');
 assert.ok(street.candidate.structured_data.tags.includes('participant'));
 
+const streetOfficialEvent = prepareCandidate(baseCandidate({
+  source_url: 'https://www.dancecode.kr/dance/view/270',
+  extracted_text: 'BONTTAE VOL.1 올장르 배틀 행사기간 2026년 07월 25일 행사장소 서천군 청소년 문화센터 스트릿댄스 OPEN STYLE BATTLE',
+  structured_data: {
+    title: 'BONTTAE VOL.1',
+    date: '2026-07-25',
+    location: '서천군 청소년 문화센터',
+    event_type: '행사',
+    activity_type: 'event',
+    dance_scope: 'street',
+    genre_family: 'street',
+    dance_genre: 'street',
+    tags: ['battle', 'participant'],
+  },
+}), { today: TODAY });
+assert.equal(streetOfficialEvent.validation.ok, true, 'verified DanceCode detail page can be saved as an expanded street event');
+assert.equal(streetOfficialEvent.candidate.structured_data.activity_type, 'event');
+
 const tango = buildNetlifyPayload(baseCandidate({
   source_url: 'https://tangocalendar.kr/events/milonga-test',
   extracted_text: '서울 탱고 밀롱가 DJ Una 2026.06.21',
@@ -105,6 +123,11 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'K-pop cover dance audition 2026.06.01',
   structured_data: { title: 'K-pop cover audition', date: '2026-06-01' },
 }), { today: TODAY }).ok, false);
+assert.equal(validateCandidate(baseCandidate({
+  source_url: 'https://www.dancecode.kr/dance/view/271',
+  extracted_text: '브레이킹 현대무용 융합 공연 티켓 예매 2026.06.13',
+  structured_data: { title: '브레이킹 현대무용 융합 공연', date: '2026-06-13', activity_type: 'event' },
+}), { today: TODAY }).ok, false, 'art/commercial mixed performance candidates need manual review before collection');
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'RSF 참가 신청 안내. 얼리버드 입금 마감 5/29. 실제 강습 일정은 추후 공지됩니다.',
   structured_data: { title: 'RSF 스윙 강습 신청 안내', date: '2026-05-29', event_type: '강습', activity_type: 'class' },

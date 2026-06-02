@@ -284,6 +284,13 @@ function textOf(candidate) {
   ].filter(Boolean).join(' ');
 }
 
+function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
+  if (taxonomy.dance_scope !== 'street') return false;
+  if (!/현대\s*무용|컨템포러리|발레|한국\s*무용|뮤지컬|k-?pop|커버\s*댄스|힐\s*댄스|contemporary|ballet|musical|cover\s*dance|heels/i.test(text)) return false;
+  return /공연|예매|티켓|관람|performance|ticket/i.test(text)
+    && !/배틀|battle|워크샵|워크숍|workshop|class|클래스|수업|레슨/i.test(text);
+}
+
 function inferActivity(text, explicit) {
   if (['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
   if (/(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i.test(text)) return 'recruit';
@@ -379,6 +386,9 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (!candidate.poster_url && !candidate.imageData) errors.push('poster_url or imageData required');
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) errors.push('poster_url looks cropped or thumbnail-sized');
   if (scopeExcludedReason) errors.push(scopeExcludedReason);
+  if (looksLikeMixedArtOrCommercialPerformance(text, taxonomy)) {
+    errors.push('수집 범위 제외: 공연예술/상업 혼합 공연은 수동 검토 필요');
+  }
   if (source?.discoveryOnly) errors.push('discovery-only source: official source URL required before saving');
   if (taxonomy.activity_type === 'social' && !Array.isArray(sd.djs) && !/\bdj\b|디제이|밀롱가|프랙티카|소셜|social/i.test(text)) {
     warnings.push('social candidate lacks visible DJ or concrete social context');
