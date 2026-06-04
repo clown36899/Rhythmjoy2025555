@@ -84,6 +84,30 @@ const mergeUniqueEvents = (...groups: Event[][]) => {
     return merged;
 };
 
+const getHomeAdAuthorKey = (event: Event) => {
+    const userId = event.user_id?.trim();
+    if (userId) return `user:${userId}`;
+
+    const organizerName = event.organizer_name?.trim() || event.organizer?.trim();
+    if (organizerName) return `organizer:${organizerName.toLowerCase()}`;
+
+    return `event:${event.id}`;
+};
+
+const limitHomeAdOnePerAuthor = (events: Event[]) => {
+    const seenAuthors = new Set<string>();
+    const filtered: Event[] = [];
+
+    for (const event of events) {
+        const authorKey = getHomeAdAuthorKey(event);
+        if (seenAuthors.has(authorKey)) continue;
+        seenAuthors.add(authorKey);
+        filtered.push(event);
+    }
+
+    return filtered;
+};
+
 const getHomeAdDateLabel = (event?: Event) => {
     if (!event) return "날짜 미정";
     if (event.event_dates && event.event_dates.length > 0) {
@@ -138,16 +162,17 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         const fallbackSelected = visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
         return mergeUniqueEvents(primarySelected, fallbackSelected);
     }, [preferredScope, visibleEvents, visibleFallbackEvents]);
+    const selectedScopeAdEvents = useMemo(() => limitHomeAdOnePerAuthor(selectedScopeEvents), [selectedScopeEvents]);
     const displayEvents = useMemo(() => {
-        const nextEvents = selectedScopeEvents.length >= HOME_AD_MIN_SELECTED_COUNT
-            ? selectedScopeEvents
-            : mergeUniqueEvents(
-                selectedScopeEvents,
+        const nextEvents = selectedScopeAdEvents.length >= HOME_AD_MIN_SELECTED_COUNT
+            ? selectedScopeAdEvents
+            : limitHomeAdOnePerAuthor(mergeUniqueEvents(
+                selectedScopeAdEvents,
                 mergeUniqueEvents(visibleEvents, visibleFallbackEvents).filter((event) => getHomeAdEventScope(event) !== preferredScope),
-            );
+            ));
         return nextEvents.slice(0, NEB_MAX_ITEMS);
-    }, [preferredScope, selectedScopeEvents, visibleEvents, visibleFallbackEvents]);
-    const isFallbackMixed = selectedScopeEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeEvents.length;
+    }, [preferredScope, selectedScopeAdEvents, visibleEvents, visibleFallbackEvents]);
+    const isFallbackMixed = selectedScopeAdEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeAdEvents.length;
     const [activeIndex, setActiveIndex] = useState(() => {
         if (!displayEvents || displayEvents.length === 0) return 0;
         return Math.floor(Math.random() * displayEvents.length);
