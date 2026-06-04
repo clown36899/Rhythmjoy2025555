@@ -90,6 +90,10 @@ type CalendarDisplayMode = 'calendar' | 'list' | 'map';
 
 const CALENDAR_WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 const CALENDAR_MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+const CALENDAR_PAGE_DEBUG = import.meta.env.VITE_CALENDAR_PAGE_DEBUG === 'true';
+const debugCalendarPage = (...args: unknown[]) => {
+    if (CALENDAR_PAGE_DEBUG) console.debug(...args);
+};
 
 const normalizeCalendarDisplayMode = (value: string | null): CalendarDisplayMode => {
     if (value === 'list' || value === 'map') return value;
@@ -398,7 +402,7 @@ export default function CalendarPage() {
             }
             todayScrollRunIdRef.current += 1;
             if (!userInteractedRef.current) {
-                console.log(`👤 [캘린더] 사용자 조작 감지 (${e.type}) - 스크롤 중단`);
+                debugCalendarPage(`[CalendarPage] 사용자 조작 감지 (${e.type}) - 스크롤 중단`);
                 userInteractedRef.current = true;
             }
         };
@@ -984,6 +988,10 @@ export default function CalendarPage() {
                     closeModal('registrationChoice');
                     openModal('weeklySocial');
                 },
+                onSelectOneDay: () => {
+                    closeModal('registrationChoice');
+                    openModal('oneDayRecruitRegistration');
+                },
                 onSelectPublic: () => {
                     closeModal('registrationChoice');
                     const dateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
@@ -1175,7 +1183,7 @@ export default function CalendarPage() {
                         isLoading={isLoading}
                         refetchCalendarData={refetchCalendarData}
                         onDataLoaded={useCallback(() => {
-                            console.log('📡 [CalendarPage] Data and Layout ready.');
+                            debugCalendarPage('[CalendarPage] Data and Layout ready.');
                         }, [])}
                         viewMode={viewMode}
                         onViewModeChange={setViewMode}

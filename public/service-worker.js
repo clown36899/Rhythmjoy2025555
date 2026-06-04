@@ -214,6 +214,9 @@ self.addEventListener('push', (event) => {
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     tag: 'default',
+    image: null,
+    renotify: false,
+    items: [],
     data: {
       url: '/'
     }
@@ -229,7 +232,13 @@ self.addEventListener('push', (event) => {
         image: data.image || null, // [NEW] 큰 이미지 필드 추가
         badge: data.badge || notificationData.badge,
         tag: data.tag || notificationData.tag,
-        data: data.data || notificationData.data
+        renotify: data.renotify === true,
+        items: data.items || data.data?.items || [],
+        data: {
+          ...(data.data || notificationData.data),
+          image: data.image || data.data?.image || null,
+          items: data.items || data.data?.items || []
+        }
       };
     } catch (e) {
       console.log('[SW] Push data parsing failed, using defaults');
@@ -252,7 +261,7 @@ self.addEventListener('push', (event) => {
         vibrate: [200, 100, 200],
         requireInteraction: true,
         silent: false,
-        renotify: true
+        renotify: notificationData.renotify === true
       });
 
       // 2. 앱 배지 설정

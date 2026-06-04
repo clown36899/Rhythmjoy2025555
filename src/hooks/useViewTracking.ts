@@ -1,6 +1,11 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
+const VIEW_TRACKING_DEBUG = import.meta.env.VITE_VIEW_TRACKING_DEBUG === 'true';
+const debugViewTracking = (...args: unknown[]) => {
+    if (VIEW_TRACKING_DEBUG) console.debug(...args);
+};
+
 /**
  * 지원하는 콘텐츠 타입
  * 새로운 타입 추가 시 여기에 추가하고 RPC 함수의 CASE 문도 업데이트
@@ -49,7 +54,7 @@ export function useViewTracking(
                     // Fingerprint 자동 생성
                     fingerprint = 'fp_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
                     localStorage.setItem('analytics_fingerprint', fingerprint);
-                    console.log('[ViewTracking] Generated fingerprint:', fingerprint.substring(0, 12) + '...');
+                    debugViewTracking('[ViewTracking] Generated fingerprint:', fingerprint.substring(0, 12) + '...');
                 }
             }
 
@@ -69,9 +74,9 @@ export function useViewTracking(
             // 4. 상태 업데이트
             if (wasIncremented) {
                 setIsViewed(true);
-                console.log(`[ViewTracking] ✅ New view counted for ${itemType} #${itemId}`);
+                debugViewTracking(`[ViewTracking] New view counted for ${itemType} #${itemId}`);
             } else {
-                console.log(`[ViewTracking] ⏭️ Already viewed ${itemType} #${itemId}`);
+                debugViewTracking(`[ViewTracking] Already viewed ${itemType} #${itemId}`);
             }
 
             return wasIncremented || false;

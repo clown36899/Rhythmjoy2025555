@@ -2,16 +2,16 @@
 
 /* Apply scroll-padding to html for window-level scrolling */
 html {
-    scroll-padding-top: calc(256px + env(safe-area-inset-top));
+    scroll-padding-top: calc(200px + env(safe-area-inset-top));
 }
 
 .calendar-page-container {
-    --cal-sample-bg: #101114;
-    --cal-sample-panel: #181a1f;
+    --cal-sample-bg: #1c1c1d;
+    --cal-sample-panel: #1c1c1d;
     --cal-sample-panel-soft: #20232a;
     --cal-sample-row: #1d2026;
-    --cal-sample-surface-top: #15171c;
-    --cal-sample-control-bg: #111318;
+    --cal-sample-surface-top: #1c1c1d;
+    --cal-sample-control-bg: #1c1c1d;
     --cal-sample-control-soft: #22252d;
     --cal-sample-thumb-bg: #0f1115;
     --cal-sample-event-bg: rgba(255, 255, 255, 0.06);
@@ -63,7 +63,7 @@ html {
 
 .calendar-live-sticky-controls {
     position: fixed;
-    top: calc(118px + env(safe-area-inset-top));
+    top: calc(62px + env(safe-area-inset-top));
     left: 50%;
     width: min(1320px, calc(100vw - 48px));
     transform: translateX(-50%);
@@ -555,7 +555,7 @@ html {
     }
 
     .calendar-live-shell--calendar {
-        padding-top: 146px;
+        padding-top: 158px;
     }
 
     .calendar-live-shell--list,
@@ -564,7 +564,7 @@ html {
     }
 
     .calendar-live-sticky-controls {
-        top: calc(114px + env(safe-area-inset-top));
+        top: calc(62px + env(safe-area-inset-top));
         left: 0;
         width: 100%;
         transform: none;
@@ -703,7 +703,7 @@ html {
     }
 
     .calendar-navigator-overlay {
-        padding-top: calc(118px + env(safe-area-inset-top));
+        padding-top: calc(62px + env(safe-area-inset-top));
         place-items: start center;
     }
 
@@ -730,11 +730,11 @@ html {
     }
 
     .calendar-live-sticky-controls {
-        top: calc(102px + env(safe-area-inset-top));
+        top: calc(54px + env(safe-area-inset-top));
     }
 
     .calendar-navigator-overlay {
-        padding-top: calc(106px + env(safe-area-inset-top));
+        padding-top: calc(54px + env(safe-area-inset-top));
     }
 }
 

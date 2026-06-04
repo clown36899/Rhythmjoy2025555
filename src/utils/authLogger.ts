@@ -1,12 +1,24 @@
+import { addClientLog } from './clientLogBuffer';
+
+const AUTH_DEBUG = import.meta.env.VITE_AUTH_DEBUG === 'true';
+const IMPORTANT_AUTH_LOG_RE = /kakao|callback|setsession|signed_in|signed_out|token_refreshed|safety net|failed|error|timeout|로그인|인증/i;
+
 export const authLogger = {
     log: (message: string, data?: unknown) => {
-        // [Debug] 배포 환경에서도 즉시 확인 가능하도록 스타일 적용
-        const style = 'background: #1a1a2e; color: #00ff00; font-weight: bold; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ff00;';
-        console.log(`%c[Auth] ${message}`, style, data || '');
+        const shouldKeepInClientLog = AUTH_DEBUG || IMPORTANT_AUTH_LOG_RE.test(message);
+
+        if (shouldKeepInClientLog && typeof window !== 'undefined') {
+            addClientLog('event', `[Auth] ${message}`, data || '');
+        }
+
+        if (AUTH_DEBUG) {
+            const style = 'background: #1a1a2e; color: #00ff00; font-weight: bold; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ff00;';
+            console.debug(`%c[Auth] ${message}`, style, data || '');
+        }
 
         // [Safety] localStorage가 차단된 환경에서도 로깅 중단 방지
         try {
-            if (typeof window !== 'undefined' && window.localStorage) {
+            if (AUTH_DEBUG && typeof window !== 'undefined' && window.localStorage) {
                 const logs = JSON.parse(window.localStorage.getItem('auth_logs') || '[]');
                 const timestamp = new Date().toISOString();
                 const entry = { timestamp, message, data };

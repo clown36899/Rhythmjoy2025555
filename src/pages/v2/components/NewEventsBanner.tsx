@@ -1,9 +1,105 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
-import { formatEventDate } from '../../../utils/dateUtils';
 import { useModalContext } from '../../../contexts/ModalContext';
 import type { Event } from '../utils/eventListUtils';
+import { formatEventDate } from '../../../utils/dateUtils';
 import './NewEventsBanner.css';
+
+type EdgeTone = 'dark' | 'light';
+
+const edgeToneCache = new Map<string, EdgeTone>();
+const EDGE_TONE_BLACK_LUMINANCE_THRESHOLD = 96;
+const EDGE_TONE_BLACK_CHROMA_THRESHOLD = 52;
+const EDGE_TONE_BLACK_SAMPLE_RATIO = 0.48;
+const ONE_DAY_RECRUIT_ICON_SRC = '/icons/v2/oneday-recruit.svg';
+
+const detectImageEdgeTone = (imageUrl: string): Promise<EdgeTone> => (
+    new Promise((resolve, reject) => {
+        if (typeof document === 'undefined') {
+            reject(new Error('document unavailable'));
+            return;
+        }
+
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => {
+            try {
+                const width = 48;
+                const height = 64;
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const context = canvas.getContext('2d', { willReadFrequently: true });
+
+                if (!context) {
+                    reject(new Error('canvas context unavailable'));
+                    return;
+                }
+
+                context.drawImage(image, 0, 0, width, height);
+
+                const imageData = context.getImageData(0, 0, width, height).data;
+                const edgeBand = Math.max(4, Math.round(Math.min(width, height) * 0.14));
+                let luminanceSum = 0;
+                let chromaSum = 0;
+                let blackishSampleCount = 0;
+                let sampleCount = 0;
+
+                for (let y = 0; y < height; y += 1) {
+                    for (let x = 0; x < width; x += 1) {
+                        const isEdge =
+                            x < edgeBand ||
+                            x >= width - edgeBand ||
+                            y < edgeBand ||
+                            y >= height - edgeBand;
+
+                        if (!isEdge) continue;
+
+                        const index = (y * width + x) * 4;
+                        const alpha = imageData[index + 3];
+                        if (alpha < 12) continue;
+
+                        const red = imageData[index];
+                        const green = imageData[index + 1];
+                        const blue = imageData[index + 2];
+                        const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
+                        const chroma = Math.max(red, green, blue) - Math.min(red, green, blue);
+
+                        luminanceSum += luminance;
+                        chromaSum += chroma;
+                        if (
+                            luminance < EDGE_TONE_BLACK_LUMINANCE_THRESHOLD &&
+                            chroma < EDGE_TONE_BLACK_CHROMA_THRESHOLD
+                        ) {
+                            blackishSampleCount += 1;
+                        }
+                        sampleCount += 1;
+                    }
+                }
+
+                if (sampleCount === 0) {
+                    reject(new Error('no edge samples'));
+                    return;
+                }
+
+                const averageLuminance = luminanceSum / sampleCount;
+                const averageChroma = chromaSum / sampleCount;
+                const blackishRatio = blackishSampleCount / sampleCount;
+                const isBlackEdge =
+                    averageLuminance < EDGE_TONE_BLACK_LUMINANCE_THRESHOLD &&
+                    averageChroma < EDGE_TONE_BLACK_CHROMA_THRESHOLD &&
+                    blackishRatio >= EDGE_TONE_BLACK_SAMPLE_RATIO;
+
+                resolve(isBlackEdge ? 'dark' : 'light');
+            } catch (error) {
+                reject(error);
+            }
+        };
+        image.onerror = () => reject(new Error('image load failed'));
+        image.src = imageUrl;
+    })
+);
 
 interface NewEventsBannerProps {
     events: Event[];
@@ -23,6 +119,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     onCurrentIndexChange,
 }) => {
     const { openModal } = useModalContext();
+    const navigate = useNavigate();
     const [internalCurrentIndex, setInternalCurrentIndex] = useState(() => {
         if (!events || events.length === 0) return 0;
         return Math.floor(Math.random() * events.length);
@@ -38,6 +135,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const [isManualPaused, setIsManualPaused] = useState(false);
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
+    const [edgeToneByUrl, setEdgeToneByUrl] = useState<Record<string, EdgeTone>>({});
 
     // 수동 조작 시 8초간 자동 슬라이드 중지 로직
     const triggerManualPause = useCallback(() => {
@@ -92,13 +191,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         }
     };
 
-    // 자동 슬라이드 (5초마다)
+    // 자동 슬라이드 (8초마다)
     useEffect(() => {
         if (events.length <= 1 || isPaused || isManualPaused) return;
 
         const interval = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % events.length);
-        }, 5000);
+        }, 8000);
 
         return () => clearInterval(interval);
     }, [events.length, isPaused, isManualPaused, setCurrentIndex]);
@@ -116,6 +215,39 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         setCurrentIndex((prev) => (prev + 1) % events.length);
     }, [events.length, setCurrentIndex]);
 
+    const ensureImageEdgeTone = useCallback((imageUrl: string) => {
+        if (!imageUrl) return;
+
+        const cachedTone = edgeToneCache.get(imageUrl);
+        if (cachedTone) {
+            setEdgeToneByUrl((prev) => (
+                prev[imageUrl] === cachedTone ? prev : { ...prev, [imageUrl]: cachedTone }
+            ));
+            return;
+        }
+
+        if (pendingEdgeToneUrlsRef.current.has(imageUrl)) return;
+        pendingEdgeToneUrlsRef.current.add(imageUrl);
+
+        detectImageEdgeTone(imageUrl)
+            .then((tone) => {
+                edgeToneCache.set(imageUrl, tone);
+                setEdgeToneByUrl((prev) => (
+                    prev[imageUrl] === tone ? prev : { ...prev, [imageUrl]: tone }
+                ));
+            })
+            .catch(() => {
+                edgeToneCache.set(imageUrl, 'light');
+            })
+            .finally(() => {
+                pendingEdgeToneUrlsRef.current.delete(imageUrl);
+            });
+    }, []);
+    const openOneDayRecruitment = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        navigate('/oneday-recruits');
+    }, [navigate]);
+
     if (events.length === 0) return null;
 
     const currentEvent = events[currentIndex];
@@ -123,41 +255,119 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     // PWA 재개 시 refetch 중 currentEvent가 undefined일 수 있음
     if (!currentEvent) return null;
 
-    // 날짜 포맷팅
-    let dateText = '';
-    if (currentEvent.event_dates && currentEvent.event_dates.length > 0) {
-        dateText = formatEventDate(currentEvent.event_dates[0]) + (currentEvent.event_dates.length > 1 ? ' ...' : '');
-    } else {
-        const startDate = currentEvent.start_date || currentEvent.date;
-        const endDate = currentEvent.end_date || currentEvent.date;
-        if (startDate && endDate) {
-            if (startDate !== endDate) {
-                dateText = `${formatEventDate(startDate)}~${formatEventDate(endDate)}`;
-            } else {
-                dateText = formatEventDate(startDate);
-            }
-        }
-    }
-
     const hasMultipleEvents = events.length > 1;
-    const slideWidthPercent = hasMultipleEvents ? 88 : 100;
-    const slideGapPx = hasMultipleEvents ? 8 : 0;
-    const sidePeekPercent = (100 - slideWidthPercent) / 2;
-    const displayEvents = hasMultipleEvents
-        ? [events[events.length - 1], ...events, events[0]]
-        : events;
-    const trackIndex = hasMultipleEvents ? currentIndex + 1 : 0;
+    const activeCardAlignmentStyle = {
+        '--neb-summary-left': hasMultipleEvents ? '30%' : '7%',
+        '--neb-summary-width': hasMultipleEvents ? '64%' : '86%',
+    } as React.CSSProperties;
+
+    const getDateLabel = (event: Event) => {
+        if (event.event_dates && event.event_dates.length > 0) {
+            return formatEventDate(event.event_dates[0]);
+        }
+        const startDate = event.start_date || event.date;
+        const endDate = event.end_date || event.date;
+        if (!startDate) return "날짜 미정";
+        if (endDate && endDate !== startDate) return `${formatEventDate(startDate)}~${formatEventDate(endDate)}`;
+        return formatEventDate(startDate);
+    };
+    const getPlaceLabel = (event: Event) => event.location || event.place_name || "장소 미정";
+    const getSlidePlacement = (index: number) => {
+        if (!hasMultipleEvents) {
+            return {
+                className: 'is-active',
+                style: {
+                    '--neb-left': '7%',
+                    '--neb-width': '86%',
+                    '--neb-transform': 'scale(1)',
+                    zIndex: 5,
+                    opacity: 1,
+                } as React.CSSProperties,
+            };
+        }
+
+        const previousDistance = (currentIndex - index + events.length) % events.length;
+        const nextDistance = (index - currentIndex + events.length) % events.length;
+
+        if (index === currentIndex) {
+            return {
+                className: 'is-active',
+                style: {
+                    '--neb-left': '30%',
+                    '--neb-width': '64%',
+                    '--neb-transform': 'scale(1)',
+                    zIndex: 6,
+                    opacity: 1,
+                } as React.CSSProperties,
+            };
+        }
+
+        if (previousDistance >= 1 && previousDistance <= 3) {
+            return {
+                className: `is-preview is-preview-${previousDistance}`,
+                style: {
+                    '--neb-left': `${19 - previousDistance * 4}%`,
+                    '--neb-width': '64%',
+                    '--neb-transform': 'scale(1)',
+                    zIndex: 6 - previousDistance,
+                    opacity: 1,
+                } as React.CSSProperties,
+            };
+        }
+
+        if (nextDistance === 1) {
+            return {
+                className: 'is-hidden',
+                style: {
+                    '--neb-left': '112%',
+                    '--neb-width': '64%',
+                    '--neb-transform': 'scale(0.94)',
+                    zIndex: 0,
+                    opacity: 0,
+                    pointerEvents: 'none',
+                } as React.CSSProperties,
+            };
+        }
+
+        return {
+            className: 'is-hidden',
+            style: {
+                '--neb-left': '100%',
+                '--neb-width': '64%',
+                '--neb-transform': 'scale(0.9)',
+                zIndex: 0,
+                opacity: 0,
+                pointerEvents: 'none',
+            } as React.CSSProperties,
+        };
+    };
     const getBannerImage = (event: Event) =>
         event.image_medium ||
         event.image_thumbnail ||
         event.image ||
         event.image_full ||
         getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-    const getSmallPreviewImage = (event: Event) =>
-        event.image_thumbnail ||
-        event.image_medium ||
+    const getIndicatorImage = (event: Event) =>
         event.image_micro ||
-        getBannerImage(event);
+        event.image_thumbnail ||
+        getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+    const getAuthorProfile = (event: Event) => {
+        const boardUsers = event.board_users;
+        const profile = Array.isArray(boardUsers) ? boardUsers[0] : boardUsers;
+
+        if (!profile || typeof profile !== 'object') {
+            return { image: null, nickname: null };
+        }
+
+        return {
+            image: typeof profile.profile_image === 'string' && profile.profile_image.trim()
+                ? profile.profile_image.trim()
+                : null,
+            nickname: typeof profile.nickname === 'string' && profile.nickname.trim()
+                ? profile.nickname.trim()
+                : null,
+        };
+    };
 
     return (
         <>
@@ -204,39 +414,48 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     </div>
                 </div>
 
-                <div
-                    className="NEB-slider"
-                    style={{
-                        '--neb-slide-width': `${slideWidthPercent}%`,
-                        '--neb-slide-gap': `${slideGapPx}px`,
-                    } as React.CSSProperties}
-                >
-                    <div
-                        className="NEB-track"
-                        style={{ transform: `translateX(calc(${sidePeekPercent}% - ${trackIndex * slideWidthPercent}% - ${trackIndex * slideGapPx}px))` }}
-                    >
-                        {displayEvents.map((event, index) => {
-                            const eventThumbnail = getBannerImage(event);
-                            const previewThumbnail = getSmallPreviewImage(event);
-                            const isActiveSlide = index === trackIndex;
+                {/* 인디케이터 */}
+                {events.length > 1 && (
+                    <div className="NEB-indicators">
+                        {events.map((event, index) => {
+                            const indicatorImage = getIndicatorImage(event);
 
-                            // 슬라이드별 날짜 계산
-                            let slideDateText = '';
-                            if (event.event_dates && event.event_dates.length > 0) {
-                                slideDateText = formatEventDate(event.event_dates[0]) + (event.event_dates.length > 1 ? ' ...' : '');
-                            } else {
-                                const s = event.start_date || event.date;
-                                const e = event.end_date || event.date;
-                                if (s && e) {
-                                    slideDateText = s !== e ? `${formatEventDate(s)}~${formatEventDate(e)}` : formatEventDate(s);
-                                }
-                            }
+                            return (
+                                <button
+                                    key={event.id}
+                                    className={`NEB-indicator ${index === currentIndex ? 'is-active' : ''}`}
+                                    onClick={() => goToSlide(index)}
+                                    aria-label={`${index + 1}번째 이벤트 보기`}
+                                >
+                                    <img
+                                        src={indicatorImage}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="NEB-slider">
+                    <div className="NEB-track">
+                        {events.map((event, index) => {
+                            const eventThumbnail = getBannerImage(event);
+                            const isActiveSlide = index === currentIndex;
+                            const placement = getSlidePlacement(index);
+                            const edgeTone = edgeToneByUrl[eventThumbnail];
+                            const edgeToneClass = isActiveSlide && edgeTone === 'dark' ? 'is-dark-edge' : '';
+                            const authorProfile = getAuthorProfile(event);
 
                             return (
                                 <div
-                                    key={`${event.id}-${index}`}
-                                    className={`NEB-slide ${index === trackIndex ? 'is-active' : ''}`}
+                                    key={event.id}
+                                    className={`NEB-slide ${placement.className} ${edgeToneClass}`}
+                                    style={placement.style}
                                     onClick={() => onEventClick(event)}
+                                    aria-label={event.title}
                                 >
                                     <div className="NEB-imageWrapper">
                                         <img
@@ -246,31 +465,23 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             loading={isActiveSlide ? 'eager' : 'lazy'}
                                             decoding="async"
                                             fetchPriority={isActiveSlide ? 'high' : 'low'}
+                                            onLoad={() => ensureImageEdgeTone(eventThumbnail)}
                                         />
-                                        <span className="NEB-category">
-                                            {event.category === 'class' ? '강습' : '행사'}
-                                        </span>
-                                    </div>
-
-                                    <div className="NEB-content">
-                                        <div className="NEB-mini-thumbnail">
-                                            <img
-                                                src={previewThumbnail}
-                                                alt="Full Preview"
-                                                loading={isActiveSlide ? 'eager' : 'lazy'}
-                                                decoding="async"
-                                            />
-                                        </div>
-                                        <div className="NEB-textContent">
-                                            {event.genre && (
-                                                <em className="NEB-genre">{event.genre}</em>
-                                            )}
-                                            <div className="NEB-eventMeta">
-                                                <span><i className="ri-map-pin-line" /> {event.location || event.place_name || '장소 미정'}</span>
-                                                <span><i className="ri-calendar-line" /> {slideDateText}</span>
-                                            </div>
-                                            <strong className="NEB-eventTitle">{event.title}</strong>
-                                        </div>
+                                        {authorProfile.image && (
+                                            <span
+                                                className="NEB-authorBadge"
+                                                title={authorProfile.nickname ? `등록자 ${authorProfile.nickname}` : '등록자'}
+                                                aria-hidden="true"
+                                            >
+                                                <img
+                                                    src={authorProfile.image}
+                                                    alt=""
+                                                    loading={isActiveSlide ? 'eager' : 'lazy'}
+                                                    decoding="async"
+                                                    referrerPolicy="no-referrer"
+                                                />
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -278,18 +489,34 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     </div>
                 </div>
 
-                {/* 인디케이터 + 카운터 */}
-                {events.length > 1 && (
-                    <div className="NEB-indicators">
-                        {events.map((_, index) => (
-                            <button
-                                key={index}
-                                className={`NEB-indicator ${index === currentIndex ? 'is-active' : ''}`}
-                                onClick={() => goToSlide(index)}
-                            />
-                        ))}
+                <div className="NEB-lowerDeck" style={activeCardAlignmentStyle}>
+                    <button
+                        type="button"
+                        className="NEB-oneDayRecruitBtn"
+                        onClick={openOneDayRecruitment}
+                        aria-label="스윙 원데이 모집 보기"
+                    >
+                        <img src={ONE_DAY_RECRUIT_ICON_SRC} alt="" aria-hidden="true" />
+                    </button>
+
+                    <div className="NEB-activeSummaryCluster">
+                        <button
+                            type="button"
+                            className="NEB-activeSummary"
+                            onClick={() => onEventClick(currentEvent)}
+                            aria-label={`${currentEvent.title} 상세 보기`}
+                        >
+                            <strong>{currentEvent.title}</strong>
+                            <span className="NEB-activeSummaryMeta">
+                                <em>{getDateLabel(currentEvent)}</em>
+                                <small>
+                                    <i className="ri-map-pin-line" aria-hidden="true" />
+                                    {getPlaceLabel(currentEvent)}
+                                </small>
+                            </span>
+                        </button>
                     </div>
-                )}
+                </div>
             </div >
 
             {/* Info Modal */}
@@ -302,7 +529,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.<br />72시간 내 신규 이벤트가 없을 경우 최근 등록 7개가 표시됩니다.</p>
                                 <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 라이브밴드 파티는 기간 제한 없이 계속 노출됩니다.</p>
                                 <ul className="neb-modal-list">
-                                    <li>자동 슬라이드: 5초마다 전환</li>
+                                    <li>자동 슬라이드: 8초마다 전환</li>
                                     <li>마우스 호버 시 일시정지</li>
                                     <li>좌우 화살표로 수동 전환 가능</li>
                                 </ul>

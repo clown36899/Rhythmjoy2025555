@@ -5,12 +5,27 @@ import type { Event as AppEvent } from "../../../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { useModalActions } from "../../../contexts/ModalContext";
 import { queryClient } from "../../../lib/queryClient";
+import { addClientLog } from "../../../utils/clientLogBuffer";
 
 interface UseEventActionsProps {
     adminType: "super" | "sub" | null;
     user: User | null; // User type from AuthContext
     signInWithKakao: () => void;
 }
+
+const EVENT_ACTIONS_DEBUG = import.meta.env.VITE_EVENT_ACTIONS_DEBUG === 'true';
+const eventActionsDebug = (...args: unknown[]) => {
+    if (EVENT_ACTIONS_DEBUG) console.debug(...args);
+};
+
+const isLocalDebugHost = () => typeof window !== 'undefined'
+    && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
+
+const eventDeleteDiagnostic = (...args: unknown[]) => {
+    if (!isLocalDebugHost()) return;
+    console.info(...args);
+    addClientLog('event', ...args);
+};
 
 export function useEventActions({ adminType, user, signInWithKakao }: UseEventActionsProps) {
     const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
@@ -86,11 +101,12 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteProgress, setDeleteProgress] = useState(0);
 
-    const deleteEvent = async (eventId: number | string, password: string | null = null): Promise<boolean> => {
-        console.log('[useEventActions > deleteEvent] START', { eventId, hasPassword: !!password, isDeleting });
+    const deleteEvent = useCallback(async (eventId: number | string, password: string | null = null): Promise<boolean> => {
+        eventActionsDebug('[useEventActions > deleteEvent] START', { eventId, hasPassword: !!password, isDeleting });
 
         if (isDeleting) {
             console.warn('[useEventActions > deleteEvent] ABORTED: Already deleting.');
+            eventDeleteDiagnostic('[EventDelete:UI] blocked duplicate delete', { eventId });
             return false; // Prevent double click
         }
 
@@ -100,19 +116,23 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         try {
             // [CRITICAL FIX] ID 전처리: 'social-' 접두어 제거 및 FullCalendar 오프셋 처리
             const strippedId = String(eventId).replace('social-', '');
-            const cleanId = Number(strippedId) > 10000000
-                ? String(Number(strippedId) - 10000000)
-                : strippedId;
+            const cleanId = strippedId;
 
-            console.log('[useEventActions > deleteEvent] Cleaned ID for API:', { original: eventId, cleanId });
+            eventActionsDebug('[useEventActions > deleteEvent] Cleaned ID for API:', { original: eventId, cleanId });
+            eventDeleteDiagnostic('[EventDelete:UI] prepared request', { originalEventId: eventId, cleanId, hasPassword: Boolean(password) });
 
-            console.log('[useEventActions > deleteEvent] Fetching session...');
+            eventActionsDebug('[useEventActions > deleteEvent] Fetching session...');
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) console.error('[useEventActions > deleteEvent] Session Error:', sessionError);
             const token = session?.access_token;
             setDeleteProgress(30);
+            eventDeleteDiagnostic('[EventDelete:UI] session state', {
+                hasToken: Boolean(token),
+                userId: user?.id || null,
+                adminType,
+            });
 
-            console.log('[useEventActions > deleteEvent] Calling /.netlify/functions/delete-event', { token: !!token, cleanId });
+            eventActionsDebug('[useEventActions > deleteEvent] Calling /.netlify/functions/delete-event', { token: !!token, cleanId });
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
                 headers: {
@@ -122,11 +142,23 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
                 body: JSON.stringify({ eventId: cleanId, password })
             });
             setDeleteProgress(60);
+            const responseText = await response.text();
+            let responseData: any = null;
+            try {
+                responseData = responseText ? JSON.parse(responseText) : null;
+            } catch {
+                responseData = { raw: responseText };
+            }
 
-            console.log('[useEventActions > deleteEvent] Response received', { status: response.status, ok: response.ok });
+            eventActionsDebug('[useEventActions > deleteEvent] Response received', { status: response.status, ok: response.ok });
+            eventDeleteDiagnostic('[EventDelete:UI] response', {
+                status: response.status,
+                ok: response.ok,
+                body: responseData,
+            });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = responseData || {};
                 console.error('[useEventActions > deleteEvent] API Error Response:', errorData);
                 if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
                     alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.");
@@ -138,8 +170,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             setDeleteProgress(90);
 
             // Success
-            console.log('[useEventActions > deleteEvent] SUCCESS! Invaliding queries and closing modal.');
-            alert("삭제되었습니다."); // Keep consistent with V1
+            eventActionsDebug('[useEventActions > deleteEvent] SUCCESS! Invalidating queries and closing modal.');
 
             // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
@@ -155,14 +186,29 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             alert("삭제 실패: " + message);
             return false;
         } finally {
-            console.log('[useEventActions > deleteEvent] FINALLY Block reached. Releasing lock.');
+            eventActionsDebug('[useEventActions > deleteEvent] FINALLY Block reached. Releasing lock.');
             setIsDeleting(false);
             setDeleteProgress(0);
         }
-    };
+    }, [adminType, closeModal, isDeleting, user?.id]);
 
     const handleDeleteClick = useCallback(async (event: AppEvent, e?: React.MouseEvent | any): Promise<boolean> => {
-        console.log('[useEventActions > handleDeleteClick] START', { eventId: event.id, adminType, userId: user?.id, eventUserId: event.user_id });
+        eventDeleteDiagnostic('[EventDelete:UI] handleDeleteClick start', {
+            hasEvent: Boolean(event),
+            eventId: event?.id,
+            adminType,
+            userId: user?.id || null,
+            eventUserId: event?.user_id || null,
+            isDeleting,
+        });
+
+        if (!event?.id) {
+            console.error('[useEventActions > handleDeleteClick] Missing event or event.id', { event });
+            alert('삭제할 이벤트 정보를 찾지 못했습니다.');
+            return false;
+        }
+
+        eventActionsDebug('[useEventActions > handleDeleteClick] START', { eventId: event.id, adminType, userId: user?.id, eventUserId: event.user_id });
 
         if (e && typeof e.stopPropagation === 'function') {
             e.stopPropagation();
@@ -170,28 +216,31 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
         // 1. Super Admin Request
         if (adminType === "super") {
-            console.log('[useEventActions > handleDeleteClick] Pathway: Super Admin');
+            eventActionsDebug('[useEventActions > handleDeleteClick] Pathway: Super Admin');
+            eventDeleteDiagnostic('[EventDelete:UI] path super admin', { eventId: event.id });
             return await deleteEvent(event.id);
         }
 
         // 2. Owner Request
         const isOwner = user?.id && event.user_id && user.id === event.user_id;
         if (isOwner) {
-            console.log('[useEventActions > handleDeleteClick] Pathway: Logic Owner');
+            eventActionsDebug('[useEventActions > handleDeleteClick] Pathway: Logic Owner');
+            eventDeleteDiagnostic('[EventDelete:UI] path owner', { eventId: event.id, userId: user?.id });
             return await deleteEvent(event.id);
         }
 
         // 3. Guest/User with Password
-        console.log('[useEventActions > handleDeleteClick] Pathway: Guest/Password Check');
+        eventActionsDebug('[useEventActions > handleDeleteClick] Pathway: Guest/Password Check');
+        eventDeleteDiagnostic('[EventDelete:UI] path password fallback', { eventId: event.id, hasPassword: Boolean(event.password) });
         let password = null;
         if (event.password) {
             password = prompt("비밀번호를 입력하세요:");
             if (!password) {
-                console.log('[useEventActions > handleDeleteClick] Password prompt cancelled.');
+                eventActionsDebug('[useEventActions > handleDeleteClick] Password prompt cancelled.');
                 return false; // Cancelled
             }
         } else {
-            console.log('[useEventActions > handleDeleteClick] No event password & Not owner. Attempting delete anyway (?)');
+            eventActionsDebug('[useEventActions > handleDeleteClick] No event password & Not owner. Attempting delete anyway (?)');
         }
 
         // Local password validation (if event has password)
@@ -201,9 +250,9 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             return false;
         }
 
-        console.log('[useEventActions > handleDeleteClick] Proceeding to deleteEvent with password.');
+        eventActionsDebug('[useEventActions > handleDeleteClick] Proceeding to deleteEvent with password.');
         return await deleteEvent(event.id, password);
-    }, [adminType, closeModal, user]);
+    }, [adminType, deleteEvent, isDeleting, user]);
 
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
 

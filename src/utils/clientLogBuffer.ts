@@ -9,11 +9,19 @@ export interface ClientLogEntry {
 }
 
 const STORAGE_KEY = 'rhythmjoy_client_logs_v1';
-const MAX_LOGS = 160;
-const MAX_ARG_LENGTH = 2400;
-const SENSITIVE_PARAM_RE = /([?&#](?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token)=)[^&#\s]+/gi;
-const SENSITIVE_JSON_RE = /("(?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token)"\s*:\s*")[^"]+/gi;
+const MAX_LOGS = 120;
+const MAX_ARG_LENGTH = 1200;
+const MAX_STRING_LENGTH = 360;
+const MAX_ARRAY_ITEMS = 8;
+const MAX_OBJECT_DEPTH = 3;
+const SENSITIVE_PARAM_RE = /([?&#](?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token|email|user_id|userId)=)[^&#\s]+/gi;
+const SENSITIVE_JSON_RE = /("(?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token|email|userEmail|user_id|userId|authUid|authorization|apikey|service_key|secret|password|phone|contact|organizer_phone)"\s*:\s*")[^"]+/gi;
+const SENSITIVE_KEY_RE = /^(?:code|access_token|refresh_token|id_token|token|token_hash|provider_token|provider_refresh_token|email|userEmail|user_id|userId|authUid|authorization|apikey|service_key|secret|password|phone|contact|organizer_phone)$/i;
+const VERBOSE_TEXT_KEY_RE = /^(?:description|extracted_text|content|body|html|stack)$/i;
 const JWT_RE = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const PHONE_RE = /\b(?:\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}\b/g;
+const PROD_VERBOSE_ALLOW_RE = /\[(?:Kakao Callback|Auth|Supabase|Stats#|SW|CalendarPage)\]|Safety Net|SIGNED_|TOKEN_REFRESHED|INITIAL_SESSION|사용자 조작 감지|setSession/i;
 
 let logs: ClientLogEntry[] = [];
 let nextId = 1;
@@ -63,15 +71,56 @@ function scheduleFlush(immediate = false) {
   }, 600);
 }
 
+function summarizeString(value: string, key = '') {
+  const sanitized = sanitizeLogText(value);
+  if (VERBOSE_TEXT_KEY_RE.test(key) && sanitized.length > 160) {
+    return `[TEXT ${sanitized.length} chars]`;
+  }
+  if (sanitized.length > MAX_STRING_LENGTH) {
+    return `${sanitized.slice(0, MAX_STRING_LENGTH)}...[truncated ${sanitized.length - MAX_STRING_LENGTH} chars]`;
+  }
+  return sanitized;
+}
+
+function redactForLog(value: unknown, key = '', depth = 0): unknown {
+  if (SENSITIVE_KEY_RE.test(key)) return '[REDACTED]';
+  if (typeof value === 'string') return summarizeString(value, key);
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null || value === undefined) return value;
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: summarizeString(value.message),
+      stack: summarizeString(value.stack || '', 'stack'),
+    };
+  }
+  if (Array.isArray(value)) {
+    const items = value.slice(0, MAX_ARRAY_ITEMS).map((item) => redactForLog(item, key, depth + 1));
+    if (value.length > MAX_ARRAY_ITEMS) items.push(`[+${value.length - MAX_ARRAY_ITEMS} more]`);
+    return items;
+  }
+  if (typeof value === 'object') {
+    if (depth >= MAX_OBJECT_DEPTH) return '[Object]';
+    const record = value as Record<string, unknown>;
+    const next: Record<string, unknown> = {};
+    Object.keys(record).slice(0, 24).forEach((itemKey) => {
+      next[itemKey] = redactForLog(record[itemKey], itemKey, depth + 1);
+    });
+    const extra = Object.keys(record).length - Object.keys(next).length;
+    if (extra > 0) next.__truncatedKeys = extra;
+    return next;
+  }
+  return value;
+}
+
 function safeStringify(value: unknown): string {
-  if (typeof value === 'string') return sanitizeLogText(value);
-  if (value instanceof Error) return sanitizeLogText(value.stack || value.message);
+  if (typeof value === 'string') return summarizeString(value);
+  if (value instanceof Error) return sanitizeLogText(summarizeString(value.stack || value.message, 'stack'));
   if (value === undefined) return 'undefined';
   if (value === null) return 'null';
 
   try {
     const seen = new WeakSet<object>();
-    return sanitizeLogText(JSON.stringify(value, (_key, item) => {
+    return sanitizeLogText(JSON.stringify(redactForLog(value), (_key, item) => {
       if (typeof item === 'object' && item !== null) {
         if (seen.has(item)) return '[Circular]';
         seen.add(item);
@@ -91,7 +140,9 @@ function sanitizeLogText(value: string) {
   return value
     .replace(SENSITIVE_PARAM_RE, '$1[REDACTED]')
     .replace(SENSITIVE_JSON_RE, '$1[REDACTED]')
-    .replace(JWT_RE, '[JWT_REDACTED]');
+    .replace(JWT_RE, '[JWT_REDACTED]')
+    .replace(EMAIL_RE, '[EMAIL_REDACTED]')
+    .replace(PHONE_RE, '[PHONE_REDACTED]');
 }
 
 function sanitizeUrl(value: string) {
@@ -103,6 +154,10 @@ function serializeArgs(args: unknown[]) {
     .map((arg) => safeStringify(arg))
     .join(' ')
     .slice(0, MAX_ARG_LENGTH);
+}
+
+function shouldCaptureVerboseProdLog(args: unknown[]) {
+  return PROD_VERBOSE_ALLOW_RE.test(serializeArgs(args));
 }
 
 export function addClientLog(level: ClientLogLevel, ...args: unknown[]) {
@@ -179,7 +234,9 @@ export function initClientLogBuffer(options: { suppressConsoleInProd?: boolean }
 
   (['log', 'info', 'debug', 'warn', 'error'] as const).forEach((level) => {
     console[level] = (...args: unknown[]) => {
-      addClientLog(level, ...args);
+      const isVerbose = level === 'log' || level === 'info' || level === 'debug';
+      const shouldCapture = !suppressConsoleInProd || !isVerbose || shouldCaptureVerboseProdLog(args);
+      if (shouldCapture) addClientLog(level, ...args);
 
       const shouldSuppress =
         suppressConsoleInProd && (level === 'log' || level === 'info' || level === 'debug');

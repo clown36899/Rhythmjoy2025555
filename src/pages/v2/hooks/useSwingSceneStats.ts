@@ -60,6 +60,10 @@ export interface MonthlyStat {
 let sessionCache: SceneStats | null = null;
 let isFetching = false;
 let fetchPromise: Promise<SceneStats | null> | null = null;
+let serverCachePromise: Promise<SceneStats | null> | null = null;
+let lastStatsFunctionFailureAt = 0;
+
+const STATS_FUNCTION_FAILURE_COOLDOWN_MS = 60_000;
 
 // 인스턴스 카운터 (디버깅용)
 let instanceCounter = 0;
@@ -104,12 +108,21 @@ const normalizeSceneStats = (data: any): SceneStats => ({
 const shouldUseStatsFunction = () => {
     if (typeof window === 'undefined') return true;
 
-    const isDirectLocalVite =
+    const isLocalDevHost =
         import.meta.env.DEV &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-        window.location.port === '5173';
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-    return !isDirectLocalVite;
+    return !isLocalDevHost;
+};
+
+const isStatsFunctionCoolingDown = () => (
+    lastStatsFunctionFailureAt > 0 &&
+    Date.now() - lastStatsFunctionFailureAt < STATS_FUNCTION_FAILURE_COOLDOWN_MS
+);
+
+const STATS_DEBUG = import.meta.env.VITE_STATS_DEBUG === 'true';
+const statsDebug = (...args: unknown[]) => {
+    if (STATS_DEBUG) console.debug(...args);
 };
 
 export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
@@ -122,20 +135,20 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
 
     useEffect(() => {
         isMounted.current = true;
-        console.log(`[Stats#${instanceId.current}] 마운트 - sessionCache:${sessionCache ? '있음' : '없음'}, isFetching:${isFetching}, loading:${!sessionCache}`);
+        statsDebug(`[Stats#${instanceId.current}] 마운트 - sessionCache:${sessionCache ? '있음' : '없음'}, isFetching:${isFetching}, loading:${!sessionCache}`);
         return () => {
             isMounted.current = false;
-            console.log(`[Stats#${instanceId.current}] 언마운트`);
+            statsDebug(`[Stats#${instanceId.current}] 언마운트`);
         };
     }, []);
 
     const fetchSceneStats = useCallback(async (isManualRefresh = false) => {
         if (!isManualRefresh && isFetching && fetchPromise) {
-            console.log(`[Stats#${instanceId.current}] fetchSceneStats: 이미 fetch 중 - 기존 promise 반환`);
+            statsDebug(`[Stats#${instanceId.current}] fetchSceneStats: 이미 fetch 중 - 기존 promise 반환`);
             return fetchPromise;
         }
 
-        console.log(`[Stats#${instanceId.current}] fetchSceneStats: 새 fetch 시작 (isManualRefresh:${isManualRefresh})`);
+        statsDebug(`[Stats#${instanceId.current}] fetchSceneStats: 새 fetch 시작 (isManualRefresh:${isManualRefresh})`);
         isFetching = true;
         setLoading(true);
 
@@ -147,7 +160,7 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
                     ? `${baseUrl}?refresh=true&t=${timestamp}`
                     : `${baseUrl}?t=${timestamp}`;
 
-                console.log(`[Stats#${instanceId.current}] API 요청: ${url}`);
+                statsDebug(`[Stats#${instanceId.current}] API 요청: ${url}`);
                 const response = await fetch(url, {
                     cache: 'no-store',
                     headers: {
@@ -156,18 +169,27 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
                     }
                 });
 
-                console.log(`[Stats#${instanceId.current}] API 응답: status=${response.status}, ok=${response.ok}`);
-                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                statsDebug(`[Stats#${instanceId.current}] API 응답: status=${response.status}, ok=${response.ok}`);
+                if (!response.ok) {
+                    let errorMessage = `API Error: ${response.status}`;
+                    try {
+                        const errorBody = await response.text();
+                        if (errorBody) errorMessage += ` ${errorBody.slice(0, 180)}`;
+                    } catch {
+                        // Ignore body read failures; status code is enough for cooldown.
+                    }
+                    throw new Error(errorMessage);
+                }
                 const data = await response.json();
-                console.log(`[Stats#${instanceId.current}] 데이터 파싱 완료 - monthly:${data.monthly?.length}개, summary:`, data.summary);
+                statsDebug(`[Stats#${instanceId.current}] 데이터 파싱 완료 - monthly:${data.monthly?.length}개, summary:`, data.summary);
 
                 const newStats = normalizeSceneStats(data);
 
                 sessionCache = newStats;
-                console.log(`[Stats#${instanceId.current}] sessionCache 업데이트 완료. isMounted:${isMounted.current}`);
+                statsDebug(`[Stats#${instanceId.current}] sessionCache 업데이트 완료. isMounted:${isMounted.current}`);
 
                 if (isMounted.current) {
-                    console.log(`[Stats#${instanceId.current}] setStats 호출 (직접 인스턴스)`);
+                    statsDebug(`[Stats#${instanceId.current}] setStats 호출 (직접 인스턴스)`);
                     setStats(newStats);
                 } else {
                     console.warn(`[Stats#${instanceId.current}] isMounted=false - 이 인스턴스에는 setStats 불가 (다른 구독자가 처리해야 함)`);
@@ -188,12 +210,13 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
 
                 return newStats;
             } catch (error) {
+                lastStatsFunctionFailureAt = Date.now();
                 console.error(`[Stats#${instanceId.current}] API Error:`, error);
                 return null;
             } finally {
                 isFetching = false;
                 fetchPromise = null;
-                console.log(`[Stats#${instanceId.current}] fetch 완료 - isFetching=false. isMounted:${isMounted.current}`);
+                statsDebug(`[Stats#${instanceId.current}] fetch 완료 - isFetching=false. isMounted:${isMounted.current}`);
                 if (isMounted.current) {
                     setLoading(false);
                 } else {
@@ -207,49 +230,67 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
 
     const loadServerCache = useCallback(async (): Promise<SceneStats | null> => {
         if (sessionCache || isFetching) {
-            console.log(`[Stats#${instanceId.current}] loadServerCache 스킵 - sessionCache:${sessionCache ? '있음' : '없음'}, isFetching:${isFetching}`);
+            statsDebug(`[Stats#${instanceId.current}] loadServerCache 스킵 - sessionCache:${sessionCache ? '있음' : '없음'}, isFetching:${isFetching}`);
             return sessionCache;
         }
 
-        console.log(`[Stats#${instanceId.current}] loadServerCache: DB에서 캐시 로드 시도`);
-        try {
-            const { data } = await supabase
-                .from('metrics_cache')
-                .select('value')
-                .eq('key', 'scene_analytics_v3')
-                .maybeSingle();
-
-            if (isMounted.current && data?.value) {
-                const newStats = normalizeSceneStats(data.value);
-
-                if (!sessionCache) {
-                    console.log(`[Stats#${instanceId.current}] loadServerCache: DB 캐시로 임시 표시 (totalItems:${newStats.summary.totalItems})`);
-                    sessionCache = newStats;
-                    setStats(newStats);
-                    setLoading(false);
-                    return newStats;
-                } else {
-                    console.log(`[Stats#${instanceId.current}] loadServerCache: API fetch가 먼저 완료됨 - DB 캐시 무시`);
-                    return sessionCache;
-                }
-            } else {
-                console.log(`[Stats#${instanceId.current}] loadServerCache: DB 캐시 없음 또는 언마운트`);
+        if (serverCachePromise) {
+            statsDebug(`[Stats#${instanceId.current}] loadServerCache: 기존 promise 구독`);
+            const cachedStats = await serverCachePromise;
+            if (cachedStats && isMounted.current) {
+                setStats(cachedStats);
+                setLoading(false);
             }
-        } catch (e) {
-            console.warn(`[Stats#${instanceId.current}] loadServerCache 실패:`, e);
+            return cachedStats;
         }
 
-        return null;
+        statsDebug(`[Stats#${instanceId.current}] loadServerCache: DB에서 캐시 로드 시도`);
+        serverCachePromise = (async () => {
+            try {
+                const { data } = await supabase
+                    .from('metrics_cache')
+                    .select('value')
+                    .eq('key', 'scene_analytics_v3')
+                    .maybeSingle();
+
+                if (data?.value) {
+                    const newStats = normalizeSceneStats(data.value);
+
+                    if (!sessionCache) {
+                        statsDebug(`[Stats#${instanceId.current}] loadServerCache: DB 캐시로 임시 표시 (totalItems:${newStats.summary.totalItems})`);
+                        sessionCache = newStats;
+                        if (isMounted.current) {
+                            setStats(newStats);
+                            setLoading(false);
+                        }
+                        return newStats;
+                    } else {
+                        statsDebug(`[Stats#${instanceId.current}] loadServerCache: API fetch가 먼저 완료됨 - DB 캐시 무시`);
+                        return sessionCache;
+                    }
+                } else {
+                    statsDebug(`[Stats#${instanceId.current}] loadServerCache: DB 캐시 없음`);
+                }
+            } catch (e) {
+                console.warn(`[Stats#${instanceId.current}] loadServerCache 실패:`, e);
+            }
+
+            return null;
+        })().finally(() => {
+            serverCachePromise = null;
+        });
+
+        return serverCachePromise;
     }, []);
 
     const manualRefresh = useCallback(async () => {
         if (!confirm('DB 통계 인덱스를 재생성하고 캐시를 갱신하시겠습니까?')) return;
-        console.log(`[Stats#${instanceId.current}] 수동 갱신 시작`);
+        statsDebug(`[Stats#${instanceId.current}] 수동 갱신 시작`);
         setRefreshing(true);
         try {
             const { error } = await supabase.rpc('refresh_site_stats_index');
             if (error) throw error;
-            console.log(`[Stats#${instanceId.current}] refresh_site_stats_index 완료`);
+            statsDebug(`[Stats#${instanceId.current}] refresh_site_stats_index 완료`);
             if (shouldUseStatsFunction()) {
                 await fetchSceneStats(true);
             } else {
@@ -268,14 +309,14 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
     // Initial load logic
     useEffect(() => {
         if (!autoLoad) {
-            console.log(`[Stats#${instanceId.current}] 자동 로드 비활성화 - explicit prefetch 대기`);
+            statsDebug(`[Stats#${instanceId.current}] 자동 로드 비활성화 - explicit prefetch 대기`);
             if (!sessionCache) setLoading(false);
             return;
         }
 
         const id = instanceId.current;
         if (!sessionCache && !isFetching) {
-            console.log(`[Stats#${id}] 초기 로드: 새 fetch 시작`);
+            statsDebug(`[Stats#${id}] 초기 로드: 새 fetch 시작`);
             const canUseFunction = shouldUseStatsFunction();
             loadServerCache().then((cachedStats) => {
                 if (cachedStats) {
@@ -300,7 +341,7 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
             // 해당 promise에 구독하여 이 컴포넌트도 결과를 받을 수 있도록 처리
             console.warn(`[Stats#${id}] 초기 로드: fetch 이미 진행 중 - fetchPromise 구독 (버그 방어 경로)`);
             fetchPromise.then((result) => {
-                console.log(`[Stats#${id}] fetchPromise 구독 완료 - result:${result ? '있음' : '없음'}, isMounted:${isMounted.current}`);
+                statsDebug(`[Stats#${id}] fetchPromise 구독 완료 - result:${result ? '있음' : '없음'}, isMounted:${isMounted.current}`);
                 if (isMounted.current) {
                     if (result) setStats(result);
                     setLoading(false);
@@ -312,33 +353,45 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
                 if (isMounted.current) setLoading(false);
             });
         } else if (sessionCache) {
-            console.log(`[Stats#${id}] 초기 로드: sessionCache 있음 - 즉시 표시 (totalItems:${sessionCache.summary.totalItems})`);
+            statsDebug(`[Stats#${id}] 초기 로드: sessionCache 있음 - 즉시 표시 (totalItems:${sessionCache.summary.totalItems})`);
         }
     }, [autoLoad, loadServerCache, fetchSceneStats]);
+
+    const prefetch = useCallback(() => {
+        if (sessionCache) return Promise.resolve(sessionCache);
+        if (isFetching && fetchPromise) return fetchPromise;
+
+        statsDebug(`[Stats#${instanceId.current}] prefetch 호출`);
+
+        return loadServerCache().then((cachedStats) => {
+            if (cachedStats || sessionCache) return cachedStats || sessionCache;
+
+            if (!shouldUseStatsFunction()) {
+                statsDebug(`[Stats#${instanceId.current}] 로컬 개발 환경 - stats 함수 호출 스킵`);
+                const fallbackStats = createEmptyStats();
+                sessionCache = fallbackStats;
+                if (isMounted.current) {
+                    setStats(fallbackStats);
+                    setLoading(false);
+                }
+                return fallbackStats;
+            }
+
+            if (isStatsFunctionCoolingDown()) {
+                console.warn(`[Stats#${instanceId.current}] stats 함수 실패 쿨다운 중 - 재요청 스킵`);
+                if (isMounted.current) setLoading(false);
+                return null;
+            }
+
+            return fetchSceneStats();
+        });
+    }, [fetchSceneStats, loadServerCache]);
 
     return {
         stats,
         loading,
         refreshing,
         manualRefresh,
-        prefetch: () => {
-            if (!sessionCache && !isFetching) {
-                console.log(`[Stats#${instanceId.current}] prefetch 호출`);
-                if (!shouldUseStatsFunction()) {
-                    loadServerCache().then((cachedStats) => {
-                        if (cachedStats || sessionCache) return;
-
-                        const fallbackStats = createEmptyStats();
-                        sessionCache = fallbackStats;
-                        if (isMounted.current) {
-                            setStats(fallbackStats);
-                            setLoading(false);
-                        }
-                    });
-                    return;
-                }
-                fetchSceneStats();
-            }
-        }
+        prefetch
     };
 };

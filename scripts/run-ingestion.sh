@@ -28,6 +28,12 @@ TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-1500}"
 CODEX_STARTUP_CHECK="${CODEX_STARTUP_CHECK:-1}"
 CODEX_STARTUP_TIMEOUT="${CODEX_STARTUP_TIMEOUT:-75}"
 TELEGRAM_SEND_TIMEOUT="${TELEGRAM_SEND_TIMEOUT:-12}"
+INGESTION_CHROME_HEADLESS="${INGESTION_CHROME_HEADLESS:-0}"
+INGESTION_BROWSER_PROFILE_DIR="${INGESTION_BROWSER_PROFILE_DIR:-/Users/inteyeo/.chrome-automation}"
+INGESTION_INSTAGRAM_SAFE_MODE="${INGESTION_INSTAGRAM_SAFE_MODE:-1}"
+INGESTION_INSTAGRAM_SOURCE_DELAY_MS="${INGESTION_INSTAGRAM_SOURCE_DELAY_MS:-45000}"
+INGESTION_INSTAGRAM_POST_DELAY_MS="${INGESTION_INSTAGRAM_POST_DELAY_MS:-12000}"
+INGESTION_INSTAGRAM_FAILURE_CIRCUIT_THRESHOLD="${INGESTION_INSTAGRAM_FAILURE_CIRCUIT_THRESHOLD:-3}"
 RUN_ID="$(date '+%Y%m%d_%H%M%S')_$$"
 RUN_STARTED_AT_UTC="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 RUN_DIR="${RUN_DIR:-/Users/inteyeo/ingestion-runs}"
@@ -314,6 +320,14 @@ except Exception:
 value = data.get(field)
 if isinstance(value, list):
     print(", ".join(str(item) for item in value[:8]) or "-")
+elif isinstance(value, dict) and field == "instagramCircuitSkips":
+    count = value.get("count") or 0
+    sources = value.get("sources") or []
+    if count:
+        suffix = ", ..." if count > len(sources) else ""
+        print(f"{count}건 ({', '.join(str(item) for item in sources[:8])}{suffix})")
+    else:
+        print("none")
 elif value is not None:
     print(value)
 PY
@@ -346,12 +360,18 @@ const sources = getAutomationSourceList('swing-daily');
 const invalid = sources.filter((source) => {
   const url = String(source.url || '');
   return source.scope !== 'swing'
-    || source.saveEnabled !== true
-    || /batswing\.co\.kr|instagram\.com\/batswing2003\b|meroniswing\.com/i.test(url);
+    || (!source.discoveryOnly && source.saveEnabled !== true)
+    || /batswing\.co\.kr|instagram\.com\/batswing2003\b|instagram\.com\/243_swingbar\b|meroniswing\.com/i.test(url);
 });
+const runnable = sources.filter((source) => !source.discoveryOnly && source.saveEnabled === true);
 
 if (!sources.length) {
   console.error('swing-daily source list is empty');
+  process.exit(1);
+}
+
+if (!runnable.length) {
+  console.error('swing-daily runnable source list is empty');
   process.exit(1);
 }
 
@@ -360,7 +380,7 @@ if (invalid.length) {
   process.exit(1);
 }
 
-console.log(`swing-daily source guard passed: ${sources.length} sources`);
+console.log(`swing-daily source guard passed: ${runnable.length} runnable / ${sources.length} total sources`);
 NODE
         then
             log "--- swing-daily 소스 가드 실패 ---"
@@ -411,10 +431,12 @@ extract_summary() {
 
 build_fallback_summary() {
     local issue_line="$1"
-    local new_line skip_line cleanup_line block_line result_skip result_block result_issues duplicate_count
+    local new_line skip_line cleanup_line block_line circuit_line no_content_line result_skip result_block result_circuit result_no_content result_issues duplicate_count
 
     result_skip="$(extract_result_field skipCount)"
     result_block="$(extract_result_field accessFailures)"
+    result_circuit="$(extract_result_field instagramCircuitSkips)"
+    result_no_content="$(extract_result_field noContentSources)"
     result_issues="$(extract_result_field issues)"
     duplicate_count="$(count_run_rows duplicate)"
 
@@ -428,12 +450,16 @@ build_fallback_summary() {
     fi
     cleanup_line="과거데이터삭제: ${INGESTION_PRE_CLEANUP_COUNT:--}"
     block_line="접근불가: ${result_block:--}"
+    circuit_line="인스타회로차단: ${result_circuit:--}"
+    no_content_line="수집대상없음: ${result_no_content:--}"
 
     cat <<EOF
 ${new_line}
 ${skip_line}
 ${cleanup_line}
 ${block_line}
+${circuit_line}
+${no_content_line}
 이슈: ${issue_line}${result_issues:+ / ${result_issues}}
 EOF
 }
@@ -448,6 +474,7 @@ Confirm that you can read the repository and then print exactly:
 스킵: 0건
 과거데이터삭제: 0건
 접근불가: smoke-test(none)
+인스타회로차단: none
 이슈: smoke test ok
 ==TELEGRAM_SUMMARY_END==
 EOF
@@ -529,10 +556,14 @@ run: $RUN_ID"
 
 if ! curl -s http://localhost:9222/json/version > /dev/null 2>&1; then
     log "Chrome CDP 시작 중..."
+    CHROME_HEADLESS_ARGS=()
+    if [ "$INGESTION_CHROME_HEADLESS" = "1" ]; then
+        CHROME_HEADLESS_ARGS+=(--headless=new)
+    fi
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
         --remote-debugging-port=9222 \
-        --user-data-dir="/Users/inteyeo/.chrome-automation" \
-        --headless=new \
+        --user-data-dir="$INGESTION_BROWSER_PROFILE_DIR" \
+        "${CHROME_HEADLESS_ARGS[@]}" \
         --no-first-run \
         --no-default-browser-check &
     sleep 6
@@ -559,6 +590,11 @@ echo "started_at_utc=$RUN_STARTED_AT_UTC" >> "$RUN_META"
 echo "engine=$INGESTION_ENGINE" >> "$RUN_META"
 echo "codex=${CODEX:-}" >> "$RUN_META"
 echo "profile=$INGESTION_PROFILE" >> "$RUN_META"
+echo "chrome_headless=$INGESTION_CHROME_HEADLESS" >> "$RUN_META"
+echo "browser_profile=$INGESTION_BROWSER_PROFILE_DIR" >> "$RUN_META"
+echo "instagram_safe_mode=$INGESTION_INSTAGRAM_SAFE_MODE" >> "$RUN_META"
+echo "instagram_source_delay_ms=$INGESTION_INSTAGRAM_SOURCE_DELAY_MS" >> "$RUN_META"
+echo "instagram_post_delay_ms=$INGESTION_INSTAGRAM_POST_DELAY_MS" >> "$RUN_META"
 echo "prompt=$RUN_DIR/${RUN_ID}.prompt.md" >> "$RUN_META"
 echo "output=$RUN_OUTPUT" >> "$RUN_META"
 echo "last=$RUN_LAST" >> "$RUN_META"
@@ -685,21 +721,87 @@ if [ -z "$SUMMARY_BLOCK" ]; then
     log "--- fallback summary 생성: run=$RUN_ID / exit=$EXIT_CODE ---"
 fi
 
+MAP_AUDIT_BLOCK=""
+if [ "$INGESTION_PROFILE" = "swing-daily" ] && [ -f "$PROJECT_ROOT/scripts/ingestion/audit-swing-social-map.mjs" ]; then
+    MAP_AUDIT_LOG="$RUN_DIR/${RUN_ID}.social-map-audit.txt"
+    if node "$PROJECT_ROOT/scripts/ingestion/audit-swing-social-map.mjs" --run "$RUN_LAST" > "$MAP_AUDIT_LOG" 2>> "$LOG_FILE"; then
+        echo "social_map_audit=$MAP_AUDIT_LOG" >> "$RUN_META"
+        MAP_AUDIT_BLOCK="$(awk '
+            /==SWING_SOCIAL_MAP_SUMMARY_START==/ { found=1; block=""; next }
+            /==SWING_SOCIAL_MAP_SUMMARY_END==/ { if(found) last=block; found=0; next }
+            found { block = block "\n" $0 }
+            END { print last }
+        ' "$MAP_AUDIT_LOG" 2>/dev/null)"
+        log "--- 스윙 소셜 지도 감사 완료: $MAP_AUDIT_LOG ---"
+    else
+        log "--- 스윙 소셜 지도 감사 실패: $MAP_AUDIT_LOG ---"
+    fi
+fi
+
 PARSED_NEW=$(echo "$SUMMARY_BLOCK" | grep "^신규:" | tail -1)
 PARSED_SKIP=$(echo "$SUMMARY_BLOCK" | grep "^스킵:" | tail -1)
 PARSED_CLEANUP=$(echo "$SUMMARY_BLOCK" | grep "^과거데이터삭제:" | tail -1)
 PARSED_BLOCK=$(echo "$SUMMARY_BLOCK" | grep "^접근불가:" | tail -1)
+PARSED_CIRCUIT=$(echo "$SUMMARY_BLOCK" | grep "^인스타회로차단:" | tail -1)
+PARSED_NO_CONTENT=$(echo "$SUMMARY_BLOCK" | grep "^수집대상없음:" | tail -1)
 PARSED_ISSUE=$(echo "$SUMMARY_BLOCK" | grep "^이슈:" | tail -1)
+
+SUCCESS_LINES=""
+append_success_line() {
+    local line="$1"
+    if [ -n "$line" ]; then
+        SUCCESS_LINES="${SUCCESS_LINES}${line}
+"
+    fi
+}
+
+SUCCESS_NEW_LINE=""
+if [ -n "$PARSED_NEW" ] && ! echo "$PARSED_NEW" | grep -Eq '^신규:[[:space:]]*0건'; then
+    SUCCESS_NEW_LINE="$PARSED_NEW"
+fi
+
+SUCCESS_BLOCK_LINE=""
+if [ -n "$PARSED_BLOCK" ]; then
+    BLOCK_VALUE="${PARSED_BLOCK#접근불가:}"
+    if ! echo "$BLOCK_VALUE" | grep -Eiq '^[[:space:]]*(none|없음|-)?[[:space:]]*$'; then
+        SUCCESS_BLOCK_LINE="접근불가(세션/봇차단): $(echo "$BLOCK_VALUE" | sed 's/^[[:space:]]*//')"
+    fi
+fi
+
+SUCCESS_NO_CONTENT_LINE=""
+if [ -n "$PARSED_NO_CONTENT" ]; then
+    NO_CONTENT_VALUE="${PARSED_NO_CONTENT#수집대상없음:}"
+    if ! echo "$NO_CONTENT_VALUE" | grep -Eiq '^[[:space:]]*(none|없음|-)?[[:space:]]*$'; then
+        SUCCESS_NO_CONTENT_LINE="수집대상없음(포스트/글 없음): $(echo "$NO_CONTENT_VALUE" | sed 's/^[[:space:]]*//')"
+    fi
+fi
+
+SUCCESS_CIRCUIT_LINE=""
+if [ -n "$PARSED_CIRCUIT" ]; then
+    CIRCUIT_VALUE="${PARSED_CIRCUIT#인스타회로차단:}"
+    if ! echo "$CIRCUIT_VALUE" | grep -Eiq '^[[:space:]]*(none|없음|-)?[[:space:]]*$'; then
+        SUCCESS_CIRCUIT_LINE="인스타회로차단(후속 접근 중단): $(echo "$CIRCUIT_VALUE" | sed 's/^[[:space:]]*//')"
+    fi
+fi
+
+append_success_line "$SUCCESS_NEW_LINE"
+append_success_line "${PARSED_SKIP:-스킵: -}"
+append_success_line "${PARSED_CLEANUP:-과거데이터삭제: -}"
+append_success_line "$SUCCESS_BLOCK_LINE"
+append_success_line "$SUCCESS_CIRCUIT_LINE"
+append_success_line "$SUCCESS_NO_CONTENT_LINE"
+append_success_line "${PARSED_ISSUE:-이슈: 없음}"
+if [ -n "$MAP_AUDIT_BLOCK" ]; then
+    append_success_line ""
+    append_success_line "씬지도 감사:"
+    append_success_line "$(echo "$MAP_AUDIT_BLOCK" | grep -v '^run:' | sed '/^[[:space:]]*$/d')"
+fi
 
 if [ $EXIT_CODE -eq 0 ]; then
     telegram_notify "댄스 이벤트 수집 완료
 $(date '+%Y-%m-%d %H:%M')
 
-${PARSED_NEW:-신규: -}
-${PARSED_SKIP:-스킵: -}
-${PARSED_CLEANUP:-과거데이터삭제: -}
-${PARSED_BLOCK:-접근불가: -}
-${PARSED_ISSUE:-이슈: 없음}
+${SUCCESS_LINES%$'\n'}
 
 run: $RUN_ID
 https://swingenjoy.com/admin/v2/ingestor"
@@ -718,6 +820,7 @@ ${FAIL_REASON}
 
 ${PARSED_NEW:-}
 ${PARSED_BLOCK:-}
+${PARSED_CIRCUIT:-}
 ${PARSED_ISSUE:-}
 
 run: $RUN_ID

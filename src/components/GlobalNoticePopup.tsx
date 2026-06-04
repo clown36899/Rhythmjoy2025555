@@ -3,28 +3,54 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import '../styles/components/GlobalNoticePopup.css';
 
+let activeNoticeCacheLoaded = false;
+let activeNoticeCache: any = null;
+let activeNoticePromise: Promise<any> | null = null;
+const NOTICE_DEBUG = import.meta.env.VITE_NOTICE_DEBUG === 'true';
+
+const fetchActiveNotice = async () => {
+    if (activeNoticeCacheLoaded) return activeNoticeCache;
+    if (activeNoticePromise) return activeNoticePromise;
+
+    activeNoticePromise = supabase
+        .from('global_notices')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data, error }) => {
+            if (error) throw error;
+            activeNoticeCache = data;
+            activeNoticeCacheLoaded = true;
+            return data;
+        })
+        .finally(() => {
+            activeNoticePromise = null;
+        });
+
+    return activeNoticePromise;
+};
+
 export default function GlobalNoticePopup() {
     const [notice, setNotice] = useState<any>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
 
     useEffect(() => {
-        checkNotice();
+        let isMounted = true;
+        checkNotice(() => isMounted);
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const checkNotice = async () => {
+    const checkNotice = async (isMounted = () => true) => {
         try {
             // 1. Fetch the LATEST ACTIVE notice
-            const { data, error } = await supabase
-                .from('global_notices')
-                .select('*')
-                .eq('is_active', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (error) throw error;
-            console.log('[NoticePopup] Notice status from DB:', data);
+            const data = await fetchActiveNotice();
+            if (!isMounted()) return;
+            if (NOTICE_DEBUG) console.debug('[NoticePopup] Notice status from DB:', data);
 
             // 2. Check visibility conditions
             if (data) {

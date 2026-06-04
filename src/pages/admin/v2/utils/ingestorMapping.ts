@@ -2,12 +2,16 @@ import {
   type DanceActivity,
   type DanceGenreFamily,
   type DanceScope,
+  type RecruitmentKind,
+  ensureRecruitmentTags,
   getDanceActivityLabel,
   getDanceFamilyLabel,
   getDanceGenreLabel,
+  getRecruitmentKindLabel,
   getDanceScopeLabel,
   getDanceTagLabel,
   inferDanceTaxonomy,
+  resolveRecruitmentKind,
 } from '../../../../utils/danceTaxonomy';
 import {
   getVenueMapUrl,
@@ -54,6 +58,7 @@ interface ScrapedLike {
     genre_family?: DanceGenreFamily | null;
     dance_genre?: string | null;
     dance_genre_label?: string | null;
+    subgenre?: string | null;
     tags?: string[] | null;
     location?: string;
     address?: string;
@@ -100,7 +105,31 @@ export function detectEventType(event: ScrapedLike): EventType {
   return '파티/행사';
 }
 
+function getRecruitmentSearchText(event: ScrapedLike): string {
+  const sd = event.structured_data || {};
+  return [
+    sd.title,
+    sd.event_type,
+    sd.dance_scope,
+    sd.dance_genre,
+    sd.dance_genre_label,
+    sd.subgenre,
+    sd.location,
+    event.keyword,
+    event.source_url,
+    event.extracted_text,
+    ...(Array.isArray(sd.tags) ? sd.tags : []),
+  ].filter(Boolean).join(' ');
+}
+
+export function getIngestorRecruitmentKind(event: ScrapedLike): RecruitmentKind | null {
+  return resolveRecruitmentKind(getRecruitmentSearchText(event));
+}
+
 export function detectIngestorActivity(event: ScrapedLike): DanceActivity {
+  const recruitmentKind = getIngestorRecruitmentKind(event);
+  if (recruitmentKind) return 'recruit';
+
   const explicit = event.structured_data?.activity_type;
   if (explicit && ['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
   return inferDanceTaxonomy(event).activity_type;
@@ -126,9 +155,12 @@ export function getIngestorGenreMeta(event: ScrapedLike) {
 }
 
 export function getIngestorTags(event: ScrapedLike): string[] {
+  const recruitmentKind = getIngestorRecruitmentKind(event);
   const existing = event.structured_data?.tags;
-  if (Array.isArray(existing) && existing.length > 0) return existing.filter(Boolean);
-  return inferDanceTaxonomy(event).tags;
+  const baseTags = Array.isArray(existing) && existing.length > 0
+    ? existing.filter(Boolean)
+    : inferDanceTaxonomy(event).tags;
+  return ensureRecruitmentTags(baseTags, recruitmentKind);
 }
 
 export function getIngestorTagLabel(tag: string): string {
@@ -174,18 +206,24 @@ export function matchVenue(event: ScrapedLike, venues: VenueRecord[]): VenueReco
   }, venues) as VenueRecord | null;
 }
 
-function buildOperatingGenre(activity: DanceActivity): string {
+function buildOperatingGenre(activity: DanceActivity, recruitmentKind: RecruitmentKind | null): string {
+  const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
+  if (recruitmentLabel) return recruitmentLabel;
   return getDanceActivityLabel(activity);
 }
 
 export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): MappedIngestorEvent {
   const taxonomy = inferDanceTaxonomy(event);
+  const recruitmentKind = getIngestorRecruitmentKind(event);
   const activity = detectIngestorActivity(event);
   const matchedVenue = matchVenue(event, venues);
   const sd = event.structured_data || {};
 
   const category = activity === 'class' ? 'class' : activity === 'social' ? 'social' : 'event';
-  const genre = buildOperatingGenre(activity);
+  const genre = buildOperatingGenre(activity, recruitmentKind);
+  const danceGenre = recruitmentKind && resolveRecruitmentKind(sd.dance_genre)
+    ? taxonomy.dance_scope
+    : (sd.dance_genre || taxonomy.dance_genre);
   const location = toMapSafeVenueName(matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '');
   const address = matchedVenue?.address || sd.address || '';
   const locationLink = sd.location_link || getVenueMapUrl(matchedVenue);
@@ -194,7 +232,7 @@ export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): Map
     category,
     genre,
     dance_scope: taxonomy.dance_scope,
-    dance_genre: sd.dance_genre || taxonomy.dance_genre,
+    dance_genre: danceGenre,
     activity_type: activity,
     dance_tags: getIngestorTags(event),
     group_id: category === 'social' ? 2 : null,

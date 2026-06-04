@@ -149,11 +149,17 @@
 
 .places-glass-filter-wrapper {
     position: sticky;
-    top: calc(108px + env(safe-area-inset-top)); 
+    top: calc(62px + env(safe-area-inset-top));
     z-index: 10;
     margin: 0 -2px 16px;
     padding: 10px 2px 12px;
     background: linear-gradient(to bottom, var(--bg-deep) 82%, transparent);
+}
+
+@media (max-width: 420px) {
+    .places-glass-filter-wrapper {
+        top: calc(54px + env(safe-area-inset-top));
+    }
 }
 
 .places-category-filter {

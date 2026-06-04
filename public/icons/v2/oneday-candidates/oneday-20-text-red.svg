@@ -1,0 +1,12 @@
+<svg width="512" height="560" viewBox="0 0 512 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="34" y="70" width="444" height="426" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.58"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <text x="256" y="207" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="950" letter-spacing="1" fill="#FF7A70">ONE DAY</text>
+    <text x="256" y="344" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="128" font-weight="950" letter-spacing="-10" fill="#FFFFFF">모집</text>
+    <text x="256" y="403" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="42" font-weight="950" letter-spacing="-2" fill="#FF7A70">원데이 클래스</text>
+  </g>
+</svg>

@@ -12,6 +12,7 @@ export interface NotificationRecord {
     received_at: string;
     is_read: boolean;
     icon?: string;
+    image?: string;
     data?: any;
 }
 
@@ -37,6 +38,17 @@ export const notificationStore = {
         const db = await getDB();
         if (!db) return [];
         return db.getAll(STORE_NAME);
+    },
+
+    async upsertMany(records: NotificationRecord[]) {
+        const db = await getDB();
+        if (!db) return;
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        for (const record of records) {
+            await store.put(record);
+        }
+        await tx.done;
     },
 
     async getUnread() {

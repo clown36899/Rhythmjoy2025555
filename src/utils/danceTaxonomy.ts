@@ -1,6 +1,7 @@
 export type DanceActivity = 'class' | 'social' | 'event' | 'recruit';
 export type DanceGenreFamily = 'partner' | 'street' | 'art' | 'commercial' | 'unknown';
 export type DanceScope = 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown';
+export type RecruitmentKind = 'oneday_recruit' | 'public_recruit';
 
 export interface DanceTaxonomyInput {
   keyword?: string | null;
@@ -49,6 +50,13 @@ export interface DanceGenreOption {
   scope: DanceScope;
   aliases: string[];
   source?: 'preset' | 'event';
+}
+
+export interface RecruitmentGenreOption {
+  key: RecruitmentKind;
+  label: string;
+  aliases: string[];
+  patterns: RegExp[];
 }
 
 const activityLabels: Record<DanceActivity, string> = {
@@ -176,8 +184,44 @@ export const presetDanceGenreOptions: DanceGenreOption[] = [
   { key: 'krump', label: '크럼프', family: 'street', scope: 'street', aliases: ['krump'], source: 'preset' },
 ];
 
+export const recruitmentGenreOptions: RecruitmentGenreOption[] = [
+  {
+    key: 'oneday_recruit',
+    label: '원데이모집',
+    aliases: ['원데이 모집', '원데이', 'one day recruit', 'oneday recruit', '1day recruit', '일일 모집', '체험 모집', '오픈클래스 모집'],
+    patterns: [
+      /원\s*데이\s*(모집|신청|수강생|클래스|강습|수업|특강|반)/i,
+      /(모집|신청|수강생)\s*.*원\s*데이/i,
+      /\b(one\s*day|oneday|1\s*day)\b\s*(recruit|class|lesson|workshop|apply|application)/i,
+      /(일일|하루|체험|오픈\s*클래스)\s*(모집|신청|수강생|클래스|강습|수업|특강|반)/i,
+    ],
+  },
+  {
+    key: 'public_recruit',
+    label: '일반인모집',
+    aliases: ['일반인 모집', '일반 모집', '비전공자 모집', '초보 모집', '입문 모집', '신규 모집', '수강생 모집'],
+    patterns: [
+      /(일반인|일반|비전공자|초보|입문|신규)\s*(모집|신청|참가|수강생)/i,
+      /(모집|신청|참가|수강생)\s*.*(일반인|비전공자|초보|입문|신규)/i,
+      /수강생\s*모집/i,
+    ],
+  },
+];
+
+const recruitmentDanceGenreOptions: DanceGenreOption[] = recruitmentGenreOptions.map((option) => ({
+  key: option.key,
+  label: option.label,
+  family: 'partner',
+  scope: 'swing',
+  aliases: option.aliases,
+  source: 'preset',
+}));
+
 const tagRules: Array<{ key: string; label: string; patterns: RegExp[] }> = [
   { key: 'audition', label: '오디션', patterns: [/오디션/i, /audition/i] },
+  { key: 'recruit', label: '모집', patterns: [/모집/i, /recruit/i] },
+  { key: 'oneday_recruit', label: '원데이모집', patterns: recruitmentGenreOptions[0].patterns },
+  { key: 'public_recruit', label: '일반인모집', patterns: recruitmentGenreOptions[1].patterns },
   { key: 'team_recruit', label: '팀원모집', patterns: [/팀원\s*모집/i, /팀\s*모집/i, /프로젝트\s*팀/i, /team\s*recruit/i] },
   { key: 'crew_recruit', label: '크루모집', patterns: [/크루\s*모집/i, /crew\s*recruit/i] },
   { key: 'participant', label: '참가자모집', patterns: [/참가자\s*모집/i, /참가\s*모집/i, /배틀\s*참가/i, /participant/i] },
@@ -243,6 +287,33 @@ export function normalizeGenreText(value: string | null | undefined): string {
     .trim();
 }
 
+export function resolveRecruitmentKind(value: string | null | undefined): RecruitmentKind | null {
+  const text = (value || '').trim();
+  if (!text) return null;
+
+  const normalized = normalizeGenreText(text);
+  for (const option of recruitmentGenreOptions) {
+    if (normalized === normalizeGenreText(option.label)) return option.key;
+    if (option.aliases.some((alias) => normalized === normalizeGenreText(alias))) return option.key;
+    if (option.patterns.some((pattern) => pattern.test(text))) return option.key;
+  }
+
+  return null;
+}
+
+export function getRecruitmentKindLabel(kind: RecruitmentKind | string | null | undefined): string | null {
+  return recruitmentGenreOptions.find((option) => option.key === kind)?.label || null;
+}
+
+export function ensureRecruitmentTags(tags: string[] = [], kind: RecruitmentKind | null | undefined): string[] {
+  const next = new Set(tags.filter(Boolean));
+  if (kind) {
+    next.add('recruit');
+    next.add(kind);
+  }
+  return Array.from(next);
+}
+
 function levenshteinDistance(a: string, b: string): number {
   if (a === b) return 0;
   if (!a) return b.length;
@@ -290,6 +361,9 @@ function inferOptionFromText(value: string, fallbackScope: DanceScope = 'unknown
 export function buildDanceGenreOptions(existingGenres: string[] = []): DanceGenreOption[] {
   const optionMap = new Map<string, DanceGenreOption>();
   presetDanceGenreOptions.forEach((option) => {
+    optionMap.set(option.key, option);
+  });
+  recruitmentDanceGenreOptions.forEach((option) => {
     optionMap.set(option.key, option);
   });
 
@@ -396,6 +470,8 @@ function inferActivity(input: DanceTaxonomyInput, text: string): DanceActivity {
   const explicit = input.structured_data?.activity_type;
   if (explicit && ['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
 
+  if (resolveRecruitmentKind(text)) return 'recruit';
+
   const eventType = input.structured_data?.event_type || '';
   const recruitStrong = /(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i;
   if (recruitStrong.test(text)) return 'recruit';
@@ -456,7 +532,9 @@ function inferTags(activity: DanceActivity, input: DanceTaxonomyInput): string[]
     if (hasAny(tagText, rule.patterns)) tags.add(rule.key);
   });
 
-  if (activity === 'recruit' && tags.size === 0) tags.add('team_recruit');
+  const recruitmentKind = resolveRecruitmentKind(tagText);
+  if (recruitmentKind) ensureRecruitmentTags([], recruitmentKind).forEach((tag) => tags.add(tag));
+  if (activity === 'recruit' && tags.size === 0) tags.add('recruit');
   if (activity === 'social' && Array.isArray(input.structured_data?.djs) && input.structured_data?.djs?.length) tags.add('dj');
   return Array.from(tags);
 }
@@ -474,7 +552,9 @@ export function getDanceFamilyLabel(family: DanceGenreFamily): string {
 }
 
 export function getDanceGenreLabel(genre: string): string {
-  return genreRules.find((rule) => rule.key === genre)?.label || (genre === 'unknown' ? '장르 미정' : genre);
+  return recruitmentGenreOptions.find((option) => option.key === genre)?.label
+    || genreRules.find((rule) => rule.key === genre)?.label
+    || (genre === 'unknown' ? '장르 미정' : genre);
 }
 
 export function getDanceScopeLabel(scope: DanceScope | string | null | undefined): string {

@@ -239,7 +239,7 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
             el.onclick = (e) => { e.stopPropagation(); onEventClick(event); };
             el.onmouseenter = () => { el.style.zIndex = '9999'; };
             el.onmouseleave = () => { el.style.zIndex = String(defaultZ); };
-            const imageUrl = event.image_thumbnail || event.image_micro || '';
+            const imageUrl = event.image_thumbnail || event.image_micro || event.image_medium || event.image || event.image_full || '';
             const locText = event.venue_name || event.location || '장소 미상';
             el.innerHTML = `
                 <div class="cmv-marker-wrapper">
@@ -440,8 +440,8 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
                     {selectedEvents.map(ev => (
                         <div key={ev.id} className="cmv-event-item" onClick={() => onEventClick(ev)}>
                             <div className="cmv-event-img">
-                                {ev.image_thumbnail || ev.image_micro
-                                    ? <img src={ev.image_thumbnail || ev.image_micro} alt={ev.title} />
+                                {ev.image_thumbnail || ev.image_micro || ev.image_medium || ev.image || ev.image_full
+                                    ? <img src={ev.image_thumbnail || ev.image_micro || ev.image_medium || ev.image || ev.image_full} alt={ev.title} />
                                     : <div className="cmv-event-img--fallback"><i className="ri-calendar-event-line" /></div>
                                 }
                             </div>

@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../hooks/useModal';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { usePageAction } from '../contexts/PageActionContext';
-import { BottomNavigation } from './BottomNavigation';
 import SideDrawer from '../components/SideDrawer';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { logUserInteraction } from '../lib/analytics';
-import { isPWAMode } from '../lib/pwaDetect';
 import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
@@ -17,6 +15,7 @@ import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
+import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -24,6 +23,9 @@ interface MobileShellProps {
 }
 
 type CalendarHeaderDisplayMode = 'calendar' | 'list' | 'map';
+
+let totalUserCountCache: number | null = null;
+let totalUserCountPromise: Promise<number | null> | null = null;
 
 const isCalendarHeaderDisplayMode = (value: unknown): value is CalendarHeaderDisplayMode => (
   value === 'calendar' || value === 'list' || value === 'map'
@@ -62,131 +64,17 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all'; // Derived from URL query
 
-  // 2차 메뉴 스크롤 위치 추적 (scroll-rail 인디케이터용)
-  const navScrollRef = useRef<HTMLDivElement>(null);
-  const [navScrollState, setNavScrollState] = useState({
-    thumbLeft: 0,
-    thumbWidth: 100,
-    canScrollLeft: false,
-    canScrollRight: false,
-    isScrollable: false,
-  });
-
-  const handleNavScroll = useCallback(() => {
-    const el = navScrollRef.current;
-    if (!el) return;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    if (maxScroll <= 0) {
-      setNavScrollState({
-        thumbLeft: 0,
-        thumbWidth: 100,
-        canScrollLeft: false,
-        canScrollRight: false,
-        isScrollable: false,
-      });
-      return;
-    }
-    const rawThumbWidth = (el.clientWidth / el.scrollWidth) * 100;
-    const thumbWidth = Math.min(100, Math.max(18, rawThumbWidth));
-    const thumbTravel = 100 - thumbWidth;
-    const thumbLeft = Math.min(thumbTravel, Math.max(0, (el.scrollLeft / maxScroll) * thumbTravel));
-    const nextState = {
-      thumbLeft,
-      thumbWidth,
-      canScrollLeft: el.scrollLeft > 4,
-      canScrollRight: el.scrollLeft < maxScroll - 4,
-      isScrollable: true,
-    };
-
-    setNavScrollState(prev => {
-      if (
-        Math.abs(prev.thumbLeft - nextState.thumbLeft) < 0.25 &&
-        Math.abs(prev.thumbWidth - nextState.thumbWidth) < 0.25 &&
-        prev.canScrollLeft === nextState.canScrollLeft &&
-        prev.canScrollRight === nextState.canScrollRight &&
-        prev.isScrollable === nextState.isScrollable
-      ) {
-        return prev;
-      }
-      return nextState;
-    });
-  }, []);
-
-  const revealActiveNavItem = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    const el = navScrollRef.current;
-    if (!el) return;
-
-    const activeItem = el.querySelector<HTMLElement>('.header-nav-v2-item.is-active');
-    if (!activeItem) {
-      if (el.scrollLeft > 1) {
-        el.scrollTo({ left: 0, behavior });
-      } else {
-        handleNavScroll();
-      }
-      return;
-    }
-
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    if (maxScroll <= 0) {
-      handleNavScroll();
-      return;
-    }
-
-    const sidePeek = window.innerWidth <= 650 ? 72 : 92;
-    const currentLeft = el.scrollLeft;
-    const currentRight = currentLeft + el.clientWidth;
-    const itemLeft = activeItem.offsetLeft;
-    const itemRight = itemLeft + activeItem.offsetWidth;
-
-    let nextLeft = currentLeft;
-    if (itemLeft < currentLeft + sidePeek) {
-      nextLeft = itemLeft - sidePeek;
-    } else if (itemRight > currentRight - sidePeek) {
-      nextLeft = itemRight - el.clientWidth + sidePeek;
-    }
-
-    nextLeft = Math.min(maxScroll, Math.max(0, nextLeft));
-    if (Math.abs(nextLeft - currentLeft) > 1) {
-      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      el.scrollTo({ left: nextLeft, behavior: reduceMotion ? 'auto' : behavior });
-    } else {
-      handleNavScroll();
-    }
-  }, [handleNavScroll]);
-
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
-  const isEventsInfoPage = currentPath === '/events';
-  const isBoardPage = currentPath.startsWith('/board') && category !== 'history';
-  const isSocialPage = currentPath.startsWith('/social');
-  const isPracticePage = currentPath.startsWith('/practice');
-  const isShoppingPage = currentPath.startsWith('/shopping');
-  const isGuidePage = currentPath.startsWith('/guide');
   const isCalendarPage = currentPath === '/calendar';
-  const isForumPage = currentPath === '/forum';
   const isMyActivitiesPage = currentPath === '/my-activities';
-  const isArchivePage = currentPath.startsWith('/learning') || currentPath.startsWith('/history') || (currentPath === '/board' && category === 'history');
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
   const isMetronomePage = currentPath === '/metronome';
-  const isBpmTapperPage = currentPath === '/bpm-tapper';
-  const isLinksPage = currentPath === '/links';
   const isPlacesPage = currentPath === '/places';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
-  const isDanceExpansionGuidePage = currentPath === '/admin/ui/dance-expansion-guide';
 
   const isAdmin = isAdminProp || authIsAdmin;
-
-  const handleCalendarNavClick = useCallback(() => {
-    const target = `/calendar?view=calendar&scrollToToday=true&nav=${Date.now()}`;
-    navigate(target);
-
-    if (currentPath === '/calendar') {
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent('goToToday'));
-      });
-    }
-  }, [currentPath, navigate]);
 
   const handleCalendarHeaderDisplayMode = useCallback((mode: CalendarHeaderDisplayMode) => {
     setCalendarHeaderDisplayMode(mode);
@@ -215,97 +103,109 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     };
   }, []);
 
+  // Fetch total registered users count only where it is actually needed.
+  // This used to run on every route, competing with first-screen board/event data.
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      revealActiveNavItem('smooth');
-      requestAnimationFrame(handleNavScroll);
-    });
-    window.addEventListener('resize', handleNavScroll);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('resize', handleNavScroll);
-    };
-  }, [handleNavScroll, revealActiveNavItem, currentPath, category]);
+    if (!isAdmin) return;
 
-  // Fetch total registered users count
-  useEffect(() => {
+    let isMounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+    const idleWindow = window as Window & typeof globalThis & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
     const fetchTotalUserCount = async () => {
       try {
-        const { count, error } = await supabase
-          .from('board_users')
-          .select('*', { count: 'exact', head: true });
+        if (totalUserCountCache !== null) {
+          if (isMounted) setTotalUserCount(totalUserCountCache);
+          return totalUserCountCache;
+        }
 
-        if (!error && count !== null) {
+        if (totalUserCountPromise) {
+          const count = await totalUserCountPromise;
+          if (isMounted && count !== null) setTotalUserCount(count);
+          return count;
+        }
+
+        totalUserCountPromise = supabase
+          .from('board_users')
+          .select('user_id', { count: 'exact', head: true })
+          .then(({ count, error }) => {
+            if (error) throw error;
+            totalUserCountCache = count ?? null;
+            return totalUserCountCache;
+          })
+          .finally(() => {
+            totalUserCountPromise = null;
+          });
+
+        const count = await totalUserCountPromise;
+        if (isMounted && count !== null) {
           setTotalUserCount(count);
         }
+        return count;
       } catch (err) {
         console.error('Error fetching total user count:', err);
+        return null;
       }
     };
 
-    fetchTotalUserCount();
+    const startUserCountSync = () => {
+      fetchTotalUserCount();
 
-    // 🔥 실시간 가입자 수 동기화 개정
-    // INSERT(신규 가입) 및 DELETE(탈퇴 등) 감지 시 카운트 즉시 갱신
-    const channel = supabase
-      .channel('registered-users-count')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'board_users' },
-        (payload) => {
-          console.log('[Realtime] board_users change detected:', payload.eventType);
-          // 가입(INSERT) 또는 삭제(DELETE) 발생 시에만 DB에서 최신 카운트 재조회
-          if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+      channel = supabase
+        .channel('registered-users-count')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'board_users' },
+          (payload) => {
+            console.log('[Realtime] board_users change detected:', payload.eventType);
+            if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+              totalUserCountCache = null;
+              fetchTotalUserCount();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            totalUserCountCache = null;
             fetchTotalUserCount();
           }
-        }
-      )
-      .subscribe((status) => {
-        // console.log('[Realtime] Subscriber count subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          fetchTotalUserCount(); // 연결 시점에 다시 한 번 동기화
-        }
-      });
+        });
+    };
+
+    const delayMs = currentPath === '/board' ? 3500 : 1200;
+    timeoutId = setTimeout(() => {
+      if (idleWindow.requestIdleCallback) {
+        idleId = idleWindow.requestIdleCallback(startUserCountSync, { timeout: 3000 });
+      } else {
+        startUserCountSync();
+      }
+    }, delayMs);
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      if (idleId !== null && idleWindow.cancelIdleCallback) {
+        idleWindow.cancelIdleCallback(idleId);
+      }
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, []);
+  }, [currentPath, isAdmin]);
 
-  // Show login modal on first visit if not logged in
+  // Clear stale admin-only count when leaving admin context.
   useEffect(() => {
-    // Only run on main pages (not on specific detail pages)
-    if (!isEventsPage) return;
-
-    // Wait for auth check to complete
-    if (!isAuthCheckComplete) return;
-
-    // Check if user is not logged in
-    if (user) return;
-
-    // [Standard Fix] Logout guard: Don't show login prompt immediately after logging out
-    const isPWA = isPWAMode();
-    const storagePrefix = isPWA ? 'pwa-' : '';
-    const isLoggingOutLocal = localStorage.getItem(`${storagePrefix}isLoggingOut`) === 'true';
-
-    if (isLoggingOut || isLoggingOutLocal) {
-      // Consume the flag and mark as shown to prevent popup for this session
-      localStorage.removeItem(`${storagePrefix}isLoggingOut`);
-      sessionStorage.setItem('hasShownLoginPrompt', 'true');
-      return;
+    if (!isAdmin) {
+      setTotalUserCount(null);
     }
+  }, [isAdmin]);
 
-    // Check if we've already shown the modal in this session
-    const hasShownLoginPrompt = sessionStorage.getItem('hasShownLoginPrompt');
-    if (hasShownLoginPrompt) return;
-
-    // [Fix] Already open check to prevent flicker on redundant calls
-    if (loginModal.isOpen) return;
-
-    // Show login modal immediately
-    loginModal.open({ message: '댄스빌보드 로그인' });
-    sessionStorage.setItem('hasShownLoginPrompt', 'true');
-  }, [user, isEventsPage, loginModal, isAuthCheckComplete, isLoggingOut]);
+  // 첫 화면은 로그인 유도 모달을 자동으로 띄우지 않는다. 로그인은 메뉴/보호 액션에서만 호출한다.
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {
@@ -454,6 +354,24 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     };
   }, [isWideLayout]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+
+    if (isEventsPage) {
+      root.classList.add('v2-home-mode');
+      body.classList.add('v2-home-mode');
+    } else {
+      root.classList.remove('v2-home-mode');
+      body.classList.remove('v2-home-mode');
+    }
+
+    return () => {
+      root.classList.remove('v2-home-mode');
+      body.classList.remove('v2-home-mode');
+    };
+  }, [isEventsPage]);
+
   const handlePageAction = () => {
     if (!pageAction) return;
 
@@ -474,7 +392,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   };
 
   return (
-    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''}`}>
       {/* Global Fixed Header */}
       {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (
         <header className="shell-header global-header-fixed">
@@ -764,123 +682,24 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </header >
       )}
 
-      {/* New Header Navigation for Events Page & Calendar Page */}
-      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (isCalendarPage || isEventsPage || isEventsInfoPage || isDanceExpansionGuidePage || isBoardPage || isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPlacesPage || isPracticePage || isShoppingPage || isGuidePage || isSocialPage) && (
-        <nav
-          className="header-nav-v2"
-          style={{
-            '--nav-scroll-thumb-left': `${navScrollState.thumbLeft}%`,
-            '--nav-scroll-thumb-width': `${navScrollState.thumbWidth}%`,
-            '--nav-scroll-left-opacity': navScrollState.canScrollLeft ? 1 : 0,
-            '--nav-scroll-right-opacity': navScrollState.canScrollRight ? 1 : 0,
-            '--nav-scroll-rail-opacity': navScrollState.isScrollable ? 1 : 0,
-          } as React.CSSProperties}
-        >
-          <div className="header-nav-v2-inner" ref={navScrollRef} onScroll={handleNavScroll}>
-            <button
-              className={`header-nav-v2-item header-nav-v2-home ${isEventsPage ? 'is-active' : ''}`}
-              onClick={() => navigate('/v2')}
-              data-analytics-id="header_nav_home"
-              aria-label="홈"
-            >
-              <i className="ri-home-5-line" aria-hidden="true"></i>
-              <span>홈</span>
-            </button>
-            <button
-              className={`header-nav-v2-item ${isCalendarPage ? 'is-active' : ''}`}
-              onClick={handleCalendarNavClick}
-              data-analytics-id="header_nav_calendar"
-            >
-              캘린더
-            </button>
-            <button
-              className={`header-nav-v2-item ${(isEventsInfoPage || isDanceExpansionGuidePage) ? 'is-active' : ''}`}
-              onClick={() => navigate('/events')}
-              data-analytics-id="header_nav_events_info"
-            >
-              강습&행사
-            </button>
-            <button
-              className={`header-nav-v2-item ${isBoardPage ? 'is-active' : ''}`}
-              onClick={() => navigate('/board')}
-              data-analytics-id="header_nav_free_board"
-            >
-              자유게시판
-            </button>
-            <button
-              className={`header-nav-v2-item ${isPlacesPage ? 'is-active' : ''}`}
-              onClick={() => navigate('/places')}
-              data-analytics-id="header_nav_places"
-            >
-              장소
-            </button>
-            <button
-              className={`header-nav-v2-item ${(isForumPage || isArchivePage || isMetronomePage || isBpmTapperPage || isLinksPage || isPracticePage || isGuidePage || isSocialPage) ? 'is-active' : ''}`}
-              onClick={() => navigate('/forum')}
-              data-analytics-id="header_nav_forum"
-            >
-              포럼
-            </button>
-            <button
-              className={`header-nav-v2-item ${isShoppingPage ? 'is-active' : ''}`}
-              onClick={() => navigate('/shopping')}
-              data-analytics-id="header_nav_shop"
-            >
-              쇼핑
-            </button>
-          </div>
-          <span className="header-nav-v2-scroll-cue header-nav-v2-scroll-cue--left" aria-hidden="true">
-            <i className="ri-arrow-left-s-line" />
-          </span>
-          <span className="header-nav-v2-scroll-cue header-nav-v2-scroll-cue--right" aria-hidden="true">
-            <i className="ri-arrow-right-s-line" />
-          </span>
-          <span className="header-nav-v2-scroll-rail" aria-hidden="true" />
-        </nav>
-      )}
-
       <div className={`shell-main-content ${isAdminV2Ingestor ? 'layout-full' : ''}`}>
         <Outlet context={{ category, isFullscreen }} />
       </div>
 
-      {/* Bottom Navigation Removed by User Request 2026-04-06 */}
-      {/* 
-      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && (
-        <div data-id="bottom-nav" className="shell-bottom-nav">
-          <BottomNavigation pageAction={pageAction} onPageActionClick={handlePageAction} />
-        </div>
-      )}
-      */}
+      {!isFullscreen && !isAdminV2Ingestor && <HomeV2MenuPanel />}
 
-      {/* Global Floating Action Button (FAB) */}
-      {!isFullscreen && pageAction && (
-        <div className="shell-fab-container">
-          {pageAction.label && (
-            <span className="shell-fab-label">{pageAction.label}</span>
-          )}
-          <button
-            className="shell-fab-btn"
-            onClick={handlePageAction}
-            aria-label={pageAction.label || 'Action'}
-            data-analytics-id="global_fab_action"
-            data-analytics-type="action"
-            data-analytics-title={pageAction.label || 'Floating Action'}
-          >
-            <i className={pageAction.icon}></i>
-          </button>
-        </div>
+      {!isAdminV2Ingestor && (
+        <SideDrawer
+          pageAction={pageAction}
+          onPageActionClick={handlePageAction}
+          onLoginClick={() => {
+            window.dispatchEvent(new CustomEvent('closeDrawer'));
+            loginModal.open({
+              message: '댄스빌보드 로그인'
+            });
+          }}
+        />
       )}
-
-      <SideDrawer
-        pageAction={pageAction}
-        onPageActionClick={handlePageAction}
-        onLoginClick={() => {
-          window.dispatchEvent(new CustomEvent('closeDrawer'));
-          loginModal.open({
-            message: '댄스빌보드 로그인'
-          });
-        }}
-      />
 
       <NotificationSettingsModal
         isOpen={notificationSettingsModal.isOpen}

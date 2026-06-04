@@ -1,0 +1,15 @@
+<svg width="512" height="560" viewBox="0 0 512 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="s" x="38" y="122" width="436" height="316" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000" flood-opacity=".46"/>
+    </filter>
+  </defs>
+  <g filter="url(#s)">
+    <rect x="64" y="164" width="384" height="212" rx="42" fill="#F8FAFF"/>
+    <rect x="64" y="164" width="384" height="212" rx="42" stroke="#10121A" stroke-width="9"/>
+    <circle cx="122" cy="222" r="18" fill="#10121A"/>
+    <circle cx="390" cy="222" r="18" fill="#10121A"/>
+    <text x="256" y="246" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="47" font-weight="950" fill="#10121A">ONE DAY</text>
+    <text x="256" y="337" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="91" font-weight="950" letter-spacing="-7" fill="#10121A">모집</text>
+  </g>
+</svg>

@@ -6,6 +6,11 @@ import "../../../styles/components/EventCalendar.css";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 
+const V2_EVENT_CALENDAR_DEBUG = import.meta.env.VITE_V2_EVENT_CALENDAR_DEBUG === 'true';
+const debugV2EventCalendar = (...args: unknown[]) => {
+  if (V2_EVENT_CALENDAR_DEBUG) console.debug(...args);
+};
+
 interface EventCalendarProps {
   selectedDate: Date | null;
   onDateSelect: (date: Date | null, hasEvents?: boolean) => void;
@@ -189,12 +194,12 @@ export default memo(function EventCalendar({
   // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
   useEffect(() => {
     const handleEventDeleted = () => {
-      console.log('[EventCalendar] Event deleted, refreshing...');
+      debugV2EventCalendar('[EventCalendar] Event deleted, refreshing...');
       fetchEvents();
     };
 
     const handleEventChanged = () => {
-      console.log('[EventCalendar] Event updated/created, refreshing...');
+      debugV2EventCalendar('[EventCalendar] Event updated/created, refreshing...');
       fetchEvents();
     };
 
@@ -452,14 +457,14 @@ export default memo(function EventCalendar({
   };
 
   const handleDateClick = (date: Date, clickEvent?: PointerEvent) => {
-    console.log(`[Calendar] handleDateClick triggered for ${date.toDateString()}`);
+    debugV2EventCalendar(`[Calendar] handleDateClick triggered for ${date.toDateString()}`);
     // 전체화면 모드일 때는 모달을 띄우는 이벤트 발생
     if (calendarMode === "fullscreen") {
       const clickPosition = clickEvent
         ? { x: clickEvent.clientX, y: clickEvent.clientY }
         : undefined;
 
-      console.log(`[Calendar] Fullscreen click on: ${date.toString()} (ISO: ${date.toISOString()})`);
+      debugV2EventCalendar(`[Calendar] Fullscreen click on: ${date.toString()} (ISO: ${date.toISOString()})`);
 
       window.dispatchEvent(
         new CustomEvent("fullscreenDateClick", {
@@ -471,12 +476,12 @@ export default memo(function EventCalendar({
 
     // 이미 선택된 날짜를 다시 클릭
     if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
-      console.log('[Calendar] Date already selected. Deselecting.');
+      debugV2EventCalendar('[Calendar] Date already selected. Deselecting.');
       // 두 번째 클릭: 선택 해제 (전체 일정 보이기)
       onDateSelect(null);
       return;
     } else {
-      console.log('[Calendar] Selecting new date.');
+      debugV2EventCalendar('[Calendar] Selecting new date.');
       // 새로운 날짜 선택 - 이벤트 유무 확인
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");

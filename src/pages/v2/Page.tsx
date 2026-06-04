@@ -21,8 +21,18 @@ import { useEventActions } from "./hooks/useEventActions";
 import { useCalendarState } from "./hooks/useCalendarState";
 import { useDeepLinkLogic } from "./hooks/useDeepLinkLogic";
 import { useSwingSceneStats } from "./hooks/useSwingSceneStats";
+import { addClientLog } from "../../utils/clientLogBuffer";
 
 import "./styles/Page.css";
+
+const isLocalDebugHost = () => typeof window !== 'undefined'
+    && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
+
+const pageDeleteDiagnostic = (...args: unknown[]) => {
+    if (!isLocalDebugHost()) return;
+    console.info(...args);
+    addClientLog('event', ...args);
+};
 
 export default function HomePageV2() {
     // --------------------------------------------------------------------------------
@@ -31,7 +41,7 @@ export default function HomePageV2() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
-    const { openModal, closeModal } = useModalActions();
+    const { openModal, closeModal, updateModalProps } = useModalActions();
 
     // [Optimization] 홈 첫 화면 렌더와 통계 함수 호출을 분리한다.
     const { prefetch } = useSwingSceneStats({ autoLoad: false });
@@ -56,9 +66,9 @@ export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     // 2. Local State
     // --------------------------------------------------------------------------------
-    const [adminType] = useState<"super" | "sub" | null>(null);
     const [isAdminModeOverride] = useState(false);
     const effectiveIsAdmin = isAdmin || isAdminModeOverride;
+    const adminType: "super" | "sub" | null = effectiveIsAdmin ? "super" : null;
 
     const [showRegistrationModal, setShowRegistrationModal] = useState(false);
     const [fromBanner, setFromBanner] = useState(false);
@@ -85,7 +95,6 @@ export default function HomePageV2() {
         handleDailyModalEventClick,
         handleEditClick, handleDeleteClick,
         selectedVenueId, handleVenueClick, closeVenueModal,
-        isDeleting, deleteProgress
     } = useEventActions({ adminType, user, signInWithKakao });
 
     const {
@@ -124,9 +133,25 @@ export default function HomePageV2() {
         return {
             event: selectedEvent,
             onEdit: handleEditClick,
-            onDelete: async (e: any) => {
-                const success = await handleDeleteClick(selectedEvent, e);
-                if (success) closeModal('eventDetail');
+            onDelete: async (eventFromModal: any, e: any) => {
+                const targetEvent = eventFromModal?.id ? eventFromModal : selectedEvent;
+                pageDeleteDiagnostic('[EventDelete:PageV2] onDelete received', {
+                    selectedEventId: selectedEvent?.id,
+                    eventFromModalId: eventFromModal?.id,
+                    targetEventId: targetEvent?.id,
+                    effectiveIsAdmin,
+                    adminType,
+                    userId: user?.id || null,
+                });
+                const success = await handleDeleteClick(targetEvent, e);
+                pageDeleteDiagnostic('[EventDelete:PageV2] onDelete result', {
+                    targetEventId: targetEvent?.id,
+                    success,
+                });
+                if (success) {
+                    setSelectedEvent(null);
+                    closeModal('eventDetail');
+                }
             },
             isAdminMode: effectiveIsAdmin,
             currentUserId: user?.id,
@@ -134,25 +159,25 @@ export default function HomePageV2() {
             allGenres: allGenres,
             isFavorite: favoriteEventIds.has(Number(selectedEvent.id)),
             onToggleFavorite: (e: React.MouseEvent) => toggleFavorite(selectedEvent.id, e),
-            isDeleting,
-            deleteProgress,
             onClose: () => {
                 setSelectedEvent(null);
                 closeModal('eventDetail');
             }
         };
-    }, [selectedEvent, handleEditClick, handleDeleteClick, effectiveIsAdmin, user?.id, handleVenueClick, allGenres, favoriteEventIds, toggleFavorite, isDeleting, deleteProgress, setSelectedEvent, closeModal]);
+    }, [selectedEvent, handleEditClick, handleDeleteClick, effectiveIsAdmin, user?.id, handleVenueClick, allGenres, favoriteEventIds, toggleFavorite, setSelectedEvent, closeModal]);
 
     useEffect(() => {
         if (eventDetailProps && selectedEvent) {
-            // [Proper Fix] ID가 같더라도 props가 변경되면 (favorite, progress 등) openModal을 호출하여 상세 페이지만 갱신
-            // 단, modalStack 구독을 해제했으므로 렌더링 루프가 발생하지 않음
+            if (lastOpenedEventIdRef.current === selectedEvent.id) {
+                updateModalProps('eventDetail', eventDetailProps);
+                return;
+            }
             openModal('eventDetail', eventDetailProps);
             lastOpenedEventIdRef.current = selectedEvent.id;
         } else if (!selectedEvent) {
             lastOpenedEventIdRef.current = null;
         }
-    }, [eventDetailProps, openModal, selectedEvent]);
+    }, [eventDetailProps, openModal, selectedEvent, updateModalProps]);
 
     useEffect(() => {
         let active = true;
@@ -172,12 +197,8 @@ export default function HomePageV2() {
     // 4. UI Handlers
     // --------------------------------------------------------------------------------
     const handleEventClick = useCallback((event: any) => {
-        if (event.category === 'social') {
-            navigate(`/calendar?id=${event.id}&highlightOnly=true`);
-        } else {
-            setSelectedEvent(event);
-        }
-    }, [setSelectedEvent, navigate]);
+        setSelectedEvent(event);
+    }, [setSelectedEvent]);
 
     const handleSectionViewModeChange = useCallback((mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => {
         const newParams = new URLSearchParams(searchParams);
@@ -204,23 +225,34 @@ export default function HomePageV2() {
         headerHeight: 50, containerRef, eventListElementRef, onHorizontalSwipe: handleHorizontalSwipe, isYearView: false,
     });
 
+    const openRegistrationChoiceModal = useCallback(() => {
+        openModal('registrationChoice', {
+            onSelectMain: () => {
+                closeModal('registrationChoice');
+                window.dispatchEvent(new CustomEvent('createEventForDate', {
+                    detail: { source: 'homeMenu', calendarMode }
+                }));
+            },
+            onSelectSocial: () => {
+                closeModal('registrationChoice');
+                openModal('weeklySocial');
+            },
+            onSelectOneDay: () => {
+                closeModal('registrationChoice');
+                openModal('oneDayRecruitRegistration');
+            }
+        });
+    }, [calendarMode, openModal, closeModal]);
+
     useSetPageAction(useMemo(() => ({
         icon: 'ri-add-line', label: '자율등록(누구나)', requireAuth: true,
-        onClick: () => {
-            openModal('registrationChoice', {
-                onSelectMain: () => {
-                    closeModal('registrationChoice');
-                    window.dispatchEvent(new CustomEvent('createEventForDate', {
-                        detail: { source: 'floatingBtn', calendarMode }
-                    }));
-                },
-                onSelectSocial: () => {
-                    closeModal('registrationChoice');
-                    openModal('weeklySocial');
-                }
-            });
-        }
-    }), [calendarMode, openModal, closeModal]));
+        onClick: openRegistrationChoiceModal
+    }), [openRegistrationChoiceModal]));
+
+    useEffect(() => {
+        window.addEventListener('openV2RegistrationChoice', openRegistrationChoiceModal);
+        return () => window.removeEventListener('openV2RegistrationChoice', openRegistrationChoiceModal);
+    }, [openRegistrationChoiceModal]);
 
     // Sync effects, listeners (Today, Reset, Month Change etc.)
     useEffect(() => {
@@ -294,26 +326,6 @@ export default function HomePageV2() {
                         <span className="stats-side-tab-text">월간 빌보드</span>
                     </div>
                 )}
-
-                {/* Floating Side Stats Tab */}
-                <div className="stats-side-tab" 
-                    onClick={async () => {
-                        if (!user) {
-                            if (confirm('통계를 확인하려면 로그인이 필요합니다.\n로그인하시겠습니까?')) {
-                                try { await signInWithKakao(); } catch (err) { console.error(err); }
-                            }
-                            return;
-                        }
-                        openModal('stats', { userId: user.id, initialTab: 'my' });
-                    }}
-                    data-analytics-id="stats_side_tab"
-                    data-analytics-type="action"
-                    data-analytics-title="게시물 통계"
-                    data-analytics-section="home_v2"
-                >
-                    <i className="ri-bar-chart-groupped-fill stats-side-tab-icon"></i>
-                    <span className="stats-side-tab-text">게시물 통계</span>
-                </div>
 
                 {/* Library Section Hidden as per request */}
 

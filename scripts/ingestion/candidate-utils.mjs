@@ -93,6 +93,7 @@ const genreRules = [
 ];
 
 const tagRules = [
+  ['oneday', [/원\s*데이/i, /원데이/i, /\b1\s*day\b/i, /\bone\s*day\b/i, /\boneday\b/i, /일일\s*(?:클래스|강습|수업|체험)/i, /하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)/i, /체험\s*(?:클래스|강습|수업)/i]],
   ['audition', [/오디션/i, /audition/i]],
   ['team_recruit', [/팀원\s*모집/i, /팀\s*모집/i, /team\s*recruit/i]],
   ['crew_recruit', [/크루\s*모집/i, /crew\s*recruit/i]],
@@ -102,14 +103,18 @@ const tagRules = [
   ['basic', [/베이직/i, /입문/i, /초급/i, /beginner/i, /\bbasic\b/i]],
   ['partnering', [/파트너링/i, /커넥션/i, /리드/i, /팔로우/i, /partnering/i]],
   ['freestyle', [/프리스타일/i, /freestyle/i]],
-  ['workshop', [/워크샵/i, /워크숍/i, /특강/i, /원데이/i, /workshop/i]],
+  ['workshop', [/워크샵/i, /워크숍/i, /특강/i, /원\s*데이/i, /원데이/i, /\bone\s*day\b/i, /\boneday\b/i, /workshop/i]],
   ['party', [/파티/i, /party/i, /night/i, /나이트/i]],
   ['battle', [/배틀/i, /battle/i]],
   ['dj', [/\bdj\b/i, /디제이/i]],
   ['performance', [/공연/i, /쇼케이스/i, /performance/i, /showcase/i]],
-  ['open_class', [/오픈\s*클래스/i, /open\s*class/i]],
+  ['open_class', [/오픈\s*클래스/i, /open\s*class/i, /체험\s*(?:클래스|강습|수업)/i, /처음이라면/i]],
   ['session', [/세션/i, /session/i]],
   ['popup', [/팝업/i, /pop-up/i, /special\s*class/i]],
+];
+
+const blockedKeywordRules = [
+  ['엠티/MT', /엠\s*티|(?:^|[^A-Za-z])m\.?\s*t(?:[^A-Za-z]|$)/i],
 ];
 
 const regionSuffixRe = /\s*[()（）]\s*(신촌|합정|선릉|사당|강남|강북|홍대|상수|망원|연남|서교|마포|신림|봉천|건대|성수|이태원|서울|부산|대구|인천|대전|광주|수원|분당|판교)\s*[()（）]\s*$/i;
@@ -169,6 +174,15 @@ export function todayISO(now = new Date()) {
 export function normalizeSourceUrl(url = '') {
   try {
     const parsed = new URL(url);
+    const naverArticleMatch = parsed.hostname === 'cafe.naver.com'
+      ? parsed.pathname.match(/\/cafes\/(\d+)\/articles\/(\d+)/)
+      : null;
+    if (naverArticleMatch) {
+      parsed.pathname = `/f-e/cafes/${naverArticleMatch[1]}/articles/${naverArticleMatch[2]}`;
+      parsed.search = '';
+      parsed.hash = '';
+      return parsed.toString();
+    }
     ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'igsh', 'igshid'].forEach((key) => parsed.searchParams.delete(key));
     parsed.hash = '';
     if (parsed.pathname !== '/') parsed.pathname = parsed.pathname.replace(/\/+$/, '');
@@ -259,7 +273,7 @@ function looksLikeDeadlineOnlyDate(text = '', date = '', activity = '') {
   const contexts = contextsAroundDate(text, date);
   if (!contexts.length) return false;
   const deadlineRe = /마감|얼리\s*버드|얼리버드|입금|결제|할인|등록|신청|접수|납부|deadline|early\s*bird|payment/i;
-  const eventDateRe = /일시|날짜|시작|개강|첫\s*수업|(강습|수업|워크샵|워크숍)\s*(시작|개강|진행|일시|날짜)|소셜|파티|행사|열립니다|진행|start|starts|class|lesson|workshop|social|party/i;
+  const eventDateRe = /일시|날짜|시작|개강|첫\s*수업|(강습|수업|워크샵|워크숍|원\s*데이|원데이|체험\s*클래스|오픈\s*클래스)\s*(시작|개강|진행|일시|날짜)|소셜|파티|행사|열립니다|진행|start|starts|class|lesson|workshop|one\s*day|oneday|open\s*class|social|party/i;
   const hasDeadlineContext = contexts.some((context) => deadlineRe.test(context));
   const hasEventContext = contexts.some((context) => eventDateRe.test(context));
   return hasDeadlineContext && !hasEventContext && ['class', 'event', 'recruit'].includes(activity);
@@ -284,6 +298,63 @@ function textOf(candidate) {
   ].filter(Boolean).join(' ');
 }
 
+function titleOf(candidate) {
+  return String(candidate?.structured_data?.title || candidate?.title || '').trim();
+}
+
+function sourceNameCandidates(candidate, source) {
+  const sd = candidate.structured_data || {};
+  return [candidate.keyword, source?.name, sd.location, sd.venue_name]
+    .filter(Boolean)
+    .map((value) => String(value).trim());
+}
+
+function looksLikeGenericSourceFallbackTitle(candidate, source, activity) {
+  const title = titleOf(candidate);
+  if (!title) return false;
+  const normalizedTitle = normalizeText(title);
+  const eventType = String(candidate?.structured_data?.event_type || '').trim();
+  const suffixes = [eventType, '강습', '행사', '소셜', '모집']
+    .filter(Boolean)
+    .map((value) => normalizeText(value));
+  const names = sourceNameCandidates(candidate, source).map((value) => normalizeText(value)).filter(Boolean);
+  const isGeneric = names.some((name) => suffixes.some((suffix) => normalizedTitle === `${name}${suffix}`));
+  if (!isGeneric) return false;
+
+  const text = textOf(candidate);
+  if (activity === 'social' && /\bdj\b|디제이|소셜|social/i.test(text)) return false;
+  return true;
+}
+
+function looksLikeNaverCafeChromeTitle(candidate) {
+  if (!/cafe\.naver\.com/i.test(candidate?.source_url || '')) return false;
+  const title = titleOf(candidate);
+  if (!title) return false;
+  return /말머리|공지사항|필독|작성자|조회수|댓글|목록|URL\s*복사/i.test(title);
+}
+
+function looksLikeBroadScheduleNotice(candidate) {
+  const title = titleOf(candidate);
+  const text = textOf(candidate);
+  const value = `${title}\n${text}`;
+  return /(?:\d{4}\s*년도\s*)?\d+\s*학기\s*정규\s*수업.*확정|정규\s*수업\s*시간표|전체\s*강습\s*일정|강습\s*전체\s*일정|공지사항.*정규\s*수업|공지사항.*정규수업/i.test(value);
+}
+
+function looksLikeDateFromNoticeOrBoardChrome(text = '', date = '', activity = '') {
+  if (!date || !['class', 'event', 'recruit'].includes(activity)) return false;
+  const contexts = contextsAroundDate(text, date);
+  if (!contexts.length) return false;
+  const badRe = /작성일|수정일|조회|댓글|목록|URL\s*복사|공지사항|필독|말머리|마감|입금|신청\s*마감|등록\s*마감|접수\s*마감|납부|회비|deadline|payment/i;
+  const goodRe = /일시|일정|날짜|기간|개강|시작|첫\s*수업|첫날|수업일|강습일|워크샵|워크숍|원\s*데이|원데이|체험\s*클래스|오픈\s*클래스|특강|소셜|파티|행사|공연|\bdj\b|열립니다|진행|start|starts|class|lesson|workshop|one\s*day|oneday|open\s*class|social|party/i;
+  return contexts.some((context) => badRe.test(context) && !goodRe.test(context));
+}
+
+export function getBlockedKeywordReason(text = '') {
+  const value = String(text || '').normalize('NFKC');
+  const matched = blockedKeywordRules.find(([, pattern]) => pattern.test(value));
+  return matched ? `수집 금지 키워드: ${matched[0]}` : null;
+}
+
 function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
   if (taxonomy.dance_scope !== 'street') return false;
   if (!/현대\s*무용|컨템포러리|발레|한국\s*무용|뮤지컬|k-?pop|커버\s*댄스|힐\s*댄스|contemporary|ballet|musical|cover\s*dance|heels/i.test(text)) return false;
@@ -294,7 +365,7 @@ function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
 function inferActivity(text, explicit) {
   if (['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
   if (/(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i.test(text)) return 'recruit';
-  if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원데이|오픈\s*클래스|입문|초급|중급|class|lesson|workshop/i.test(text)) return 'class';
+  if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원\s*데이|원데이|오픈\s*클래스|체험\s*(?:클래스|강습|수업)|일일\s*(?:클래스|강습|수업)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|배워)|입문|초급|중급|class|lesson|workshop|one\s*day|oneday|open\s*class/i.test(text)) return 'class';
   if (/소셜|social|프랙티카|practica|밀롱가|milonga|\bdj\b/i.test(text)) return 'social';
   return 'event';
 }
@@ -375,13 +446,27 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   const source = findSourceByUrl(sourceUrl);
   const sourceExcludedReason = getExcludedSourceReason(sourceUrl);
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
+  const blockedKeywordReason = getBlockedKeywordReason(text);
 
   if (!sourceUrl) errors.push('source_url required');
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
+  if (blockedKeywordReason) errors.push(blockedKeywordReason);
   if (!date) errors.push('structured_data.date required');
   if (date && date < today) errors.push(`past event date: ${date} < ${today}`);
   if (looksLikeDeadlineOnlyDate(text, date, taxonomy.activity_type)) {
     errors.push('event date looks like a deadline/registration/payment date, not an actual event date');
+  }
+  if (looksLikeDateFromNoticeOrBoardChrome(text, date, taxonomy.activity_type)) {
+    errors.push('event date context looks like board chrome, notice, or non-event metadata');
+  }
+  if (looksLikeGenericSourceFallbackTitle(candidate, source, taxonomy.activity_type)) {
+    errors.push('generic source fallback title is not enough for automatic collection');
+  }
+  if (looksLikeNaverCafeChromeTitle(candidate)) {
+    errors.push('naver cafe title still contains board chrome/notice prefix');
+  }
+  if (looksLikeBroadScheduleNotice(candidate)) {
+    errors.push('broad schedule notice is not a single collectable event');
   }
   if (!candidate.poster_url && !candidate.imageData) errors.push('poster_url or imageData required');
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) errors.push('poster_url looks cropped or thumbnail-sized');

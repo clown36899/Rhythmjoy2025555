@@ -7,6 +7,7 @@ const SUPABASE_URL = process.env.VITE_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const STORAGE_BUCKET = 'scraped';
 const translationCache = new Map<string, string>();
+const allowedScopeFilters = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const excludedSourceRules: Array<{ pattern: RegExp; reason: string }> = [
     { pattern: /^https?:\/\/(www\.)?meroniswing\.com(\/|$)/i, reason: '사용자 지정 제외 소스: meroniswing.com' },
     { pattern: /^https?:\/\/allaboutswing\.co\.kr\/20(\/|$)/i, reason: '사용자 지정 제외 소스: allaboutswing.co.kr/20' },
@@ -20,12 +21,54 @@ const excludedSourceRules: Array<{ pattern: RegExp; reason: string }> = [
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'content-type',
+    'Access-Control-Allow-Headers': 'content-type, authorization',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
 };
 
 function getSupabase() {
     return createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+function getHeaderValue(event: Parameters<Handler>[0], name: string): string {
+    const headers = event.headers || {};
+    const lowerName = name.toLowerCase();
+    return headers[name] || headers[lowerName] || '';
+}
+
+function authResponse(statusCode: number, error: string) {
+    return {
+        statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error }),
+    };
+}
+
+async function requireAdminRequest(supabase: ReturnType<typeof getSupabase>, event: Parameters<Handler>[0]) {
+    const authHeader = getHeaderValue(event, 'authorization');
+    const token = authHeader.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (!token) return authResponse(401, '관리자 인증이 필요합니다.');
+
+    const { data, error } = await supabase.auth.getUser(token);
+    const user = data?.user;
+    if (error || !user) return authResponse(401, '유효하지 않은 관리자 세션입니다.');
+
+    const adminEmail = process.env.VITE_ADMIN_EMAIL;
+    const isMetadataAdmin =
+        user.app_metadata?.is_admin === true ||
+        user.app_metadata?.role === 'admin' ||
+        user.user_metadata?.role === 'admin';
+    if ((adminEmail && user.email === adminEmail) || isMetadataAdmin) return null;
+
+    const { data: adminRow, error: adminError } = await supabase
+        .from('board_admins')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (adminError) throw adminError;
+    if (adminRow) return null;
+
+    return authResponse(403, '관리자 권한이 필요합니다.');
 }
 
 function storagePublicUrl(filename: string) {
@@ -44,6 +87,12 @@ function todayKST(): string {
         month: '2-digit',
         day: '2-digit',
     }).format(new Date());
+}
+
+function applyScopeFilter(query: any, scope: string | null | undefined) {
+    const normalized = String(scope || '').trim().toLowerCase();
+    if (!allowedScopeFilters.has(normalized)) return query;
+    return query.eq('structured_data->>dance_scope', normalized);
 }
 
 function hasBadPosterUrl(url: string | null | undefined): boolean {
@@ -94,6 +143,101 @@ function getInvalidCandidateReason(item: any): string | null {
     if (!item?.poster_url && !hasReplacementImage) return '포스터 이미지 없음';
     if (item?.poster_url && hasBadPosterUrl(item.poster_url) && !hasReplacementImage) {
         return '크롭/썸네일 포스터 URL 제외';
+    }
+
+    const suspiciousReason = getSuspiciousAutoCandidateReason(item);
+    if (suspiciousReason) return suspiciousReason;
+
+    return null;
+}
+
+function getCandidateText(item: any): string {
+    const sd = item?.structured_data || {};
+    return [
+        item?.keyword,
+        item?.source_url,
+        item?.extracted_text,
+        sd.title,
+        sd.event_type,
+        sd.activity_type,
+        sd.location,
+        sd.venue_name,
+    ].filter(Boolean).join(' ');
+}
+
+function getBlockedKeywordReason(text: string): string | null {
+    const value = String(text || '').normalize('NFKC');
+    if (/엠\s*티|(?:^|[^A-Za-z])m\.?\s*t(?:[^A-Za-z]|$)/i.test(value)) {
+        return '자동수집 제외: 수집 금지 키워드 엠티/MT';
+    }
+    return null;
+}
+
+function compactCompare(value: string | null | undefined): string {
+    return String(value || '').normalize('NFKC').toLowerCase().replace(/[^\w가-힣]/g, '');
+}
+
+function getDateContexts(text: string, date: string): string[] {
+    const match = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return [];
+    const month = String(Number(match[2]));
+    const day = String(Number(match[3]));
+    const variants = [
+        `${month}/${day}`,
+        `${match[2]}/${match[3]}`,
+        `${month}.${day}`,
+        `${match[2]}.${match[3]}`,
+        `${month}월 ${day}일`,
+        `${match[2]}월 ${match[3]}일`,
+        `${month}월${day}일`,
+        `${match[2]}월${match[3]}일`,
+    ];
+    const contexts: string[] = [];
+    for (const variant of variants) {
+        const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp(escaped, 'gi');
+        let found: RegExpExecArray | null;
+        while ((found = pattern.exec(text))) {
+            contexts.push(text.slice(Math.max(0, found.index - 45), Math.min(text.length, found.index + variant.length + 45)));
+        }
+    }
+    return contexts;
+}
+
+function getSuspiciousAutoCandidateReason(item: any): string | null {
+    const sd = item?.structured_data || {};
+    const title = String(sd.title || '').trim();
+    const activity = String(sd.activity_type || '').trim();
+    const eventType = String(sd.event_type || '').trim();
+    const text = getCandidateText(item);
+    const sourceUrl = String(item?.source_url || '');
+    const blockedKeywordReason = getBlockedKeywordReason(text);
+    if (blockedKeywordReason) return blockedKeywordReason;
+
+    const suffixes = [eventType, '강습', '행사', '소셜', '모집'].filter(Boolean).map(compactCompare);
+    const names = [item?.keyword, sd.location, sd.venue_name].filter(Boolean).map(compactCompare);
+    const normalizedTitle = compactCompare(title);
+    const isGenericTitle = names.some((name) => suffixes.some((suffix) => normalizedTitle === `${name}${suffix}`));
+    if (isGenericTitle && !(activity === 'social' && /\bdj\b|디제이|소셜|social/i.test(text))) {
+        return '자동수집 제외: 소스명 기반 일반 제목';
+    }
+
+    if (/cafe\.naver\.com/i.test(sourceUrl) && /말머리|공지사항|필독|작성자|조회수|댓글|목록|URL\s*복사/i.test(title)) {
+        return '자동수집 제외: 네이버 카페 목록/공지 텍스트가 제목에 섞임';
+    }
+
+    if (/(?:\d{4}\s*년도\s*)?\d+\s*학기\s*정규\s*수업.*확정|정규\s*수업\s*시간표|전체\s*강습\s*일정|강습\s*전체\s*일정|공지사항.*정규\s*수업|공지사항.*정규수업/i.test(text)) {
+        return '자동수집 제외: 단일 행사/강습이 아닌 광역 일정 공지';
+    }
+
+    const date = getCandidateDate(item);
+    if (date && ['class', 'event', 'recruit'].includes(activity)) {
+        const contexts = getDateContexts(text, date);
+        const badRe = /작성일|수정일|조회|댓글|목록|URL\s*복사|공지사항|필독|말머리|마감|입금|신청\s*마감|등록\s*마감|접수\s*마감|납부|회비|deadline|payment/i;
+        const goodRe = /일시|일정|날짜|기간|개강|시작|첫\s*수업|첫날|수업일|강습일|워크샵|워크숍|원데이|특강|소셜|파티|행사|공연|\bdj\b|열립니다|진행|start|starts|class|lesson|workshop|social|party/i;
+        if (contexts.some((context) => badRe.test(context) && !goodRe.test(context))) {
+            return '자동수집 제외: 날짜 주변 문맥이 행사일이 아님';
+        }
     }
 
     return null;
@@ -478,6 +622,7 @@ export const handler: Handler = async (event) => {
         if (event.httpMethod === 'GET') {
             const page = parseInt(event.queryStringParameters?.page || '1', 10);
             const tab = event.queryStringParameters?.tab; // 'new' | 'collected' | 'duplicate' | undefined
+            const scope = event.queryStringParameters?.scope;
             const limit = 30;
             const offset = (page - 1) * limit;
             const minDate = todayKST();
@@ -496,6 +641,8 @@ export const handler: Handler = async (event) => {
                     .gte('structured_data->>date', minDate);
             } else if (tab === 'new') query = query.eq('is_collected', false);
             else if (tab === 'collected') query = query.eq('is_collected', true);
+
+            query = applyScopeFilter(query, scope);
 
             const { data, error, count } = await query
                 .order('created_at', { ascending: false })
@@ -780,6 +927,9 @@ export const handler: Handler = async (event) => {
 
         // ===== DELETE: 이벤트 삭제 + Storage 이미지 삭제 =====
         if (event.httpMethod === 'DELETE') {
+            const adminGate = await requireAdminRequest(supabase, event);
+            if (adminGate) return adminGate;
+
             const body = JSON.parse(event.body || '{}');
             const idsToDelete: string[] = body.ids || (body.id ? [body.id] : []);
 

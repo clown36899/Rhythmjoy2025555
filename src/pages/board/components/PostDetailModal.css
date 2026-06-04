@@ -31,7 +31,7 @@
 
 /* ===== 모달 컨테이너 ===== */
 .pdm-modal-container {
-  background: linear-gradient(135deg, rgba(31, 41, 55, 0.95) 0%, rgba(17, 24, 39, 0.98) 100%);
+  background: var(--bg-card, #1b1b1c);
   border-radius: var(--radius-2xl);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -90,7 +90,7 @@
   flex-wrap: wrap;
   gap: var(--spacing-3);
   font-size: 0.875rem;
-  color: var(--color-gray-400);
+  color: var(--text-tertiary);
 }
 
 .pdm-meta-item {
@@ -101,11 +101,11 @@
 
 .pdm-meta-item i {
   font-size: 1rem;
-  color: var(--color-gray-500);
+  color: var(--text-tertiary);
 }
 
 .pdm-close-btn {
-  color: var(--color-gray-400);
+  color: var(--text-tertiary);
   transition: all 0.2s ease;
   background: none;
   border: none;
@@ -151,7 +151,7 @@
 }
 
 .pdm-content {
-  color: var(--color-gray-300);
+  color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.75;
   letter-spacing: -0.015em;
@@ -164,7 +164,7 @@
   padding: var(--spacing-5) var(--spacing-6);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-deep, #1c1c1d);
 }
 
 .pdm-footer-actions {
@@ -188,11 +188,11 @@
 }
 
 .pdm-btn-close {
-  background-color: var(--color-gray-700);
+  background-color: var(--bg-surface-3, #303033);
 }
 
 .pdm-btn-close:hover {
-  background-color: var(--color-gray-600);
+  background-color: var(--bg-hover, #2a2a2d);
   transform: translateY(-1px);
 }
 

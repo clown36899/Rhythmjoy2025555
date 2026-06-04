@@ -5,7 +5,7 @@ import type { Event } from '../../pages/v2/utils/eventListUtils';
 
 export const useEventsQuery = () => {
     return useQuery({
-        queryKey: ['events', 'dance-expansion-local-v4'],
+        queryKey: ['events', 'dance-expansion-local-v5-author-profile'],
         queryFn: async () => {
             const now = new Date();
             const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
@@ -14,7 +14,7 @@ export const useEventsQuery = () => {
             // Fetch only from events table (now containing both events and social schedules)
             const { data, error } = await supabase
                 .from('events')
-                .select('*, board_users(nickname)')
+                .select('*, board_users(nickname, profile_image)')
                 .or(`date.gte.${cutoffDate},end_date.gte.${cutoffDate},start_date.gte.${cutoffDate}`);
 
             if (error) throw error;

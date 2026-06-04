@@ -47,6 +47,11 @@ function loadEnv() {
 const env = loadEnv();
 const SUPABASE_URL = env.VITE_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = env.VITE_PUBLIC_SUPABASE_ANON_KEY;
+const SAFE_MODE = process.env.INGESTION_SAFE_MODE !== '0';
+const SOURCE_DELAY_MS = Number(process.env.DEPRECATED_SCRAPE_SOURCE_DELAY_MS || (SAFE_MODE ? 45_000 : 0));
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const jitter = (ms) => (ms ? Math.max(0, Math.round(ms * (0.8 + Math.random() * 0.4))) : 0);
 
 // ── 수집 소스 정의 ────────────────────────────────────
 const SOURCES = [
@@ -782,13 +787,9 @@ async function main() {
   // 3순위: 새 Chrome 바이너리 (비로그인 — 최후 수단)
   const CDP_URL = 'http://localhost:9222';
   const AUTOMATION_PROFILE = `${process.env.HOME}/.chrome-automation`;
-  const ANTI_BOT_ARGS = [
-    '--disable-blink-features=AutomationControlled',
+  const CHROME_ARGS = [
     '--no-first-run',
     '--no-default-browser-check',
-    '--disable-infobars',
-    '--disable-extensions',
-    '--disable-gpu',
     '--mute-audio',
   ];
   let browser, page;
@@ -816,10 +817,7 @@ async function main() {
         channel: 'chrome',
         headless: false,
         slowMo: 300,
-        args: ANTI_BOT_ARGS,
-      });
-      await context.addInitScript(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        args: CHROME_ARGS,
       });
       page = await context.newPage();
       browser = { close: () => context.close() };
@@ -831,12 +829,9 @@ async function main() {
         channel: 'chrome',
         headless: false,
         slowMo: 400,
-        args: ANTI_BOT_ARGS,
+        args: CHROME_ARGS,
       });
       const context = await b.newContext();
-      await context.addInitScript(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      });
       page = await context.newPage();
       browser = { close: () => b.close() };
       console.log('⚠️ 새 Chrome 바이너리 실행 (비로그인 — 인스타 수집 제한될 수 있음)');
@@ -845,6 +840,11 @@ async function main() {
 
   const allResults = [];
   for (const source of SOURCES) {
+    if (SAFE_MODE && SOURCE_DELAY_MS > 0) {
+      const waitMs = jitter(SOURCE_DELAY_MS);
+      console.log(`[safe-mode] ${source.name} 접근 전 ${Math.round(waitMs / 1000)}초 대기`);
+      await sleep(waitMs);
+    }
     let results = [];
     if (source.type === 'ig')     results = await scrapeInstagram(page, source);
     if (source.type === 'naver')  results = await scrapeNaver(page, source);

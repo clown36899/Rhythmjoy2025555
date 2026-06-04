@@ -2,30 +2,54 @@ import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
+const LOCAL_SUPABASE_URL = process.env.LOCAL_SUPABASE_URL || 'http://127.0.0.1:54321';
+const LOCAL_SUPABASE_SERVICE_KEY = process.env.LOCAL_SUPABASE_SERVICE_KEY || '';
+
 // 전역 변수 (재사용)
-let supabaseAdmin: any = null;
+const supabaseAdmins = new Map<string, any>();
+
+function isLocalHost(value?: string | null) {
+  if (!value) return false;
+  return /(^|\/\/|\.)localhost(?::|\/|$)|(^|\/\/)127\.0\.0\.1(?::|\/|$)|(^|\/\/)0\.0\.0\.0(?::|\/|$)/i.test(value);
+}
+
+function isLocalCallback(event: Parameters<Handler>[0], redirectUri?: string) {
+  if (process.env.VITE_FORCE_PROD_SUPABASE === 'true') return false;
+  const host = event.headers.host || event.headers.Host || '';
+  const origin = event.headers.origin || event.headers.Origin || '';
+  const referer = event.headers.referer || event.headers.Referer || '';
+  return [host, origin, referer, redirectUri].some((value) => isLocalHost(String(value || '')));
+}
+
+function getSupabaseConfig(event: Parameters<Handler>[0], redirectUri?: string) {
+  if (isLocalCallback(event, redirectUri)) {
+    return {
+      supabaseUrl: LOCAL_SUPABASE_URL,
+      supabaseServiceKey: LOCAL_SUPABASE_SERVICE_KEY,
+    };
+  }
+
+  return {
+    supabaseUrl: process.env.VITE_PUBLIC_SUPABASE_URL,
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
+  };
+}
+
+function getSupabaseAdminClient(supabaseUrl: string, supabaseServiceKey: string) {
+  const cacheKey = `${supabaseUrl}:${supabaseServiceKey.slice(0, 12)}`;
+  const cached = supabaseAdmins.get(cacheKey);
+  if (cached) return cached;
+
+  const client = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  supabaseAdmins.set(cacheKey, client);
+  return client;
+}
 
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
-
-  const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-  const adminEmail = process.env.VITE_ADMIN_EMAIL;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('[kakao-login] ❌ 환경변수 누락:', {
-      hasUrl: !!supabaseUrl,
-      hasServiceKey: !!supabaseServiceKey
-    });
-    return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error' }) };
-  }
-
-  if (!supabaseAdmin) {
-    supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
   }
 
   try {
@@ -37,6 +61,19 @@ export const handler: Handler = async (event) => {
       console.error('[kakao-login] ❌ 인증 코드 누락');
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing authorization code' }) };
     }
+
+    const { supabaseUrl, supabaseServiceKey } = getSupabaseConfig(event, redirectUri);
+    const adminEmail = process.env.VITE_ADMIN_EMAIL;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[kakao-login] ❌ 환경변수 누락:', {
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey
+      });
+      return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error' }) };
+    }
+
+    const supabaseAdmin = getSupabaseAdminClient(supabaseUrl, supabaseServiceKey);
 
     // 1. 인증 코드로 액세스 토큰 교환
     const restApiKey = process.env.VITE_KAKAO_REST_API_KEY || process.env.KAKAO_REST_API_KEY;

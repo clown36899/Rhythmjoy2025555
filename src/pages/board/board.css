@@ -14,7 +14,7 @@
   flex-direction: column;
   flex: 1;
   /* NEW: Fill available height */
-  background-color: var(--bg-surface-1);
+  background-color: var(--bg-deep);
 }
 
 /* History Mode: Height and Overflow Management */
@@ -35,8 +35,7 @@
 }
 
 .board-page-container.is-history-mode .board-prefix-tab-outer {
-  top: calc(108px + env(safe-area-inset-top)) !important;
-  /* Header (60) + Tab (48) + Notch */
+  top: calc(110px + env(safe-area-inset-top)) !important;
   z-index: 46;
 }
 
@@ -213,8 +212,7 @@ body .board-posts-container.is-standard-board-v2 .board-post-card {
 body .board-posts-container.is-standard-board-v2 .board-post-card-notice {
   background-color: #fdfcfb !important;
   /* 미세한 미색 (Warm Ivory) */
-  border-left: 3px solid #334155 !important;
-  /* 세련된 딥 슬레이트 바 */
+  border-left: 3px solid #1c1c1d !important;
   border-bottom: 1px solid var(--border-subtle) !important;
   transition: none !important;
   transform: none !important;
@@ -222,10 +220,8 @@ body .board-posts-container.is-standard-board-v2 .board-post-card-notice {
 
 /* 다크 모드 공지사항: Deep Charcoal Luxe */
 [data-theme="dark"] body .board-posts-container.is-standard-board-v2 .board-post-card-notice {
-  background-color: #17191e !important;
-  /* 깊이 있는 차콜 배경 */
-  border-left: 3px solid #94a3b8 !important;
-  /* 은은한 슬레이트 그레이 바 */
+  background-color: #202022 !important;
+  border-left: 3px solid #d1d4e3db !important;
 }
 
 /* 3. 모든 상호작용 요소의 호버/액티브/트랜지션 100% 박멸 */
@@ -248,7 +244,7 @@ body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
 }
 
 [data-theme="dark"] body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
-  background-color: #17191e !important;
+  background-color: #202022 !important;
 }
 
 .is-standard-board-v2 .board-post-title {
@@ -357,7 +353,7 @@ body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
 }
 
 /* ==========================================================================
-   [FORCE APPLY] 익명 게시판 전용 'Noir Noir' 디자인 (칠흑의 미학)
+   [FORCE APPLY] 익명 게시판 전용 차콜 디자인
    ========================================================================== */
 
 /* 1. 아바타 영역 물리적 제거 (익명성 강화) */
@@ -365,7 +361,7 @@ body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
   display: none !important;
 }
 
-/* 2. 게시글 카드: Noir Noir Static 스타일 */
+/* 2. 게시글 카드: V2 Charcoal Static 스타일 */
 body .board-posts-container.is-anonymous-board .board-post-card {
   background-color: #f9f9f9 !important;
   /* 안개색 (Light) */
@@ -374,9 +370,8 @@ body .board-posts-container.is-anonymous-board .board-post-card {
 }
 
 [data-theme="dark"] body .board-posts-container.is-anonymous-board .board-post-card {
-  background-color: #050505 !important;
-  /* 칠흑색 (Dark) */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+  background-color: #1b1b1c !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 /* 3. 메타 정보: 저대비 계층 구조 (배경에 녹아드는 감성) */
@@ -408,14 +403,14 @@ body .board-posts-container.is-anonymous-board .board-post-card {
   font-size: 16px !important;
 }
 
-/* 5. 호버 완전 차단 (Noir Noir 고정) */
+/* 5. 호버 완전 차단 */
 body .board-posts-container.is-anonymous-board .board-post-card:hover {
   background-color: #f9f9f9 !important;
   transform: none !important;
 }
 
 [data-theme="dark"] body .board-posts-container.is-anonymous-board .board-post-card:hover {
-  background-color: #050505 !important;
+  background-color: #1b1b1c !important;
 }
 
 /* Hidden Badge Style (Global but used in Standard) */
@@ -720,17 +715,17 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
    ========================================================================== */
 
 .board-page-container.is-free-mode {
-  --free-board-bg: #111820;
-  --free-board-panel: #171e27;
-  --free-board-panel-2: #1d2530;
-  --free-board-row: #1a2028;
-  --free-board-row-hover: #202936;
-  --free-board-border: rgba(226, 232, 240, 0.11);
-  --free-board-border-strong: rgba(148, 163, 184, 0.24);
-  --free-board-text: #f3f6fa;
-  --free-board-muted: #99a5b4;
-  --free-board-soft: #6f7a89;
-  --free-board-blue: #5b8def;
+  --free-board-bg: var(--bg-deep);
+  --free-board-panel: #1b1b1c;
+  --free-board-panel-2: #202022;
+  --free-board-row: #1b1b1c;
+  --free-board-row-hover: #242426;
+  --free-board-border: rgba(255, 255, 255, 0.09);
+  --free-board-border-strong: rgba(255, 255, 255, 0.16);
+  --free-board-text: #f8fafc;
+  --free-board-muted: #a7aab2;
+  --free-board-soft: #777a83;
+  --free-board-blue: #5c8df6;
   background: var(--free-board-bg);
 }
 
@@ -764,9 +759,9 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 }
 
 .is-free-mode .board-prefix-item.active {
-  background: rgba(91, 141, 239, 0.15);
-  border-color: rgba(91, 141, 239, 0.58);
-  color: #d9e5ff;
+  background: rgba(92, 141, 246, 0.18);
+  border-color: rgba(92, 141, 246, 0.58);
+  color: #f8fafc;
 }
 
 .free-board-mode {
@@ -810,7 +805,7 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 }
 
 .free-board-row.is-notice {
-  background: #181f29;
+  background: #202022;
 }
 
 .free-board-row-accent {
@@ -1155,7 +1150,17 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   align-items: flex-start;
   justify-content: center;
   z-index: 49;
-  padding-top: 60px;
+  padding-top: calc(62px + env(safe-area-inset-top));
+}
+
+@media (max-width: 420px) {
+  .board-page-container.is-history-mode .board-prefix-tab-outer {
+    top: calc(102px + env(safe-area-inset-top)) !important;
+  }
+
+  .board-search-overlay {
+    padding-top: calc(54px + env(safe-area-inset-top));
+  }
 }
 
 .board-search-modal {

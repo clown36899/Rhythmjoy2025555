@@ -1,15 +1,27 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL!;
+const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey!, {
-    auth: {
-        autoRefreshToken: false,
-        persistSession: false
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+
+const getSupabaseAdmin = () => {
+    if (!supabaseUrl || !supabaseServiceKey) {
+        throw new Error('Missing Supabase service configuration for get-site-stats');
     }
-});
+
+    if (!supabaseAdmin) {
+        supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        });
+    }
+
+    return supabaseAdmin;
+};
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -23,6 +35,7 @@ export const handler: Handler = async (event) => {
     }
 
     try {
+        const supabaseAdmin = getSupabaseAdmin();
         const CACHE_KEY = 'scene_analytics_v3'; // [FIX] New key to avoid any stale data
         const { data: cacheData } = await supabaseAdmin
             .from('metrics_cache')
@@ -287,7 +300,10 @@ export const handler: Handler = async (event) => {
     } catch (error: any) {
         return {
             statusCode: 500,
-            headers: corsHeaders,
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ error: error.message || 'Internal Server Error' })
         };
     }

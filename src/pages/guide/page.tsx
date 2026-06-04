@@ -4,6 +4,10 @@ import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 
 import '../../styles/pages/guide.css';
 
+const GUIDE_DEBUG = import.meta.env.VITE_GUIDE_DEBUG === 'true';
+const debugGuide = (...args: unknown[]) => {
+  if (GUIDE_DEBUG) console.debug(...args);
+};
 
 
 export default function GuidePage() {
@@ -20,11 +24,11 @@ export default function GuidePage() {
     // Kakao SDK 초기화
     if (window.Kakao) {
       if (!window.Kakao.isInitialized()) {
-        console.log('[KakaoShare] 초기화 시도...');
+        debugGuide('[KakaoShare] 초기화 시도...');
         window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6');
-        console.log('[KakaoShare] 초기화 완료:', window.Kakao.isInitialized());
+        debugGuide('[KakaoShare] 초기화 완료:', window.Kakao.isInitialized());
       } else {
-        console.log('[KakaoShare] 이미 초기화되어 있습니다.');
+        debugGuide('[KakaoShare] 이미 초기화되어 있습니다.');
       }
     } else {
       console.warn('[KakaoShare] window.Kakao 객체를 찾을 수 없습니다. 스크립트 로드 실패 가능성.');
@@ -32,8 +36,8 @@ export default function GuidePage() {
   }, []);
 
   const handleKakaoShare = () => {
-    console.log('[KakaoShare] 버튼 클릭됨');
-    console.log('[KakaoShare] 현재 도메인:', window.location.origin);
+    debugGuide('[KakaoShare] 버튼 클릭됨');
+    debugGuide('[KakaoShare] 현재 도메인:', window.location.origin);
 
     // 1. Kakao 객체 존재 확인
     if (!window.Kakao) {
@@ -44,10 +48,10 @@ export default function GuidePage() {
 
     // 2. 초기화 안 되어 있으면 즉시 초기화 시도 (Lazy Init)
     if (!window.Kakao.isInitialized()) {
-      console.log('[KakaoShare] Lazy Init 시도...');
+      debugGuide('[KakaoShare] Lazy Init 시도...');
       try {
         window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6');
-        console.log('[KakaoShare] Lazy Init 성공');
+        debugGuide('[KakaoShare] Lazy Init 성공');
       } catch (e) {
         console.error('[KakaoShare] Init 실패:', e);
       }
@@ -55,7 +59,7 @@ export default function GuidePage() {
 
     // 3. 공유하기 실행
     if (window.Kakao.isInitialized()) {
-      console.log('[KakaoShare] sendDefault 호출 시작');
+      debugGuide('[KakaoShare] sendDefault 호출 시작');
 
       try {
         window.Kakao.Share.sendDefault({
@@ -79,7 +83,7 @@ export default function GuidePage() {
             },
           ],
         });
-        console.log('[KakaoShare] sendDefault 호출 완료');
+        debugGuide('[KakaoShare] sendDefault 호출 완료');
       } catch (err) {
         console.error('[KakaoShare] sendDefault 에러:', err);
         alert('카카오 공유 중 오류가 발생했습니다: ' + JSON.stringify(err));
@@ -312,7 +316,7 @@ export default function GuidePage() {
         onClose={() => setShowGlobalSearch(false)}
         onSelectEvent={(event) => {
           // No-op or navigate
-          console.log('Selected event:', event);
+          debugGuide('Selected event:', event);
         }}
         searchMode="all"
       />

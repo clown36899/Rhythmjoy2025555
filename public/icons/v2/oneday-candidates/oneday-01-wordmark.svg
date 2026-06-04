@@ -1,0 +1,14 @@
+<svg width="512" height="560" viewBox="0 0 512 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="s" x="55" y="70" width="402" height="420" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="16" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+  </defs>
+  <g filter="url(#s)">
+    <rect x="86" y="110" width="340" height="330" rx="62" fill="#06070B" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="8"/>
+    <text x="256" y="204" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="72" font-weight="950" letter-spacing="-4" fill="#F8FAFF">원데이</text>
+    <path d="M145 236H367" stroke="#F1D85E" stroke-width="16" stroke-linecap="round"/>
+    <text x="256" y="351" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="118" font-weight="950" letter-spacing="-8" fill="#F8FAFF">모집</text>
+    <text x="256" y="403" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="900" letter-spacing="2" fill="#8D9BFF">ONE DAY CLASS</text>
+  </g>
+</svg>

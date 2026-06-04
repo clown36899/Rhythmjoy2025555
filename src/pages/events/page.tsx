@@ -1,15 +1,15 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModalActions } from '../../contexts/ModalContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { useEventsQuery } from '../../hooks/queries/useEventsQuery';
 import { useUserInteractions } from '../../hooks/useUserInteractions';
+import { queryClient } from '../../lib/queryClient';
 import '../../styles/domains/events.css';
 import { getCardThumbnail, getEventThumbnail } from '../../utils/getEventThumbnail';
 import {
-  getDanceActivityLabel,
   getDanceGenreLabel,
   getDanceScopeLabel,
   getDanceTagLabel,
@@ -17,9 +17,9 @@ import {
   inferDanceTaxonomy,
   isEventInDanceScope,
   normalizeVisibleDanceScope,
-  type DanceActivity,
 } from '../../utils/danceTaxonomy';
 import { getLocalDateString, sortEvents } from '../v2/utils/eventListUtils';
+import { useEventActions } from '../v2/hooks/useEventActions';
 import type { Event } from '../v2/utils/eventListUtils';
 import './events.css';
 
@@ -29,10 +29,11 @@ type GenreGroups = {
   social: string[];
   event: string[];
   class: string[];
-  recruit: string[];
+  club: string[];
 };
 
-type EventsInfoSectionTone = DanceActivity;
+type EventsInfoSectionKey = 'event' | 'class' | 'club' | 'social';
+type EventsInfoSectionTone = EventsInfoSectionKey;
 
 type EventsInfoSectionProps = {
   title: string;
@@ -40,11 +41,8 @@ type EventsInfoSectionProps = {
   icon: string;
   tone: EventsInfoSectionTone;
   count: number;
-  genres: string[];
-  selectedGenre: string | null;
-  onGenreChange: (genre: string | null) => void;
-  renderGenreLabel: (genre: string) => ReactNode;
   events: Event[];
+  headerControls?: ReactNode;
   actionLabel?: string;
   onAction?: () => void;
   favoriteEventIds: Set<number | string>;
@@ -52,31 +50,21 @@ type EventsInfoSectionProps = {
   onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
 };
 
-type EventsInfoCategory = DanceActivity;
+type EventsInfoCategory = EventsInfoSectionKey;
 type EventsInfoSortOrder = 'random' | 'date';
-type EventsInfoActivityFilter = 'all' | DanceActivity;
+type EventsInfoActivityFilter = 'all' | EventsInfoSectionKey;
 
-const eventsInfoActivityOptions: Array<{ key: EventsInfoActivityFilter; label: string; icon: string }> = [
-  { key: 'all', label: '전체', icon: 'ri-apps-2-line' },
-  { key: 'class', label: '강습', icon: 'ri-graduation-cap-line' },
-  { key: 'social', label: '소셜', icon: 'ri-music-2-line' },
-  { key: 'event', label: '행사', icon: 'ri-calendar-event-line' },
-  { key: 'recruit', label: '모집', icon: 'ri-user-search-line' },
-];
-
-const eventsInfoSections: Array<{ key: DanceActivity; title: string; icon: string; tone: EventsInfoSectionTone }> = [
+const eventsInfoSections: Array<{ key: EventsInfoSectionKey; title: string; icon: string; tone: EventsInfoSectionTone }> = [
   { key: 'event', title: '행사', icon: 'ri-fire-fill', tone: 'event' },
   { key: 'class', title: '강습', icon: 'ri-calendar-check-fill', tone: 'class' },
+  { key: 'club', title: '동호회', icon: 'ri-team-fill', tone: 'club' },
   { key: 'social', title: '소셜', icon: 'ri-music-2-fill', tone: 'social' },
-  { key: 'recruit', title: '모집', icon: 'ri-user-search-fill', tone: 'recruit' },
 ];
 
-const isDanceActivity = (value: string | null): value is DanceActivity => {
-  return value === 'class' || value === 'social' || value === 'event' || value === 'recruit';
-};
+const EVENTS_INFO_RAIL_DRAG_THRESHOLD_PX = 8;
 
 const normalizeActivityFilter = (value: string | null): EventsInfoActivityFilter => {
-  return value === 'all' || isDanceActivity(value) ? value : 'all';
+  return value === 'event' || value === 'class' || value === 'club' || value === 'social' ? value : 'all';
 };
 
 const getEventTaxonomy = (event: Event) => {
@@ -127,12 +115,24 @@ const getEventDanceTags = (event: Event) => {
 };
 
 const getEventsInfoCategory = (event: Event): EventsInfoCategory => {
+  if (
+    event.category === 'club' ||
+    event.category === 'club_lesson' ||
+    event.category === 'club_regular'
+  ) {
+    return 'club';
+  }
+
+  if (event.category === 'social') {
+    return 'social';
+  }
+
   const explicit = (event as Event & { activity_type?: string | null }).activity_type;
-  if (isDanceActivity(explicit || null)) return explicit;
+  if (explicit === 'social') return 'social';
+  if (explicit === 'class' || explicit === 'event') return explicit;
 
   if (event.category === 'class') return 'class';
-  if (event.category === 'regular' || event.category === 'club') return 'class';
-  if (event.category === 'social') return 'social';
+  if (event.category === 'regular') return 'class';
   if (event.category === 'event' || event.category === 'party') return 'event';
 
   return 'event';
@@ -198,7 +198,10 @@ const getEventPlace = (event: Event) => {
 
 const getEventCategoryLabel = (event: Event) => {
   const category = getEventsInfoCategory(event);
-  return getDanceActivityLabel(category);
+  if (category === 'club') return '동호회';
+  if (category === 'social') return '소셜';
+  if (category === 'class') return '강습';
+  return '행사';
 };
 
 const getEventGenreLabel = (event: Event) => {
@@ -215,7 +218,7 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
   const socialGenres = new Set<string>();
   const eventGenres = new Set<string>();
   const classGenres = new Set<string>();
-  const recruitGenres = new Set<string>();
+  const clubGenres = new Set<string>();
 
   events.forEach((event) => {
     const category = getEventsInfoCategory(event);
@@ -229,7 +232,7 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
       if (category === 'social') socialGenres.add(genre);
       if (category === 'event') eventGenres.add(genre);
       if (category === 'class') classGenres.add(genre);
-      if (category === 'recruit') recruitGenres.add(genre);
+      if (category === 'club') clubGenres.add(genre);
     });
 
     const taxonomyGenre = getEventGenreLabel(event);
@@ -237,7 +240,7 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
       if (category === 'social') socialGenres.add(taxonomyGenre);
       if (category === 'event') eventGenres.add(taxonomyGenre);
       if (category === 'class') classGenres.add(taxonomyGenre);
-      if (category === 'recruit') recruitGenres.add(taxonomyGenre);
+      if (category === 'club') clubGenres.add(taxonomyGenre);
     }
   });
 
@@ -247,32 +250,8 @@ const buildGenreGroups = (events: Event[]): GenreGroups => {
     social: Array.from(socialGenres).sort(sortKo),
     event: Array.from(eventGenres).sort(sortKo),
     class: Array.from(classGenres).sort(sortKo),
-    recruit: Array.from(recruitGenres).sort(sortKo),
+    club: Array.from(clubGenres).sort(sortKo),
   };
-};
-
-const renderGenreLabel = (genre: string) => {
-  if (genre === '전체') {
-    return (
-      <span className="manual-label-wrapper">
-        <span className="translated-part">All</span>
-        <span className="fixed-part ko" translate="no">전체</span>
-        <span className="fixed-part en" translate="no">All</span>
-      </span>
-    );
-  }
-
-  if (genre === '대회') {
-    return (
-      <span className="manual-label-wrapper">
-        <span className="translated-part">Competition</span>
-        <span className="fixed-part ko" translate="no">대회</span>
-        <span className="fixed-part en" translate="no">Competition</span>
-      </span>
-    );
-  }
-
-  return <span>{genre}</span>;
 };
 
 function EventsInfoThumb({ event }: { event: Event }) {
@@ -305,9 +284,7 @@ function EventsInfoCard({
   onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
 }) {
   const place = getEventPlace(event);
-  const genre = getEventGenreLabel(event);
   const displayCategory = getEventsInfoCategory(event);
-  const scopeLabel = getDanceScopeLabel((event as Event & { dance_scope?: string | null }).dance_scope || 'swing');
 
   return (
     <article
@@ -327,8 +304,6 @@ function EventsInfoCard({
         </span>
         <strong>{event.title}</strong>
         <div className="events-info-card-meta">
-          <span>{scopeLabel}</span>
-          <span>{genre}</span>
           <span>{getEventDateText(event)}</span>
         </div>
       </div>
@@ -350,17 +325,139 @@ function EventsInfoSection({
   icon,
   tone,
   count,
-  genres,
-  selectedGenre,
-  onGenreChange,
-  renderGenreLabel,
   events,
+  headerControls,
   actionLabel,
   onAction,
   favoriteEventIds,
   onEventClick,
   onToggleFavorite,
 }: EventsInfoSectionProps) {
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const railDragRef = useRef({
+    isPointerDown: false,
+    didDrag: false,
+    suppressNextClick: false,
+    pointerId: -1,
+    startX: 0,
+    scrollLeft: 0,
+  });
+  const [railProgress, setRailProgress] = useState({ offset: 0, size: 1, scrollable: false });
+  const [isRailDragging, setIsRailDragging] = useState(false);
+
+  const syncRailProgress = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const maxScroll = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+    const scrollable = maxScroll > 1;
+    const size = scrollable ? Math.max(rail.clientWidth / rail.scrollWidth, 0.18) : 1;
+    const offset = scrollable ? (rail.scrollLeft / maxScroll) * (1 - size) : 0;
+
+    setRailProgress((current) => {
+      if (
+        current.scrollable === scrollable &&
+        Math.abs(current.size - size) < 0.002 &&
+        Math.abs(current.offset - offset) < 0.002
+      ) {
+        return current;
+      }
+      return { offset, size, scrollable };
+    });
+  }, []);
+
+  useEffect(() => {
+    syncRailProgress();
+    window.addEventListener('resize', syncRailProgress);
+    return () => window.removeEventListener('resize', syncRailProgress);
+  }, [events.length, syncRailProgress]);
+
+  const scrollRail = useCallback((direction: -1 | 1) => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    rail.scrollBy({
+      left: direction * Math.max(rail.clientWidth * 0.82, 260),
+      behavior: 'smooth',
+    });
+
+    window.setTimeout(syncRailProgress, 260);
+  }, [syncRailProgress]);
+
+  const handleRailPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    if ((event.target as HTMLElement).closest('button')) return;
+
+    const rail = railRef.current;
+    if (!rail) return;
+
+    railDragRef.current = {
+      isPointerDown: true,
+      didDrag: false,
+      suppressNextClick: false,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      scrollLeft: rail.scrollLeft,
+    };
+
+  }, []);
+
+  const handleRailPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = railDragRef.current;
+    const rail = railRef.current;
+    if (!drag.isPointerDown || drag.pointerId !== event.pointerId || !rail) return;
+
+    const deltaX = event.clientX - drag.startX;
+    if (!drag.didDrag && Math.abs(deltaX) < EVENTS_INFO_RAIL_DRAG_THRESHOLD_PX) {
+      return;
+    }
+
+    if (!drag.didDrag) {
+      drag.didDrag = true;
+      drag.suppressNextClick = true;
+      if (!rail.hasPointerCapture(event.pointerId)) {
+        rail.setPointerCapture(event.pointerId);
+      }
+      setIsRailDragging(true);
+    }
+
+    event.preventDefault();
+    rail.scrollLeft = drag.scrollLeft - deltaX;
+    syncRailProgress();
+  }, [syncRailProgress]);
+
+  const handleRailPointerEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const rail = railRef.current;
+    const drag = railDragRef.current;
+    if (!drag.isPointerDown || drag.pointerId !== event.pointerId) return;
+
+    drag.isPointerDown = false;
+    if (rail?.hasPointerCapture(event.pointerId)) {
+      rail.releasePointerCapture(event.pointerId);
+    }
+    setIsRailDragging(false);
+
+    if (drag.didDrag) {
+      window.setTimeout(() => {
+        railDragRef.current.didDrag = false;
+        railDragRef.current.suppressNextClick = false;
+      }, 350);
+    }
+  }, []);
+
+  const handleRailClickCapture = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (!railDragRef.current.suppressNextClick) return;
+    event.preventDefault();
+    event.stopPropagation();
+    railDragRef.current.didDrag = false;
+    railDragRef.current.suppressNextClick = false;
+  }, []);
+
+  const progressStyle = {
+    '--events-info-progress-size': `${railProgress.size * 100}%`,
+    '--events-info-progress-offset': `${railProgress.offset * 100}%`,
+  } as CSSProperties;
+
   return (
     <section className={`events-info-section is-${tone}`} data-section-key={sectionKey}>
       <div className="events-info-section-head">
@@ -369,46 +466,71 @@ function EventsInfoSection({
           <strong>{title}</strong>
           <b>{count}</b>
         </div>
-        {onAction && (
+        {(headerControls || onAction) && (
           <div className="events-info-section-actions">
-            <button type="button" onClick={onAction}>
-              {actionLabel || '보기'}
-              <i className="ri-arrow-right-s-line" />
-            </button>
+            {headerControls}
+            {onAction && (
+              <button type="button" onClick={onAction}>
+                {actionLabel || '보기'}
+                <i className="ri-arrow-right-s-line" />
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {genres.length > 0 && (
-        <div className="events-info-genre-row" aria-label={`${title} 장르 필터`}>
-          {genres.map((genre) => (
-            <button
-              key={`${title}-${genre}`}
-              type="button"
-              className={(selectedGenre || '전체') === genre ? 'is-active' : ''}
-              onClick={() => onGenreChange(genre === '전체' ? null : genre)}
-            >
-              {renderGenreLabel(genre)}
-            </button>
-          ))}
+      <div className="events-info-card-rail-wrap">
+        {railProgress.scrollable && (
+          <button
+            type="button"
+            className="events-info-rail-nav events-info-rail-nav--prev"
+            onClick={() => scrollRail(-1)}
+            aria-label={`${title} 이전 항목 보기`}
+          >
+            <i className="ri-arrow-left-s-line" />
+          </button>
+        )}
+        <div
+          className={`events-info-card-rail ${isRailDragging ? 'is-dragging' : ''}`}
+          ref={railRef}
+          onScroll={syncRailProgress}
+          onPointerDown={handleRailPointerDown}
+          onPointerMove={handleRailPointerMove}
+          onPointerUp={handleRailPointerEnd}
+          onPointerCancel={handleRailPointerEnd}
+          onClickCapture={handleRailClickCapture}
+        >
+          {events.length > 0 ? (
+            events.map((event) => (
+              <EventsInfoCard
+                key={event.id}
+                event={event}
+                isFavorite={favoriteEventIds.has(Number(event.id)) || favoriteEventIds.has(event.id)}
+                onEventClick={onEventClick}
+                onToggleFavorite={onToggleFavorite}
+              />
+            ))
+          ) : (
+            <div className="events-info-empty">표시할 항목이 없습니다.</div>
+          )}
         </div>
-      )}
-
-      <div className="events-info-card-rail">
-        {events.length > 0 ? (
-          events.map((event) => (
-            <EventsInfoCard
-              key={event.id}
-              event={event}
-              isFavorite={favoriteEventIds.has(Number(event.id)) || favoriteEventIds.has(event.id)}
-              onEventClick={onEventClick}
-              onToggleFavorite={onToggleFavorite}
-            />
-          ))
-        ) : (
-          <div className="events-info-empty">표시할 항목이 없습니다.</div>
+        {railProgress.scrollable && (
+          <button
+            type="button"
+            className="events-info-rail-nav events-info-rail-nav--next"
+            onClick={() => scrollRail(1)}
+            aria-label={`${title} 다음 항목 보기`}
+          >
+            <i className="ri-arrow-right-s-line" />
+          </button>
         )}
       </div>
+
+      {events.length > 0 && railProgress.scrollable && (
+        <div className="events-info-rail-progress" aria-hidden="true" style={progressStyle}>
+          <span />
+        </div>
+      )}
     </section>
   );
 }
@@ -416,14 +538,21 @@ function EventsInfoSection({
 export default function EventsInfoPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAdmin, isAuthCheckComplete } = useAuth();
-  const { openModal, closeModal } = useModalActions();
+  const { user, isAdmin, isAuthCheckComplete, signInWithKakao } = useAuth();
+  const { openModal, closeModal, updateModalProps } = useModalActions();
   const { data: events = [], isLoading, refetch } = useEventsQuery();
   const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
+  const { handleDeleteClick } = useEventActions({
+    adminType: isAdmin ? 'super' : null,
+    user,
+    signInWithKakao,
+  });
 
   const [sortOrder, setSortOrder] = useState<EventsInfoSortOrder>('random');
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationDate, setRegistrationDate] = useState<Date | null>(null);
+  const [selectedDetailEvent, setSelectedDetailEvent] = useState<Event | null>(null);
+  const openedDetailEventIdRef = useRef<string | number | null>(null);
   const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
   const favoriteEventIds = useMemo<Set<number | string>>(() => {
@@ -448,56 +577,32 @@ export default function EventsInfoPage() {
     return visibleFutureEvents.filter((event) => isEventInDanceScope(event, selectedDanceScope));
   }, [selectedDanceScope, visibleFutureEvents]);
 
-  const recruitBaseEvents = useMemo(() => {
-    return visibleFutureEvents.filter((event) => getEventsInfoCategory(event) === 'recruit');
-  }, [visibleFutureEvents]);
+  const primaryScopedEvents = useMemo(() => {
+    return danceScopedEvents.filter((event) => {
+      const category = getEventsInfoCategory(event);
+      return category === 'event' || category === 'class' || category === 'club' || category === 'social';
+    });
+  }, [danceScopedEvents]);
 
   const activityScopedEvents = useMemo(() => {
-    if (selectedActivity === 'recruit') return recruitBaseEvents;
-    if (selectedActivity === 'all') return danceScopedEvents;
-    return danceScopedEvents.filter((event) => getEventsInfoCategory(event) === selectedActivity);
-  }, [danceScopedEvents, recruitBaseEvents, selectedActivity]);
+    if (selectedActivity === 'all') return primaryScopedEvents;
+    return primaryScopedEvents.filter((event) => getEventsInfoCategory(event) === selectedActivity);
+  }, [primaryScopedEvents, selectedActivity]);
 
   const scopedEvents = useMemo(() => {
     return activityScopedEvents
       .filter((event) => !selectedTag || getEventDanceTags(event).includes(selectedTag));
   }, [activityScopedEvents, selectedTag]);
 
-  const recruitScopedEvents = useMemo(() => {
-    if (selectedActivity !== 'all' && selectedActivity !== 'recruit') return [];
-    return recruitBaseEvents
-      .filter((event) => !selectedTag || getEventDanceTags(event).includes(selectedTag));
-  }, [recruitBaseEvents, selectedActivity, selectedTag]);
-
   const dynamicTags = useMemo(() => {
     const tags = new Set<string>();
-    const tagSource = selectedActivity === 'all'
-      ? [...activityScopedEvents, ...recruitBaseEvents]
-      : activityScopedEvents;
-    tagSource.forEach((event) => getEventDanceTags(event).forEach((tag) => tags.add(tag)));
+    activityScopedEvents.forEach((event) => getEventDanceTags(event).forEach((tag) => tags.add(tag)));
     return Array.from(tags).sort((a, b) => getDanceTagLabel(a).localeCompare(getDanceTagLabel(b), 'ko'));
-  }, [activityScopedEvents, recruitBaseEvents, selectedActivity]);
+  }, [activityScopedEvents]);
 
   const genreGroups = useMemo(() => {
-    const scopedGroups = buildGenreGroups(scopedEvents);
-    const recruitGroups = buildGenreGroups(recruitScopedEvents);
-    return {
-      ...scopedGroups,
-      recruit: recruitGroups.recruit,
-    };
-  }, [recruitScopedEvents, scopedEvents]);
-
-  const selectedSocialGenre = searchParams.get('social_genre');
-  const selectedEventGenre = searchParams.get('event_genre');
-  const selectedClassGenre = searchParams.get('class_genre');
-  const selectedRecruitGenre = searchParams.get('recruit_genre');
-
-  const setGenreParam = useCallback((key: string, value: string | null) => {
-    const nextParams = new URLSearchParams(searchParams);
-    if (value) nextParams.set(key, value);
-    else nextParams.delete(key);
-    setSearchParams(nextParams, { replace: false });
-  }, [searchParams, setSearchParams]);
+    return buildGenreGroups(scopedEvents);
+  }, [scopedEvents]);
 
   const setFilterParam = useCallback((key: string, value: string | null) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -519,14 +624,6 @@ export default function EventsInfoPage() {
     setSearchParams(nextParams, { replace: true });
   }, [isAdmin, isAuthCheckComplete, searchParams, setSearchParams]);
 
-  const socialEvents = useMemo(() => {
-    return sortEventsInfoItems(
-      scopedEvents.filter((event) => getEventsInfoCategory(event) === 'social'),
-      sortOrder,
-      randomSeed
-    );
-  }, [randomSeed, scopedEvents, sortOrder]);
-
   const eventItems = useMemo(() => {
     const filtered = scopedEvents.filter((event) => getEventsInfoCategory(event) === 'event');
     return sortEventsInfoItems(filtered, sortOrder, randomSeed);
@@ -540,37 +637,39 @@ export default function EventsInfoPage() {
     );
   }, [randomSeed, scopedEvents, sortOrder]);
 
-  const recruitEvents = useMemo(() => {
+  const clubItems = useMemo(() => {
     return sortEventsInfoItems(
-      recruitScopedEvents,
+      scopedEvents.filter((event) => getEventsInfoCategory(event) === 'club'),
       sortOrder,
       randomSeed
     );
-  }, [randomSeed, recruitScopedEvents, sortOrder]);
+  }, [randomSeed, scopedEvents, sortOrder]);
 
-  const filteredSocialEvents = useMemo(() => {
-    if (!selectedSocialGenre) return socialEvents;
-    return socialEvents.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedSocialGenre) || getEventGenreLabel(event) === selectedSocialGenre);
-  }, [socialEvents, selectedSocialGenre]);
+  const socialItems = useMemo(() => {
+    return sortEventsInfoItems(
+      scopedEvents.filter((event) => getEventsInfoCategory(event) === 'social'),
+      sortOrder,
+      randomSeed
+    );
+  }, [randomSeed, scopedEvents, sortOrder]);
 
   const filteredFutureEvents = useMemo(() => {
-    if (!selectedEventGenre) return eventItems;
-    return eventItems.filter((event) => event.genre?.split(',').map((g) => g.trim()).includes(selectedEventGenre) || getEventGenreLabel(event) === selectedEventGenre);
-  }, [eventItems, selectedEventGenre]);
+    return eventItems;
+  }, [eventItems]);
 
   const filteredRegularClasses = useMemo(() => {
-    return regularClasses
-      .filter(shouldShowClass)
-      .filter((event) => !selectedClassGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedClassGenre) || getEventGenreLabel(event) === selectedClassGenre);
-  }, [regularClasses, selectedClassGenre]);
+    return regularClasses.filter(shouldShowClass);
+  }, [regularClasses]);
 
-  const filteredRecruitEvents = useMemo(() => {
-    return recruitEvents
-      .filter(shouldShowClass)
-      .filter((event) => !selectedRecruitGenre || event.genre?.split(',').map((g) => g.trim()).includes(selectedRecruitGenre) || getEventGenreLabel(event) === selectedRecruitGenre);
-  }, [recruitEvents, selectedRecruitGenre]);
+  const filteredClubItems = useMemo(() => {
+    return clubItems.filter(shouldShowClass);
+  }, [clubItems]);
 
-  const hasVisibleEvents = scopedEvents.length > 0 || recruitScopedEvents.length > 0;
+  const filteredSocialItems = useMemo(() => {
+    return socialItems;
+  }, [socialItems]);
+
+  const hasVisibleEvents = filteredFutureEvents.length > 0 || filteredRegularClasses.length > 0 || filteredClubItems.length > 0 || filteredSocialItems.length > 0;
 
   const handleToggleFavorite = useCallback(async (eventId: number | string, event?: MouseEvent) => {
     event?.stopPropagation();
@@ -583,18 +682,114 @@ export default function EventsInfoPage() {
     await toggleEventFavorite(eventId);
   }, [openModal, toggleEventFavorite, user]);
 
-  const handleEventClick = useCallback((event: Event) => {
-    openModal('eventDetail', {
-      event,
+  const closeEventDetailModal = useCallback(() => {
+    setSelectedDetailEvent(null);
+    closeModal('eventDetail');
+  }, [closeModal]);
+
+  const removeDeletedEventFromEventsCache = useCallback((eventId: number | string) => {
+    const rawId = String(eventId).replace('social-', '');
+    const numericId = Number(rawId);
+    const candidateIds = new Set([
+      rawId,
+      Number.isFinite(numericId) && numericId > 10000000 ? String(numericId - 10000000) : rawId,
+    ]);
+
+    queryClient.setQueriesData({ queryKey: ['events'] }, (oldData: unknown) => {
+      if (!Array.isArray(oldData)) return oldData;
+      return oldData.filter((item: Event) => {
+        const itemId = String(item.id).replace('social-', '');
+        return !candidateIds.has(itemId);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDetailEvent) return;
+
+    const selectedId = String(selectedDetailEvent.id).replace('social-', '');
+    const handleDeleted = (nativeEvent: globalThis.Event) => {
+      const deletedEventId = (nativeEvent as CustomEvent<{ eventId?: number | string }>).detail?.eventId;
+      if (deletedEventId === undefined || deletedEventId === null) return;
+
+      const deletedId = String(deletedEventId).replace('social-', '');
+      const numericDeletedId = Number(deletedId);
+      const candidateIds = new Set([
+        deletedId,
+        Number.isFinite(numericDeletedId) && numericDeletedId > 10000000 ? String(numericDeletedId - 10000000) : deletedId,
+      ]);
+
+      if (!candidateIds.has(selectedId)) return;
+
+      removeDeletedEventFromEventsCache(deletedEventId);
+      closeEventDetailModal();
+      void refetch();
+    };
+
+    window.addEventListener('eventDeleted', handleDeleted);
+    return () => window.removeEventListener('eventDeleted', handleDeleted);
+  }, [closeEventDetailModal, refetch, removeDeletedEventFromEventsCache, selectedDetailEvent]);
+
+  const eventDetailModalProps = useMemo(() => {
+    if (!selectedDetailEvent) return null;
+
+    return {
+      event: selectedDetailEvent,
       onEdit: () => {},
-      onDelete: () => {},
+      onDelete: async (eventFromModal: Event, clickEvent?: MouseEvent) => {
+        const targetEvent = eventFromModal?.id ? eventFromModal : selectedDetailEvent;
+        const success = await handleDeleteClick(targetEvent as any, clickEvent as any);
+        if (success) {
+          removeDeletedEventFromEventsCache(targetEvent.id);
+          closeEventDetailModal();
+          void refetch();
+        }
+      },
       isAdminMode: isAdmin,
       currentUserId: user?.id,
-      isFavorite: favoriteEventIds.has(Number(event.id)),
-      onToggleFavorite: (clickEvent: MouseEvent) => handleToggleFavorite(event.id, clickEvent),
-      allGenres: { class: genreGroups.class, event: [...genreGroups.social, ...genreGroups.event] },
-    });
-  }, [favoriteEventIds, genreGroups.class, genreGroups.event, genreGroups.social, handleToggleFavorite, isAdmin, openModal, user?.id]);
+      isFavorite: favoriteEventIds.has(Number(selectedDetailEvent.id)),
+      onToggleFavorite: (clickEvent: MouseEvent) => handleToggleFavorite(selectedDetailEvent.id, clickEvent),
+      onClose: closeEventDetailModal,
+      allGenres: {
+        class: [...genreGroups.class, ...genreGroups.club],
+        event: [...genreGroups.social, ...genreGroups.event],
+      },
+    };
+  }, [
+    closeEventDetailModal,
+    favoriteEventIds,
+    genreGroups.class,
+    genreGroups.club,
+    genreGroups.event,
+    genreGroups.social,
+    handleDeleteClick,
+    handleToggleFavorite,
+    isAdmin,
+    refetch,
+    removeDeletedEventFromEventsCache,
+    selectedDetailEvent,
+    user?.id,
+  ]);
+
+  useEffect(() => {
+    if (!eventDetailModalProps || !selectedDetailEvent) {
+      openedDetailEventIdRef.current = null;
+      return;
+    }
+
+    const eventId = selectedDetailEvent.id;
+    if (openedDetailEventIdRef.current === eventId) {
+      updateModalProps('eventDetail', eventDetailModalProps);
+      return;
+    }
+
+    openedDetailEventIdRef.current = eventId;
+    openModal('eventDetail', eventDetailModalProps);
+  }, [eventDetailModalProps, openModal, selectedDetailEvent, updateModalProps]);
+
+  const handleEventClick = useCallback((event: Event) => {
+    setSelectedDetailEvent(event);
+  }, []);
 
   useSetPageAction(useMemo(() => ({
     icon: 'ri-add-line',
@@ -610,6 +805,10 @@ export default function EventsInfoPage() {
         onSelectSocial: () => {
           closeModal('registrationChoice');
           openModal('weeklySocial');
+        },
+        onSelectOneDay: () => {
+          closeModal('registrationChoice');
+          openModal('oneDayRecruitRegistration');
         },
       });
     },
@@ -641,33 +840,6 @@ export default function EventsInfoPage() {
             </button>
           ))}
         </div>
-
-        <div className="events-info-toolbar-bottom">
-          <div className="events-info-activity-tabs" aria-label="활동 분류">
-            {eventsInfoActivityOptions.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={selectedActivity === option.key ? 'is-active' : ''}
-                onClick={() => setFilterParam('type', option.key === 'all' ? null : option.key)}
-              >
-                <i className={option.icon} />
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            className={`events-info-sort-btn ${sortOrder === 'date' ? 'is-active' : ''}`}
-            onClick={() => setSortOrder((order) => order === 'date' ? 'random' : 'date')}
-            title={sortOrder === 'date' ? '시간순 정렬 중' : '랜덤 정렬 중'}
-          >
-            <i className={sortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'} />
-            {sortOrder === 'date' ? '시간순' : '랜덤'}
-          </button>
-        </div>
-
         {dynamicTags.length > 0 && (
           <div className="events-info-tag-tabs" aria-label="세부 태그">
             <button
@@ -697,9 +869,7 @@ export default function EventsInfoPage() {
         <section className="events-info-rows">
           {!hasVisibleEvents ? (
             <div className="events-info-state">
-              {selectedActivity === 'recruit'
-                ? '표시할 모집 항목이 없습니다.'
-                : `${getDanceScopeLabel(selectedDanceScope)} 범위에 표시할 항목이 없습니다.`}
+              {`${getDanceScopeLabel(selectedDanceScope)} 범위에 표시할 행사/강습/동호회/소셜이 없습니다.`}
             </div>
           ) : eventsInfoSections
             .filter((section) => selectedActivity === 'all' || selectedActivity === section.key)
@@ -707,32 +877,25 @@ export default function EventsInfoPage() {
               if (selectedActivity !== 'all') return true;
               if (section.key === 'event') return eventItems.length > 0;
               if (section.key === 'class') return regularClasses.filter(shouldShowClass).length > 0;
-              if (section.key === 'social') return socialEvents.length > 0;
-              return recruitEvents.filter(shouldShowClass).length > 0;
+              if (section.key === 'club') return clubItems.filter(shouldShowClass).length > 0;
+              if (section.key === 'social') return socialItems.length > 0;
+              return false;
             })
             .map((section) => {
               const sectionEvents = section.key === 'event'
                 ? filteredFutureEvents
                 : section.key === 'class'
                   ? filteredRegularClasses
-                  : section.key === 'social'
-                    ? filteredSocialEvents
-                    : filteredRecruitEvents;
+                  : section.key === 'club'
+                    ? filteredClubItems
+                    : filteredSocialItems;
               const sectionCount = section.key === 'event'
                 ? eventItems.length
                 : section.key === 'class'
                   ? regularClasses.filter(shouldShowClass).length
-                  : section.key === 'social'
-                    ? socialEvents.length
-                    : recruitEvents.filter(shouldShowClass).length;
-              const genreKey = `${section.key}_genre`;
-              const selectedGenre = section.key === 'event'
-                ? selectedEventGenre
-                : section.key === 'class'
-                  ? selectedClassGenre
-                  : section.key === 'social'
-                    ? selectedSocialGenre
-                    : selectedRecruitGenre;
+                  : section.key === 'club'
+                    ? clubItems.filter(shouldShowClass).length
+                    : socialItems.length;
 
               return (
                 <EventsInfoSection
@@ -742,11 +905,18 @@ export default function EventsInfoPage() {
                   icon={section.icon}
                   tone={section.tone}
                   count={sectionCount}
-                  genres={['전체', ...genreGroups[section.key]]}
-                  selectedGenre={selectedGenre}
-                  onGenreChange={(genre) => setGenreParam(genreKey, genre)}
-                  renderGenreLabel={renderGenreLabel}
                   events={sectionEvents}
+                  headerControls={section.key === 'event' ? (
+                    <button
+                      type="button"
+                      className={`events-info-sort-btn ${sortOrder === 'date' ? 'is-active' : ''}`}
+                      onClick={() => setSortOrder((order) => order === 'date' ? 'random' : 'date')}
+                      title={sortOrder === 'date' ? '시간순 정렬 중' : '랜덤 정렬 중'}
+                    >
+                      <i className={sortOrder === 'date' ? 'ri-sort-asc' : 'ri-shuffle-line'} />
+                      {sortOrder === 'date' ? '시간순' : '랜덤'}
+                    </button>
+                  ) : null}
                   actionLabel="달력보기"
                   onAction={() => navigate(`/calendar?dance=${selectedDanceScope}&scrollToToday=true`)}
                   onEventClick={handleEventClick}

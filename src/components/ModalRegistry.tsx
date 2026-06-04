@@ -53,6 +53,7 @@ const DefaultThumbnailSettingsModal = lazy(() => import('../components/DefaultTh
 const InvitationManagementModal = lazy(() => import('../components/InvitationManagementModal'));
 const GlobalNoticeEditor = lazy(() => import('../components/GlobalNoticeEditor'));
 const NotificationHistoryModal = lazy(() => import('../components/NotificationHistoryModal'));
+const OneDayRecruitRegistrationModal = lazy(() => import('../pages/recruits/OneDayRecruitRegistrationModal'));
 
 // Admin Modals
 const BillboardUserManagementModal = lazy(() => import('../components/BillboardUserManagementModal'));
@@ -133,6 +134,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'invitationManagement': InvitationManagementModal,
     'onlineUsers': OnlineUsersModal,
     'notificationHistory': NotificationHistoryModal,
+    'oneDayRecruitRegistration': OneDayRecruitRegistrationModal,
 
     // Admin Modals
     'billboardUserManagement': BillboardUserManagementModal,

@@ -2,6 +2,21 @@ import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Event as AppEvent } from '../lib/supabase';
 import { queryClient } from '../lib/queryClient';
+import { addClientLog } from '../utils/clientLogBuffer';
+
+const EVENT_MODAL_DEBUG = import.meta.env.VITE_EVENT_MODAL_DEBUG === 'true';
+const debugEventModal = (...args: unknown[]) => {
+    if (EVENT_MODAL_DEBUG) console.debug(...args);
+};
+
+const isLocalDebugHost = () => typeof window !== 'undefined'
+    && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
+
+const deleteDiagnostic = (...args: unknown[]) => {
+    if (!isLocalDebugHost()) return;
+    console.info(...args);
+    addClientLog('event', ...args);
+};
 
 /**
  * 이벤트 모달 관리를 위한 Hook의 반환 타입
@@ -88,29 +103,34 @@ export function useEventModal(): UseEventModalReturn {
         // 삭제(Deletion) 로직인 이 함수는 그동안 그 처리가 누락되어 실패했던 것입니다.
         // 이제 수정 로직과 동일하게 ID 정제를 수행합니다.
 
-        console.log(`[useEventModal] 🗑️ handleDeleteEvent 시작`, { originalEventId: eventId, hasPassword: !!password });
+        debugEventModal(`[useEventModal] handleDeleteEvent 시작`, { originalEventId: eventId, hasPassword: !!password });
 
         try {
             setIsDeleting(true);
 
-            // [FIX] ID 전처리: 'social-' 접두어 제거 (수정 로직과 동일하게 맞춤)
+            // [FIX] ID 전처리: 'social-' 접두어만 제거한다. FullCalendar 오프셋 후보는 서버가 함께 검사한다.
             const strippedId = String(eventId).replace('social-', '');
+            const cleanId = strippedId;
 
-            // FullCalendar 오프셋 처리 (10,000,000 초과 시 차감)
-            const cleanId = Number(strippedId) > 10000000
-                ? String(Number(strippedId) - 10000000)
-                : strippedId;
-
-            console.log('[useEventModal] Deletion ID Cleaned:', {
+            debugEventModal('[useEventModal] Deletion ID Cleaned:', {
                 input: eventId,
                 afterStrip: strippedId,
                 finalTarget: cleanId
             });
+            deleteDiagnostic('[EventDelete:CalendarUI] prepared request', {
+                originalEventId: eventId,
+                cleanId,
+                hasPassword: Boolean(password),
+            });
 
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
+            deleteDiagnostic('[EventDelete:CalendarUI] session state', {
+                hasToken: Boolean(token),
+                userId: session?.user?.id || null,
+            });
 
-            console.log('[useEventModal] API Call: /.netlify/functions/delete-event', { targetId: cleanId });
+            debugEventModal('[useEventModal] API Call: /.netlify/functions/delete-event', { targetId: cleanId });
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
                 headers: {
@@ -119,12 +139,24 @@ export function useEventModal(): UseEventModalReturn {
                 },
                 body: JSON.stringify({ eventId: cleanId, password })
             });
+            const responseText = await response.text();
+            let responseData: any = null;
+            try {
+                responseData = responseText ? JSON.parse(responseText) : null;
+            } catch {
+                responseData = { raw: responseText };
+            }
 
-            console.log('[useEventModal] API 응답 수신', { status: response.status, ok: response.ok });
+            debugEventModal('[useEventModal] API 응답 수신', { status: response.status, ok: response.ok });
+            deleteDiagnostic('[EventDelete:CalendarUI] response', {
+                status: response.status,
+                ok: response.ok,
+                body: responseData,
+            });
 
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = responseData || {};
                 console.error('[useEventModal] 삭제 실패 상제 정보:', errorData);
 
                 // Foreign Key Constraint Check
@@ -137,7 +169,7 @@ export function useEventModal(): UseEventModalReturn {
             }
 
 
-            console.log('[useEventModal] ✅ 삭제 성공! 캐시 무효화 및 상태 초기화 진행 진행 시간');
+            debugEventModal('[useEventModal] 삭제 성공. 캐시 무효화 및 상태 초기화 진행');
             alert("삭제되었습니다.");
 
             // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
@@ -151,7 +183,7 @@ export function useEventModal(): UseEventModalReturn {
 
             // 다른 컴포넌트에 삭제 이벤트 알림
 
-            console.log(`[useEventModal] 📤 eventDeleted 커스텀 이벤트 디스패치`);
+            debugEventModal(`[useEventModal] eventDeleted 커스텀 이벤트 디스패치`);
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
         } catch (error: any) {
             console.error(`[useEventModal] 🚨 이벤트 삭제 중 오류 발생:`, error);
@@ -159,7 +191,7 @@ export function useEventModal(): UseEventModalReturn {
         } finally {
 
             setIsDeleting(false);
-            console.log(`[useEventModal] 🏁 handleDeleteEvent 종료`);
+            debugEventModal(`[useEventModal] handleDeleteEvent 종료`);
         }
     }, []);
 

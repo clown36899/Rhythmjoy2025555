@@ -409,7 +409,26 @@
     }
 
     .search-options-bar {
-        flex-wrap: nowrap;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .search-scope-chips {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .search-toggle {
+        margin-left: auto;
+    }
+
+    .search-section-title {
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .search-sort-select {
+        flex: 0 0 auto;
     }
 }
 .search-modal-options {

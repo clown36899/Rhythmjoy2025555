@@ -10,7 +10,7 @@
 
 /* 라이브러리 모드에서는 기존 다크 스타일 고수 */
 .is-history-mode .board-detail-container {
-    background-color: #0f172a;
+    background-color: var(--bg-deep);
 }
 
 @keyframes fadeIn {
@@ -28,7 +28,7 @@
     position: sticky;
     top: 0;
     z-index: 1000;
-    background-color: var(--bg-base);
+    background-color: var(--bg-deep);
     border-bottom: 1px solid var(--border-subtle);
     height: 60px;
     box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
@@ -58,7 +58,7 @@
     width: 40px;
     /* 정교한 포인트 라인 */
     height: 2px;
-    background-color: var(--color-blue-500);
+    background-color: #d1d4e3db;
 }
 
 .board-detail-header-top {
@@ -363,15 +363,15 @@
 
 .board-detail-container,
 .board-detail-modal-container {
-    --detail-bg: #111820;
-    --detail-panel: #171e27;
-    --detail-panel-2: #1d2530;
-    --detail-border: rgba(226, 232, 240, 0.11);
-    --detail-border-strong: rgba(148, 163, 184, 0.24);
-    --detail-text: #f3f6fa;
-    --detail-muted: #99a5b4;
-    --detail-soft: #6f7a89;
-    --detail-blue: #5b8def;
+    --detail-bg: var(--bg-deep);
+    --detail-panel: #1b1b1c;
+    --detail-panel-2: #202022;
+    --detail-border: rgba(255, 255, 255, 0.09);
+    --detail-border-strong: rgba(255, 255, 255, 0.16);
+    --detail-text: #f8fafc;
+    --detail-muted: #a7aab2;
+    --detail-soft: #777a83;
+    --detail-blue: #5c8df6;
 }
 
 .board-detail-container {
@@ -380,7 +380,7 @@
 }
 
 .board-header.global-header {
-    background: #0b1118;
+    background: var(--bg-deep);
     border-bottom: 1px solid var(--detail-border);
     box-shadow: none;
 }

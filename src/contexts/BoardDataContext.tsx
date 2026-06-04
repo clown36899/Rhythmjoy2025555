@@ -99,6 +99,35 @@ interface BoardStaticData {
     genre_weights?: Record<string, number>; // Added
 }
 
+let boardStaticDataCache: BoardStaticData | null = null;
+let boardStaticDataPromise: Promise<BoardStaticData> | null = null;
+
+const loadBoardStaticData = async (force = false): Promise<BoardStaticData> => {
+    if (!force && boardStaticDataCache) {
+        return boardStaticDataCache;
+    }
+
+    if (!force && boardStaticDataPromise) {
+        return boardStaticDataPromise;
+    }
+
+    boardStaticDataPromise = supabase.rpc('get_board_static_data').then(({ data: rpcData, error: rpcError }) => {
+        if (rpcError) throw rpcError;
+
+        const processedData = {
+            ...rpcData,
+            genre_weights: rpcData?.genre_weights || {}
+        } as BoardStaticData;
+
+        boardStaticDataCache = processedData;
+        return processedData;
+    }).finally(() => {
+        boardStaticDataPromise = null;
+    });
+
+    return boardStaticDataPromise;
+};
+
 
 // --- 1. Static Configuration Context ---
 interface BoardStaticContextType {
@@ -232,47 +261,27 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [interactions, fetchInteractions]);
 
-    const fetchData = useCallback(async () => {
-        const controller = new AbortController();
-        const signal = controller.signal;
-
+    const fetchData = useCallback(async (force = false) => {
         try {
             setLoading(true);
             setError(null);
 
-            const { data: rpcData, error: rpcError } = await supabase.rpc('get_board_static_data');
-
-            if (signal.aborted) return;
-            if (rpcError) throw rpcError;
-
-            const processedData = {
-                ...rpcData,
-                genre_weights: rpcData.genre_weights || {}
-            };
-
+            const processedData = await loadBoardStaticData(force);
             setData(processedData);
         } catch (err) {
-            if (signal.aborted) return;
             console.error('[BoardDataContext] Error:', err);
             setError((err as Error).message);
         } finally {
-            if (!signal.aborted) {
-                setLoading(false);
-            }
+            setLoading(false);
         }
-
-        return () => controller.abort();
     }, []);
 
     useEffect(() => {
-        const cleanup = fetchData();
-        return () => {
-            cleanup.then(abort => abort && abort());
-        };
+        fetchData();
     }, [fetchData]);
 
     const refreshData = useCallback(async () => {
-        await fetchData();
+        await fetchData(true);
     }, [fetchData]);
 
     // Separate Values for Better Granularity

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "../../../../../lib/supabase";
 import { useAuth } from "../../../../../contexts/AuthContext";
+import { addClientLog } from "../../../../../utils/clientLogBuffer";
 import type { Event } from "../../../utils/eventListUtils";
 
 interface UseEventSelectionProps {
@@ -8,6 +9,15 @@ interface UseEventSelectionProps {
     adminType: "super" | "sub" | null;
     fetchEvents: () => Promise<void>;
 }
+
+const isLocalDebugHost = () => typeof window !== 'undefined'
+    && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
+
+const deleteDiagnostic = (...args: unknown[]) => {
+    if (!isLocalDebugHost()) return;
+    console.info(...args);
+    addClientLog('event', ...args);
+};
 
 export function useEventSelection({
     isAdminMode,
@@ -57,22 +67,46 @@ export function useEventSelection({
 
         try {
             setIsDeleting(true);
+            const cleanId = String(eventId).replace(/^social-/, '');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) console.error("[EventListDelete] Session Error:", sessionError);
+            const token = session?.access_token;
+
+            deleteDiagnostic('[EventDelete:EventListUI] prepared request', {
+                originalEventId: eventId,
+                cleanId,
+                hasToken: Boolean(token),
+                userId: user?.id || session?.user?.id || null,
+                isAdminMode,
+            });
 
             // Call Netlify Function for deletion (handling storage cleanup)
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
-                    eventId,
-                    userId: user?.id,
-                    isAdmin: isAdminMode
+                    eventId: cleanId,
                 }),
             });
+            const responseText = await response.text();
+            let result: any = null;
+            try {
+                result = responseText ? JSON.parse(responseText) : null;
+            } catch {
+                result = { raw: responseText };
+            }
 
-            const result = await response.json();
+            deleteDiagnostic('[EventDelete:EventListUI] response', {
+                status: response.status,
+                ok: response.ok,
+                body: result,
+            });
 
             if (!response.ok) {
-                throw new Error(result.error || '삭제 실패');
+                throw new Error(result?.error || '삭제 실패');
             }
 
             // Success

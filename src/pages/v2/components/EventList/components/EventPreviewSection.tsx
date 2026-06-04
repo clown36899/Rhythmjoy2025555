@@ -1,20 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../../../contexts/AuthContext";
 // Styles
 // Styles
 // import "../../../styles/EventListSections.css"; // Migrated to events.css
 
-import PracticeRoomBanner from "../../PracticeRoomBanner";
-import ShoppingBanner from "../../ShoppingBanner";
 import type { Event } from "../../../utils/eventListUtils";
 import type { SocialSchedule } from "../../../../social/types";
 import type { HomeSectionVisibility } from "../hooks/useHomeSectionVisibility";
 import { DEFAULT_HOME_SECTION_VISIBILITY } from "../hooks/useHomeSectionVisibility";
-import { UnifiedScheduleSection } from "../../UnifiedScheduleSection";
 
 import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
-import { HomeNavButtonsSection } from "../../HomeNavButtonsSection";
 import { getCardThumbnail } from "../../../../../utils/getEventThumbnail";
 import { formatEventDate } from "../../../../../utils/dateUtils";
 import {
@@ -301,55 +297,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
 
 
-    // Extract real images for HomeNavButtonsSection (안정화: 데이터가 실제로 바뀔 때만 재셔플)
-    const socialDataRef = useRef<{ imageUrl: string; title: string; location: string }[]>([]);
-    const socialDataCountRef = useRef<number>(-1);
-    const recentSocialData = useMemo(() => {
-        const list = socialSchedules || [];
-        const items = list
-            .filter(s => s.category === 'social')
-            .map(s => ({
-                imageUrl: getCardThumbnail(s as any) || '',
-                title: s.title || '',
-                location: s.location || s.place_name || ''
-            }))
-            .filter(item => item.imageUrl) as { imageUrl: string; title: string; location: string }[];
-
-        // 아이템 개수가 동일하면 이전 셔플 결과 재사용 (깜빡임 방지)
-        if (items.length === socialDataCountRef.current && socialDataRef.current.length > 0) {
-            return socialDataRef.current;
-        }
-
-        // Fisher-Yates 셔플로 랜덤 정렬 (안정적인 셔플을 위해 복사본 사용)
-        const shuffled = [...items];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-
-        const result = shuffled.slice(0, 10);
-        socialDataRef.current = result;
-        socialDataCountRef.current = items.length;
-        return result;
-    }, [socialSchedules]);
-
-    const recentEventImages = useMemo(() => {
-        return futureEvents
-            .filter(e => e.image || e.image_thumbnail || e.image_medium)
-            .slice(0, 10)
-            .map(e => getCardThumbnail(e))
-            .filter(Boolean) as string[];
-    }, [futureEvents]);
-
-    const recentClassImages = useMemo(() => {
-        return regularClasses
-            .filter(e => e.image || e.image_thumbnail || e.image_medium)
-            .slice(0, 10)
-            .map(e => getCardThumbnail(e))
-            .filter(Boolean) as string[];
-    }, [regularClasses]);
-
-
     return (
         <div className="ELS-section">
             {/* 1.5 Newly Registered Events Section (24 hours) */}
@@ -362,13 +309,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     defaultThumbnailEvent={defaultThumbnailEvent}
                 />
             )}
-
-            {/* 0. Home Navigation Buttons (New) */}
-            <HomeNavButtonsSection
-                socialData={recentSocialData}
-                eventImages={recentEventImages}
-                classImages={recentClassImages}
-            />
 
             {/* 1. New Unified Schedule Section (Test Mode) - Hidden by User Request 2026-02-23 */}
             {/* 
@@ -402,11 +342,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 />
             )}
 
-            {/* 5. Support Grid (Banners) */}
-            <div className="ELS-support-grid" style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                <PracticeRoomBanner />
-                <ShoppingBanner />
-            </div>
         </div >
     );
 };

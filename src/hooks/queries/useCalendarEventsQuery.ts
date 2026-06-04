@@ -8,7 +8,7 @@ export interface CalendarData {
     socialSchedules: any[];
 }
 
-const CALENDAR_EVENTS_QUERY_VERSION = 'dance-scope-local-v4';
+const CALENDAR_EVENTS_QUERY_VERSION = 'dance-scope-local-v5';
 
 /**
  * 특정 날짜를 기준으로 달력에 필요한 3개월 범위(이전달, 현재달, 다음달)를 계산합니다.
@@ -27,7 +27,7 @@ export const getCalendarRange = (date: Date) => {
  */
 export const fetchCalendarEvents = async (startDateStr: string, endDateStr: string, danceScope: DanceScope | string = 'swing') => {
     const normalizedScope = normalizeDanceScope(danceScope);
-    const baseColumns = "id,title,date,start_date,end_date,event_dates,category,genre,image_micro,image_thumbnail,image_medium,scope,group_id,location,venue_name,address,venue_id,venues(address)";
+    const baseColumns = "id,title,date,start_date,end_date,event_dates,category,genre,image,image_micro,image_thumbnail,image_medium,image_full,scope,group_id,location,venue_name,address,venue_id,venues(address)";
     const metadataColumns = `${baseColumns},dance_scope,dance_genre,activity_type,dance_tags`;
     const dateRange = [
         `and(start_date.lte.${endDateStr},end_date.gte.${startDateStr})`,

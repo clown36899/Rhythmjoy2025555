@@ -19,6 +19,7 @@ const isReplit = !!process.env.REPL_ID || !!process.env.REPL_SLUG; // REPL_ID나
 // ✅ 포트 및 호스트 설정 로직 분리
 const SERVER_PORT = isReplit ? 5000 : 5173;
 const SERVER_HOST = isReplit ? "0.0.0.0" : "localhost";
+const NETLIFY_DEV_PROXY_TARGET = process.env.NETLIFY_DEV_PROXY_TARGET || 'http://localhost:8888';
 
 const isPreview = process.env.IS_PREVIEW ? true : false;
 
@@ -190,12 +191,12 @@ export default defineConfig({
     // API 프록시 설정 (Express 서버로 전달)
     proxy: {
       '/api': {
-        target: 'http://localhost:8888', // Netlify Dev로 전달 (Functions 처리)
+        target: NETLIFY_DEV_PROXY_TARGET, // Netlify Dev로 전달 (Functions 처리)
         changeOrigin: true,
       },
       // Netlify Functions 프록시 (로컬 개발용)
       '/.netlify': {
-        target: 'http://localhost:8888',
+        target: NETLIFY_DEV_PROXY_TARGET,
         changeOrigin: true,
       },
     },

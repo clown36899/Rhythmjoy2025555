@@ -1,0 +1,19 @@
+<svg width="512" height="560" viewBox="0 0 512 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="76" y1="120" x2="436" y2="422" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFF"/>
+      <stop offset="1" stop-color="#D8DEEF"/>
+    </linearGradient>
+    <filter id="s" x="48" y="72" width="416" height="428" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000" flood-opacity=".42"/>
+    </filter>
+  </defs>
+  <g filter="url(#s)">
+    <path d="M94 166c0-31 25-56 56-56h212c31 0 56 25 56 56v240H94V166Z" fill="url(#g)"/>
+    <path d="M94 166c0-31 25-56 56-56h212c31 0 56 25 56 56v240H94V166Z" stroke="#10121A" stroke-width="9"/>
+    <rect x="118" y="136" width="284" height="74" rx="24" fill="#10121A"/>
+    <text x="256" y="188" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="950" fill="#F1D85E">ONE DAY</text>
+    <text x="256" y="303" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="112" font-weight="950" letter-spacing="-8" fill="#10121A">모집</text>
+    <text x="256" y="359" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="42" font-weight="950" letter-spacing="-2" fill="#10121A">원데이 클래스</text>
+  </g>
+</svg>

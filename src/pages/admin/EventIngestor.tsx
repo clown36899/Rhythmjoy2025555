@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageCropModal from '../../components/ImageCropModal';
+import { getIngestorOwnerUserId } from './v2/utils/ingestorOwner';
 const VenueSelectModal = React.lazy(() => import('../v2/components/VenueSelectModal'));
 import './EventIngestor.css';
 
@@ -49,7 +50,7 @@ interface VenueRecord {
 }
 
 const EventIngestor: React.FC = () => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { events: existingEvents, loading: existingLoading } = useEvents({ isAdminMode: true });
     const [currentTab, setCurrentTab] = useState<'social' | 'lessons'>('social');
     const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
@@ -80,11 +81,22 @@ const EventIngestor: React.FC = () => {
         };
     }, []);
 
+    const getAdminRequestHeaders = useCallback(async (withJson = false): Promise<Record<string, string>> => {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        return {
+            ...(withJson ? { 'Content-Type': 'application/json' } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+    }, []);
+
     const fetchScraped = useCallback(async () => {
         setLoadingScraped(true);
         try {
             // [로컬전환] Netlify Function API에서 로컬 JSON 데이터 조회
-            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`);
+            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+                headers: await getAdminRequestHeaders(),
+            });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             // created_at 역순 정렬
@@ -97,7 +109,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setLoadingScraped(false);
         }
-    }, [currentTab]);
+    }, [currentTab, getAdminRequestHeaders]);
 
     useEffect(() => {
         fetchScraped();
@@ -130,6 +142,11 @@ const EventIngestor: React.FC = () => {
     const handleRegisterEvent = useCallback(async (scraped: ScrapedEvent, skipConfirm = false) => {
         if (!user) {
             alert('로그인이 필요합니다.');
+            return false;
+        }
+
+        if (!isAdmin) {
+            alert('관리자 권한이 필요합니다.');
             return false;
         }
         if (registeringId && !skipConfirm) { // 개별 등록 시에만 중복 클릭 방지
@@ -226,6 +243,7 @@ const EventIngestor: React.FC = () => {
             }
 
             // 2. 이벤트 데이터 구성
+            const ownerUserId = await getIngestorOwnerUserId(prodSupabase);
             const eventData: any = {
                 title: formattedTitle,
                 date: data.date,
@@ -241,7 +259,7 @@ const EventIngestor: React.FC = () => {
                 link1: scraped.source_url || '',
                 link_name1: scraped.keyword || '',
                 description: scraped.extracted_text || '',
-                user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a', // 운영 DB 관리자 user_id (인제스터 전용)
+                user_id: ownerUserId,
                 group_id: currentTab === 'lessons' ? null : 2, // 강습은 일반, 소셜은 댄스빌보드 그룹
                 image: imageUrl,
                 image_micro: imageMicro,
@@ -274,7 +292,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setRegisteringId(null);
         }
-    }, [user, currentTab, registeringId, matchVenue, genreMap]);
+    }, [user, isAdmin, currentTab, registeringId, matchVenue, genreMap]);
 
     const toggleGenre = useCallback((id: string, genre: string) => {
         setGenreMap(prev => {
@@ -434,7 +452,7 @@ const EventIngestor: React.FC = () => {
             const idsToDelete = Array.from(selectedIds);
             const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify({ ids: idsToDelete }),
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -451,7 +469,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setIsProcessing(false);
         }
-    }, [selectedIds, currentTab, isProcessing]);
+    }, [selectedIds, currentTab, isProcessing, getAdminRequestHeaders]);
 
     const handleBatchMarkAsCollected = useCallback(async () => {
         if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
@@ -907,7 +925,7 @@ const EventIngestor: React.FC = () => {
                                                                         try {
                                                                             const res = await fetch('/.netlify/functions/scraped-events', {
                                                                                 method: 'DELETE',
-                                                                                headers: { 'Content-Type': 'application/json' },
+                                                                                headers: await getAdminRequestHeaders(true),
                                                                                 body: JSON.stringify({ id: group.scrapedId }),
                                                                             });
                                                                             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1003,7 +1021,7 @@ const EventIngestor: React.FC = () => {
                                                     try {
                                                         const res = await fetch('/.netlify/functions/scraped-events', {
                                                             method: 'DELETE',
-                                                            headers: { 'Content-Type': 'application/json' },
+                                                            headers: await getAdminRequestHeaders(true),
                                                             body: JSON.stringify({ id: item.id }),
                                                         });
                                                         if (!res.ok) throw new Error(`HTTP ${res.status}`);

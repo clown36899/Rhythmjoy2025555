@@ -115,7 +115,7 @@
 /* Practice Page Container */
 .practice-page-container {
   min-height: 100vh;
-  margin-top: 60px;
+  margin-top: 0;
   padding-bottom: 142px;
 
   /* background-color: #272727; */

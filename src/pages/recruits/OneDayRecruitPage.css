@@ -1,0 +1,612 @@
+.oneday-recruit-page {
+  min-height: 100vh;
+  padding: 14px 14px calc(112px + env(safe-area-inset-bottom));
+  background: #1c1c1d;
+  color: var(--text-primary, #f8fafc);
+}
+
+.oneday-recruit-inner {
+  width: min(100%, 980px);
+  margin: 0 auto;
+}
+
+.oneday-recruit-hero {
+  display: grid;
+  padding: 8px 0 14px;
+}
+
+.oneday-recruit-hero h1 {
+  margin: 0;
+  font-size: clamp(24px, 6vw, 40px);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.oneday-recruit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 12px;
+  color: rgba(248, 250, 252, 0.68);
+  font-size: 13px;
+}
+
+.oneday-recruit-toolbar strong {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.oneday-recruit-toolbar span {
+  color: rgba(248, 250, 252, 0.56);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.oneday-recruit-link-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  color: inherit;
+  touch-action: pan-y;
+}
+
+.oneday-recruit-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  -webkit-user-drag: none;
+  touch-action: pan-y;
+}
+
+.oneday-recruit-link-card:active {
+  transform: translateY(1px);
+}
+
+.oneday-recruit-link-main,
+.oneday-recruit-link-side {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.oneday-recruit-logo {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 214, 102, 0.26), transparent 30%),
+    linear-gradient(145deg, rgba(91, 124, 255, 0.35), rgba(18, 19, 22, 0.92));
+  color: rgba(248, 250, 252, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 10px 18px rgba(0, 0, 0, 0.24);
+}
+
+.oneday-recruit-logo img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.oneday-recruit-logo span {
+  position: relative;
+  z-index: 0;
+  max-width: 36px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oneday-recruit-link-main {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 1;
+}
+
+.oneday-recruit-link-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.oneday-recruit-link-main strong {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 16px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.oneday-recruit-link-main em {
+  flex-shrink: 0;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(91, 124, 255, 0.18);
+  color: #aebfff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.oneday-recruit-link-main small {
+  overflow: hidden;
+  max-width: 100%;
+  color: rgba(248, 250, 252, 0.56);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oneday-recruit-link-side {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: rgba(248, 250, 252, 0.7);
+  font-size: 19px;
+}
+
+.oneday-recruit-card-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oneday-recruit-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 58px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(91, 124, 255, 0.18);
+  color: #dbe5ff;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.oneday-recruit-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 58px;
+  height: 34px;
+  border: 1px solid rgba(255, 117, 117, 0.22);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #fecaca;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.oneday-recruit-edit-btn i,
+.oneday-recruit-delete-btn i {
+  font-size: 16px;
+}
+
+.oneday-recruit-edit-btn:active,
+.oneday-recruit-delete-btn:active {
+  transform: translateY(1px);
+}
+
+.oneday-recruit-edit-btn:disabled,
+.oneday-recruit-delete-btn:disabled {
+  opacity: 0.52;
+  cursor: default;
+}
+
+.oneday-recruit-sync {
+  min-height: 28px;
+  margin: 0 0 10px;
+  color: rgba(248, 250, 252, 0.52);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.oneday-recruit-map-section {
+  display: grid;
+  gap: 12px;
+}
+
+.oneday-recruit-kakao-map-wrap {
+  position: relative;
+  min-height: 318px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #15171c;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
+}
+
+.oneday-recruit-kakao-map {
+  position: absolute;
+  inset: 0;
+}
+
+.oneday-recruit-kakao-map .wrap_map {
+  background: #15171c;
+}
+
+.oneday-recruit-map-state {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  background: rgba(21, 23, 28, 0.72);
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 13px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.oneday-recruit-map-state i {
+  font-size: 26px;
+}
+
+.oneday-recruit-kakao-pin {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 8px 0 10px;
+  border: 1px solid rgba(255, 214, 102, 0.32);
+  border-radius: 999px;
+  background: rgba(20, 20, 22, 0.9);
+  color: #f8fafc;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.34);
+  cursor: pointer;
+  font: inherit;
+  isolation: isolate;
+  transform: translate(var(--pin-offset-x, 0), var(--pin-offset-y, 0));
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.oneday-recruit-kakao-pin strong {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.oneday-recruit-kakao-pin small {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffd666;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.oneday-recruit-kakao-pin:active {
+  transform: translate(var(--pin-offset-x, 0), var(--pin-offset-y, 0)) translateY(1px);
+}
+
+.oneday-recruit-region-list {
+  display: grid;
+  gap: 12px;
+}
+
+.oneday-recruit-region-group {
+  display: grid;
+  gap: 8px;
+}
+
+.oneday-recruit-region-group h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.oneday-recruit-region-links {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .oneday-recruit-page {
+    padding-top: 24px;
+  }
+
+  .oneday-recruit-link {
+    min-height: 46px;
+  }
+
+  .oneday-recruit-link-card {
+    min-height: 68px;
+  }
+
+  .oneday-recruit-kakao-map-wrap {
+    min-height: 430px;
+  }
+
+  .oneday-recruit-region-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.oneday-recruit-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: end center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.oneday-recruit-edit-modal {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 460px);
+  max-height: min(92vh, 760px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #18191b;
+  color: #f8fafc;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+}
+
+.oneday-recruit-edit-modal header,
+.oneday-recruit-edit-modal footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.oneday-recruit-edit-modal header strong {
+  font-size: 18px;
+}
+
+.oneday-recruit-edit-modal header button {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 20px;
+}
+
+.oneday-recruit-edit-modal label {
+  display: grid;
+  gap: 6px;
+}
+
+.oneday-recruit-edit-modal label span {
+  color: rgba(248, 250, 252, 0.64);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.oneday-recruit-edit-modal input,
+.oneday-recruit-edit-modal select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+}
+
+.oneday-recruit-edit-modal select {
+  padding-right: 36px;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(248, 250, 252, 0.72) 50%),
+    linear-gradient(135deg, rgba(248, 250, 252, 0.72) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 18px,
+    calc(100% - 12px) 18px;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.oneday-recruit-edit-modal select option,
+.oneday-recruit-edit-modal select optgroup {
+  background: #18191b;
+  color: #f8fafc;
+}
+
+.oneday-recruit-logo-editor {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.oneday-recruit-logo-preview {
+  position: relative;
+  display: inline-grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 214, 102, 0.28), transparent 30%),
+    linear-gradient(145deg, rgba(91, 124, 255, 0.42), rgba(18, 19, 22, 0.94));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.oneday-recruit-logo-preview img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oneday-recruit-logo-preview span {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.oneday-recruit-logo-editor label {
+  min-width: 0;
+}
+
+.oneday-recruit-logo-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.oneday-recruit-logo-copy strong {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.oneday-recruit-logo-copy span {
+  color: rgba(248, 250, 252, 0.56);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.oneday-recruit-logo-upload-input {
+  display: none;
+}
+
+.oneday-recruit-logo-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.oneday-recruit-logo-actions button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(91, 124, 255, 0.18);
+  color: #dbe5ff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.oneday-recruit-logo-actions button:last-child {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.72);
+}
+
+.oneday-recruit-logo-actions:has(button:nth-of-type(3)) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.oneday-recruit-logo-actions button:disabled {
+  opacity: 0.48;
+}
+
+.oneday-recruit-link-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  border: 1px solid rgba(255, 117, 117, 0.22);
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.28);
+  color: #fecaca;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.oneday-recruit-link-delete-btn i {
+  font-size: 17px;
+}
+
+.oneday-recruit-link-delete-btn:disabled {
+  opacity: 0.52;
+}
+
+.oneday-recruit-edit-modal footer {
+  margin-top: 4px;
+}
+
+.oneday-recruit-edit-modal footer button {
+  flex: 1;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.76);
+  font-weight: 900;
+}
+
+.oneday-recruit-edit-modal footer button:last-child {
+  background: #5b7cff;
+  color: #fff;
+}
+
+.oneday-recruit-edit-modal footer button:disabled {
+  opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+  .oneday-recruit-edit-overlay {
+    place-items: center;
+  }
+}

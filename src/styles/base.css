@@ -211,22 +211,20 @@
   :root,
   [data-theme="dark"] {
     /* Backgrounds */
-    --bg-base: #000000;
-    --bg-dotted-grid: radial-gradient(circle, #111111 1.2px, transparent 1.2px);
+    --bg-base: #1c1c1d;
+    --bg-deep: #1c1c1d;
+    --bg-dotted-grid: none;
     --bg-dotted-size: 30px 30px;
-    --bg-surface-1: #1f2937;
-    /* gray-800 */
-    --bg-surface-2: #1b1f25;
-    /* gray-700 */
-    --bg-surface-3: #4b5563;
-    /* gray-600 */
-    --bg-input: #374151;
+    --bg-surface-1: #202022;
+    --bg-surface-2: #242426;
+    --bg-surface-3: #303033;
+    --bg-input: #242426;
     --bg-overlay: rgba(0, 0, 0, 0.7);
-    --bg-card: #1f1f1f;
-    --bg-modal: #2d2d2d;
+    --bg-card: #1b1b1c;
+    --bg-modal: #202022;
 
     /* Hover Interactions */
-    --bg-hover: #4b5563;
+    --bg-hover: #2a2a2d;
     --bg-selected: #3b82f6;
 
     /* Texts */
@@ -241,30 +239,30 @@
     --text-inverse: #ffffff;
 
     /* Borders */
-    --border-primary: #555555;
-    --border-secondary: #333942;
-    --border-light: #374151;
-    --border-subtle: rgba(255, 255, 255, 0.03);
+    --border-primary: rgba(255, 255, 255, 0.14);
+    --border-secondary: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.16);
+    --border-subtle: rgba(255, 255, 255, 0.055);
     /* Dark mode subtle border */
     --border-glass: rgba(255, 255, 255, 0.1);
     --border-glass-strong: rgba(255, 255, 255, 0.15);
     --border-glass-subtle: rgba(255, 255, 255, 0.05);
 
     /* Header */
-    --header-bg-color: #000000;
-    --header-border-color: #353636;
-    --header-bg-dark: #242424;
+    --header-bg-color: #1c1c1d;
+    --header-border-color: rgba(255, 255, 255, 0.1);
+    --header-bg-dark: #1c1c1d;
     --header-title-font-size: 1.4rem;
 
     /* Calendar Specifics (Dark) */
-    --calendar-bg: #000000;
-    --calendar-cell-bg: #1f2937;
+    --calendar-bg: #1c1c1d;
+    --calendar-cell-bg: #202022;
     --uss-card-overlay-opacity: 1;
     /* 다크 모드에서는 이미지 하단 그림자 유지 */
     /* Surface-1 to distinguish cells from bg */
     --calendar-vertical-border: #3d3d3d81;
     --calendar-week-border: #303030ac;
-    --calendar-weekday-border: #4b5563;
+    --calendar-weekday-border: rgba(255, 255, 255, 0.16);
     --calendar-cell-border: #2a2a2a;
 
     /* Semantic States */
@@ -275,13 +273,13 @@
 
     /* Glassmorphism & Translucency */
     --bg-glass: rgba(0, 0, 0, 0.4);
-    --bg-glass-heavy: rgba(15, 23, 42, 0.8);
-    --bg-surface-translucent: rgba(31, 41, 55, 0.5);
+    --bg-glass-heavy: rgba(28, 28, 29, 0.84);
+    --bg-surface-translucent: rgba(32, 32, 34, 0.54);
     --bg-surface-glass: rgba(255, 255, 255, 0.03);
     --bg-card-highlight: rgba(255, 255, 255, 0.05);
 
     /* Gradients */
-    --gradient-premium: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    --gradient-premium: linear-gradient(135deg, #202022 0%, #151516 100%);
     --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
     --gradient-accent: linear-gradient(135deg, var(--color-blue-600) 0%, var(--color-blue-400) 100%);
     --gradient-banner-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
@@ -301,7 +299,7 @@
     --bg-primary: var(--bg-surface-1);
     --bg-secondary: var(--bg-surface-2);
     --bg-tertiary: var(--bg-surface-3);
-    --page-bg-color: #0a0a0a;
+    --page-bg-color: #1c1c1d;
     /* Slightly lighter than pure black for pages? Or keep hex? Keep for now */
     --primary-color: var(--color-blue-500);
     --secondary-color: var(--color-violet-500);

@@ -828,7 +828,6 @@
 
 /* Individual Cell Styling for Card Look */
 .calendar-cell-fullscreen {
-  background-color: var(--calendar-cell-bg);
   border-bottom: 1px solid var(--calendar-cell-border);
 
   border-right: 1px solid var(--calendar-cell-border);
@@ -1603,7 +1602,6 @@
   /* min-height: 100px; Removed to allow shrinking */
   min-height: auto;
   /* Minimum height for fullscreen cells */
-  background-color: var(--calendar-cell-bg);
   border-right: 1px solid var(--calendar-vertical-border);
   border-bottom: 1px solid var(--calendar-week-border);
   border-top: 1px solid var(--calendar-week-border);
@@ -1772,10 +1770,14 @@
 }
 
 .calendar-page-container .calendar-month-head {
-  display: none;
+  display: none !important;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
-  padding: 12px 12px 0;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 .calendar-page-container .calendar-month-head span {
@@ -1800,21 +1802,18 @@
   gap: 5px;
   overflow: visible;
   padding: 5px;
-  border: 1px solid var(--cal-sample-border, rgba(255, 255, 255, 0.11)) !important;
+  border: 0 solid var(--cal-sample-border, rgba(255, 255, 255, 0.11)) !important;
   border-radius: 8px !important;
-  background: var(--cal-sample-row, #1d2026);
   color: var(--cal-sample-text, #f6f7f9);
-  transition: border-color 0.16s ease, background 0.16s ease;
+  transition: border-color 0.16s ease;
 }
 
 .calendar-page-container .calendar-cell-fullscreen:hover {
   border-color: rgba(92, 141, 246, 0.42) !important;
-  background: var(--cal-sample-panel-soft, #20232a);
 }
 
 .calendar-page-container .calendar-cell-fullscreen.is-today {
   border-color: rgba(92, 141, 246, 0.72) !important;
-  background: rgba(92, 141, 246, 0.13);
 }
 
 .calendar-page-container .calendar-cell-fullscreen.is-last-row {
@@ -1869,6 +1868,11 @@
 
 .calendar-page-container .weekday-wrapper {
   display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }
 
 .calendar-page-container .calendar-cell-fullscreen-body {
@@ -2002,17 +2006,19 @@
     padding: 1px;
     border-color: transparent !important;
     border-radius: 0 !important;
-    background: transparent;
   }
 
   .calendar-page-container .calendar-cell-fullscreen.is-today {
     border-color: rgba(92, 141, 246, 0.42) !important;
     border-radius: 7px !important;
-    background: rgba(92, 141, 246, 0.07);
   }
 
   .calendar-page-container .calendar-cell-fullscreen-header {
     min-height: 14px;
+  }
+
+  .calendar-page-container .calendar-grid-container > .calendar-cell-fullscreen:nth-child(-n+7) .calendar-cell-fullscreen-header {
+    display: none;
   }
 
   .calendar-page-container .calendar-date-number-fullscreen {

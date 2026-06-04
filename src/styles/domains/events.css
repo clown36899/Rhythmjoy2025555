@@ -103,8 +103,9 @@
 
 .home-neb-standard-layout {
     width: min(100%, 1280px);
-    margin: 16px auto 0;
-    padding: 0 clamp(16px, 3vw, 28px);
+    margin: 14px auto 0;
+    padding: 0;
+    background: #1c1c1d;
 }
 
 .home-neb-standard-layout .NEB-container {
@@ -112,17 +113,17 @@
     padding: 0;
     border: 0;
     border-radius: 0;
-    background: transparent;
+    background: #1c1c1d;
 }
 
 .home-neb-standard-layout .NEB-slider,
 .home-neb-standard-layout .NEB-slide {
-    border-radius: 0;
+    border-radius: 18px;
 }
 
 .home-neb-standard-layout .NEB-slide {
-    border-right: 0;
-    border-left: 0;
+    border-right-width: 1px;
+    border-left-width: 1px;
 }
 
 .home-neb-desktop-grid {
@@ -135,12 +136,13 @@
 .home-neb-hero-pane {
     min-width: 0;
     overflow: hidden;
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--bg-surface-1, #1a1c21) 84%, transparent);
+    border-radius: 0;
+    background: #1c1c1d;
 }
 
 .home-neb-hero-pane .NEB-slide {
-    min-height: clamp(300px, 27vw, 390px);
+    min-height: 0;
+    aspect-ratio: 0.76 / 1;
 }
 
 .home-neb-hero-pane .NEB-content {
@@ -2779,7 +2781,7 @@
 
 @media (max-width: 760px) {
     .home-neb-standard-layout {
-        margin-top: 12px;
+        margin-top: 10px;
         padding: 0;
     }
 
@@ -2797,7 +2799,7 @@
     }
 
     .home-neb-standard-layout .NEB-slide {
-        min-height: 220px;
+        min-height: 0;
     }
 }
 

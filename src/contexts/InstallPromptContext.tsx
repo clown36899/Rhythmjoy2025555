@@ -14,6 +14,7 @@ interface InstallPromptContextType {
 }
 
 const InstallPromptContext = createContext<InstallPromptContextType | undefined>(undefined);
+const INSTALL_PROMPT_DEBUG = import.meta.env.VITE_INSTALL_PROMPT_DEBUG === 'true';
 
 export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
@@ -36,7 +37,9 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
                     const relatedApps = await (navigator as any).getInstalledRelatedApps();
                     // 설치된 관련 앱이 하나라도 있다면 설치된 것으로 간주
                     if (relatedApps && relatedApps.length > 0) {
-                        console.log('📱 [InstallPromptProvider] Installed PWA detected via getInstalledRelatedApps');
+                        if (INSTALL_PROMPT_DEBUG) {
+                            console.debug('[InstallPromptProvider] Installed PWA detected via getInstalledRelatedApps');
+                        }
                         setIsInstalled(true);
                         return;
                     }

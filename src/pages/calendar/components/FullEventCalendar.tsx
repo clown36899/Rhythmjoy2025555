@@ -9,6 +9,11 @@ import "../styles/FullEventCalendar.css";
 // import { getEventThumbnail } from "../../../utils/getEventThumbnail"; // Removed unused import
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
+const FULL_EVENT_CALENDAR_DEBUG = import.meta.env.VITE_FULL_EVENT_CALENDAR_DEBUG === 'true';
+const debugFullEventCalendar = (...args: unknown[]) => {
+  if (FULL_EVENT_CALENDAR_DEBUG) console.debug(...args);
+};
+
 const getSafeRect = (element: Element | null | undefined) => {
   if (!element || !element.isConnected) return null;
   try {
@@ -134,8 +139,8 @@ const CalendarCell = memo(({
         {shouldRenderEvents ? (
           <>
           {events.map((event) => {
-            const thumbnailUrl = event.image_micro || event.image_thumbnail || event.image_medium;
-            const desktopThumbnailUrl = event.image_thumbnail || event.image_medium || event.image_micro;
+            const thumbnailUrl = event.image_micro || event.image_thumbnail || event.image_medium || event.image || event.image_full;
+            const desktopThumbnailUrl = event.image_thumbnail || event.image_medium || event.image || event.image_full || event.image_micro;
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = event.venue_name || event.place_name || event.location || '';
             const category = String(event.category || '').toLowerCase();
@@ -629,11 +634,11 @@ export default memo(function FullEventCalendar({
     e.stopPropagation(); // 부모 셀의 클릭 이벤트(전체화면 모드 등) 방지
 
     const dayEvents = getEventsForDate(date);
-    console.log(`🖱️ [Calendar] Clicked Date: ${date.toISOString().split('T')[0]}, Events Count: ${dayEvents.length}, Map Mode: ${isMapView}`);
+    debugFullEventCalendar(`[Calendar] Clicked Date: ${date.toISOString().split('T')[0]}, Events Count: ${dayEvents.length}, Map Mode: ${isMapView}`);
 
     // [New] 지도 뷰 모드일 경우 지도 모달 호출 (모든 이벤트 표시)
     if (isMapView && onDateClickWithEvents) {
-      console.log('🚀 [Calendar] Calling map modal with all events...');
+      debugFullEventCalendar('[Calendar] Calling map modal with all events...');
       onDateClickWithEvents(date, dayEvents);
       return;
     }

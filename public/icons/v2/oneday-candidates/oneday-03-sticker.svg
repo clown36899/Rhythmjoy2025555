@@ -1,0 +1,13 @@
+<svg width="512" height="560" viewBox="0 0 512 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="s" x="50" y="74" width="412" height="414" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="17" flood-color="#000" flood-opacity=".46"/>
+    </filter>
+  </defs>
+  <g filter="url(#s)">
+    <path d="M256 84l49 43 65-5 13 64 51 40-31 58 16 63-62 21-36 55-61-25-61 25-36-55-62-21 16-63-31-58 51-40 13-64 65 5 49-43Z" fill="#0A0B10" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="8"/>
+    <text x="256" y="214" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="45" font-weight="950" fill="#F1D85E">ONE DAY</text>
+    <text x="256" y="323" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="118" font-weight="950" letter-spacing="-8" fill="#FFFFFF">모집</text>
+    <path d="M166 360H346" stroke="#8D9BFF" stroke-width="13" stroke-linecap="round"/>
+  </g>
+</svg>

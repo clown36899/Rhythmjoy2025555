@@ -2,13 +2,14 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getSupabasePkceVerifierKey, getSupabaseStorageKey, getSupabaseValidationKey } from '../../../lib/authStorageKeys';
 import '../../../styles/pages/auth-callback.css';
 
 const SESSION_SETUP_TIMEOUT_MS = 8000;
 const SESSION_CONFIRM_TIMEOUT_MS = 8000;
 const SESSION_CONFIRM_INTERVAL_MS = 250;
-const SUPABASE_STORAGE_KEY = 'sb-auth-token';
-const SESSION_VALIDATION_KEY = 'sb-validation-time';
+const SUPABASE_STORAGE_KEY = getSupabaseStorageKey();
+const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -34,7 +35,7 @@ const clearKakaoLoginFlags = () => {
 
 const removeStaleSupabasePkceVerifier = () => {
     try {
-        localStorage.removeItem('sb-auth-token-code-verifier');
+        localStorage.removeItem(getSupabasePkceVerifierKey());
     } catch {
         // localStorage can be unavailable in some private/mobile contexts.
     }

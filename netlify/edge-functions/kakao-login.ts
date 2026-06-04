@@ -1,5 +1,37 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
+const LOCAL_SUPABASE_URL = Deno.env.get('LOCAL_SUPABASE_URL') || 'http://127.0.0.1:54321';
+const LOCAL_SUPABASE_SERVICE_KEY = Deno.env.get('LOCAL_SUPABASE_SERVICE_KEY') || '';
+
+function isLocalHost(value?: string | null) {
+    if (!value) return false;
+    return /(^|\/\/|\.)localhost(?::|\/|$)|(^|\/\/)127\.0\.0\.1(?::|\/|$)|(^|\/\/)0\.0\.0\.0(?::|\/|$)/i.test(value);
+}
+
+function isLocalCallback(request: Request, redirectUri?: string) {
+    if (Deno.env.get('VITE_FORCE_PROD_SUPABASE') === 'true') return false;
+    return [
+        request.headers.get('host'),
+        request.headers.get('origin'),
+        request.headers.get('referer'),
+        redirectUri,
+    ].some((value) => isLocalHost(value));
+}
+
+function getSupabaseConfig(request: Request, redirectUri?: string) {
+    if (isLocalCallback(request, redirectUri)) {
+        return {
+            supabaseUrl: LOCAL_SUPABASE_URL,
+            supabaseServiceKey: LOCAL_SUPABASE_SERVICE_KEY,
+        };
+    }
+
+    return {
+        supabaseUrl: Deno.env.get('VITE_PUBLIC_SUPABASE_URL'),
+        supabaseServiceKey: Deno.env.get('SUPABASE_SERVICE_KEY'),
+    };
+}
+
 export default async (request: Request, context: any) => {
     // 1. Method Check
     if (request.method !== 'POST') {
@@ -7,23 +39,13 @@ export default async (request: Request, context: any) => {
     }
 
     // 2. Environment Variables
-    const supabaseUrl = Deno.env.get('VITE_PUBLIC_SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_KEY');
     const restApiKey = Deno.env.get('VITE_KAKAO_REST_API_KEY') || Deno.env.get('KAKAO_REST_API_KEY');
     const adminEmail = Deno.env.get('VITE_ADMIN_EMAIL');
 
-    if (!supabaseUrl || !supabaseServiceKey || !restApiKey) {
+    if (!restApiKey) {
         console.error('[kakao-login-edge] ❌ Missing environment variables');
         return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 });
     }
-
-    // 3. Initialize Supabase
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
-    });
 
     try {
         const body = await request.json();
@@ -34,6 +56,20 @@ export default async (request: Request, context: any) => {
         if (!code) {
             return new Response(JSON.stringify({ error: 'Missing authorization code' }), { status: 400 });
         }
+
+        const { supabaseUrl, supabaseServiceKey } = getSupabaseConfig(request, redirectUri);
+        if (!supabaseUrl || !supabaseServiceKey) {
+            console.error('[kakao-login-edge] ❌ Missing Supabase environment variables');
+            return new Response(JSON.stringify({ error: 'Server configuration error' }), { status: 500 });
+        }
+
+        // 3. Initialize Supabase
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+            },
+        });
 
         // 4. Token Exchange (Kakao)
         console.log('[kakao-login-edge] 1. Token Exchange');

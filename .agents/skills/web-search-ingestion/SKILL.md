@@ -170,15 +170,17 @@ node scripts/test-ingestion-standards.mjs
 
 Instagram, 네이버 카페 등은 자동화 감지가 매우 민감하다. 아래를 반드시 지킨다.
 
-1. **소스 간 딜레이**: 각 계정/사이트 접근 사이에 **3~7초 랜덤 대기**를 넣는다.
+1. **소스 간 딜레이**: 각 계정/사이트 접근 사이에 대기 시간을 넣는다. 일반 웹사이트는 **8~15초**, Instagram/네이버 카페처럼 민감한 소스는 **45초 이상**을 기본으로 한다.
    ```bash
-   sleep $((RANDOM % 5 + 3))  # 3~7초 랜덤
+   sleep $((RANDOM % 16 + 45))  # 민감 소스 45~60초 랜덤
    ```
 2. **한 소스당 탭 1개**: 여러 탭을 동시에 열지 않는다. 순차 접근만.
 3. **스크롤은 천천히**: `browser_evaluate`로 스크롤 시 한 번에 끝까지 내리지 말고 분할해서 내린다.
 4. **같은 페이지 반복 접근 금지**: 한 번 접근해서 내용을 못 읽었으면 재시도 1회만. 2회 이상 금지.
-5. **User-Agent 변경 금지**: Playwright 기본 UA를 그대로 사용한다. 변조 시 오히려 봇 감지됨.
-6. **접근 불가 판단 기준**:
+5. **Headless 기본 금지**: 자동 실행 기본값은 실제 Chrome 프로필 + headed Chrome이다. headless는 사용자가 명시적으로 테스트 목적을 밝힌 경우에만 켠다.
+6. **User-Agent 변경 금지**: Playwright/Chrome 기본 UA를 그대로 사용한다. 변조 시 오히려 봇 감지됨.
+7. **회로 차단**: 같은 계열 소스에서 접근 실패가 연속 3회 나오면 해당 계열 수집을 즉시 중단한다. 많이 실패할수록 더 돌리는 것이 아니라 멈추는 것이 원칙이다.
+8. **접근 불가 판단 기준**:
    - 로그인 페이지로 리다이렉트 → 즉시 스킵 (재시도 금지)
    - "이 페이지를 사용할 수 없습니다" → 즉시 스킵
    - 5초 내 응답 없음 → 즉시 스킵
@@ -270,7 +272,6 @@ SUPABASE_KEY="${SUPABASE_KEY:-$SUPABASE_SERVICE_KEY}"
 | 루나 | instagram | https://www.instagram.com/luna_swingbar/ |
 | 인더무드신림 | instagram | https://www.instagram.com/inthemood_sillim/ |
 | Dialogue | instagram | https://www.instagram.com/dialogue_swing/ |
-| 243 | instagram | https://www.instagram.com/243_swingbar/ |
 | 아수라장 | instagram | https://www.instagram.com/asurajang_swing/ |
 | 쏘셜클럽 | instagram | https://www.instagram.com/sosyalclub_swing/ |
 | 스윙잇 | instagram | https://www.instagram.com/swingit_seoul/ |

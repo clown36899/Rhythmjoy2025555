@@ -1,7 +1,10 @@
 import { initClientLogBuffer } from './utils/clientLogBuffer';
 
+const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
-console.log('%c[Main] 🏁 JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
+if (BOOT_DEBUG) {
+    console.debug('%c[Main] JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
+}
 (window as any).__APP_STARTED = true;
 
 // [vite-plugin-pwa] SW 등록 — 빌보드 키오스크 페이지에서는 SW 격리
@@ -17,10 +20,10 @@ if (!window.location.pathname.includes('/billboard/')) {
             r.update().catch(() => { });
           }
         });
-        console.log('[SW] Registered:', swUrl);
+        if (BOOT_DEBUG) console.debug('[SW] Registered:', swUrl);
       },
       onOfflineReady() {
-        console.log('[SW] App ready to work offline');
+        if (BOOT_DEBUG) console.debug('[SW] App ready to work offline');
       },
     });
   });
@@ -98,6 +101,7 @@ const BillboardPreviewPage = lazy(() => import('./pages/billboard/preview/page')
 const BillboardCatalogPage = lazy(() => import('./pages/billboard/preview/CatalogPage'));
 const CalendarPage = lazy(() => import('./pages/calendar/page'));
 const EventsInfoPage = lazy(() => import('./pages/events/page'));
+const OneDayRecruitPage = lazy(() => import('./pages/recruits/OneDayRecruitPage'));
 const MyActivitiesPage = lazy(() => import('./pages/user/MyActivitiesPage'));
 const ArchiveLayout = lazy(() => import('./layouts/ArchiveLayout'));
 const LearningPage = lazy(() => import('./pages/learning/Page'));
@@ -108,6 +112,7 @@ const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
 const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
 const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
+const NotificationPreviewPage = lazy(() => import('./pages/admin/NotificationPreviewPage'));
 const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
 const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
@@ -214,6 +219,7 @@ const router = createBrowserRouter([
       // { path: "/v2/events/:id", element: <EventDetailPage /> }, // Disabled
       { path: "/calendar", element: <CalendarPage /> },
       { path: "/events", element: <EventsInfoPage /> },
+      { path: "/oneday-recruits", element: <OneDayRecruitPage /> },
       { path: "/social", element: <SocialPage /> },
       { path: "/practice", element: <PracticePage /> },
       { path: "/shopping", element: <ShoppingPage /> },
@@ -227,6 +233,7 @@ const router = createBrowserRouter([
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
+      { path: "/admin/notification-preview", element: <Suspense fallback={null}><NotificationPreviewPage /></Suspense> },
       { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
       { path: "/admin/v2/ingestor", element: <Suspense fallback={null}><EventIngestorV2Page /></Suspense> },
       { path: "/admin/ui", element: <Suspense fallback={null}><AdminUiSamplesPage /></Suspense> },
@@ -297,7 +304,7 @@ function RootApp() {
           try {
             await (screen.orientation as any).lock('portrait');
           } catch (e) {
-            console.log('Rotation lock failed:', e);
+            if (BOOT_DEBUG) console.debug('Rotation lock failed:', e);
           }
         }
       }
@@ -441,7 +448,7 @@ if (typeof window !== 'undefined' && 'ontouchstart' in window && /iPhone|iPad|iP
   }
 }
 
-console.log('[Main] 🏁 Executing createRoot...');
+if (BOOT_DEBUG) console.debug('[Main] Executing createRoot...');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RootApp />

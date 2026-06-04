@@ -1,13 +1,17 @@
 /* NewEventsBanner.css - 매칭: V2MainAdGuidePage.css */
 
 .NEB-container {
+  --neb-fixed-top-reserve: 86px;
+  --neb-bottom-menu-reserve: calc(78px + env(safe-area-inset-bottom, 0px));
+  --neb-banner-ui-reserve: 154px;
+  --neb-slider-target-height: clamp(320px, 76vw, 540px);
   min-width: 0;
-  overflow: hidden;
-  padding: 10px;
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.11));
-  border-radius: 12px;
-  background: var(--bg-surface-2, #20232a);
-  margin: 14px 14px 0 14px;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #1c1c1d;
+  margin: 0;
 }
 
 .NEB-header {
@@ -15,8 +19,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 8px;
-  padding: 0 14px;
+  margin-bottom: 12px;
+  padding: 0 clamp(33px, 10vw, 63px);
 }
 
 .NEB-header > div {
@@ -27,14 +31,16 @@
 }
 
 .NEB-header strong {
-  font-size: 16px;
-  color: var(--text-primary, #f6f7f9);
+  font-size: 17px;
+  color: #f8fafc;
+  font-weight: 950;
+  letter-spacing: 0;
 }
 
 .NEB-header span.NEB-badge {
   padding: 2px 6px;
   border-radius: 5px;
-  background: var(--color-yellow-500, #d8a02d);
+  background: #ffd21e;
   color: #101114;
   font-size: 11px;
   font-weight: 900;
@@ -44,11 +50,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 26px;
-  padding: 0 9px;
+  min-height: 28px;
+  padding: 0 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-tertiary, #a8b0bd);
+  background: rgba(255, 255, 255, 0.075);
+  color: #d9deea;
   font-size: 13px;
   font-weight: 900;
   border: 0;
@@ -56,7 +62,7 @@
 }
 
 .NEB-header em {
-  color: var(--text-tertiary, #767f8d);
+  color: #cfd3dc;
   font-size: 13px;
   font-style: normal;
   font-weight: 900;
@@ -65,55 +71,143 @@
 .NEB-slider {
   position: relative;
   width: 100%;
-  overflow: hidden;
-  border-radius: 12px;
-  --neb-slide-width: 88%;
-  --neb-slide-gap: 8px;
+  overflow: visible;
+  height: max(
+    180px,
+    min(
+      var(--neb-slider-target-height),
+      calc(100vh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+    )
+  );
+  height: max(
+    180px,
+    min(
+      var(--neb-slider-target-height),
+      calc(100dvh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+    )
+  );
+  border-radius: 0;
 }
 
 .NEB-track {
-  display: flex;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  gap: var(--neb-slide-gap);
-  will-change: transform;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .NEB-slide {
-  position: relative;
-  flex: 0 0 var(--neb-slide-width);
+  position: absolute;
+  top: 0;
+  left: var(--neb-left, 0);
+  width: var(--neb-width, 64%);
+  height: 100%;
   min-width: 0;
-  min-height: clamp(260px, 42vw, 360px);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  background: #0f1115;
+  min-height: 0;
+  aspect-ratio: auto;
+  overflow: visible;
+  border: 1px solid rgba(0, 0, 0, 0.68);
+  border-radius: 18px;
+  background: #050505;
   cursor: pointer;
-  opacity: 0.55;
-  transform: scale(0.965);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  transform: var(--neb-transform, scale(0.94));
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.34);
+  transition: left 0.72s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.52s ease, transform 0.68s cubic-bezier(0.32, 0.72, 0, 1), border-color 0.36s ease, box-shadow 0.36s ease;
+  transform-origin: center center;
+  will-change: left, transform, opacity;
 }
 
 .NEB-slide.is-active {
+  z-index: 8;
   opacity: 1;
-  transform: scale(1);
+  transform: var(--neb-transform, scale(1));
+  border-color: rgba(0, 0, 0, 0.78);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.46);
+}
+
+.NEB-slide.is-active::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: -10px;
+  bottom: 0;
+  width: 16px;
+  border-radius: 0 18px 18px 0;
+  background: rgba(0, 0, 0, 0.46);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.NEB-slide.is-active::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: -9px;
+  bottom: 1px;
+  width: 15px;
+  border: 2px solid rgba(150, 155, 170, 0.62);
+  border-left: 0;
+  border-radius: 0 18px 18px 0;
+  background: rgba(18, 18, 20, 0.18);
+  box-shadow: 3px 0 8px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.NEB-slide.is-dark-edge {
+  border-color: rgba(255, 255, 255, 0.68);
+}
+
+.NEB-slide.is-active.is-dark-edge {
+  border-color: rgba(255, 255, 255, 0.82);
+}
+
+.NEB-slide.is-hidden {
+  visibility: hidden;
 }
 
 .NEB-imageWrapper {
   position: absolute;
+  z-index: 2;
   inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .NEB-imageWrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+}
+
+.NEB-authorBadge {
+  position: absolute;
+  right: clamp(8px, 2.2vw, 14px);
+  bottom: clamp(8px, 2.2vw, 14px);
+  z-index: 4;
+  display: block;
+  width: clamp(30px, 8vw, 42px);
+  height: clamp(30px, 8vw, 42px);
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  background: #111317;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.NEB-authorBadge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .NEB-imageWrapper::after {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.34) 54%, rgba(0, 0, 0, 0.68));
-  content: "";
+  display: none;
 }
 
 .NEB-category {
@@ -221,61 +315,341 @@
 
 .NEB-indicators {
   display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
   justify-content: center;
-  gap: 4px;
-  margin-top: 12px;
+  gap: 8px;
+  min-height: 40px;
+  margin: 25px 0px 8px;
+  padding: 0 clamp(28px, 8vw, 54px);
+}
+
+.NEB-lowerDeck {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  margin-top: 14px;
+  min-height: clamp(104px, 16vw, 138px);
+  overflow: visible;
+}
+
+.NEB-activeSummaryCluster {
+  display: block;
+  width: var(--neb-summary-width, 86%);
+  max-width: var(--neb-summary-width, 86%);
+  margin: 0 0 0 var(--neb-summary-left, 7%);
+}
+
+.NEB-oneDayRecruitBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: max(8px, calc(var(--neb-summary-left, 7%) - clamp(118px, 16vw, 144px)));
+  top: 0;
+  z-index: 8;
+  width: clamp(96px, 15.5vw, 130px);
+  aspect-ratio: 512 / 560;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(0);
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.NEB-oneDayRecruitBtn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.24));
+  pointer-events: none;
+}
+
+.NEB-activeSummary {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  text-align: center;
+  cursor: pointer;
+}
+
+.NEB-activeSummary strong {
+  display: -webkit-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: clamp(16px, 4vw, 24px);
+  font-weight: 950;
+  line-height: 1.12;
+  letter-spacing: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.72);
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  word-break: keep-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.NEB-activeSummaryMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.NEB-activeSummaryMeta em {
+  flex: 0 0 auto;
+  color: #b9beca;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.NEB-activeSummaryMeta small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 auto;
+  max-width: min(58vw, 230px);
+  min-width: 0;
+  min-height: 26px;
+  gap: 5px;
+  overflow: hidden;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.075);
+  color: #dce3f2;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.NEB-activeSummaryMeta i {
+  flex: 0 0 auto;
+  color: #85a8ff;
+  font-size: 13px;
 }
 
 .NEB-indicator {
-  width: 8px;
-  height: 8px;
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  overflow: hidden;
+  background: #0a0a0a;
+  border: 2px solid rgba(142, 144, 156, 0.86);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.28);
   cursor: pointer;
-  transition: all 0.3s;
+  transform: translate3d(0, 0, 0);
+  transition: opacity 0.2s ease;
   padding: 0;
+  opacity: 1;
+}
+
+.NEB-indicator:nth-child(odd) {
+  transform: translate3d(0, -3px, 0);
+}
+
+.NEB-indicator:nth-child(even) {
+  transform: translate3d(0, 3px, 0);
+}
+
+.NEB-indicator img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.NEB-indicator::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.66);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
 .NEB-indicator.is-active {
-  background: #ffffff;
-  width: 20px;
+  border-color: #d1d4e3db;
+  opacity: 1;
+}
+
+.NEB-indicator.is-active::after {
+  opacity: 0;
+}
+
+@media (min-width: 761px) {
+  .NEB-oneDayRecruitBtn {
+    left: max(24px, calc(var(--neb-summary-left, 30%) - clamp(250px, 22vw, 330px)));
+    top: 4px;
+    width: clamp(128px, 11vw, 168px);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 859px) and (max-height: 860px) {
+  .v2-home-shell .home-neb-standard-layout .NEB-container.NEB-container {
+    --neb-bottom-menu-reserve: calc(140px + env(safe-area-inset-bottom, 0px));
+    --neb-banner-ui-reserve: 196px;
+    --neb-slider-target-height: clamp(280px, 58dvh, 420px);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 859px) and (max-height: 720px) {
+  .v2-home-shell .home-neb-standard-layout .NEB-container.NEB-container {
+    --neb-bottom-menu-reserve: calc(150px + env(safe-area-inset-bottom, 0px));
+    --neb-banner-ui-reserve: 206px;
+    --neb-slider-target-height: clamp(230px, 52dvh, 360px);
+  }
+}
+
+@media (min-width: 860px) {
+  .NEB-oneDayRecruitBtn {
+    position: fixed;
+    top: auto;
+    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+    left: max(24px, calc(50vw - 325px - clamp(180px, 16vw, 310px)));
+    width: clamp(118px, 10vw, 142px);
+  }
 }
 
 @media (max-width: 640px) {
-    .NEB-content {
-        grid-template-columns: 108px minmax(0, 1fr);
-        padding: 14px;
-        gap: 10px;
+    .NEB-container {
+        --neb-fixed-top-reserve: 82px;
+        --neb-bottom-menu-reserve: calc(76px + env(safe-area-inset-bottom, 0px));
+        --neb-banner-ui-reserve: 148px;
+        --neb-slider-target-height: clamp(300px, 78vw, 480px);
     }
-    
-    .NEB-eventTitle {
-        font-size: 21px;
+}
+
+@media (min-width: 520px) and (max-height: 860px) {
+    .NEB-container {
+        --neb-bottom-menu-reserve: calc(116px + env(safe-area-inset-bottom, 0px));
+        --neb-banner-ui-reserve: 172px;
+        --neb-slider-target-height: clamp(260px, 64dvh, 430px);
     }
-    
-    .NEB-slide {
-        min-height: 235px;
+
+    .NEB-indicators {
+        margin-top: 18px;
+        margin-bottom: 6px;
+    }
+}
+
+@media (min-width: 520px) and (max-height: 720px) {
+    .NEB-container {
+        --neb-bottom-menu-reserve: calc(124px + env(safe-area-inset-bottom, 0px));
+        --neb-banner-ui-reserve: 180px;
+        --neb-slider-target-height: clamp(230px, 58dvh, 390px);
+    }
+
+    .NEB-indicators {
+        margin-top: 14px;
     }
 }
 
 @media (max-width: 420px) {
-    .NEB-content {
-        grid-template-columns: 106px minmax(0, 1fr);
-        padding: 12px;
-        gap: 8px;
+    .NEB-header {
+        padding: 0 24px;
+        margin-bottom: 10px;
     }
 
-    .NEB-eventMeta span {
-        min-height: 24px;
+    .NEB-header strong {
+        font-size: 16px;
+    }
+
+    .NEB-header button {
+        min-height: 27px;
         padding: 0 8px;
-        font-size: 12.5px;
+        font-size: 12px;
     }
 
-    .NEB-eventTitle {
-        font-size: 20px;
+    .NEB-indicator {
+        width: 26px;
+        height: 26px;
     }
 
-    .NEB-slide {
-        min-height: 225px;
+    .NEB-authorBadge {
+        right: 8px;
+        bottom: 8px;
+        width: 30px;
+        height: 30px;
+    }
+
+    .NEB-lowerDeck {
+        margin-top: 12px;
+        min-height: 98px;
+    }
+
+    .NEB-activeSummaryCluster {
+        width: var(--neb-summary-width, 86%);
+        max-width: var(--neb-summary-width, 86%);
+    }
+
+    .NEB-oneDayRecruitBtn {
+        left: max(6px, calc(var(--neb-summary-left, 7%) - 110px));
+        width: 98px;
+    }
+
+    .NEB-activeSummary {
+        gap: 5px;
+    }
+
+    .NEB-activeSummary strong {
+        font-size: 16px;
+    }
+
+  .NEB-activeSummaryMeta em {
+      font-size: 12px;
+  }
+
+  .NEB-activeSummaryMeta {
+      gap: 0;
+  }
+
+  .NEB-activeSummaryMeta small {
+      max-width: min(56vw, 210px);
+  }
+
+  .NEB-slider {
+      height: max(
+        170px,
+        min(
+          var(--neb-slider-target-height),
+          calc(100vh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+        )
+      );
+      height: max(
+        170px,
+        min(
+          var(--neb-slider-target-height),
+          calc(100dvh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+        )
+      );
     }
 }

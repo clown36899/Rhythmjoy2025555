@@ -21,6 +21,9 @@ const postLimit = Number(process.env.EXPANDED_INGESTION_POST_LIMIT || 4);
 const sourceTimeoutMs = Number(process.env.EXPANDED_INGESTION_SOURCE_TIMEOUT_MS || 18000);
 const postTimeoutMs = Number(process.env.EXPANDED_INGESTION_POST_TIMEOUT_MS || 22000);
 const maxFutureDays = Number(process.env.EXPANDED_INGESTION_MAX_FUTURE_DAYS || 540);
+const browserHeadless = process.env.INGESTION_BROWSER_HEADLESS === '1';
+const safeMode = process.env.INGESTION_SAFE_MODE !== '0';
+const sourceDelayMs = Number(process.env.EXPANDED_INGESTION_SOURCE_DELAY_MS || (safeMode ? 12_000 : 0));
 const today = todayKST();
 
 const result = {
@@ -49,6 +52,15 @@ function todayKST() {
 
 function log(message) {
   console.log(`[expanded-native] ${message}`);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function jitter(ms) {
+  if (!ms) return 0;
+  return Math.max(0, Math.round(ms * (0.8 + Math.random() * 0.4)));
 }
 
 function compactText(value = '') {
@@ -460,12 +472,11 @@ async function main() {
     .sort((a, b) => a.priority - b.priority || a.scope.localeCompare(b.scope) || a.name.localeCompare(b.name, 'ko'))
     .slice(0, sourceLimit > 0 ? sourceLimit : undefined);
 
-  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun}`);
-  const browser = await chromium.launch({ headless: true });
+  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} headless=${browserHeadless} safeMode=${safeMode}`);
+  const browser = await chromium.launch({ headless: browserHeadless });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     locale: 'ko-KR',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
   });
   const page = await context.newPage();
   page.setDefaultTimeout(12000);
@@ -481,6 +492,11 @@ async function main() {
       }
 
       log(`source ${source.id} ${source.scope} ${source.type} ${source.url}`);
+      if (safeMode && sourceDelayMs > 0) {
+        const waitMs = jitter(sourceDelayMs);
+        log(`safe wait ${Math.round(waitMs / 1000)}s before ${source.id}`);
+        await sleep(waitMs);
+      }
       const candidates = await collectSource(page, source);
       const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
       for (const candidate of deduped) {

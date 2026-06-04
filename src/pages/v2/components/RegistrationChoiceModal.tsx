@@ -7,13 +7,15 @@ interface RegistrationChoiceModalProps {
     onClose: () => void;
     onSelectMain: () => void;
     onSelectSocial?: () => void;
+    onSelectOneDay?: () => void;
 }
 
 const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
     isOpen,
     onClose,
     onSelectMain,
-    onSelectSocial
+    onSelectSocial,
+    onSelectOneDay
 }) => {
     const navigate = useNavigate();
 
@@ -27,6 +29,14 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
         }
     };
 
+    const handleOneDaySelect = () => {
+        if (onSelectOneDay) {
+            onSelectOneDay();
+            return;
+        }
+        onClose();
+        navigate('/oneday-recruits');
+    };
 
     if (!isOpen) return null;
 
@@ -57,6 +67,17 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
                         <div className="choice-text-content">
                             <span className="choice-label">소셜 일정 등록</span>
                             <span className="choice-desc">DJ 명 필수</span>
+                        </div>
+                        <i className="ri-arrow-right-s-line"></i>
+                    </button>
+
+                    <button className="choice-option-btn oneday" onClick={handleOneDaySelect}>
+                        <div className="choice-icon-wrapper">
+                            <i className="ri-links-line"></i>
+                        </div>
+                        <div className="choice-text-content">
+                            <span className="choice-label">원데이 모집 링크 등록</span>
+                            <span className="choice-desc">입문/체험 모집 페이지</span>
                         </div>
                         <i className="ri-arrow-right-s-line"></i>
                     </button>

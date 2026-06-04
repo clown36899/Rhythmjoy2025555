@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
-import { createResizedImages } from '../../../utils/imageResize';
+import { useAuth } from '../../../contexts/AuthContext';
 import { supabase as prodSupabase } from '../../../lib/supabase';
 import {
   detectIngestorActivity,
@@ -66,14 +66,86 @@ interface ScrapedEvent {
   updated_at?: string;
 }
 
+type TabKey = 'new' | 'collected' | 'duplicate';
+type ScopeFilter = 'all' | 'swing' | 'salsa' | 'bachata' | 'tango' | 'street';
+
+interface TangoSceneEvent {
+  id: string;
+  title: string;
+  date?: string;
+  startKst?: string;
+  endKst?: string;
+  venue?: string;
+  djName?: string;
+  entranceFee?: string;
+  sourceUrl?: string;
+}
+
+interface TangoSceneMap {
+  generatedAt: string;
+  generatedFor: string;
+  counts: {
+    today: number;
+    week: number;
+    month: number;
+  };
+  health?: {
+    calendarOk: boolean;
+    failedRanges?: Array<{ label: string; error: string }>;
+  };
+  candidateWrite?: {
+    saved: number;
+    imageBacked: number;
+    skippedNoPoster: number;
+    total: number;
+    reason?: string;
+  };
+  todayEvents: TangoSceneEvent[];
+  weekEvents: TangoSceneEvent[];
+  venueCandidates: Array<{
+    name: string;
+    count: number;
+    firstSeen?: string;
+    lastSeen?: string;
+    mapStatus?: string;
+    topTitles?: Array<{ name: string; count: number }>;
+  }>;
+  monthTopTitles: Array<{ name: string; count: number }>;
+  sources: Array<{
+    id: string;
+    name: string;
+    url: string;
+    role: string;
+    policy: string;
+    note?: string;
+  }>;
+  knownMajorEvents: Array<{
+    name: string;
+    date: string;
+    venue: string;
+    sourceUrl: string;
+    role: string;
+  }>;
+}
+
+const SCOPE_FILTER_OPTIONS: Array<{ key: ScopeFilter; label: string; description: string }> = [
+  { key: 'all', label: '전체 장르', description: '수집 후보 전체' },
+  { key: 'swing', label: '스윙', description: '안정 자동 수집' },
+  { key: 'tango', label: '탱고', description: '씬맵 + 후보' },
+  { key: 'salsa', label: '살사', description: '확장 조사' },
+  { key: 'bachata', label: '바차타', description: '확장 조사' },
+  { key: 'street', label: '스트릿', description: '확장 조사' },
+];
+
 const EventIngestorV2: React.FC = () => {
+  const { isAuthCheckComplete } = useAuth();
   const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'new' | 'collected' | 'duplicate'>('new');
+  const [activeTab, setActiveTab] = useState<TabKey>('new');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
-  const [scopeFilter, setScopeFilter] = useState<'all' | 'swing' | 'salsa' | 'bachata' | 'tango' | 'street'>('all');
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
   const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집'>('전체');
   const [familyFilter, setFamilyFilter] = useState<'all' | 'partner' | 'street' | 'art' | 'commercial' | 'unknown'>('all');
   const [tagFilter, setTagFilter] = useState('all');
@@ -81,6 +153,9 @@ const EventIngestorV2: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [tabCounts, setTabCounts] = useState<{ new: number; collected: number; duplicate: number }>({ new: 0, collected: 0, duplicate: 0 });
   const [venues, setVenues] = useState<VenueRecord[]>([]);
+  const [tangoSceneMap, setTangoSceneMap] = useState<TangoSceneMap | null>(null);
+  const [tangoSceneLoading, setTangoSceneLoading] = useState(false);
+  const [tangoSceneError, setTangoSceneError] = useState<string | null>(null);
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -93,24 +168,47 @@ const EventIngestorV2: React.FC = () => {
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const resetReviewFilters = () => {
-    setScopeFilter('all');
+  const getAdminRequestHeaders = async (withJson = false): Promise<Record<string, string>> => {
+    const { data } = await prodSupabase.auth.getSession();
+    const token = data.session?.access_token;
+    return {
+      ...(withJson ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
+  const resetSecondaryFilters = () => {
     setActivityFilter('전체');
     setFamilyFilter('all');
     setTagFilter('all');
   };
 
-  const handleTabChange = (tab: 'new' | 'collected' | 'duplicate') => {
+  const handleTabChange = (tab: TabKey) => {
     setActiveTab(tab);
     setSelectedIds(new Set());
     setCurrentPage(1);
-    resetReviewFilters();
+    resetSecondaryFilters();
   };
 
-  const fetchScrapedEvents = async (page = 1, tab = activeTab) => {
+  const handleScopeChange = (scope: ScopeFilter) => {
+    setScopeFilter(scope);
+    setSelectedIds(new Set());
+    setCurrentPage(1);
+    resetSecondaryFilters();
+  };
+
+  const buildScrapedEventsUrl = (page: number, tab: TabKey, scope: ScopeFilter) => {
+    const params = new URLSearchParams({ page: String(page), tab });
+    if (scope !== 'all') params.set('scope', scope);
+    return `/.netlify/functions/scraped-events?${params.toString()}`;
+  };
+
+  const fetchScrapedEvents = async (page = 1, tab = activeTab, scope = scopeFilter) => {
     try {
       setLoading(true);
-      const res = await fetch(`/.netlify/functions/scraped-events?page=${page}&tab=${tab}`);
+      const res = await fetch(buildScrapedEventsUrl(page, tab, scope), {
+        headers: await getAdminRequestHeaders(),
+      });
       if (!res.ok) throw new Error('데이터를 불러오지 못했습니다.');
       const json = await res.json();
       setScrapedEvents(json.data || json);
@@ -123,12 +221,14 @@ const EventIngestorV2: React.FC = () => {
     }
   };
 
-  const fetchTabCounts = async () => {
+  const fetchTabCounts = async (scope = scopeFilter) => {
     try {
+      const scopeQuery = scope === 'all' ? '' : `&scope=${scope}`;
+      const headers = await getAdminRequestHeaders();
       const [resNew, resCollected, resDuplicate] = await Promise.all([
-        fetch('/.netlify/functions/scraped-events?page=1&tab=new'),
-        fetch('/.netlify/functions/scraped-events?page=1&tab=collected'),
-        fetch('/.netlify/functions/scraped-events?page=1&tab=duplicate'),
+        fetch(`/.netlify/functions/scraped-events?page=1&tab=new${scopeQuery}`, { headers }),
+        fetch(`/.netlify/functions/scraped-events?page=1&tab=collected${scopeQuery}`, { headers }),
+        fetch(`/.netlify/functions/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers }),
       ]);
       const [jsonNew, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resCollected.json(), resDuplicate.json()]);
       setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
@@ -138,11 +238,13 @@ const EventIngestorV2: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchScrapedEvents(1, activeTab);
-    fetchTabCounts();
-  }, [activeTab]);
+    if (!isAuthCheckComplete) return;
+    fetchScrapedEvents(1, activeTab, scopeFilter);
+    fetchTabCounts(scopeFilter);
+  }, [activeTab, scopeFilter, isAuthCheckComplete]);
 
   useEffect(() => {
+    if (!isAuthCheckComplete) return;
     const fetchVenues = async () => {
       const { data, error } = await prodSupabase
         .from('venues')
@@ -155,34 +257,43 @@ const EventIngestorV2: React.FC = () => {
       setVenues((data || []) as VenueRecord[]);
     };
     fetchVenues();
-  }, []);
+  }, [isAuthCheckComplete]);
 
-  const scopeOptions = useMemo(() => {
-    const labels: Record<string, string> = {
-      swing: '스윙',
-      salsa: '살사',
-      bachata: '바차타',
-      tango: '탱고',
-      street: '스트릿',
+  useEffect(() => {
+    if (!isAuthCheckComplete) return;
+    if (scopeFilter !== 'tango') return;
+
+    let alive = true;
+    const fetchTangoSceneMap = async () => {
+      try {
+        setTangoSceneLoading(true);
+        setTangoSceneError(null);
+        const res = await fetch('/.netlify/functions/tango-scene-map');
+        if (!res.ok) throw new Error(`탱고 씬맵 로드 실패 (${res.status})`);
+        const json = await res.json();
+        if (alive) setTangoSceneMap(json);
+      } catch (err: any) {
+        if (alive) setTangoSceneError(err?.message || '탱고 씬맵 로드 실패');
+      } finally {
+        if (alive) setTangoSceneLoading(false);
+      }
     };
-    const counts = new Map<string, number>();
+
+    fetchTangoSceneMap();
+    return () => { alive = false; };
+  }, [scopeFilter, isAuthCheckComplete]);
+
+  const scopeLocalCounts = useMemo(() => {
+    const counts = new Map<ScopeFilter, number>();
     scrapedEvents.forEach((event) => {
       const meta = getIngestorGenreMeta(event);
-      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
-      if (['swing', 'salsa', 'bachata', 'tango', 'street'].includes(scope)) {
+      const scope = (event.structured_data?.dance_scope || meta.scope || 'swing') as ScopeFilter;
+      if (scope !== 'all' && SCOPE_FILTER_OPTIONS.some((option) => option.key === scope)) {
         counts.set(scope, (counts.get(scope) || 0) + 1);
       }
     });
-    return (['swing', 'salsa', 'bachata', 'tango', 'street'] as const)
-      .filter((key) => counts.has(key))
-      .map((key) => ({ key, label: labels[key], count: counts.get(key) || 0 }));
+    return counts;
   }, [scrapedEvents]);
-
-  useEffect(() => {
-    if (scopeFilter !== 'all' && !scopeOptions.some((option) => option.key === scopeFilter)) {
-      setScopeFilter('all');
-    }
-  }, [scopeFilter, scopeOptions]);
 
   const familyOptions = useMemo(() => {
     const counts = new Map<string, { label: string; count: number }>();
@@ -237,6 +348,11 @@ const EventIngestorV2: React.FC = () => {
       return true;
     });
   }, [activityFilter, familyFilter, scopeFilter, scrapedEvents, tagFilter]);
+
+  const tangoPreviewEvents = useMemo(() => {
+    if (!tangoSceneMap) return [];
+    return tangoSceneMap.todayEvents.length ? tangoSceneMap.todayEvents : tangoSceneMap.weekEvents.slice(0, 6);
+  }, [tangoSceneMap]);
 
   const handleUpdateStatus = async (id: string, updates: Partial<ScrapedEvent>) => {
     try {
@@ -347,7 +463,7 @@ const EventIngestorV2: React.FC = () => {
     const ids = Array.from(selectedIds);
     await fetch('/.netlify/functions/scraped-events', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getAdminRequestHeaders(true),
       body: JSON.stringify({ ids }),
     });
     setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
@@ -374,8 +490,6 @@ const EventIngestorV2: React.FC = () => {
 
   const registerEventToProd = async (event: ScrapedEvent): Promise<string> => {
     const sd = event.structured_data;
-    let imageUrls: any = {};
-    let storagePath: string | null = null;
 
     // extracted_text는 목록 조회 시 제외되므로 등록 시 별도 조회
     let extractedText = event.extracted_text || '';
@@ -384,43 +498,10 @@ const EventIngestorV2: React.FC = () => {
       extractedText = (full as any)?.extracted_text || '';
     }
 
-    if (event.poster_url) {
-      try {
-        const imgRes = await fetch(event.poster_url);
-        const imgBlob = await imgRes.blob();
-        const imgFile = new File([imgBlob], 'poster.png', { type: imgBlob.type });
-        const imageFiles = await createResizedImages(imgFile);
-        const timestamp = Date.now();
-        const folderName = `${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
-        storagePath = `social-events/${folderName}`;
-        const upload = async (size: string, file: File) => {
-          const path = `${storagePath}/${size}.webp`;
-          const { error } = await prodSupabase.storage.from('images').upload(path, file, { contentType: 'image/webp', upsert: true });
-          if (error) throw error;
-          return prodSupabase.storage.from('images').getPublicUrl(path).data.publicUrl;
-        };
-        const [micro, thumb, med, full] = await Promise.all([
-          upload('micro', imageFiles.micro),
-          upload('thumbnail', imageFiles.thumbnail),
-          upload('medium', imageFiles.medium),
-          upload('full', imageFiles.full),
-        ]);
-        imageUrls = { micro, thumb, med, full };
-      } catch (e) {
-        console.error('[BulkRegister] 이미지 처리 실패, 이미지 없이 계속:', e);
-      }
-    }
-
     const formattedTitle = sd.djs?.length
       ? `DJ ${sd.djs.join(', ')} | ${sd.title}`
       : sd.title;
     const mapped = mapIngestorEvent(event, venues);
-    const duplicate = await findRegisteredDuplicate(event, formattedTitle, mapped);
-    if (duplicate) {
-      await handleUpdateStatus(event.id, { is_collected: true });
-      console.log(`[IngestorV2] 운영 DB 중복으로 등록 스킵: ${event.id} → ${duplicate.id} (${duplicate.title})`);
-      return String(duplicate.id);
-    }
 
     const insertPayload = {
         title: formattedTitle,
@@ -432,12 +513,12 @@ const EventIngestorV2: React.FC = () => {
         venue_id: mapped.venue_id,
         venue_name: mapped.venue_name,
         location_link: mapped.location_link,
-        image: imageUrls.full || event.poster_url || null,
-        image_micro: imageUrls.micro || null,
-        image_thumbnail: imageUrls.thumb || null,
-        image_medium: imageUrls.med || null,
-        image_full: imageUrls.full || null,
-        storage_path: storagePath,
+        image: event.poster_url || null,
+        image_micro: null,
+        image_thumbnail: null,
+        image_medium: null,
+        image_full: null,
+        storage_path: null,
         description: extractedText,
         category: mapped.category,
         scope: 'domestic',
@@ -448,25 +529,30 @@ const EventIngestorV2: React.FC = () => {
         dance_genre: mapped.dance_genre,
         activity_type: mapped.activity_type,
         dance_tags: mapped.dance_tags,
-        user_id: (await prodSupabase.auth.getUser()).data.user?.id || '508e4c9e-b180-4c0f-aa98-3e99562a147a',
         group_id: mapped.group_id,
       } as any;
 
-    const { data: result, error } = await prodSupabase
-      .from('events' as any)
-      .insert([insertPayload])
-      .select()
-      .maybeSingle();
-
-    if (error) throw error;
-
-    await fetch('/.netlify/functions/scraped-events', {
+    const duplicate = await findRegisteredDuplicate(event, formattedTitle, mapped);
+    const registerRes = await fetch('/.netlify/functions/ingestor-register-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...event, is_collected: true }),
+      body: JSON.stringify({
+        scrapedEventId: event.id,
+        eventData: insertPayload,
+        scrapedStructuredData: event.structured_data,
+        existingEventId: duplicate?.id || null,
+      }),
     });
+    const registerJson = await registerRes.json().catch(() => ({}));
+    if (!registerRes.ok) {
+      throw new Error(registerJson.error || '운영 DB 등록에 실패했습니다.');
+    }
 
-    return result?.id;
+    if (duplicate) {
+      console.log(`[IngestorV2] 운영 DB 중복 이벤트 이미지/완료 상태 보정: ${event.id} → ${duplicate.id} (${duplicate.title})`);
+    }
+
+    return registerJson.event?.id || duplicate?.id;
   };
 
   const findRegisteredDuplicate = async (event: ScrapedEvent, formattedTitle: string, mapped: MappedIngestorEvent) => {
@@ -490,24 +576,44 @@ const EventIngestorV2: React.FC = () => {
   const handleBulkRegister = async () => {
     if (!selectedIds.size) return;
     const targets = filteredEvents.filter(e => selectedIds.has(e.id));
+    if (!targets.length) {
+      alert('현재 필터/탭에서 등록할 선택 항목을 찾지 못했습니다. 목록을 새로고침한 뒤 다시 선택하세요.');
+      setSelectedIds(new Set());
+      return;
+    }
+
     setBulkProgress(`등록 중... (0/${targets.length})`);
     const errors: string[] = [];
+    const successIds = new Set<string>();
     let i = 0;
+
     for (const event of targets) {
       try {
         await registerEventToProd(event);
-        setBulkProgress(`등록 중... (${++i}/${targets.length})`);
+        successIds.add(event.id);
       } catch (e: any) {
         errors.push(`${event.structured_data.title}: ${e.message}`);
-        i++;
       }
+      i++;
+      setBulkProgress(`등록 중... (${i}/${targets.length})`);
     }
-    setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
-    setSelectedIds(new Set());
+
+    if (activeTab !== 'collected') {
+      setScrapedEvents(prev => prev.filter(e => !successIds.has(e.id)));
+    }
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      successIds.forEach(id => next.delete(id));
+      return next;
+    });
     setBulkProgress(null);
-    fetchTabCounts();
-    if (errors.length) alert(`일부 실패:\n${errors.join('\n')}`);
-    else alert(`${targets.length}개 등록 완료`);
+    await fetchTabCounts();
+
+    if (errors.length) {
+      alert(`일괄 등록 결과: ${successIds.size}/${targets.length}개 완료\n\n실패:\n${errors.join('\n')}`);
+    } else {
+      alert(`${successIds.size}개 등록 완료`);
+    }
   };
 
   const handleRegistrationSuccess = async (id: string) => {
@@ -515,6 +621,10 @@ const EventIngestorV2: React.FC = () => {
     setSelectedEvent(null);
     await fetchScrapedEvents();
   };
+
+  if (!isAuthCheckComplete) {
+    return <div className="ingestor-v2-container">수집 후보 불러오는 중...</div>;
+  }
 
   return (
     <div className="ingestor-v2-container">
@@ -527,19 +637,21 @@ const EventIngestorV2: React.FC = () => {
         </div>
         <div className="ingestor-taxonomy-filters">
           <div className="scope-filter-group" aria-label="장르 필터">
-            <button
-              className={`scope-filter-btn ${scopeFilter === 'all' ? 'active' : ''}`}
-              onClick={() => { setScopeFilter('all'); setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
-            >
-              전체 장르 <span>{scrapedEvents.length}</span>
-            </button>
-            {scopeOptions.map(option => (
+            {SCOPE_FILTER_OPTIONS.map(option => (
               <button
                 key={option.key}
                 className={`scope-filter-btn scope-${option.key} ${scopeFilter === option.key ? 'active' : ''}`}
-                onClick={() => { setScopeFilter(option.key); setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
+                onClick={() => handleScopeChange(option.key)}
+                title={option.description}
               >
-                {option.label} <span>{option.count}</span>
+                {option.label}
+                <span>
+                  {scopeFilter === option.key
+                    ? totalCount
+                    : option.key === 'all'
+                      ? scrapedEvents.length
+                      : scopeLocalCounts.get(option.key) || 0}
+                </span>
               </button>
             ))}
           </div>
@@ -599,6 +711,129 @@ const EventIngestorV2: React.FC = () => {
         </div>
       </header>
 
+      {scopeFilter === 'tango' && (
+        <section className="tango-scene-panel" aria-label="탱고 씬맵">
+          <div className="tango-scene-panel-head">
+            <div>
+              <span className="tango-scene-kicker">Tango Scene Map</span>
+              <h2>탱고 라이브 일정과 장소 흐름</h2>
+              <p>반복 밀롱가 허브는 후보 저장보다 씬 지도로 먼저 관리합니다. 공식 포스터가 확인된 대회/페스티벌만 행사 후보로 승격합니다.</p>
+            </div>
+            <div className="tango-scene-actions">
+              <a href="https://ktnow.kr/" target="_blank" rel="noopener noreferrer">Tango NOW</a>
+              <a href="https://tangocalendar.kr/" target="_blank" rel="noopener noreferrer">Tango Calendar</a>
+            </div>
+          </div>
+
+          {tangoSceneLoading && <div className="tango-scene-status">탱고 씬맵을 불러오는 중...</div>}
+          {tangoSceneError && <div className="tango-scene-status is-error">{tangoSceneError}</div>}
+
+          {tangoSceneMap && (
+            <>
+              <div className="tango-scene-metrics">
+                <div>
+                  <strong>{tangoSceneMap.counts.today}</strong>
+                  <span>오늘 일정</span>
+                </div>
+                <div>
+                  <strong>{tangoSceneMap.counts.week}</strong>
+                  <span>이번주 일정</span>
+                </div>
+                <div>
+                  <strong>{tangoSceneMap.counts.month}</strong>
+                  <span>이번달 일정</span>
+                </div>
+                <div>
+                  <strong>{tangoSceneMap.venueCandidates.length}</strong>
+                  <span>장소 후보</span>
+                </div>
+              </div>
+
+              {tangoSceneMap.health && !tangoSceneMap.health.calendarOk && (
+                <div className="tango-scene-status is-warning">
+                  일부 범위 수집 실패: {tangoSceneMap.health.failedRanges?.map(item => `${item.label}(${item.error})`).join(', ')}
+                </div>
+              )}
+
+              <div className="tango-scene-grid">
+                <div className="tango-scene-card">
+                  <div className="tango-scene-card-title">
+                    <strong>{tangoSceneMap.todayEvents.length ? '오늘 탱고 일정' : '이번주 탱고 일정'}</strong>
+                    <span>{tangoSceneMap.generatedFor}</span>
+                  </div>
+                  <div className="tango-live-list">
+                    {tangoPreviewEvents.length ? tangoPreviewEvents.map(event => (
+                      <a key={event.id} href={event.sourceUrl || 'https://tangocalendar.kr/'} target="_blank" rel="noopener noreferrer" className="tango-live-item">
+                        <strong>{event.title}</strong>
+                        <span>{event.startKst || event.date || '날짜 미정'}</span>
+                        <em>{event.venue || '장소 미정'}{event.djName ? ` · DJ ${event.djName}` : ''}{event.entranceFee ? ` · ${event.entranceFee}` : ''}</em>
+                      </a>
+                    )) : (
+                      <div className="tango-scene-empty">표시할 라이브 일정이 없습니다.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="tango-scene-card">
+                  <div className="tango-scene-card-title">
+                    <strong>상위 장소 흐름</strong>
+                    <span>venue density</span>
+                  </div>
+                  <div className="tango-venue-list">
+                    {tangoSceneMap.venueCandidates.slice(0, 8).map(venue => (
+                      <div key={venue.name} className="tango-venue-item">
+                        <strong>{venue.name}</strong>
+                        <span>{venue.count}회</span>
+                        <em>{venue.topTitles?.slice(0, 2).map(item => item.name).join(', ') || '대표 일정 확인 필요'}</em>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="tango-scene-card">
+                  <div className="tango-scene-card-title">
+                    <strong>소스 정책</strong>
+                    <span>{tangoSceneMap.sources.length} sources</span>
+                  </div>
+                  <div className="tango-source-list">
+                    {tangoSceneMap.sources.map(source => (
+                      <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer">
+                        <strong>{source.name}</strong>
+                        <span>{source.role}</span>
+                        <em>{source.policy}</em>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="tango-scene-card">
+                  <div className="tango-scene-card-title">
+                    <strong>공식 행사 축</strong>
+                    <span>candidate axes</span>
+                  </div>
+                  <div className="tango-major-list">
+                    {tangoSceneMap.knownMajorEvents.map(event => (
+                      <a key={event.sourceUrl} href={event.sourceUrl} target="_blank" rel="noopener noreferrer">
+                        <strong>{event.name}</strong>
+                        <span>{event.date} · {event.venue}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {tangoSceneMap.candidateWrite && (
+                <div className="tango-scene-note">
+                  <strong>후보 저장 정책</strong>
+                  <span>{tangoSceneMap.candidateWrite.reason}</span>
+                  <em>이번주 허브 일정 {tangoSceneMap.candidateWrite.total}건 중 이미지 기반 저장 후보 {tangoSceneMap.candidateWrite.imageBacked}건</em>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
+
       {/* 일괄 액션 바 */}
       {selectedIds.size > 0 && (
         <div className="bulk-action-bar">
@@ -608,10 +843,12 @@ const EventIngestorV2: React.FC = () => {
           ) : (
             <>
               <button className="bulk-btn bulk-btn-ignore" onClick={handleBulkIgnore}>일괄 제외</button>
-              <button className="bulk-btn bulk-btn-collect" onClick={handleBulkCollect}>일괄 완료(이미등록)</button>
               {activeTab !== 'collected' && (
-                <button className="bulk-btn bulk-btn-register" onClick={handleBulkRegister}>일괄 등록</button>
+                <button className="bulk-btn bulk-btn-collect" onClick={handleBulkCollect}>일괄 완료(이미등록)</button>
               )}
+              <button className="bulk-btn bulk-btn-register" onClick={handleBulkRegister}>
+                {activeTab === 'collected' ? '일괄 등록/재등록' : '일괄 등록'}
+              </button>
             </>
           )}
         </div>
@@ -741,7 +978,7 @@ const EventIngestorV2: React.FC = () => {
                         if (!confirm(`"${event.structured_data.title}" 을 삭제할까요?`)) return;
                         await fetch('/.netlify/functions/scraped-events', {
                           method: 'DELETE',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: await getAdminRequestHeaders(true),
                           body: JSON.stringify({ id: event.id }),
                         });
                         setScrapedEvents(prev => prev.filter(e => e.id !== event.id));
@@ -753,7 +990,13 @@ const EventIngestorV2: React.FC = () => {
               })}
             </tbody>
           </table>
-          {filteredEvents.length === 0 && <div className="empty-state">해당 탭에 데이터가 없습니다.</div>}
+          {filteredEvents.length === 0 && (
+            <div className="empty-state">
+              {scopeFilter === 'tango'
+                ? '탱고 DB 후보는 비어 있습니다. 위 씬맵에서 라이브 일정과 장소 흐름을 확인하세요.'
+                : '해당 탭에 데이터가 없습니다.'}
+            </div>
+          )}
         </div>
       )}
 

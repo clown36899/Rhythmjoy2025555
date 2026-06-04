@@ -14,6 +14,9 @@ const mode = args.get('mode') || 'expanded-research';
 const outputPrefix = args.get('output-prefix') || `expanded-genre-hub-watch-${today}`;
 const timeoutMs = Number(args.get('timeout-ms') || 16000);
 const limit = Number(args.get('limit') || 0);
+const browserHeadless = process.env.INGESTION_BROWSER_HEADLESS === '1';
+const safeMode = process.env.INGESTION_SAFE_MODE !== '0';
+const sourceDelayMs = Number(process.env.EXPANDED_HUB_WATCH_SOURCE_DELAY_MS || (safeMode ? 8000 : 0));
 
 const priorityHubIds = new Set([
   'latin-in-seoul',
@@ -87,6 +90,15 @@ function countTerms(text, terms) {
     const pattern = new RegExp(escapeRegex(term.toLowerCase()), 'g');
     return count + (lower.match(pattern)?.length || 0);
   }, 0);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function jitter(ms) {
+  if (!ms) return 0;
+  return Math.max(0, Math.round(ms * (0.8 + Math.random() * 0.4)));
 }
 
 function normalizeDate(year, month, day) {
@@ -377,11 +389,16 @@ async function main() {
     .sort((a, b) => a.priority - b.priority || a.scope.localeCompare(b.scope) || a.name.localeCompare(b.name, 'ko'));
   const sources = limit > 0 ? selected.slice(0, limit) : selected;
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: browserHeadless });
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 }, locale: 'ko-KR' });
   const results = [];
 
   for (const source of sources) {
+    if (safeMode && sourceDelayMs > 0) {
+      const waitMs = jitter(sourceDelayMs);
+      console.log(`safe wait ${Math.round(waitMs / 1000)}s before ${source.id}`);
+      await sleep(waitMs);
+    }
     const page = await context.newPage();
     const watchRole = getWatchRole(source);
     const result = await probe(page, source);

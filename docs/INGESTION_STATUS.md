@@ -3,6 +3,7 @@
 > 📌 **이 파일은 git 관리 대상** (`docs/INGESTION_STATUS.md`).
 > 자동 실행은 run 파일과 Telegram 요약을 우선한다. 이 문서는 수동 점검/인계 시 갱신한다. 구 경로 `/Users/inteyeo/scripts/INGESTION_STATUS.md`는 더 이상 사용하지 않는다.
 > 재구축 가이드: [`docs/ingestion-system-rebuild-guide.md`](./ingestion-system-rebuild-guide.md)
+> 참고: 아래 과거 로그에 남아 있는 `243_swingbar`는 실제 확인된 공식 소스가 아니라 이전 수집 지도에 잘못 포함됐던 후보다. 현재 활성 `swing-daily` 소스와 소스 가드에서는 제외되어 있다.
 
 **최종 업데이트**: 2026-05-28 08:18
 

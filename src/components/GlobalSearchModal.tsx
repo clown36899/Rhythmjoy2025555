@@ -70,6 +70,37 @@ const dedupeRowsById = <T extends { id: string | number }>(rows: T[]) => {
     });
 };
 
+const getSearchTokens = (query: string) => (
+    query
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .map(token => sanitizeSearchToken(token))
+        .filter(Boolean)
+);
+
+const sanitizeSearchToken = (token: string) => (
+    token.replace(/[(),]/g, ' ').trim()
+);
+
+const buildTextSearchFilter = (columns: string[], tokens: string[]) => (
+    tokens
+        .map(sanitizeSearchToken)
+        .filter(Boolean)
+        .flatMap(token => columns.map(column => `${column}.ilike.%${token}%`))
+        .join(',')
+);
+
+const rowMatchesSearch = (row: Record<string, unknown>, fields: string[], tokens: string[]) => {
+    const haystack = fields
+        .map(field => row[field])
+        .filter(value => value !== null && value !== undefined)
+        .join(' ')
+        .toLowerCase();
+
+    return tokens.every(token => haystack.includes(token));
+};
+
 const sortEventSearchResults = (events: SearchResult[], mode: EventSortMode, includePast: boolean) => {
     const todayMs = getSearchDateMs(getLocalDateString());
     return [...events].sort((a, b) => {
@@ -149,10 +180,14 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
     const performSearch = async (query: string) => {
         setLoading(true);
-        const searchTerm = query.toLowerCase();
-        const cleanQuery = query.replace(/\s+/g, '').toLowerCase();
-        const wildcardQuery = cleanQuery.split('').join('%');
+        const tokens = getSearchTokens(query);
         const today = getLocalDateString();
+
+        if (tokens.length === 0) {
+            setResults({ events: [], venues: [], shopping: [], board_posts: [] });
+            setLoading(false);
+            return;
+        }
 
         try {
             const promises: Promise<any>[] = [];
@@ -162,7 +197,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     let q = supabase
                         .from('events')
                         .select('id, title, description, image_thumbnail, start_date, date, end_date, category')
-                        .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`);
+                        .or(buildTextSearchFilter(['title', 'description'], tokens));
 
                     if (futureOnly) {
                         q = q.or(`end_date.gte.${today},date.gte.${today}`);
@@ -199,7 +234,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 promises.push(
                     supabase.from('venues')
                         .select('id, name, description, images, address, category')
-                        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%,name.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
+                        .or(buildTextSearchFilter(['name', 'description', 'address'], tokens))
                         .limit(10)
                         .then(r => ({ type: 'venues', data: r.data, error: r.error }))
                 );
@@ -211,7 +246,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 promises.push(
                     supabase.from('shops')
                         .select('id, name, description, logo_url')
-                        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,name.ilike.%${wildcardQuery}%,description.ilike.%${wildcardQuery}%`)
+                        .or(buildTextSearchFilter(['name', 'description'], tokens))
                         .limit(10)
                         .then(r => ({ type: 'shopping', data: r.data, error: r.error }))
                 );
@@ -223,7 +258,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 promises.push(
                     supabase.from('board_posts')
                         .select('id, title, content, author_nickname')
-                        .or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%,title.ilike.%${wildcardQuery}%,content.ilike.%${wildcardQuery}%`)
+                        .or(buildTextSearchFilter(['title', 'content', 'author_nickname'], tokens))
                         .limit(10)
                         .then(r => ({ type: 'board', data: r.data, error: r.error }))
                 );
@@ -233,7 +268,9 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             const [eventsRes, venuesRes, shoppingRes, boardRes] = await Promise.all(promises);
 
-            const eventResults = (eventsRes.data || []).map((e: any) => ({
+            const eventResults = (eventsRes.data || [])
+                .filter((e: any) => rowMatchesSearch(e, ['title', 'description'], tokens))
+                .map((e: any) => ({
                     id: e.id,
                     title: e.title,
                     description: e.description,
@@ -245,21 +282,27 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             setResults({
                 events: sortEventSearchResults(eventResults, eventSortMode, includePast),
-                venues: (venuesRes.data || []).map((p: any) => ({
+                venues: (venuesRes.data || [])
+                    .filter((p: any) => rowMatchesSearch(p, ['name', 'description', 'address'], tokens))
+                    .map((p: any) => ({
                     id: String(p.id),
                     title: p.name,
                     description: p.description,
                     type: 'practice_room' as const,
                     thumbnail: getOptimizedImageUrl(Array.isArray(p.images) ? p.images[0] : typeof p.images === 'string' ? JSON.parse(p.images)[0] : undefined, 100)
                 })),
-                shopping: (shoppingRes.data || []).map((s: any) => ({
+                shopping: (shoppingRes.data || [])
+                    .filter((s: any) => rowMatchesSearch(s, ['name', 'description'], tokens))
+                    .map((s: any) => ({
                     id: String(s.id),
                     title: s.name,
                     description: s.description,
                     type: 'shopping' as const,
                     thumbnail: s.logo_url
                 })),
-                board_posts: (boardRes.data || []).map((bp: any) => ({
+                board_posts: (boardRes.data || [])
+                    .filter((bp: any) => rowMatchesSearch(bp, ['title', 'content', 'author_nickname'], tokens))
+                    .map((bp: any) => ({
                     id: String(bp.id),
                     title: bp.title,
                     description: bp.content,

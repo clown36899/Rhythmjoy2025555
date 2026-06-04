@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
-import { createResizedImages } from '../../../../utils/imageResize';
 import { supabase as prodSupabase } from '../../../../lib/supabase';
-import { detectEventType, mapIngestorEvent, titleLooksDuplicate, toMapSafeVenueName, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
+import { ensureRecruitmentTags, getRecruitmentKindLabel, type RecruitmentKind } from '../../../../utils/danceTaxonomy';
+import { detectEventType, getIngestorRecruitmentKind, mapIngestorEvent, titleLooksDuplicate, toMapSafeVenueName, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
 import './EventEditModal.css';
 
 interface EventEditModalProps {
@@ -23,6 +23,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
     useEffect(() => {
         if (event) {
             const mapped = mapIngestorEvent(event, venues);
+            const recruitmentKind = getIngestorRecruitmentKind(event);
 
             setFormData({
                 title: event.structured_data?.title || '',
@@ -36,6 +37,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 poster_url: event.poster_url || '',
                 category: mapped.category,
                 genre: mapped.genre,
+                recruitment_kind: recruitmentKind || '',
                 time: mapped.time,
                 group_id: mapped.group_id,
                 venue_name: mapped.venue_name,
@@ -61,7 +63,20 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
             ...prev,
             category,
             genre,
+            recruitment_kind: '',
             group_id: category === 'social' ? 2 : null,
+        }));
+    };
+
+    const handleRecruitmentKindChange = (value: string) => {
+        const recruitmentKind = value as RecruitmentKind | '';
+        const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
+        setFormData((prev: any) => ({
+            ...prev,
+            recruitment_kind: recruitmentKind,
+            category: recruitmentKind ? 'event' : prev.category,
+            genre: recruitmentLabel || (prev.category === 'social' ? '소셜' : prev.category === 'class' ? '강습' : '파티'),
+            group_id: recruitmentKind ? null : prev.group_id,
         }));
     };
 
@@ -104,57 +119,13 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
 
         try {
             setIsSubmitting(true);
-            setProgress('이미지 리사이징 중...');
-
-            // 1. 이미지 처리 (기존 로직 이식)
-            let imageFiles: any = null;
-            let imageUrls: any = {};
-            let storagePath: string | null = null;
-
-            if (formData.poster_url) {
-                try {
-                    const imgRes = await fetch(formData.poster_url);
-                    const imgBlob = await imgRes.blob();
-                    const imgFile = new File([imgBlob], 'poster.png', { type: imgBlob.type });
-                    
-                    imageFiles = await createResizedImages(imgFile);
-
-                    const timestamp = Date.now();
-                    const folderName = `${timestamp}_${Math.random().toString(36).substring(2, 7)}`;
-                    storagePath = `social-events/${folderName}`;
-
-                    setProgress('이미지 업로드 중...');
-                    const upload = async (size: string, file: File) => {
-                        const path = `${storagePath}/${size}.webp`;
-                        const { error } = await prodSupabase.storage.from('images').upload(path, file, {
-                            contentType: 'image/webp',
-                            upsert: true
-                        });
-                        if (error) throw error;
-                        return prodSupabase.storage.from('images').getPublicUrl(path).data.publicUrl;
-                    };
-
-                    const [micro, thumb, med, full] = await Promise.all([
-                        upload('micro', imageFiles.micro),
-                        upload('thumbnail', imageFiles.thumbnail),
-                        upload('medium', imageFiles.medium),
-                        upload('full', imageFiles.full)
-                    ]);
-
-                    imageUrls = { micro, thumb, med, full };
-                } catch (imgErr) {
-                    console.error('이미지 처리 실패 (이미지 없이 계속):', imgErr);
-                }
-            }
-
-            setProgress('DB 등록 중...');
+            setProgress('DB 등록 및 이미지 저장 중...');
 
             // 제목 포맷팅
             const formattedTitle = formData.djs.length > 0
                 ? `DJ ${formData.djs.join(', ')} | ${formData.title}`
                 : formData.title;
-            const mapped = {
-                ...mapIngestorEvent({
+            const baseMapped = mapIngestorEvent({
                     ...event,
                     structured_data: {
                         ...event.structured_data,
@@ -166,23 +137,18 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                         location_link: formData.location_link,
                         times: formData.time ? [formData.time] : event.structured_data?.times,
                     },
-                }, venues),
-                category: formData.category,
-                genre: formData.genre || mapIngestorEvent(event, venues).genre,
-                group_id: formData.category === 'social' ? 2 : null,
+                }, venues);
+            const recruitmentKind = (formData.recruitment_kind || getIngestorRecruitmentKind(event)) as RecruitmentKind | null;
+            const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
+            const mapped = {
+                ...baseMapped,
+                category: recruitmentKind ? 'event' : formData.category,
+                genre: recruitmentLabel || formData.genre || baseMapped.genre,
+                activity_type: recruitmentKind ? 'recruit' : baseMapped.activity_type,
+                dance_tags: ensureRecruitmentTags(baseMapped.dance_tags, recruitmentKind),
+                group_id: recruitmentKind ? null : (formData.category === 'social' ? 2 : null),
             };
             const duplicate = await findRegisteredDuplicate(formattedTitle, mapped);
-            if (duplicate) {
-                await fetch('/.netlify/functions/scraped-events', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...event, is_collected: true }),
-                });
-                alert(`이미 운영 DB에 등록된 이벤트라 신규 등록을 건너뛰고 완료 처리했습니다.\n기존: ${duplicate.title}`);
-                onSuccess(event.id);
-                onClose();
-                return;
-            }
 
             const insertPayload = {
                     title: formattedTitle,
@@ -194,12 +160,12 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     venue_id: mapped.venue_id,
                     venue_name: mapped.venue_name,
                     location_link: mapped.location_link,
-                    image: imageUrls.full || formData.poster_url || null,
-                    image_micro: imageUrls.micro || null,
-                    image_thumbnail: imageUrls.thumb || null,
-                    image_medium: imageUrls.med || null,
-                    image_full: imageUrls.full || null,
-                    storage_path: storagePath,
+                    image: formData.poster_url || null,
+                    image_micro: null,
+                    image_thumbnail: null,
+                    image_medium: null,
+                    image_full: null,
+                    storage_path: null,
                     description: formData.description,
                     category: mapped.category || 'event',
                     scope: 'domestic',
@@ -210,41 +176,42 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     dance_genre: mapped.dance_genre,
                     activity_type: mapped.activity_type,
                     dance_tags: mapped.dance_tags,
-                    user_id: (await prodSupabase.auth.getUser()).data.user?.id || '508e4c9e-b180-4c0f-aa98-3e99562a147a',
                     group_id: mapped.group_id,
                 } as any;
 
-            // 2. Supabase Insert
-            const { data: result, error: insertError } = await prodSupabase
-                .from('events' as any)
-                .insert([insertPayload])
-                .select()
-                .maybeSingle();
+            const scrapedStructuredData = {
+                ...event.structured_data,
+                title: formData.title,
+                date: formData.date,
+                location: formData.location,
+                address: formData.address,
+                venue_id: formData.venue_id,
+                venue_name: formData.venue_name,
+                location_link: formData.location_link,
+                djs: formData.djs,
+                activity_type: mapped.activity_type,
+                genre: mapped.genre,
+                subgenre: mapped.genre,
+                tags: mapped.dance_tags,
+            };
 
-            if (insertError) throw insertError;
-
-            // 3. scraped_events.db에도 편집 내용 반영 + is_collected 처리
-            await fetch('/.netlify/functions/scraped-events', {
+            // 2. Service-role 함수로 운영 DB 등록. 함수가 관리자 작성자 user_id를 강제한다.
+            const registerRes = await fetch('/.netlify/functions/ingestor-register-event', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ...event,
-                    is_collected: true,
-                    structured_data: {
-                        ...event.structured_data,
-                        title: formData.title,
-                        date: formData.date,
-                        location: formData.location,
-                        address: formData.address,
-                        venue_id: formData.venue_id,
-                        venue_name: formData.venue_name,
-                        location_link: formData.location_link,
-                        djs: formData.djs,
-                    }
+                    scrapedEventId: event.id,
+                    eventData: insertPayload,
+                    scrapedStructuredData,
+                    existingEventId: duplicate?.id || null,
                 }),
             });
+            const registerJson = await registerRes.json().catch(() => ({}));
+            if (!registerRes.ok) {
+                throw new Error(registerJson.error || '운영 DB 등록에 실패했습니다.');
+            }
 
-            alert(`등록 성공! (ID: ${result?.id})`);
+            alert(`${registerJson.skipped ? '이미 등록된 이벤트라 이미지/완료 상태를 보정했습니다.' : '등록 성공!'} (ID: ${registerJson.event?.id})`);
             onSuccess(event.id);
             onClose();
 
@@ -296,6 +263,16 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                                         <option value="club">동호회</option>
                                     </select>
                                     <input type="text" name="genre" value={formData.genre || ''} onChange={handleChange} placeholder="장르" />
+                                    <select
+                                        name="recruitment_kind"
+                                        value={formData.recruitment_kind || ''}
+                                        onChange={(e) => handleRecruitmentKindChange(e.target.value)}
+                                        className="category-select"
+                                    >
+                                        <option value="">모집 아님</option>
+                                        <option value="oneday_recruit">원데이모집</option>
+                                        <option value="public_recruit">일반인모집</option>
+                                    </select>
                                 </div>
                                 <div className="form-group">
                                     <label>날짜 <span className="required">*</span></label>

@@ -1,8 +1,13 @@
 
-console.log('%c[Supabase] 🚀 supabase.ts module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
 import { createClient } from '@supabase/supabase-js'
 import { authLogger } from '../utils/authLogger';
 import { isPWAMode } from './pwaDetect';
+import { getSupabaseStorageKey, getSupabaseValidationKey } from './authStorageKeys';
+
+const SUPABASE_DEBUG = import.meta.env.VITE_SUPABASE_DEBUG === 'true';
+if (SUPABASE_DEBUG) {
+  console.debug('%c[Supabase] supabase.ts module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
+}
 
 const envSupabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const envSupabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
@@ -25,12 +30,14 @@ const supabaseAnonKey = isLocalHost ? localSupabaseAnonKey : envSupabaseAnonKey
 // [Critical Fix] Safari/iOS 및 PWA 환경의 navigator.locks 결함 대응
 // v9.0 Hybrid Lock Engine 적용 (PC: Native, Mobile: Polyfill)
 import { hybridLock } from './hybridLock';
-console.log('%c[Supabase] 🔒 Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
+if (SUPABASE_DEBUG) {
+  console.debug('%c[Supabase] Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'sb-auth-token',
+    storageKey: getSupabaseStorageKey(),
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
@@ -202,7 +209,7 @@ export interface MetronomePreset {
 
 // 세션 검증 결과 캐싱 및 락킹을 위한 변수
 // sessionStorage에서 복원 → 새로고침해도 60초 캐시 유지 (getUser() 서버 호출 생략)
-const SESSION_VALIDATION_KEY = 'sb-validation-time';
+const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
 let lastValidationTime: number = (() => {
   try {
     return parseInt(localStorage.getItem(SESSION_VALIDATION_KEY) || '0', 10) || 0;
@@ -230,7 +237,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
       // [Safari Fix] 사파리에서 localStorage 로드가 늦어지는 'Ghost Storage' 현상 대응
       if (typeof window !== 'undefined') {
-        const checkToken = () => !!localStorage.getItem('sb-auth-token');
+        const checkToken = () => !!localStorage.getItem(getSupabaseStorageKey());
 
         // 이미 세션 캐시가 유효하다면 대기하지 않음
         if (!checkToken() && (now - lastValidationTime > VALIDATION_CACHE_TIME)) {

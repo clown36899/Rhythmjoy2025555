@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PWAInstallGuideModal } from './PWAInstallGuideModal';
 import {
     getPushSubscription,
@@ -36,6 +36,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
     const [isAdminExpanded, setIsAdminExpanded] = useState(true);
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
+    const hasLoadedBoardCategoriesRef = useRef(false);
     const [memberCount, setMemberCount] = useState<number | null>(null);
     const [pwaCount, setPwaCount] = useState<number | null>(null);
     const [pushCount, setPushCount] = useState<number | null>(null);
@@ -134,11 +135,18 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
 
     useEffect(() => {
-        loadBoardCategories();
-        const handleRefresh = () => loadBoardCategories();
+        if (isOpen && !hasLoadedBoardCategoriesRef.current) {
+            loadBoardCategories();
+        }
+
+        const handleRefresh = () => {
+            hasLoadedBoardCategoriesRef.current = false;
+            if (isOpen) loadBoardCategories();
+        };
+
         window.addEventListener('refreshBoardCategories', handleRefresh);
         return () => window.removeEventListener('refreshBoardCategories', handleRefresh);
-    }, []);
+    }, [isOpen]);
 
     const loadBoardCategories = async () => {
         try {
@@ -149,6 +157,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                 .order('display_order', { ascending: true });
             if (error) throw error;
             if (data) setBoardCategories(data);
+            hasLoadedBoardCategoriesRef.current = true;
         } catch (error) {
             console.error('Failed to load board categories:', error);
         }

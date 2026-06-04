@@ -23,9 +23,12 @@ import { retryOperation } from "../utils/asyncUtils";
 import { parseDateSafe, formatDateForInput, getLocalDateString } from "../pages/v2/utils/eventListUtils";
 import {
   buildDanceGenreOptions,
+  ensureRecruitmentTags,
+  getRecruitmentKindLabel,
   inferDanceScopeForEvent,
   inferDanceTaxonomy,
   normalizeVisibleDanceScope,
+  resolveRecruitmentKind,
   resolveDanceGenreInput,
   type DanceScope,
 } from "../utils/danceTaxonomy";
@@ -42,8 +45,8 @@ interface ExtendedEvent extends AppEvent {
 interface EventRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedDate: Date;
-  onEventCreated: (createdDate: Date, eventId?: number | string) => void;
+  selectedDate?: Date;
+  onEventCreated?: (createdDate: Date, eventId?: number | string) => void;
   onMonthChange?: (date: Date) => void;
   fromBanner?: boolean;
   bannerMonthBounds?: { min: string; max: string };
@@ -53,6 +56,84 @@ interface EventRegistrationModalProps {
   isDeleting?: boolean;
   groupId?: number | null;
   dayOfWeek?: number | null;
+  initialCategory?: "class" | "event" | "club";
+  initialGenre?: string;
+}
+
+const EVENT_REGISTRATION_DEBUG = import.meta.env.VITE_EVENT_REGISTRATION_DEBUG === 'true';
+const PUSH_BATCH_WINDOW_MS = 10 * 60 * 1000;
+const PUSH_BATCH_STORAGE_PREFIX = 'swingenjoy:push-batch';
+
+function getPushCategoryForEvent(event: Pick<AppEvent, 'category'>) {
+  if (event.category === 'club') return 'club';
+  if (event.category === 'class' || event.category === 'regular') return 'class';
+  return 'event';
+}
+
+function getPushCategoryLabel(category: string) {
+  if (category === 'class') return '강습';
+  if (category === 'club') return '동호회';
+  return '행사';
+}
+
+function getBestPushImage(event: Partial<AppEvent>) {
+  return event.image_thumbnail || event.image_medium || event.image || event.image_full || event.image_micro || null;
+}
+
+function getManualPushBatch(category: string, actorUserId?: string | null) {
+  const now = Date.now();
+  const safeActorId = actorUserId || 'anonymous';
+  const storageKey = `${PUSH_BATCH_STORAGE_PREFIX}:${safeActorId}:${category}`;
+  const createBatch = () => {
+    const scheduledAtMs = now + PUSH_BATCH_WINDOW_MS;
+    return {
+      batchKey: `manual:${safeActorId}:${category}:${now}`,
+      scheduledAtMs,
+      expiresAtMs: scheduledAtMs,
+    };
+  };
+
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (stored) {
+      const parsed = JSON.parse(stored) as { batchKey?: string; scheduledAtMs?: number; expiresAtMs?: number };
+      if (parsed.batchKey && parsed.scheduledAtMs && parsed.expiresAtMs && parsed.expiresAtMs > now) {
+        return {
+          batchKey: parsed.batchKey,
+          scheduledAt: new Date(parsed.scheduledAtMs).toISOString(),
+        };
+      }
+    }
+
+    const next = createBatch();
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
+    return {
+      batchKey: next.batchKey,
+      scheduledAt: new Date(next.scheduledAtMs).toISOString(),
+    };
+  } catch {
+    const fallback = createBatch();
+    return {
+      batchKey: fallback.batchKey,
+      scheduledAt: new Date(fallback.scheduledAtMs).toISOString(),
+    };
+  }
+}
+
+function summarizeRegistrationPayload(eventData: Partial<AppEvent>) {
+  return {
+    title: eventData.title,
+    start_date: eventData.start_date,
+    end_date: eventData.end_date,
+    category: eventData.category,
+    activity_type: eventData.activity_type,
+    dance_scope: eventData.dance_scope,
+    dance_genre: eventData.dance_genre,
+    venue_id: eventData.venue_id,
+    hasImage: Boolean(eventData.image || eventData.image_micro || eventData.image_thumbnail || eventData.image_medium || eventData.image_full),
+    hasVideo: Boolean(eventData.video_url),
+    hasLinks: Boolean(eventData.link1 || eventData.link2 || eventData.link3),
+  };
 }
 
 // 한국어 locale 등록 moved to EditableEventDetail
@@ -62,14 +143,16 @@ interface EventRegistrationModalProps {
 export default memo(function EventRegistrationModal({
   isOpen,
   onClose,
-  selectedDate,
-  onEventCreated,
+  selectedDate = new Date(),
+  onEventCreated = () => { },
   editEventData,
   onEventUpdated,
   onDelete,
   isDeleting = false,
   groupId: initialGroupId = null,
   dayOfWeek: initialDayOfWeek = null,
+  initialCategory,
+  initialGenre = "",
 }: EventRegistrationModalProps) {
   const { isAdmin, user } = useAuth();
   const { showLoading, hideLoading } = useLoading();
@@ -237,6 +320,8 @@ export default memo(function EventRegistrationModal({
 
         if (!error && data) {
           const uniqueGenres = Array.from(new Set(data.flatMap((d: any) => [
+            '원데이모집',
+            '일반인모집',
             d.genre,
             d.dance_genre,
           ]).filter(Boolean))) as string[];
@@ -302,9 +387,9 @@ export default memo(function EventRegistrationModal({
         setAddress("");
         setLocationLink("");
         setDescription("");
-        setCategory("");
-        setCategory("");
-        setGenre("");
+        setCategory(initialCategory || "");
+        setCategory(initialCategory || "");
+        setGenre(initialGenre);
         setDanceScope("swing");
 
         setGroupId(initialGroupId);
@@ -324,7 +409,7 @@ export default memo(function EventRegistrationModal({
       setPreviewMode('detail');
       setIsSubmitting(false);
     }
-  }, [isOpen, selectedDate, editEventData, canUseExpandedDanceScopes, initialGroupId, initialDayOfWeek]);
+  }, [isOpen, selectedDate, editEventData, canUseExpandedDanceScopes, initialGroupId, initialDayOfWeek, initialCategory, initialGenre]);
 
   useEffect(() => {
     if (!isOpen || canUseExpandedDanceScopes || danceScope === "swing") return;
@@ -582,7 +667,9 @@ export default memo(function EventRegistrationModal({
     }
 
     setIsSubmitting(true);
-    console.log("🌀 스피너 실행됨 (isSubmitting: true)");
+    if (EVENT_REGISTRATION_DEBUG) {
+      console.debug("🌀 스피너 실행됨 (isSubmitting: true)");
+    }
     setLoadingMessage("저장 준비 중...");
 
     // UI 렌더링을 위해 잠시 대기 (스피너가 확실히 뜨도록)
@@ -684,21 +771,28 @@ export default memo(function EventRegistrationModal({
             options: genreOptions,
             fallbackScope: normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes),
           });
-          const resolvedDanceScope = normalizeVisibleDanceScope(resolvedGenre.scope, canUseExpandedDanceScopes);
+          const recruitmentKind = resolveRecruitmentKind(genre || resolvedGenre.label);
+          const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
+          const effectiveActivityType: 'class' | 'event' | 'recruit' = recruitmentKind ? 'recruit' : activityType;
+          const effectiveCategory = recruitmentKind ? 'event' : category;
+          const effectiveGenreLabel = recruitmentLabel || resolvedGenre.label || genre || undefined;
+          const effectiveDanceGenre = recruitmentKind ? normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes) : resolvedGenre.key;
+          const resolvedDanceScope = normalizeVisibleDanceScope(recruitmentKind ? danceScope : resolvedGenre.scope, canUseExpandedDanceScopes);
           const taxonomy = inferDanceTaxonomy({
-            extracted_text: [title, description, location, link1, resolvedGenre.label].filter(Boolean).join(' '),
+            extracted_text: [title, description, location, link1, effectiveGenreLabel].filter(Boolean).join(' '),
             structured_data: {
               title,
-              event_type: category === 'class' || category === 'club' ? '강습' : '행사',
+              event_type: effectiveActivityType === 'class' ? '강습' : effectiveActivityType === 'recruit' ? '모집' : '행사',
               dance_scope: resolvedDanceScope,
-              dance_genre: resolvedGenre.key,
-              activity_type: activityType,
-              subgenre: resolvedGenre.label,
+              dance_genre: effectiveDanceGenre,
+              activity_type: effectiveActivityType,
+              subgenre: effectiveGenreLabel,
               location,
               note: description,
-              tags: [],
+              tags: recruitmentKind ? [recruitmentKind] : [],
             },
           });
+          const danceTags = recruitmentKind ? ensureRecruitmentTags(taxonomy.tags, recruitmentKind) : taxonomy.tags;
 
           const eventData = {
             title,
@@ -710,13 +804,13 @@ export default memo(function EventRegistrationModal({
             address,
             location_link: locationLink,
             description,
-            category,
-            genre: resolvedGenre.label || genre || undefined,
+            category: effectiveCategory,
+            genre: effectiveGenreLabel,
             scope,
             dance_scope: resolvedDanceScope,
-            dance_genre: resolvedGenre.key,
-            activity_type: activityType,
-            dance_tags: taxonomy.tags,
+            dance_genre: effectiveDanceGenre,
+            activity_type: effectiveActivityType,
+            dance_tags: danceTags,
             // password 필드 제거 (RLS 기반 권한 관리로 전환)
             link1,
             link_name1: linkName1,
@@ -738,27 +832,31 @@ export default memo(function EventRegistrationModal({
             group_id: groupId,
           };
 
-          console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);
-          console.log("   - image_micro present?", !!eventData.image_micro);
-          console.log("   - User ID:", user?.id);
-          console.log("   - Is Edit?", !!editEventData);
+          if (EVENT_REGISTRATION_DEBUG) {
+            console.debug("📝 [EventRegistrationModal] Payload summary:", {
+              ...summarizeRegistrationPayload(eventData),
+              isEdit: Boolean(editEventData),
+            });
+          }
 
           let resultData: any[] | null = null;
 
           if (editEventData) {
             // Update existing event
             await retryOperation(async () => {
-              console.log("🔄 Updating event ID:", editEventData.id, "IsAdmin:", isAdmin, "User:", user?.id);
+              if (EVENT_REGISTRATION_DEBUG) {
+                console.debug("🔄 Updating event:", { eventId: editEventData.id, isAdmin });
+              }
               let query = supabase
                 .from("events")
                 .update(eventData)
                 .eq('id', editEventData.id);
 
               if (!isAdmin) {
-                console.log("   - Applying user_id filter (Not Admin)");
+                if (EVENT_REGISTRATION_DEBUG) console.debug("   - Applying owner filter");
                 query = query.eq('user_id', user?.id);
               } else {
-                console.log("   - Skipping user_id filter (Admin)");
+                if (EVENT_REGISTRATION_DEBUG) console.debug("   - Skipping owner filter (admin)");
               }
 
               const { data, error } = await query.select();
@@ -766,17 +864,18 @@ export default memo(function EventRegistrationModal({
                 console.error("❌ Update query error:", error);
                 throw error;
               }
-              console.log("✅ Update result data:", data);
+              if (EVENT_REGISTRATION_DEBUG) {
+                console.debug("✅ Update result:", { count: data?.length || 0, eventId: data?.[0]?.id });
+              }
               if (!data || data.length === 0) throw new Error("수정 권한이 없거나 이미 삭제된 이벤트입니다.");
               resultData = data;
             });
           } else {
             // Insert new event
             await retryOperation(async () => {
-              console.log("🆕 [INSERT] Attempting to insert new event");
-              console.log("📋 [INSERT] Event data:", JSON.stringify(eventData, null, 2));
-              console.log("👤 [INSERT] Current user ID:", user?.id);
-              console.log("🔑 [INSERT] Auth UID:", (await supabase.auth.getUser()).data.user?.id);
+              if (EVENT_REGISTRATION_DEBUG) {
+                console.debug("🆕 [INSERT] Attempting to insert event:", summarizeRegistrationPayload(eventData));
+              }
 
               const { data, error } = await supabase
                 .from("events")
@@ -792,7 +891,9 @@ export default memo(function EventRegistrationModal({
                 throw error;
               }
 
-              console.log("✅ [INSERT] Insert successful! Result:", data);
+              if (EVENT_REGISTRATION_DEBUG) {
+                console.debug("✅ [INSERT] Insert successful:", { count: data?.length || 0, eventId: data?.[0]?.id });
+              }
               resultData = data;
             });
           }
@@ -830,12 +931,12 @@ export default memo(function EventRegistrationModal({
                 detail: { event: createdEvent }
               }));
 
-              // [NEW] 관리자에게 자동 푸시 알림 발송 (행사/강습 구분) - 5분 지연 발송 (취소 가능)
-              const isLesson = createdEvent.category === 'class' || createdEvent.category === 'regular' || createdEvent.category === 'club';
-              const pushCategory = isLesson ? 'class' : 'event';
-              const scheduledAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes later
+              // Manual registrations are batched per user/category so multiple rapid inserts ring once.
+              const pushCategory = getPushCategoryForEvent(createdEvent);
+              const pushCategoryLabel = getPushCategoryLabel(pushCategory);
+              const { batchKey, scheduledAt } = getManualPushBatch(pushCategory, user?.id);
 
-              const pushTitle = `${createdEvent.title} (${pushCategory === 'class' ? '강습' : '행사'})`;
+              const pushTitle = createdEvent.title;
               const weekDay = createdEvent.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(createdEvent.date).getDay()] : '';
               const pushBody = `${createdEvent.date || ''} ${weekDay} | ${createdEvent.location || '장소 미정'}`;
 
@@ -845,18 +946,23 @@ export default memo(function EventRegistrationModal({
               const isPastEvent = eventDateStr && eventDateStr < today;
 
               if (isPastEvent) {
-                console.log("[Push] Skipping notification for past event:", {
-                  title: pushTitle,
-                  date: eventDateStr,
-                  today: today
-                });
+                if (EVENT_REGISTRATION_DEBUG) {
+                  console.debug("[Push] Skipping notification for past event:", {
+                    title: pushTitle,
+                    date: eventDateStr,
+                    today: today
+                  });
+                }
               } else {
-                console.log("[Push] Queuing delayed notification...", {
-                  title: pushTitle,
-                  category: pushCategory,
-                  scheduledAt: scheduledAt,
-                  today: today
-                });
+                if (EVENT_REGISTRATION_DEBUG) {
+                  console.debug("[Push] Queuing delayed notification...", {
+                    title: pushTitle,
+                    category: pushCategory,
+                    batchKey,
+                    scheduledAt: scheduledAt,
+                    today: today
+                  });
+                }
 
                 supabase.from('notification_queue').insert({
                   event_id: createdEvent.id,
@@ -866,17 +972,28 @@ export default memo(function EventRegistrationModal({
                   payload: {
                     url: `${window.location.origin}/calendar?id=${createdEvent.id}`,
                     userId: 'ALL',
+                    queueSource: 'manual_event_registration',
+                    actorUserId: user?.id || null,
+                    batchKey,
+                    batchWindowMinutes: 10,
+                    eventId: createdEvent.id,
+                    category: pushCategory,
+                    categoryLabel: pushCategoryLabel,
                     genre: createdEvent.genre,
-                    image: createdEvent.image_thumbnail,
-                    content: createdEvent.description
+                    image: getBestPushImage(createdEvent),
+                    content: createdEvent.description,
+                    title: createdEvent.title,
+                    date: createdEvent.start_date || createdEvent.date,
+                    location: createdEvent.location,
+                    adminOnly: import.meta.env.VITE_PUSH_ADMIN_ONLY === 'true'
                   },
                   scheduled_at: scheduledAt,
                   status: 'pending'
                 }).then(({ error }) => {
                   if (error) {
                     console.error('[Push] Queue insert failed:', error);
-                  } else {
-                    console.log('[Push] Notification queued successfully.');
+                  } else if (EVENT_REGISTRATION_DEBUG) {
+                    console.debug('[Push] Notification queued successfully.');
                   }
                 });
               }
@@ -889,7 +1006,9 @@ export default memo(function EventRegistrationModal({
             // 🎯 [CLEANUP] After successful DB update, remove old images if changed
             if (editEventData && fileToUpload) {
               const performCleanup = async () => {
-                console.log("🧹 [CLEANUP] Starting cleanup of old images...");
+                if (EVENT_REGISTRATION_DEBUG) {
+                  console.debug("🧹 [CLEANUP] Starting cleanup of old images...");
+                }
 
                 // 1. New style folder-based cleanup
                 if (oldStoragePath) {
@@ -898,7 +1017,9 @@ export default memo(function EventRegistrationModal({
                     if (files && files.length > 0) {
                       const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
                       await supabase.storage.from("images").remove(filePaths);
-                      console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+                      if (EVENT_REGISTRATION_DEBUG) {
+                        console.debug(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+                      }
                     }
                   } catch (e) {
                     console.warn("⚠️ [CLEANUP] Failed to delete old folder content:", e);
@@ -923,7 +1044,9 @@ export default memo(function EventRegistrationModal({
                 if (individualPaths.length > 0) {
                   try {
                     await supabase.storage.from("images").remove(individualPaths);
-                    console.log(`✅ [CLEANUP] Deleted ${individualPaths.length} individual legacy files`);
+                    if (EVENT_REGISTRATION_DEBUG) {
+                      console.debug(`✅ [CLEANUP] Deleted ${individualPaths.length} individual legacy files`);
+                    }
                   } catch (e) {
                     console.warn("⚠️ [CLEANUP] Failed to delete legacy individual files:", e);
                   }
@@ -966,6 +1089,8 @@ export default memo(function EventRegistrationModal({
     }
   };
 
+  const previewRecruitmentKind = resolveRecruitmentKind(genre);
+
   // Construct Preview Event Object
   const previewEvent: ExtendedEvent = {
     id: 0,
@@ -979,9 +1104,12 @@ export default memo(function EventRegistrationModal({
     location_link: locationLink,
     organizer: '익명',
     description: description,
-    category: category,
+    category: previewRecruitmentKind ? 'event' : category,
     genre: genre,
     dance_scope: danceScope,
+    dance_genre: previewRecruitmentKind ? danceScope : undefined,
+    activity_type: previewRecruitmentKind ? 'recruit' : undefined,
+    dance_tags: previewRecruitmentKind ? ensureRecruitmentTags([], previewRecruitmentKind) : undefined,
     image: imagePreview || editEventData?.image || "",
     link1: link1,
     link_name1: linkName1,
@@ -1005,13 +1133,18 @@ export default memo(function EventRegistrationModal({
       case 'description': setDescription(value); break;
       case 'category': setCategory(value); break;
       case 'genre':
-        console.log(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
+        if (EVENT_REGISTRATION_DEBUG) {
+          console.debug(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
+        }
         {
           const resolved = resolveDanceGenreInput(String(value || ''), {
             options: buildDanceGenreOptions(allGenres),
             fallbackScope: normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes),
           });
-          setGenre(resolved.label || value);
+          const nextGenre = resolved.label || value;
+          const nextRecruitmentKind = resolveRecruitmentKind(nextGenre);
+          setGenre(nextGenre);
+          if (nextRecruitmentKind) setCategory('event');
           if (resolved.scope !== 'unknown') setDanceScope(normalizeVisibleDanceScope(resolved.scope, canUseExpandedDanceScopes));
         }
         break;
@@ -1048,14 +1181,21 @@ export default memo(function EventRegistrationModal({
 
   // Venue selection handler
   const handleVenueSelect = (venue: any) => {
-    console.log('🎯 EventRegistrationModal.handleVenueSelect called with:', venue);
+    if (EVENT_REGISTRATION_DEBUG) {
+      console.debug('🎯 EventRegistrationModal.handleVenueSelect called with:', {
+        id: venue?.id,
+        name: venue?.name,
+        hasAddress: Boolean(venue?.address),
+        hasMapUrl: Boolean(venue?.map_url),
+      });
+    }
     setVenueId(venue.id);
     setVenueName(venue.name);
     setLocation(venue.name);
     setLocationLink("");
     setVenueCustomLink("");
     setShowVenueSelectModal(false);
-    console.log('✅ Venue selected, modal closed');
+    if (EVENT_REGISTRATION_DEBUG) console.debug('✅ Venue selected, modal closed');
   };
 
   // Ensure videoProvider is used or removed. It was used in logic but state variable unused in render.
@@ -1137,10 +1277,12 @@ export default memo(function EventRegistrationModal({
           isDeleting={isDeleting}
           // progress={uploadProgress}
           onVenueSelectClick={() => {
-            console.log('🎯 EventRegistrationModal.onVenueSelectClick called');
-            console.log('   - showVenueSelectModal before:', showVenueSelectModal);
+            if (EVENT_REGISTRATION_DEBUG) {
+              console.debug('🎯 EventRegistrationModal.onVenueSelectClick called');
+              console.debug('   - showVenueSelectModal before:', showVenueSelectModal);
+            }
             setShowVenueSelectModal(true);
-            console.log('   - setShowVenueSelectModal(true) called');
+            if (EVENT_REGISTRATION_DEBUG) console.debug('   - setShowVenueSelectModal(true) called');
           }}
         />
       ) : previewMode === 'billboard' ? (
@@ -1254,7 +1396,9 @@ export default memo(function EventRegistrationModal({
           onClose={() => setShowVenueSelectModal(false)}
           onSelect={handleVenueSelect}
           onManualInput={(name: string, link: string, address?: string) => {
-            console.log('🔘 Manual input submitted:', name, link, address);
+            if (EVENT_REGISTRATION_DEBUG) {
+              console.debug('🔘 Manual input submitted:', { name, hasLink: Boolean(link), hasAddress: Boolean(address) });
+            }
             setShowVenueSelectModal(false);
             // Update state directly instead of opening another modal
             setLocation(name);

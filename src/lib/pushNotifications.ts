@@ -10,6 +10,10 @@ import { supabase } from './supabase';
 // 테스트용 공개 VAPID 키 (실제 사용 시 환경 변수로 관리)
 // 실제 키를 생성하려면: npx web-push generate-vapid-keys
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BIngahG6SewkoWiBA5hrItBYVvawKxqvUwazI5uKrph7YJA1tKtzdxpc94Vc8Mz5PtXLifBKmcXzmsgoNTEzSsc';
+const PUSH_DEBUG = import.meta.env.VITE_PUSH_DEBUG === 'true';
+const pushDebug = (...args: unknown[]) => {
+    if (PUSH_DEBUG) console.debug(...args);
+};
 
 /**
  * Service Worker 등록 상태 확인
@@ -22,7 +26,7 @@ export async function checkServiceWorkerRegistration(): Promise<ServiceWorkerReg
 
     try {
         const registration = await navigator.serviceWorker.ready;
-        console.log('[Push] Service Worker registered and ready:', registration);
+        pushDebug('[Push] Service Worker registered and ready:', registration);
         return registration;
     } catch (error) {
         console.error('[Push] Service Worker registration check failed:', error);
@@ -32,13 +36,13 @@ export async function checkServiceWorkerRegistration(): Promise<ServiceWorkerReg
 
 export function isPushSupported(): boolean {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window;
-    console.log('[Push] Support check:', { supported, sw: 'serviceWorker' in navigator, pm: 'PushManager' in window });
+    pushDebug('[Push] Support check:', { supported, sw: 'serviceWorker' in navigator, pm: 'PushManager' in window });
     return supported;
 }
 
 export async function checkNotificationPermission(): Promise<NotificationPermission> {
     const permission = Notification.permission;
-    console.log('[Push] Current permission:', permission);
+    pushDebug('[Push] Current permission:', permission);
     return permission;
 }
 
@@ -56,13 +60,13 @@ export function getNotificationPermission(): NotificationPermission {
  * 푸시 알림 권한 요청
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-    console.log('[Push] Requesting permission...');
+    pushDebug('[Push] Requesting permission...');
     if (!('Notification' in window)) {
         console.warn('[Push] Notifications not supported in this browser');
         return 'denied';
     }
     const permission = await Notification.requestPermission();
-    console.log('[Push] Permission result:', permission);
+    pushDebug('[Push] Permission result:', permission);
     return permission;
 }
 
@@ -198,11 +202,11 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
                         pref_filter_tags: mostRecent.pref_filter_tags ?? null,
                         pref_filter_class_genres: mostRecent.pref_filter_class_genres ?? null,
                     };
-                    console.log(`[Push] Restoring previous preferences for device (${currentDevice})`);
+                    pushDebug(`[Push] Restoring previous preferences for device (${currentDevice})`);
                 }
 
                 const oldIds = sameDeviceSubs.map(s => s.id);
-                console.log(`[Push] Cleaning ${oldIds.length} old subscription(s) for same device (${currentDevice})`);
+                pushDebug(`[Push] Cleaning ${oldIds.length} old subscription(s) for same device (${currentDevice})`);
                 await supabase
                     .from('user_push_subscriptions')
                     .delete()
@@ -232,7 +236,7 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
         user.app_metadata?.role === 'admin' ||
         false;
 
-    console.log('[Push] Saving subscription. Is Admin?', isAdmin);
+    pushDebug('[Push] Saving subscription. Is Admin?', isAdmin);
 
     // Use RPC to safely upsert based on endpoint
     const { error } = await supabase.rpc('handle_push_subscription', {
@@ -260,7 +264,7 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
         console.warn('[Push] Failed to link PWA install log:', e);
     }
 
-    console.log('[Push] Subscription saved to Supabase');
+    pushDebug('[Push] Subscription saved to Supabase');
     return true;
 }
 
@@ -342,7 +346,7 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
  * 푸시 구독 해제
  */
 export async function unsubscribeFromPush(): Promise<boolean> {
-    console.log('[Push] Unsubscribing from push notifications...');
+    pushDebug('[Push] Unsubscribing from push notifications...');
     try {
         const registration = await checkServiceWorkerRegistration();
         if (!registration) {
@@ -352,13 +356,13 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 
         const subscription = await registration.pushManager.getSubscription();
         if (!subscription) {
-            console.log('[Push] No active subscription found to unsubscribe.');
+            pushDebug('[Push] No active subscription found to unsubscribe.');
             return true;
         }
 
         const endpoint = subscription.endpoint;
         const successful = await subscription.unsubscribe();
-        console.log('[Push] Push subscription removed from browser:', successful);
+        pushDebug('[Push] Push subscription removed from browser:', successful);
 
         if (successful) {
             // 사용자가 명시적으로 구독을 해제했음을 기록
@@ -376,7 +380,7 @@ export async function unsubscribeFromPush(): Promise<boolean> {
                 .eq('endpoint', endpoint);
 
             if (error) console.error('[Push] Failed to delete subscription from server:', error);
-            else console.log('[Push] Push subscription removed from server');
+            else pushDebug('[Push] Push subscription removed from server');
         }
 
         return successful;

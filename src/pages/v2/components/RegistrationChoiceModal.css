@@ -74,6 +74,19 @@
     min-height: 90px;
 }
 
+.choice-option-btn.oneday {
+    grid-column: span 2;
+    min-height: 96px;
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 16px;
+}
+
+.choice-option-btn.oneday .choice-text-content {
+    align-items: flex-start;
+}
+
 .choice-option-btn>i.ri-arrow-right-s-line {
     display: none;
 }
@@ -109,6 +122,14 @@
 
 .choice-option-btn.public .choice-icon-wrapper {
     background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.choice-option-btn.oneday .choice-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0;
+    background: linear-gradient(135deg, #8b5cf6, #5b7cff);
     color: white;
 }
 
@@ -148,6 +169,11 @@
         padding: 16px 8px;
         min-height: 110px;
         gap: 8px;
+    }
+
+    .choice-option-btn.oneday {
+        min-height: 84px;
+        padding: 14px 12px;
     }
 
     .choice-icon-wrapper {

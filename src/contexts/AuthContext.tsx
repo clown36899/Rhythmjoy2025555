@@ -7,6 +7,7 @@ import { authLogger } from '../utils/authLogger';
 
 import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
 import { isPWAMode } from '../lib/pwaDetect';
+import { getSupabasePkceVerifierKey, removeSupabaseStorageKeys } from '../lib/authStorageKeys';
 
 
 
@@ -269,20 +270,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
   const wipeLocalData = () => {
-    // 1. Supabase 세션 키 결정 (통합 키 사용)
-    const currentStorageKey = 'sb-auth-token';
-
-    // 2. localStorage에서 Supabase 관련 항목 제거
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key === currentStorageKey || key.startsWith(currentStorageKey) || key.includes('supabase.auth.token'))) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-    });
+    // 1. localStorage에서 Supabase 관련 항목 제거
+    removeSupabaseStorageKeys();
 
     // 프로필 및 특수 캐시 제거
     localStorage.removeItem('userProfile');
@@ -799,18 +788,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logToStorage('[AuthContext.signOut] 3단계: Billboard 사용자 정보 초기화');
       setBillboardUser(null, null);
 
-      // 4. localStorage 정리 (통합 Supabase 관련 항목)
-      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 시작 (통합 키)');
-      const currentStorageKey = 'sb-auth-token';
-
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key === currentStorageKey || key.startsWith(currentStorageKey) || key.includes('supabase.auth.token'))) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      // 4. localStorage 정리 (로컬/운영 Supabase 세션 키 모두 제거)
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 시작');
+      const removedSupabaseKeyCount = removeSupabaseStorageKeys();
 
       // 사용자 프로필 및 기타 캐시 명시적 제거
       localStorage.removeItem('userProfile');
@@ -823,7 +803,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authChannel.postMessage({ type: 'LOGOUT' });
       }
 
-      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + (keysToRemove.length + 1) + '개 항목');
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + removedSupabaseKeyCount + '개 항목');
 
       // 5. sessionStorage 완전 정리
       logToStorage('[AuthContext.signOut] 5단계: sessionStorage 정리 및 스크롤 위치 보존');
@@ -884,7 +864,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
     sessionStorage.removeItem('kakao_callback_active');
     try {
-      localStorage.removeItem('sb-auth-token-code-verifier');
+      localStorage.removeItem(getSupabasePkceVerifierKey());
     } catch {
       // Ignore localStorage restrictions; callback will retry cleanup.
     }

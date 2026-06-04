@@ -3,6 +3,11 @@ import { createPortal } from 'react-dom';
 import type { Event as AppEvent } from '../../../lib/supabase';
 import '../styles/CalendarDateMapModal.css';
 
+const CALENDAR_MAP_MODAL_DEBUG = import.meta.env.VITE_CALENDAR_MAP_MODAL_DEBUG === 'true';
+const debugCalendarMapModal = (...args: unknown[]) => {
+    if (CALENDAR_MAP_MODAL_DEBUG) console.debug(...args);
+};
+
 declare global {
     interface Window {
         kakao: any;
@@ -144,7 +149,7 @@ export default function CalendarDateMapModal({
 
     // 필터링된 이벤트
     const filteredEvents = useMemo(() => {
-        console.log('🔍 [CDMM] Filtering localEvents for region:', selectedRegion, 'Total localEvents:', localEvents.length);
+        debugCalendarMapModal('[CDMM] Filtering localEvents for region:', selectedRegion, 'Total localEvents:', localEvents.length);
         if (selectedRegion === '전체') return localEvents;
         const result = localEvents.filter(e => {
             const addr = (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.venue_name || '';
@@ -154,7 +159,7 @@ export default function CalendarDateMapModal({
             }
             return reg === selectedRegion;
         });
-        console.log('✅ [CDMM] Filtered result count:', result.length);
+        debugCalendarMapModal('[CDMM] Filtered result count:', result.length);
         return result;
     }, [localEvents, selectedRegion]);
 
@@ -196,7 +201,7 @@ export default function CalendarDateMapModal({
                 const valid = results.filter(r => r !== null) as { lat: number, lng: number, event: AppEvent }[];
                 setGeocodedData(valid);
                 setIsGeocoding(false);
-                console.log('✅ [CDMM] Geocoding completed. Valid count:', valid.length);
+                debugCalendarMapModal('[CDMM] Geocoding completed. Valid count:', valid.length);
             });
         };
 
@@ -275,7 +280,7 @@ export default function CalendarDateMapModal({
             markerContainer.onmouseenter = () => { markerContainer.style.zIndex = '9999'; };
             markerContainer.onmouseleave = () => { markerContainer.style.zIndex = defaultZIndex.toString(); };
 
-            const imageUrl = event.image_thumbnail || event.image_micro || '';
+            const imageUrl = event.image_thumbnail || event.image_micro || event.image_medium || event.image || event.image_full || '';
             const locationText = event.venue_name || event.location || '장소 정보 없음';
 
             markerContainer.innerHTML = `
@@ -378,8 +383,8 @@ export default function CalendarDateMapModal({
                                         onClick={() => onEventClick(event)}
                                     >
                                         <div className="CDMM-eventImage">
-                                            {(event.image_thumbnail || event.image_micro) ? (
-                                                <img src={event.image_thumbnail || event.image_micro} alt={event.title} />
+                                            {(event.image_thumbnail || event.image_micro || event.image_medium || event.image || event.image_full) ? (
+                                                <img src={event.image_thumbnail || event.image_micro || event.image_medium || event.image || event.image_full} alt={event.title} />
                                             ) : (
                                                 <div className="CDMM-fallbackImage">
                                                     <i className="ri-calendar-event-line"></i>

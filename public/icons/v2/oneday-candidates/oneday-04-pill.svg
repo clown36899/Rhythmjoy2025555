@@ -1,0 +1,17 @@
+<svg width="512" height="560" viewBox="0 0 512 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="72" y1="166" x2="440" y2="396" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE062"/>
+      <stop offset=".52" stop-color="#F8FAFF"/>
+      <stop offset="1" stop-color="#8D9BFF"/>
+    </linearGradient>
+    <filter id="s" x="42" y="108" width="428" height="370" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="18" flood-color="#000" flood-opacity=".46"/>
+    </filter>
+  </defs>
+  <g filter="url(#s)">
+    <rect x="62" y="166" width="388" height="230" rx="115" fill="url(#g)" stroke="#10121A" stroke-width="9"/>
+    <text x="256" y="252" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="950" letter-spacing="-1" fill="#10121A">ONE DAY</text>
+    <text x="256" y="344" text-anchor="middle" font-family="Pretendard, Inter, Arial, sans-serif" font-size="94" font-weight="950" letter-spacing="-7" fill="#10121A">모집</text>
+  </g>
+</svg>

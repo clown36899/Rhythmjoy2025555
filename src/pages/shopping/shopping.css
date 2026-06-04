@@ -10,7 +10,7 @@
 
 .shop-page-toolbar {
   position: sticky;
-  top: calc(118px + env(safe-area-inset-top));
+  top: calc(62px + env(safe-area-inset-top));
   z-index: 9;
   display: flex;
   align-items: center;
@@ -138,7 +138,7 @@
   }
 
   .shop-page-toolbar {
-    top: calc(110px + env(safe-area-inset-top));
+    top: calc(54px + env(safe-area-inset-top));
     gap: 10px;
     margin-bottom: 10px;
     padding-bottom: 10px;

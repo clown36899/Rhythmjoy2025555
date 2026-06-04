@@ -22,6 +22,12 @@ import { getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalend
 import LocalLoading from './components/LocalLoading';
 import './styles/devtools.css';
 
+let calendarPrefetchStarted = false;
+const PWA_DEBUG = import.meta.env.VITE_PWA_DEBUG === 'true';
+const pwaDebug = (...args: unknown[]) => {
+  if (PWA_DEBUG) console.debug(...args);
+};
+
 function AppContent() {
   const location = useLocation();
 
@@ -33,7 +39,12 @@ function AppContent() {
 
   // [Cache] 달력 데이터 사전 페칭 (Prefetching)
   useEffect(() => {
+    if (calendarPrefetchStarted) return;
+
     const prefetchCalendar = async () => {
+      if (calendarPrefetchStarted) return;
+      calendarPrefetchStarted = true;
+
       // 현재 날짜 기준 3개월치(이전, 현재, 다음) 미리 가져오기
       const now = new Date();
       const { startDateStr, endDateStr } = getCalendarRange(now);
@@ -50,8 +61,27 @@ function AppContent() {
       }
     };
 
-    prefetchCalendar();
-  }, []);
+    const delayMs = location.pathname.startsWith('/board') ? 6000 : 1800;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    timeoutId = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(() => {
+          prefetchCalendar();
+        }, { timeout: 4000 });
+      } else {
+        prefetchCalendar();
+      }
+    }, delayMs);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (idleId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, [location.pathname]);
 
   const { user, isAdmin } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
@@ -142,14 +172,14 @@ function AppContent() {
       // iOS: PWA(Standalone)일 때만 알림 가능 -> Standalone 체크 필수
       const canPushOnThisPlatform = platform === 'android' || isStandalone;
 
-      console.log('[App] PWA Check:', { isDismissed, isStandalone, platform, canPushOnThisPlatform });
+      pwaDebug('[App] PWA Check:', { isDismissed, isStandalone, platform, canPushOnThisPlatform });
 
       if (isDismissed) return;
 
       if (canPushOnThisPlatform) {
         try {
           const existingSub = await getPushSubscription();
-          console.log('[App] Existing Sub:', existingSub);
+          pwaDebug('[App] Existing Sub:', existingSub);
 
           if (existingSub) {
             // [Check DB] 브라우저엔 있어도 DB에 없으면(삭제됨) 모달 띄워야 함
@@ -157,7 +187,7 @@ function AppContent() {
 
             if (dbPrefs) {
               // [Silent Sync] 이미 구독 중이고 DB에도 데이터가 있음 -> 최신 상태로 갱신
-              console.log('[App] Existing subscription matches DB. Syncing...');
+              pwaDebug('[App] Existing subscription matches DB. Syncing...');
               await saveSubscriptionToSupabase(existingSub, {
                 pref_events: dbPrefs.pref_events,
                 pref_class: dbPrefs.pref_class,
@@ -168,7 +198,7 @@ function AppContent() {
             } else {
               // [Zombie Sub] 브라우저엔 있는데 DB엔 없음 -> 모달 띄워서 재등록 유도
               // 이전에 알림을 사용한 사용자이므로 기본값을 전체 ON으로 설정
-              console.log('[App] Zombie subscription detected (Browser=Yes, DB=No). Showing Modal...');
+              pwaDebug('[App] Zombie subscription detected (Browser=Yes, DB=No). Showing Modal...');
               setPwaModalInitialPrefs({
                 pref_events: true, pref_class: true, pref_clubs: true,
                 pref_filter_tags: null, pref_filter_class_genres: null
@@ -180,14 +210,14 @@ function AppContent() {
             // 사용자가 명시적으로 끈 경우에는 모달 띄우지 않음
             const isExplicitlyDisabled = localStorage.getItem('push_explicitly_disabled') === 'true';
             if (isExplicitlyDisabled) {
-              console.log('[App] Push explicitly disabled by user. Skipping modal.');
+              pwaDebug('[App] Push explicitly disabled by user. Skipping modal.');
               return;
             }
 
             // 이전에 권한이 있었다면(재설치 등) → all-ON으로 프리필하여 모달 표시
             // 최초 설치라면 → null(전체 OFF)로 모달 표시
             const hadPermission = Notification.permission === 'granted';
-            console.log('[App] No subscription. Showing modal. hadPermission:', hadPermission);
+            pwaDebug('[App] No subscription. Showing modal. hadPermission:', hadPermission);
             setPwaModalInitialPrefs(hadPermission ? {
               pref_events: true, pref_class: true, pref_clubs: true,
               pref_filter_tags: null, pref_filter_class_genres: null
@@ -206,7 +236,7 @@ function AppContent() {
   // [Admin Test] 관리자용 테스트 트리거
   useEffect(() => {
     (window as any).adminTestPwaModal = () => {
-      console.log('[Admin] Forcing PWA Modal...');
+      pwaDebug('[Admin] Forcing PWA Modal...');
       setShowPwaModal(true);
     };
   }, []);
@@ -217,14 +247,14 @@ function AppContent() {
 
     if (dontShowAgain) {
       localStorage.setItem('pwa_prompt_dismissed', 'true');
-      console.log('[App] User configured PWA notifications and opted out of future prompts.');
+      pwaDebug('[App] User configured PWA notifications and opted out of future prompts.');
     }
 
-    console.log('[App] User configured PWA notifications:', prefs);
+    pwaDebug('[App] User configured PWA notifications:', prefs);
     const sub = await subscribeToPush();
     if (sub) {
       await saveSubscriptionToSupabase(sub, prefs); // 사용자가 선택한 설정 적용 (그대로 전달)
-      console.log('[App] PWA Auto-subscribed successfully with custom prefs.');
+      pwaDebug('[App] PWA Auto-subscribed successfully with custom prefs.');
       window.dispatchEvent(new CustomEvent('pushStatusChanged', { detail: { enabled: true } }));
     }
   };
@@ -234,19 +264,30 @@ function AppContent() {
     setPwaModalInitialPrefs(null);
     if (dontShowAgain) {
       localStorage.setItem('pwa_prompt_dismissed', 'true');
-      console.log('[App] User dismissed PWA prompt (Dont show again).');
+      pwaDebug('[App] User dismissed PWA prompt (Dont show again).');
     } else {
-      console.log('[App] User canceled PWA prompt (Show again next time).');
+      pwaDebug('[App] User canceled PWA prompt (Show again next time).');
     }
   };
 
   // [Feature] 알림 배지 및 센터 청소 통합 함수
-  const clearNotifications = async () => {
+  const lastNotificationClearRef = useRef(0);
+
+  const clearNotifications = async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastNotificationClearRef.current < 3000) return;
+    lastNotificationClearRef.current = now;
+
     // 1. 서비스 워커에게 '알림센터 비우기' 명령 전송
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      if (registration && registration.active) {
-        registration.active.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
+    const serviceWorker = navigator.serviceWorker;
+    if (serviceWorker?.ready) {
+      try {
+        const registration = await serviceWorker.ready;
+        if (registration?.active) {
+          registration.active.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
+        }
+      } catch (err) {
+        console.warn('[Notification] Service worker cleanup skipped:', err);
       }
     }
 
@@ -262,12 +303,12 @@ function AppContent() {
   // 1. 앱 실행 시 & 포커스 & 상호작용 시 청소
   useEffect(() => {
     // A. 초기 실행 (약간의 지연 후 시도)
-    setTimeout(() => clearNotifications(), 500);
+    setTimeout(() => clearNotifications(true), 500);
 
     // B. 포커스/가시성 변경 감지
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        clearNotifications();
+        clearNotifications(true);
         loadUnreadNotifications();
       }
     };
@@ -298,7 +339,7 @@ function AppContent() {
 
   // 2. 페이지 이동 시에도 청소 (location)
   useEffect(() => {
-    clearNotifications();
+    clearNotifications(true);
 
     // [Feature] 알림 클릭 진입 감지 (open_notifications 파라미터)
     const params = new URLSearchParams(location.search);

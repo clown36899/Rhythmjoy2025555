@@ -18,7 +18,22 @@ Deno.serve(async (req) => {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
         const payload = await req.json();
-        const { title, body, url, userId, category, image, content } = payload;
+        const {
+            title,
+            body,
+            url,
+            userId,
+            category,
+            genre,
+            image,
+            content,
+            items,
+            batchKey,
+            tag,
+            renotify,
+            adminOnly,
+            eventId
+        } = payload;
 
         // [Fix] setVapidDetails must be called before sendNotification
         const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || '';
@@ -54,22 +69,43 @@ Deno.serve(async (req) => {
             .from('user_push_subscriptions')
             .select('id, subscription, user_id, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres');
 
-        if (userId && userId !== 'ALL') {
+        if (adminOnly === true) {
+            const { data: admins, error: adminError } = await supabaseClient
+                .from('board_admins')
+                .select('user_id');
+
+            if (adminError) throw new Error(`Admin lookup failed: ${adminError.message}`);
+
+            const adminUserIds = (admins || []).map((admin: any) => admin.user_id).filter(Boolean);
+            if (adminUserIds.length === 0) {
+                console.log('[Push] Admin-only send requested, but no admins were found.');
+                return new Response(JSON.stringify({
+                    status: 'warning',
+                    message: 'No admin subscriptions found because no board_admins rows exist.'
+                }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 200,
+                });
+            }
+
+            console.log(`[Push] Admin-only send to ${adminUserIds.length} admin user(s).`);
+            query = query.in('user_id', adminUserIds);
+        } else if (userId && userId !== 'ALL') {
             console.log(`[Push] Targeted send to userId: ${userId}`);
             query = query.eq('user_id', userId);
         } else {
             console.log(`[Push] Broadcast initiated`);
+        }
 
-            if (category === 'event') {
-                console.log('[Push] Filtering by pref_events=true');
-                query = query.eq('pref_events', true);
-            } else if (category === 'class') {
-                console.log('[Push] Filtering by pref_class=true');
-                query = query.eq('pref_class', true);
-            } else if (category === 'club') {
-                console.log('[Push] Filtering by pref_clubs=true');
-                query = query.eq('pref_clubs', true);
-            }
+        if (!adminOnly && category === 'event') {
+            console.log('[Push] Filtering by pref_events=true');
+            query = query.eq('pref_events', true);
+        } else if (!adminOnly && category === 'class') {
+            console.log('[Push] Filtering by pref_class=true');
+            query = query.eq('pref_class', true);
+        } else if (!adminOnly && category === 'club') {
+            console.log('[Push] Filtering by pref_clubs=true');
+            query = query.eq('pref_clubs', true);
         }
 
         const { data: subscriptions, error: dbError } = await query;
@@ -93,17 +129,17 @@ Deno.serve(async (req) => {
         let targetSubscriptions = subscriptions;
 
         // payload.genre comes as string "A, B"
-        const genreStr = typeof payload.genre === 'string' ? payload.genre : '';
+        const genreStr = typeof genre === 'string' ? genre : '';
         console.log(`[Push] Filtering Category="${category}", Genre="${genreStr}"`);
 
-        if (category === 'event') {
+        if (!adminOnly && category === 'event') {
             targetSubscriptions = subscriptions.filter((sub: any) => {
                 if (!sub.pref_filter_tags || sub.pref_filter_tags.length === 0) return true;
                 const userTags = sub.pref_filter_tags as string[];
                 const isMatch = userTags.some((tag: string) => genreStr.includes(tag));
                 return isMatch;
             });
-        } else if (category === 'class') {
+        } else if (!adminOnly && category === 'class') {
             targetSubscriptions = subscriptions.filter((sub: any) => {
                 if (!sub.pref_filter_class_genres || sub.pref_filter_class_genres.length === 0) return true;
                 const userGenres = sub.pref_filter_class_genres as string[];
@@ -119,15 +155,25 @@ Deno.serve(async (req) => {
         const results = await Promise.allSettled(
             targetSubscriptions.map(async (subRecord: any) => {
                 // 상세 내용(content)이 있으면 본문에 추가 (펼쳤을 때 표시됨)
-                const finalBody = content ? `${body}\n\n${content}` : body;
+                const hasDigestItems = Array.isArray(items) && items.length > 0;
+                const finalBody = content && !hasDigestItems ? `${body}\n\n${content}` : body;
+                const finalTag = tag || (batchKey ? `push-batch-${batchKey}` : eventId ? `push-event-${eventId}` : `push-${category || 'general'}`);
 
                 const pushPayload = JSON.stringify({
                     title: title, // 등록시간 등 부가정보 절대 포함 금지
                     body: finalBody,
                     icon: image || 'https://swingenjoy.com/logo512.png', // 이미지가 있으면 우측 이미지(아이콘)로 활용
                     image: image, // 큰 이미지(Android 배너 등)
-                    tag: `push-${Date.now()}`,
-                    data: { url: url || '/' }
+                    tag: finalTag,
+                    renotify: renotify === true,
+                    data: {
+                        url: url || '/',
+                        items: hasDigestItems ? items : undefined,
+                        batchKey: batchKey || undefined,
+                        eventId: eventId || undefined,
+                        category: category || undefined,
+                        image: image || undefined
+                    }
                 });
 
                 try {

@@ -5,10 +5,8 @@ import { useBoardStaticData } from '../../contexts/BoardDataContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPrefixTabBar from './components/BoardPrefixTabBar';
-import AnonymousPostList from './components/AnonymousPostList';
 import StandardPostList from './components/StandardPostList';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
-import DevLog from './components/DevLog';
 import { useModal } from '../../hooks/useModal';
 // import BoardManagementModal from './components/BoardManagementModal';
 // import UniversalPostEditor from './components/UniversalPostEditor';
@@ -24,6 +22,8 @@ const UniversalPostEditor = lazy(() => import('./components/UniversalPostEditor'
 const AnonymousWriteModal = lazy(() => import('./components/AnonymousWriteModal'));
 const BoardDetailModal = lazy(() => import('./components/BoardDetailModal'));
 const HistoryTimelinePage = lazy(() => import('../history/HistoryTimelinePage'));
+const AnonymousPostList = lazy(() => import('./components/AnonymousPostList'));
+const DevLog = lazy(() => import('./components/DevLog'));
 
 // Hooks
 import { useBoardPosts } from './hooks/useBoardPosts';
@@ -68,7 +68,6 @@ export default function BoardMainContainer() {
 
     // Custom Hooks
     const {
-        posts,
         loading, // Use this for loading indicators
         loadPosts,
         currentPage,
@@ -85,20 +84,12 @@ export default function BoardMainContainer() {
         prefixId: selectedPrefixId
     });
 
-    // Use prefixes that are actually used in current posts
+    // Prefixes come from static board metadata. Posts are server-paginated, so
+    // deriving filters from the current page would hide valid filters.
     const prefixes = useMemo(() => {
-        if (!posts || posts.length === 0) return [];
-
-        // Get unique prefix IDs from ALL loaded posts in this category (only for Standard Board)
-        const usedPrefixIds = new Set(posts.map((p: any) => p.prefix_id).filter(Boolean));
-        if (usedPrefixIds.size === 0) return [];
-
-        // Use prefixes from BoardDataContext to get metadata (name, color, etc.)
         const allPrefixes = boardData?.prefixes?.[category] || [];
-        return allPrefixes.filter((prefix: any) =>
-            usedPrefixIds.has(prefix.id) && prefix.name !== '전광판'
-        );
-    }, [posts, boardData, category]);
+        return allPrefixes.filter((prefix: any) => prefix.name !== '전광판');
+    }, [boardData, category]);
 
     const {
         likedPostIds,
@@ -118,6 +109,11 @@ export default function BoardMainContainer() {
     // Handle Category Change
     const handleCategoryChange = (newCategory: BoardCategory) => {
         setSearchParams({ category: newCategory }, { replace: true });
+    };
+
+    const handlePrefixChange = (prefixId: number | null) => {
+        setCurrentPage(1);
+        setSelectedPrefixId(prefixId);
     };
 
     // Handle Post Click - Open Modal
@@ -241,7 +237,7 @@ export default function BoardMainContainer() {
                     <BoardPrefixTabBar
                         prefixes={prefixes}
                         selectedPrefixId={selectedPrefixId}
-                        onPrefixChange={setSelectedPrefixId}
+                        onPrefixChange={handlePrefixChange}
                     />
                 )
             }
@@ -258,7 +254,9 @@ export default function BoardMainContainer() {
                 {loading ? (
                     <LocalLoading message="로딩 중..." />
                 ) : category === 'dev-log' ? (
-                    <DevLog />
+                    <Suspense fallback={<LocalLoading message="개발일지 로딩 중..." />}>
+                        <DevLog />
+                    </Suspense>
                 ) : category === 'history' ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <Suspense fallback={<LocalLoading message="타임라인 로딩 중..." />}>
@@ -266,17 +264,19 @@ export default function BoardMainContainer() {
                         </Suspense>
                     </div>
                 ) : category === 'anonymous' ? (
-                    <AnonymousPostList
-                        posts={currentPosts as AnonymousBoardPost[]}
-                        onPostClick={() => { }}
-                        onPostCreated={loadPosts}
-                        isAdmin={isRealAdmin}
-                        likedPostIds={likedPostIds}
-                        onToggleLike={handleToggleLike}
-                        dislikedPostIds={dislikedPostIds}
-                        onToggleDislike={handleToggleDislike}
-                        onEditPost={handleEditAnonymousPost}
-                    />
+                    <Suspense fallback={<LocalLoading message="익명 게시판 로딩 중..." />}>
+                        <AnonymousPostList
+                            posts={currentPosts as AnonymousBoardPost[]}
+                            onPostClick={() => { }}
+                            onPostCreated={loadPosts}
+                            isAdmin={isRealAdmin}
+                            likedPostIds={likedPostIds}
+                            onToggleLike={handleToggleLike}
+                            dislikedPostIds={dislikedPostIds}
+                            onToggleDislike={handleToggleDislike}
+                            onEditPost={handleEditAnonymousPost}
+                        />
+                    </Suspense>
                 ) : (
                     <StandardPostList
                         posts={currentPosts as StandardBoardPost[]}
@@ -290,7 +290,7 @@ export default function BoardMainContainer() {
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
                         selectedPrefixId={selectedPrefixId}
-                        onPrefixChange={setSelectedPrefixId}
+                        onPrefixChange={handlePrefixChange}
                     />
                 )}
 
@@ -361,35 +361,39 @@ export default function BoardMainContainer() {
 
 
 
-            <Suspense fallback={null}>
-                <UniversalPostEditor
-                    isOpen={editorModal.isOpen}
-                    onClose={() => editorModal.close()}
-                    onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
-                    category={category}
-                    userNickname={user?.user_metadata?.name}
-                />
-            </Suspense>
+            {editorModal.isOpen && (
+                <Suspense fallback={null}>
+                    <UniversalPostEditor
+                        isOpen={editorModal.isOpen}
+                        onClose={() => editorModal.close()}
+                        onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
+                        category={category}
+                        userNickname={user?.user_metadata?.name}
+                    />
+                </Suspense>
+            )}
 
             {/* Anonymous Write Modal - Always mounted component that handles its own visibility */}
-            <Suspense fallback={null}>
-                <AnonymousWriteModal
-                    isOpen={writeModal.isOpen}
-                    onClose={() => {
-                        writeModal.close();
-                        setEditingAnonymousData(null); // Clear data when closed
-                    }}
-                    onPostCreated={() => {
-                        loadPosts();
-                        writeModal.close();
-                        setEditingAnonymousData(null);
-                    }}
-                    category={category}
-                    isAdmin={isRealAdmin}
-                    editData={editingAnonymousData?.post}
-                    providedPassword={editingAnonymousData?.password}
-                />
-            </Suspense>
+            {writeModal.isOpen && (
+                <Suspense fallback={null}>
+                    <AnonymousWriteModal
+                        isOpen={writeModal.isOpen}
+                        onClose={() => {
+                            writeModal.close();
+                            setEditingAnonymousData(null); // Clear data when closed
+                        }}
+                        onPostCreated={() => {
+                            loadPosts();
+                            writeModal.close();
+                            setEditingAnonymousData(null);
+                        }}
+                        category={category}
+                        isAdmin={isRealAdmin}
+                        editData={editingAnonymousData?.post}
+                        providedPassword={editingAnonymousData?.password}
+                    />
+                </Suspense>
+            )}
 
             {
                 isManagementOpen && (

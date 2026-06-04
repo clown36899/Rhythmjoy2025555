@@ -17,10 +17,16 @@
     // [Critical] v48 Armor - Bootstrap Analytics
     (function () {
       window.__LOGS = [];
+      var bootDebug = false;
+      try {
+        bootDebug = /(?:\?|&)bootDebug=true(?:&|$)/.test(location.search) || localStorage.getItem('boot_debug') === 'true';
+      } catch (e) {
+        bootDebug = false;
+      }
       window.__BOOT_LOG = function (m, d) {
         var entry = { t: new Date().toISOString(), m: m, d: d };
         window.__LOGS.push(entry);
-        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        if (bootDebug) {
           console.log('%c[Bootstrap] ' + m, 'background: #333; color: #ffeb3b; font-weight: bold;', d || '');
         }
       };
@@ -108,7 +114,11 @@
     // PWA 설치 프롬프트 조기 캡처
     window.deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('🚀 [index.html] beforeinstallprompt captured early');
+      try {
+        if (localStorage.getItem('boot_debug') === 'true') {
+          console.log('[index.html] beforeinstallprompt captured early');
+        }
+      } catch (err) { }
       e.preventDefault();
       window.deferredPrompt = e;
       // React 컨텍스트가 로드된 후에도 받을 수 있도록 커스텀 이벤트 발송

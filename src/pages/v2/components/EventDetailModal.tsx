@@ -23,7 +23,7 @@ import { useViewTracking } from '../../../hooks/useViewTracking';
 import LocalLoading from '../../../components/LocalLoading';
 import EventEditBottomSheet from './EventEditBottomSheet';
 import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
-import EventKakaoMap from '../../../components/EventKakaoMap';
+import { addClientLog } from '../../../utils/clientLogBuffer';
 
 registerLocale("ko", ko);
 
@@ -59,7 +59,7 @@ interface EventDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: (event: Event, arg?: React.MouseEvent | string) => void;
-  onDelete: (event: Event, e?: React.MouseEvent) => void;
+  onDelete: (event: Event, e?: React.MouseEvent) => void | Promise<void>;
   isAdminMode?: boolean;
   currentUserId?: string; // Add currentUserId prop
   isFavorite?: boolean;
@@ -68,6 +68,38 @@ interface EventDetailModalProps {
   allGenres?: { class: string[]; event: string[] } | string[]; // Backwards compatibility if needed, but we'll cast to structured
   isDeleting?: boolean;
   deleteProgress?: number;
+}
+
+const EVENT_DETAIL_DEBUG = import.meta.env.VITE_EVENT_DETAIL_DEBUG === 'true';
+
+const isLocalDebugHost = () => typeof window !== 'undefined'
+  && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
+
+const eventDetailDeleteDiagnostic = (...args: unknown[]) => {
+  if (!isLocalDebugHost()) return;
+  console.info(...args);
+  addClientLog('event', ...args);
+};
+
+function summarizeEventForLog(event: Event | null | undefined) {
+  if (!event) return { hasEvent: false };
+  return {
+    id: event.id,
+    title: event.title,
+    date: event.start_date || event.date,
+    category: event.category,
+    activity_type: event.activity_type,
+    hasImage: Boolean(event.image || event.image_thumbnail || event.image_medium || event.image_full),
+    hasVenue: Boolean(event.venue_id || event.venue_name || event.location),
+  };
+}
+
+function summarizeUpdatesForLog(updates: Record<string, unknown>) {
+  return {
+    keys: Object.keys(updates),
+    hasImageUpdate: ['image', 'image_micro', 'image_thumbnail', 'image_medium', 'image_full', 'storage_path']
+      .some((key) => key in updates),
+  };
 }
 
 export default function EventDetailModal({
@@ -109,13 +141,14 @@ export default function EventDetailModal({
 
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isLocalDeleting, setIsLocalDeleting] = useState(false);
+  const effectiveIsDeleting = isDeleting || isLocalDeleting;
 
   // Draft State for Local Edits
   const [draftEvent, setDraftEvent] = useState<Event | null>(event);
   // Source of truth for change detection (tracks full details fetched from DB)
   const [originalEvent, setOriginalEvent] = useState<Event | null>(event);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
-  const [mapSearchFailed, setMapSearchFailed] = useState(false);
 
   useEffect(() => {
     setDraftEvent(event);
@@ -130,8 +163,26 @@ export default function EventDetailModal({
   // Derive sources from Draft if available
   const displayEvent = draftEvent || event;
 
-  const thumbnailSrc = displayEvent ? (displayEvent.image_micro || displayEvent.image_thumbnail ||
-    getEventThumbnail(displayEvent, defaultThumbnailClass, defaultThumbnailEvent)) : null;
+  const thumbnailSrc = useMemo(() => {
+    if (!displayEvent) return null;
+
+    const optimizedThumb =
+      displayEvent.image_micro ||
+      displayEvent.image_thumbnail ||
+      displayEvent.image_medium;
+
+    if (optimizedThumb) return optimizedThumb;
+
+    return getEventThumbnail(
+      {
+        ...displayEvent,
+        image: undefined,
+        image_full: undefined,
+      },
+      defaultThumbnailClass,
+      defaultThumbnailEvent
+    );
+  }, [displayEvent, defaultThumbnailClass, defaultThumbnailEvent]);
 
   // Prioritize Medium for faster loading, Fallback to others. This prevents loading 5MB images in a 400px modal.
   const highResSrc = useMemo(() => {
@@ -153,18 +204,32 @@ export default function EventDetailModal({
   }, [displayEvent]);
 
 
-  // Effect to preload high-res image
+  // Effect to preload high-res image after the modal has had a chance to paint.
   useEffect(() => {
     setIsHighResLoaded(false);
 
     if (highResSrc && highResSrc !== thumbnailSrc) {
-      const img = new Image();
-      img.src = highResSrc;
-      img.onload = () => {
-        setIsHighResLoaded(true);
+      let cancelled = false;
+      const preloadTimer = window.setTimeout(() => {
+        const img = new Image();
+        img.decoding = 'async';
+        img.onload = () => {
+          if (!cancelled) setIsHighResLoaded(true);
+        };
+        img.onerror = () => {
+          if (!cancelled) setIsHighResLoaded(false);
+        };
+        img.src = highResSrc;
+      }, 120);
+
+      return () => {
+        cancelled = true;
+        window.clearTimeout(preloadTimer);
       };
     } else if (!highResSrc && thumbnailSrc) {
       // 고화질 없고 썸네일만 있는 경우 로딩 완료 처리 (사실상 변화 없음)
+      setIsHighResLoaded(true);
+    } else if (highResSrc && highResSrc === thumbnailSrc) {
       setIsHighResLoaded(true);
     }
   }, [highResSrc, thumbnailSrc]);
@@ -181,8 +246,12 @@ export default function EventDetailModal({
       // 실제 URL은 변하지 않지만, GA4에는 페이지가 바뀐 것처럼 전송
       logPageView(`/event/${event.id}`, event.title);
 
-      // 3. 조회수 증가
-      incrementView();
+      // 3. 조회수 증가: 모달/이미지 렌더와 네트워크 경쟁하지 않도록 지연 실행
+      const viewTimer = window.setTimeout(() => {
+        incrementView();
+      }, 700);
+
+      return () => window.clearTimeout(viewTimer);
     }
     // event?.id 사용: event 객체 참조가 바뀌어도 ID가 같으면 재호출 방지
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -315,7 +384,7 @@ export default function EventDetailModal({
       ];
 
       await Promise.all(uploadTasks);
-      console.log('[uploadImageAndSave] All versions uploaded');
+      if (EVENT_DETAIL_DEBUG) console.debug('[uploadImageAndSave] All versions uploaded');
 
       const publicUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
       const mediumUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
@@ -340,7 +409,7 @@ export default function EventDetailModal({
       setImageFile(null);
       setTempImageSrc(null);
       setOriginalImageUrl(null);
-      console.log('[uploadImageAndSave] Image saved to DB immediately');
+      if (EVENT_DETAIL_DEBUG) console.debug('[uploadImageAndSave] Image saved to DB immediately');
     } catch (err) {
       console.error('[uploadImageAndSave] Failed:', err);
       alert('이미지 저장 중 오류가 발생했습니다.');
@@ -387,14 +456,15 @@ export default function EventDetailModal({
   const [showVenueSelect, setShowVenueSelect] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // 전역 로딩 상태 연동
+  // 전역 로딩은 저장/업로드처럼 화면을 막아야 하는 작업에만 사용한다.
+  // 삭제는 버튼 로딩과 모달 닫힘으로 처리해야 stale loading overlay가 남지 않는다.
   useEffect(() => {
-    if (isDeleting || isSaving) {
-      showLoading('event-detail-save', isDeleting ? "삭제 중입니다..." : "저장 중입니다...");
+    if (isSaving) {
+      showLoading('event-detail-save', "저장 중입니다...");
     } else {
       hideLoading('event-detail-save');
     }
-  }, [isDeleting, isSaving, showLoading, hideLoading]);
+  }, [isSaving, showLoading, hideLoading]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -410,11 +480,9 @@ export default function EventDetailModal({
     }
   }, [event, authorNickname]);
 
-  console.log('[EventDetailModal] Render:', { isOpen, eventId: event?.id, hasEvent: !!event });
-
   useEffect(() => {
-    if (isOpen) {
-      console.log('[EventDetailModal] Modal opened with event:', event);
+    if (EVENT_DETAIL_DEBUG && isOpen) {
+      console.debug('[EventDetailModal] Modal opened:', summarizeEventForLog(event));
     }
   }, [isOpen, event]);
 
@@ -423,7 +491,6 @@ export default function EventDetailModal({
     // 다른 이벤트로 바뀌면 ref 초기화
     if (hasFetchedDetailRef.current !== null && hasFetchedDetailRef.current !== event?.id) {
       hasFetchedDetailRef.current = null;
-      setMapSearchFailed(false); // 이벤트 변경 시 지도 실패 상태 초기화
     }
 
     // On-Demand Fetching: 필수 필드 누락 시 또는 권한이 있는데 작성자 닉네임이 없을 때 조회
@@ -452,7 +519,9 @@ export default function EventDetailModal({
             originalId = String(Number(event!.id) - 10000000);
           }
 
-          console.log('[EventDetailModal] Fetching detail for:', { originalId, isSocialIntegrated });
+          if (EVENT_DETAIL_DEBUG) {
+            console.debug('[EventDetailModal] Fetching detail:', { originalId, isSocialIntegrated });
+          }
 
           // 통합된 events 테이블 데이터 조회 (장소 정보 조인 포함)
           const { data, error } = await supabase
@@ -462,7 +531,9 @@ export default function EventDetailModal({
             .maybeSingle();
 
           if (error) throw error;
-          console.log('[EventDetailModal] Unified Fetch Result:', data);
+          if (EVENT_DETAIL_DEBUG) {
+            console.debug('[EventDetailModal] Detail loaded:', summarizeEventForLog(data as Event));
+          }
           if (data) {
             const fullEvent = { ...event, ...(data as any) } as Event;
             // 만약 group_id가 있다면 기존 UI 호환성을 위해 social- 접두어 유지
@@ -545,7 +616,9 @@ export default function EventDetailModal({
       const originalId = String(draftEvent.id).replace('social-', '');
       const targetId = Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
 
-      console.log('[saveChangesToDB] Updating event:', { targetId, updates });
+      if (EVENT_DETAIL_DEBUG) {
+        console.debug('[saveChangesToDB] Updating event:', { targetId, ...summarizeUpdatesForLog(updates as Record<string, unknown>) });
+      }
 
 
       const { data, error } = await supabase
@@ -652,7 +725,7 @@ export default function EventDetailModal({
       'date', 'start_date', 'end_date', 'event_dates', 'time'
     ];
 
-    console.log('[hasChanges] Checking for changes...');
+    if (EVENT_DETAIL_DEBUG) console.debug('[hasChanges] Checking for changes...');
     const changedFields: string[] = [];
 
     const hasChanged = fieldsToCheck.some(field => {
@@ -720,7 +793,7 @@ export default function EventDetailModal({
         const resizedImages = await createResizedImages(imageFile);
 
         // [최적화] 병렬 업로드 및 재시도 로직 적용
-        console.log('[Image Upload] Starting parallel upload with retries:', basePath);
+        if (EVENT_DETAIL_DEBUG) console.debug('[Image Upload] Starting parallel upload with retries:', basePath);
 
         const uploadTasks = [
           // Full Size
@@ -762,7 +835,7 @@ export default function EventDetailModal({
 
         try {
           await Promise.all(uploadTasks);
-          console.log('[Image Upload] All versions uploaded successfully');
+          if (EVENT_DETAIL_DEBUG) console.debug('[Image Upload] All versions uploaded successfully');
         } catch (uploadError) {
           console.error('[Image Upload] Failed to upload one or more versions:', uploadError);
           throw uploadError;
@@ -819,9 +892,9 @@ export default function EventDetailModal({
       // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
       const targetId = Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
 
-      console.log('[handleFinalSave] Updating event record:', { targetId, updates });
-
-      console.log('[handleFinalSave] Updating event record:', { targetId, updates });
+      if (EVENT_DETAIL_DEBUG) {
+        console.debug('[handleFinalSave] Updating event record:', { targetId, ...summarizeUpdatesForLog(updates as Record<string, unknown>) });
+      }
 
       const result = await retryOperation(async () =>
         await supabase
@@ -863,7 +936,7 @@ export default function EventDetailModal({
             .maybeSingle();
 
           if (!retryError && retryData && retryData.category === updates.category) {
-            console.log('✅ Force update SUCCEEDED! Category is now:', retryData.category);
+            if (EVENT_DETAIL_DEBUG) console.debug('Force update SUCCEEDED. Category is now:', retryData.category);
             // Correct the local event data reference
             const eventUpdatedEvent = new CustomEvent("eventUpdated", {
               detail: {
@@ -887,20 +960,25 @@ export default function EventDetailModal({
       }
 
       // Dispatch update event so list updates immediately
-      console.log('[Screen Update] Dispatching eventUpdated custom event');
-      console.log('[Screen Update] Event data to dispatch:', updatedEvent || draftEvent);
+      if (EVENT_DETAIL_DEBUG) {
+        console.debug('[Screen Update] Dispatching eventUpdated:', summarizeEventForLog((updatedEvent || draftEvent) as Event));
+      }
       window.dispatchEvent(new CustomEvent('eventUpdated', {
         detail: {
           id: draftEvent.id,
           event: updatedEvent || draftEvent // 업데이트된 전체 이벤트 데이터
         }
       }));
-      console.log('[Screen Update] Custom event dispatched');
+      if (EVENT_DETAIL_DEBUG) {
+        console.debug('[Screen Update] Custom event dispatched');
+      }
 
       // 🎯 [CLEANUP] After successful DB update, remove old images if changed
       if (imageFile) {
         const performCleanup = async () => {
-          console.log("🧹 [EventDetailModal] Starting cleanup of old images...");
+          if (EVENT_DETAIL_DEBUG) {
+            console.debug("🧹 [EventDetailModal] Starting cleanup of old images...");
+          }
 
           // 1. New style folder-based cleanup
           if (oldStoragePath) {
@@ -909,7 +987,9 @@ export default function EventDetailModal({
               if (files && files.length > 0) {
                 const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
                 await supabase.storage.from("images").remove(filePaths);
-                console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+                if (EVENT_DETAIL_DEBUG) {
+                  console.debug(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+                }
               }
             } catch (e) {
               console.warn("⚠️ [CLEANUP] Failed to delete old folder content:", e);
@@ -937,7 +1017,9 @@ export default function EventDetailModal({
               const filteredPaths = individualPaths.filter(p => !p.startsWith(`event-posters/${timestamp}`));
               if (filteredPaths.length > 0) {
                 await supabase.storage.from("images").remove(filteredPaths);
-                console.log(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
+                if (EVENT_DETAIL_DEBUG) {
+                  console.debug(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
+                }
               }
             } catch (e) {
               console.warn("⚠️ [CLEANUP] Failed to delete legacy individual files:", e);
@@ -952,11 +1034,11 @@ export default function EventDetailModal({
       setIsSaving(false);
 
       // Stay in modal, just exit edit mode
-      console.log('[Screen Update] Exiting edit mode');
+      if (EVENT_DETAIL_DEBUG) console.debug('[Screen Update] Exiting edit mode');
       setIsSelectionMode(false);
       // Update local state to reflect saved data immediately
       if (updatedEvent) {
-        console.log('[Screen Update] Updating local state with DB response');
+        if (EVENT_DETAIL_DEBUG) console.debug('[Screen Update] Updating local state with DB response');
         setDraftEvent(updatedEvent);
         setOriginalEvent(updatedEvent);
       } else {
@@ -966,7 +1048,7 @@ export default function EventDetailModal({
       setImageFile(null);
       setTempImageSrc(null);
       setOriginalImageUrl(null); // 원본 이미지 URL 리셋
-      console.log('[Screen Update] Save complete, showing alert');
+      if (EVENT_DETAIL_DEBUG) console.debug('[Screen Update] Save complete, showing alert');
       alert('저장되었습니다.');
 
     } catch (error) {
@@ -1041,9 +1123,8 @@ export default function EventDetailModal({
               {(() => {
                 // Progressive Loading: thumbnail priority logic handled by state
                 const hasImage = !!(thumbnailSrc || highResSrc);
-                const isSocialMap = selectedEvent.category === "social" || selectedEvent.category === "club_lesson" || selectedEvent.category === "club_regular";
-                const showImageArea = hasImage || isSocialMap;
-                const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc && !isSocialMap;
+                const showImageArea = hasImage;
+                const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
 
                 // Transform style (shared)
                 const imageStyle = {
@@ -1057,11 +1138,11 @@ export default function EventDetailModal({
                     {showImageArea ? (
                       <>
                         {/* Background Blur Layer (Desktop highlight) */}
-                        {!isSocialMap && (thumbnailSrc || highResSrc) && (
+                        {(thumbnailSrc || highResSrc) && (
                           <div
                             className="EDM-imageBlurBg"
                             style={{
-                              backgroundImage: `url("${thumbnailSrc || highResSrc}")`,
+                              backgroundImage: thumbnailSrc ? `url("${thumbnailSrc}")` : undefined,
                               // HighRes 로드 전후로 투명도 조절
                               opacity: isHighResLoaded ? 0.4 : 0.2,
                               transition: 'opacity 0.4s ease-in-out',
@@ -1071,86 +1152,57 @@ export default function EventDetailModal({
                           />
                         )}
 
-                        <div className="EDM-imageWrapper" style={isSocialMap ? { backgroundColor: '#111' } : undefined}>
-                          {isSocialMap && !mapSearchFailed ? (
-                            // venues 데이터가 아직 로드되지 않았으면 로딩 placeholder 표시
-                            // venues.address 없이 location(장소명)으로 addressSearch 호출하면 실패하므로 방지
-                            !(selectedEvent as any).venues?.address && isFetchingDetail ? (
-                              <div className="EDM-mapLoading">
-                                <i className="ri-map-2-line"></i>
-                              </div>
-                            ) : (
-                              <EventKakaoMap
-                                key={`social-map-${(selectedEvent as any).venues?.address || selectedEvent.address || 'default'}`}
-                                address={(selectedEvent as any).venues?.address || selectedEvent.address || selectedEvent.location || "서울"}
-                                placeName={(selectedEvent as any).venues?.name || selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
-                                imageUrl={thumbnailSrc || highResSrc}
-                                onMarkerClick={() => {
-                                  const venueId = (selectedEvent as any).venue_id;
-                                  if (venueId) {
-                                    if (onOpenVenueDetail) {
-                                      onOpenVenueDetail(String(venueId));
-                                    } else {
-                                      openModal('venueDetail', { venueId: String(venueId) });
-                                    }
-                                  } else if (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) {
-                                    window.open((selectedEvent as any).venue_custom_link || selectedEvent.location_link, '_blank');
-                                  }
+                        <div className="EDM-imageWrapper">
+                          <React.Fragment key="event-images">
+                            {/* 1. Base Layer: Thumbnail */}
+                            {thumbnailSrc && (
+                              <img
+                                src={thumbnailSrc}
+                                alt={selectedEvent.title}
+                                className="EDM-imageContent"
+                                loading="eager"
+                                draggable={false}
+                                style={{
+                                  ...imageStyle,
+                                  zIndex: 1,
+                                  opacity: 1,
                                 }}
-                                onSearchFail={() => setMapSearchFailed(true)}
                               />
-                            )
-                          ) : (
-                            <React.Fragment key="event-images">
-                              {/* 1. Base Layer: Thumbnail */}
-                              {thumbnailSrc && (
-                                <img
-                                  src={thumbnailSrc}
-                                  alt={selectedEvent.title}
-                                  className="EDM-imageContent"
-                                  loading="eager"
-                                  draggable={false}
-                                  style={{
-                                    ...imageStyle,
-                                    zIndex: 1,
-                                    opacity: 1,
-                                  }}
-                                />
-                              )}
+                            )}
 
-                              {/* 2. Overlay Layer: HighRes (Cross-fade) */}
-                              {highResSrc && highResSrc !== thumbnailSrc && (
-                                <img
-                                  src={highResSrc}
-                                  alt={selectedEvent.title}
-                                  className="EDM-imageContent"
-                                  loading="eager"
-                                  decoding="async"
-                                  draggable={false}
-                                  style={{
-                                    ...imageStyle,
-                                    zIndex: 2,
-                                    opacity: isHighResLoaded ? 1 : 0,
-                                    transition: "opacity 0.4s ease-in-out",
-                                  }}
-                                />
-                              )}
+                            {/* 2. Overlay Layer: HighRes (Cross-fade) */}
+                            {highResSrc && highResSrc !== thumbnailSrc && isHighResLoaded && (
+                              <img
+                                src={highResSrc}
+                                alt={selectedEvent.title}
+                                className="EDM-imageContent"
+                                loading="eager"
+                                decoding="async"
+                                draggable={false}
+                                style={{
+                                  ...imageStyle,
+                                  zIndex: 2,
+                                  opacity: isHighResLoaded ? 1 : 0,
+                                  transition: "opacity 0.4s ease-in-out",
+                                }}
+                              />
+                            )}
 
-                              {/* Fallback if only HighRes exists and no thumbnail */}
-                              {!thumbnailSrc && highResSrc && (
-                                <img
-                                  src={highResSrc}
-                                  alt={selectedEvent.title}
-                                  className="EDM-imageContent"
-                                  loading="eager"
-                                />
-                              )}
-                            </React.Fragment>
-                          )}
+                            {/* Fallback if only HighRes exists and no thumbnail */}
+                            {!thumbnailSrc && highResSrc && (
+                              <img
+                                src={highResSrc}
+                                alt={selectedEvent.title}
+                                className="EDM-imageContent"
+                                loading="eager"
+                                decoding="async"
+                              />
+                            )}
+                          </React.Fragment>
                         </div>
 
                         {/* Gradient Overlay */}
-                        <div className="EDM-imageGradient" style={isSocialMap ? { pointerEvents: 'none' } : undefined} />
+                        <div className="EDM-imageGradient" />
 
                         {isDefaultThumbnail && (
                           <div className="EDM-defaultThumb">
@@ -1786,31 +1838,63 @@ export default function EventDetailModal({
               {/* Delete Button (Only in Selection/Edit Mode) */}
               {isSelectionMode && (isAdminMode || isActualAdmin || !isPastEvent) && (
                 <button
-                  onClick={(e) => {
-                    console.log('[EventDetailModal] 삭제 버튼 클릭됨', { eventId: selectedEvent.id, isDeleting });
+                  type="button"
+                  onPointerDown={(e) => {
                     e.stopPropagation();
-                    if (isDeleting) {
-                      console.log('[EventDetailModal] 현재 삭제 진행 중이므로 무시합니다.');
+                  }}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    eventDetailDeleteDiagnostic('[EventDelete:DetailButton] click', {
+                      eventId: selectedEvent.id,
+                      isDeleting,
+                      isLocalDeleting,
+                      effectiveIsDeleting,
+                      isSelectionMode,
+                      isAdminMode,
+                      isActualAdmin,
+                      isPastEvent,
+                      hasDeleteHandler: typeof _onDelete === 'function',
+                    });
+                    if (EVENT_DETAIL_DEBUG) console.debug('[EventDetailModal] 삭제 버튼 클릭됨', { eventId: selectedEvent.id, effectiveIsDeleting });
+                    if (effectiveIsDeleting) {
+                      eventDetailDeleteDiagnostic('[EventDelete:DetailButton] ignored because deleting', { eventId: selectedEvent.id });
+                      if (EVENT_DETAIL_DEBUG) console.debug('[EventDetailModal] 현재 삭제 진행 중이므로 무시합니다.');
                       return;
                     }
 
                     if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
-                      console.log('[EventDetailModal] 사용자가 삭제를 컨펌했습니다. _onDelete 호출 시도...');
+                      eventDetailDeleteDiagnostic('[EventDelete:DetailButton] confirmed', { eventId: selectedEvent.id });
+                      if (EVENT_DETAIL_DEBUG) console.debug('[EventDetailModal] 사용자가 삭제를 컨펌했습니다. _onDelete 호출 시도...');
                       if (typeof _onDelete === 'function') {
-                        _onDelete(selectedEvent, e);
+                        setIsLocalDeleting(true);
+                        try {
+                          await Promise.resolve(_onDelete(selectedEvent, e));
+                          eventDetailDeleteDiagnostic('[EventDelete:DetailButton] handler resolved', { eventId: selectedEvent.id });
+                        } catch (deleteError) {
+                          console.error('[EventDetailModal] 삭제 핸들러 실행 실패:', deleteError);
+                          eventDetailDeleteDiagnostic('[EventDelete:DetailButton] handler rejected', {
+                            eventId: selectedEvent.id,
+                            message: deleteError instanceof Error ? deleteError.message : String(deleteError),
+                          });
+                          alert(`삭제 처리 중 오류가 발생했습니다: ${deleteError instanceof Error ? deleteError.message : '알 수 없는 오류'}`);
+                        } finally {
+                          hideLoading('event-detail-save');
+                          setIsLocalDeleting(false);
+                        }
                       } else {
                         console.error('[EventDetailModal] _onDelete가 함수가 아닙니다! (삭제 불가)', { _onDelete });
                         alert('삭제 기능을 호출할 수 없습니다. (핸들러 누락)');
                       }
                     } else {
-                      console.log('[EventDetailModal] 사용자가 삭제를 취소했습니다.');
+                      if (EVENT_DETAIL_DEBUG) console.debug('[EventDetailModal] 사용자가 삭제를 취소했습니다.');
                     }
                   }}
-                  className={`EDM-actionBtn is-delete ${isDeleting ? 'is-loading' : ''}`}
+                  className={`EDM-actionBtn is-delete ${effectiveIsDeleting ? 'is-loading' : ''}`}
                   title="삭제하기"
-                  disabled={isDeleting}
+                  disabled={effectiveIsDeleting}
                 >
-                  {isDeleting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-delete-bin-line EDM-actionIcon"></i>}
+                  {effectiveIsDeleting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-delete-bin-line EDM-actionIcon"></i>}
                 </button>
               )}
 
@@ -1856,7 +1940,7 @@ export default function EventDetailModal({
 
               <button
                 onClick={(e) => {
-                  console.log('[EventDetailModal] Close(X) 버튼 클릭됨');
+                  if (EVENT_DETAIL_DEBUG) console.debug('[EventDetailModal] Close(X) 버튼 클릭됨');
                   e.preventDefault();
                   e.stopPropagation();
                   onClose();

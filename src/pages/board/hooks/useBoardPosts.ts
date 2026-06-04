@@ -17,6 +17,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
     const [posts, setPosts] = useState<BoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const [error, setError] = useState<any>(null);
 
     const loadPosts = useCallback(async () => {
@@ -27,6 +28,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             setError(null);
 
             const isAnon = category === 'anonymous';
+            const isFreeBoard = category === 'free';
             const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
 
             // Construct query based on category
@@ -35,16 +37,26 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 id, title, author_name, author_nickname,
                 user_id, views, is_notice, prefix_id,
                 prefix:board_prefixes(id, name, color, admin_only),
-                created_at, updated_at, category, content,
+                created_at, updated_at, category,
+                ${isFreeBoard ? '' : 'content,'}
                 image_thumbnail, image, is_hidden, comment_count,
                 likes, favorites, dislikes, display_order
             `;
 
             let query: any = (supabase.from(table) as any)
-                .select(isAnon ? anonFields : standardFields);
+                .select(isAnon ? anonFields : standardFields, { count: 'exact' });
 
             if (!isAnon) {
                 query = query.eq('category', category);
+            }
+
+            if (!isAnon && prefixId) {
+                // Prefix id 1 is the legacy "공지" tab in this board.
+                if (prefixId === 1) {
+                    query = query.eq('is_notice', true);
+                } else {
+                    query = query.eq('prefix_id', prefixId).eq('is_notice', false);
+                }
             }
 
             // Sorting: Notices first, then custom order (pinning), then latest
@@ -61,13 +73,17 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 query = query.eq('is_hidden', false);
             }
 
-            const { data, error } = await query;
+            const from = (currentPage - 1) * postsPerPage;
+            const to = from + postsPerPage - 1;
+
+            const { data, error, count } = await query.range(from, to);
 
             if (error) throw error;
+            setTotalCount(count || 0);
 
-            // 1+1 Fetching Strategy: Fetch all profiles in one go if not anonymous
+            // Fetch profiles only for the current page.
             const profileMap: Record<string, string> = {};
-            if (!isAnon && data && data.length > 0) {
+            if (!isAnon && !isFreeBoard && data && data.length > 0) {
                 const userIds = Array.from(new Set(data.map((p: any) => p.user_id).filter(Boolean)));
                 if (userIds.length > 0) {
                     const { data: profiles } = await supabase
@@ -100,10 +116,12 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         } catch (err) {
             console.error('게시글 로딩 실패:', err);
             setError(err);
+            setPosts([]);
+            setTotalCount(0);
         } finally {
             setLoading(false);
         }
-    }, [category, isAdminChecked, isRealAdmin]);
+    }, [category, currentPage, isAdminChecked, isRealAdmin, postsPerPage, prefixId]);
 
     // Initial load
     useEffect(() => {
@@ -114,7 +132,9 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
     useEffect(() => {
         if (!isAdminChecked) return;
 
-        const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
+        const isAnon = category === 'anonymous';
+        const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
+        let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
 
         // console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
 
@@ -129,72 +149,13 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                     // Removed filter for DELETE to work properly
                 },
                 (payload) => {
-                    // console.log(`[Realtime] ${payload.eventType} event received:`, payload);
+                    const changedPost = (payload.new || payload.old) as any;
+                    if (!isAnon && changedPost?.category && changedPost.category !== category) return;
 
-                    // Handle INSERT - add new post to top without reload
-                    if (payload.eventType === 'INSERT' && payload.new) {
-                        const newPost = payload.new as any;
-
-                        // Add to top of list
-                        setPosts(prevPosts => [
-                            {
-                                ...newPost,
-                                prefix: null,
-                                author_profile_image: null,
-                                comment_count: 0,
-                                likes: newPost.likes || 0,
-                                favorites: newPost.favorites || 0,
-                                dislikes: newPost.dislikes || 0
-                            } as any,
-                            ...prevPosts
-                        ]);
-
-                        // console.log('[Realtime] Added new post without reload');
-                        return;
-                    }
-
-                    // Handle UPDATE - update specific post without reload
-                    if (payload.eventType === 'UPDATE' && payload.new) {
-                        const newData = payload.new as any;
-
-                        // Check for Soft Delete (is_hidden)
-                        if (newData.is_hidden === true) {
-                            setPosts(prevPosts =>
-                                prevPosts.filter(post => String(post.id) !== String(newData.id))
-                            );
-                            // console.log('[Realtime] Post soft-deleted (hidden)');
-                            return;
-                        }
-
-                        setPosts(prevPosts =>
-                            prevPosts.map(post =>
-                                String(post.id) === String(newData.id)
-                                    ? {
-                                        ...post,
-                                        ...newData, // Updates title, content, etc. for Free Board
-                                        likes: newData.likes || 0,
-                                        dislikes: newData.dislikes || 0,
-                                        views: newData.views || post.views,
-                                        comment_count: newData.comment_count !== undefined ? newData.comment_count : post.comment_count
-                                    }
-                                    : post
-                            )
-                        );
-
-                        // console.log('[Realtime] Updated post without reload');
-                        return;
-                    }
-
-                    // For DELETE, remove post from list without reload
-                    if (payload.eventType === 'DELETE' && payload.old) {
-                        const deletedPost = payload.old as any;
-
-                        setPosts(prevPosts =>
-                            prevPosts.filter(post => String(post.id) !== String(deletedPost.id))
-                        );
-
-                        // console.log('[Realtime] Removed post without reload');
-                    }
+                    if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+                    realtimeReloadTimer = setTimeout(() => {
+                        loadPosts();
+                    }, 150);
                 }
             )
             .subscribe((status) => {
@@ -210,9 +171,10 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
         return () => {
             // console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
+            if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
             supabase.removeChannel(channel);
         };
-    }, [category, isAdminChecked]);
+    }, [category, isAdminChecked, loadPosts]);
 
     // Reset pagination when category changes
     useEffect(() => {
@@ -220,16 +182,14 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
     }, [category]);
 
     // Pagination Logic
-    const filteredPosts = prefixId
-        ? posts.filter(p => {
-            // 공지 탭인 경우 공지만 보여줌
-            if (prefixId === 1) return p.is_notice;
-            // 다른 개별 탭인 경우 공지는 숨기고 해당 탭 게시물만 보여줌
-            return !p.is_notice && (p as StandardBoardPost).prefix_id === prefixId;
-        })
-        : posts; // "전체"인 경우 공지 포함 모든 게시물 노출
-    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
-    const currentPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+    const totalPages = Math.ceil(totalCount / postsPerPage);
+    const currentPosts = posts;
+
+    useEffect(() => {
+        if (totalPages > 0 && currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const goToPage = (page: number) => {
         if (page >= 1 && page <= totalPages) {

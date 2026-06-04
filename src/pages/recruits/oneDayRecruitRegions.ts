@@ -1,0 +1,242 @@
+export type RegionCoordinates = { lat: number; lng: number };
+
+export type OneDayRegionOption = {
+  label: string;
+  province: string;
+  coordinates: RegionCoordinates;
+  aliases?: string[];
+};
+
+export const KOREA_CENTER: RegionCoordinates = { lat: 36.35, lng: 127.85 };
+
+export const ONE_DAY_REGION_GROUPS: Array<{ label: string; options: OneDayRegionOption[] }> = [
+  {
+    label: '특별/광역/자치',
+    options: [
+      { label: '서울', province: '서울특별시', coordinates: { lat: 37.5665, lng: 126.9780 }, aliases: ['강남', '홍대', '신촌', '방배', '사당', '관악', '봉천', '신림', '당산', '마포', '서초', '양재', '성수', '잠실', '왕십리', '노원', '합정', '망원', '이태원', '용산', '해피홀', '피에스타', '봉천살롱', '타임', '경성홀'] },
+      { label: '부산', province: '부산광역시', coordinates: { lat: 35.1796, lng: 129.0756 }, aliases: ['해운대', '서면', '광안', '수영', '남포', '동래', '사상', '243', '부산프렌즈', '어반'] },
+      { label: '대구', province: '대구광역시', coordinates: { lat: 35.8714, lng: 128.6014 } },
+      { label: '인천', province: '인천광역시', coordinates: { lat: 37.4563, lng: 126.7052 }, aliases: ['부평', '구월', '송도', '비밥바'] },
+      { label: '광주', province: '광주광역시', coordinates: { lat: 35.1595, lng: 126.8526 } },
+      { label: '대전', province: '대전광역시', coordinates: { lat: 36.3504, lng: 127.3845 }, aliases: ['둔산', '유성', '오나다', '스윙잇'] },
+      { label: '울산', province: '울산광역시', coordinates: { lat: 35.5384, lng: 129.3114 } },
+      { label: '세종', province: '세종특별자치시', coordinates: { lat: 36.4801, lng: 127.2890 } },
+    ],
+  },
+  {
+    label: '경기',
+    options: [
+      { label: '수원', province: '경기도', coordinates: { lat: 37.2636, lng: 127.0286 } },
+      { label: '성남', province: '경기도', coordinates: { lat: 37.4200, lng: 127.1265 } },
+      { label: '고양', province: '경기도', coordinates: { lat: 37.6584, lng: 126.8320 } },
+      { label: '용인', province: '경기도', coordinates: { lat: 37.2411, lng: 127.1776 } },
+      { label: '부천', province: '경기도', coordinates: { lat: 37.5034, lng: 126.7660 }, aliases: ['상동', '중동', '소사'] },
+      { label: '안산', province: '경기도', coordinates: { lat: 37.3219, lng: 126.8309 } },
+      { label: '안양', province: '경기도', coordinates: { lat: 37.3943, lng: 126.9568 } },
+      { label: '남양주', province: '경기도', coordinates: { lat: 37.6360, lng: 127.2165 } },
+      { label: '화성', province: '경기도', coordinates: { lat: 37.1995, lng: 126.8312 } },
+      { label: '평택', province: '경기도', coordinates: { lat: 36.9921, lng: 127.1127 } },
+      { label: '의정부', province: '경기도', coordinates: { lat: 37.7381, lng: 127.0338 } },
+      { label: '시흥', province: '경기도', coordinates: { lat: 37.3801, lng: 126.8029 } },
+      { label: '파주', province: '경기도', coordinates: { lat: 37.7599, lng: 126.7802 } },
+      { label: '김포', province: '경기도', coordinates: { lat: 37.6152, lng: 126.7156 } },
+      { label: '광명', province: '경기도', coordinates: { lat: 37.4786, lng: 126.8646 } },
+      { label: '군포', province: '경기도', coordinates: { lat: 37.3617, lng: 126.9352 } },
+      { label: '하남', province: '경기도', coordinates: { lat: 37.5393, lng: 127.2148 } },
+      { label: '오산', province: '경기도', coordinates: { lat: 37.1498, lng: 127.0772 } },
+      { label: '이천', province: '경기도', coordinates: { lat: 37.2720, lng: 127.4350 } },
+      { label: '안성', province: '경기도', coordinates: { lat: 37.0079, lng: 127.2797 } },
+      { label: '의왕', province: '경기도', coordinates: { lat: 37.3447, lng: 126.9683 } },
+      { label: '양주', province: '경기도', coordinates: { lat: 37.7853, lng: 127.0458 } },
+      { label: '구리', province: '경기도', coordinates: { lat: 37.5943, lng: 127.1296 } },
+      { label: '포천', province: '경기도', coordinates: { lat: 37.8949, lng: 127.2003 } },
+      { label: '동두천', province: '경기도', coordinates: { lat: 37.9037, lng: 127.0606 } },
+      { label: '과천', province: '경기도', coordinates: { lat: 37.4292, lng: 126.9874 } },
+      { label: '여주', province: '경기도', coordinates: { lat: 37.2980, lng: 127.6372 } },
+      { label: '경기 광주', province: '경기도', coordinates: { lat: 37.4294, lng: 127.2550 }, aliases: ['광주시'] },
+      { label: '양평', province: '경기도', coordinates: { lat: 37.4918, lng: 127.4876 } },
+      { label: '가평', province: '경기도', coordinates: { lat: 37.8315, lng: 127.5099 } },
+      { label: '연천', province: '경기도', coordinates: { lat: 38.0964, lng: 127.0750 } },
+    ],
+  },
+  {
+    label: '강원',
+    options: [
+      { label: '춘천', province: '강원특별자치도', coordinates: { lat: 37.8813, lng: 127.7298 } },
+      { label: '원주', province: '강원특별자치도', coordinates: { lat: 37.3422, lng: 127.9202 } },
+      { label: '강릉', province: '강원특별자치도', coordinates: { lat: 37.7519, lng: 128.8761 } },
+      { label: '동해', province: '강원특별자치도', coordinates: { lat: 37.5247, lng: 129.1143 } },
+      { label: '태백', province: '강원특별자치도', coordinates: { lat: 37.1641, lng: 128.9856 } },
+      { label: '속초', province: '강원특별자치도', coordinates: { lat: 38.2070, lng: 128.5918 } },
+      { label: '삼척', province: '강원특별자치도', coordinates: { lat: 37.4499, lng: 129.1651 } },
+      { label: '홍천', province: '강원특별자치도', coordinates: { lat: 37.6972, lng: 127.8885 } },
+      { label: '횡성', province: '강원특별자치도', coordinates: { lat: 37.4918, lng: 127.9851 } },
+      { label: '영월', province: '강원특별자치도', coordinates: { lat: 37.1837, lng: 128.4617 } },
+      { label: '평창', province: '강원특별자치도', coordinates: { lat: 37.3705, lng: 128.3904 } },
+      { label: '정선', province: '강원특별자치도', coordinates: { lat: 37.3808, lng: 128.6609 } },
+      { label: '철원', province: '강원특별자치도', coordinates: { lat: 38.1467, lng: 127.3134 } },
+      { label: '화천', province: '강원특별자치도', coordinates: { lat: 38.1062, lng: 127.7081 } },
+      { label: '양구', province: '강원특별자치도', coordinates: { lat: 38.1100, lng: 127.9895 } },
+      { label: '인제', province: '강원특별자치도', coordinates: { lat: 38.0697, lng: 128.1704 } },
+      { label: '강원 고성', province: '강원특별자치도', coordinates: { lat: 38.3806, lng: 128.4676 } },
+      { label: '양양', province: '강원특별자치도', coordinates: { lat: 38.0754, lng: 128.6190 } },
+    ],
+  },
+  {
+    label: '충북',
+    options: [
+      { label: '청주', province: '충청북도', coordinates: { lat: 36.6424, lng: 127.4890 }, aliases: ['상당', '흥덕', '서원', '오창', '스파', '골든'] },
+      { label: '충주', province: '충청북도', coordinates: { lat: 36.9910, lng: 127.9259 } },
+      { label: '제천', province: '충청북도', coordinates: { lat: 37.1326, lng: 128.1909 } },
+      { label: '보은', province: '충청북도', coordinates: { lat: 36.4894, lng: 127.7295 } },
+      { label: '옥천', province: '충청북도', coordinates: { lat: 36.3064, lng: 127.5713 } },
+      { label: '영동', province: '충청북도', coordinates: { lat: 36.1750, lng: 127.7834 } },
+      { label: '증평', province: '충청북도', coordinates: { lat: 36.7853, lng: 127.5815 } },
+      { label: '진천', province: '충청북도', coordinates: { lat: 36.8554, lng: 127.4356 } },
+      { label: '괴산', province: '충청북도', coordinates: { lat: 36.8154, lng: 127.7867 } },
+      { label: '음성', province: '충청북도', coordinates: { lat: 36.9402, lng: 127.6907 } },
+      { label: '단양', province: '충청북도', coordinates: { lat: 36.9845, lng: 128.3655 } },
+    ],
+  },
+  {
+    label: '충남',
+    options: [
+      { label: '천안', province: '충청남도', coordinates: { lat: 36.8151, lng: 127.1139 }, aliases: ['불당', '두정', '빅애플'] },
+      { label: '공주', province: '충청남도', coordinates: { lat: 36.4466, lng: 127.1190 } },
+      { label: '보령', province: '충청남도', coordinates: { lat: 36.3333, lng: 126.6128 } },
+      { label: '아산', province: '충청남도', coordinates: { lat: 36.7898, lng: 127.0025 } },
+      { label: '서산', province: '충청남도', coordinates: { lat: 36.7849, lng: 126.4503 } },
+      { label: '논산', province: '충청남도', coordinates: { lat: 36.1872, lng: 127.0987 } },
+      { label: '계룡', province: '충청남도', coordinates: { lat: 36.2746, lng: 127.2486 } },
+      { label: '당진', province: '충청남도', coordinates: { lat: 36.8930, lng: 126.6283 } },
+      { label: '금산', province: '충청남도', coordinates: { lat: 36.1089, lng: 127.4882 } },
+      { label: '부여', province: '충청남도', coordinates: { lat: 36.2756, lng: 126.9098 } },
+      { label: '서천', province: '충청남도', coordinates: { lat: 36.0804, lng: 126.6916 } },
+      { label: '청양', province: '충청남도', coordinates: { lat: 36.4592, lng: 126.8022 } },
+      { label: '홍성', province: '충청남도', coordinates: { lat: 36.6013, lng: 126.6608 } },
+      { label: '예산', province: '충청남도', coordinates: { lat: 36.6829, lng: 126.8480 } },
+      { label: '태안', province: '충청남도', coordinates: { lat: 36.7456, lng: 126.2979 } },
+    ],
+  },
+  {
+    label: '전북',
+    options: [
+      { label: '전주', province: '전북특별자치도', coordinates: { lat: 35.8242, lng: 127.1480 } },
+      { label: '군산', province: '전북특별자치도', coordinates: { lat: 35.9677, lng: 126.7366 } },
+      { label: '익산', province: '전북특별자치도', coordinates: { lat: 35.9483, lng: 126.9576 } },
+      { label: '정읍', province: '전북특별자치도', coordinates: { lat: 35.5699, lng: 126.8559 } },
+      { label: '남원', province: '전북특별자치도', coordinates: { lat: 35.4164, lng: 127.3904 } },
+      { label: '김제', province: '전북특별자치도', coordinates: { lat: 35.8036, lng: 126.8809 } },
+      { label: '완주', province: '전북특별자치도', coordinates: { lat: 35.9047, lng: 127.1621 } },
+      { label: '진안', province: '전북특별자치도', coordinates: { lat: 35.7917, lng: 127.4249 } },
+      { label: '무주', province: '전북특별자치도', coordinates: { lat: 36.0068, lng: 127.6608 } },
+      { label: '장수', province: '전북특별자치도', coordinates: { lat: 35.6472, lng: 127.5210 } },
+      { label: '임실', province: '전북특별자치도', coordinates: { lat: 35.6179, lng: 127.2891 } },
+      { label: '순창', province: '전북특별자치도', coordinates: { lat: 35.3744, lng: 127.1374 } },
+      { label: '고창', province: '전북특별자치도', coordinates: { lat: 35.4358, lng: 126.7019 } },
+      { label: '부안', province: '전북특별자치도', coordinates: { lat: 35.7318, lng: 126.7330 } },
+    ],
+  },
+  {
+    label: '전남',
+    options: [
+      { label: '목포', province: '전라남도', coordinates: { lat: 34.8118, lng: 126.3922 } },
+      { label: '여수', province: '전라남도', coordinates: { lat: 34.7604, lng: 127.6622 } },
+      { label: '순천', province: '전라남도', coordinates: { lat: 34.9506, lng: 127.4872 } },
+      { label: '나주', province: '전라남도', coordinates: { lat: 35.0158, lng: 126.7108 } },
+      { label: '광양', province: '전라남도', coordinates: { lat: 34.9407, lng: 127.6959 } },
+      { label: '담양', province: '전라남도', coordinates: { lat: 35.3212, lng: 126.9882 } },
+      { label: '곡성', province: '전라남도', coordinates: { lat: 35.2820, lng: 127.2920 } },
+      { label: '구례', province: '전라남도', coordinates: { lat: 35.2025, lng: 127.4628 } },
+      { label: '고흥', province: '전라남도', coordinates: { lat: 34.6112, lng: 127.2849 } },
+      { label: '보성', province: '전라남도', coordinates: { lat: 34.7715, lng: 127.0801 } },
+      { label: '화순', province: '전라남도', coordinates: { lat: 35.0645, lng: 126.9865 } },
+      { label: '장흥', province: '전라남도', coordinates: { lat: 34.6816, lng: 126.9070 } },
+      { label: '강진', province: '전라남도', coordinates: { lat: 34.6421, lng: 126.7674 } },
+      { label: '해남', province: '전라남도', coordinates: { lat: 34.5735, lng: 126.5992 } },
+      { label: '영암', province: '전라남도', coordinates: { lat: 34.8002, lng: 126.6968 } },
+      { label: '무안', province: '전라남도', coordinates: { lat: 34.9904, lng: 126.4817 } },
+      { label: '함평', province: '전라남도', coordinates: { lat: 35.0659, lng: 126.5166 } },
+      { label: '영광', province: '전라남도', coordinates: { lat: 35.2772, lng: 126.5120 } },
+      { label: '장성', province: '전라남도', coordinates: { lat: 35.3019, lng: 126.7848 } },
+      { label: '완도', province: '전라남도', coordinates: { lat: 34.3110, lng: 126.7551 } },
+      { label: '진도', province: '전라남도', coordinates: { lat: 34.4868, lng: 126.2635 } },
+      { label: '신안', province: '전라남도', coordinates: { lat: 34.8336, lng: 126.3512 } },
+    ],
+  },
+  {
+    label: '경북',
+    options: [
+      { label: '포항', province: '경상북도', coordinates: { lat: 36.0190, lng: 129.3435 } },
+      { label: '경주', province: '경상북도', coordinates: { lat: 35.8562, lng: 129.2247 } },
+      { label: '김천', province: '경상북도', coordinates: { lat: 36.1398, lng: 128.1136 } },
+      { label: '안동', province: '경상북도', coordinates: { lat: 36.5684, lng: 128.7294 } },
+      { label: '구미', province: '경상북도', coordinates: { lat: 36.1195, lng: 128.3446 } },
+      { label: '영주', province: '경상북도', coordinates: { lat: 36.8057, lng: 128.6240 } },
+      { label: '영천', province: '경상북도', coordinates: { lat: 35.9733, lng: 128.9386 } },
+      { label: '상주', province: '경상북도', coordinates: { lat: 36.4109, lng: 128.1591 } },
+      { label: '문경', province: '경상북도', coordinates: { lat: 36.5865, lng: 128.1868 } },
+      { label: '경산', province: '경상북도', coordinates: { lat: 35.8251, lng: 128.7415 } },
+      { label: '의성', province: '경상북도', coordinates: { lat: 36.3527, lng: 128.6971 } },
+      { label: '청송', province: '경상북도', coordinates: { lat: 36.4363, lng: 129.0571 } },
+      { label: '영양', province: '경상북도', coordinates: { lat: 36.6667, lng: 129.1124 } },
+      { label: '영덕', province: '경상북도', coordinates: { lat: 36.4150, lng: 129.3658 } },
+      { label: '청도', province: '경상북도', coordinates: { lat: 35.6474, lng: 128.7339 } },
+      { label: '고령', province: '경상북도', coordinates: { lat: 35.7261, lng: 128.2629 } },
+      { label: '성주', province: '경상북도', coordinates: { lat: 35.9191, lng: 128.2829 } },
+      { label: '칠곡', province: '경상북도', coordinates: { lat: 35.9956, lng: 128.4017 } },
+      { label: '예천', province: '경상북도', coordinates: { lat: 36.6577, lng: 128.4529 } },
+      { label: '봉화', province: '경상북도', coordinates: { lat: 36.8931, lng: 128.7326 } },
+      { label: '울진', province: '경상북도', coordinates: { lat: 36.9930, lng: 129.4006 } },
+      { label: '울릉', province: '경상북도', coordinates: { lat: 37.4844, lng: 130.9057 } },
+    ],
+  },
+  {
+    label: '경남',
+    options: [
+      { label: '창원', province: '경상남도', coordinates: { lat: 35.2285, lng: 128.6811 } },
+      { label: '진주', province: '경상남도', coordinates: { lat: 35.1802, lng: 128.1076 } },
+      { label: '통영', province: '경상남도', coordinates: { lat: 34.8544, lng: 128.4332 } },
+      { label: '사천', province: '경상남도', coordinates: { lat: 35.0038, lng: 128.0642 } },
+      { label: '김해', province: '경상남도', coordinates: { lat: 35.2280, lng: 128.8894 } },
+      { label: '밀양', province: '경상남도', coordinates: { lat: 35.5038, lng: 128.7464 } },
+      { label: '거제', province: '경상남도', coordinates: { lat: 34.8806, lng: 128.6216 } },
+      { label: '양산', province: '경상남도', coordinates: { lat: 35.3350, lng: 129.0372 } },
+      { label: '의령', province: '경상남도', coordinates: { lat: 35.3222, lng: 128.2617 } },
+      { label: '함안', province: '경상남도', coordinates: { lat: 35.2724, lng: 128.4066 } },
+      { label: '창녕', province: '경상남도', coordinates: { lat: 35.5446, lng: 128.4923 } },
+      { label: '경남 고성', province: '경상남도', coordinates: { lat: 34.9730, lng: 128.3222 } },
+      { label: '남해', province: '경상남도', coordinates: { lat: 34.8377, lng: 127.8926 } },
+      { label: '하동', province: '경상남도', coordinates: { lat: 35.0672, lng: 127.7513 } },
+      { label: '산청', province: '경상남도', coordinates: { lat: 35.4156, lng: 127.8735 } },
+      { label: '함양', province: '경상남도', coordinates: { lat: 35.5204, lng: 127.7252 } },
+      { label: '거창', province: '경상남도', coordinates: { lat: 35.6867, lng: 127.9095 } },
+      { label: '합천', province: '경상남도', coordinates: { lat: 35.5666, lng: 128.1658 } },
+    ],
+  },
+  {
+    label: '제주',
+    options: [
+      { label: '제주', province: '제주특별자치도', coordinates: { lat: 33.4996, lng: 126.5312 } },
+      { label: '서귀포', province: '제주특별자치도', coordinates: { lat: 33.2541, lng: 126.5601 } },
+    ],
+  },
+];
+
+export const ONE_DAY_REGION_OPTIONS = ONE_DAY_REGION_GROUPS.flatMap((group) => group.options);
+export const REGION_DISPLAY_ORDER = ONE_DAY_REGION_OPTIONS.map((option) => option.label);
+export const REGION_COORDINATES = Object.fromEntries(
+  ONE_DAY_REGION_OPTIONS.map((option) => [option.label, option.coordinates]),
+) as Record<string, RegionCoordinates>;
+export const REGION_SORT_INDEX = new Map<string, number>(REGION_DISPLAY_ORDER.map((region, index) => [region, index]));
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export const REGION_ALIASES: Array<{ region: string; patterns: RegExp[] }> = ONE_DAY_REGION_OPTIONS.map((option) => ({
+  region: option.label,
+  patterns: [
+    new RegExp([option.label, option.province, ...(option.aliases || [])].map(escapeRegExp).join('|'), 'i'),
+  ],
+}));

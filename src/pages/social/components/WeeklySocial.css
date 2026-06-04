@@ -32,13 +32,19 @@
 
     /* Fixed Positioning Logic */
     position: fixed;
-    top: calc(60px + env(safe-area-inset-top));
+    top: calc(62px + env(safe-area-inset-top));
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
 
     z-index: 45;
     box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 420px) {
+    .view-tab-menu-v3 {
+        top: calc(54px + env(safe-area-inset-top));
+    }
 }
 
 .view-tab-menu-v3 .tab-btn {

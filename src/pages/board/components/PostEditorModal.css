@@ -3,10 +3,10 @@
 /* 이 컴포넌트 내부에서만 사용하는 독립적인 변수 정의 */
 .pem-modal-overlay {
   /* Colors */
-  --pem-gray-900: #111827;
-  --pem-gray-800: #1f2937;
-  --pem-gray-700: #374151;
-  --pem-gray-600: #4b5563;
+  --pem-gray-900: #1c1c1d;
+  --pem-gray-800: #202022;
+  --pem-gray-700: #242426;
+  --pem-gray-600: #303033;
   --pem-gray-400: #9ca3af;
   --pem-gray-300: #d1d5db;
 
