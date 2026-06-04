@@ -2,30 +2,20 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../hooks/useModal';
-import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { usePageAction } from '../contexts/PageActionContext';
 import SideDrawer from '../components/SideDrawer';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../lib/supabase';
 import { logUserInteraction } from '../lib/analytics';
 import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import NotificationSettingsModal from '../components/NotificationSettingsModal';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import '../styles/components/MobileShell.css';
 
-interface MobileShellProps {
-  isAdmin?: boolean;
-}
-
 type CalendarHeaderDisplayMode = 'calendar' | 'list' | 'map';
-
-let totalUserCountCache: number | null = null;
-let totalUserCountPromise: Promise<number | null> | null = null;
 
 const isCalendarHeaderDisplayMode = (value: unknown): value is CalendarHeaderDisplayMode => (
   value === 'calendar' || value === 'list' || value === 'map'
@@ -37,12 +27,11 @@ const getCalendarHeaderDisplayMode = (search: string): CalendarHeaderDisplayMode
   return isCalendarHeaderDisplayMode(view) ? view : 'calendar';
 };
 
-export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
+export const MobileShell: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin, isAuthProcessing, isLoggingOut, cancelAuth, isAuthCheckComplete } = useAuth();
+  const { user, userProfile, isAuthProcessing, isLoggingOut, cancelAuth } = useAuth();
   const { i18n } = useTranslation();
-  const onlineUsersData = useOnlineUsers();
   const { action: pageAction } = usePageAction();
   const { activeResource, isMinimized, closePlayer, minimizePlayer, restorePlayer } = useGlobalPlayer();
 
@@ -53,28 +42,22 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const loginModal = useModal('login');
   const globalSearchModal = useModal('globalSearch');
 
-  const siteAnalyticsModal = useModal('siteAnalytics');
-
   const notificationSettingsModal = useModal('notificationSettings');
   const { isGlobalLoading, globalLoadingMessage } = useLoading();
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
   // unused state removed
-  const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all'; // Derived from URL query
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
   const isCalendarPage = currentPath === '/calendar';
-  const isMyActivitiesPage = currentPath === '/my-activities';
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
   const isMetronomePage = currentPath === '/metronome';
   const isPlacesPage = currentPath === '/places';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
-
-  const isAdmin = isAdminProp || authIsAdmin;
 
   const handleCalendarHeaderDisplayMode = useCallback((mode: CalendarHeaderDisplayMode) => {
     setCalendarHeaderDisplayMode(mode);
@@ -102,108 +85,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       window.removeEventListener('calendarDisplayModeChanged', handleDisplayModeChanged as EventListener);
     };
   }, []);
-
-  // Fetch total registered users count only where it is actually needed.
-  // This used to run on every route, competing with first-screen board/event data.
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    let isMounted = true;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-    const idleWindow = window as Window & typeof globalThis & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
-    const fetchTotalUserCount = async () => {
-      try {
-        if (totalUserCountCache !== null) {
-          if (isMounted) setTotalUserCount(totalUserCountCache);
-          return totalUserCountCache;
-        }
-
-        if (totalUserCountPromise) {
-          const count = await totalUserCountPromise;
-          if (isMounted && count !== null) setTotalUserCount(count);
-          return count;
-        }
-
-        totalUserCountPromise = supabase
-          .from('board_users')
-          .select('user_id', { count: 'exact', head: true })
-          .then(({ count, error }) => {
-            if (error) throw error;
-            totalUserCountCache = count ?? null;
-            return totalUserCountCache;
-          })
-          .finally(() => {
-            totalUserCountPromise = null;
-          });
-
-        const count = await totalUserCountPromise;
-        if (isMounted && count !== null) {
-          setTotalUserCount(count);
-        }
-        return count;
-      } catch (err) {
-        console.error('Error fetching total user count:', err);
-        return null;
-      }
-    };
-
-    const startUserCountSync = () => {
-      fetchTotalUserCount();
-
-      channel = supabase
-        .channel('registered-users-count')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'board_users' },
-          (payload) => {
-            console.log('[Realtime] board_users change detected:', payload.eventType);
-            if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-              totalUserCountCache = null;
-              fetchTotalUserCount();
-            }
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            totalUserCountCache = null;
-            fetchTotalUserCount();
-          }
-        });
-    };
-
-    const delayMs = currentPath === '/board' ? 3500 : 1200;
-    timeoutId = setTimeout(() => {
-      if (idleWindow.requestIdleCallback) {
-        idleId = idleWindow.requestIdleCallback(startUserCountSync, { timeout: 3000 });
-      } else {
-        startUserCountSync();
-      }
-    }, delayMs);
-
-    return () => {
-      isMounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
-      if (idleId !== null && idleWindow.cancelIdleCallback) {
-        idleWindow.cancelIdleCallback(idleId);
-      }
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [currentPath, isAdmin]);
-
-  // Clear stale admin-only count when leaving admin context.
-  useEffect(() => {
-    if (!isAdmin) {
-      setTotalUserCount(null);
-    }
-  }, [isAdmin]);
 
   // 첫 화면은 로그인 유도 모달을 자동으로 띄우지 않는다. 로그인은 메뉴/보호 액션에서만 호출한다.
 
@@ -303,33 +184,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     i18n.changeLanguage(lng);
     logUserInteraction('Language', 'Change', lng);
   };
-
-  const adminStats = useMemo(() => {
-    if (!isAdmin) return null;
-    const loggedInCount = onlineUsersData.loggedInUsers?.length || 0;
-    const anonymousCount = onlineUsersData.anonymousCount || 0;
-
-    return (
-      <span
-        className="admin-stats-badge"
-        onClick={(e) => {
-          e.stopPropagation();
-          siteAnalyticsModal.open();
-        }}
-        title="운영 통계 리포트 보기"
-      >
-        <span key={`logged-in-${loggedInCount}`} className="stat-logged-count">{loggedInCount}</span>
-        <span key="separator" className="stat-separator">/</span>
-        <span key={`anonymous-${anonymousCount}`} className="stat-anon-count">{anonymousCount}</span>
-
-        {totalUserCount !== null && (
-          <span key={`total-count-${totalUserCount}`} className="stat-total-count">
-            ({totalUserCount})
-          </span>
-        )}
-      </span>
-    );
-  }, [isAdmin, onlineUsersData.loggedInUsers?.length, onlineUsersData.anonymousCount, totalUserCount, siteAnalyticsModal]);
 
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {
@@ -499,11 +353,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     </div>
                   )}
 
-                  {/* 이벤트·활동 페이지에 adminStats 표시 (Optional: Keep specifically for events page or strictly follow logic) */}
-                  {/* User said "Header Title changes". Doesn't explicitely say remove stats. Keeping stats if relevant. */}
-                  {(isEventsPage || isMyActivitiesPage) && (
-                    <div className="admin-stats-wrapper">{adminStats}</div>
-                  )}
                 </div>
               )}
               {/* 2. Calendar Page (Full Screen) */}
@@ -621,7 +470,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
             </div>
 
             <div className="header-right-buttons">
-              <ThemeToggle />
               <button
                 onClick={() => {
                   const nextLang = i18n.language === 'ko' ? 'en' : 'ko';

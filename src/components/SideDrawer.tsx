@@ -13,6 +13,8 @@ import { SITE_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { isLegacyIOS } from '../lib/pwaDetect';
 import type { PageAction } from '../contexts/PageActionContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { logUserInteraction } from '../lib/analytics';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
@@ -32,6 +34,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const navigate = useNavigate();
     const location = useLocation();
     const { user, billboardUserName, signOut, userProfile, isAdmin, refreshUserProfile } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
     const [isAdminExpanded, setIsAdminExpanded] = useState(true);
@@ -289,6 +292,12 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
         }
     };
 
+    const handleThemeToggle = () => {
+        const nextTheme = theme === 'dark' ? 'light' : 'dark';
+        toggleTheme();
+        logUserInteraction('Theme', 'Toggle', nextTheme);
+    };
+
     return createPortal(
         <div className={`SideDrawer SD-overlay ${isOpen ? 'is-open' : ''}`} onClick={onClose}>
             <div className={`SD-container ${isOpen ? 'is-open' : ''}`} onClick={(e) => e.stopPropagation()}>
@@ -390,6 +399,23 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     </div>
                                 </div>
 
+                                <div
+                                    className="SD-menuItem SD-themeEntry"
+                                    onClick={handleThemeToggle}
+                                    data-analytics-id="side_drawer_theme_toggle"
+                                    data-analytics-type="action"
+                                    data-analytics-title="화면 모드 전환"
+                                    data-analytics-section="side_drawer"
+                                >
+                                    <i className={theme === 'dark' ? 'ri-sun-line' : 'ri-moon-line'}></i>
+                                    <div className="SD-menuLabelWithStatus">
+                                        <span>화면 모드</span>
+                                        <span className="SD-statusDot">
+                                            {theme === 'dark' ? 'DARK' : 'LIGHT'}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 {pageAction && (
                                     <div
                                         className="SD-menuItem SD-registrationEntry"
@@ -416,6 +442,27 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
 
                         <div className="SD-statsSection">
                             <div className="SD-sectionTitle">SITE STATS</div>
+                            {isAdmin && (
+                                <button
+                                    type="button"
+                                    className="SD-adminStatsOpenBtn"
+                                    onClick={() => {
+                                        siteAnalyticsModal.open();
+                                        onClose();
+                                    }}
+                                    data-analytics-id="admin_access_stats"
+                                    data-analytics-type="action"
+                                    data-analytics-title="접속 통계"
+                                    data-analytics-section="side_drawer_stats"
+                                >
+                                    <i className="ri-line-chart-line"></i>
+                                    <span>
+                                        <strong>접속 통계</strong>
+                                        <small>운영 통계 리포트</small>
+                                    </span>
+                                    <i className="ri-arrow-right-s-line"></i>
+                                </button>
+                            )}
                             <div className="SD-adminGrid">
                                 <div
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}

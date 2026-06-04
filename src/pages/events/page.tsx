@@ -18,7 +18,7 @@ import {
   isEventInDanceScope,
   normalizeVisibleDanceScope,
 } from '../../utils/danceTaxonomy';
-import { getLocalDateString, sortEvents } from '../v2/utils/eventListUtils';
+import { getLocalDateString, seededRandom } from '../v2/utils/eventListUtils';
 import { useEventActions } from '../v2/hooks/useEventActions';
 import type { Event } from '../v2/utils/eventListUtils';
 import './events.css';
@@ -177,7 +177,13 @@ const sortEventsInfoItems = (items: Event[], sortOrder: EventsInfoSortOrder, ran
     return [...items].sort((a, b) => getEventSortDateValue(a).localeCompare(getEventSortDateValue(b)));
   }
 
-  return sortEvents(items, 'random', false, null, false, randomSeed);
+  const shuffled = [...items];
+  const random = seededRandom(randomSeed + items.length * 9973);
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 };
 
 const getEventDateText = (event: Event) => {
