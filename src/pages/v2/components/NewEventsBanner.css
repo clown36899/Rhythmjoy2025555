@@ -368,17 +368,65 @@
   background: transparent;
   cursor: pointer;
   transform: translateY(0);
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.16s ease;
   overflow: visible;
+  isolation: isolate;
   -webkit-tap-highlight-color: transparent;
 }
 
+.NEB-oneDayRecruitBtn::before {
+  content: "";
+  position: absolute;
+  top: 49%;
+  left: 50%;
+  width: 70%;
+  aspect-ratio: 1;
+  z-index: -1;
+  border-radius: 999px;
+  background: rgba(92, 141, 246, 0.18);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.78);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  pointer-events: none;
+}
+
 .NEB-oneDayRecruitBtn img {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.24));
   pointer-events: none;
+  transform: translateY(0) scale(1);
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.16s ease;
+}
+
+.NEB-oneDayRecruitBtn:active,
+.NEB-oneDayRecruitBtn.is-pressed {
+  transform: translateY(5px) scale(0.95);
+  filter: brightness(1.08);
+}
+
+.NEB-oneDayRecruitBtn:active::before,
+.NEB-oneDayRecruitBtn.is-pressed::before {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+.NEB-oneDayRecruitBtn:active img,
+.NEB-oneDayRecruitBtn.is-pressed img {
+  transform: translateY(2px) scale(0.94);
+  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.34));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .NEB-oneDayRecruitBtn,
+  .NEB-oneDayRecruitBtn::before,
+  .NEB-oneDayRecruitBtn img {
+    transition: none;
+  }
 }
 
 .NEB-activeSummary {

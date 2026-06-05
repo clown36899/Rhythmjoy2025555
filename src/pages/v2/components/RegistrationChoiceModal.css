@@ -83,6 +83,11 @@
     padding: 16px;
 }
 
+.choice-option-btn.oneday:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.46), 0 2px 7px rgba(0, 0, 0, 0.3);
+}
+
 .choice-option-btn.oneday .choice-text-content {
     align-items: flex-start;
 }

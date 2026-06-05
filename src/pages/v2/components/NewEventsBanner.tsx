@@ -134,7 +134,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const [isManualPaused, setIsManualPaused] = useState(false);
+    const [isOneDayRecruitPressed, setIsOneDayRecruitPressed] = useState(false);
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const oneDayRecruitPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
     const dragStateRef = React.useRef({
         mouseDown: false,
@@ -144,6 +146,17 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         suppressClick: false,
     });
     const [edgeToneByUrl, setEdgeToneByUrl] = useState<Record<string, EdgeTone>>({});
+
+    useEffect(() => {
+        return () => {
+            if (manualPauseTimeoutRef.current) {
+                clearTimeout(manualPauseTimeoutRef.current);
+            }
+            if (oneDayRecruitPressTimeoutRef.current) {
+                clearTimeout(oneDayRecruitPressTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // 수동 조작 시 8초간 자동 슬라이드 중지 로직
     const triggerManualPause = useCallback(() => {
@@ -265,7 +278,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     }, []);
     const openOneDayRecruitment = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
-        navigate('/oneday-recruits');
+        setIsOneDayRecruitPressed(true);
+        if (oneDayRecruitPressTimeoutRef.current) {
+            clearTimeout(oneDayRecruitPressTimeoutRef.current);
+        }
+        oneDayRecruitPressTimeoutRef.current = setTimeout(() => {
+            navigate('/oneday-recruits');
+        }, 180);
     }, [navigate]);
 
     const openEventDetail = useCallback((event: Event) => {
@@ -571,8 +590,17 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 <div className="NEB-lowerDeck" style={activeCardAlignmentStyle}>
                     <button
                         type="button"
-                        className="NEB-oneDayRecruitBtn"
+                        className={`NEB-oneDayRecruitBtn ${isOneDayRecruitPressed ? 'is-pressed' : ''}`}
                         onClick={openOneDayRecruitment}
+                        onPointerDown={() => setIsOneDayRecruitPressed(true)}
+                        onPointerCancel={() => setIsOneDayRecruitPressed(false)}
+                        onPointerLeave={() => setIsOneDayRecruitPressed(false)}
+                        onBlur={() => setIsOneDayRecruitPressed(false)}
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                setIsOneDayRecruitPressed(true);
+                            }
+                        }}
                         aria-label="스윙 원데이 모집 보기"
                     >
                         <img src={ONE_DAY_RECRUIT_ICON_SRC} alt="" aria-hidden="true" />
