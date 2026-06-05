@@ -133,7 +133,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     defaultThumbnailEvent,
 }) => {
     const { isAdmin } = useAuth();
-    const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(isAdmin), [isAdmin]);
+    const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
     const [preferredScope, setPreferredScope] = useState<HomeAdDanceScope>(() => {
         if (typeof window === "undefined") return "swing";
         const saved = window.localStorage.getItem(HOME_AD_DANCE_SCOPE_KEY);
@@ -182,6 +182,14 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
             window.localStorage.setItem(HOME_AD_DANCE_SCOPE_KEY, isAdmin ? preferredScope : "swing");
         }
     }, [isAdmin, preferredScope]);
+    const handleScopeClick = (scope: HomeAdDanceScope) => {
+        if (!isAdmin && scope !== "swing") {
+            window.alert("준비중");
+            return;
+        }
+
+        setPreferredScope(scope);
+    };
     useEffect(() => {
         if (displayEvents.length === 0) {
             setActiveIndex(0);
@@ -199,14 +207,17 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
 
     return (
         <section className="home-neb-standard-layout" aria-label="신규 이벤트 광고">
-            {isAdmin && visibleDanceScopeOptions.length > 1 && (
+            {visibleDanceScopeOptions.length > 1 && (
             <div className="home-neb-admin-scope-strip" aria-label="메인 광고 장르 선택">
                 {visibleDanceScopeOptions.map((option) => (
                     <button
                         key={option.key}
                         type="button"
-                        className={preferredScope === option.key ? "is-active" : ""}
-                        onClick={() => setPreferredScope(option.key)}
+                        className={[
+                            preferredScope === option.key ? "is-active" : "",
+                            !isAdmin && option.key !== "swing" ? "is-preparing" : "",
+                        ].filter(Boolean).join(" ")}
+                        onClick={() => handleScopeClick(option.key)}
                     >
                         {option.label}
                     </button>
