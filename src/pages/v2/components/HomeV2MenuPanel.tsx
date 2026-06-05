@@ -33,13 +33,14 @@ type GestureStart = {
     x: number;
     y: number;
     time: number;
+    scrollTop: number;
 };
 
 export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
-    const { openModal, closeModal } = useModalContext();
+    const { openModal, closeModal, modalStack } = useModalContext();
     const [isExpanded, setIsExpanded] = useState(false);
     const panelGestureStartRef = useRef<GestureStart | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
@@ -48,9 +49,17 @@ export const HomeV2MenuPanel: React.FC = () => {
         setIsExpanded(true);
     }, []);
 
+    const closeMenu = useCallback(() => {
+        setIsExpanded(false);
+    }, []);
+
     const resetPanelGesture = useCallback(() => {
         panelGestureStartRef.current = null;
     }, []);
+
+    const isModalGestureBlocked = useCallback(() => {
+        return modalStack.length > 0;
+    }, [modalStack.length]);
 
     const isSwipeUp = useCallback((start: GestureStart, x: number, y: number) => {
         const deltaY = y - start.y;
@@ -60,6 +69,19 @@ export const HomeV2MenuPanel: React.FC = () => {
 
         return (
             deltaY <= -SWIPE_MIN_DISTANCE &&
+            absY > absX * 1.15 &&
+            elapsed <= SWIPE_MAX_DURATION_MS
+        );
+    }, []);
+
+    const isSwipeDown = useCallback((start: GestureStart, x: number, y: number) => {
+        const deltaY = y - start.y;
+        const absX = Math.abs(x - start.x);
+        const absY = Math.abs(deltaY);
+        const elapsed = Date.now() - start.time;
+
+        return (
+            deltaY >= SWIPE_MIN_DISTANCE &&
             absY > absX * 1.15 &&
             elapsed <= SWIPE_MAX_DURATION_MS
         );
@@ -140,26 +162,70 @@ export const HomeV2MenuPanel: React.FC = () => {
     };
 
     const handlePanelPointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
-        if (event.pointerType === "mouse") return;
+        if (event.pointerType === "mouse" || isModalGestureBlocked()) return;
         panelGestureStartRef.current = {
             x: event.clientX,
             y: event.clientY,
             time: Date.now(),
+            scrollTop: event.currentTarget.scrollTop,
         };
-    }, []);
+    }, [isModalGestureBlocked]);
 
     const handlePanelPointerUp = useCallback((event: React.PointerEvent<HTMLElement>) => {
         const start = panelGestureStartRef.current;
         panelGestureStartRef.current = null;
-        if (!start) return;
+        if (!start || event.pointerType === "mouse" || isModalGestureBlocked()) return;
 
         if (isSwipeUp(start, event.clientX, event.clientY)) {
             openMenu();
+            return;
         }
-    }, [isSwipeUp, openMenu]);
+
+        if (isExpanded && start.scrollTop <= 8 && isSwipeDown(start, event.clientX, event.clientY)) {
+            closeMenu();
+        }
+    }, [closeMenu, isExpanded, isModalGestureBlocked, isSwipeDown, isSwipeUp, openMenu]);
+
+    const handlePanelTouchStart = useCallback((event: React.TouchEvent<HTMLElement>) => {
+        if (event.touches.length !== 1 || isModalGestureBlocked()) return;
+        const touch = event.touches[0];
+        panelGestureStartRef.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            time: Date.now(),
+            scrollTop: event.currentTarget.scrollTop,
+        };
+    }, [isModalGestureBlocked]);
+
+    const handlePanelTouchEnd = useCallback((event: React.TouchEvent<HTMLElement>) => {
+        const start = panelGestureStartRef.current;
+        panelGestureStartRef.current = null;
+        if (!start || event.changedTouches.length === 0 || isModalGestureBlocked()) return;
+        const touch = event.changedTouches[0];
+
+        if (isSwipeUp(start, touch.clientX, touch.clientY)) {
+            openMenu();
+            return;
+        }
+
+        if (isExpanded && start.scrollTop <= 8 && isSwipeDown(start, touch.clientX, touch.clientY)) {
+            closeMenu();
+        }
+    }, [closeMenu, isExpanded, isModalGestureBlocked, isSwipeDown, isSwipeUp, openMenu]);
+
+    const handlePanelTouchMove = useCallback((event: React.TouchEvent<HTMLElement>) => {
+        const start = panelGestureStartRef.current;
+        if (!start || !isExpanded || event.touches.length !== 1 || isModalGestureBlocked()) return;
+        const touch = event.touches[0];
+
+        if (start.scrollTop <= 8 && isSwipeDown(start, touch.clientX, touch.clientY)) {
+            panelGestureStartRef.current = null;
+            closeMenu();
+        }
+    }, [closeMenu, isExpanded, isModalGestureBlocked, isSwipeDown]);
 
     useEffect(() => {
-        if (!isHomeRoute || isExpanded) return undefined;
+        if (!isHomeRoute || isExpanded || modalStack.length > 0) return undefined;
 
         let screenGestureStart: GestureStart | null = null;
 
@@ -167,7 +233,20 @@ export const HomeV2MenuPanel: React.FC = () => {
             screenGestureStart = null;
         };
 
+        const handlePointerStart = (event: PointerEvent) => {
+            if (event.pointerType === "mouse" || isModalGestureBlocked()) return;
+            if (event.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
+
+            screenGestureStart = {
+                x: event.clientX,
+                y: event.clientY,
+                time: Date.now(),
+                scrollTop: 0,
+            };
+        };
+
         const handleTouchStart = (event: TouchEvent) => {
+            if (isModalGestureBlocked()) return;
             if (event.touches.length !== 1) return;
             const touch = event.touches[0];
             if (touch.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
@@ -176,7 +255,19 @@ export const HomeV2MenuPanel: React.FC = () => {
                 x: touch.clientX,
                 y: touch.clientY,
                 time: Date.now(),
+                scrollTop: 0,
             };
+        };
+
+        const handlePointerEnd = (event: PointerEvent) => {
+            if (!screenGestureStart || event.pointerType === "mouse") return;
+            const start = screenGestureStart;
+            resetScreenGesture();
+
+            if (isModalGestureBlocked()) return;
+            if (isSwipeUp(start, event.clientX, event.clientY)) {
+                openMenu();
+            }
         };
 
         const handleTouchEnd = (event: TouchEvent) => {
@@ -185,21 +276,28 @@ export const HomeV2MenuPanel: React.FC = () => {
             const start = screenGestureStart;
             resetScreenGesture();
 
+            if (isModalGestureBlocked()) return;
             if (isSwipeUp(start, touch.clientX, touch.clientY)) {
                 openMenu();
             }
         };
 
+        window.addEventListener("pointerdown", handlePointerStart);
+        window.addEventListener("pointerup", handlePointerEnd);
+        window.addEventListener("pointercancel", resetScreenGesture);
         window.addEventListener("touchstart", handleTouchStart, { passive: true });
         window.addEventListener("touchend", handleTouchEnd, { passive: true });
         window.addEventListener("touchcancel", resetScreenGesture, { passive: true });
 
         return () => {
+            window.removeEventListener("pointerdown", handlePointerStart);
+            window.removeEventListener("pointerup", handlePointerEnd);
+            window.removeEventListener("pointercancel", resetScreenGesture);
             window.removeEventListener("touchstart", handleTouchStart);
             window.removeEventListener("touchend", handleTouchEnd);
             window.removeEventListener("touchcancel", resetScreenGesture);
         };
-    }, [isExpanded, isHomeRoute, isSwipeUp, openMenu]);
+    }, [isExpanded, isHomeRoute, isModalGestureBlocked, isSwipeUp, modalStack.length, openMenu]);
 
     return (
         <section
@@ -208,6 +306,10 @@ export const HomeV2MenuPanel: React.FC = () => {
             onPointerDown={handlePanelPointerDown}
             onPointerUp={handlePanelPointerUp}
             onPointerCancel={resetPanelGesture}
+            onTouchStart={handlePanelTouchStart}
+            onTouchMove={handlePanelTouchMove}
+            onTouchEnd={handlePanelTouchEnd}
+            onTouchCancel={resetPanelGesture}
         >
             <button
                 type="button"
