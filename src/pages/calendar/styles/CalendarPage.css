@@ -290,6 +290,17 @@ html {
     line-height: 1;
 }
 
+.calendar-sticky-weekday-item.is-today {
+    color: #ffffff;
+}
+
+.calendar-sticky-weekday-item.is-today .calendar-sticky-date-text {
+    border-color: rgba(79, 131, 255, 0.95);
+    background: var(--cal-sample-blue);
+    color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(79, 131, 255, 0.24);
+}
+
 .calendar-tab-btn {
     min-width: 0;
     min-height: 34px;
@@ -510,6 +521,10 @@ html {
     margin: 0;
     padding: 10px 16px;
     border-bottom: 1px solid var(--cal-sample-border);
+}
+
+.calendar-live-shell--calendar .calendar-page-overview {
+    display: none;
 }
 
 .calendar-page-overview-card {

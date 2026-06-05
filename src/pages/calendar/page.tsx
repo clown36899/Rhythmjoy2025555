@@ -87,9 +87,15 @@ const isCalendarEventInFilter = (event: any, filter: 'all' | 'social-events' | '
 
 type CalendarDanceScope = Exclude<DanceScope, 'unknown'>;
 type CalendarDisplayMode = 'calendar' | 'list' | 'map';
+type CalendarStickyWeekDateLabel = {
+    day: string;
+    isToday: boolean;
+};
 
 const CALENDAR_WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 const CALENDAR_MONTH_LABELS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+const createEmptyStickyWeekDateLabels = (): CalendarStickyWeekDateLabel[] =>
+    Array.from({ length: 7 }, () => ({ day: '', isToday: false }));
 const CALENDAR_PAGE_DEBUG = import.meta.env.VITE_CALENDAR_PAGE_DEBUG === 'true';
 const debugCalendarPage = (...args: unknown[]) => {
     if (CALENDAR_PAGE_DEBUG) console.debug(...args);
@@ -136,7 +142,7 @@ export default function CalendarPage() {
         const urlParams = new URLSearchParams(window.location.search);
         return normalizeCalendarDisplayMode(urlParams.get('view'));
     });
-    const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<string[]>(() => Array(7).fill(''));
+    const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<CalendarStickyWeekDateLabel[]>(createEmptyStickyWeekDateLabels);
     const [listTodayScrollSignal, setListTodayScrollSignal] = useState(0);
     const handleSetDisplayMode = useCallback((mode: CalendarDisplayMode) => {
         setDisplayMode(mode);
@@ -216,12 +222,13 @@ export default function CalendarPage() {
 
     useEffect(() => {
         if (displayMode !== 'calendar') {
-            setScrollWeekDateLabels(Array(7).fill(''));
+            setScrollWeekDateLabels(createEmptyStickyWeekDateLabels());
             return;
         }
 
         let frame = 0;
         let lastLabelKey = '';
+        const todayString = getCalendarLocalDateString(new Date());
 
         const updateScrollDateLabel = () => {
             frame = 0;
@@ -259,15 +266,18 @@ export default function CalendarPage() {
                 else break;
             }
 
-            const nextLabels = Array(7).fill('');
+            const nextLabels = createEmptyStickyWeekDateLabels();
             activeRow?.cells.slice(0, 7).forEach((cell, index) => {
                 const dateString = cell.dataset.date;
                 if (!dateString) return;
                 const [, , day] = dateString.split('-').map(Number);
-                nextLabels[index] = String(day);
+                nextLabels[index] = {
+                    day: String(day),
+                    isToday: dateString === todayString,
+                };
             });
 
-            const nextLabelKey = nextLabels.join('|');
+            const nextLabelKey = nextLabels.map(label => `${label.day}${label.isToday ? ':today' : ''}`).join('|');
             if (nextLabelKey !== lastLabelKey) {
                 lastLabelKey = nextLabelKey;
                 setScrollWeekDateLabels(nextLabels);
@@ -588,7 +598,12 @@ export default function CalendarPage() {
             if (todayEl) {
                 const todayRect = getSafeRect(todayEl);
                 if (todayRect) {
-                    const finalY = (todayRect.top + window.scrollY) - gridAbsoluteTop;
+                    const isDesktopCalendar = document.documentElement.clientWidth > 720;
+                    const todayBodyRect = isDesktopCalendar
+                        ? getSafeRect(todayEl.querySelector('.calendar-cell-fullscreen-body'))
+                        : null;
+                    const targetRect = todayBodyRect || todayRect;
+                    const finalY = (targetRect.top + window.scrollY) - gridAbsoluteTop;
                     return Math.max(0, gridAbsoluteTop + finalY - headerBottom);
                 }
                 if (retryCount < maxRetries) return null;
@@ -1128,10 +1143,13 @@ export default function CalendarPage() {
                     {displayMode === 'calendar' && (
                         <div className="calendar-sticky-weekdays" aria-hidden="true">
                             {CALENDAR_WEEKDAY_LABELS.map((dayLabel, index) => (
-                                <span key={dayLabel} className="calendar-sticky-weekday-item">
+                                <span
+                                    key={dayLabel}
+                                    className={`calendar-sticky-weekday-item ${scrollWeekDateLabels[index]?.isToday ? 'is-today' : ''}`}
+                                >
                                     <span className="calendar-sticky-weekday-text">{dayLabel}</span>
-                                    {scrollWeekDateLabels[index] && (
-                                        <em className="calendar-sticky-date-text">{scrollWeekDateLabels[index]}</em>
+                                    {scrollWeekDateLabels[index]?.day && (
+                                        <em className="calendar-sticky-date-text">{scrollWeekDateLabels[index].day}</em>
                                     )}
                                 </span>
                             ))}
