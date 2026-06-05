@@ -103,7 +103,7 @@
 
 .home-neb-standard-layout {
     width: min(100%, 1280px);
-    margin: 14px auto 0;
+    margin: 0 auto 0;
     padding: 0;
     background: #1c1c1d;
 }
