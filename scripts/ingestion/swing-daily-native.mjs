@@ -11,10 +11,19 @@ const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')
   .split(',')
   .map((id) => id.trim())
   .filter(Boolean);
+const sourcePriorities = (process.env.INGESTION_NATIVE_SOURCE_PRIORITY || process.env.INGESTION_NATIVE_PRIORITY || '')
+  .split(',')
+  .map((priority) => priority.trim())
+  .filter(Boolean)
+  .map((priority) => Number(priority))
+  .filter((priority) => Number.isFinite(priority));
 const postLimit = Number(process.env.INGESTION_NATIVE_POST_LIMIT || 4);
 const maxFutureDays = Number(process.env.INGESTION_NATIVE_MAX_FUTURE_DAYS || 180);
 const sourceTimeoutMs = Number(process.env.INGESTION_NATIVE_SOURCE_TIMEOUT_MS || 45000);
 const postTimeoutMs = Number(process.env.INGESTION_NATIVE_POST_TIMEOUT_MS || 28000);
+const postRequestTimeoutMs = Number(process.env.INGESTION_NATIVE_POST_REQUEST_TIMEOUT_MS || 20_000);
+const imageFetchTimeoutMs = Number(process.env.INGESTION_NATIVE_IMAGE_FETCH_TIMEOUT_MS || 12_000);
+const runBudgetMs = Number(process.env.INGESTION_NATIVE_RUN_BUDGET_MS || 20 * 60_000);
 const cleanupCount = process.env.INGESTION_PRE_CLEANUP_COUNT || '0';
 const browserCdpUrl = process.env.INGESTION_BROWSER_CDP_URL || 'http://localhost:9222';
 const browserProfileDir = process.env.INGESTION_BROWSER_PROFILE_DIR || '/Users/inteyeo/.chrome-automation';
@@ -25,6 +34,7 @@ const instagramPostDelayMs = Number(process.env.INGESTION_INSTAGRAM_POST_DELAY_M
 const instagramProfileWaitMs = Number(process.env.INGESTION_INSTAGRAM_PROFILE_WAIT_MS || (instagramSafeMode ? 5_500 : 1_800));
 const instagramFailureCircuitThreshold = Number(process.env.INGESTION_INSTAGRAM_FAILURE_CIRCUIT_THRESHOLD || (instagramSafeMode ? 3 : 0));
 const today = todayKST();
+const runStartedAtMs = Date.now();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 
 const result = {
@@ -35,7 +45,17 @@ const result = {
   noContentSources: [],
   issues: [],
   candidates: [],
+  deadlineReached: false,
+  remainingSources: [],
 };
+
+const sourceTypeWeight = new Map([
+  ['littly', 0],
+  ['naver_cafe', 1],
+  ['daum_cafe', 2],
+  ['website', 3],
+  ['instagram', 10],
+]);
 
 const venueAliases = [
   [/경성홀|kyungsung/i, '경성홀'],
@@ -190,7 +210,7 @@ function looksLikeBroadScheduleNotice(title = '', text = '') {
 function selectCandidateDates({ title, cleanText, activity }) {
   const titleDates = extractDates(title);
   const sourceDates = titleDates.length ? titleDates : extractDates(cleanText);
-  if (activity === 'class') return sourceDates.slice(0, 1);
+  if (activity === 'class' || activity === 'recruit') return sourceDates.slice(0, 1);
   if (titleDates.length) return sourceDates.slice(0, 2);
   return sourceDates.slice(0, 8);
 }
@@ -214,9 +234,50 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 0, readBody = (response) => response.text()) {
+  const controller = new AbortController();
+  const timer = timeoutMs > 0
+    ? setTimeout(() => controller.abort(new Error(`timeout ${timeoutMs}ms`)), timeoutMs)
+    : null;
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const body = await readBody(response);
+    return { response, body };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function jitter(ms) {
   if (!ms) return 0;
   return Math.max(0, Math.round(ms * (0.8 + Math.random() * 0.4)));
+}
+
+function runRemainingMs() {
+  if (!runBudgetMs) return Number.POSITIVE_INFINITY;
+  return Math.max(0, runBudgetMs - (Date.now() - runStartedAtMs));
+}
+
+function hasRunBudget(minRemainingMs = 0) {
+  return runRemainingMs() > minRemainingMs;
+}
+
+function runDeadlineGuardMs() {
+  if (!runBudgetMs) return 0;
+  return runBudgetMs >= 120_000 ? 60_000 : Math.max(1_000, Math.floor(runBudgetMs * 0.1));
+}
+
+function recordDeadlineReached(sources, startIndex) {
+  if (result.deadlineReached) return;
+  const remaining = sources.slice(startIndex).map((source) => source.id);
+  result.deadlineReached = true;
+  result.remainingSources = remaining;
+  result.issues.push(`run budget reached; remaining sources ${remaining.length}`);
+  log(`run budget reached; remaining=${remaining.length}; remaining_ms=${runRemainingMs()}`);
+}
+
+function sourceOrderWeight(source) {
+  return sourceTypeWeight.get(source.type) ?? 5;
 }
 
 async function throttleInstagram(label, baseDelayMs) {
@@ -303,39 +364,93 @@ function inferDjs(text = '') {
   return unique(djs).slice(0, 5);
 }
 
-function pickPosterImage(images = []) {
+function imageNaturalArea(image) {
+  return Number(image?.w || 0) * Number(image?.h || 0);
+}
+
+function imageRenderedArea(image) {
+  return Number(image?.rectW || 0) * Number(image?.rectH || 0);
+}
+
+function isUsablePosterImage(image) {
+  const src = String(image?.src || '');
+  const alt = String(image?.alt || '');
+  return src
+    && Number(image.w || 0) >= 300
+    && Number(image.h || 0) >= 300
+    && !/profile|avatar|emoji|emoticon|static\/cafe|btn_|logo/i.test(`${src} ${alt}`);
+}
+
+function pickPosterImages(images = [], limit = 1) {
+  const seen = new Set();
   return images
-    .filter((image) => image?.src && Number(image.w || 0) >= 300 && Number(image.h || 0) >= 300)
-    .filter((image) => !/profile|avatar|emoji|emoticon|static\/cafe|btn_|logo/i.test(image.src))
-    .sort((a, b) => (Number(b.w || 0) * Number(b.h || 0)) - (Number(a.w || 0) * Number(a.h || 0)))[0]?.src || '';
+    .filter(isUsablePosterImage)
+    .sort((a, b) => (
+      Number(b.priority || 0) - Number(a.priority || 0)
+      || imageRenderedArea(b) - imageRenderedArea(a)
+      || imageNaturalArea(b) - imageNaturalArea(a)
+    ))
+    .map((image) => image.src)
+    .filter((src) => {
+      if (seen.has(src)) return false;
+      seen.add(src);
+      return true;
+    })
+    .slice(0, limit);
+}
+
+function pickPosterImage(images = []) {
+  return pickPosterImages(images, 1)[0] || '';
+}
+
+function pickInstagramPostImageUrls(images = [], limit = 4) {
+  const eligible = images.filter(isUsablePosterImage);
+  const maxRenderedArea = Math.max(0, ...eligible.map(imageRenderedArea));
+  const primaryImages = maxRenderedArea >= 90_000
+    ? eligible.filter((image) => imageRenderedArea(image) >= maxRenderedArea * 0.55)
+    : eligible.slice(0, limit);
+  const seen = new Set();
+  return primaryImages
+    .map((image) => image.src)
+    .filter((src) => {
+      if (seen.has(src)) return false;
+      seen.add(src);
+      return true;
+    })
+    .slice(0, limit);
 }
 
 async function imageToDataUrl(page, imageUrl, referer = '') {
   if (!imageUrl) return '';
   try {
-    return await page.evaluate(async ({ url }) => {
-      const response = await fetch(url, { credentials: 'include' });
-      if (!response.ok) throw new Error(`image fetch ${response.status}`);
-      const blob = await response.blob();
-      if (blob.size < 1000 || blob.size > 5_500_000) return '';
-      return await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(blob);
-      });
-    }, { url: imageUrl });
+    return await page.evaluate(async ({ url, timeoutMs }) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { credentials: 'include', signal: controller.signal });
+        if (!response.ok) throw new Error(`image fetch ${response.status}`);
+        const blob = await response.blob();
+        if (blob.size < 1000 || blob.size > 5_500_000) return '';
+        return await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(blob);
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+    }, { url: imageUrl, timeoutMs: imageFetchTimeoutMs });
   } catch {}
 
   try {
-    const response = await fetch(imageUrl, {
+    const { response, body: buffer } = await fetchWithTimeout(imageUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0',
         ...(referer ? { Referer: referer } : {}),
       },
-    });
+    }, imageFetchTimeoutMs, async (response) => Buffer.from(await response.arrayBuffer()));
     if (!response.ok) return '';
-    const buffer = Buffer.from(await response.arrayBuffer());
     if (buffer.length < 1000 || buffer.length > 5_500_000) return '';
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     return `data:${contentType};base64,${buffer.toString('base64')}`;
@@ -383,24 +498,43 @@ async function scrapeInstagramPost(page, url, source) {
   const data = await page.evaluate(() => {
     const metaDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
     const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
+    const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+    const twitterImage = document.querySelector('meta[name="twitter:image"], meta[property="twitter:image"]')?.getAttribute('content') || '';
     const articleText = [...document.querySelectorAll('article span, h1, div[role="button"]')]
       .map((node) => node.textContent || '')
       .filter((text) => text.trim().length > 20)
       .join('\n');
-    const images = [...document.querySelectorAll('article img, img[src*="cdninstagram"], img[src*="fbcdn"], img[src*="scontent"]')]
+    const article = document.querySelector('article') || document;
+    const images = [...article.querySelectorAll('img')]
       .map((img) => ({
         src: img.currentSrc || img.src,
+        alt: img.alt || '',
         w: img.naturalWidth || img.width || 0,
         h: img.naturalHeight || img.height || 0,
+        rectW: Math.round(img.getBoundingClientRect().width || 0),
+        rectH: Math.round(img.getBoundingClientRect().height || 0),
       }));
-    return { metaDescription, ogTitle, articleText, images };
+    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images };
   });
 
   let text = data.articleText || data.metaDescription || data.ogTitle || '';
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
-  const posterUrl = pickPosterImage(data.images);
-  return buildCandidatesFromText({ source, sourceUrl: url, text, title: data.ogTitle || text, posterUrl, page });
+  const posterUrls = pickInstagramPostImageUrls(data.images, postLimit);
+  const fallbackPosterUrl = pickPosterImage([
+    { src: data.ogImage, w: 336, h: 336, priority: 1 },
+    { src: data.twitterImage, w: 336, h: 336, priority: 1 },
+    ...data.images,
+  ]);
+  return buildCandidatesFromText({
+    source,
+    sourceUrl: url,
+    text,
+    title: data.ogTitle || text,
+    posterUrl: posterUrls[0] || fallbackPosterUrl,
+    posterUrls: posterUrls.length ? posterUrls : [fallbackPosterUrl].filter(Boolean),
+    page,
+  });
 }
 
 async function collectNaverArticleLinks(page, source) {
@@ -591,7 +725,7 @@ async function scrapeLittlyCard(page, card, source) {
   });
 }
 
-async function buildCandidatesFromText({ source, sourceUrl, text, title, posterUrl, page, referer = '' }) {
+async function buildCandidatesFromText({ source, sourceUrl, text, title, posterUrl, posterUrls = [], page, referer = '' }) {
   const sourceExcluded = getExcludedSourceReason(sourceUrl);
   if (sourceExcluded) {
     result.skipped += 1;
@@ -610,13 +744,13 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
     return [];
   }
 
-  if (!posterUrl) {
+  const posterUrlList = unique([...posterUrls, posterUrl].filter(Boolean));
+  if (!posterUrlList.length) {
     result.skipped += 1;
     result.issues.push(`${source.id}: poster missing`);
     return [];
   }
 
-  const imageData = await imageToDataUrl(page, posterUrl, referer || sourceUrl);
   const { activity, eventType } = inferActivity(cleanText);
   const venue = inferVenue(cleanText, source);
   const djs = inferDjs(cleanText);
@@ -643,12 +777,21 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   }
 
   const candidates = [];
+  const imageDataByUrl = new Map();
+  const getImageData = async (imageUrl) => {
+    if (!imageDataByUrl.has(imageUrl)) {
+      imageDataByUrl.set(imageUrl, await imageToDataUrl(page, imageUrl, referer || sourceUrl));
+    }
+    return imageDataByUrl.get(imageUrl);
+  };
 
-  for (const date of dates) {
+  for (const [index, date] of dates.entries()) {
+    const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
+    const imageData = await getImageData(candidatePosterUrl);
     const raw = {
       keyword: source.name,
       source_url: sourceUrl,
-      poster_url: posterUrl,
+      poster_url: candidatePosterUrl,
       ...(imageData ? { imageData } : {}),
       extracted_text: cleanText.slice(0, 6000),
       structured_data: {
@@ -685,12 +828,24 @@ async function postCandidate(candidate) {
     return;
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(candidate),
-  });
-  const bodyText = await response.text();
+  let response;
+  let bodyText = '';
+  try {
+    const postResult = await fetchWithTimeout(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(candidate),
+    }, postRequestTimeoutMs);
+    response = postResult.response;
+    bodyText = postResult.body;
+  } catch (error) {
+    const message = error?.message || error?.name || 'post request failed';
+    result.skipped += 1;
+    result.issues.push(`post ${candidate.id}: ${message}`);
+    log(`post failed ${candidate.id}: ${message}`);
+    return;
+  }
+
   let body = {};
   try { body = JSON.parse(bodyText); } catch {}
 
@@ -860,10 +1015,14 @@ async function main() {
 
   const sources = getAutomationSourceList('swing-daily')
     .filter((source) => source.saveEnabled && source.scope === 'swing')
+    .filter((source) => sourcePriorities.length === 0 || sourcePriorities.includes(Number(source.priority)))
     .filter((source) => sourceIds.length === 0 || sourceIds.includes(source.id))
+    .sort((a, b) => sourceOrderWeight(a) - sourceOrderWeight(b)
+      || Number(a.priority || 99) - Number(b.priority || 99)
+      || a.name.localeCompare(b.name, 'ko'))
     .slice(0, sourceLimit > 0 ? sourceLimit : undefined);
 
-  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun}`);
+  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} priorities=${sourcePriorities.join(',') || 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
   const page = await context.newPage();
@@ -873,7 +1032,13 @@ async function main() {
 
   try {
     const seenRunKeys = new Set();
-    for (const source of sources) {
+    for (let sourceIndex = 0; sourceIndex < sources.length; sourceIndex += 1) {
+      const source = sources[sourceIndex];
+      if (!hasRunBudget(runDeadlineGuardMs())) {
+        recordDeadlineReached(sources, sourceIndex);
+        break;
+      }
+
       const excluded = getExcludedSourceReason(source.url);
       if (excluded) {
         result.skipped += 1;
@@ -885,6 +1050,11 @@ async function main() {
       const candidates = await collectSource(page, source);
       const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
       for (const candidate of deduped) {
+        if (!hasRunBudget(Math.min(10_000, runDeadlineGuardMs()))) {
+          recordDeadlineReached(sources, sourceIndex + 1);
+          break;
+        }
+
         const sd = candidate.structured_data || {};
         const runKey = [
           sd.date,
@@ -899,6 +1069,8 @@ async function main() {
         seenRunKeys.add(runKey);
         await postCandidate(candidate);
       }
+
+      if (result.deadlineReached) break;
     }
   } finally {
     await browserSession.close();
@@ -926,6 +1098,9 @@ function printSummary() {
     noContentSources,
     issues,
     candidates: result.candidates.slice(0, 20),
+    deadlineReached: result.deadlineReached,
+    remainingSources: result.remainingSources.slice(0, 20),
+    remainingSourceCount: result.remainingSources.length,
   }, null, 2));
   console.log('INGESTION_RESULT_JSON_END');
   console.log('==TELEGRAM_SUMMARY_START==');

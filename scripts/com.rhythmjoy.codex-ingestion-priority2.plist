@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.rhythmjoy.codex-ingestion</string>
+    <string>com.rhythmjoy.codex-ingestion-priority2</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
@@ -12,7 +12,7 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>8</integer>
+        <integer>9</integer>
         <key>Minute</key>
         <integer>0</integer>
     </dict>
@@ -29,7 +29,7 @@
         <key>HOME</key>
         <string>/Users/inteyeo</string>
         <key>INGESTION_NATIVE_SOURCE_PRIORITY</key>
-        <string>1</string>
+        <string>2</string>
         <key>INGESTION_NATIVE_RUN_BUDGET_MS</key>
         <string>1200000</string>
     </dict>
