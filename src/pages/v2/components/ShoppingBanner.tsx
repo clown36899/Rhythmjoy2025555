@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 // import { supabase } from '../../../lib/supabase';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { Shop } from '../../shopping/page';
@@ -22,9 +22,17 @@ function ShoppingBanner() {
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const [isSwiping, setIsSwiping] = useState(false);
+    const dragStateRef = useRef({
+        mouseDown: false,
+        startX: 0,
+        currentX: 0,
+        moved: false,
+        suppressClick: false,
+    });
 
     // Minimum swipe distance (in px) to trigger navigation
     const minSwipeDistance = 50;
+    const dragIntentDistance = 8;
 
     // Visibility check
     const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
@@ -60,7 +68,16 @@ function ShoppingBanner() {
         setCurrentIndex((prev) => (prev + 1) % shops.length);
     };
 
+    const suppressNextClick = () => {
+        dragStateRef.current.suppressClick = true;
+        window.setTimeout(() => {
+            dragStateRef.current.suppressClick = false;
+        }, 0);
+    };
+
     const handleShopClick = (shop: Shop) => {
+        if (dragStateRef.current.suppressClick) return;
+
         // Google Analytics: 쇼핑몰 배너 클릭 추적
         logUserInteraction('ShoppingBanner', 'Click', `${shop.name} (ID: ${shop.id})`);
 
@@ -93,14 +110,62 @@ function ShoppingBanner() {
 
         if (isLeftSwipe) {
             handleNext();
+            suppressNextClick();
         } else if (isRightSwipe) {
             handlePrev();
+            suppressNextClick();
         }
 
         // Reset touch state
         setTouchStart(null);
         setTouchEnd(null);
         setIsSwiping(false);
+    };
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.button !== 0) return;
+        if ((e.target as HTMLElement).closest('button')) return;
+
+        dragStateRef.current = {
+            mouseDown: true,
+            startX: e.clientX,
+            currentX: e.clientX,
+            moved: false,
+            suppressClick: false,
+        };
+        setIsSwiping(true);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const dragState = dragStateRef.current;
+        if (!dragState.mouseDown) return;
+
+        dragState.currentX = e.clientX;
+        if (Math.abs(dragState.startX - dragState.currentX) > dragIntentDistance) {
+            dragState.moved = true;
+        }
+    };
+
+    const finishMouseDrag = () => {
+        const dragState = dragStateRef.current;
+        if (!dragState.mouseDown) return;
+
+        const distance = dragState.startX - dragState.currentX;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        dragState.mouseDown = false;
+        setIsSwiping(false);
+
+        if (isLeftSwipe) {
+            handleNext();
+            suppressNextClick();
+        } else if (isRightSwipe) {
+            handlePrev();
+            suppressNextClick();
+        } else if (dragState.moved) {
+            suppressNextClick();
+        }
     };
 
     // Show skeleton while loading or if no shops available
@@ -135,6 +200,10 @@ function ShoppingBanner() {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={() => handleShopClick(currentShop)}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={finishMouseDrag}
+            onMouseLeaveCapture={finishMouseDrag}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}

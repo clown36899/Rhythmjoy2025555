@@ -12,6 +12,18 @@
   border-radius: 0;
   background: #1c1c1d;
   margin: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y pinch-zoom;
+}
+
+.NEB-container:active {
+  cursor: grabbing;
+}
+
+.NEB-container img {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 .NEB-header {

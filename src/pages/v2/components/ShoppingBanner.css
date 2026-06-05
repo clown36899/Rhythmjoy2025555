@@ -11,8 +11,18 @@
     margin: 1rem auto; /* 사이드 여백 대신 중앙 정렬 */
     max-width: 650px;
     width: calc(100% - 3rem); /* 기존 마진값(1.5rem x 2)을 고려한 너비 */
-    user-select: text;
+    user-select: none;
+    -webkit-user-select: none;
     touch-action: pan-y pinch-zoom;
+}
+
+.shopping-banner:active {
+    cursor: grabbing;
+}
+
+.shopping-banner img {
+    -webkit-user-drag: none;
+    user-drag: none;
 }
 
 /* 

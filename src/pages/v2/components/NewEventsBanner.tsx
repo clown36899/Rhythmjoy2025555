@@ -136,6 +136,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const [isManualPaused, setIsManualPaused] = useState(false);
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
+    const dragStateRef = React.useRef({
+        mouseDown: false,
+        startX: 0,
+        currentX: 0,
+        moved: false,
+        suppressClick: false,
+    });
     const [edgeToneByUrl, setEdgeToneByUrl] = useState<Record<string, EdgeTone>>({});
 
     // 수동 조작 시 8초간 자동 슬라이드 중지 로직
@@ -165,6 +172,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
     // 최소 스와이프 거리 (픽셀)
     const minSwipeDistance = 50;
+    const dragIntentDistance = 8;
+
+    const suppressNextClick = useCallback(() => {
+        dragStateRef.current.suppressClick = true;
+        window.setTimeout(() => {
+            dragStateRef.current.suppressClick = false;
+        }, 0);
+    }, []);
 
     const onTouchStart = (e: React.TouchEvent) => {
         setTouchEnd(null);
@@ -176,7 +191,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     };
 
     const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
+        if (touchStart === null || touchEnd === null) return;
 
         const distance = touchStart - touchEnd;
         const isLeftSwipe = distance > minSwipeDistance;
@@ -185,10 +200,15 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         if (isLeftSwipe) {
             triggerManualPause();
             goToNext();
+            suppressNextClick();
         } else if (isRightSwipe) {
             triggerManualPause();
             goToPrevious();
+            suppressNextClick();
         }
+
+        setTouchStart(null);
+        setTouchEnd(null);
     };
 
     // 자동 슬라이드 (8초마다)
@@ -247,6 +267,58 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         event.stopPropagation();
         navigate('/oneday-recruits');
     }, [navigate]);
+
+    const openEventDetail = useCallback((event: Event) => {
+        if (dragStateRef.current.suppressClick) return;
+        onEventClick(event);
+    }, [onEventClick]);
+
+    const onMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+        if (event.button !== 0) return;
+        if ((event.target as HTMLElement).closest('button')) return;
+
+        dragStateRef.current = {
+            mouseDown: true,
+            startX: event.clientX,
+            currentX: event.clientX,
+            moved: false,
+            suppressClick: false,
+        };
+    };
+
+    const onMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+        const dragState = dragStateRef.current;
+        if (!dragState.mouseDown) return;
+
+        dragState.currentX = event.clientX;
+        if (Math.abs(dragState.startX - dragState.currentX) > dragIntentDistance) {
+            dragState.moved = true;
+            event.preventDefault();
+        }
+    };
+
+    const finishMouseDrag = useCallback(() => {
+        const dragState = dragStateRef.current;
+        if (!dragState.mouseDown) return;
+
+        const distance = dragState.startX - dragState.currentX;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        dragState.mouseDown = false;
+
+        if (isLeftSwipe) {
+            triggerManualPause();
+            goToNext();
+            suppressNextClick();
+        } else if (isRightSwipe) {
+            triggerManualPause();
+            goToPrevious();
+            suppressNextClick();
+        } else if (dragState.moved) {
+            suppressNextClick();
+        }
+    }, [goToNext, goToPrevious, suppressNextClick, triggerManualPause]);
 
     if (events.length === 0) return null;
 
@@ -374,7 +446,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
             <div
                 className="NEB-container"
                 onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
+                onMouseLeave={() => {
+                    setIsPaused(false);
+                    finishMouseDrag();
+                }}
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={finishMouseDrag}
+                onDragStart={(event) => event.preventDefault()}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
@@ -454,7 +533,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     key={event.id}
                                     className={`NEB-slide ${placement.className} ${edgeToneClass}`}
                                     style={placement.style}
-                                    onClick={() => onEventClick(event)}
+                                    onClick={() => openEventDetail(event)}
                                     aria-label={event.title}
                                 >
                                     <div className="NEB-imageWrapper">
@@ -503,7 +582,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         <button
                             type="button"
                             className="NEB-activeSummary"
-                            onClick={() => onEventClick(currentEvent)}
+                            onClick={() => openEventDetail(currentEvent)}
                             aria-label={`${currentEvent.title} 상세 보기`}
                         >
                             <strong>{currentEvent.title}</strong>
