@@ -565,7 +565,7 @@ export default function EventsInfoPage() {
     return new Set((interactions?.event_favorites || []).map((id) => Number(id)));
   }, [interactions?.event_favorites]);
 
-  const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(isAdmin), [isAdmin]);
+  const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
   const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), isAdmin);
   const selectedActivity = normalizeActivityFilter(searchParams.get('type'));
   const selectedTag = searchParams.get('tag');
@@ -622,6 +622,15 @@ export default function EventsInfoPage() {
     }
     setSearchParams(nextParams, { replace: false });
   }, [searchParams, setSearchParams]);
+
+  const handleDanceScopeClick = useCallback((scope: typeof visibleDanceScopeOptions[number]['key']) => {
+    if (!isAdmin && scope !== 'swing') {
+      window.alert('준비중');
+      return;
+    }
+
+    setFilterParam('dance', scope === 'swing' ? null : scope);
+  }, [isAdmin, setFilterParam]);
 
   useEffect(() => {
     if (!isAuthCheckComplete || isAdmin || !searchParams.has('dance')) return;
@@ -838,8 +847,11 @@ export default function EventsInfoPage() {
             <button
               key={option.key}
               type="button"
-              className={selectedDanceScope === option.key ? 'is-active' : ''}
-              onClick={() => setFilterParam('dance', option.key === 'swing' ? null : option.key)}
+              className={[
+                selectedDanceScope === option.key ? 'is-active' : '',
+                !isAdmin && option.key !== 'swing' ? 'is-preparing' : '',
+              ].filter(Boolean).join(' ')}
+              onClick={() => handleDanceScopeClick(option.key)}
             >
               <strong>{option.label}</strong>
               <span>{option.desc}</span>

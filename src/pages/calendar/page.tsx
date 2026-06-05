@@ -206,7 +206,7 @@ export default function CalendarPage() {
     // Auth
     const isAdmin = authIsAdmin || false;
     const [adminType] = useState<"super" | "sub" | null>(authIsAdmin ? "super" : null);
-    const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(isAdmin), [isAdmin]);
+    const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
 
     // [New] 데이터 훅을 부모로 끌어올림 (사전 높이 계산을 위함)
     const { data: calendarData, isLoading, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth, danceScope);
@@ -802,6 +802,11 @@ export default function CalendarPage() {
     };
 
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
+        if (!isAdmin && scope !== 'swing') {
+            window.alert('준비중');
+            return;
+        }
+
         if (scope === danceScope) return;
 
         setDanceScope(scope);
@@ -1073,7 +1078,11 @@ export default function CalendarPage() {
                             <button
                                 key={option.key}
                                 type="button"
-                                className={`calendar-dance-scope-btn ${danceScope === option.key ? 'active' : ''}`}
+                                className={[
+                                    'calendar-dance-scope-btn',
+                                    danceScope === option.key ? 'active' : '',
+                                    !isAdmin && option.key !== 'swing' ? 'is-preparing' : '',
+                                ].filter(Boolean).join(' ')}
                                 onClick={() => handleDanceScopeClick(option.key)}
                                 title={option.desc}
                             >
