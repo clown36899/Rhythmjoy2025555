@@ -9,8 +9,8 @@ self.__WB_DISABLE_DEV_LOGS = true;
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-const CACHE_NAME = 'rhythmjoy-cache-v1.0.6';
-// Last updated: 2026-03-16 (v52)
+const CACHE_NAME = 'rhythmjoy-cache-v1.0.7';
+// Last updated: 2026-06-05 (v53)
 self.addEventListener('install', (event) => {
   // PWA 설치 요건: 루트(/)와 필수 에셋이 캐시되어야 오프라인 신뢰성을 인정받음
   event.waitUntil(

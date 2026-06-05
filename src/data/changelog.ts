@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.9.7',
+        date: '2026-06-05',
+        changes: [
+            '[🚀 Update] 새 배포 감지 시 일반 앱 자동 새로고침 적용',
+            '[🔧 PWA] 서비스워커 캐시 버전 갱신 및 앱 표시 버전 동기화'
+        ]
+    },
+    {
         version: '3.9.6',
         date: '2026-04-09',
         changes: [
