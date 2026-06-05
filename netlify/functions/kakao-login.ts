@@ -1,11 +1,27 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
+import nodeCrypto from 'crypto';
+
+type KakaoProfile = {
+  kakaoId: string;
+  email?: string;
+  nickname?: string;
+  profileImage?: string | null;
+  realName?: string | null;
+  phoneNumber?: string | null;
+};
+
+type ExistingKakaoUser = {
+  userId: string;
+  email?: string;
+  nickname?: string;
+  profileImage?: string | null;
+};
 
 const LOCAL_SUPABASE_URL = process.env.LOCAL_SUPABASE_URL || 'http://127.0.0.1:54321';
 const LOCAL_SUPABASE_SERVICE_KEY = process.env.LOCAL_SUPABASE_SERVICE_KEY || '';
+const KAKAO_USER_INFO_TIMEOUT_MS = 4500;
 
-// 전역 변수 (재사용)
 const supabaseAdmins = new Map<string, any>();
 
 function isLocalHost(value?: string | null) {
@@ -41,47 +57,299 @@ function getSupabaseAdminClient(supabaseUrl: string, supabaseServiceKey: string)
   if (cached) return cached;
 
   const client = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
+    auth: { autoRefreshToken: false, persistSession: false },
   });
   supabaseAdmins.set(cacheKey, client);
   return client;
 }
 
-export const handler: Handler = async (event) => {
+function fallbackEmail(kakaoId: string) {
+  return `kakao_${kakaoId}@swingenjoy.com`;
+}
+
+function normalizePhoneNumber(phoneNumber?: string | null) {
+  if (!phoneNumber) return null;
+  return phoneNumber.replace('+82 ', '0').replace(/-/g, '').trim() || null;
+}
+
+function compactObject<T extends object>(value: T): T {
+  const record = value as Record<string, unknown>;
+  Object.keys(record).forEach((key) => {
+    if (record[key] === undefined) delete record[key];
+  });
+  return value;
+}
+
+function decodeKakaoIdToken(idToken?: string): KakaoProfile | null {
+  if (!idToken) return null;
+
+  try {
+    const payloadBase64 = idToken.split('.')[1];
+    const payloadDecoded = Buffer.from(payloadBase64, 'base64url').toString('utf-8');
+    const payload = JSON.parse(payloadDecoded);
+    if (!payload.sub) return null;
+
+    return compactObject({
+      kakaoId: String(payload.sub),
+      email: payload.email || undefined,
+      nickname: payload.nickname || undefined,
+      profileImage: payload.picture || null,
+      realName: null,
+      phoneNumber: null,
+    });
+  } catch (error) {
+    console.warn('[kakao-login] Failed to decode Kakao ID token:', error);
+    return null;
+  }
+}
+
+function profileFromKakaoUser(userData: any, base: Partial<KakaoProfile> = {}): KakaoProfile {
+  const kakaoId = String(userData?.id || base.kakaoId || '');
+  const kakaoAccount = userData?.kakao_account || {};
+  const properties = userData?.properties || {};
+
+  return compactObject({
+    kakaoId,
+    email: kakaoAccount.email || base.email || undefined,
+    nickname: properties.nickname || kakaoAccount.profile?.nickname || base.nickname || `User${kakaoId}`,
+    profileImage: properties.profile_image || kakaoAccount.profile?.profile_image_url || base.profileImage || null,
+    realName: kakaoAccount.name || base.realName || null,
+    phoneNumber: normalizePhoneNumber(kakaoAccount.phone_number) || base.phoneNumber || null,
+  });
+}
+
+async function fetchKakaoUserProfile(accessToken: string, base: Partial<KakaoProfile> = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), KAKAO_USER_INFO_TIMEOUT_MS);
+
+  try {
+    const response = await fetch('https://kapi.kakao.com/v2/user/me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+      },
+      signal: controller.signal,
+    });
+    const userData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(`Kakao user info failed: ${JSON.stringify(userData)}`);
+    }
+
+    return profileFromKakaoUser(userData, base);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function findExistingKakaoUser(supabaseAdmin: any, kakaoId: string): Promise<ExistingKakaoUser | null> {
+  const { data: rpcData, error: rpcError } = await supabaseAdmin
+    .rpc('get_kakao_user_info', { p_kakao_id: kakaoId })
+    .maybeSingle();
+
+  if (rpcData?.user_id) {
+    return {
+      userId: rpcData.user_id,
+      email: rpcData.email || undefined,
+      nickname: rpcData.nickname || undefined,
+      profileImage: rpcData.profile_image || null,
+    };
+  }
+
+  if (rpcError) {
+    console.warn('[kakao-login] Kakao lookup RPC failed, falling back to board_users:', rpcError.message);
+  }
+
+  const { data: boardUser } = await supabaseAdmin
+    .from('board_users')
+    .select('user_id, email, nickname, profile_image')
+    .eq('kakao_id', kakaoId)
+    .maybeSingle();
+
+  if (!boardUser?.user_id) return null;
+
+  let email = boardUser.email || undefined;
+  if (!email) {
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(boardUser.user_id);
+    email = authUser?.user?.email || undefined;
+  }
+
+  return {
+    userId: boardUser.user_id,
+    email,
+    nickname: boardUser.nickname || undefined,
+    profileImage: boardUser.profile_image || null,
+  };
+}
+
+async function createOrFindAuthUser(supabaseAdmin: any, profile: KakaoProfile) {
+  const email = profile.email || fallbackEmail(profile.kakaoId);
+  const nickname = profile.nickname || `User${profile.kakaoId}`;
+  const randomPassword = nodeCrypto.randomBytes(16).toString('hex');
+
+  const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password: randomPassword,
+    email_confirm: true,
+    user_metadata: {
+      name: nickname,
+      full_name: profile.realName || nickname,
+      real_name: profile.realName || null,
+      phone_number: profile.phoneNumber || null,
+      kakao_id: profile.kakaoId,
+      provider: 'kakao',
+    },
+  });
+
+  if (!createError && newUser?.user) {
+    return { userId: newUser.user.id, email };
+  }
+
+  if (createError && !createError.message?.toLowerCase().includes('registered') && (createError as any).status !== 422) {
+    throw createError;
+  }
+
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+  if (userData?.user) {
+    return { userId: userData.user.id, email: userData.user.email || email };
+  }
+
+  throw createError || new Error('Could not create or locate Supabase user');
+}
+
+async function generateSession(supabaseAdmin: any, email: string) {
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  });
+
+  if (linkError || !linkData?.properties?.action_link) {
+    throw linkError || new Error('Link generation failed');
+  }
+
+  const tokenHash = new URL(linkData.properties.action_link).searchParams.get('token');
+  if (!tokenHash) throw new Error('Token hash not found');
+
+  const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: 'magiclink',
+  });
+
+  if (sessionError || !sessionData.session) {
+    throw sessionError || new Error('Session verification failed');
+  }
+
+  return sessionData.session;
+}
+
+async function syncKakaoProfile(
+  supabaseAdmin: any,
+  userId: string,
+  accessToken: string,
+  baseProfile: KakaoProfile,
+  isNewUser: boolean,
+) {
+  let profile = baseProfile;
+
+  try {
+    profile = await fetchKakaoUserProfile(accessToken, baseProfile);
+  } catch (error) {
+    console.warn('[kakao-login] Background Kakao profile sync skipped:', error);
+  }
+
+  if (!profile.kakaoId) return;
+
+  const nickname = profile.nickname || `User${profile.kakaoId}`;
+  const email = profile.email || fallbackEmail(profile.kakaoId);
+
+  const authUpdate = supabaseAdmin.auth.admin.updateUserById(userId, {
+    user_metadata: {
+      name: nickname,
+      full_name: profile.realName || nickname,
+      real_name: profile.realName || null,
+      phone_number: profile.phoneNumber || null,
+      kakao_id: profile.kakaoId,
+      provider: 'kakao',
+    },
+  });
+
+  const updateData: Record<string, unknown> = {
+    user_id: userId,
+    kakao_id: profile.kakaoId,
+    nickname,
+    real_name: profile.realName || null,
+    phone_number: profile.phoneNumber || null,
+    email,
+    provider: 'kakao',
+    updated_at: new Date().toISOString(),
+  };
+
+  if (isNewUser && profile.profileImage) {
+    updateData.profile_image = profile.profileImage;
+  }
+
+  const boardUserUpsert = supabaseAdmin
+    .from('board_users')
+    .upsert(compactObject(updateData), { onConflict: 'user_id' });
+
+  const [authResult, boardUserResult] = await Promise.allSettled([authUpdate, boardUserUpsert]);
+
+  if (authResult.status === 'rejected') {
+    console.warn('[kakao-login] Auth metadata sync failed:', authResult.reason);
+  }
+
+  if (boardUserResult.status === 'fulfilled' && boardUserResult.value?.error) {
+    console.warn('[kakao-login] board_users sync failed:', boardUserResult.value.error);
+  } else if (boardUserResult.status === 'rejected') {
+    console.warn('[kakao-login] board_users sync failed:', boardUserResult.reason);
+  }
+}
+
+function runAfterResponse(context: any, promise: Promise<unknown>, label: string) {
+  const guardedPromise = promise.catch((error) => {
+    console.warn(`[kakao-login] ${label} failed:`, error);
+  });
+
+  if (typeof context?.waitUntil === 'function') {
+    context.waitUntil(guardedPromise);
+  }
+}
+
+export const handler: Handler = async (event, context: any) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  const restApiKey = process.env.VITE_KAKAO_REST_API_KEY || process.env.KAKAO_REST_API_KEY;
+  const adminEmail = process.env.VITE_ADMIN_EMAIL;
+  const startedAt = performance.now();
+  const timings: Record<string, number> = {};
+
+  if (!restApiKey) {
+    console.error('[kakao-login] Missing KAKAO_REST_API_KEY');
+    return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error: Missing API key' }) };
+  }
+
   try {
-    console.log('[kakao-login] 🚀 요청 수신');
     const body = JSON.parse(event.body || '{}');
     const { code, redirectUri } = body;
 
     if (!code) {
-      console.error('[kakao-login] ❌ 인증 코드 누락');
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing authorization code' }) };
     }
 
     const { supabaseUrl, supabaseServiceKey } = getSupabaseConfig(event, redirectUri);
-    const adminEmail = process.env.VITE_ADMIN_EMAIL;
-
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('[kakao-login] ❌ 환경변수 누락:', {
+      console.error('[kakao-login] Missing Supabase environment variables', {
         hasUrl: !!supabaseUrl,
-        hasServiceKey: !!supabaseServiceKey
+        hasServiceKey: !!supabaseServiceKey,
       });
       return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error' }) };
     }
 
     const supabaseAdmin = getSupabaseAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. 인증 코드로 액세스 토큰 교환
-    const restApiKey = process.env.VITE_KAKAO_REST_API_KEY || process.env.KAKAO_REST_API_KEY;
-    if (!restApiKey) {
-      console.error('[kakao-login] ❌ Missing KAKAO_REST_API_KEY environment variable');
-      return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error: Missing API key' }) };
-    }
-
+    const tokenStartedAt = performance.now();
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
@@ -89,208 +357,108 @@ export const handler: Handler = async (event) => {
         grant_type: 'authorization_code',
         client_id: restApiKey,
         redirect_uri: redirectUri,
-        code: code,
-      }).toString()
+        code,
+      }).toString(),
     });
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('[kakao-login] ❌ 토큰 교환 실패:', errorText);
-      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to exchange authorization code', details: errorText }) };
-    }
+    timings.kakaoTokenMs = Math.round(performance.now() - tokenStartedAt);
 
     const tokenData = await tokenResponse.json();
-    const { access_token: kakaoAccessToken, refresh_token: kakaoRefreshToken, id_token: kakaoIdToken } = tokenData;
-
-    // 2. 카카오 사용자 정보 조회 (OIDC 최적화 적용 및 실명/전화번호 추출)
-    let kakaoId: bigint | number | string = '';
-    let email: string = '';
-    let nickname: string = '';
-    let profileImage: string | null = null;
-    let realName: string | null = null;
-    let phoneNumber: string | null = null;
-    let usingOIDC = false;
-
-    // A. OIDC (ID Token) 시도
-    if (kakaoIdToken) {
-      try {
-        const payloadBase64 = kakaoIdToken.split('.')[1];
-        const payloadDecoded = Buffer.from(payloadBase64, 'base64').toString('utf-8');
-        const idTokenPayload = JSON.parse(payloadDecoded);
-
-        if (idTokenPayload.sub) {
-          kakaoId = idTokenPayload.sub;
-          email = idTokenPayload.email || `kakao_${kakaoId}@swingenjoy.com`;
-          nickname = idTokenPayload.nickname || 'Unknown User';
-          profileImage = idTokenPayload.picture || null;
-          usingOIDC = true;
-        }
-      } catch (e) {
-        console.warn('[kakao-login] ⚠️ ID Token 디코딩 실패 -> API 호출로 전환:', e);
-      }
+    if (!tokenResponse.ok) {
+      console.error('[kakao-login] Token exchange failed:', tokenData);
+      return { statusCode: 401, body: JSON.stringify({ error: 'Failed to exchange authorization code', details: tokenData }) };
     }
 
-    // B. 기존 API 호출 (실명 및 전화번호 조회를 위해 필수)
-    console.log('[kakao-login] 2단계: 카카오 사용자 정보 조회 (API 호출)');
-    const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
-      headers: {
-        Authorization: `Bearer ${kakaoAccessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
-      }
+    const { access_token: kakaoAccessToken, id_token: kakaoIdToken } = tokenData;
+    let profile = decodeKakaoIdToken(kakaoIdToken) || { kakaoId: '' };
+    let usedSynchronousUserInfo = false;
+
+    if (!profile.kakaoId) {
+      const userInfoStartedAt = performance.now();
+      profile = await fetchKakaoUserProfile(kakaoAccessToken, profile);
+      timings.kakaoUserInfoMs = Math.round(performance.now() - userInfoStartedAt);
+      usedSynchronousUserInfo = true;
+    }
+
+    if (!profile.kakaoId) {
+      return { statusCode: 401, body: JSON.stringify({ error: 'Kakao user id not found' }) };
+    }
+
+    const lookupStartedAt = performance.now();
+    const existingUser = await findExistingKakaoUser(supabaseAdmin, profile.kakaoId);
+    timings.userLookupMs = Math.round(performance.now() - lookupStartedAt);
+
+    let userId = existingUser?.userId;
+    profile = compactObject({
+      ...profile,
+      email: existingUser?.email || profile.email || undefined,
+      nickname: profile.nickname || existingUser?.nickname || `User${profile.kakaoId}`,
+      profileImage: profile.profileImage || existingUser?.profileImage || null,
     });
 
-    const kakaoUser = await kakaoUserResponse.json();
+    const isNewUser = !userId;
 
-    if (kakaoUserResponse.ok) {
-      kakaoId = kakaoUser.id;
-      const kakaoAccount = kakaoUser.kakao_account || {};
-      email = kakaoAccount.email || email;
-      const properties = kakaoUser.properties || {};
-      nickname = properties.nickname || kakaoAccount.profile?.nickname || nickname || `User${kakaoId}`;
-      profileImage = properties.profile_image || kakaoAccount.profile?.profile_image_url || profileImage;
-
-      // 실명 및 전화번호 추출 (카카오 설정에서 권한 허용 필요)
-      realName = kakaoAccount.name || null;
-      const phoneNumberRaw = kakaoAccount.phone_number || '';
-      phoneNumber = phoneNumberRaw ? phoneNumberRaw.replace('+82 ', '0').replace(/-/g, '') : null;
-    } else if (!usingOIDC) {
-      console.error('[kakao-login] Failed to fetch user info:', kakaoUser);
-      return { statusCode: 400, body: JSON.stringify({ error: 'Failed to fetch user info', details: kakaoUser }) };
-    }
-
-    if (!email) email = `kakao_${kakaoId}@swingenjoy.com`;
-
-    // 3. Supabase 사용자 처리 (조회 또는 생성)
-    const { data: existingBoardUser } = await supabaseAdmin
-      .from('board_users')
-      .select('user_id')
-      .eq('kakao_id', kakaoId)
-      .maybeSingle();
-
-    let userId = existingBoardUser?.user_id;
-
-    if (userId) {
+    if (isNewUser && !usedSynchronousUserInfo) {
+      const userInfoStartedAt = performance.now();
       try {
-        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
-        if (authUser?.user?.email) email = authUser.user.email;
-      } catch (e) {
-        // 이미 가입된 경우 등 무시
+        profile = await fetchKakaoUserProfile(kakaoAccessToken, profile);
+        timings.kakaoUserInfoMs = Math.round(performance.now() - userInfoStartedAt);
+      } catch (error) {
+        if (!profile.email) throw error;
+        timings.kakaoUserInfoMs = Math.round(performance.now() - userInfoStartedAt);
+        console.warn('[kakao-login] New user detail fetch failed; continuing with OIDC profile:', error);
       }
     }
+
+    profile.email = profile.email || fallbackEmail(profile.kakaoId);
+    profile.nickname = profile.nickname || `User${profile.kakaoId}`;
 
     if (!userId) {
-      // 기존 이메일로도 가입된 내역이 없으면 완전히 새로운 Auth User 생성
-      const randomPassword = crypto.randomBytes(16).toString('hex');
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: randomPassword,
-        email_confirm: true,
-        user_metadata: {
-          name: nickname,
-          full_name: realName || nickname,
-          real_name: realName,
-          phone_number: phoneNumber,
-          kakao_id: kakaoId,
-          provider: 'kakao'
-        }
-      });
-
-      if (createError) {
-        if (!createError.message?.toLowerCase().includes("registered") && (createError as any).status !== 422) {
-          throw createError;
-        }
-      } else if (newUser?.user) {
-        userId = newUser.user.id;
-      }
+      const createStartedAt = performance.now();
+      const createdUser = await createOrFindAuthUser(supabaseAdmin, profile);
+      userId = createdUser.userId;
+      profile.email = createdUser.email || profile.email;
+      timings.userCreateMs = Math.round(performance.now() - createStartedAt);
     }
 
-    if (!userId) {
-      // 최후의 보루: 이메일로 직접 조회
-      const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-      if (userData?.user) {
-        userId = userData.user.id;
-        console.log(`[kakao-login] 🔗 Found via email fallback: ${userId}`);
-      }
+    if (!userId) throw new Error('Could not determine User ID');
+
+    const sessionStartedAt = performance.now();
+    const sessionPromise = generateSession(supabaseAdmin, profile.email);
+    const syncPromise = syncKakaoProfile(supabaseAdmin, userId, kakaoAccessToken, profile, isNewUser);
+
+    let session: any;
+    if (isNewUser) {
+      [session] = await Promise.all([sessionPromise, syncPromise]);
+    } else {
+      runAfterResponse(context, syncPromise, 'background profile sync');
+      session = await sessionPromise;
     }
 
-    if (!userId) throw new Error('Could not determine User ID for session');
+    timings.sessionMs = Math.round(performance.now() - sessionStartedAt);
+    timings.totalMs = Math.round(performance.now() - startedAt);
 
-    // [중요] 기존 사용자든 신규 사용자든, 최신 카카오 정보를 인증 메타데이터에 연동
-    // 이를 통해 프론트엔드 세션(user object)에서 즉시 최신 정보를 인지할 수 있음
-    try {
-      await supabaseAdmin.auth.admin.updateUserById(userId, {
-        user_metadata: {
-          kakao_id: kakaoId,
-          real_name: realName,
-          phone_number: phoneNumber,
-          full_name: realName || nickname,
-          provider: 'kakao'
-        }
-      });
-      console.log('[kakao-login] ✅ User metadata updated successfully');
-    } catch (metaError) {
-      console.error('[kakao-login] ⚠️ Failed to update user metadata:', metaError);
-    }
-
-    // 4. 병렬 처리: 프로필 갱신(DB)과 세션 생성(Auth)
-    const upsertPromise = (async () => {
-      try {
-        const updateData: any = {
-          user_id: userId,
-          kakao_id: kakaoId,
-          nickname: nickname,
-          real_name: realName,
-          phone_number: phoneNumber,
-          email: email,
-          provider: 'kakao',
-          updated_at: new Date().toISOString()
-        };
-
-        if (!existingBoardUser && profileImage) {
-          updateData.profile_image = profileImage;
-        }
-
-        await supabaseAdmin.from('board_users').upsert(updateData, { onConflict: 'user_id' });
-      } catch (err) {
-        console.error('[kakao-login] Exception updating board_users:', err);
-      }
-    })();
-
-    const sessionPromise = (async () => {
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email,
-      });
-
-      if (linkError || !linkData?.properties?.action_link) throw linkError || new Error('Link generation failed');
-
-      const tokenHash = new URL(linkData.properties.action_link).searchParams.get('token');
-      if (!tokenHash) throw new Error('Token hash not found');
-
-      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: 'magiclink'
-      });
-
-      if (sessionError || !sessionData.session) throw sessionError || new Error('Session verification failed');
-      return sessionData.session;
-    })();
-
-    const [_, session] = await Promise.all([upsertPromise, sessionPromise]);
+    console.log('[kakao-login] Login complete:', {
+      kakaoId: profile.kakaoId,
+      userId,
+      isNewUser,
+      usedSynchronousUserInfo,
+      timings,
+    });
 
     return {
       statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: true,
-        email,
-        name: nickname,
-        isAdmin: email === adminEmail,
-        session: session
-      })
+        email: profile.email,
+        name: profile.nickname,
+        isAdmin: profile.email === adminEmail,
+        session,
+        timings,
+      }),
     };
-
   } catch (err: any) {
-    console.error('Kakao login error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    console.error('[kakao-login] Error:', err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message || 'Kakao login failed' }) };
   }
 };

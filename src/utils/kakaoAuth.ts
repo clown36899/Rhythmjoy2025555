@@ -46,6 +46,69 @@ declare global {
   }
 }
 
+const KAKAO_LOGIN_RETURN_URL_KEY = 'kakao_login_return_url';
+
+const normalizeReturnUrl = (value: string | null): string => {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+  return value;
+};
+
+const removeStoredReturnUrl = () => {
+  try {
+    sessionStorage.removeItem(KAKAO_LOGIN_RETURN_URL_KEY);
+  } catch {
+    // Some mobile/private contexts can block web storage.
+  }
+
+  try {
+    localStorage.removeItem(KAKAO_LOGIN_RETURN_URL_KEY);
+  } catch {
+    // Some mobile/private contexts can block web storage.
+  }
+};
+
+const saveKakaoLoginReturnUrl = (returnUrl: string) => {
+  const safeReturnUrl = normalizeReturnUrl(returnUrl);
+
+  try {
+    sessionStorage.setItem(KAKAO_LOGIN_RETURN_URL_KEY, safeReturnUrl);
+  } catch {
+    // Continue with localStorage fallback below.
+  }
+
+  try {
+    localStorage.setItem(KAKAO_LOGIN_RETURN_URL_KEY, safeReturnUrl);
+  } catch {
+    // Login can still continue; callback will fall back to '/'.
+  }
+};
+
+export const consumeKakaoLoginReturnUrl = (): string => {
+  let returnUrl = '/';
+  let hasSessionReturnUrl = false;
+
+  try {
+    const storedReturnUrl = sessionStorage.getItem(KAKAO_LOGIN_RETURN_URL_KEY);
+    if (storedReturnUrl !== null) {
+      hasSessionReturnUrl = true;
+      returnUrl = normalizeReturnUrl(storedReturnUrl);
+    }
+  } catch {
+    // Fall back to localStorage below.
+  }
+
+  if (!hasSessionReturnUrl) {
+    try {
+      returnUrl = normalizeReturnUrl(localStorage.getItem(KAKAO_LOGIN_RETURN_URL_KEY));
+    } catch {
+      returnUrl = '/';
+    }
+  }
+
+  removeStoredReturnUrl();
+  return returnUrl;
+};
+
 export interface KakaoUserInfo {
   id: number;
   kakao_account: {
@@ -90,7 +153,7 @@ export const loginWithKakao = (): void => {
 
   // 현재 페이지 URL 저장 (로그인 후 복귀용)
   const returnUrl = window.location.pathname + window.location.search;
-  sessionStorage.setItem('kakao_login_return_url', returnUrl);
+  saveKakaoLoginReturnUrl(returnUrl);
 
   const redirectUri = `${window.location.origin}/auth/kakao-callback`;
 

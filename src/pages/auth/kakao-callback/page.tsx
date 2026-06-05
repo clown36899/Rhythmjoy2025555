@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getSupabasePkceVerifierKey, getSupabaseStorageKey, getSupabaseValidationKey } from '../../../lib/authStorageKeys';
+import { consumeKakaoLoginReturnUrl } from '../../../utils/kakaoAuth';
 import '../../../styles/pages/auth-callback.css';
 
-const SESSION_SETUP_TIMEOUT_MS = 8000;
-const SESSION_CONFIRM_TIMEOUT_MS = 8000;
+const AUTH_SERVER_TIMEOUT_MS = 15000;
+const SESSION_SETUP_TIMEOUT_MS = 10000;
+const SESSION_CONFIRM_TIMEOUT_MS = 2500;
 const SESSION_CONFIRM_INTERVAL_MS = 250;
 const SUPABASE_STORAGE_KEY = getSupabaseStorageKey();
 const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
@@ -138,23 +140,30 @@ export default function KakaoCallbackPage() {
                 const authEndpoint = '/api/kakao-login';
                 const redirectUri = `${window.location.origin}/auth/kakao-callback`;
 
-                // [iOS Fix] fetch에 타임아웃 추가 (AbortController)
                 const controller = new AbortController();
-                const fetchTimeoutId = setTimeout(() => controller.abort(), 10000);
+                const fetchTimeoutId = setTimeout(() => controller.abort(), AUTH_SERVER_TIMEOUT_MS);
+                let response: Response;
 
-                const response = await fetch(authEndpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        code: code,
-                        redirectUri,
-                    }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(fetchTimeoutId);
+                try {
+                    response = await fetch(authEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            code: code,
+                            redirectUri,
+                        }),
+                        signal: controller.signal
+                    });
+                } catch (fetchError: any) {
+                    if (fetchError?.name === 'AbortError') {
+                        throw new Error('로그인 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
+                    }
+                    throw fetchError;
+                } finally {
+                    clearTimeout(fetchTimeoutId);
+                }
 
 
 
@@ -248,8 +257,7 @@ export default function KakaoCallbackPage() {
 
 
                     // 4. 원래 페이지로 복귀
-                    const returnUrl = sessionStorage.getItem('kakao_login_return_url') || '/';
-                    sessionStorage.removeItem('kakao_login_return_url');
+                    const returnUrl = consumeKakaoLoginReturnUrl();
 
                     // Set flag to prevent EventList spinner during login
                     sessionStorage.setItem('just_logged_in', 'true');
