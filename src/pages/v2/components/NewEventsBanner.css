@@ -321,7 +321,7 @@
   justify-content: center;
   gap: 8px;
   min-height: 40px;
-  margin: 25px 0px 8px;
+  margin: 0 0 8px;
   padding: 0 clamp(28px, 8vw, 54px);
 }
 
@@ -556,7 +556,7 @@
     }
 
     .NEB-indicators {
-        margin-top: 18px;
+        margin-top: 0;
         margin-bottom: 6px;
     }
 }
@@ -569,7 +569,7 @@
     }
 
     .NEB-indicators {
-        margin-top: 14px;
+        margin-top: 0;
     }
 }
 
