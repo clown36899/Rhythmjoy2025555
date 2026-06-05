@@ -12,6 +12,12 @@
   X-DNS-Prefetch-Control: on
   
 # HTML files - no cache (always fresh)
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 

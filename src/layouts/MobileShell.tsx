@@ -47,7 +47,9 @@ export const MobileShell: React.FC = () => {
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
   const [isTranslationPending, setIsTranslationPending] = useState(false);
+  const [translationErrorMessage, setTranslationErrorMessage] = useState('');
   const translationFeedbackTimerRef = useRef<number | null>(null);
+  const translationErrorTimerRef = useRef<number | null>(null);
   // unused state removed
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all'; // Derived from URL query
@@ -183,14 +185,31 @@ export const MobileShell: React.FC = () => {
     }
   }, []);
 
+  const clearTranslationErrorTimer = useCallback(() => {
+    if (translationErrorTimerRef.current !== null) {
+      window.clearTimeout(translationErrorTimerRef.current);
+      translationErrorTimerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => () => {
     clearTranslationFeedbackTimer();
-  }, [clearTranslationFeedbackTimer]);
+    clearTranslationErrorTimer();
+  }, [clearTranslationErrorTimer, clearTranslationFeedbackTimer]);
 
   const finishTranslationFeedback = useCallback(() => {
     clearTranslationFeedbackTimer();
     setIsTranslationPending(false);
   }, [clearTranslationFeedbackTimer]);
+
+  const showTranslationError = useCallback((message: string) => {
+    clearTranslationErrorTimer();
+    setTranslationErrorMessage(message);
+    translationErrorTimerRef.current = window.setTimeout(() => {
+      setTranslationErrorMessage('');
+      translationErrorTimerRef.current = null;
+    }, 4500);
+  }, [clearTranslationErrorTimer]);
 
   const waitForTranslationFeedback = useCallback((lng: string) => {
     clearTranslationFeedbackTimer();
@@ -222,25 +241,53 @@ export const MobileShell: React.FC = () => {
     translationFeedbackTimerRef.current = window.setTimeout(poll, 150);
   }, [clearTranslationFeedbackTimer, finishTranslationFeedback]);
 
-  const changeLanguage = useCallback((lng: string) => {
-    // Google Translate 호출
-    if (typeof window !== 'undefined' && (window as any).changeLanguage) {
-      (window as any).changeLanguage(lng);
-    }
+  const changeLanguage = useCallback(async (lng: string) => {
+    setTranslationErrorMessage('');
 
-    // i18next도 함께 업데이트
-    i18n.changeLanguage(lng);
-    logUserInteraction('Language', 'Change', lng);
-  }, [i18n]);
+    try {
+      const googleTranslateChangeLanguage = typeof window !== 'undefined'
+        ? (window as any).changeLanguage
+        : null;
+
+      if (typeof googleTranslateChangeLanguage === 'function') {
+        await googleTranslateChangeLanguage(lng);
+      } else if (lng !== 'ko') {
+        throw new Error('Google Translate bridge is not ready.');
+      }
+
+      await i18n.changeLanguage(lng);
+      logUserInteraction('Language', 'Change', lng);
+      return true;
+    } catch (error) {
+      const retryAfterMillis = typeof error === 'object' && error !== null && 'retryAfterMillis' in error
+        ? Number((error as { retryAfterMillis?: unknown }).retryAfterMillis)
+        : 0;
+      const retrySeconds = Number.isFinite(retryAfterMillis) && retryAfterMillis > 0
+        ? Math.max(1, Math.ceil(retryAfterMillis / 1000))
+        : 0;
+      const message = retrySeconds > 0
+        ? `${retrySeconds}초 후 다시 시도해 주세요.`
+        : '번역 서버가 잠시 응답하지 않습니다.';
+
+      showTranslationError(message);
+      logUserInteraction('Language', 'ChangeFailed', lng);
+      return false;
+    }
+  }, [i18n, showTranslationError]);
 
   const handleTranslateToggle = useCallback(() => {
     if (isTranslationPending) return;
 
     const nextLang = i18n.language?.startsWith('ko') ? 'en' : 'ko';
     setIsTranslationPending(true);
-    changeLanguage(nextLang);
-    waitForTranslationFeedback(nextLang);
-  }, [changeLanguage, i18n.language, isTranslationPending, waitForTranslationFeedback]);
+    void changeLanguage(nextLang).then((didChange) => {
+      if (didChange) {
+        waitForTranslationFeedback(nextLang);
+      } else {
+        finishTranslationFeedback();
+      }
+    });
+  }, [changeLanguage, finishTranslationFeedback, i18n.language, isTranslationPending, waitForTranslationFeedback]);
 
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {
@@ -301,6 +348,14 @@ export const MobileShell: React.FC = () => {
 
     pageAction.onClick();
   };
+
+  const translateButtonClassName = [
+    'header-translate-btn',
+    isTranslationPending ? 'is-translating' : '',
+    translationErrorMessage ? 'has-translation-error' : ''
+  ].filter(Boolean).join(' ');
+  const translateButtonIdleLabel = i18n.language?.startsWith('ko') ? 'Switch to English' : '한국어로 전환';
+  const translateButtonLabel = translationErrorMessage || (isTranslationPending ? '번역 적용 중...' : translateButtonIdleLabel);
 
   return (
     <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''}`}>
@@ -530,9 +585,9 @@ export const MobileShell: React.FC = () => {
               <button
                 type="button"
                 onClick={handleTranslateToggle}
-                className={`header-translate-btn ${isTranslationPending ? 'is-translating' : ''}`}
-                title={isTranslationPending ? '번역 적용 중...' : (i18n.language?.startsWith('ko') ? 'Switch to English' : '한국어로 전환')}
-                aria-label={isTranslationPending ? '번역 적용 중' : (i18n.language?.startsWith('ko') ? '영어로 번역' : '한국어로 전환')}
+                className={translateButtonClassName}
+                title={translateButtonLabel}
+                aria-label={translateButtonLabel}
                 aria-busy={isTranslationPending}
                 disabled={isTranslationPending}
                 data-analytics-id="header_translate"

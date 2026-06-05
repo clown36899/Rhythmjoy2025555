@@ -541,6 +541,13 @@
     0 0 18px rgba(59, 130, 246, 0.22);
 }
 
+.header-translate-btn.has-translation-error {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(248, 113, 113, 0.75);
+  color: #f87171;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
 .header-translate-btn.is-translating::after {
   content: "";
   position: absolute;
@@ -1613,6 +1620,12 @@ html.v2-home-mode #root {
   background: rgba(59, 130, 246, 0.28);
   border-color: rgba(96, 165, 250, 0.9);
   color: #93c5fd;
+}
+
+.v2-home-shell .header-translate-btn.has-translation-error {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(248, 113, 113, 0.84);
+  color: #fca5a5;
 }
 
 .v2-home-shell .translate-icon-custom {

@@ -262,57 +262,245 @@
 
   <!-- Google Translate Script -->
   <script type="text/javascript">
-    /**
-     * [Isolation Policy] Billboard Kiosk Mode
-     * 빌보드는 독립적인 키오스크 모드로 운영되므로 상호작용 UI(번역 등)를 배제한다.
-     */
-    function googleTranslateElementInit() {
-      // 빌보드 페이지에서는 구글 번역 초기화 차단
-      if (window.location.pathname.includes('/billboard/')) return;
+    (function () {
+      var TRANSLATE_SCRIPT_ID = 'google-translate-script';
+      var TRANSLATE_SCRIPT_SRC = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      var state = {
+        status: 'idle',
+        initialized: false,
+        loadPromise: null,
+        lastFailureAt: 0,
+        cooldownMillis: 30000
+      };
 
-      new google.translate.TranslateElement(
-        {
-          pageLanguage: 'ko',
-          includedLanguages: 'en',
-          autoDisplay: false
-          // layout 제거: HORIZONTAL이 기본값이며 .goog-te-combo 요소를 생성함
-        },
-        'google_translate_element'
-      );
-    }
-
-    // 언어 변경 함수
-    function changeLanguage(lang) {
-      if (window.location.pathname.includes('/billboard/')) return;
-
-      const select = document.querySelector('.goog-te-combo');
-
-      if (select) {
-        // 한국어 선택 시 번역 끄기 (구글 번역 X 버튼과 동일한 방식)
-        if (lang === 'ko') {
-          // googtrans 쿠키 삭제 (모든 경로에서)
-          document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=' + window.location.hostname;
-          document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-          // 페이지 새로고침하여 원본 언어로 복원
-          window.location.reload();
-        } else {
-          select.value = lang;
-          select.dispatchEvent(new Event('change'));
-
-          // React 컴포넌트에 언어 변경 알림
-          window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang } }));
-        }
-      } else {
-        // Google Translate가 아직 로드되지 않았으면 재시도
-        setTimeout(() => changeLanguage(lang), 500);
+      function isBillboardPath() {
+        return window.location.pathname.includes('/billboard/');
       }
-    }
 
-    // 메뉴 외부 클릭 감지 제거 (토글 방식으로 변경됨)
+      function emit(name, detail) {
+        window.dispatchEvent(new CustomEvent(name, { detail: detail || {} }));
+      }
 
+      function getTranslateSelect() {
+        return document.querySelector('.goog-te-combo');
+      }
+
+      function hasTranslatedSignal() {
+        return document.body.classList.contains('translated-ltr') ||
+          document.body.classList.contains('translated-rtl') ||
+          document.documentElement.classList.contains('translated-ltr') ||
+          document.documentElement.classList.contains('translated-rtl');
+      }
+
+      function hasGoogtransCookie() {
+        return document.cookie
+          .split(';')
+          .some(function (cookie) {
+            var value = cookie.trim();
+            return value.indexOf('googtrans=') === 0 && value !== 'googtrans=';
+          });
+      }
+
+      function clearGoogtransCookie() {
+        var host = window.location.hostname;
+        document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+
+        if (!host) return;
+
+        document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=' + host + ';';
+
+        if (host.indexOf('.') > -1) {
+          document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.' + host.replace(/^\./, '') + ';';
+        }
+      }
+
+      function removeTranslateScript() {
+        var existingScript = document.getElementById(TRANSLATE_SCRIPT_ID);
+        if (existingScript && existingScript.parentNode) {
+          existingScript.parentNode.removeChild(existingScript);
+        }
+      }
+
+      function createTranslateError(reason, message, retryAfterMillis) {
+        var error = new Error(message);
+        error.reason = reason;
+        error.retryAfterMillis = retryAfterMillis || 0;
+        return error;
+      }
+
+      function markTranslateFailure(reason, message, retryAfterMillis) {
+        state.status = 'failed';
+        state.loadPromise = null;
+        state.lastFailureAt = Date.now();
+        emit('googleTranslateError', {
+          reason: reason,
+          message: message,
+          retryAfterMillis: retryAfterMillis || state.cooldownMillis
+        });
+      }
+
+      function initializeGoogleTranslate() {
+        if (isBillboardPath() || state.initialized) return;
+
+        if (!window.google || !window.google.translate || !window.google.translate.TranslateElement) {
+          markTranslateFailure('api-missing', 'Google Translate API is not available.');
+          return;
+        }
+
+        try {
+          window.googleTranslateElement = new window.google.translate.TranslateElement(
+            {
+              pageLanguage: 'ko',
+              includedLanguages: 'en',
+              autoDisplay: false
+            },
+            'google_translate_element'
+          );
+          state.initialized = true;
+          state.status = 'ready';
+          emit('googleTranslateReady');
+        } catch (error) {
+          markTranslateFailure('init-failed', error && error.message ? error.message : 'Google Translate initialization failed.');
+        }
+      }
+
+      function waitForTranslateSelect() {
+        return new Promise(function (resolve, reject) {
+          var startedAt = Date.now();
+          var timeoutMillis = 7000;
+
+          function poll() {
+            var select = getTranslateSelect();
+            if (select) {
+              resolve(select);
+              return;
+            }
+
+            if (Date.now() - startedAt >= timeoutMillis) {
+              reject(createTranslateError('select-timeout', 'Google Translate select was not created.'));
+              return;
+            }
+
+            window.setTimeout(poll, 200);
+          }
+
+          poll();
+        });
+      }
+
+      function loadGoogleTranslate() {
+        if (isBillboardPath()) {
+          return Promise.reject(createTranslateError('blocked-path', 'Google Translate is disabled on billboard pages.'));
+        }
+
+        if (state.initialized || getTranslateSelect()) {
+          state.status = 'ready';
+          return Promise.resolve();
+        }
+
+        if (window.google && window.google.translate && window.google.translate.TranslateElement) {
+          initializeGoogleTranslate();
+          return state.status === 'ready'
+            ? Promise.resolve()
+            : Promise.reject(createTranslateError('init-failed', 'Google Translate initialization failed.'));
+        }
+
+        if (state.status === 'failed') {
+          var elapsed = Date.now() - state.lastFailureAt;
+          if (elapsed < state.cooldownMillis) {
+            var retryAfterMillis = state.cooldownMillis - elapsed;
+            return Promise.reject(createTranslateError(
+              'cooldown',
+              'Google Translate is cooling down after a failed load.',
+              retryAfterMillis
+            ));
+          }
+          removeTranslateScript();
+        }
+
+        if (state.loadPromise) return state.loadPromise;
+
+        state.status = 'loading';
+        state.loadPromise = new Promise(function (resolve, reject) {
+          var timeoutId = null;
+
+          function cleanup() {
+            window.clearTimeout(timeoutId);
+            window.removeEventListener('googleTranslateReady', handleReady);
+            window.removeEventListener('googleTranslateError', handleError);
+          }
+
+          function handleReady() {
+            cleanup();
+            resolve();
+          }
+
+          function handleError(event) {
+            cleanup();
+            var detail = event.detail || {};
+            reject(createTranslateError(
+              detail.reason || 'load-failed',
+              detail.message || 'Google Translate failed to load.',
+              detail.retryAfterMillis || state.cooldownMillis
+            ));
+          }
+
+          window.addEventListener('googleTranslateReady', handleReady);
+          window.addEventListener('googleTranslateError', handleError);
+
+          timeoutId = window.setTimeout(function () {
+            markTranslateFailure('load-timeout', 'Google Translate script load timed out.');
+          }, 8000);
+
+          var script = document.getElementById(TRANSLATE_SCRIPT_ID);
+          if (!script) {
+            script = document.createElement('script');
+            script.id = TRANSLATE_SCRIPT_ID;
+            script.type = 'text/javascript';
+            script.src = TRANSLATE_SCRIPT_SRC;
+            script.async = true;
+            script.onerror = function () {
+              removeTranslateScript();
+              markTranslateFailure('script-error', 'Google Translate script request failed.');
+            };
+            document.body.appendChild(script);
+          }
+        });
+
+        return state.loadPromise;
+      }
+
+      window.googleTranslateElementInit = initializeGoogleTranslate;
+
+      window.changeLanguage = function (lang) {
+        if (isBillboardPath()) return Promise.resolve({ ok: false, reason: 'blocked-path' });
+
+        if (lang === 'ko') {
+          clearGoogtransCookie();
+          emit('languageChanged', { lang: lang });
+
+          if (hasTranslatedSignal() || hasGoogtransCookie() || getTranslateSelect()) {
+            window.location.reload();
+          }
+
+          return Promise.resolve({ ok: true });
+        }
+
+        if (lang !== 'en') {
+          return Promise.reject(createTranslateError('unsupported-language', 'Unsupported language: ' + lang));
+        }
+
+        return loadGoogleTranslate()
+          .then(waitForTranslateSelect)
+          .then(function (select) {
+            select.value = lang;
+            select.dispatchEvent(new Event('change'));
+            emit('languageChanged', { lang: lang });
+            return { ok: true };
+          });
+      };
+    })();
   </script>
-  <script type="text/javascript"
-    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <!-- SW 등록 및 업데이트 체크: main.tsx의 vite-plugin-pwa registerSW가 담당 -->
 </body>
