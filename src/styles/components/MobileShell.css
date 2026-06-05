@@ -1454,8 +1454,11 @@ html.v2-home-mode #root {
 .v2-home-shell {
   background: var(--shell-page-bg, #1c1c1d);
   height: 100svh;
-  overflow: hidden;
-  overscroll-behavior: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @supports (height: 100dvh) {
@@ -1484,7 +1487,10 @@ html.v2-home-mode #root {
   padding-top: calc(62px + env(safe-area-inset-top)) !important;
   padding-bottom: 0 !important;
   height: 100%;
-  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .v2-home-shell .home-container,
