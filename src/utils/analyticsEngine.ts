@@ -28,14 +28,20 @@ let sessionId: string | null = null;
 let sessionSequence = 0;
 let sessionStartTime: number | null = null;
 let sessionLastActivity: number | null = null;
+let sessionPageViews = 0;
+let lastPageViewPath: string | null = null;
 let sessionNeedsUpsert = false;
 let lastFinalizeAt = 0;
+let lastActivityMarkAt = 0;
+let heartbeatTimer: number | null = null;
 
 const BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests/i;
 const SESSION_STORAGE_KEYS = {
     ID: 'analytics_session_id',
     START: 'analytics_session_start',
     LAST_ACTIVITY: 'analytics_session_last_activity',
+    PAGE_VIEWS: 'analytics_session_page_views',
+    LAST_PAGE: 'analytics_session_last_page',
 };
 
 export const isLikelyBotTraffic = (userAgent = navigator.userAgent, includeRuntimeSignals = true): boolean => {
@@ -69,18 +75,30 @@ const readStoredNumber = (key: string): number | null => {
     }
 };
 
+const readStoredString = (key: string): string | null => {
+    try {
+        return sessionStorage.getItem(key);
+    } catch {
+        return null;
+    }
+};
+
 const persistSessionState = () => {
     if (!sessionId || !sessionStartTime) return;
     try {
         sessionStorage.setItem(SESSION_STORAGE_KEYS.ID, sessionId);
         sessionStorage.setItem(SESSION_STORAGE_KEYS.START, sessionStartTime.toString());
         sessionStorage.setItem(SESSION_STORAGE_KEYS.LAST_ACTIVITY, (sessionLastActivity || sessionStartTime).toString());
+        sessionStorage.setItem(SESSION_STORAGE_KEYS.PAGE_VIEWS, sessionPageViews.toString());
+        if (lastPageViewPath) sessionStorage.setItem(SESSION_STORAGE_KEYS.LAST_PAGE, lastPageViewPath);
     } catch {
         // SecurityError 등으로 sessionStorage 접근 불가 시 무시
     }
 };
 
-const markSessionActivity = (at = Date.now()) => {
+const markSessionActivity = (at = Date.now(), force = false) => {
+    if (!force && at - lastActivityMarkAt < 5000) return;
+    lastActivityMarkAt = at;
     sessionLastActivity = at;
     persistSessionState();
 };
@@ -99,11 +117,30 @@ const startNewSession = (now = Date.now(), finalizePrevious = true): string => {
     sessionStartTime = now;
     sessionLastActivity = now;
     sessionSequence = 0;
+    sessionPageViews = 0;
+    lastPageViewPath = null;
     sessionNeedsUpsert = true;
     lastFinalizeAt = 0;
+    lastActivityMarkAt = now;
     persistSessionState();
 
     return sessionId;
+};
+
+const trackPageViewForCurrentSession = () => {
+    const currentPage = window.location.pathname + window.location.search;
+    if (lastPageViewPath !== currentPage) {
+        sessionPageViews = Math.max(1, sessionPageViews + 1);
+        lastPageViewPath = currentPage;
+        markSessionActivity(Date.now(), true);
+    }
+};
+
+const getCappedSessionDurationSeconds = (fallbackEndTime = Date.now()) => {
+    if (!sessionStartTime) return 0;
+    const activeEndTime = Math.max(sessionLastActivity || sessionStartTime, fallbackEndTime);
+    const elapsedMs = Math.max(0, activeEndTime - sessionStartTime);
+    return Math.floor(Math.min(elapsedMs, SITE_ANALYTICS_CONFIG.OPTIMIZATION.SESSION_TIMEOUT_MS) / 1000);
 };
 
 /**
@@ -128,6 +165,8 @@ export const getOrCreateSessionId = (): string => {
             sessionId = storedId;
             sessionStartTime = storedStart || now;
             sessionLastActivity = storedLastActivity || sessionStartTime;
+            sessionPageViews = readStoredNumber(SESSION_STORAGE_KEYS.PAGE_VIEWS) || 0;
+            lastPageViewPath = readStoredString(SESSION_STORAGE_KEYS.LAST_PAGE);
 
             if (hasSessionTimedOut(sessionLastActivity, now)) {
                 return startNewSession(now);
@@ -135,7 +174,7 @@ export const getOrCreateSessionId = (): string => {
 
             return sessionId;
         }
-    } catch (e) {
+    } catch {
         // SecurityError 등으로 sessionStorage 접근 불가 시 무시
     }
 
@@ -258,7 +297,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
         if (!error) {
             localStorage.setItem('pwa_install_tracked_v2', 'true');
         }
-    } catch (error) {
+    } catch {
         // 플래그 미설정 → 다음 세션에서 자동 재시도
     }
 };
@@ -270,6 +309,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
     if (!shouldTrackAnalytics()) return;
 
     const currentSessionId = getOrCreateSessionId();
+    trackPageViewForCurrentSession();
     const utm = parseUTMParams();
     const referrer = document.referrer;
     const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
@@ -281,24 +321,27 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
     }
 
     try {
-        // [PHASE 18] UPSERT로 중복 방지
-        const { error } = await supabase.from('session_logs').upsert({
-            session_id: currentSessionId,
-            user_id: user?.id || null,
-            fingerprint: fingerprint || null,
-            is_admin: isAdmin || false,
-            entry_page: window.location.pathname,
-            referrer: referrer || null,
-            utm_source: utm.utm_source,
-            utm_medium: utm.utm_medium,
-            utm_campaign: utm.utm_campaign,
-            session_start: new Date(sessionStartTime).toISOString(),
-            is_pwa: isPWA,
-            pwa_display_mode: displayMode,
-            user_agent: navigator.userAgent,
-            platform: navigator.platform,
-        }, {
-            onConflict: 'session_id'
+        const response = await fetch('/.netlify/functions/analytics-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'start',
+                session_id: currentSessionId,
+                user_id: user?.id || null,
+                fingerprint: fingerprint || null,
+                is_admin: isAdmin || false,
+                entry_page: window.location.pathname,
+                referrer: referrer || null,
+                utm_source: utm.utm_source,
+                utm_medium: utm.utm_medium,
+                utm_campaign: utm.utm_campaign,
+                session_start: new Date(sessionStartTime).toISOString(),
+                is_pwa: isPWA,
+                pwa_display_mode: displayMode,
+                user_agent: navigator.userAgent,
+                platform: navigator.platform,
+                page_views: sessionPageViews,
+            }),
         });
 
         // [RETROACTIVE PWA TRACKING] 
@@ -308,11 +351,11 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
             trackPWAInstall(user);
         }
 
-        if (error) {
+        if (!response.ok) {
             // [IGNORE] Silence ALL errors for background analytics
         } else {
             sessionNeedsUpsert = false;
-            markSessionActivity();
+            markSessionActivity(Date.now(), true);
         }
     } catch {
         // [IGNORE] Silence general errors
@@ -328,12 +371,14 @@ const finalizeSession = async (endTime = Date.now()) => {
     if (now - lastFinalizeAt < 5000) return;
     lastFinalizeAt = now;
 
-    const duration = Math.max(0, Math.floor((endTime - sessionStartTime) / 1000));
+    const duration = getCappedSessionDurationSeconds(endTime);
     const payload = {
+        action: 'end',
         session_id: sessionId,
         exit_page: window.location.pathname,
         duration_seconds: duration,
         total_clicks: sessionSequence,
+        page_views: Math.max(sessionPageViews, 1),
     };
 
     if (SITE_ANALYTICS_CONFIG.OPTIMIZATION.USE_BEACON && navigator.sendBeacon) {
@@ -357,10 +402,34 @@ const finalizeSession = async (endTime = Date.now()) => {
 if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', finalizeSession);
 
+    const recordUserActivity = () => markSessionActivity();
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(eventName => {
+        window.addEventListener(eventName, recordUserActivity, { passive: true });
+    });
+
+    const startHeartbeat = () => {
+        if (heartbeatTimer !== null || document.visibilityState !== 'visible') return;
+        heartbeatTimer = window.setInterval(() => {
+            if (document.visibilityState === 'visible') markSessionActivity();
+        }, 15000);
+    };
+
+    const stopHeartbeat = () => {
+        if (heartbeatTimer === null) return;
+        window.clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+    };
+
+    startHeartbeat();
+
     // Visibility API: 탭 전환 감지
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
             finalizeSession();
+            stopHeartbeat();
+        } else {
+            markSessionActivity(Date.now(), true);
+            startHeartbeat();
         }
     });
 }

@@ -1315,6 +1315,14 @@
     font-size: 0.95rem;
 }
 
+.session-metric-row small {
+    display: block;
+    margin-top: 3px;
+    color: #71717a;
+    font-size: 0.66rem;
+    line-height: 1.25;
+}
+
 .pwa-donut-panel {
     display: grid;
     grid-template-columns: 72px minmax(0, 1fr);

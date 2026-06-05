@@ -47,6 +47,8 @@ interface AnalyticsSummary {
         session_total: number;
         session_logged_in: number;
         session_guest: number;
+        raw_session_total?: number;
+        logical_session_total?: number;
         engaged_unique: number;
         guest_missing_identifier: number;
         stitched_guest_devices: number;
@@ -66,8 +68,12 @@ interface AnalyticsSummary {
     referrer_stats?: { source: string; count: number }[];
     session_stats?: {
         total_sessions: number;
+        raw_sessions?: number;
         avg_duration: number;
+        median_duration?: number;
+        engagement_rate?: number;
         bounce_rate: number;
+        duration_cap_seconds?: number;
     };
     journey_patterns?: { path: string[]; count: number }[];
     // PWA tracking
@@ -100,6 +106,9 @@ interface UserInfo {
     visitLogs: string[]; // Timestamps
     avgDuration?: number; // Average session duration in seconds
 }
+
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const SESSION_DURATION_CAP_SECONDS = 30 * 60;
 
 export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
@@ -337,6 +346,70 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return 'guest:unknown';
             };
 
+            const getCappedDuration = (row: any) => {
+                if (row.duration_seconds === null || row.duration_seconds === undefined) return null;
+                const parsed = Number(row.duration_seconds);
+                if (!Number.isFinite(parsed)) return null;
+                return Math.min(Math.max(0, Math.floor(parsed)), SESSION_DURATION_CAP_SECONDS);
+            };
+
+            const getPageViewCount = (row: any) => {
+                const parsed = Number(row.page_views);
+                return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+            };
+
+            const logicalSessions = (() => {
+                const normalized = sessionData
+                    .map((s: any) => {
+                        const startMs = new Date(s.session_start).getTime();
+                        const duration = getCappedDuration(s);
+                        return {
+                            ...s,
+                            visitorKey: getVisitorKey(s, s.session_id),
+                            startMs,
+                            endMs: startMs + ((duration || 0) * 1000),
+                            duration_seconds: duration,
+                            page_views: getPageViewCount(s),
+                            raw_session_count: 1,
+                            has_duration: duration !== null,
+                        };
+                    })
+                    .filter((s: any) => Number.isFinite(s.startMs))
+                    .sort((a: any, b: any) => {
+                        const visitorCompare = a.visitorKey.localeCompare(b.visitorKey);
+                        return visitorCompare || a.startMs - b.startMs;
+                    });
+
+                const merged: any[] = [];
+                normalized.forEach((session: any) => {
+                    const previous = merged[merged.length - 1];
+                    const previousEnd = previous ? Math.max(previous.endMs, previous.startMs) : 0;
+                    const sameVisitor = previous?.visitorKey === session.visitorKey;
+                    const withinTimeout = sameVisitor && session.startMs - previousEnd <= SESSION_TIMEOUT_MS;
+
+                    if (withinTimeout) {
+                        previous.endMs = Math.max(previous.endMs, session.endMs, session.startMs);
+                        previous.duration_seconds = Math.min(
+                            SESSION_DURATION_CAP_SECONDS,
+                            Math.floor(Math.max(0, previous.endMs - previous.startMs) / 1000)
+                        );
+                        previous.total_clicks = Number(previous.total_clicks || 0) + Number(session.total_clicks || 0);
+                        previous.page_views = Number(previous.page_views || 0) + Number(session.page_views || 1);
+                        previous.raw_session_count += 1;
+                        previous.has_duration = previous.has_duration || session.has_duration;
+                        previous.is_pwa = Boolean(previous.is_pwa || session.is_pwa);
+                        previous.user_id = previous.user_id || session.user_id;
+                        previous.fingerprint = previous.fingerprint || session.fingerprint;
+                        previous.session_start = previous.session_start < session.session_start ? previous.session_start : session.session_start;
+                        return;
+                    }
+
+                    merged.push({ ...session });
+                });
+
+                return merged;
+            })();
+
             const visitorIdentityMap = new Map<string, { key: string; type: 'user' | 'guest'; firstSeen: string; lastSeen: string }>();
             const addVisitorIdentity = (row: any, timeIso: string | null, fallbackId?: string | number | null) => {
                 if (!timeIso) return;
@@ -373,14 +446,14 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             });
             const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length;
 
-            const sessionLoggedInVisits = sessionData.filter((s: any) => !!s.user_id).length;
-            const sessionAnonVisits = sessionData.filter((s: any) => !s.user_id).length;
+            const sessionLoggedInVisits = logicalSessions.filter((s: any) => !!s.user_id).length;
+            const sessionAnonVisits = logicalSessions.filter((s: any) => !s.user_id).length;
             const hasVisitorData = uniqueVisitors.length > 0;
             const displayLoggedInVisits = hasVisitorData ? uniqueLoggedInVisitors : clickBasedLoggedIn;
             const displayAnonVisits = hasVisitorData ? uniqueGuestVisitors : clickBasedAnon;
 
             const sessionUserMap = new Map<string, UserInfo & { durationTotal: number; durationCount: number }>();
-            sessionData
+            logicalSessions
                 .filter((s: any) => !!s.user_id)
                 .forEach((s: any) => {
                     const userId = String(s.user_id);
@@ -443,8 +516,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const hourlyCounts = new Array(24).fill(0);
             const monthlyCountsMap = new Map<string, number>();
 
-            const visitorPatternRows = sessionData.length > 0
-                ? sessionData.map((s: any) => ({ time: s.session_start }))
+            const visitorPatternRows = logicalSessions.length > 0
+                ? logicalSessions.map((s: any) => ({ time: s.session_start }))
                 : validData.map((d: any) => ({ time: d.created_at }));
 
             visitorPatternRows.forEach((row: any) => {
@@ -487,14 +560,26 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
 
             if (!sessionsError && sessions) {
-                const completedSessions = sessions.filter((s: any) => s.duration_seconds !== null);
-                const totalDuration = completedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0);
-                const bouncedSessions = completedSessions.filter((s: any) => (s.total_clicks || 0) <= 1 && (s.duration_seconds || 0) < 30);
+                const completedSessions = logicalSessions.filter((s: any) => s.has_duration);
+                const durations = completedSessions
+                    .map((s: any) => Number(s.duration_seconds || 0))
+                    .sort((a: number, b: number) => a - b);
+                const totalDuration = durations.reduce((sum: number, duration: number) => sum + duration, 0);
+                const medianDuration = durations.length > 0 ? durations[Math.floor((durations.length - 1) / 2)] : 0;
+                const engagedSessions = logicalSessions.filter((s: any) =>
+                    Number(s.duration_seconds || 0) > 10 ||
+                    Number(s.total_clicks || 0) > 0 ||
+                    Number(s.page_views || 0) >= 2
+                );
 
                 sessionStats = {
-                    total_sessions: sessions.length,
-                    avg_duration: completedSessions.length > 0 ? Math.round(totalDuration / completedSessions.length) : 0,
-                    bounce_rate: completedSessions.length > 0 ? (bouncedSessions.length / completedSessions.length) * 100 : 0
+                    total_sessions: logicalSessions.length,
+                    raw_sessions: sessionData.length,
+                    avg_duration: durations.length > 0 ? Math.round(totalDuration / durations.length) : 0,
+                    median_duration: medianDuration,
+                    engagement_rate: logicalSessions.length > 0 ? (engagedSessions.length / logicalSessions.length) * 100 : 0,
+                    bounce_rate: logicalSessions.length > 0 ? ((logicalSessions.length - engagedSessions.length) / logicalSessions.length) * 100 : 0,
+                    duration_cap_seconds: SESSION_DURATION_CAP_SECONDS
                 };
             }
 
@@ -508,12 +593,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .order('installed_at', { ascending: false });
 
             if (!installError && installData) {
-                // [FIX] PWA Stats: Exclude Guess/Anonymous sessions (Only count logged-in usage)
-                const pwaSessions = sessionData.filter((s: any) => s.is_pwa === true && s.user_id);
-                const browserSessions = sessionData.filter((s: any) => s.is_pwa === false);
-                const pwaCompletedSessions = pwaSessions.filter((s: any) => s.duration_seconds !== null);
+                const pwaSessions = logicalSessions.filter((s: any) => s.is_pwa === true);
+                const browserSessions = logicalSessions.filter((s: any) => s.is_pwa === false);
+                const pwaCompletedSessions = pwaSessions.filter((s: any) => s.has_duration);
                 const avgPWADuration = pwaCompletedSessions.length > 0 ? Math.round(pwaCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length) : 0;
-                const browserCompletedSessions = browserSessions.filter((s: any) => s.duration_seconds !== null);
+                const browserCompletedSessions = browserSessions.filter((s: any) => s.has_duration);
                 const avgBrowserDuration = browserCompletedSessions.length > 0 ? Math.round(browserCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / browserCompletedSessions.length) : 0;
 
                 const recentPWASessions = pwaSessions
@@ -577,10 +661,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 });
 
                 pwaStats = {
-                    total_installs: installData.length,
+                    total_installs: uniqueInstalls.length,
                     pwa_sessions: pwaSessions.length,
                     browser_sessions: browserSessions.length,
-                    pwa_percentage: sessionData.length > 0 ? (pwaSessions.length / sessionData.length) * 100 : 0,
+                    pwa_percentage: logicalSessions.length > 0 ? (pwaSessions.length / logicalSessions.length) * 100 : 0,
                     avg_pwa_duration: avgPWADuration,
                     avg_browser_duration: avgBrowserDuration,
                     recent_installs: recentInstalls,
@@ -614,7 +698,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             };
 
             const referrerMap = new Map<string, number>();
-            const referrerRows = sessionData.length > 0 ? sessionData : (() => {
+            const referrerRows = logicalSessions.length > 0 ? logicalSessions : (() => {
                 const firstActivityByVisitor = new Map<string, any>();
                 validData.forEach(d => {
                     const key = getVisitorKey(d, d.session_id || d.id);
@@ -770,9 +854,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     unique_total: displayLoggedInVisits + displayAnonVisits,
                     unique_logged_in: displayLoggedInVisits,
                     unique_guest: displayAnonVisits,
-                    session_total: sessionData.length,
+                    session_total: logicalSessions.length,
                     session_logged_in: sessionLoggedInVisits,
                     session_guest: sessionAnonVisits,
+                    raw_session_total: sessionData.length,
+                    logical_session_total: logicalSessions.length,
                     engaged_unique: engagedVisitorKeys.size,
                     guest_missing_identifier: guestMissingIdentifier,
                     stitched_guest_devices: stitchedGuestDevices
@@ -913,6 +999,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         const totalReferrerCount = (summary.referrer_stats || []).reduce((sum, ref) => sum + ref.count, 0);
         const topReferrerShare = topReferrer && totalReferrerCount > 0 ? (topReferrer.count / totalReferrerCount) * 100 : 0;
         const bounceRate = summary.session_stats?.bounce_rate ?? 0;
+        const engagementRate = summary.session_stats?.engagement_rate ?? Math.max(0, 100 - bounceRate);
         const avgDuration = summary.session_stats?.avg_duration ?? 0;
 
         return (
@@ -938,8 +1025,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     <div className="insight-card">
                         <span className="insight-label">체류 품질</span>
                         <strong>{Math.floor(avgDuration / 60)}분 {avgDuration % 60}초</strong>
-                        <small>이탈률 {bounceRate.toFixed(1)}%</small>
-                        <div className="insight-meter danger"><span style={{ width: `${Math.min(bounceRate, 100)}%` }}></span></div>
+                        <small>참여율 {engagementRate.toFixed(1)}% · 이탈 {bounceRate.toFixed(1)}%</small>
+                        <div className="insight-meter"><span style={{ width: `${Math.min(engagementRate, 100)}%` }}></span></div>
                     </div>
                 </div>
             </div>
@@ -961,16 +1048,20 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                             <div className="panel-kicker">세션 품질</div>
                             <div className="session-main-number">
                                 {Math.floor(summary.session_stats.avg_duration / 60)}분 {summary.session_stats.avg_duration % 60}초
-                                <span>평균 체류시간</span>
+                                <span>평균 활성 체류시간 · 30분 cap</span>
                             </div>
                             <div className="session-metric-row">
                                 <div>
-                                    <span>총 세션</span>
+                                    <span>보정 세션</span>
                                     <strong>{summary.session_stats.total_sessions}</strong>
+                                    {summary.session_stats.raw_sessions !== undefined && summary.session_stats.raw_sessions !== summary.session_stats.total_sessions && (
+                                        <small>원본 {summary.session_stats.raw_sessions}</small>
+                                    )}
                                 </div>
                                 <div>
-                                    <span>이탈률</span>
-                                    <strong>{summary.session_stats.bounce_rate.toFixed(1)}%</strong>
+                                    <span>참여율</span>
+                                    <strong>{(summary.session_stats.engagement_rate ?? Math.max(0, 100 - summary.session_stats.bounce_rate)).toFixed(1)}%</strong>
+                                    <small>중앙값 {Math.floor((summary.session_stats.median_duration || 0) / 60)}분 {(summary.session_stats.median_duration || 0) % 60}초</small>
                                 </div>
                             </div>
                         </div>
@@ -1133,8 +1224,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         <div className="analytics-sub-stats">
                                             <div className="sub-stat-item">
                                                 <div className="label-group">
-                                                    <span className="label">접속 세션</span>
-                                                    <span className="label-desc">방문 횟수</span>
+                                                    <span className="label">보정 세션</span>
+                                                    <span className="label-desc">30분 내 조각 병합</span>
                                                 </div>
                                                 <span className="value">{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}</span>
                                             </div>
@@ -1186,7 +1277,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     </div>
                                                 </div>
                                                 <div className="grid-section full-width">
-                                                    <h3><i className="ri-calendar-line"></i> 월별 접속 세션 추이</h3>
+                                                    <h3><i className="ri-calendar-line"></i> 월별 보정 세션 추이</h3>
                                                     <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
                                                         {summary.visitor_stats.monthly.length === 0 ? (
                                                             <div style={{ width: '100%', textAlign: 'center', color: '#666' }}>데이터 수집 중입니다...</div>
@@ -1356,7 +1447,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
 
                                     <div className="summary-exclusion-note">
-                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. Guest는 로그인하지 않은 기기 기준이며, 기간 내 로그인으로 식별된 같은 기기는 회원 방문자로 합산됩니다.
+                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. 고유 방문자는 회원 ID와 기기 fingerprint를 합쳐 중복 제거하며, 기간 내 로그인으로 식별된 같은 기기는 회원 방문자로 합산됩니다. 세션은 같은 방문자의 30분 이내 조각을 병합하고 체류시간은 30분 상한으로 보정합니다.
                                     </div>
                                 </div>
                             )}
@@ -1399,8 +1490,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         <div className="analytics-sub-stats">
                                             <div className="sub-stat-item">
                                                 <div className="label-group">
-                                                    <span className="label">접속 세션</span>
-                                                    <span className="label-desc">방문 횟수</span>
+                                                    <span className="label">보정 세션</span>
+                                                    <span className="label-desc">30분 내 조각 병합</span>
                                                 </div>
                                                 <span className="value">{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}</span>
                                             </div>
@@ -1460,7 +1551,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     )}
                                                 </div>
                                                 <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#71717a', textAlign: 'right' }}>
-                                                    * 세션과 활동 로그를 합쳐 회원 ID/기기 기준으로 중복 제외
+                                                    * 세션과 활동 로그를 합쳐 회원 ID/기기 기준으로 중복 제외. 세션 수는 같은 방문자의 30분 이내 조각을 병합한 보정값입니다.
                                                 </div>
                                             </div>
                                         </div>

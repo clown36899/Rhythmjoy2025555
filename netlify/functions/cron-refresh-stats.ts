@@ -6,7 +6,11 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-export default async (req: Request) => {
+const getErrorMessage = (error: unknown) => (
+    error instanceof Error ? error.message : 'Unknown error'
+);
+
+export default async (_req: Request) => {
     const now = new Date();
     console.log(`[cron-refresh-stats] 🚀 Scheduled refresh started at ${now.toISOString()}`);
 
@@ -21,14 +25,15 @@ export default async (req: Request) => {
         const { error: cacheError } = await supabaseAdmin
             .from('metrics_cache')
             .delete()
-            .eq('key', 'scene_analytics');
+            .in('key', ['scene_analytics', 'scene_analytics_v3']);
 
         if (cacheError) console.warn('[cron-refresh-stats] Warning: Failed to clear cache:', cacheError);
 
         return new Response(JSON.stringify({ message: "Success" }), { status: 200 });
-    } catch (error: any) {
-        console.error('[cron-refresh-stats] ❌ Error:', error.message);
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error('[cron-refresh-stats] ❌ Error:', message);
+        return new Response(JSON.stringify({ error: message }), { status: 500 });
     }
 };
 
