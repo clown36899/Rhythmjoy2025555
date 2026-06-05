@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../hooks/useModal';
@@ -46,6 +46,8 @@ export const MobileShell: React.FC = () => {
   const { isGlobalLoading, globalLoadingMessage } = useLoading();
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
+  const [isTranslationPending, setIsTranslationPending] = useState(false);
+  const translationFeedbackTimerRef = useRef<number | null>(null);
   // unused state removed
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || 'all'; // Derived from URL query
@@ -174,7 +176,53 @@ export const MobileShell: React.FC = () => {
     };
   }, [user, userRegistrationModal, loginModal]);
 
-  const changeLanguage = (lng: string) => {
+  const clearTranslationFeedbackTimer = useCallback(() => {
+    if (translationFeedbackTimerRef.current !== null) {
+      window.clearTimeout(translationFeedbackTimerRef.current);
+      translationFeedbackTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => {
+    clearTranslationFeedbackTimer();
+  }, [clearTranslationFeedbackTimer]);
+
+  const finishTranslationFeedback = useCallback(() => {
+    clearTranslationFeedbackTimer();
+    setIsTranslationPending(false);
+  }, [clearTranslationFeedbackTimer]);
+
+  const waitForTranslationFeedback = useCallback((lng: string) => {
+    clearTranslationFeedbackTimer();
+
+    const startedAt = Date.now();
+    const minimumVisibleMillis = 900;
+    const fallbackMillis = lng === 'ko' ? 2400 : 4600;
+
+    const isTranslated = () => (
+      document.body.classList.contains('translated-ltr') ||
+      document.body.classList.contains('translated-rtl') ||
+      document.documentElement.classList.contains('translated-ltr') ||
+      document.documentElement.classList.contains('translated-rtl')
+    );
+
+    const poll = () => {
+      const elapsed = Date.now() - startedAt;
+      const hasMinimumDelayPassed = elapsed >= minimumVisibleMillis;
+      const hasTranslatedSignal = lng !== 'ko' && isTranslated();
+
+      if ((hasTranslatedSignal && hasMinimumDelayPassed) || elapsed >= fallbackMillis) {
+        finishTranslationFeedback();
+        return;
+      }
+
+      translationFeedbackTimerRef.current = window.setTimeout(poll, 150);
+    };
+
+    translationFeedbackTimerRef.current = window.setTimeout(poll, 150);
+  }, [clearTranslationFeedbackTimer, finishTranslationFeedback]);
+
+  const changeLanguage = useCallback((lng: string) => {
     // Google Translate 호출
     if (typeof window !== 'undefined' && (window as any).changeLanguage) {
       (window as any).changeLanguage(lng);
@@ -183,7 +231,16 @@ export const MobileShell: React.FC = () => {
     // i18next도 함께 업데이트
     i18n.changeLanguage(lng);
     logUserInteraction('Language', 'Change', lng);
-  };
+  }, [i18n]);
+
+  const handleTranslateToggle = useCallback(() => {
+    if (isTranslationPending) return;
+
+    const nextLang = i18n.language?.startsWith('ko') ? 'en' : 'ko';
+    setIsTranslationPending(true);
+    changeLanguage(nextLang);
+    waitForTranslationFeedback(nextLang);
+  }, [changeLanguage, i18n.language, isTranslationPending, waitForTranslationFeedback]);
 
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {
@@ -471,12 +528,13 @@ export const MobileShell: React.FC = () => {
 
             <div className="header-right-buttons">
               <button
-                onClick={() => {
-                  const nextLang = i18n.language === 'ko' ? 'en' : 'ko';
-                  changeLanguage(nextLang);
-                }}
-                className="header-translate-btn"
-                title={i18n.language === 'ko' ? 'Switch to English' : '한국어로 전환'}
+                type="button"
+                onClick={handleTranslateToggle}
+                className={`header-translate-btn ${isTranslationPending ? 'is-translating' : ''}`}
+                title={isTranslationPending ? '번역 적용 중...' : (i18n.language?.startsWith('ko') ? 'Switch to English' : '한국어로 전환')}
+                aria-label={isTranslationPending ? '번역 적용 중' : (i18n.language?.startsWith('ko') ? '영어로 번역' : '한국어로 전환')}
+                aria-busy={isTranslationPending}
+                disabled={isTranslationPending}
                 data-analytics-id="header_translate"
                 data-analytics-type="action"
                 data-analytics-title="번역 토글"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
@@ -25,12 +25,45 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { label: "게시물 통계", icon: "ri-bar-chart-box-line", theme: "stats", action: "stats" },
 ];
 
+const SWIPE_MIN_DISTANCE = 48;
+const SWIPE_MAX_DURATION_MS = 800;
+const HOME_SCREEN_GESTURE_START_RATIO = 0.5;
+
+type GestureStart = {
+    x: number;
+    y: number;
+    time: number;
+};
+
 export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
     const { openModal, closeModal } = useModalContext();
     const [isExpanded, setIsExpanded] = useState(false);
+    const panelGestureStartRef = useRef<GestureStart | null>(null);
+    const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
+
+    const openMenu = useCallback(() => {
+        setIsExpanded(true);
+    }, []);
+
+    const resetPanelGesture = useCallback(() => {
+        panelGestureStartRef.current = null;
+    }, []);
+
+    const isSwipeUp = useCallback((start: GestureStart, x: number, y: number) => {
+        const deltaY = y - start.y;
+        const absX = Math.abs(x - start.x);
+        const absY = Math.abs(deltaY);
+        const elapsed = Date.now() - start.time;
+
+        return (
+            deltaY <= -SWIPE_MIN_DISTANCE &&
+            absY > absX * 1.15 &&
+            elapsed <= SWIPE_MAX_DURATION_MS
+        );
+    }, []);
 
     const handleNavigate = (to: string) => {
         setIsExpanded(false);
@@ -106,10 +139,75 @@ export const HomeV2MenuPanel: React.FC = () => {
         openRegistrationChoice();
     };
 
+    const handlePanelPointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
+        if (event.pointerType === "mouse") return;
+        panelGestureStartRef.current = {
+            x: event.clientX,
+            y: event.clientY,
+            time: Date.now(),
+        };
+    }, []);
+
+    const handlePanelPointerUp = useCallback((event: React.PointerEvent<HTMLElement>) => {
+        const start = panelGestureStartRef.current;
+        panelGestureStartRef.current = null;
+        if (!start) return;
+
+        if (isSwipeUp(start, event.clientX, event.clientY)) {
+            openMenu();
+        }
+    }, [isSwipeUp, openMenu]);
+
+    useEffect(() => {
+        if (!isHomeRoute || isExpanded) return undefined;
+
+        let screenGestureStart: GestureStart | null = null;
+
+        const resetScreenGesture = () => {
+            screenGestureStart = null;
+        };
+
+        const handleTouchStart = (event: TouchEvent) => {
+            if (event.touches.length !== 1) return;
+            const touch = event.touches[0];
+            if (touch.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
+
+            screenGestureStart = {
+                x: touch.clientX,
+                y: touch.clientY,
+                time: Date.now(),
+            };
+        };
+
+        const handleTouchEnd = (event: TouchEvent) => {
+            if (!screenGestureStart || event.changedTouches.length === 0) return;
+            const touch = event.changedTouches[0];
+            const start = screenGestureStart;
+            resetScreenGesture();
+
+            if (isSwipeUp(start, touch.clientX, touch.clientY)) {
+                openMenu();
+            }
+        };
+
+        window.addEventListener("touchstart", handleTouchStart, { passive: true });
+        window.addEventListener("touchend", handleTouchEnd, { passive: true });
+        window.addEventListener("touchcancel", resetScreenGesture, { passive: true });
+
+        return () => {
+            window.removeEventListener("touchstart", handleTouchStart);
+            window.removeEventListener("touchend", handleTouchEnd);
+            window.removeEventListener("touchcancel", resetScreenGesture);
+        };
+    }, [isExpanded, isHomeRoute, isSwipeUp, openMenu]);
+
     return (
         <section
             className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} is-compact`}
             aria-label="메인 메뉴"
+            onPointerDown={handlePanelPointerDown}
+            onPointerUp={handlePanelPointerUp}
+            onPointerCancel={resetPanelGesture}
         >
             <button
                 type="button"
