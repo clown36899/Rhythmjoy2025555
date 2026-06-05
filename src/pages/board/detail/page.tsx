@@ -26,7 +26,7 @@ export default function BoardDetailPage() {
         if (id) {
             loadPost(id);
         }
-    }, [id]);
+    }, [id, isAdmin]);
 
     useEffect(() => {
         const loadUserData = async () => {
@@ -74,7 +74,7 @@ export default function BoardDetailPage() {
                         const newPost = payload.new as any;
 
                         // Handle Soft Delete
-                        if (newPost.is_hidden && !isAdmin && post.user_id !== user?.id) {
+                        if (newPost.is_hidden && !isAdmin) {
                             alert('삭제된 게시글입니다.');
                             navigate('/board');
                             return;
@@ -128,6 +128,11 @@ export default function BoardDetailPage() {
 
             if (error) throw error;
             if (!data) {
+                setPost(null);
+                return;
+            }
+
+            if (data.is_hidden && !isAdmin) {
                 setPost(null);
                 return;
             }

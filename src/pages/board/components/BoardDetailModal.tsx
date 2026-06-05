@@ -32,8 +32,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
     } = useBoardDetail({
         postId,
         onPostDeleted: onClose,
-        isAdmin,
-        userId: user?.id
+        isAdmin
     });
 
     useEffect(() => {

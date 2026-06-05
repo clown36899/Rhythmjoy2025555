@@ -23,7 +23,28 @@ interface UniversalPostEditorProps {
     post?: BoardPost | null;
     userNickname?: string;
     category: BoardCategory;
+    preset?: BoardEditorPreset | null;
 }
+
+export interface BoardEditorPreset {
+    defaultPrefixNames?: string[];
+    defaultIsHidden?: boolean;
+    showHiddenOption?: boolean;
+}
+
+const findDefaultPrefixId = (prefixes: BoardPrefix[], prefixNames: string[] = []) => {
+    if (prefixNames.length === 0) return null;
+
+    const normalizedNames = prefixNames.map((name) => name.trim()).filter(Boolean);
+    const exactMatch = prefixes.find((prefix) => normalizedNames.includes(prefix.name));
+    if (exactMatch) return exactMatch.id;
+
+    const partialMatch = prefixes.find((prefix) =>
+        normalizedNames.some((name) => prefix.name.includes(name) || name.includes(prefix.name))
+    );
+
+    return partialMatch?.id ?? null;
+};
 
 export default function UniversalPostEditor({
     isOpen,
@@ -31,7 +52,8 @@ export default function UniversalPostEditor({
     onPostCreated,
     post,
     userNickname,
-    category
+    category,
+    preset = null
 }: UniversalPostEditorProps) {
     useModalHistory(isOpen, onClose);
 
@@ -44,6 +66,7 @@ export default function UniversalPostEditor({
         author_name: '',
         is_notice: false,
         prefix_id: null as number | null,
+        is_hidden: false,
         category: category
     });
 
@@ -71,6 +94,7 @@ export default function UniversalPostEditor({
                     author_name: isAdmin ? "관리자" : post.author_name, // [UPDATED] Force admin name
                     is_notice: post.is_notice || false,
                     prefix_id: (post as any).prefix_id || null, // [FIX] Cast to any
+                    is_hidden: (post as any).is_hidden || false,
                     category: (post as any).category || 'free'
                 });
 
@@ -82,6 +106,7 @@ export default function UniversalPostEditor({
                     author_name: isAdmin ? "관리자" : (user?.user_metadata?.name || user?.email?.split('@')[0] || ''), // [UPDATED] Force admin name
                     is_notice: false,
                     prefix_id: null,
+                    is_hidden: preset?.defaultIsHidden || false,
                     category: category
                 });
 
@@ -96,7 +121,7 @@ export default function UniversalPostEditor({
             pendingUploads.current.forEach((_, key) => URL.revokeObjectURL(key));
             pendingUploads.current.clear();
         };
-    }, [isOpen, post, user, category]);
+    }, [isOpen, post, user, category, preset?.defaultIsHidden]);
 
     const loadBannedWords = async () => {
         try {
@@ -113,6 +138,18 @@ export default function UniversalPostEditor({
             setPrefixes(categoryPrefixes);
         }
     }, [formData.category, boardData]);
+
+    useEffect(() => {
+        if (!isOpen || post || formData.prefix_id || !preset?.defaultPrefixNames?.length || prefixes.length === 0) return;
+
+        const defaultPrefixId = findDefaultPrefixId(prefixes, preset.defaultPrefixNames);
+        if (!defaultPrefixId) return;
+
+        setFormData(prev => ({
+            ...prev,
+            prefix_id: prev.prefix_id || defaultPrefixId
+        }));
+    }, [isOpen, post, formData.prefix_id, prefixes, preset]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -241,6 +278,7 @@ export default function UniversalPostEditor({
                     content: finalContent, // Use processed content
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
+                    is_hidden: formData.is_hidden,
                     category: formData.category,
                     updated_at: new Date().toISOString()
                 };
@@ -292,6 +330,7 @@ export default function UniversalPostEditor({
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
                     category: formData.category,
+                    is_hidden: formData.is_hidden,
                     image: imageUrls.image,
                     image_thumbnail: imageUrls.image_thumbnail,
                     views: 0
@@ -432,6 +471,24 @@ export default function UniversalPostEditor({
                                     <span className="translated-part">Register as Notice</span>
                                     <span className="fixed-part ko" translate="no">공지사항으로 등록</span>
                                     <span className="fixed-part en" translate="no">Register as Notice</span>
+                                </span>
+                            </label>
+                        )}
+
+                        {(preset?.showHiddenOption || (post && formData.is_hidden)) && (
+                            <label className="pem-checkbox-label pem-private-checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.is_hidden}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        is_hidden: e.target.checked
+                                    }))}
+                                />
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">Private to admins</span>
+                                    <span className="fixed-part ko" translate="no">비공개로 등록</span>
+                                    <span className="fixed-part en" translate="no">Private to admins</span>
                                 </span>
                             </label>
                         )}

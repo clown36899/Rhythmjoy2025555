@@ -204,6 +204,7 @@
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
+  text-decoration: none;
 }
 
 .guide-share-button:hover {
@@ -218,6 +219,15 @@
 
 .guide-share-button i {
   font-size: 1.125rem;
+}
+
+.guide-suggestion-button {
+  background-color: #0f766e;
+}
+
+.guide-suggestion-button:hover {
+  background-color: #0d9488;
+  box-shadow: 0 0 18px rgba(20, 184, 166, 0.28);
 }
 
 .guide-share-hint {

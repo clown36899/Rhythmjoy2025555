@@ -250,6 +250,13 @@ export default function GuidePage() {
         {/* Share Section */}
         <div className="guide-action-section">
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link
+              to="/board?category=free&write=suggestion"
+              className="guide-share-button guide-suggestion-button"
+            >
+              <i className="ri-mail-send-line"></i>
+              <span>건의사항</span>
+            </Link>
             <button
               onClick={handleKakaoShare}
               className="guide-share-button"

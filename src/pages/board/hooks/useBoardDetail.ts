@@ -8,10 +8,9 @@ interface UseBoardDetailProps {
     category?: string;
     onPostDeleted?: () => void;
     isAdmin?: boolean;
-    userId?: string;
 }
 
-export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, userId }: UseBoardDetailProps) {
+export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: UseBoardDetailProps) {
     const [post, setPost] = useState<BoardPost | null>(null);
     const [loading, setLoading] = useState(false);
     const [updating, setUpdating] = useState(false);
@@ -23,7 +22,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, userI
         if (postId) {
             loadPost(postId);
         }
-    }, [postId]);
+    }, [postId, isAdmin]);
 
     // Realtime Subscription for updates
     useEffect(() => {
@@ -48,7 +47,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, userI
                         const newPost = payload.new as any;
 
                         // Handle Soft Delete
-                        if (newPost.is_hidden && !isAdmin && post.user_id !== userId) {
+                        if (newPost.is_hidden && !isAdmin) {
                             alert('삭제된 게시글입니다.');
                             onPostDeleted?.();
                             return;
@@ -68,7 +67,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, userI
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [post?.id, post?.category, isAdmin, userId, onPostDeleted]);
+    }, [post?.id, post?.category, isAdmin, onPostDeleted]);
 
     const loadPost = async (postId: string) => {
         try {
@@ -105,6 +104,11 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, userI
 
             if (error) throw error;
             if (!data) {
+                setPost(null);
+                return;
+            }
+
+            if (data.is_hidden && !isAdmin) {
                 setPost(null);
                 return;
             }

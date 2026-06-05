@@ -8,6 +8,8 @@ import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import StandardPostList from './components/StandardPostList';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
 import { useModal } from '../../hooks/useModal';
+import { useModalActions } from '../../contexts/ModalContext';
+import type { BoardEditorPreset } from './components/UniversalPostEditor';
 // import BoardManagementModal from './components/BoardManagementModal';
 // import UniversalPostEditor from './components/UniversalPostEditor';
 // import AnonymousWriteModal from './components/AnonymousWriteModal';
@@ -25,13 +27,19 @@ const HistoryTimelinePage = lazy(() => import('../history/HistoryTimelinePage'))
 const AnonymousPostList = lazy(() => import('./components/AnonymousPostList'));
 const DevLog = lazy(() => import('./components/DevLog'));
 
+const SUGGESTION_WRITE_PRESET: BoardEditorPreset = {
+    defaultPrefixNames: ['건의', '건의/신청'],
+    defaultIsHidden: true,
+    showHiddenOption: true
+};
+
 // Hooks
 import { useBoardPosts } from './hooks/useBoardPosts';
 import { useBoardInteractions } from './hooks/useBoardInteractions';
 
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { user, isAdmin, isAuthCheckComplete } = useAuth();
+    const { user, isAdmin, isAuthCheckComplete, isAuthProcessing } = useAuth();
     const { data: boardData, refreshData } = useBoardStaticData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
     const [isAdminChecked, setIsAdminChecked] = useState(false);
@@ -135,10 +143,14 @@ export default function BoardMainContainer() {
     // Use global modal management
     const writeModal = useModal('boardWriteModal');
     const editorModal = useModal('boardEditorModal');
+    const { openModal } = useModalActions();
+    const [editorPreset, setEditorPreset] = useState<BoardEditorPreset | null>(null);
+    const [suggestionAuthFallbackReady, setSuggestionAuthFallbackReady] = useState(false);
 
     // Keep fresh reference to user for onClick handlers (avoids stale closure issues in PageAction)
     const userRef = useRef(user);
     const authCheckRef = useRef(isAuthCheckComplete); // Track auth check completion
+    const suggestionLoginPromptedRef = useRef(false);
 
     useEffect(() => {
         userRef.current = user;
@@ -163,6 +175,7 @@ export default function BoardMainContainer() {
                         }));
                         return;
                     }
+                    setEditorPreset(null);
                     editorModal.open();
                 }
             }
@@ -182,11 +195,62 @@ export default function BoardMainContainer() {
                 }));
                 return;
             }
+            setEditorPreset(null);
             editorModal.open();
         };
         window.addEventListener('boardWriteClick', handleWriteClick);
         return () => window.removeEventListener('boardWriteClick', handleWriteClick);
-    }, [category]);
+    }, [category, user, editorModal.open, writeModal.open]);
+
+    useEffect(() => {
+        const writeIntent = searchParams.get('write');
+
+        if (writeIntent !== 'suggestion' || isAuthCheckComplete) {
+            setSuggestionAuthFallbackReady(false);
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setSuggestionAuthFallbackReady(true);
+        }, 1200);
+
+        return () => window.clearTimeout(timer);
+    }, [isAuthCheckComplete, searchParams]);
+
+    useEffect(() => {
+        const writeIntent = searchParams.get('write');
+
+        if (writeIntent !== 'suggestion') {
+            suggestionLoginPromptedRef.current = false;
+            setSuggestionAuthFallbackReady(false);
+            return;
+        }
+
+        if (category !== 'free') {
+            const params = new URLSearchParams(searchParams);
+            params.set('category', 'free');
+            setSearchParams(params, { replace: true });
+            return;
+        }
+
+        if (!isAuthCheckComplete && (isAuthProcessing || !suggestionAuthFallbackReady)) return;
+
+        if (!user) {
+            if (!suggestionLoginPromptedRef.current) {
+                suggestionLoginPromptedRef.current = true;
+                openModal('login', { message: '건의사항 작성은 로그인 후 이용 가능합니다.' });
+            }
+            return;
+        }
+
+        suggestionLoginPromptedRef.current = false;
+        setEditorPreset(SUGGESTION_WRITE_PRESET);
+        editorModal.open();
+
+        const params = new URLSearchParams(searchParams);
+        params.delete('write');
+        setSearchParams(params, { replace: true });
+    }, [category, editorModal.open, isAuthCheckComplete, isAuthProcessing, openModal, searchParams, setSearchParams, suggestionAuthFallbackReady, user]);
 
     // Swipe Navigation Logic
 
@@ -365,10 +429,11 @@ export default function BoardMainContainer() {
                 <Suspense fallback={null}>
                     <UniversalPostEditor
                         isOpen={editorModal.isOpen}
-                        onClose={() => editorModal.close()}
-                        onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
+                        onClose={() => { editorModal.close(); setEditorPreset(null); }}
+                        onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); setEditorPreset(null); }}
                         category={category}
                         userNickname={user?.user_metadata?.name}
+                        preset={editorPreset}
                     />
                 </Suspense>
             )}
