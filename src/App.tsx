@@ -15,6 +15,7 @@ import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
 import { isPWAMode, getMobilePlatform } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
+import DeploymentAutoRefresh from './components/DeploymentAutoRefresh';
 
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions, useModalState } from './contexts/ModalContext';
@@ -376,6 +377,7 @@ function AppContent() {
         onCancel={handlePwaCancel}
         initialPrefs={pwaModalInitialPrefs}
       />
+      <DeploymentAutoRefresh hasOpenModal={modalStack.length > 0 || showPwaModal} />
     </>
   );
 }
