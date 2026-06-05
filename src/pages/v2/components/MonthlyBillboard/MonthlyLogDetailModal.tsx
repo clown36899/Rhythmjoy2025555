@@ -58,8 +58,8 @@ const MonthlyLogDetailModal: React.FC<MonthlyLogDetailModalProps> = ({ isOpen, o
                         <div className="info-section">
                             <div className="section-label">실제 방문자 수 (Unique Visitors)</div>
                             <p className="section-desc">
-                                운영 통계 모달과 동일한 <strong>'6시간 단위 유니크 접근'</strong> 기준을 적용합니다.
-                                로그인 ID 또는 브라우저 고유 지문을 통해 동일 기기의 중복 방문을 엄격히 제거하며, 관리자 및 시스템 테스트 계정의 활동은 통계에서 모두 자동 제외됩니다.
+                                운영 통계 모달과 동일한 <strong>'회원 ID/기기 기준 고유 방문자'</strong> 기준을 적용합니다.
+                                로그인 ID 또는 브라우저 고유 지문을 통해 기간 내 중복 방문을 제거하며, 기간 내 로그인으로 식별된 같은 기기는 회원 방문자로 합산합니다. 관리자 및 시스템 테스트 계정의 활동은 통계에서 모두 자동 제외됩니다.
                             </p>
                         </div>
 

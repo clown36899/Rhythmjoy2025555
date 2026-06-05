@@ -35,11 +35,22 @@ const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
 
 interface AnalyticsSummary {
     total_clicks: number;
-    user_clicks: number; // 클릭 기반
-    anon_clicks: number; // 클릭 기반
-    session_users?: number; // 세션 기반 (순수 접속자)
-    session_anon?: number; // 세션 기반 (순수 접속자)
+    user_clicks: number; // 고유 방문자 기준
+    anon_clicks: number; // 고유 방문자 기준
+    session_users?: number; // 세션 기준
+    session_anon?: number; // 세션 기준
     admin_clicks: number;
+    visitor_summary?: {
+        unique_total: number;
+        unique_logged_in: number;
+        unique_guest: number;
+        session_total: number;
+        session_logged_in: number;
+        session_guest: number;
+        engaged_unique: number;
+        guest_missing_identifier: number;
+        stitched_guest_devices: number;
+    };
     type_breakdown: { type: string; count: number }[];
     daily_details: {
         date: string;
@@ -216,7 +227,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // [PHASE 22] 특정 사용자 제외 (앱테스트계정 ID Prefix)
             // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
             const excludedPrefix = '91b04b25';
-            const getSixHourBucket = (iso: string) => Math.floor(new Date(iso).getTime() / (6 * 60 * 60 * 1000));
 
             // Raw Data Fetch (Pagination to bypass Supabase 1000 limit)
             let allLogs: any[] = [];
@@ -262,15 +272,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 (d.user_id ? !d.user_id.startsWith(excludedPrefix) : true) &&
                 (d.user_agent ? !isLikelyBotTraffic(d.user_agent, false) : true)
             );
-            const visitorUniqueSet = new Set<string>();
-            const visitorUniqueData = validData.filter(d => {
-                const userIdentifier = d.user_id || d.fingerprint || 'unknown';
-                const timeBucket = Math.floor(new Date(d.created_at).getTime() / (6 * 60 * 60 * 1000)); // [FIX] 6-hour bucket (was Daily)
-                const uniqueKey = `${userIdentifier}:${timeBucket}`;
-                if (visitorUniqueSet.has(uniqueKey)) return false;
-                visitorUniqueSet.add(uniqueKey);
-                return true;
-            });
 
             // RPC counts are now accurate (DB migration applied), so no need to overwrite.
             // clickBasedLoggedIn and clickBasedAnon are already set from rpcData.
@@ -319,25 +320,67 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const sessionsError = null;
 
             const sessionData = sessions || [];
-            const sessionVisitorMap = new Map<string, any>();
-            sessionData.forEach((s: any) => {
-                const identifier = s.user_id || s.fingerprint || s.session_id;
-                if (!identifier || !s.session_start) return;
-                const visitorType = s.user_id ? 'user' : 'guest';
-                const uniqueKey = `${visitorType}:${identifier}:${getSixHourBucket(s.session_start)}`;
-                if (!sessionVisitorMap.has(uniqueKey)) {
-                    sessionVisitorMap.set(uniqueKey, s);
+
+            const fingerprintToUser = new Map<string, string>();
+            [...sessionData, ...validData].forEach((row: any) => {
+                if (row.fingerprint && row.user_id) {
+                    fingerprintToUser.set(String(row.fingerprint), String(row.user_id));
                 }
             });
-            const sessionVisitors = Array.from(sessionVisitorMap.values());
-            const sessionLoggedInVisits = sessionVisitors.filter((s: any) => !!s.user_id).length;
-            const sessionAnonVisits = sessionVisitors.filter((s: any) => !s.user_id).length;
-            const hasSessionVisitorData = sessionVisitors.length > 0;
-            const displayLoggedInVisits = hasSessionVisitorData ? sessionLoggedInVisits : clickBasedLoggedIn;
-            const displayAnonVisits = hasSessionVisitorData ? sessionAnonVisits : clickBasedAnon;
+
+            const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
+                const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
+                if (row.user_id) return `user:${String(row.user_id)}`;
+                if (fingerprint && fingerprintToUser.has(fingerprint)) return `user:${fingerprintToUser.get(fingerprint)}`;
+                if (fingerprint) return `guest:${fingerprint}`;
+                if (fallbackId) return `guest_session:${String(fallbackId)}`;
+                return 'guest:unknown';
+            };
+
+            const visitorIdentityMap = new Map<string, { key: string; type: 'user' | 'guest'; firstSeen: string; lastSeen: string }>();
+            const addVisitorIdentity = (row: any, timeIso: string | null, fallbackId?: string | number | null) => {
+                if (!timeIso) return;
+                const key = getVisitorKey(row, fallbackId);
+                const type = key.startsWith('user:') ? 'user' : 'guest';
+                const existing = visitorIdentityMap.get(key);
+                if (!existing) {
+                    visitorIdentityMap.set(key, { key, type, firstSeen: timeIso, lastSeen: timeIso });
+                    return;
+                }
+                if (new Date(timeIso).getTime() < new Date(existing.firstSeen).getTime()) existing.firstSeen = timeIso;
+                if (new Date(timeIso).getTime() > new Date(existing.lastSeen).getTime()) existing.lastSeen = timeIso;
+            };
+
+            sessionData.forEach((s: any) => addVisitorIdentity(s, s.session_start, s.session_id));
+            validData.forEach((d: any) => addVisitorIdentity(d, d.created_at, d.session_id || d.id));
+
+            const uniqueVisitors = Array.from(visitorIdentityMap.values());
+            const uniqueLoggedInVisitors = uniqueVisitors.filter(v => v.type === 'user').length;
+            const uniqueGuestVisitors = uniqueVisitors.filter(v => v.type === 'guest').length;
+            const engagedVisitorKeys = new Set<string>();
+            validData.forEach((d: any) => engagedVisitorKeys.add(getVisitorKey(d, d.session_id || d.id)));
+            const guestMissingIdentifier = [
+                ...sessionData.filter((s: any) => !s.user_id && !s.fingerprint),
+                ...validData.filter((d: any) => !d.user_id && !d.fingerprint)
+            ].length;
+            const fingerprintTypeMap = new Map<string, { user: boolean; guest: boolean }>();
+            [...sessionData, ...validData].forEach((row: any) => {
+                if (!row.fingerprint) return;
+                const current = fingerprintTypeMap.get(row.fingerprint) || { user: false, guest: false };
+                if (row.user_id) current.user = true;
+                else current.guest = true;
+                fingerprintTypeMap.set(row.fingerprint, current);
+            });
+            const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length;
+
+            const sessionLoggedInVisits = sessionData.filter((s: any) => !!s.user_id).length;
+            const sessionAnonVisits = sessionData.filter((s: any) => !s.user_id).length;
+            const hasVisitorData = uniqueVisitors.length > 0;
+            const displayLoggedInVisits = hasVisitorData ? uniqueLoggedInVisitors : clickBasedLoggedIn;
+            const displayAnonVisits = hasVisitorData ? uniqueGuestVisitors : clickBasedAnon;
 
             const sessionUserMap = new Map<string, UserInfo & { durationTotal: number; durationCount: number }>();
-            sessionVisitors
+            sessionData
                 .filter((s: any) => !!s.user_id)
                 .forEach((s: any) => {
                     const userId = String(s.user_id);
@@ -400,8 +443,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const hourlyCounts = new Array(24).fill(0);
             const monthlyCountsMap = new Map<string, number>();
 
-            sessionData.forEach((s: any) => {
-                const date = new Date(s.session_start);
+            const visitorPatternRows = sessionData.length > 0
+                ? sessionData.map((s: any) => ({ time: s.session_start }))
+                : validData.map((d: any) => ({ time: d.created_at }));
+
+            visitorPatternRows.forEach((row: any) => {
+                const date = new Date(row.time);
                 // Convert to KST for accurate weekday/hour
                 const kstDate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
 
@@ -543,7 +590,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             // Type Breakdown
             const typeBreakdownMap = new Map<string, number>();
-            visitorUniqueData.forEach(d => {
+            validData.forEach(d => {
                 const type = d.target_type || 'unknown';
                 typeBreakdownMap.set(type, (typeBreakdownMap.get(type) || 0) + 1);
             });
@@ -567,8 +614,16 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             };
 
             const referrerMap = new Map<string, number>();
-            visitorUniqueData.forEach(d => {
-                const category = getReferrerCategory(d.referrer || '');
+            const referrerRows = sessionData.length > 0 ? sessionData : (() => {
+                const firstActivityByVisitor = new Map<string, any>();
+                validData.forEach(d => {
+                    const key = getVisitorKey(d, d.session_id || d.id);
+                    if (!firstActivityByVisitor.has(key)) firstActivityByVisitor.set(key, d);
+                });
+                return Array.from(firstActivityByVisitor.values());
+            })();
+            referrerRows.forEach((row: any) => {
+                const category = getReferrerCategory(row.referrer || '');
                 referrerMap.set(category, (referrerMap.get(category) || 0) + 1);
             });
             const referrerStats = Array.from(referrerMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([source, count]) => ({ source, count }));
@@ -576,7 +631,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // Journey patterns
             const journeyMap = new Map<string, number>();
             const sessionGroups = new Map<string, any[]>();
-            visitorUniqueData.forEach(d => {
+            validData.forEach(d => {
                 if (d.session_id) {
                     if (!sessionGroups.has(d.session_id)) sessionGroups.set(d.session_id, []);
                     sessionGroups.get(d.session_id)!.push(d);
@@ -604,7 +659,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return safeId;
             };
 
-            visitorUniqueData.forEach(d => {
+            validData.forEach(d => {
                 const key = d.target_type + ':' + d.target_id;
                 const type = d.target_type || 'unknown';
                 const friendlyTitle = getFriendlyTitle(d.target_type, d.target_id, d.target_title);
@@ -623,8 +678,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const totalSections = Array.from(totalSectionMap.entries()).map(([section, count]) => ({ section, count })).sort((a, b) => b.count - a.count);
 
             // Daily records
-            // [FIX] Use validData (All Clicks) instead of visitorUniqueData (DAU) for "Click Trend"
-            // This ensures Click Trend > Visit Trend (Sessions), which is the expected hierarchy.
+            // Click trend uses full activity logs; visitor trend below uses deduped visitor identities.
             const dailyGroups = new Map<string, any[]>();
             validData.forEach(d => {
                 const kstDate = getKRDateString(new Date(d.created_at));
@@ -635,8 +689,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             // [FIX] Generate full date range to ensure zero-filling for BOTH trends
             const trendDates: string[] = [];
-            const dStart = new Date(dateRange.start);
-            const dEnd = new Date(dateRange.end);
+            const rangeStartDate = startStr.slice(0, 10);
+            const rangeEndDate = endStr.slice(0, 10);
+            const dStart = new Date(`${rangeStartDate}T00:00:00+09:00`);
+            const dEnd = new Date(`${rangeEndDate}T00:00:00+09:00`);
             // Safety: limit to 365 days
             let loops = 0;
             // Create a working date copy to avoid side effects if dStart is used elsewhere
@@ -672,54 +728,55 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 };
             }).reverse(); // Descending for UI
 
-            // [PHASE 23] Visit Trend Calculation (Hybrid: Real Sessions + Fallback Estimation)
-            const visitTrendMap = new Map<string, number>();
+            // [PHASE 23] Daily unique visitor trend from session starts plus activity fallback.
+            const visitTrendMap = new Map<string, Set<string>>();
 
-            // 1. Count Real Sessions
             sessionData.forEach((s: any) => {
                 const kstDate = getKRDateString(new Date(s.session_start));
-                visitTrendMap.set(kstDate, (visitTrendMap.get(kstDate) || 0) + 1);
+                if (!visitTrendMap.has(kstDate)) visitTrendMap.set(kstDate, new Set());
+                visitTrendMap.get(kstDate)!.add(getVisitorKey(s, s.session_id));
             });
 
-            // 2. Fallback: Estimate from Activity Logs for dates with 0 real sessions
-            // (For dates before Jan 21 when session tracking started)
             const fallbackSessionMap = new Map<string, Set<string>>();
             validData.forEach(d => {
                 const kstDate = getKRDateString(new Date(d.created_at));
-                // Only if no real sessions exist for this day (optimization/prevention of double count)
-                // But we check existence later. Let's build the map first.
-
-                const time = new Date(d.created_at).getTime();
-                // 6-hour bucket ID
-                const bucketId = Math.floor(time / (6 * 60 * 60 * 1000));
-                const userKey = d.user_id || d.fingerprint || 'unknown';
-                const sessionKey = `${userKey}_${bucketId}`;
+                const visitorKey = getVisitorKey(d, d.session_id || d.id);
 
                 if (!fallbackSessionMap.has(kstDate)) {
                     fallbackSessionMap.set(kstDate, new Set());
                 }
-                fallbackSessionMap.get(kstDate)!.add(sessionKey);
+                fallbackSessionMap.get(kstDate)!.add(visitorKey);
             });
 
             const dailyVisitTrend = trendDates.map(date => {
-                let count = visitTrendMap.get(date) || 0;
+                const visitorKeys = new Set<string>(visitTrendMap.get(date) || []);
+                const fallbackKeys = fallbackSessionMap.get(date);
 
-                // If real session count is 0 (or significantly low indicating partial data), use fallback
-                // We assume if 'count' is 0, it's before tracking started.
-                if (count === 0 && fallbackSessionMap.has(date)) {
-                    count = fallbackSessionMap.get(date)!.size;
+                if (fallbackKeys) {
+                    fallbackKeys.forEach(key => visitorKeys.add(key));
                 }
 
-                return { date, count };
+                return { date, count: visitorKeys.size };
             }).sort((a, b) => b.date.localeCompare(a.date)); // Descending match
 
             const newSummary = {
-                total_clicks: visitorUniqueData.length,
+                total_clicks: validData.length,
                 user_clicks: displayLoggedInVisits,
                 anon_clicks: displayAnonVisits,
                 session_users: sessionLoggedInVisits,
                 session_anon: sessionAnonVisits,
-                admin_clicks: validData.length - visitorUniqueData.length, // Rough estimate or just exclude admin
+                admin_clicks: data.length - validData.length,
+                visitor_summary: {
+                    unique_total: displayLoggedInVisits + displayAnonVisits,
+                    unique_logged_in: displayLoggedInVisits,
+                    unique_guest: displayAnonVisits,
+                    session_total: sessionData.length,
+                    session_logged_in: sessionLoggedInVisits,
+                    session_guest: sessionAnonVisits,
+                    engaged_unique: engagedVisitorKeys.size,
+                    guest_missing_identifier: guestMissingIdentifier,
+                    stitched_guest_devices: stitchedGuestDevices
+                },
                 type_breakdown: typeStats,
                 daily_details: dailyDetails,
                 total_top_items: totalTopItems,
@@ -760,7 +817,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         if (!summary) return;
 
         const csv = [
-            ['날짜', '총 클릭', '로그인 사용자', 'Guest'],
+            ['날짜', '활동 로그', '회원 활동', 'Guest 활동'],
             ...summary.daily_details.map(d => [
                 d.date,
                 d.total.toString(),
@@ -972,9 +1029,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                             <div className="range-shortcuts">
                                 <div className="date-navigator">
                                     <button onClick={() => {
-                                        const base = new Date(dateRange.end);
+                                        const base = new Date(`${dateRange.end}T00:00:00+09:00`);
                                         base.setDate(base.getDate() - 1);
-                                        const newDate = base.toISOString().split('T')[0];
+                                        const newDate = getKRDateString(base);
                                         setDateRange({ start: newDate, end: newDate });
                                     }}>
                                         <i className="ri-arrow-left-s-line"></i>
@@ -985,8 +1042,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         title="오늘로 이동"
                                     >
                                         {(() => {
-                                            const today = new Date().toISOString().split('T')[0];
-                                            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                                            const today = getKRDateString(new Date());
+                                            const yesterdayDate = new Date();
+                                            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                                            const yesterday = getKRDateString(yesterdayDate);
 
                                             // Only show simple text if start === end
                                             if (dateRange.start === dateRange.end) {
@@ -994,7 +1053,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                 if (dateRange.end === yesterday) return '어제';
 
                                                 // Format: MM.DD (Weekday)
-                                                const d = new Date(dateRange.end);
+                                                const d = new Date(`${dateRange.end}T00:00:00+09:00`);
                                                 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
                                                 return `${d.getMonth() + 1}.${d.getDate()} (${weekdays[d.getDay()]})`;
                                             }
@@ -1002,9 +1061,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         })()}
                                     </span>
                                     <button onClick={() => {
-                                        const base = new Date(dateRange.end);
+                                        const base = new Date(`${dateRange.end}T00:00:00+09:00`);
                                         base.setDate(base.getDate() + 1);
-                                        const newDate = base.toISOString().split('T')[0];
+                                        const newDate = getKRDateString(base);
                                         setDateRange({ start: newDate, end: newDate });
                                     }}>
                                         <i className="ri-arrow-right-s-line"></i>
@@ -1048,8 +1107,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         {(summary.user_clicks !== undefined || summary.anon_clicks !== undefined) && (
                                             <div className="analytics-hero-card">
                                                 <h3 className="hero-title">
-                                                    누적 방문자 (Unique Access)
-                                                    <span className="hero-title-desc">세션 기준 · 6시간 내 중복 제외</span>
+                                                    고유 방문자
+                                                    <span className="hero-title-desc">회원 ID/기기 기준 중복 제외</span>
                                                 </h3>
                                                 <div className="hero-number">
                                                     {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
@@ -1065,7 +1124,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     </div>
                                                     <div className="breakdown-separator"></div>
                                                     <div className="breakdown-item">
-                                                        <span className="label"><i className="ri-user-line"></i> Guest</span>
+                                                        <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
                                                         <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
                                                     </div>
                                                 </div>
@@ -1074,27 +1133,27 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         <div className="analytics-sub-stats">
                                             <div className="sub-stat-item">
                                                 <div className="label-group">
-                                                    <span className="label">총 활동 로그 (PV)</span>
-                                                    <span className="label-desc">전체 클릭/이동 합산</span>
+                                                    <span className="label">접속 세션</span>
+                                                    <span className="label-desc">방문 횟수</span>
                                                 </div>
-                                                <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
+                                                <span className="value">{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}</span>
                                             </div>
                                             <div className="sub-stat-item">
                                                 <div className="label-group">
-                                                    <span className="label">데이터 산정 수 (Unique)</span>
-                                                    <span className="label-desc">6시간 텀 중복제거</span>
+                                                    <span className="label">활동 로그</span>
+                                                    <span className="label-desc">클릭/링크 이벤트</span>
                                                 </div>
-                                                <span className="value">{summary.total_clicks.toLocaleString()}</span>
+                                                <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {renderSessionPwaPanel('최근 1년')}
 
-                                    {/* S4: 방문 패턴 분석 (요일/시간대/월별) */}
+                                    {/* S4: 접속 패턴 분석 (요일/시간대/월별) */}
                                     {summary.visitor_stats && (
                                         <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-pulse-line"></i> 방문 패턴 분석</div>
+                                            <div className="analytics-section-title"><i className="ri-pulse-line"></i> 접속 패턴 분석</div>
                                             <div className="analytics-grid visitor-stats-grid">
                                                 <div className="grid-section full-width">
                                                     <h3><i className="ri-calendar-event-line"></i> 요일별 방문 집중도</h3>
@@ -1103,7 +1162,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             <div key={i} className="trend-bar-wrapper" style={{ flex: 1 }}>
                                                                 <div className="trend-bar-at-bottom">
                                                                     <div className="trend-bar-fill" style={{ height: `${d.ratio}%`, backgroundColor: d.ratio > 80 ? '#fbbf24' : '#60a5fa' }}>
-                                                                        <span className="trend-tooltip">{d.count}명</span>
+                                                                        <span className="trend-tooltip">{d.count}회</span>
                                                                     </div>
                                                                 </div>
                                                                 <span className="trend-label">{d.day}</span>
@@ -1127,7 +1186,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     </div>
                                                 </div>
                                                 <div className="grid-section full-width">
-                                                    <h3><i className="ri-calendar-line"></i> 월별 방문 추이</h3>
+                                                    <h3><i className="ri-calendar-line"></i> 월별 접속 세션 추이</h3>
                                                     <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
                                                         {summary.visitor_stats.monthly.length === 0 ? (
                                                             <div style={{ width: '100%', textAlign: 'center', color: '#666' }}>데이터 수집 중입니다...</div>
@@ -1136,7 +1195,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                 <div key={i} className="trend-bar-wrapper" style={{ flex: 1, minWidth: '50px' }}>
                                                                     <div className="trend-bar-at-bottom">
                                                                         <div className="trend-bar-fill" style={{ height: `${m.ratio}%`, backgroundColor: '#34d399' }}>
-                                                                            <span className="trend-tooltip">{m.count}명</span>
+                                                                            <span className="trend-tooltip">{m.count}회</span>
                                                                         </div>
                                                                     </div>
                                                                     <span className="trend-label">{m.month.split('.')[1]}월</span>
@@ -1297,7 +1356,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
 
                                     <div className="summary-exclusion-note">
-                                        * 관리자(Admin) 및 테스트용 계정의 데이터는 모든 통계에서 자동 제외됩니다.
+                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. Guest는 로그인하지 않은 기기 기준이며, 기간 내 로그인으로 식별된 같은 기기는 회원 방문자로 합산됩니다.
                                     </div>
                                 </div>
                             )}
@@ -1313,9 +1372,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             <div className="analytics-hero-card">
                                                 <h3 className="hero-title">
                                                     {dateRange.start === dateRange.end && dateRange.end === getKRDateString(new Date())
-                                                        ? '오늘의 총 방문자 (Unique Access)'
-                                                        : '기간 내 누적 방문자 (Unique Access)'}
-                                                    <span className="hero-title-desc">세션 기준 · 6시간 내 중복 제외</span>
+                                                        ? '오늘의 고유 방문자'
+                                                        : '기간 내 고유 방문자'}
+                                                    <span className="hero-title-desc">회원 ID/기기 기준 중복 제외</span>
                                                 </h3>
                                                 <div className="hero-number">
                                                     {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
@@ -1331,7 +1390,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     </div>
                                                     <div className="breakdown-separator"></div>
                                                     <div className="breakdown-item">
-                                                        <span className="label"><i className="ri-user-line"></i> Guest</span>
+                                                        <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
                                                         <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
                                                     </div>
                                                 </div>
@@ -1340,27 +1399,27 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         <div className="analytics-sub-stats">
                                             <div className="sub-stat-item">
                                                 <div className="label-group">
-                                                    <span className="label">총 활동 로그 (PV)</span>
-                                                    <span className="label-desc">전체 클릭/이동 합산</span>
+                                                    <span className="label">접속 세션</span>
+                                                    <span className="label-desc">방문 횟수</span>
                                                 </div>
-                                                <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
+                                                <span className="value">{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}</span>
                                             </div>
                                             <div className="sub-stat-item">
                                                 <div className="label-group">
-                                                    <span className="label">데이터 산정 수 (Unique)</span>
-                                                    <span className="label-desc">6시간 텀 중복제거</span>
+                                                    <span className="label">활동 로그</span>
+                                                    <span className="label-desc">클릭/링크 이벤트</span>
                                                 </div>
-                                                <span className="value">{summary.total_clicks.toLocaleString()}</span>
+                                                <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {renderSessionPwaPanel()}
 
-                                    {/* D4: 클릭 & 방문 트렌드 (다일 기간일 때만) */}
+                                    {/* D4: 클릭 & 방문자 트렌드 (다일 기간일 때만) */}
                                     {dateRange.start !== dateRange.end && trendData.length > 1 && (
                                         <div className="analytics-section-group analytics-trend-group">
-                                            <div className="analytics-section-title"><i className="ri-line-chart-line"></i> 클릭 & 방문 트렌드</div>
+                                            <div className="analytics-section-title"><i className="ri-line-chart-line"></i> 클릭 & 방문자 트렌드</div>
                                             <div className="analytics-trend-section">
                                                 <h3><i className="ri-mouse-line"></i> 클릭 트렌드 (Click)</h3>
                                                 <div className="trend-chart-container">
@@ -1380,7 +1439,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                 </div>
                                             </div>
                                             <div className="analytics-trend-section" style={{ marginTop: '24px' }}>
-                                                <h3><i className="ri-footprint-line"></i> 방문 트렌드 (Session)</h3>
+                                                <h3><i className="ri-footprint-line"></i> 고유 방문자 트렌드</h3>
                                                 <div className="trend-chart-container">
                                                     {visitTrendData.length === 0 ? (
                                                         <div style={{ width: '100%', textAlign: 'center', color: '#666', fontSize: '0.9rem', padding: '20px' }}>데이터 수집 중</div>
@@ -1401,7 +1460,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     )}
                                                 </div>
                                                 <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#71717a', textAlign: 'right' }}>
-                                                    * 21일 이전은 활동 로그 기반 추정치
+                                                    * 세션과 활동 로그를 합쳐 회원 ID/기기 기준으로 중복 제외
                                                 </div>
                                             </div>
                                         </div>
@@ -1501,7 +1560,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     {/* D6: 패턴 분석 (기간 2일 이상일 때만) */}
                                     {dateRange.start !== dateRange.end && summary.visitor_stats && (
                                         <div className="analytics-section-group analytics-pattern-section">
-                                            <div className="analytics-section-title"><i className="ri-pulse-line"></i> 패턴 분석</div>
+                                            <div className="analytics-section-title"><i className="ri-pulse-line"></i> 접속 패턴 분석</div>
                                             <div className="analytics-grid">
                                                 <div className="grid-section full-width">
                                                     <h3><i className="ri-calendar-event-line"></i> 요일별 방문 집중도</h3>
@@ -1510,7 +1569,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             <div key={i} className="trend-bar-wrapper" style={{ flex: 1 }}>
                                                                 <div className="trend-bar-at-bottom">
                                                                     <div className="trend-bar-fill" style={{ height: `${d.ratio}%`, backgroundColor: d.ratio > 80 ? '#fbbf24' : '#60a5fa' }}>
-                                                                        <span className="trend-tooltip">{d.count}명</span>
+                                                                        <span className="trend-tooltip">{d.count}회</span>
                                                                     </div>
                                                                 </div>
                                                                 <span className="trend-label">{d.day}</span>

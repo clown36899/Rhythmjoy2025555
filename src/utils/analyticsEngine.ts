@@ -27,9 +27,16 @@ export interface AnalyticsLog {
 let sessionId: string | null = null;
 let sessionSequence = 0;
 let sessionStartTime: number | null = null;
+let sessionLastActivity: number | null = null;
+let sessionNeedsUpsert = false;
 let lastFinalizeAt = 0;
 
 const BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests/i;
+const SESSION_STORAGE_KEYS = {
+    ID: 'analytics_session_id',
+    START: 'analytics_session_start',
+    LAST_ACTIVITY: 'analytics_session_last_activity',
+};
 
 export const isLikelyBotTraffic = (userAgent = navigator.userAgent, includeRuntimeSignals = true): boolean => {
     if (!userAgent || BOT_UA_PATTERN.test(userAgent)) return true;
@@ -51,40 +58,88 @@ const isLocalAnalyticsBlocked = () => {
 
 const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED && !isLocalAnalyticsBlocked() && !isLikelyBotTraffic();
 
+const readStoredNumber = (key: string): number | null => {
+    try {
+        const value = sessionStorage.getItem(key);
+        if (!value) return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+const persistSessionState = () => {
+    if (!sessionId || !sessionStartTime) return;
+    try {
+        sessionStorage.setItem(SESSION_STORAGE_KEYS.ID, sessionId);
+        sessionStorage.setItem(SESSION_STORAGE_KEYS.START, sessionStartTime.toString());
+        sessionStorage.setItem(SESSION_STORAGE_KEYS.LAST_ACTIVITY, (sessionLastActivity || sessionStartTime).toString());
+    } catch {
+        // SecurityError 등으로 sessionStorage 접근 불가 시 무시
+    }
+};
+
+const markSessionActivity = (at = Date.now()) => {
+    sessionLastActivity = at;
+    persistSessionState();
+};
+
+const hasSessionTimedOut = (lastActivity: number | null, now = Date.now()) => {
+    if (!lastActivity) return false;
+    return now - lastActivity > SITE_ANALYTICS_CONFIG.OPTIMIZATION.SESSION_TIMEOUT_MS;
+};
+
+const startNewSession = (now = Date.now(), finalizePrevious = true): string => {
+    if (finalizePrevious && sessionId && sessionStartTime) {
+        void finalizeSession(sessionLastActivity || now);
+    }
+
+    sessionId = generateUUID();
+    sessionStartTime = now;
+    sessionLastActivity = now;
+    sessionSequence = 0;
+    sessionNeedsUpsert = true;
+    lastFinalizeAt = 0;
+    persistSessionState();
+
+    return sessionId;
+};
+
 /**
  * 세션 ID 생성 또는 가져오기
  */
 export const getOrCreateSessionId = (): string => {
-    // 메모리에 있으면 반환
-    if (sessionId) return sessionId;
+    const now = Date.now();
+
+    if (sessionId) {
+        if (hasSessionTimedOut(sessionLastActivity, now)) {
+            return startNewSession(now);
+        }
+        return sessionId;
+    }
 
     try {
-        // 세션 스토리지에서 확인 (탭 단위 세션)
-        const storedId = sessionStorage.getItem('analytics_session_id');
-        const storedStart = sessionStorage.getItem('analytics_session_start');
+        const storedId = sessionStorage.getItem(SESSION_STORAGE_KEYS.ID);
+        const storedStart = readStoredNumber(SESSION_STORAGE_KEYS.START);
+        const storedLastActivity = readStoredNumber(SESSION_STORAGE_KEYS.LAST_ACTIVITY) || storedStart;
 
         if (storedId) {
             sessionId = storedId;
-            if (storedStart) sessionStartTime = parseInt(storedStart);
+            sessionStartTime = storedStart || now;
+            sessionLastActivity = storedLastActivity || sessionStartTime;
+
+            if (hasSessionTimedOut(sessionLastActivity, now)) {
+                return startNewSession(now);
+            }
+
             return sessionId;
         }
     } catch (e) {
         // SecurityError 등으로 sessionStorage 접근 불가 시 무시
     }
 
-    // 새 세션 생성
-    sessionId = generateUUID();
-    sessionStartTime = Date.now();
-    sessionSequence = 0;
-
-    try {
-        sessionStorage.setItem('analytics_session_id', sessionId);
-        sessionStorage.setItem('analytics_session_start', sessionStartTime.toString());
-    } catch (e) {
-        // 접근 불가 시 메모리 세션만 사용
-    }
-
-    return sessionId;
+    return startNewSession(now, false);
 };
 
 /**
@@ -255,6 +310,9 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
 
         if (error) {
             // [IGNORE] Silence ALL errors for background analytics
+        } else {
+            sessionNeedsUpsert = false;
+            markSessionActivity();
         }
     } catch {
         // [IGNORE] Silence general errors
@@ -264,13 +322,13 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
 /**
  * 세션 종료 (페이지 이탈 시)
  */
-const finalizeSession = async () => {
+const finalizeSession = async (endTime = Date.now()) => {
     if (!sessionId || !sessionStartTime || !shouldTrackAnalytics()) return;
     const now = Date.now();
     if (now - lastFinalizeAt < 5000) return;
     lastFinalizeAt = now;
 
-    const duration = Math.floor((now - sessionStartTime) / 1000);
+    const duration = Math.max(0, Math.floor((endTime - sessionStartTime) / 1000));
     const payload = {
         session_id: sessionId,
         exit_page: window.location.pathname,
@@ -333,7 +391,11 @@ export const trackEvent = (log: AnalyticsLog) => {
 
     // 로그 데이터 구성
     const currentSessionId = getOrCreateSessionId();
+    if (sessionNeedsUpsert) {
+        void initializeAnalyticsSession(log.user_id ? { id: log.user_id } : undefined, log.is_admin);
+    }
     sessionSequence++;
+    markSessionActivity();
 
     const utm = parseUTMParams();
     const referrer = document.referrer;

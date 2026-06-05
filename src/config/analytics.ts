@@ -15,6 +15,7 @@ export const SITE_ANALYTICS_CONFIG = {
     // 데이터 수집 최적화
     OPTIMIZATION: {
         DEBOUNCE_TIME: 1000,    // 동일 타겟 연속 클릭 무시 시간 (ms)
+        SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 업계 표준에 맞춘 30분 비활동 세션 만료
         USE_IDLE_CALLBACK: true, // 브라우저 유휴 시점에 전송 여부
         USE_BEACON: true,       // 페이지 이탈 시 sendBeacon 사용 여부
     },
