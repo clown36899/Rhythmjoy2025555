@@ -1,0 +1,41 @@
+#kiosk-carousel-controls {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+#kiosk-carousel-controls button {
+  position: fixed;
+  width: 78px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .76);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 62px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .36);
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#kiosk-carousel-controls .kcc-prev {
+  left: 16px;
+}
+
+#kiosk-carousel-controls .kcc-next {
+  right: 16px;
+}
+
+#kiosk-carousel-controls button:active {
+  transform: translateY(-50%) scale(.96);
+  background: rgba(25, 25, 25, .9);
+}

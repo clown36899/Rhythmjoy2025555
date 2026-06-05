@@ -1,0 +1,8 @@
+# Keep this operational snapshot tracked even though the root project ignores
+# JSON, PNG, and local config-style files.
+!*.json
+!*.png
+!**/*.json
+!**/*.png
+!snapshot/**
+!status/**

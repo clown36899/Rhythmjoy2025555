@@ -1,0 +1,13 @@
+[Unit]
+Description=Kiosk external URL guard
+After=kiosk-chrome.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/kiosk-j/.local/bin/kiosk-url-guard.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

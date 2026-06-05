@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Kiosk Domain Guard",
+  "version": "1.0.3",
+  "permissions": [],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://swingenjoy.com/*",
+        "https://*.swingenjoy.com/*"
+      ],
+      "css": ["kiosk-tv.css", "external-lock.css", "kiosk-carousel-controls.css"],
+      "js": ["external-link-qr.js", "kiosk-carousel-controls.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "css": ["external-lock.css"],
+      "js": ["external-link-qr.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

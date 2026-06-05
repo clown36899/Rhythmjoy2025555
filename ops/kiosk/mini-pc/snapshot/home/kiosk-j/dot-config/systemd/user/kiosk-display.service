@@ -1,0 +1,14 @@
+[Unit]
+Description=Kiosk portrait display setup
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/run/user/1000/gdm/Xauthority
+ExecStart=/home/kiosk-j/.local/bin/kiosk-display-setup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical-session.target

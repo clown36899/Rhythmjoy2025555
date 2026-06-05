@@ -1,0 +1,168 @@
+html.v2-home-mode,
+html.v2-home-mode body.v2-home-mode {
+  overflow-x: hidden !important;
+}
+
+html.v2-home-mode .shell-header.global-header-fixed {
+  height: 128px !important;
+}
+
+html.v2-home-mode .header-content-inner {
+  height: 128px !important;
+  padding-left: 28px !important;
+  padding-right: 28px !important;
+}
+
+html.v2-home-mode .header-left-content,
+html.v2-home-mode .header-events-content {
+  height: 108px !important;
+}
+
+html.v2-home-mode .header-logo-container {
+  transform: scale(1.5) !important;
+  transform-origin: left center !important;
+}
+
+html.v2-home-mode .header-right-buttons {
+  transform: scale(1.5) !important;
+  transform-origin: right center !important;
+}
+
+html.v2-home-mode .home-container,
+html.v2-home-mode .home-main {
+  padding-top: 28px !important;
+}
+
+html.v2-home-mode .home-neb-standard-layout,
+html.v2-home-mode .home-neb-desktop-grid,
+html.v2-home-mode .home-neb-hero-pane,
+html.v2-home-mode .NEB-container {
+  width: 100vw !important;
+  max-width: none !important;
+}
+
+html.v2-home-mode .NEB-header {
+  width: 80vw !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  min-height: 38px !important;
+}
+
+html.v2-home-mode .NEB-indicators {
+  width: 80vw !important;
+  margin: 24px auto 24px !important;
+}
+
+html.v2-home-mode .NEB-slider,
+html.v2-home-mode .NEB-track {
+  width: 100vw !important;
+  height: 710px !important;
+  min-height: 710px !important;
+  overflow: hidden !important;
+}
+
+html.v2-home-mode .NEB-slide {
+  width: min(65vw, 620px) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 415 / 539 !important;
+  top: 0 !important;
+}
+
+html.v2-home-mode .NEB-slide.is-active {
+  left: 238px !important;
+  transform: none !important;
+  z-index: 30 !important;
+}
+
+html.v2-home-mode .NEB-slide.is-preview-1,
+html.v2-home-mode .NEB-slide.is-preview-2,
+html.v2-home-mode .NEB-slide.is-preview-3 {
+  display: block !important;
+  z-index: 10 !important;
+  transform-origin: top left !important;
+}
+
+html.v2-home-mode .NEB-slide.is-preview-1 {
+  left: 100px !important;
+  top: 0 !important;
+  transform: none !important;
+  z-index: 20 !important;
+}
+
+html.v2-home-mode .NEB-slide.is-preview-2 {
+  left: 54px !important;
+  top: 0 !important;
+  transform: none !important;
+  z-index: 15 !important;
+}
+
+html.v2-home-mode .NEB-slide.is-preview-3 {
+  left: 8px !important;
+  top: 0 !important;
+  transform: none !important;
+  z-index: 10 !important;
+}
+
+html.v2-home-mode .NEB-imageWrapper,
+html.v2-home-mode .NEB-image {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html.v2-home-mode .NEB-image {
+  object-fit: contain !important;
+  background: #111 !important;
+}
+
+html.v2-home-mode .NEB-lowerDeck {
+  width: 100vw !important;
+  margin-top: 20px !important;
+}
+
+html.v2-home-mode .NEB-activeSummaryCluster {
+  width: min(65vw, 620px) !important;
+  margin-left: 238px !important;
+  margin-right: 0 !important;
+}
+
+html.v2-home-mode .NEB-activeSummary {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html.v2-home-mode .NEB-activeSummary strong {
+  font-size: clamp(28px, 4.2vw, 44px) !important;
+  line-height: 1.08 !important;
+}
+
+html.v2-home-mode .NEB-activeSummaryMeta {
+  font-size: clamp(19px, 2.4vw, 28px) !important;
+}
+
+html.v2-home-mode .NEB-oneDayRecruitBtn {
+  left: 9vw !important;
+  width: 152px !important;
+  height: 166px !important;
+}
+
+html.v2-home-mode .NEB-oneDayRecruitBtn img {
+  width: 152px !important;
+  height: 166px !important;
+}
+
+html.v2-home-mode .home-v2-menu-panel {
+  width: 82vw !important;
+  height: 150px !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 0 !important;
+  transform: translateX(-50%) !important;
+}
+
+html.v2-home-mode .home-v2-menu-toggle {
+  height: 124px !important;
+  font-size: 39px !important;
+}
