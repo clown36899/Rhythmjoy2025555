@@ -18,6 +18,7 @@ import {
   isEventInDanceScope,
   normalizeVisibleDanceScope,
 } from '../../utils/danceTaxonomy';
+import { showComingSoonNotice } from '../../utils/appNotice';
 import { getLocalDateString, seededRandom } from '../v2/utils/eventListUtils';
 import { useEventActions } from '../v2/hooks/useEventActions';
 import type { Event } from '../v2/utils/eventListUtils';
@@ -625,7 +626,7 @@ export default function EventsInfoPage() {
 
   const handleDanceScopeClick = useCallback((scope: typeof visibleDanceScopeOptions[number]['key']) => {
     if (!isAdmin && scope !== 'swing') {
-      window.alert('준비중');
+      showComingSoonNotice();
       return;
     }
 

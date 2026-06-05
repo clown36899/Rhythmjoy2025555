@@ -16,6 +16,7 @@ import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPu
 import { isPWAMode, getMobilePlatform } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import DeploymentAutoRefresh from './components/DeploymentAutoRefresh';
+import { AppNoticeToast } from './components/common/AppNoticeToast';
 
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions, useModalState } from './contexts/ModalContext';
@@ -378,6 +379,7 @@ function AppContent() {
         initialPrefs={pwaModalInitialPrefs}
       />
       <DeploymentAutoRefresh hasOpenModal={modalStack.length > 0 || showPwaModal} />
+      <AppNoticeToast />
     </>
   );
 }

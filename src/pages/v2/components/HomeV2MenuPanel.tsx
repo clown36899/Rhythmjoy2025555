@@ -28,6 +28,12 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
 const HOME_SCREEN_GESTURE_START_RATIO = 0.5;
+const TAP_MAX_DISTANCE = 24;
+const TAP_MAX_DURATION_MS = 700;
+const SYNTHETIC_CLICK_SUPPRESS_MS = 700;
+const MENU_ACTION_ANIMATION_MS = 130;
+const SYSTEM_GESTURE_EDGE_GUARD_PX = 80;
+const VISUAL_VIEWPORT_INSET_MAX_PX = 96;
 
 type GestureStart = {
     x: number;
@@ -36,14 +42,27 @@ type GestureStart = {
     scrollTop: number;
 };
 
+type PressStart = {
+    key: string;
+    x: number;
+    y: number;
+    time: number;
+};
+
+const getMenuItemKey = (item: HomeMenuItem) => item.to || item.action || item.label;
+
 export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
     const { openModal, closeModal, modalStack } = useModalContext();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
     const panelPointerGestureStartRef = useRef<GestureStart | null>(null);
     const panelTouchGestureStartRef = useRef<GestureStart | null>(null);
+    const menuPressStartRef = useRef<PressStart | null>(null);
+    const suppressSyntheticClickUntilRef = useRef(0);
+    const menuActionTimerRef = useRef<number | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
 
     const openMenu = useCallback(() => {
@@ -66,13 +85,77 @@ export const HomeV2MenuPanel: React.FC = () => {
         return modalStack.length > 0;
     }, [modalStack.length]);
 
-    const isMenuActionTarget = useCallback((target: EventTarget | null) => {
-        const element = target instanceof Element
-            ? target
-            : target instanceof Node
-                ? target.parentElement
-                : null;
-        return Boolean(element?.closest(".home-v2-menu-item, .home-v2-menu-register"));
+    const shouldSuppressSyntheticClick = useCallback(() => {
+        return Date.now() < suppressSyntheticClickUntilRef.current;
+    }, []);
+
+    const rememberMenuPressStart = useCallback((key: string, x: number, y: number) => {
+        menuPressStartRef.current = {
+            key,
+            x,
+            y,
+            time: Date.now(),
+        };
+        setPressedMenuKey(key);
+    }, []);
+
+    const clearMenuPressIfMoved = useCallback((x: number, y: number) => {
+        const start = menuPressStartRef.current;
+        if (!start) return;
+
+        if (Math.hypot(x - start.x, y - start.y) > TAP_MAX_DISTANCE) {
+            menuPressStartRef.current = null;
+            setPressedMenuKey(null);
+            suppressSyntheticClickUntilRef.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS;
+        }
+    }, []);
+
+    const runMenuActionWithFeedback = useCallback((key: string, action: () => void) => {
+        if (menuActionTimerRef.current !== null) {
+            window.clearTimeout(menuActionTimerRef.current);
+        }
+
+        setPressedMenuKey(key);
+        menuActionTimerRef.current = window.setTimeout(() => {
+            menuActionTimerRef.current = null;
+            setPressedMenuKey((currentKey) => currentKey === key ? null : currentKey);
+            action();
+        }, MENU_ACTION_ANIMATION_MS);
+    }, []);
+
+    const consumeMenuTouchTap = useCallback((
+        event: React.TouchEvent<HTMLElement>,
+        key: string,
+        onTap: () => void,
+    ) => {
+        const start = menuPressStartRef.current;
+        menuPressStartRef.current = null;
+
+        if (!start || start.key !== key || event.changedTouches.length === 0) {
+            setPressedMenuKey(null);
+            return false;
+        }
+
+        const touch = event.changedTouches[0];
+        const distance = Math.hypot(touch.clientX - start.x, touch.clientY - start.y);
+        const elapsed = Date.now() - start.time;
+        const isTap = distance <= TAP_MAX_DISTANCE && elapsed <= TAP_MAX_DURATION_MS;
+
+        if (!isTap) {
+            setPressedMenuKey(null);
+            suppressSyntheticClickUntilRef.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS;
+            return false;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        suppressSyntheticClickUntilRef.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS;
+        onTap();
+        return true;
+    }, []);
+
+    const isSystemGestureEdgeStart = useCallback((clientY: number) => {
+        return clientY >= window.innerHeight - SYSTEM_GESTURE_EDGE_GUARD_PX;
     }, []);
 
     const isSwipeUp = useCallback((start: GestureStart, x: number, y: number) => {
@@ -160,8 +243,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         });
     };
 
-    const handleAddClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
+    const handleAddAction = () => {
         setIsExpanded(false);
         if (!user) {
             window.dispatchEvent(new CustomEvent("requestProtectedAction", {
@@ -173,6 +255,15 @@ export const HomeV2MenuPanel: React.FC = () => {
             return;
         }
         openRegistrationChoice();
+    };
+
+    const handleAddClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (shouldSuppressSyntheticClick()) {
+            event.preventDefault();
+            return;
+        }
+        runMenuActionWithFeedback("register", handleAddAction);
     };
 
     const applyPanelGesture = useCallback((start: GestureStart, x: number, y: number) => {
@@ -191,14 +282,13 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const handlePanelPointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
         if (event.pointerType === "mouse" || isModalGestureBlocked()) return;
-        if (isMenuActionTarget(event.target)) return;
         panelPointerGestureStartRef.current = {
             x: event.clientX,
             y: event.clientY,
             time: Date.now(),
             scrollTop: event.currentTarget.scrollTop,
         };
-    }, [isMenuActionTarget, isModalGestureBlocked]);
+    }, [isModalGestureBlocked]);
 
     const handlePanelPointerMove = useCallback((event: React.PointerEvent<HTMLElement>) => {
         const start = panelPointerGestureStartRef.current;
@@ -219,7 +309,6 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const handlePanelTouchStart = useCallback((event: React.TouchEvent<HTMLElement>) => {
         if (event.touches.length !== 1 || isModalGestureBlocked()) return;
-        if (isMenuActionTarget(event.target)) return;
         const touch = event.touches[0];
         panelTouchGestureStartRef.current = {
             x: touch.clientX,
@@ -227,7 +316,7 @@ export const HomeV2MenuPanel: React.FC = () => {
             time: Date.now(),
             scrollTop: event.currentTarget.scrollTop,
         };
-    }, [isMenuActionTarget, isModalGestureBlocked]);
+    }, [isModalGestureBlocked]);
 
     const handlePanelTouchEnd = useCallback((event: React.TouchEvent<HTMLElement>) => {
         const start = panelTouchGestureStartRef.current;
@@ -247,6 +336,42 @@ export const HomeV2MenuPanel: React.FC = () => {
             panelTouchGestureStartRef.current = null;
         }
     }, [applyPanelGesture, isModalGestureBlocked]);
+
+    useEffect(() => {
+        const root = document.documentElement;
+
+        const syncVisualViewportInset = () => {
+            const viewport = window.visualViewport;
+            const rawBottomInset = viewport
+                ? window.innerHeight - viewport.height - viewport.offsetTop
+                : 0;
+            const bottomInset = Math.min(
+                VISUAL_VIEWPORT_INSET_MAX_PX,
+                Math.max(0, Math.round(rawBottomInset)),
+            );
+            root.style.setProperty("--home-v2-visual-bottom-inset", `${bottomInset}px`);
+        };
+
+        syncVisualViewportInset();
+        window.visualViewport?.addEventListener("resize", syncVisualViewportInset);
+        window.visualViewport?.addEventListener("scroll", syncVisualViewportInset);
+        window.addEventListener("resize", syncVisualViewportInset);
+
+        return () => {
+            window.visualViewport?.removeEventListener("resize", syncVisualViewportInset);
+            window.visualViewport?.removeEventListener("scroll", syncVisualViewportInset);
+            window.removeEventListener("resize", syncVisualViewportInset);
+            root.style.removeProperty("--home-v2-visual-bottom-inset");
+        };
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (menuActionTimerRef.current !== null) {
+                window.clearTimeout(menuActionTimerRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!isHomeRoute || isExpanded || modalStack.length > 0) return undefined;
@@ -272,6 +397,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         const handlePointerStart = (event: PointerEvent) => {
             if (event.pointerType === "mouse" || isModalGestureBlocked()) return;
             if (event.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
+            if (isSystemGestureEdgeStart(event.clientY)) return;
 
             screenPointerGestureStart = {
                 x: event.clientX,
@@ -286,6 +412,7 @@ export const HomeV2MenuPanel: React.FC = () => {
             if (event.touches.length !== 1) return;
             const touch = event.touches[0];
             if (touch.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
+            if (isSystemGestureEdgeStart(touch.clientY)) return;
 
             screenTouchGestureStart = {
                 x: touch.clientX,
@@ -348,7 +475,7 @@ export const HomeV2MenuPanel: React.FC = () => {
             window.removeEventListener("touchend", handleTouchEnd);
             window.removeEventListener("touchcancel", resetScreenTouchGesture);
         };
-    }, [isExpanded, isHomeRoute, isModalGestureBlocked, isSwipeUp, modalStack.length, openMenu]);
+    }, [isExpanded, isHomeRoute, isModalGestureBlocked, isSwipeUp, isSystemGestureEdgeStart, modalStack.length, openMenu]);
 
     return (
         <section
@@ -366,7 +493,10 @@ export const HomeV2MenuPanel: React.FC = () => {
             <button
                 type="button"
                 className="home-v2-menu-toggle"
-                onClick={() => setIsExpanded((next) => !next)}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    setIsExpanded((next) => !next);
+                }}
                 aria-expanded={isExpanded}
             >
                 <strong>MENU</strong>
@@ -376,28 +506,73 @@ export const HomeV2MenuPanel: React.FC = () => {
             {isExpanded && (
                 <div className="home-v2-menu-expanded">
                     <div className="home-v2-menu-grid">
-                        {HOME_MENU_ITEMS.map((item) => (
-                            <button
-                                key={item.to || item.action}
-                                type="button"
-                                className={`home-v2-menu-item ${isMenuItemActive(item) ? "is-active" : ""}`}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleMenuItemClick(item);
-                                }}
-                            >
-                                <span className={`home-v2-menu-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
-                                    <i className={item.icon} />
-                                    {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
-                                </span>
-                                <span className="home-v2-menu-label">{item.label}</span>
-                            </button>
-                        ))}
+                        {HOME_MENU_ITEMS.map((item) => {
+                            const itemKey = getMenuItemKey(item);
+                            return (
+                                <button
+                                    key={itemKey}
+                                    type="button"
+                                    className={`home-v2-menu-item ${isMenuItemActive(item) ? "is-active" : ""} ${pressedMenuKey === itemKey ? "is-pressed" : ""}`}
+                                    onTouchStart={(event) => {
+                                        if (event.touches.length !== 1) return;
+                                        const touch = event.touches[0];
+                                        rememberMenuPressStart(itemKey, touch.clientX, touch.clientY);
+                                    }}
+                                    onTouchMove={(event) => {
+                                        if (event.touches.length !== 1) return;
+                                        const touch = event.touches[0];
+                                        clearMenuPressIfMoved(touch.clientX, touch.clientY);
+                                    }}
+                                    onTouchEnd={(event) => {
+                                        consumeMenuTouchTap(event, itemKey, () => {
+                                            runMenuActionWithFeedback(itemKey, () => handleMenuItemClick(item));
+                                        });
+                                    }}
+                                    onTouchCancel={() => {
+                                        menuPressStartRef.current = null;
+                                        setPressedMenuKey(null);
+                                    }}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        if (shouldSuppressSyntheticClick()) {
+                                            event.preventDefault();
+                                            return;
+                                        }
+                                        runMenuActionWithFeedback(itemKey, () => handleMenuItemClick(item));
+                                    }}
+                                >
+                                    <span className={`home-v2-menu-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
+                                        <i className={item.icon} />
+                                        {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
+                                    </span>
+                                    <span className="home-v2-menu-label">{item.label}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <button
                         type="button"
-                        className="home-v2-menu-register"
+                        className={`home-v2-menu-register ${pressedMenuKey === "register" ? "is-pressed" : ""}`}
+                        onTouchStart={(event) => {
+                            if (event.touches.length !== 1) return;
+                            const touch = event.touches[0];
+                            rememberMenuPressStart("register", touch.clientX, touch.clientY);
+                        }}
+                        onTouchMove={(event) => {
+                            if (event.touches.length !== 1) return;
+                            const touch = event.touches[0];
+                            clearMenuPressIfMoved(touch.clientX, touch.clientY);
+                        }}
+                        onTouchEnd={(event) => {
+                            consumeMenuTouchTap(event, "register", () => {
+                                runMenuActionWithFeedback("register", handleAddAction);
+                            });
+                        }}
+                        onTouchCancel={() => {
+                            menuPressStartRef.current = null;
+                            setPressedMenuKey(null);
+                        }}
                         onClick={handleAddClick}
                     >
                         <i className="ri-add-line" aria-hidden="true" />

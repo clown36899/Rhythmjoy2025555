@@ -21,6 +21,7 @@ import {
     normalizeDanceScope,
     normalizeVisibleDanceScope,
 } from "../../../../../utils/danceTaxonomy";
+import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
 
 
@@ -184,7 +185,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     }, [isAdmin, preferredScope]);
     const handleScopeClick = (scope: HomeAdDanceScope) => {
         if (!isAdmin && scope !== "swing") {
-            window.alert("준비중");
+            showComingSoonNotice();
             return;
         }
 

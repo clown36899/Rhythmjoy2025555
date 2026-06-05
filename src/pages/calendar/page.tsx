@@ -22,6 +22,7 @@ import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
 import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
+import { showComingSoonNotice } from "../../utils/appNotice";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -818,7 +819,7 @@ export default function CalendarPage() {
 
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
         if (!isAdmin && scope !== 'swing') {
-            window.alert('준비중');
+            showComingSoonNotice();
             return;
         }
 

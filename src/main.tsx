@@ -9,7 +9,19 @@ if (BOOT_DEBUG) {
 
 // [vite-plugin-pwa] SW 등록 — 빌보드 키오스크 페이지에서는 SW 격리
 // 빌보드는 데이터/배포 실시간 동기화를 위해 SW 캐시를 사용하지 않음
-if (!window.location.pathname.includes('/billboard/')) {
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+    .catch(() => { });
+
+  if ('caches' in window) {
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .catch(() => { });
+  }
+}
+
+if (import.meta.env.PROD && !window.location.pathname.includes('/billboard/')) {
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({
       immediate: true,

@@ -1,14 +1,17 @@
 .home-v2-menu-panel {
+  --home-v2-menu-bottom-gap: 0px;
+  --home-v2-menu-expanded-padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  --home-v2-menu-compact-padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   position: fixed;
   right: auto;
-  bottom: 0;
+  bottom: var(--home-v2-menu-bottom-gap);
   left: 50%;
-  z-index: 995;
+  z-index: calc(var(--z-header, 1000) + 2);
   width: min(100%, 650px);
   min-height: 126px;
   max-height: min(72svh, 500px);
   margin: 0;
-  padding: 0 24px calc(22px + env(safe-area-inset-bottom, 0px));
+  padding: 0 24px var(--home-v2-menu-expanded-padding-bottom);
   border-radius: 28px 28px 0 0;
   background: #1b1b1c;
   color: #fff;
@@ -20,6 +23,7 @@
   transition:
     min-height 240ms cubic-bezier(0.22, 0.88, 0.25, 1),
     padding-bottom 240ms cubic-bezier(0.22, 0.88, 0.25, 1),
+    bottom 220ms ease,
     border-radius 240ms ease,
     box-shadow 240ms ease;
   will-change: min-height;
@@ -39,7 +43,13 @@
   cursor: pointer;
   place-items: center;
   transform: translateX(-50%);
+  transition: transform 120ms ease, opacity 120ms ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+.home-v2-menu-toggle:active {
+  opacity: 0.78;
+  transform: translateX(-50%) scale(0.94);
 }
 
 .home-v2-menu-toggle strong {
@@ -56,8 +66,8 @@
 }
 
 .home-v2-menu-panel.is-compact {
-  min-height: 72px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  min-height: 99px;
+  padding-bottom: var(--home-v2-menu-compact-padding-bottom);
   border-radius: 18px 18px 0 0;
   touch-action: none;
 }
@@ -83,7 +93,7 @@
 
 .home-v2-menu-panel.is-expanded {
   min-height: min(72svh, 500px);
-  padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--home-v2-menu-expanded-padding-bottom);
   border-radius: 28px 28px 0 0;
   box-shadow:
     0 -18px 48px rgba(0, 0, 0, 0.38),
@@ -137,23 +147,69 @@
   transition:
     border-color 160ms ease,
     background 160ms ease,
-    transform 160ms ease;
+    box-shadow 160ms ease,
+    transform 120ms ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+.home-v2-menu-item::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 12px;
+  background: radial-gradient(circle at center, rgba(var(--icon-rgb, 120, 150, 255), 0.36), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.62);
 }
 
 .home-v2-menu-item::after {
   display: none;
 }
 
-.home-v2-menu-item:hover,
 .home-v2-menu-item:focus-visible {
   background: rgba(var(--icon-rgb, 120, 150, 255), 0.095);
   transform: translateY(-1px);
 }
 
-.home-v2-menu-item:hover::after,
+.home-v2-menu-item:active,
+.home-v2-menu-item.is-pressed {
+  background: rgba(var(--icon-rgb, 120, 150, 255), 0.18);
+  box-shadow: inset 0 0 0 1px rgba(var(--icon-rgb, 120, 150, 255), 0.26);
+  transform: scale(0.97);
+}
+
+.home-v2-menu-item:active .home-v2-menu-icon,
+.home-v2-menu-item.is-pressed .home-v2-menu-icon {
+  transform: scale(0.84);
+}
+
+.home-v2-menu-item:active .home-v2-menu-label,
+.home-v2-menu-item.is-pressed .home-v2-menu-label {
+  opacity: 0.82;
+}
+
+.home-v2-menu-item.is-pressed::before {
+  animation: homeV2MenuTapFlash 240ms ease-out both;
+}
+
+.home-v2-menu-item.is-pressed .home-v2-menu-icon {
+  animation: homeV2MenuIconPop 180ms cubic-bezier(0.2, 0.85, 0.25, 1.15) both;
+}
+
 .home-v2-menu-item:focus-visible::after {
   opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-v2-menu-item:hover {
+    background: rgba(var(--icon-rgb, 120, 150, 255), 0.095);
+    transform: translateY(-1px);
+  }
+
+  .home-v2-menu-item:hover::after {
+    opacity: 1;
+  }
 }
 
 .home-v2-menu-item.is-active {
@@ -172,6 +228,7 @@
   border-radius: 0;
   background: transparent;
   place-items: center;
+  transition: transform 120ms ease;
 }
 
 .home-v2-menu-icon::before {
@@ -254,10 +311,12 @@
   font-weight: 900;
   letter-spacing: 0;
   text-overflow: ellipsis;
+  transition: opacity 120ms ease;
   white-space: nowrap;
 }
 
 .home-v2-menu-register {
+  position: relative;
   display: flex;
   width: 100%;
   min-height: 58px;
@@ -270,19 +329,87 @@
   color: #fff;
   cursor: pointer;
   box-shadow: 0 12px 26px rgba(61, 115, 255, 0.28);
+  overflow: hidden;
   touch-action: manipulation;
+  transition: background 140ms ease, box-shadow 140ms ease, transform 120ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
+.home-v2-menu-register::before {
+  content: "";
+  position: absolute;
+  inset: 6px 20%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  opacity: 0;
+  pointer-events: none;
+  transform: scaleX(0.55);
+}
+
+.home-v2-menu-register:active,
+.home-v2-menu-register.is-pressed {
+  background: #3267eb;
+  box-shadow: 0 8px 18px rgba(61, 115, 255, 0.22);
+  transform: scale(0.97);
+}
+
+.home-v2-menu-register.is-pressed::before {
+  animation: homeV2MenuRegisterFlash 240ms ease-out both;
+}
+
+.home-v2-menu-register.is-pressed i {
+  animation: homeV2MenuIconPop 180ms cubic-bezier(0.2, 0.85, 0.25, 1.15) both;
+}
+
 .home-v2-menu-register i {
+  position: relative;
   font-size: 24px;
   line-height: 1;
 }
 
 .home-v2-menu-register span {
+  position: relative;
   font-size: 16px;
   font-weight: 950;
   letter-spacing: 0;
+}
+
+@keyframes homeV2MenuTapFlash {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.62);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.28);
+  }
+}
+
+@keyframes homeV2MenuRegisterFlash {
+  0% {
+    opacity: 0.7;
+    transform: scaleX(0.55);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleX(1.25);
+  }
+}
+
+@keyframes homeV2MenuIconPop {
+  0% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(0.82);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 @media (min-width: 761px) {
@@ -313,7 +440,7 @@
   }
 
   .home-v2-menu-panel.is-compact {
-    min-height: 68px;
+    min-height: 99px;
   }
 
   .home-v2-menu-panel.is-expanded {
@@ -321,7 +448,7 @@
   }
 
   .home-v2-menu-panel.is-compact .home-v2-menu-toggle {
-    top: 7px;
+    top: 8px;
   }
 
   .home-v2-menu-panel.is-compact .home-v2-menu-expanded {
@@ -340,5 +467,41 @@
 
   .home-v2-menu-icon i {
     font-size: 23px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .home-v2-menu-panel {
+    --home-v2-menu-bottom-gap: max(
+      44px,
+      calc(env(safe-area-inset-bottom, 0px) + 16px),
+      calc(var(--home-v2-visual-bottom-inset, 0px) + 12px)
+    );
+    --home-v2-menu-expanded-padding-bottom: 18px;
+    --home-v2-menu-compact-padding-bottom: 8px;
+    border-radius: 24px;
+  }
+
+  .home-v2-menu-panel.is-compact {
+    min-height: 99px;
+    border-radius: 18px;
+  }
+
+  .home-v2-menu-panel.is-compact .home-v2-menu-toggle {
+    top: 8px;
+  }
+
+  .home-v2-menu-panel.is-expanded {
+    border-radius: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-v2-menu-item.is-pressed::before,
+  .home-v2-menu-item.is-pressed .home-v2-menu-icon,
+  .home-v2-menu-register.is-pressed::before,
+  .home-v2-menu-register.is-pressed i,
+  .home-v2-menu-expanded {
+    animation: none;
   }
 }
