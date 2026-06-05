@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { APP_NOTICE_EVENT, type AppNoticeDetail } from "../../utils/appNotice";
 import "./AppNoticeToast.css";
 
@@ -12,7 +12,7 @@ const DEFAULT_NOTICE: Omit<ActiveNotice, "id"> = {
   message: "",
   icon: "ri-information-line",
   tone: "info",
-  durationMs: 2600,
+  durationMs: 1800,
 };
 
 export const AppNoticeToast = () => {
@@ -75,29 +75,16 @@ export const AppNoticeToast = () => {
 
   return (
     <div
+      key={notice.id}
       className={`app-notice-toast app-notice-toast--${notice.tone} ${isVisible ? "is-visible" : ""}`}
+      style={{ "--app-notice-duration": `${notice.durationMs}ms` } as CSSProperties}
       role="status"
       aria-live="polite"
-      onClick={dismiss}
     >
-      <span className="app-notice-toast__icon" aria-hidden="true">
-        <i className={notice.icon} />
-      </span>
       <span className="app-notice-toast__copy">
         <strong>{notice.title}</strong>
         {notice.message && <span>{notice.message}</span>}
       </span>
-      <button
-        type="button"
-        className="app-notice-toast__close"
-        aria-label="알림 닫기"
-        onClick={(event) => {
-          event.stopPropagation();
-          dismiss();
-        }}
-      >
-        <i className="ri-close-line" aria-hidden="true" />
-      </button>
     </div>
   );
 };

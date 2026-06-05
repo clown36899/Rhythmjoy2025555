@@ -567,7 +567,7 @@ export default function EventsInfoPage() {
   }, [interactions?.event_favorites]);
 
   const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
-  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), isAdmin);
+  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), false);
   const selectedActivity = normalizeActivityFilter(searchParams.get('type'));
   const selectedTag = searchParams.get('tag');
 
@@ -625,20 +625,20 @@ export default function EventsInfoPage() {
   }, [searchParams, setSearchParams]);
 
   const handleDanceScopeClick = useCallback((scope: typeof visibleDanceScopeOptions[number]['key']) => {
-    if (!isAdmin && scope !== 'swing') {
+    if (scope !== 'swing') {
       showComingSoonNotice();
       return;
     }
 
     setFilterParam('dance', scope === 'swing' ? null : scope);
-  }, [isAdmin, setFilterParam]);
+  }, [setFilterParam]);
 
   useEffect(() => {
-    if (!isAuthCheckComplete || isAdmin || !searchParams.has('dance')) return;
+    if (!isAuthCheckComplete || !searchParams.has('dance')) return;
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete('dance');
     setSearchParams(nextParams, { replace: true });
-  }, [isAdmin, isAuthCheckComplete, searchParams, setSearchParams]);
+  }, [isAuthCheckComplete, searchParams, setSearchParams]);
 
   const eventItems = useMemo(() => {
     const filtered = scopedEvents.filter((event) => getEventsInfoCategory(event) === 'event');
@@ -850,7 +850,7 @@ export default function EventsInfoPage() {
               type="button"
               className={[
                 selectedDanceScope === option.key ? 'is-active' : '',
-                !isAdmin && option.key !== 'swing' ? 'is-preparing' : '',
+                option.key !== 'swing' ? 'is-preparing' : '',
               ].filter(Boolean).join(' ')}
               onClick={() => handleDanceScopeClick(option.key)}
             >

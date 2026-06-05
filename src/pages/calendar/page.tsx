@@ -818,7 +818,7 @@ export default function CalendarPage() {
     };
 
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
-        if (!isAdmin && scope !== 'swing') {
+        if (scope !== 'swing') {
             showComingSoonNotice();
             return;
         }
@@ -845,16 +845,17 @@ export default function CalendarPage() {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
-        const nextScope = normalizeVisibleDanceScope(urlParams.get('dance'), isAdmin);
+        const rawDanceScope = urlParams.get('dance');
+        const nextScope = normalizeVisibleDanceScope(rawDanceScope, false);
         if (nextScope !== danceScope) {
             setDanceScope(nextScope);
             setSelectedDate(null);
         }
-        if (isAuthCheckComplete && !isAdmin && urlParams.has('dance')) {
+        if (isAuthCheckComplete && rawDanceScope && rawDanceScope !== 'swing') {
             urlParams.delete('dance');
             navigate({ pathname: location.pathname, search: urlParams.toString() }, { replace: true });
         }
-    }, [danceScope, isAdmin, isAuthCheckComplete, location.pathname, location.search, navigate]);
+    }, [danceScope, isAuthCheckComplete, location.pathname, location.search, navigate]);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
@@ -1097,7 +1098,7 @@ export default function CalendarPage() {
                                 className={[
                                     'calendar-dance-scope-btn',
                                     danceScope === option.key ? 'active' : '',
-                                    !isAdmin && option.key !== 'swing' ? 'is-preparing' : '',
+                                    option.key !== 'swing' ? 'is-preparing' : '',
                                 ].filter(Boolean).join(' ')}
                                 onClick={() => handleDanceScopeClick(option.key)}
                                 title={option.desc}

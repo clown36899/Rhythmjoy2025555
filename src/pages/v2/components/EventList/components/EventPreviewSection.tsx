@@ -141,15 +141,15 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         return isHomeAdDanceScope(saved) ? normalizeVisibleDanceScope(saved, false) : "swing";
     });
     useEffect(() => {
-        if (!isAdmin && preferredScope !== "swing") {
+        if (preferredScope !== "swing") {
             setPreferredScope("swing");
         }
-    }, [isAdmin, preferredScope]);
+    }, [preferredScope]);
     useEffect(() => {
-        if (!isAdmin || typeof window === "undefined") return;
+        if (typeof window === "undefined") return;
         const saved = window.localStorage.getItem(HOME_AD_DANCE_SCOPE_KEY);
-        if (isHomeAdDanceScope(saved)) setPreferredScope(saved);
-    }, [isAdmin]);
+        if (isHomeAdDanceScope(saved) && saved === "swing") setPreferredScope(saved);
+    }, []);
     const visibleEvents = useMemo(() => {
         if (isAdmin) return events;
         return events.filter((event) => getHomeAdEventScope(event) === "swing");
@@ -180,11 +180,11 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     });
     useEffect(() => {
         if (typeof window !== "undefined") {
-            window.localStorage.setItem(HOME_AD_DANCE_SCOPE_KEY, isAdmin ? preferredScope : "swing");
+            window.localStorage.setItem(HOME_AD_DANCE_SCOPE_KEY, "swing");
         }
-    }, [isAdmin, preferredScope]);
+    }, [preferredScope]);
     const handleScopeClick = (scope: HomeAdDanceScope) => {
-        if (!isAdmin && scope !== "swing") {
+        if (scope !== "swing") {
             showComingSoonNotice();
             return;
         }
@@ -216,7 +216,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                         type="button"
                         className={[
                             preferredScope === option.key ? "is-active" : "",
-                            !isAdmin && option.key !== "swing" ? "is-preparing" : "",
+                            option.key !== "swing" ? "is-preparing" : "",
                         ].filter(Boolean).join(" ")}
                         onClick={() => handleScopeClick(option.key)}
                     >

@@ -25,7 +25,7 @@ export function showAppNotice(detail: AppNoticeDetail | string) {
 export function showComingSoonNotice() {
   showAppNotice({
     title: "준비중",
-    icon: "ri-tools-line",
     tone: "info",
+    durationMs: 1200,
   });
 }
