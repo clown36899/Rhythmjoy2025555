@@ -884,15 +884,16 @@
   align-items: center;
   justify-content: center;
   padding: 0 10px;
-  border: 1px solid rgba(92, 141, 246, 0.38);
+  border: 1px solid rgba(79, 131, 255, 0.95);
   border-radius: 999px;
-  background: rgba(92, 141, 246, 0.2);
+  background: var(--color-blue-500, #4f83ff);
   color: #ffffff;
   font-size: 12px;
   font-weight: 900;
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
+  box-shadow: 0 8px 18px rgba(52, 100, 220, 0.22);
 }
 
 .calendar-month-nav--sample {
@@ -1003,7 +1004,7 @@
 
   .calendar-header-title-control {
     justify-content: center;
-    grid-template-columns: 30px minmax(118px, auto) 30px;
+    grid-template-columns: 30px minmax(104px, auto) 30px;
     gap: 4px;
   }
 
@@ -1018,25 +1019,25 @@
 
   .calendar-header-title-lockup {
     justify-items: center;
-    gap: 0;
+    gap: 1px;
   }
 
   .calendar-header-title-lockup strong span {
     align-self: flex-start;
-    margin-top: 7px;
+    margin-top: 5px;
     color: #a8b0bd;
     font-size: 12px;
     line-height: 1;
   }
 
   .calendar-header-title-lockup strong em {
-    font-size: 45px;
-    line-height: 0.82;
+    font-size: 39px;
+    line-height: 0.88;
   }
 
   .calendar-header-title-lockup small {
-    margin-top: -1px;
-    font-size: 11px;
+    margin-top: 0;
+    font-size: 10px;
     line-height: 1;
   }
 
@@ -1060,7 +1061,7 @@
   }
 
   .calendar-header-title-control {
-    grid-template-columns: 28px minmax(112px, auto) 28px;
+    grid-template-columns: 28px minmax(98px, auto) 28px;
     gap: 2px;
   }
 
@@ -1199,9 +1200,9 @@
 }
 
 .calendar-today-header-btn {
-  background: var(--gradient-accent);
+  background: var(--color-blue-500, #4f83ff);
   color: white;
-  border: none;
+  border: 1px solid rgba(79, 131, 255, 0.95);
   padding: clamp(3px, 1vw, 4px) clamp(8px, 2vw, 12px);
   /* 더 작은 패딩 */
   border-radius: 6px;

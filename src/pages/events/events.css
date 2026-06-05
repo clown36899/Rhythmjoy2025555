@@ -39,15 +39,15 @@
 }
 
 .events-info-scope-tabs {
-  gap: 14px;
+  gap: 12px;
 }
 
 .events-info-scope-tabs button {
-  flex: 0 0 68px;
+  flex: 0 0 63px;
   display: grid;
   place-items: center;
-  width: 68px;
-  height: 68px;
+  width: 63px;
+  height: 63px;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
@@ -60,7 +60,7 @@
 
 .events-info-scope-tabs button strong {
   color: inherit;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 950;
   line-height: 1;
 }
@@ -458,17 +458,17 @@
   }
 
   .events-info-scope-tabs {
-    gap: 14px;
+    gap: 12px;
   }
 
   .events-info-scope-tabs button {
-    flex-basis: 64px;
-    width: 64px;
-    height: 64px;
+    flex-basis: 59px;
+    width: 59px;
+    height: 59px;
   }
 
   .events-info-scope-tabs button strong {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .events-info-tag-tabs {
@@ -575,9 +575,9 @@
   }
 
   .events-info-scope-tabs button {
-    flex-basis: 62px;
-    width: 62px;
-    height: 62px;
+    flex-basis: 57px;
+    width: 57px;
+    height: 57px;
   }
 
   .events-info-rows {

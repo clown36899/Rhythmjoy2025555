@@ -252,6 +252,7 @@ html {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 4px;
+    min-height: 38px;
     padding: 10px 12px 7px;
     border-bottom: 1px solid var(--cal-sample-border);
     background: var(--cal-sample-panel);
@@ -259,6 +260,8 @@ html {
 
 .calendar-sticky-weekday-item {
     display: inline-flex;
+    min-width: 0;
+    height: 20px;
     align-items: center;
     justify-content: center;
     gap: 5px;
@@ -275,11 +278,14 @@ html {
 
 .calendar-sticky-date-text {
     display: inline-flex;
-    min-width: 18px;
+    flex: 0 0 20px;
+    width: 20px;
+    min-width: 20px;
     height: 18px;
     align-items: center;
     justify-content: center;
-    padding: 0 5px;
+    box-sizing: border-box;
+    padding: 0;
     border: 1px solid var(--cal-sample-lower-active-border);
     border-radius: 999px;
     background: var(--cal-sample-lower-active-bg);
@@ -288,6 +294,7 @@ html {
     font-style: normal;
     font-weight: 900;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
 .calendar-sticky-weekday-item.is-today {
@@ -349,14 +356,15 @@ html {
 .calendar-live-today-btn {
     min-height: 34px;
     padding: 0 13px;
-    border: 1px solid rgba(92, 141, 246, 0.38);
+    border: 1px solid rgba(79, 131, 255, 0.95);
     border-radius: 8px;
-    background: rgba(92, 141, 246, 0.2);
+    background: var(--cal-sample-blue);
     color: #ffffff;
     font: inherit;
     font-size: 13px;
     font-weight: 900;
     cursor: pointer;
+    box-shadow: 0 8px 18px rgba(52, 100, 220, 0.22);
 }
 
 .calendar-navigator-overlay {
@@ -617,20 +625,24 @@ html {
 
     .calendar-sticky-weekdays {
         gap: 2px;
+        min-height: 27px;
         padding: 4px 3px 3px;
         background: var(--cal-sample-bg);
     }
 
     .calendar-sticky-weekday-item {
         gap: 3px;
+        height: 20px;
         font-size: 14px;
         line-height: 1;
     }
 
     .calendar-sticky-date-text {
-        min-width: 20px;
+        flex-basis: 22px;
+        width: 22px;
+        min-width: 22px;
         height: 20px;
-        padding: 0 4px;
+        padding: 0;
         font-size: 12px;
     }
 

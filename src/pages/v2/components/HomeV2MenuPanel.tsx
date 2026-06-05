@@ -66,6 +66,15 @@ export const HomeV2MenuPanel: React.FC = () => {
         return modalStack.length > 0;
     }, [modalStack.length]);
 
+    const isMenuActionTarget = useCallback((target: EventTarget | null) => {
+        const element = target instanceof Element
+            ? target
+            : target instanceof Node
+                ? target.parentElement
+                : null;
+        return Boolean(element?.closest(".home-v2-menu-item, .home-v2-menu-register"));
+    }, []);
+
     const isSwipeUp = useCallback((start: GestureStart, x: number, y: number) => {
         const deltaY = y - start.y;
         const absX = Math.abs(x - start.x);
@@ -182,13 +191,14 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const handlePanelPointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
         if (event.pointerType === "mouse" || isModalGestureBlocked()) return;
+        if (isMenuActionTarget(event.target)) return;
         panelPointerGestureStartRef.current = {
             x: event.clientX,
             y: event.clientY,
             time: Date.now(),
             scrollTop: event.currentTarget.scrollTop,
         };
-    }, [isModalGestureBlocked]);
+    }, [isMenuActionTarget, isModalGestureBlocked]);
 
     const handlePanelPointerMove = useCallback((event: React.PointerEvent<HTMLElement>) => {
         const start = panelPointerGestureStartRef.current;
@@ -209,6 +219,7 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const handlePanelTouchStart = useCallback((event: React.TouchEvent<HTMLElement>) => {
         if (event.touches.length !== 1 || isModalGestureBlocked()) return;
+        if (isMenuActionTarget(event.target)) return;
         const touch = event.touches[0];
         panelTouchGestureStartRef.current = {
             x: touch.clientX,
@@ -216,7 +227,7 @@ export const HomeV2MenuPanel: React.FC = () => {
             time: Date.now(),
             scrollTop: event.currentTarget.scrollTop,
         };
-    }, [isModalGestureBlocked]);
+    }, [isMenuActionTarget, isModalGestureBlocked]);
 
     const handlePanelTouchEnd = useCallback((event: React.TouchEvent<HTMLElement>) => {
         const start = panelTouchGestureStartRef.current;
@@ -370,7 +381,10 @@ export const HomeV2MenuPanel: React.FC = () => {
                                 key={item.to || item.action}
                                 type="button"
                                 className={`home-v2-menu-item ${isMenuItemActive(item) ? "is-active" : ""}`}
-                                onClick={() => handleMenuItemClick(item)}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleMenuItemClick(item);
+                                }}
                             >
                                 <span className={`home-v2-menu-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
                                     <i className={item.icon} />

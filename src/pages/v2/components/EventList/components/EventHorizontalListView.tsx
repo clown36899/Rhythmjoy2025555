@@ -27,8 +27,7 @@ export function EventHorizontalListView({
         }
     });
 
-    // 년도/월 키를 시간순으로 정렬
-    const sortedKeys = Object.keys(groupedByYearMonth).sort();
+    const sortedKeys = Object.keys(groupedByYearMonth);
 
     // 날짜 포맷팅 함수 (오리지널 스타일)
     const formatDate = (dateStr: string) => {

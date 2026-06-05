@@ -258,7 +258,7 @@ const EventList: React.FC<EventListProps> = ({
   const selectedGenre = searchParams.get("genre") || null;
   const searchTerm = searchParams.get("search") || "";
   const selectedWeekday = searchParams.get("weekday") ? parseInt(searchParams.get("weekday")!) : null;
-  const sortBy = (searchParams.get("sort") as "random" | "time" | "title") || "time";
+  const sortBy = (searchParams.get("sort") as "random" | "time" | "title") || "random";
 
   const { sortedEvents } = useEventFilters({
     events,

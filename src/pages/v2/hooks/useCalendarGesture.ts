@@ -15,6 +15,7 @@ interface UseCalendarGestureProps {
 const EXPANDED_HEIGHT = 200;
 const FOOTER_HEIGHT = 130; // 하단 네비게이션 고정 높이
 const MIN_SWIPE_DISTANCE = 40;
+const CLICK_SUPPRESS_AFTER_SWIPE_MS = 450;
 
 const getSafeRect = (element: Element | null | undefined) => {
   if (!element || !element.isConnected) return null;
@@ -46,6 +47,7 @@ export function useCalendarGesture({
   const swipeAnimationRef = useRef<number | null>(null);
   const gestureEndFallbackRef = useRef<number | null>(null);
   const onHorizontalSwipeRef = useRef(onHorizontalSwipe);
+  const suppressClickUntilRef = useRef(0);
 
   useEffect(() => {
     onHorizontalSwipeRef.current = onHorizontalSwipe;
@@ -170,6 +172,7 @@ export function useCalendarGesture({
 
 
       if (isLocked === 'horizontal') {
+        suppressClickUntilRef.current = Date.now() + CLICK_SUPPRESS_AFTER_SWIPE_MS;
         if (Math.abs(diffX) > MIN_SWIPE_DISTANCE) {
           const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
           const direction = diffX < 0 ? "next" : "prev";
@@ -308,6 +311,12 @@ export function useCalendarGesture({
       }
     };
 
+    const handleClickCapture = (e: MouseEvent) => {
+      if (Date.now() > suppressClickUntilRef.current) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+
     const handleGestureMove = (e: GestureEvent) => {
       if (!gestureRef.current.isActive) return;
       const coords = getCoords(e);
@@ -401,6 +410,7 @@ export function useCalendarGesture({
     container.addEventListener('touchcancel', handleGestureEnd, { passive: true });
     container.addEventListener('pointerdown', handleGestureStart, { passive: true });
     container.addEventListener('mousedown', handleGestureStart, { passive: true });
+    container.addEventListener('click', handleClickCapture, true);
 
     return () => {
       container.removeEventListener('touchstart', handleGestureStart);
@@ -409,6 +419,7 @@ export function useCalendarGesture({
       container.removeEventListener('touchcancel', handleGestureEnd);
       container.removeEventListener('pointerdown', handleGestureStart);
       container.removeEventListener('mousedown', handleGestureStart);
+      container.removeEventListener('click', handleClickCapture, true);
       window.removeEventListener('mousemove', handleGestureMove);
       window.removeEventListener('mouseup', handleGestureEnd);
       window.removeEventListener('touchmove', handleGestureMove);
