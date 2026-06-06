@@ -215,6 +215,18 @@ function selectCandidateDates({ title, cleanText, activity }) {
   return sourceDates.slice(0, 8);
 }
 
+function socialDayTitle(day = '') {
+  return ({
+    월: '월요',
+    화: '화요',
+    수: '수요',
+    목: '목요',
+    금: '금요',
+    토: '토요',
+    일: '일요',
+  })[day] || '';
+}
+
 function getYearForMonth(month) {
   const now = new Date();
   const currentMonth = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', month: 'numeric' }).format(now));
@@ -356,12 +368,64 @@ function inferDjs(text = '') {
   for (const match of text.matchAll(/(?:DJ|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
     const value = compactText(match[1])
       .replace(/\s*(?:와|과|및|님|입니다|입니다\.|와 함께).*$/i, '')
+      .replace(/\s*(?:소셜은|소셜\s*은|참석|되시며|됩니다|문의|입장|현금|카드|제로페이).*$/i, '')
       .replace(/\s*(?:AM|PM|오전|오후)\b.*$/i, '')
       .replace(/\s*\d{1,2}[:：]\d{2}.*$/, '')
       .trim();
     if (value && value.length <= 28) djs.push(value);
   }
   return unique(djs).slice(0, 5);
+}
+
+function to24Hour(hour, meridiem = '') {
+  let value = Number(hour);
+  if (/오후|저녁|pm/i.test(meridiem) && value < 12) value += 12;
+  if (/오전|am/i.test(meridiem) && value === 12) value = 0;
+  return String(value).padStart(2, '0');
+}
+
+function inferTimes(text = '') {
+  const times = [];
+  const pattern = /(?:\b(오전|오후|저녁|AM|PM)\s*)?(\d{1,2})(?:[:：](\d{2}))?\s*(?:-|~|–|—)\s*(\d{1,2})(?:[:：](\d{2}))?\s*시?/gi;
+  for (const match of text.matchAll(pattern)) {
+    const meridiem = match[1] || '';
+    const startHour = to24Hour(match[2], meridiem);
+    const endHour = to24Hour(match[4], meridiem);
+    const startMinute = match[3] || '00';
+    const endMinute = match[5] || '00';
+    times.push(`${startHour}:${startMinute}-${endHour}:${endMinute}`);
+  }
+  return unique(times).slice(0, 3);
+}
+
+function inferFee(text = '') {
+  const match = String(text || '').match(/\(?\s*(\d{1,3}(?:,\d{3})*)\s*원\s*\)?/);
+  return match ? `${match[1]}원` : '';
+}
+
+function extractSocialScheduleItems(text = '', source) {
+  const raw = compactText(text);
+  const items = [];
+  const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*(?:소셜|social)\s*[:：]?\s*([\s\S]*?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2}\s*(?:일)?\s*(?:\(\s*[월화수목금토일]\s*\))?\s*(?:소셜|social)\s*[:：]?)|$)/gi;
+  for (const match of raw.matchAll(pattern)) {
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    const date = isoDate(getYearForMonth(month), month, day);
+    if (date < today) continue;
+    const segment = compactText(match[4] || '');
+    const dayLabel = match[3] || '';
+    const titleDay = socialDayTitle(dayLabel);
+    items.push({
+      date,
+      day: dayLabel,
+      title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
+      djs: inferDjs(segment),
+      times: inferTimes(segment),
+      fee: inferFee(segment),
+    });
+  }
+  return items;
 }
 
 function imageNaturalArea(image) {
@@ -765,6 +829,56 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
     result.skipped += 1;
     log(`skip ${source.id}: generic fallback title (${candidateTitle})`);
     return [];
+  }
+
+  const socialScheduleItems = activity === 'social' ? extractSocialScheduleItems(cleanText, source) : [];
+  if (socialScheduleItems.length) {
+    const candidates = [];
+    const imageDataByUrl = new Map();
+    const getImageData = async (imageUrl) => {
+      if (!imageDataByUrl.has(imageUrl)) {
+        imageDataByUrl.set(imageUrl, await imageToDataUrl(page, imageUrl, referer || sourceUrl));
+      }
+      return imageDataByUrl.get(imageUrl);
+    };
+
+    for (const [index, item] of socialScheduleItems.entries()) {
+      const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
+      const imageData = await getImageData(candidatePosterUrl);
+      const raw = {
+        keyword: source.name,
+        source_url: sourceUrl,
+        poster_url: candidatePosterUrl,
+        ...(imageData ? { imageData } : {}),
+        extracted_text: cleanText.slice(0, 6000),
+        structured_data: {
+          title: item.title,
+          date: item.date,
+          ...(item.day ? { day: item.day } : {}),
+          event_type: eventType,
+          activity_type: activity,
+          location: venue || source.name,
+          venue_name: venue || source.name,
+          dance_scope: source.scope,
+          genre_family: source.genre_family,
+          dance_genre: source.dance_genre,
+          ...(item.djs.length ? { djs: item.djs } : {}),
+          ...(item.times.length ? { times: item.times } : {}),
+          ...(item.fee ? { fee: item.fee } : {}),
+        },
+      };
+
+      const prepared = prepareCandidate(raw, { today });
+      if (!prepared.validation.ok) {
+        result.skipped += 1;
+        log(`skip ${source.id} ${item.date}: ${prepared.validation.errors.join('; ')}`);
+        continue;
+      }
+
+      candidates.push(buildNetlifyPayload(raw, { today }));
+    }
+
+    return candidates;
   }
 
   const dates = selectCandidateDates({ title: candidateTitle, cleanText, activity });

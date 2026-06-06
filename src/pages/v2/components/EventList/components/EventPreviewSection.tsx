@@ -85,24 +85,40 @@ const mergeUniqueEvents = (...groups: Event[][]) => {
     return merged;
 };
 
-const getHomeAdAuthorKey = (event: Event) => {
+const normalizeHomeAdKeyPart = (value?: string | null) => value?.trim().replace(/\s+/g, " ").toLowerCase() || "";
+
+const getHomeAdVenueKey = (event: Event) => {
+    const venueId = normalizeHomeAdKeyPart(event.venue_id);
+    if (venueId) return `venue:${venueId}`;
+
+    const venueName = normalizeHomeAdKeyPart(event.venue_name || event.location || event.place_name);
+    if (venueName) return `place:${venueName}`;
+
+    return "";
+};
+
+const getHomeAdDedupeKey = (event: Event) => {
     const userId = event.user_id?.trim();
-    if (userId) return `user:${userId}`;
+    const venueKey = getHomeAdVenueKey(event);
+    if (userId) return venueKey ? `user:${userId}|${venueKey}` : `user:${userId}`;
 
     const organizerName = event.organizer_name?.trim() || event.organizer?.trim();
-    if (organizerName) return `organizer:${organizerName.toLowerCase()}`;
+    if (organizerName) {
+        const organizerKey = `organizer:${organizerName.toLowerCase()}`;
+        return venueKey ? `${organizerKey}|${venueKey}` : organizerKey;
+    }
 
     return `event:${event.id}`;
 };
 
-const limitHomeAdOnePerAuthor = (events: Event[]) => {
-    const seenAuthors = new Set<string>();
+const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
+    const seenKeys = new Set<string>();
     const filtered: Event[] = [];
 
     for (const event of events) {
-        const authorKey = getHomeAdAuthorKey(event);
-        if (seenAuthors.has(authorKey)) continue;
-        seenAuthors.add(authorKey);
+        const dedupeKey = getHomeAdDedupeKey(event);
+        if (seenKeys.has(dedupeKey)) continue;
+        seenKeys.add(dedupeKey);
         filtered.push(event);
     }
 
@@ -163,11 +179,11 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         const fallbackSelected = visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
         return mergeUniqueEvents(primarySelected, fallbackSelected);
     }, [preferredScope, visibleEvents, visibleFallbackEvents]);
-    const selectedScopeAdEvents = useMemo(() => limitHomeAdOnePerAuthor(selectedScopeEvents), [selectedScopeEvents]);
+    const selectedScopeAdEvents = useMemo(() => limitHomeAdOnePerAuthorVenue(selectedScopeEvents), [selectedScopeEvents]);
     const displayEvents = useMemo(() => {
         const nextEvents = selectedScopeAdEvents.length >= HOME_AD_MIN_SELECTED_COUNT
             ? selectedScopeAdEvents
-            : limitHomeAdOnePerAuthor(mergeUniqueEvents(
+            : limitHomeAdOnePerAuthorVenue(mergeUniqueEvents(
                 selectedScopeAdEvents,
                 mergeUniqueEvents(visibleEvents, visibleFallbackEvents).filter((event) => getHomeAdEventScope(event) !== preferredScope),
             ));
@@ -178,6 +194,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         if (!displayEvents || displayEvents.length === 0) return 0;
         return Math.floor(Math.random() * displayEvents.length);
     });
+    const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
     useEffect(() => {
         if (typeof window !== "undefined") {
             window.localStorage.setItem(HOME_AD_DANCE_SCOPE_KEY, "swing");
@@ -196,8 +213,8 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
             setActiveIndex(0);
             return;
         }
-        setActiveIndex((index) => index % displayEvents.length);
-    }, [displayEvents.length, preferredScope]);
+        setActiveIndex(0);
+    }, [displayEventKey, preferredScope, displayEvents.length]);
     const safeActiveIndex = displayEvents.length > 0 ? activeIndex % displayEvents.length : 0;
     const featuredEvent = displayEvents[safeActiveIndex] || displayEvents[0];
     const nextEvents = displayEvents
