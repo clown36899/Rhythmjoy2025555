@@ -48,6 +48,7 @@ export const MobileShell: React.FC = () => {
   const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
   const [isTranslationPending, setIsTranslationPending] = useState(false);
   const [translationErrorMessage, setTranslationErrorMessage] = useState('');
+  const isTranslationPendingRef = useRef(false);
   const translationFeedbackTimerRef = useRef<number | null>(null);
   const translationErrorTimerRef = useRef<number | null>(null);
   // unused state removed
@@ -193,12 +194,14 @@ export const MobileShell: React.FC = () => {
   }, []);
 
   useEffect(() => () => {
+    isTranslationPendingRef.current = false;
     clearTranslationFeedbackTimer();
     clearTranslationErrorTimer();
   }, [clearTranslationErrorTimer, clearTranslationFeedbackTimer]);
 
   const finishTranslationFeedback = useCallback(() => {
     clearTranslationFeedbackTimer();
+    isTranslationPendingRef.current = false;
     setIsTranslationPending(false);
   }, [clearTranslationFeedbackTimer]);
 
@@ -246,11 +249,17 @@ export const MobileShell: React.FC = () => {
 
     try {
       const googleTranslateChangeLanguage = typeof window !== 'undefined'
-        ? (window as any).changeLanguage
+        ? ((window as any).googleTranslateChangeLanguage || (window as any).changeLanguage)
         : null;
 
       if (typeof googleTranslateChangeLanguage === 'function') {
-        await googleTranslateChangeLanguage(lng);
+        const result = await googleTranslateChangeLanguage(lng);
+        if (result && typeof result === 'object') {
+          const { ok, lang: appliedLanguage } = result as { ok?: boolean; lang?: string };
+          if (ok === false || (appliedLanguage && appliedLanguage !== lng)) {
+            return false;
+          }
+        }
       } else if (lng !== 'ko') {
         throw new Error('Google Translate bridge is not ready.');
       }
@@ -265,9 +274,14 @@ export const MobileShell: React.FC = () => {
       const retrySeconds = Number.isFinite(retryAfterMillis) && retryAfterMillis > 0
         ? Math.max(1, Math.ceil(retryAfterMillis / 1000))
         : 0;
+      const reason = typeof error === 'object' && error !== null && 'reason' in error
+        ? String((error as { reason?: unknown }).reason)
+        : '';
       const message = retrySeconds > 0
         ? `${retrySeconds}초 후 다시 시도해 주세요.`
-        : '번역 서버가 잠시 응답하지 않습니다.';
+        : reason === 'translate-timeout'
+          ? '번역 적용이 지연됩니다. 다시 눌러 주세요.'
+          : '번역 서버가 잠시 응답하지 않습니다.';
 
       showTranslationError(message);
       logUserInteraction('Language', 'ChangeFailed', lng);
@@ -276,9 +290,10 @@ export const MobileShell: React.FC = () => {
   }, [i18n, showTranslationError]);
 
   const handleTranslateToggle = useCallback(() => {
-    if (isTranslationPending) return;
+    if (isTranslationPendingRef.current) return;
 
     const nextLang = i18n.language?.startsWith('ko') ? 'en' : 'ko';
+    isTranslationPendingRef.current = true;
     setIsTranslationPending(true);
     void changeLanguage(nextLang).then((didChange) => {
       if (didChange) {
@@ -287,7 +302,7 @@ export const MobileShell: React.FC = () => {
         finishTranslationFeedback();
       }
     });
-  }, [changeLanguage, finishTranslationFeedback, i18n.language, isTranslationPending, waitForTranslationFeedback]);
+  }, [changeLanguage, finishTranslationFeedback, i18n.language, waitForTranslationFeedback]);
 
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {
