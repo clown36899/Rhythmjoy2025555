@@ -7,12 +7,196 @@ import { formatEventDate } from '../../../utils/dateUtils';
 import './NewEventsBanner.css';
 
 type EdgeTone = 'dark' | 'light';
+type SocialAdImageKind = 'photo' | 'poster' | 'unknown';
+
+interface SocialAdImageAnalysis {
+    kind: SocialAdImageKind;
+    confidence: number;
+}
 
 const edgeToneCache = new Map<string, EdgeTone>();
+const socialAdImageKindCache = new Map<string, SocialAdImageAnalysis>();
 const EDGE_TONE_BLACK_LUMINANCE_THRESHOLD = 96;
 const EDGE_TONE_BLACK_CHROMA_THRESHOLD = 52;
 const EDGE_TONE_BLACK_SAMPLE_RATIO = 0.48;
 const ONE_DAY_RECRUIT_ICON_SRC = '/icons/v2/oneday-recruit.svg';
+const SOCIAL_POSTER_SCORE_THRESHOLD = 0.9;
+
+const UNKNOWN_SOCIAL_IMAGE_ANALYSIS: SocialAdImageAnalysis = {
+    kind: 'unknown',
+    confidence: 0,
+};
+
+const isSocialAdEvent = (event: Event) => {
+    const category = String(event.category || '').toLowerCase();
+    const activityType = String((event as Event & { activity_type?: string | null }).activity_type || '').toLowerCase();
+    const genre = String(event.genre || '').toLowerCase();
+
+    return (
+        category === 'social' ||
+        activityType === 'social' ||
+        genre.includes('소셜') ||
+        genre.includes('social')
+    );
+};
+
+const hasCustomEventImage = (event: Event) => Boolean(
+    event.image_medium ||
+    event.image_thumbnail ||
+    event.image ||
+    event.image_full
+);
+
+const getSocialImageUrlHint = (imageUrl: string): SocialAdImageAnalysis | null => {
+    const normalizedUrl = imageUrl.toLowerCase();
+
+    if (
+        normalizedUrl.includes('/event-posters/') ||
+        normalizedUrl.includes('event-posters%2f') ||
+        normalizedUrl.includes('poster_') ||
+        normalizedUrl.includes('_poster') ||
+        normalizedUrl.includes('-poster')
+    ) {
+        return { kind: 'poster', confidence: 0.72 };
+    }
+
+    return null;
+};
+
+const detectSocialAdImageKind = (imageUrl: string): Promise<SocialAdImageAnalysis> => (
+    new Promise((resolve, reject) => {
+        if (typeof document === 'undefined') {
+            reject(new Error('document unavailable'));
+            return;
+        }
+
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => {
+            try {
+                const width = 72;
+                const height = 96;
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const context = canvas.getContext('2d', { willReadFrequently: true });
+
+                if (!context) {
+                    reject(new Error('canvas context unavailable'));
+                    return;
+                }
+
+                context.drawImage(image, 0, 0, width, height);
+
+                const imageData = context.getImageData(0, 0, width, height).data;
+                const colorBins = new Map<string, number>();
+                const cellSize = 8;
+                const cellsWide = Math.ceil(width / cellSize);
+                const cellsHigh = Math.ceil(height / cellSize);
+                const cells = Array.from({ length: cellsWide * cellsHigh }, () => ({
+                    edgeCount: 0,
+                    samples: 0,
+                    minLuminance: 255,
+                    maxLuminance: 0,
+                }));
+
+                let strongEdgeCount = 0;
+                let edgeSampleCount = 0;
+                let highSaturationCount = 0;
+                let pixelSampleCount = 0;
+
+                for (let y = 0; y < height - 1; y += 1) {
+                    for (let x = 0; x < width - 1; x += 1) {
+                        const index = (y * width + x) * 4;
+                        const alpha = imageData[index + 3];
+                        if (alpha < 12) continue;
+
+                        const red = imageData[index];
+                        const green = imageData[index + 1];
+                        const blue = imageData[index + 2];
+                        const luminance = 0.299 * red + 0.587 * green + 0.114 * blue;
+                        const maxChannel = Math.max(red, green, blue);
+                        const minChannel = Math.min(red, green, blue);
+                        const saturation = maxChannel === 0 ? 0 : (maxChannel - minChannel) / maxChannel;
+                        const colorBin = `${red >> 4}-${green >> 4}-${blue >> 4}`;
+                        const cellIndex = Math.floor(y / cellSize) * cellsWide + Math.floor(x / cellSize);
+                        const cell = cells[cellIndex];
+
+                        colorBins.set(colorBin, (colorBins.get(colorBin) || 0) + 1);
+                        if (saturation > 0.58) highSaturationCount += 1;
+                        pixelSampleCount += 1;
+
+                        cell.samples += 1;
+                        cell.minLuminance = Math.min(cell.minLuminance, luminance);
+                        cell.maxLuminance = Math.max(cell.maxLuminance, luminance);
+
+                        const rightIndex = index + 4;
+                        const downIndex = ((y + 1) * width + x) * 4;
+                        const rightLuminance = 0.299 * imageData[rightIndex] + 0.587 * imageData[rightIndex + 1] + 0.114 * imageData[rightIndex + 2];
+                        const downLuminance = 0.299 * imageData[downIndex] + 0.587 * imageData[downIndex + 1] + 0.114 * imageData[downIndex + 2];
+                        const edgeStrength = Math.abs(luminance - rightLuminance) + Math.abs(luminance - downLuminance);
+
+                        if (edgeStrength > 78) {
+                            strongEdgeCount += 1;
+                            cell.edgeCount += 1;
+                        }
+                        edgeSampleCount += 1;
+                    }
+                }
+
+                if (pixelSampleCount === 0 || edgeSampleCount === 0) {
+                    reject(new Error('no image samples'));
+                    return;
+                }
+
+                const sortedColorBins = [...colorBins.values()].sort((a, b) => b - a);
+                const topTwelveColorRatio = sortedColorBins
+                    .slice(0, 12)
+                    .reduce((sum, count) => sum + count, 0) / pixelSampleCount;
+                const uniqueColorRatio = colorBins.size / pixelSampleCount;
+                const edgeDensity = strongEdgeCount / edgeSampleCount;
+                const highSaturationRatio = highSaturationCount / pixelSampleCount;
+                const textLikeCells = cells.filter((cell) => {
+                    if (cell.samples < 20) return false;
+                    const cellEdgeRatio = cell.edgeCount / cell.samples;
+                    const luminanceRange = cell.maxLuminance - cell.minLuminance;
+                    return cellEdgeRatio > 0.18 && cellEdgeRatio < 0.62 && luminanceRange > 84;
+                }).length;
+                const textLikeCellRatio = textLikeCells / cells.length;
+                const aspectRatio = image.naturalHeight > 0 ? image.naturalHeight / Math.max(image.naturalWidth, 1) : 1;
+
+                const posterScore =
+                    topTwelveColorRatio * 0.9 +
+                    textLikeCellRatio * 0.95 +
+                    Math.min(edgeDensity * 2.3, 0.55) +
+                    (aspectRatio > 1.18 ? 0.12 : 0) +
+                    (highSaturationRatio > 0.22 ? 0.15 : 0) -
+                    (uniqueColorRatio > 0.11 ? 0.22 : 0);
+                const hasPosterLayoutCue =
+                    topTwelveColorRatio > 0.46 &&
+                    highSaturationRatio > 0.32 &&
+                    textLikeCellRatio > 0.07;
+                const hasTextPosterCue =
+                    textLikeCellRatio > 0.1 &&
+                    edgeDensity > 0.055;
+                const isPoster = posterScore >= SOCIAL_POSTER_SCORE_THRESHOLD || hasPosterLayoutCue || hasTextPosterCue;
+                const confidence = Math.min(
+                    0.98,
+                    0.52 + Math.abs(posterScore - SOCIAL_POSTER_SCORE_THRESHOLD) * 1.12,
+                );
+
+                resolve({
+                    kind: isPoster ? 'poster' : 'photo',
+                    confidence,
+                });
+            } catch (error) {
+                reject(error);
+            }
+        };
+        image.onerror = () => reject(new Error('image load failed'));
+        image.src = imageUrl;
+    })
+);
 
 const detectImageEdgeTone = (imageUrl: string): Promise<EdgeTone> => (
     new Promise((resolve, reject) => {
@@ -138,6 +322,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const oneDayRecruitPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
+    const pendingSocialImageKindUrlsRef = React.useRef<Set<string>>(new Set());
     const dragStateRef = React.useRef({
         mouseDown: false,
         startX: 0,
@@ -146,6 +331,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         suppressClick: false,
     });
     const [edgeToneByUrl, setEdgeToneByUrl] = useState<Record<string, EdgeTone>>({});
+    const [socialImageAnalysisByUrl, setSocialImageAnalysisByUrl] = useState<Record<string, SocialAdImageAnalysis>>({});
 
     useEffect(() => {
         return () => {
@@ -276,6 +462,49 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 pendingEdgeToneUrlsRef.current.delete(imageUrl);
             });
     }, []);
+
+    const ensureSocialAdImageKind = useCallback((imageUrl: string, event: Event) => {
+        if (!imageUrl || !hasCustomEventImage(event) || !isSocialAdEvent(event)) return;
+
+        const cachedAnalysis = socialAdImageKindCache.get(imageUrl);
+        if (cachedAnalysis) {
+            setSocialImageAnalysisByUrl((prev) => (
+                prev[imageUrl] === cachedAnalysis ? prev : { ...prev, [imageUrl]: cachedAnalysis }
+            ));
+            return;
+        }
+
+        const urlHint = getSocialImageUrlHint(imageUrl);
+        if (urlHint?.kind === 'poster') {
+            socialAdImageKindCache.set(imageUrl, urlHint);
+            setSocialImageAnalysisByUrl((prev) => (
+                prev[imageUrl] === urlHint ? prev : { ...prev, [imageUrl]: urlHint }
+            ));
+            return;
+        }
+
+        if (pendingSocialImageKindUrlsRef.current.has(imageUrl)) return;
+        pendingSocialImageKindUrlsRef.current.add(imageUrl);
+
+        detectSocialAdImageKind(imageUrl)
+            .then((analysis) => {
+                socialAdImageKindCache.set(imageUrl, analysis);
+                setSocialImageAnalysisByUrl((prev) => (
+                    prev[imageUrl] === analysis ? prev : { ...prev, [imageUrl]: analysis }
+                ));
+            })
+            .catch(() => {
+                socialAdImageKindCache.set(imageUrl, UNKNOWN_SOCIAL_IMAGE_ANALYSIS);
+                setSocialImageAnalysisByUrl((prev) => (
+                    prev[imageUrl] === UNKNOWN_SOCIAL_IMAGE_ANALYSIS
+                        ? prev
+                        : { ...prev, [imageUrl]: UNKNOWN_SOCIAL_IMAGE_ANALYSIS }
+                ));
+            })
+            .finally(() => {
+                pendingSocialImageKindUrlsRef.current.delete(imageUrl);
+            });
+    }, []);
     const openOneDayRecruitment = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         setIsOneDayRecruitPressed(true);
@@ -363,6 +592,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         return formatEventDate(startDate);
     };
     const getPlaceLabel = (event: Event) => event.location || event.place_name || "장소 미정";
+    const getTimeLabel = (event: Event) => event.time?.trim() || '';
+    const getSocialImageAnalysis = (imageUrl: string) =>
+        getSocialImageUrlHint(imageUrl) || socialImageAnalysisByUrl[imageUrl] || UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
     const getSlidePlacement = (index: number) => {
         if (!hasMultipleEvents) {
             return {
@@ -545,12 +777,18 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             const placement = getSlidePlacement(index);
                             const edgeTone = edgeToneByUrl[eventThumbnail];
                             const edgeToneClass = isActiveSlide && edgeTone === 'dark' ? 'is-dark-edge' : '';
+                            const socialImageAnalysis = getSocialImageAnalysis(eventThumbnail);
+                            const isSocialPhotoAd =
+                                hasCustomEventImage(event) &&
+                                isSocialAdEvent(event) &&
+                                socialImageAnalysis.kind === 'photo';
                             const authorProfile = getAuthorProfile(event);
+                            const timeLabel = getTimeLabel(event);
 
                             return (
                                 <div
                                     key={event.id}
-                                    className={`NEB-slide ${placement.className} ${edgeToneClass}`}
+                                    className={`NEB-slide ${placement.className} ${edgeToneClass} ${isSocialPhotoAd ? 'is-social-photo-ad' : ''}`}
                                     style={placement.style}
                                     onClick={() => openEventDetail(event)}
                                     aria-label={event.title}
@@ -563,7 +801,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             loading={isActiveSlide ? 'eager' : 'lazy'}
                                             decoding="async"
                                             fetchPriority={isActiveSlide ? 'high' : 'low'}
-                                            onLoad={() => ensureImageEdgeTone(eventThumbnail)}
+                                            onLoad={() => {
+                                                ensureImageEdgeTone(eventThumbnail);
+                                                ensureSocialAdImageKind(eventThumbnail, event);
+                                            }}
                                         />
                                         {authorProfile.image && (
                                             <span
@@ -579,6 +820,39 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                     referrerPolicy="no-referrer"
                                                 />
                                             </span>
+                                        )}
+                                        {isSocialPhotoAd && (
+                                            <div className="NEB-socialPhotoPoster" aria-hidden="true">
+                                                <span className="NEB-socialPhotoPortrait">
+                                                    <img
+                                                        src={eventThumbnail}
+                                                        alt=""
+                                                        loading={isActiveSlide ? 'eager' : 'lazy'}
+                                                        decoding="async"
+                                                    />
+                                                </span>
+                                                <span className="NEB-socialPhotoCopy">
+                                                    <span className="NEB-socialPhotoKicker">
+                                                        <i className="ri-music-2-line" />
+                                                        SOCIAL
+                                                    </span>
+                                                    <strong>{event.title}</strong>
+                                                    <span className="NEB-socialPhotoMeta">
+                                                        <i className="ri-calendar-line" />
+                                                        {getDateLabel(event)}
+                                                    </span>
+                                                    {timeLabel && (
+                                                        <span className="NEB-socialPhotoMeta">
+                                                            <i className="ri-time-line" />
+                                                            {timeLabel}
+                                                        </span>
+                                                    )}
+                                                    <span className="NEB-socialPhotoMeta is-place">
+                                                        <i className="ri-map-pin-line" />
+                                                        {getPlaceLabel(event)}
+                                                    </span>
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
