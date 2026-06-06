@@ -581,6 +581,13 @@ export const MobileShell: React.FC = () => {
               )}
             </div>
 
+            {isEventsPage && (
+              <div
+                id="home-neb-header-scope-target"
+                className="home-neb-header-scope-target"
+              />
+            )}
+
             <div className="header-right-buttons">
               <button
                 type="button"

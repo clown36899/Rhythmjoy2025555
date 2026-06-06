@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../../../../contexts/AuthContext";
 // Styles
 // Styles
@@ -174,6 +175,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         if (isAdmin) return fallbackEvents;
         return fallbackEvents.filter((event) => getHomeAdEventScope(event) === "swing");
     }, [fallbackEvents, isAdmin]);
+    const [headerScopeTarget, setHeaderScopeTarget] = useState<HTMLElement | null>(null);
     const selectedScopeEvents = useMemo(() => {
         const primarySelected = visibleEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
         const fallbackSelected = visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
@@ -220,28 +222,40 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     const nextEvents = displayEvents
         .filter((event) => event.id !== featuredEvent?.id)
         .slice(0, 4);
+    const shouldShowScopeStrip = visibleDanceScopeOptions.length > 1;
+
+    useEffect(() => {
+        if (!shouldShowScopeStrip || typeof document === "undefined") return;
+        setHeaderScopeTarget(document.getElementById("home-neb-header-scope-target"));
+    }, [shouldShowScopeStrip]);
+
+    const renderScopeStrip = (variant: "inline" | "header") => (
+        <div
+            className={`home-neb-admin-scope-strip home-neb-admin-scope-strip--${variant}`}
+            aria-label="메인 광고 장르 선택"
+        >
+            {visibleDanceScopeOptions.map((option) => (
+                <button
+                    key={option.key}
+                    type="button"
+                    className={[
+                        preferredScope === option.key ? "is-active" : "",
+                        option.key !== "swing" ? "is-preparing" : "",
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => handleScopeClick(option.key)}
+                >
+                    {option.label}
+                </button>
+            ))}
+        </div>
+    );
 
     if (displayEvents.length === 0) return null;
 
     return (
         <section className="home-neb-standard-layout" aria-label="신규 이벤트 광고">
-            {visibleDanceScopeOptions.length > 1 && (
-            <div className="home-neb-admin-scope-strip" aria-label="메인 광고 장르 선택">
-                {visibleDanceScopeOptions.map((option) => (
-                    <button
-                        key={option.key}
-                        type="button"
-                        className={[
-                            preferredScope === option.key ? "is-active" : "",
-                            option.key !== "swing" ? "is-preparing" : "",
-                        ].filter(Boolean).join(" ")}
-                        onClick={() => handleScopeClick(option.key)}
-                    >
-                        {option.label}
-                    </button>
-                ))}
-            </div>
-            )}
+            {shouldShowScopeStrip && renderScopeStrip("inline")}
+            {shouldShowScopeStrip && headerScopeTarget && createPortal(renderScopeStrip("header"), headerScopeTarget)}
             <div className="home-neb-desktop-grid">
                 <div className="home-neb-hero-pane">
                     <NewEventsBanner

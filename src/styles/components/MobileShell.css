@@ -358,6 +358,11 @@
   margin: 0 auto;
 }
 
+.home-neb-header-scope-target {
+  display: none;
+  min-width: 0;
+}
+
 .layout-compact .header-content-inner {
   max-width: none;
 }
@@ -1485,6 +1490,38 @@ html.v2-home-mode #root {
 
 .v2-home-shell .header-content-inner {
   padding: 0 24px;
+}
+
+@media (min-width: 860px) {
+  .v2-home-shell .header-content-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  }
+
+  .v2-home-shell .header-left-content {
+    grid-column: 1;
+  }
+
+  .v2-home-shell .home-neb-header-scope-target {
+    display: flex;
+    grid-column: 2;
+    justify-self: center;
+    width: min(46vw, 480px);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .v2-home-shell .home-neb-header-scope-target:empty {
+    width: 0;
+  }
+
+  .v2-home-shell .header-right-buttons {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .v2-home-shell .home-neb-admin-scope-strip--inline {
+    display: none;
+  }
 }
 
 .v2-home-shell .shell-main-content {
