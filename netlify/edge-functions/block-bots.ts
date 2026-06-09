@@ -1,6 +1,13 @@
 import type { Context } from "@netlify/edge-functions";
 
 export default async (request: Request, context: Context) => {
+    const url = new URL(request.url);
+
+    // API 경로는 봇 차단 대상에서 제외 (수집 에이전트 curl/python 허용)
+    if (url.pathname.startsWith("/.netlify/functions/") || url.pathname.startsWith("/api/")) {
+        return;
+    }
+
     const userAgent = request.headers.get("user-agent")?.toLowerCase() || "";
 
     // Block aggressive or unwanted bots/crawlers
