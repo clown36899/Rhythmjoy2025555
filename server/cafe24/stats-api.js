@@ -8,6 +8,60 @@ import {
 const EVENT_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
   : 'events';
+const SESSION_COOKIE = 'swingenjoy_session';
+
+function parseCookies(req) {
+  const cookie = req.headers.cookie || '';
+  return Object.fromEntries(
+    cookie
+      .split(';')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const index = part.indexOf('=');
+        if (index === -1) return [part, ''];
+        return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
+      }),
+  );
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function configuredAdminEmails() {
+  return String(`${process.env.VITE_ADMIN_EMAIL || ''},${process.env.ADMIN_EMAIL || ''}`)
+    .split(',')
+    .map(normalizeEmail)
+    .filter(Boolean);
+}
+
+let analyticsAdminIdentityCache = {
+  expiresAt: 0,
+  userIds: new Set(),
+  emails: new Set(),
+};
+
+async function getAnalyticsAdminIdentityCache() {
+  const now = Date.now();
+  if (analyticsAdminIdentityCache.expiresAt > now) return analyticsAdminIdentityCache;
+
+  const admins = await loadCafe24TableRows('board_admins').catch(() => []);
+  const userIds = new Set();
+  const emails = new Set(configuredAdminEmails());
+  for (const admin of admins) {
+    if (admin?.user_id) userIds.add(String(admin.user_id));
+    const email = normalizeEmail(admin?.email || admin?.admin_email);
+    if (email) emails.add(email);
+  }
+
+  analyticsAdminIdentityCache = {
+    expiresAt: now + 60_000,
+    userIds,
+    emails,
+  };
+  return analyticsAdminIdentityCache;
+}
 
 function asString(value) {
   if (value === undefined || value === null || value === '') return null;
@@ -65,6 +119,31 @@ function requestClientIp(req) {
 function hashIp(ip) {
   if (!ip) return null;
   return crypto.createHash('sha256').update(String(ip)).digest('hex').slice(0, 24);
+}
+
+async function getAnalyticsRequestUser(req, pool) {
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  if (!sessionId) return null;
+
+  const [rows] = await pool.execute(
+    `SELECT u.id, u.email, u.is_admin
+       FROM sessions s
+       JOIN users u ON u.id = s.user_id
+      WHERE s.id = ? AND s.expires_at > NOW()
+      LIMIT 1`,
+    [sessionId],
+  );
+  const user = rows[0];
+  if (!user) return null;
+
+  const userId = String(user.id);
+  const email = normalizeEmail(user.email);
+  const adminIdentities = await getAnalyticsAdminIdentityCache();
+  const isAdmin = asBool(user.is_admin, false)
+    || adminIdentities.userIds.has(userId)
+    || (email && adminIdentities.emails.has(email));
+
+  return { id: userId, is_admin: isAdmin };
 }
 
 function parseJson(value, fallback = {}) {
@@ -498,8 +577,14 @@ export async function eventStats(_req, res) {
 export async function recordAnalytics(req, res) {
   const pool = getMysqlPool();
   const requestIp = requestClientIp(req);
+  const currentUser = await getAnalyticsRequestUser(req, pool).catch(() => null);
+  const trustedUserId = currentUser?.id ? String(currentUser.id) : null;
+  const trustedIsAdmin = Boolean(currentUser?.is_admin);
   const body = {
     ...(req.body || {}),
+    user_id: trustedUserId,
+    userId: trustedUserId,
+    is_admin: trustedIsAdmin,
     client_ip: req.body?.client_ip || requestIp,
     ip_hash: req.body?.ip_hash || hashIp(requestIp),
   };

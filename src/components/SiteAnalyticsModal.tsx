@@ -34,6 +34,8 @@ const TYPE_NAMES: Record<string, string> = {
 };
 
 const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
+const getAnalyticsUserDisplayName = (userId: string | null | undefined, nickname?: string | null) =>
+    nickname || (userId ? `회원 ${userId.substring(0, 8)}` : '회원');
 
 interface AnalyticsSummary {
     total_clicks: number;
@@ -314,6 +316,18 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // [PHASE 22] 특정 사용자 제외 (앱테스트계정 ID Prefix)
             // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
             const excludedPrefix = '91b04b25';
+            const adminUserIds = new Set<string>();
+            const { data: adminRows, error: adminRowsError } = await supabase
+                .from('board_admins')
+                .select('user_id,email,admin_email');
+
+            if (adminRowsError) {
+                console.warn('[Analytics] Failed to fetch admin identities:', adminRowsError);
+            } else {
+                (adminRows || []).forEach((row: any) => {
+                    if (row.user_id) adminUserIds.add(String(row.user_id));
+                });
+            }
 
             // Raw data fetch with pagination.
             let allLogs: any[] = [];
@@ -354,12 +368,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (d.fingerprint) botFingerprints.add(String(d.fingerprint));
             });
 
-            const validData = data.filter(d =>
-                !d.is_admin &&
-                (d.user_id ? !d.user_id.startsWith(excludedPrefix) : true) &&
-                (d.user_agent ? !isLikelyBotTraffic(d.user_agent, false) : true)
-            );
-
             // RPC counts are now accurate (DB migration applied), so no need to overwrite.
             // clickBasedLoggedIn and clickBasedAnon are already set from rpcData.
 
@@ -374,7 +382,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     .select('*')
                     .gte('session_start', startStr)
                     .lte('session_start', endStr)
-                    .eq('is_admin', false) // [RESTORE] Database-side filtering is safer
                     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
                 if (sError) {
@@ -394,28 +401,92 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 }
                 if (allSessions.length > 50000) break;
             }
-            // Use 'sessions' identifier to match downstream code usage (if checking !sessionsError)
-            // But downstream checks { data: sessions, error: sessionsError }. 
-            // We need to simulate that structure or modify downstream
-            const sessions = allSessions.filter(s =>
-                !s.is_admin &&
-                (s.user_id ? !s.user_id.startsWith(excludedPrefix) : true) &&
-                (s.session_id ? !botSessionIds.has(String(s.session_id)) : true) &&
-                (s.fingerprint ? !botFingerprints.has(String(s.fingerprint)) : true) &&
-                (s.user_agent ? !isLikelyBotTraffic(s.user_agent, false) : true)
-            );
+            const rawSessionIdToUser = new Map<string, Set<string>>();
+            const rawFingerprintToUser = new Map<string, Set<string>>();
+            const addRawIdentity = (map: Map<string, Set<string>>, key: unknown, userId: string) => {
+                if (!key || !userId) return;
+                const stringKey = String(key);
+                const values = map.get(stringKey) || new Set<string>();
+                values.add(userId);
+                map.set(stringKey, values);
+            };
+            const getSingleRawIdentity = (map: Map<string, Set<string>>, key: unknown) => {
+                if (!key) return null;
+                const values = map.get(String(key));
+                if (!values || values.size !== 1) return null;
+                return Array.from(values)[0];
+            };
+            [...allSessions, ...data].forEach((row: any) => {
+                if (!row.user_id) return;
+                const userId = String(row.user_id);
+                addRawIdentity(rawSessionIdToUser, row.session_id, userId);
+                addRawIdentity(rawFingerprintToUser, row.fingerprint, userId);
+            });
+
+            const resolveAnalyticsUserId = (row: any) => {
+                if (row.user_id) return String(row.user_id);
+                const sessionUserId = getSingleRawIdentity(rawSessionIdToUser, row.session_id);
+                if (sessionUserId) return sessionUserId;
+                const fingerprintUserId = getSingleRawIdentity(rawFingerprintToUser, row.fingerprint);
+                if (fingerprintUserId) return fingerprintUserId;
+                return null;
+            };
+
+            const isAdminAnalyticsRow = (row: any) => {
+                if (row.is_admin) return true;
+                if (row.user_id) return adminUserIds.has(String(row.user_id));
+                const sessionUsers = row.session_id ? rawSessionIdToUser.get(String(row.session_id)) : null;
+                const fingerprintUsers = row.fingerprint ? rawFingerprintToUser.get(String(row.fingerprint)) : null;
+                return Boolean(
+                    (sessionUsers && Array.from(sessionUsers).some((userId) => adminUserIds.has(userId))) ||
+                    (fingerprintUsers && Array.from(fingerprintUsers).some((userId) => adminUserIds.has(userId)))
+                );
+            };
+
+            const validData = data.filter(d => {
+                const userId = resolveAnalyticsUserId(d);
+                return (
+                    !isAdminAnalyticsRow(d) &&
+                    (userId ? !userId.startsWith(excludedPrefix) : true) &&
+                    (d.user_agent ? !isLikelyBotTraffic(d.user_agent, false) : true)
+                );
+            });
+
+            const sessions = allSessions.filter(s => {
+                const userId = resolveAnalyticsUserId(s);
+                return (
+                    !isAdminAnalyticsRow(s) &&
+                    (userId ? !userId.startsWith(excludedPrefix) : true) &&
+                    (s.session_id ? !botSessionIds.has(String(s.session_id)) : true) &&
+                    (s.fingerprint ? !botFingerprints.has(String(s.fingerprint)) : true) &&
+                    (s.user_agent ? !isLikelyBotTraffic(s.user_agent, false) : true)
+                );
+            });
             const sessionsError = null;
 
             const sessionData = sessions || [];
 
-            const fingerprintToUser = new Map<string, string>();
-            const sessionIdToUser = new Map<string, string>();
+            const fingerprintToUser = new Map<string, Set<string>>();
+            const sessionIdToUser = new Map<string, Set<string>>();
+            const addIdentity = (map: Map<string, Set<string>>, key: unknown, userId: string) => {
+                if (!key || !userId) return;
+                const stringKey = String(key);
+                const values = map.get(stringKey) || new Set<string>();
+                values.add(userId);
+                map.set(stringKey, values);
+            };
+            const getSingleIdentity = (map: Map<string, Set<string>>, key: unknown) => {
+                if (!key) return null;
+                const values = map.get(String(key));
+                if (!values || values.size !== 1) return null;
+                return Array.from(values)[0];
+            };
             [...sessionData, ...validData].forEach((row: any) => {
                 if (row.session_id && row.user_id) {
-                    sessionIdToUser.set(String(row.session_id), String(row.user_id));
+                    addIdentity(sessionIdToUser, row.session_id, String(row.user_id));
                 }
                 if (row.fingerprint && row.user_id) {
-                    fingerprintToUser.set(String(row.fingerprint), String(row.user_id));
+                    addIdentity(fingerprintToUser, row.fingerprint, String(row.user_id));
                 }
             });
 
@@ -423,8 +494,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
                 const sessionId = row.session_id ? String(row.session_id) : '';
                 if (row.user_id) return `user:${String(row.user_id)}`;
-                if (sessionId && sessionIdToUser.has(sessionId)) return `user:${sessionIdToUser.get(sessionId)}`;
-                if (fingerprint && fingerprintToUser.has(fingerprint)) return `user:${fingerprintToUser.get(fingerprint)}`;
+                const sessionUserId = getSingleIdentity(sessionIdToUser, sessionId);
+                if (sessionUserId) return `user:${sessionUserId}`;
+                const fingerprintUserId = getSingleIdentity(fingerprintToUser, fingerprint);
+                if (fingerprintUserId) return `user:${fingerprintUserId}`;
                 if (fingerprint) return `guest:${fingerprint}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
                 return 'guest:unknown';
@@ -645,6 +718,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 });
 
             const sessionUserIds = Array.from(sessionUserMap.keys());
+            const rpcNicknameMap = new Map<string, string | null>(
+                localUserList.map((userInfo) => [userInfo.user_id, userInfo.nickname])
+            );
             const nicknameMap = new Map<string, string | null>();
             if (sessionUserIds.length > 0) {
                 const { data: sessionUsers, error: sessionUsersError } = await supabase
@@ -664,7 +740,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     const avgDuration = userInfo.durationCount > 0 ? Math.round(userInfo.durationTotal / userInfo.durationCount) : 0;
                     return {
                         user_id: userInfo.user_id,
-                        nickname: nicknameMap.get(userInfo.user_id) || userInfo.nickname,
+                        nickname: getAnalyticsUserDisplayName(
+                            userInfo.user_id,
+                            nicknameMap.get(userInfo.user_id) || rpcNicknameMap.get(userInfo.user_id) || userInfo.nickname
+                        ),
                         visitCount: userInfo.visitCount,
                         visitLogs: userInfo.visitLogs.sort((a, b) => new Date(b).getTime() - new Date(a).getTime()),
                         avgDuration,
@@ -2043,7 +2122,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             <span className="user-index">{index + 1}</span>
                                                             <span className="user-activity-main">
                                                                 <span className="user-name">
-                                                                    {user.nickname || '알 수 없는 사용자'}
+                                                                    {getAnalyticsUserDisplayName(user.user_id, user.nickname)}
                                                                     <span className="guest-count">({user.visitCount}회)</span>
                                                                 </span>
                                                                 <span className="guest-subline">

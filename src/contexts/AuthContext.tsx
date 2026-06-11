@@ -237,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // [CASE 2] Insert new user
         const insertData = {
           user_id: userObj.id,
-          nickname: nickname + '_' + Math.floor(Math.random() * 10000),
+          nickname,
           profile_image: profileImage,
           email: userObj.email,
           provider: provider,
@@ -495,7 +495,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(profile);
         if (lastProcessedUserId.current !== user.id) {
           lastProcessedUserId.current = user.id;
-          void refreshUserProfile();
+          void ensureBoardUser(user)
+            .then(() => refreshUserProfile())
+            .catch((error) => {
+              console.warn('[AuthContext] Cafe24 board user sync failed:', error);
+              return refreshUserProfile();
+            });
         }
       } else if (isAuthCheckComplete) {
         lastProcessedUserId.current = null;

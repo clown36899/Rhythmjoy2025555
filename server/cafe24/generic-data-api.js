@@ -974,30 +974,127 @@ function analyticsUserId(row) {
   return String(row.user_id);
 }
 
+function analyticsNormalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function loadAnalyticsUsers() {
+  const pool = getMysqlPool();
+  const [rows] = await pool.execute('SELECT id, email, nickname, is_admin FROM users');
+  return rows.map((row) => ({
+    id: String(row.id),
+    email: analyticsNormalizeEmail(row.email),
+    nickname: row.nickname || null,
+    is_admin: asAnalyticsBool(row.is_admin),
+  }));
+}
+
 function buildAnalyticsIdentityResolver(rows = []) {
   const sessionToUser = new Map();
   const fingerprintToUser = new Map();
+  const addIdentity = (map, key, userId) => {
+    if (!key || !userId) return;
+    const values = map.get(String(key)) || new Set();
+    values.add(String(userId));
+    map.set(String(key), values);
+  };
+  const singleIdentity = (map, key) => {
+    const values = map.get(String(key));
+    if (!values || values.size !== 1) return null;
+    return Array.from(values)[0];
+  };
+  const linkedUserIds = (row = {}) => {
+    const directUserId = analyticsUserId(row);
+    if (directUserId) return new Set([directUserId]);
+
+    const ids = new Set();
+    if (row?.session_id && sessionToUser.has(String(row.session_id))) {
+      for (const userId of sessionToUser.get(String(row.session_id))) ids.add(userId);
+    }
+    if (row?.fingerprint && fingerprintToUser.has(String(row.fingerprint))) {
+      for (const userId of fingerprintToUser.get(String(row.fingerprint))) ids.add(userId);
+    }
+    return ids;
+  };
 
   for (const row of rows) {
     const userId = analyticsUserId(row);
     if (!userId) continue;
-    if (row?.session_id) sessionToUser.set(String(row.session_id), userId);
-    if (row?.fingerprint) fingerprintToUser.set(String(row.fingerprint), userId);
+    addIdentity(sessionToUser, row?.session_id, userId);
+    addIdentity(fingerprintToUser, row?.fingerprint, userId);
   }
 
   return {
     userId(row) {
       const directUserId = analyticsUserId(row);
       if (directUserId) return directUserId;
-      if (row?.session_id && sessionToUser.has(String(row.session_id))) {
-        return sessionToUser.get(String(row.session_id));
+      if (row?.session_id) {
+        const sessionUserId = singleIdentity(sessionToUser, row.session_id);
+        if (sessionUserId) return sessionUserId;
       }
-      if (row?.fingerprint && fingerprintToUser.has(String(row.fingerprint))) {
-        return fingerprintToUser.get(String(row.fingerprint));
+      if (row?.fingerprint) {
+        const fingerprintUserId = singleIdentity(fingerprintToUser, row.fingerprint);
+        if (fingerprintUserId) return fingerprintUserId;
       }
       return null;
     },
+    userIds(row) {
+      return linkedUserIds(row);
+    },
   };
+}
+
+function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = []) {
+  const userIdByEmail = new Map(
+    analyticsUsers
+      .filter((row) => row?.email)
+      .map((row) => [row.email, String(row.id)]),
+  );
+  const adminIds = new Set(
+    analyticsUsers
+      .filter((row) => asAnalyticsBool(row?.is_admin))
+      .map((row) => String(row.id)),
+  );
+
+  for (const row of boardAdmins) {
+    if (row?.user_id) adminIds.add(String(row.user_id));
+    const email = analyticsNormalizeEmail(row?.email || row?.admin_email);
+    if (email && userIdByEmail.has(email)) adminIds.add(userIdByEmail.get(email));
+  }
+
+  return adminIds;
+}
+
+function buildAnalyticsNicknameMap(boardUsers = [], analyticsUsers = []) {
+  const nicknameByUser = new Map(
+    boardUsers
+      .filter((row) => row?.user_id)
+      .map((row) => [String(row.user_id), row.nickname || null]),
+  );
+
+  for (const row of analyticsUsers) {
+    if (!row?.id || nicknameByUser.get(String(row.id))) continue;
+    nicknameByUser.set(String(row.id), row.nickname || row.email || null);
+  }
+
+  return nicknameByUser;
+}
+
+function analyticsFallbackNickname(userId) {
+  return userId ? `회원 ${String(userId).slice(0, 8)}` : null;
+}
+
+function isAnalyticsAdminRow(row, identity, adminUserIds) {
+  if (asAnalyticsBool(row?.is_admin)) return true;
+  const userIds = identity?.userIds(row) || new Set([analyticsUserId(row)].filter(Boolean));
+  return Array.from(userIds).some((userId) => adminUserIds.has(String(userId)));
+}
+
+function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '') {
+  if (isAnalyticsAdminRow(row, identity, adminUserIds)) return false;
+  const userId = identity?.userId(row) || analyticsUserId(row);
+  if (excludedPrefix && userId?.startsWith(excludedPrefix)) return false;
+  return true;
 }
 
 function analyticsIdentifier(row, fallback = '', identity = null) {
@@ -1023,39 +1120,36 @@ async function getAnalyticsSummaryV2(args = {}) {
   const logs = await loadRows('site_analytics_logs');
   const sessions = await loadRows('session_logs');
   const boardUsers = await loadRows('board_users');
-  const nicknameByUser = new Map(
-    boardUsers
-      .filter((row) => row?.user_id)
-      .map((row) => [String(row.user_id), row.nickname || null]),
-  );
+  const boardAdmins = await loadRows('board_admins');
+  const analyticsUsers = await loadAnalyticsUsers();
+  const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers);
+  const nicknameByUser = buildAnalyticsNicknameMap(boardUsers, analyticsUsers);
 
-  const activityRowsBase = logs
+  const rawActivityRows = logs
     .map((row, index) => ({ row, index, ms: analyticsMs(row.created_at) }))
-    .filter(({ row, ms }) => (
+    .filter(({ ms }) => (
       ms !== null &&
       ms >= startMs &&
-      ms <= endMs &&
-      !asAnalyticsBool(row.is_admin)
+      ms <= endMs
     ));
 
-  const sessionRowsBase = sessions
+  const rawSessionRows = sessions
     .map((row, index) => ({ row, index, ms: analyticsMs(row.session_start || row.created_at) }))
-    .filter(({ row, ms }) => (
+    .filter(({ ms }) => (
       ms !== null &&
       ms >= startMs &&
-      ms <= endMs &&
-      !asAnalyticsBool(row.is_admin)
+      ms <= endMs
     ));
 
   const identity = buildAnalyticsIdentityResolver([
-    ...activityRowsBase.map((item) => item.row),
-    ...sessionRowsBase.map((item) => item.row),
+    ...rawActivityRows.map((item) => item.row),
+    ...rawSessionRows.map((item) => item.row),
   ]);
 
-  const activityRows = activityRowsBase.filter(({ row }) => {
-    const userId = identity.userId(row);
-    return !userId || !userId.startsWith(excludedPrefix);
-  });
+  const activityRows = rawActivityRows
+    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix));
+  const sessionRows = rawSessionRows
+    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix));
 
   const dedupedByBucket = new Map();
   for (const item of activityRows) {
@@ -1078,7 +1172,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   }
 
   const durationStats = new Map();
-  for (const session of sessionRowsBase.map((item) => item.row)) {
+  for (const session of sessionRows.map((item) => item.row)) {
     const userId = identity.userId(session);
     const duration = Number(session?.duration_seconds);
     if (!userId || !Number.isFinite(duration) || duration <= 0) continue;
@@ -1095,7 +1189,7 @@ async function getAnalyticsSummaryV2(args = {}) {
         user_id: user.user_id,
         visitCount: user.visitCount,
         visitLogs: user.visitLogs.sort((a, b) => new Date(b).getTime() - new Date(a).getTime()),
-        nickname: nicknameByUser.get(user.user_id) || null,
+        nickname: nicknameByUser.get(user.user_id) || analyticsFallbackNickname(user.user_id),
         avgDuration: duration?.count ? Math.round(duration.total / duration.count) : 0,
       };
     })
@@ -1540,21 +1634,30 @@ function eventLeadDays(event = {}) {
 }
 
 async function getMonthlyWebzineStats(args = {}) {
+  const excludedPrefix = '91b04b25';
   const { startMs, endMs } = analyticsDateRange({
     start: args.p_start_date || args.start_date || args.start,
     end: args.p_end_date || args.end_date || args.end,
   });
-  const sessions = (await loadRows('session_logs'))
+  const rawSessions = (await loadRows('session_logs'))
     .map((row, index) => ({ row, index, ms: analyticsMs(row.session_start || row.created_at) }))
-    .filter(({ row, ms }) => ms !== null && ms >= startMs && ms <= endMs && !asAnalyticsBool(row.is_admin));
-  const logs = (await loadRows('site_analytics_logs'))
+    .filter(({ ms }) => ms !== null && ms >= startMs && ms <= endMs);
+  const rawLogs = (await loadRows('site_analytics_logs'))
     .map((row, index) => ({ row, index, ms: analyticsMs(row.created_at) }))
-    .filter(({ row, ms }) => ms !== null && ms >= startMs && ms <= endMs && !asAnalyticsBool(row.is_admin));
+    .filter(({ ms }) => ms !== null && ms >= startMs && ms <= endMs);
+  const boardAdmins = await loadRows('board_admins');
+  const analyticsUsers = await loadAnalyticsUsers();
+  const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers);
 
   const identity = buildAnalyticsIdentityResolver([
-    ...sessions.map((item) => item.row),
-    ...logs.map((item) => item.row),
+    ...rawSessions.map((item) => item.row),
+    ...rawLogs.map((item) => item.row),
   ]);
+
+  const sessions = rawSessions
+    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix));
+  const logs = rawLogs
+    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix));
   const uniqueVisitors = new Set(logs.map((item) => analyticsIdentifier(item.row, item.index, identity))).size;
   const dailyMap = new Map();
   const hourlyMap = new Map(Array.from({ length: 24 }, (_, hour) => [hour, { hour, class_count: 0, event_count: 0 }]));
