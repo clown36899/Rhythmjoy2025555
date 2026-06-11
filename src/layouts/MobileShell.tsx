@@ -49,6 +49,7 @@ export const MobileShell: React.FC = () => {
   const [isTranslationPending, setIsTranslationPending] = useState(false);
   const [translationErrorMessage, setTranslationErrorMessage] = useState('');
   const isTranslationPendingRef = useRef(false);
+  const translateButtonRef = useRef<HTMLButtonElement | null>(null);
   const translationFeedbackTimerRef = useRef<number | null>(null);
   const translationErrorTimerRef = useRef<number | null>(null);
   // unused state removed
@@ -218,8 +219,8 @@ export const MobileShell: React.FC = () => {
     clearTranslationFeedbackTimer();
 
     const startedAt = Date.now();
-    const minimumVisibleMillis = 900;
-    const fallbackMillis = lng === 'ko' ? 2400 : 4600;
+    const minimumVisibleMillis = 450;
+    const fallbackMillis = lng === 'ko' ? 900 : 1400;
 
     const isTranslated = () => (
       document.body.classList.contains('translated-ltr') ||
@@ -386,6 +387,27 @@ export const MobileShell: React.FC = () => {
   ].filter(Boolean).join(' ');
   const translateButtonIdleLabel = i18n.language?.startsWith('ko') ? 'Switch to English' : '한국어로 전환';
   const translateButtonLabel = translationErrorMessage || (isTranslationPending ? '번역 적용 중...' : translateButtonIdleLabel);
+
+  useEffect(() => {
+    const button = translateButtonRef.current;
+    if (!button) return;
+
+    const syncButtonLabel = () => {
+      button.setAttribute('title', translateButtonLabel);
+      button.setAttribute('aria-label', translateButtonLabel);
+    };
+
+    syncButtonLabel();
+    const syncTimers = [
+      window.setTimeout(syncButtonLabel, 120),
+      window.setTimeout(syncButtonLabel, 600),
+      window.setTimeout(syncButtonLabel, 1500),
+    ];
+
+    return () => {
+      syncTimers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [translateButtonLabel]);
 
   return (
     <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''}`}>
@@ -620,6 +642,7 @@ export const MobileShell: React.FC = () => {
 
             <div className="header-right-buttons">
               <button
+                ref={translateButtonRef}
                 type="button"
                 onClick={handleTranslateToggle}
                 className={translateButtonClassName}
@@ -627,6 +650,7 @@ export const MobileShell: React.FC = () => {
                 aria-label={translateButtonLabel}
                 aria-busy={isTranslationPending}
                 disabled={isTranslationPending}
+                translate="no"
                 data-analytics-id="header_translate"
                 data-analytics-type="action"
                 data-analytics-title="번역 토글"
