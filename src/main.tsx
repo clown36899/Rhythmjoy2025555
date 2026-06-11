@@ -124,6 +124,9 @@ import HomePageV2 from './pages/v2/Page';
 // Lazy Loaded Pages
 // chunk 로드 실패(배포 후 old hash 404)는 위의 vite:preloadError 핸들러가 처리
 const SocialPage = lazy(() => import('./pages/social/page'));
+const SocialCalendarPage = lazy(() => import('./pages/social/calendar/page'));
+const SocialClubsPage = lazy(() => import('./pages/social/clubs/page'));
+const SocialSwingBarsPage = lazy(() => import('./pages/social/swing-bars/page'));
 const PracticePage = lazy(() => import('./pages/practice/page'));
 const BoardPage = lazy(() => import('./pages/board/page'));
 const ShoppingPage = lazy(() => import('./pages/shopping/page'));
@@ -255,6 +258,9 @@ const router = createBrowserRouter([
       { path: "/events", element: <EventsInfoPage /> },
       { path: "/oneday-recruits", element: <OneDayRecruitPage /> },
       { path: "/social", element: <SocialPage /> },
+      { path: "/social/calendar", element: <SocialCalendarPage /> },
+      { path: "/social/clubs", element: <SocialClubsPage /> },
+      { path: "/social/swing-bars", element: <SocialSwingBarsPage /> },
       { path: "/practice", element: <PracticePage /> },
       { path: "/shopping", element: <ShoppingPage /> },
       { path: "/guide", element: <GuidePage /> },
