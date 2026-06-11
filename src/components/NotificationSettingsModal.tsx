@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     getPushSubscription,
     subscribeToPush,
-    saveSubscriptionToSupabase,
+    saveSubscriptionToDataStore,
     unsubscribeFromPush,
     getPushPreferences,
     updatePushPreferences,
@@ -126,7 +126,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     }
                     // 명시적 비활성화 플래그 해제 (사용자가 다시 켰으므로 자동 재구독 허용)
                     localStorage.removeItem('push_explicitly_disabled');
-                    await saveSubscriptionToSupabase(sub, pushPrefs);
+                    await saveSubscriptionToDataStore(sub, pushPrefs);
                 } else {
                     await unsubscribeFromPush();
                 }

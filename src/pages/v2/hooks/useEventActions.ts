@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import { isCafe24EventsBackendEnabled } from "../../../lib/cafe24EventsApi";
 import type { Event as AppEvent } from "../../../lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import type { User } from "../../../lib/cafe24SupabaseJsShim";
 import { useModalActions } from "../../../contexts/ModalContext";
 import { queryClient } from "../../../lib/queryClient";
 import { addClientLog } from "../../../utils/clientLogBuffer";

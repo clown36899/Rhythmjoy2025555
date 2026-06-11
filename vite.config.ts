@@ -62,10 +62,6 @@ const manualChunks: Record<string, string[]> = {
   'query-vendor': ['@tanstack/react-query'],
 };
 
-if (!isCafe24Build) {
-  manualChunks.supabase = ['@supabase/supabase-js'];
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   define: {
@@ -182,9 +178,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
-      ...(isCafe24Build
-        ? { "@supabase/supabase-js": resolve(__dirname, "./src/lib/cafe24SupabaseJsShim.ts") }
-        : {}),
+      "@supabase/supabase-js": resolve(__dirname, "./src/lib/cafe24SupabaseJsShim.ts"),
     },
   },
 

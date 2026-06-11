@@ -125,7 +125,7 @@ export default function BoardPrefixManagementModal({
 
       // Handle missing column error (Migration not applied)
       if (error?.code === '42703' || error?.message?.includes('board_category_code')) {
-        alert('데이터베이스 업데이트가 필요합니다.\n\nSupabase 대시보드에서 다음 SQL을 실행해주세요:\n\nALTER TABLE board_prefixes ADD COLUMN IF NOT EXISTS board_category_code text REFERENCES board_categories(code) ON DELETE CASCADE;');
+        alert('데이터베이스 업데이트가 필요합니다.\n\n운영 DB에서 다음 SQL을 실행해주세요:\n\nALTER TABLE board_prefixes ADD COLUMN IF NOT EXISTS board_category_code text REFERENCES board_categories(code) ON DELETE CASCADE;');
       } else {
         alert('머릿말을 불러오는 중 오류가 발생했습니다.');
       }

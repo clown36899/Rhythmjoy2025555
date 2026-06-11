@@ -281,7 +281,7 @@ export default function NotificationPreviewPage() {
           </button>
         </div>
         <p className="admin-notification-preview-note">
-          이 페이지는 localhost에서만 로컬 Supabase에 테스트 이벤트를 생성합니다. 운영 푸시는 발송하지 않습니다.
+          이 페이지는 localhost에서만 로컬 DB에 테스트 이벤트를 생성합니다. 운영 푸시는 발송하지 않습니다.
         </p>
       </section>
 

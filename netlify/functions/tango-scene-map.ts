@@ -1,4 +1,11 @@
-import type { Handler } from '@netlify/functions';
+type Handler = (event: {
+  httpMethod: string;
+  queryStringParameters?: Record<string, string | undefined> | null;
+}) => Promise<{
+  statusCode: number;
+  headers?: Record<string, string>;
+  body: string;
+}>;
 
 const TANGO_CALENDAR_API = 'https://tangocalendar.kr/api/events';
 

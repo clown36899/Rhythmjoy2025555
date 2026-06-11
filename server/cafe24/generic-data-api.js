@@ -7,6 +7,7 @@ import {
   attachEventAuthors,
   canManageEvent,
   sanitizeEventsForViewer,
+  userMatchesId,
 } from './event-security.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
@@ -107,7 +108,7 @@ function getBodyValues(body = {}) {
 }
 
 function isOwnBoardUserRow(user, row) {
-  return Boolean(user?.id && row?.user_id && String(row.user_id) === String(user.id));
+  return userMatchesId(user, row?.user_id);
 }
 
 function getUserProvider(user) {
@@ -137,7 +138,7 @@ async function requireBoardUserMutationAccess(req, action = 'query', body = {}) 
 
   if (['insert', 'upsert'].includes(action)) {
     const values = getBodyValues(body);
-    const writesOnlyOwnRows = values.every((row) => !row?.user_id || String(row.user_id) === String(user.id));
+    const writesOnlyOwnRows = values.every((row) => !row?.user_id || userMatchesId(user, row.user_id));
     if (!writesOnlyOwnRows) throw httpError('수정 권한이 없습니다.', 403);
   }
 
@@ -153,7 +154,7 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
   if (table === 'pwa_installs' && action === 'insert') {
     const user = await getCurrentUser(req);
     const values = Array.isArray(body?.values) ? body.values : [body?.values || {}];
-    const writesOnlyOwnRows = user && values.every((row) => !row?.user_id || String(row.user_id) === String(user.id));
+    const writesOnlyOwnRows = user && values.every((row) => !row?.user_id || userMatchesId(user, row.user_id));
     if (writesOnlyOwnRows) return;
   }
 
@@ -1267,7 +1268,7 @@ async function deletePostWithPassword(args = {}, user = null) {
   const target = targets[0];
   const ok = Boolean(target && (
     user?.is_admin ||
-    (user?.id && String(target.user_id || '') === String(user.id)) ||
+    userMatchesId(user, target.user_id) ||
     (target.password && String(target.password) === String(password))
   ));
   if (ok) {

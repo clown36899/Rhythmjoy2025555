@@ -1,4 +1,11 @@
-import { Handler } from '@netlify/functions';
+type Handler = (event: {
+    httpMethod: string;
+    queryStringParameters?: Record<string, string | undefined> | null;
+}) => Promise<{
+    statusCode: number;
+    headers?: Record<string, string>;
+    body: string;
+}>;
 
 export const handler: Handler = async (event) => {
     const { httpMethod, queryStringParameters } = event;

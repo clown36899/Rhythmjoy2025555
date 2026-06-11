@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { supabase, validateAndRecoverSession } from '../lib/supabase';
-import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import type { User, Session, AuthChangeEvent } from '../lib/cafe24SupabaseJsShim';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 import { authLogger } from '../utils/authLogger';
 
 import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
 import { isPWAMode } from '../lib/pwaDetect';
-import { getSupabasePkceVerifierKey, removeSupabaseStorageKeys } from '../lib/authStorageKeys';
+import { getAuthPkceVerifierKey, removeLegacyAuthStorageKeys } from '../lib/authStorageKeys';
 
 const CAFE24_AUTH_ENABLED =
   import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'supabase' &&
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userObj) return;
 
     try {
-      // 🔍 DEBUG: Log all metadata to understand what Supabase provides
+      // 🔍 DEBUG: Log all metadata to understand what auth provider returns
 
 
       const metadata = userObj.user_metadata || {};
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // [FIX] Provider detection logic - Use tiered priority to handle social logins correctly
       let provider = 'email'; // Default
 
-      // 1. Check Identities (Official Supabase social link)
+      // 1. Check Identities (official social link)
       const identities = userObj.identities || [];
       const socialIdentity = identities.find(i => i.provider !== 'email');
 
@@ -292,8 +292,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
   const wipeLocalData = () => {
-    // 1. localStorage에서 Supabase 관련 항목 제거
-    removeSupabaseStorageKeys();
+    // 1. localStorage에서 기존 인증 항목 제거
+    removeLegacyAuthStorageKeys();
 
     // 프로필 및 특수 캐시 제거
     localStorage.removeItem('userProfile');
@@ -323,7 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       authLogger.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
-      // 1. Supabase 세션 제거 (로컬만) -> 이게 SIGNED_OUT 이벤트를 발생시킬 수 있음
+      // 1. 로컬 세션 제거
       await supabase.auth.signOut({ scope: 'local' });
     } catch (e) {
       console.warn('[AuthContext] SignOut during cleanup failed (expected):', e);
@@ -876,28 +876,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logoutKakao();
       logToStorage('[AuthContext.signOut] 1단계: 카카오 로그아웃 완료');
 
-      // 2. Supabase 로그아웃
-      logToStorage('[AuthContext.signOut] 2단계: Supabase 로그아웃 시작');
+      // 2. 세션 로그아웃
+      logToStorage('[AuthContext.signOut] 2단계: 세션 로그아웃 시작');
       const { error } = await supabase.auth.signOut();
       if (error) {
         // "Auth session missing" 에러는 이미 로그아웃된 상태이므로 무시
         if (error.message === 'Auth session missing!') {
           logToStorage('[AuthContext.signOut] 2단계: 세션 없음 (이미 로그아웃 상태) - 계속 진행');
         } else {
-          logToStorage('[AuthContext.signOut] Supabase 로그아웃 실패: ' + error.message);
+          logToStorage('[AuthContext.signOut] 세션 로그아웃 실패: ' + error.message);
           throw error;
         }
       } else {
-        logToStorage('[AuthContext.signOut] 2단계: Supabase 로그아웃 완료');
+        logToStorage('[AuthContext.signOut] 2단계: 세션 로그아웃 완료');
       }
 
       // 3. Billboard 사용자 정보 초기화
       logToStorage('[AuthContext.signOut] 3단계: Billboard 사용자 정보 초기화');
       setBillboardUser(null, null);
 
-      // 4. localStorage 정리 (로컬/운영 Supabase 세션 키 모두 제거)
+      // 4. localStorage 정리 (기존 인증 세션 키 모두 제거)
       logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 시작');
-      const removedSupabaseKeyCount = removeSupabaseStorageKeys();
+      const removedAuthKeyCount = removeLegacyAuthStorageKeys();
 
       // 사용자 프로필 및 기타 캐시 명시적 제거
       localStorage.removeItem('userProfile');
@@ -910,7 +910,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authChannel.postMessage({ type: 'LOGOUT' });
       }
 
-      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + removedSupabaseKeyCount + '개 항목');
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + removedAuthKeyCount + '개 항목');
 
       // 5. sessionStorage 완전 정리
       logToStorage('[AuthContext.signOut] 5단계: sessionStorage 정리 및 스크롤 위치 보존');
@@ -971,7 +971,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
     sessionStorage.removeItem('kakao_callback_active');
     try {
-      localStorage.removeItem(getSupabasePkceVerifierKey());
+      localStorage.removeItem(getAuthPkceVerifierKey());
     } catch {
       // Ignore localStorage restrictions; callback will retry cleanup.
     }
@@ -1052,7 +1052,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
       if (error) {
-        console.error('[signInWithGoogle] ❌ Supabase returned error:', {
+        console.error('[signInWithGoogle] Auth provider returned error:', {
           message: error.message,
           status: error.status,
           name: error.name,

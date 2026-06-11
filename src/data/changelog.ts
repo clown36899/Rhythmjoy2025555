@@ -157,7 +157,7 @@ export const changelogData: ChangelogVersion[] = [
         changes: [
             '[✨ Feature] PWA 푸시 알림 서버 연동 및 테스트 시스템 구축',
             '[🛠️ Admin] 관리자 전용 PWA 푸시 테스트 패널 신설 (사이드 메뉴)',
-            '[🚀 Performance] Supabase Edge Function을 이용한 실시간 알림 전송 최적화',
+            '[🚀 Performance] 서버 함수를 이용한 실시간 알림 전송 최적화',
             '[🔧 Fix] 관리자 자동 구독 로직 및 권한 판별 보강'
         ]
     },
@@ -522,7 +522,7 @@ export const changelogData: ChangelogVersion[] = [
             '[✨ 기능] 이벤트 이미지 고유 폴더 관리 시스템 도입 (event-posters/{timestamp}_{random}/)',
             '[✨ 기능] storage_path 데이터베이스 연동 및 폴더 단위 관리',
             '[🔧 개선] 이미지 수정 시 이전 폴더 및 레거시 파일 자동 클린업',
-            '[🔧 개선] 이벤트 삭제 시 스토리지 폴더 동시 삭제 지원 (Netlify)'
+            '[🔧 개선] 이벤트 삭제 시 스토리지 폴더 동시 삭제 지원'
         ]
     },
     {
@@ -607,7 +607,7 @@ export const changelogData: ChangelogVersion[] = [
         date: '2025-12-27',
         changes: [
             '[Security] 보안 연락처 조회 기능 안정화 (.single() 쿼리 에러 수정)',
-            '[Logging] Netlify Functions 로그 정리 및 보안 강화',
+            '[Logging] 서버 함수 로그 정리 및 보안 강화',
             '[PWA] 서비스 워커 및 인증 로직 최적화'
         ]
     },

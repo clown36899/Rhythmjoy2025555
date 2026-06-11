@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { invokeFetchStyleFunction } from '../server/cafe24/netlify-function-adapter.js';
+import { invokeFetchStyleFunction } from '../server/cafe24/cafe24-function-adapter.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });

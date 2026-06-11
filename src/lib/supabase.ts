@@ -1,71 +1,21 @@
-
-import { createClient } from '@supabase/supabase-js'
 import { authLogger } from '../utils/authLogger';
-import { isPWAMode } from './pwaDetect';
-import { getSupabaseStorageKey, getSupabaseValidationKey } from './authStorageKeys';
+import { getAuthStorageKey, getAuthValidationKey } from './authStorageKeys';
 import { createCafe24SupabaseCompat } from './cafe24SupabaseCompat';
 
-const SUPABASE_DEBUG = import.meta.env.VITE_SUPABASE_DEBUG === 'true';
-const CAFE24_SUPABASE_COMPAT = import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
-if (SUPABASE_DEBUG) {
-  console.debug('%c[Supabase] supabase.ts module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
+const DATA_CLIENT_DEBUG = import.meta.env.VITE_DATA_CLIENT_DEBUG === 'true' || import.meta.env.VITE_SUPABASE_DEBUG === 'true';
+if (DATA_CLIENT_DEBUG) {
+  console.debug('%c[DataClient] module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
 }
-
-const envSupabaseUrl = CAFE24_SUPABASE_COMPAT
-  ? ''
-  : import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://example.invalid'
-const envSupabaseAnonKey = CAFE24_SUPABASE_COMPAT
-  ? ''
-  : import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
-const localSupabaseUrl = 'http://127.0.0.1:54321'
-const localSupabaseAnonKey = 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
-const isLocalHost = typeof window !== 'undefined'
-  && ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)
-  && import.meta.env.VITE_FORCE_PROD_SUPABASE !== 'true'
-
-const supabaseUrl = isLocalHost ? localSupabaseUrl : envSupabaseUrl
-const supabaseAnonKey = isLocalHost ? localSupabaseAnonKey : envSupabaseAnonKey
-
-// 환경변수 디버깅 (외부 브라우저 확인용)
-// console.log('[Supabase] 환경변수 확인:', {
-//   url: supabaseUrl,
-//   hasAnonKey: !!supabaseAnonKey && supabaseAnonKey !== 'placeholder-anon-key',
-//   adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
-// });
 
 // [Critical Fix] Safari/iOS 및 PWA 환경의 navigator.locks 결함 대응
 // v9.0 Hybrid Lock Engine 적용 (PC: Native, Mobile: Polyfill)
-import { hybridLock } from './hybridLock';
-if (SUPABASE_DEBUG) {
-  console.debug('%c[Supabase] Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
+if (DATA_CLIENT_DEBUG) {
+  console.debug('%c[DataClient] Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
 }
 
-const realSupabase = CAFE24_SUPABASE_COMPAT ? null : createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: getSupabaseStorageKey(),
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-    // 하이브리드 락 적용
-    lock: hybridLock,
-    debug: false // 락 디버깅 필요 시 true
-  } as any,
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-})
+export const supabase = createCafe24SupabaseCompat() as any;
 
-export const supabase = (CAFE24_SUPABASE_COMPAT
-  ? createCafe24SupabaseCompat()
-  : realSupabase) as any;
-
-authLogger.log(CAFE24_SUPABASE_COMPAT
-  ? '[Cafe24] ✅ Supabase compatibility client initialized'
-  : '[Supabase] ✅ Client initialized');
+authLogger.log('[Cafe24] Data client initialized');
 
 export interface Event {
   id: number | string;
@@ -221,7 +171,7 @@ export interface MetronomePreset {
 
 // 세션 검증 결과 캐싱 및 락킹을 위한 변수
 // sessionStorage에서 복원 → 새로고침해도 60초 캐시 유지 (getUser() 서버 호출 생략)
-const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
+const SESSION_VALIDATION_KEY = getAuthValidationKey();
 let lastValidationTime: number = (() => {
   try {
     return parseInt(localStorage.getItem(SESSION_VALIDATION_KEY) || '0', 10) || 0;
@@ -237,7 +187,7 @@ let validationPromise: Promise<any> | null = null;
 export const validateAndRecoverSession = async (): Promise<any> => {
   // 1. 이미 검증이 진행 중이라면 해당 프로미스 반환 (중복 호출 방지)
   if (validationPromise) {
-    authLogger.log('[Supabase] 🔄 Existing validation promise found - Attaching');
+    authLogger.log('[DataClient] Existing validation promise found - attaching');
     return validationPromise;
   }
 
@@ -245,26 +195,26 @@ export const validateAndRecoverSession = async (): Promise<any> => {
     let localSession: any = null;
     const now = Date.now();
     try {
-      authLogger.log('[Supabase] 🚀 validateAndRecoverSession started (Lock Owner)');
+      authLogger.log('[DataClient] validateAndRecoverSession started');
 
       // [Safari Fix] 사파리에서 localStorage 로드가 늦어지는 'Ghost Storage' 현상 대응
       if (typeof window !== 'undefined') {
-        const checkToken = () => !!localStorage.getItem(getSupabaseStorageKey());
+        const checkToken = () => !!localStorage.getItem(getAuthStorageKey());
 
         // 이미 세션 캐시가 유효하다면 대기하지 않음
         if (!checkToken() && (now - lastValidationTime > VALIDATION_CACHE_TIME)) {
-          authLogger.log('[Supabase] ⏳ Safari: Token not found yet. Waiting 200ms and retrying...');
+          authLogger.log('[DataClient] Safari: token not found yet. Waiting 200ms and retrying...');
           await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         if (checkToken()) {
-          authLogger.log('[Supabase] ✅ Safari: Token ignited/detected successfully');
+          authLogger.log('[DataClient] Safari: token detected successfully');
         } else {
-          authLogger.log('[Supabase] ℹ️ Safari: No token in storage after wait');
+          authLogger.log('[DataClient] Safari: no token in storage after wait');
         }
       }
 
-      authLogger.log('[Supabase] 🔍 Calling supabase.auth.getSession() with 4s timeout...');
+      authLogger.log('[DataClient] Calling auth.getSession() with 4s timeout...');
       const firstGetSession = Promise.race([
         supabase.auth.getSession(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Initial getSession timeout')), 4000))
@@ -275,19 +225,19 @@ export const validateAndRecoverSession = async (): Promise<any> => {
         const result = await firstGetSession as any;
         cachedSession = result.data?.session;
       } catch (e) {
-        authLogger.log('[Supabase] ⏱️ Initial getSession timed out/failed (Possible deadlock)');
+        authLogger.log('[DataClient] Initial getSession timed out/failed');
       }
 
       localSession = cachedSession;
-      authLogger.log('[Supabase] 📥 First getSession() result:', { hasSession: !!localSession });
+      authLogger.log('[DataClient] First getSession() result:', { hasSession: !!localSession });
 
       if (localSession && (now - lastValidationTime < VALIDATION_CACHE_TIME)) {
-        authLogger.log('[Supabase] ⚡ Using short-circuit cache');
+        authLogger.log('[DataClient] Using short-circuit cache');
         return localSession;
       }
 
       // 3. 서버 실시간 세션 확인 (타임아웃 포함)
-      authLogger.log('[Supabase] 🌐 Racing getSession() with 5s timeout...');
+      authLogger.log('[DataClient] Racing getSession() with 5s timeout...');
       const getSessionWithTimeout = Promise.race([
         supabase.auth.getSession(),
         new Promise((_, reject) =>
@@ -302,22 +252,22 @@ export const validateAndRecoverSession = async (): Promise<any> => {
         const result = await getSessionWithTimeout as any;
         if (result.data?.session) {
           session = result.data.session;
-          authLogger.log('[Supabase] ✅ Server session retrieved');
+          authLogger.log('[DataClient] Server session retrieved');
         }
         error = result.error;
       } catch (timeoutErr) {
-        authLogger.log('[Supabase] ⏱️ getSession timeout - using local session');
+        authLogger.log('[DataClient] getSession timeout - using local session');
       }
 
       // 4. 에러 핸들링
       if (error) {
-        authLogger.log('[Supabase) ❌ Session error:', error);
+        authLogger.log('[DataClient] Session error:', error);
         const urlParams = new URLSearchParams(window.location.search);
         const hash = window.location.hash;
         const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
 
         if (!hasAuthParams && (error.message?.includes('token_revoked') || error.message?.includes('Refresh Token has been revoked'))) {
-          authLogger.log('[Supabase] 🗑️ Token revoked - clearing local');
+          authLogger.log('[DataClient] Token revoked - clearing local');
           await supabase.auth.signOut({ scope: 'local' });
           return null;
         }
@@ -325,7 +275,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       }
 
       if (!session) {
-        authLogger.log('[Supabase] ℹ️ No session after all checks');
+        authLogger.log('[DataClient] No session after all checks');
         return null;
       }
 
@@ -334,13 +284,13 @@ export const validateAndRecoverSession = async (): Promise<any> => {
         const expiresAt = new Date(session.expires_at * 1000);
         // 만료 5분 전부터 갱신 시도 (여유 확보)
         if (expiresAt.getTime() - Date.now() < 300000) {
-          authLogger.log('[Supabase) ⏰ Refreshing expiring session...');
+          authLogger.log('[DataClient] Refreshing expiring session...');
 
           // [Refresh Guard] 갱신 시도
           const { data, error: refreshError } = await supabase.auth.refreshSession();
 
           if (refreshError) {
-            authLogger.log('[Supabase] ⚠️ Refresh failed:', refreshError);
+            authLogger.log('[DataClient] Refresh failed:', refreshError);
 
             // 🔥 중요: 리프레시 토큰 자체가 폐기된 경우 즉시 로그아웃
             // (이걸 안 하면 좀비 세션이 되어 계속 401을 유발함)
@@ -350,16 +300,16 @@ export const validateAndRecoverSession = async (): Promise<any> => {
               refreshError.message?.includes('Refresh Token Not Found');
 
             if (isFatalRefresh) {
-              authLogger.log('[Supabase] 🚫 Fatal Refresh Error - Destroying session');
+              authLogger.log('[DataClient] Fatal refresh error - destroying session');
               await supabase.auth.signOut({ scope: 'local' });
               return null;
             }
 
             // 단순 네트워크 에러면 로컬 세션 유지 (Optimistic Retention)
-            authLogger.log('[Supabase] 🛡️ Network/Server glitch - Keeping local session');
+            authLogger.log('[DataClient] Network/server glitch - keeping local session');
           }
           if (data.session) {
-            authLogger.log('[Supabase] ✅ Session refreshed');
+            authLogger.log('[DataClient] Session refreshed');
             lastValidationTime = Date.now();
             try { localStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch { /* ignore */ }
             return data.session;
@@ -368,7 +318,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       }
 
       // 6. 최종 서버 유저 검증 (타임아웃 포함)
-      authLogger.log('[Supabase] 🔐 Verifying user with server...');
+      authLogger.log('[DataClient] Verifying user with server...');
       const getUserWithTimeout = Promise.race([
         supabase.auth.getUser(),
         new Promise((_, reject) =>
@@ -379,7 +329,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       try {
         const { error: userError } = await getUserWithTimeout as any;
         if (userError) {
-          authLogger.log('[Supabase] ❌ User verification failed:', userError);
+          authLogger.log('[DataClient] User verification failed:', userError);
           const isFatal = (userError as any).status === 401 || (userError as any).status === 403;
           if (isFatal) {
             await supabase.auth.signOut({ scope: 'local' });
@@ -387,13 +337,13 @@ export const validateAndRecoverSession = async (): Promise<any> => {
           }
         }
       } catch { /* getUser might fail on network issue */ }
-      authLogger.log('[Supabase] ⏱️ getUser timeout - proceeding');
+      authLogger.log('[DataClient] getUser timeout - proceeding');
 
       lastValidationTime = Date.now();
       try { localStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch { /* ignore */ }
       return session;
     } catch (e) {
-      authLogger.log('[Supabase] 💥 recovery failed:', e);
+      authLogger.log('[DataClient] recovery failed:', e);
       return localSession;
     } finally {
       validationPromise = null;

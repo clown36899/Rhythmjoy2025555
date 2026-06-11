@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '../lib/cafe24SupabaseJsShim';
 
 import { generateUUID } from '../utils/uuid';
 

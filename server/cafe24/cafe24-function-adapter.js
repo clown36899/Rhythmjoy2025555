@@ -135,7 +135,7 @@ function sendResult(res, result) {
   res.send(result.body);
 }
 
-export function createNetlifyFunctionHandler() {
+export function createCafe24FunctionHandler() {
   return async (req, res) => {
     const rawName = req.cafe24FunctionName || req.params?.functionName || req.params?.[0];
 

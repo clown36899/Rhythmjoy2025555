@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getSupabasePkceVerifierKey, getSupabaseStorageKey, getSupabaseValidationKey } from '../../../lib/authStorageKeys';
+import { getAuthPkceVerifierKey, getAuthStorageKey, getAuthValidationKey } from '../../../lib/authStorageKeys';
 import { consumeKakaoLoginReturnUrl } from '../../../utils/kakaoAuth';
 import '../../../styles/pages/auth-callback.css';
 
@@ -10,8 +10,8 @@ const AUTH_SERVER_TIMEOUT_MS = 15000;
 const SESSION_SETUP_TIMEOUT_MS = 10000;
 const SESSION_CONFIRM_TIMEOUT_MS = 2500;
 const SESSION_CONFIRM_INTERVAL_MS = 250;
-const SUPABASE_STORAGE_KEY = getSupabaseStorageKey();
-const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
+const AUTH_STORAGE_KEY = getAuthStorageKey();
+const SESSION_VALIDATION_KEY = getAuthValidationKey();
 const CAFE24_AUTH_ENABLED =
     import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'supabase' &&
     import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
@@ -38,9 +38,9 @@ const clearKakaoLoginFlags = () => {
     sessionStorage.removeItem('kakao_callback_active');
 };
 
-const removeStaleSupabasePkceVerifier = () => {
+const removeStaleAuthPkceVerifier = () => {
     try {
-        localStorage.removeItem(getSupabasePkceVerifierKey());
+        localStorage.removeItem(getAuthPkceVerifierKey());
     } catch {
         // localStorage can be unavailable in some private/mobile contexts.
     }
@@ -77,7 +77,7 @@ const persistSessionDirectly = (session: any) => {
         expires_in: Number(session.expires_in || ((expiresAt || nowSeconds + 3600) - nowSeconds)),
     };
 
-    localStorage.setItem(SUPABASE_STORAGE_KEY, JSON.stringify(normalizedSession));
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizedSession));
     localStorage.setItem(SESSION_VALIDATION_KEY, String(Date.now()));
 };
 
@@ -132,7 +132,7 @@ export default function KakaoCallbackPage() {
             try {
                 setIsAuthProcessing(true);
                 sessionStorage.setItem('kakao_callback_active', 'true');
-                removeStaleSupabasePkceVerifier();
+                removeStaleAuthPkceVerifier();
 
 
                 // 인증 코드는 1회용이므로 즉시 URL에서 제거 (중복 사용 방지)
@@ -191,7 +191,7 @@ export default function KakaoCallbackPage() {
 
                 if (CAFE24_AUTH_ENABLED || authData.cafe24Session) {
                     clearKakaoLoginFlags();
-                    removeStaleSupabasePkceVerifier();
+                    removeStaleAuthPkceVerifier();
                     setIsAuthProcessing(false);
                     const returnUrl = consumeKakaoLoginReturnUrl();
                     navigate(returnUrl, { replace: true });
@@ -200,7 +200,7 @@ export default function KakaoCallbackPage() {
                 }
 
 
-                // 3. Supabase 세션 설정
+                // 3. Cafe24 세션 설정
                 if (authData.session) {
                     const accessToken = authData.session.access_token;
                     const refreshToken = authData.session.refresh_token;
@@ -209,7 +209,7 @@ export default function KakaoCallbackPage() {
                         throw new Error('서버 응답에 세션 토큰이 없습니다');
                     }
 
-                    console.log('[Kakao Callback] 🔐 Supabase 세션 설정 시작');
+                    console.log('[Kakao Callback] Cafe24 세션 설정 시작');
 
                     let setSessionResult: Awaited<ReturnType<typeof supabase.auth.setSession>> | null = null;
                     let usedDirectPersistFallback = false;

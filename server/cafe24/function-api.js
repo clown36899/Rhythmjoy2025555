@@ -7,7 +7,7 @@ import {
   loadCafe24TableRows,
   saveCafe24TableRow,
 } from './generic-data-api.js';
-import { canManageEvent } from './event-security.js';
+import { canManageEvent, userMatchesId } from './event-security.js';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -427,7 +427,7 @@ export async function cafe24DeleteSocialItem(req, res) {
   }
 
   const user = await getCurrentUser(req);
-  const authorized = Boolean(user?.is_admin || (target.user_id && user?.id === target.user_id) || (target.password && password && target.password === password));
+  const authorized = Boolean(user?.is_admin || userMatchesId(user, target.user_id) || (target.password && password && target.password === password));
   if (!authorized) {
     res.status(403).json({ error: 'Unauthorized.' });
     return;
@@ -658,7 +658,7 @@ export async function cafe24OneDayRecruitLogo(req, res) {
 
 export async function cafe24UnavailableFunction(req, res) {
   res.status(404).json({
-    error: 'Cafe24 migration mode: this Netlify function is not enabled because Supabase runtime is disabled.',
+    error: 'Cafe24 migration mode: this legacy function is not enabled.',
     function: req.params?.name || null,
   });
 }

@@ -515,7 +515,7 @@ const LearningPage = () => {
                 return;
             }
 
-            console.log('🚀 [Page] Inserting category into Supabase...');
+            console.log('🚀 [Page] Inserting category into data store...');
             const { error } = await supabase.from('learning_categories').insert({
                 name,
                 parent_id: null,

@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { createNetlifyFunctionHandler } from './netlify-function-adapter.js';
+import { createCafe24FunctionHandler } from './cafe24-function-adapter.js';
 import {
   createCafe24Event,
   deleteCafe24Event,
@@ -55,8 +55,7 @@ const rawBody = express.raw({
 const jsonBody = express.json({
   limit: process.env.CAFE24_BODY_LIMIT || '50mb',
 });
-const netlifyFunctionHandler = createNetlifyFunctionHandler();
-const safeNetlifyFunctions = new Set(['fetch-og-image', 'tango-scene-map']);
+const cafe24FunctionHandler = createCafe24FunctionHandler();
 
 app.disable('x-powered-by');
 app.set('trust proxy', true);
@@ -141,8 +140,8 @@ app.post('/api/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegis
 app.post('/api/delete-event', jsonBody, jsonRoute(cafe24DeleteEventFunction));
 app.post('/api/delete-social-item', jsonBody, jsonRoute(cafe24DeleteSocialItem));
 app.post('/api/oneday-recruit-logo', jsonBody, jsonRoute(cafe24OneDayRecruitLogo));
-app.all('/api/fetch-og-image', rawBody, alias('fetch-og-image'), netlifyFunctionHandler);
-app.all('/api/tango-scene-map', rawBody, alias('tango-scene-map'), netlifyFunctionHandler);
+app.all('/api/fetch-og-image', rawBody, alias('fetch-og-image'), cafe24FunctionHandler);
+app.all('/api/tango-scene-map', rawBody, alias('tango-scene-map'), cafe24FunctionHandler);
 app.delete('/api/invitations/delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
 app.post('/api/invitations/delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
 
@@ -150,6 +149,9 @@ app.all('/.netlify/functions/scraped-events', jsonBody, jsonRoute(cafe24ScrapedE
 app.post('/.netlify/functions/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));
 app.post('/.netlify/functions/delete-event', jsonBody, jsonRoute(cafe24DeleteEventFunction));
 app.post('/.netlify/functions/delete-social-item', jsonBody, jsonRoute(cafe24DeleteSocialItem));
+app.post('/.netlify/functions/oneday-recruit-logo', jsonBody, jsonRoute(cafe24OneDayRecruitLogo));
+app.all('/.netlify/functions/fetch-og-image', rawBody, alias('fetch-og-image'), cafe24FunctionHandler);
+app.all('/.netlify/functions/tango-scene-map', rawBody, alias('tango-scene-map'), cafe24FunctionHandler);
 app.all('/api/invitations', jsonBody, jsonRoute(cafe24Invitations));
 app.all('/.netlify/functions/invitations', jsonBody, jsonRoute(cafe24Invitations));
 app.post('/api/invitations/validate', jsonBody, jsonRoute(cafe24ValidateInvitation));
@@ -158,7 +160,6 @@ app.delete('/api/invitations/:id', jsonBody, jsonRoute(cafe24DeleteInvitation));
 app.delete('/.netlify/functions/invitations-delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
 app.get('/api/billboard-manifest', jsonRoute(cafe24BillboardManifest));
 app.get('/.netlify/functions/billboard-manifest', jsonRoute(cafe24BillboardManifest));
-app.post('/.netlify/functions/oneday-recruit-logo', jsonBody, jsonRoute(cafe24OneDayRecruitLogo));
 
 app.use('/uploads', express.static(uploadsDir, {
   etag: true,
@@ -167,17 +168,17 @@ app.use('/uploads', express.static(uploadsDir, {
 
 app.all(/^\/\.netlify\/functions\/([^/?#]+)(?:\/.*)?$/, rawBody, async (req, res, next) => {
   try {
-    const functionName = req.params[0];
-    if (safeNetlifyFunctions.has(functionName)) {
-      req.cafe24FunctionName = functionName;
-      netlifyFunctionHandler(req, res, next);
-      return;
-    }
-    req.params.name = functionName;
+    req.params.name = req.params[0];
     await cafe24UnavailableFunction(req, res);
   } catch (error) {
     next(error);
   }
+});
+app.all(/^\/\.netlify(?:\/.*)?$/, (_req, res) => {
+  res.status(410).json({
+    error: 'Gone',
+    message: 'Unsupported legacy Netlify path on Cafe24. Use /api routes.',
+  });
 });
 app.all(/^\/api\/([^/?#]+)(?:\/.*)?$/, rawBody, async (req, res, next) => {
   try {

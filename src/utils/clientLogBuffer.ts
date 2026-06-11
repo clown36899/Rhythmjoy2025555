@@ -21,7 +21,7 @@ const VERBOSE_TEXT_KEY_RE = /^(?:description|extracted_text|content|body|html|st
 const JWT_RE = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const PHONE_RE = /\b(?:\+?82[-\s]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}\b/g;
-const PROD_VERBOSE_ALLOW_RE = /\[(?:Kakao Callback|Auth|Supabase|Stats#|SW|CalendarPage)\]|Safety Net|SIGNED_|TOKEN_REFRESHED|INITIAL_SESSION|사용자 조작 감지|setSession/i;
+const PROD_VERBOSE_ALLOW_RE = /\[(?:Kakao Callback|Auth|DataClient|Stats#|SW|CalendarPage)\]|Safety Net|SIGNED_|TOKEN_REFRESHED|INITIAL_SESSION|사용자 조작 감지|setSession/i;
 
 let logs: ClientLogEntry[] = [];
 let nextId = 1;

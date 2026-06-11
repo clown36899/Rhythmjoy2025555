@@ -28,12 +28,8 @@ await build({
   sourcemap: false,
   legalComments: 'none',
   outExtension: { '.js': '.mjs' },
-  external: [
-    '@netlify/functions',
-    '@supabase/supabase-js',
-    'sharp',
-  ],
+  external: [],
   logLevel: 'info',
 });
 
-console.log(`[cafe24] Built ${functionFiles.length} Netlify-compatible functions into ${path.relative(rootDir, outdir)}`);
+console.log(`[cafe24] Built ${functionFiles.length} Cafe24 function bundles into ${path.relative(rootDir, outdir)}`);

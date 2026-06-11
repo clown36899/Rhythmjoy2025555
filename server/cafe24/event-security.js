@@ -14,8 +14,19 @@ const PRIVATE_EVENT_FIELDS = [
 export function canManageEvent(user, event) {
   return Boolean(
     user?.is_admin ||
-    (user?.id && event?.user_id && String(event.user_id) === String(user.id))
+    userMatchesId(user, event?.user_id)
   );
+}
+
+export function userIdentitySet(user) {
+  return new Set([
+    user?.id,
+    ...(Array.isArray(user?.legacy_user_ids) ? user.legacy_user_ids : []),
+  ].filter(Boolean).map(String));
+}
+
+export function userMatchesId(user, id) {
+  return Boolean(id && userIdentitySet(user).has(String(id)));
 }
 
 export function sanitizeEventForViewer(event, user = null) {
@@ -58,6 +69,30 @@ export async function attachEventAuthors(events) {
   );
 
   const userMap = new Map(users.map((user) => [String(user.id), user]));
+
+  const missingUserIds = userIds.filter((userId) => !userMap.has(String(userId)));
+  if (missingUserIds.length) {
+    const missingSet = new Set(missingUserIds.map(String));
+    const [records] = await pool.execute(
+      "SELECT data_json FROM generic_records WHERE table_name = 'board_users'",
+    );
+
+    for (const record of records) {
+      try {
+        const profile = JSON.parse(record.data_json || '{}');
+        const userId = String(profile?.user_id || '');
+        if (!missingSet.has(userId) || userMap.has(userId)) continue;
+        userMap.set(userId, {
+          id: userId,
+          nickname: profile.nickname || null,
+          profile_image: profile.profile_image || null,
+        });
+      } catch {
+        // Ignore malformed migrated generic records.
+      }
+    }
+  }
+
   return items.map((event) => {
     const author = userMap.get(String(event?.user_id || ''));
     if (!author) return event;

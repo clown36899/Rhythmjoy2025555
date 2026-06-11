@@ -159,7 +159,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     }
 };
 
-export const saveSubscriptionToSupabase = async (subscription: PushSubscription, prefs?: PushPreferences) => {
+export const saveSubscriptionToDataStore = async (subscription: PushSubscription, prefs?: PushPreferences) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return; // Must be logged in
 
@@ -252,7 +252,7 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
     });
 
     if (error) {
-        console.error("Failed to save subscription to Supabase:", error);
+        console.error("Failed to save subscription to data store:", error);
         throw error;
     }
 
@@ -264,7 +264,7 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
         console.warn('[Push] Failed to link PWA install log:', e);
     }
 
-    pushDebug('[Push] Subscription saved to Supabase');
+    pushDebug('[Push] Subscription saved to data store');
     return true;
 }
 

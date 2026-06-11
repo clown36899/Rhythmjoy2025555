@@ -63,7 +63,7 @@ export default function BillboardPage() {
   const transitionTimersRef = useRef<NodeJS.Timeout[]>([]); // 슬라이드 전환 시 사용되는 모든 setTimeout
   const reloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 실시간 업데이트용 setTimeout
   const playRetryTimerRef = useRef<NodeJS.Timeout | null>(null); // Player 재생 재시도용 setTimeout
-  // ✅ Supabase 채널 ref (메모리 누수 방지 - 중복 구독 방지)
+  // ✅ Realtime 채널 ref (메모리 누수 방지 - 중복 구독 방지)
   const eventsChannelRef = useRef<any>(null);
   const settingsChannelRef = useRef<any>(null);
   const deployChannelRef = useRef<any>(null);
@@ -728,7 +728,7 @@ export default function BillboardPage() {
     loadBillboardData();
 
     // ✅ 중복 구독 방지: 기존 채널이 있으면 먼저 제거
-    log('[📡 채널 관리] Supabase 채널 설정 시작');
+    log('[📡 채널 관리] Realtime 채널 설정 시작');
 
     if (eventsChannelRef.current) {
       log('[📡 채널 관리] ⚠️ 기존 eventsChannel 발견 - 제거');
@@ -855,7 +855,7 @@ export default function BillboardPage() {
       clearAllTimers();
 
       // ✅ 채널 정리 (ref에서)
-      log('[📡 채널 관리] cleanup: Supabase 채널 제거 시작');
+      log('[📡 채널 관리] cleanup: Realtime 채널 제거 시작');
       if (eventsChannelRef.current) {
         supabase.removeChannel(eventsChannelRef.current);
         eventsChannelRef.current = null;

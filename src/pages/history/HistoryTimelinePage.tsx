@@ -1145,7 +1145,7 @@ function HistoryTimelinePage() {
                 .select();
 
             if (error) {
-                console.error('❌ [Viewport] Save failed (Supabase):', error);
+                console.error('❌ [Viewport] Save failed:', error);
                 throw error;
             }
 

@@ -48,7 +48,7 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
                     .limit(10);
 
                 if (error) {
-                    console.error('[VideoThumbnailSection] Supabase Error:', error);
+                    console.error('[VideoThumbnailSection] Data client error:', error);
                     throw error;
                 }
 

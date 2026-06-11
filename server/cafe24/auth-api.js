@@ -76,6 +76,61 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+async function loadLegacyBoardUserIdentity(pool, row) {
+  const email = normalizeEmail(row?.email);
+  if (!email) return { legacy_user_ids: [] };
+
+  const [records] = await pool.execute(
+    "SELECT data_json FROM generic_records WHERE table_name = 'board_users'",
+  );
+
+  const matches = records
+    .map((record) => parseJson(record.data_json, null))
+    .filter((profile) => normalizeEmail(profile?.email) === email);
+  const legacyUserIds = Array.from(new Set(
+    matches
+      .map((profile) => profile?.user_id)
+      .filter((userId) => userId && String(userId) !== String(row.id))
+      .map(String),
+  ));
+  const profileMatch = matches.find((profile) => profile?.profile_image) || matches[0] || null;
+
+  return {
+    legacy_user_ids: legacyUserIds,
+    legacy_profile_image: profileMatch?.profile_image || null,
+    legacy_nickname: profileMatch?.nickname || null,
+  };
+}
+
+async function attachLegacyBoardUserIdentity(pool, row) {
+  if (!row) return null;
+
+  const legacy = await loadLegacyBoardUserIdentity(pool, row);
+  const updates = {};
+
+  if (!row.profile_image && legacy.legacy_profile_image) {
+    updates.profile_image = legacy.legacy_profile_image;
+  }
+
+  if ((!row.nickname || /^Kakao\s+\d+$/i.test(String(row.nickname))) && legacy.legacy_nickname) {
+    updates.nickname = legacy.legacy_nickname;
+  }
+
+  if (Object.keys(updates).length) {
+    const assignments = Object.keys(updates).map((key) => `${key} = ?`).join(', ');
+    await pool.execute(
+      `UPDATE users SET ${assignments}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...Object.values(updates), row.id],
+    );
+  }
+
+  return {
+    ...row,
+    ...updates,
+    legacy_user_ids: legacy.legacy_user_ids,
+  };
+}
+
 function isConfiguredAdminEmail(email) {
   const target = normalizeEmail(email);
   if (!target) return false;
@@ -95,11 +150,14 @@ async function resolveAdminFlag(pool, row) {
     const [adminRows] = await pool.execute(
       "SELECT data_json FROM generic_records WHERE table_name = 'board_admins'",
     );
-    const userId = String(row.id || '');
+    const userIds = new Set([
+      String(row.id || ''),
+      ...(Array.isArray(row.legacy_user_ids) ? row.legacy_user_ids.map(String) : []),
+    ].filter(Boolean));
     const email = normalizeEmail(row.email);
     return adminRows.some((adminRow) => {
       const admin = parseJson(adminRow.data_json, {});
-      return (userId && String(admin.user_id || '') === userId)
+      return (admin.user_id && userIds.has(String(admin.user_id)))
         || (email && normalizeEmail(admin.email || admin.admin_email) === email);
     });
   } catch {
@@ -109,11 +167,12 @@ async function resolveAdminFlag(pool, row) {
 
 async function attachAdminFlag(pool, row) {
   if (!row) return null;
-  const isAdmin = await resolveAdminFlag(pool, row);
-  if (isAdmin && !row.is_admin) {
-    await pool.execute('UPDATE users SET is_admin = 1 WHERE id = ? AND is_admin = 0', [row.id]).catch(() => {});
+  const withLegacyIdentity = await attachLegacyBoardUserIdentity(pool, row);
+  const isAdmin = await resolveAdminFlag(pool, withLegacyIdentity);
+  if (isAdmin && !withLegacyIdentity.is_admin) {
+    await pool.execute('UPDATE users SET is_admin = 1 WHERE id = ? AND is_admin = 0', [withLegacyIdentity.id]).catch(() => {});
   }
-  return { ...row, is_admin: isAdmin ? 1 : 0 };
+  return { ...withLegacyIdentity, is_admin: isAdmin ? 1 : 0 };
 }
 
 function rowToUser(row) {

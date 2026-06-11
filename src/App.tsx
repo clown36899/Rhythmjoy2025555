@@ -12,7 +12,7 @@ import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import { InAppBrowserGuard } from './components/InAppBrowserGuard';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
-import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
+import { getPushSubscription, saveSubscriptionToDataStore, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
 import { isPWAMode, getMobilePlatform } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import DeploymentAutoRefresh from './components/DeploymentAutoRefresh';
@@ -36,7 +36,7 @@ function AppContent() {
   // Track online presence for all users
   useOnlinePresence();
 
-  // Sync queries with Supabase Realtime
+  // Sync queries with the realtime bridge
   useRealtimeSync();
 
   // [Cache] 달력 데이터 사전 페칭 (Prefetching)
@@ -190,7 +190,7 @@ function AppContent() {
             if (dbPrefs) {
               // [Silent Sync] 이미 구독 중이고 DB에도 데이터가 있음 -> 최신 상태로 갱신
               pwaDebug('[App] Existing subscription matches DB. Syncing...');
-              await saveSubscriptionToSupabase(existingSub, {
+              await saveSubscriptionToDataStore(existingSub, {
                 pref_events: dbPrefs.pref_events,
                 pref_class: dbPrefs.pref_class,
                 pref_clubs: dbPrefs.pref_clubs,
@@ -255,7 +255,7 @@ function AppContent() {
     pwaDebug('[App] User configured PWA notifications:', prefs);
     const sub = await subscribeToPush();
     if (sub) {
-      await saveSubscriptionToSupabase(sub, prefs); // 사용자가 선택한 설정 적용 (그대로 전달)
+      await saveSubscriptionToDataStore(sub, prefs); // 사용자가 선택한 설정 적용 (그대로 전달)
       pwaDebug('[App] PWA Auto-subscribed successfully with custom prefs.');
       window.dispatchEvent(new CustomEvent('pushStatusChanged', { detail: { enabled: true } }));
     }

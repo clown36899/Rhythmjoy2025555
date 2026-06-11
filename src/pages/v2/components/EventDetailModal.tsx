@@ -927,7 +927,7 @@ export default function EventDetailModal({
 
 
       if (error) {
-        console.error('[Error] Supabase update failed after retries:', error);
+        console.error('[Error] Data update failed after retries:', error);
         throw error;
       }
 
