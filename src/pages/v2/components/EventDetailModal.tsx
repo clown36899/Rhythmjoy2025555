@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
+import { fetchCafe24EventById, isCafe24EventsBackendEnabled, updateCafe24EventById } from '../../../lib/cafe24EventsApi';
 import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
@@ -71,6 +72,11 @@ interface EventDetailModalProps {
 }
 
 const EVENT_DETAIL_DEBUG = import.meta.env.VITE_EVENT_DETAIL_DEBUG === 'true';
+
+function getMutationTargetId(eventId: string | number) {
+  const originalId = String(eventId).replace('social-', '');
+  return Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
+}
 
 const isLocalDebugHost = () => typeof window !== 'undefined'
   && /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
@@ -471,14 +477,22 @@ export default function EventDetailModal({
     return () => hideLoading('event-detail-save');
   }, [hideLoading]);
   const [authorNickname, setAuthorNickname] = useState<string | null>(null);
+  const eventViewerUserId = currentUserId || user?.id || null;
+  const canViewEventPrivateFields = Boolean(
+    isAdminMode ||
+    isActualAdmin ||
+    (
+      eventViewerUserId &&
+      event?.user_id &&
+      String(event.user_id) === String(eventViewerUserId)
+    )
+  );
 
   // Extract authorNickname from board_users if already present
   useEffect(() => {
     const nickname = (event as any)?.board_users?.nickname;
-    if (nickname && !authorNickname) {
-      setAuthorNickname(nickname);
-    }
-  }, [event, authorNickname]);
+    setAuthorNickname(nickname || null);
+  }, [event?.id, (event as any)?.board_users?.nickname]);
 
   useEffect(() => {
     if (EVENT_DETAIL_DEBUG && isOpen) {
@@ -501,7 +515,7 @@ export default function EventDetailModal({
         !event.user_id ||
         event.link1 === undefined ||
         // 관리자거나 본인인데 닉네임이 없으면 정보 조회를 위해 fetch
-        ((isAdminMode || (user && user.id === event.user_id)) && !authorNickname && !(event as any).board_users)
+        (canViewEventPrivateFields && !authorNickname && !(event as any).board_users)
       );
 
     if (shouldFetch) {
@@ -524,11 +538,13 @@ export default function EventDetailModal({
           }
 
           // 통합된 events 테이블 데이터 조회 (장소 정보 조인 포함)
-          const { data, error } = await supabase
-            .from('events')
-            .select('*, board_users(nickname), venues(*)')
-            .eq('id', originalId)
-            .maybeSingle();
+          const { data, error } = isCafe24EventsBackendEnabled
+            ? { data: await fetchCafe24EventById(originalId), error: null }
+            : await supabase
+              .from('events')
+              .select('*, board_users(nickname), venues(*)')
+              .eq('id', originalId)
+              .maybeSingle();
 
           if (error) throw error;
           if (EVENT_DETAIL_DEBUG) {
@@ -553,7 +569,7 @@ export default function EventDetailModal({
       };
       fetchDetail();
     }
-  }, [event, isAdminMode, user, authorNickname, isOpen]);
+  }, [event, canViewEventPrivateFields, authorNickname, isOpen]);
 
   // Genre Management State
   const allHistoricalGenres = useHistoricalGenres();
@@ -613,20 +629,20 @@ export default function EventDetailModal({
         }
       });
 
-      const originalId = String(draftEvent.id).replace('social-', '');
-      const targetId = Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
+      const targetId = getMutationTargetId(draftEvent.id);
 
       if (EVENT_DETAIL_DEBUG) {
         console.debug('[saveChangesToDB] Updating event:', { targetId, ...summarizeUpdatesForLog(updates as Record<string, unknown>) });
       }
 
-
-      const { data, error } = await supabase
-        .from('events')
-        .update(updates)
-        .eq('id', targetId)
-        .select()
-        .maybeSingle();
+      const { data, error } = isCafe24EventsBackendEnabled
+        ? { data: await updateCafe24EventById(targetId, updates as Partial<BaseEvent>), error: null }
+        : await supabase
+          .from('events')
+          .update(updates)
+          .eq('id', targetId)
+          .select()
+          .maybeSingle();
 
       if (error) throw error;
 
@@ -888,24 +904,26 @@ export default function EventDetailModal({
       let updatedEvent = null;
       let error = null;
 
-      const originalId = String(draftEvent.id).replace('social-', '');
-      // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
-      const targetId = Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
+      const targetId = getMutationTargetId(draftEvent.id);
 
       if (EVENT_DETAIL_DEBUG) {
         console.debug('[handleFinalSave] Updating event record:', { targetId, ...summarizeUpdatesForLog(updates as Record<string, unknown>) });
       }
 
-      const result = await retryOperation(async () =>
-        await supabase
-          .from('events')
-          .update(updates)
-          .eq('id', targetId)
-          .select()
-          .maybeSingle()
-      ) as any;
-      updatedEvent = result.data;
-      error = result.error;
+      if (isCafe24EventsBackendEnabled) {
+        updatedEvent = await retryOperation(() => updateCafe24EventById(targetId, updates)) as Event | null;
+      } else {
+        const result = await retryOperation(async () =>
+          await supabase
+            .from('events')
+            .update(updates)
+            .eq('id', targetId)
+            .select()
+            .maybeSingle()
+        ) as any;
+        updatedEvent = result.data;
+        error = result.error;
+      }
 
 
       if (error) {
@@ -922,7 +940,7 @@ export default function EventDetailModal({
       }
 
       // Verify if updates were actually applied
-      if (updatedEvent) {
+      if (!isCafe24EventsBackendEnabled && updatedEvent) {
         if (updates.genre !== updatedEvent.genre) {
           console.warn('⚠️ CRITICAL: Genre update was NOT reflected in the DB response!');
         }
@@ -1065,6 +1083,12 @@ export default function EventDetailModal({
   }
 
   const selectedEvent = draftEvent || event;
+  const isSelectedEventOwner = Boolean(
+    eventViewerUserId &&
+    selectedEvent.user_id &&
+    String(selectedEvent.user_id) === String(eventViewerUserId)
+  );
+  const canEditSelectedEvent = Boolean(isAdminMode || isActualAdmin || isSelectedEventOwner);
 
   return (
     <>
@@ -1654,7 +1678,7 @@ export default function EventDetailModal({
                     })()}
 
 
-                  {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) &&
+                  {canEditSelectedEvent &&
                     (selectedEvent.organizer_name ||
                       selectedEvent.organizer_phone) && (
                       <div className="EDM-adminSection">
@@ -1679,7 +1703,7 @@ export default function EventDetailModal({
 
                   {/* Link section removed as per user request */}
 
-                  {(isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
+                  {canEditSelectedEvent && selectedEvent.created_at && (
                     <div className="EDM-createdAt">
                       <span>
                         등록:{" "}
@@ -1758,7 +1782,7 @@ export default function EventDetailModal({
                   </span>
                 </a>
               )}
-              {isSelectionMode && (
+              {isSelectionMode && canEditSelectedEvent && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1831,7 +1855,7 @@ export default function EventDetailModal({
               )}
 
               {/* Delete Button (Only in Selection/Edit Mode) */}
-              {isSelectionMode && (isAdminMode || isActualAdmin || !isPastEvent) && (
+              {isSelectionMode && canEditSelectedEvent && (
                 <button
                   type="button"
                   onPointerDown={(e) => {
@@ -1893,8 +1917,8 @@ export default function EventDetailModal({
                 </button>
               )}
 
-              {/* Edit/Save Button - Only show if authorized (Admin or Owner) AND event hasn't started (unless admin) */}
-              {(isAdminMode || isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id) && !isPastEvent)) && (
+              {/* Edit/Save Button - Only show if authorized (Admin or Owner) */}
+              {canEditSelectedEvent && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

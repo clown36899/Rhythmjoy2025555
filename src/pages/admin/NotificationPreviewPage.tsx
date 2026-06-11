@@ -23,9 +23,9 @@ type LocalEventPreview = {
 const LOCAL_SEED_FLAG = 'swingenjoy:admin-notification-preview-seeded:v1';
 
 const fallbackImages = [
-  'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1780377362748_f2x3x/medium.webp',
-  'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1780122176681_8o4ku/medium.webp',
-  'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/event-posters/1780118349312_64f7a/medium.webp',
+  '/uploads/images/event-posters/1780377362748_f2x3x/medium.webp',
+  '/uploads/images/event-posters/1780122176681_8o4ku/medium.webp',
+  '/uploads/images/event-posters/1780118349312_64f7a/medium.webp',
 ];
 
 function isLocalRuntime() {

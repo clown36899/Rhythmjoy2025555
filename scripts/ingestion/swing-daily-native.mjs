@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-extra';
+import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { buildNetlifyPayload, getBlockedKeywordReason, normalizeSourceUrl, prepareCandidate } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
+
+chromium.use(stealthPlugin());
+
 
 const profile = process.env.INGESTION_PROFILE || 'swing-daily';
 const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/.netlify/functions/scraped-events';

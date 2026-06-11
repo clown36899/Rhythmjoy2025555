@@ -9,6 +9,16 @@ import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/a
 import { isPWAMode } from '../lib/pwaDetect';
 import { getSupabasePkceVerifierKey, removeSupabaseStorageKeys } from '../lib/authStorageKeys';
 
+const CAFE24_AUTH_ENABLED =
+  import.meta.env.VITE_CAFE24_AUTH_BACKEND === 'mysql' ||
+  import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+
+const getCafe24LoginReturnUrl = () => {
+  const value = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (!value.startsWith('/') || value.startsWith('//') || /[\r\n]/.test(value)) return '/';
+  return value;
+};
+
 
 
 interface AuthContextType {
@@ -464,6 +474,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load profile and admin status when user changes
   useEffect(() => {
+    if (CAFE24_AUTH_ENABLED) {
+      if (user) {
+        const profile = {
+          nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+          profile_image: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+        };
+        setUserProfile(profile);
+      } else if (isAuthCheckComplete) {
+        setUserProfile(null);
+        setIsAdmin(false);
+        setAdminStatus(false);
+      }
+      return;
+    }
+
     if (user) {
       // Only refresh if user actually changed
       if (lastProcessedUserId.current !== user.id) {
@@ -482,6 +507,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const validateSession = useCallback(async () => {
+    if (CAFE24_AUTH_ENABLED) {
+      const response = await fetch('/api/auth/me', { credentials: 'same-origin' });
+      const data = await response.json();
+      const nextUser = data.user || null;
+      setUser(nextUser);
+      setSession(null);
+      setIsAdmin(Boolean(data.isAdmin));
+      setAdminStatus(Boolean(data.isAdmin));
+      setIsAuthCheckComplete(true);
+      return;
+    }
+
     // console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
     const validSession = await validateAndRecoverSession();
     if (!validSession) {
@@ -495,6 +532,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authLogger.log('[AuthContext] 🔌 Initializing AuthContext useEffect...');
     let isMounted = true;
     let safetyTimeoutId: NodeJS.Timeout | null = null;
+
+    if (CAFE24_AUTH_ENABLED) {
+      fetch('/api/auth/me', { credentials: 'same-origin' })
+        .then((response) => response.json())
+        .then((data) => {
+          if (!isMounted) return;
+          setUser(data.user || null);
+          setSession(null);
+          setIsAdmin(Boolean(data.isAdmin));
+          setAdminStatus(Boolean(data.isAdmin));
+          setLoading(false);
+          setIsAuthProcessing(false);
+          setIsAuthCheckComplete(true);
+          sessionStorage.removeItem('google_login_in_progress');
+          sessionStorage.removeItem('google_login_start_time');
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          setUser(null);
+          setSession(null);
+          setIsAdmin(false);
+          setAdminStatus(false);
+          setLoading(false);
+          setIsAuthProcessing(false);
+          setIsAuthCheckComplete(true);
+          sessionStorage.removeItem('google_login_in_progress');
+          sessionStorage.removeItem('google_login_start_time');
+        });
+
+      return () => { isMounted = false; };
+    }
 
     // 로그아웃 직후 리로드된 상태인지 확인
     const isLoggingOutFromStorage = localStorage.getItem('isLoggingOut') === 'true';
@@ -661,6 +729,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 2. Auth State Change 구독 (별도 분리)
   useEffect(() => {
+    if (CAFE24_AUTH_ENABLED) return;
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
@@ -746,6 +816,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (CAFE24_AUTH_ENABLED) {
+      setIsLoggingOut(true);
+      setIsAuthProcessing(true);
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+      } finally {
+        wipeLocalData();
+        setUser(null);
+        setSession(null);
+        setIsAdmin(false);
+        setAdminStatus(false);
+        window.location.reload();
+      }
+      return;
+    }
+
     // localStorage에 로그 저장 (새로고침 후에도 확인 가능)
     const logToStorage = (msg: string) => {
       const logs = JSON.parse(localStorage.getItem('logout_debug_logs') || '[]');
@@ -897,6 +986,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (CAFE24_AUTH_ENABLED) {
+      setIsAuthProcessing(true);
+      sessionStorage.setItem('google_login_in_progress', 'true');
+      sessionStorage.setItem('google_login_start_time', String(Date.now()));
+
+      try {
+        const returnUrl = getCafe24LoginReturnUrl();
+        window.location.assign(`/api/auth/google/start?returnUrl=${encodeURIComponent(returnUrl)}`);
+      } catch (error: any) {
+        console.error('[signInWithGoogle] Cafe24 redirect failed:', error);
+        alert(`구글 로그인 실패:\n${error.message || '알 수 없는 오류'}`);
+        setIsAuthProcessing(false);
+        sessionStorage.removeItem('google_login_in_progress');
+        sessionStorage.removeItem('google_login_start_time');
+      }
+      return;
+    }
 
 
     setIsAuthProcessing(true);

@@ -35,7 +35,8 @@ import { parseVideoUrl } from '../../utils/videoEmbed';
 
 function HistoryTimelinePage() {
     const { user, isAdmin } = useAuth();
-    const { isFullscreen } = useOutletContext<{ isFullscreen: boolean }>();
+    const outletContext = useOutletContext<{ isFullscreen?: boolean } | undefined>();
+    const isFullscreen = outletContext?.isFullscreen ?? false;
     // Global Player Hook
     const { openPlayer } = useGlobalPlayer();
 

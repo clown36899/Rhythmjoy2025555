@@ -1,8 +1,18 @@
 export default {
   welcome: '환영합니다',
+  '홈': '홈',
+  '전체달력': '전체달력',
+  '포럼': '포럼',
+  '소셜': '소셜',
+  '쇼핑': '쇼핑',
+  '안내': '안내',
+  '내 즐겨찾기': '내 즐겨찾기',
+  '내 활동': '내 활동',
   events: '행사',
   classes: '강습',
   practiceRooms: '연습실',
+  all: '전체',
+  socialEvents: '소셜&행사',
   weekdays: {
     sun: 'Sunday',
     mon: 'Monday',

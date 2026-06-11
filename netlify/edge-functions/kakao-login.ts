@@ -303,7 +303,7 @@ function runAfterResponse(context: any, promise: Promise<unknown>, label: string
         return;
     }
 
-    guardedPromise;
+    void guardedPromise;
 }
 
 export default async (request: Request, context: any) => {

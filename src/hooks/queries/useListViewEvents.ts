@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import type { Event as AppEvent } from '../../lib/supabase';
+import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { isEventInDanceScope, normalizeDanceScope, type DanceScope } from '../../utils/danceTaxonomy';
 
 const LIST_VIEW_EVENTS_QUERY_VERSION = 'dance-scope-local-v4';
@@ -14,6 +15,19 @@ export function useListViewEvents(enabled: boolean, danceScope: DanceScope | str
         enabled,
         staleTime: 5 * 60 * 1000,
         queryFn: async () => {
+            if (isCafe24EventsBackendEnabled) {
+                const events = await fetchCafe24Events({
+                    cutoff: today,
+                    scope: normalizedScope,
+                    limit: 3000,
+                });
+
+                return {
+                    events: events.filter((event) => isEventInDanceScope(event as any, normalizedScope)),
+                    socialSchedules: [],
+                };
+            }
+
             const baseColumns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope,group_id,location,venue_name,address,venue_id,genre";
             const metadataColumns = `${baseColumns},dance_scope,dance_genre,activity_type,dance_tags`;
             const dateRange = `start_date.gte.${today},date.gte.${today},end_date.gte.${today}`;

@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabase';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 
+const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+
 export interface AnalyticsLog {
     target_id: string;
     target_type: string;
@@ -346,7 +348,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
 
         // [RETROACTIVE PWA TRACKING] 
         // PWA 모드로 접속했는데 아직 pwa_installs 기록이 없는 경우 자동으로 기록
-        if (isPWA && !localStorage.getItem('pwa_install_tracked_v2')) {
+        if (!CAFE24_ANALYTICS_ENABLED && isPWA && !localStorage.getItem('pwa_install_tracked_v2')) {
             // console.log('[Analytics] PWA mode detected but no install record. Tracking now...');
             trackPWAInstall(user);
         }
@@ -488,6 +490,20 @@ export const trackEvent = (log: AnalyticsLog) => {
 
     const performUpload = async () => {
         try {
+            if (CAFE24_ANALYTICS_ENABLED) {
+                const response = await fetch('/.netlify/functions/analytics-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'event',
+                        ...logData,
+                    }),
+                    keepalive: true,
+                });
+                if (!response.ok) throw new Error(`Cafe24 analytics failed: ${response.status}`);
+                return;
+            }
+
             const { error } = await supabase.from('site_analytics_logs').insert(logData);
             if (error) throw error;
         } catch (err) {

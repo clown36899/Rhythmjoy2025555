@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import type { Event as AppEvent } from '../../lib/supabase';
+import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { isEventInDanceScope, normalizeDanceScope, type DanceScope } from '../../utils/danceTaxonomy';
 
 export interface CalendarData {
@@ -8,7 +9,10 @@ export interface CalendarData {
     socialSchedules: any[];
 }
 
-const CALENDAR_EVENTS_QUERY_VERSION = 'dance-scope-local-v5';
+const CALENDAR_EVENTS_QUERY_VERSION = 'dance-scope-local-v6';
+
+const toLocalDateString = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 /**
  * 특정 날짜를 기준으로 달력에 필요한 3개월 범위(이전달, 현재달, 다음달)를 계산합니다.
@@ -17,8 +21,8 @@ export const getCalendarRange = (date: Date) => {
     const startOfRange = new Date(date.getFullYear(), date.getMonth() - 1, 1);
     const endOfRange = new Date(date.getFullYear(), date.getMonth() + 2, 0);
     return {
-        startDateStr: startOfRange.toISOString().split('T')[0],
-        endDateStr: endOfRange.toISOString().split('T')[0]
+        startDateStr: toLocalDateString(startOfRange),
+        endDateStr: toLocalDateString(endOfRange)
     };
 };
 
@@ -27,6 +31,21 @@ export const getCalendarRange = (date: Date) => {
  */
 export const fetchCalendarEvents = async (startDateStr: string, endDateStr: string, danceScope: DanceScope | string = 'swing') => {
     const normalizedScope = normalizeDanceScope(danceScope);
+
+    if (isCafe24EventsBackendEnabled) {
+        const events = await fetchCafe24Events({
+            start: startDateStr,
+            end: endDateStr,
+            scope: normalizedScope,
+            limit: 3000,
+        });
+
+        return {
+            events: events.filter((event) => isEventInDanceScope(event as any, normalizedScope)),
+            socialSchedules: [],
+        };
+    }
+
     const baseColumns = "id,title,date,start_date,end_date,event_dates,category,genre,image,image_micro,image_thumbnail,image_medium,image_full,scope,group_id,location,venue_name,address,venue_id,venues(address)";
     const metadataColumns = `${baseColumns},dance_scope,dance_genre,activity_type,dance_tags`;
     const dateRange = [

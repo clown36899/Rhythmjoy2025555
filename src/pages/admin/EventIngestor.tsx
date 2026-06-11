@@ -1,19 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEvents } from '../v2/components/EventList/hooks/useEvents';
 import { supabase } from '../../lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageCropModal from '../../components/ImageCropModal';
-import { getIngestorOwnerUserId } from './v2/utils/ingestorOwner';
 const VenueSelectModal = React.lazy(() => import('../v2/components/VenueSelectModal'));
 import './EventIngestor.css';
 
-// [인제스터 전용] 운영 DB 클라이언트 — 등록 버튼에서만 사용
-const prodSupabase = createClient(
-    import.meta.env.VITE_PROD_SUPABASE_URL || import.meta.env.VITE_PUBLIC_SUPABASE_URL,
-    import.meta.env.VITE_PROD_SUPABASE_ANON_KEY || import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
-);
+const prodSupabase = supabase;
 
 interface ScrapedEvent {
     id: string;
@@ -51,6 +46,7 @@ interface VenueRecord {
 
 const EventIngestor: React.FC = () => {
     const { user, isAdmin } = useAuth();
+    const queryClient = useQueryClient();
     const { events: existingEvents, loading: existingLoading } = useEvents({ isAdminMode: true });
     const [currentTab, setCurrentTab] = useState<'social' | 'lessons'>('social');
     const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
@@ -131,7 +127,7 @@ const EventIngestor: React.FC = () => {
     const matchVenue = useCallback((locationName: string): VenueRecord | null => {
         if (!locationName || venues.length === 0) return null;
         const norm = (s: string) => s.replace(/[\s()（）\-_]/g, '').toLowerCase();
-        const target = norm(locationName);
+        const target = norm(locationName) === norm('스윙스캔들') ? norm('사보이볼룸') : norm(locationName);
         return venues.find(v => {
             const vn = norm(v.name);
             return vn.includes(target) || target.includes(vn);
@@ -243,11 +239,11 @@ const EventIngestor: React.FC = () => {
             }
 
             // 2. 이벤트 데이터 구성
-            const ownerUserId = await getIngestorOwnerUserId(prodSupabase);
             const eventData: any = {
                 title: formattedTitle,
                 date: data.date,
                 start_date: data.date,
+                end_date: data.date,
                 time: startTime,
                 location: data.location || '',
                 category: currentTab === 'lessons' ? 'class' : 'social',
@@ -259,8 +255,9 @@ const EventIngestor: React.FC = () => {
                 link1: scraped.source_url || '',
                 link_name1: scraped.keyword || '',
                 description: scraped.extracted_text || '',
-                user_id: ownerUserId,
                 group_id: currentTab === 'lessons' ? null : 2, // 강습은 일반, 소셜은 댄스빌보드 그룹
+                dance_scope: 'swing',
+                activity_type: currentTab === 'lessons' ? 'class' : 'social',
                 image: imageUrl,
                 image_micro: imageMicro,
                 image_thumbnail: imageThumbnail,
@@ -272,17 +269,38 @@ const EventIngestor: React.FC = () => {
                 address: finalAddress,
             };
 
-            // 3. DB insert
-            const { data: result, error } = await prodSupabase
-                .from('events')
-                .insert([eventData])
-                .select()
-                .maybeSingle();
-
-            if (error) throw error;
+            // 3. Cafe24 전용 등록 함수: 이벤트 저장 + 수집 후보 완료 처리 + 이미지 보정
+            const registerRes = await fetch('/.netlify/functions/ingestor-register-event', {
+                method: 'POST',
+                headers: await getAdminRequestHeaders(true),
+                body: JSON.stringify({
+                    scrapedEventId: scraped.id,
+                    eventData,
+                    scrapedStructuredData: {
+                        ...data,
+                        address: finalAddress || data.address || '',
+                        venue_id: finalVenueId || data.venue_id || null,
+                    },
+                }),
+            });
+            const registerPayload = await registerRes.json().catch(() => ({}));
+            if (!registerRes.ok) {
+                throw new Error(registerPayload.error || `HTTP ${registerRes.status}`);
+            }
+            const result = registerPayload.event;
 
             console.log('✅ 이벤트 등록 성공:', result);
             setRegisteredIds(prev => new Set(prev).add(scraped.id));
+            setScrapedEvents(prev => prev.map(item =>
+                item.id === scraped.id ? { ...item, is_collected: true } : item
+            ));
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['events'] }),
+                queryClient.invalidateQueries({ queryKey: ['calendar-events'] }),
+                queryClient.invalidateQueries({ queryKey: ['list-view-events'] }),
+            ]);
+            window.dispatchEvent(new CustomEvent('eventCreated', { detail: { event: result } }));
+            window.dispatchEvent(new CustomEvent('eventUpdated', { detail: { event: result } }));
             if (!skipConfirm) alert(`등록 완료! (ID: ${result?.id})\n제목: ${formattedTitle}`);
             return true;
         } catch (err: any) {
@@ -292,7 +310,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setRegisteringId(null);
         }
-    }, [user, isAdmin, currentTab, registeringId, matchVenue, genreMap]);
+    }, [user, isAdmin, currentTab, registeringId, matchVenue, genreMap, getAdminRequestHeaders, queryClient]);
 
     const toggleGenre = useCallback((id: string, genre: string) => {
         setGenreMap(prev => {
@@ -338,13 +356,13 @@ const EventIngestor: React.FC = () => {
 
             await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify([updated]),
             });
         } catch (err) {
             console.error('필드 수정 저장 실패:', err);
         }
-    }, [scrapedEvents, currentTab]);
+    }, [scrapedEvents, currentTab, getAdminRequestHeaders]);
 
     const handleVenueSelect = useCallback((venue: any) => {
         if (!venueTargetId) return;
@@ -397,7 +415,7 @@ const EventIngestor: React.FC = () => {
 
             const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify([updatedEvent]),
             });
 
@@ -414,7 +432,7 @@ const EventIngestor: React.FC = () => {
             console.error('이미지 저장 실패:', err);
             alert(`이미지 저장 실패: ${err.message}`);
         }
-    }, [editingEvent, currentTab, fetchScraped]);
+    }, [editingEvent, currentTab, fetchScraped, getAdminRequestHeaders]);
 
     // ===== 일괄 처리 함수 =====
     const handleBatchRegister = useCallback(async () => {
@@ -483,7 +501,7 @@ const EventIngestor: React.FC = () => {
             const updatedEvents = targets.map(e => ({ ...e, is_collected: true }));
             const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify(updatedEvents),
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -500,7 +518,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setIsProcessing(false);
         }
-    }, [selectedIds, scrapedEvents, currentTab, isProcessing]);
+    }, [selectedIds, scrapedEvents, currentTab, isProcessing, getAdminRequestHeaders]);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {

@@ -430,6 +430,7 @@ export default function MyActivitiesPage() {
                     currentUserId={user?.id}
                     onEdit={handleEditEvent}
                     onDelete={handleDeleteEvent}
+                    isAdminMode={isAdmin}
                 />
             )}
 
@@ -464,7 +465,7 @@ export default function MyActivitiesPage() {
                     event={selectedSchedule}
                     onEdit={handleEditSchedule}
                     onDelete={handleDeleteEvent}
-                    isAdminMode={true}
+                    isAdminMode={isAdmin}
                     currentUserId={user?.id}
                 />
             )}

@@ -248,24 +248,39 @@ export const MobileShell: React.FC = () => {
     setTranslationErrorMessage('');
 
     try {
+      await i18n.changeLanguage(lng);
+      document.documentElement.lang = lng;
+      logUserInteraction('Language', 'Change', lng);
+
       const googleTranslateChangeLanguage = typeof window !== 'undefined'
         ? ((window as any).googleTranslateChangeLanguage || (window as any).changeLanguage)
         : null;
 
       if (typeof googleTranslateChangeLanguage === 'function') {
-        const result = await googleTranslateChangeLanguage(lng);
-        if (result && typeof result === 'object') {
-          const { ok, lang: appliedLanguage } = result as { ok?: boolean; lang?: string };
-          if (ok === false || (appliedLanguage && appliedLanguage !== lng)) {
-            return false;
-          }
-        }
+        void Promise.resolve(googleTranslateChangeLanguage(lng))
+          .then((result) => {
+            if (result && typeof result === 'object') {
+              const { ok, lang: appliedLanguage } = result as { ok?: boolean; lang?: string };
+              if (ok === false || (appliedLanguage && appliedLanguage !== lng)) {
+                showTranslationError('본문 번역 적용이 지연됩니다. 다시 눌러 주세요.');
+              }
+            }
+          })
+          .catch((error) => {
+            const retryAfterMillis = typeof error === 'object' && error !== null && 'retryAfterMillis' in error
+              ? Number((error as { retryAfterMillis?: unknown }).retryAfterMillis)
+              : 0;
+            const retrySeconds = Number.isFinite(retryAfterMillis) && retryAfterMillis > 0
+              ? Math.max(1, Math.ceil(retryAfterMillis / 1000))
+              : 0;
+            showTranslationError(retrySeconds > 0
+              ? `${retrySeconds}초 후 다시 시도해 주세요.`
+              : '본문 번역 서버가 잠시 응답하지 않습니다.');
+          });
       } else if (lng !== 'ko') {
-        throw new Error('Google Translate bridge is not ready.');
+        showTranslationError('본문 번역 서버가 아직 준비되지 않았습니다.');
       }
 
-      await i18n.changeLanguage(lng);
-      logUserInteraction('Language', 'Change', lng);
       return true;
     } catch (error) {
       const retryAfterMillis = typeof error === 'object' && error !== null && 'retryAfterMillis' in error

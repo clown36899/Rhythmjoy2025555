@@ -3,13 +3,26 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import messages from './local/index';
 
+const getInitialLanguage = () => {
+  try {
+    const stored = window.localStorage.getItem('i18nextLng');
+    return stored?.startsWith('en') ? 'en' : 'ko';
+  } catch {
+    return 'ko';
+  }
+};
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    lng: 'ko', // Fixed default language to Korean
+    lng: getInitialLanguage(),
     fallbackLng: 'ko',
     supportedLngs: ['ko', 'en'],
+    detection: {
+      order: ['localStorage'],
+      caches: ['localStorage'],
+    },
     debug: false,
     resources: messages,
     interpolation: {
@@ -24,7 +37,7 @@ i18n.on('languageChanged', (lang) => {
 
 // Initial sync (Ensure it defaults to 'ko' at first)
 document.documentElement.lang = i18n.language || 'ko';
-if (!document.documentElement.lang.startsWith('ko')) {
+if (!document.documentElement.lang.startsWith('ko') && !document.documentElement.lang.startsWith('en')) {
   document.documentElement.lang = 'ko';
 }
 

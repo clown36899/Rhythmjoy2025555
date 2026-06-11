@@ -2,6 +2,22 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
+const THEME_STORAGE_KEY = 'theme';
+
+const readInitialTheme = (): Theme => {
+    if (typeof window === 'undefined') return 'dark';
+
+    try {
+        const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+        if (storedTheme === 'light' || storedTheme === 'dark') {
+            return storedTheme;
+        }
+    } catch {
+        // Private browsing and restricted storage should still render a stable theme.
+    }
+
+    return 'dark';
+};
 
 interface ThemeContextType {
     theme: Theme;
@@ -11,13 +27,23 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<Theme>('dark');
+    const [theme, setTheme] = useState<Theme>(readInitialTheme);
 
     useEffect(() => {
-        // HTML 루트에 테마 클래스 적용
-        document.documentElement.setAttribute('data-theme', theme);
-        // [Fix] 새로고침 시 다크모드로 리셋되어야 하므로 불필요한 캐시 제거
-        localStorage.removeItem('theme');
+        const root = document.documentElement;
+        root.setAttribute('data-theme', theme);
+        root.style.colorScheme = theme;
+
+        const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+        if (themeColorMeta) {
+            themeColorMeta.content = theme === 'dark' ? '#000000' : '#ffffff';
+        }
+
+        try {
+            window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch {
+            // Storage persistence is a convenience; theme rendering must not depend on it.
+        }
     }, [theme]);
 
     const toggleTheme = () => {

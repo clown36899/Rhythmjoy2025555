@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
+import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { getLocalDateString } from '../../pages/v2/utils/eventListUtils';
 import type { Event } from '../../pages/v2/utils/eventListUtils';
 
@@ -10,6 +11,10 @@ export const useEventsQuery = () => {
             const now = new Date();
             const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
             const cutoffDate = getLocalDateString(threeMonthsAgo);
+
+            if (isCafe24EventsBackendEnabled) {
+                return (await fetchCafe24Events({ cutoff: cutoffDate, limit: 3000 })) as Event[];
+            }
 
             // Fetch only from events table (now containing both events and social schedules)
             const { data, error } = await supabase

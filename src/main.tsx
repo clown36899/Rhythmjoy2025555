@@ -1,4 +1,5 @@
 import { initClientLogBuffer } from './utils/clientLogBuffer';
+import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 
 const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
@@ -46,8 +47,27 @@ if (import.meta.env.PROD && !window.location.pathname.includes('/billboard/')) {
 window.addEventListener('vite:preloadError', (event) => {
   event.preventDefault();
   const retries = parseInt(sessionStorage.getItem('chunkRetries') || '0');
-  if (retries >= 2) return; // 2회 초과 시 포기 (서버 장애 등 무한루프 방지)
+  const payload = (event as Event & { payload?: unknown }).payload as { message?: string; href?: string; path?: string } | undefined;
+  if (retries >= 2) {
+    logReloadDiagnostic({
+      reason: 'vite_preload_error',
+      phase: 'suppressed',
+      trigger: 'vite:preloadError',
+      retryCount: retries,
+      message: payload?.message,
+      extra: { payload },
+    });
+    return; // 2회 초과 시 포기 (서버 장애 등 무한루프 방지)
+  }
   sessionStorage.setItem('chunkRetries', String(retries + 1));
+  logReloadDiagnostic({
+    reason: 'vite_preload_error',
+    phase: 'execute',
+    trigger: 'vite:preloadError',
+    retryCount: retries + 1,
+    message: payload?.message,
+    extra: { payload },
+  }, { beacon: true });
   window.location.reload();
 });
 // 앱이 정상 로드되면 카운터 초기화
@@ -61,6 +81,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { authLogger } from './utils/authLogger';
 import './i18n'
 import './index.css'
+import './styles/theme-completion.css'
 
 authLogger.log('[Main] 🚀 App entry point reached');
 import { isPWAMode } from './lib/pwaDetect'
@@ -131,6 +152,7 @@ const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
 const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
 const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
 const AdminUiSamplesPage = lazy(() => import('./pages/admin/ui/AdminUiSamplesPage'));
+const Cafe24EventsAdminPage = lazy(() => import('./pages/admin/Cafe24EventsAdminPage'));
 const FreeBoardGuidePage = lazy(() => import('./pages/admin/ui/FreeBoardGuidePage'));
 const CalendarGuidePage = lazy(() => import('./pages/admin/ui/CalendarGuidePage'));
 const V2MainAdGuidePage = lazy(() => import('./pages/admin/ui/V2MainAdGuidePage'));
@@ -246,6 +268,7 @@ const router = createBrowserRouter([
       { path: "/map", element: <SiteMapPage /> },
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
       { path: "/admin/notification-preview", element: <Suspense fallback={null}><NotificationPreviewPage /></Suspense> },
+      { path: "/admin/cafe24-events", element: <Suspense fallback={null}><Cafe24EventsAdminPage /></Suspense> },
       { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
       { path: "/admin/v2/ingestor", element: <Suspense fallback={null}><EventIngestorV2Page /></Suspense> },
       { path: "/admin/ui", element: <Suspense fallback={null}><AdminUiSamplesPage /></Suspense> },
@@ -353,6 +376,18 @@ function RootApp() {
         message.includes('Failed to fetch'); // [Critical] 에러창 없이 즉시 리로드하여 사용자 경험 개선
       if (isChunkError) {
         console.warn('📦 Chunk/Fetch load failed (likely new deployment), reloading silently...');
+        logReloadDiagnostic({
+          reason: 'global_chunk_or_fetch_error',
+          phase: 'execute',
+          trigger: 'global-error-handler',
+          message,
+          stack,
+          extra: {
+            eventType: event.type,
+            hasAuthParams,
+            safetyTimeoutMillis,
+          },
+        }, { beacon: true });
         window.location.reload();
         return;
       }

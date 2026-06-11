@@ -507,6 +507,7 @@ const EventIngestorV2: React.FC = () => {
         title: formattedTitle,
         date: sd.date,
         start_date: sd.date,
+        end_date: sd.date,
         time: mapped.time,
         location: mapped.location,
         address: mapped.address,

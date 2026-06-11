@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { initializeFingerprint, trackEvent, initializeAnalyticsSession } from '../utils/analyticsEngine';
@@ -12,6 +12,7 @@ import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
     const { user, isAdmin, isAuthCheckComplete } = useAuth();
+    const lastTrackedPageRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
@@ -27,6 +28,21 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
         // 1. 비로그인 유저 식별자 초기화 및 세션 시작 기록 (순수 로그인 집계용)
         initializeFingerprint();
         initializeAnalyticsSession(user || undefined, isAdmin);
+
+        const pageKey = `${location.pathname}${location.search}`;
+        if (lastTrackedPageRef.current !== pageKey) {
+            lastTrackedPageRef.current = pageKey;
+            trackEvent({
+                target_id: pageKey || '/',
+                target_type: 'page_view',
+                target_title: document.title || pageKey || '/',
+                section: 'page_view',
+                category: 'navigation',
+                route: location.pathname,
+                user_id: user?.id,
+                is_admin: isAdmin
+            });
+        }
 
         // 2. 이벤트 위임(Event Delegation)을 통한 전역 클릭 리스너
         const handleGlobalClick = (event: MouseEvent) => {
@@ -96,7 +112,7 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
 
         window.addEventListener('click', handleGlobalClick, { capture: true });
         return () => window.removeEventListener('click', handleGlobalClick, { capture: true });
-    }, [location.pathname, user?.id, isAdmin, isAuthCheckComplete]);
+    }, [location.pathname, location.search, user?.id, isAdmin, isAuthCheckComplete]);
 
     return <>{children}</>;
 };

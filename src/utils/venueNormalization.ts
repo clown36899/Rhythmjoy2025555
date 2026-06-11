@@ -23,6 +23,7 @@ const CANONICAL_VENUE_ALIASES: Array<[RegExp, string]> = [
   [/^스윙타임(?:바)?(?:선릉)?$/i, '스윙타임'],
   [/^인더무드(?:신림)?$/i, '인더무드'],
   [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
+  [/^스윙스캔들$/i, '사보이볼룸'],
 ];
 
 function compactVenueText(value: string | null | undefined): string {

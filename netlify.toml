@@ -25,10 +25,10 @@
   to = "/index.html"
   status = 200
 
-[[edge_functions]]
-  path = "/*"
-  function = "block-bots"
-  excludedPath = ["/assets/*", "/_netlify/*", "/.netlify/functions/*", "/favicon.ico", "/manifest.json"]
+# [[edge_functions]]
+#   path = "/*"
+#   function = "block-bots"
+#   excludedPath = ["/assets/*", "/_netlify/*", "/.netlify/functions/*", "/favicon.ico", "/manifest.json"]
 
 [[edge_functions]]
   path = "/api/kakao-login"

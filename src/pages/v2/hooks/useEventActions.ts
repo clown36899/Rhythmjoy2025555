@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
+import { isCafe24EventsBackendEnabled } from "../../../lib/cafe24EventsApi";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { useModalActions } from "../../../contexts/ModalContext";
@@ -120,6 +121,27 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
             eventActionsDebug('[useEventActions > deleteEvent] Cleaned ID for API:', { original: eventId, cleanId });
             eventDeleteDiagnostic('[EventDelete:UI] prepared request', { originalEventId: eventId, cleanId, hasPassword: Boolean(password) });
+
+            if (isCafe24EventsBackendEnabled) {
+                const response = await fetch(`/api/events/${encodeURIComponent(cleanId)}/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ _method: 'DELETE', password }),
+                });
+                setDeleteProgress(60);
+                const responseData = await response.json().catch(() => null);
+
+                if (!response.ok) {
+                    throw new Error(responseData?.error || responseData?.message || 'Cafe24 event delete failed');
+                }
+
+                setDeleteProgress(90);
+                queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+                closeModal();
+                window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+                return true;
+            }
 
             eventActionsDebug('[useEventActions > deleteEvent] Fetching session...');
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();

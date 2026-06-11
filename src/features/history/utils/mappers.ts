@@ -21,6 +21,20 @@ export const mapDbNodeToRFNode = (
     const ld = node.linked_document;
     const lv = node.linked_video;
     const lc = node.linked_category;
+    const contentData = (() => {
+        const value = node.content_data || {};
+        if (typeof value === 'string') {
+            try { return JSON.parse(value); } catch { return {}; }
+        }
+        return value && typeof value === 'object' ? value : {};
+    })();
+    const nodeMeta = (() => {
+        const value = node.metadata || contentData.metadata || {};
+        if (typeof value === 'string') {
+            try { return JSON.parse(value); } catch { return {}; }
+        }
+        return value && typeof value === 'object' ? value : {};
+    })();
 
     // 기본값 설정
     let title = node.title;
@@ -109,6 +123,17 @@ export const mapDbNodeToRFNode = (
         thumbnail_url = lv.image_url || (lv.metadata?.youtube_video_id ? `https://img.youtube.com/vi/${lv.metadata.youtube_video_id}/mqdefault.jpg` : null);
         nodeType = 'video';
         category = 'video';
+    }
+
+    if (!image_url && contentData.image_url) {
+        image_url = contentData.image_url;
+    }
+    if (!thumbnail_url && nodeMeta.images && Array.isArray(nodeMeta.images) && nodeMeta.images.length > 0) {
+        thumbnail_url = nodeMeta.images[0].thumbnail || nodeMeta.images[0].micro || nodeMeta.images[0].medium || nodeMeta.images[0].full;
+        image_url = image_url || nodeMeta.images[0].medium || nodeMeta.images[0].full || nodeMeta.images[0].thumbnail;
+    }
+    if (!thumbnail_url) {
+        thumbnail_url = nodeMeta.image_thumbnail || nodeMeta.image_micro || nodeMeta.image_medium || image_url;
     }
 
     // 썸네일 최종 폴백

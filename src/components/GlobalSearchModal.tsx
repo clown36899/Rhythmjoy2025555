@@ -1,6 +1,7 @@
 import { useState, useEffect, memo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import { fetchCafe24EventById, fetchCafe24Events, isCafe24EventsBackendEnabled } from '../lib/cafe24EventsApi';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import LocalLoading from './LocalLoading';
 import VenueDetailModal from '../pages/practice/components/VenueDetailModal';
@@ -9,6 +10,8 @@ import type { Event } from '../lib/supabase';
 import type { Shop } from '../pages/shopping/page';
 import { useModalHistory } from '../hooks/useModalHistory';
 import { getOptimizedImageUrl } from '../utils/getEventThumbnail';
+import { useAuth } from '../contexts/AuthContext';
+import { useEventActions } from '../pages/v2/hooks/useEventActions';
 import './GlobalSearchModal.css';
 
 interface SearchResult {
@@ -125,10 +128,19 @@ const sortEventSearchResults = (events: SearchResult[], mode: EventSortMode, inc
 };
 
 export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: initialQuery = '' }: GlobalSearchModalProps) {
+    const { user, isAdmin, signInWithKakao } = useAuth();
+    const { handleEditClick, handleDeleteClick } = useEventActions({
+        adminType: isAdmin ? 'super' : null,
+        user,
+        signInWithKakao,
+    });
+
     const [localQuery, setLocalQuery] = useState(initialQuery);
     const [includePast, setIncludePast] = useState(false);
     const [eventSortMode, setEventSortMode] = useState<EventSortMode>('nearest');
-    const [activeScopes, setActiveScopes] = useState<Set<string>>(new Set(['events', 'venues', 'shopping', 'board']));
+    const [activeScopes, setActiveScopes] = useState<Set<string>>(
+        () => new Set(isCafe24EventsBackendEnabled ? ['events'] : ['events', 'venues', 'shopping', 'board'])
+    );
     const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
     const [results, setResults] = useState<{
         events: SearchResult[];
@@ -210,6 +222,16 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 };
 
                 promises.push((async () => {
+                    if (isCafe24EventsBackendEnabled) {
+                        const rows = await fetchCafe24Events({
+                            cutoff: includePast ? undefined : today,
+                            q: query,
+                            limit: includePast ? EVENT_SEARCH_WITH_PAST_LIMIT : EVENT_SEARCH_FUTURE_LIMIT,
+                        });
+
+                        return { type: 'events', data: rows, error: null };
+                    }
+
                     if (!includePast) {
                         const r = await buildEventQuery(true, true, EVENT_SEARCH_FUTURE_LIMIT);
                         return { type: 'events', data: r.data, error: r.error };
@@ -230,7 +252,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 promises.push(Promise.resolve({ type: 'events', data: [], error: null }));
             }
 
-            if (activeScopes.has('venues')) {
+            if (activeScopes.has('venues') && !isCafe24EventsBackendEnabled) {
                 promises.push(
                     supabase.from('venues')
                         .select('id, name, description, images, address, category')
@@ -242,7 +264,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 promises.push(Promise.resolve({ type: 'venues', data: [], error: null }));
             }
 
-            if (activeScopes.has('shopping')) {
+            if (activeScopes.has('shopping') && !isCafe24EventsBackendEnabled) {
                 promises.push(
                     supabase.from('shops')
                         .select('id, name, description, logo_url')
@@ -254,7 +276,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 promises.push(Promise.resolve({ type: 'shopping', data: [], error: null }));
             }
 
-            if (activeScopes.has('board')) {
+            if (activeScopes.has('board') && !isCafe24EventsBackendEnabled) {
                 promises.push(
                     supabase.from('board_posts')
                         .select('id, title, content, author_nickname')
@@ -320,7 +342,9 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
         try {
             switch (result.type) {
                 case 'event': {
-                    const { data } = await supabase.from('events').select('*').eq('id', result.id).maybeSingle();
+                    const data = isCafe24EventsBackendEnabled
+                        ? await fetchCafe24EventById(result.id)
+                        : (await supabase.from('events').select('*').eq('id', result.id).maybeSingle()).data;
                     if (data) { setSelectedEvent(data as Event); setShowEventDetail(true); }
                     break;
                 }
@@ -401,7 +425,9 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 {/* 검색 옵션 바 — 범위 칩 + 과거 포함 토글 */}
                 <div className="search-options-bar">
                     <div className="search-scope-chips">
-                        {SEARCH_SCOPES.map(({ key, label }) => (
+                        {SEARCH_SCOPES
+                            .filter(({ key }) => !isCafe24EventsBackendEnabled || key === 'events')
+                            .map(({ key, label }) => (
                             <button
                                 key={key}
                                 className={`search-chip ${activeScopes.has(key) ? 'is-active' : ''}`}
@@ -579,9 +605,13 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     event={selectedEvent}
                     isOpen={showEventDetail}
                     onClose={handleCloseDetailModals}
-                    onEdit={() => { }}
-                    onDelete={() => { }}
-                    isAdminMode={false}
+                    onEdit={handleEditClick as any}
+                    onDelete={async (event, e) => {
+                        const success = await handleDeleteClick(event as any, e as any);
+                        if (success) handleCloseDetailModals();
+                    }}
+                    isAdminMode={isAdmin}
+                    currentUserId={user?.id}
                 />
             )}
 

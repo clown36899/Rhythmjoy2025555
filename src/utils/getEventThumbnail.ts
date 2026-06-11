@@ -7,8 +7,7 @@ export interface EventThumbnailData {
   video_url?: string | null;
 }
 
-// 기본 썸네일 URL (Supabase Storage)
-const DEFAULT_THUMBNAIL_BASE = 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/images/default-thumbnails';
+const DEFAULT_THUMBNAIL_BASE = '/uploads/images/default-thumbnails';
 const DEFAULT_THUMBNAILS = {
   micro: `${DEFAULT_THUMBNAIL_BASE}/default_micro.webp`,
   thumbnail: `${DEFAULT_THUMBNAIL_BASE}/default_thumbnail.webp`,
@@ -24,7 +23,7 @@ export interface ImageObject {
 }
 
 /**
- * Supabase Storage URL에 이미지 변환 파라미터를 추가합니다.
+ * 이미지 URL을 그대로 반환합니다.
  */
 export function getOptimizedImageUrl(url: string | ImageObject | undefined | null, _width: number, _quality = 80): string | undefined {
   if (!url) return undefined;
@@ -37,7 +36,7 @@ export function getOptimizedImageUrl(url: string | ImageObject | undefined | nul
   // 이미 변환 파라미터가 있거나 data URL인 경우 패스
   if (actualUrl.includes('?') || actualUrl.startsWith('data:')) return actualUrl;
 
-  // Supabase Storage URL인지 확인
+  // 레거시 Storage URL은 서버 데이터 이관 과정에서 /uploads로 치환합니다.
   if (actualUrl.includes('/storage/v1/object/public/')) {
     // Supabase Image Transformation Logic Removed by User Request
     return actualUrl;

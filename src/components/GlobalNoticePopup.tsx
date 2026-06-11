@@ -8,6 +8,15 @@ let activeNoticeCache: any = null;
 let activeNoticePromise: Promise<any> | null = null;
 const NOTICE_DEBUG = import.meta.env.VITE_NOTICE_DEBUG === 'true';
 
+const isRenderableNotice = (value: any) => {
+    if (!value || Array.isArray(value) || typeof value !== 'object') return false;
+    return Boolean(
+        typeof value.title === 'string' && value.title.trim()
+        || typeof value.content === 'string' && value.content.trim()
+        || typeof value.image_url === 'string' && value.image_url.trim()
+    );
+};
+
 const fetchActiveNotice = async () => {
     if (activeNoticeCacheLoaded) return activeNoticeCache;
     if (activeNoticePromise) return activeNoticePromise;
@@ -53,7 +62,7 @@ export default function GlobalNoticePopup() {
             if (NOTICE_DEBUG) console.debug('[NoticePopup] Notice status from DB:', data);
 
             // 2. Check visibility conditions
-            if (data) {
+            if (isRenderableNotice(data)) {
                 // Check local storage for THIS notice ID
                 const hideUntil = localStorage.getItem(`hideNoticeUntil_${data.id}`);
                 if (hideUntil) {
@@ -67,6 +76,7 @@ export default function GlobalNoticePopup() {
                 setNotice(data);
                 setIsVisible(true);
             } else {
+                setNotice(null);
                 setIsVisible(false);
             }
         } catch (error) {
@@ -96,13 +106,17 @@ export default function GlobalNoticePopup() {
 
     if (!isVisible || !notice) return null;
 
+    const noticeTitle = typeof notice.title === 'string' && notice.title.trim() ? notice.title : '공지';
+    const noticeContent = typeof notice.content === 'string' ? notice.content : '';
+    const noticeImageUrl = typeof notice.image_url === 'string' ? notice.image_url : '';
+
     return createPortal(
         <div className="global-notice-popup-overlay">
             <div className="global-notice-popup" onClick={e => e.stopPropagation()}>
                 <div className="notice-popup-header">
                     <div className="title-area">
                         <i className="ri-notification-3-line"></i>
-                        <h3>{notice.title}</h3>
+                        <h3>{noticeTitle}</h3>
                     </div>
                     <button className="notice-close-btn" onClick={handleClose}>
                         <i className="ri-close-line"></i>
@@ -111,15 +125,15 @@ export default function GlobalNoticePopup() {
 
                 <div className="notice-popup-content">
                     <div className="notice-text-content">
-                        {notice.content.split('\n').map((line: string, i: number) => (
+                        {noticeContent.split('\n').map((line: string, i: number) => (
                             <p key={i}>{line}</p>
                         ))}
                     </div>
-                    {notice.image_url && (
+                    {noticeImageUrl && (
                         <div className="notice-image-container-v2">
                             <img
                                 id="notice-dynamic-img"
-                                src={`${notice.image_url}${notice.image_url.includes('?') ? '&' : '?'}v=${Date.now()}`}
+                                src={`${noticeImageUrl}${noticeImageUrl.includes('?') ? '&' : '?'}v=${Date.now()}`}
                                 alt="Notice"
                             />
                         </div>

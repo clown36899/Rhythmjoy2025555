@@ -3,14 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 import { authLogger } from '../utils/authLogger';
 import { isPWAMode } from './pwaDetect';
 import { getSupabaseStorageKey, getSupabaseValidationKey } from './authStorageKeys';
+import { createCafe24SupabaseCompat } from './cafe24SupabaseCompat';
 
 const SUPABASE_DEBUG = import.meta.env.VITE_SUPABASE_DEBUG === 'true';
+const CAFE24_SUPABASE_COMPAT = import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
 if (SUPABASE_DEBUG) {
   console.debug('%c[Supabase] supabase.ts module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
 }
 
-const envSupabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const envSupabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+const envSupabaseUrl = CAFE24_SUPABASE_COMPAT
+  ? ''
+  : import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://example.invalid'
+const envSupabaseAnonKey = CAFE24_SUPABASE_COMPAT
+  ? ''
+  : import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 const localSupabaseUrl = 'http://127.0.0.1:54321'
 const localSupabaseAnonKey = 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
 const isLocalHost = typeof window !== 'undefined'
@@ -34,7 +40,7 @@ if (SUPABASE_DEBUG) {
   console.debug('%c[Supabase] Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const realSupabase = CAFE24_SUPABASE_COMPAT ? null : createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     storageKey: getSupabaseStorageKey(),
@@ -53,7 +59,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-authLogger.log('[Supabase] ✅ Client initialized');
+export const supabase = (CAFE24_SUPABASE_COMPAT
+  ? createCafe24SupabaseCompat()
+  : realSupabase) as any;
+
+authLogger.log(CAFE24_SUPABASE_COMPAT
+  ? '[Cafe24] ✅ Supabase compatibility client initialized'
+  : '[Supabase] ✅ Client initialized');
 
 export interface Event {
   id: number | string;

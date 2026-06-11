@@ -25,6 +25,8 @@ const TYPE_NAMES: Record<string, string> = {
     'shop_create': '쇼핑몰 등록',
     'venue_create': '장소 등록',
     'venue_update': '장소 수정',
+    'page_view': '페이지 이동',
+    'auth': '로그인',
     'board_post_create': '게시글 등록',
     'board_post_update': '게시글 수정',
     'board_memo_create': '익명 메모 등록',
@@ -105,6 +107,79 @@ interface UserInfo {
     visitCount: number;
     visitLogs: string[]; // Timestamps
     avgDuration?: number; // Average session duration in seconds
+    activityCount?: number;
+    pageViews?: number;
+    lastPage?: string | null;
+    sessions?: UserSessionInfo[];
+    activityLogs?: UserActivityInfo[];
+}
+
+interface UserActivityInfo {
+    id: string;
+    created_at: string;
+    type: string;
+    title: string;
+    section: string | null;
+    route: string | null;
+    page_url: string | null;
+    target_id: string | null;
+    session_id: string | null;
+    client_ip: string | null;
+    ip_hash: string | null;
+    platform: string | null;
+    user_agent: string | null;
+    referrer: string | null;
+    sequence_number: number | null;
+}
+
+interface UserSessionInfo {
+    session_id: string | null;
+    session_start: string | null;
+    duration_seconds: number | null;
+    page_views: number;
+    total_clicks: number;
+    entry_page: string | null;
+    exit_page: string | null;
+    referrer: string | null;
+    client_ip: string | null;
+    ip_hash: string | null;
+    platform: string | null;
+    user_agent: string | null;
+    is_pwa: boolean;
+}
+
+interface GuestInfo {
+    key: string;
+    label: string;
+    fingerprint: string | null;
+    clientIp: string | null;
+    ipHash: string | null;
+    visitCount: number;
+    sessionCount: number;
+    clickCount: number;
+    pageViews: number;
+    firstSeen: string | null;
+    lastSeen: string | null;
+    lastPage: string | null;
+    referrer: string | null;
+    platform: string | null;
+    userAgent: string | null;
+    isPwa: boolean;
+    pwaDisplayMode: string | null;
+    sessions: {
+        session_id: string | null;
+        session_start: string | null;
+        duration_seconds: number | null;
+        page_views: number;
+        total_clicks: number;
+        entry_page: string | null;
+        exit_page: string | null;
+        referrer: string | null;
+        client_ip: string | null;
+        platform: string | null;
+        user_agent: string | null;
+        is_pwa: boolean;
+    }[];
 }
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -115,7 +190,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'summary' | 'daily'>('daily');
     const [userList, setUserList] = useState<UserInfo[]>([]);
+    const [guestList, setGuestList] = useState<GuestInfo[]>([]);
     const [showUserList, setShowUserList] = useState(false);
+    const [showGuestList, setShowGuestList] = useState(false);
     // [PHASE 20] Type Detail Modal State
     const [selectedTypeDetail, setSelectedTypeDetail] = useState<{ type: string; items: { title: string; count: number; url?: string }[] } | null>(null);
     // [PHASE 18] 캐싱
@@ -188,6 +265,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const fetchAnalytics = async (_forceRefresh = false) => {
         setLoading(true);
         setUserList([]);
+        setGuestList([]);
         let localUserList: UserInfo[] = [];
 
         try {
@@ -331,7 +409,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const sessionData = sessions || [];
 
             const fingerprintToUser = new Map<string, string>();
+            const sessionIdToUser = new Map<string, string>();
             [...sessionData, ...validData].forEach((row: any) => {
+                if (row.session_id && row.user_id) {
+                    sessionIdToUser.set(String(row.session_id), String(row.user_id));
+                }
                 if (row.fingerprint && row.user_id) {
                     fingerprintToUser.set(String(row.fingerprint), String(row.user_id));
                 }
@@ -339,7 +421,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
                 const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
+                const sessionId = row.session_id ? String(row.session_id) : '';
                 if (row.user_id) return `user:${String(row.user_id)}`;
+                if (sessionId && sessionIdToUser.has(sessionId)) return `user:${sessionIdToUser.get(sessionId)}`;
                 if (fingerprint && fingerprintToUser.has(fingerprint)) return `user:${fingerprintToUser.get(fingerprint)}`;
                 if (fingerprint) return `guest:${fingerprint}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
@@ -356,6 +440,19 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const getPageViewCount = (row: any) => {
                 const parsed = Number(row.page_views);
                 return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+            };
+
+            const getClientIp = (row: any) => row.client_ip || row.ip_address || row.ip || null;
+            const getRowPage = (row: any) => row.page_url || row.entry_page || row.exit_page || row.route || null;
+            const getRowReferrer = (row: any) => row.referrer || null;
+            const getFriendlyTitle = (_type: string | null, id: string | null, title: string | null) => {
+                if (title) return title;
+                const safeId = id || '';
+                if (safeId === 'login') return '로그인 버튼';
+                if (safeId === 'home_weekly_calendar_shortcut') return '주간 일정 바로가기 (상단)';
+                if (safeId === 'week_calendar_shortcut') return '주간 일정 바로가기';
+                if (_type === 'page_view') return getRowPage({ page_url: id }) || '페이지 이동';
+                return safeId || '활동';
             };
 
             const logicalSessions = (() => {
@@ -446,28 +543,100 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             });
             const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length;
 
-            const sessionLoggedInVisits = logicalSessions.filter((s: any) => !!s.user_id).length;
-            const sessionAnonVisits = logicalSessions.filter((s: any) => !s.user_id).length;
+            const sessionLoggedInVisits = logicalSessions.filter((s: any) => getVisitorKey(s, s.session_id).startsWith('user:')).length;
+            const sessionAnonVisits = logicalSessions.filter((s: any) => !getVisitorKey(s, s.session_id).startsWith('user:')).length;
             const hasVisitorData = uniqueVisitors.length > 0;
             const displayLoggedInVisits = hasVisitorData ? uniqueLoggedInVisitors : clickBasedLoggedIn;
             const displayAnonVisits = hasVisitorData ? uniqueGuestVisitors : clickBasedAnon;
 
+            const userActivityMap = new Map<string, UserActivityInfo[]>();
+            validData.forEach((event: any, index: number) => {
+                const visitorKey = getVisitorKey(event, event.session_id || event.id || index);
+                if (!visitorKey.startsWith('user:')) return;
+
+                const userId = visitorKey.slice(5);
+                const item: UserActivityInfo = {
+                    id: String(event.id || `${event.session_id || 'event'}-${event.sequence_number || index}`),
+                    created_at: event.created_at,
+                    type: event.target_type || 'activity',
+                    title: getFriendlyTitle(event.target_type, event.target_id, event.target_title),
+                    section: event.section || null,
+                    route: event.route || null,
+                    page_url: event.page_url || null,
+                    target_id: event.target_id || null,
+                    session_id: event.session_id || null,
+                    client_ip: getClientIp(event),
+                    ip_hash: event.ip_hash || null,
+                    platform: event.platform || null,
+                    user_agent: event.user_agent || null,
+                    referrer: event.referrer || null,
+                    sequence_number: Number.isFinite(Number(event.sequence_number)) ? Number(event.sequence_number) : null,
+                };
+
+                const list = userActivityMap.get(userId) || [];
+                list.push(item);
+                userActivityMap.set(userId, list);
+            });
+
+            userActivityMap.forEach((list) => {
+                list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            });
+
+            const userSessionDetailMap = new Map<string, UserSessionInfo[]>();
+            logicalSessions.forEach((session: any) => {
+                const visitorKey = getVisitorKey(session, session.session_id);
+                if (!visitorKey.startsWith('user:')) return;
+
+                const userId = visitorKey.slice(5);
+                const item: UserSessionInfo = {
+                    session_id: session.session_id || null,
+                    session_start: session.session_start || null,
+                    duration_seconds: getCappedDuration(session),
+                    page_views: getPageViewCount(session),
+                    total_clicks: Number(session.total_clicks || 0),
+                    entry_page: session.entry_page || null,
+                    exit_page: session.exit_page || null,
+                    referrer: session.referrer || null,
+                    client_ip: getClientIp(session),
+                    ip_hash: session.ip_hash || null,
+                    platform: session.platform || null,
+                    user_agent: session.user_agent || null,
+                    is_pwa: Boolean(session.is_pwa),
+                };
+
+                const list = userSessionDetailMap.get(userId) || [];
+                list.push(item);
+                userSessionDetailMap.set(userId, list);
+            });
+
+            userSessionDetailMap.forEach((list) => {
+                list.sort((a, b) => new Date(b.session_start || 0).getTime() - new Date(a.session_start || 0).getTime());
+            });
+
             const sessionUserMap = new Map<string, UserInfo & { durationTotal: number; durationCount: number }>();
             logicalSessions
-                .filter((s: any) => !!s.user_id)
                 .forEach((s: any) => {
-                    const userId = String(s.user_id);
+                    const visitorKey = getVisitorKey(s, s.session_id);
+                    if (!visitorKey.startsWith('user:')) return;
+                    const userId = visitorKey.slice(5);
                     const existing = sessionUserMap.get(userId) || {
                         user_id: userId,
                         nickname: null,
                         visitCount: 0,
                         visitLogs: [],
                         avgDuration: 0,
+                        activityCount: 0,
+                        pageViews: 0,
+                        lastPage: null,
+                        sessions: [],
+                        activityLogs: [],
                         durationTotal: 0,
                         durationCount: 0
                     };
                     existing.visitCount += 1;
                     existing.visitLogs.push(s.session_start);
+                    existing.pageViews = Number(existing.pageViews || 0) + getPageViewCount(s);
+                    existing.lastPage = existing.lastPage || s.exit_page || s.entry_page || null;
                     if (typeof s.duration_seconds === 'number') {
                         existing.durationTotal += s.duration_seconds;
                         existing.durationCount += 1;
@@ -498,7 +667,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         nickname: nicknameMap.get(userInfo.user_id) || userInfo.nickname,
                         visitCount: userInfo.visitCount,
                         visitLogs: userInfo.visitLogs.sort((a, b) => new Date(b).getTime() - new Date(a).getTime()),
-                        avgDuration
+                        avgDuration,
+                        activityCount: userActivityMap.get(userInfo.user_id)?.length || 0,
+                        pageViews: userInfo.pageViews || 0,
+                        lastPage: userInfo.lastPage || userActivityMap.get(userInfo.user_id)?.[0]?.page_url || userActivityMap.get(userInfo.user_id)?.[0]?.route || null,
+                        sessions: userSessionDetailMap.get(userInfo.user_id) || [],
+                        activityLogs: userActivityMap.get(userInfo.user_id)?.slice(0, 150) || []
                     };
                 })
                 .sort((a, b) => b.visitCount - a.visitCount);
@@ -507,6 +681,110 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 localUserList = sessionUserList;
                 setUserList(sessionUserList);
             }
+
+            const guestMap = new Map<string, GuestInfo & { seenMs: number[] }>();
+
+            const ensureGuest = (row: any, timeIso: string | null, fallbackId?: string | number | null) => {
+                if (!timeIso) return null;
+                const key = getVisitorKey(row, fallbackId);
+                if (key.startsWith('user:')) return null;
+
+                const ms = new Date(timeIso).getTime();
+                if (!Number.isFinite(ms)) return null;
+
+                const existing = guestMap.get(key) || {
+                    key,
+                    label: 'Guest',
+                    fingerprint: row.fingerprint ? String(row.fingerprint) : null,
+                    clientIp: getClientIp(row),
+                    ipHash: row.ip_hash || null,
+                    visitCount: 0,
+                    sessionCount: 0,
+                    clickCount: 0,
+                    pageViews: 0,
+                    firstSeen: timeIso,
+                    lastSeen: timeIso,
+                    lastPage: getRowPage(row),
+                    referrer: getRowReferrer(row),
+                    platform: row.platform || null,
+                    userAgent: row.user_agent || null,
+                    isPwa: Boolean(row.is_pwa),
+                    pwaDisplayMode: row.pwa_display_mode || null,
+                    sessions: [],
+                    seenMs: [],
+                };
+
+                existing.fingerprint = existing.fingerprint || (row.fingerprint ? String(row.fingerprint) : null);
+                existing.clientIp = existing.clientIp || getClientIp(row);
+                existing.ipHash = existing.ipHash || row.ip_hash || null;
+                existing.platform = existing.platform || row.platform || null;
+                existing.userAgent = existing.userAgent || row.user_agent || null;
+                existing.referrer = existing.referrer || getRowReferrer(row);
+                existing.isPwa = Boolean(existing.isPwa || row.is_pwa);
+                existing.pwaDisplayMode = existing.pwaDisplayMode || row.pwa_display_mode || null;
+                existing.seenMs.push(ms);
+
+                const currentLast = existing.lastSeen ? new Date(existing.lastSeen).getTime() : 0;
+                if (ms >= currentLast) {
+                    existing.lastSeen = timeIso;
+                    existing.lastPage = getRowPage(row) || existing.lastPage;
+                    existing.clientIp = getClientIp(row) || existing.clientIp;
+                    existing.platform = row.platform || existing.platform;
+                    existing.userAgent = row.user_agent || existing.userAgent;
+                }
+
+                const currentFirst = existing.firstSeen ? new Date(existing.firstSeen).getTime() : ms;
+                if (ms <= currentFirst) existing.firstSeen = timeIso;
+
+                guestMap.set(key, existing);
+                return existing;
+            };
+
+            sessionData.forEach((session: any) => {
+                const guest = ensureGuest(session, session.session_start, session.session_id);
+                if (!guest) return;
+                guest.sessionCount += 1;
+                guest.pageViews += getPageViewCount(session);
+                guest.clickCount += Number(session.total_clicks || 0);
+                guest.sessions.push({
+                    session_id: session.session_id || null,
+                    session_start: session.session_start || null,
+                    duration_seconds: getCappedDuration(session),
+                    page_views: getPageViewCount(session),
+                    total_clicks: Number(session.total_clicks || 0),
+                    entry_page: session.entry_page || null,
+                    exit_page: session.exit_page || null,
+                    referrer: session.referrer || null,
+                    client_ip: getClientIp(session),
+                    platform: session.platform || null,
+                    user_agent: session.user_agent || null,
+                    is_pwa: Boolean(session.is_pwa),
+                });
+            });
+
+            validData.forEach((event: any) => {
+                const guest = ensureGuest(event, event.created_at, event.session_id || event.id);
+                if (!guest) return;
+                guest.clickCount += 1;
+                if (!guest.lastPage) guest.lastPage = getRowPage(event);
+            });
+
+            const nextGuestList = Array.from(guestMap.values())
+                .map((guest) => {
+                    const { seenMs, ...safeGuest } = guest;
+                    const visitBuckets = new Set(seenMs.map(ms => Math.floor(ms / (6 * 60 * 60 * 1000))));
+                    return {
+                        ...safeGuest,
+                        visitCount: visitBuckets.size || safeGuest.sessionCount || 1,
+                        sessions: [...safeGuest.sessions].sort((a, b) =>
+                            new Date(b.session_start || 0).getTime() - new Date(a.session_start || 0).getTime()
+                        ),
+                    };
+                })
+                .sort((a, b) => new Date(b.lastSeen || 0).getTime() - new Date(a.lastSeen || 0).getTime())
+                .map((guest, index) => ({ ...guest, label: `Guest ${index + 1}` }));
+
+            setGuestList(nextGuestList);
 
             let sessionStats = { total_sessions: 0, avg_duration: 0, bounce_rate: 0 };
 
@@ -734,15 +1012,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
 
-            const getFriendlyTitle = (_type: string | null, id: string | null, title: string | null) => {
-                if (title) return title;
-                const safeId = id || '';
-                if (safeId === 'login') return '로그인 버튼';
-                if (safeId === 'home_weekly_calendar_shortcut') return '주간 일정 바로가기 (상단)';
-                if (safeId === 'week_calendar_shortcut') return '주간 일정 바로가기';
-                return safeId;
-            };
-
             validData.forEach(d => {
                 const key = d.target_type + ':' + d.target_id;
                 const type = d.target_type || 'unknown';
@@ -796,8 +1065,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 let dUser = 0, dGuest = 0;
                 const eventMap = new Map<string, { title: string, type: string, count: number }>();
                 logs.forEach(l => {
-                    if (l.user_id && !l.is_admin) dUser++;
-                    else if (!l.user_id && !l.is_admin) dGuest++;
+                    const visitorKey = getVisitorKey(l, l.session_id || l.id);
+                    if (visitorKey.startsWith('user:') && !l.is_admin) dUser++;
+                    else if (!visitorKey.startsWith('user:') && !l.is_admin) dGuest++;
                     const key = l.target_type + ':' + l.target_id;
                     const existing = eventMap.get(key) || { title: l.target_title || l.target_id, type: l.target_type, count: 0 };
                     eventMap.set(key, { ...existing, count: existing.count + 1 });
@@ -1090,6 +1360,51 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         );
     };
 
+    const formatDateTime = (value: string | null) => {
+        if (!value) return '-';
+        return new Date(value).toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const formatDuration = (seconds: number | null | undefined) => {
+        if (seconds === null || seconds === undefined) return '-';
+        const safeSeconds = Math.max(0, Math.floor(seconds));
+        const minutes = Math.floor(safeSeconds / 60);
+        const rest = safeSeconds % 60;
+        return minutes > 0 ? `${minutes}분 ${rest}초` : `${rest}초`;
+    };
+
+    const shortFingerprint = (fingerprint: string | null) => {
+        if (!fingerprint) return 'fingerprint 없음';
+        return fingerprint.length > 18 ? `${fingerprint.slice(0, 18)}...` : fingerprint;
+    };
+
+    const getDeviceLabel = (platform: string | null, userAgent: string | null) => {
+        const p = (platform || '').toLowerCase();
+        const ua = (userAgent || '').toLowerCase();
+        if (ua.includes('android')) return 'Android';
+        if (ua.includes('iphone')) return 'iPhone';
+        if (ua.includes('ipad')) return 'iPad';
+        if (ua.includes('windows') || p.includes('win')) return 'Windows';
+        if (ua.includes('mac os') || p.includes('mac')) return 'macOS';
+        if (ua.includes('cros')) return 'ChromeOS';
+        if (ua.includes('linux') || p.includes('linux')) return 'Linux/기타';
+        return platform || '기기 미기록';
+    };
+
+    const getPlatformRawLabel = (platform: string | null) => (
+        platform ? `원시값: ${platform}` : '원시값 없음'
+    );
+
+    const getIpLabel = (ip: string | null) => (
+        ip || '기록 없음 (이전 로그)'
+    );
+
     if (!isOpen) return null;
 
     return (
@@ -1214,7 +1529,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                         <span className="value highlight-blue">{summary.user_clicks || 0}</span>
                                                     </div>
                                                     <div className="breakdown-separator"></div>
-                                                    <div className="breakdown-item">
+                                                    <div className="breakdown-item clickable" onClick={() => guestList.length > 0 && setShowGuestList(true)}>
                                                         <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
                                                         <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
                                                     </div>
@@ -1480,7 +1795,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                         <span className="value highlight-blue">{summary.user_clicks || 0}</span>
                                                     </div>
                                                     <div className="breakdown-separator"></div>
-                                                    <div className="breakdown-item">
+                                                    <div className="breakdown-item clickable" onClick={() => guestList.length > 0 && setShowGuestList(true)}>
                                                         <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
                                                         <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
                                                     </div>
@@ -1701,7 +2016,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     {/* 사용자 목록 팝업 */}
                     {showUserList && (
                         <div className="user-list-overlay" onClick={() => setShowUserList(false)}>
-                            <div className="user-list-modal" onClick={e => e.stopPropagation()}>
+                            <div className="user-list-modal user-activity-modal" onClick={e => e.stopPropagation()}>
                                 <div className="user-list-header">
                                     <h3>
                                         <span style={{ color: '#fbbf24', marginRight: '8px' }}>
@@ -1716,33 +2031,180 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     <button onClick={() => setShowUserList(false)}><i className="ri-close-line"></i></button>
                                 </div>
                                 <div className="user-list-body">
-                                    {userList.map((user, index) => (
-                                        <div key={user.user_id} className="user-list-item-wrapper">
-                                            <div className="user-list-item clickable">
-                                                <details style={{ width: '100%' }}>
-                                                    <summary style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', listStyle: 'none' }}>
-                                                        <span className="user-index">{index + 1}</span>
-                                                        <span className="user-name">
-                                                            {user.nickname || '알 수 없는 사용자'}
-                                                            <span style={{ fontSize: '0.8rem', color: '#60a5fa', marginLeft: '6px' }}>({user.visitCount}회)</span>
-                                                            {user.avgDuration !== undefined && (
-                                                                <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '8px' }}>
-                                                                    · 평균 {user.avgDuration >= 3600 ? `${Math.floor(user.avgDuration / 3600)}시간 ` : ''}{Math.floor((user.avgDuration % 3600) / 60)}분 {Math.floor(user.avgDuration % 60)}초
+                                    {userList.map((user, index) => {
+                                        const userSessions = user.sessions || [];
+                                        const activityLogs = user.activityLogs || [];
+
+                                        return (
+                                            <div key={user.user_id} className="user-list-item-wrapper">
+                                                <div className="user-list-item clickable user-activity-item">
+                                                    <details style={{ width: '100%' }}>
+                                                        <summary className="user-activity-summary">
+                                                            <span className="user-index">{index + 1}</span>
+                                                            <span className="user-activity-main">
+                                                                <span className="user-name">
+                                                                    {user.nickname || '알 수 없는 사용자'}
+                                                                    <span className="guest-count">({user.visitCount}회)</span>
                                                                 </span>
+                                                                <span className="guest-subline">
+                                                                    활동 {user.activityCount || 0}회 · {user.pageViews || 0}PV · 최근 {user.lastPage || '-'}
+                                                                </span>
+                                                            </span>
+                                                            <span className="user-id">{user.user_id.substring(0, 8)}...</span>
+                                                            <i className="ri-arrow-down-s-line" style={{ marginLeft: 'auto', color: '#71717a' }}></i>
+                                                        </summary>
+
+                                                        <div className="user-activity-detail">
+                                                            <div className="activity-privacy-note">
+                                                                운영/보안 목적의 사이트 활동 기록입니다. 비밀번호, 검색어 전문, 입력 중인 내용은 수집하지 않습니다.
+                                                            </div>
+
+                                                            <div className="guest-detail-grid">
+                                                                <div><span>계정 ID</span><strong>{user.user_id}</strong></div>
+                                                                <div><span>평균 체류</span><strong>{formatDuration(user.avgDuration || 0)}</strong></div>
+                                                                <div><span>보정 세션</span><strong>{user.visitCount}개</strong></div>
+                                                                <div><span>활동 로그</span><strong>{user.activityCount || 0}개</strong></div>
+                                                                <div><span>페이지뷰</span><strong>{user.pageViews || 0}회</strong></div>
+                                                                <div><span>최근 경로</span><strong>{user.lastPage || '-'}</strong></div>
+                                                            </div>
+
+                                                            {userSessions.length > 0 && (
+                                                                <div className="user-section-block">
+                                                                    <h4>방문 세션</h4>
+                                                                    <div className="guest-session-list">
+                                                                        {userSessions.slice(0, 12).map((session, sessionIndex) => (
+                                                                            <div key={`${session.session_id || sessionIndex}-${sessionIndex}`} className="guest-session-row">
+                                                                                <div>
+                                                                                    <strong>{formatDateTime(session.session_start)}</strong>
+                                                                                    <span>{session.entry_page || '-'}{session.exit_page && session.exit_page !== session.entry_page ? ` → ${session.exit_page}` : ''}</span>
+                                                                                </div>
+                                                                                <div className="guest-session-meta">
+                                                                                    <span>{formatDuration(session.duration_seconds)}</span>
+                                                                                    <span>{session.page_views}PV</span>
+                                                                                    <span>{session.total_clicks}클릭</span>
+                                                                                    <span>{getDeviceLabel(session.platform, session.user_agent)}</span>
+                                                                                    <span>{getIpLabel(session.client_ip)}</span>
+                                                                                    {session.ip_hash && <span>hash {session.ip_hash}</span>}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
                                                             )}
+
+                                                            <div className="user-section-block">
+                                                                <h4>활동 타임라인</h4>
+                                                                {activityLogs.length > 0 ? (
+                                                                    <div className="user-activity-timeline">
+                                                                        {activityLogs.slice(0, 80).map((activity) => (
+                                                                            <div key={activity.id} className="user-activity-row">
+                                                                                <span className="activity-dot"></span>
+                                                                                <div className="activity-body">
+                                                                                    <div className="activity-row-head">
+                                                                                        <strong>{getTypeName(activity.type)}</strong>
+                                                                                        <span>{formatDateTime(activity.created_at)}</span>
+                                                                                    </div>
+                                                                                    <div className="activity-title">{activity.title || activity.target_id || activity.page_url || '-'}</div>
+                                                                                    <div className="activity-meta">
+                                                                                        <span>{activity.page_url || activity.route || '-'}</span>
+                                                                                        {activity.section && <span>{activity.section}</span>}
+                                                                                        {activity.session_id && <span>session {activity.session_id.substring(0, 8)}...</span>}
+                                                                                        <span>{getDeviceLabel(activity.platform, activity.user_agent)}</span>
+                                                                                        <span>{getIpLabel(activity.client_ip)}</span>
+                                                                                        {activity.ip_hash && <span>hash {activity.ip_hash}</span>}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="no-data-msg">해당 기간의 활동 로그가 없습니다.</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </details>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Guest 목록 팝업 */}
+                    {showGuestList && (
+                        <div className="user-list-overlay" onClick={() => setShowGuestList(false)}>
+                            <div className="user-list-modal guest-list-modal" onClick={e => e.stopPropagation()}>
+                                <div className="user-list-header">
+                                    <h3>
+                                        <span style={{ color: '#fbbf24', marginRight: '8px' }}>
+                                            {viewMode === 'summary'
+                                                ? '최근 1년'
+                                                : dateRange.start === dateRange.end
+                                                    ? `${dateRange.start}`
+                                                    : `${dateRange.start} ~ ${dateRange.end}`}
+                                        </span>
+                                        Guest 목록 ({guestList.length}명)
+                                    </h3>
+                                    <button onClick={() => setShowGuestList(false)}><i className="ri-close-line"></i></button>
+                                </div>
+                                <div className="user-list-body">
+                                    {guestList.map((guest, index) => (
+                                        <div key={guest.key} className="user-list-item-wrapper">
+                                            <div className="user-list-item clickable guest-list-item">
+                                                <details style={{ width: '100%' }}>
+                                                    <summary className="guest-summary">
+                                                        <span className="user-index">{index + 1}</span>
+                                                        <span className="guest-main">
+                                                            <span className="user-name">
+                                                                {guest.label}
+                                                                <span className="guest-count">({guest.visitCount}회)</span>
+                                                            </span>
+                                                            <span className="guest-subline">
+                                                                {getIpLabel(guest.clientIp)} · {getDeviceLabel(guest.platform, guest.userAgent)}
+                                                            </span>
                                                         </span>
-                                                        <span className="user-id">{user.user_id.substring(0, 8)}...</span>
+                                                        <span className="guest-chip">{guest.isPwa ? 'PWA' : 'WEB'}</span>
                                                         <i className="ri-arrow-down-s-line" style={{ marginLeft: 'auto', color: '#71717a' }}></i>
                                                     </summary>
-                                                    <div className="user-visit-logs" style={{ marginTop: '8px', paddingLeft: '36px', fontSize: '0.8rem', color: '#a1a1aa' }}>
-                                                        {user.visitLogs.map((log, i) => (
-                                                            <div key={i} style={{ padding: '2px 0' }}>
-                                                                • {new Date(log).toLocaleString('ko-KR', {
-                                                                    year: 'numeric', month: '2-digit', day: '2-digit',
-                                                                    hour: '2-digit', minute: '2-digit'
-                                                                })}
+                                                    <div className="guest-detail-panel">
+                                                        <div className="guest-detail-grid">
+                                                            <div><span>IP</span><strong>{getIpLabel(guest.clientIp)}</strong></div>
+                                                            <div><span>IP Hash</span><strong>{guest.ipHash || '기록 없음'}</strong></div>
+                                                            <div><span>기기/OS</span><strong>{getDeviceLabel(guest.platform, guest.userAgent)} ({getPlatformRawLabel(guest.platform)})</strong></div>
+                                                            <div><span>Fingerprint</span><strong>{shortFingerprint(guest.fingerprint)}</strong></div>
+                                                            <div><span>최근 페이지</span><strong>{guest.lastPage || '-'}</strong></div>
+                                                            <div><span>첫 방문</span><strong>{formatDateTime(guest.firstSeen)}</strong></div>
+                                                            <div><span>최근 방문</span><strong>{formatDateTime(guest.lastSeen)}</strong></div>
+                                                            <div><span>세션</span><strong>{guest.sessionCount}개</strong></div>
+                                                            <div><span>활동</span><strong>{guest.clickCount}회</strong></div>
+                                                            <div><span>페이지뷰</span><strong>{guest.pageViews}회</strong></div>
+                                                            <div><span>유입</span><strong>{guest.referrer || '직접/내부'}</strong></div>
+                                                        </div>
+                                                        <div className="guest-user-agent">
+                                                            <span>User-Agent</span>
+                                                            <strong>{guest.userAgent || '기록 없음'}</strong>
+                                                        </div>
+                                                        {guest.sessions.length > 0 && (
+                                                            <div className="guest-session-list">
+                                                                {guest.sessions.slice(0, 12).map((session, sessionIndex) => (
+                                                                    <div key={`${session.session_id || sessionIndex}-${sessionIndex}`} className="guest-session-row">
+                                                                        <div>
+                                                                            <strong>{formatDateTime(session.session_start)}</strong>
+                                                                            <span>{session.entry_page || '-'}{session.exit_page && session.exit_page !== session.entry_page ? ` → ${session.exit_page}` : ''}</span>
+                                                                        </div>
+                                                                        <div className="guest-session-meta">
+                                                                            <span>{formatDuration(session.duration_seconds)}</span>
+                                                                            <span>{session.page_views}PV</span>
+                                                                            <span>{session.total_clicks}클릭</span>
+                                                                            <span>{getDeviceLabel(session.platform, session.user_agent)}</span>
+                                                                            {session.client_ip && <span>{session.client_ip}</span>}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
+                                                        )}
                                                     </div>
                                                 </details>
                                             </div>

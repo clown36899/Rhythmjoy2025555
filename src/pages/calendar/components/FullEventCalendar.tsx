@@ -23,6 +23,28 @@ const getSafeRect = (element: Element | null | undefined) => {
   }
 };
 
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const toLocalDateString = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const getDateKey = (value: any) => {
+  if (!value) return null;
+  if (typeof value === 'string' && DATE_ONLY_RE.test(value.slice(0, 10)) && !value.includes('T')) {
+    return value.slice(0, 10);
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return toLocalDateString(date);
+};
+
+const parseDateKey = (value: any) => {
+  const key = getDateKey(value);
+  if (!key) return null;
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 interface FullEventCalendarProps {
   currentMonth: Date;
   selectedDate: Date | null;
@@ -523,13 +545,14 @@ export default memo(function FullEventCalendar({
     filteredEvents.forEach(event => {
       // 1. 특정 날짜들 (event_dates) 기반 인덱싱
       if (event.event_dates && event.event_dates.length > 0) {
-        const sortedDates = [...event.event_dates].sort();
+        const sortedDates = event.event_dates.map(getDateKey).filter(Boolean).sort();
         const isClass = event.category && ['class', 'regular', 'club'].includes(event.category.toLowerCase());
 
         event.event_dates.forEach(d => {
-          const dateStr = d.substring(0, 10);
+          const dateStr = getDateKey(d);
+          if (!dateStr) return;
           // 강습은 첫 번째 날짜에만 표시하도록 원본 로직 유지
-          if (isClass && dateStr !== sortedDates[0].substring(0, 10)) return;
+          if (isClass && dateStr !== sortedDates[0]) return;
 
           if (!map[dateStr]) map[dateStr] = [];
           map[dateStr].push(event);
@@ -543,12 +566,13 @@ export default memo(function FullEventCalendar({
         if (startStr && endStr) {
           // 성능을 위해 문자열 비교로 범위 내 날짜들 매핑 (현재 달 범위 내만)
           // 실제로는 렌더링 시점에 map[dateStr]을 조회하므로, 필요한 모든 날짜를 채워야 함
-          const curr = new Date(startStr);
-          const end = new Date(endStr);
+          const curr = parseDateKey(event.start_date || event.date);
+          const end = parseDateKey(event.end_date || event.date);
+          if (!curr || !end) return;
           // 안전을 위해 최대 365일 제한
           let limit = 0;
           while (curr <= end && limit < 365) {
-            const dateStr = curr.toISOString().split('T')[0];
+            const dateStr = toLocalDateString(curr);
             if (!map[dateStr]) map[dateStr] = [];
             map[dateStr].push(event);
             curr.setDate(curr.getDate() + 1);
@@ -562,9 +586,9 @@ export default memo(function FullEventCalendar({
     Object.keys(map).forEach(dateStr => {
       map[dateStr].sort((a, b) => {
         const getDur = (e: AppEvent) => {
-          const s = new Date(e.start_date || e.date || '').getTime();
-          const e_time = new Date(e.end_date || e.date || '').getTime();
-          return e_time - s;
+          const start = parseDateKey(e.start_date || e.date);
+          const end = parseDateKey(e.end_date || e.date);
+          return (end?.getTime() || 0) - (start?.getTime() || 0);
         };
         const durA = getDur(a);
         const durB = getDur(b);

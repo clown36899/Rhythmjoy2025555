@@ -22,6 +22,7 @@ const SERVER_HOST = isReplit ? "0.0.0.0" : "localhost";
 const NETLIFY_DEV_PROXY_TARGET = process.env.NETLIFY_DEV_PROXY_TARGET || 'http://localhost:8888';
 
 const isPreview = process.env.IS_PREVIEW ? true : false;
+const isCafe24Build = process.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
 
 // 빌드 타임스탬프 생성 플러그인
 const BUILD_TIME = Date.now().toString();
@@ -53,6 +54,17 @@ function buildVersionPlugin(): Plugin {
 // package.json에서 버전 읽기
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
 const APP_VERSION = pkg.version;
+const manualChunks: Record<string, string[]> = {
+  'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+  'ui-vendor': ['react-datepicker', 'qrcode.react'],
+  'date-fns': ['date-fns'],
+  'i18n-vendor': ['i18next', 'react-i18next'],
+  'query-vendor': ['@tanstack/react-query'],
+};
+
+if (!isCafe24Build) {
+  manualChunks.supabase = ['@supabase/supabase-js'];
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -154,14 +166,7 @@ export default defineConfig({
     cssCodeSplit: true, // CSS 코드 스플리팅 활성화
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['react-datepicker', 'qrcode.react'],
-          'supabase': ['@supabase/supabase-js'],
-          'date-fns': ['date-fns'],
-          'i18n-vendor': ['i18next', 'react-i18next'],
-          'query-vendor': ['@tanstack/react-query'],
-        },
+        manualChunks,
         // 파일명 최적화
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
@@ -177,6 +182,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
+      ...(isCafe24Build
+        ? { "@supabase/supabase-js": resolve(__dirname, "./src/lib/cafe24SupabaseJsShim.ts") }
+        : {}),
     },
   },
 
@@ -202,7 +210,7 @@ export default defineConfig({
       },
     },
     // allowedHosts 설정은 그대로 유지하여 Blocked Request 방지
-    allowedHosts: [".replit.dev", ".repl.co", ".ngrok-free.dev", "localhost", "127.0.0.1"],
+    allowedHosts: [".replit.dev", ".repl.co", ".ngrok-free.dev", ".trycloudflare.com", "localhost", "127.0.0.1"],
     headers: {
       'X-Frame-Options': 'ALLOWALL',
       'Content-Security-Policy': "frame-ancestors *",
@@ -214,7 +222,7 @@ export default defineConfig({
   preview: {
     host: SERVER_HOST,
     port: SERVER_PORT,
-    allowedHosts: [".replit.dev", ".repl.co", ".ngrok-free.dev", "localhost", "127.0.0.1"],
+    allowedHosts: [".replit.dev", ".repl.co", ".ngrok-free.dev", ".trycloudflare.com", "localhost", "127.0.0.1"],
     headers: {
       'X-Frame-Options': 'ALLOWALL',
       'Content-Security-Policy': "frame-ancestors *",

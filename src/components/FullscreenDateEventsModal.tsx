@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import type { Event as AppEvent } from "../lib/supabase";
+import { fetchCafe24Events, isCafe24EventsBackendEnabled } from "../lib/cafe24EventsApi";
 import { useModalHistory } from "../hooks/useModalHistory";
 import LocalLoading from "./LocalLoading";
 import "../styles/domains/events.css";
@@ -42,12 +43,17 @@ export default function FullscreenDateEventsModal({
         const dateStr = `${year}-${month}-${day}`;
 
         setLoading(true);
-        const { data, error } = await supabase
-          .from("events")
-          .select("*")
-          .order("time", { ascending: true });
+        const data = isCafe24EventsBackendEnabled
+          ? await fetchCafe24Events({ start: dateStr, end: dateStr, limit: 500 })
+          : await (async () => {
+            const { data, error } = await supabase
+              .from("events")
+              .select("*")
+              .order("time", { ascending: true });
 
-        if (error) throw error;
+            if (error) throw error;
+            return data || [];
+          })();
 
         const filteredEvents = (data || []).filter((event: any) => {
           if (selectedCategory && selectedCategory !== "all" && event.category !== selectedCategory) {

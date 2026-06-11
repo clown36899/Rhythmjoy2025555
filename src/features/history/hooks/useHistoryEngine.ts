@@ -561,7 +561,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     description: nodeData.description,
                     content: nodeData.content,
                     image_url: nodeData.image_url,
-                    year: nodeData.year
+                    year: nodeData.year,
+                    ...(nodeData.metadata !== undefined ? { metadata: nodeData.metadata } : {})
                     // date: nodeData.date // 🔥 Removed: Causes 400 if column missing
                 };
 
@@ -611,6 +612,16 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             });
 
             const finalData: any = { ...dbData };
+            const existingContentData = typeof nodeData.content_data === 'object' && nodeData.content_data !== null
+                ? nodeData.content_data
+                : {};
+            if (nodeData.metadata !== undefined || nodeData.image_url !== undefined) {
+                finalData.content_data = {
+                    ...existingContentData,
+                    ...(nodeData.metadata !== undefined ? { metadata: nodeData.metadata } : {}),
+                    ...(nodeData.image_url !== undefined ? { image_url: nodeData.image_url } : {}),
+                };
+            }
 
             // space_id와 parent_node_id는 신규 생성 시에만 자동 할당 (수정 시에는 기존값 보존)
             if (isNew) {

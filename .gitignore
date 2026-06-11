@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-cafe24
 dist-ssr
 out
 *.local
@@ -51,6 +52,7 @@ public/scraped/
 *.sql
 !supabase/migrations/*.sql
 !supabase/db_tasks/**/*.sql
+!server/cafe24/schema.sql
 *.json
 !package.json
 !package-lock.json

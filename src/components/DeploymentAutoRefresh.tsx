@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { logReloadDiagnostic } from '../utils/reloadDiagnostics';
 
 interface DeploymentAutoRefreshProps {
   hasOpenModal: boolean;
@@ -48,7 +49,9 @@ function markReloadRequested(targetBuildId: string) {
   try {
     sessionStorage.setItem(RELOAD_TARGET_KEY, targetBuildId);
     sessionStorage.setItem(RELOAD_AT_KEY, String(Date.now()));
-  } catch {}
+  } catch {
+    // Storage can be unavailable in private browsing or embedded contexts.
+  }
 }
 
 export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRefreshProps) {
@@ -78,11 +81,13 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       }
     };
 
-    const canReloadNow = () => {
-      if (document.visibilityState !== 'visible') return false;
+    const getReloadBlockers = () => {
+      const blockers: string[] = [];
+      if (document.visibilityState !== 'visible') blockers.push('hidden-tab');
       const withinBusyGrace = Date.now() - detectedAtRef.current < BUSY_GRACE_MS;
-      if (withinBusyGrace && (getActiveEditableElement() || hasOpenModalRef.current)) return false;
-      return true;
+      if (withinBusyGrace && getActiveEditableElement()) blockers.push('active-input');
+      if (withinBusyGrace && hasOpenModalRef.current) blockers.push('open-modal');
+      return blockers;
     };
 
     const scheduleReload = (targetBuildId: string) => {
@@ -91,12 +96,36 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       setPendingReload(true);
 
       if (wasReloadRecentlyRequested(targetBuildId)) {
+        logReloadDiagnostic({
+          reason: 'version_mismatch',
+          phase: 'suppressed',
+          trigger: 'deployment-auto-refresh',
+          serverBuildId: targetBuildId,
+          targetBuildId,
+          extra: {
+            clientBuildId: __BUILD_TIME__,
+            suppressWindowMs: RELOAD_SUPPRESS_MS,
+          },
+        });
         setPendingReload(false);
         return;
       }
 
-      if (!canReloadNow()) {
+      const blockers = getReloadBlockers();
+      if (blockers.length) {
         if (busyRetryTimerRef.current === null) {
+          logReloadDiagnostic({
+            reason: 'version_mismatch',
+            phase: 'delayed',
+            trigger: 'deployment-auto-refresh',
+            serverBuildId: targetBuildId,
+            targetBuildId,
+            extra: {
+              clientBuildId: __BUILD_TIME__,
+              blockers,
+              busyGraceMs: BUSY_GRACE_MS,
+            },
+          });
           busyRetryTimerRef.current = window.setTimeout(() => {
             busyRetryTimerRef.current = null;
             scheduleReload(pendingBuildIdRef.current);
@@ -107,7 +136,30 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
 
       if (reloadTimerRef.current !== null) return;
       markReloadRequested(targetBuildId);
+      logReloadDiagnostic({
+        reason: 'version_mismatch',
+        phase: 'scheduled',
+        trigger: 'deployment-auto-refresh',
+        serverBuildId: targetBuildId,
+        targetBuildId,
+        extra: {
+          clientBuildId: __BUILD_TIME__,
+          reloadDelayMs: AUTO_RELOAD_DELAY_MS,
+          detectedAt: detectedAtRef.current,
+        },
+      });
       reloadTimerRef.current = window.setTimeout(() => {
+        logReloadDiagnostic({
+          reason: 'version_mismatch',
+          phase: 'execute',
+          trigger: 'deployment-auto-refresh',
+          serverBuildId: targetBuildId,
+          targetBuildId,
+          extra: {
+            clientBuildId: __BUILD_TIME__,
+            elapsedSinceDetectedMs: Date.now() - detectedAtRef.current,
+          },
+        }, { beacon: true });
         window.location.reload();
       }, AUTO_RELOAD_DELAY_MS);
     };
@@ -129,8 +181,26 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
         const serverBuildId = getBuildId(version);
         if (!serverBuildId || serverBuildId === __BUILD_TIME__) return;
 
+        logReloadDiagnostic({
+          reason: 'version_mismatch',
+          phase: 'detected',
+          trigger: 'deployment-auto-refresh',
+          serverBuildId,
+          targetBuildId: serverBuildId,
+          extra: {
+            clientBuildId: __BUILD_TIME__,
+            serverVersion: version,
+          },
+        });
         scheduleReload(serverBuildId);
       } catch (error) {
+        logReloadDiagnostic({
+          reason: 'version_check_failed',
+          phase: 'error',
+          trigger: 'deployment-auto-refresh',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         if (import.meta.env.DEV) {
           console.warn('[DeploymentAutoRefresh] version check failed:', error);
         }

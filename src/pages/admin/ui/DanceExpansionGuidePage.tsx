@@ -329,8 +329,9 @@ function isEventWithinCollectionScope(event: SampleEvent) {
 function normalizePosterUrl(url: string | null | undefined) {
   if (!url) return null;
   if (/^https?:\/\//i.test(url)) return url;
-  const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL;
-  if (url.startsWith('/storage/') && supabaseUrl) return `${supabaseUrl}${url}`;
+  if (url.startsWith('/storage/v1/object/public/')) {
+    return url.replace(/^\/storage\/v1\/object\/public\//, '/uploads/');
+  }
   return url;
 }
 

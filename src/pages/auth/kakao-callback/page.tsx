@@ -12,6 +12,9 @@ const SESSION_CONFIRM_TIMEOUT_MS = 2500;
 const SESSION_CONFIRM_INTERVAL_MS = 250;
 const SUPABASE_STORAGE_KEY = getSupabaseStorageKey();
 const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
+const CAFE24_AUTH_ENABLED =
+    import.meta.env.VITE_CAFE24_AUTH_BACKEND === 'mysql' ||
+    import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -186,6 +189,15 @@ export default function KakaoCallbackPage() {
 
                 if (cancelled) return;
 
+                if (CAFE24_AUTH_ENABLED || authData.cafe24Session) {
+                    clearKakaoLoginFlags();
+                    removeStaleSupabasePkceVerifier();
+                    setIsAuthProcessing(false);
+                    const returnUrl = consumeKakaoLoginReturnUrl();
+                    navigate(returnUrl, { replace: true });
+                    setTimeout(() => window.location.reload(), 80);
+                    return;
+                }
 
 
                 // 3. Supabase 세션 설정

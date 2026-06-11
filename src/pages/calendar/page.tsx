@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import type { Event as AppEvent } from "../../lib/supabase";
+import { fetchCafe24EventById, isCafe24EventsBackendEnabled } from "../../lib/cafe24EventsApi";
 import { lazy, Suspense } from "react";
 
 import FullEventCalendar from "./components/FullEventCalendar";
@@ -32,6 +33,25 @@ const CalendarDateMapModal = lazy(() => import("./components/CalendarDateMapModa
 const getCalendarLocalDateString = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+const CALENDAR_DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const getCalendarDateKey = (value: any) => {
+    if (!value) return null;
+    if (typeof value === 'string' && CALENDAR_DATE_ONLY_RE.test(value.slice(0, 10)) && !value.includes('T')) {
+        return value.slice(0, 10);
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return getCalendarLocalDateString(date);
+};
+
+const parseCalendarDateKey = (value: any) => {
+    const key = getCalendarDateKey(value);
+    if (!key) return null;
+    const [year, month, day] = key.split('-').map(Number);
+    return new Date(year, month - 1, day);
+};
+
 const getSafeRect = (element: Element | null | undefined) => {
     if (!element || !element.isConnected) return null;
     try {
@@ -47,10 +67,8 @@ const getCalendarEventVenue = (event: any) =>
 const getCalendarEventDateStrings = (event: any) => {
     const dates = new Set<string>();
     const addDate = (value: any) => {
-        if (!value) return;
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return;
-        dates.add(getCalendarLocalDateString(date));
+        const dateKey = getCalendarDateKey(value);
+        if (dateKey) dates.add(dateKey);
     };
 
     if (Array.isArray(event.event_dates) && event.event_dates.length > 0) {
@@ -60,8 +78,8 @@ const getCalendarEventDateStrings = (event: any) => {
 
     const startValue = event.start_date || event.date || event.schedule_date;
     const endValue = event.end_date || event.date || event.schedule_date;
-    const startDate = startValue ? new Date(startValue) : null;
-    const endDate = endValue ? new Date(endValue) : null;
+    const startDate = parseCalendarDateKey(startValue);
+    const endDate = parseCalendarDateKey(endValue);
 
     if (startDate && endDate && !Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())) {
         const current = new Date(startDate);
@@ -477,9 +495,7 @@ export default function CalendarPage() {
 
         const getLocalStr = (d: any) => {
             if (!d) return null;
-            const dateObj = new Date(d);
-            if (isNaN(dateObj.getTime())) return null;
-            return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            return getCalendarDateKey(d);
         };
 
         localEventsToCount.forEach((event: any) => {
@@ -495,8 +511,8 @@ export default function CalendarPage() {
             } else {
                 const startStr = event.start_date || event.date || event.schedule_date;
                 const endStr = event.end_date || event.date || event.schedule_date;
-                const startDate = startStr ? new Date(startStr) : null;
-                const endDate = endStr ? new Date(endStr) : null;
+                const startDate = parseCalendarDateKey(startStr);
+                const endDate = parseCalendarDateKey(endStr);
 
                 if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
                     const curr = new Date(startDate);
@@ -865,13 +881,18 @@ export default function CalendarPage() {
             lastHandledEventIdRef.current = eventId;
             const fetchEvent = async () => {
                 try {
-                    const { data, error } = await supabase
-                        .from('events')
-                        .select('*')
-                        .eq('id', eventId)
-                        .maybeSingle();
+                    const data = isCafe24EventsBackendEnabled
+                        ? await fetchCafe24EventById(eventId)
+                        : await (async () => {
+                            const { data, error } = await supabase
+                                .from('events')
+                                .select('*')
+                                .eq('id', eventId)
+                                .maybeSingle();
 
-                    if (error) throw error;
+                            if (error) throw error;
+                            return data;
+                        })();
 
                     if (data) {
                         const isSocial = !!data.group_id || data.category === 'social';
@@ -1016,7 +1037,7 @@ export default function CalendarPage() {
                 },
                 onSelectPublic: () => {
                     closeModal('registrationChoice');
-                    const dateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
+                    const dateStr = selectedDate ? getCalendarLocalDateString(selectedDate) : '';
                     const url = dateStr ? `/social?action=register_social&date=${dateStr}` : '/social?action=register_social';
                     navigate(url);
                 }

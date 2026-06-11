@@ -10,6 +10,7 @@ declare global {
 
 const WEEK_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const EMPTY_EVENTS: AppEvent[] = [];
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface Props {
     danceScope?: DanceScope | string;
@@ -17,6 +18,25 @@ interface Props {
 }
 
 const toLocalDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const toLocalDateString = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const getDateKey = (value: any) => {
+    if (!value) return null;
+    if (typeof value === 'string' && DATE_ONLY_RE.test(value.slice(0, 10)) && !value.includes('T')) {
+        return value.slice(0, 10);
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return toLocalDateString(date);
+};
+
+const parseDateKey = (value: any) => {
+    const key = getDateKey(value);
+    if (!key) return null;
+    const [year, month, day] = key.split('-').map(Number);
+    return new Date(year, month - 1, day);
+};
 
 const getDefaultSelectedDate = (month: Date) => {
     const now = new Date();
@@ -71,8 +91,8 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
         setIsLoadingEvents(true);
         const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
         const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
-        const s = start.toISOString().split('T')[0];
-        const e = end.toISOString().split('T')[0];
+        const s = toLocalDateString(start);
+        const e = toLocalDateString(end);
         fetchCalendarEvents(s, e, danceScope)
             .then(data => setAllEvents(data.events.filter(event => isEventInDanceScope(event as any, danceScope))))
             .finally(() => setIsLoadingEvents(false));
@@ -81,12 +101,6 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
     // 날짜별 이벤트 맵
     const eventsByDate = useMemo(() => {
         const map: Record<string, AppEvent[]> = {};
-        const toDateStr = (d: string | undefined | null) => {
-            if (!d) return null;
-            const obj = new Date(d);
-            if (isNaN(obj.getTime())) return null;
-            return `${obj.getFullYear()}-${String(obj.getMonth() + 1).padStart(2, '0')}-${String(obj.getDate()).padStart(2, '0')}`;
-        };
         allEvents.forEach(ev => {
             const addTo = (dateStr: string | null) => {
                 if (!dateStr) return;
@@ -94,21 +108,22 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
                 map[dateStr].push(ev);
             };
             if (ev.event_dates && ev.event_dates.length > 0) {
-                ev.event_dates.forEach(d => addTo(toDateStr(d)));
+                ev.event_dates.forEach(d => addTo(getDateKey(d)));
             } else {
                 const start = ev.start_date || ev.date;
                 const end = ev.end_date || ev.date;
                 if (start && end) {
-                    const cur = new Date(start);
-                    const endDate = new Date(end);
+                    const cur = parseDateKey(start);
+                    const endDate = parseDateKey(end);
+                    if (!cur || !endDate) return;
                     let limit = 0;
                     while (cur <= endDate && limit < 365) {
-                        addTo(toDateStr(cur.toISOString()));
+                        addTo(toLocalDateString(cur));
                         cur.setDate(cur.getDate() + 1);
                         limit++;
                     }
                 } else {
-                    addTo(toDateStr(start));
+                    addTo(getDateKey(start));
                 }
             }
         });
