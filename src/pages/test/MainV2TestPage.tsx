@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './MainV2TestPage.css';
 import '../../pages/calendar/styles/FullEventCalendar.css';
-import { supabase } from '../../lib/supabase'; // Direct Supabase Import
+import { supabase } from '../../lib/cafe24Client'; // Direct Supabase Import
 import { getLocalDateString, getKSTDay, getDayName } from '../v2/utils/eventListUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEventModal } from '../../hooks/useEventModal';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEvents } from '../v2/components/EventList/hooks/useEvents';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageCropModal from '../../components/ImageCropModal';

@@ -6,7 +6,7 @@ import {
   type SwingOneDayRecruitLogo,
   type SwingOneDayRecruitLink,
 } from '../../data/swingOneDayRecruitLinks';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import {
   KOREA_CENTER,
   ONE_DAY_REGION_OPTIONS,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, memo, useCallback } from "react";
-import { supabase } from "../../../lib/supabase";
-import type { Event } from "../../../lib/supabase";
+import { supabase } from "../../../lib/cafe24Client";
+import type { Event } from "../../../lib/cafe24Client";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import "../../../styles/components/EventCalendar.css";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";

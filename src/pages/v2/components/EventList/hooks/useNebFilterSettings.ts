@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../../../lib/supabase';
+import { supabase } from '../../../../../lib/cafe24Client';
 
 export interface NebFilterSettings {
     sort_by: 'created_at' | 'date';

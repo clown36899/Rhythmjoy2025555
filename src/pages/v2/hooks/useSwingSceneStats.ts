@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 
 export interface StatItem {
     type: '강습' | '행사' | '동호회 이벤트+소셜';

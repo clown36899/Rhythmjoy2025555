@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import {
     DEFAULT_NEB_FILTER_SETTINGS,
     NEB_MAX_ITEMS,

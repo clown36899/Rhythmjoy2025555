@@ -317,7 +317,7 @@ async function readCafe24Me() {
   return payload;
 }
 
-export function createCafe24SupabaseCompat() {
+export function createCafe24DataCompat() {
   return {
     from(table: string) {
       return new Cafe24QueryBuilder(table);

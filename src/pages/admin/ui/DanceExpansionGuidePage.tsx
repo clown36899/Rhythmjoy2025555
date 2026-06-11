@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { getDanceCollectionScopeExclusionReason, inferDanceTaxonomy } from '../../../utils/danceTaxonomy';
 import './DanceExpansionGuidePage.css';
 

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '../../../../lib/cafe24SupabaseJsShim';
+import type { SupabaseClient } from '../../../../lib/cafe24ClientTypes';
 
 let cachedOwnerUserId: string | null = null;
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 
 export function useTotalUserCount() {
     const [count, setCount] = useState<number | null>(null);

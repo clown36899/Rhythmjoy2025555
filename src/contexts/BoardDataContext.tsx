@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 
 interface BoardCategory {
     id: number;

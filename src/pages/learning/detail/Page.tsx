@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext'; // Import useAuth
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { BookmarkList } from '../components/BookmarkList';
 import { fetchVideoDetails } from '../utils/youtube';
 import { renderTextWithLinks } from '../utils/text';

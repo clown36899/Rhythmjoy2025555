@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
-import type { RealtimeChannel } from '../lib/cafe24SupabaseJsShim';
+import type { RealtimeChannel } from '../lib/cafe24ClientTypes';
 
 import { generateUUID } from '../utils/uuid';
 

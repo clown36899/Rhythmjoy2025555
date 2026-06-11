@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/supabase";
-import type { Event as AppEvent } from "../lib/supabase";
+import { supabase } from "../lib/cafe24Client";
+import type { Event as AppEvent } from "../lib/cafe24Client";
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from "../lib/cafe24EventsApi";
 import { useModalHistory } from "../hooks/useModalHistory";
 import LocalLoading from "./LocalLoading";

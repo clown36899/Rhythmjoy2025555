@@ -3,7 +3,6 @@
 import 'dotenv/config';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createClient } from '@supabase/supabase-js';
 import { getCollectionSources } from './collection-registry.mjs';
 
 const TANGO_CALENDAR_API = 'https://tangocalendar.kr/api/events';
@@ -53,7 +52,6 @@ function parseArgs(argv) {
     dryRun: false,
     saveCandidates: false,
     candidateRange: 'week',
-    saveTarget: 'function',
   };
 
   for (const arg of argv) {
@@ -62,7 +60,6 @@ function parseArgs(argv) {
     if (arg === '--dry-run') args.dryRun = true;
     if (arg === '--save-candidates') args.saveCandidates = true;
     if (arg.startsWith('--candidate-range=')) args.candidateRange = arg.slice('--candidate-range='.length);
-    if (arg.startsWith('--save-target=')) args.saveTarget = arg.slice('--save-target='.length);
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(args.date)) {
@@ -71,10 +68,6 @@ function parseArgs(argv) {
   if (!['today', 'week', 'month'].includes(args.candidateRange)) {
     throw new Error(`Invalid --candidate-range: ${args.candidateRange}`);
   }
-  if (!['function', 'direct'].includes(args.saveTarget)) {
-    throw new Error(`Invalid --save-target: ${args.saveTarget}`);
-  }
-
   args.outputPrefix ||= `tango-scene-map-${args.date}`;
   return args;
 }
@@ -503,73 +496,7 @@ async function saveTangoCandidatesViaFunction(candidates) {
   };
 }
 
-async function saveTangoCandidatesDirect(candidates) {
-  const { imageBacked, noPoster } = splitImageBackedCandidates(candidates);
-  if (!imageBacked.length) {
-    return { target: 'direct', saved: 0, skippedCollected: 0, skippedNoPoster: noPoster.length, total: candidates.length };
-  }
-
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('SUPABASE_URL/VITE_PUBLIC_SUPABASE_URL 또는 SUPABASE_SERVICE_KEY 환경변수가 없습니다.');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  const now = new Date().toISOString();
-  const ids = imageBacked.map((candidate) => candidate.id);
-  const { data: existingRows, error: existingError } = await supabase
-    .from('scraped_events')
-    .select('id,display_no,is_collected,status,created_at')
-    .in('id', ids);
-  if (existingError) throw existingError;
-
-  const existingById = new Map((existingRows || []).map((row) => [row.id, row]));
-  const { data: maxRow, error: maxError } = await supabase
-    .from('scraped_events')
-    .select('display_no')
-    .not('display_no', 'is', null)
-    .order('display_no', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (maxError) throw maxError;
-
-  let nextDisplayNo = ((maxRow?.display_no || 0) + 1);
-  let skippedCollected = 0;
-  const rows = [];
-
-  for (const candidate of imageBacked) {
-    const existing = existingById.get(candidate.id);
-    if (existing?.is_collected) {
-      skippedCollected += 1;
-      continue;
-    }
-
-    rows.push({
-      ...candidate,
-      display_no: existing?.display_no ?? nextDisplayNo++,
-      created_at: existing?.created_at || now,
-      updated_at: now,
-    });
-  }
-
-  if (!rows.length) {
-    return { target: 'direct', saved: 0, skippedCollected, skippedNoPoster: noPoster.length, total: candidates.length };
-  }
-
-  const { error: upsertError } = await supabase
-    .from('scraped_events')
-    .upsert(rows, { onConflict: 'id' });
-  if (upsertError) throw upsertError;
-
-  return { target: 'direct', saved: rows.length, skippedCollected, skippedNoPoster: noPoster.length, total: candidates.length };
-}
-
-async function saveTangoCandidates(candidates, args) {
-  if (args.saveTarget === 'direct') return saveTangoCandidatesDirect(candidates);
+async function saveTangoCandidates(candidates) {
   return saveTangoCandidatesViaFunction(candidates);
 }
 
@@ -598,7 +525,7 @@ Generated: ${report.generatedAt}
 
 - 대상: 한국/서울 중심 아르헨티나 탱고 씬
 - 목적: 밀롱가, 프랙티카, 클래스, 대회/페스티벌, venue/organizer 축을 분리해서 장기적으로 씬 지도를 만든다.
-- DB 저장: 기본 실행은 리서치 전용이다. \`--save-candidates\`를 붙이면 Tango Calendar 일정을 \`scraped_events\` 후보로만 저장한다. 운영 \`events\` 등록은 관리자 등록 버튼 전까지 하지 않는다.
+- DB 저장: 기본 실행은 리서치 전용이다. \`--save-candidates\`를 붙이면 Cafe24 API를 통해 Tango Calendar 일정을 \`scraped_events\` 후보로만 저장한다. 운영 \`events\` 등록은 관리자 등록 버튼 전까지 하지 않는다.
 - 자동 수집 분리: 스윙 일일 자동 수집에는 포함하지 않는다. 탱고는 이 스크립트처럼 별도 research/manual 파이프라인으로만 실행한다.
 
 ## Live Calendar Snapshot

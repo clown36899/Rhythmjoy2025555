@@ -1,12 +1,12 @@
 import { useState, useEffect, memo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import { fetchCafe24EventById, fetchCafe24Events, isCafe24EventsBackendEnabled } from '../lib/cafe24EventsApi';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import LocalLoading from './LocalLoading';
 import VenueDetailModal from '../pages/practice/components/VenueDetailModal';
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
-import type { Event } from '../lib/supabase';
+import type { Event } from '../lib/cafe24Client';
 import type { Shop } from '../pages/shopping/page';
 import { useModalHistory } from '../hooks/useModalHistory';
 import { getOptimizedImageUrl } from '../utils/getEventThumbnail';

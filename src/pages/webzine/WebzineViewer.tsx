@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import LocalLoading from '../../components/LocalLoading';
 import WebzineRenderer from './components/WebzineRenderer';

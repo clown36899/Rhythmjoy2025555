@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import type { Event as AppEvent } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
+import type { Event as AppEvent } from '../lib/cafe24Client';
 import { queryClient } from '../lib/queryClient';
 import { addClientLog } from '../utils/clientLogBuffer';
 

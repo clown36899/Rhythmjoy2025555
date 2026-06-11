@@ -1,14 +1,14 @@
-import { createCafe24SupabaseCompat } from './cafe24SupabaseCompat';
+import { createCafe24DataCompat } from './cafe24DataCompat';
 
 export type AuthChangeEvent = string;
-export type RealtimeChannel = ReturnType<ReturnType<typeof createCafe24SupabaseCompat>['channel']>;
+export type RealtimeChannel = ReturnType<ReturnType<typeof createCafe24DataCompat>['channel']>;
 export type Session = {
   access_token?: string;
   refresh_token?: string;
   expires_at?: number;
   user?: User | null;
 };
-export type SupabaseClient = ReturnType<typeof createCafe24SupabaseCompat>;
+export type SupabaseClient = ReturnType<typeof createCafe24DataCompat>;
 export type User = {
   id: string;
   email?: string;
@@ -19,5 +19,5 @@ export type User = {
 };
 
 export function createClient(): SupabaseClient {
-  return createCafe24SupabaseCompat();
+  return createCafe24DataCompat();
 }

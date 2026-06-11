@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { renderTextWithLinksAndResources } from '../../../pages/learning/utils/linkRenderer';
 import { AutocompleteMenu } from './AutocompleteMenu';
 import { createResizedImages } from '../../../utils/imageResize';

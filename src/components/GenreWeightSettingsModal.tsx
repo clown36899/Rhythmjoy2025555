@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../lib/cafe24Client";
 import { DEFAULT_GENRE_WEIGHTS, type GenreWeightSettings } from "../pages/v2/utils/eventListUtils";
 import "./GenreWeightSettingsModal.css";
 

@@ -5,7 +5,7 @@ import {
     useNodesState,
     useEdgesState
 } from 'reactflow';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import type { HistoryRFNode, NodeBehavior } from '../types';
 import { mapDbNodeToRFNode } from '../utils/mappers';
 import { projectNodesToView } from '../utils/projection';

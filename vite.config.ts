@@ -22,8 +22,6 @@ const SERVER_HOST = isReplit ? "0.0.0.0" : "localhost";
 const API_DEV_PROXY_TARGET = process.env.API_DEV_PROXY_TARGET || 'http://localhost:3001';
 
 const isPreview = process.env.IS_PREVIEW ? true : false;
-const isCafe24Build = process.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
-
 // 빌드 타임스탬프 생성 플러그인
 const BUILD_TIME = Date.now().toString();
 
@@ -40,7 +38,7 @@ function buildVersionPlugin(): Plugin {
         date: new Date().toISOString()
       };
 
-      // dist 폴더가 없으면 생성 (Netlify 빌드 안정성)
+      // dist 폴더가 없으면 생성 (Cafe24 배포 안정성)
       if (!existsSync('dist')) {
         mkdirSync('dist', { recursive: true });
       }
@@ -178,7 +176,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
-      "@supabase/supabase-js": resolve(__dirname, "./src/lib/cafe24SupabaseJsShim.ts"),
     },
   },
 

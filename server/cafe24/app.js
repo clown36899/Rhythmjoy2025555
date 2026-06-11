@@ -60,6 +60,16 @@ const cafe24FunctionHandler = createCafe24FunctionHandler();
 app.disable('x-powered-by');
 app.set('trust proxy', true);
 
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('X-DNS-Prefetch-Control', 'on');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://xn--9m1bu8iv0ao6ao5fsta.com");
+  next();
+});
+
 app.get('/__health', (_req, res) => {
   res.json({
     ok: true,
@@ -109,7 +119,6 @@ app.get('/api/auth/providers', jsonRoute(authProviders));
 app.post('/api/auth/logout', jsonRoute(logout));
 app.post('/api/kakao-login', jsonBody, jsonRoute(kakaoLogin));
 app.post('/api/auth/kakao', jsonBody, jsonRoute(kakaoLogin));
-app.post('/.netlify/functions/kakao-login', jsonBody, jsonRoute(kakaoLogin));
 app.get('/api/auth/google/start', jsonRoute(googleLoginStart));
 app.get('/api/auth/google/callback', jsonRoute(googleLoginCallback));
 
@@ -128,9 +137,7 @@ app.post('/api/cafe24-storage/:bucket/remove', jsonBody, jsonRoute(removeGeneric
 
 app.get('/api/stats/events', jsonRoute(eventStats));
 app.get('/api/stats/site', jsonRoute(siteStats));
-app.get('/.netlify/functions/get-site-stats', jsonRoute(siteStats));
 app.post('/api/analytics/session', jsonBody, jsonRoute(recordAnalytics));
-app.post('/.netlify/functions/analytics-session', jsonBody, jsonRoute(recordAnalytics));
 app.post('/api/diagnostics/reload', jsonBody, jsonRoute(recordClientReloadDiagnostic));
 app.get('/api/diagnostics/reloads', jsonRoute(listClientReloadDiagnostics));
 app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnostics));
@@ -145,41 +152,16 @@ app.all('/api/tango-scene-map', rawBody, alias('tango-scene-map'), cafe24Functio
 app.delete('/api/invitations/delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
 app.post('/api/invitations/delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
 
-app.all('/.netlify/functions/scraped-events', jsonBody, jsonRoute(cafe24ScrapedEvents));
-app.post('/.netlify/functions/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));
-app.post('/.netlify/functions/delete-event', jsonBody, jsonRoute(cafe24DeleteEventFunction));
-app.post('/.netlify/functions/delete-social-item', jsonBody, jsonRoute(cafe24DeleteSocialItem));
-app.post('/.netlify/functions/oneday-recruit-logo', jsonBody, jsonRoute(cafe24OneDayRecruitLogo));
-app.all('/.netlify/functions/fetch-og-image', rawBody, alias('fetch-og-image'), cafe24FunctionHandler);
-app.all('/.netlify/functions/tango-scene-map', rawBody, alias('tango-scene-map'), cafe24FunctionHandler);
 app.all('/api/invitations', jsonBody, jsonRoute(cafe24Invitations));
-app.all('/.netlify/functions/invitations', jsonBody, jsonRoute(cafe24Invitations));
 app.post('/api/invitations/validate', jsonBody, jsonRoute(cafe24ValidateInvitation));
-app.post('/.netlify/functions/invitations-validate', jsonBody, jsonRoute(cafe24ValidateInvitation));
 app.delete('/api/invitations/:id', jsonBody, jsonRoute(cafe24DeleteInvitation));
-app.delete('/.netlify/functions/invitations-delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
 app.get('/api/billboard-manifest', jsonRoute(cafe24BillboardManifest));
-app.get('/.netlify/functions/billboard-manifest', jsonRoute(cafe24BillboardManifest));
 
 app.use('/uploads', express.static(uploadsDir, {
   etag: true,
   maxAge: '30d',
 }));
 
-app.all(/^\/\.netlify\/functions\/([^/?#]+)(?:\/.*)?$/, rawBody, async (req, res, next) => {
-  try {
-    req.params.name = req.params[0];
-    await cafe24UnavailableFunction(req, res);
-  } catch (error) {
-    next(error);
-  }
-});
-app.all(/^\/\.netlify(?:\/.*)?$/, (_req, res) => {
-  res.status(410).json({
-    error: 'Gone',
-    message: 'Unsupported legacy Netlify path on Cafe24. Use /api routes.',
-  });
-});
 app.all(/^\/api\/([^/?#]+)(?:\/.*)?$/, rawBody, async (req, res, next) => {
   try {
     req.params.name = req.params[0];
@@ -199,7 +181,12 @@ app.use(express.static(distDir, {
     }
 
     if (filePath.endsWith('service-worker.js') || filePath.endsWith('version.json')) {
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return;
+    }
+
+    if (filePath.endsWith('manifest.json')) {
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
     }
   },
 }));

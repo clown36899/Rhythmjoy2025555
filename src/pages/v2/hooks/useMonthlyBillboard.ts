@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 
 export interface BillboardData {
     loading: boolean;

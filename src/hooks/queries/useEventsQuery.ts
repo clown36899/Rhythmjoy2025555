@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { getLocalDateString } from '../../pages/v2/utils/eventListUtils';
 import type { Event } from '../../pages/v2/utils/eventListUtils';

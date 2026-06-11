@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './metronome.css';
-import { supabase } from '../../lib/supabase';
-import type { MetronomePreset } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
+import type { MetronomePreset } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 
 const MetronomePage: React.FC = () => {

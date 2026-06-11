@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import SimpleHeader from '../../../components/SimpleHeader';
 import ImageCropModal from '../../../components/ImageCropModal';
 import '../register/shopreg.css';

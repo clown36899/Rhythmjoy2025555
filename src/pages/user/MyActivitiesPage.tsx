@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { EventCard } from '../v2/components/EventCard';
 import StandardPostList from '../board/components/StandardPostList';
-import type { Event as SupabaseEvent } from '../../lib/supabase';
+import type { Event as SupabaseEvent } from '../../lib/cafe24Client';
 import type { StandardBoardPost } from '../../types/board';
 import { useDefaultThumbnail } from '../../hooks/useDefaultThumbnail';
 import LocalLoading from '../../components/LocalLoading';

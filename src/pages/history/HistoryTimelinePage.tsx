@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useBlocker, useOutletContext } from 'react-router-dom';
 import { type ReactFlowInstance } from 'reactflow';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalPlayer } from '../../contexts/GlobalPlayerContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';

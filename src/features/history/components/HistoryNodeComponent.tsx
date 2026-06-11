@@ -282,22 +282,20 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 />
             )}
 
-            {data.isEditMode && (
-                <>
-                    {/* Relationship handles are edit-only. Hidden handles still own click hitboxes. */}
-                    <Handle type="target" position={Position.Top} id="top" />
-                    <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
+            <>
+                {/* Keep handles mounted so saved relationship edges can resolve coordinates in view mode. */}
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="target" position={Position.Top} id="top" />
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="source" position={Position.Top} id="top" style={{ top: 0, opacity: data.isEditMode ? 0 : undefined }} />
 
-                    <Handle type="source" position={Position.Bottom} id="bottom" />
-                    <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="source" position={Position.Bottom} id="bottom" />
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: data.isEditMode ? 0 : undefined }} />
 
-                    <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
-                    <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: data.isEditMode ? 0 : undefined }} />
 
-                    <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
-                    <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
-                </>
-            )}
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
+                <Handle className={!data.isEditMode ? 'history-node-view-handle' : undefined} type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: data.isEditMode ? 0 : undefined }} />
+            </>
 
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (

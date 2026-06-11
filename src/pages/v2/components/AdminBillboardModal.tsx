@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../../lib/cafe24Client";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 import { useBillboardSettings } from "../../../hooks/useBillboardSettings";
 import "../../../styles/domains/events.css";

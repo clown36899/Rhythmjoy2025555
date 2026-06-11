@@ -1,6 +1,6 @@
 import './VenueTabBar.css';
 import { useEffect, useState, useRef } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 
 export type VenueCategory = string;
 

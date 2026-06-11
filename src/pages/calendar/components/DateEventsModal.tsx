@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import type { Event as AppEvent } from '../../../lib/supabase';
+import type { Event as AppEvent } from '../../../lib/cafe24Client';
 import '../../../styles/domains/events.css';
 import '../../../styles/components/DateEventsModal.css';
 

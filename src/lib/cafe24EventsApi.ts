@@ -1,7 +1,7 @@
-import type { Event as AppEvent } from './supabase';
+import type { Event as AppEvent } from './cafe24Client';
 
 export const isCafe24EventsBackendEnabled =
-  import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
+  import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'disabled';
 
 type FetchCafe24EventsOptions = {
   start?: string;

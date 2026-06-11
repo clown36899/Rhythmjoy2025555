@@ -1,4 +1,4 @@
-import type { Event } from "../../../lib/supabase";
+import type { Event } from "../../../lib/cafe24Client";
 import { memo } from "react";
 import { createPortal } from "react-dom";
 import "../../../styles/domains/events.css";

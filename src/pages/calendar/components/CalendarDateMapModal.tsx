@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { Event as AppEvent } from '../../../lib/supabase';
+import type { Event as AppEvent } from '../../../lib/cafe24Client';
 import '../styles/CalendarDateMapModal.css';
 
 const CALENDAR_MAP_MODAL_DEBUG = import.meta.env.VITE_CALENDAR_MAP_MODAL_DEBUG === 'true';

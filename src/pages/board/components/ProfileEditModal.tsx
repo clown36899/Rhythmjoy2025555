@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { convertToWebP, extractStoragePath } from '../../../utils/imageUtils';
 import './userreg.css'; // Reusing similar styles
 

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "../../../../../lib/supabase";
+import { supabase } from "../../../../../lib/cafe24Client";
 import { useAuth } from "../../../../../contexts/AuthContext";
 import { addClientLog } from "../../../../../utils/clientLogBuffer";
 import type { Event } from "../../../utils/eventListUtils";

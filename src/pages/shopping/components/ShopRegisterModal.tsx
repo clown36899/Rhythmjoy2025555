@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 

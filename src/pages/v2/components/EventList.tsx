@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../../lib/cafe24Client";
 
 // Components
 import LocalLoading from "../../../components/LocalLoading";

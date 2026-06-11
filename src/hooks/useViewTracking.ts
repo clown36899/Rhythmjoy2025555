@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 
 const VIEW_TRACKING_DEBUG = import.meta.env.VITE_VIEW_TRACKING_DEBUG === 'true';
 const debugViewTracking = (...args: unknown[]) => {

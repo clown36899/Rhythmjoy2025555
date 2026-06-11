@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Event as AppEvent } from '../../../lib/supabase';
+import type { Event as AppEvent } from '../../../lib/cafe24Client';
 import { fetchCalendarEvents } from '../../../hooks/queries/useCalendarEventsQuery';
 import { isEventInDanceScope, type DanceScope } from '../../../utils/danceTaxonomy';
 import '../styles/CalendarMapView.css';

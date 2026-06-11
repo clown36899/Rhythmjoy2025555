@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';

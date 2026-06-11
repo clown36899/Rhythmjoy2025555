@@ -15,7 +15,7 @@ function baseCandidate(overrides = {}) {
   return {
     keyword: 'test',
     source_url: 'https://www.instagram.com/swingtimebar/p/ABC123/',
-    poster_url: 'https://mkoryudscamnopvxdelk.supabase.co/storage/v1/object/public/scraped/test.webp',
+    poster_url: '/uploads/scraped/test.webp',
     extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.06.05 20:00',
     structured_data: {
       title: '스윙타임 금요 소셜',

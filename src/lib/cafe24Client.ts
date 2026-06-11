@@ -1,6 +1,6 @@
 import { authLogger } from '../utils/authLogger';
 import { getAuthStorageKey, getAuthValidationKey } from './authStorageKeys';
-import { createCafe24SupabaseCompat } from './cafe24SupabaseCompat';
+import { createCafe24DataCompat } from './cafe24DataCompat';
 
 const DATA_CLIENT_DEBUG = import.meta.env.VITE_DATA_CLIENT_DEBUG === 'true' || import.meta.env.VITE_SUPABASE_DEBUG === 'true';
 if (DATA_CLIENT_DEBUG) {
@@ -13,7 +13,7 @@ if (DATA_CLIENT_DEBUG) {
   console.debug('%c[DataClient] Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
 }
 
-export const supabase = createCafe24SupabaseCompat() as any;
+export const supabase = createCafe24DataCompat() as any;
 
 authLogger.log('[Cafe24] Data client initialized');
 

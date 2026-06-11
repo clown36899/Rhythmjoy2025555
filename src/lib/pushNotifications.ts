@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './cafe24Client';
 
 /**
  * PWA 푸시 알림 유틸리티 함수들

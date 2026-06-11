@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import { createResizedImages } from './imageResize';
 
 export interface WebzineUploadResult {

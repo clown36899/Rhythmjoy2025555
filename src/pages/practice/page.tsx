@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../../lib/cafe24Client";
 import PracticeRoomList from "./components/PracticeRoomList";
 import VenueTabBar from "./components/VenueTabBar";
 import VenueMapView from "./components/VenueMapView";

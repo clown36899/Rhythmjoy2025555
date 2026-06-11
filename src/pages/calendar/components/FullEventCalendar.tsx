@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo, useMemo, useRef, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { Event as AppEvent } from "../../../lib/supabase";
+import type { Event as AppEvent } from "../../../lib/cafe24Client";
 import { useCalendarEventsQuery } from "../../../hooks/queries/useCalendarEventsQuery";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import DateEventsModal from "./DateEventsModal";

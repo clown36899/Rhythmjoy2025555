@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/components/QuickNoticeInput.css';
 

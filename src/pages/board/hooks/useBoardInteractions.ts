@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useUserInteractions } from '../../../hooks/useUserInteractions';
 
 import type { BoardCategory } from '../components/BoardTabBar';

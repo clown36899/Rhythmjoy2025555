@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import MyImpactCard from '../../user/components/MyImpactCard';
-import type { Event as SupabaseEvent } from '../../../lib/supabase';
+import type { Event as SupabaseEvent } from '../../../lib/cafe24Client';
 import type { StandardBoardPost } from '../../../types/board';
 import SwingSceneStats from './SwingSceneStats';
 import MonthlyWebzine from './MonthlyBillboard/MonthlyWebzine';

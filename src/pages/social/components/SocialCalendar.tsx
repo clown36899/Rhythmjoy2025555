@@ -1,5 +1,5 @@
 
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import type { UnifiedSocialEvent } from '../types';

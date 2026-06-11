@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import type { HistoryRFNode } from '../types';
 
 interface UseFolderLogicProps {

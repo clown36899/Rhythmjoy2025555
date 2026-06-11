@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import type { SocialGroup as SocialPlace } from '../types';
 import EventRegistrationModal from '../../../components/EventRegistrationModal';
 import './PlaceCalendar.css';

@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { StandardBoardPost as BoardPost } from '../../../types/board';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';

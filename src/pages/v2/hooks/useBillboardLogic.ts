@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../../lib/cafe24Client";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
-import type { Event as AppEvent } from "../../../lib/supabase";
+import type { Event as AppEvent } from "../../../lib/cafe24Client";
 
 interface UseBillboardLogicProps {
     settings: BillboardSettings;

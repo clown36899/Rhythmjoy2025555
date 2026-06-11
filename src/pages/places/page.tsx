@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import VenueRegistrationModal from '../practice/components/VenueRegistrationModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';

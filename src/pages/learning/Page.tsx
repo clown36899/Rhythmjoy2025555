@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 

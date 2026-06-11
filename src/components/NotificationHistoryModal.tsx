@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationStore } from '../lib/notificationStore';
 import type { NotificationRecord } from '../lib/notificationStore';
 import { useModalActions } from '../contexts/ModalContext';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import "../styles/components/NotificationHistoryModal.css";
 
 interface NotificationHistoryModalProps {

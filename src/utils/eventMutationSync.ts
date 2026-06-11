@@ -1,5 +1,5 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
-import type { Event as AppEvent } from '../lib/supabase';
+import type { Event as AppEvent } from '../lib/cafe24Client';
 
 type EventRecord = Partial<AppEvent> & Record<string, unknown>;
 

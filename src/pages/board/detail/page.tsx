@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import UniversalPostEditor from '../components/UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';

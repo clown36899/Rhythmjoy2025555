@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../../lib/cafe24EventsApi';
 
 export const useHistoricalGenres = () => {

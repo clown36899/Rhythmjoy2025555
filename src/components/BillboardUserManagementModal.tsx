@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/supabase';
-import type { BillboardUser, BillboardUserSettings } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
+import type { BillboardUser, BillboardUserSettings } from '../lib/cafe24Client';
 import { hashPassword } from '../utils/passwordHash';
 import "./BillboardUserManagementModal.css";
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import type { BoardPost } from './useBoardPosts';
 import { useViewTracking } from '../../../hooks/useViewTracking';
 

@@ -1,8 +1,8 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 
-const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
+const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_ANALYTICS_ENABLED !== 'false';
 
 export interface AnalyticsLog {
     target_id: string;
@@ -267,7 +267,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
     const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
     const { displayMode } = detectPWAMode();
 
-    // 입력받은 유저가 없으면 현재 supabase 세션에서 확인
+    // 입력받은 유저가 없으면 현재 Cafe24 세션에서 확인
     const userId = user?.id;
     // [FIX] 회원만 PWA 설치 기록 허용 (비회원 차단)
     if (!userId) {
@@ -440,7 +440,7 @@ if (typeof window !== 'undefined') {
 const clickCache = new Map<string, number>();
 
 /**
- * 로그 데이터를 Supabase에 전송 (비동기 Sidecar)
+ * 로그 데이터를 Cafe24에 전송 (비동기 Sidecar)
  */
 export const trackEvent = (log: AnalyticsLog) => {
     if (!shouldTrackAnalytics()) return;

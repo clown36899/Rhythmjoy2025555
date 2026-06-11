@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { fetchCafe24EventById, isCafe24EventsBackendEnabled, updateCafe24EventById } from '../../../lib/cafe24EventsApi';
-import type { Event as BaseEvent } from '../../../lib/supabase';
+import type { Event as BaseEvent } from '../../../lib/cafe24Client';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { formatDateForInput } from '../../../utils/fileUtils';

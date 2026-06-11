@@ -83,11 +83,94 @@ const compositeKeysByTable = {
 
 const adminOnlyGenericTables = new Set([
   'client_reload_diagnostics',
+  'invitations',
+  'invitation_logs',
   'pwa_installs',
+  'scraped_events',
   'server_version_diagnostics',
   'session_logs',
   'site_analytics_logs',
   'site_usage_stats',
+]);
+
+const adminOnlyMutationTables = new Set([
+  'app_settings',
+  'billboard_settings',
+  'billboard_user_settings',
+  'billboard_users',
+  'board_admins',
+  'board_anonymous_comments',
+  'board_anonymous_posts',
+  'board_banned_words',
+  'board_categories',
+  'board_prefixes',
+  'client_reload_diagnostics',
+  'global_notices',
+  'history_edges',
+  'history_nodes',
+  'invitations',
+  'invitation_logs',
+  'learning_categories',
+  'learning_documents',
+  'learning_playlists',
+  'learning_resources',
+  'learning_video_bookmarks',
+  'metrics_cache',
+  'notification_queue',
+  'scraped_events',
+  'server_version_diagnostics',
+  'session_logs',
+  'site_analytics_logs',
+  'site_usage_stats',
+  'swing_oneday_recruit_links',
+  'theme_settings',
+  'venue_edit_logs',
+  'webzine_posts',
+]);
+
+const loginRequiredMutationTables = new Set([
+  'board_comment_dislikes',
+  'board_comment_likes',
+  'board_comments',
+  'board_post_dislikes',
+  'board_post_favorites',
+  'board_post_likes',
+  'board_posts',
+  'event_favorites',
+  'item_views',
+  'metronome_presets',
+  'practice_room_favorites',
+  'shop_favorites',
+  'shops',
+  'site_links',
+  'social_group_favorites',
+  'social_groups',
+  'social_places',
+  'social_schedules',
+  'user_push_subscriptions',
+  'venues',
+]);
+
+const ownerScopedMutationTables = new Set([
+  'board_comment_dislikes',
+  'board_comment_likes',
+  'board_comments',
+  'board_post_dislikes',
+  'board_post_favorites',
+  'board_post_likes',
+  'board_posts',
+  'event_favorites',
+  'metronome_presets',
+  'practice_room_favorites',
+  'shop_favorites',
+  'shops',
+  'site_links',
+  'social_group_favorites',
+  'social_groups',
+  'social_places',
+  'social_schedules',
+  'user_push_subscriptions',
+  'venues',
 ]);
 
 const adminOnlyRpcNames = new Set([
@@ -113,6 +196,31 @@ function isOwnBoardUserRow(user, row) {
 
 function getUserProvider(user) {
   return user?.user_metadata?.provider || user?.app_metadata?.provider || 'email';
+}
+
+function rowOwnerMatches(user, row = {}) {
+  if (!user) return false;
+  const ownerCandidates = [
+    row.user_id,
+    row.author_id,
+    row.auth_user_id,
+    row.created_by,
+    row.owner_id,
+  ];
+  return ownerCandidates.some((id) => userMatchesId(user, id));
+}
+
+function mutationValueOwnerMatches(user, row = {}) {
+  const ownerKeys = ['user_id', 'author_id', 'auth_user_id', 'created_by', 'owner_id'];
+  const presentOwnerKeys = ownerKeys.filter((key) => row?.[key] !== undefined && row?.[key] !== null && row?.[key] !== '');
+  if (!presentOwnerKeys.length) return true;
+  return presentOwnerKeys.every((key) => userMatchesId(user, row[key]));
+}
+
+async function requireLoggedInMutationUser(req) {
+  const user = await getCurrentUser(req);
+  if (!user) throw httpError('로그인이 필요합니다.', 401);
+  return user;
 }
 
 function normalizeBoardUserSelfValue(value, user, existing = {}) {
@@ -151,6 +259,8 @@ async function requireBoardUserMutationAccess(req, action = 'query', body = {}) 
 }
 
 async function requireGenericAccess(req, table, action = 'query', body = {}) {
+  const isMutation = ['insert', 'update', 'upsert', 'delete'].includes(action);
+
   if (table === 'pwa_installs' && action === 'insert') {
     const user = await getCurrentUser(req);
     const values = Array.isArray(body?.values) ? body.values : [body?.values || {}];
@@ -180,8 +290,27 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
     await requireBoardUserMutationAccess(req, action, body);
   }
 
-  if (adminOnlyGenericTables.has(table)) {
+  if (adminOnlyGenericTables.has(table) || (isMutation && adminOnlyMutationTables.has(table))) {
     await requireAdmin(req);
+  }
+
+  if (isMutation && loginRequiredMutationTables.has(table)) {
+    const user = await requireLoggedInMutationUser(req);
+    if (user.is_admin || !ownerScopedMutationTables.has(table)) return;
+
+    if (['insert', 'upsert'].includes(action)) {
+      const values = getBodyValues(body);
+      if (!values.every((row) => mutationValueOwnerMatches(user, row))) {
+        throw httpError('수정 권한이 없습니다.', 403);
+      }
+    }
+
+    if (['update', 'delete'].includes(action)) {
+      const targets = await resolveMutationTargets(table, body?.filters || [], body?.orFilters || []);
+      if (targets.length && !targets.every((row) => rowOwnerMatches(user, row))) {
+        throw httpError('수정 권한이 없습니다.', 403);
+      }
+    }
   }
 }
 

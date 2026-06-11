@@ -543,6 +543,17 @@
     background: #6366f1 !important;
 }
 
+.history-node-view-handle {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 1px !important;
+    min-height: 1px !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
 /* MiniMap Viewport Highlight */
 .react-flow__minimap-mask {
     stroke: #a78bfa !important;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import LocalLoading from '../../../components/LocalLoading';
 import type { ImageObject } from '../../../utils/getEventThumbnail';
 import './VenueSelectList.css';

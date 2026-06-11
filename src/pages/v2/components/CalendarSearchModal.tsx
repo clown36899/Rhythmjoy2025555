@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
-import type { Event } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
+import type { Event } from '../../../lib/cafe24Client';
 import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
 import { mergeEventIntoArray, removeEventFromArray } from '../../../utils/eventMutationSync';
 import './CalendarSearchModal.css';

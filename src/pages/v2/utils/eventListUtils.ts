@@ -1,4 +1,4 @@
-import type { Event as BaseEvent } from "../../../lib/supabase";
+import type { Event as BaseEvent } from "../../../lib/cafe24Client";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 
 export { parseVideoUrl, isValidVideoUrl };

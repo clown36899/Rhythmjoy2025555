@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
-import type { Event as AppEvent } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
+import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { isEventInDanceScope, normalizeDanceScope, type DanceScope } from '../../utils/danceTaxonomy';
 

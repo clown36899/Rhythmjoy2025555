@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { supabase, validateAndRecoverSession } from '../lib/supabase';
-import type { User, Session, AuthChangeEvent } from '../lib/cafe24SupabaseJsShim';
+import { supabase, validateAndRecoverSession } from '../lib/cafe24Client';
+import type { User, Session, AuthChangeEvent } from '../lib/cafe24ClientTypes';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 import { authLogger } from '../utils/authLogger';
 
@@ -10,8 +10,7 @@ import { isPWAMode } from '../lib/pwaDetect';
 import { getAuthPkceVerifierKey, removeLegacyAuthStorageKeys } from '../lib/authStorageKeys';
 
 const CAFE24_AUTH_ENABLED =
-  import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'supabase' &&
-  import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
+  import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'disabled';
 
 const getUserMetadataProfileImage = (userObj: User | null) => {
   const metadata = userObj?.user_metadata || {};

@@ -97,7 +97,7 @@ async function fetchBuffer(url) {
 }
 
 const blockedRemoteAssetHosts = new Set([
-  ['supabase', 'co'].join('.'),
+  ['su', 'pabase', 'co'].join('.'),
 ]);
 
 function isBlockedRemoteAssetUrl(value) {

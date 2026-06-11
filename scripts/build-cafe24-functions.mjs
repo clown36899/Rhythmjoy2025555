@@ -3,7 +3,7 @@ import { mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 const rootDir = process.cwd();
-const functionsDir = path.join(rootDir, 'netlify/functions');
+const functionsDir = path.join(rootDir, 'server/cafe24/functions');
 const outdir = path.join(rootDir, 'dist-cafe24/functions');
 const safeCafe24Functions = new Set([
   'fetch-og-image.ts',
@@ -32,4 +32,4 @@ await build({
   logLevel: 'info',
 });
 
-console.log(`[cafe24] Built ${functionFiles.length} Cafe24 function bundles into ${path.relative(rootDir, outdir)}`);
+console.log(`[cafe24] Built ${functionFiles.length} function bundles into ${path.relative(rootDir, outdir)}`);

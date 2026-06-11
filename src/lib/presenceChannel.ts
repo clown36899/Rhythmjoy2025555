@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import type { RealtimeChannel } from './cafe24SupabaseJsShim';
+import { supabase } from './cafe24Client';
+import type { RealtimeChannel } from './cafe24ClientTypes';
 import { generateUUID } from '../utils/uuid';
 
 // 세션 고유 ID

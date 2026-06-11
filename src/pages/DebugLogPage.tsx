@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import './DebugLogPage.css';
 
 export default function DebugLogPage() {

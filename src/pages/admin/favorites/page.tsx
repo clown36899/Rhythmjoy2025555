@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import "../../../components/BoardUserManagementModal.css"; // Reuse styles
 import "../secure-members/page.css"; // Reuse secure page styles for consistency

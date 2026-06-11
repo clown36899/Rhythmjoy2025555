@@ -3,7 +3,7 @@ import NotificationHistoryModal from '../../components/NotificationHistoryModal'
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationStore } from '../../lib/notificationStore';
 import type { NotificationRecord } from '../../lib/notificationStore';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/cafe24Client';
 import './NotificationPreviewPage.css';
 
 type LocalEventPreview = {

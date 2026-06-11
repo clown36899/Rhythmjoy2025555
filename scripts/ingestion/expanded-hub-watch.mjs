@@ -430,7 +430,7 @@ async function main() {
     constraints: {
       dbWrites: false,
       storageWrites: false,
-      netlifyScrapedEventsCalled: false,
+      scrapedEventsApiCalled: false,
     },
     byScope: summarizeByScope(results),
     results,

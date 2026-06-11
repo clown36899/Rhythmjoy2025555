@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/cafe24Client';
 import { useEffect, useRef, useState } from 'react';
 import { PWAInstallGuideModal } from './PWAInstallGuideModal';
 import {

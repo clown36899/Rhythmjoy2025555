@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardDetail } from '../hooks/useBoardDetail';
 import UniversalPostEditor from './UniversalPostEditor';

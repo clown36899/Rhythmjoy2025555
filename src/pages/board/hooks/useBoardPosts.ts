@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import type { StandardBoardPost, AnonymousBoardPost } from '../../../types/board';
 
 export type BoardPost = StandardBoardPost | AnonymousBoardPost;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../../lib/cafe24Client";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import { useAuth } from "../../../contexts/AuthContext";
 import { sanitizeAddressForMap } from "../../../utils/mapUtils";

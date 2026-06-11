@@ -62,20 +62,17 @@ self.addEventListener('fetch', (event) => {
 
   const isApiRequest =
     url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/.netlify/functions/') ||
     url.pathname === '/version.json' ||
     url.pathname === '/service-worker.js';
-  const isSupabaseRequest = url.port === '54321' || url.pathname.includes('/functions/v1/');
   const isAuthApiRequest =
     url.pathname === '/api/kakao-login' ||
     url.pathname === '/auth/kakao-callback';
   const isExternalRequest = url.hostname !== self.location.hostname;
   
-  // 인증 관련 및 외부/Supabase 요청 바이패스
+  // 인증 관련 API 및 외부 요청 바이패스
   const isBypassRequest = event.request.method !== 'GET' ||
     isApiRequest ||
     isAuthApiRequest ||
-    isSupabaseRequest ||
     isExternalRequest ||
     url.search.includes('code=') ||
     url.search.includes('error=') ||
@@ -83,7 +80,7 @@ self.addEventListener('fetch', (event) => {
     url.hash.includes('refresh_token=');
 
   if (isBypassRequest) {
-    if (isSupabaseRequest || isExternalRequest || isApiRequest || event.request.method !== 'GET') {
+    if (isExternalRequest || isApiRequest || event.request.method !== 'GET') {
       event.respondWith(fetch(event.request));
     } else {
       console.log('[SW] 🛡️ Bypass request detected (Auth). Forcing network direct.', url.href);

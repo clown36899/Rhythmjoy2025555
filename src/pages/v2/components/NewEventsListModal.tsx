@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
-import type { Event as AppEvent } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
+import type { Event as AppEvent } from '../../../lib/cafe24Client';
 import '../../../styles/domains/events.css';
 import '../../../styles/components/NewEventsListModal.css';
 import '../../../styles/components/NewEventsListModalV1.css';

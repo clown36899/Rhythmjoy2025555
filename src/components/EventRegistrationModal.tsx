@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../lib/cafe24Client";
 import { createResizedImages } from "../utils/imageResize";
 import {
   parseVideoUrl,
@@ -16,7 +16,7 @@ import "../styles/domains/events.css";
 import "../styles/components/EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
-import type { Event as AppEvent } from "../lib/supabase";
+import type { Event as AppEvent } from "../lib/cafe24Client";
 import { useModalHistory } from "../hooks/useModalHistory";
 import { useLoading } from "../contexts/LoadingContext";
 import { retryOperation } from "../utils/asyncUtils";

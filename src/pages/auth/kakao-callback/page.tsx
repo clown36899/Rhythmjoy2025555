@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getAuthPkceVerifierKey, getAuthStorageKey, getAuthValidationKey } from '../../../lib/authStorageKeys';
 import { consumeKakaoLoginReturnUrl } from '../../../utils/kakaoAuth';
@@ -13,8 +13,7 @@ const SESSION_CONFIRM_INTERVAL_MS = 250;
 const AUTH_STORAGE_KEY = getAuthStorageKey();
 const SESSION_VALIDATION_KEY = getAuthValidationKey();
 const CAFE24_AUTH_ENABLED =
-    import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'supabase' &&
-    import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
+    import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'disabled';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

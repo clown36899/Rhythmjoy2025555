@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { supabase } from "../../../../../lib/supabase";
+import { supabase } from "../../../../../lib/cafe24Client";
 import { getLocalDateString } from "../../../utils/eventListUtils";
 import type { Event } from "../../../utils/eventListUtils";
 import { mergeEventIntoArray, removeEventFromArray } from "../../../../../utils/eventMutationSync";

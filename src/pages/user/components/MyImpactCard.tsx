@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { StandardBoardPost } from '../../../types/board';
-import type { Event as SupabaseEvent } from '../../../lib/supabase';
+import type { Event as SupabaseEvent } from '../../../lib/cafe24Client';
 
 interface MyImpactCardProps {
     user: any;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import type { Event as AppEvent } from "../../../lib/supabase";
+import type { Event as AppEvent } from "../../../lib/cafe24Client";
 import { getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { isEventInDanceScope, type DanceScope } from "../../../utils/danceTaxonomy";
 

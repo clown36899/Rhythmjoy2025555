@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase';
+import { supabase } from '../../../lib/cafe24Client';
 import LocalLoading from '../../../components/LocalLoading';
 import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
-import { supabase as prodSupabase } from '../../../../lib/supabase';
+import { supabase as prodSupabase } from '../../../../lib/cafe24Client';
 import { ensureRecruitmentTags, getRecruitmentKindLabel, type RecruitmentKind } from '../../../../utils/danceTaxonomy';
 import { detectEventType, getIngestorRecruitmentKind, mapIngestorEvent, titleLooksDuplicate, toMapSafeVenueName, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
 import './EventEditModal.css';

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Event as AppEvent } from '../../lib/supabase';
+import type { Event as AppEvent } from '../../lib/cafe24Client';
 import './Cafe24EventsAdminPage.css';
 
 type EventForm = {

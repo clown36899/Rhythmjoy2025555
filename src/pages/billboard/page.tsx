@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../../lib/cafe24Client";
 import type {
   BillboardUser,
   BillboardUserSettings,
   Event,
-} from "../../lib/supabase";
+} from "../../lib/cafe24Client";
 import { parseVideoUrl } from "../../utils/videoEmbed";
 import { log, warn } from "./utils/logger";
 import { logEvent } from "../../lib/analytics";
