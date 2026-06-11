@@ -35,31 +35,41 @@ function appendSetCookie(res, cookieValue) {
   res.setHeader('Set-Cookie', [existing, cookieValue]);
 }
 
-function setSessionCookie(res, sessionId, expiresAt) {
+function isSecureRequest(req) {
+  const forwardedProto = req?.headers?.['x-forwarded-proto'];
+  const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto;
+  return req?.secure || String(proto || '').split(',')[0] === 'https' || process.env.NODE_ENV === 'production';
+}
+
+function cookieSecuritySuffix(req) {
+  return isSecureRequest(req) ? '; Secure' : '';
+}
+
+function setSessionCookie(req, res, sessionId, expiresAt) {
   appendSetCookie(
     res,
-    `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}`,
+    `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${cookieSecuritySuffix(req)}`,
   );
 }
 
-function clearSessionCookie(res) {
+function clearSessionCookie(req, res) {
   appendSetCookie(
     res,
-    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT${cookieSecuritySuffix(req)}`,
   );
 }
 
-function setGoogleNonceCookie(res, nonce) {
+function setGoogleNonceCookie(req, res, nonce) {
   appendSetCookie(
     res,
-    `${GOOGLE_OAUTH_NONCE_COOKIE}=${encodeURIComponent(nonce)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+    `${GOOGLE_OAUTH_NONCE_COOKIE}=${encodeURIComponent(nonce)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${cookieSecuritySuffix(req)}`,
   );
 }
 
-function clearGoogleNonceCookie(res) {
+function clearGoogleNonceCookie(req, res) {
   appendSetCookie(
     res,
-    `${GOOGLE_OAUTH_NONCE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+    `${GOOGLE_OAUTH_NONCE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT${cookieSecuritySuffix(req)}`,
   );
 }
 
@@ -470,7 +480,7 @@ export async function kakaoLogin(req, res) {
   const userRow = await upsertUser(profile);
   const { sessionId, expiresAt } = await createSession(userRow.id);
 
-  setSessionCookie(res, sessionId, expiresAt);
+  setSessionCookie(req, res, sessionId, expiresAt);
   res.json({
     ok: true,
     user: publicUser(userRow),
@@ -509,7 +519,7 @@ export async function googleLoginStart(req, res) {
     state,
   });
 
-  setGoogleNonceCookie(res, nonce);
+  setGoogleNonceCookie(req, res, nonce);
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 }
 
@@ -546,11 +556,11 @@ export async function googleLoginCallback(req, res) {
     const userRow = await upsertUser(profile);
     const { sessionId, expiresAt } = await createSession(userRow.id);
 
-    clearGoogleNonceCookie(res);
-    setSessionCookie(res, sessionId, expiresAt);
+    clearGoogleNonceCookie(req, res);
+    setSessionCookie(req, res, sessionId, expiresAt);
     res.redirect(returnUrl);
   } catch (error) {
-    clearGoogleNonceCookie(res);
+    clearGoogleNonceCookie(req, res);
     throw error;
   }
 }
@@ -570,6 +580,6 @@ export async function logout(req, res) {
     const pool = getMysqlPool();
     await pool.execute('DELETE FROM sessions WHERE id = ?', [sessionId]);
   }
-  clearSessionCookie(res);
+  clearSessionCookie(req, res);
   res.json({ ok: true });
 }
