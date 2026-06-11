@@ -6,17 +6,19 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 // 알림 작동 확인을 위한 커스텀 로깅([Push], [SW])만 남기기 위함입니다.
 self.__WB_DISABLE_DEV_LOGS = true;
 
-cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST || []);
+const PRECACHE_MANIFEST = self.__WB_MANIFEST || [];
+const indexPrecacheEntry = PRECACHE_MANIFEST.find((entry) => entry.url === 'index.html');
+const runtimeRevision = indexPrecacheEntry?.revision || 'dev';
 
-const CACHE_NAME = 'rhythmjoy-cache-v1.0.8';
-// Last updated: 2026-06-05 (v53)
+const RUNTIME_CACHE_PREFIX = 'rhythmjoy-runtime-';
+const LEGACY_CACHE_PREFIX = 'rhythmjoy-cache-';
+const CACHE_NAME = `${RUNTIME_CACHE_PREFIX}${runtimeRevision}`;
+// Last updated: 2026-06-11 (v54)
 self.addEventListener('install', (event) => {
-  // PWA 설치 요건: 루트(/)와 필수 에셋이 캐시되어야 오프라인 신뢰성을 인정받음
+  // Cache only the shell essentials. Build-specific cache names prevent stale Cafe24 HTML.
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll([
-        new Request('/', { cache: 'reload' }),
         new Request('/index.html', { cache: 'reload' }),
         new Request('/manifest.json', { cache: 'reload' }),
         new Request('/icon-192.png', { cache: 'reload' }),
@@ -33,11 +35,15 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      // 현재 캐시만 유지, 이전 버전 캐시만 삭제
       .then(keys => Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys
+          .filter(key => (
+            key !== CACHE_NAME &&
+            (key.startsWith(RUNTIME_CACHE_PREFIX) || key.startsWith(LEGACY_CACHE_PREFIX))
+          ))
+          .map(key => caches.delete(key))
       ))
-      .then(() => console.log('[SW] Old caches cleared'))
+      .then(() => console.log('[SW] Old runtime caches cleared'))
       .then(() => self.clients.claim())
       .then(() => {
         // 업데이트 완료 후 모든 클라이언트에 리로드 신호 전송
@@ -54,8 +60,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // [Fix] 외부 요청(Supabase API, 에지 함수, 외부 리소스)은 SW 간섭 없이 즉시 네트워크로 연결
-  // Workbox가 이 요청들을 가로채서 "No route found" 경고를 내지 않도록 최상단에서 처리합니다.
+  const isApiRequest =
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/.netlify/functions/') ||
+    url.pathname === '/version.json' ||
+    url.pathname === '/service-worker.js';
   const isSupabaseRequest = url.port === '54321' || url.pathname.includes('/functions/v1/');
   const isAuthApiRequest =
     url.pathname === '/api/kakao-login' ||
@@ -63,15 +72,18 @@ self.addEventListener('fetch', (event) => {
   const isExternalRequest = url.hostname !== self.location.hostname;
   
   // 인증 관련 및 외부/Supabase 요청 바이패스
-  const isBypassRequest = isAuthApiRequest || isSupabaseRequest || isExternalRequest ||
+  const isBypassRequest = event.request.method !== 'GET' ||
+    isApiRequest ||
+    isAuthApiRequest ||
+    isSupabaseRequest ||
+    isExternalRequest ||
     url.search.includes('code=') ||
     url.search.includes('error=') ||
     url.hash.includes('access_token=') ||
     url.hash.includes('refresh_token=');
 
   if (isBypassRequest) {
-    if (isSupabaseRequest || isExternalRequest) {
-      // 불필요한 로그 노이즈 방지 (인증 관련한 것만 남김)
+    if (isSupabaseRequest || isExternalRequest || isApiRequest || event.request.method !== 'GET') {
       event.respondWith(fetch(event.request));
     } else {
       console.log('[SW] 🛡️ Bypass request detected (Auth). Forcing network direct.', url.href);
@@ -101,13 +113,15 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => caches.match('/index.html'))
     );
+    if (event.stopImmediatePropagation) {
+      event.stopImmediatePropagation();
+    }
     return;
   }
-
-  // [PWA Reliable] 그 외 모든 동일 출처 요청에 대해 respondWith 보장
-  // 크롬의 PWA 설치 기준(WebAPK)은 fetch 핸들러가 존재하고 유효한 응답을 내놓는지를 체크합니다.
-  event.respondWith(fetch(event.request));
 });
+
+cleanupOutdatedCaches();
+precacheAndRoute(PRECACHE_MANIFEST);
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {

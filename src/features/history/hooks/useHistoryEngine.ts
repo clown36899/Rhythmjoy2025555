@@ -321,7 +321,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onResizeStop: handleResizeStop
             };
 
-            const flowNodes = (nodesData || []).map(node => mapDbNodeToRFNode(node, handlers));
+            const flowNodes = (nodesData || []).map(node => mapDbNodeToRFNode(node, handlers, isEditMode));
 
             // [V21] PERSISTENCE FIX: Calculate child counts immediately on load
             // This ensures has-children (floating UI) is active on refresh.
@@ -384,7 +384,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         } finally {
             setLoading(false);
         }
-    }, [currentRootId, syncVisualization]);
+    }, [currentRootId, syncVisualization, isEditMode]);
 
     // 🔥 CRITICAL FIX: loadTimeline should only run ONCE on mount
     useEffect(() => {
@@ -664,7 +664,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     setNodes(nds => nds.map(node => node.id === id ? { ...node, selected } : node));
                 },
                 onResizeStop: handleResizeStop
-            });
+            }, isEditMode);
             allNodesRef.current.set(updatedNode.id, updatedNode);
 
             // 🔥 Update Saved State
@@ -686,7 +686,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         } finally {
             setLoading(false);
         }
-    }, [userId, currentSpaceId, currentRootId, syncVisualization, handleNavigate]);
+    }, [userId, currentSpaceId, currentRootId, syncVisualization, handleNavigate, isEditMode]);
 
     /**
      * 노드 삭제 (V7: Recursive Cascading Delete)
@@ -733,7 +733,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
                     },
                     onResizeStop: handleResizeStop
-                });
+                }, isEditMode);
                 allNodesRef.current.set(updated.id, updated);
                 return updated;
             });
@@ -745,7 +745,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         } finally {
             setLoading(false);
         }
-    }, [currentRootId, syncVisualization, handleNavigate]);
+    }, [currentRootId, syncVisualization, handleNavigate, isEditMode]);
 
     /**
      * 계층 변경 (Parent Node 변경) & 자동 크기 조절
@@ -1384,7 +1384,13 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         if (type === 'video') newNodeData.linked_video_id = draggedResource.id;
         if (type === 'playlist') newNodeData.linked_playlist_id = draggedResource.id;
         if (type === 'document') newNodeData.linked_document_id = draggedResource.id;
-        if (type === 'general' || type === 'category') newNodeData.linked_category_id = draggedResource.id;
+        if (type === 'general' || type === 'category' || type === 'folder') {
+            if (draggedResource.source === 'resource') {
+                newNodeData.linked_document_id = draggedResource.id;
+            } else {
+                newNodeData.linked_category_id = draggedResource.id;
+            }
+        }
         if (type === 'person') newNodeData.linked_document_id = draggedResource.id;
         if (type === 'canvas') newNodeData.linked_category_id = draggedResource.id;
 
@@ -1401,7 +1407,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
                 },
                 onResizeStop: handleResizeStop
-            });
+            }, isEditMode);
             allNodesRef.current.set(updatedParent.id, updatedParent);
 
             // 🔥 [Folder Expansion] If it's a folder, populate children
@@ -1424,7 +1430,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
                 const allChildren = [
                     ...(categories || []).map(c => ({ ...c, itemType: 'general', linkedId: c.id })),
-                    ...(resources || []).map(r => ({ ...r, itemType: r.type, linkedId: r.id }))
+                    ...(resources || []).map(r => ({ ...r, itemType: r.type, linkedId: r.id, source: 'resource' }))
                 ].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
                 if (allChildren.length > 0) {
@@ -1444,6 +1450,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         const relX = PADDING_X + col * (ITEM_W + GAP);
                         const relY = PADDING_Y + row * (ITEM_H + GAP);
 
+                        const isResourceFolder = child.source === 'resource' && (child.itemType === 'general' || child.itemType === 'folder' || child.itemType === 'category');
+
                         const childData: any = {
                             title: null, // Linked content
                             description: null,
@@ -1460,8 +1468,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                             // Link Fields
                             linked_video_id: child.itemType === 'video' ? child.linkedId : null,
                             linked_playlist_id: child.itemType === 'playlist' ? child.linkedId : null,
-                            linked_document_id: (child.itemType === 'document' || child.itemType === 'person') ? child.linkedId : null,
-                            linked_category_id: (child.itemType === 'general' || child.itemType === 'folder') ? child.linkedId : null
+                            linked_document_id: (child.itemType === 'document' || child.itemType === 'person' || isResourceFolder) ? child.linkedId : null,
+                            linked_category_id: (!isResourceFolder && (child.itemType === 'general' || child.itemType === 'folder')) ? child.linkedId : null
                         };
 
                         return supabase.from('history_nodes').insert(childData).select(HISTORY_NODE_SELECT).single();
@@ -1477,7 +1485,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                                 setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
                             },
                             onResizeStop: handleResizeStop
-                        }));
+                        }, isEditMode));
 
                     // Add children to Ref
                     validEncodedNodes.forEach(n => allNodesRef.current.set(n.id, n));
@@ -1502,7 +1510,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         } catch (err) {
             console.error('🚨 [HistoryEngine] Drop Processing Failed:', err);
         }
-    }, [userId, currentSpaceId, currentRootId, syncVisualization, handleNavigate]);
+    }, [userId, currentSpaceId, currentRootId, syncVisualization, handleNavigate, isEditMode]);
 
     /**
      * 10년 단위 시간 경계 노드 생성 (V7 Helper)

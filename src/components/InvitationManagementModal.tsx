@@ -24,7 +24,7 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
   const [email, setEmail] = useState('');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  const apiEndpoint = import.meta.env.DEV ? '/api/invitations' : '/.netlify/functions/invitations';
+  const apiEndpoint = import.meta.env.DEV ? '/api/invitations' : '/api/invitations';
 
   useEffect(() => {
     if (isOpen) {
@@ -110,7 +110,7 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
     try {
       const deleteEndpoint = import.meta.env.DEV
         ? `/api/invitations/${id}`
-        : `/.netlify/functions/invitations-delete`;
+        : `/api/invitations/delete`;
 
       const response = await fetch(deleteEndpoint, {
         method: 'DELETE',

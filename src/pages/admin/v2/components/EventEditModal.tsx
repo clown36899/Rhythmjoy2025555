@@ -197,7 +197,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
             };
 
             // 2. Service-role 함수로 운영 DB 등록. 함수가 관리자 작성자 user_id를 강제한다.
-            const registerRes = await fetch('/.netlify/functions/ingestor-register-event', {
+            const registerRes = await fetch('/api/ingestor-register-event', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

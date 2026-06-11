@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle, 
 import './ResourceDrawer.css';
 import { CategoryManager } from '../../../pages/learning/components/CategoryManager';
 import type { CategoryManagerHandle } from '../../../pages/learning/components/CategoryManager';
+import { parseVideoUrl } from '../../../utils/videoEmbed';
 
 interface ResourceItem {
     id: string;
@@ -12,6 +13,9 @@ interface ResourceItem {
     description?: string;
     youtube_url?: string;
     content?: string;
+    attachment_url?: string;
+    image_url?: string | null;
+    metadata?: any;
     hasYear?: boolean;
     created_at?: string;
     items?: any[]; // Child items for local unpack
@@ -47,6 +51,50 @@ interface Props {
 export interface ResourceDrawerHandle {
     startCreatingFolder: () => void;
 }
+
+const getMetadata = (resource: any): Record<string, any> => {
+    const value = resource?.metadata || {};
+    if (typeof value === 'string') {
+        try { return JSON.parse(value); } catch { return {}; }
+    }
+    return value && typeof value === 'object' ? value : {};
+};
+
+const isYoutubeUrl = (url: any): boolean => {
+    return typeof url === 'string' && /(youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(url);
+};
+
+const getVideoUrl = (resource: any): string | undefined => {
+    const meta = getMetadata(resource);
+    if (resource?.url && parseVideoUrl(resource.url).provider) return resource.url;
+    if (resource?.youtube_url) return resource.youtube_url;
+    if (meta.youtube_url) return meta.youtube_url;
+    const videoId = resource?.youtube_video_id || meta.youtube_video_id;
+    return videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined;
+};
+
+const getPlaylistUrl = (resource: any): string | undefined => {
+    const meta = getMetadata(resource);
+    if (resource?.url && isYoutubeUrl(resource.url)) return resource.url;
+    if (resource?.youtube_url) return resource.youtube_url;
+    if (meta.youtube_url) return meta.youtube_url;
+    const playlistId = resource?.youtube_playlist_id || meta.youtube_playlist_id;
+    return playlistId ? `https://www.youtube.com/playlist?list=${playlistId}` : undefined;
+};
+
+const getImageUrl = (resource: any): string | null => {
+    const meta = getMetadata(resource);
+    if (resource?.image_url) return resource.image_url;
+    if (meta.thumbnail_url) return meta.thumbnail_url;
+    if (meta.image_medium) return meta.image_medium;
+    if (meta.image_thumbnail) return meta.image_thumbnail;
+    if (Array.isArray(meta.images) && meta.images.length > 0) {
+        return meta.images[0].thumbnail || meta.images[0].medium || meta.images[0].full || null;
+    }
+
+    const videoUrl = getVideoUrl(resource);
+    return videoUrl ? parseVideoUrl(videoUrl).thumbnailUrl : null;
+};
 
 export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, userId, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onAddClick }, ref) => {
     // ... Existing state and effects ...
@@ -174,6 +222,11 @@ export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ is
                 category_id: c.parent_id || c.category_id || null,
                 is_unclassified: c.is_unclassified ?? false,
                 type: 'general' as const, // Folders have type='general'
+                description: c.description || getMetadata(c).description,
+                content: c.content || c.description || getMetadata(c).description,
+                image_url: getImageUrl(c),
+                metadata: getMetadata(c),
+                source: c.source,
                 created_at: c.created_at,
                 grid_row: c.grid_row,
                 grid_column: c.grid_column,
@@ -188,9 +241,12 @@ export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ is
                 is_unclassified: p.is_unclassified ?? false, // 🔥 CRITICAL: Pass is_unclassified
                 type: 'playlist' as const,
                 description: p.description,
-                youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined,
+                content: p.content || p.description,
+                youtube_url: getPlaylistUrl(p),
+                image_url: getImageUrl(p),
+                metadata: getMetadata(p),
                 created_at: p.created_at,
-                items: videos?.filter(v => v.category_id === p.id) || [],
+                items: videos?.filter(v => v.category_id === p.id || getMetadata(v).playlist_id === p.id) || [],
                 grid_row: p.grid_row,
                 grid_column: p.grid_column,
                 order_index: p.order_index
@@ -203,9 +259,13 @@ export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ is
                 category_id: d.category_id,
                 is_unclassified: d.is_unclassified ?? false, // 🔥 CRITICAL: Pass is_unclassified
                 type: d.type, // DB의 type을 그대로 사용 (PERSON, DOCUMENT 등)
-                content: d.content,
+                description: d.description,
+                content: d.content || d.description,
+                youtube_url: getVideoUrl(d) || getPlaylistUrl(d),
+                attachment_url: d.attachment_url || d.url || getMetadata(d).attachment_url,
                 created_at: d.created_at,
-                image_url: d.image_url,
+                image_url: getImageUrl(d),
+                metadata: getMetadata(d),
                 grid_row: d.grid_row,
                 grid_column: d.grid_column,
                 order_index: d.order_index
@@ -219,7 +279,10 @@ export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ is
                 is_unclassified: v.is_unclassified ?? false, // 🔥 CRITICAL: Pass is_unclassified
                 type: 'video' as const,
                 description: v.description,
-                youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`,
+                content: v.content || v.description,
+                youtube_url: getVideoUrl(v),
+                image_url: getImageUrl(v),
+                metadata: getMetadata(v),
                 created_at: v.created_at,
                 grid_row: v.grid_row,
                 grid_column: v.grid_column,
@@ -264,6 +327,8 @@ export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ is
             key={item.id}
             className={`resource-item ${item.type}`}
             draggable={isEditMode}
+            onClick={() => handleResourceClick(item)}
+            style={{ cursor: 'pointer' }}
             onDragStart={(e) => {
                 if (!isEditMode) {
                     e.preventDefault();

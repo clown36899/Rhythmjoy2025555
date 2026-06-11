@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
 const functionUrl = process.env.SCRAPED_EVENTS_FUNCTION_URL
-    || 'http://localhost:8888/.netlify/functions/scraped-events';
+    || 'http://localhost:8888/api/scraped-events';
 const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 

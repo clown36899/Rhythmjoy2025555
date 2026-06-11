@@ -882,7 +882,7 @@ async function main() {
         return payloadItem;
       });
 
-      const response = await fetch('http://localhost:8888/.netlify/functions/scraped-events', {
+      const response = await fetch('http://localhost:8888/api/scraped-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

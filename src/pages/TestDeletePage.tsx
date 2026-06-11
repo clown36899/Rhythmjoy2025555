@@ -26,7 +26,7 @@ const TestDeletePage = () => {
 
             addLog(`Sending payload: ${JSON.stringify(payload)}`);
 
-            const response = await fetch('/.netlify/functions/delete-social-item', {
+            const response = await fetch('/api/delete-social-item', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

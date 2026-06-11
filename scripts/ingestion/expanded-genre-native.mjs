@@ -10,7 +10,7 @@ import {
 } from './collection-registry.mjs';
 
 const profile = process.env.INGESTION_PROFILE || 'expanded-ingestion';
-const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/.netlify/functions/scraped-events';
+const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
 const dryRun = process.env.EXPANDED_INGESTION_DRY_RUN !== '0';
 const sourceIds = (process.env.EXPANDED_INGESTION_SOURCE_IDS || '')
   .split(',')

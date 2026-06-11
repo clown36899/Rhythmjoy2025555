@@ -13,8 +13,8 @@ const SESSION_CONFIRM_INTERVAL_MS = 250;
 const SUPABASE_STORAGE_KEY = getSupabaseStorageKey();
 const SESSION_VALIDATION_KEY = getSupabaseValidationKey();
 const CAFE24_AUTH_ENABLED =
-    import.meta.env.VITE_CAFE24_AUTH_BACKEND === 'mysql' ||
-    import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+    import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'supabase' &&
+    import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

@@ -1,7 +1,7 @@
 import type { Event as AppEvent } from './supabase';
 
 export const isCafe24EventsBackendEnabled =
-  import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+  import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
 
 type FetchCafe24EventsOptions = {
   start?: string;

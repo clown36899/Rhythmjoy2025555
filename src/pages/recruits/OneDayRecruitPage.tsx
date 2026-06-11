@@ -64,7 +64,7 @@ const FALLBACK_PIN_OFFSETS: PinDisplayOffset[] = [
   { x: 54, y: 10 },
   { x: 0, y: 42 },
 ];
-const ONE_DAY_LOGO_FUNCTION_PATH = '/.netlify/functions/oneday-recruit-logo';
+const ONE_DAY_LOGO_FUNCTION_PATH = '/api/oneday-recruit-logo';
 const LINK_CORRECTIONS: Record<string, Partial<SwingOneDayRecruitLink>> = {
   'goldenswing-linktree': {
     venue: '골든스윙',

@@ -33,6 +33,110 @@ import type { HistoryNodeData } from '../../features/history/types';
 import { CATEGORY_COLORS } from '../../features/history/utils/constants';
 import { parseVideoUrl } from '../../utils/videoEmbed';
 
+const getResourceMetadata = (resource: any): Record<string, any> => {
+    const value = resource?.metadata || {};
+    if (typeof value === 'string') {
+        try { return JSON.parse(value); } catch { return {}; }
+    }
+    return value && typeof value === 'object' ? value : {};
+};
+
+const hasPlaylistMarkers = (resource: any): boolean => {
+    const meta = getResourceMetadata(resource);
+    return !!(resource?.youtube_playlist_id || meta.youtube_playlist_id || meta.playlist_id || meta.category_name);
+};
+
+const isPlaylistResource = (resource: any): boolean => {
+    return resource?.type === 'playlist' || (resource?.type === 'general' && hasPlaylistMarkers(resource));
+};
+
+const getYoutubeUrlFromResource = (resource: any): string | undefined => {
+    if (!resource) return undefined;
+    const meta = getResourceMetadata(resource);
+
+    if (resource.youtube_url) return resource.youtube_url;
+    if (meta.youtube_url) return meta.youtube_url;
+    if (meta.youtube_video_id) return `https://www.youtube.com/watch?v=${meta.youtube_video_id}`;
+    if (meta.youtube_playlist_id) return `https://www.youtube.com/playlist?list=${meta.youtube_playlist_id}`;
+
+    if (resource.url && parseVideoUrl(resource.url).provider) return resource.url;
+    return undefined;
+};
+
+const getAttachmentUrlFromResource = (resource: any): string | undefined => {
+    const meta = getResourceMetadata(resource);
+    return resource?.attachment_url || meta.attachment_url || (getYoutubeUrlFromResource(resource) ? undefined : resource?.url);
+};
+
+const getImageUrlFromResource = (resource: any): string | null => {
+    const meta = getResourceMetadata(resource);
+    if (resource?.image_url) return resource.image_url;
+    if (meta.thumbnail_url) return meta.thumbnail_url;
+    if (meta.image_medium) return meta.image_medium;
+    if (meta.image_thumbnail) return meta.image_thumbnail;
+    if (Array.isArray(meta.images) && meta.images.length > 0) {
+        return meta.images[0].medium || meta.images[0].full || meta.images[0].thumbnail || null;
+    }
+
+    const youtubeUrl = getYoutubeUrlFromResource(resource);
+    return youtubeUrl ? parseVideoUrl(youtubeUrl).thumbnailUrl : null;
+};
+
+const buildDetailNodeFromCategory = (category: any, fallbackTitle: string, requestedType = 'folder'): HistoryNodeData => {
+    const meta = getResourceMetadata(category);
+    const categoryType = requestedType === 'canvas' || category?.type === 'canvas' || meta.subtype === 'canvas'
+        ? 'canvas'
+        : 'folder';
+
+    return {
+        ...category,
+        id: category.id,
+        title: category.title || category.name || fallbackTitle,
+        category: categoryType,
+        year: category.year || (meta.year ? Number(meta.year) : new Date().getFullYear()),
+        description: category.description || meta.description,
+        content: category.content || category.description || meta.description,
+        youtube_url: getYoutubeUrlFromResource(category),
+        attachment_url: getAttachmentUrlFromResource(category),
+        image_url: getImageUrlFromResource(category),
+        metadata: meta,
+        linked_category_id: category.id,
+        position_x: 0,
+        position_y: 0,
+        node_behavior: 'LEAF'
+    } as HistoryNodeData;
+};
+
+const buildDetailNodeFromResource = (resource: any, fallbackTitle: string, requestedType?: string): HistoryNodeData => {
+    const meta = getResourceMetadata(resource);
+    const category = isPlaylistResource(resource)
+        ? 'playlist'
+        : resource.type === 'general'
+            ? 'folder'
+            : (requestedType || resource.type || 'document');
+
+    return {
+        ...resource,
+        id: resource.id,
+        title: resource.title || resource.name || fallbackTitle,
+        category,
+        year: resource.year || (meta.year ? Number(meta.year) : new Date().getFullYear()),
+        description: resource.description || meta.description,
+        content: resource.content || resource.description || meta.description,
+        youtube_url: getYoutubeUrlFromResource(resource),
+        attachment_url: getAttachmentUrlFromResource(resource),
+        image_url: getImageUrlFromResource(resource),
+        metadata: meta,
+        linked_video_id: resource.type === 'video' ? resource.id : undefined,
+        linked_playlist_id: category === 'playlist' ? resource.id : undefined,
+        linked_document_id: category === 'document' || category === 'person' || category === 'folder' ? resource.id : undefined,
+        linked_category_id: category === 'canvas' ? resource.id : undefined,
+        position_x: 0,
+        position_y: 0,
+        node_behavior: 'LEAF'
+    } as HistoryNodeData;
+};
+
 function HistoryTimelinePage() {
     const { user, isAdmin } = useAuth();
     const outletContext = useOutletContext<{ isFullscreen?: boolean } | undefined>();
@@ -128,13 +232,14 @@ function HistoryTimelinePage() {
             (window as any).logDebug?.(`✅ Resources fetched: ${resources.length}`);
 
             // A Folder is: type='general' AND lacks playlist markers
-            const folderResources = resources.filter(r =>
-                r.type === 'general' &&
-                !r.metadata?.playlist_id &&
-                !r.metadata?.youtube_playlist_id &&
-                !r.metadata?.category_name &&
-                !r.metadata?.youtube_video_id
-            );
+            const folderResources = resources.filter(r => {
+                const meta = getResourceMetadata(r);
+                return r.type === 'general' &&
+                    !meta.playlist_id &&
+                    !meta.youtube_playlist_id &&
+                    !meta.category_name &&
+                    !meta.youtube_video_id;
+            });
 
             // Merge legacy categories and resource-based folders (avoiding duplicates)
             const categoryMap = new Map();
@@ -151,10 +256,7 @@ function HistoryTimelinePage() {
             });
 
             // A Playlist is: type='playlist' OR (type='general' AND has markers)
-            const playlistResources = resources.filter(r =>
-                r.type === 'playlist' ||
-                (r.type === 'general' && (r.metadata?.playlist_id || r.metadata?.youtube_playlist_id || r.metadata?.category_name))
-            );
+            const playlistResources = resources.filter(r => isPlaylistResource(r));
 
             setResourceData({
                 categories: Array.from(categoryMap.values()),
@@ -201,31 +303,17 @@ function HistoryTimelinePage() {
     // 🔥 Memoized Handlers for ResourceDrawer Optimization
     const handleDrawerItemClick = useCallback((item: any) => {
         if (item.type === 'video' || item.type === 'playlist') {
-            // The original code already uses openPlayer for video/playlist types.
-            // The instruction's code snippet seems to be for a different context (e.g., node click).
-            // Assuming the intent is to ensure any video/playlist item from the drawer opens the player.
             openPlayer({
                 id: item.type === 'video' ? `video:${item.id}` : item.id,
                 type: item.type as 'playlist' | 'video',
                 title: item.title
             });
         } else {
-            // Unified Detail View for Folders, Documents, Persons
-            handleViewDetail({
-                id: item.id,
-                title: item.title,
-                category: item.type as any,
-                year: item.year || new Date().getFullYear(),
-                content: (item as any).content || (item as any).description,
-                youtube_url: (item as any).youtube_url,
-                attachment_url: (item as any).attachment_url,
-                image_url: (item as any).image_url,
-                linked_document_id: (item.type === 'document' || item.type === 'person') ? item.id : undefined,
-                linked_category_id: item.type === 'general' ? item.id : undefined,
-                position_x: 0,
-                position_y: 0,
-                node_behavior: 'LEAF'
-            });
+            handleViewDetail(
+                item.type === 'general' && item.source !== 'resource'
+                    ? buildDetailNodeFromCategory(item, item.title)
+                    : buildDetailNodeFromResource(item, item.title)
+            );
         }
     }, [handleViewDetail, openPlayer]);
 
@@ -399,7 +487,19 @@ function HistoryTimelinePage() {
         if (!isAdmin) return;
         try {
             if (type === 'general') {
-                await supabase.from('learning_categories').update({ name: newName }).eq('id', id);
+                const { data: updatedCategories, error: categoryError } = await supabase
+                    .from('learning_categories')
+                    .update({ name: newName })
+                    .eq('id', id)
+                    .select('id');
+                if (categoryError) throw categoryError;
+                if (!updatedCategories || updatedCategories.length === 0) {
+                    const { error: resourceError } = await supabase
+                        .from('learning_resources')
+                        .update({ title: newName })
+                        .eq('id', id);
+                    if (resourceError) throw resourceError;
+                }
             } else if (type === 'document') {
                 await supabase.from('learning_documents').update({ title: newName }).eq('id', id);
             } else {
@@ -419,8 +519,19 @@ function HistoryTimelinePage() {
 
             if (type === 'CATEGORY' || type === 'folder' || type === 'general') {
 
-                // 🔥 FIX: Added is_unclassified column to learning_categories via migration
-                await supabase.from('learning_categories').update({ parent_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+                const { data: updatedCategories, error: categoryError } = await supabase
+                    .from('learning_categories')
+                    .update({ parent_id: targetCategoryId, is_unclassified: isUnclassified })
+                    .eq('id', id)
+                    .select('id');
+                if (categoryError) throw categoryError;
+                if (!updatedCategories || updatedCategories.length === 0) {
+                    const { error: resourceError } = await supabase
+                        .from('learning_resources')
+                        .update({ category_id: targetCategoryId, is_unclassified: isUnclassified })
+                        .eq('id', id);
+                    if (resourceError) throw resourceError;
+                }
             } else if (type === 'document') {
                 await supabase.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
             } else {
@@ -696,14 +807,77 @@ function HistoryTimelinePage() {
 
 
     // 🔥 Memoize Preview Handler
-    const handlePreviewLinkedResource = useCallback((id: string, type: string, title: string) => {
-        // setPreviewResource({ id, type, title });
-        openPlayer({
-            id: type === 'video' ? `video:${id}` : id,
-            type: type as 'playlist' | 'video',
-            title
-        });
-    }, [openPlayer]);
+    const handlePreviewLinkedResource = useCallback(async (id: string, type: string, title: string) => {
+        const normalizedType = (type || '').toLowerCase();
+
+        if (normalizedType === 'video' || normalizedType === 'playlist') {
+            openPlayer({
+                id: normalizedType === 'video' ? `video:${id}` : id,
+                type: normalizedType as 'playlist' | 'video',
+                title
+            });
+            return;
+        }
+
+        try {
+            if (['folder', 'category', 'canvas', 'general'].includes(normalizedType)) {
+                const { data: categoryData, error: categoryError } = await supabase
+                    .from('learning_categories')
+                    .select('*')
+                    .eq('id', id)
+                    .maybeSingle();
+
+                if (categoryError) throw categoryError;
+                if (categoryData) {
+                    handleViewDetail(buildDetailNodeFromCategory(categoryData, title, normalizedType));
+                    return;
+                }
+            }
+
+            const { data: resourceData, error: resourceError } = await supabase
+                .from('learning_resources')
+                .select('*')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (resourceError) throw resourceError;
+            if (resourceData) {
+                if (resourceData.type === 'video') {
+                    openPlayer({ id: `video:${resourceData.id}`, type: 'video', title: resourceData.title || title });
+                } else if (isPlaylistResource(resourceData)) {
+                    openPlayer({ id: resourceData.id, type: 'playlist', title: resourceData.title || title });
+                } else {
+                    handleViewDetail(buildDetailNodeFromResource(resourceData, title, normalizedType));
+                }
+                return;
+            }
+
+            if (normalizedType === 'document' || normalizedType === 'person') {
+                const { data: legacyDocument, error: legacyError } = await supabase
+                    .from('learning_documents')
+                    .select('*')
+                    .eq('id', id)
+                    .maybeSingle();
+
+                if (!legacyError && legacyDocument) {
+                    handleViewDetail(buildDetailNodeFromResource(legacyDocument, title, normalizedType));
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error('❌ Failed to preview linked resource:', err);
+        }
+
+        handleViewDetail({
+            id,
+            title,
+            category: ['folder', 'category', 'canvas', 'general'].includes(normalizedType) ? 'folder' : normalizedType,
+            year: new Date().getFullYear(),
+            position_x: 0,
+            position_y: 0,
+            node_behavior: 'LEAF'
+        } as HistoryNodeData);
+    }, [handleViewDetail, openPlayer]);
 
     // Resource Link Click Handler (from Node Content)
     const handleResourceClick = useCallback(async (rawKeyword: string) => {
@@ -785,21 +959,10 @@ function HistoryTimelinePage() {
 
                 if (resourceData.type === 'video') {
                     handlePreviewLinkedResource(resourceData.id, 'video', resourceData.title);
-                } else if (resourceData.type === 'playlist') {
+                } else if (isPlaylistResource(resourceData)) {
                     handlePreviewLinkedResource(resourceData.id, 'playlist', resourceData.title);
                 } else {
-                    handleViewDetail({
-                        id: resourceData.id,
-                        title: resourceData.title,
-                        category: resourceData.type as any,
-                        year: new Date().getFullYear(),
-                        content: resourceData.description,
-                        youtube_url: resourceData.metadata?.youtube_url,
-                        image_url: resourceData.metadata?.thumbnail_url,
-                        position_x: 0,
-                        position_y: 0,
-                        node_behavior: 'LEAF'
-                    });
+                    handleViewDetail(buildDetailNodeFromResource(resourceData, resourceData.title));
                 }
                 return;
             }
@@ -815,7 +978,7 @@ function HistoryTimelinePage() {
 
     useEffect(() => {
         // Guard: Wait for core initialization
-        if (allNodesRef.current.size === 0 && !handlersInitializedRef.current) {
+        if (loading || (allNodesRef.current.size === 0 && !handlersInitializedRef.current)) {
             return;
         }
 
@@ -832,8 +995,17 @@ function HistoryTimelinePage() {
             prevSelectionModeRef.current !== isSelectionMode;
 
         const hasSearchChanged = prevSearchQueryRef.current !== searchQuery;
+        const hasMissingHandlers = Array.from(allNodesRef.current.values()).some(node =>
+            node.data.onEdit !== handleEditNode ||
+            node.data.onViewDetail !== handleViewDetail ||
+            node.data.onPlayVideo !== handlePlayVideo ||
+            node.data.onPreviewLinkedResource !== handlePreviewLinkedResource ||
+            node.data.isEditMode !== isEditMode ||
+            node.data.isSelectionMode !== isSelectionMode ||
+            node.data.isShiftPressed !== isShiftPressed
+        );
 
-        if (!handlersInitializedRef.current || hasModeChanged || hasSearchChanged) {
+        if (!handlersInitializedRef.current || hasModeChanged || hasSearchChanged || hasMissingHandlers) {
             // 1. Re-inject handlers (cheap)
             allNodesRef.current.forEach(node => {
                 node.data.onEdit = handleEditNode;
@@ -870,14 +1042,18 @@ function HistoryTimelinePage() {
         isEditMode, isSelectionMode, isShiftPressed, currentRootId, searchQuery,
         // Stable References
         handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization, handleResizeStop, handlePreviewLinkedResource,
-        // Removed: nodes.length, loading
+        nodes, loading
     ]);
 
     // 🔥 Logic 1: Auto fitView when navigating levels (Folders) or Filtering (Search)
     // 🔥 Logic 1: Viewport Persistence & Management (Unified)
     // Dependencies: currentRootId changing means we navigated.
     useEffect(() => {
-        if (!rfInstance || loading || nodes.length === 0) return;
+        if (!rfInstance || loading) return;
+        if (nodes.length === 0) {
+            setIsViewportReady(true);
+            return;
+        }
 
         const currentIdKey = currentRootId || 'ROOT';
         const prevIdKey = prevRootIdRef.current || 'ROOT';
@@ -1306,6 +1482,7 @@ function HistoryTimelinePage() {
                     onClose={() => setShowImportModal(false)}
                     onSuccess={async (result: any) => {
                         setDrawerRefreshKey(k => k + 1);
+                        if (!result) return;
                         if (unifiedModalContext === 'canvas') {
                             const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
                             const position = rfInstance?.project({
@@ -1329,7 +1506,7 @@ function HistoryTimelinePage() {
                                     year: result.folder.year || new Date().getFullYear(),
                                     position_x: Math.round(position.x),
                                     position_y: Math.round(position.y),
-                                    node_behavior: 'FOLDER'
+                                    node_behavior: 'GROUP'
                                 });
                             }
                         }
@@ -1405,11 +1582,12 @@ function HistoryTimelinePage() {
 
                             await handleSaveNode({
                                 title: null,
+                                category: 'canvas',
                                 linked_category_id: resource.id,
                                 year: resource.year || new Date().getFullYear(),
                                 position_x: Math.round(position.x),
                                 position_y: Math.round(position.y),
-                                node_behavior: 'FOLDER' // Canvases are containers
+                                node_behavior: 'PORTAL'
                             });
                         }
                     }}
@@ -1431,11 +1609,12 @@ function HistoryTimelinePage() {
 
                             await handleSaveNode({
                                 title: null,
-                                linked_category_id: resource.id,
+                                category: 'folder',
+                                linked_document_id: resource.id,
                                 year: resource.year || new Date().getFullYear(),
                                 position_x: Math.round(position.x),
                                 position_y: Math.round(position.y),
-                                node_behavior: 'FOLDER'
+                                node_behavior: 'GROUP'
                             });
                         }
                     }}

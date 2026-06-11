@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 
-const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
 
 export interface AnalyticsLog {
     target_id: string;
@@ -323,7 +323,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
     }
 
     try {
-        const response = await fetch('/.netlify/functions/analytics-session', {
+        const response = await fetch('/api/analytics/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -385,11 +385,11 @@ const finalizeSession = async (endTime = Date.now()) => {
 
     if (SITE_ANALYTICS_CONFIG.OPTIMIZATION.USE_BEACON && navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        if (navigator.sendBeacon('/.netlify/functions/analytics-session', blob)) return;
+        if (navigator.sendBeacon('/api/analytics/session', blob)) return;
     }
 
     try {
-        await fetch('/.netlify/functions/analytics-session', {
+        await fetch('/api/analytics/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -491,7 +491,7 @@ export const trackEvent = (log: AnalyticsLog) => {
     const performUpload = async () => {
         try {
             if (CAFE24_ANALYTICS_ENABLED) {
-                const response = await fetch('/.netlify/functions/analytics-session', {
+                const response = await fetch('/api/analytics/session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -6,7 +6,7 @@ import { getSupabaseStorageKey, getSupabaseValidationKey } from './authStorageKe
 import { createCafe24SupabaseCompat } from './cafe24SupabaseCompat';
 
 const SUPABASE_DEBUG = import.meta.env.VITE_SUPABASE_DEBUG === 'true';
-const CAFE24_SUPABASE_COMPAT = import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+const CAFE24_SUPABASE_COMPAT = import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
 if (SUPABASE_DEBUG) {
   console.debug('%c[Supabase] supabase.ts module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
 }

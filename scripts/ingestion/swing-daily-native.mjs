@@ -8,7 +8,7 @@ chromium.use(stealthPlugin());
 
 
 const profile = process.env.INGESTION_PROFILE || 'swing-daily';
-const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/.netlify/functions/scraped-events';
+const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1';
 const sourceLimit = Number(process.env.INGESTION_NATIVE_SOURCE_LIMIT || 0);
 const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')

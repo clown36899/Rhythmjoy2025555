@@ -136,6 +136,16 @@ app.post('/api/diagnostics/reload', jsonBody, jsonRoute(recordClientReloadDiagno
 app.get('/api/diagnostics/reloads', jsonRoute(listClientReloadDiagnostics));
 app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnostics));
 
+app.all('/api/scraped-events', jsonBody, jsonRoute(cafe24ScrapedEvents));
+app.post('/api/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));
+app.post('/api/delete-event', jsonBody, jsonRoute(cafe24DeleteEventFunction));
+app.post('/api/delete-social-item', jsonBody, jsonRoute(cafe24DeleteSocialItem));
+app.post('/api/oneday-recruit-logo', jsonBody, jsonRoute(cafe24OneDayRecruitLogo));
+app.all('/api/fetch-og-image', rawBody, alias('fetch-og-image'), netlifyFunctionHandler);
+app.all('/api/tango-scene-map', rawBody, alias('tango-scene-map'), netlifyFunctionHandler);
+app.delete('/api/invitations/delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
+app.post('/api/invitations/delete', jsonBody, jsonRoute(cafe24DeleteInvitation));
+
 app.all('/.netlify/functions/scraped-events', jsonBody, jsonRoute(cafe24ScrapedEvents));
 app.post('/.netlify/functions/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));
 app.post('/.netlify/functions/delete-event', jsonBody, jsonRoute(cafe24DeleteEventFunction));

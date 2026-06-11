@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import '../styles/domains/overlays.css';
 
 const CAFE24_AUTH_ENABLED =
-    import.meta.env.VITE_CAFE24_AUTH_BACKEND === 'mysql' ||
-    import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+    import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'supabase' &&
+    import.meta.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
 
 interface LoginModalProps {
     isOpen: boolean;

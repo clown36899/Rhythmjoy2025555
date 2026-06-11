@@ -200,7 +200,7 @@ const EventIngestorV2: React.FC = () => {
   const buildScrapedEventsUrl = (page: number, tab: TabKey, scope: ScopeFilter) => {
     const params = new URLSearchParams({ page: String(page), tab });
     if (scope !== 'all') params.set('scope', scope);
-    return `/.netlify/functions/scraped-events?${params.toString()}`;
+    return `/api/scraped-events?${params.toString()}`;
   };
 
   const fetchScrapedEvents = async (page = 1, tab = activeTab, scope = scopeFilter) => {
@@ -226,9 +226,9 @@ const EventIngestorV2: React.FC = () => {
       const scopeQuery = scope === 'all' ? '' : `&scope=${scope}`;
       const headers = await getAdminRequestHeaders();
       const [resNew, resCollected, resDuplicate] = await Promise.all([
-        fetch(`/.netlify/functions/scraped-events?page=1&tab=new${scopeQuery}`, { headers }),
-        fetch(`/.netlify/functions/scraped-events?page=1&tab=collected${scopeQuery}`, { headers }),
-        fetch(`/.netlify/functions/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers }),
+        fetch(`/api/scraped-events?page=1&tab=new${scopeQuery}`, { headers }),
+        fetch(`/api/scraped-events?page=1&tab=collected${scopeQuery}`, { headers }),
+        fetch(`/api/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers }),
       ]);
       const [jsonNew, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resCollected.json(), resDuplicate.json()]);
       setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
@@ -268,7 +268,7 @@ const EventIngestorV2: React.FC = () => {
       try {
         setTangoSceneLoading(true);
         setTangoSceneError(null);
-        const res = await fetch('/.netlify/functions/tango-scene-map');
+        const res = await fetch('/api/tango-scene-map');
         if (!res.ok) throw new Error(`탱고 씬맵 로드 실패 (${res.status})`);
         const json = await res.json();
         if (alive) setTangoSceneMap(json);
@@ -361,7 +361,7 @@ const EventIngestorV2: React.FC = () => {
       if (!target) return;
 
       const payload = { ...target, ...updates };
-      const res = await fetch('/.netlify/functions/scraped-events', {
+      const res = await fetch('/api/scraped-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -416,7 +416,7 @@ const EventIngestorV2: React.FC = () => {
         ...target,
         structured_data: { ...target.structured_data, location: mapSafeLocation, venue_name: mapSafeLocation, address, venue_id, location_link }
       };
-      const res = await fetch('/.netlify/functions/scraped-events', {
+      const res = await fetch('/api/scraped-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
@@ -461,7 +461,7 @@ const EventIngestorV2: React.FC = () => {
     if (!confirm(`${selectedIds.size}개를 삭제할까요?`)) return;
     setBulkProgress(`제외 처리 중... (0/${selectedIds.size})`);
     const ids = Array.from(selectedIds);
-    await fetch('/.netlify/functions/scraped-events', {
+    await fetch('/api/scraped-events', {
       method: 'DELETE',
       headers: await getAdminRequestHeaders(true),
       body: JSON.stringify({ ids }),
@@ -534,7 +534,7 @@ const EventIngestorV2: React.FC = () => {
       } as any;
 
     const duplicate = await findRegisteredDuplicate(event, formattedTitle, mapped);
-    const registerRes = await fetch('/.netlify/functions/ingestor-register-event', {
+    const registerRes = await fetch('/api/ingestor-register-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -977,7 +977,7 @@ const EventIngestorV2: React.FC = () => {
                       )}
                       <button className="btn-dismiss" onClick={async () => {
                         if (!confirm(`"${event.structured_data.title}" 을 삭제할까요?`)) return;
-                        await fetch('/.netlify/functions/scraped-events', {
+                        await fetch('/api/scraped-events', {
                           method: 'DELETE',
                           headers: await getAdminRequestHeaders(true),
                           body: JSON.stringify({ id: event.id }),
@@ -1042,7 +1042,7 @@ const EventIngestorV2: React.FC = () => {
                         if (!target) { console.error('[ImageSave] target not found'); return; }
                         const body = { ...target, imageData: previewUrl };
                         console.log('[ImageSave] POST body keys:', Object.keys(body));
-                        const res = await fetch('/.netlify/functions/scraped-events', {
+                        const res = await fetch('/api/scraped-events', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(body),

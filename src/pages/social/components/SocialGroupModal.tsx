@@ -144,7 +144,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
-            const response = await fetch('/.netlify/functions/delete-social-item', {
+            const response = await fetch('/api/delete-social-item', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

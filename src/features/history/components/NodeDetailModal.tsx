@@ -3,6 +3,7 @@ import React from 'react';
 import './NodeDetailModal.css';
 import type { HistoryNodeData } from '../types';
 import { renderTextWithLinksAndResources } from '../../../pages/learning/utils/linkRenderer';
+import { parseVideoUrl } from '../../../utils/videoEmbed';
 
 interface NodeDetailModalProps {
     nodeData: HistoryNodeData;
@@ -15,15 +16,29 @@ interface NodeDetailModalProps {
 
 export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onClose, onEdit, hideEditButton, isAdmin, onResourceClick }) => {
 
-    // Extract YouTube ID for embedding if available
-    const getYoutubeId = (url: string | undefined) => {
-        if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
+    const metadata = (() => {
+        const value = nodeData.metadata || {};
+        if (typeof value === 'string') {
+            try { return JSON.parse(value); } catch { return {}; }
+        }
+        return value && typeof value === 'object' ? value : {};
+    })();
 
-    const videoId = getYoutubeId(nodeData.youtube_url);
+    const videoInfo = nodeData.youtube_url ? parseVideoUrl(nodeData.youtube_url) : null;
+    const videoId = videoInfo?.videoId || null;
+    const videoEmbedUrl = videoInfo?.embedUrl || (videoId ? `https://www.youtube.com/embed/${videoId}` : null);
+
+    const getImages = () => {
+        const images = Array.isArray(metadata.images)
+            ? metadata.images.map((img: any) => img.full || img.medium || img.thumbnail)
+            : [];
+
+        if (nodeData.image_url) images.push(nodeData.image_url);
+        if (images.length === 0 && metadata.image_medium) images.push(metadata.image_medium);
+        if (images.length === 0 && metadata.image_thumbnail) images.push(metadata.image_thumbnail);
+
+        return Array.from(new Set(images.filter(Boolean)));
+    };
     const isLinked = !!(nodeData.linked_playlist_id || nodeData.linked_document_id || nodeData.linked_video_id || nodeData.linked_category_id);
 
     // Helper to safely handle resource click
@@ -64,9 +79,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
 
                     {/* Image Gallery */}
                     {(() => {
-                        const images = (nodeData.metadata?.images as any[])?.map(img => img.full || img.medium || img.thumbnail)
-                            || (nodeData.image_url ? [nodeData.image_url] : [])
-                            || (nodeData.metadata?.image_medium ? [nodeData.metadata.image_medium] : []); // Fallback
+                        const images = getImages();
 
                         if (images.length === 0) return null;
 
@@ -115,15 +128,15 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                         );
                     })()}
 
-                    {videoId && (
+                    {videoEmbedUrl && (
                         <div className="detail-video">
                             <iframe
                                 width="100%"
                                 height="315"
-                                src={`https://www.youtube.com/embed/${videoId}`}
+                                src={videoEmbedUrl}
                                 title="YouTube video player"
                                 frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
                             ></iframe>
                         </div>
@@ -144,6 +157,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                                 href={nodeData.youtube_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
                                 style={{
                                     color: '#a78bfa',
                                     textDecoration: 'none',
@@ -174,6 +188,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                                 href={nodeData.attachment_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
                                 style={{
                                     color: '#60a5fa',
                                     textDecoration: 'none',

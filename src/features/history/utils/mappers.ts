@@ -1,6 +1,28 @@
 import type { HistoryRFNode, HistoryNodeData, NodeBehavior } from '../types';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
 
+const getResourceMetadata = (resource: any): Record<string, any> => {
+    const value = resource?.metadata || {};
+    if (typeof value === 'string') {
+        try { return JSON.parse(value); } catch { return {}; }
+    }
+    return value && typeof value === 'object' ? value : {};
+};
+
+const getYoutubeUrlFromResource = (resource: any): string | null => {
+    if (!resource) return null;
+
+    if (resource.url) return resource.url;
+    if (resource.youtube_url) return resource.youtube_url;
+
+    const meta = getResourceMetadata(resource);
+    if (meta.youtube_url) return meta.youtube_url;
+    if (meta.youtube_video_id) return `https://www.youtube.com/watch?v=${meta.youtube_video_id}`;
+    if (meta.youtube_playlist_id) return `https://www.youtube.com/playlist?list=${meta.youtube_playlist_id}`;
+
+    return null;
+};
+
 /**
  * DB에서 가져온 로우 데이터를 HistoryRFNode 형식으로 변환하는 매퍼
  */
@@ -21,6 +43,9 @@ export const mapDbNodeToRFNode = (
     const ld = node.linked_document;
     const lv = node.linked_video;
     const lc = node.linked_category;
+    const lpMeta = getResourceMetadata(lp);
+    const lcMeta = getResourceMetadata(lc);
+    const lvMeta = getResourceMetadata(lv);
     const contentData = (() => {
         const value = node.content_data || {};
         if (typeof value === 'string') {
@@ -54,7 +79,7 @@ export const mapDbNodeToRFNode = (
         content = lp.content || content;
         year = lp.year || year;
         date = lp.date || date;
-        thumbnail_url = lp.image_url || (lp.metadata?.thumbnail_url);
+        thumbnail_url = lp.image_url || lpMeta.thumbnail_url;
         image_url = lp.image_url;
         nodeType = 'playlist';
         category = 'playlist';
@@ -62,9 +87,9 @@ export const mapDbNodeToRFNode = (
         // [Fix] learning_categories table uses 'name', not 'title'
         title = lc.name || lc.title || title;
         // [Fix] learning_categories description usually in metadata
-        desc = lc.description || lc.metadata?.description || desc;
+        desc = lc.description || lcMeta.description || desc;
         content = lc.content || content;
-        year = lc.year || (lc.metadata?.year ? parseInt(lc.metadata.year) : year);
+        year = lc.year || (lcMeta.year ? parseInt(lcMeta.year) : year);
         date = lc.date || date;
         thumbnail_url = lc.image_url;
         image_url = lc.image_url;
@@ -73,10 +98,7 @@ export const mapDbNodeToRFNode = (
         if (lc?.type === 'canvas') {
             isLinkedCanvas = true;
         } else if (lc?.type === 'general') {
-            let meta = lc.metadata;
-            if (typeof meta === 'string') {
-                try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
-            }
+            const meta = lcMeta;
             if (meta?.subtype === 'canvas') isLinkedCanvas = true;
         }
 
@@ -96,10 +118,7 @@ export const mapDbNodeToRFNode = (
         content = ld.content || content;
         year = ld.year || year;
         date = ld.date || date;
-        let meta: any = ld.metadata || {};
-        if (typeof meta === 'string') {
-            try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
-        }
+        const meta = getResourceMetadata(ld);
 
 
         // Multi-image support with backward compatibility
@@ -112,15 +131,24 @@ export const mapDbNodeToRFNode = (
             image_url = meta.image_medium || meta.image_full || meta.image_thumbnail || ld.image_url;
             thumbnail_url = meta.image_thumbnail || meta.image_micro || meta.image_medium || ld.image_url;
         }
-        nodeType = ld.type === 'person' ? 'person' : 'document';
-        category = ld.type === 'person' ? 'person' : 'document';
+        const documentType = String(ld.type || '').toLowerCase();
+        if (documentType === 'person') {
+            nodeType = 'person';
+            category = 'person';
+        } else if (documentType === 'general' || documentType === 'folder' || documentType === 'category') {
+            nodeType = 'folder';
+            category = 'folder';
+        } else {
+            nodeType = 'document';
+            category = 'document';
+        }
     } else if (lv) {
         title = lv.title || lv.name || title;
         desc = lv.description || desc;
         content = lv.content || content;
         year = lv.year || year;
         image_url = lv.image_url;
-        thumbnail_url = lv.image_url || (lv.metadata?.youtube_video_id ? `https://img.youtube.com/vi/${lv.metadata.youtube_video_id}/mqdefault.jpg` : null);
+        thumbnail_url = lv.image_url || (lvMeta.youtube_video_id ? `https://img.youtube.com/vi/${lvMeta.youtube_video_id}/mqdefault.jpg` : null);
         nodeType = 'video';
         category = 'video';
     }
@@ -137,7 +165,7 @@ export const mapDbNodeToRFNode = (
     }
 
     // 썸네일 최종 폴백
-    const finalYoutubeUrl = node.youtube_url || lv?.url || lp?.url;
+    const finalYoutubeUrl = node.youtube_url || getYoutubeUrlFromResource(lv) || getYoutubeUrlFromResource(lp);
     if (!thumbnail_url && finalYoutubeUrl) {
         const vInfo = parseVideoUrl(finalYoutubeUrl);
         if (vInfo?.thumbnailUrl) thumbnail_url = vInfo.thumbnailUrl;

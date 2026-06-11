@@ -509,7 +509,7 @@ export default function DanceExpansionGuidePage() {
           return;
         }
 
-        const res = await fetch('/.netlify/functions/scraped-events?page=1&tab=new');
+        const res = await fetch('/api/scraped-events?page=1&tab=new');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const rows: ScrapedEventRow[] = Array.isArray(json.data) ? json.data : [];

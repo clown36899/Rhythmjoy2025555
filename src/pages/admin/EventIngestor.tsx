@@ -90,7 +90,7 @@ const EventIngestor: React.FC = () => {
         setLoadingScraped(true);
         try {
             // [로컬전환] Netlify Function API에서 로컬 JSON 데이터 조회
-            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+            const res = await fetch(`/api/scraped-events?type=${currentTab}`, {
                 headers: await getAdminRequestHeaders(),
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -270,7 +270,7 @@ const EventIngestor: React.FC = () => {
             };
 
             // 3. Cafe24 전용 등록 함수: 이벤트 저장 + 수집 후보 완료 처리 + 이미지 보정
-            const registerRes = await fetch('/.netlify/functions/ingestor-register-event', {
+            const registerRes = await fetch('/api/ingestor-register-event', {
                 method: 'POST',
                 headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify({
@@ -354,7 +354,7 @@ const EventIngestor: React.FC = () => {
             else if (field === 'address') updated.structured_data!.address = value;
             else if (field === 'venue_id') updated.structured_data!.venue_id = value;
 
-            await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+            await fetch(`/api/scraped-events?type=${currentTab}`, {
                 method: 'POST',
                 headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify([updated]),
@@ -413,7 +413,7 @@ const EventIngestor: React.FC = () => {
                 imageData: previewUrl // ImageCropModal에서 받은 Data URL
             };
 
-            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+            const res = await fetch(`/api/scraped-events?type=${currentTab}`, {
                 method: 'POST',
                 headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify([updatedEvent]),
@@ -468,7 +468,7 @@ const EventIngestor: React.FC = () => {
         setIsProcessing(true);
         try {
             const idsToDelete = Array.from(selectedIds);
-            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+            const res = await fetch(`/api/scraped-events?type=${currentTab}`, {
                 method: 'DELETE',
                 headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify({ ids: idsToDelete }),
@@ -499,7 +499,7 @@ const EventIngestor: React.FC = () => {
         setIsProcessing(true);
         try {
             const updatedEvents = targets.map(e => ({ ...e, is_collected: true }));
-            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+            const res = await fetch(`/api/scraped-events?type=${currentTab}`, {
                 method: 'POST',
                 headers: await getAdminRequestHeaders(true),
                 body: JSON.stringify(updatedEvents),
@@ -941,7 +941,7 @@ const EventIngestor: React.FC = () => {
                                                                     onClick={async () => {
                                                                         if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까? (이미지도 함께 삭제됩니다)')) return;
                                                                         try {
-                                                                            const res = await fetch('/.netlify/functions/scraped-events', {
+                                                                            const res = await fetch('/api/scraped-events', {
                                                                                 method: 'DELETE',
                                                                                 headers: await getAdminRequestHeaders(true),
                                                                                 body: JSON.stringify({ id: group.scrapedId }),
@@ -1037,7 +1037,7 @@ const EventIngestor: React.FC = () => {
                                                 onDismiss={async () => {
                                                     if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까? (이미지도 함께 삭제됩니다)')) return;
                                                     try {
-                                                        const res = await fetch('/.netlify/functions/scraped-events', {
+                                                        const res = await fetch('/api/scraped-events', {
                                                             method: 'DELETE',
                                                             headers: await getAdminRequestHeaders(true),
                                                             body: JSON.stringify({ id: item.id }),

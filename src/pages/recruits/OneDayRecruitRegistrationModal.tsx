@@ -39,7 +39,7 @@ interface OneDayRecruitRegistrationModalProps {
 
 const ONE_DAY_LINKS_TABLE = 'swing_oneday_recruit_links';
 const ONE_DAY_LINK_SELECT = 'id,community,venue,region,area,lat,lng,url,logo_source_url,logo_micro,logo_thumbnail,logo_medium,logo_full,logo_storage_path,logo_updated_at,sort_order,is_active';
-const ONE_DAY_LOGO_FUNCTION_PATH = '/.netlify/functions/oneday-recruit-logo';
+const ONE_DAY_LOGO_FUNCTION_PATH = '/api/oneday-recruit-logo';
 
 const EMPTY_FORM = {
   community: '',

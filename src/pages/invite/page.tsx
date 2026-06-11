@@ -29,11 +29,11 @@ export default function InvitePage() {
 
   const apiEndpoint = import.meta.env.DEV
     ? `${getApiUrl()}/api/invitations/validate`
-    : '/.netlify/functions/invitations-validate';
+    : '/api/invitations/validate';
 
   const authEndpoint = import.meta.env.DEV
     ? `${getApiUrl()}/api/auth/kakao`
-    : '/.netlify/functions/kakao-login';
+    : '/api/kakao-login';
 
   useEffect(() => {
     // 초대 코드가 있으면 기존 로그인 세션 무시하고 초대 검증

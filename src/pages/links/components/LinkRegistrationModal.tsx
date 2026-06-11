@@ -59,7 +59,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
         setIsFetchingInfo(true);
         try {
             // 사이트 이름과 설정을 가져오기 위해 엣지 함수 호출 (thum.io 차단 문제로 바로 OG 이미지 활용)
-            const res = await fetch(`/.netlify/functions/fetch-og-image?url=${encodeURIComponent(formattedUrl)}`);
+            const res = await fetch(`/api/fetch-og-image?url=${encodeURIComponent(formattedUrl)}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.title && !title) setTitle(data.title);

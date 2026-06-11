@@ -139,7 +139,7 @@ async function checkL3Duplicate(title, date) {
 
 async function saveEvent(event) {
   try {
-    const resp = await fetch('https://swingenjoy.com/.netlify/functions/scraped-events', {
+    const resp = await fetch('https://swingenjoy.com/api/scraped-events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(event),

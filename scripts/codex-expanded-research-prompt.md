@@ -9,7 +9,7 @@ Hard constraints:
 - Use `getAutomationSourceList('expanded-research')`.
 - Do not insert, update, or delete Supabase rows.
 - Do not upload images to Supabase Storage.
-- Do not call `https://swingenjoy.com/.netlify/functions/scraped-events`.
+- Do not call `https://swingenjoy.com/api/scraped-events`.
 - Do not commit or push.
 - Do not edit application source code, git history, or configuration.
 - You may update only `docs/INGESTION_STATUS.md` if you need to preserve a concise research log.

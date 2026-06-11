@@ -154,8 +154,8 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
                 adminType,
             });
 
-            eventActionsDebug('[useEventActions > deleteEvent] Calling /.netlify/functions/delete-event', { token: !!token, cleanId });
-            const response = await fetch('/.netlify/functions/delete-event', {
+            eventActionsDebug('[useEventActions > deleteEvent] Calling /api/delete-event', { token: !!token, cleanId });
+            const response = await fetch('/api/delete-event', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

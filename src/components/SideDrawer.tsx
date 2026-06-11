@@ -194,7 +194,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
 
             // 2. [Background] Server DB 캐시 조회 (Lazy Cache)
             // 서버에서 이미 24시간 캐싱된 가벼운 JSON을 가져옴 (0.1~0.5s)
-            const response = await fetch('/.netlify/functions/get-site-stats');
+            const response = await fetch('/api/stats/site');
 
             if (response.ok) {
                 const data = await response.json();

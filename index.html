@@ -104,7 +104,7 @@
         if (userId) {
           const manifestUrl = window.location.hostname === 'localhost'
             ? 'http://localhost:3001/api/billboard-manifest?userId=' + userId
-            : baseUrl + '/.netlify/functions/billboard-manifest?userId=' + userId;
+            : baseUrl + '/api/billboard-manifest?userId=' + userId;
           document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
         }
       }

@@ -483,7 +483,7 @@ async function saveTangoCandidatesViaFunction(candidates) {
     return { target: 'function', saved: 0, skipped: 0, skippedNoPoster: noPoster.length, total: candidates.length };
   }
 
-  const endpoint = process.env.SCRAPED_EVENTS_ENDPOINT || 'https://swingenjoy.com/.netlify/functions/scraped-events';
+  const endpoint = process.env.SCRAPED_EVENTS_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

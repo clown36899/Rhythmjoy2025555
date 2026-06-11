@@ -130,8 +130,8 @@ export function useEventModal(): UseEventModalReturn {
                 userId: session?.user?.id || null,
             });
 
-            debugEventModal('[useEventModal] API Call: /.netlify/functions/delete-event', { targetId: cleanId });
-            const response = await fetch('/.netlify/functions/delete-event', {
+            debugEventModal('[useEventModal] API Call: /api/delete-event', { targetId: cleanId });
+            const response = await fetch('/api/delete-event', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

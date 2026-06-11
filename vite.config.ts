@@ -10,7 +10,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 //const base = process.env.BASE_PATH || "/";//
 
-// ✅ 항상 상대 경로 사용 (Netlify, Replit 모두 호환)
+// ✅ 항상 상대 경로 사용
 const base = "./";
 
 // ✅ Replit 환경 변수를 통해 Replit 환경인지 확인
@@ -19,10 +19,10 @@ const isReplit = !!process.env.REPL_ID || !!process.env.REPL_SLUG; // REPL_ID나
 // ✅ 포트 및 호스트 설정 로직 분리
 const SERVER_PORT = isReplit ? 5000 : 5173;
 const SERVER_HOST = isReplit ? "0.0.0.0" : "localhost";
-const NETLIFY_DEV_PROXY_TARGET = process.env.NETLIFY_DEV_PROXY_TARGET || 'http://localhost:8888';
+const API_DEV_PROXY_TARGET = process.env.API_DEV_PROXY_TARGET || 'http://localhost:3001';
 
 const isPreview = process.env.IS_PREVIEW ? true : false;
-const isCafe24Build = process.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
+const isCafe24Build = process.env.VITE_CAFE24_EVENTS_BACKEND !== 'supabase';
 
 // 빌드 타임스탬프 생성 플러그인
 const BUILD_TIME = Date.now().toString();
@@ -200,12 +200,7 @@ export default defineConfig({
     // API 프록시 설정 (Express 서버로 전달)
     proxy: {
       '/api': {
-        target: NETLIFY_DEV_PROXY_TARGET, // Netlify Dev로 전달 (Functions 처리)
-        changeOrigin: true,
-      },
-      // Netlify Functions 프록시 (로컬 개발용)
-      '/.netlify': {
-        target: NETLIFY_DEV_PROXY_TARGET,
+        target: API_DEV_PROXY_TARGET,
         changeOrigin: true,
       },
     },

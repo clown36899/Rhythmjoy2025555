@@ -155,7 +155,7 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
         fetchPromise = (async () => {
             try {
                 const timestamp = new Date().getTime();
-                const baseUrl = '/.netlify/functions/get-site-stats';
+                const baseUrl = '/api/stats/site';
                 const url = isManualRefresh
                     ? `${baseUrl}?refresh=true&t=${timestamp}`
                     : `${baseUrl}?t=${timestamp}`;

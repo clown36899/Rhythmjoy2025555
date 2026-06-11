@@ -19,7 +19,7 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   }
 
   const trimmed = url.trim();
-  if (!/(youtube\.com|youtu\.be)/i.test(trimmed)) {
+  if (!/(youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(trimmed)) {
     return {
       provider: null,
       embedUrl: null,
@@ -49,16 +49,41 @@ export function parseVideoUrl(url: string): VideoEmbedInfo {
   };
 }
 
-function extractYouTubeId(url: string): string | null {
+export function extractYouTubeId(url: string): string | null {
+  const trimmed = url.trim();
+
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.split('/').filter(Boolean)[0];
+      if (id?.length === 11) return id;
+    }
+
+    if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+      const queryId = parsed.searchParams.get('v');
+      if (queryId?.length === 11) return queryId;
+
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const markerIndex = parts.findIndex(part => ['embed', 'v', 'shorts', 'live'].includes(part));
+      const pathId = markerIndex >= 0 ? parts[markerIndex + 1] : null;
+      if (pathId?.length === 11) return pathId;
+    }
+  } catch {
+    // Fall back to regex parsing below for partial or malformed URLs.
+  }
+
   const patterns = [
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
     /embed\/([a-zA-Z0-9_-]{11})/,
     /v\/([a-zA-Z0-9_-]{11})/,
     /youtu\.be\/([a-zA-Z0-9_-]{11})/,
     /shorts\/([a-zA-Z0-9_-]{11})/,
-    /watch\?v=([a-zA-Z0-9_-]{11})/,
+    /live\/([a-zA-Z0-9_-]{11})/,
   ];
   for (const p of patterns) {
-    const m = url.match(p);
+    const m = trimmed.match(p);
     if (m?.[1] && m[1].length === 11) return m[1];
   }
   return null;

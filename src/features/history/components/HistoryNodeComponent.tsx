@@ -198,7 +198,26 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             return;
         }
 
-        // 0. Folder Type -> Preview Resource (NOT Navigate)
+        // 0. Linked resources must open before container navigation.
+        if (data.linked_playlist_id && data.onPreviewLinkedResource) {
+            e.stopPropagation();
+            data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
+            return;
+        }
+
+        if (data.linked_video_id && data.onPreviewLinkedResource) {
+            e.stopPropagation();
+            data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
+            return;
+        }
+
+        if (data.linked_document_id && data.onPreviewLinkedResource) {
+            e.stopPropagation();
+            data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+            return;
+        }
+
+        // Folder resources show detail; canvas/portal nodes keep navigation behavior.
         if (data.nodeType === 'folder' && data.linked_category_id && data.onPreviewLinkedResource) {
             e.stopPropagation();
             data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
@@ -224,21 +243,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             return;
         }
 
-        // 3. Playlist / Document -> Preview Resource
-        if (data.onPreviewLinkedResource) {
-            if (data.nodeType === 'playlist' && data.linked_playlist_id) {
-                e.stopPropagation();
-                data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
-                return;
-            }
-            if (data.nodeType === 'document' && data.linked_document_id) {
-                e.stopPropagation();
-                data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
-                return;
-            }
-        }
-
-        // 4. Default -> View Detail Modal
+        // 3. Default -> View Detail Modal
         handleViewDetail(e);
     };
     return (
@@ -277,23 +282,22 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 />
             )}
 
-            {/* Simple Handles: Defined as both source and target for flexibility */}
-            {/* Reliable Handles: Source and Target for all directions with standard IDs */}
-            {/* Top: Target (primary) & Source */}
-            <Handle type="target" position={Position.Top} id="top" />
-            <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
+            {data.isEditMode && (
+                <>
+                    {/* Relationship handles are edit-only. Hidden handles still own click hitboxes. */}
+                    <Handle type="target" position={Position.Top} id="top" />
+                    <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
 
-            {/* Bottom: Source (primary) & Target */}
-            <Handle type="source" position={Position.Bottom} id="bottom" />
-            <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
+                    <Handle type="source" position={Position.Bottom} id="bottom" />
+                    <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
 
-            {/* Left: Target (primary) & Source */}
-            <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
-            <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
+                    <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
+                    <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
 
-            {/* Right: Source (primary) & Target */}
-            <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
-            <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
+                    <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
+                    <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
+                </>
+            )}
 
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (

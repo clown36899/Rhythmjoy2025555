@@ -5,7 +5,7 @@
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.85);
-    z-index: 5000;
+    z-index: 13000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -19,7 +19,7 @@
     background-color: transparent;
     backdrop-filter: none;
     pointer-events: none;
-    z-index: 4000;
+    z-index: 12999;
     /* Lower than restore button if needed, but keeping high for safety */
 }
 
@@ -56,7 +56,7 @@
     top: 85%;
     left: 0;
     transform: translateY(-50%);
-    z-index: 6000;
+    z-index: 13001;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
