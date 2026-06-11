@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import type { Event } from '../../../lib/supabase';
 import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
+import { mergeEventIntoArray, removeEventFromArray } from '../../../utils/eventMutationSync';
 import './CalendarSearchModal.css';
 
 interface CalendarSearchModalProps {
@@ -194,6 +195,29 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleEventChanged = (event: globalThis.Event) => {
+            setEvents(prev => mergeEventIntoArray(prev, (event as CustomEvent).detail, {
+                insertIfMissing: event.type === 'eventCreated',
+            }));
+        };
+        const handleEventDeleted = (event: globalThis.Event) => {
+            setEvents(prev => removeEventFromArray(prev, (event as CustomEvent).detail));
+        };
+
+        window.addEventListener('eventUpdated', handleEventChanged);
+        window.addEventListener('eventCreated', handleEventChanged);
+        window.addEventListener('eventDeleted', handleEventDeleted);
+
+        return () => {
+            window.removeEventListener('eventUpdated', handleEventChanged);
+            window.removeEventListener('eventCreated', handleEventChanged);
+            window.removeEventListener('eventDeleted', handleEventDeleted);
+        };
+    }, [isOpen]);
 
     const handleSelectEvent = (event: Event) => {
         onSelectEvent(event);

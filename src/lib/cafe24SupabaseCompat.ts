@@ -264,10 +264,10 @@ function createStorageBucket(bucket: string) {
     },
     async remove(paths: string[]) {
       const response = await fetch(`/api/cafe24-storage/${encodeURIComponent(bucket)}/remove`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ paths }),
+        body: JSON.stringify({ paths, _method: 'DELETE' }),
       });
       return readResponse(response);
     },

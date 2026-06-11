@@ -5,6 +5,7 @@ import type { Event as AppEvent } from "../lib/supabase";
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from "../lib/cafe24EventsApi";
 import { useModalHistory } from "../hooks/useModalHistory";
 import LocalLoading from "./LocalLoading";
+import { eventOverlapsDate, getEventMutation, mergeEventIntoArray, removeEventFromArray } from "../utils/eventMutationSync";
 import "../styles/domains/events.css";
 import "../styles/components/DateEventsModal.css";
 
@@ -30,6 +31,7 @@ export default function FullscreenDateEventsModal({
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
+  const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -37,14 +39,9 @@ export default function FullscreenDateEventsModal({
     const fetchEvents = async () => {
       setLoading(false);
       try {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-
         setLoading(true);
         const data = isCafe24EventsBackendEnabled
-          ? await fetchCafe24Events({ start: dateStr, end: dateStr, limit: 500 })
+          ? await fetchCafe24Events({ start: selectedDateStr, end: selectedDateStr, limit: 500 })
           : await (async () => {
             const { data, error } = await supabase
               .from("events")
@@ -60,11 +57,11 @@ export default function FullscreenDateEventsModal({
             return false;
           }
           if (event.event_dates && event.event_dates.length > 0) {
-            return event.event_dates.includes(dateStr);
+            return event.event_dates.includes(selectedDateStr);
           }
           const startDate = event.start_date || event.date;
           const endDate = event.end_date || event.start_date || event.date;
-          return (startDate && endDate && dateStr >= startDate && dateStr <= endDate);
+          return (startDate && endDate && selectedDateStr >= startDate && selectedDateStr <= endDate);
         });
 
         setEvents(filteredEvents);
@@ -77,7 +74,40 @@ export default function FullscreenDateEventsModal({
     };
 
     fetchEvents();
-  }, [isOpen, selectedDate, selectedCategory]);
+  }, [isOpen, selectedDateStr, selectedCategory]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const isVisibleForModal = (event: AppEvent) => (
+      (!selectedCategory || selectedCategory === 'all' || event.category === selectedCategory)
+      && eventOverlapsDate(event as any, selectedDateStr)
+    );
+
+    const handleEventChanged = (event: globalThis.Event) => {
+      const detail = (event as CustomEvent).detail;
+      const { event: updatedEvent } = getEventMutation(detail);
+      if (!updatedEvent) return;
+
+      setEvents(prev => mergeEventIntoArray(prev, detail, {
+        insertIfMissing: event.type === 'eventCreated' && isVisibleForModal(updatedEvent as AppEvent),
+      }).filter(isVisibleForModal));
+    };
+
+    const handleEventDeleted = (event: globalThis.Event) => {
+      setEvents(prev => removeEventFromArray(prev, (event as CustomEvent).detail));
+    };
+
+    window.addEventListener('eventUpdated', handleEventChanged);
+    window.addEventListener('eventCreated', handleEventChanged);
+    window.addEventListener('eventDeleted', handleEventDeleted);
+
+    return () => {
+      window.removeEventListener('eventUpdated', handleEventChanged);
+      window.removeEventListener('eventCreated', handleEventChanged);
+      window.removeEventListener('eventDeleted', handleEventDeleted);
+    };
+  }, [isOpen, selectedCategory, selectedDateStr]);
 
   useModalHistory(isOpen, onClose);
 

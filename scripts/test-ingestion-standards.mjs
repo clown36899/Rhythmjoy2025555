@@ -176,6 +176,18 @@ assert.equal(validateCandidate(baseCandidate({
   structured_data: { title: '사항 필독말머리[공지사항] 2026년도 2학기 정규수업이 확정되었습니다.(3차 수정)', date: '2026-06-27', event_type: '강습', activity_type: 'class' },
 }), { today: TODAY }).ok, false, 'naver cafe board chrome and broad schedule notices must be rejected');
 assert.equal(validateCandidate(baseCandidate({
+  keyword: '스윙스캔들',
+  source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/999999?boardtype=L&menuid=501',
+  extracted_text: 'DJ 인기멤버 85F 스칼라 부 매니저 1 1:1 채팅 2026.06.13. 스윙스캔들 토요소셜 DJ',
+  structured_data: {
+    title: 'DJ 인기멤버 85F 스칼라 부 매니저 1 | 2026.06.13. 스윙스캔들 토요소셜 DJ',
+    date: '2026-06-13',
+    event_type: '소셜',
+    activity_type: 'social',
+    djs: ['인기멤버 85F 스칼라 부 매니저 1'],
+  },
+}), { today: TODAY }).ok, false, 'naver cafe author/profile chrome must not become title or DJ');
+assert.equal(validateCandidate(baseCandidate({
   keyword: '스윙패밀리 강습/행사',
   source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156147?boardtype=L&menuid=13&referrerAllArticles=false',
   extracted_text: '강습일정 게시글 6월6일 6월20일 6월27일',

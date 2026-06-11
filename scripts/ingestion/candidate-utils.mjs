@@ -326,11 +326,20 @@ function looksLikeGenericSourceFallbackTitle(candidate, source, activity) {
   return true;
 }
 
+const naverCafeChromeRe = /말머리|공지사항|필독|작성자|조회수?|댓글|목록|URL\s*복사|인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|채팅|좋아요|신고|게시글|멤버\s*리스트/i;
+
 function looksLikeNaverCafeChromeTitle(candidate) {
   if (!/cafe\.naver\.com/i.test(candidate?.source_url || '')) return false;
   const title = titleOf(candidate);
   if (!title) return false;
-  return /말머리|공지사항|필독|작성자|조회수|댓글|목록|URL\s*복사/i.test(title);
+  return naverCafeChromeRe.test(title);
+}
+
+function hasNaverCafeChromeDj(candidate) {
+  if (!/cafe\.naver\.com/i.test(candidate?.source_url || '')) return false;
+  const djs = candidate?.structured_data?.djs;
+  if (!Array.isArray(djs)) return false;
+  return djs.some((dj) => naverCafeChromeRe.test(String(dj || '')));
 }
 
 function looksLikeBroadScheduleNotice(candidate) {
@@ -464,6 +473,9 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   }
   if (looksLikeNaverCafeChromeTitle(candidate)) {
     errors.push('naver cafe title still contains board chrome/notice prefix');
+  }
+  if (hasNaverCafeChromeDj(candidate)) {
+    errors.push('naver cafe DJ contains author/profile chrome');
   }
   if (looksLikeBroadScheduleNotice(candidate)) {
     errors.push('broad schedule notice is not a single collectable event');

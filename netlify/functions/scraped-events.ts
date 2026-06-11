@@ -213,6 +213,7 @@ function getSuspiciousAutoCandidateReason(item: any): string | null {
     const sourceUrl = String(item?.source_url || '');
     const blockedKeywordReason = getBlockedKeywordReason(text);
     if (blockedKeywordReason) return blockedKeywordReason;
+    const naverCafeChromeRe = /말머리|공지사항|필독|작성자|조회수?|댓글|목록|URL\s*복사|인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|채팅|좋아요|신고|게시글|멤버\s*리스트/i;
 
     const suffixes = [eventType, '강습', '행사', '소셜', '모집'].filter(Boolean).map(compactCompare);
     const names = [item?.keyword, sd.location, sd.venue_name].filter(Boolean).map(compactCompare);
@@ -222,8 +223,12 @@ function getSuspiciousAutoCandidateReason(item: any): string | null {
         return '자동수집 제외: 소스명 기반 일반 제목';
     }
 
-    if (/cafe\.naver\.com/i.test(sourceUrl) && /말머리|공지사항|필독|작성자|조회수|댓글|목록|URL\s*복사/i.test(title)) {
+    if (/cafe\.naver\.com/i.test(sourceUrl) && naverCafeChromeRe.test(title)) {
         return '자동수집 제외: 네이버 카페 목록/공지 텍스트가 제목에 섞임';
+    }
+
+    if (/cafe\.naver\.com/i.test(sourceUrl) && Array.isArray(sd.djs) && sd.djs.some((dj: unknown) => naverCafeChromeRe.test(String(dj || '')))) {
+        return '자동수집 제외: 네이버 카페 작성자/프로필 텍스트가 DJ에 섞임';
     }
 
     if (/(?:\d{4}\s*년도\s*)?\d+\s*학기\s*정규\s*수업.*확정|정규\s*수업\s*시간표|전체\s*강습\s*일정|강습\s*전체\s*일정|공지사항.*정규\s*수업|공지사항.*정규수업/i.test(text)) {

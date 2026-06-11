@@ -12,6 +12,7 @@ import { useModalHistory } from '../hooks/useModalHistory';
 import { getOptimizedImageUrl } from '../utils/getEventThumbnail';
 import { useAuth } from '../contexts/AuthContext';
 import { useEventActions } from '../pages/v2/hooks/useEventActions';
+import { getEventMutation, sameEventId } from '../utils/eventMutationSync';
 import './GlobalSearchModal.css';
 
 interface SearchResult {
@@ -158,6 +159,50 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
     const [showShopDetail, setShowShopDetail] = useState(false);
 
     useEffect(() => { setLocalQuery(initialQuery); }, [initialQuery]);
+
+    useEffect(() => {
+        const handleEventUpdated = (nativeEvent: globalThis.Event) => {
+            const { id, event } = getEventMutation((nativeEvent as CustomEvent).detail);
+            const targetId = id ?? event?.id;
+            if (!targetId || !event) return;
+
+            setSelectedEvent(prev => prev && sameEventId(prev.id, targetId) ? ({ ...prev, ...event } as Event) : prev);
+            setResults(prev => ({
+                ...prev,
+                events: prev.events.map(result => {
+                    if (!sameEventId(result.id, targetId)) return result;
+                    return {
+                        ...result,
+                        title: String(event.title || result.title),
+                        description: typeof event.description === 'string' ? event.description : result.description,
+                        thumbnail: String(event.image_thumbnail || event.image_micro || event.image_medium || event.image || result.thumbnail || ''),
+                        date: String(event.start_date || event.date || result.date || ''),
+                        category: String(event.category || result.category || ''),
+                    };
+                }),
+            }));
+        };
+
+        const handleEventDeleted = (nativeEvent: globalThis.Event) => {
+            const { id } = getEventMutation((nativeEvent as CustomEvent).detail);
+            if (!id) return;
+            setSelectedEvent(prev => prev && sameEventId(prev.id, id) ? null : prev);
+            setResults(prev => ({
+                ...prev,
+                events: prev.events.filter(result => !sameEventId(result.id, id)),
+            }));
+        };
+
+        window.addEventListener('eventUpdated', handleEventUpdated);
+        window.addEventListener('eventCreated', handleEventUpdated);
+        window.addEventListener('eventDeleted', handleEventDeleted);
+
+        return () => {
+            window.removeEventListener('eventUpdated', handleEventUpdated);
+            window.removeEventListener('eventCreated', handleEventUpdated);
+            window.removeEventListener('eventDeleted', handleEventDeleted);
+        };
+    }, []);
 
     useEffect(() => {
         if (!isOpen) return;

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "../../../../../lib/supabase";
 import { getLocalDateString } from "../../../utils/eventListUtils";
 import type { Event } from "../../../utils/eventListUtils";
+import { mergeEventIntoArray, removeEventFromArray } from "../../../../../utils/eventMutationSync";
 
 interface UseEventsProps {
     isAdminMode: boolean;
@@ -134,19 +135,36 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
 
     // [Persistence] 앱 내부의 커스텀 이벤트(삭제/수정/생성) 수신 시 즉시 데이터 및 캐시 갱신
     useEffect(() => {
-        const handleRefresh = () => {
-            console.log('[useEvents] Custom event detected, refetching...');
+        const applyEvents = (updater: (prev: Event[]) => Event[]) => {
+            setEvents(prev => {
+                const next = updater(prev);
+                saveEventsToCache(next);
+                return next;
+            });
+        };
+
+        const handleEventChanged = (event: globalThis.Event) => {
+            console.log('[useEvents] Custom event detected, patching and refetching...');
+            applyEvents(prev => mergeEventIntoArray(prev, (event as CustomEvent).detail, {
+                insertIfMissing: event.type === 'eventCreated',
+            }));
             fetchEvents();
         };
 
-        window.addEventListener('eventDeleted', handleRefresh);
-        window.addEventListener('eventUpdated', handleRefresh);
-        window.addEventListener('eventCreated', handleRefresh);
+        const handleEventDeleted = (event: globalThis.Event) => {
+            console.log('[useEvents] Delete event detected, patching and refetching...');
+            applyEvents(prev => removeEventFromArray(prev, (event as CustomEvent).detail));
+            fetchEvents();
+        };
+
+        window.addEventListener('eventDeleted', handleEventDeleted);
+        window.addEventListener('eventUpdated', handleEventChanged);
+        window.addEventListener('eventCreated', handleEventChanged);
 
         return () => {
-            window.removeEventListener('eventDeleted', handleRefresh);
-            window.removeEventListener('eventUpdated', handleRefresh);
-            window.removeEventListener('eventCreated', handleRefresh);
+            window.removeEventListener('eventDeleted', handleEventDeleted);
+            window.removeEventListener('eventUpdated', handleEventChanged);
+            window.removeEventListener('eventCreated', handleEventChanged);
         };
     }, [fetchEvents]);
 

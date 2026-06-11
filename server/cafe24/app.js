@@ -125,6 +125,7 @@ app.post('/api/cafe24-rpc/:name', jsonBody, jsonRoute(callRpc));
 app.post('/api/cafe24-storage/:bucket/upload', jsonBody, jsonRoute(uploadGenericFile));
 app.get('/api/cafe24-storage/:bucket/list', jsonRoute(listGenericFiles));
 app.delete('/api/cafe24-storage/:bucket/remove', jsonBody, jsonRoute(removeGenericFiles));
+app.post('/api/cafe24-storage/:bucket/remove', jsonBody, jsonRoute(removeGenericFiles));
 
 app.get('/api/stats/events', jsonRoute(eventStats));
 app.get('/api/stats/site', jsonRoute(siteStats));

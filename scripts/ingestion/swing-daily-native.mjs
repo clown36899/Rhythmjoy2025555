@@ -150,8 +150,33 @@ function compactText(value = '') {
   return String(value || '').replace(/\u200b/g, '').replace(/\s+/g, ' ').trim();
 }
 
+const naverCafeChromeRe = /인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|채팅|작성자|조회수?|댓글|목록|URL\s*복사|좋아요|신고|게시글|멤버\s*리스트/i;
+const leadingDateTitleRe = /^\s*(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*[.\-/월]\s*\d{1,2}\s*(?:일)?\s*[.\s]*(?:\([월화수목금토일]\))?\s*/i;
+
+function looksLikeNaverCafeChromeLine(value = '') {
+  const text = compactText(value);
+  if (!text) return false;
+  return naverCafeChromeRe.test(text)
+    || /^내\s*카페|^카페\s*앱|^가입하기|^전체글|^공지사항/i.test(text);
+}
+
+function stripNaverCafeChrome(value = '') {
+  const raw = String(value || '').replace(/\u00a0/g, ' ');
+  const dateMatch = raw.match(/(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*[.\-/월]\s*\d{1,2}\s*(?:일)?/);
+  if (dateMatch && dateMatch.index > 0 && naverCafeChromeRe.test(raw.slice(0, dateMatch.index))) {
+    return raw.slice(dateMatch.index).trim();
+  }
+
+  return raw
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line && !looksLikeNaverCafeChromeLine(line))
+    .join('\n')
+    .trim();
+}
+
 function cleanTitle(value = '') {
-  return compactText(value)
+  return compactText(stripNaverCafeChrome(value))
     .replace(/^Instagram(?:의)?\s+[^:：]{1,120}\s*[:：]\s*["“”']?\s*/i, '')
     .replace(/^[^:]{1,80}\s+on\s+Instagram:\s*/i, '')
     .replace(/^\[(?:정모|행사|강습|공지사항|공지|필독|이벤트|소셜|모집)[^\]]{0,20}\]\s*/i, '')
@@ -164,6 +189,8 @@ function cleanTitle(value = '') {
     .replace(/^(필독|공지)\s*/i, '')
     .replace(/^\[(?:공지사항|공지|필독)\]\s*/i, '')
     .replace(/\s*댓글\s*\(?\d+\)?\s*$/i, '')
+    .replace(leadingDateTitleRe, '')
+    .replace(/\s+(?:DJ|디제이)\s*$/i, '')
     .slice(0, 120);
 }
 
@@ -188,7 +215,7 @@ function makeCandidateTitle({ source, rawTitle, cleanText, eventType, djs = [] }
   const firstMeaningfulLine = String(cleanText || '')
     .split(/\n| {2,}/)
     .map((line) => cleanTitle(line))
-    .find((line) => line.length >= 6 && line.length <= 64 && !/작성자|조회수|댓글|URL 복사|목록/.test(line));
+    .find((line) => line.length >= 6 && line.length <= 64 && !looksLikeNaverCafeChromeLine(line));
   if (firstMeaningfulLine && !/on\s+Instagram/i.test(firstMeaningfulLine)) return firstMeaningfulLine;
 
   if (eventType === '소셜' && djs.length) return `${source.name} 소셜 (${djs.slice(0, 2).join(', ')})`;
@@ -376,7 +403,14 @@ function inferDjs(text = '') {
       .replace(/\s*(?:AM|PM|오전|오후)\b.*$/i, '')
       .replace(/\s*\d{1,2}[:：]\d{2}.*$/, '')
       .trim();
-    if (value && value.length <= 28) djs.push(value);
+    if (
+      value
+      && value.length <= 28
+      && !looksLikeNaverCafeChromeLine(value)
+      && !leadingDateTitleRe.test(value)
+    ) {
+      djs.push(value);
+    }
   }
   return unique(djs).slice(0, 5);
 }
@@ -652,7 +686,17 @@ async function scrapeNaverArticle(page, link, source) {
   await frame.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
   await page.waitForTimeout(700);
   const data = await frame.evaluate(() => {
-    const title = document.querySelector('.title_text, h3.title_text, .ArticleTitle, h1')?.textContent || '';
+    const badTitleRe = /인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|작성자|조회수?|댓글|목록|URL\s*복사|좋아요|신고|게시글/i;
+    const titleSelectors = [
+      '.title_text',
+      'h3.title_text',
+      '.ArticleTitle .title_text',
+      '.article_header .title_text',
+      '.tit_area .tit',
+    ].join(',');
+    const title = [...document.querySelectorAll(titleSelectors)]
+      .map((node) => (node.textContent || '').replace(/\s+/g, ' ').trim())
+      .find((value) => value && !badTitleRe.test(value)) || '';
     const viewer = document.querySelector('.article_viewer, .se-main-container, .ContentRenderer, .ArticleContentBox, #tbody, .NHN_Writeform_Main, .post_ct, .se-viewer, .article_container, .article-content, .content-area');
     const text = viewer?.innerText || '';
     const imageRoot = viewer || document;
@@ -667,11 +711,13 @@ async function scrapeNaverArticle(page, link, source) {
   });
 
   const posterUrl = pickPosterImage(data.images);
+  const title = cleanTitle(data.title || link.title);
+  const text = stripNaverCafeChrome(`${data.title}\n${data.text}`);
   return buildCandidatesFromText({
     source,
     sourceUrl: normalizeSourceUrl(link.href),
-    text: `${data.title}\n${data.text}`,
-    title: data.title || link.title,
+    text: `${title}\n${text}`,
+    title: title || cleanTitle(link.title),
     posterUrl,
     page,
     referer: 'https://cafe.naver.com/',

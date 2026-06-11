@@ -9,6 +9,7 @@ import { useModal } from '../../hooks/useModal';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { getLocalDateString, getKSTDay } from '../v2/utils/eventListUtils';
 import { useEventActions } from '../v2/hooks/useEventActions';
+import { getEventMutation, mergeEventIntoArray, removeEventFromArray } from '../../utils/eventMutationSync';
 
 
 // Components
@@ -255,20 +256,57 @@ const SocialPage: React.FC = () => {
     fetchWeekEvents();
 
     // 🎯 [IMMEDIATE REFLECT] Listen for global event updates
-    const handleGlobalUpdate = () => {
+    const getWeekBounds = () => {
+      const now = new Date(currentViewDate);
+      const kstDay = getKSTDay(now);
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - kstDay);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      return {
+        weekStartStr: getLocalDateString(weekStart),
+        weekEndStr: getLocalDateString(weekEnd),
+      };
+    };
+
+    const isVisibleWeekEvent = (event: any) => {
+      const { weekStartStr, weekEndStr } = getWeekBounds();
+      const effectiveStart = event.start_date || event.date || "";
+      const effectiveEnd = event.end_date || event.date || "";
+      return (event.group_id === null || event.group_id === undefined)
+        && event.category !== 'class'
+        && event.category !== 'club'
+        && effectiveEnd >= weekStartStr
+        && effectiveStart <= weekEndStr;
+    };
+
+    const handleGlobalUpdate = (nativeEvent: globalThis.Event) => {
       console.log('[SocialPage] Global event updated/deleted, refreshing...');
+      const detail = (nativeEvent as CustomEvent).detail;
+      if (nativeEvent.type === 'eventDeleted') {
+        setEventsThisWeek(prev => removeEventFromArray(prev, detail));
+      } else {
+        const { event } = getEventMutation(detail);
+        if (event) {
+          setEventsThisWeek(prev => mergeEventIntoArray(prev, detail, {
+            insertIfMissing: nativeEvent.type === 'eventCreated' && isVisibleWeekEvent(event),
+          }).filter(isVisibleWeekEvent));
+        }
+      }
       fetchWeekEvents();
       refreshSchedules();
     };
 
     window.addEventListener('eventUpdated', handleGlobalUpdate);
+    window.addEventListener('eventCreated', handleGlobalUpdate);
     window.addEventListener('eventDeleted', handleGlobalUpdate);
 
     return () => {
       window.removeEventListener('eventUpdated', handleGlobalUpdate);
+      window.removeEventListener('eventCreated', handleGlobalUpdate);
       window.removeEventListener('eventDeleted', handleGlobalUpdate);
     };
-  }, [fetchWeekEvents, refreshSchedules]);
+  }, [currentViewDate, fetchWeekEvents, refreshSchedules]);
 
 
   // handleEditSchedule removed - unified with EventDetailModal inline edit

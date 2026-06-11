@@ -11,6 +11,7 @@ import LocalLoading from '../../components/LocalLoading';
 // import GlobalLoadingOverlay from '../../components/GlobalLoadingOverlay'; // Unused
 import EventDetailModal from '../v2/components/EventDetailModal';
 import EventRegistrationModal from '../../components/EventRegistrationModal';
+import { getEventMutation, mergeEventIntoArray, removeEventFromArray, sameEventId } from '../../utils/eventMutationSync';
 
 // Social Components
 import SocialGroupModal from '../social/components/SocialGroupModal';
@@ -68,6 +69,45 @@ export default function MyActivitiesPage() {
             return;
         }
         fetchData();
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const handleEventChanged = (nativeEvent: globalThis.Event) => {
+            const detail = (nativeEvent as CustomEvent).detail;
+            const { id, event } = getEventMutation(detail);
+            const targetId = id ?? event?.id;
+            if (!targetId || !event) return;
+            const belongsToUser = !event.user_id || String(event.user_id) === String(user.id);
+            const shouldInsert = nativeEvent.type === 'eventCreated' && belongsToUser;
+
+            setEvents(prev => mergeEventIntoArray(prev, detail, { insertIfMissing: shouldInsert })
+                .filter(item => !item.user_id || String(item.user_id) === String(user.id)));
+            setSocialSchedules(prev => mergeEventIntoArray(prev, detail, { insertIfMissing: shouldInsert })
+                .filter(item => item.group_id !== null && item.group_id !== undefined));
+            setFavoriteEvents(prev => mergeEventIntoArray(prev, detail));
+            setSelectedEvent(prev => prev && sameEventId(prev.id, targetId) ? ({ ...prev, ...event } as SupabaseEvent) : prev);
+        };
+
+        const handleEventDeleted = (nativeEvent: globalThis.Event) => {
+            const detail = (nativeEvent as CustomEvent).detail;
+            setEvents(prev => removeEventFromArray(prev, detail));
+            setSocialSchedules(prev => removeEventFromArray(prev, detail));
+            setFavoriteEvents(prev => removeEventFromArray(prev, detail));
+            const { id } = getEventMutation(detail);
+            setSelectedEvent(prev => prev && id && sameEventId(prev.id, id) ? null : prev);
+        };
+
+        window.addEventListener('eventUpdated', handleEventChanged);
+        window.addEventListener('eventCreated', handleEventChanged);
+        window.addEventListener('eventDeleted', handleEventDeleted);
+
+        return () => {
+            window.removeEventListener('eventUpdated', handleEventChanged);
+            window.removeEventListener('eventCreated', handleEventChanged);
+            window.removeEventListener('eventDeleted', handleEventDeleted);
+        };
     }, [user?.id]);
 
     const fetchData = async () => {

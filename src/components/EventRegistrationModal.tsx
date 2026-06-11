@@ -899,9 +899,12 @@ export default memo(function EventRegistrationModal({
           }
 
           if (resultData && resultData[0]) {
-            if (editEventData && onEventUpdated) {
+            if (editEventData) {
               const updatedEvent = resultData[0] as AppEvent;
-              onEventUpdated(updatedEvent);
+              window.dispatchEvent(new CustomEvent("eventUpdated", {
+                detail: { id: updatedEvent.id, event: updatedEvent }
+              }));
+              onEventUpdated?.(updatedEvent);
               trackEvent({
                 target_id: String(updatedEvent.id),
                 target_type: 'event_update',

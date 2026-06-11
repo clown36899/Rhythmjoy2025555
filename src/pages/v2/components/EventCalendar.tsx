@@ -5,6 +5,7 @@ import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import "../../../styles/components/EventCalendar.css";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
+import { mergeEventIntoArray, removeEventFromArray } from "../../../utils/eventMutationSync";
 
 const V2_EVENT_CALENDAR_DEBUG = import.meta.env.VITE_V2_EVENT_CALENDAR_DEBUG === 'true';
 const debugV2EventCalendar = (...args: unknown[]) => {
@@ -186,35 +187,6 @@ export default memo(function EventCalendar({
     }
   }, [currentMonth, yearRangeBase]);
 
-  // 이벤트 데이터 로드
-  useEffect(() => {
-    fetchEvents();
-  }, [currentMonth]);
-
-  // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
-  useEffect(() => {
-    const handleEventDeleted = () => {
-      debugV2EventCalendar('[EventCalendar] Event deleted, refreshing...');
-      fetchEvents();
-    };
-
-    const handleEventChanged = () => {
-      debugV2EventCalendar('[EventCalendar] Event updated/created, refreshing...');
-      fetchEvents();
-    };
-
-    window.addEventListener("eventDeleted", handleEventDeleted);
-    window.addEventListener("eventUpdated", handleEventChanged);
-    window.addEventListener("eventCreated", handleEventChanged);
-
-    return () => {
-      window.removeEventListener("eventDeleted", handleEventDeleted);
-      window.removeEventListener("eventUpdated", handleEventChanged);
-      window.removeEventListener("eventCreated", handleEventChanged);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const fetchEvents = useCallback(async () => {
     try {
       // Calculate date range: ±1 month from current month
@@ -242,6 +214,38 @@ export default memo(function EventCalendar({
       console.error("Error:", error);
     }
   }, [currentMonth]);
+
+  // 이벤트 데이터 로드
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
+  useEffect(() => {
+    const handleEventDeleted = (event: globalThis.Event) => {
+      debugV2EventCalendar('[EventCalendar] Event deleted, refreshing...');
+      setEvents((prev) => removeEventFromArray(prev, (event as CustomEvent).detail));
+      fetchEvents();
+    };
+
+    const handleEventChanged = (event: globalThis.Event) => {
+      debugV2EventCalendar('[EventCalendar] Event updated/created, refreshing...');
+      setEvents((prev) => mergeEventIntoArray(prev, (event as CustomEvent).detail, {
+        insertIfMissing: event.type === 'eventCreated',
+      }));
+      fetchEvents();
+    };
+
+    window.addEventListener("eventDeleted", handleEventDeleted);
+    window.addEventListener("eventUpdated", handleEventChanged);
+    window.addEventListener("eventCreated", handleEventChanged);
+
+    return () => {
+      window.removeEventListener("eventDeleted", handleEventDeleted);
+      window.removeEventListener("eventUpdated", handleEventChanged);
+      window.removeEventListener("eventCreated", handleEventChanged);
+    };
+  }, [fetchEvents]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
