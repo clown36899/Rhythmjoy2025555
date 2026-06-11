@@ -40,13 +40,50 @@ let analyticsAdminIdentityCache = {
   expiresAt: 0,
   userIds: new Set(),
   emails: new Set(),
+  sessionIds: new Set(),
+  fingerprints: new Set(),
 };
+
+function buildAnalyticsAdminDeviceIds(rows = [], userIds = new Set()) {
+  const sessionIds = new Set();
+  const fingerprints = new Set();
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const row of rows) {
+      const directAdmin = asBool(row?.is_admin, false)
+        || (row?.user_id && userIds.has(String(row.user_id)));
+      const linkedAdminDevice = Boolean(
+        (row?.session_id && sessionIds.has(String(row.session_id))) ||
+        (row?.fingerprint && fingerprints.has(String(row.fingerprint)))
+      );
+      if (!directAdmin && !linkedAdminDevice) continue;
+      if (row?.session_id && !sessionIds.has(String(row.session_id))) {
+        sessionIds.add(String(row.session_id));
+        changed = true;
+      }
+      if (row?.fingerprint && !fingerprints.has(String(row.fingerprint))) {
+        fingerprints.add(String(row.fingerprint));
+        changed = true;
+      }
+    }
+  }
+
+  return { sessionIds, fingerprints };
+}
 
 async function getAnalyticsAdminIdentityCache() {
   const now = Date.now();
   if (analyticsAdminIdentityCache.expiresAt > now) return analyticsAdminIdentityCache;
 
-  const admins = await loadCafe24TableRows('board_admins').catch(() => []);
+  const pool = getMysqlPool();
+  const [admins, userResult, boardUsers] = await Promise.all([
+    loadCafe24TableRows('board_admins').catch(() => []),
+    pool.execute('SELECT id, email, is_admin FROM users').then(([rows]) => rows).catch(() => []),
+    loadCafe24TableRows('board_users').catch(() => []),
+  ]);
+  const users = Array.isArray(userResult) ? userResult : [];
   const userIds = new Set();
   const emails = new Set(configuredAdminEmails());
   for (const admin of admins) {
@@ -54,11 +91,32 @@ async function getAnalyticsAdminIdentityCache() {
     const email = normalizeEmail(admin?.email || admin?.admin_email);
     if (email) emails.add(email);
   }
+  for (const user of users) {
+    const email = normalizeEmail(user?.email);
+    if (asBool(user?.is_admin, false) || (email && emails.has(email))) {
+      if (user?.id) userIds.add(String(user.id));
+      if (email) emails.add(email);
+    }
+  }
+  for (const boardUser of boardUsers) {
+    const email = normalizeEmail(boardUser?.email || boardUser?.admin_email);
+    if (asBool(boardUser?.is_admin, false) || (email && emails.has(email))) {
+      if (boardUser?.user_id) userIds.add(String(boardUser.user_id));
+      if (email) emails.add(email);
+    }
+  }
+  const [sessions, logs] = await Promise.all([
+    loadCafe24TableRows('session_logs').catch(() => []),
+    loadCafe24TableRows('site_analytics_logs').catch(() => []),
+  ]);
+  const { sessionIds, fingerprints } = buildAnalyticsAdminDeviceIds([...sessions, ...logs], userIds);
 
   analyticsAdminIdentityCache = {
-    expiresAt: now + 60_000,
+    expiresAt: now + 300_000,
     userIds,
     emails,
+    sessionIds,
+    fingerprints,
   };
   return analyticsAdminIdentityCache;
 }
@@ -579,7 +637,16 @@ export async function recordAnalytics(req, res) {
   const requestIp = requestClientIp(req);
   const currentUser = await getAnalyticsRequestUser(req, pool).catch(() => null);
   const trustedUserId = currentUser?.id ? String(currentUser.id) : null;
-  const trustedIsAdmin = Boolean(currentUser?.is_admin);
+  let trustedIsAdmin = Boolean(currentUser?.is_admin);
+  if (!trustedIsAdmin) {
+    const adminIdentities = await getAnalyticsAdminIdentityCache();
+    const requestSessionId = asString(req.body?.session_id || req.body?.sessionId);
+    const requestFingerprint = asString(req.body?.fingerprint);
+    trustedIsAdmin = Boolean(
+      (requestSessionId && adminIdentities.sessionIds.has(requestSessionId)) ||
+      (requestFingerprint && adminIdentities.fingerprints.has(requestFingerprint))
+    );
+  }
   const body = {
     ...(req.body || {}),
     user_id: trustedUserId,

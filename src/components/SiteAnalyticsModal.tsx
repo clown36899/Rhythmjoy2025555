@@ -422,6 +422,28 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 addRawIdentity(rawSessionIdToUser, row.session_id, userId);
                 addRawIdentity(rawFingerprintToUser, row.fingerprint, userId);
             });
+            const adminSessionIds = new Set<string>();
+            const adminFingerprints = new Set<string>();
+            let adminDeviceChanged = true;
+            while (adminDeviceChanged) {
+                adminDeviceChanged = false;
+                [...allSessions, ...data].forEach((row: any) => {
+                    const directAdmin = row.is_admin || (row.user_id && adminUserIds.has(String(row.user_id)));
+                    const linkedAdminDevice = (
+                        (row.session_id && adminSessionIds.has(String(row.session_id))) ||
+                        (row.fingerprint && adminFingerprints.has(String(row.fingerprint)))
+                    );
+                    if (!directAdmin && !linkedAdminDevice) return;
+                    if (row.session_id && !adminSessionIds.has(String(row.session_id))) {
+                        adminSessionIds.add(String(row.session_id));
+                        adminDeviceChanged = true;
+                    }
+                    if (row.fingerprint && !adminFingerprints.has(String(row.fingerprint))) {
+                        adminFingerprints.add(String(row.fingerprint));
+                        adminDeviceChanged = true;
+                    }
+                });
+            }
 
             const resolveAnalyticsUserId = (row: any) => {
                 if (row.user_id) return String(row.user_id);
@@ -435,6 +457,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const isAdminAnalyticsRow = (row: any) => {
                 if (row.is_admin) return true;
                 if (row.user_id) return adminUserIds.has(String(row.user_id));
+                if (row.session_id && adminSessionIds.has(String(row.session_id))) return true;
+                if (row.fingerprint && adminFingerprints.has(String(row.fingerprint))) return true;
                 const sessionUsers = row.session_id ? rawSessionIdToUser.get(String(row.session_id)) : null;
                 const fingerprintUsers = row.fingerprint ? rawFingerprintToUser.get(String(row.fingerprint)) : null;
                 return Boolean(
