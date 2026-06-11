@@ -13,7 +13,7 @@ const runtimeRevision = indexPrecacheEntry?.revision || 'dev';
 const RUNTIME_CACHE_PREFIX = 'rhythmjoy-runtime-';
 const LEGACY_CACHE_PREFIX = 'rhythmjoy-cache-';
 const CACHE_NAME = `${RUNTIME_CACHE_PREFIX}${runtimeRevision}`;
-// Last updated: 2026-06-11 (v54)
+// Last updated: 2026-06-11 (v56)
 self.addEventListener('install', (event) => {
   // Cache only the shell essentials. Build-specific cache names prevent stale Cafe24 HTML.
   event.waitUntil(

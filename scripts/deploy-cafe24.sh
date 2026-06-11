@@ -24,4 +24,19 @@ rsync -az --delete --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist-
 rsync -az --delete --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" server/cafe24/ "${TARGET}:${APP_DIR}/server/cafe24/"
 rsync -az -e "${RSYNC_SSH}" package.json package-lock.json "${TARGET}:${APP_DIR}/"
 
-ssh "${SSH_ARGS[@]}" "${TARGET}" "cd '${APP_DIR}' && systemctl restart swingenjoy && systemctl is-active swingenjoy && cat dist/version.json"
+ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
+cd '${APP_DIR}'
+systemctl restart swingenjoy
+i=0
+until curl -fsS http://127.0.0.1:3001/__health >/dev/null; do
+  i=\$((i + 1))
+  if [ \"\$i\" -ge 30 ]; then
+    echo 'Cafe24 app did not become healthy after restart' >&2
+    systemctl status swingenjoy --no-pager >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
+systemctl reload httpd || true
+systemctl is-active swingenjoy
+cat dist/version.json"
