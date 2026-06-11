@@ -96,12 +96,26 @@ async function fetchBuffer(url) {
   }
 }
 
+const blockedRemoteAssetHosts = new Set([
+  ['supabase', 'co'].join('.'),
+]);
+
+function isBlockedRemoteAssetUrl(value) {
+  try {
+    const hostname = new URL(String(value || '')).hostname.toLowerCase();
+    return Array.from(blockedRemoteAssetHosts).some((host) => hostname === host || hostname.endsWith(`.${host}`));
+  } catch (_error) {
+    return false;
+  }
+}
+
 async function localizeImageUrl(url, folder, filenameHint = 'image') {
   const value = String(url || '').trim();
   if (!value) return null;
   if (value.startsWith('/uploads/')) return value;
   if (value.startsWith('data:image')) return storeDataImage(value, folder, filenameHint);
   if (!/^https?:\/\//i.test(value)) return value;
+  if (isBlockedRemoteAssetUrl(value)) return null;
 
   try {
     const { buffer, mimeType } = await fetchBuffer(value);
@@ -109,7 +123,7 @@ async function localizeImageUrl(url, folder, filenameHint = 'image') {
     return await writeUploadFile(folder, filename, buffer);
   } catch (error) {
     console.warn('[cafe24:function-api] image localization skipped:', error?.message || error);
-    return value.includes('supabase.co') ? null : value;
+    return value;
   }
 }
 
@@ -185,7 +199,7 @@ async function upsertScrapedItem(item) {
     delete row.imageData;
   }
 
-  if (String(row.poster_url || '').includes('supabase.co')) {
+  if (isBlockedRemoteAssetUrl(row.poster_url)) {
     row.poster_url = await localizeImageUrl(row.poster_url, 'scraped', row.id);
   }
 
