@@ -38,7 +38,7 @@ export function getOptimizedImageUrl(url: string | ImageObject | undefined | nul
 
   // 레거시 Storage URL은 서버 데이터 이관 과정에서 /uploads로 치환합니다.
   if (actualUrl.includes('/storage/v1/object/public/')) {
-    // Supabase Image Transformation Logic Removed by User Request
+    // Remote image transformation logic removed by user request.
     return actualUrl;
   }
 

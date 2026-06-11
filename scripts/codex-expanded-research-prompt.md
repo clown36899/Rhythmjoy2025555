@@ -7,8 +7,8 @@ Hard constraints:
 - Read and follow `.agents/skills/web-search-ingestion/SKILL.md`.
 - Treat `scripts/ingestion/collection-registry.mjs` as the machine-readable source registry.
 - Use `getAutomationSourceList('expanded-research')`.
-- Do not insert, update, or delete Supabase rows.
-- Do not upload images to Supabase Storage.
+- Do not insert, update, or delete production DB rows directly.
+- Do not upload images directly to storage.
 - Do not call `https://swingenjoy.com/api/scraped-events`.
 - Do not commit or push.
 - Do not edit application source code, git history, or configuration.

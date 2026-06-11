@@ -1,8 +1,8 @@
-import type { SupabaseClient } from '../../../../lib/cafe24ClientTypes';
+import type { Cafe24Client } from '../../../../lib/cafe24ClientTypes';
 
 let cachedOwnerUserId: string | null = null;
 
-export async function getIngestorOwnerUserId(supabase: SupabaseClient): Promise<string> {
+export async function getIngestorOwnerUserId(supabase: Cafe24Client): Promise<string> {
   if (cachedOwnerUserId) return cachedOwnerUserId;
 
   const { data: admins, error: adminError } = await supabase

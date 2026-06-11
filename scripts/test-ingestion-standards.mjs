@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  buildNetlifyPayload,
+  buildCafe24Payload,
   hasBadPosterUrl,
   makeDeterministicId,
   prepareCandidate,
@@ -123,7 +123,7 @@ const streetOfficialEvent = prepareCandidate(baseCandidate({
 assert.equal(streetOfficialEvent.validation.ok, true, 'verified DanceCode detail page can be saved as an expanded street event');
 assert.equal(streetOfficialEvent.candidate.structured_data.activity_type, 'event');
 
-const tango = buildNetlifyPayload(baseCandidate({
+const tango = buildCafe24Payload(baseCandidate({
   source_url: 'https://tangotocup.com/competition/65',
   extracted_text: '서울 탱고 대회 TangotoWorld CUP Seoul Preliminary 2026.07.11 Freestyle Tango Studio',
   structured_data: { title: 'TangotoWorld CUP Seoul Preliminary', date: '2026-07-11', location: 'Freestyle Tango Studio', event_type: '행사' },

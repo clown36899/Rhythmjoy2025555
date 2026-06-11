@@ -68,7 +68,7 @@ export default function DebugLogPage() {
             localStorage.clear();
             sessionStorage.clear();
 
-            // 4. Supabase SignOut
+            // 4. Cafe24 auth sign-out
             await supabase.auth.signOut();
 
             alert('초기화 완료. 메인으로 이동합니다.');

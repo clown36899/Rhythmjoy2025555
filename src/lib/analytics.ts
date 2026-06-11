@@ -333,7 +333,7 @@ export const setUserProperties = (properties: Record<string, string | number | b
 /**
  * User ID 설정 (로그인한 사용자 추적)
  * 여러 기기/브라우저에서도 동일한 사용자로 인식
- * @param userId - 사용자 ID (Supabase User ID), null이면 제거
+ * @param userId - 사용자 ID, null이면 제거
  */
 export const setUserId = (userId: string | null) => {
     if (!isAllowedEnvironment()) return;

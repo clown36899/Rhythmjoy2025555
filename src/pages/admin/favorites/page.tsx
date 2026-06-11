@@ -38,7 +38,7 @@ export default function AdminFavoritesPage() {
             let resultData: FavoriteItem[] = [];
 
             // 1. Fetch Favorites Data based on Tab
-            // Note: We perform client-side join for reliability if Supabase foreign keys vary
+            // Note: We perform client-side join for reliability if relation metadata varies.
             let query;
             let tableName = '';
             let itemIdField = '';

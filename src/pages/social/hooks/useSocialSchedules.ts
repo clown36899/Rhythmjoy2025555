@@ -56,7 +56,7 @@ export function useSocialSchedules() {
             // Type assertion for Promise.race result
             const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
-            // Check if result is from supabase (has data/error)
+            // Check if result is from the compatibility client (has data/error)
             const { data: placeSchedules, error } = result;
 
             if (error) throw error;

@@ -131,7 +131,7 @@ export async function getVideoThumbnail(videoUrl: string): Promise<string | null
   return null;
 }
 
-// 썸네일 URL을 Blob으로 다운로드 (Supabase 업로드용)
+// 썸네일 URL을 Blob으로 다운로드 (스토리지 업로드용)
 export async function downloadThumbnailAsBlob(thumbnailUrl: string): Promise<Blob | null> {
   try {
     const response = await fetch(thumbnailUrl, {

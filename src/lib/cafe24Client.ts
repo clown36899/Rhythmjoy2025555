@@ -2,7 +2,7 @@ import { authLogger } from '../utils/authLogger';
 import { getAuthStorageKey, getAuthValidationKey } from './authStorageKeys';
 import { createCafe24DataCompat } from './cafe24DataCompat';
 
-const DATA_CLIENT_DEBUG = import.meta.env.VITE_DATA_CLIENT_DEBUG === 'true' || import.meta.env.VITE_SUPABASE_DEBUG === 'true';
+const DATA_CLIENT_DEBUG = import.meta.env.VITE_DATA_CLIENT_DEBUG === 'true';
 if (DATA_CLIENT_DEBUG) {
   console.debug('%c[DataClient] module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
 }

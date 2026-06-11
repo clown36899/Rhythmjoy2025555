@@ -1,5 +1,5 @@
 /**
- * Hybrid Lock Engine for Supabase Auth
+ * Hybrid lock engine for Cafe24 auth compatibility calls.
  * 
  * [목적]
  * 1. PC (Chrome/Firefox): navigator.locks를 사용하여 가장 안정적인 탭 간 동기화 제공 (Deployment Race Condition 방지)
@@ -15,7 +15,7 @@ const shouldUseLocalStorageLock = () => {
     const isMobile = /mobile|iphone|ipad|ipod|android/i.test(ua);
 
     // Mobile Chrome can leave Web Locks pending while OAuth redirects and service-worker
-    // startup compete for the main thread. Supabase auth calls are short, so the
+    // startup compete for the main thread. Auth compatibility calls are short, so the
     // localStorage mutex is safer for all mobile browsers.
     return isSafari || isIOS || isAndroid || isMobile;
 };
@@ -113,7 +113,7 @@ class LocalStorageLock {
 }
 
 export const hybridLock = async (name: string, timeout: number = 1500, fn: () => Promise<any> | any) => {
-    // [Safety] Supabase 내부에서 timeout을 0이나 undefined로 넘길 경우 기본값 적용
+    // [Safety] 호환 클라이언트 내부에서 timeout을 0이나 undefined로 넘길 경우 기본값 적용
     const effectiveTimeout = (!timeout || timeout <= 0) ? 1500 : timeout;
 
     // 1. iOS/Safari 환경이면 커스텀 락 사용. Android Chrome은 Web Locks API가 안정적이라 네이티브 락을 우선한다.

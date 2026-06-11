@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import type { StandardBoardPost } from '../../../types/board';
-import type { Event as SupabaseEvent } from '../../../lib/cafe24Client';
+import type { Event as Cafe24Event } from '../../../lib/cafe24Client';
 
 interface MyImpactCardProps {
     user: any;
     posts: StandardBoardPost[];
-    events: SupabaseEvent[];
-    favoriteEvents?: SupabaseEvent[];
+    events: Cafe24Event[];
+    favoriteEvents?: Cafe24Event[];
     favoritePosts?: StandardBoardPost[];
     initialExpanded?: boolean;
     onInsertItem?: (type: string, name: string, config: any) => void;

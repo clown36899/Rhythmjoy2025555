@@ -315,7 +315,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
             const excludedPrefix = '91b04b25';
 
-            // Raw Data Fetch (Pagination to bypass Supabase 1000 limit)
+            // Raw data fetch with pagination.
             let allLogs: any[] = [];
             let page = 0;
             const PAGE_SIZE = 1000;

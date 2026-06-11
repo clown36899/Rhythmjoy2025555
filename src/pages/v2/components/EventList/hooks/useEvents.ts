@@ -148,13 +148,17 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
             applyEvents(prev => mergeEventIntoArray(prev, (event as CustomEvent).detail, {
                 insertIfMissing: event.type === 'eventCreated',
             }));
-            fetchEvents();
+            window.setTimeout(() => {
+                fetchEvents();
+            }, 1200);
         };
 
         const handleEventDeleted = (event: globalThis.Event) => {
             console.log('[useEvents] Delete event detected, patching and refetching...');
             applyEvents(prev => removeEventFromArray(prev, (event as CustomEvent).detail));
-            fetchEvents();
+            window.setTimeout(() => {
+                fetchEvents();
+            }, 1200);
         };
 
         window.addEventListener('eventDeleted', handleEventDeleted);

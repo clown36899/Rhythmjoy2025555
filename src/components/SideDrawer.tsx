@@ -222,7 +222,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                 localStorage.setItem('layout_stats_v1', JSON.stringify(newData));
 
             } else {
-                // API 실패 시 폴백 (관리자만 Supabase 직접 조회)
+                // API 실패 시 폴백 (관리자만 Cafe24 호환 클라이언트 직접 조회)
                 if (isAdmin) {
                     const [memberRes, pwaRes, pushRes] = await Promise.all([
                         supabase.from('board_users').select('*', { count: 'exact', head: true }),

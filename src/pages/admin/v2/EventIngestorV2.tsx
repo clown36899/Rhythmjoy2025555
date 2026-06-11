@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase as prodSupabase } from '../../../lib/cafe24Client';
+import { supabase as prodClient } from '../../../lib/cafe24Client';
 import {
   detectIngestorActivity,
   getIngestorActivityLabel,
@@ -138,7 +138,7 @@ const SCOPE_FILTER_OPTIONS: Array<{ key: ScopeFilter; label: string; description
 ];
 
 const EventIngestorV2: React.FC = () => {
-  const { isAuthCheckComplete } = useAuth();
+  const { isAdmin, isAuthCheckComplete } = useAuth();
   const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -169,7 +169,7 @@ const EventIngestorV2: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getAdminRequestHeaders = async (withJson = false): Promise<Record<string, string>> => {
-    const { data } = await prodSupabase.auth.getSession();
+    const { data } = await prodClient.auth.getSession();
     const token = data.session?.access_token;
     return {
       ...(withJson ? { 'Content-Type': 'application/json' } : {}),
@@ -204,6 +204,11 @@ const EventIngestorV2: React.FC = () => {
   };
 
   const fetchScrapedEvents = async (page = 1, tab = activeTab, scope = scopeFilter) => {
+    if (!isAuthCheckComplete || !isAdmin) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(buildScrapedEventsUrl(page, tab, scope), {
@@ -222,6 +227,11 @@ const EventIngestorV2: React.FC = () => {
   };
 
   const fetchTabCounts = async (scope = scopeFilter) => {
+    if (!isAuthCheckComplete || !isAdmin) {
+      setTabCounts({ new: 0, collected: 0, duplicate: 0 });
+      return;
+    }
+
     try {
       const scopeQuery = scope === 'all' ? '' : `&scope=${scope}`;
       const headers = await getAdminRequestHeaders();
@@ -238,15 +248,18 @@ const EventIngestorV2: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isAuthCheckComplete) return;
+    if (!isAuthCheckComplete || !isAdmin) return;
     fetchScrapedEvents(1, activeTab, scopeFilter);
     fetchTabCounts(scopeFilter);
-  }, [activeTab, scopeFilter, isAuthCheckComplete]);
+  }, [activeTab, scopeFilter, isAdmin, isAuthCheckComplete]);
 
   useEffect(() => {
-    if (!isAuthCheckComplete) return;
+    if (!isAuthCheckComplete || !isAdmin) {
+      setVenues([]);
+      return;
+    }
     const fetchVenues = async () => {
-      const { data, error } = await prodSupabase
+      const { data, error } = await prodClient
         .from('venues')
         .select('id, name, address, map_url')
         .eq('is_active', true);
@@ -257,10 +270,10 @@ const EventIngestorV2: React.FC = () => {
       setVenues((data || []) as VenueRecord[]);
     };
     fetchVenues();
-  }, [isAuthCheckComplete]);
+  }, [isAdmin, isAuthCheckComplete]);
 
   useEffect(() => {
-    if (!isAuthCheckComplete) return;
+    if (!isAuthCheckComplete || !isAdmin) return;
     if (scopeFilter !== 'tango') return;
 
     let alive = true;
@@ -281,7 +294,7 @@ const EventIngestorV2: React.FC = () => {
 
     fetchTangoSceneMap();
     return () => { alive = false; };
-  }, [scopeFilter, isAuthCheckComplete]);
+  }, [scopeFilter, isAdmin, isAuthCheckComplete]);
 
   const scopeLocalCounts = useMemo(() => {
     const counts = new Map<ScopeFilter, number>();
@@ -494,7 +507,7 @@ const EventIngestorV2: React.FC = () => {
     // extracted_text는 목록 조회 시 제외되므로 등록 시 별도 조회
     let extractedText = event.extracted_text || '';
     if (!extractedText) {
-      const { data: full } = await prodSupabase.from('scraped_events' as any).select('extracted_text').eq('id', event.id).maybeSingle();
+      const { data: full } = await prodClient.from('scraped_events' as any).select('extracted_text').eq('id', event.id).maybeSingle();
       extractedText = (full as any)?.extracted_text || '';
     }
 
@@ -559,7 +572,7 @@ const EventIngestorV2: React.FC = () => {
   const findRegisteredDuplicate = async (event: ScrapedEvent, formattedTitle: string, mapped: MappedIngestorEvent) => {
     const date = event.structured_data.date;
     if (!date) return null;
-    const { data, error } = await prodSupabase
+    const { data, error } = await prodClient
       .from('events')
       .select('id,title,date,start_date,end_date,location,venue_name,venue_id,link1')
       .or(`date.eq.${date},start_date.eq.${date},and(start_date.lte.${date},end_date.gte.${date})`)
@@ -624,7 +637,18 @@ const EventIngestorV2: React.FC = () => {
   };
 
   if (!isAuthCheckComplete) {
-    return <div className="ingestor-v2-container">수집 후보 불러오는 중...</div>;
+    return <div className="ingestor-v2-container">관리자 권한을 확인하는 중...</div>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="ingestor-v2-container">
+        <header className="ingestor-v2-header">
+          <h1>수집 데이터 센터 V2</h1>
+          <p>관리자 계정으로 로그인한 뒤 사용할 수 있습니다.</p>
+        </header>
+      </div>
+    );
   }
 
   return (

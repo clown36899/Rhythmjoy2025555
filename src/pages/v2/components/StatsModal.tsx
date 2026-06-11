@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/cafe24Client';
 import MyImpactCard from '../../user/components/MyImpactCard';
-import type { Event as SupabaseEvent } from '../../../lib/cafe24Client';
+import type { Event as Cafe24Event } from '../../../lib/cafe24Client';
 import type { StandardBoardPost } from '../../../types/board';
 import SwingSceneStats from './SwingSceneStats';
 import MonthlyWebzine from './MonthlyBillboard/MonthlyWebzine';
@@ -24,9 +24,9 @@ interface UserProfile {
 }
 
 export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
-    const [events, setEvents] = useState<SupabaseEvent[]>([]);
+    const [events, setEvents] = useState<Cafe24Event[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
-    const [favoriteEvents, setFavoriteEvents] = useState<SupabaseEvent[]>([]);
+    const [favoriteEvents, setFavoriteEvents] = useState<Cafe24Event[]>([]);
     const [favoritePosts, setFavoritePosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -104,7 +104,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
             if (userRes.data) setUserProfile(userRes.data);
 
             if (favEventsRes.data) {
-                const extracted = favEventsRes.data.map((f: any) => f.events).filter(Boolean) as unknown as SupabaseEvent[];
+                const extracted = favEventsRes.data.map((f: any) => f.events).filter(Boolean) as unknown as Cafe24Event[];
                 setFavoriteEvents(extracted);
             }
             if (favPostsRes.data) {

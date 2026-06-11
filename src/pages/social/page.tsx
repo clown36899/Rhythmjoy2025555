@@ -161,6 +161,7 @@ const SocialPage: React.FC = () => {
   // Registration Modal State
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [selectedDateForAdd, setSelectedDateForAdd] = useState<string | null>(null);
+  const [groupPasswordForModal, setGroupPasswordForModal] = useState<string | null>(null);
 
   // Helpers
   const verifyGroupPassword = useCallback(async (groupId: number, inputPw: string): Promise<boolean> => {
@@ -190,6 +191,9 @@ const SocialPage: React.FC = () => {
         alert("비밀번호가 일치하지 않습니다.");
         return;
       }
+      setGroupPasswordForModal(inputPw);
+    } else {
+      setGroupPasswordForModal(null);
     }
 
     // Open SocialScheduleModal with 'oneday' tab for editing
@@ -618,6 +622,7 @@ const SocialPage: React.FC = () => {
             setEditSchedule(null);
             setCopySchedule(null);
             setTargetGroupId(null);
+            setGroupPasswordForModal(null);
             // setInitialModalTab('social'); // Reset logic inside modal or just let it unmount
           }}
           groupId={targetGroupId || -1}
@@ -625,6 +630,7 @@ const SocialPage: React.FC = () => {
           editSchedule={editSchedule}
           initialData={copySchedule}
           initialTab={initialModalTab}
+          groupPassword={groupPasswordForModal}
           onSuccess={() => {
             refreshSchedules();
             refreshGroups(); // recruit update might need group refresh
@@ -632,6 +638,7 @@ const SocialPage: React.FC = () => {
             setEditSchedule(null);
             setCopySchedule(null);
             setTargetGroupId(null);
+            setGroupPasswordForModal(null);
           }}
         />
       )}

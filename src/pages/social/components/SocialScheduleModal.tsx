@@ -19,6 +19,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     editSchedule,
     initialData,
     initialTab,
+    groupPassword,
     onSuccess
 }) => {
     const { user, isAdmin } = useAuth();
@@ -539,15 +540,25 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     imageUrl = supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
                 }
 
-                const { error } = await supabase
-                    .from('social_groups')
-                    .update({
-                        recruit_content: recruitContent,
-                        recruit_contact: recruitContact,
-                        recruit_link: recruitLink,
-                        recruit_image: imageUrl
+                const recruitUpdates = {
+                    recruit_content: recruitContent,
+                    recruit_contact: recruitContact,
+                    recruit_link: recruitLink,
+                    recruit_image: imageUrl
+                };
+
+                const request = groupPassword
+                    ? supabase.rpc('update_social_group_with_password', {
+                        p_group_id: groupId,
+                        p_password: groupPassword,
+                        p_updates: recruitUpdates,
                     })
-                    .eq('id', groupId);
+                    : supabase
+                        .from('social_groups')
+                        .update(recruitUpdates)
+                        .eq('id', groupId);
+
+                const { error } = await request;
 
                 if (error) throw error;
 

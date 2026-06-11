@@ -8,7 +8,7 @@ import ImageCropModal from '../../components/ImageCropModal';
 const VenueSelectModal = React.lazy(() => import('../v2/components/VenueSelectModal'));
 import './EventIngestor.css';
 
-const prodSupabase = supabase;
+const prodClient = supabase;
 
 interface ScrapedEvent {
     id: string;
@@ -45,7 +45,7 @@ interface VenueRecord {
 }
 
 const EventIngestor: React.FC = () => {
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, isAuthCheckComplete } = useAuth();
     const queryClient = useQueryClient();
     const { events: existingEvents, loading: existingLoading } = useEvents({ isAdminMode: true });
     const [currentTab, setCurrentTab] = useState<'social' | 'lessons'>('social');
@@ -87,9 +87,17 @@ const EventIngestor: React.FC = () => {
     }, []);
 
     const fetchScraped = useCallback(async () => {
+        if (!isAuthCheckComplete) return;
+        if (!isAdmin) {
+            setScrapedEvents([]);
+            setSelectedIds(new Set());
+            setLoadingScraped(false);
+            return;
+        }
+
         setLoadingScraped(true);
         try {
-            // [로컬전환] Netlify Function API에서 로컬 JSON 데이터 조회
+            // Cafe24 API에서 수집 후보 데이터 조회
             const res = await fetch(`/api/scraped-events?type=${currentTab}`, {
                 headers: await getAdminRequestHeaders(),
             });
@@ -105,7 +113,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setLoadingScraped(false);
         }
-    }, [currentTab, getAdminRequestHeaders]);
+    }, [currentTab, getAdminRequestHeaders, isAdmin, isAuthCheckComplete]);
 
     useEffect(() => {
         fetchScraped();
@@ -114,6 +122,12 @@ const EventIngestor: React.FC = () => {
     // Venues 로딩 (장소 자동 매칭용)
     useEffect(() => {
         const fetchVenues = async () => {
+            if (!isAuthCheckComplete) return;
+            if (!isAdmin) {
+                setVenues([]);
+                return;
+            }
+
             const { data } = await supabase
                 .from('venues')
                 .select('id, name, address')
@@ -121,7 +135,7 @@ const EventIngestor: React.FC = () => {
             if (data) setVenues(data);
         };
         fetchVenues();
-    }, []);
+    }, [isAdmin, isAuthCheckComplete]);
 
     // 장소명으로 venue 매칭
     const matchVenue = useCallback((locationName: string): VenueRecord | null => {
@@ -209,12 +223,12 @@ const EventIngestor: React.FC = () => {
 
                     const uploadImage = async (size: string, blob: Blob) => {
                         const path = `${basePath}/${size}.webp`;
-                        const { error } = await prodSupabase.storage.from('images').upload(path, blob, {
+                        const { error } = await prodClient.storage.from('images').upload(path, blob, {
                             contentType: 'image/webp',
                             upsert: true
                         });
                         if (error) throw error;
-                        return prodSupabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                        return prodClient.storage.from('images').getPublicUrl(path).data.publicUrl;
                     };
 
                     const [microUrl, thumbUrl, medUrl, fullUrl] = await Promise.all([
@@ -817,6 +831,21 @@ const EventIngestor: React.FC = () => {
 
         return groups.sort((a, b) => a.scrapedDate.localeCompare(b.scrapedDate));
     }, [showComparison, scrapedEvents, existingEvents]);
+
+    if (!isAuthCheckComplete) {
+        return <div className="event-ingestor-container">관리자 권한을 확인하는 중...</div>;
+    }
+
+    if (!isAdmin) {
+        return (
+            <div className="event-ingestor-container">
+                <header className="event-ingestor-header">
+                    <h1>이벤트 인제스터</h1>
+                    <p>관리자 계정으로 로그인한 뒤 사용할 수 있습니다.</p>
+                </header>
+            </div>
+        );
+    }
 
     // 최초 로딩 완료 시 플래그 세팅 (이후 refetch에서 로딩 가드 발동 방지)
     if (!existingLoading && !loadingScraped && !isInitialLoadRef.current) {

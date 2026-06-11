@@ -80,8 +80,8 @@ export async function convertToWebP(
 }
 
 /**
- * Supabase Storage URL에서 파일 경로 추출
- * @param url Supabase Storage 공개 URL
+ * Storage URL에서 파일 경로 추출
+ * @param url Storage 공개 URL
  * @returns 파일 경로 (예: "profiles/user-123.webp")
  */
 export function extractStoragePath(url: string): string | null {

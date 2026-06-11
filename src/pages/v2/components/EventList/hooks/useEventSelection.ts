@@ -80,7 +80,7 @@ export function useEventSelection({
                 isAdminMode,
             });
 
-            // Call Netlify Function for deletion (handling storage cleanup)
+            // Call Cafe24 API for deletion (handling storage cleanup)
             const response = await fetch('/api/delete-event', {
                 method: 'POST',
                 headers: {

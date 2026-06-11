@@ -8,7 +8,7 @@ export type Session = {
   expires_at?: number;
   user?: User | null;
 };
-export type SupabaseClient = ReturnType<typeof createCafe24DataCompat>;
+export type Cafe24Client = ReturnType<typeof createCafe24DataCompat>;
 export type User = {
   id: string;
   email?: string;
@@ -18,6 +18,6 @@ export type User = {
   [key: string]: unknown;
 };
 
-export function createClient(): SupabaseClient {
+export function createClient(): Cafe24Client {
   return createCafe24DataCompat();
 }

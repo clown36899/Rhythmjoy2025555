@@ -82,9 +82,11 @@ const compositeKeysByTable = {
 };
 
 const adminOnlyGenericTables = new Set([
+  'board_admins',
   'client_reload_diagnostics',
   'invitations',
   'invitation_logs',
+  'notification_queue',
   'pwa_installs',
   'scraped_events',
   'server_version_diagnostics',
@@ -124,7 +126,6 @@ const adminOnlyMutationTables = new Set([
   'site_usage_stats',
   'swing_oneday_recruit_links',
   'theme_settings',
-  'venue_edit_logs',
   'webzine_posts',
 ]);
 
@@ -137,6 +138,7 @@ const loginRequiredMutationTables = new Set([
   'board_post_likes',
   'board_posts',
   'event_favorites',
+  'featured_items',
   'item_views',
   'metronome_presets',
   'practice_room_favorites',
@@ -148,6 +150,7 @@ const loginRequiredMutationTables = new Set([
   'social_places',
   'social_schedules',
   'user_push_subscriptions',
+  'venue_edit_logs',
   'venues',
 ]);
 
@@ -160,6 +163,7 @@ const ownerScopedMutationTables = new Set([
   'board_post_likes',
   'board_posts',
   'event_favorites',
+  'featured_items',
   'metronome_presets',
   'practice_room_favorites',
   'shop_favorites',
@@ -170,6 +174,7 @@ const ownerScopedMutationTables = new Set([
   'social_places',
   'social_schedules',
   'user_push_subscriptions',
+  'venue_edit_logs',
   'venues',
 ]);
 
@@ -190,6 +195,19 @@ const boardUserSelfWritableFields = new Set([
   'profile_image',
   'updated_at',
 ]);
+
+const parentOwnedMutationTables = {
+  featured_items: { parentTable: 'shops', foreignKey: 'shop_id', ownerField: 'user_id' },
+};
+
+const adminProtectedMutationFieldsByTable = {
+  shops: new Set(['is_active', 'is_approved', 'is_featured', 'featured', 'display_order', 'sort_order']),
+  site_links: new Set(['is_approved', 'approved_at', 'approved_by', 'display_order', 'sort_order']),
+  social_groups: new Set(['is_active', 'is_approved', 'is_featured', 'display_order', 'sort_order']),
+  social_places: new Set(['is_active', 'is_approved', 'display_order', 'sort_order']),
+  social_schedules: new Set(['is_active', 'is_approved', 'display_order', 'sort_order']),
+  venues: new Set(['is_active', 'is_approved', 'is_featured', 'featured', 'display_order', 'sort_order']),
+};
 
 function getBodyValues(body = {}) {
   return Array.isArray(body?.values) ? body.values : [body?.values || {}];
@@ -215,11 +233,80 @@ function rowOwnerMatches(user, row = {}) {
   return ownerCandidates.some((id) => userMatchesId(user, id));
 }
 
-function mutationValueOwnerMatches(user, row = {}) {
+async function parentOwnerMatches(user, table, row = {}) {
+  const config = parentOwnedMutationTables[table];
+  if (!config) return false;
+  const parentId = row?.[config.foreignKey];
+  if (parentId === undefined || parentId === null || parentId === '') return false;
+  const parent = await findRelated(config.parentTable, 'id', parentId);
+  return parent ? userMatchesId(user, parent[config.ownerField]) : false;
+}
+
+async function mutationRowOwnerMatches(user, table, row = {}) {
+  return rowOwnerMatches(user, row) || await parentOwnerMatches(user, table, row);
+}
+
+async function mutationValueOwnerMatches(user, table, row = {}) {
   const ownerKeys = ['user_id', 'author_id', 'auth_user_id', 'created_by', 'owner_id'];
   const presentOwnerKeys = ownerKeys.filter((key) => row?.[key] !== undefined && row?.[key] !== null && row?.[key] !== '');
-  if (!presentOwnerKeys.length) return true;
-  return presentOwnerKeys.every((key) => userMatchesId(user, row[key]));
+  if (presentOwnerKeys.length) {
+    return presentOwnerKeys.every((key) => userMatchesId(user, row[key]));
+  }
+  if (parentOwnedMutationTables[table]) return parentOwnerMatches(user, table, row);
+  return true;
+}
+
+function valuesContainAdminProtectedFields(table, values = []) {
+  const protectedFields = adminProtectedMutationFieldsByTable[table];
+  if (!protectedFields?.size) return false;
+  return values.some((row) => Object.keys(row || {}).some((key) => protectedFields.has(key)));
+}
+
+function stripPrivateFields(row = {}) {
+  const next = { ...row };
+  delete next.password;
+  delete next.password_hash;
+  delete next.access_token;
+  delete next.refresh_token;
+  delete next.token;
+  return next;
+}
+
+function sanitizeBoardUserForViewer(row = {}, user) {
+  const next = stripPrivateFields(row);
+  if (user?.is_admin || userMatchesId(user, next.user_id)) return next;
+  return {
+    id: next.id,
+    user_id: next.user_id,
+    nickname: next.nickname,
+    profile_image: next.profile_image,
+  };
+}
+
+function sanitizeRowForViewer(table, row = {}, user) {
+  let next = stripPrivateFields(row || {});
+  if (table === 'board_users') next = sanitizeBoardUserForViewer(next, user);
+  if (next.board_users) next.board_users = sanitizeBoardUserForViewer(next.board_users, user);
+  return next;
+}
+
+function sanitizeRowsForViewer(table, rows = [], user) {
+  return rows.map((row) => sanitizeRowForViewer(table, row, user));
+}
+
+function isTruthy(value) {
+  if (value === true || value === 1) return true;
+  return String(value || '').toLowerCase() === 'true' || String(value || '') === '1';
+}
+
+function filterRowsForViewer(table, rows = [], user) {
+  if (table === 'site_links' && !user?.is_admin) {
+    return rows.filter((row) => (
+      isTruthy(row.is_approved) ||
+      (user && rowOwnerMatches(user, row))
+    ));
+  }
+  return rows;
 }
 
 async function requireLoggedInMutationUser(req) {
@@ -309,16 +396,22 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
     const user = await requireLoggedInMutationUser(req);
     if (user.is_admin || !ownerScopedMutationTables.has(table)) return;
 
+    if (valuesContainAdminProtectedFields(table, getBodyValues(body))) {
+      throw httpError('관리자만 수정할 수 있는 필드입니다.', 403);
+    }
+
     if (['insert', 'upsert'].includes(action)) {
       const values = getBodyValues(body);
-      if (!values.every((row) => mutationValueOwnerMatches(user, row))) {
+      const ownerChecks = await Promise.all(values.map((row) => mutationValueOwnerMatches(user, table, row)));
+      if (!ownerChecks.every(Boolean)) {
         throw httpError('수정 권한이 없습니다.', 403);
       }
     }
 
     if (['update', 'delete'].includes(action)) {
       const targets = await resolveMutationTargets(table, body?.filters || [], body?.orFilters || []);
-      if (targets.length && !targets.every((row) => rowOwnerMatches(user, row))) {
+      const ownerChecks = await Promise.all(targets.map((row) => mutationRowOwnerMatches(user, table, row)));
+      if (targets.length && !ownerChecks.every(Boolean)) {
         throw httpError('수정 권한이 없습니다.', 403);
       }
     }
@@ -729,17 +822,21 @@ async function findBoardPrefix(row) {
   return null;
 }
 
-async function hydrateRows(table, rows, select = '') {
+async function hydrateRows(table, rows, select = '', user = null) {
   if (!select || !rows.length) return rows;
   const wantsBoardUser = select.includes('board_users');
   const wantsVenue = select.includes('venues');
   const wantsEvents = select.includes('events(');
   const wantsPosts = select.includes('board_posts');
   const wantsPrefix = select.includes('prefix:board_prefixes') || select.includes('board_prefixes');
+  const wantsFeaturedItems = select.includes('featured_items');
+  const wantsSocialGroupFavorites = select.includes('social_group_favorites');
   const wantsLinkedVideo = select.includes('linked_video');
   const wantsLinkedDocument = select.includes('linked_document');
   const wantsLinkedPlaylist = select.includes('linked_playlist');
   const wantsLinkedCategory = select.includes('linked_category');
+  const featuredItems = table === 'shops' && wantsFeaturedItems ? await loadRows('featured_items') : [];
+  const socialGroupFavorites = table === 'social_groups' && wantsSocialGroupFavorites ? await loadRows('social_group_favorites') : [];
 
   const nextRows = [];
   for (const row of rows) {
@@ -758,6 +855,15 @@ async function hydrateRows(table, rows, select = '') {
     }
     if (table === 'board_posts' && wantsPrefix) {
       next.prefix = await findBoardPrefix(row);
+    }
+    if (table === 'shops' && wantsFeaturedItems) {
+      next.featured_items = sortRows(featuredItems.filter((item) => String(item.shop_id) === String(row.id)));
+    }
+    if (table === 'social_groups' && wantsSocialGroupFavorites) {
+      next.social_group_favorites = socialGroupFavorites.filter((favorite) => (
+        String(favorite.group_id) === String(row.id) &&
+        (user?.is_admin || userMatchesId(user, favorite.user_id))
+      ));
     }
     if (table === 'history_nodes') {
       if (wantsLinkedVideo && row.linked_video_id) {
@@ -778,9 +884,9 @@ async function hydrateRows(table, rows, select = '') {
   return nextRows;
 }
 
-async function hydrateMutationData(table, data, select = '') {
+async function hydrateMutationData(table, data, select = '', user = null) {
   if (!select || !Array.isArray(data) || !data.length) return data;
-  return hydrateRows(table, data, select);
+  return hydrateRows(table, data, select, user);
 }
 
 function resolveConflictKeys(options = {}) {
@@ -845,9 +951,9 @@ function normalizeEventUpsertValue(value, existing, user) {
 }
 
 async function eventMutationResponseData(table, data, user, select = '') {
-  const hydrated = await hydrateMutationData(table, data, select);
-  if (table !== 'events') return hydrated;
-  return sanitizeEventsForViewer(await attachEventAuthors(hydrated), user);
+  const hydrated = await hydrateMutationData(table, data, select, user);
+  if (table === 'events') return sanitizeEventsForViewer(await attachEventAuthors(hydrated), user);
+  return sanitizeRowsForViewer(table, hydrated, user);
 }
 
 function asAnalyticsBool(value) {
@@ -1521,15 +1627,17 @@ export async function queryRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'query', req.body || {});
   const body = req.body || {};
-  const user = table === 'events' ? await getCurrentUser(req) : null;
+  const user = await getCurrentUser(req);
   const rows = await loadRows(table);
-  let data = applyFilters(rows, body.filters || [], body.orFilters || []);
+  let data = applyFilters(filterRowsForViewer(table, rows, user), body.filters || [], body.orFilters || []);
   const count = data.length;
   data = applyOrders(data, body.orders || []);
   data = applyRange(data, body.range, body.limit);
-  data = await hydrateRows(table, data, body.select || '');
+  data = await hydrateRows(table, data, body.select || '', user);
   if (table === 'events') {
     data = sanitizeEventsForViewer(await attachEventAuthors(data), user);
+  } else {
+    data = sanitizeRowsForViewer(table, data, user);
   }
 
   if (body.head) {
@@ -1550,9 +1658,7 @@ export async function insertRecords(req, res) {
   await requireGenericAccess(req, table, 'insert', req.body || {});
   const user = table === 'events'
     ? await requireEventWriter(req)
-    : table === 'board_users'
-      ? await getCurrentUser(req)
-      : null;
+    : await getCurrentUser(req);
   const rawValues = getBodyValues(req.body);
   const values = table === 'events'
     ? normalizeEventInsertValues(rawValues, user)
@@ -1581,7 +1687,7 @@ export async function insertRecords(req, res) {
 export async function updateRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'update', req.body || {});
-  const user = table === 'events' || table === 'board_users' ? await getCurrentUser(req) : null;
+  const user = await getCurrentUser(req);
   const updates = table === 'events' && user
     ? normalizeEventUpdateValues(req.body?.values || {}, user)
     : table === 'board_users' && user && !user.is_admin
@@ -1600,9 +1706,7 @@ export async function upsertRecords(req, res) {
   await requireGenericAccess(req, table, 'upsert', req.body || {});
   const user = table === 'events'
     ? await requireEventWriter(req)
-    : table === 'board_users'
-      ? await getCurrentUser(req)
-      : null;
+    : await getCurrentUser(req);
   const values = getBodyValues(req.body);
   const conflictKeys = resolveConflictKeys(req.body?.options);
   const mutationConflictKeys = table === 'events' && !conflictKeys.length ? ['id'] : conflictKeys;
@@ -1642,13 +1746,13 @@ export async function upsertRecords(req, res) {
 export async function deleteRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'delete', req.body || {});
-  const user = table === 'events' ? await getCurrentUser(req) : null;
+  const user = await getCurrentUser(req);
   const targets = await resolveMutationTargets(table, req.body?.filters || [], req.body?.orFilters || []);
   await deleteRows(table, targets);
   await recomputeCountSideEffects(table, targets);
   const responseData = table === 'events'
     ? sanitizeEventsForViewer(await attachEventAuthors(targets), user)
-    : targets;
+    : sanitizeRowsForViewer(table, targets, user);
   res.json(responsePayload({ data: responseData, count: targets.length }));
 }
 
@@ -1772,6 +1876,41 @@ export async function callRpc(req, res) {
     }
     const row = targets[0] ? await saveRow('board_posts', { ...targets[0], ...(args.p_updates || args.updates || args) }) : null;
     res.json(responsePayload({ data: row }));
+    return;
+  }
+
+  if (name === 'update_social_group_with_password') {
+    if (!user) throw httpError('로그인이 필요합니다.', 401);
+    const id = args.p_group_id || args.group_id || args.id;
+    const password = args.p_password || args.password;
+    const updates = { ...(args.p_updates || args.updates || {}) };
+    const targets = applyFilters(await loadRows('social_groups'), [{ field: 'id', op: 'eq', value: id }], []);
+    const target = targets[0] || null;
+    if (!target) {
+      res.json(responsePayload({ data: null }));
+      return;
+    }
+    const authorized = Boolean(
+      user.is_admin ||
+      rowOwnerMatches(user, target) ||
+      (target.password && password && String(target.password) === String(password))
+    );
+    if (!authorized) throw httpError('수정 권한이 없습니다.', 403);
+
+    delete updates.id;
+    if (!user.is_admin) {
+      delete updates.user_id;
+      if (valuesContainAdminProtectedFields('social_groups', [updates])) {
+        throw httpError('관리자만 수정할 수 있는 필드입니다.', 403);
+      }
+    }
+
+    const row = await saveRow('social_groups', {
+      ...target,
+      ...updates,
+      updated_at: updates.updated_at || new Date().toISOString(),
+    });
+    res.json(responsePayload({ data: sanitizeRowForViewer('social_groups', row, user) }));
     return;
   }
 

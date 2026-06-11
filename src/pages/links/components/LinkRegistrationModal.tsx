@@ -127,8 +127,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                 url: formattedUrl,
                 image_url: imageUrl.trim() || null,
                 description,
-                category: category.trim(),
-                is_approved: editLink ? editLink.is_approved : false // 수정 시 승인 상태 유지
+                category: category.trim()
             };
 
             // 새 항목인 경우 created_by 추가

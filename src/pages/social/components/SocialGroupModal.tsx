@@ -274,10 +274,17 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
             let result;
             if (editGroup) {
-                const { error } = await supabase
-                    .from('social_groups')
-                    .update(groupData)
-                    .eq('id', editGroup.id);
+                const request = canEditWithoutPassword
+                    ? supabase
+                        .from('social_groups')
+                        .update(groupData)
+                        .eq('id', editGroup.id)
+                    : supabase.rpc('update_social_group_with_password', {
+                        p_group_id: editGroup.id,
+                        p_password: password.trim(),
+                        p_updates: groupData,
+                    });
+                const { error } = await request;
                 if (error) throw error;
                 result = { ...editGroup, ...groupData };
             } else {

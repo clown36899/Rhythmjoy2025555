@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import {
-  buildNetlifyPayload,
+  buildCafe24Payload,
   normalizeSourceUrl,
   prepareCandidate,
 } from './candidate-utils.mjs';
@@ -10,7 +10,7 @@ import {
 } from './collection-registry.mjs';
 
 const profile = process.env.INGESTION_PROFILE || 'expanded-ingestion';
-const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
+const endpoint = process.env.CAFE24_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
 const dryRun = process.env.EXPANDED_INGESTION_DRY_RUN !== '0';
 const sourceIds = (process.env.EXPANDED_INGESTION_SOURCE_IDS || '')
   .split(',')
@@ -380,7 +380,7 @@ async function scrapeDetailPage(page, link, source) {
   }
 
   try {
-    return [buildNetlifyPayload(raw, { today })];
+    return [buildCafe24Payload(raw, { today })];
   } catch (error) {
     result.skipped += 1;
     result.candidates.push(`skip:${source.id}:${error.message}:${title}`);

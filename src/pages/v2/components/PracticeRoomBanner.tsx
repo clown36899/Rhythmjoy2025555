@@ -24,7 +24,7 @@ export default function PracticeRoomBanner() {
 
     useEffect(() => {
         if (boardData?.practice_rooms) {
-            // Parse images and randomize order (Images might already be JSON if from RPC, but RPC returns JSON types as objects in Supabase JS client usually, but explicit parsing might still be needed if text)
+            // Parse images and randomize order. RPC may return JSON values as objects, but explicit parsing is still useful for text rows.
             // Actually RPC `json_agg` returns JSON objects directly.
 
             const processedData = boardData.practice_rooms.map((room) => ({

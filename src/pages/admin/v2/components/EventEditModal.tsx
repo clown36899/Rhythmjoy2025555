@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
-import { supabase as prodSupabase } from '../../../../lib/cafe24Client';
+import { supabase as prodClient } from '../../../../lib/cafe24Client';
 import { ensureRecruitmentTags, getRecruitmentKindLabel, type RecruitmentKind } from '../../../../utils/danceTaxonomy';
 import { detectEventType, getIngestorRecruitmentKind, mapIngestorEvent, titleLooksDuplicate, toMapSafeVenueName, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
 import './EventEditModal.css';
@@ -83,7 +83,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
     const findRegisteredDuplicate = async (formattedTitle: string, mapped: MappedIngestorEvent) => {
         const date = formData.date;
         if (!date) return null;
-        const { data, error } = await prodSupabase
+        const { data, error } = await prodClient
             .from('events')
             .select('id,title,date,start_date,end_date,location,venue_name,venue_id,link1')
             .or(`date.eq.${date},start_date.eq.${date},and(start_date.lte.${date},end_date.gte.${date})`)

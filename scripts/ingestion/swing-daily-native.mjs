@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { buildNetlifyPayload, getBlockedKeywordReason, normalizeSourceUrl, prepareCandidate } from './candidate-utils.mjs';
+import { buildCafe24Payload, getBlockedKeywordReason, normalizeSourceUrl, prepareCandidate } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
 
 chromium.use(stealthPlugin());
 
 
 const profile = process.env.INGESTION_PROFILE || 'swing-daily';
-const endpoint = process.env.NETLIFY_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
+const endpoint = process.env.CAFE24_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1';
 const sourceLimit = Number(process.env.INGESTION_NATIVE_SOURCE_LIMIT || 0);
 const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')
@@ -194,6 +194,42 @@ function cleanTitle(value = '') {
     .slice(0, 120);
 }
 
+function looksLikeNonTitleLine(value = '') {
+  const line = compactText(value);
+  if (!line) return true;
+  const digitCount = (line.match(/\d/g) || []).length;
+  return looksLikeNaverCafeChromeLine(line)
+    || /(?:₩|원|krw|입장|현금|카드|계좌|주소|도로명|서울|seoul|republic\s+of\s+korea|nambusunhwan|문의|open\s*kakao|오픈채팅)/i.test(line)
+    || /\b\d{1,2}\s*[:：]\s*\d{2}\b.*\b\d{1,2}\s*[:：]\s*\d{2}\b/.test(line)
+    || (digitCount >= 8 && !/(?:소셜|social|강습|수업|class|workshop|파티|party|dj|디제이)/i.test(line))
+    || /^[\d\s:：~\-.,/()]+$/.test(line);
+}
+
+function titleLineScore(line = '', eventType = '', djs = []) {
+  const value = compactText(line);
+  if (!value || looksLikeNonTitleLine(value)) return -100;
+  let score = 0;
+  if (/(?:소셜|social|파티|party|강습|수업|레슨|class|workshop|워크샵|워크숍|원\s*데이|원데이)/i.test(value)) score += 5;
+  if (/(?:^|\s)(?:DJ|디제이)(?:\s|$)|토요|금요|목요|수요|화요|월요|일요/i.test(value)) score += 3;
+  if (eventType && value.includes(eventType)) score += 2;
+  if (djs.some((dj) => dj && value.toLowerCase().includes(String(dj).toLowerCase()))) score += 2;
+  if (value.length >= 8 && value.length <= 42) score += 2;
+  if (value.length > 64) score -= 4;
+  return score;
+}
+
+function pickPosterTitleLine(rawText = '', eventType = '', djs = []) {
+  const lines = String(rawText || '')
+    .split(/\n| {2,}|\s+[|｜]\s+/)
+    .map((line) => cleanTitle(line))
+    .filter((line) => line.length >= 4 && line.length <= 80);
+  const ranked = lines
+    .map((line, index) => ({ line, index, score: titleLineScore(line, eventType, djs) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+  return ranked[0]?.line || '';
+}
+
 function extractInstagramCaptionTitle(value = '') {
   const raw = String(value || '');
   const match = raw.match(/Instagram(?:의)?\s+[^:：]{1,120}\s*[:：]\s*["“”']?\s*([\s\S]{6,240})/i);
@@ -204,18 +240,21 @@ function extractInstagramCaptionTitle(value = '') {
     .find((line) => line.length >= 6 && line.length <= 64 && !/^\d+\s*(?:likes?|comments?)/i.test(line)) || '';
 }
 
-function makeCandidateTitle({ source, rawTitle, cleanText, eventType, djs = [] }) {
+function makeCandidateTitle({ source, rawTitle, rawText = '', cleanText, eventType, djs = [] }) {
   const instagramCaptionTitle = extractInstagramCaptionTitle(rawTitle);
   if (instagramCaptionTitle) return instagramCaptionTitle;
 
   const cleaned = cleanTitle(rawTitle || '');
   const looksGeneratedByPlatform = /on\s+Instagram|Instagram\s+photos|네이버\s*카페|Daum\s*카페|강습일정\s*필독말머리/i.test(rawTitle || '');
-  if (cleaned && cleaned.length <= 64 && !looksGeneratedByPlatform) return cleaned;
+  if (cleaned && cleaned.length <= 64 && !looksGeneratedByPlatform && !looksLikeNonTitleLine(cleaned)) return cleaned;
 
-  const firstMeaningfulLine = String(cleanText || '')
+  const posterTitle = pickPosterTitleLine(rawText, eventType, djs);
+  if (posterTitle) return posterTitle;
+
+  const firstMeaningfulLine = String(rawText || cleanText || '')
     .split(/\n| {2,}/)
     .map((line) => cleanTitle(line))
-    .find((line) => line.length >= 6 && line.length <= 64 && !looksLikeNaverCafeChromeLine(line));
+    .find((line) => line.length >= 6 && line.length <= 64 && !looksLikeNonTitleLine(line));
   if (firstMeaningfulLine && !/on\s+Instagram/i.test(firstMeaningfulLine)) return firstMeaningfulLine;
 
   if (eventType === '소셜' && djs.length) return `${source.name} 소셜 (${djs.slice(0, 2).join(', ')})`;
@@ -846,7 +885,8 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
     return [];
   }
 
-  const cleanText = compactText(text);
+  const rawText = String(text || '');
+  const cleanText = compactText(rawText);
   if (!cleanText || cleanText.length < 20) {
     result.skipped += 1;
     return [];
@@ -868,7 +908,7 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   const { activity, eventType } = inferActivity(cleanText);
   const venue = inferVenue(cleanText, source);
   const djs = inferDjs(cleanText);
-  const candidateTitle = makeCandidateTitle({ source, rawTitle: title, cleanText, eventType, djs });
+  const candidateTitle = makeCandidateTitle({ source, rawTitle: title, rawText, cleanText, eventType, djs });
   const isOneDayCandidate = oneDayPattern.test(`${candidateTitle}\n${cleanText}`);
   if (!isOneDayCandidate && looksLikeBroadScheduleNotice(candidateTitle, cleanText)) {
     result.skipped += 1;
@@ -925,7 +965,7 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
         continue;
       }
 
-      candidates.push(buildNetlifyPayload(raw, { today }));
+      candidates.push(buildCafe24Payload(raw, { today }));
     }
 
     return candidates;
@@ -979,7 +1019,7 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
       continue;
     }
 
-    candidates.push(buildNetlifyPayload(raw, { today }));
+    candidates.push(buildCafe24Payload(raw, { today }));
   }
 
   return candidates;

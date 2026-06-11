@@ -525,7 +525,7 @@ export function prepareCandidate(rawCandidate, config = {}) {
   };
 }
 
-export function buildNetlifyPayload(rawCandidate, config = {}) {
+export function buildCafe24Payload(rawCandidate, config = {}) {
   const { candidate, validation } = prepareCandidate(rawCandidate, config);
   if (!validation.ok) {
     const error = new Error(`Invalid ingestion candidate: ${validation.errors.join('; ')}`);

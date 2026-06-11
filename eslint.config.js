@@ -12,8 +12,6 @@ export default tseslint.config(
             'node_modules',
             'coverage',
             'dev-dist',
-            '_archive/**',
-            '.netlify/**',
             '.claude/**',
             '.codex/**',
             '.agents/**',

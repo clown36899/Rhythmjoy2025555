@@ -388,7 +388,7 @@ const LearningPage = () => {
                     .update({ category_id: targetCategoryId }) // Folders use category_id as parent_id (or parent_id if column exists, but unified usually uses category_id)
                     // Wait, let's double check if learning_resources stores parent folder in 'category_id'.
                     // In previous normalization step, we saw: catId = p.category_id !== undefined ? p.category_id : (p.parent_id ?? null);
-                    // Standard Supabase schema suggests one parent pointer. Let's assume category_id for now as it matched other resources.
+                    // The compatibility schema uses one parent pointer. Keep category_id here because it matches existing resources.
                     // Actually, for folders (type=general), 'category_id' usually points to parent folder.
                     .eq('id', itemId);
                 if (error) throw error;

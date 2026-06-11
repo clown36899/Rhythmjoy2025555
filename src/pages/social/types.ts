@@ -40,6 +40,7 @@ export interface SocialScheduleModalProps {
   editSchedule?: SocialSchedule | null;
   initialData?: SocialSchedule | null;
   initialTab?: 'social' | 'oneday';
+  groupPassword?: string | null;
   onSuccess: (data?: any) => void;
 }
 

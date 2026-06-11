@@ -225,7 +225,9 @@ export default memo(function EventCalendar({
     const handleEventDeleted = (event: globalThis.Event) => {
       debugV2EventCalendar('[EventCalendar] Event deleted, refreshing...');
       setEvents((prev) => removeEventFromArray(prev, (event as CustomEvent).detail));
-      fetchEvents();
+      window.setTimeout(() => {
+        fetchEvents();
+      }, 1200);
     };
 
     const handleEventChanged = (event: globalThis.Event) => {
@@ -233,7 +235,9 @@ export default memo(function EventCalendar({
       setEvents((prev) => mergeEventIntoArray(prev, (event as CustomEvent).detail, {
         insertIfMissing: event.type === 'eventCreated',
       }));
-      fetchEvents();
+      window.setTimeout(() => {
+        fetchEvents();
+      }, 1200);
     };
 
     window.addEventListener("eventDeleted", handleEventDeleted);

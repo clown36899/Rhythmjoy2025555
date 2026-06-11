@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/cafe24Client';
 import { EventCard } from '../v2/components/EventCard';
 import StandardPostList from '../board/components/StandardPostList';
-import type { Event as SupabaseEvent } from '../../lib/cafe24Client';
+import type { Event as Cafe24Event } from '../../lib/cafe24Client';
 import type { StandardBoardPost } from '../../types/board';
 import { useDefaultThumbnail } from '../../hooks/useDefaultThumbnail';
 import LocalLoading from '../../components/LocalLoading';
@@ -39,11 +39,11 @@ export default function MyActivitiesPage() {
     // URL param 'tab' controls the view
     const currentTab = (searchParams.get('tab') as TabType) || 'events';
 
-    const [events, setEvents] = useState<SupabaseEvent[]>([]);
+    const [events, setEvents] = useState<Cafe24Event[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
     const [socialGroups, setSocialGroups] = useState<any[]>([]);
     const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
-    const [favoriteEvents, setFavoriteEvents] = useState<SupabaseEvent[]>([]);
+    const [favoriteEvents, setFavoriteEvents] = useState<Cafe24Event[]>([]);
     const [favoritePosts, setFavoritePosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -51,9 +51,9 @@ export default function MyActivitiesPage() {
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
     // Modal States
-    const [selectedEvent, setSelectedEvent] = useState<SupabaseEvent | null>(null);
+    const [selectedEvent, setSelectedEvent] = useState<Cafe24Event | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [eventToEdit, setEventToEdit] = useState<SupabaseEvent | null>(null);
+    const [eventToEdit, setEventToEdit] = useState<Cafe24Event | null>(null);
 
     // Social Modal States
     const [selectedSchedule, setSelectedSchedule] = useState<any | null>(null);
@@ -87,7 +87,7 @@ export default function MyActivitiesPage() {
             setSocialSchedules(prev => mergeEventIntoArray(prev, detail, { insertIfMissing: shouldInsert })
                 .filter(item => item.group_id !== null && item.group_id !== undefined));
             setFavoriteEvents(prev => mergeEventIntoArray(prev, detail));
-            setSelectedEvent(prev => prev && sameEventId(prev.id, targetId) ? ({ ...prev, ...event } as SupabaseEvent) : prev);
+            setSelectedEvent(prev => prev && sameEventId(prev.id, targetId) ? ({ ...prev, ...event } as Cafe24Event) : prev);
         };
 
         const handleEventDeleted = (nativeEvent: globalThis.Event) => {
@@ -128,7 +128,7 @@ export default function MyActivitiesPage() {
             if (eventsRes.error) {
                 console.error('[MyActivities] ❌ Events fetch error:', eventsRes.error);
             } else {
-                const allEvents = (eventsRes.data || []) as unknown as SupabaseEvent[];
+                const allEvents = (eventsRes.data || []) as unknown as Cafe24Event[];
                 setEvents(allEvents);
 
                 const socialItems = allEvents.filter(e => e.group_id !== null && e.group_id !== undefined);
@@ -136,7 +136,7 @@ export default function MyActivitiesPage() {
             }
 
             if (favRes.data) {
-                setFavoriteEvents(favRes.data.map((f: any) => f.events).filter(Boolean) as unknown as SupabaseEvent[]);
+                setFavoriteEvents(favRes.data.map((f: any) => f.events).filter(Boolean) as unknown as Cafe24Event[]);
             }
             if (favPostsRes.data) {
                 const profileImage = userRes.data?.profile_image || null;
@@ -192,7 +192,7 @@ export default function MyActivitiesPage() {
     // handleBack removed as per user request
 
     // Event Handlers
-    const handleEventClick = (event: SupabaseEvent) => {
+    const handleEventClick = (event: Cafe24Event) => {
         setSelectedEvent(event);
     };
 
