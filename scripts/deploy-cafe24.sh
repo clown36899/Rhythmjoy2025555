@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${CAFE24_SSH_TARGET:-root@swingenjoy.com}"
 APP_DIR="${CAFE24_APP_DIR:-/opt/swingenjoy}"
 SSH_KEY="${CAFE24_SSH_KEY:-$HOME/.ssh/swingenjoy_cafe24_ed25519}"
+APACHE_CONF_DIR="${CAFE24_APACHE_CONF_DIR:-/etc/httpd/conf.d}"
 
 SSH_ARGS=(-o BatchMode=yes -o StrictHostKeyChecking=no)
 RSYNC_SSH="ssh -o BatchMode=yes -o StrictHostKeyChecking=no"
@@ -23,9 +24,11 @@ rsync -az --delete --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/
 rsync -az --delete --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist-cafe24/ "${TARGET}:${APP_DIR}/dist-cafe24/"
 rsync -az --delete --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" server/cafe24/ "${TARGET}:${APP_DIR}/server/cafe24/"
 rsync -az -e "${RSYNC_SSH}" package.json package-lock.json "${TARGET}:${APP_DIR}/"
+rsync -az --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" deploy/cafe24/apache/ "${TARGET}:${APACHE_CONF_DIR}/"
 
 ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
 cd '${APP_DIR}'
+httpd -t
 systemctl restart swingenjoy
 i=0
 until curl -fsS http://127.0.0.1:3001/__health >/dev/null; do
