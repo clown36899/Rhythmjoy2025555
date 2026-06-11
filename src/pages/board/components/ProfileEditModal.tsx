@@ -11,7 +11,7 @@ interface ProfileEditModalProps {
         nickname: string;
         profile_image?: string | null;
     };
-    onProfileUpdated: () => void;
+    onProfileUpdated: () => void | Promise<void>;
     userId: string;
     onLogout?: () => void;
 }
@@ -251,12 +251,12 @@ export default function ProfileEditModal({
             });
             const { error, data, status, statusText } = await supabase
                 .from('board_users')
-                .update({
+                .upsert({
+                    user_id: userId,
                     nickname: nickname,
                     profile_image: profileImageUrl,
                     updated_at: new Date().toISOString()
-                })
-                .eq('user_id', userId)
+                }, { onConflict: 'user_id' })
                 .select(); // SELECT를 추가하여 업데이트된 행 반환
 
             console.log('[프로필 저장] DB 업데이트 결과', {
@@ -279,7 +279,7 @@ export default function ProfileEditModal({
 
             console.log('[프로필 저장] 성공');
             alert('프로필이 수정되었습니다.');
-            onProfileUpdated();
+            await Promise.resolve(onProfileUpdated());
             onClose();
 
         } catch (error: any) {

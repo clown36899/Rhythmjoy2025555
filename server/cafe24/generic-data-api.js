@@ -96,6 +96,59 @@ const adminOnlyRpcNames = new Set([
   'refresh_site_stats_index',
 ]);
 
+const boardUserSelfWritableFields = new Set([
+  'nickname',
+  'profile_image',
+  'updated_at',
+]);
+
+function getBodyValues(body = {}) {
+  return Array.isArray(body?.values) ? body.values : [body?.values || {}];
+}
+
+function isOwnBoardUserRow(user, row) {
+  return Boolean(user?.id && row?.user_id && String(row.user_id) === String(user.id));
+}
+
+function getUserProvider(user) {
+  return user?.user_metadata?.provider || user?.app_metadata?.provider || 'email';
+}
+
+function normalizeBoardUserSelfValue(value, user, existing = {}) {
+  const next = { ...(existing || {}) };
+  for (const field of boardUserSelfWritableFields) {
+    if (Object.prototype.hasOwnProperty.call(value || {}, field)) {
+      next[field] = value[field];
+    }
+  }
+  next.user_id = user.id;
+  next.email = user.email || existing?.email || null;
+  next.provider = existing?.provider || getUserProvider(user);
+  next.updated_at = next.updated_at || new Date().toISOString();
+  return next;
+}
+
+async function requireBoardUserMutationAccess(req, action = 'query', body = {}) {
+  if (!['insert', 'update', 'upsert', 'delete'].includes(action)) return;
+
+  const user = await getCurrentUser(req);
+  if (!user) throw httpError('로그인이 필요합니다.', 401);
+  if (user.is_admin) return;
+
+  if (['insert', 'upsert'].includes(action)) {
+    const values = getBodyValues(body);
+    const writesOnlyOwnRows = values.every((row) => !row?.user_id || String(row.user_id) === String(user.id));
+    if (!writesOnlyOwnRows) throw httpError('수정 권한이 없습니다.', 403);
+  }
+
+  if (['update', 'delete'].includes(action)) {
+    const targets = await resolveMutationTargets('board_users', body?.filters || [], body?.orFilters || []);
+    if (targets.length && !targets.every((row) => isOwnBoardUserRow(user, row))) {
+      throw httpError('수정 권한이 없습니다.', 403);
+    }
+  }
+}
+
 async function requireGenericAccess(req, table, action = 'query', body = {}) {
   if (table === 'pwa_installs' && action === 'insert') {
     const user = await getCurrentUser(req);
@@ -120,6 +173,10 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
     const error = new Error('수정 권한이 없습니다.');
     error.statusCode = 403;
     throw error;
+  }
+
+  if (table === 'board_users') {
+    await requireBoardUserMutationAccess(req, action, body);
   }
 
   if (adminOnlyGenericTables.has(table)) {
@@ -1350,9 +1407,17 @@ export async function queryRecords(req, res) {
 export async function insertRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'insert', req.body || {});
-  const user = table === 'events' ? await requireEventWriter(req) : null;
-  const rawValues = Array.isArray(req.body?.values) ? req.body.values : [req.body?.values || {}];
-  const values = table === 'events' ? normalizeEventInsertValues(rawValues, user) : rawValues;
+  const user = table === 'events'
+    ? await requireEventWriter(req)
+    : table === 'board_users'
+      ? await getCurrentUser(req)
+      : null;
+  const rawValues = getBodyValues(req.body);
+  const values = table === 'events'
+    ? normalizeEventInsertValues(rawValues, user)
+    : table === 'board_users' && user && !user.is_admin
+      ? rawValues.map((value) => normalizeBoardUserSelfValue(value, user))
+      : rawValues;
   const conflictKeys = resolveConflictKeys(req.body?.options);
   if (table === 'events') {
     const existingRows = await loadRows(table);
@@ -1375,9 +1440,11 @@ export async function insertRecords(req, res) {
 export async function updateRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'update', req.body || {});
-  const user = table === 'events' ? await getCurrentUser(req) : null;
+  const user = table === 'events' || table === 'board_users' ? await getCurrentUser(req) : null;
   const updates = table === 'events' && user
     ? normalizeEventUpdateValues(req.body?.values || {}, user)
+    : table === 'board_users' && user && !user.is_admin
+      ? normalizeBoardUserSelfValue(req.body?.values || {}, user)
     : req.body?.values || {};
   const targets = await resolveMutationTargets(table, req.body?.filters || [], req.body?.orFilters || []);
   const data = [];
@@ -1390,8 +1457,12 @@ export async function updateRecords(req, res) {
 export async function upsertRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'upsert', req.body || {});
-  const user = table === 'events' ? await requireEventWriter(req) : null;
-  const values = Array.isArray(req.body?.values) ? req.body.values : [req.body?.values || {}];
+  const user = table === 'events'
+    ? await requireEventWriter(req)
+    : table === 'board_users'
+      ? await getCurrentUser(req)
+      : null;
+  const values = getBodyValues(req.body);
   const conflictKeys = resolveConflictKeys(req.body?.options);
   const mutationConflictKeys = table === 'events' && !conflictKeys.length ? ['id'] : conflictKeys;
   const existingRows = await loadRows(table);
@@ -1409,10 +1480,15 @@ export async function upsertRecords(req, res) {
       if (table === 'events' && existing && !canManageEvent(user, existing)) {
         throw httpError('수정 권한이 없습니다.', 403);
       }
+      if (table === 'board_users' && user && !user.is_admin && existing && !isOwnBoardUserRow(user, existing)) {
+        throw httpError('수정 권한이 없습니다.', 403);
+      }
       if (existing) next = { ...existing, ...value };
     }
     if (table === 'events') {
       next = normalizeEventUpsertValue(value, existing, user);
+    } else if (table === 'board_users' && user && !user.is_admin) {
+      next = normalizeBoardUserSelfValue(value, user, existing || {});
     }
     data.push(await saveRow(table, next, conflictKeys));
   }

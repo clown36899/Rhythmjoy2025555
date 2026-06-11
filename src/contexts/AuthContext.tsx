@@ -13,6 +13,18 @@ const CAFE24_AUTH_ENABLED =
   import.meta.env.VITE_CAFE24_AUTH_BACKEND === 'mysql' ||
   import.meta.env.VITE_CAFE24_EVENTS_BACKEND === 'mysql';
 
+const getUserMetadataProfileImage = (userObj: User | null) => {
+  const metadata = userObj?.user_metadata || {};
+  return metadata.avatar_url || metadata.picture || metadata.profile_image || null;
+};
+
+const getUserMetadataNickname = (userObj: User | null) => (
+  userObj?.user_metadata?.name ||
+  userObj?.user_metadata?.full_name ||
+  userObj?.email?.split('@')[0] ||
+  ''
+);
+
 const getCafe24LoginReturnUrl = () => {
   const value = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   if (!value.startsWith('/') || value.startsWith('//') || /[\r\n]/.test(value)) return '/';
@@ -110,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const metadata = userObj.user_metadata || {};
       const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
-      const profileImage = metadata.avatar_url || metadata.picture || null;
+      const profileImage = getUserMetadataProfileImage(userObj);
 
       // [FIX] Provider detection logic - Use tiered priority to handle social logins correctly
       let provider = 'email'; // Default
@@ -437,17 +449,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // });
 
       let newProfile = null;
+      const metadataProfileImage = getUserMetadataProfileImage(user);
       if (data) {
         newProfile = {
-          nickname: data.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
-          profile_image: data.profile_image || user.user_metadata?.avatar_url || null
+          nickname: data.nickname || getUserMetadataNickname(user),
+          profile_image: data.profile_image || metadataProfileImage
         };
         // console.log('[AuthContext.refreshUserProfile] DB 데이터로 프로필 생성', newProfile);
       } else {
         // Fallback to metadata if no board_user record yet or timeout
         newProfile = {
-          nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-          profile_image: user.user_metadata?.avatar_url || null
+          nickname: getUserMetadataNickname(user),
+          profile_image: metadataProfileImage
         };
         // console.log('[AuthContext.refreshUserProfile] 메타데이터로 폴백 프로필 생성', newProfile);
       }
@@ -461,8 +474,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // console.warn('[AuthContext] Profile load delayed, using fallback:', e.message);
       // Fallback on error/timeout
       const fallbackProfile = {
-        nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-        profile_image: user.user_metadata?.avatar_url || null
+        nickname: getUserMetadataNickname(user),
+        profile_image: getUserMetadataProfileImage(user)
       };
       // console.log('[AuthContext.refreshUserProfile] 폴백 프로필 설정', fallbackProfile);
       setUserProfile(fallbackProfile);
@@ -477,11 +490,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (CAFE24_AUTH_ENABLED) {
       if (user) {
         const profile = {
-          nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-          profile_image: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          nickname: getUserMetadataNickname(user),
+          profile_image: getUserMetadataProfileImage(user),
         };
         setUserProfile(profile);
+        if (lastProcessedUserId.current !== user.id) {
+          lastProcessedUserId.current = user.id;
+          void refreshUserProfile();
+        }
       } else if (isAuthCheckComplete) {
+        lastProcessedUserId.current = null;
         setUserProfile(null);
         setIsAdmin(false);
         setAdminStatus(false);
@@ -504,7 +522,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAdmin(false);
       setAdminStatus(false);
     }
-  }, [user]);
+  }, [isAuthCheckComplete, refreshUserProfile, user]);
 
   const validateSession = useCallback(async () => {
     if (CAFE24_AUTH_ENABLED) {

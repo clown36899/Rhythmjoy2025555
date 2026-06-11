@@ -134,8 +134,9 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const newEventsListModal = useModal('newEventsList');
     const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
 
+    const metadataProfileImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.user_metadata?.profile_image || null;
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
-    const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
+    const profileImage = userProfile?.profile_image || metadataProfileImage;
 
     useEffect(() => {
         if (isOpen && !hasLoadedBoardCategoriesRef.current) {
@@ -320,7 +321,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                         profileEditModal.open({
                                             currentUser: userProfile || {
                                                 nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-                                                profile_image: user.user_metadata?.avatar_url || null
+                                                profile_image: metadataProfileImage
                                             },
                                             userId: user.id,
                                             onProfileUpdated: refreshUserProfile,
