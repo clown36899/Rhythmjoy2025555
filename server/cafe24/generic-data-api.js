@@ -173,6 +173,11 @@ const ownerScopedMutationTables = new Set([
   'venues',
 ]);
 
+const anonymousContentTables = new Set([
+  'board_anonymous_comments',
+  'board_anonymous_posts',
+]);
+
 const adminOnlyRpcNames = new Set([
   'create_usage_snapshot',
   'get_analytics_summary_v2',
@@ -260,6 +265,12 @@ async function requireBoardUserMutationAccess(req, action = 'query', body = {}) 
 
 async function requireGenericAccess(req, table, action = 'query', body = {}) {
   const isMutation = ['insert', 'update', 'upsert', 'delete'].includes(action);
+
+  if (anonymousContentTables.has(table) && action === 'insert') return;
+  if (anonymousContentTables.has(table) && ['update', 'upsert', 'delete'].includes(action)) {
+    await requireAdmin(req);
+    return;
+  }
 
   if (table === 'pwa_installs' && action === 'insert') {
     const user = await getCurrentUser(req);
@@ -1661,7 +1672,11 @@ export async function callRpc(req, res) {
   }
 
   if (name === 'get_user_interactions') {
-    res.json(responsePayload({ data: await getUserInteractions(args.p_user_id || args.user_id || user?.id) }));
+    const requestedUserId = args.p_user_id || args.user_id || user?.id;
+    if (requestedUserId && !user?.is_admin && !userMatchesId(user, requestedUserId)) {
+      throw httpError('조회 권한이 없습니다.', 403);
+    }
+    res.json(responsePayload({ data: await getUserInteractions(requestedUserId) }));
     return;
   }
 
@@ -1678,6 +1693,9 @@ export async function callRpc(req, res) {
 
   if (name === 'handle_user_withdrawal') {
     const userId = args.p_user_id || args.user_id || user?.id;
+    if (!user?.is_admin && !userMatchesId(user, userId)) {
+      throw httpError('수정 권한이 없습니다.', 403);
+    }
     if (userId) {
       const targets = applyFilters(await loadRows('board_users'), [{ field: 'user_id', op: 'eq', value: userId }], []);
       for (const row of targets) await saveRow('board_users', { ...row, status: 'deleted', nickname: '탈퇴한 사용자', deleted_at: new Date().toISOString() });
@@ -1706,7 +1724,7 @@ export async function callRpc(req, res) {
     const id = args.p_post_id || args.post_id;
     const password = args.p_password || args.password;
     const targets = applyFilters(await loadRows('board_anonymous_posts'), [{ field: 'id', op: 'eq', value: id }], []);
-    const ok = targets[0] && (!targets[0].password || targets[0].password === password);
+    const ok = targets[0] && (user?.is_admin || !targets[0].password || targets[0].password === password);
     if (ok) await saveRow('board_anonymous_posts', { ...targets[0], ...(args.p_updates || args.updates || {}) });
     res.json(responsePayload({ data: Boolean(ok) }));
     return;
@@ -1717,7 +1735,7 @@ export async function callRpc(req, res) {
     const password = args.p_password || args.password;
     const table = args.p_table || 'board_anonymous_comments';
     const targets = applyFilters(await loadRows(table), [{ field: 'id', op: 'eq', value: id }], []);
-    const ok = targets[0] && (!targets[0].password || targets[0].password === password);
+    const ok = targets[0] && (user?.is_admin || !targets[0].password || targets[0].password === password);
     if (ok) await deleteRows(table, targets);
     if (ok) await recomputeCountSideEffects(table, targets);
     res.json(responsePayload({ data: Boolean(ok) }));
@@ -1729,14 +1747,19 @@ export async function callRpc(req, res) {
     const password = args.p_password || args.password;
     const table = args.p_table || 'board_anonymous_comments';
     const targets = applyFilters(await loadRows(table), [{ field: 'id', op: 'eq', value: id }], []);
-    const ok = targets[0] && (!targets[0].password || targets[0].password === password);
+    const ok = targets[0] && (user?.is_admin || !targets[0].password || targets[0].password === password);
     if (ok) await saveRow(table, { ...targets[0], ...(args.p_updates || args.updates || {}) });
     res.json(responsePayload({ data: Boolean(ok) }));
     return;
   }
 
   if (name === 'create_board_post') {
-    const row = await saveRow('board_posts', { ...args, id: args.id || crypto.randomUUID(), user_id: args.user_id || user?.id || null });
+    if (!user) throw httpError('로그인이 필요합니다.', 401);
+    const requestedUserId = args.user_id || user.id;
+    if (!user.is_admin && !userMatchesId(user, requestedUserId)) {
+      throw httpError('수정 권한이 없습니다.', 403);
+    }
+    const row = await saveRow('board_posts', { ...args, id: args.id || crypto.randomUUID(), user_id: requestedUserId });
     res.json(responsePayload({ data: row }));
     return;
   }
@@ -1744,6 +1767,9 @@ export async function callRpc(req, res) {
   if (name === 'update_board_post') {
     const id = args.p_post_id || args.post_id || args.id;
     const targets = applyFilters(await loadRows('board_posts'), [{ field: 'id', op: 'eq', value: id }], []);
+    if (targets[0] && !user?.is_admin && !rowOwnerMatches(user, targets[0])) {
+      throw httpError('수정 권한이 없습니다.', 403);
+    }
     const row = targets[0] ? await saveRow('board_posts', { ...targets[0], ...(args.p_updates || args.updates || args) }) : null;
     res.json(responsePayload({ data: row }));
     return;
