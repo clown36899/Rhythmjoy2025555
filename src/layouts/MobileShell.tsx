@@ -48,7 +48,9 @@ export const MobileShell: React.FC = () => {
   const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
   const [isTranslationPending, setIsTranslationPending] = useState(false);
   const [translationErrorMessage, setTranslationErrorMessage] = useState('');
+  const [hasBrowserTranslation, setHasBrowserTranslation] = useState(false);
   const isTranslationPendingRef = useRef(false);
+  const didAutoApplyInitialTranslationRef = useRef(false);
   const translateButtonRef = useRef<HTMLButtonElement | null>(null);
   const translationErrorTimerRef = useRef<number | null>(null);
   // unused state removed
@@ -191,6 +193,32 @@ export const MobileShell: React.FC = () => {
     clearTranslationErrorTimer();
   }, [clearTranslationErrorTimer]);
 
+  useEffect(() => {
+    const syncBrowserTranslationState = () => {
+      setHasBrowserTranslation(
+        document.body.classList.contains('translated-ltr') ||
+        document.body.classList.contains('translated-rtl') ||
+        document.documentElement.classList.contains('translated-ltr') ||
+        document.documentElement.classList.contains('translated-rtl')
+      );
+    };
+
+    syncBrowserTranslationState();
+
+    const observer = new MutationObserver(syncBrowserTranslationState);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'lang'] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('languageChanged', syncBrowserTranslationState);
+
+    const timer = window.setInterval(syncBrowserTranslationState, 1500);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('languageChanged', syncBrowserTranslationState);
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const finishTranslationFeedback = useCallback(() => {
     isTranslationPendingRef.current = false;
     setIsTranslationPending(false);
@@ -282,6 +310,19 @@ export const MobileShell: React.FC = () => {
     });
   }, [changeLanguage, finishTranslationFeedback, i18n.language]);
 
+  useEffect(() => {
+    if (didAutoApplyInitialTranslationRef.current) return;
+    if (!i18n.language?.startsWith('en')) return;
+    if (hasBrowserTranslation || isTranslationPendingRef.current) return;
+
+    didAutoApplyInitialTranslationRef.current = true;
+    isTranslationPendingRef.current = true;
+    setIsTranslationPending(true);
+    void changeLanguage('en').finally(() => {
+      finishTranslationFeedback();
+    });
+  }, [changeLanguage, finishTranslationFeedback, hasBrowserTranslation, i18n.language]);
+
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -342,12 +383,16 @@ export const MobileShell: React.FC = () => {
     pageAction.onClick();
   };
 
+  const isEnglishTranslationActive = i18n.language?.startsWith('en') || hasBrowserTranslation;
   const translateButtonClassName = [
     'header-translate-btn',
+    isEnglishTranslationActive ? 'is-english' : 'is-korean',
     isTranslationPending ? 'is-translating' : '',
     translationErrorMessage ? 'has-translation-error' : ''
   ].filter(Boolean).join(' ');
-  const translateButtonIdleLabel = i18n.language?.startsWith('ko') ? 'Switch to English' : '한국어로 전환';
+  const translateButtonIdleLabel = isEnglishTranslationActive
+    ? '현재 영어 번역 상태 · 한국어로 전환'
+    : '현재 한국어 상태 · 영어로 전환';
   const translateButtonLabel = translationErrorMessage || (isTranslationPending ? '번역 적용 중...' : translateButtonIdleLabel);
 
   useEffect(() => {
@@ -611,8 +656,10 @@ export const MobileShell: React.FC = () => {
                 title={translateButtonLabel}
                 aria-label={translateButtonLabel}
                 aria-busy={isTranslationPending}
+                aria-pressed={isEnglishTranslationActive}
                 disabled={isTranslationPending}
                 translate="no"
+                data-current-language={isEnglishTranslationActive ? 'en' : 'ko'}
                 data-analytics-id="header_translate"
                 data-analytics-type="action"
                 data-analytics-title="번역 토글"

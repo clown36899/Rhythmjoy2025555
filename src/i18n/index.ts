@@ -5,8 +5,19 @@ import messages from './local/index';
 
 const getInitialLanguage = () => {
   try {
+    if (typeof window === 'undefined') return 'ko';
+
     const stored = window.localStorage.getItem('i18nextLng');
-    return stored?.startsWith('en') ? 'en' : 'ko';
+    if (stored?.startsWith('en')) return 'en';
+    if (stored?.startsWith('ko')) return 'ko';
+
+    const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
+    if (languages.some((language) => language?.toLowerCase().startsWith('ko'))) {
+      return 'ko';
+    }
+
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return timeZone === 'Asia/Seoul' ? 'ko' : 'en';
   } catch {
     return 'ko';
   }

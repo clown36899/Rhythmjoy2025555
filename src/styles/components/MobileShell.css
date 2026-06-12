@@ -536,6 +536,15 @@
   opacity: 1;
 }
 
+.header-translate-btn.is-english {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.78);
+  color: #dbeafe;
+  box-shadow:
+    0 0 0 2px rgba(59, 130, 246, 0.14),
+    0 0 18px rgba(59, 130, 246, 0.18);
+}
+
 .header-translate-btn.is-translating {
   background: rgba(59, 130, 246, 0.28);
   border-color: rgba(96, 165, 250, 0.85);
@@ -673,6 +682,13 @@
   font-size: min(2.8vw, 0.85rem);
   line-height: 1;
   z-index: 2;
+  opacity: 0.68;
+  transform-origin: center;
+  transition:
+    color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    text-shadow 0.18s ease;
 }
 
 .divider {
@@ -690,6 +706,37 @@
   font-size: min(2.5vw, 0.72rem);
   line-height: 1;
   z-index: 2;
+  opacity: 0.68;
+  transform-origin: center;
+  transition:
+    color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    text-shadow 0.18s ease;
+}
+
+.header-translate-btn.is-korean .en-char {
+  color: #93c5fd;
+  opacity: 1;
+  transform: translate(1px, -1px) scale(1.18);
+  text-shadow: 0 0 10px rgba(147, 197, 253, 0.65);
+}
+
+.header-translate-btn.is-korean .ko-char {
+  opacity: 0.46;
+  transform: translate(-1px, 1px) scale(0.9);
+}
+
+.header-translate-btn.is-english .ko-char {
+  color: #fde68a;
+  opacity: 1;
+  transform: translate(1px, 0) scale(1.22);
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.6);
+}
+
+.header-translate-btn.is-english .en-char {
+  opacity: 0.46;
+  transform: translate(0, 1px) scale(0.88);
 }
 
 /* Header Right Buttons */
@@ -1698,6 +1745,14 @@ html.v2-home-mode #root {
   padding: 0 13px;
 }
 
+.v2-home-shell .header-translate-btn.is-english {
+  background: rgba(37, 99, 235, 0.32);
+  border-color: rgba(147, 197, 253, 0.9);
+  box-shadow:
+    0 0 0 2px rgba(59, 130, 246, 0.2),
+    0 0 20px rgba(59, 130, 246, 0.26);
+}
+
 .v2-home-shell .header-translate-btn.is-translating {
   background: rgba(59, 130, 246, 0.28);
   border-color: rgba(96, 165, 250, 0.9);
@@ -1712,6 +1767,14 @@ html.v2-home-mode #root {
 
 .v2-home-shell .translate-icon-custom {
   color: #fff;
+}
+
+.v2-home-shell .header-translate-btn.is-korean .en-char {
+  color: #93c5fd;
+}
+
+.v2-home-shell .header-translate-btn.is-english .ko-char {
+  color: #fde68a;
 }
 
 .v2-home-shell .header-translate-btn.is-translating .translate-icon-custom {
