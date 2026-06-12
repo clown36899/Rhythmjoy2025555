@@ -319,10 +319,12 @@ html[data-theme="light"] .SideDrawer :is(
   .SD-adminGridItem,
   .SD-submenu,
   .SD-userProfile,
+  .SD-profileSetupCard,
   .SD-profileEditBtn,
   .SD-loginAction,
   .SD-profileTags span,
   .SD-profileLinks a,
+  .SD-profileLinks button,
   .SD-avatar.is-placeholder
 ) {
   background: var(--bg-surface-1);
@@ -335,6 +337,7 @@ html[data-theme="light"] .SideDrawer :is(
   .SD-profileBio,
   .SD-profileHeadline,
   .SD-profileLinks a,
+  .SD-profileLinks button,
   .SD-sectionTitle,
   .SD-menuItem i,
   .SD-submenuItem,

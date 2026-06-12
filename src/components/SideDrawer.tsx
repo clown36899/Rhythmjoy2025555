@@ -208,6 +208,25 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
         : profileSocialLinks;
     const profileBio = userProfile?.bio?.trim();
     const profileRegion = userProfile?.region?.trim();
+    const hasProfileDetails = Boolean(profileBio || profileRegion || profileGenres.length > 0 || profileSocialLinks.length > 0);
+    const socialSetupItems = Object.entries(fixedSocialLinks)
+        .filter(([key]) => key !== 'kakao_openchat')
+        .slice(0, 3)
+        .map(([key, meta]) => ({ key, ...meta }));
+
+    const openProfileEditor = () => {
+        if (!user) return;
+
+        profileEditModal.open({
+            currentUser: userProfile || {
+                nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+                profile_image: metadataProfileImage
+            },
+            userId: user.id,
+            onProfileUpdated: refreshUserProfile,
+            onLogout: signOut
+        });
+    };
 
     useEffect(() => {
         if (isOpen && !hasLoadedBoardCategoriesRef.current) {
@@ -407,18 +426,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                 <button
                                     type="button"
                                     className="SD-profileEditBtn"
-                                    onClick={() => {
-                                        profileEditModal.open({
-                                            currentUser: userProfile || {
-                                                nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-                                                profile_image: metadataProfileImage
-                                            },
-                                            userId: user.id,
-                                            onProfileUpdated: refreshUserProfile,
-                                            onLogout: signOut
-                                        });
-                                        onClose();
-                                    }}
+                                    onClick={openProfileEditor}
                                     aria-label="내 정보 수정"
                                     data-analytics-id="edit_profile"
                                     data-analytics-type="action"
@@ -428,56 +436,116 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     <i className="ri-pencil-line"></i>
                                 </button>
                             </div>
-                            {(profileBio || profileRegion || profileGenres.length > 0 || primarySocialLink || secondarySocialLinks.length > 0) && (
-                                <div className="SD-profileBody">
-                                    {profileBio && <p className="SD-profileBio">{profileBio}</p>}
-                                    {primarySocialLink && (
-                                        <a
-                                            className="SD-profilePrimaryLink"
-                                            href={primarySocialLink.url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            onClick={(event) => event.stopPropagation()}
-                                        >
-                                            <i className={primarySocialLink.icon}></i>
-                                            <span>{primarySocialLink.label}</span>
-                                            <i className="ri-arrow-right-up-line"></i>
-                                        </a>
-                                    )}
-                                    {(profileRegion || profileGenres.length > 0) && (
-                                        <div className="SD-profileTags">
-                                            {profileRegion && (
-                                                <span>
-                                                    <i className="ri-map-pin-2-line"></i>
-                                                    {profileRegion}
-                                                </span>
-                                            )}
-                                            {profileGenres.map((genre) => (
-                                                <span key={genre}>
-                                                    <i className="ri-music-2-line"></i>
-                                                    {genre}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {secondarySocialLinks.length > 0 && (
-                                        <div className="SD-profileLinks">
-                                            {secondarySocialLinks.map((link) => (
-                                                <a
-                                                    key={link.key}
-                                                    href={link.url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    onClick={(event) => event.stopPropagation()}
-                                                >
-                                                    <i className={link.icon}></i>
-                                                    <span>{link.label}</span>
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            <div className={`SD-profileBody ${hasProfileDetails ? '' : 'is-empty'}`.trim()}>
+                                {!hasProfileDetails && (
+                                    <button
+                                        type="button"
+                                        className="SD-profileSetupCard"
+                                        onClick={openProfileEditor}
+                                        data-analytics-id="profile_empty_setup"
+                                        data-analytics-type="action"
+                                        data-analytics-title="프로필 정보 입력"
+                                        data-analytics-section="side_drawer_profile"
+                                    >
+                                        <span>PROFILE SETUP</span>
+                                        <strong>프로필과 SNS를 연결하세요</strong>
+                                        <small>한 줄 소개, 활동 지역, 관심 장르와 대표 링크를 꾸밀 수 있습니다.</small>
+                                        <em>정보 입력</em>
+                                    </button>
+                                )}
+                                {profileBio && <p className="SD-profileBio">{profileBio}</p>}
+                                {primarySocialLink ? (
+                                    <a
+                                        className="SD-profilePrimaryLink"
+                                        href={primarySocialLink.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={(event) => event.stopPropagation()}
+                                    >
+                                        <i className={primarySocialLink.icon}></i>
+                                        <span>{primarySocialLink.label}</span>
+                                        <i className="ri-arrow-right-up-line"></i>
+                                    </a>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="SD-profilePrimaryLink SD-profilePrimaryLink--empty"
+                                        onClick={openProfileEditor}
+                                        data-analytics-id="profile_social_setup"
+                                        data-analytics-type="action"
+                                        data-analytics-title="SNS 연결하기"
+                                        data-analytics-section="side_drawer_profile"
+                                    >
+                                        <i className="ri-links-line"></i>
+                                        <span>SNS 연결하기</span>
+                                        <i className="ri-add-line"></i>
+                                    </button>
+                                )}
+                                {(profileRegion || profileGenres.length > 0) ? (
+                                    <div className="SD-profileTags">
+                                        {profileRegion && (
+                                            <span>
+                                                <i className="ri-map-pin-2-line"></i>
+                                                {profileRegion}
+                                            </span>
+                                        )}
+                                        {profileGenres.map((genre) => (
+                                            <span key={genre}>
+                                                <i className="ri-music-2-line"></i>
+                                                {genre}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="SD-profileTags SD-profileTags--empty"
+                                        onClick={openProfileEditor}
+                                        data-analytics-id="profile_meta_setup"
+                                        data-analytics-type="action"
+                                        data-analytics-title="활동 정보 입력"
+                                        data-analytics-section="side_drawer_profile"
+                                    >
+                                        <span>
+                                            <i className="ri-map-pin-2-line"></i>
+                                            활동 지역
+                                        </span>
+                                        <span>
+                                            <i className="ri-music-2-line"></i>
+                                            관심 장르
+                                        </span>
+                                    </button>
+                                )}
+                                {secondarySocialLinks.length > 0 ? (
+                                    <div className="SD-profileLinks">
+                                        {secondarySocialLinks.map((link) => (
+                                            <a
+                                                key={link.key}
+                                                href={link.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                onClick={(event) => event.stopPropagation()}
+                                            >
+                                                <i className={link.icon}></i>
+                                                <span>{link.label}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="SD-profileLinks SD-profileLinks--empty" aria-label="연결 가능한 SNS">
+                                        {socialSetupItems.map((link) => (
+                                            <button
+                                                key={link.key}
+                                                type="button"
+                                                onClick={openProfileEditor}
+                                            >
+                                                <i className={link.icon}></i>
+                                                <span>{link.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <div className="SD-loginPrompt"
