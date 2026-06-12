@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/cafe24Client';
-import { isLikelyBotTraffic } from '../utils/analyticsEngine';
+import { isInternalAnalyticsRoute, isLikelyBotTraffic } from '../utils/analyticsEngine';
 import './SiteAnalyticsModal.css';
 
 // [PHASE 18] 타입명 한글화
@@ -53,6 +53,9 @@ interface AnalyticsSummary {
         session_guest: number;
         raw_session_total?: number;
         logical_session_total?: number;
+        raw_activity_total?: number;
+        included_activity_total?: number;
+        included_session_total?: number;
         engaged_unique: number;
         guest_missing_identifier: number;
         stitched_guest_devices: number;
@@ -101,6 +104,7 @@ interface AnalyticsSummary {
     };
     daily_visit_trend?: { date: string; count: number }[];
     total_pv?: number; // [PHASE 24] 실제 PV (전체 로그 수)
+    guest_list?: GuestInfo[];
 }
 
 interface UserInfo {
@@ -294,13 +298,16 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             let clickBasedLoggedIn = 0;
             let clickBasedAnon = 0;
+            let rpcVisitorSummary: any = null;
+            let rpcGuestList: GuestInfo[] | null = null;
 
             if (rpcError) {
                 console.error('[Analytics] RPC Call Failed:', rpcError);
             } else if (rpcData) {
                 const stats = rpcData as any;
-                clickBasedLoggedIn = stats.logged_in_visits || 0;
-                clickBasedAnon = stats.anonymous_visits || 0;
+                rpcVisitorSummary = stats.visitor_summary || null;
+                clickBasedLoggedIn = rpcVisitorSummary?.unique_logged_in ?? stats.logged_in_visits ?? 0;
+                clickBasedAnon = rpcVisitorSummary?.unique_guest ?? stats.anonymous_visits ?? 0;
 
                 localUserList = (stats.user_list || []).map((u: any) => ({
                     user_id: u.user_id,
@@ -311,6 +318,28 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 })).filter((u: any) => !u.user_id.startsWith('91b04b25')); // [FIX] Exclude test account from list
 
                 setUserList(localUserList);
+                rpcGuestList = Array.isArray(stats.guest_list)
+                    ? stats.guest_list.map((guest: any) => ({
+                        key: String(guest.key),
+                        label: guest.label || 'Guest',
+                        fingerprint: guest.fingerprint || null,
+                        clientIp: guest.clientIp || guest.client_ip || null,
+                        ipHash: guest.ipHash || guest.ip_hash || null,
+                        visitCount: Number(guest.visitCount || guest.visit_count || 0) || 1,
+                        sessionCount: Number(guest.sessionCount || guest.session_count || 0),
+                        clickCount: Number(guest.clickCount || guest.click_count || 0),
+                        pageViews: Number(guest.pageViews || guest.page_views || 0),
+                        firstSeen: guest.firstSeen || guest.first_seen || null,
+                        lastSeen: guest.lastSeen || guest.last_seen || null,
+                        lastPage: guest.lastPage || guest.last_page || null,
+                        referrer: guest.referrer || null,
+                        platform: guest.platform || null,
+                        userAgent: guest.userAgent || guest.user_agent || null,
+                        isPwa: Boolean(guest.isPwa || guest.is_pwa),
+                        pwaDisplayMode: guest.pwaDisplayMode || guest.pwa_display_mode || null,
+                        sessions: Array.isArray(guest.sessions) ? guest.sessions : []
+                    }))
+                    : null;
             }
 
             // [PHASE 22] 특정 사용자 제외 (앱테스트계정 ID Prefix)
@@ -359,11 +388,29 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (allLogs.length > 300000) break; // Safety brake
             }
             const data = allLogs;
+            const getAnalyticsRowPath = (row: any) => row.page_url || row.route || row.entry_page || row.exit_page || row.path || row.target_id || '';
+            const isInternalAnalyticsRow = (row: any) => {
+                const path = String(getAnalyticsRowPath(row) || '');
+                return isInternalAnalyticsRoute(path)
+                    || String(row.section || '').includes('admin')
+                    || String(row.target_id || '').startsWith('admin_');
+            };
+            const isBotAnalyticsRow = (row: any) => (
+                row.user_agent ? isLikelyBotTraffic(row.user_agent, false) : false
+            );
+            const isExplicitlyExcludedAnalyticsRow = (row: any) => (
+                row.analytics_excluded === true ||
+                row.analytics_excluded === 1 ||
+                String(row.analytics_excluded || '').toLowerCase() === 'true'
+            );
+            const hasAnalyticsIdentityEvidence = (row: any) => (
+                Boolean(row.user_id || row.userId || row.fingerprint || row.user_agent || row.platform)
+            );
 
             const botSessionIds = new Set<string>();
             const botFingerprints = new Set<string>();
             data.forEach(d => {
-                if (!d.user_agent || !isLikelyBotTraffic(d.user_agent, false)) return;
+                if (!isBotAnalyticsRow(d)) return;
                 if (d.session_id) botSessionIds.add(String(d.session_id));
                 if (d.fingerprint) botFingerprints.add(String(d.fingerprint));
             });
@@ -470,20 +517,26 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const validData = data.filter(d => {
                 const userId = resolveAnalyticsUserId(d);
                 return (
+                    !isExplicitlyExcludedAnalyticsRow(d) &&
+                    !isInternalAnalyticsRow(d) &&
                     !isAdminAnalyticsRow(d) &&
+                    (userId || hasAnalyticsIdentityEvidence(d)) &&
                     (userId ? !userId.startsWith(excludedPrefix) : true) &&
-                    (d.user_agent ? !isLikelyBotTraffic(d.user_agent, false) : true)
+                    !isBotAnalyticsRow(d)
                 );
             });
 
             const sessions = allSessions.filter(s => {
                 const userId = resolveAnalyticsUserId(s);
                 return (
+                    !isExplicitlyExcludedAnalyticsRow(s) &&
+                    !isInternalAnalyticsRow(s) &&
                     !isAdminAnalyticsRow(s) &&
+                    (userId || hasAnalyticsIdentityEvidence(s)) &&
                     (userId ? !userId.startsWith(excludedPrefix) : true) &&
                     (s.session_id ? !botSessionIds.has(String(s.session_id)) : true) &&
                     (s.fingerprint ? !botFingerprints.has(String(s.fingerprint)) : true) &&
-                    (s.user_agent ? !isLikelyBotTraffic(s.user_agent, false) : true)
+                    !isBotAnalyticsRow(s)
                 );
             });
             const sessionsError = null;
@@ -505,6 +558,23 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (!values || values.size !== 1) return null;
                 return Array.from(values)[0];
             };
+            const getClientIp = (row: any) => row.client_ip || row.ip_address || row.ip || null;
+            const getGuestDeviceIdentity = (row: any) => {
+                const raw = `${row.platform || ''} ${row.user_agent || ''}`.toLowerCase();
+                if (raw.includes('ipad')) return 'ipad';
+                if (raw.includes('iphone') || raw.includes('ios') || raw.includes('crios')) return 'iphone';
+                if (raw.includes('android')) return 'android';
+                if (raw.includes('windows') || raw.includes('win32') || raw.includes('win64') || raw.includes('wow64')) return 'windows';
+                if (raw.includes('mac os') || raw.includes('macintosh') || raw.includes('macintel') || raw.includes('macos')) return 'macos';
+                if (raw.includes('cros') || raw.includes('chrome os')) return 'chromeos';
+                if (raw.includes('linux') || raw.includes('x11')) return 'linux';
+                return row.platform ? String(row.platform).trim().toLowerCase() : 'unknown';
+            };
+            const getGuestNetworkIdentity = (row: any) => {
+                const network = row.ip_hash || getClientIp(row);
+                if (!network) return null;
+                return `${String(network)}:${getGuestDeviceIdentity(row)}`;
+            };
             [...sessionData, ...validData].forEach((row: any) => {
                 if (row.session_id && row.user_id) {
                     addIdentity(sessionIdToUser, row.session_id, String(row.user_id));
@@ -523,6 +593,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 const fingerprintUserId = getSingleIdentity(fingerprintToUser, fingerprint);
                 if (fingerprintUserId) return `user:${fingerprintUserId}`;
                 if (fingerprint) return `guest:${fingerprint}`;
+                const guestNetworkIdentity = getGuestNetworkIdentity(row);
+                if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
                 return 'guest:unknown';
             };
@@ -539,7 +611,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
             };
 
-            const getClientIp = (row: any) => row.client_ip || row.ip_address || row.ip || null;
             const getRowPage = (row: any) => row.page_url || row.entry_page || row.exit_page || row.route || null;
             const getRowReferrer = (row: any) => row.referrer || null;
             const getFriendlyTitle = (_type: string | null, id: string | null, title: string | null) => {
@@ -643,8 +714,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const sessionLoggedInVisits = logicalSessions.filter((s: any) => getVisitorKey(s, s.session_id).startsWith('user:')).length;
             const sessionAnonVisits = logicalSessions.filter((s: any) => !getVisitorKey(s, s.session_id).startsWith('user:')).length;
             const hasVisitorData = uniqueVisitors.length > 0;
-            const displayLoggedInVisits = hasVisitorData ? uniqueLoggedInVisitors : clickBasedLoggedIn;
-            const displayAnonVisits = hasVisitorData ? uniqueGuestVisitors : clickBasedAnon;
+            const displayLoggedInVisits = rpcVisitorSummary?.unique_logged_in ?? (hasVisitorData ? uniqueLoggedInVisitors : clickBasedLoggedIn);
+            const displayAnonVisits = rpcVisitorSummary?.unique_guest ?? (hasVisitorData ? uniqueGuestVisitors : clickBasedAnon);
 
             const userActivityMap = new Map<string, UserActivityInfo[]>();
             validData.forEach((event: any, index: number) => {
@@ -780,7 +851,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 })
                 .sort((a, b) => b.visitCount - a.visitCount);
 
-            if (sessionUserList.length > 0) {
+            if (sessionUserList.length > 0 && localUserList.length === 0) {
                 localUserList = sessionUserList;
                 setUserList(sessionUserList);
             }
@@ -887,7 +958,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .sort((a, b) => new Date(b.lastSeen || 0).getTime() - new Date(a.lastSeen || 0).getTime())
                 .map((guest, index) => ({ ...guest, label: `Guest ${index + 1}` }));
 
-            setGuestList(nextGuestList);
+            setGuestList(rpcGuestList || nextGuestList);
 
             let sessionStats = { total_sessions: 0, avg_duration: 0, bounce_rate: 0 };
 
@@ -1227,11 +1298,14 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     unique_total: displayLoggedInVisits + displayAnonVisits,
                     unique_logged_in: displayLoggedInVisits,
                     unique_guest: displayAnonVisits,
-                    session_total: logicalSessions.length,
+                    session_total: rpcVisitorSummary?.included_session_total ?? logicalSessions.length,
                     session_logged_in: sessionLoggedInVisits,
                     session_guest: sessionAnonVisits,
-                    raw_session_total: sessionData.length,
+                    raw_session_total: rpcVisitorSummary?.raw_session_total ?? sessionData.length,
                     logical_session_total: logicalSessions.length,
+                    raw_activity_total: rpcVisitorSummary?.raw_activity_total,
+                    included_activity_total: rpcVisitorSummary?.included_activity_total,
+                    included_session_total: rpcVisitorSummary?.included_session_total,
                     engaged_unique: engagedVisitorKeys.size,
                     guest_missing_identifier: guestMissingIdentifier,
                     stitched_guest_devices: stitchedGuestDevices

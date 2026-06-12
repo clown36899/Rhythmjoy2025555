@@ -1,10 +1,38 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/cafe24Client';
+import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
+import {
+    ANALYTICS_ADMIN_SHIELD_KEY,
+    isInternalAnalyticsRoute,
+    isLikelyBotTraffic,
+    isLocalAnalyticsHost,
+} from '../utils/analyticsGuards';
 
 const VIEW_TRACKING_DEBUG = import.meta.env.VITE_VIEW_TRACKING_DEBUG === 'true';
 const debugViewTracking = (...args: unknown[]) => {
     if (VIEW_TRACKING_DEBUG) console.debug(...args);
 };
+
+const getOrCreateViewFingerprint = () => {
+    const primaryKey = SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT;
+    const legacyKey = 'analytics_fingerprint';
+    let fingerprint = localStorage.getItem(primaryKey) || localStorage.getItem(legacyKey);
+
+    if (!fingerprint) {
+        fingerprint = 'fp_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    }
+
+    localStorage.setItem(primaryKey, fingerprint);
+    return fingerprint;
+};
+
+const shouldSkipViewTracking = () => (
+    typeof window === 'undefined' ||
+    isLocalAnalyticsHost() ||
+    isLikelyBotTraffic() ||
+    isInternalAnalyticsRoute() ||
+    localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true'
+);
 
 /**
  * 지원하는 콘텐츠 타입
@@ -40,6 +68,8 @@ export function useViewTracking(
      * @returns 새로운 조회인 경우 true, 이미 조회한 경우 false
      */
     const incrementView = useCallback(async (): Promise<boolean> => {
+        if (!itemId || shouldSkipViewTracking()) return false;
+
         setIsLoading(true);
 
         try {
@@ -49,13 +79,8 @@ export function useViewTracking(
             // 2. 비로그인 시 fingerprint 생성/로드
             let fingerprint = null;
             if (!user) {
-                fingerprint = localStorage.getItem('analytics_fingerprint');
-                if (!fingerprint) {
-                    // Fingerprint 자동 생성
-                    fingerprint = 'fp_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-                    localStorage.setItem('analytics_fingerprint', fingerprint);
-                    debugViewTracking('[ViewTracking] Generated fingerprint:', fingerprint.substring(0, 12) + '...');
-                }
+                fingerprint = getOrCreateViewFingerprint();
+                debugViewTracking('[ViewTracking] Fingerprint:', fingerprint.substring(0, 12) + '...');
             }
 
             // 3. RPC 호출
@@ -63,7 +88,11 @@ export function useViewTracking(
                 p_item_id: typeof itemId === 'string' ? parseInt(itemId) : itemId,
                 p_item_type: itemType,
                 p_user_id: user?.id || null,
-                p_fingerprint: fingerprint || null
+                p_fingerprint: fingerprint || null,
+                p_user_agent: navigator.userAgent,
+                p_page_url: window.location.pathname,
+                p_route: window.location.pathname,
+                p_is_admin: localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true'
             });
 
             if (error) {

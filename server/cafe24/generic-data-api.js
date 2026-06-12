@@ -9,6 +9,14 @@ import {
   sanitizeEventsForViewer,
   userMatchesId,
 } from './event-security.js';
+import {
+  analyticsClientIp,
+  analyticsGuestNetworkIdentity,
+  hasAnalyticsIdentityEvidence,
+  isAnalyticsBotRow,
+  isAnalyticsBotUserAgent,
+  isAnalyticsInternalRouteRow,
+} from './analytics-purity.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -193,6 +201,14 @@ const adminOnlyRpcNames = new Set([
 const boardUserSelfWritableFields = new Set([
   'nickname',
   'profile_image',
+  'headline',
+  'profile_badge',
+  'profile_theme',
+  'bio',
+  'region',
+  'dance_genres',
+  'social_links',
+  'primary_social',
   'updated_at',
 ]);
 
@@ -280,6 +296,14 @@ function sanitizeBoardUserForViewer(row = {}, user) {
     user_id: next.user_id,
     nickname: next.nickname,
     profile_image: next.profile_image,
+    headline: next.headline,
+    profile_badge: next.profile_badge,
+    profile_theme: next.profile_theme,
+    bio: next.bio,
+    region: next.region,
+    dance_genres: next.dance_genres,
+    social_links: next.social_links,
+    primary_social: next.primary_social,
   };
 }
 
@@ -1089,17 +1113,20 @@ function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = [], board
 function buildAnalyticsAdminDeviceIds(rows = [], identity, adminUserIds) {
   const sessionIds = new Set();
   const fingerprints = new Set();
+  const networkDeviceIds = new Set();
   let changed = true;
 
   while (changed) {
     changed = false;
     for (const row of rows) {
+      const networkDeviceId = analyticsGuestNetworkIdentity(row);
       const userIds = identity?.userIds(row) || new Set([analyticsUserId(row)].filter(Boolean));
       const directAdmin = asAnalyticsBool(row?.is_admin)
         || Array.from(userIds).some((userId) => adminUserIds.has(String(userId)));
       const linkedAdminDevice = Boolean(
         (row?.session_id && sessionIds.has(String(row.session_id))) ||
-        (row?.fingerprint && fingerprints.has(String(row.fingerprint)))
+        (row?.fingerprint && fingerprints.has(String(row.fingerprint))) ||
+        (networkDeviceId && networkDeviceIds.has(networkDeviceId))
       );
       if (!directAdmin && !linkedAdminDevice) continue;
       if (row?.session_id && !sessionIds.has(String(row.session_id))) {
@@ -1110,10 +1137,14 @@ function buildAnalyticsAdminDeviceIds(rows = [], identity, adminUserIds) {
         fingerprints.add(String(row.fingerprint));
         changed = true;
       }
+      if (networkDeviceId && !networkDeviceIds.has(networkDeviceId)) {
+        networkDeviceIds.add(networkDeviceId);
+        changed = true;
+      }
     }
   }
 
-  return { sessionIds, fingerprints };
+  return { sessionIds, fingerprints, networkDeviceIds };
 }
 
 function buildAnalyticsNicknameMap(boardUsers = [], analyticsUsers = []) {
@@ -1143,14 +1174,18 @@ function isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds = null)
     adminDeviceIds &&
     (
       (row?.session_id && adminDeviceIds.sessionIds.has(String(row.session_id))) ||
-      (row?.fingerprint && adminDeviceIds.fingerprints.has(String(row.fingerprint)))
+      (row?.fingerprint && adminDeviceIds.fingerprints.has(String(row.fingerprint))) ||
+      (analyticsGuestNetworkIdentity(row) && adminDeviceIds.networkDeviceIds?.has(analyticsGuestNetworkIdentity(row)))
     )
   );
 }
 
 function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null) {
+  if (asAnalyticsBool(row?.analytics_excluded)) return false;
+  if (isAnalyticsBotRow(row) || isAnalyticsInternalRouteRow(row)) return false;
   if (isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds)) return false;
   const userId = identity?.userId(row) || analyticsUserId(row);
+  if (!userId && !hasAnalyticsIdentityEvidence(row)) return false;
   if (excludedPrefix && userId?.startsWith(excludedPrefix)) return false;
   return true;
 }
@@ -1159,6 +1194,8 @@ function analyticsIdentifier(row, fallback = '', identity = null) {
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (userId) return `user:${userId}`;
   if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
+  const guestNetworkIdentity = analyticsGuestNetworkIdentity(row);
+  if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
   if (row?.session_id) return `session:${String(row.session_id)}`;
   return `unknown:${fallback || 'visitor'}`;
 }
@@ -1223,6 +1260,139 @@ async function getAnalyticsSummaryV2(args = {}) {
   }
 
   const dedupedVisits = Array.from(dedupedByBucket.values());
+  const visitorIdentityMap = new Map();
+  const addVisitorIdentity = (item, timeValue) => {
+    if (!timeValue) return;
+    const key = analyticsIdentifier(item.row, item.index, identity);
+    const time = new Date(timeValue).getTime();
+    if (!Number.isFinite(time)) return;
+    const current = visitorIdentityMap.get(key) || {
+      key,
+      type: identity.userId(item.row) ? 'user' : 'guest',
+      firstMs: time,
+      lastMs: time,
+    };
+    current.firstMs = Math.min(current.firstMs, time);
+    current.lastMs = Math.max(current.lastMs, time);
+    visitorIdentityMap.set(key, current);
+  };
+  for (const item of sessionRows) addVisitorIdentity(item, item.row.session_start || item.row.created_at);
+  for (const item of activityRows) addVisitorIdentity(item, item.row.created_at);
+
+  const guestStats = new Map();
+  const getAnalyticsPage = (row = {}) => row.page_url || row.entry_page || row.exit_page || row.route || null;
+  const getAnalyticsReferrer = (row = {}) => row.referrer || null;
+  const addGuestRow = (item, timeValue, kind) => {
+    const key = analyticsIdentifier(item.row, item.index, identity);
+    if (identity.userId(item.row)) return;
+    const time = new Date(timeValue || item.row.created_at || item.row.session_start).getTime();
+    if (!Number.isFinite(time)) return;
+    const current = guestStats.get(key) || {
+      key,
+      label: 'Guest',
+      fingerprint: item.row.fingerprint ? String(item.row.fingerprint) : null,
+      clientIp: analyticsClientIp(item.row),
+      ipHash: item.row.ip_hash || null,
+      visitCount: 0,
+      sessionCount: 0,
+      clickCount: 0,
+      pageViews: 0,
+      firstSeen: timeValue || item.row.created_at || item.row.session_start || null,
+      lastSeen: timeValue || item.row.created_at || item.row.session_start || null,
+      firstMs: time,
+      lastMs: time,
+      lastPage: getAnalyticsPage(item.row),
+      referrer: getAnalyticsReferrer(item.row),
+      platform: item.row.platform || null,
+      userAgent: item.row.user_agent || null,
+      isPwa: asAnalyticsBool(item.row.is_pwa),
+      pwaDisplayMode: item.row.pwa_display_mode || null,
+      sessions: [],
+      seenMs: [],
+    };
+
+    current.fingerprint = current.fingerprint || (item.row.fingerprint ? String(item.row.fingerprint) : null);
+    current.clientIp = current.clientIp || analyticsClientIp(item.row);
+    current.ipHash = current.ipHash || item.row.ip_hash || null;
+    current.platform = current.platform || item.row.platform || null;
+    current.userAgent = current.userAgent || item.row.user_agent || null;
+    current.referrer = current.referrer || getAnalyticsReferrer(item.row);
+    current.isPwa = Boolean(current.isPwa || asAnalyticsBool(item.row.is_pwa));
+    current.pwaDisplayMode = current.pwaDisplayMode || item.row.pwa_display_mode || null;
+    current.seenMs.push(time);
+
+    if (time >= current.lastMs) {
+      current.lastMs = time;
+      current.lastSeen = timeValue || item.row.created_at || item.row.session_start || current.lastSeen;
+      current.lastPage = getAnalyticsPage(item.row) || current.lastPage;
+      current.clientIp = analyticsClientIp(item.row) || current.clientIp;
+      current.platform = item.row.platform || current.platform;
+      current.userAgent = item.row.user_agent || current.userAgent;
+    }
+    if (time <= current.firstMs) {
+      current.firstMs = time;
+      current.firstSeen = timeValue || item.row.created_at || item.row.session_start || current.firstSeen;
+    }
+
+    if (kind === 'session') {
+      current.sessionCount += 1;
+      current.pageViews += Math.max(1, Number(item.row.page_views) || 1);
+      current.clickCount += Number(item.row.total_clicks) || 0;
+      current.sessions.push({
+        session_id: item.row.session_id || null,
+        session_start: item.row.session_start || null,
+        duration_seconds: Number.isFinite(Number(item.row.duration_seconds)) ? Number(item.row.duration_seconds) : null,
+        page_views: Math.max(1, Number(item.row.page_views) || 1),
+        total_clicks: Number(item.row.total_clicks) || 0,
+        entry_page: item.row.entry_page || null,
+        exit_page: item.row.exit_page || null,
+        referrer: item.row.referrer || null,
+        client_ip: analyticsClientIp(item.row),
+        platform: item.row.platform || null,
+        user_agent: item.row.user_agent || null,
+        is_pwa: asAnalyticsBool(item.row.is_pwa),
+      });
+    } else {
+      current.clickCount += 1;
+      if (!current.lastPage) current.lastPage = getAnalyticsPage(item.row);
+    }
+
+    guestStats.set(key, current);
+  };
+  for (const item of sessionRows) addGuestRow(item, item.row.session_start || item.row.created_at, 'session');
+  for (const item of activityRows) addGuestRow(item, item.row.created_at, 'activity');
+
+  const guestList = Array.from(guestStats.values())
+    .map((guest) => {
+      const visitBuckets = new Set(guest.seenMs.map((value) => Math.floor(value / (6 * 60 * 60 * 1000))));
+      return {
+        key: guest.key,
+        label: guest.label,
+        fingerprint: guest.fingerprint,
+        clientIp: guest.clientIp,
+        ipHash: guest.ipHash,
+        visitCount: visitBuckets.size || guest.sessionCount || 1,
+        sessionCount: guest.sessionCount,
+        clickCount: guest.clickCount,
+        pageViews: guest.pageViews,
+        firstSeen: guest.firstSeen,
+        lastSeen: guest.lastSeen,
+        lastPage: guest.lastPage,
+        referrer: guest.referrer,
+        platform: guest.platform,
+        userAgent: guest.userAgent,
+        isPwa: guest.isPwa,
+        pwaDisplayMode: guest.pwaDisplayMode,
+        sessions: guest.sessions.sort((a, b) => new Date(b.session_start || 0).getTime() - new Date(a.session_start || 0).getTime()),
+        lastMs: guest.lastMs,
+      };
+    })
+    .sort((a, b) => b.lastMs - a.lastMs)
+    .map((guest, index) => {
+      const { lastMs, ...safeGuest } = guest;
+      return { ...safeGuest, label: `Guest ${index + 1}` };
+    });
+
   const userStats = new Map();
   for (const item of dedupedVisits) {
     const userId = identity.userId(item.row);
@@ -1258,10 +1428,23 @@ async function getAnalyticsSummaryV2(args = {}) {
     .sort((a, b) => b.visitCount - a.visitCount);
 
   return {
-    total_visits: dedupedVisits.length,
-    logged_in_visits: dedupedVisits.filter((item) => identity.userId(item.row)).length,
-    anonymous_visits: dedupedVisits.filter((item) => !identity.userId(item.row)).length,
+    total_visits: visitorIdentityMap.size,
+    logged_in_visits: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'user').length,
+    anonymous_visits: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'guest').length,
+    activity_visits: dedupedVisits.length,
+    activity_logged_in_visits: dedupedVisits.filter((item) => identity.userId(item.row)).length,
+    activity_anonymous_visits: dedupedVisits.filter((item) => !identity.userId(item.row)).length,
+    visitor_summary: {
+      unique_total: visitorIdentityMap.size,
+      unique_logged_in: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'user').length,
+      unique_guest: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'guest').length,
+      raw_activity_total: rawActivityRows.length,
+      raw_session_total: rawSessionRows.length,
+      included_activity_total: activityRows.length,
+      included_session_total: sessionRows.length,
+    },
     user_list: userList,
+    guest_list: guestList,
   };
 }
 
@@ -1501,7 +1684,25 @@ function viewTargetTable(itemType) {
   return null;
 }
 
-async function incrementItemViews(args = {}) {
+function shouldSkipItemView(args = {}, context = {}) {
+  const user = context.user || null;
+  const req = context.req || null;
+  if (user?.is_admin || asAnalyticsBool(args.p_is_admin ?? args.is_admin)) return true;
+
+  const userAgent = args.p_user_agent || args.user_agent || req?.headers?.['user-agent'];
+  if (isAnalyticsBotUserAgent(userAgent)) return true;
+
+  return isAnalyticsInternalRouteRow({
+    page_url: args.p_page_url || args.page_url || args.path || args.pathname,
+    route: args.p_route || args.route,
+    section: args.p_section || args.section,
+    target_id: args.p_target_id || args.target_id,
+  });
+}
+
+async function incrementItemViews(args = {}, context = {}) {
+  if (shouldSkipItemView(args, context)) return false;
+
   const itemId = args.p_item_id ?? args.item_id;
   const itemType = args.p_item_type ?? args.item_type;
   const viewerKey = args.p_user_id
@@ -2085,7 +2286,7 @@ export async function callRpc(req, res) {
   }
 
   if (name === 'increment_item_views') {
-    res.json(responsePayload({ data: await incrementItemViews(args) }));
+    res.json(responsePayload({ data: await incrementItemViews(args, { req, user }) }));
     return;
   }
 

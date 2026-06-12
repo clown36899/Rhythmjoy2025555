@@ -10,7 +10,7 @@ import {
   listCafe24Events,
   updateCafe24Event,
 } from './events-api.js';
-import { authProviders, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
+import { authProviders, devLogin, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
 import {
   listClientReloadDiagnostics,
   listServerVersionDiagnostics,
@@ -121,6 +121,7 @@ app.delete('/api/events/:id', jsonRoute(deleteCafe24Event));
 
 app.get('/api/auth/me', jsonRoute(me));
 app.get('/api/auth/providers', jsonRoute(authProviders));
+app.post('/api/auth/dev-login', jsonBody, jsonRoute(devLogin));
 app.post('/api/auth/logout', jsonRoute(logout));
 app.post('/api/kakao-login', jsonBody, jsonRoute(kakaoLogin));
 app.post('/api/auth/kakao', jsonBody, jsonRoute(kakaoLogin));

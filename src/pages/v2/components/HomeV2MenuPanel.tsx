@@ -10,7 +10,6 @@ type HomeMenuItem = {
     auxIcon?: string;
     theme: string;
     to?: string;
-    action?: "stats";
 };
 
 const HOME_MENU_ITEMS: HomeMenuItem[] = [
@@ -22,7 +21,6 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { label: "포럼", icon: "ri-layout-grid-line", theme: "forum", to: "/forum" },
     { label: "쇼핑", icon: "ri-shopping-bag-3-line", theme: "shopping", to: "/shopping" },
     { label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
-    { label: "게시물 통계", icon: "ri-bar-chart-box-line", theme: "stats", action: "stats" },
 ];
 
 const SWIPE_MIN_DISTANCE = 48;
@@ -200,27 +198,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         return location.pathname === path;
     };
 
-    const openStatsModal = () => {
-        setIsExpanded(false);
-
-        if (!user) {
-            window.dispatchEvent(new CustomEvent("openLoginModal", {
-                detail: {
-                    message: "게시물 통계를 보려면 로그인이 필요합니다.",
-                },
-            }));
-            return;
-        }
-
-        openModal("stats", { userId: user.id, initialTab: "my" });
-    };
-
     const handleMenuItemClick = (item: HomeMenuItem) => {
-        if (item.action === "stats") {
-            openStatsModal();
-            return;
-        }
-
         if (item.to) handleNavigate(item.to);
     };
 

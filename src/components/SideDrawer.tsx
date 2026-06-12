@@ -30,6 +30,63 @@ interface BoardCategory {
     is_active: boolean;
 }
 
+type DrawerSocialLink = {
+    key: string;
+    label: string;
+    url: string;
+    icon: string;
+};
+
+const fixedSocialLinks: Record<string, { label: string; icon: string }> = {
+    instagram: { label: 'Instagram', icon: 'ri-instagram-line' },
+    youtube: { label: 'YouTube', icon: 'ri-youtube-line' },
+    website: { label: 'Website', icon: 'ri-global-line' },
+    kakao_openchat: { label: 'OpenChat', icon: 'ri-kakao-talk-line' },
+};
+
+const profileThemeClassNames = new Set(['electric', 'sunset', 'mint', 'mono']);
+
+const parseSocialLinks = (value: unknown): DrawerSocialLink[] => {
+    if (!value) return [];
+    const parsed = typeof value === 'string'
+        ? (() => {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return {};
+            }
+        })()
+        : value;
+
+    if (!parsed || typeof parsed !== 'object') return [];
+    const source = parsed as Record<string, any>;
+    const links: DrawerSocialLink[] = [];
+
+    Object.entries(fixedSocialLinks).forEach(([key, meta]) => {
+        const url = typeof source[key] === 'string' ? source[key].trim() : '';
+        if (url) links.push({ key, label: meta.label, icon: meta.icon, url });
+    });
+
+    if (Array.isArray(source.extra)) {
+        source.extra.forEach((item: any, index: number) => {
+            const label = typeof item?.label === 'string' ? item.label.trim() : '';
+            const url = typeof item?.url === 'string' ? item.url.trim() : '';
+            const key = item?.id ? `extra:${item.id}` : `extra-${index}-${label}`;
+            if (label && url) links.push({ key, label, icon: 'ri-links-line', url });
+        });
+    }
+
+    return links.slice(0, 4);
+};
+
+const splitDanceGenres = (value?: string | null) => (
+    String(value || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+);
+
 export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick }: SideDrawerProps) {
     const navigate = useNavigate();
     const location = useLocation();
@@ -137,6 +194,20 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const metadataProfileImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.user_metadata?.profile_image || null;
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || metadataProfileImage;
+    const profileSocialLinks = parseSocialLinks(userProfile?.social_links);
+    const profileGenres = splitDanceGenres(userProfile?.dance_genres);
+    const profileHeadline = userProfile?.headline?.trim();
+    const profileBadge = userProfile?.profile_badge?.trim();
+    const profileTheme = userProfile?.profile_theme && profileThemeClassNames.has(userProfile.profile_theme)
+        ? userProfile.profile_theme
+        : 'electric';
+    const primarySocialKey = userProfile?.primary_social || '';
+    const primarySocialLink = profileSocialLinks.find((link) => link.key === primarySocialKey) || profileSocialLinks[0] || null;
+    const secondarySocialLinks = primarySocialLink
+        ? profileSocialLinks.filter((link) => link.key !== primarySocialLink.key)
+        : profileSocialLinks;
+    const profileBio = userProfile?.bio?.trim();
+    const profileRegion = userProfile?.region?.trim();
 
     useEffect(() => {
         if (isOpen && !hasLoadedBoardCategoriesRef.current) {
@@ -299,23 +370,42 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
         logUserInteraction('Theme', 'Toggle', nextTheme);
     };
 
+    const openPostStats = (initialTab: 'my' | 'scene' | 'monthly' = 'my') => {
+        if (user) {
+            statsModal.open({
+                initialTab,
+                userId: user.id
+            });
+        } else {
+            onLoginClick();
+        }
+        onClose();
+    };
+
     return createPortal(
         <div className={`SideDrawer SD-overlay ${isOpen ? 'is-open' : ''}`} onClick={onClose}>
             <div className={`SD-container ${isOpen ? 'is-open' : ''}`} onClick={(e) => e.stopPropagation()}>
                 <div className="SD-header">
                     {user ? (
-                        <div className="SD-userProfile">
-                            <div className={`SD-avatar ${!profileImage ? 'is-placeholder' : ''}`}>
-                                {profileImage ? (
-                                    <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" />
-                                ) : (
-                                    <i className="ri-user-smile-line"></i>
-                                )}
-                            </div>
-                            <div className="SD-userInfo">
-                                <span className="SD-username">{nickname}</span>
-                                <span className="SD-email">{user.email}</span>
+                        <div className={`SD-userProfile is-theme-${profileTheme}`}>
+                            <div className="SD-profileTop">
+                                <div className={`SD-avatar ${!profileImage ? 'is-placeholder' : ''}`}>
+                                    {profileImage ? (
+                                        <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" />
+                                    ) : (
+                                        <i className="ri-user-smile-line"></i>
+                                    )}
+                                </div>
+                                <div className="SD-userInfo">
+                                    <div className="SD-nameLine">
+                                        <span className="SD-username">{nickname}</span>
+                                        {profileBadge && <span className="SD-profileBadge">{profileBadge}</span>}
+                                    </div>
+                                    {profileHeadline && <span className="SD-profileHeadline">{profileHeadline}</span>}
+                                    <span className="SD-email">{user.email}</span>
+                                </div>
                                 <button
+                                    type="button"
                                     className="SD-profileEditBtn"
                                     onClick={() => {
                                         profileEditModal.open({
@@ -329,14 +419,65 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                         });
                                         onClose();
                                     }}
+                                    aria-label="내 정보 수정"
                                     data-analytics-id="edit_profile"
                                     data-analytics-type="action"
                                     data-analytics-title="내 정보 수정"
                                     data-analytics-section="side_drawer"
                                 >
-                                    내 정보 수정
+                                    <i className="ri-pencil-line"></i>
                                 </button>
                             </div>
+                            {(profileBio || profileRegion || profileGenres.length > 0 || primarySocialLink || secondarySocialLinks.length > 0) && (
+                                <div className="SD-profileBody">
+                                    {profileBio && <p className="SD-profileBio">{profileBio}</p>}
+                                    {primarySocialLink && (
+                                        <a
+                                            className="SD-profilePrimaryLink"
+                                            href={primarySocialLink.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            onClick={(event) => event.stopPropagation()}
+                                        >
+                                            <i className={primarySocialLink.icon}></i>
+                                            <span>{primarySocialLink.label}</span>
+                                            <i className="ri-arrow-right-up-line"></i>
+                                        </a>
+                                    )}
+                                    {(profileRegion || profileGenres.length > 0) && (
+                                        <div className="SD-profileTags">
+                                            {profileRegion && (
+                                                <span>
+                                                    <i className="ri-map-pin-2-line"></i>
+                                                    {profileRegion}
+                                                </span>
+                                            )}
+                                            {profileGenres.map((genre) => (
+                                                <span key={genre}>
+                                                    <i className="ri-music-2-line"></i>
+                                                    {genre}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {secondarySocialLinks.length > 0 && (
+                                        <div className="SD-profileLinks">
+                                            {secondarySocialLinks.map((link) => (
+                                                <a
+                                                    key={link.key}
+                                                    href={link.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    onClick={(event) => event.stopPropagation()}
+                                                >
+                                                    <i className={link.icon}></i>
+                                                    <span>{link.label}</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="SD-loginPrompt" 
@@ -464,6 +605,22 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     <i className="ri-arrow-right-s-line"></i>
                                 </button>
                             )}
+                            <button
+                                type="button"
+                                className="SD-adminStatsOpenBtn SD-postStatsOpenBtn"
+                                onClick={() => openPostStats(user ? 'my' : 'scene')}
+                                data-analytics-id="post_stats_open"
+                                data-analytics-type="action"
+                                data-analytics-title="게시물 통계"
+                                data-analytics-section="side_drawer_stats"
+                            >
+                                <i className="ri-bar-chart-box-line"></i>
+                                <span>
+                                    <strong>게시물 통계</strong>
+                                    <small>내 활동 · 스윙씬 · 월간 빌보드</small>
+                                </span>
+                                <i className="ri-arrow-right-s-line"></i>
+                            </button>
                             <div className="SD-adminGrid">
                                 <div
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
@@ -514,15 +671,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     className="SD-adminGridItem is-event-total"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (user) {
-                                            statsModal.open({
-                                                initialTab: 'scene',
-                                                userId: user.id
-                                            });
-                                        } else {
-                                            onLoginClick();
-                                        }
-                                        onClose();
+                                        openPostStats('scene');
                                     }}
                                     style={{ position: 'relative' }}
                                 >

@@ -215,3 +215,295 @@
 .userreg-overlay .profile-upload-container:hover .profile-upload-overlay {
   opacity: 1;
 }
+
+/* ===== 프로필 편집 확장 폼 ===== */
+.userreg-overlay .profile-edit-modal {
+  overflow: hidden;
+}
+
+.userreg-overlay .profile-edit-form {
+  overflow-y: auto;
+  padding-bottom: 28px;
+}
+
+.userreg-overlay .profile-edit-form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.userreg-overlay .profile-edit-form::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.userreg-overlay .userreg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.userreg-overlay .userreg-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ur-text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.userreg-overlay .userreg-section-title i {
+  color: var(--ur-accent-color);
+  font-size: 1.05rem;
+}
+
+.userreg-overlay .userreg-profile-style-section {
+  gap: 16px;
+}
+
+.userreg-overlay .userreg-choice-row,
+.userreg-overlay .userreg-theme-options,
+.userreg-overlay .userreg-primary-link-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.userreg-overlay .userreg-choice-chip,
+.userreg-overlay .userreg-theme-option,
+.userreg-overlay .userreg-primary-link-option {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--ur-text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.userreg-overlay .userreg-choice-chip {
+  padding: 0 11px;
+}
+
+.userreg-overlay .userreg-choice-chip:hover,
+.userreg-overlay .userreg-theme-option:hover,
+.userreg-overlay .userreg-primary-link-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ur-text-primary);
+  transform: translateY(-1px);
+}
+
+.userreg-overlay .userreg-choice-chip.is-active,
+.userreg-overlay .userreg-theme-option.is-active,
+.userreg-overlay .userreg-primary-link-option.is-active {
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(250, 204, 21, 0.12);
+  color: var(--ur-text-primary);
+}
+
+.userreg-overlay .userreg-theme-option {
+  flex: 1 1 calc(50% - 8px);
+  min-width: 130px;
+  padding: 8px 10px;
+}
+
+.userreg-overlay .userreg-theme-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.userreg-overlay .userreg-theme-option.is-electric .userreg-theme-swatch {
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+}
+
+.userreg-overlay .userreg-theme-option.is-sunset .userreg-theme-swatch {
+  background: linear-gradient(135deg, #fb7185, #fbbf24);
+}
+
+.userreg-overlay .userreg-theme-option.is-mint .userreg-theme-swatch {
+  background: linear-gradient(135deg, #34d399, #22d3ee);
+}
+
+.userreg-overlay .userreg-theme-option.is-mono .userreg-theme-swatch {
+  background: linear-gradient(135deg, #d4d4d8, #71717a);
+}
+
+.userreg-overlay .userreg-textarea {
+  min-height: 92px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.userreg-overlay .userreg-help-text {
+  color: var(--ur-text-secondary);
+  font-size: 0.76rem;
+  text-align: right;
+}
+
+.userreg-overlay .userreg-inline-fields,
+.userreg-overlay .userreg-social-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.userreg-overlay .userreg-label i {
+  margin-right: 6px;
+  color: var(--ur-text-secondary);
+}
+
+.userreg-overlay .userreg-extra-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.userreg-overlay .userreg-extra-links-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ur-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.userreg-overlay .userreg-icon-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: var(--ur-text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.userreg-overlay .userreg-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.userreg-overlay .userreg-icon-btn.is-danger {
+  color: var(--color-red-500);
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  flex: 0 0 34px;
+}
+
+.userreg-overlay .userreg-add-link-btn {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  color: var(--ur-text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.userreg-overlay .userreg-add-link-btn:hover {
+  color: var(--ur-text-primary);
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.userreg-overlay .userreg-extra-link-row {
+  display: grid;
+  grid-template-columns: minmax(78px, 0.7fr) minmax(0, 1.3fr) 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.userreg-overlay .userreg-primary-link-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.09), rgba(255, 255, 255, 0.035));
+}
+
+.userreg-overlay .userreg-primary-link-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ur-text-primary);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.userreg-overlay .userreg-primary-link-header small {
+  max-width: 170px;
+  color: var(--ur-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.userreg-overlay .userreg-primary-link-option {
+  flex: 1 1 auto;
+  padding: 0 10px;
+}
+
+.userreg-overlay .userreg-primary-link-option i {
+  font-size: 1rem;
+}
+
+.userreg-overlay .userreg-empty-hint {
+  padding: 11px 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: var(--ur-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+@media (max-width: 520px) {
+  .userreg-overlay .profile-edit-modal {
+    max-width: calc(100vw - 18px) !important;
+    max-height: 94vh !important;
+  }
+
+  .userreg-overlay .userreg-inline-fields,
+  .userreg-overlay .userreg-social-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .userreg-overlay .userreg-extra-link-row {
+    grid-template-columns: 1fr 34px;
+  }
+
+  .userreg-overlay .userreg-extra-link-row input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .userreg-overlay .userreg-primary-link-header {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .userreg-overlay .userreg-primary-link-header small {
+    max-width: none;
+    text-align: left;
+  }
+}

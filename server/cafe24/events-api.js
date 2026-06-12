@@ -317,6 +317,7 @@ export async function listCafe24Events(req, res) {
   const scope = String(req.query.scope || req.query.danceScope || '').trim();
   const q = String(req.query.q || '').trim();
   const limit = Math.min(Math.max(Number(req.query.limit || 1000), 1), 3000);
+  const limitSql = String(limit);
 
   if ((req.query.start || req.query.startDate || req.query.end || req.query.endDate) && (!start || !end)) {
     res.status(400).json({ error: 'start and end must be YYYY-MM-DD' });
@@ -328,11 +329,11 @@ export async function listCafe24Events(req, res) {
   const user = await getCurrentUser(req);
   const [rows] = await pool.execute(
     `SELECT *
-       FROM ${tableName}
+      FROM ${tableName}
        ${sql}
       ORDER BY COALESCE(start_date, date_value) ASC, time_text ASC, id ASC
-      LIMIT ?`,
-    [...params, limit],
+      LIMIT ${limitSql}`,
+    params,
   );
 
   const events = await attachEventAuthors(rows

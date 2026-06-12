@@ -4,6 +4,10 @@ import {
   loadCafe24TableRows,
   saveCafe24TableRow,
 } from './generic-data-api.js';
+import {
+  isAnalyticsBotUserAgent,
+  isAnalyticsInternalRouteRow,
+} from './analytics-purity.js';
 
 const EVENT_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
@@ -150,6 +154,17 @@ function asIso(value, fallback = new Date()) {
 
 function requestUserAgent(req, body) {
   return asString(body.user_agent) || asString(req.headers['user-agent']);
+}
+
+function isAnalyticsBotPayload(body, req) {
+  return isAnalyticsBotUserAgent(requestUserAgent(req, body));
+}
+
+function isInternalAnalyticsPayload(body) {
+  return isAnalyticsInternalRouteRow({
+    ...body,
+    page_url: eventPath(body),
+  });
 }
 
 function cleanIp(value) {
@@ -510,7 +525,7 @@ async function saveSessionStart(body, req) {
   }
 }
 
-async function saveSessionEnd(body) {
+async function saveSessionEnd(body, req) {
   const sessionId = asString(body.session_id || body.sessionId);
   if (!sessionId) return;
 
@@ -526,8 +541,13 @@ async function saveSessionEnd(body) {
     duration_seconds: asInt(body.duration_seconds, existing?.duration_seconds ?? null),
     total_clicks: asInt(body.total_clicks, existing?.total_clicks ?? 0) || 0,
     page_views: asInt(body.page_views, existing?.page_views ?? 1) || 1,
-    client_ip: existing?.client_ip || asString(body.client_ip),
-    ip_hash: existing?.ip_hash || asString(body.ip_hash) || hashIp(body.client_ip),
+    user_id: asString(body.user_id || body.userId) ?? existing?.user_id ?? null,
+    fingerprint: asString(body.fingerprint) ?? existing?.fingerprint ?? null,
+    is_admin: asBool(body.is_admin, asBool(existing?.is_admin, false)),
+    user_agent: existing?.user_agent || requestUserAgent(req, body) || null,
+    platform: existing?.platform || asString(body.platform) || null,
+    client_ip: existing?.client_ip || asString(body.client_ip) || requestClientIp(req),
+    ip_hash: existing?.ip_hash || asString(body.ip_hash) || hashIp(asString(body.client_ip) || requestClientIp(req)),
     created_at: existing?.created_at || existing?.session_start || now,
     updated_at: now,
   };
@@ -576,7 +596,7 @@ export async function saveCafe24AnalyticsCompat(body, req) {
   }
 
   if (action === 'end') {
-    await saveSessionEnd(body);
+    await saveSessionEnd(body, req);
     return;
   }
 
@@ -656,6 +676,11 @@ export async function recordAnalytics(req, res) {
     ip_hash: req.body?.ip_hash || hashIp(requestIp),
   };
 
+  if (asBool(body.analytics_excluded, false) || trustedIsAdmin || isAnalyticsBotPayload(body, req) || isInternalAnalyticsPayload(body)) {
+    res.json({ ok: true, skipped: true });
+    return;
+  }
+
   await pool.execute(
     `INSERT INTO analytics_logs (
        session_id, user_id, event_type, path, title, referrer, user_agent, raw_json
@@ -664,8 +689,8 @@ export async function recordAnalytics(req, res) {
       body.sessionId || body.session_id || null,
       body.userId || body.user_id || null,
       body.eventType || body.event_type || body.type || 'activity',
-      body.path || body.pathname || null,
-      body.title || null,
+      eventPath(body) || null,
+      body.title || body.target_title || body.targetTitle || null,
       body.referrer || req.headers.referer || null,
       req.headers['user-agent'] || null,
       JSON.stringify(body),

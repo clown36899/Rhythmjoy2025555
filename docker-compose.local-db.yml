@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: rhythmjoy-local-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rhythmjoy_root
+      MYSQL_DATABASE: swingenjoy_app
+      MYSQL_USER: swingenjoy
+      MYSQL_PASSWORD: swingenjoy_local
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - rhythmjoy-local-mysql-data:/var/lib/mysql
+      - ./server/cafe24/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./server/cafe24/local-db/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uswingenjoy -pswingenjoy_local --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  rhythmjoy-local-mysql-data:

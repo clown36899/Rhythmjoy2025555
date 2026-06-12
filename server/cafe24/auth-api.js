@@ -229,6 +229,12 @@ function getRequestOrigin(req) {
   return `${String(protocol).split(',')[0]}://${host}`;
 }
 
+function isLocalDevRequest(req) {
+  if (process.env.NODE_ENV === 'production') return false;
+  const host = String(req.headers.host || '').split(':')[0];
+  return ['localhost', '127.0.0.1', '::1'].includes(host);
+}
+
 function normalizeReturnUrl(value) {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
     return '/';
@@ -273,7 +279,11 @@ function decodeGoogleState(state) {
 
 async function fetchKakaoToken(code, redirectUri) {
   const restApiKey = process.env.VITE_KAKAO_REST_API_KEY;
-  if (!restApiKey) throw new Error('Kakao REST API key is not configured');
+  if (!restApiKey) {
+    const error = new Error('Kakao REST API key is not configured');
+    error.statusCode = 503;
+    throw error;
+  }
 
   const params = new URLSearchParams({
     grant_type: 'authorization_code',
@@ -485,6 +495,32 @@ export async function kakaoLogin(req, res) {
     ok: true,
     user: publicUser(userRow),
     cafe24Session: true,
+  });
+}
+
+export async function devLogin(req, res) {
+  if (!isLocalDevRequest(req)) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  const userId = String(req.body?.userId || 'local-admin-user').trim();
+  const pool = getMysqlPool();
+  const [rows] = await pool.execute('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
+  const userRow = await attachAdminFlag(pool, rows[0]);
+
+  if (!userRow) {
+    res.status(404).json({ error: 'Local dev user not found' });
+    return;
+  }
+
+  const { sessionId, expiresAt } = await createSession(userRow.id);
+  setSessionCookie(req, res, sessionId, expiresAt);
+  res.json({
+    ok: true,
+    user: publicUser(userRow),
+    cafe24Session: true,
+    devLogin: true,
   });
 }
 

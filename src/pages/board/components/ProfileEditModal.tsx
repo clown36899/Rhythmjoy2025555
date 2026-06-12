@@ -1,20 +1,136 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/cafe24Client';
 import { convertToWebP, extractStoragePath } from '../../../utils/imageUtils';
 import './userreg.css'; // Reusing similar styles
 
+interface ProfileLink {
+    id: string;
+    label: string;
+    url: string;
+}
+
+interface ProfileSocialLinks {
+    instagram?: string;
+    youtube?: string;
+    website?: string;
+    kakao_openchat?: string;
+    extra?: ProfileLink[];
+}
+
+interface EditableProfile {
+    nickname: string;
+    profile_image?: string | null;
+    headline?: string | null;
+    profile_badge?: string | null;
+    profile_theme?: string | null;
+    bio?: string | null;
+    region?: string | null;
+    dance_genres?: string | null;
+    social_links?: ProfileSocialLinks | string | null;
+    primary_social?: string | null;
+}
+
 interface ProfileEditModalProps {
     isOpen: boolean;
     onClose: () => void;
-    currentUser: {
-        nickname: string;
-        profile_image?: string | null;
-    };
+    currentUser: EditableProfile;
     onProfileUpdated: () => void | Promise<void>;
     userId: string;
     onLogout?: () => void;
 }
+
+const SOCIAL_LINK_FIELDS = [
+    { key: 'instagram', label: 'Instagram', icon: 'ri-instagram-line', placeholder: 'https://instagram.com/username' },
+    { key: 'youtube', label: 'YouTube', icon: 'ri-youtube-line', placeholder: 'https://youtube.com/@channel' },
+    { key: 'website', label: '웹사이트', icon: 'ri-global-line', placeholder: 'https://example.com' },
+    { key: 'kakao_openchat', label: '오픈채팅', icon: 'ri-chat-3-line', placeholder: 'https://open.kakao.com/o/...' },
+] as const;
+
+type SocialLinkKey = typeof SOCIAL_LINK_FIELDS[number]['key'];
+
+const PROFILE_THEME_OPTIONS = [
+    { value: 'electric', label: 'Electric', swatch: ['#60a5fa', '#a78bfa'] },
+    { value: 'sunset', label: 'Sunset', swatch: ['#fb7185', '#fbbf24'] },
+    { value: 'mint', label: 'Mint', swatch: ['#34d399', '#22d3ee'] },
+    { value: 'mono', label: 'Mono', swatch: ['#d4d4d8', '#71717a'] },
+] as const;
+
+const PROFILE_BADGE_OPTIONS = ['Dancer', 'Organizer', 'Teacher', 'DJ', 'Learner'] as const;
+
+const profileThemeValues = PROFILE_THEME_OPTIONS.map((option) => option.value);
+
+const makeEmptyExtraLink = (): ProfileLink => ({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label: '',
+    url: '',
+});
+
+const parseSocialLinks = (value: EditableProfile['social_links']): ProfileSocialLinks => {
+    if (!value) return {};
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            return typeof parsed === 'object' && parsed ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+    return value;
+};
+
+const normalizeUrlInput = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return '';
+    if (trimmed.startsWith('www.') || /^[^\s@]+\.[^\s@]{2,}/.test(trimmed)) return `https://${trimmed}`;
+    return '';
+};
+
+const hasInvalidUrlInput = (value = '') => Boolean(value.trim()) && !normalizeUrlInput(value);
+
+const normalizeSocialLinks = (value: EditableProfile['social_links']): ProfileSocialLinks => {
+    const parsed = parseSocialLinks(value);
+    const extra = Array.isArray(parsed.extra)
+        ? parsed.extra
+            .map((link) => ({
+                id: link.id || makeEmptyExtraLink().id,
+                label: String(link.label || ''),
+                url: String(link.url || ''),
+            }))
+            .filter((link) => link.label.trim() || link.url.trim())
+        : [];
+
+    return {
+        instagram: String(parsed.instagram || ''),
+        youtube: String(parsed.youtube || ''),
+        website: String(parsed.website || ''),
+        kakao_openchat: String(parsed.kakao_openchat || ''),
+        extra,
+    };
+};
+
+const compactSocialLinks = (links: ProfileSocialLinks): ProfileSocialLinks | null => {
+    const next: ProfileSocialLinks = {};
+
+    SOCIAL_LINK_FIELDS.forEach(({ key }) => {
+        const url = normalizeUrlInput(String(links[key] || ''));
+        if (url) next[key] = url;
+    });
+
+    const extra = (links.extra || [])
+        .map((link) => ({
+            id: link.id || makeEmptyExtraLink().id,
+            label: link.label.trim(),
+            url: normalizeUrlInput(link.url),
+        }))
+        .filter((link) => link.label || link.url);
+
+    if (extra.length) next.extra = extra;
+
+    return Object.keys(next).length ? next : null;
+};
 
 export default function ProfileEditModal({
     isOpen,
@@ -25,6 +141,14 @@ export default function ProfileEditModal({
     onLogout
 }: ProfileEditModalProps) {
     const [nickname, setNickname] = useState(currentUser.nickname || '');
+    const [headline, setHeadline] = useState(currentUser.headline || '');
+    const [profileBadge, setProfileBadge] = useState(currentUser.profile_badge || '');
+    const [profileTheme, setProfileTheme] = useState(currentUser.profile_theme || 'electric');
+    const [bio, setBio] = useState(currentUser.bio || '');
+    const [region, setRegion] = useState(currentUser.region || '');
+    const [danceGenres, setDanceGenres] = useState(currentUser.dance_genres || '');
+    const [socialLinks, setSocialLinks] = useState<ProfileSocialLinks>(() => normalizeSocialLinks(currentUser.social_links));
+    const [primarySocial, setPrimarySocial] = useState(currentUser.primary_social || '');
     const [previewImage, setPreviewImage] = useState<string | null>(currentUser.profile_image || null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,9 +212,25 @@ export default function ProfileEditModal({
             console.log('[프로필 수정 모달] 열림', {
                 nickname: currentUser.nickname,
                 profile_image: currentUser.profile_image,
+                headline: currentUser.headline,
+                profile_badge: currentUser.profile_badge,
+                profile_theme: currentUser.profile_theme,
+                bio: currentUser.bio,
+                region: currentUser.region,
+                dance_genres: currentUser.dance_genres,
+                social_links: currentUser.social_links,
+                primary_social: currentUser.primary_social,
                 userId
             });
             setNickname(currentUser.nickname || '');
+            setHeadline(currentUser.headline || '');
+            setProfileBadge(currentUser.profile_badge || '');
+            setProfileTheme(currentUser.profile_theme || 'electric');
+            setBio(currentUser.bio || '');
+            setRegion(currentUser.region || '');
+            setDanceGenres(currentUser.dance_genres || '');
+            setSocialLinks(normalizeSocialLinks(currentUser.social_links));
+            setPrimarySocial(currentUser.primary_social || '');
             setPreviewImage(currentUser.profile_image || null);
             setSelectedFile(null);
             setImageDeleted(false); // 모달 열 때 초기화
@@ -135,9 +275,74 @@ export default function ProfileEditModal({
         setImageDeleted(true); // 삭제 플래그 설정
     };
 
+    const primarySocialOptions = useMemo(() => {
+        const options = SOCIAL_LINK_FIELDS
+            .filter(({ key }) => String(socialLinks[key] || '').trim())
+            .map(({ key, label, icon }) => ({ key, label, icon }));
+
+        (socialLinks.extra || []).forEach((link) => {
+            if (link.label.trim() && link.url.trim()) {
+                options.push({
+                    key: `extra:${link.id}`,
+                    label: link.label.trim(),
+                    icon: 'ri-links-line',
+                });
+            }
+        });
+
+        return options;
+    }, [socialLinks]);
+
+    useEffect(() => {
+        if (primarySocial && !primarySocialOptions.some((option) => option.key === primarySocial)) {
+            setPrimarySocial('');
+        }
+    }, [primarySocial, primarySocialOptions]);
+
     const handleSubmit = async () => {
         if (!nickname.trim()) {
             alert('닉네임을 입력해주세요.');
+            return;
+        }
+
+        if (headline.trim().length > 56) {
+            alert('한 줄 타이틀은 56자 이내로 입력해주세요.');
+            return;
+        }
+
+        if (profileBadge.trim().length > 18) {
+            alert('프로필 배지는 18자 이내로 입력해주세요.');
+            return;
+        }
+
+        if (bio.trim().length > 160) {
+            alert('소개는 160자 이내로 입력해주세요.');
+            return;
+        }
+
+        if (region.trim().length > 40) {
+            alert('활동 지역은 40자 이내로 입력해주세요.');
+            return;
+        }
+
+        if (danceGenres.trim().length > 80) {
+            alert('관심 장르는 80자 이내로 입력해주세요.');
+            return;
+        }
+
+        const hasIncompleteExtraLink = (socialLinks.extra || []).some((link) => (
+            (link.label.trim() && !link.url.trim()) ||
+            (!link.label.trim() && link.url.trim())
+        ));
+        if (hasIncompleteExtraLink) {
+            alert('추가 링크는 이름과 URL을 함께 입력해주세요.');
+            return;
+        }
+
+        const hasInvalidSocialUrl = SOCIAL_LINK_FIELDS.some(({ key }) => hasInvalidUrlInput(String(socialLinks[key] || '')));
+        const hasInvalidExtraUrl = (socialLinks.extra || []).some((link) => hasInvalidUrlInput(link.url));
+        if (hasInvalidSocialUrl || hasInvalidExtraUrl) {
+            alert('링크는 http:// 또는 https:// 주소로 입력해주세요. example.com처럼 입력하면 자동으로 https://가 붙습니다.');
             return;
         }
 
@@ -161,6 +366,14 @@ export default function ProfileEditModal({
         try {
             console.log('[프로필 저장] 시작', {
                 nickname,
+                headline,
+                profileBadge,
+                profileTheme,
+                bio,
+                region,
+                danceGenres,
+                socialLinks,
+                primarySocial,
                 imageDeleted,
                 hasSelectedFile: !!selectedFile,
                 oldImagePath,
@@ -249,12 +462,27 @@ export default function ProfileEditModal({
                 profile_image: profileImageUrl,
                 userId
             });
+            const cleanedSocialLinks = compactSocialLinks(socialLinks);
+            const safeTheme = profileThemeValues.includes(profileTheme as typeof profileThemeValues[number]) ? profileTheme : 'electric';
+            const safePrimarySocial = primarySocialOptions.some((option) => option.key === primarySocial) ? primarySocial : '';
+            const profilePayload = {
+                nickname: nickname.trim(),
+                profile_image: profileImageUrl,
+                headline: headline.trim() || null,
+                profile_badge: profileBadge.trim() || null,
+                profile_theme: safeTheme,
+                bio: bio.trim() || null,
+                region: region.trim() || null,
+                dance_genres: danceGenres.trim() || null,
+                social_links: cleanedSocialLinks,
+                primary_social: safePrimarySocial || null,
+            };
+
             const { error, data, status, statusText } = await supabase
                 .from('board_users')
                 .upsert({
                     user_id: userId,
-                    nickname: nickname,
-                    profile_image: profileImageUrl,
+                    ...profilePayload,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id' })
                 .select(); // SELECT를 추가하여 업데이트된 행 반환
@@ -321,17 +549,45 @@ export default function ProfileEditModal({
         }
     };
 
+    const updateSocialLink = (key: SocialLinkKey, value: string) => {
+        setSocialLinks((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const updateExtraLink = (id: string, patch: Partial<ProfileLink>) => {
+        setSocialLinks((prev) => ({
+            ...prev,
+            extra: (prev.extra || []).map((link) => (
+                link.id === id ? { ...link, ...patch } : link
+            )),
+        }));
+    };
+
+    const addExtraLink = () => {
+        setSocialLinks((prev) => ({
+            ...prev,
+            extra: [...(prev.extra || []), makeEmptyExtraLink()],
+        }));
+    };
+
+    const removeExtraLink = (id: string) => {
+        setSocialLinks((prev) => ({
+            ...prev,
+            extra: (prev.extra || []).filter((link) => link.id !== id),
+        }));
+    };
+
     if (!isOpen) return null;
 
     const modalContent = (
         <div className="userreg-overlay" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-            <div className="userreg-modal" style={{
-                maxWidth: '360px',
+            <div className="userreg-modal profile-edit-modal" style={{
+                maxWidth: '430px',
                 border: '1px solid rgba(255,255,255,0.1)',
                 background: 'rgba(30, 30, 30, 0.9)',
                 backdropFilter: 'blur(20px)',
                 boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-                borderRadius: '24px'
+                borderRadius: '24px',
+                maxHeight: '92vh'
             }}>
                 <div className="userreg-header" style={{ padding: '28px 24px 20px' }}>
                     <div className="userreg-header-top">
@@ -351,7 +607,7 @@ export default function ProfileEditModal({
                     </div>
                 </div>
 
-                <div className="userreg-form">
+                <div className="userreg-form profile-edit-form">
                     {/* 프로필 이미지 */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
                         <div
@@ -393,6 +649,7 @@ export default function ProfileEditModal({
                             onChange={handleImageChange}
                             style={{ display: 'none' }}
                             accept="image/*"
+                            data-testid="profile-image-input"
                         />
                         {previewImage && (
                             <button
@@ -423,6 +680,8 @@ export default function ProfileEditModal({
                             value={nickname}
                             onChange={(e) => setNickname(e.target.value)}
                             className="userreg-input"
+                            maxLength={30}
+                            data-testid="profile-nickname-input"
                         />
                         <p style={{
                             fontSize: '12px',
@@ -431,6 +690,245 @@ export default function ProfileEditModal({
                         }}>
                             {nicknameStatus ? nicknameStatus.message : '* 멋진 닉네임을 지어주세요.'}
                         </p>
+                    </div>
+
+                    <div className="userreg-section userreg-profile-style-section">
+                        <div className="userreg-section-title">
+                            <i className="ri-magic-line"></i>
+                            프로필 꾸미기
+                        </div>
+
+                        <div className="userreg-field">
+                            <label className="userreg-label">한 줄 타이틀</label>
+                            <input
+                                type="text"
+                                value={headline}
+                                onChange={(e) => setHeadline(e.target.value)}
+                                className="userreg-input"
+                                maxLength={56}
+                                placeholder="예: 홍대 소셜에서 자주 만나는 린디합 러버"
+                                data-testid="profile-headline-input"
+                            />
+                            <span className="userreg-help-text">{headline.length}/56</span>
+                        </div>
+
+                        <div className="userreg-field">
+                            <label className="userreg-label">프로필 배지</label>
+                            <div className="userreg-choice-row">
+                                {PROFILE_BADGE_OPTIONS.map((badge) => (
+                                    <button
+                                        key={badge}
+                                        type="button"
+                                        className={`userreg-choice-chip ${profileBadge === badge ? 'is-active' : ''}`}
+                                        onClick={() => setProfileBadge(profileBadge === badge ? '' : badge)}
+                                        aria-pressed={profileBadge === badge}
+                                        data-testid={`profile-badge-${badge.toLowerCase()}`}
+                                    >
+                                        {badge}
+                                    </button>
+                                ))}
+                            </div>
+                            <input
+                                type="text"
+                                value={profileBadge}
+                                onChange={(e) => setProfileBadge(e.target.value)}
+                                className="userreg-input"
+                                maxLength={18}
+                                placeholder="직접 입력"
+                                data-testid="profile-badge-input"
+                            />
+                            <span className="userreg-help-text">{profileBadge.length}/18</span>
+                        </div>
+
+                        <div className="userreg-field">
+                            <label className="userreg-label">대표 컬러</label>
+                            <div className="userreg-theme-options">
+                                {PROFILE_THEME_OPTIONS.map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        className={`userreg-theme-option is-${option.value} ${profileTheme === option.value ? 'is-active' : ''}`}
+                                        onClick={() => setProfileTheme(option.value)}
+                                        aria-pressed={profileTheme === option.value}
+                                        data-testid={`profile-theme-${option.value}`}
+                                    >
+                                        <span className="userreg-theme-swatch" aria-hidden="true"></span>
+                                        <span>{option.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="userreg-section">
+                        <div className="userreg-section-title">
+                            <i className="ri-profile-line"></i>
+                            기본 정보
+                        </div>
+
+                        <div className="userreg-field">
+                            <label className="userreg-label">소개</label>
+                            <textarea
+                                value={bio}
+                                onChange={(e) => setBio(e.target.value)}
+                                className="userreg-input userreg-textarea"
+                                maxLength={160}
+                                rows={3}
+                                placeholder="예: 린디합을 좋아하고 주말 소셜에 자주 가요."
+                                data-testid="profile-bio-input"
+                            />
+                            <span className="userreg-help-text">{bio.length}/160</span>
+                        </div>
+
+                        <div className="userreg-inline-fields">
+                            <div className="userreg-field">
+                                <label className="userreg-label">활동 지역</label>
+                                <input
+                                    type="text"
+                                    value={region}
+                                    onChange={(e) => setRegion(e.target.value)}
+                                    className="userreg-input"
+                                    maxLength={40}
+                                    placeholder="서울, 부산 등"
+                                    data-testid="profile-region-input"
+                                />
+                            </div>
+                            <div className="userreg-field">
+                                <label className="userreg-label">관심 장르</label>
+                                <input
+                                    type="text"
+                                    value={danceGenres}
+                                    onChange={(e) => setDanceGenres(e.target.value)}
+                                    className="userreg-input"
+                                    maxLength={80}
+                                    placeholder="린디합, 발보아, 살사"
+                                    data-testid="profile-genres-input"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="userreg-section">
+                        <div className="userreg-section-title">
+                            <i className="ri-links-line"></i>
+                            SNS / 링크
+                        </div>
+
+                        <div className="userreg-social-grid">
+                            {SOCIAL_LINK_FIELDS.map((field) => (
+                                <div className="userreg-field" key={field.key}>
+                                    <label className="userreg-label">
+                                        <i className={field.icon}></i>
+                                        {field.label}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        inputMode="url"
+                                        value={String(socialLinks[field.key] || '')}
+                                        onChange={(e) => updateSocialLink(field.key, e.target.value)}
+                                        className="userreg-input"
+                                        placeholder={field.placeholder}
+                                        data-testid={`profile-social-${field.key}`}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="userreg-extra-links">
+                            <div className="userreg-extra-links-header">
+                                <span>추가 링크</span>
+                                <button
+                                    type="button"
+                                    onClick={addExtraLink}
+                                    className="userreg-icon-btn"
+                                    aria-label="추가 링크 입력칸 추가"
+                                    title="추가 링크 입력칸 추가"
+                                >
+                                    <i className="ri-add-line"></i>
+                                </button>
+                            </div>
+
+                            {(socialLinks.extra || []).length === 0 && (
+                                <button
+                                    type="button"
+                                    onClick={addExtraLink}
+                                    className="userreg-add-link-btn"
+                                >
+                                    <i className="ri-link-m"></i>
+                                    링크 추가
+                                </button>
+                            )}
+
+                            {(socialLinks.extra || []).map((link) => (
+                                <div className="userreg-extra-link-row" key={link.id}>
+                                    <input
+                                        type="text"
+                                        value={link.label}
+                                        onChange={(e) => updateExtraLink(link.id, { label: e.target.value })}
+                                        className="userreg-input"
+                                        maxLength={32}
+                                        placeholder="이름"
+                                        data-testid="profile-extra-label-input"
+                                    />
+                                    <input
+                                        type="text"
+                                        inputMode="url"
+                                        value={link.url}
+                                        onChange={(e) => updateExtraLink(link.id, { url: e.target.value })}
+                                        className="userreg-input"
+                                        placeholder="https://..."
+                                        data-testid="profile-extra-url-input"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeExtraLink(link.id)}
+                                        className="userreg-icon-btn is-danger"
+                                        aria-label="추가 링크 삭제"
+                                        title="추가 링크 삭제"
+                                    >
+                                        <i className="ri-close-line"></i>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="userreg-primary-link-box">
+                            <div className="userreg-primary-link-header">
+                                <span>대표 SNS</span>
+                                <small>햄버거 메뉴 프로필에서 가장 크게 보입니다.</small>
+                            </div>
+                            {primarySocialOptions.length > 0 ? (
+                                <div className="userreg-primary-link-options">
+                                    <button
+                                        type="button"
+                                        className={`userreg-primary-link-option ${!primarySocial ? 'is-active' : ''}`}
+                                        onClick={() => setPrimarySocial('')}
+                                        aria-pressed={!primarySocial}
+                                        data-testid="profile-primary-auto"
+                                    >
+                                        <i className="ri-sparkling-line"></i>
+                                        <span>자동</span>
+                                    </button>
+                                    {primarySocialOptions.map((option) => (
+                                        <button
+                                            key={option.key}
+                                            type="button"
+                                            className={`userreg-primary-link-option ${primarySocial === option.key ? 'is-active' : ''}`}
+                                            onClick={() => setPrimarySocial(option.key)}
+                                            aria-pressed={primarySocial === option.key}
+                                            data-testid={`profile-primary-${option.key.replace(/[^a-z0-9_-]/gi, '-')}`}
+                                        >
+                                            <i className={option.icon}></i>
+                                            <span>{option.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="userreg-empty-hint">
+                                    SNS 주소를 하나 이상 입력하면 대표 링크를 고를 수 있어요.
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="userreg-footer" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
@@ -461,6 +959,7 @@ export default function ProfileEditModal({
                             onClick={handleSubmit}
                             disabled={isSubmitting || isWithdrawing || !nicknameStatus?.isAvailable || nicknameStatus?.checking}
                             className="userreg-submit-btn"
+                            data-testid="profile-save-button"
                             style={{
                                 backgroundColor: 'var(--primary-color, #FEE500)',
                                 color: '#000',

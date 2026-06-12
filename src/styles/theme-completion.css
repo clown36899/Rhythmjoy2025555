@@ -318,6 +318,11 @@ html[data-theme="light"] .SideDrawer :is(
   .SD-adminStatsOpenBtn,
   .SD-adminGridItem,
   .SD-submenu,
+  .SD-userProfile,
+  .SD-loginPrompt,
+  .SD-profileEditBtn,
+  .SD-profileTags span,
+  .SD-profileLinks a,
   .SD-avatar.is-placeholder
 ) {
   background: var(--bg-surface-1);
@@ -327,12 +332,42 @@ html[data-theme="light"] .SideDrawer :is(
 
 html[data-theme="light"] .SideDrawer :is(
   .SD-email,
+  .SD-profileBio,
+  .SD-profileHeadline,
+  .SD-profileLinks a,
   .SD-sectionTitle,
   .SD-menuItem i,
   .SD-submenuItem,
   .SD-statusDot
 ) {
   color: var(--text-tertiary);
+}
+
+html[data-theme="light"] .SideDrawer .SD-userProfile {
+  background: transparent;
+  border-color: transparent;
+}
+
+html[data-theme="light"] .SideDrawer .SD-closeBtn {
+  background:
+    linear-gradient(135deg, rgba(17, 24, 39, 0.94), rgba(3, 7, 18, 0.86));
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #ffffff;
+  box-shadow:
+    0 12px 28px rgba(17, 24, 39, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 0 5px rgba(17, 24, 39, 0.14);
+}
+
+html[data-theme="light"] .SideDrawer .SD-profileBadge {
+  background: color-mix(in srgb, var(--sd-profile-accent) 12%, #ffffff);
+  color: color-mix(in srgb, var(--sd-profile-accent) 70%, #111827);
+}
+
+html[data-theme="light"] .SideDrawer .SD-profilePrimaryLink {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--sd-profile-accent) 14%, #ffffff), color-mix(in srgb, var(--sd-profile-accent-2) 9%, #ffffff));
+  color: var(--text-primary);
 }
 
 html[data-theme="light"] :is(

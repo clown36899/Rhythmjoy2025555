@@ -1,6 +1,13 @@
 import { supabase } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
+import {
+    isInternalAnalyticsRoute,
+    isLikelyBotTraffic,
+    isLocalAnalyticsHost,
+} from './analyticsGuards';
+
+export { isInternalAnalyticsRoute, isLikelyBotTraffic };
 
 const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_ANALYTICS_ENABLED !== 'false';
 
@@ -37,7 +44,6 @@ let lastFinalizeAt = 0;
 let lastActivityMarkAt = 0;
 let heartbeatTimer: number | null = null;
 
-const BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests/i;
 const SESSION_STORAGE_KEYS = {
     ID: 'analytics_session_id',
     START: 'analytics_session_start',
@@ -46,25 +52,7 @@ const SESSION_STORAGE_KEYS = {
     LAST_PAGE: 'analytics_session_last_page',
 };
 
-export const isLikelyBotTraffic = (userAgent = navigator.userAgent, includeRuntimeSignals = true): boolean => {
-    if (!userAgent || BOT_UA_PATTERN.test(userAgent)) return true;
-    if (!includeRuntimeSignals) return false;
-    if (navigator.webdriver) return true;
-    if (document.visibilityState === 'prerender') return true;
-    return false;
-};
-
-const isLocalAnalyticsBlocked = () => {
-    if (typeof window === 'undefined') return true;
-    const hostname = window.location.hostname;
-    return hostname === 'localhost' ||
-        hostname === '127.0.0.1' ||
-        hostname.endsWith('.local') ||
-        hostname.includes('localhost') ||
-        /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/.test(hostname);
-};
-
-const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED && !isLocalAnalyticsBlocked() && !isLikelyBotTraffic();
+const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED && !isLocalAnalyticsHost() && !isLikelyBotTraffic() && !isInternalAnalyticsRoute();
 
 const readStoredNumber = (key: string): number | null => {
     try {
@@ -377,6 +365,9 @@ const finalizeSession = async (endTime = Date.now()) => {
     const payload = {
         action: 'end',
         session_id: sessionId,
+        fingerprint: localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT),
+        user_agent: navigator.userAgent,
+        platform: navigator.platform,
         exit_page: window.location.pathname,
         duration_seconds: duration,
         total_clicks: sessionSequence,

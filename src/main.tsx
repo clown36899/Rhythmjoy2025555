@@ -147,6 +147,7 @@ const KakaoCallbackPage = lazy(() => import('./pages/auth/kakao-callback/page'))
 const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
 const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
 const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
+const LocalDbTestPage = lazy(() => import('./pages/test/LocalDbTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
 const NotificationPreviewPage = lazy(() => import('./pages/admin/NotificationPreviewPage'));
 const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
@@ -225,6 +226,16 @@ const router = createBrowserRouter([
               </QueryClientProvider>
             </PageActionProvider>
           </AuthProvider>
+        </ThemeProvider>
+      </Suspense>
+    ),
+  },
+  {
+    path: "/test/local-db",
+    element: (
+      <Suspense fallback={<BillboardFallback />}>
+        <ThemeProvider>
+          <LocalDbTestPage />
         </ThemeProvider>
       </Suspense>
     ),

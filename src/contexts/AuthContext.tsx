@@ -8,6 +8,7 @@ import { authLogger } from '../utils/authLogger';
 import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
 import { isPWAMode } from '../lib/pwaDetect';
 import { getAuthPkceVerifierKey, removeLegacyAuthStorageKeys } from '../lib/authStorageKeys';
+import { ANALYTICS_ADMIN_SHIELD_KEY } from '../utils/analyticsGuards';
 
 const CAFE24_AUTH_ENABLED =
   import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'disabled';
@@ -30,6 +31,24 @@ const getCafe24LoginReturnUrl = () => {
   return value;
 };
 
+const isLocalDevHost = () => {
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+};
+
+export interface UserProfile {
+  nickname: string;
+  profile_image: string | null;
+  headline?: string | null;
+  profile_badge?: string | null;
+  profile_theme?: string | null;
+  bio?: string | null;
+  region?: string | null;
+  dance_genres?: string | null;
+  social_links?: Record<string, unknown> | null;
+  primary_social?: string | null;
+}
+
 
 
 interface AuthContextType {
@@ -49,7 +68,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   cancelAuth: () => void;
-  userProfile: { nickname: string; profile_image: string | null } | null;
+  userProfile: UserProfile | null;
   refreshUserProfile: () => Promise<void>;
   signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
   validateSession: () => Promise<void>; // 수동 세션 검증
@@ -259,7 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // User Profile State - 초기값 localStorage에서 로드 (깜빡임 방지)
-  const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(() => {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     // [Fix] PWA 모드와 일반 브라우저 모드의 캐시 키 통합 체크
     const isPWA = isPWAMode();
     const storagePrefix = isPWA ? 'pwa-' : '';
@@ -300,7 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('billboardUserId');
     localStorage.removeItem('billboardUserName');
     localStorage.removeItem('isLoggingOut');
-    localStorage.removeItem('ga-admin-shield');
+    localStorage.removeItem(ANALYTICS_ADMIN_SHIELD_KEY);
 
     // 2. sessionStorage도 정리
     sessionStorage.clear();
@@ -430,7 +449,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const fetchProfileWithTimeout = Promise.race([
         supabase
           .from('board_users')
-          .select('nickname, profile_image')
+          .select('nickname, profile_image, headline, profile_badge, profile_theme, bio, region, dance_genres, social_links, primary_social')
           .eq('user_id', user.id)
           .maybeSingle(),
         new Promise((_, reject) =>
@@ -452,14 +471,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         newProfile = {
           nickname: data.nickname || getUserMetadataNickname(user),
-          profile_image: data.profile_image || metadataProfileImage
+          profile_image: data.profile_image || metadataProfileImage,
+          headline: data.headline || null,
+          profile_badge: data.profile_badge || null,
+          profile_theme: data.profile_theme || null,
+          bio: data.bio || null,
+          region: data.region || null,
+          dance_genres: data.dance_genres || null,
+          social_links: data.social_links || null,
+          primary_social: data.primary_social || null
         };
         // console.log('[AuthContext.refreshUserProfile] DB 데이터로 프로필 생성', newProfile);
       } else {
         // Fallback to metadata if no board_user record yet or timeout
         newProfile = {
           nickname: getUserMetadataNickname(user),
-          profile_image: metadataProfileImage
+          profile_image: metadataProfileImage,
+          headline: null,
+          profile_badge: null,
+          profile_theme: null,
+          bio: null,
+          region: null,
+          dance_genres: null,
+          social_links: null,
+          primary_social: null
         };
         // console.log('[AuthContext.refreshUserProfile] 메타데이터로 폴백 프로필 생성', newProfile);
       }
@@ -474,7 +509,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fallback on error/timeout
       const fallbackProfile = {
         nickname: getUserMetadataNickname(user),
-        profile_image: getUserMetadataProfileImage(user)
+        profile_image: getUserMetadataProfileImage(user),
+        headline: null,
+        profile_badge: null,
+        profile_theme: null,
+        bio: null,
+        region: null,
+        dance_genres: null,
+        social_links: null,
+        primary_social: null
       };
       // console.log('[AuthContext.refreshUserProfile] 폴백 프로필 설정', fallbackProfile);
       setUserProfile(fallbackProfile);
@@ -491,6 +534,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profile = {
           nickname: getUserMetadataNickname(user),
           profile_image: getUserMetadataProfileImage(user),
+          headline: null,
+          profile_badge: null,
+          profile_theme: null,
+          bio: null,
+          region: null,
+          dance_genres: null,
+          social_links: null,
+          primary_social: null,
         };
         setUserProfile(profile);
         if (lastProcessedUserId.current !== user.id) {
@@ -980,6 +1031,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore localStorage restrictions; callback will retry cleanup.
     }
     try {
+      if (CAFE24_AUTH_ENABLED && import.meta.env.DEV && isLocalDevHost()) {
+        const providers = await fetch('/api/auth/providers', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        }).then((response) => response.ok ? response.json() : null).catch(() => null);
+
+        if (!providers?.kakao) {
+          const response = await fetch('/api/auth/dev-login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ userId: 'local-admin-user' }),
+          });
+
+          if (!response.ok) {
+            const payload = await response.json().catch(() => null);
+            throw new Error(payload?.message || payload?.error || '로컬 테스트 로그인에 실패했습니다.');
+          }
+
+          sessionStorage.removeItem('kakao_login_in_progress');
+          sessionStorage.removeItem('kakao_login_start_time');
+          setIsAuthProcessing(false);
+          await validateSession();
+          window.location.reload();
+          return;
+        }
+      }
+
       // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
 
 
@@ -1005,7 +1087,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem('kakao_login_start_time');
       throw error; // MobileShell에서 잡아서 처리하도록 전달
     }
-  }, []);
+  }, [validateSession]);
 
   const signInWithGoogle = useCallback(async () => {
     if (CAFE24_AUTH_ENABLED) {

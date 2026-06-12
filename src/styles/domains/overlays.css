@@ -753,11 +753,14 @@
         linear-gradient(180deg, color-mix(in srgb, var(--bg-surface-1, #111827) 72%, #000 28%), var(--bg-base, #050505));
     border-right: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow: 18px 0 42px rgba(0, 0, 0, 0.46);
+    overflow: visible;
 }
 
 .SideDrawer .SD-header {
-    min-height: 86px;
-    padding: 16px 16px 14px;
+    min-height: 0;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 14px 12px;
     border-bottom-color: rgba(148, 163, 184, 0.14);
     background: rgba(255, 255, 255, 0.02);
 }
@@ -767,13 +770,64 @@
     min-width: 0;
 }
 
+.SideDrawer .SD-userProfile {
+    --sd-profile-accent: #60a5fa;
+    --sd-profile-accent-2: #a78bfa;
+    display: grid;
+    flex: 1;
+    gap: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+    position: relative;
+}
+
+.SideDrawer .SD-userProfile.is-theme-sunset {
+    --sd-profile-accent: #fb7185;
+    --sd-profile-accent-2: #fbbf24;
+}
+
+.SideDrawer .SD-userProfile.is-theme-mint {
+    --sd-profile-accent: #34d399;
+    --sd-profile-accent-2: #22d3ee;
+}
+
+.SideDrawer .SD-userProfile.is-theme-mono {
+    --sd-profile-accent: #d4d4d8;
+    --sd-profile-accent-2: #71717a;
+}
+
+.SideDrawer .SD-profileTop {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 11px;
+}
+
+.SideDrawer .SD-loginPrompt {
+    flex: 1;
+    min-height: 78px;
+    padding: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.SideDrawer .SD-loginPrompt > i:last-child {
+    margin-left: auto;
+    color: var(--text-tertiary);
+}
+
 .SideDrawer .SD-avatar {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     border-radius: 16px;
     background:
-        linear-gradient(135deg, rgba(79, 131, 255, 0.22), rgba(255, 255, 255, 0.06));
+        linear-gradient(135deg, color-mix(in srgb, var(--sd-profile-accent) 28%, transparent), rgba(255, 255, 255, 0.06));
     color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--sd-profile-accent) 35%, rgba(255, 255, 255, 0.14));
 }
 
 .SideDrawer .SD-userInfo,
@@ -792,8 +846,48 @@
     white-space: nowrap;
 }
 
+.SideDrawer .SD-nameLine {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 6px;
+}
+
+.SideDrawer .SD-nameLine .SD-username {
+    min-width: 0;
+}
+
+.SideDrawer .SD-profileBadge {
+    flex: 0 1 auto;
+    max-width: 92px;
+    overflow: hidden;
+    padding: 4px 7px;
+    border: 1px solid color-mix(in srgb, var(--sd-profile-accent) 42%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sd-profile-accent) 16%, transparent);
+    color: color-mix(in srgb, var(--sd-profile-accent-2) 72%, #ffffff);
+    font-size: 9px;
+    font-weight: 950;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.SideDrawer .SD-profileHeadline {
+    display: block;
+    max-width: 170px;
+    overflow: hidden;
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .SideDrawer .SD-email {
-    max-width: 190px;
+    max-width: 150px;
     overflow: hidden;
     color: var(--text-tertiary);
     font-size: 11px;
@@ -802,19 +896,184 @@
 }
 
 .SideDrawer .SD-profileEditBtn {
-    min-height: 24px;
-    margin-top: 7px;
-    padding: 0 8px;
-    border-radius: 999px;
+    display: grid;
+    flex: 0 0 34px;
+    width: 34px;
+    min-height: 34px;
+    height: 34px;
+    margin: 0 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.065);
+    color: var(--text-secondary);
     font-weight: 800;
 }
 
+.SideDrawer .SD-profileEditBtn i {
+    font-size: 16px;
+}
+
+.SideDrawer .SD-profileBody {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.SideDrawer .SD-profileBio {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.SideDrawer .SD-profileTags,
+.SideDrawer .SD-profileLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+.SideDrawer .SD-profileTags span,
+.SideDrawer .SD-profileLinks a {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-height: 26px;
+    gap: 5px;
+    padding: 0 8px;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 9px;
+    background: rgba(15, 23, 42, 0.24);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.SideDrawer .SD-profileTags span {
+    color: var(--text-primary);
+}
+
+.SideDrawer .SD-profileTags i,
+.SideDrawer .SD-profileLinks i {
+    flex: 0 0 auto;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.SideDrawer .SD-profileLinks a span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.SideDrawer .SD-profilePrimaryLink {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 18px;
+    align-items: center;
+    min-height: 40px;
+    gap: 9px;
+    padding: 6px 9px 6px 7px;
+    border: 1px solid color-mix(in srgb, var(--sd-profile-accent) 45%, transparent);
+    border-radius: 13px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--sd-profile-accent) 22%, transparent), color-mix(in srgb, var(--sd-profile-accent-2) 12%, transparent)),
+        rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.SideDrawer .SD-profilePrimaryLink:hover {
+    border-color: color-mix(in srgb, var(--sd-profile-accent) 72%, rgba(255, 255, 255, 0.18));
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--sd-profile-accent) 28%, transparent), color-mix(in srgb, var(--sd-profile-accent-2) 16%, transparent)),
+        rgba(255, 255, 255, 0.065);
+    transform: translateY(-1px);
+}
+
+.SideDrawer .SD-profilePrimaryLink i:first-child {
+    width: 28px;
+    height: 28px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--sd-profile-accent) 24%, transparent);
+    color: color-mix(in srgb, var(--sd-profile-accent-2) 82%, #ffffff);
+    font-size: 15px;
+}
+
+.SideDrawer .SD-profilePrimaryLink span {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 950;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.SideDrawer .SD-profilePrimaryLink i:last-child {
+    color: var(--text-tertiary);
+    font-size: 15px;
+}
+
+@media (max-width: 520px) {
+    .SideDrawer .SD-nameLine {
+        flex-wrap: wrap;
+        gap: 4px 6px;
+    }
+
+    .SideDrawer .SD-nameLine .SD-username {
+        flex: 1 1 100%;
+    }
+
+    .SideDrawer .SD-profileBadge {
+        max-width: 100%;
+    }
+}
+
 .SideDrawer .SD-closeBtn {
-    flex: 0 0 34px;
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.055);
+    position: absolute;
+    top: 12px;
+    left: calc(100% + 6px);
+    z-index: 2;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(17, 24, 39, 0.94), rgba(3, 7, 18, 0.86));
+    color: #ffffff;
+    box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.42),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 0 0 5px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.SideDrawer .SD-closeBtn:hover {
+    background:
+        linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.92));
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.SideDrawer .SD-closeBtn i {
+    font-size: 21px;
+    line-height: 1;
 }
 
 .SideDrawer .SD-nav {
