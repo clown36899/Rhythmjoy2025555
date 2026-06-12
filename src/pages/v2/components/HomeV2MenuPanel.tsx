@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
@@ -52,6 +53,7 @@ const getMenuItemKey = (item: HomeMenuItem) => item.to || item.action || item.la
 export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { t } = useTranslation();
     const { user } = useAuth();
     const { openModal, closeModal, modalStack } = useModalContext();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -458,7 +460,8 @@ export const HomeV2MenuPanel: React.FC = () => {
     return (
         <section
             className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} is-compact`}
-            aria-label="메인 메뉴"
+            aria-label={t("mainMenu")}
+            translate="no"
             onPointerDown={handlePanelPointerDown}
             onPointerMove={handlePanelPointerMove}
             onPointerUp={handlePanelPointerUp}
@@ -523,7 +526,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         <i className={item.icon} />
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                                     </span>
-                                    <span className="home-v2-menu-label">{item.label}</span>
+                                    <span className="home-v2-menu-label">{t(item.label)}</span>
                                 </button>
                             );
                         })}
@@ -554,7 +557,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                         onClick={handleAddClick}
                     >
                         <i className="ri-add-line" aria-hidden="true" />
-                        <span>일정 등록</span>
+                        <span>{t("일정 등록")}</span>
                     </button>
                 </div>
             )}
