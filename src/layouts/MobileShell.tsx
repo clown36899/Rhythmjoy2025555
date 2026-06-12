@@ -704,6 +704,21 @@ export const MobileShell: React.FC = () => {
         </header >
       )}
 
+      {isTranslationPending && (
+        <div
+          className="translation-blocker"
+          role="status"
+          aria-live="polite"
+          aria-label="번역 적용 중"
+          translate="no"
+        >
+          <div className="translation-blocker__panel">
+            <span className="translation-blocker__spinner" aria-hidden="true" />
+            <span>번역 적용 중...</span>
+          </div>
+        </div>
+      )}
+
       <div className={`shell-main-content ${isAdminV2Ingestor ? 'layout-full' : ''}`}>
         <Outlet context={{ category, isFullscreen }} />
       </div>

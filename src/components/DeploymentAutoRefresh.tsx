@@ -10,7 +10,7 @@ interface BuildVersion {
   date?: string;
 }
 
-const FIRST_CHECK_DELAY_MS = 8_000;
+const FIRST_CHECK_DELAY_MS = 1_000;
 const CHECK_INTERVAL_MS = 60_000;
 const AUTO_RELOAD_DELAY_MS = 1_500;
 const BUSY_RETRY_MS = 10_000;
