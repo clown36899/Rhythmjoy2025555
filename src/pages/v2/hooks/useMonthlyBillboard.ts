@@ -6,8 +6,15 @@ export interface BillboardData {
     loading: boolean;
     meta: {
         totalLogs: number;
+        totalViews: number;
         uniqueVisitors: number;
+        uniqueUsers?: number;
+        uniqueGuests?: number;
         clickRate: number;
+        viewRate: number;
+        excludedAnalyticsRows?: number;
+        calculationVersion?: string;
+        timezone?: string;
         range: string;
         monthLabel: string;
         monthKor: string;
@@ -131,9 +138,11 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
             }
 
             // Meta
-            const uniqueVisitors = stats.meta.uniqueVisitors;
-            const totalLogs = stats.meta.totalLogs;
+            const uniqueVisitors = Number(stats.meta.uniqueVisitors || 0);
+            const totalLogs = Number(stats.meta.totalLogs || 0);
+            const totalViews = Number(stats.meta.totalViews || 0);
             const clickRate = uniqueVisitors > 0 ? Number((totalLogs / uniqueVisitors).toFixed(1)) : 0;
+            const viewRate = uniqueVisitors > 0 ? Number((totalViews / uniqueVisitors).toFixed(1)) : 0;
 
             // A. Weekly Flow (Supply + Traffic)
             const classStartCounts = Array(7).fill(0);
@@ -218,8 +227,15 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                 loading: false,
                 meta: {
                     totalLogs,
+                    totalViews,
                     uniqueVisitors,
+                    uniqueUsers: Number(stats.meta.uniqueUsers || 0),
+                    uniqueGuests: Number(stats.meta.uniqueGuests || 0),
                     clickRate,
+                    viewRate,
+                    excludedAnalyticsRows: Number(stats.meta.excludedAnalyticsRows || 0),
+                    calculationVersion: stats.meta.calculationVersion || '',
+                    timezone: stats.meta.timezone || 'Asia/Seoul',
                     range: rangeStr,
                     monthLabel,
                     monthKor

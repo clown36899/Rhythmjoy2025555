@@ -12,9 +12,12 @@ import {
 import {
   analyticsClientIp,
   analyticsGuestNetworkIdentity,
+  analyticsKstHour,
+  analyticsKstWeekday,
   hasAnalyticsIdentityEvidence,
   isAnalyticsBotRow,
   isAnalyticsBotUserAgent,
+  isAnalyticsDatacenterRow,
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
 
@@ -87,6 +90,7 @@ const compositeKeysByTable = {
   practice_room_favorites: ['user_id', 'practice_room_id'],
   social_group_favorites: ['user_id', 'group_id'],
   user_push_subscriptions: ['endpoint'],
+  session_logs: ['session_id'],
 };
 
 const adminOnlyGenericTables = new Set([
@@ -1020,13 +1024,45 @@ async function loadAnalyticsUsers() {
   }));
 }
 
-function buildAnalyticsIdentityResolver(rows = []) {
+function buildAnalyticsUserCanonicalizer(boardUsers = [], analyticsUsers = []) {
+  const canonicalById = new Map();
+  const analyticsUserIdByEmail = new Map();
+
+  for (const row of analyticsUsers) {
+    if (!row?.id) continue;
+    const userId = String(row.id);
+    canonicalById.set(userId, userId);
+    if (row.email && !analyticsUserIdByEmail.has(row.email)) {
+      analyticsUserIdByEmail.set(row.email, userId);
+    }
+  }
+
+  for (const row of boardUsers) {
+    if (!row?.user_id) continue;
+    const boardUserId = String(row.user_id);
+    const email = analyticsNormalizeEmail(row.email || row.admin_email);
+    const canonicalId = email && analyticsUserIdByEmail.has(email)
+      ? analyticsUserIdByEmail.get(email)
+      : boardUserId;
+    canonicalById.set(boardUserId, canonicalId);
+  }
+
+  return (value) => {
+    if (value === undefined || value === null || value === '') return null;
+    const userId = String(value);
+    return canonicalById.get(userId) || userId;
+  };
+}
+
+function buildAnalyticsIdentityResolver(rows = [], canonicalizeUserId = (value) => String(value)) {
   const sessionToUser = new Map();
   const fingerprintToUser = new Map();
   const addIdentity = (map, key, userId) => {
     if (!key || !userId) return;
+    const canonicalUserId = canonicalizeUserId(userId);
+    if (!canonicalUserId) return;
     const values = map.get(String(key)) || new Set();
-    values.add(String(userId));
+    values.add(String(canonicalUserId));
     map.set(String(key), values);
   };
   const singleIdentity = (map, key) => {
@@ -1036,7 +1072,7 @@ function buildAnalyticsIdentityResolver(rows = []) {
   };
   const linkedUserIds = (row = {}) => {
     const directUserId = analyticsUserId(row);
-    if (directUserId) return new Set([directUserId]);
+    if (directUserId) return new Set([canonicalizeUserId(directUserId)].filter(Boolean));
 
     const ids = new Set();
     if (row?.session_id && sessionToUser.has(String(row.session_id))) {
@@ -1058,7 +1094,7 @@ function buildAnalyticsIdentityResolver(rows = []) {
   return {
     userId(row) {
       const directUserId = analyticsUserId(row);
-      if (directUserId) return directUserId;
+      if (directUserId) return canonicalizeUserId(directUserId);
       if (row?.session_id) {
         const sessionUserId = singleIdentity(sessionToUser, row.session_id);
         if (sessionUserId) return sessionUserId;
@@ -1075,7 +1111,7 @@ function buildAnalyticsIdentityResolver(rows = []) {
   };
 }
 
-function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = [], boardUsers = []) {
+function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = [], boardUsers = [], canonicalizeUserId = (value) => String(value)) {
   const adminEmails = new Set(analyticsConfiguredAdminEmails());
   const userIdByEmail = new Map(
     analyticsUsers
@@ -1087,23 +1123,30 @@ function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = [], board
       .filter((row) => asAnalyticsBool(row?.is_admin))
       .map((row) => String(row.id)),
   );
+  const addAdminId = (value) => {
+    if (value === undefined || value === null || value === '') return;
+    const userId = String(value);
+    adminIds.add(userId);
+    const canonicalUserId = canonicalizeUserId(userId);
+    if (canonicalUserId) adminIds.add(canonicalUserId);
+  };
 
   for (const row of boardAdmins) {
-    if (row?.user_id) adminIds.add(String(row.user_id));
+    addAdminId(row?.user_id || row?.admin_user_id);
     const email = analyticsNormalizeEmail(row?.email || row?.admin_email);
     if (!email) continue;
     adminEmails.add(email);
-    if (userIdByEmail.has(email)) adminIds.add(userIdByEmail.get(email));
+    if (userIdByEmail.has(email)) addAdminId(userIdByEmail.get(email));
   }
   for (const row of analyticsUsers) {
     if (!row?.id || !row?.email || !adminEmails.has(row.email)) continue;
-    adminIds.add(String(row.id));
+    addAdminId(row.id);
   }
   for (const row of boardUsers) {
     if (!row?.user_id) continue;
     const email = analyticsNormalizeEmail(row?.email || row?.admin_email);
     if (asAnalyticsBool(row?.is_admin) || (email && adminEmails.has(email))) {
-      adminIds.add(String(row.user_id));
+      addAdminId(row.user_id);
     }
   }
 
@@ -1147,12 +1190,19 @@ function buildAnalyticsAdminDeviceIds(rows = [], identity, adminUserIds) {
   return { sessionIds, fingerprints, networkDeviceIds };
 }
 
-function buildAnalyticsNicknameMap(boardUsers = [], analyticsUsers = []) {
-  const nicknameByUser = new Map(
-    boardUsers
-      .filter((row) => row?.user_id)
-      .map((row) => [String(row.user_id), row.nickname || null]),
-  );
+function buildAnalyticsNicknameMap(boardUsers = [], analyticsUsers = [], canonicalizeUserId = (value) => String(value)) {
+  const nicknameByUser = new Map();
+
+  for (const row of boardUsers) {
+    if (!row?.user_id) continue;
+    const userId = String(row.user_id);
+    const canonicalUserId = canonicalizeUserId(userId);
+    const nickname = row.nickname || null;
+    if (!nicknameByUser.has(userId)) nicknameByUser.set(userId, nickname);
+    if (canonicalUserId && !nicknameByUser.has(canonicalUserId)) {
+      nicknameByUser.set(canonicalUserId, nickname);
+    }
+  }
 
   for (const row of analyticsUsers) {
     if (!row?.id || nicknameByUser.get(String(row.id))) continue;
@@ -1182,7 +1232,7 @@ function isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds = null)
 
 function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null) {
   if (asAnalyticsBool(row?.analytics_excluded)) return false;
-  if (isAnalyticsBotRow(row) || isAnalyticsInternalRouteRow(row)) return false;
+  if (isAnalyticsBotRow(row) || isAnalyticsDatacenterRow(row) || isAnalyticsInternalRouteRow(row)) return false;
   if (isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds)) return false;
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (!userId && !hasAnalyticsIdentityEvidence(row)) return false;
@@ -1217,8 +1267,9 @@ async function getAnalyticsSummaryV2(args = {}) {
   const boardUsers = await loadRows('board_users');
   const boardAdmins = await loadRows('board_admins');
   const analyticsUsers = await loadAnalyticsUsers();
-  const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers, boardUsers);
-  const nicknameByUser = buildAnalyticsNicknameMap(boardUsers, analyticsUsers);
+  const canonicalizeUserId = buildAnalyticsUserCanonicalizer(boardUsers, analyticsUsers);
+  const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers, boardUsers, canonicalizeUserId);
+  const nicknameByUser = buildAnalyticsNicknameMap(boardUsers, analyticsUsers, canonicalizeUserId);
 
   const rawActivityRows = logs
     .map((row, index) => ({ row, index, ms: analyticsMs(row.created_at) }))
@@ -1239,7 +1290,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const identity = buildAnalyticsIdentityResolver([
     ...rawActivityRows.map((item) => item.row),
     ...rawSessionRows.map((item) => item.row),
-  ]);
+  ], canonicalizeUserId);
   const adminDeviceIds = buildAnalyticsAdminDeviceIds([
     ...rawActivityRows.map((item) => item.row),
     ...rawSessionRows.map((item) => item.row),
@@ -1691,6 +1742,10 @@ function shouldSkipItemView(args = {}, context = {}) {
 
   const userAgent = args.p_user_agent || args.user_agent || req?.headers?.['user-agent'];
   if (isAnalyticsBotUserAgent(userAgent)) return true;
+  if (isAnalyticsDatacenterRow({
+    ...args,
+    client_ip: args.p_client_ip || analyticsClientIp(args) || requestHeaderIp(req),
+  })) return true;
 
   return isAnalyticsInternalRouteRow({
     page_url: args.p_page_url || args.page_url || args.path || args.pathname,
@@ -1700,15 +1755,35 @@ function shouldSkipItemView(args = {}, context = {}) {
   });
 }
 
+function requestHeaderIp(req = null) {
+  const forwardedFor = req?.headers?.['x-forwarded-for'];
+  const firstForwarded = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : String(forwardedFor || '').split(',')[0];
+  return (firstForwarded || req?.headers?.['x-real-ip'] || req?.ip || req?.socket?.remoteAddress || null)
+    ?.replace(/^::ffff:/, '')
+    .replace(/^\[/, '')
+    .replace(/\]$/, '')
+    .trim()
+    .slice(0, 80) || null;
+}
+
+function analyticsHashIp(ip) {
+  if (!ip) return null;
+  return crypto.createHash('sha256').update(String(ip)).digest('hex').slice(0, 24);
+}
+
 async function incrementItemViews(args = {}, context = {}) {
   if (shouldSkipItemView(args, context)) return false;
 
   const itemId = args.p_item_id ?? args.item_id;
   const itemType = args.p_item_type ?? args.item_type;
-  const viewerKey = args.p_user_id
-    ? `user:${args.p_user_id}`
-    : args.p_fingerprint
-      ? `fingerprint:${args.p_fingerprint}`
+  const viewerUserId = context.user?.id || args.p_user_id || args.user_id || null;
+  const viewerFingerprint = args.p_fingerprint || args.fingerprint || null;
+  const viewerKey = viewerUserId
+    ? `user:${viewerUserId}`
+    : viewerFingerprint
+      ? `fingerprint:${viewerFingerprint}`
       : null;
   const targetTable = viewTargetTable(itemType);
 
@@ -1722,13 +1797,19 @@ async function incrementItemViews(args = {}, context = {}) {
   if (existing) return false;
 
   const now = new Date().toISOString();
+  const clientIp = args.p_client_ip || analyticsClientIp(args) || requestHeaderIp(context.req);
   await saveRow('item_views', {
     id: crypto.randomUUID(),
     item_id: itemId,
     item_type: itemType,
     viewer_key: viewerKey,
-    user_id: args.p_user_id || null,
-    fingerprint: args.p_fingerprint || null,
+    user_id: viewerUserId || null,
+    fingerprint: viewerFingerprint || null,
+    is_admin: false,
+    user_agent: args.p_user_agent || args.user_agent || context.req?.headers?.['user-agent'] || null,
+    platform: args.p_platform || args.platform || null,
+    client_ip: clientIp,
+    ip_hash: args.p_ip_hash || args.ip_hash || analyticsHashIp(clientIp),
     created_at: now,
   });
 
@@ -1882,7 +1963,21 @@ async function deletePostWithPassword(args = {}, user = null) {
 
 function classifyAnalyticsContent(row = {}) {
   const text = `${row.target_type || ''} ${row.category || ''} ${row.target_title || ''} ${row.section || ''}`.toLowerCase();
+  if (text.includes('board') || text.includes('post') || text.includes('forum') || text.includes('게시')) return 'board_post';
   if (text.includes('class') || text.includes('강습') || text.includes('모집')) return 'class';
+  if (text.includes('social') || text.includes('schedule') || text.includes('group') || text.includes('소셜')) return 'social';
+  return 'event';
+}
+
+function analyticsContentBucket(row = {}) {
+  return classifyAnalyticsContent(row) === 'class' ? 'class' : 'event';
+}
+
+function topContentType(row = {}) {
+  const itemType = String(row.item_type || row.target_type || row.type || '').toLowerCase();
+  if (itemType === 'board_post' || itemType.includes('board') || itemType.includes('post')) return 'board_post';
+  if (itemType === 'schedule' || itemType === 'social_schedule' || itemType.includes('social')) return 'social';
+  if (analyticsContentBucket(row) === 'class') return 'class';
   return 'event';
 }
 
@@ -1911,12 +2006,13 @@ async function getMonthlyWebzineStats(args = {}) {
   const boardAdmins = await loadRows('board_admins');
   const boardUsers = await loadRows('board_users');
   const analyticsUsers = await loadAnalyticsUsers();
-  const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers, boardUsers);
+  const canonicalizeUserId = buildAnalyticsUserCanonicalizer(boardUsers, analyticsUsers);
+  const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers, boardUsers, canonicalizeUserId);
 
   const identity = buildAnalyticsIdentityResolver([
     ...rawSessions.map((item) => item.row),
     ...rawLogs.map((item) => item.row),
-  ]);
+  ], canonicalizeUserId);
   const adminDeviceIds = buildAnalyticsAdminDeviceIds([
     ...rawSessions.map((item) => item.row),
     ...rawLogs.map((item) => item.row),
@@ -1926,57 +2022,172 @@ async function getMonthlyWebzineStats(args = {}) {
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
   const logs = rawLogs
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
-  const uniqueVisitors = new Set(logs.map((item) => analyticsIdentifier(item.row, item.index, identity))).size;
-  const dailyMap = new Map();
+
+  const rawItemViews = (await loadRows('item_views'))
+    .map((row, index) => ({ row, index, ms: analyticsMs(row.created_at) }))
+    .filter(({ ms }) => ms !== null && ms >= startMs && ms <= endMs);
+  const itemViewRawUserId = (row = {}) => {
+    if (row.user_id) return String(row.user_id);
+    const viewerKey = String(row.viewer_key || '');
+    return viewerKey.startsWith('user:') ? viewerKey.slice(5) : null;
+  };
+  const itemViewUserId = (row = {}) => {
+    const userId = itemViewRawUserId(row);
+    return userId ? canonicalizeUserId(userId) : null;
+  };
+  const itemViewFingerprint = (row = {}) => {
+    if (row.fingerprint) return String(row.fingerprint);
+    const viewerKey = String(row.viewer_key || '');
+    return viewerKey.startsWith('fingerprint:') ? viewerKey.slice('fingerprint:'.length) : null;
+  };
+  const itemViews = rawItemViews.filter(({ row }) => {
+    const rawUserId = itemViewRawUserId(row);
+    const userId = itemViewUserId(row);
+    const fingerprint = itemViewFingerprint(row);
+    if (userId && adminUserIds.has(userId)) return false;
+    if (
+      (rawUserId && rawUserId.startsWith(excludedPrefix)) ||
+      (userId && userId.startsWith(excludedPrefix))
+    ) return false;
+    if (fingerprint && adminDeviceIds.fingerprints.has(fingerprint)) return false;
+    if (asAnalyticsBool(row?.is_admin) || isAnalyticsDatacenterRow(row)) return false;
+    return Boolean(row.item_id && row.item_type && (userId || fingerprint || row.viewer_key));
+  });
+
+  const visitorMap = new Map();
+  const dailyVisitorMap = new Map();
+  const addVisitor = (item, timeValue) => {
+    const key = analyticsIdentifier(item.row, item.index, identity);
+    const type = identity.userId(item.row) ? 'user' : 'guest';
+    visitorMap.set(key, { key, type });
+    const weekday = analyticsKstWeekday(timeValue);
+    if (weekday === null) return;
+    const daySet = dailyVisitorMap.get(weekday) || new Set();
+    daySet.add(key);
+    dailyVisitorMap.set(weekday, daySet);
+  };
+  for (const item of sessions) addVisitor(item, item.row.session_start || item.row.created_at);
+  for (const item of logs) addVisitor(item, item.row.created_at);
+
   const hourlyMap = new Map(Array.from({ length: 24 }, (_, hour) => [hour, { hour, class_count: 0, event_count: 0 }]));
-  const topMap = new Map();
 
   for (const item of logs) {
-    const date = new Date(item.ms);
-    const day = date.getDay();
-    dailyMap.set(day, (dailyMap.get(day) || 0) + 1);
-
-    const hour = date.getHours();
+    const hour = analyticsKstHour(item.ms);
+    if (hour === null) continue;
     const hourly = hourlyMap.get(hour) || { hour, class_count: 0, event_count: 0 };
-    if (classifyAnalyticsContent(item.row) === 'class') hourly.class_count += 1;
+    if (analyticsContentBucket(item.row) === 'class') hourly.class_count += 1;
     else hourly.event_count += 1;
     hourlyMap.set(hour, hourly);
+  }
 
-    const topKey = `${item.row.target_type || 'content'}:${item.row.target_id || item.row.route || item.index}`;
-    const top = topMap.get(topKey) || {
-      id: String(item.row.target_id || item.row.route || item.index),
-      title: item.row.target_title || item.row.route || item.row.page_url || 'Untitled',
-      type: item.row.target_type || 'content',
+  const [events, boardPosts, socialSchedules] = await Promise.all([
+    loadRows('events'),
+    loadRows('board_posts').catch(() => []),
+    loadRows('social_schedules').catch(() => []),
+  ]);
+  const titleMaps = {
+    event: new Map(events.map((row) => [String(row.id), row.title || row.name || 'Untitled'])),
+    board_post: new Map(boardPosts.map((row) => [String(row.id), row.title || 'Untitled'])),
+    social: new Map(socialSchedules.map((row) => [String(row.id), row.title || row.name || 'Untitled'])),
+  };
+  const eventKindMap = new Map(events.map((row) => [
+    String(row.id),
+    analyticsContentBucket({ target_type: row.category, target_title: row.title }),
+  ]));
+  const topMap = new Map();
+  const viewCountByEvent = new Map();
+  for (const item of itemViews) {
+    const itemId = String(item.row.item_id);
+    let itemType = topContentType(item.row);
+    if (String(item.row.item_type || '').toLowerCase() === 'event') {
+      itemType = eventKindMap.get(itemId) || itemType;
+    }
+    const key = `${itemType}:${itemId}`;
+    const title = itemType === 'board_post'
+      ? titleMaps.board_post.get(itemId)
+      : itemType === 'social'
+        ? titleMaps.social.get(itemId)
+        : titleMaps.event.get(itemId);
+    const top = topMap.get(key) || {
+      id: itemId,
+      title: title || item.row.target_title || item.row.title || 'Untitled',
+      type: itemType,
       count: 0,
     };
     top.count += 1;
-    topMap.set(topKey, top);
+    topMap.set(key, top);
+    if (itemType === 'event' || itemType === 'class') {
+      viewCountByEvent.set(itemId, (viewCountByEvent.get(itemId) || 0) + 1);
+    }
   }
-
-  const events = await loadRows('events');
-  const leadTime = { classD28: 0, classD7: 0, eventD42: 0, eventD14: 0 };
-  for (const event of events) {
-    const leadDays = eventLeadDays(event);
-    if (leadDays === null) continue;
-    const category = classifyAnalyticsContent({ target_type: event.category, target_title: event.title });
-    if (category === 'class') {
-      if (leadDays >= 28) leadTime.classD28 += 1;
-      if (leadDays <= 7) leadTime.classD7 += 1;
-    } else {
-      if (leadDays >= 42) leadTime.eventD42 += 1;
-      if (leadDays <= 14) leadTime.eventD14 += 1;
+  if (topMap.size === 0) {
+    for (const item of logs) {
+      const itemType = topContentType(item.row);
+      const itemId = String(item.row.target_id || item.row.route || item.index);
+      const key = `${itemType}:${itemId}`;
+      const top = topMap.get(key) || {
+        id: itemId,
+        title: item.row.target_title || item.row.route || item.row.page_url || 'Untitled',
+        type: itemType,
+        count: 0,
+      };
+      top.count += 1;
+      topMap.set(key, top);
     }
   }
 
+  const leadBuckets = {
+    classD28: { views: 0, items: 0 },
+    classD7: { views: 0, items: 0 },
+    eventD42: { views: 0, items: 0 },
+    eventD14: { views: 0, items: 0 },
+  };
+  const addLeadBucket = (key, views) => {
+    leadBuckets[key].views += views;
+    leadBuckets[key].items += 1;
+  };
+  for (const event of events) {
+    const leadDays = eventLeadDays(event);
+    if (leadDays === null) continue;
+    const views = viewCountByEvent.get(String(event.id)) || 0;
+    if (views <= 0) continue;
+    const category = analyticsContentBucket({ target_type: event.category, target_title: event.title });
+    if (category === 'class') {
+      if (leadDays >= 28) addLeadBucket('classD28', views);
+      if (leadDays <= 7) addLeadBucket('classD7', views);
+    } else {
+      if (leadDays >= 42) addLeadBucket('eventD42', views);
+      if (leadDays <= 14) addLeadBucket('eventD14', views);
+    }
+  }
+  const leadTime = Object.fromEntries(
+    Object.entries(leadBuckets).map(([key, value]) => [
+      key,
+      value.items > 0 ? Math.round(value.views / value.items) : 0,
+    ]),
+  );
+
   return {
     meta: {
-      uniqueVisitors,
+      uniqueVisitors: visitorMap.size,
+      uniqueUsers: Array.from(visitorMap.values()).filter((item) => item.type === 'user').length,
+      uniqueGuests: Array.from(visitorMap.values()).filter((item) => item.type === 'guest').length,
       totalLogs: logs.length,
+      totalViews: itemViews.length,
+      rawLogs: rawLogs.length,
+      rawSessions: rawSessions.length,
+      rawItemViews: rawItemViews.length,
+      includedLogs: logs.length,
+      includedSessions: sessions.length,
+      includedItemViews: itemViews.length,
+      excludedAnalyticsRows: (rawLogs.length + rawSessions.length) - (logs.length + sessions.length),
+      timezone: 'Asia/Seoul',
+      calculationVersion: 'analytics-purity-v2',
     },
-    dailyTraffic: Array.from({ length: 7 }, (_, day) => ({ day, count: dailyMap.get(day) || 0 })),
+    dailyTraffic: Array.from({ length: 7 }, (_, day) => ({ day, count: dailyVisitorMap.get(day)?.size || 0 })),
     hourlyStats: Array.from(hourlyMap.values()).sort((a, b) => a.hour - b.hour),
     leadTime,
-    topContents: Array.from(topMap.values()).sort((a, b) => b.count - a.count).slice(0, 12),
+    topContents: Array.from(topMap.values()).sort((a, b) => b.count - a.count || a.title.localeCompare(b.title)).slice(0, 20),
   };
 }
 

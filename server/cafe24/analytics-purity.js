@@ -23,6 +23,24 @@ export function analyticsClientIp(row = {}) {
   return row.client_ip || row.ip_address || row.ip || null;
 }
 
+export function isAnalyticsDatacenterIp(value = '') {
+  const ip = String(value || '').replace(/^::ffff:/, '').trim();
+  const parts = ip.split('.').map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+  const [a, b] = parts;
+
+  // Public cloud/DC ranges that should not count as real visitor traffic.
+  if (a === 44 && b >= 192) return true; // AWS EC2
+  if ([3, 13, 18, 34, 35, 52, 54].includes(a)) return true; // AWS/GCP/Azure common public cloud ranges
+  return false;
+}
+
+export function isAnalyticsDatacenterRow(row = {}) {
+  return isAnalyticsDatacenterIp(analyticsClientIp(row));
+}
+
 export function analyticsGuestDeviceIdentity(row = {}) {
   const raw = `${row.platform || ''} ${row.user_agent || ''}`.toLowerCase();
   if (raw.includes('ipad')) return 'ipad';
@@ -43,4 +61,36 @@ export function analyticsGuestNetworkIdentity(row = {}) {
 
 export function hasAnalyticsIdentityEvidence(row = {}) {
   return Boolean(row.user_id || row.userId || row.fingerprint || row.user_agent || row.platform);
+}
+
+export function analyticsKstDate(value) {
+  const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms + 9 * 60 * 60 * 1000);
+}
+
+export function analyticsKstDateKey(value) {
+  const date = analyticsKstDate(value);
+  if (!date) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+export function analyticsKstMonthKey(value) {
+  const dateKey = analyticsKstDateKey(value);
+  return dateKey ? dateKey.slice(0, 7) : null;
+}
+
+export function analyticsKstDisplayMonthKey(value) {
+  const monthKey = analyticsKstMonthKey(value);
+  return monthKey ? monthKey.replace('-', '.') : null;
+}
+
+export function analyticsKstWeekday(value) {
+  const date = analyticsKstDate(value);
+  return date ? date.getUTCDay() : null;
+}
+
+export function analyticsKstHour(value) {
+  const date = analyticsKstDate(value);
+  return date ? date.getUTCHours() : null;
 }

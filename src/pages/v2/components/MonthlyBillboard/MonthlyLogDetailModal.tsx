@@ -5,8 +5,12 @@ interface MonthlyLogDetailModalProps {
     onClose: () => void;
     data: {
         totalLogs: number;
+        totalViews: number;
         uniqueVisitors: number;
         clickRate: number;
+        viewRate: number;
+        excludedAnalyticsRows?: number;
+        timezone?: string;
         range: string;
     };
 }
@@ -34,6 +38,10 @@ const MonthlyLogDetailModal: React.FC<MonthlyLogDetailModalProps> = ({ isOpen, o
                             <span className="stat-label">총 상호작용</span>
                             <div className="stat-value">{data.totalLogs.toLocaleString()} <span className="stat-unit">로그</span></div>
                         </div>
+                        <div className="stat-card">
+                            <span className="stat-label">콘텐츠 조회</span>
+                            <div className="stat-value">{data.totalViews.toLocaleString()} <span className="stat-unit">뷰</span></div>
+                        </div>
                         <div className="stat-card highlight">
                             <span className="stat-label">실제 방문자 수</span>
                             <div className="stat-value">{data.uniqueVisitors.toLocaleString()} <span className="stat-unit">명</span></div>
@@ -41,6 +49,10 @@ const MonthlyLogDetailModal: React.FC<MonthlyLogDetailModalProps> = ({ isOpen, o
                         <div className="stat-card">
                             <span className="stat-label">평균 클릭률 (CTR)</span>
                             <div className="stat-value">{data.clickRate} <span className="stat-unit">Clicks/User</span></div>
+                        </div>
+                        <div className="stat-card">
+                            <span className="stat-label">평균 조회 깊이</span>
+                            <div className="stat-value">{data.viewRate} <span className="stat-unit">Views/User</span></div>
                         </div>
                     </div>
 
@@ -60,6 +72,14 @@ const MonthlyLogDetailModal: React.FC<MonthlyLogDetailModalProps> = ({ isOpen, o
                             <p className="section-desc">
                                 운영 통계 모달과 동일한 <strong>'회원 ID/기기 기준 고유 방문자'</strong> 기준을 적용합니다.
                                 로그인 ID 또는 브라우저 고유 지문을 통해 기간 내 중복 방문을 제거하며, 기간 내 로그인으로 식별된 같은 기기는 회원 방문자로 합산합니다. 관리자 및 시스템 테스트 계정의 활동은 통계에서 모두 자동 제외됩니다.
+                            </p>
+                        </div>
+
+                        <div className="info-section">
+                            <div className="section-label">콘텐츠 조회 (Content Views)</div>
+                            <p className="section-desc">
+                                게시물/행사 상세 화면의 중복 제거 조회 원본인 <strong>item_views</strong>를 기준으로 산정합니다.
+                                월간 인기 콘텐츠와 내 게시물 조회수는 같은 조회 원본을 사용합니다.
                             </p>
                         </div>
 

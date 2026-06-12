@@ -5,7 +5,9 @@ import {
   saveCafe24TableRow,
 } from './generic-data-api.js';
 import {
+  analyticsGuestNetworkIdentity,
   isAnalyticsBotUserAgent,
+  isAnalyticsDatacenterRow,
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
 
@@ -46,21 +48,25 @@ let analyticsAdminIdentityCache = {
   emails: new Set(),
   sessionIds: new Set(),
   fingerprints: new Set(),
+  networkDeviceIds: new Set(),
 };
 
 function buildAnalyticsAdminDeviceIds(rows = [], userIds = new Set()) {
   const sessionIds = new Set();
   const fingerprints = new Set();
+  const networkDeviceIds = new Set();
   let changed = true;
 
   while (changed) {
     changed = false;
     for (const row of rows) {
+      const networkDeviceId = analyticsGuestNetworkIdentity(row);
       const directAdmin = asBool(row?.is_admin, false)
         || (row?.user_id && userIds.has(String(row.user_id)));
       const linkedAdminDevice = Boolean(
         (row?.session_id && sessionIds.has(String(row.session_id))) ||
-        (row?.fingerprint && fingerprints.has(String(row.fingerprint)))
+        (row?.fingerprint && fingerprints.has(String(row.fingerprint))) ||
+        (networkDeviceId && networkDeviceIds.has(networkDeviceId))
       );
       if (!directAdmin && !linkedAdminDevice) continue;
       if (row?.session_id && !sessionIds.has(String(row.session_id))) {
@@ -71,10 +77,14 @@ function buildAnalyticsAdminDeviceIds(rows = [], userIds = new Set()) {
         fingerprints.add(String(row.fingerprint));
         changed = true;
       }
+      if (networkDeviceId && !networkDeviceIds.has(networkDeviceId)) {
+        networkDeviceIds.add(networkDeviceId);
+        changed = true;
+      }
     }
   }
 
-  return { sessionIds, fingerprints };
+  return { sessionIds, fingerprints, networkDeviceIds };
 }
 
 async function getAnalyticsAdminIdentityCache() {
@@ -113,7 +123,7 @@ async function getAnalyticsAdminIdentityCache() {
     loadCafe24TableRows('session_logs').catch(() => []),
     loadCafe24TableRows('site_analytics_logs').catch(() => []),
   ]);
-  const { sessionIds, fingerprints } = buildAnalyticsAdminDeviceIds([...sessions, ...logs], userIds);
+  const { sessionIds, fingerprints, networkDeviceIds } = buildAnalyticsAdminDeviceIds([...sessions, ...logs], userIds);
 
   analyticsAdminIdentityCache = {
     expiresAt: now + 300_000,
@@ -121,6 +131,7 @@ async function getAnalyticsAdminIdentityCache() {
     emails,
     sessionIds,
     fingerprints,
+    networkDeviceIds,
   };
   return analyticsAdminIdentityCache;
 }
@@ -402,9 +413,26 @@ async function buildCafe24SiteStats() {
     ? Number((monthly.reduce((sum, item) => sum + item.dailyAvg, 0) / monthly.length).toFixed(1))
     : 0;
 
-  const memberCount = boardUsers.length;
-  const pwaCount = new Set(pwaInstalls.map((row) => row.user_id).filter(Boolean).map(String)).size;
-  const pushCount = new Set(pushSubscriptions.map((row) => row.user_id).filter(Boolean).map(String)).size;
+  const activeMemberIds = new Set(
+    boardUsers
+      .filter((row) => String(row?.status || '').toLowerCase() !== 'deleted')
+      .map((row) => row.user_id)
+      .filter(Boolean)
+      .map(String),
+  );
+  const memberCount = activeMemberIds.size || boardUsers.length;
+  const pwaCount = new Set(
+    pwaInstalls
+      .map((row) => row.user_id)
+      .filter((userId) => userId && (!activeMemberIds.size || activeMemberIds.has(String(userId))))
+      .map(String),
+  ).size;
+  const pushCount = new Set(
+    pushSubscriptions
+      .map((row) => row.user_id)
+      .filter((userId) => userId && (!activeMemberIds.size || activeMemberIds.has(String(userId))))
+      .map(String),
+  ).size;
   const eventBreakdown = {
     class: events.filter((event) => getEventCategory(event) === '강습').length,
     event: events.filter((event) => getEventCategory(event) === '행사').length,
@@ -464,24 +492,97 @@ async function findSessionLog(sessionId) {
   return rows.find((row) => String(row.session_id || '') === String(sessionId)) || null;
 }
 
-async function linkAnonymousSessionEventsToUser({ userId, sessionId }) {
-  if (!userId || !sessionId) return;
+function invalidateAnalyticsAdminIdentityCache() {
+  analyticsAdminIdentityCache.expiresAt = 0;
+}
 
-  const rows = await loadCafe24TableRows('site_analytics_logs');
-  const now = new Date().toISOString();
-  const targets = rows.filter((row) => (
-    !row.user_id &&
-    row.session_id &&
-    String(row.session_id) === String(sessionId)
-  ));
-
-  for (const row of targets) {
-    await saveCafe24TableRow('site_analytics_logs', {
-      ...row,
-      user_id: userId,
-      updated_at: now,
-    });
+function analyticsIdentityMatchMethod(row, sessionId, fingerprint) {
+  if (sessionId && row?.session_id && String(row.session_id) === String(sessionId)) {
+    return 'session_id';
   }
+  if (fingerprint && row?.fingerprint && String(row.fingerprint) === String(fingerprint)) {
+    return 'fingerprint';
+  }
+  return null;
+}
+
+function shouldUpdateAnalyticsIdentityRow(row, { userId, isAdmin }) {
+  if (!row) return false;
+  if (asBool(row.is_admin, false) && !isAdmin) return false;
+  if (userId && row.user_id && String(row.user_id) !== String(userId)) return false;
+  if (!userId && !isAdmin) return false;
+  return true;
+}
+
+function buildAnalyticsIdentityRow(row, { userId, isAdmin, method, now, reason }) {
+  const nextRow = {
+    ...row,
+    updated_at: now,
+    identity_resolution_method: row.identity_resolution_method || method,
+    identity_resolved_at: row.identity_resolved_at || now,
+  };
+
+  if (userId) nextRow.user_id = String(userId);
+  if (isAdmin) {
+    nextRow.is_admin = true;
+    nextRow.analytics_excluded = true;
+    nextRow.analytics_exclusion_reason = reason || 'matched_admin_identity';
+  } else if (!asBool(nextRow.analytics_excluded, false)) {
+    nextRow.is_admin = false;
+  }
+
+  return nextRow;
+}
+
+function analyticsIdentityRowChanged(before, after) {
+  return [
+    'user_id',
+    'is_admin',
+    'analytics_excluded',
+    'analytics_exclusion_reason',
+    'identity_resolution_method',
+    'identity_resolved_at',
+  ].some((key) => String(before?.[key] ?? '') !== String(after?.[key] ?? ''));
+}
+
+async function linkAnalyticsRowsToIdentity({
+  userId,
+  isAdmin = false,
+  sessionId,
+  fingerprint,
+  reason = null,
+}) {
+  if ((!userId && !isAdmin) || (!sessionId && !fingerprint)) return { updated: 0 };
+
+  const [sessions, logs] = await Promise.all([
+    loadCafe24TableRows('session_logs').catch(() => []),
+    loadCafe24TableRows('site_analytics_logs').catch(() => []),
+  ]);
+  const now = new Date().toISOString();
+  const targets = [
+    ...sessions.map((row) => ({ table: 'session_logs', row })),
+    ...logs.map((row) => ({ table: 'site_analytics_logs', row })),
+  ];
+  let updated = 0;
+
+  for (const { table, row } of targets) {
+    const method = analyticsIdentityMatchMethod(row, sessionId, fingerprint);
+    if (!method || !shouldUpdateAnalyticsIdentityRow(row, { userId, isAdmin })) continue;
+
+    const nextRow = buildAnalyticsIdentityRow(row, {
+      userId,
+      isAdmin,
+      method,
+      now,
+      reason,
+    });
+    if (!analyticsIdentityRowChanged(row, nextRow)) continue;
+    await saveCafe24TableRow(table, nextRow, table === 'session_logs' ? ['session_id'] : []);
+    updated += 1;
+  }
+
+  if (isAdmin && updated > 0) invalidateAnalyticsAdminIdentityCache();
+  return { updated };
 }
 
 async function saveSessionStart(body, req) {
@@ -517,10 +618,13 @@ async function saveSessionStart(body, req) {
   };
 
   await saveCafe24TableRow('session_logs', row, ['session_id']);
-  if (row.user_id && (!existing || !existing.user_id)) {
-    await linkAnonymousSessionEventsToUser({
+  if (row.user_id || row.is_admin) {
+    await linkAnalyticsRowsToIdentity({
       userId: row.user_id,
+      isAdmin: asBool(row.is_admin, false),
       sessionId: row.session_id,
+      fingerprint: row.fingerprint,
+      reason: asBool(row.is_admin, false) ? 'session_admin_identity' : 'session_authenticated_identity',
     });
   }
 }
@@ -553,6 +657,15 @@ async function saveSessionEnd(body, req) {
   };
 
   await saveCafe24TableRow('session_logs', row, ['session_id']);
+  if (row.user_id || row.is_admin) {
+    await linkAnalyticsRowsToIdentity({
+      userId: row.user_id,
+      isAdmin: asBool(row.is_admin, false),
+      sessionId: row.session_id,
+      fingerprint: row.fingerprint,
+      reason: asBool(row.is_admin, false) ? 'session_admin_identity' : 'session_authenticated_identity',
+    });
+  }
 }
 
 async function saveAnalyticsEvent(body, req) {
@@ -570,6 +683,7 @@ async function saveAnalyticsEvent(body, req) {
     fingerprint: asString(body.fingerprint),
     is_admin: asBool(body.is_admin, false),
     user_agent: requestUserAgent(req, body),
+    platform: asString(body.platform),
     client_ip: asString(body.client_ip) || requestClientIp(req),
     ip_hash: asString(body.ip_hash) || hashIp(asString(body.client_ip) || requestClientIp(req)),
     created_at: createdAt,
@@ -585,6 +699,15 @@ async function saveAnalyticsEvent(body, req) {
   };
 
   await saveCafe24TableRow('site_analytics_logs', row);
+  if (row.user_id || row.is_admin) {
+    await linkAnalyticsRowsToIdentity({
+      userId: row.user_id,
+      isAdmin: asBool(row.is_admin, false),
+      sessionId: row.session_id,
+      fingerprint: row.fingerprint,
+      reason: asBool(row.is_admin, false) ? 'event_admin_identity' : 'event_authenticated_identity',
+    });
+  }
 }
 
 export async function saveCafe24AnalyticsCompat(body, req) {
@@ -657,14 +780,21 @@ export async function recordAnalytics(req, res) {
   const requestIp = requestClientIp(req);
   const currentUser = await getAnalyticsRequestUser(req, pool).catch(() => null);
   const trustedUserId = currentUser?.id ? String(currentUser.id) : null;
+  const requestSessionId = asString(req.body?.session_id || req.body?.sessionId);
+  const requestFingerprint = asString(req.body?.fingerprint);
   let trustedIsAdmin = Boolean(currentUser?.is_admin);
   if (!trustedIsAdmin) {
     const adminIdentities = await getAnalyticsAdminIdentityCache();
-    const requestSessionId = asString(req.body?.session_id || req.body?.sessionId);
-    const requestFingerprint = asString(req.body?.fingerprint);
+    const requestNetworkDeviceId = analyticsGuestNetworkIdentity({
+      ...req.body,
+      client_ip: req.body?.client_ip || requestIp,
+      ip_hash: req.body?.ip_hash || hashIp(requestIp),
+      user_agent: requestUserAgent(req, req.body || {}),
+    });
     trustedIsAdmin = Boolean(
       (requestSessionId && adminIdentities.sessionIds.has(requestSessionId)) ||
-      (requestFingerprint && adminIdentities.fingerprints.has(requestFingerprint))
+      (requestFingerprint && adminIdentities.fingerprints.has(requestFingerprint)) ||
+      (requestNetworkDeviceId && adminIdentities.networkDeviceIds.has(requestNetworkDeviceId))
     );
   }
   const body = {
@@ -676,7 +806,23 @@ export async function recordAnalytics(req, res) {
     ip_hash: req.body?.ip_hash || hashIp(requestIp),
   };
 
-  if (asBool(body.analytics_excluded, false) || trustedIsAdmin || isAnalyticsBotPayload(body, req) || isInternalAnalyticsPayload(body)) {
+  if (trustedUserId || trustedIsAdmin) {
+    await linkAnalyticsRowsToIdentity({
+      userId: trustedUserId,
+      isAdmin: trustedIsAdmin,
+      sessionId: requestSessionId,
+      fingerprint: requestFingerprint,
+      reason: trustedIsAdmin ? 'request_admin_identity' : 'request_authenticated_identity',
+    });
+  }
+
+  if (
+    asBool(body.analytics_excluded, false) ||
+    trustedIsAdmin ||
+    isAnalyticsBotPayload(body, req) ||
+    isAnalyticsDatacenterRow(body) ||
+    isInternalAnalyticsPayload(body)
+  ) {
     res.json({ ok: true, skipped: true });
     return;
   }

@@ -52,6 +52,14 @@ function setSessionCookie(req, res, sessionId, expiresAt) {
   );
 }
 
+function sessionDays() {
+  return Math.max(1, Math.floor(SESSION_DAYS));
+}
+
+function sessionExpiresAt() {
+  return new Date(Date.now() + sessionDays() * 24 * 60 * 60 * 1000);
+}
+
 function clearSessionCookie(req, res) {
   appendSetCookie(
     res,
@@ -430,15 +438,33 @@ async function upsertUser(profile) {
 async function createSession(userId) {
   const pool = getMysqlPool();
   const sessionId = crypto.randomBytes(32).toString('hex');
-  const sessionDays = Math.max(1, Math.floor(SESSION_DAYS));
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = sessionExpiresAt();
 
   await pool.execute(
-    `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ${sessionDays} DAY))`,
+    `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ${sessionDays()} DAY))`,
     [sessionId, userId],
   );
 
   return { sessionId, expiresAt };
+}
+
+async function refreshSessionExpiry(req, res) {
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  if (!sessionId) return;
+
+  const pool = getMysqlPool();
+  const expiresAt = sessionExpiresAt();
+  const [result] = await pool.execute(
+    `UPDATE sessions
+        SET expires_at = DATE_ADD(NOW(), INTERVAL ${sessionDays()} DAY),
+            last_seen_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND expires_at > NOW()`,
+    [sessionId],
+  );
+
+  if (result?.affectedRows) {
+    setSessionCookie(req, res, sessionId, expiresAt);
+  }
 }
 
 export async function getCurrentUser(req) {
@@ -603,6 +629,9 @@ export async function googleLoginCallback(req, res) {
 
 export async function me(req, res) {
   const userRow = await getCurrentUser(req);
+  if (userRow) {
+    await refreshSessionExpiry(req, res).catch(() => {});
+  }
   res.json({
     user: rowToUser(userRow),
     profile: publicUser(userRow),

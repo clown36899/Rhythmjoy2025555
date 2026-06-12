@@ -156,7 +156,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                             className={`tab-item ${activeTab === 'scene' ? 'active' : ''}`}
                         >
                             스윙씬 통계
-                            <span className="badge-beta">개선중</span>
+                            <span className="badge-beta">서버 기준</span>
                         </h2>
                         <h2
                             ref={(el) => { tabRefs.current['monthly'] = el; }}

@@ -83,13 +83,20 @@ export function useViewTracking(
                 debugViewTracking('[ViewTracking] Fingerprint:', fingerprint.substring(0, 12) + '...');
             }
 
+            const normalizedItemId = typeof itemId === 'number'
+                ? itemId
+                : /^\d+$/.test(String(itemId))
+                    ? Number(itemId)
+                    : itemId;
+
             // 3. RPC 호출
             const { data: wasIncremented, error } = await supabase.rpc('increment_item_views', {
-                p_item_id: typeof itemId === 'string' ? parseInt(itemId) : itemId,
+                p_item_id: normalizedItemId,
                 p_item_type: itemType,
                 p_user_id: user?.id || null,
                 p_fingerprint: fingerprint || null,
                 p_user_agent: navigator.userAgent,
+                p_platform: navigator.platform,
                 p_page_url: window.location.pathname,
                 p_route: window.location.pathname,
                 p_is_admin: localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true'

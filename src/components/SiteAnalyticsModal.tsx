@@ -406,6 +406,30 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const hasAnalyticsIdentityEvidence = (row: any) => (
                 Boolean(row.user_id || row.userId || row.fingerprint || row.user_agent || row.platform)
             );
+            const getFilterClientIp = (row: any) => row.client_ip || row.ip_address || row.ip || null;
+            const getFilterGuestDeviceIdentity = (row: any) => {
+                const raw = `${row.platform || ''} ${row.user_agent || ''}`.toLowerCase();
+                if (raw.includes('ipad')) return 'ipad';
+                if (raw.includes('iphone') || raw.includes('ios') || raw.includes('crios')) return 'iphone';
+                if (raw.includes('android')) return 'android';
+                if (raw.includes('windows') || raw.includes('win32') || raw.includes('win64') || raw.includes('wow64')) return 'windows';
+                if (raw.includes('mac os') || raw.includes('macintosh') || raw.includes('macintel') || raw.includes('macos')) return 'macos';
+                if (raw.includes('cros') || raw.includes('chrome os')) return 'chromeos';
+                if (raw.includes('linux') || raw.includes('x11')) return 'linux';
+                return row.platform ? String(row.platform).trim().toLowerCase() : 'unknown';
+            };
+            const getFilterGuestNetworkIdentity = (row: any) => {
+                const network = row.ip_hash || getFilterClientIp(row);
+                if (!network) return null;
+                return `${String(network)}:${getFilterGuestDeviceIdentity(row)}`;
+            };
+            const isDatacenterIp = (value: unknown) => {
+                const parts = String(value || '').replace(/^::ffff:/, '').trim().split('.').map(Number);
+                if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+                const [a, b] = parts;
+                return (a === 44 && b >= 192) || [3, 13, 18, 34, 35, 52, 54].includes(a);
+            };
+            const isDatacenterAnalyticsRow = (row: any) => isDatacenterIp(getFilterClientIp(row));
 
             const botSessionIds = new Set<string>();
             const botFingerprints = new Set<string>();
@@ -471,14 +495,17 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             });
             const adminSessionIds = new Set<string>();
             const adminFingerprints = new Set<string>();
+            const adminNetworkDeviceIds = new Set<string>();
             let adminDeviceChanged = true;
             while (adminDeviceChanged) {
                 adminDeviceChanged = false;
                 [...allSessions, ...data].forEach((row: any) => {
+                    const networkDeviceId = getFilterGuestNetworkIdentity(row);
                     const directAdmin = row.is_admin || (row.user_id && adminUserIds.has(String(row.user_id)));
                     const linkedAdminDevice = (
                         (row.session_id && adminSessionIds.has(String(row.session_id))) ||
-                        (row.fingerprint && adminFingerprints.has(String(row.fingerprint)))
+                        (row.fingerprint && adminFingerprints.has(String(row.fingerprint))) ||
+                        (networkDeviceId && adminNetworkDeviceIds.has(networkDeviceId))
                     );
                     if (!directAdmin && !linkedAdminDevice) return;
                     if (row.session_id && !adminSessionIds.has(String(row.session_id))) {
@@ -487,6 +514,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     }
                     if (row.fingerprint && !adminFingerprints.has(String(row.fingerprint))) {
                         adminFingerprints.add(String(row.fingerprint));
+                        adminDeviceChanged = true;
+                    }
+                    if (networkDeviceId && !adminNetworkDeviceIds.has(networkDeviceId)) {
+                        adminNetworkDeviceIds.add(networkDeviceId);
                         adminDeviceChanged = true;
                     }
                 });
@@ -506,6 +537,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (row.user_id) return adminUserIds.has(String(row.user_id));
                 if (row.session_id && adminSessionIds.has(String(row.session_id))) return true;
                 if (row.fingerprint && adminFingerprints.has(String(row.fingerprint))) return true;
+                const networkDeviceId = getFilterGuestNetworkIdentity(row);
+                if (networkDeviceId && adminNetworkDeviceIds.has(networkDeviceId)) return true;
                 const sessionUsers = row.session_id ? rawSessionIdToUser.get(String(row.session_id)) : null;
                 const fingerprintUsers = row.fingerprint ? rawFingerprintToUser.get(String(row.fingerprint)) : null;
                 return Boolean(
@@ -519,6 +552,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return (
                     !isExplicitlyExcludedAnalyticsRow(d) &&
                     !isInternalAnalyticsRow(d) &&
+                    !isDatacenterAnalyticsRow(d) &&
                     !isAdminAnalyticsRow(d) &&
                     (userId || hasAnalyticsIdentityEvidence(d)) &&
                     (userId ? !userId.startsWith(excludedPrefix) : true) &&
@@ -531,6 +565,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return (
                     !isExplicitlyExcludedAnalyticsRow(s) &&
                     !isInternalAnalyticsRow(s) &&
+                    !isDatacenterAnalyticsRow(s) &&
                     !isAdminAnalyticsRow(s) &&
                     (userId || hasAnalyticsIdentityEvidence(s)) &&
                     (userId ? !userId.startsWith(excludedPrefix) : true) &&

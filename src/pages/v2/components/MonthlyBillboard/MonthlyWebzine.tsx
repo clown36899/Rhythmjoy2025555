@@ -48,7 +48,7 @@ const MonthlyWebzine = ({ onInsertItem, section }: MonthlyWebzineProps) => {
         dailyFlow: { hourlyData: [], rawHourlyData: [], classPeakHour: 0, eventPeakHour: 0 },
         leadTime: { classD28: 0, classD7: 0, eventD42: 0, eventD14: 0 },
         topContents: [],
-        meta: { totalLogs: 0, uniqueVisitors: 0, clickRate: 0, range: '', monthLabel: 'LOADING...', monthKor: '' },
+        meta: { totalLogs: 0, totalViews: 0, uniqueVisitors: 0, clickRate: 0, viewRate: 0, range: '', monthLabel: 'LOADING...', monthKor: '' },
         loading: false
     } as BillboardData;
 
@@ -178,9 +178,9 @@ const MonthlyWebzine = ({ onInsertItem, section }: MonthlyWebzineProps) => {
                         <div className="mw-meta-box" onClick={() => setShowDetailModal(true)}>
                             <div className="mw-meta-data-row">
                                 <span className="mw-highlight-dot">●</span>
-                                <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors ({meta.totalLogs.toLocaleString()} Logs)
+                                <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors · {meta.totalViews.toLocaleString()} Views
                             </div>
-                            <div><span className="mw-meta-sub">Range: {meta.range}</span></div>
+                            <div><span className="mw-meta-sub">Activity {meta.totalLogs.toLocaleString()} · Range: {meta.range}</span></div>
                         </div>
                     </div>
                 )}
@@ -359,7 +359,7 @@ const MonthlyWebzine = ({ onInsertItem, section }: MonthlyWebzineProps) => {
                                 </div>
 
                                 <div className="hourly-legend">
-                                    <div className="hourly-legend-item legend-note">* 시스템 로그 기반</div>
+                                    <div className="hourly-legend-item legend-note">* 관리자·봇 제외 서버 기준</div>
                                     <div className="hourly-legend-item"><div className="hl-dot bg-blue-500" /> 강습</div>
                                     <div className="hourly-legend-item"><div className="hl-dot bg-rose-500" /> 행사</div>
                                 </div>
