@@ -53,6 +53,7 @@ public/scraped/
 !supabase/migrations/*.sql
 !supabase/db_tasks/**/*.sql
 !server/cafe24/schema.sql
+!server/cafe24/migrations/*.sql
 *.json
 !package.json
 !package-lock.json

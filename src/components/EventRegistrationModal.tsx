@@ -32,6 +32,8 @@ import {
   resolveDanceGenreInput,
   type DanceScope,
 } from "../utils/danceTaxonomy";
+import { queryClient } from "../lib/queryClient";
+import { applyEventMutationToQueryCache } from "../utils/eventMutationSync";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -40,6 +42,15 @@ interface ExtendedEvent extends AppEvent {
   venue_name?: string | null;
   venue_custom_link?: string | null;
   scope?: "domestic" | "overseas" | null;
+}
+
+function syncRegisteredEventQueries(event: AppEvent, action: 'created' | 'updated') {
+  const detail = { id: event.id, event };
+  applyEventMutationToQueryCache(queryClient, detail, action);
+  void queryClient.invalidateQueries({ queryKey: ['events'] });
+  void queryClient.invalidateQueries({ queryKey: ['list-view-events'] });
+  void queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+  void queryClient.refetchQueries({ queryKey: ['calendar-events'], type: 'active' });
 }
 
 interface EventRegistrationModalProps {
@@ -901,6 +912,7 @@ export default memo(function EventRegistrationModal({
           if (resultData && resultData[0]) {
             if (editEventData) {
               const updatedEvent = resultData[0] as AppEvent;
+              syncRegisteredEventQueries(updatedEvent, 'updated');
               window.dispatchEvent(new CustomEvent("eventUpdated", {
                 detail: { id: updatedEvent.id, event: updatedEvent }
               }));
@@ -919,6 +931,7 @@ export default memo(function EventRegistrationModal({
               logEvent('Event', 'Update', `${title} (ID: ${editEventData.id})`);
             } else {
               const createdEvent = resultData[0] as AppEvent;
+              syncRegisteredEventQueries(createdEvent, 'created');
               onEventCreated(date || new Date(), createdEvent.id);
               trackEvent({
                 target_id: String(createdEvent.id),

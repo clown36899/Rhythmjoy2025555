@@ -127,13 +127,18 @@ function patchEventListData(oldData: unknown, detail: unknown, action: 'created'
   const record = oldData as { events?: EventRecord[]; socialSchedules?: EventRecord[] };
   if (!Array.isArray(record.events) && !Array.isArray(record.socialSchedules)) return oldData;
 
+  const hasEvents = Array.isArray(record.events);
+  const hasSocialSchedules = Array.isArray(record.socialSchedules);
+  const insertIntoEvents = action === 'created' && hasEvents;
+  const insertIntoSocialSchedules = action === 'created' && !hasEvents && hasSocialSchedules;
+
   return {
     ...record,
-    ...(Array.isArray(record.events)
-      ? { events: action === 'deleted' ? removeEventFromArray(record.events, detail) : mergeEventIntoArray(record.events, detail, { insertIfMissing: action === 'created' }) }
+    ...(hasEvents
+      ? { events: action === 'deleted' ? removeEventFromArray(record.events || [], detail) : mergeEventIntoArray(record.events || [], detail, { insertIfMissing: insertIntoEvents }) }
       : {}),
-    ...(Array.isArray(record.socialSchedules)
-      ? { socialSchedules: action === 'deleted' ? removeEventFromArray(record.socialSchedules, detail) : mergeEventIntoArray(record.socialSchedules, detail, { insertIfMissing: action === 'created' }) }
+    ...(hasSocialSchedules
+      ? { socialSchedules: action === 'deleted' ? removeEventFromArray(record.socialSchedules || [], detail) : mergeEventIntoArray(record.socialSchedules || [], detail, { insertIfMissing: insertIntoSocialSchedules }) }
       : {}),
   };
 }
@@ -165,16 +170,19 @@ export function applyEventMutationToQueryCache(
       const record = oldData as { events?: EventRecord[]; socialSchedules?: EventRecord[] };
       if (!Array.isArray(record.events) && !Array.isArray(record.socialSchedules)) return oldData;
 
-      const patchArray = (items: EventRecord[]) => {
+      const patchArray = (items: EventRecord[], insertIfMissing: boolean) => {
         const hasExisting = items.some((item) => sameEventId(item.id, event.id));
         if (hasExisting && !inRange) return removeEventFromArray(items, detail);
-        return mergeEventIntoArray(items, detail, { insertIfMissing: action === 'created' && inRange });
+        return mergeEventIntoArray(items, detail, { insertIfMissing: insertIfMissing && action === 'created' && inRange });
       };
+
+      const hasEvents = Array.isArray(record.events);
+      const hasSocialSchedules = Array.isArray(record.socialSchedules);
 
       return {
         ...record,
-        ...(Array.isArray(record.events) ? { events: patchArray(record.events) } : {}),
-        ...(Array.isArray(record.socialSchedules) ? { socialSchedules: patchArray(record.socialSchedules) } : {}),
+        ...(hasEvents ? { events: patchArray(record.events || [], true) } : {}),
+        ...(hasSocialSchedules ? { socialSchedules: patchArray(record.socialSchedules || [], !hasEvents) } : {}),
       };
     });
   });

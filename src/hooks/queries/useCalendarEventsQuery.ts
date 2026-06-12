@@ -9,7 +9,7 @@ export interface CalendarData {
     socialSchedules: any[];
 }
 
-const CALENDAR_EVENTS_QUERY_VERSION = 'dance-scope-local-v6';
+export const CALENDAR_EVENTS_QUERY_VERSION = 'dance-scope-local-v7';
 
 const toLocalDateString = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -114,7 +114,7 @@ export const useCalendarEventsQuery = (currentMonth: Date, danceScope: DanceScop
             queryClient.prefetchQuery({
                 queryKey: ['calendar-events', CALENDAR_EVENTS_QUERY_VERSION, normalizedScope, s, e],
                 queryFn: () => fetchCalendarEvents(s, e, normalizedScope),
-                staleTime: 1000 * 60 * 5,
+                staleTime: 1000 * 30,
             });
         };
 
@@ -126,7 +126,10 @@ export const useCalendarEventsQuery = (currentMonth: Date, danceScope: DanceScop
     return useQuery<CalendarData>({
         queryKey: ['calendar-events', CALENDAR_EVENTS_QUERY_VERSION, normalizedScope, startDateStr, endDateStr],
         queryFn: () => fetchCalendarEvents(startDateStr, endDateStr, normalizedScope),
-        staleTime: 1000 * 60 * 5, // 5분
+        staleTime: 1000 * 30,
         gcTime: 1000 * 60 * 60 * 24, // 24시간
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
     });
 };

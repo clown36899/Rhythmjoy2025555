@@ -476,10 +476,17 @@ async function saveTangoCandidatesViaFunction(candidates) {
     return { target: 'function', saved: 0, skipped: 0, skippedNoPoster: noPoster.length, total: candidates.length };
   }
 
-  const endpoint = process.env.SCRAPED_EVENTS_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
+  const defaultEndpoint = process.env.INGESTOR_V3 === '1'
+    ? 'https://swingenjoy.com/api/ingestor-v3/candidates'
+    : 'https://swingenjoy.com/api/scraped-events';
+  const endpoint = process.env.SCRAPED_EVENTS_ENDPOINT || process.env.CAFE24_INGEST_ENDPOINT || defaultEndpoint;
+  const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (ingestToken) headers['X-Ingestion-Token'] = ingestToken;
+
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(imageBacked),
   });
   const payload = await response.json().catch(() => ({}));

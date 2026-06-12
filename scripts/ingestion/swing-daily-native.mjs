@@ -8,7 +8,11 @@ chromium.use(stealthPlugin());
 
 
 const profile = process.env.INGESTION_PROFILE || 'swing-daily';
-const endpoint = process.env.CAFE24_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
+const defaultEndpoint = process.env.INGESTOR_V3 === '1'
+  ? 'https://swingenjoy.com/api/ingestor-v3/candidates'
+  : 'https://swingenjoy.com/api/scraped-events';
+const endpoint = process.env.CAFE24_INGEST_ENDPOINT || defaultEndpoint;
+const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1';
 const sourceLimit = Number(process.env.INGESTION_NATIVE_SOURCE_LIMIT || 0);
 const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')
@@ -1034,10 +1038,12 @@ async function postCandidate(candidate) {
 
   let response;
   let bodyText = '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (ingestToken) headers['X-Ingestion-Token'] = ingestToken;
   try {
     const postResult = await fetchWithTimeout(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(candidate),
     }, postRequestTimeoutMs);
     response = postResult.response;

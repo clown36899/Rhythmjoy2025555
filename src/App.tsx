@@ -20,7 +20,7 @@ import { AppNoticeToast } from './components/common/AppNoticeToast';
 
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions, useModalState } from './contexts/ModalContext';
-import { getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
+import { CALENDAR_EVENTS_QUERY_VERSION, getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
 import LocalLoading from './components/LocalLoading';
 import './styles/devtools.css';
 
@@ -53,9 +53,9 @@ function AppContent() {
 
       try {
         await queryClient.prefetchQuery({
-          queryKey: ['calendar-events', startDateStr, endDateStr],
-          queryFn: () => fetchCalendarEvents(startDateStr, endDateStr),
-          staleTime: 1000 * 60 * 5, // 5분
+          queryKey: ['calendar-events', CALENDAR_EVENTS_QUERY_VERSION, 'swing', startDateStr, endDateStr],
+          queryFn: () => fetchCalendarEvents(startDateStr, endDateStr, 'swing'),
+          staleTime: 1000 * 30,
         });
         // console.log('[App] Calendar data prefetched successfully');
       } catch (err) {

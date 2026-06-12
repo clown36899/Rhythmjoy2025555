@@ -10,7 +10,11 @@ import {
 } from './collection-registry.mjs';
 
 const profile = process.env.INGESTION_PROFILE || 'expanded-ingestion';
-const endpoint = process.env.CAFE24_INGEST_ENDPOINT || 'https://swingenjoy.com/api/scraped-events';
+const defaultEndpoint = process.env.INGESTOR_V3 === '1'
+  ? 'https://swingenjoy.com/api/ingestor-v3/candidates'
+  : 'https://swingenjoy.com/api/scraped-events';
+const endpoint = process.env.CAFE24_INGEST_ENDPOINT || defaultEndpoint;
+const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
 const dryRun = process.env.EXPANDED_INGESTION_DRY_RUN !== '0';
 const sourceIds = (process.env.EXPANDED_INGESTION_SOURCE_IDS || '')
   .split(',')
@@ -395,9 +399,12 @@ async function postCandidate(candidate) {
     return;
   }
 
+  const headers = { 'Content-Type': 'application/json' };
+  if (ingestToken) headers['X-Ingestion-Token'] = ingestToken;
+
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(candidate),
   });
   const bodyText = await response.text();

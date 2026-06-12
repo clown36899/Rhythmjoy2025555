@@ -37,6 +37,51 @@ describe('eventMutationSync', () => {
     expect(queryClient.getQueryData<any>(key).events).toEqual([]);
   });
 
+  it('inserts created events into matching calendar cache ranges', () => {
+    const queryClient = new QueryClient();
+    const key = ['calendar-events', 'test-version', 'swing', '2026-06-01', '2026-06-30'];
+    queryClient.setQueryData(key, {
+      events: [],
+      socialSchedules: [],
+    });
+
+    applyEventMutationToQueryCache(queryClient, {
+      event: {
+        id: 'evt-13',
+        title: 'June social',
+        date: '2026-06-13',
+        start_date: '2026-06-13',
+        end_date: '2026-06-13',
+      },
+    }, 'created');
+
+    const cached = queryClient.getQueryData<any>(key);
+    expect(cached.events).toHaveLength(1);
+    expect(cached.events[0].id).toBe('evt-13');
+    expect(cached.socialSchedules).toEqual([]);
+  });
+
+  it('does not insert created events into non-matching calendar cache ranges', () => {
+    const queryClient = new QueryClient();
+    const key = ['calendar-events', 'test-version', 'swing', '2026-07-01', '2026-07-31'];
+    queryClient.setQueryData(key, {
+      events: [],
+      socialSchedules: [],
+    });
+
+    applyEventMutationToQueryCache(queryClient, {
+      event: {
+        id: 'evt-13',
+        title: 'June social',
+        date: '2026-06-13',
+        start_date: '2026-06-13',
+        end_date: '2026-06-13',
+      },
+    }, 'created');
+
+    expect(queryClient.getQueryData<any>(key).events).toEqual([]);
+  });
+
   it('merges and removes local arrays by normalized event id', () => {
     const rows = [{ id: 'social-42', title: 'old' }];
 

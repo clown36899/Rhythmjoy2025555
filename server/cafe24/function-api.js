@@ -109,6 +109,24 @@ function isBlockedRemoteAssetUrl(value) {
   }
 }
 
+function safeEqualString(a, b) {
+  const left = Buffer.from(String(a || ''));
+  const right = Buffer.from(String(b || ''));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function hasValidIngestionToken(req) {
+  const expected = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
+  if (!expected) return false;
+
+  const headerToken = req.headers['x-ingestion-token'];
+  const authHeader = req.headers.authorization || '';
+  const bearerMatch = String(authHeader).match(/^Bearer\s+(.+)$/i);
+  const provided = Array.isArray(headerToken) ? headerToken[0] : headerToken || bearerMatch?.[1] || '';
+
+  return safeEqualString(provided, expected);
+}
+
 async function localizeImageUrl(url, folder, filenameHint = 'image') {
   const value = String(url || '').trim();
   if (!value) return null;
@@ -186,7 +204,127 @@ function filterScrapedRows(rows, req) {
   });
 }
 
-async function upsertScrapedItem(item) {
+function scrapedRowDate(row) {
+  return String(row?.structured_data?.date || row?.date || row?.start_date || '').slice(0, 10);
+}
+
+function rowTitle(row) {
+  return String(row?.structured_data?.title || row?.title || '').trim();
+}
+
+function rowLocation(row) {
+  return String(row?.structured_data?.venue_name || row?.structured_data?.location || row?.venue_name || row?.location || '').trim();
+}
+
+function rowSourceUrl(row, target = 'scraped_events') {
+  return String(target === 'events' ? row?.link1 : row?.source_url || '').trim();
+}
+
+function normalizeDuplicateUrl(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    parsed.hash = '';
+    ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'igsh', 'igshid'].forEach((key) => parsed.searchParams.delete(key));
+    if (parsed.pathname !== '/') parsed.pathname = parsed.pathname.replace(/\/+$/, '');
+    return parsed.toString();
+  } catch {
+    return String(value || '').trim();
+  }
+}
+
+function normalizeDuplicateText(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/seoul/g, '서울')
+    .replace(/dj\s*/gi, '')
+    .replace(/[^\p{L}\p{N}가-힣]/gu, '');
+}
+
+function duplicateTextSimilarity(a, b) {
+  const left = normalizeDuplicateText(a);
+  const right = normalizeDuplicateText(b);
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.86;
+
+  const grams = (value) => {
+    if (value.length <= 2) return new Set([value]);
+    const result = new Set();
+    for (let i = 0; i <= value.length - 2; i += 1) result.add(value.slice(i, i + 2));
+    return result;
+  };
+  const leftGrams = grams(left);
+  const rightGrams = grams(right);
+  const intersection = [...leftGrams].filter((gram) => rightGrams.has(gram)).length;
+  const union = new Set([...leftGrams, ...rightGrams]).size;
+  return union ? intersection / union : 0;
+}
+
+function sameSourceUrl(left, right) {
+  const a = normalizeDuplicateUrl(left);
+  const b = normalizeDuplicateUrl(right);
+  return Boolean(a && b && a === b);
+}
+
+function sameVenue(left, right) {
+  const a = normalizeDuplicateText(left);
+  const b = normalizeDuplicateText(right);
+  if (!a || !b) return false;
+  if (a.length >= 2 && b.length >= 2 && (a.includes(b) || b.includes(a))) return true;
+  return duplicateTextSimilarity(a, b) >= 0.7;
+}
+
+function duplicateDescriptor(target, row, reason) {
+  return {
+    target,
+    existingId: row?.id || null,
+    existingTitle: rowTitle(row) || null,
+    existingDate: target === 'events'
+      ? String(row?.start_date || row?.date || '').slice(0, 10)
+      : scrapedRowDate(row),
+    existingSourceUrl: rowSourceUrl(row, target) || null,
+    reason,
+  };
+}
+
+function terminalScrapedStatus(row) {
+  return ['collected', 'duplicate', 'excluded'].includes(String(row?.status || '').toLowerCase()) || row?.is_collected === true;
+}
+
+function duplicateMatch(row, candidate, target) {
+  const date = scrapedRowDate(candidate);
+  if (!date) return null;
+  const existingSource = rowSourceUrl(row, target);
+  const candidateSource = rowSourceUrl(candidate, 'scraped_events');
+
+  if (sameSourceUrl(existingSource, candidateSource) && sameEventDate(row, date)) {
+    return duplicateDescriptor(target, row, '같은 원본 URL과 날짜');
+  }
+
+  if (!sameEventDate(row, date)) return null;
+  const titleScore = duplicateTextSimilarity(rowTitle(row), rowTitle(candidate));
+  if (titleScore >= 0.88 && sameVenue(rowLocation(row), rowLocation(candidate))) {
+    return duplicateDescriptor(target, row, '같은 날짜, 유사 제목, 같은 장소');
+  }
+
+  const normalizedTitle = normalizeDuplicateText(rowTitle(candidate));
+  if (normalizedTitle.length >= 12 && titleScore >= 0.95) {
+    return duplicateDescriptor(target, row, '같은 날짜와 거의 같은 제목');
+  }
+
+  return null;
+}
+
+function findOperationalDuplicateForScrapedItem(candidate, eventRows = []) {
+  for (const event of eventRows) {
+    const match = duplicateMatch(event, candidate, 'events');
+    if (match) return match;
+  }
+  return null;
+}
+
+async function prepareScrapedItem(item) {
   const row = { ...(item || {}) };
   row.id = String(row.id || crypto.randomUUID());
   row.created_at = row.created_at || new Date().toISOString();
@@ -203,7 +341,90 @@ async function upsertScrapedItem(item) {
     row.poster_url = await localizeImageUrl(row.poster_url, 'scraped', row.id);
   }
 
+  return row;
+}
+
+async function upsertScrapedItem(item) {
+  const row = await prepareScrapedItem(item);
   return saveCafe24TableRow('scraped_events', row);
+}
+
+function replaceWorkingScrapedRow(rows, saved) {
+  const id = String(saved?.id || '');
+  if (!id) return rows;
+  const index = rows.findIndex((row) => String(row?.id || '') === id);
+  if (index === -1) return [...rows, saved];
+  const next = [...rows];
+  next[index] = saved;
+  return next;
+}
+
+async function ingestScrapedItems(values) {
+  let scrapedRows = await loadCafe24TableRows('scraped_events');
+  const eventRows = await loadCafe24TableRows('events');
+  const saved = [];
+  const skipped = [];
+
+  for (const value of values) {
+    const row = await prepareScrapedItem(value);
+    const existingSameId = scrapedRows.find((item) => String(item?.id || '') === String(row.id));
+
+    if (String(existingSameId?.status || '').toLowerCase() === 'excluded') {
+      const reason = '이미 제외 처리된 같은 후보';
+      skipped.push({
+        id: row.id,
+        reason,
+      });
+      continue;
+    }
+
+    if (existingSameId && terminalScrapedStatus(existingSameId)) {
+      const reason = existingSameId.status === 'collected' || existingSameId.is_collected === true
+        ? '이미 수집 완료된 같은 후보'
+        : `이미 ${existingSameId.status} 처리된 같은 후보`;
+      skipped.push({
+        id: row.id,
+        reason,
+      });
+      continue;
+    }
+
+    const duplicate = findOperationalDuplicateForScrapedItem(row, eventRows);
+    if (duplicate) {
+      const duplicateRow = {
+        ...row,
+        is_collected: false,
+        status: 'duplicate',
+        structured_data: {
+          ...(row.structured_data || {}),
+          _duplicate: duplicate,
+        },
+      };
+      const savedRow = await saveCafe24TableRow('scraped_events', duplicateRow);
+      saved.push(savedRow);
+      scrapedRows = replaceWorkingScrapedRow(scrapedRows, savedRow);
+      skipped.push({
+        id: savedRow.id,
+        reason: duplicate.reason,
+        duplicate,
+      });
+      continue;
+    }
+
+    const savedRow = await saveCafe24TableRow('scraped_events', row);
+    saved.push(savedRow);
+    scrapedRows = replaceWorkingScrapedRow(scrapedRows, savedRow);
+  }
+
+  const newCount = saved.filter((row) => String(row.status || '').toLowerCase() !== 'duplicate').length;
+  const duplicateCount = saved.length - newCount;
+  return {
+    data: saved,
+    count: newCount,
+    duplicateCount,
+    skipped,
+    total: saved.length,
+  };
 }
 
 export async function cafe24ScrapedEvents(req, res) {
@@ -229,8 +450,14 @@ export async function cafe24ScrapedEvents(req, res) {
   }
 
   if (req.method === 'POST') {
-    await requireAdmin(req);
+    const isIngestionPost = hasValidIngestionToken(req);
+    if (!isIngestionPost) await requireAdmin(req);
     const values = Array.isArray(req.body) ? req.body : [req.body || {}];
+    if (isIngestionPost) {
+      res.json(await ingestScrapedItems(values));
+      return;
+    }
+
     const saved = [];
     for (const value of values) saved.push(await upsertScrapedItem(value));
     res.json(Array.isArray(req.body) ? saved : saved[0]);

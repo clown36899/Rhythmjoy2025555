@@ -19,6 +19,11 @@ import {
 import { uploadEventImage } from './uploads-api.js';
 import { eventStats, recordAnalytics, siteStats } from './stats-api.js';
 import {
+  cafe24IngestorV3Candidates,
+  cafe24IngestorV3RegisterBlocked,
+  cafe24IngestorV3ReviewCandidate,
+} from './ingestor-v3-api.js';
+import {
   callRpc,
   deleteRecords,
   insertRecords,
@@ -144,6 +149,10 @@ app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnosti
 
 app.all('/api/scraped-events', jsonBody, jsonRoute(cafe24ScrapedEvents));
 app.post('/api/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));
+app.all('/api/ingestor-v3/candidates', jsonBody, jsonRoute(cafe24IngestorV3Candidates));
+app.post('/api/ingestor-v3/candidates/:id/review', jsonBody, jsonRoute(cafe24IngestorV3ReviewCandidate));
+app.patch('/api/ingestor-v3/candidates/:id/review', jsonBody, jsonRoute(cafe24IngestorV3ReviewCandidate));
+app.post('/api/ingestor-v3/candidates/:id/register', jsonBody, jsonRoute(cafe24IngestorV3RegisterBlocked));
 app.post('/api/delete-event', jsonBody, jsonRoute(cafe24DeleteEventFunction));
 app.post('/api/delete-social-item', jsonBody, jsonRoute(cafe24DeleteSocialItem));
 app.post('/api/oneday-recruit-logo', jsonBody, jsonRoute(cafe24OneDayRecruitLogo));
