@@ -217,16 +217,24 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       checkVersion();
     };
 
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SW_UPDATED') {
+        checkVersion();
+      }
+    };
+
     const firstCheckTimer = window.setTimeout(checkVersion, FIRST_CHECK_DELAY_MS);
     const interval = window.setInterval(checkVersion, CHECK_INTERVAL_MS);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
 
     return () => {
       window.clearTimeout(firstCheckTimer);
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       clearTimers();
     };
   }, []);

@@ -480,22 +480,33 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                             )}
                         </div>
                     ) : (
-                        <div className="SD-loginPrompt" 
+                        <div className="SD-loginPrompt"
                             onClick={() => { onLoginClick(); onClose(); }}
                             data-analytics-id="login_prompt"
                             data-analytics-type="action"
                             data-analytics-title="로그인이 필요합니다"
                             data-analytics-section="side_drawer"
                         >
-                            <div className="SD-avatar is-placeholder">
-                                <i className="ri-user-add-line"></i>
+                            <div className="SD-loginAvatarWrap">
+                                <div className="SD-avatar is-placeholder">
+                                    <i className="ri-user-add-line"></i>
+                                </div>
+                                <span className="SD-loginSocialCue" aria-hidden="true">
+                                    <i className="ri-links-line"></i>
+                                </span>
                             </div>
-                            <span className="manual-label-wrapper">
-                                <span className="translated-part">Please Login</span>
-                                <span className="fixed-part ko" translate="no">로그인해주세요</span>
-                                <span className="fixed-part en" translate="no">Please Login</span>
+                            <div className="SD-loginCopy">
+                                <span className="SD-loginEyebrow">MY PROFILE</span>
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">Please Login</span>
+                                    <span className="fixed-part ko" translate="no">로그인해주세요</span>
+                                    <span className="fixed-part en" translate="no">Please Login</span>
+                                </span>
+                                <span className="SD-loginHint">프로필 · SNS 연결</span>
+                            </div>
+                            <span className="SD-loginAction" aria-hidden="true">
+                                <i className="ri-arrow-right-up-line"></i>
                             </span>
-                            <i className="ri-arrow-right-s-line"></i>
                         </div>
                     )}
                     <button className="SD-closeBtn" onClick={onClose}>

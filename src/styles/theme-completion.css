@@ -319,8 +319,8 @@ html[data-theme="light"] .SideDrawer :is(
   .SD-adminGridItem,
   .SD-submenu,
   .SD-userProfile,
-  .SD-loginPrompt,
   .SD-profileEditBtn,
+  .SD-loginAction,
   .SD-profileTags span,
   .SD-profileLinks a,
   .SD-avatar.is-placeholder
@@ -346,6 +346,18 @@ html[data-theme="light"] .SideDrawer :is(
 html[data-theme="light"] .SideDrawer .SD-userProfile {
   background: transparent;
   border-color: transparent;
+}
+
+html[data-theme="light"] .SideDrawer .SD-loginPrompt {
+  background: transparent;
+  border-color: transparent;
+}
+
+html[data-theme="light"] .SideDrawer .SD-loginSocialCue {
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.92), rgba(124, 58, 237, 0.82));
+  border-color: rgba(255, 255, 255, 0.62);
+  color: #ffffff;
 }
 
 html[data-theme="light"] .SideDrawer .SD-closeBtn {

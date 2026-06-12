@@ -808,16 +808,79 @@
 
 .SideDrawer .SD-loginPrompt {
     flex: 1;
-    min-height: 78px;
-    padding: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.045);
+    min-height: 58px;
+    gap: 11px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    position: relative;
 }
 
-.SideDrawer .SD-loginPrompt > i:last-child {
-    margin-left: auto;
+.SideDrawer .SD-loginAvatarWrap {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.SideDrawer .SD-loginSocialCue {
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9px;
+    background:
+        linear-gradient(135deg, rgba(96, 165, 250, 0.92), rgba(167, 139, 250, 0.82));
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+}
+
+.SideDrawer .SD-loginSocialCue i {
+    font-size: 12px;
+}
+
+.SideDrawer .SD-loginCopy {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.SideDrawer .SD-loginEyebrow {
     color: var(--text-tertiary);
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: 0;
+    line-height: 1;
+}
+
+.SideDrawer .SD-loginHint {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.SideDrawer .SD-loginAction {
+    margin-left: auto;
+    display: grid;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.065);
+    color: var(--text-secondary);
+}
+
+.SideDrawer .SD-loginAction i {
+    font-size: 16px;
 }
 
 .SideDrawer .SD-avatar {
