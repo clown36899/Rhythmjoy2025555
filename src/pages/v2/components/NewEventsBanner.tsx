@@ -4,6 +4,7 @@ import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { useModalContext } from '../../../contexts/ModalContext';
 import type { Event } from '../utils/eventListUtils';
 import { formatEventDate } from '../../../utils/dateUtils';
+import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
 import './NewEventsBanner.css';
 
 type EdgeTone = 'dark' | 'light';
@@ -568,9 +569,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         }
     }, [goToNext, goToPrevious, suppressNextClick, triggerManualPause]);
 
-    if (events.length === 0) return null;
-
     const currentEvent = events[currentIndex];
+
+    useEffect(() => {
+        if (!currentEvent) return;
+        requestGoogleTranslateRefresh();
+    }, [currentEvent]);
+
+    if (events.length === 0) return null;
 
     // PWA 재개 시 refetch 중 currentEvent가 undefined일 수 있음
     if (!currentEvent) return null;

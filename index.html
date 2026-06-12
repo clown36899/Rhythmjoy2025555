@@ -310,6 +310,10 @@
         return getGoogtransCookie() !== '';
       }
 
+      function isEnglishTranslated() {
+        return hasTranslatedSignal() && getGoogtransCookie().indexOf('/en') > -1;
+      }
+
       function clearGoogtransCookie() {
         var host = window.location.hostname;
         document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
@@ -627,6 +631,38 @@
           });
       }
 
+      function refreshDynamicTranslatedContent() {
+        if (isBillboardPath()) return Promise.resolve({ ok: false, reason: 'blocked-path' });
+        if (!isEnglishTranslated()) return Promise.resolve({ ok: false, reason: 'not-translated' });
+
+        if (state.changePromise) {
+          if (state.changeTarget !== 'en') {
+            return state.changePromise;
+          }
+
+          return state.changePromise.then(refreshDynamicTranslatedContent);
+        }
+
+        state.changeTarget = 'en';
+        state.changePromise = loadGoogleTranslate()
+          .then(waitForTranslateSelect)
+          .then(function (select) {
+            setGoogtransCookie('en');
+            dispatchTranslateSelectChange(select, 'en');
+            return waitForMillis(700);
+          })
+          .then(function () {
+            emit('languageChanged', { lang: 'en', refreshed: true });
+            return { ok: true, lang: 'en', refreshed: true };
+          })
+          .finally(function () {
+            state.changePromise = null;
+            state.changeTarget = '';
+          });
+
+        return state.changePromise;
+      }
+
       window.googleTranslateElementInit = initializeGoogleTranslate;
 
       window.googleTranslateChangeLanguage = function (lang) {
@@ -653,6 +689,7 @@
       };
 
       window.changeLanguage = window.googleTranslateChangeLanguage;
+      window.googleTranslateRefreshDynamicContent = refreshDynamicTranslatedContent;
     })();
   </script>
 

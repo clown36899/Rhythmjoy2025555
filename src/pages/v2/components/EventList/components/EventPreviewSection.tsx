@@ -24,6 +24,7 @@ import {
 } from "../../../../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
+import { requestGoogleTranslateRefresh } from "../../../../../utils/googleTranslateRefresh";
 
 
 interface EventPreviewSectionProps {
@@ -223,6 +224,11 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         .filter((event) => event.id !== featuredEvent?.id)
         .slice(0, 4);
     const shouldShowScopeStrip = visibleDanceScopeOptions.length > 1;
+
+    useEffect(() => {
+        if (!featuredEvent) return;
+        requestGoogleTranslateRefresh();
+    }, [featuredEvent]);
 
     useEffect(() => {
         if (!shouldShowScopeStrip || typeof document === "undefined") return;
