@@ -2,18 +2,25 @@
 
 Swing Enjoy Cafe24 deployment is a separate production target from the existing Netlify/Supabase site.
 
+The canonical Cafe24 server and project separation map is now maintained in:
+
+- `deploy/cafe24/production-target.env`
+- `docs/cafe24-production-inventory.md`
+
 ## Principle
 
 - The existing Netlify/Supabase site remains untouched during migration.
 - Supabase is used only as a read-only import source until cutover.
 - Cafe24 owns the new application database: `swingenjoy_app`.
 - Cafe24 owns event CRUD, Kakao login session storage, analytics logs, and uploaded event files.
-- The RHythmjoy calendar project and database are separate and must not be modified by this app.
+- The Rhythmjoy calendar project is on the same Cafe24 VPS, but its app root, Apache vhost, and services are separate and must not be modified by this app.
 
 ## Runtime
 
 - App directory: `/opt/swingenjoy`
 - Node service: `swingenjoy`
+- Shared VPS hostname: `clown313python.cafe24.com`
+- Shared VPS IP: `1.234.23.64`
 - Web entry: Apache proxy to the Node app
 - Event API: `/api/events`
 - Auth API: `/api/auth/me`, `/api/kakao-login`, `/api/auth/logout`
