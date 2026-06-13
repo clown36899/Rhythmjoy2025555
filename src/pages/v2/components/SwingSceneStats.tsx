@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import LocalLoading from '../../../components/LocalLoading';
 import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';
@@ -66,7 +66,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             // 2. category != 'board' (and not 'notice', 'notice_popup' in some versions)
             // 3. Match by: (start_date OR date) OR (any date inside event_dates)
 
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('events')
                 .select('id, title, category, genre, start_date, date, location, image_thumbnail, event_dates')
                 .not('category', 'in', '("board", "notice", "notice_popup")')
@@ -102,7 +102,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     useEffect(() => {
         let active = true;
         const checkAdmin = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (active && user?.email === import.meta.env.VITE_ADMIN_EMAIL) setIsAdmin(true);
         };
         checkAdmin();

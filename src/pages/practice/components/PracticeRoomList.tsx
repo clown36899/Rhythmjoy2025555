@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 import { useAuth } from "../../../contexts/AuthContext";
 import { logEvent } from "../../../lib/analytics";
 import { getOptimizedImageUrl } from "../../../utils/getEventThumbnail";
@@ -74,7 +74,7 @@ export default function PracticeRoomList({
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('practice_room_favorites')
         .select('practice_room_id')
         .eq('user_id', user.id);
@@ -124,7 +124,7 @@ export default function PracticeRoomList({
 
     if (isFav) {
       // Remove
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('practice_room_favorites')
         .delete()
         .eq('user_id', user.id)
@@ -141,7 +141,7 @@ export default function PracticeRoomList({
       }
     } else {
       // Add
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('practice_room_favorites')
         .insert({ user_id: user.id, practice_room_id: roomId });
 
@@ -160,7 +160,7 @@ export default function PracticeRoomList({
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from("venues")
         .select("*")
         .eq("category", activeCategory)

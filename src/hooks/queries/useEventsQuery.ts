@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { getLocalDateString } from '../../pages/v2/utils/eventListUtils';
 import type { Event } from '../../pages/v2/utils/eventListUtils';
@@ -17,7 +17,7 @@ export const useEventsQuery = () => {
             }
 
             // Fetch only from events table (now containing both events and social schedules)
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('events')
                 .select('*, board_users(nickname, profile_image)')
                 .or(`date.gte.${cutoffDate},end_date.gte.${cutoffDate},start_date.gte.${cutoffDate}`);

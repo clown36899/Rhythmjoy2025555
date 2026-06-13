@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 
 export function useTotalUserCount() {
     const [count, setCount] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchCount = async () => {
-            const { count, error } = await supabase
+            const { count, error } = await cafe24
                 .from('board_users') // [수정] users -> board_users (실제 유저 테이블)
                 .select('*', { count: 'exact', head: true });
 

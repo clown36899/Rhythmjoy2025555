@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import VenueRegistrationModal from '../practice/components/VenueRegistrationModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
@@ -35,7 +35,7 @@ export default function PlacesPage() {
     const fetchPlaces = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('venues')
                 .select('*')
                 .order('name', { ascending: true });

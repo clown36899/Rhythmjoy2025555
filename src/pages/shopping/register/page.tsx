@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import SimpleHeader from '../../../components/SimpleHeader';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -161,7 +161,7 @@ export default function ShoppingRegisterPage() {
     const filePath = `${folder}/${fileName}`;
 
     // Upload the medium-size WebP image (650px, quality 0.8) for better compression
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await cafe24.storage
       .from('images')
       .upload(filePath, resizedImages.medium);
 
@@ -169,7 +169,7 @@ export default function ShoppingRegisterPage() {
       throw uploadError;
     }
 
-    const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+    const { data } = cafe24.storage.from('images').getPublicUrl(filePath);
     return data.publicUrl;
   };
 
@@ -201,7 +201,7 @@ export default function ShoppingRegisterPage() {
       }
 
       // 1. Insert into shops table
-      const { data: shopData, error: shopError } = await supabase
+      const { data: shopData, error: shopError } = await cafe24
         .from('shops')
         .insert({
           name: shopName,
@@ -218,7 +218,7 @@ export default function ShoppingRegisterPage() {
 
       // 2. Insert into featured_items table (only if product info provided)
       if (itemName && itemImageUrl) {
-        const { error: itemError } = await supabase
+        const { error: itemError } = await cafe24
           .from('featured_items')
           .insert({
             shop_id: shopData.id,

@@ -1,6 +1,6 @@
 import { useState, useEffect, memo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { fetchCafe24EventById, fetchCafe24Events, isCafe24EventsBackendEnabled } from '../lib/cafe24EventsApi';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
 import LocalLoading from './LocalLoading';
@@ -251,7 +251,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             if (activeScopes.has('events')) {
                 const buildEventQuery = (futureOnly: boolean, ascending: boolean, limit: number) => {
-                    let q = supabase
+                    let q = cafe24
                         .from('events')
                         .select('id, title, description, image_thumbnail, start_date, date, end_date, category')
                         .or(buildTextSearchFilter(['title', 'description'], tokens));
@@ -299,7 +299,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             if (activeScopes.has('venues') && !isCafe24EventsBackendEnabled) {
                 promises.push(
-                    supabase.from('venues')
+                    cafe24.from('venues')
                         .select('id, name, description, images, address, category')
                         .or(buildTextSearchFilter(['name', 'description', 'address'], tokens))
                         .limit(10)
@@ -311,7 +311,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             if (activeScopes.has('shopping') && !isCafe24EventsBackendEnabled) {
                 promises.push(
-                    supabase.from('shops')
+                    cafe24.from('shops')
                         .select('id, name, description, logo_url')
                         .or(buildTextSearchFilter(['name', 'description'], tokens))
                         .limit(10)
@@ -323,7 +323,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
             if (activeScopes.has('board') && !isCafe24EventsBackendEnabled) {
                 promises.push(
-                    supabase.from('board_posts')
+                    cafe24.from('board_posts')
                         .select('id, title, content, author_nickname')
                         .or(buildTextSearchFilter(['title', 'content', 'author_nickname'], tokens))
                         .limit(10)
@@ -389,7 +389,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 case 'event': {
                     const data = isCafe24EventsBackendEnabled
                         ? await fetchCafe24EventById(result.id)
-                        : (await supabase.from('events').select('*').eq('id', result.id).maybeSingle()).data;
+                        : (await cafe24.from('events').select('*').eq('id', result.id).maybeSingle()).data;
                     if (data) { setSelectedEvent(data as Event); setShowEventDetail(true); }
                     break;
                 }
@@ -398,7 +398,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     break;
                 }
                 case 'shopping': {
-                    const { data } = await supabase.from('shops').select('*').eq('id', result.id).maybeSingle();
+                    const { data } = await cafe24.from('shops').select('*').eq('id', result.id).maybeSingle();
                     if (data) { setSelectedShop(data as Shop); setShowShopDetail(true); }
                     break;
                 }

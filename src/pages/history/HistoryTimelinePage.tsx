@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useBlocker, useOutletContext } from 'react-router-dom';
 import { type ReactFlowInstance } from 'reactflow';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGlobalPlayer } from '../../contexts/GlobalPlayerContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
@@ -200,7 +200,7 @@ function HistoryTimelinePage() {
         try {
             (window as any).logDebug?.('📥 fetchResourceData START');
             // 1. Categories (Folders) - These are still in learning_categories according to migrations
-            const { data: catData, error: catError } = await supabase
+            const { data: catData, error: catError } = await cafe24
                 .from('learning_categories')
                 .select('*')
                 .order('order_index', { ascending: true });
@@ -210,7 +210,7 @@ function HistoryTimelinePage() {
             if (catError) {
                 console.warn('⚠️ [HistoryTimelinePage] learning_categories failed, trying learning_resources fallback:', catError);
                 (window as any).logDebug?.('⚠️ learning_categories failed, fallback...');
-                const { data: resCatData, error: resCatError } = await supabase
+                const { data: resCatData, error: resCatError } = await cafe24
                     .from('learning_resources')
                     .select('*')
                     .eq('type', 'general')
@@ -220,7 +220,7 @@ function HistoryTimelinePage() {
             }
 
             // 2. Playlists & Videos & Documents & Persons (All from learning_resources)
-            const { data: allResources, error: resError } = await supabase
+            const { data: allResources, error: resError } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .order('order_index', { ascending: true }) // 🔥 Modified: Use order_index for ordering
@@ -361,9 +361,9 @@ function HistoryTimelinePage() {
     const handleCreateCategory = async (name: string) => {
         if (!isAdmin) return;
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) return;
-            const { error } = await supabase.from('learning_categories').insert({
+            const { error } = await cafe24.from('learning_categories').insert({
                 name,
                 parent_id: null,
                 user_id: user.id
@@ -413,7 +413,7 @@ function HistoryTimelinePage() {
 
             // 🚀 Helper to try delete
             const tryDelete = async (table: string) => {
-                const { data, error } = await supabase.from(table).delete().eq('id', id).select();
+                const { data, error } = await cafe24.from(table).delete().eq('id', id).select();
                 if (error) {
                     // Critical Foreign Key error
                     if (error.code === '23503') throw new Error(`하위 요소(파일 등)가 존재하여 삭제할 수 없습니다. 내용을 먼저 비워주세요.\n(Table: ${table})`);
@@ -487,23 +487,23 @@ function HistoryTimelinePage() {
         if (!isAdmin) return;
         try {
             if (type === 'general') {
-                const { data: updatedCategories, error: categoryError } = await supabase
+                const { data: updatedCategories, error: categoryError } = await cafe24
                     .from('learning_categories')
                     .update({ name: newName })
                     .eq('id', id)
                     .select('id');
                 if (categoryError) throw categoryError;
                 if (!updatedCategories || updatedCategories.length === 0) {
-                    const { error: resourceError } = await supabase
+                    const { error: resourceError } = await cafe24
                         .from('learning_resources')
                         .update({ title: newName })
                         .eq('id', id);
                     if (resourceError) throw resourceError;
                 }
             } else if (type === 'document') {
-                await supabase.from('learning_documents').update({ title: newName }).eq('id', id);
+                await cafe24.from('learning_documents').update({ title: newName }).eq('id', id);
             } else {
-                await supabase.from('learning_resources').update({ title: newName }).eq('id', id);
+                await cafe24.from('learning_resources').update({ title: newName }).eq('id', id);
             }
             setDrawerRefreshKey(k => k + 1);
         } catch (err) {
@@ -519,26 +519,26 @@ function HistoryTimelinePage() {
 
             if (type === 'CATEGORY' || type === 'folder' || type === 'general') {
 
-                const { data: updatedCategories, error: categoryError } = await supabase
+                const { data: updatedCategories, error: categoryError } = await cafe24
                     .from('learning_categories')
                     .update({ parent_id: targetCategoryId, is_unclassified: isUnclassified })
                     .eq('id', id)
                     .select('id');
                 if (categoryError) throw categoryError;
                 if (!updatedCategories || updatedCategories.length === 0) {
-                    const { error: resourceError } = await supabase
+                    const { error: resourceError } = await cafe24
                         .from('learning_resources')
                         .update({ category_id: targetCategoryId, is_unclassified: isUnclassified })
                         .eq('id', id);
                     if (resourceError) throw resourceError;
                 }
             } else if (type === 'document') {
-                await supabase.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+                await cafe24.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
             } else {
                 // Default to resources (playlist, video, person, etc.)
                 // Note: If type is undefined, we might risk missing, but CategoryManager should provide it now.
                 // Fallback: Try learning_resources as it covers most types.
-                await supabase.from('learning_resources').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+                await cafe24.from('learning_resources').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
             }
 
             setDrawerRefreshKey(k => k + 1);
@@ -641,7 +641,7 @@ function HistoryTimelinePage() {
                         payload.category_id = null; // Ensure it's Root
                     }
 
-                    updates.push(supabase.from(table).update(payload).eq('id', item.id));
+                    updates.push(cafe24.from(table).update(payload).eq('id', item.id));
                 });
 
                 await Promise.all(updates);
@@ -694,7 +694,7 @@ function HistoryTimelinePage() {
                         payload.category_id = parentId; // Ensure correct parent
                     }
 
-                    updates.push(supabase.from(table).update(payload).eq('id', item.id));
+                    updates.push(cafe24.from(table).update(payload).eq('id', item.id));
                 });
 
                 await Promise.all(updates);
@@ -821,7 +821,7 @@ function HistoryTimelinePage() {
 
         try {
             if (['folder', 'category', 'canvas', 'general'].includes(normalizedType)) {
-                const { data: categoryData, error: categoryError } = await supabase
+                const { data: categoryData, error: categoryError } = await cafe24
                     .from('learning_categories')
                     .select('*')
                     .eq('id', id)
@@ -834,7 +834,7 @@ function HistoryTimelinePage() {
                 }
             }
 
-            const { data: resourceData, error: resourceError } = await supabase
+            const { data: resourceData, error: resourceError } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .eq('id', id)
@@ -853,7 +853,7 @@ function HistoryTimelinePage() {
             }
 
             if (normalizedType === 'document' || normalizedType === 'person') {
-                const { data: legacyDocument, error: legacyError } = await supabase
+                const { data: legacyDocument, error: legacyError } = await cafe24
                     .from('learning_documents')
                     .select('*')
                     .eq('id', id)
@@ -907,7 +907,7 @@ function HistoryTimelinePage() {
 
             // Check History Nodes
             // Try exact first
-            let { data: nodeData } = await supabase
+            let { data: nodeData } = await cafe24
                 .from('history_nodes')
                 .select('*')
                 .eq('title', keyword)
@@ -915,7 +915,7 @@ function HistoryTimelinePage() {
 
             if (!nodeData) {
                 // Try ilike if exact failed
-                const { data: fuzzyData } = await supabase
+                const { data: fuzzyData } = await cafe24
                     .from('history_nodes')
                     .select('*')
                     .ilike('title', keyword)
@@ -940,14 +940,14 @@ function HistoryTimelinePage() {
 
 
             // Check Learning Resources
-            let { data: resourceData } = await supabase
+            let { data: resourceData } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .eq('title', keyword)
                 .maybeSingle();
 
             if (!resourceData) {
-                const { data: fuzzyRes } = await supabase
+                const { data: fuzzyRes } = await cafe24
                     .from('learning_resources')
                     .select('*')
                     .ilike('title', keyword)
@@ -1094,7 +1094,7 @@ function HistoryTimelinePage() {
                 try {
                     const isMobile = window.innerWidth < 768;
                     const key = isMobile ? 'timeline_view_mobile' : 'timeline_view_desktop';
-                    const { data } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
+                    const { data } = await cafe24.from('app_settings').select('value').eq('key', key).maybeSingle();
 
                     if (data?.value) {
                         rfInstance.setViewport(data.value, { duration: 0 });
@@ -1135,7 +1135,7 @@ function HistoryTimelinePage() {
 
         try {
 
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('app_settings')
                 .upsert({
                     key,

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './MainV2TestPage.css';
 import '../../pages/calendar/styles/FullEventCalendar.css';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { getLocalDateString, getKSTDay, getDayName } from '../v2/utils/eventListUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEventModal } from '../../hooks/useEventModal';
@@ -158,14 +158,14 @@ const MainV2TestPage: React.FC = () => {
                 const endDateStr = getLocalDateString(endRange);
 
                 // 1. Fetch Events
-                const eventsPromise = supabase
+                const eventsPromise = cafe24
                     .from("events")
                     .select("*")
                     .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)
                     .order("date", { ascending: true });
 
                 // 2. Fetch Social Schedules (from events table with group_id)
-                const socialPromise = supabase
+                const socialPromise = cafe24
                     .from("events")
                     .select("*")
                     .not("group_id", "is", null)

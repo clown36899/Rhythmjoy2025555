@@ -76,7 +76,7 @@ Preferred communication style: Simple, everyday language.
 The frontend is built with React 19.1.0, TypeScript, and Vite 7.0.3, utilizing React Router DOM v7 for navigation. Pure Semantic CSS with @scope and Design Tokens is used for responsive styling. The application employs React hooks for state management, custom window events for inter-component communication, and i18next with react-i18next for internationalization, primarily in Korean. Key components include `EventCalendar`, `EventList`, and modals for CRUD operations using React Portals.
 
 ### Authentication & Authorization
-The platform uses Supabase Auth for a unified super admin authentication system, determined by the `VITE_ADMIN_EMAIL` environment variable. This grants full CRUD access. A two-tier admin system supports Super Admins and Billboard Sub-Admins. Supabase Row-Level Security (RLS) enforces database-level access control, and the frontend conditionally renders UI based on an `isAdmin` flag. All users have public read access to event data. Session management includes comprehensive logout procedures (Kakao SDK, Supabase, localStorage/sessionStorage, Service Worker cache) followed by a hard page reload to ensure complete state reset, particularly for mobile devices.
+The platform uses the Cafe24 auth/session layer for unified super admin authentication, determined by the `VITE_ADMIN_EMAIL` environment variable. This grants full CRUD access. A two-tier admin system supports Super Admins and Billboard Sub-Admins. Data access control is enforced by the current Cafe24 backend APIs and the frontend conditionally renders UI based on an `isAdmin` flag. All users have public read access to event data. Session management includes comprehensive logout procedures (Kakao SDK, Cafe24 session, localStorage/sessionStorage, Service Worker cache) followed by a hard page reload to ensure complete state reset, particularly for mobile devices.
 
 ### Data Management
 Events support multi-day occurrences and are categorized. Practice rooms include detailed information. Private registrant details are collected for admin view only. A public `contact` field in events supports auto-detection of contact types. Admins can configure category-specific default thumbnails via `billboard_settings`.
@@ -88,12 +88,12 @@ Event discovery features date-based filtering via the calendar, category filteri
 The calendar offers month/year navigation, visualizes multi-day events, supports date range selection, and features responsive layouts with touch swipe navigation. Mobile optimization includes a 150ms delay for double-tap event registration modal opening to prevent accidental input focus.
 
 ### Billboard & Auto-Scroll
-The billboard system provides a fullscreen slideshow with random/sequential playback, auto-opening on inactivity, and smart cross-month navigation. Event clicks on the billboard trigger automatic calendar navigation and auto-scrolling to the event card. Billboard settings (auto-slide interval, play order, date range filters) are persistent in Supabase.
+The billboard system provides a fullscreen slideshow with random/sequential playback, auto-opening on inactivity, and smart cross-month navigation. Event clicks on the billboard trigger automatic calendar navigation and auto-scrolling to the event card. Billboard settings (auto-slide interval, play order, date range filters) are persisted through the Cafe24 backend.
 
 This system supports multi-user billboards, allowing Super Admins to create dedicated billboard displays for sub-admins via unique URLs (`/billboard/:userId`). Sub-admins can customize event filtering, auto-slide intervals, and play order. It's optimized for portrait displays with CSS rotation support.
 
 **Performance & Memory Optimizations (Updated: 2025-11-14)**:
-- **Realtime Updates**: Full page reloads for Supabase changes ensure stability; queued until next slide transition when events exist
+- **Realtime Updates**: Full page reloads for backend change events ensure stability; queued until next slide transition when events exist
 - **React.memo Caching**: `YouTubePlayer` components memoized by `videoId` to preserve players across slides
 - **Ref-Based Architecture**: Timer callbacks use refs to prevent stale closure values
 - **Smart Player Reuse**: YouTube Player objects retained in memory for instant reuse, eliminating 8-10s load times
@@ -104,7 +104,7 @@ This system supports multi-user billboards, allowing Super Admins to create dedi
 
 **Production Build (Updated: 2025-11-14)**:
 - Build command: `npm run build` (outputs to `dist/` folder)
-- Optimizations: No sourcemaps, esbuild minification, manual chunking (vendor/supabase/charts)
+- Optimizations: No sourcemaps, esbuild minification, manual chunking for vendor and charts bundles
 - Billboard logs: Disabled in production (`ENABLE_BILLBOARD_LOGS = false`)
 - Version tracking: Automatic `version.json` generation with build timestamp
 
@@ -117,7 +117,7 @@ An independent system (`/social`) manages social venue schedules, integrating Ka
 ## External Dependencies
 
 ### Backend Services
-- **Supabase**: PostgreSQL database, Supabase Storage (image uploads), and Supabase Auth (super admin authentication).
+- **Cafe24**: Application database, local uploads, auth/session APIs, and ingestion endpoints.
 
 ### Payment Integration
 - **Stripe**: Integrated for potential future payment features.

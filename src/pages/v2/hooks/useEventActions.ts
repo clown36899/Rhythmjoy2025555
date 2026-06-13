@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from "react";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 import { isCafe24EventsBackendEnabled } from "../../../lib/cafe24EventsApi";
 import type { Event as AppEvent } from "../../../lib/cafe24Client";
 import type { User } from "../../../lib/cafe24ClientTypes";
@@ -144,7 +144,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             }
 
             eventActionsDebug('[useEventActions > deleteEvent] Fetching session...');
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            const { data: { session }, error: sessionError } = await cafe24.auth.getSession();
             if (sessionError) console.error('[useEventActions > deleteEvent] Session Error:', sessionError);
             const token = session?.access_token;
             setDeleteProgress(30);

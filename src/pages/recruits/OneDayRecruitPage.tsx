@@ -6,7 +6,7 @@ import {
   type SwingOneDayRecruitLogo,
   type SwingOneDayRecruitLink,
 } from '../../data/swingOneDayRecruitLinks';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import {
   KOREA_CENTER,
   ONE_DAY_REGION_OPTIONS,
@@ -336,7 +336,7 @@ function updateLinkList(
 }
 
 async function requestLogoMutation(payload: Record<string, unknown>) {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData } = await cafe24.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) {
     throw new Error('로그인 후 수정할 수 있습니다.');
@@ -492,7 +492,7 @@ export default function OneDayRecruitPage() {
   useEffect(() => {
     let cancelled = false;
     setIsLoadingLinks(true);
-    supabase
+    cafe24
       .from(ONE_DAY_LINKS_TABLE)
       .select(ONE_DAY_LINK_SELECT)
       .eq('is_active', true)
@@ -727,7 +727,7 @@ export default function OneDayRecruitPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from(ONE_DAY_LINKS_TABLE)
         .update(nextRow)
         .eq('id', draft.id)

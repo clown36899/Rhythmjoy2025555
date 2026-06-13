@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import {
     DEFAULT_HOME_SECTION_VISIBILITY,
     type HomeSectionVisibility,
@@ -33,7 +33,7 @@ export default function HomeSectionSettingsModal({ isOpen, onClose }: Props) {
     const load = async () => {
         setIsLoading(true);
         try {
-            const { data } = await supabase
+            const { data } = await cafe24
                 .from('app_settings')
                 .select('value')
                 .eq('key', 'home_section_visibility')
@@ -56,7 +56,7 @@ export default function HomeSectionSettingsModal({ isOpen, onClose }: Props) {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('app_settings')
                 .upsert({
                     key: 'home_section_visibility',

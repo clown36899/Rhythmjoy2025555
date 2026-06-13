@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import type { Event as AppEvent } from '../lib/cafe24Client';
 import { queryClient } from '../lib/queryClient';
 import { addClientLog } from '../utils/clientLogBuffer';
@@ -123,7 +123,7 @@ export function useEventModal(): UseEventModalReturn {
                 hasPassword: Boolean(password),
             });
 
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await cafe24.auth.getSession();
             const token = session?.access_token;
             deleteDiagnostic('[EventDelete:CalendarUI] session state', {
                 hasToken: Boolean(token),

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { supabase, validateAndRecoverSession } from '../lib/cafe24Client';
+import { cafe24, validateAndRecoverSession } from '../lib/cafe24Client';
 import type { User, Session, AuthChangeEvent } from '../lib/cafe24ClientTypes';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 import { authLogger } from '../utils/authLogger';
@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
 
-      const { data: existingUser } = await supabase
+      const { data: existingUser } = await cafe24
         .from('board_users')
         .select('user_id, email, status, nickname, provider, profile_image, kakao_id, gender')
         .eq('user_id', userObj.id)
@@ -244,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (hasChanges || isWithdrawn) {
           updateData.updated_at = new Date().toISOString();
-          const { error: updateError } = await supabase
+          const { error: updateError } = await cafe24
             .from('board_users')
             .update(updateData)
             .eq('user_id', userObj.id);
@@ -266,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clean undefined
         Object.keys(insertData).forEach(key => (insertData as any)[key] === undefined && delete (insertData as any)[key]);
 
-        const { error: insertError } = await supabase
+        const { error: insertError } = await cafe24
           .from('board_users')
           .insert([insertData]);
 
@@ -342,7 +342,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       authLogger.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
       // 1. 로컬 세션 제거
-      await supabase.auth.signOut({ scope: 'local' });
+      await cafe24.auth.signOut({ scope: 'local' });
     } catch (e) {
       console.warn('[AuthContext] SignOut during cleanup failed (expected):', e);
     }
@@ -394,7 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 3순위: 최적화된 RPC 체크 (1초 타임아웃으로 단축)
     try {
       const adminCheckWithTimeout = Promise.race([
-        supabase.rpc('get_user_admin_status'),
+        cafe24.rpc('get_user_admin_status'),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Admin check timeout')), 5000) // 1초 -> 5초
         )
@@ -447,7 +447,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // console.log('[AuthContext.refreshUserProfile] DB에서 프로필 조회 시작');
       // 🔥 프로필 로딩에 3초 타임아웃 추가 (DB 지연 시 무한 로딩 방지)
       const fetchProfileWithTimeout = Promise.race([
-        supabase
+        cafe24
           .from('board_users')
           .select('nickname, profile_image, headline, profile_badge, profile_theme, bio, region, dance_genres, social_links, primary_social')
           .eq('user_id', user.id)
@@ -646,7 +646,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthProcessing(false);
       localStorage.removeItem('isLoggingOut');
 
-      supabase.auth.signOut({ scope: 'local' }).then(() => {
+      cafe24.auth.signOut({ scope: 'local' }).then(() => {
         if (isMounted) {
           setIsLoggingOut(false);
           setLoading(false);
@@ -699,7 +699,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authLogger.log('[AuthContext] 🔍 [1단계] 로컬 세션 즉시 확인...');
       try {
         // 1단계: 로컬 getSession() - 네트워크 없이 즉시 반환
-        const { data: { session: localSession } } = await supabase.auth.getSession();
+        const { data: { session: localSession } } = await cafe24.auth.getSession();
         if (!isMounted) return;
 
         if (localSession) {
@@ -806,7 +806,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+    } = cafe24.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       const currentUser = session?.user ?? null;
 
       authLogger.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
@@ -933,7 +933,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 2. 세션 로그아웃
       logToStorage('[AuthContext.signOut] 2단계: 세션 로그아웃 시작');
-      const { error } = await supabase.auth.signOut();
+      const { error } = await cafe24.auth.signOut();
       if (error) {
         // "Auth session missing" 에러는 이미 로그아웃된 상태이므로 무시
         if (error.message === 'Auth session missing!') {
@@ -1133,7 +1133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       //   alert(`Login Redirect URL:\n${authOptions.options.redirectTo}`);
       // }
 
-      const { error } = await supabase.auth.signInWithOAuth(authOptions);
+      const { error } = await cafe24.auth.signInWithOAuth(authOptions);
 
 
 

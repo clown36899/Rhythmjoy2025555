@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import {
   KOREA_CENTER,
   ONE_DAY_REGION_OPTIONS,
@@ -173,7 +173,7 @@ async function fileToBase64(file: File) {
 }
 
 async function requestLogoUpload(linkId: string, file: File) {
-  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: sessionData } = await cafe24.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error('로그인 후 로고를 업로드할 수 있습니다.');
 
@@ -277,7 +277,7 @@ export default function OneDayRecruitRegistrationModal({
       }
 
       const linkId = createLinkId();
-      const { data: lastRow } = await supabase
+      const { data: lastRow } = await cafe24
         .from(ONE_DAY_LINKS_TABLE)
         .select('sort_order')
         .eq('is_active', true)
@@ -299,7 +299,7 @@ export default function OneDayRecruitRegistrationModal({
         is_active: true,
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from(ONE_DAY_LINKS_TABLE)
         .insert(insertRow)
         .select(ONE_DAY_LINK_SELECT)

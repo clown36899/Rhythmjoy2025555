@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo, useCallback } from "react";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 import type { Event } from "../../../lib/cafe24Client";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import "../../../styles/components/EventCalendar.css";
@@ -198,7 +198,7 @@ export default memo(function EventCalendar({
       // Fetch all necessary columns for complete event detail display
       const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,organizer_phone,contact,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,password,created_at,updated_at,show_title_on_billboard,genre,storage_path";
 
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from("events")
         .select(columns)
         .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)

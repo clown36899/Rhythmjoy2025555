@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../../lib/cafe24EventsApi';
 
 export const useHistoricalGenres = () => {
@@ -16,7 +16,7 @@ export const useHistoricalGenres = () => {
                 return;
             }
 
-            const { data, error } = await supabase.from('events').select('genre');
+            const { data, error } = await cafe24.from('events').select('genre');
             if (!error && data) {
                 const atomicGenres = data
                     .map(d => d.genre)

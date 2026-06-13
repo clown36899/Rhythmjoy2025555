@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import '../styles/components/NoticeTicker.css';
 
 interface BoardPostSimple {
@@ -55,7 +55,7 @@ export default function NoticeTicker() {
         try {
             // [STEP 1] '전광판' 말머리 정보 조회 (ID, 색상 등)
             // 익명 사용자도 board_prefixes 접근은 가능함.
-            const { data: prefixData, error: prefixError } = await supabase
+            const { data: prefixData, error: prefixError } = await cafe24
                 .from('board_prefixes')
                 .select('id, name, color')
                 .eq('name', '전광판')
@@ -72,7 +72,7 @@ export default function NoticeTicker() {
 
             // [STEP 2] 해당 prefix_id를 가진 게시글 조회
             // !inner 조인을 제거하고 prefix_id 컬럼으로 직접 필터링하여 RLS/권한 문제 우회
-            const { data: postsData, error: postsError } = await supabase
+            const { data: postsData, error: postsError } = await cafe24
                 .from('board_posts')
                 .select('id, title, content') // prefix 정보는 이미 알고 있음
                 .eq('category', 'free')
@@ -104,7 +104,7 @@ export default function NoticeTicker() {
 
     // 실시간 구독 설정
     useEffect(() => {
-        const channel = supabase
+        const channel = cafe24
             .channel('notice-ticker-realtime')
             .on(
                 'postgres_changes',
@@ -126,7 +126,7 @@ export default function NoticeTicker() {
                         const postPrefixId = newRecord.prefix_id;
 
                         // 2. '전광판' 말머리 ID 조회 (캐싱되어 있지 않으므로 다시 조회)
-                        const { data: prefixData } = await supabase
+                        const { data: prefixData } = await cafe24
                             .from('board_prefixes')
                             .select('id, name, color')
                             .eq('name', '전광판')
@@ -135,7 +135,7 @@ export default function NoticeTicker() {
                         if (!prefixData || prefixData.id !== postPrefixId) return;
 
                         // 전광판 글임이 확인됨. 상세 데이터 조회 (내용 등)
-                        const { data, error } = await supabase
+                        const { data, error } = await cafe24
                             .from('board_posts')
                             .select('id, title, content')
                             .eq('id', newRecord.id)
@@ -154,7 +154,7 @@ export default function NoticeTicker() {
                             setNotices(prev => prev.filter(n => n.id !== newPost.id));
                         } else {
                             // 수정 시: prefix_id가 바뀌었을 수도 있음.
-                            const { data: prefixData } = await supabase
+                            const { data: prefixData } = await cafe24
                                 .from('board_prefixes')
                                 .select('id, name, color')
                                 .eq('name', '전광판')
@@ -165,7 +165,7 @@ export default function NoticeTicker() {
 
                             if (isNoticePrefix) {
                                 // 전광판이면 목록 업데이트/추가
-                                const { data } = await supabase
+                                const { data } = await cafe24
                                     .from('board_posts')
                                     .select('id, title, content')
                                     .eq('id', newPost.id)
@@ -188,7 +188,7 @@ export default function NoticeTicker() {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            cafe24.removeChannel(channel);
         };
     }, []);
 

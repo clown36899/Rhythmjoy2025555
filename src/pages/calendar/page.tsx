@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "../../lib/cafe24Client";
+import { cafe24 } from "../../lib/cafe24Client";
 import type { Event as AppEvent } from "../../lib/cafe24Client";
 import { fetchCafe24EventById, isCafe24EventsBackendEnabled } from "../../lib/cafe24EventsApi";
 import { lazy, Suspense } from "react";
@@ -884,7 +884,7 @@ export default function CalendarPage() {
                     const data = isCafe24EventsBackendEnabled
                         ? await fetchCafe24EventById(eventId)
                         : await (async () => {
-                            const { data, error } = await supabase
+                            const { data, error } = await cafe24
                                 .from('events')
                                 .select('*')
                                 .eq('id', eventId)

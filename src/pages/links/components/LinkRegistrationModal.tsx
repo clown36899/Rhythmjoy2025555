@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { type SiteLink } from '../Page';
 import ImageCropModal from '../../../components/ImageCropModal';
 
@@ -109,7 +109,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await cafe24.auth.getUser();
         if (!user) {
             alert('로그인이 필요합니다.');
             return;
@@ -139,11 +139,11 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
 
             if (editLink) {
                 // 수정
-                const { error } = await supabase.from('site_links').update(payload).eq('id', editLink.id);
+                const { error } = await cafe24.from('site_links').update(payload).eq('id', editLink.id);
                 if (error) throw error;
             } else {
                 // 신규 등록 로직
-                const { data: newLink, error } = await supabase.from('site_links').insert(payload).select().single();
+                const { data: newLink, error } = await cafe24.from('site_links').insert(payload).select().single();
                 if (error) throw error;
                 linkId = newLink.id;
             }
@@ -154,18 +154,18 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                 const folderPath = `site-links/${linkId}`;
                 const filePath = `${folderPath}/image.${fileExt}`;
 
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError } = await cafe24.storage
                     .from('images')
                     .upload(filePath, selectedFile, { upsert: true });
 
                 if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
+                const { data: { publicUrl } } = cafe24.storage
                     .from('images')
                     .getPublicUrl(filePath);
 
                 // URL 업데이트
-                await supabase.from('site_links').update({ image_url: publicUrl }).eq('id', linkId);
+                await cafe24.from('site_links').update({ image_url: publicUrl }).eq('id', linkId);
             }
 
             alert(editLink ? '사이트 정보가 수정되었습니다.' : '등록 요청이 완료되었습니다.\n관리자 승인 후 전체 목록에 표시됩니다.');

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import './ResourceLinkModal.css';
 
 interface ResourceItem {
@@ -29,14 +29,14 @@ export const ResourceLinkModal = ({ keyword, onClose, onSelectPlaylist, onSelect
             setLoading(true);
 
             // 재생목록 검색
-            const { data: playlists } = await supabase
+            const { data: playlists } = await cafe24
                 .from('learning_playlists')
                 .select('id, title, description')
                 .ilike('title', `%${keyword}%`)
                 .limit(10);
 
             // 문서 검색
-            const { data: documents } = await supabase
+            const { data: documents } = await cafe24
                 .from('learning_documents')
                 .select('id, title, content')
                 .ilike('title', `%${keyword}%`)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import SocialSubMenu from '../components/SocialSubMenu';
@@ -22,7 +22,7 @@ export default function ClubsPage() {
   const loadPlaces = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('social_places')
         .select('*')
         .order('name');

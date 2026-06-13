@@ -24,7 +24,7 @@ export const removeLegacyAuthStorageKeys = () => {
       || key.startsWith(`${activeStorageKey}-`)
       || LEGACY_AUTH_STORAGE_KEYS.includes(key)
       || LEGACY_AUTH_STORAGE_KEYS.some((storageKey) => key.startsWith(`${storageKey}-`))
-      || key.includes('supabase.auth.token')
+      || key.includes('.auth.token')
     ) {
       keysToRemove.push(key);
     }

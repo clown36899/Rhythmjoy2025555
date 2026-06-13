@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export function useSocialGroupFavorites() {
@@ -15,7 +15,7 @@ export function useSocialGroupFavorites() {
 
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('social_group_favorites')
                 .select('group_id')
                 .eq('user_id', user.id);
@@ -46,14 +46,14 @@ export function useSocialGroupFavorites() {
 
         try {
             if (isFavorite) {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('social_group_favorites')
                     .delete()
                     .eq('user_id', user.id)
                     .eq('group_id', groupId);
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('social_group_favorites')
                     .insert([{ user_id: user.id, group_id: groupId }]);
                 if (error) throw error;

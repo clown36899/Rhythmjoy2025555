@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "../../lib/cafe24Client";
+import { cafe24 } from "../../lib/cafe24Client";
 import PracticeRoomList from "./components/PracticeRoomList";
 import VenueTabBar from "./components/VenueTabBar";
 import VenueMapView from "./components/VenueMapView";
@@ -146,7 +146,7 @@ export default function PracticeRoomsPage() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const { data } = await supabase
+        const { data } = await cafe24
           .from('venues')
           .select('category')
           .eq('is_active', true);

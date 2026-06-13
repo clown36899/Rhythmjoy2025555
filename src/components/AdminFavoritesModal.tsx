@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import "./BoardUserManagementModal.css"; // Reuse BOUM styles for table layout
 import "../pages/admin/secure-members/page.css"; // Reuse secure styles
@@ -62,7 +62,7 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
             }
 
             // A. Fetch Favorites
-            const { data: favorites, error: favError } = await supabase
+            const { data: favorites, error: favError } = await cafe24
                 .from(tableName)
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -75,7 +75,7 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
 
             // B. Fetch User Details
             const userIds = [...new Set(favorites.map(f => f.user_id))];
-            const { data: usersData } = await supabase
+            const { data: usersData } = await cafe24
                 .from('board_users')
                 .select('user_id, nickname')
                 .in('user_id', userIds);
@@ -85,7 +85,7 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
 
             // C. Fetch Item Details
             const itemIds = [...new Set(favorites.map(f => f[itemIdField]))];
-            const { data: itemsData } = await supabase
+            const { data: itemsData } = await cafe24
                 .from(itemTable)
                 .select(`id, ${itemNameField}`)
                 .in('id', itemIds);

@@ -80,8 +80,8 @@ export default function InvitePage() {
     try {
       // 기존 세션이 있으면 먼저 로그아웃 (재초대 대응)
       if (user) {
-        const { supabase } = await import('../../lib/cafe24Client');
-        await supabase.auth.signOut();
+        const { cafe24 } = await import('../../lib/cafe24Client');
+        await cafe24.auth.signOut();
       }
 
       await initKakaoSDK();
@@ -113,8 +113,8 @@ export default function InvitePage() {
 
       // 서버에서 받은 세션으로 자동 로그인
       if (authData.session) {
-        const { supabase } = await import('../../lib/cafe24Client');
-        const { error: sessionError } = await supabase.auth.setSession({
+        const { cafe24 } = await import('../../lib/cafe24Client');
+        const { error: sessionError } = await cafe24.auth.setSession({
           access_token: authData.session.access_token,
           refresh_token: authData.session.refresh_token,
         });

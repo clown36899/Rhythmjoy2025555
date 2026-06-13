@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { resizeImage } from '../utils/imageResize';
 import '../pages/board/components/PostEditorModal.css'; // Reuse existing editor styles
 
@@ -32,7 +32,7 @@ export default function GlobalNoticeEditor({ isOpen, onClose, noticeId: propNoti
         try {
             // 1. If propNoticeId exists, load that specific one
             // 2. Otherwise, load the most recent one (since it's usually a single main notice)
-            let query = supabase.from('global_notices').select('*');
+            let query = cafe24.from('global_notices').select('*');
 
             if (propNoticeId) {
                 query = query.eq('id', propNoticeId);
@@ -93,13 +93,13 @@ export default function GlobalNoticeEditor({ isOpen, onClose, noticeId: propNoti
                 const resized = await resizeImage(imageFile, 4000, 0.9, `notice_${Date.now()}.webp`);
 
                 const filePath = `notices/${Date.now()}_${resized.name}`;
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError } = await cafe24.storage
                     .from('images')
                     .upload(filePath, resized);
 
                 if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
+                const { data: { publicUrl } } = cafe24.storage
                     .from('images')
                     .getPublicUrl(filePath);
 
@@ -116,13 +116,13 @@ export default function GlobalNoticeEditor({ isOpen, onClose, noticeId: propNoti
             console.log('[NoticeEditor] Saving data to DB:', noticeData);
 
             if (currentNoticeId) {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('global_notices')
                     .update(noticeData)
                     .eq('id', currentNoticeId);
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('global_notices')
                     .insert([noticeData]);
                 if (error) throw error;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { isInternalAnalyticsRoute, isLikelyBotTraffic } from '../utils/analyticsEngine';
 import './SiteAnalyticsModal.css';
 
@@ -186,6 +186,7 @@ interface GuestInfo {
         user_agent: string | null;
         is_pwa: boolean;
     }[];
+    activityLogs?: UserActivityInfo[];
 }
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -290,7 +291,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             }
 
             // RPC Call
-            const { data: rpcData, error: rpcError } = await supabase
+            const { data: rpcData, error: rpcError } = await cafe24
                 .rpc('get_analytics_summary_v2', {
                     start_date: startStr,
                     end_date: endStr
@@ -337,7 +338,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         userAgent: guest.userAgent || guest.user_agent || null,
                         isPwa: Boolean(guest.isPwa || guest.is_pwa),
                         pwaDisplayMode: guest.pwaDisplayMode || guest.pwa_display_mode || null,
-                        sessions: Array.isArray(guest.sessions) ? guest.sessions : []
+                        sessions: Array.isArray(guest.sessions) ? guest.sessions : [],
+                        activityLogs: Array.isArray(guest.activityLogs || guest.activity_logs)
+                            ? (guest.activityLogs || guest.activity_logs)
+                            : []
                     }))
                     : null;
             }
@@ -346,7 +350,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
             const excludedPrefix = '91b04b25';
             const adminUserIds = new Set<string>();
-            const { data: adminRows, error: adminRowsError } = await supabase
+            const { data: adminRows, error: adminRowsError } = await cafe24
                 .from('board_admins')
                 .select('user_id,email,admin_email');
 
@@ -365,7 +369,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             let hasMore = true;
 
             while (hasMore) {
-                const { data: chunk, error } = await supabase
+                const { data: chunk, error } = await cafe24
                     .from('site_analytics_logs')
                     .select('*')
                     .gte('created_at', startStr)
@@ -448,7 +452,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             hasMore = true;
 
             while (hasMore) {
-                const { data: sChunk, error: sError } = await supabase
+                const { data: sChunk, error: sError } = await cafe24
                     .from('session_logs')
                     .select('*')
                     .gte('session_start', startStr)
@@ -853,7 +857,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             );
             const nicknameMap = new Map<string, string | null>();
             if (sessionUserIds.length > 0) {
-                const { data: sessionUsers, error: sessionUsersError } = await supabase
+                const { data: sessionUsers, error: sessionUsersError } = await cafe24
                     .from('board_users')
                     .select('user_id, nickname')
                     .in('user_id', sessionUserIds);
@@ -891,7 +895,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 setUserList(sessionUserList);
             }
 
-            const guestMap = new Map<string, GuestInfo & { seenMs: number[] }>();
+            const guestMap = new Map<string, GuestInfo & { seenMs: number[]; sessionClickCount: number; activityEventCount: number }>();
 
             const ensureGuest = (row: any, timeIso: string | null, fallbackId?: string | number | null) => {
                 if (!timeIso) return null;
@@ -910,6 +914,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     visitCount: 0,
                     sessionCount: 0,
                     clickCount: 0,
+                    sessionClickCount: 0,
+                    activityEventCount: 0,
                     pageViews: 0,
                     firstSeen: timeIso,
                     lastSeen: timeIso,
@@ -920,6 +926,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     isPwa: Boolean(row.is_pwa),
                     pwaDisplayMode: row.pwa_display_mode || null,
                     sessions: [],
+                    activityLogs: [],
                     seenMs: [],
                 };
 
@@ -954,7 +961,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (!guest) return;
                 guest.sessionCount += 1;
                 guest.pageViews += getPageViewCount(session);
-                guest.clickCount += Number(session.total_clicks || 0);
+                guest.sessionClickCount += Number(session.total_clicks || 0);
                 guest.sessions.push({
                     session_id: session.session_id || null,
                     session_start: session.session_start || null,
@@ -971,23 +978,45 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 });
             });
 
-            validData.forEach((event: any) => {
+            validData.forEach((event: any, index: number) => {
                 const guest = ensureGuest(event, event.created_at, event.session_id || event.id);
                 if (!guest) return;
-                guest.clickCount += 1;
+                guest.activityEventCount += 1;
+                guest.activityLogs = guest.activityLogs || [];
+                guest.activityLogs.push({
+                    id: String(event.id || `${event.session_id || 'event'}-${event.sequence_number || index}`),
+                    created_at: event.created_at,
+                    type: event.target_type || event.type || 'activity',
+                    title: getFriendlyTitle(event.target_type || null, event.target_id || null, event.target_title || null),
+                    section: event.section || null,
+                    route: event.route || null,
+                    page_url: event.page_url || null,
+                    target_id: event.target_id || null,
+                    session_id: event.session_id || null,
+                    client_ip: getClientIp(event),
+                    ip_hash: event.ip_hash || null,
+                    platform: event.platform || null,
+                    user_agent: event.user_agent || null,
+                    referrer: event.referrer || null,
+                    sequence_number: event.sequence_number ?? null
+                });
                 if (!guest.lastPage) guest.lastPage = getRowPage(event);
             });
 
             const nextGuestList = Array.from(guestMap.values())
                 .map((guest) => {
-                    const { seenMs, ...safeGuest } = guest;
+                    const { seenMs, sessionClickCount, activityEventCount, ...safeGuest } = guest;
                     const visitBuckets = new Set(seenMs.map(ms => Math.floor(ms / (6 * 60 * 60 * 1000))));
                     return {
                         ...safeGuest,
+                        clickCount: Math.max(activityEventCount || 0, sessionClickCount || 0),
                         visitCount: visitBuckets.size || safeGuest.sessionCount || 1,
                         sessions: [...safeGuest.sessions].sort((a, b) =>
                             new Date(b.session_start || 0).getTime() - new Date(a.session_start || 0).getTime()
                         ),
+                        activityLogs: [...(safeGuest.activityLogs || [])]
+                            .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                            .slice(0, 80),
                     };
                 })
                 .sort((a, b) => new Date(b.lastSeen || 0).getTime() - new Date(a.lastSeen || 0).getTime())
@@ -1072,7 +1101,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             // PWA Stats
             let pwaStats: any = undefined;
-            const { data: installData, error: installError } = await supabase
+            const { data: installData, error: installError } = await cafe24
                 .from('pwa_installs')
                 .select('*')
                 .gte('installed_at', startStr)
@@ -1111,7 +1140,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (installUserIds.length > 0) {
                     try {
                         const uniqueIds = Array.from(new Set(installUserIds));
-                        const { data: uData, error: uError } = await supabase
+                        const { data: uData, error: uError } = await cafe24
                             .from('board_users')
                             .select('user_id, nickname')
                             .in('user_id', uniqueIds);
@@ -1409,7 +1438,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const startStr = today + 'T00:00:00+09:00';
             const endStr = today + 'T23:59:59+09:00';
 
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('site_usage_stats')
                 .select('id')
                 .gte('snapshot_time', startStr)
@@ -1419,7 +1448,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             if (error) throw error;
 
             if (!data || data.length === 0) {
-                await supabase.rpc('create_usage_snapshot', {
+                await cafe24.rpc('create_usage_snapshot', {
                     p_logged_in: currentStats.user_clicks,
                     p_anonymous: currentStats.anon_clicks,
                     p_admin: currentStats.admin_clicks
@@ -2415,6 +2444,36 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                         </div>
                                                                     </div>
                                                                 ))}
+                                                            </div>
+                                                        )}
+                                                        {guest.activityLogs && guest.activityLogs.length > 0 && (
+                                                            <div className="user-section-block">
+                                                                <h4>활동 타임라인</h4>
+                                                                <div className="activity-privacy-note">
+                                                                    운영/보안 목적의 사이트 활동 기록입니다. 비밀번호, 검색어 전문, 입력 중인 내용은 수집하지 않습니다.
+                                                                </div>
+                                                                <div className="user-activity-timeline">
+                                                                    {guest.activityLogs.slice(0, 80).map((activity) => (
+                                                                        <div key={activity.id} className="user-activity-row">
+                                                                            <span className="activity-dot"></span>
+                                                                            <div className="activity-body">
+                                                                                <div className="activity-row-head">
+                                                                                    <strong>{getTypeName(activity.type)}</strong>
+                                                                                    <span>{formatDateTime(activity.created_at)}</span>
+                                                                                </div>
+                                                                                <div className="activity-title">{activity.title || activity.target_id || activity.page_url || '-'}</div>
+                                                                                <div className="activity-meta">
+                                                                                    <span>{activity.page_url || activity.route || '-'}</span>
+                                                                                    {activity.section && <span>{activity.section}</span>}
+                                                                                    {activity.session_id && <span>session {activity.session_id.substring(0, 8)}...</span>}
+                                                                                    <span>{getDeviceLabel(activity.platform, activity.user_agent)}</span>
+                                                                                    <span>{getIpLabel(activity.client_ip)}</span>
+                                                                                    {activity.ip_hash && <span>hash {activity.ip_hash}</span>}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>

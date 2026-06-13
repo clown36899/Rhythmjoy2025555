@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 
 declare global {
   interface Window {
@@ -60,7 +60,7 @@ export default function PlaceModal({ onClose, onPlaceCreated }: PlaceModalProps)
     try {
       const { lat, lng } = await getCoordsFromAddress(address);
 
-      const { error: insertError } = await supabase.from('social_places').insert({
+      const { error: insertError } = await cafe24.from('social_places').insert({
         name,
         address,
         description,

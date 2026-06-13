@@ -20,7 +20,7 @@ description: 빌보드 키오스크 모드 운영 정책 및 자동 업데이트
 
 빌보드는 수동 조작 없이 항상 최신 상태를 유지하기 위해 다음의 배포 감지 시스템을 사용합니다.
 
-- **Supabase Realtime 동기화**: `page.tsx` 내에서 Supabase의 `deployments` 및 `billboard_user_settings` 테이블을 실시간 구독합니다.
+- **Cafe24 실시간 동기화**: `page.tsx` 내에서 Cafe24 데이터 호환 레이어를 통해 `deployments` 및 `billboard_user_settings` 변경을 실시간 구독합니다.
 - **자동 새로고침(Silent Reload)**:
   - 새로운 배포(Deployment) 정보가 DB에 인서트되면, 빌보드는 즉시 `window.location.reload()`를 실행하여 최신 코드를 불러옵니다.
   - 데이터(이벤트/설정) 변경 시에는 슬라이드 한 주기가 끝나는 시점에 백그라운드에서 데이터를 갱신합니다.

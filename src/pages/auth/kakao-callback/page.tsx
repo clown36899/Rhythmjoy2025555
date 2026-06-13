@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getAuthPkceVerifierKey, getAuthStorageKey, getAuthValidationKey } from '../../../lib/authStorageKeys';
 import { consumeKakaoLoginReturnUrl } from '../../../utils/kakaoAuth';
@@ -210,11 +210,11 @@ export default function KakaoCallbackPage() {
 
                     console.log('[Kakao Callback] Cafe24 세션 설정 시작');
 
-                    let setSessionResult: Awaited<ReturnType<typeof supabase.auth.setSession>> | null = null;
+                    let setSessionResult: Awaited<ReturnType<typeof cafe24.auth.setSession>> | null = null;
                     let usedDirectPersistFallback = false;
 
                     try {
-                        setSessionResult = await withTimeout(supabase.auth.setSession({
+                        setSessionResult = await withTimeout(cafe24.auth.setSession({
                             access_token: accessToken,
                             refresh_token: refreshToken,
                         }), SESSION_SETUP_TIMEOUT_MS, 'setSession timeout');
@@ -240,7 +240,7 @@ export default function KakaoCallbackPage() {
 
                     while (!usedDirectPersistFallback && !confirmedSession && Date.now() < confirmDeadline) {
                         const { data, error: confirmError } = await withTimeout(
-                            supabase.auth.getSession(),
+                            cafe24.auth.getSession(),
                             4000,
                             'getSession confirm timeout'
                         );

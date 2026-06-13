@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import '../styles/components/GlobalNoticePopup.css';
 
 let activeNoticeCacheLoaded = false;
@@ -21,7 +21,7 @@ const fetchActiveNotice = async () => {
     if (activeNoticeCacheLoaded) return activeNoticeCache;
     if (activeNoticePromise) return activeNoticePromise;
 
-    activeNoticePromise = supabase
+    activeNoticePromise = cafe24
         .from('global_notices')
         .select('*')
         .eq('is_active', true)

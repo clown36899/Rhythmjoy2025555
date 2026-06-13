@@ -1,4 +1,4 @@
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 import {
@@ -268,7 +268,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
     }
 
     try {
-        const { error } = await supabase.from('pwa_installs').insert({
+        const { error } = await cafe24.from('pwa_installs').insert({
             user_id: userId || null,
             fingerprint: fingerprint || null,
             installed_at: new Date().toISOString(),
@@ -495,7 +495,7 @@ export const trackEvent = (log: AnalyticsLog) => {
                 return;
             }
 
-            const { error } = await supabase.from('site_analytics_logs').insert(logData);
+            const { error } = await cafe24.from('site_analytics_logs').insert(logData);
             if (error) throw error;
         } catch (err) {
             // 사일런트 페일: 트래킹 에러가 사용자 경험을 방해하지 않도록 함

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { notificationStore } from '../lib/notificationStore';
 import type { NotificationRecord } from '../lib/notificationStore';
 import { useModalActions } from '../contexts/ModalContext';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import "../styles/components/NotificationHistoryModal.css";
 
 interface NotificationHistoryModalProps {
@@ -138,7 +138,7 @@ export default function NotificationHistoryModal({
         if (!missingIds.length) return;
 
         let cancelled = false;
-        supabase
+        cafe24
             .from('events')
             .select('id,title,date,start_date,location,category,image,image_micro,image_thumbnail,image_medium,image_full')
             .in('id', missingIds)
@@ -163,7 +163,7 @@ export default function NotificationHistoryModal({
     const openEventFromItem = async (item: NotificationDisplayItem) => {
         if (!item.eventId) return false;
 
-        const { data, error } = await supabase
+        const { data, error } = await cafe24
             .from('events')
             .select('*, board_users(nickname)')
             .eq('id', item.eventId)
@@ -204,7 +204,7 @@ export default function NotificationHistoryModal({
             const boardMatch = url.pathname.match(/\/board\/([^/]+)\/detail\/(\d+)/);
             if (boardMatch) {
                 const postId = boardMatch[2];
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('board_posts')
                     .select('*, board_users(nickname, profile_image)')
                     .eq('id', postId)

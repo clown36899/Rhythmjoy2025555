@@ -179,7 +179,7 @@ const incrementView = useCallback(async () => {
     return false;
   }
   
-  const result = await supabase.rpc(...);
+  const result = await cafe24.rpc(...);
   if (result.data) {
     viewedItems.current.add(key);
   }

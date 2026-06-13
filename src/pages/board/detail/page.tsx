@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import UniversalPostEditor from '../components/UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
@@ -35,7 +35,7 @@ export default function BoardDetailPage() {
                 return;
             }
             try {
-                const { data } = await supabase
+                const { data } = await cafe24
                     .from('board_users')
                     .select('nickname, profile_image')
                     .eq('user_id', user.id)
@@ -57,7 +57,7 @@ export default function BoardDetailPage() {
 
         const table = post.category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
 
-        const channel = supabase
+        const channel = cafe24
             .channel(`post_detail:${post.id}`)
             .on(
                 'postgres_changes',
@@ -92,7 +92,7 @@ export default function BoardDetailPage() {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            cafe24.removeChannel(channel);
         };
     }, [post?.id, post?.category, isAdmin, user?.id, navigate]);
 
@@ -100,7 +100,7 @@ export default function BoardDetailPage() {
 
     const loadPost = async (postId: string) => {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('board_posts')
                 .select(`
                     id, 
@@ -140,7 +140,7 @@ export default function BoardDetailPage() {
             // Fetch profile image if user_id exists
             let profileImage = null;
             if (data.user_id) {
-                const { data: userData } = await supabase
+                const { data: userData } = await cafe24
                     .from('board_users')
                     .select('profile_image')
                     .eq('user_id', data.user_id)
@@ -174,7 +174,7 @@ export default function BoardDetailPage() {
 
         try {
             setUpdating(true);
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_posts')
                 .delete()
                 .eq('id', post.id);
@@ -205,7 +205,7 @@ export default function BoardDetailPage() {
 
         try {
             const newHiddenState = !post.is_hidden;
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_posts')
                 .update({ is_hidden: newHiddenState })
                 .eq('id', post.id);

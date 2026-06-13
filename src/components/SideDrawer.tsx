@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useEffect, useRef, useState } from 'react';
 import { PWAInstallGuideModal } from './PWAInstallGuideModal';
 import {
@@ -244,7 +244,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
 
     const loadBoardCategories = async () => {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('board_categories')
                 .select('*')
                 .eq('is_active', true)
@@ -315,9 +315,9 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                 // API 실패 시 폴백 (관리자만 Cafe24 호환 클라이언트 직접 조회)
                 if (isAdmin) {
                     const [memberRes, pwaRes, pushRes] = await Promise.all([
-                        supabase.from('board_users').select('*', { count: 'exact', head: true }),
-                        supabase.from('pwa_installs').select('user_id'),
-                        supabase.from('user_push_subscriptions').select('user_id')
+                        cafe24.from('board_users').select('*', { count: 'exact', head: true }),
+                        cafe24.from('pwa_installs').select('user_id'),
+                        cafe24.from('user_push_subscriptions').select('user_id')
                     ]);
                     if (!memberRes.error) setMemberCount(memberRes.count || 0);
                     if (!pwaRes.error && pwaRes.data) {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
-import { supabase } from "../../lib/cafe24Client";
+import { cafe24 } from "../../lib/cafe24Client";
 import type {
   BillboardUser,
   BillboardUserSettings,
@@ -732,22 +732,22 @@ export default function BillboardPage() {
 
     if (eventsChannelRef.current) {
       log('[📡 채널 관리] ⚠️ 기존 eventsChannel 발견 - 제거');
-      supabase.removeChannel(eventsChannelRef.current);
+      cafe24.removeChannel(eventsChannelRef.current);
       eventsChannelRef.current = null;
     }
     if (settingsChannelRef.current) {
       log('[📡 채널 관리] ⚠️ 기존 settingsChannel 발견 - 제거');
-      supabase.removeChannel(settingsChannelRef.current);
+      cafe24.removeChannel(settingsChannelRef.current);
       settingsChannelRef.current = null;
     }
     if (deployChannelRef.current) {
       log('[📡 채널 관리] ⚠️ 기존 deployChannel 발견 - 제거');
-      supabase.removeChannel(deployChannelRef.current);
+      cafe24.removeChannel(deployChannelRef.current);
       deployChannelRef.current = null;
     }
 
     // ✅ 새 채널 생성 및 ref에 저장
-    eventsChannelRef.current = supabase
+    eventsChannelRef.current = cafe24
       .channel("billboard-events-changes")
       .on(
         "postgres_changes",
@@ -785,7 +785,7 @@ export default function BillboardPage() {
         else setRealtimeStatus(`데이터: ${status}`);
       });
 
-    settingsChannelRef.current = supabase
+    settingsChannelRef.current = cafe24
       .channel("billboard-settings-changes")
       .on(
         "postgres_changes",
@@ -828,7 +828,7 @@ export default function BillboardPage() {
         else setRealtimeStatus(`설정: ${status}`);
       });
 
-    deployChannelRef.current = supabase
+    deployChannelRef.current = cafe24
       .channel("deploy-updates")
       .on(
         "postgres_changes",
@@ -857,17 +857,17 @@ export default function BillboardPage() {
       // ✅ 채널 정리 (ref에서)
       log('[📡 채널 관리] cleanup: Realtime 채널 제거 시작');
       if (eventsChannelRef.current) {
-        supabase.removeChannel(eventsChannelRef.current);
+        cafe24.removeChannel(eventsChannelRef.current);
         eventsChannelRef.current = null;
         log('[📡 채널 관리] eventsChannel 제거 완료');
       }
       if (settingsChannelRef.current) {
-        supabase.removeChannel(settingsChannelRef.current);
+        cafe24.removeChannel(settingsChannelRef.current);
         settingsChannelRef.current = null;
         log('[📡 채널 관리] settingsChannel 제거 완료');
       }
       if (deployChannelRef.current) {
-        supabase.removeChannel(deployChannelRef.current);
+        cafe24.removeChannel(deployChannelRef.current);
         deployChannelRef.current = null;
         log('[📡 채널 관리] deployChannel 제거 완료');
       }
@@ -1048,7 +1048,7 @@ export default function BillboardPage() {
         setSettings(userSettings);
       } else {
         // [기존 로직] DB 조회
-        const { data: userData, error: userError } = await supabase
+        const { data: userData, error: userError } = await cafe24
           .from("billboard_users")
           .select("*")
           .eq("id", userId)
@@ -1062,7 +1062,7 @@ export default function BillboardPage() {
         // Analytics: 빌보드 로드 기록 (범인 색출용)
         logEvent('Billboard', 'Start', `${user.name} (${userId})`);
 
-        const { data: settingsData, error: settingsError } = await supabase
+        const { data: settingsData, error: settingsError } = await cafe24
           .from("billboard_user_settings")
           .select("*")
           .eq("billboard_user_id", userId)
@@ -1072,7 +1072,7 @@ export default function BillboardPage() {
         userSettings = settingsData;
         setSettings(userSettings);
 
-        const { data: eventsData, error: eventsError } = await supabase
+        const { data: eventsData, error: eventsError } = await cafe24
           .from("events")
           .select("id,title,date,start_date,end_date,time,location,image_full,image,video_url,show_title_on_billboard,category,genre")
           .order("start_date", { ascending: true });

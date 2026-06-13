@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { SocialGroup } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -15,7 +15,7 @@ export function useSocialGroups() {
                 ? '*, board_users(nickname), social_group_favorites!left(user_id)'
                 : '*, social_group_favorites!left(user_id)';
 
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('social_groups')
                 .select(selectQuery)
                 .order('created_at', { ascending: true });

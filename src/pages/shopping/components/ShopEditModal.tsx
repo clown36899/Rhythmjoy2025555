@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import ImageCropModal from '../../../components/ImageCropModal';
 import type { FeaturedItem as DBFeaturedItem } from '../page';
 import './ShopEditModal.css';
@@ -178,7 +178,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         const fetchShopData = async () => {
             setFetchLoading(true);
             try {
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('shops')
                     .select(`*, featured_items (*)`)
                     .eq('id', shopId)
@@ -240,7 +240,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         const fileName = `${Date.now()}.webp`;
         const filePath = `${folder}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await cafe24.storage
             .from('images')
             .upload(filePath, resizedImageBlob, {
                 contentType: 'image/webp',
@@ -252,7 +252,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
             throw uploadError;
         }
 
-        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+        const { data } = cafe24.storage.from('images').getPublicUrl(filePath);
         return data.publicUrl;
     };
 
@@ -284,7 +284,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
             }
 
             // Update shops table
-            const { error: shopError } = await supabase
+            const { error: shopError } = await cafe24
                 .from('shops')
                 .update({
                     name: shopName,
@@ -298,7 +298,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
             // Handle featured items with proper CRUD operations
             // 1. Get existing item IDs from DB
-            const { data: existingItems } = await supabase
+            const { data: existingItems } = await cafe24
                 .from('featured_items')
                 .select('id')
                 .eq('shop_id', shopId);
@@ -325,7 +325,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
 
                 if (item.dbId && existingItemIds.has(item.dbId)) {
                     // Update existing item
-                    const { error: updateError } = await supabase
+                    const { error: updateError } = await cafe24
                         .from('featured_items')
                         .update({
                             item_name: item.name || null,
@@ -339,7 +339,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                     processedItemIds.add(item.dbId);
                 } else {
                     // Insert new item
-                    const { error: insertError } = await supabase
+                    const { error: insertError } = await cafe24
                         .from('featured_items')
                         .insert({
                             shop_id: shopId,
@@ -356,7 +356,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
             // 3. Delete items that were removed (exist in DB but not in current featuredItems)
             const itemsToDelete = Array.from(existingItemIds).filter(id => !processedItemIds.has(id));
             if (itemsToDelete.length > 0) {
-                const { error: deleteError } = await supabase
+                const { error: deleteError } = await cafe24
                     .from('featured_items')
                     .delete()
                     .in('id', itemsToDelete);
@@ -384,7 +384,7 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
         setError('');
 
         try {
-            const { error: deleteError } = await supabase
+            const { error: deleteError } = await cafe24
                 .from('shops')
                 .delete()
                 .eq('id', shopId);

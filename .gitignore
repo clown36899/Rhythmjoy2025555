@@ -37,9 +37,6 @@ dist/
 attached_assets/
 *.local
 
-# Local Netlify folder
-.netlify
-
 # AI Tool Worktrees — skills 폴더만 추적, 나머지 무시
 .claude/*
 !.claude/skills
@@ -50,8 +47,6 @@ public/scraped/
 
 # Database dumps and sensitive data
 *.sql
-!supabase/migrations/*.sql
-!supabase/db_tasks/**/*.sql
 !server/cafe24/schema.sql
 !server/cafe24/migrations/*.sql
 *.json
@@ -59,8 +54,6 @@ public/scraped/
 !package-lock.json
 !tsconfig*.json
 !manifest.json
-supabase/migrations_backup/
-supabase/migrations_backup_v2/
 scripts/temp_check_db.js
 
 .playwright-mcp/

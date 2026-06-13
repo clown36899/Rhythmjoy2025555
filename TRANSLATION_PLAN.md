@@ -16,7 +16,7 @@
 - **대상**: 사용자가 입력하는 글의 제목, 내용, 위치, 주최자 정보 등.
 - **해결책**: **"작성 즉시 자동 번역 + 저장" (Translate-on-Save)** 모델.
     1. 사용자가 한국어로 이벤트 등록.
-    2. 저장 시점에 Supabase Edge Function이 트리거됨.
+    2. 저장 시점에 서버 측 번역 워커가 트리거됨.
     3. AI(DeepL 또는 OpenAI)가 영어/일본어/중국어 등으로 자동 번역.
     4. 원본 데이터와 함께 `translations` 컬럼에 번역본 저장.
     5. 클라이언트에서는 사용자의 언어 설정에 맞는 텍스트를 우선 표시.
@@ -65,12 +65,12 @@ ALTER TABLE events ADD COLUMN translations JSONB DEFAULT '{}'::jsonb;
 ### 단계 2: 백엔드 자동 번역 파이프라인 구축 (Backend)
 - **목표**: 데이터 생성/수정 시 1~2초 내에 자동 번역 수행.
 - **Actions**:
-    - **Supabase Edge Function (`translate-content`) 개발**:
+    - **Cafe24 서버 기반 번역 작업기 (`translate-content`) 개발**:
         - OpenAI API 또는 DeepL API 연동.
         - 입력된 텍스트(제목, 내용)를 타겟 언어들로 번역 요청.
         - 결과를 DB `translations` 컬럼에 업데이트.
     - **Database Webhook 설정**:
-        - `events`, `venues` 테이블의 `INSERT`, `UPDATE` 발생 시 Edge Function 호출.
+        - `events`, `venues` 테이블의 `INSERT`, `UPDATE` 발생 시 번역 작업기 호출.
         - *최적화*: 내용이 변경되었을 때만 번역 API 호출하여 비용 절감.
 
 ### 단계 3: 프론트엔드 데이터 표시 로직 (UI Logic)
@@ -112,9 +112,9 @@ ALTER TABLE events ADD COLUMN translations JSONB DEFAULT '{}'::jsonb;
     - 저장 후 1~3초 뒤 새로고침하면 번역 반영됨.
 - **검색 (Search)**:
     - 영문 UI 사용자가 "Gangnam" 검색 시 "강남" 이벤트가 나와야 하는가?
-    - -> Supabase의 `Full Text Search` 기능을 활용하여 `translations` 컬럼도 인덱싱하면 가능.
+    - -> 현재 검색 백엔드에서 `translations` 컬럼까지 함께 인덱싱하는 방식으로 확장 가능.
 
 ## 7. 결론 및 추천
-사용자 경험과 개발 효율성, 유지보수성을 모두 고려했을 때 **Supabase Edge Function을 활용한 비동기 AI 자동 번역 시스템**이 가장 강력하고 현실적인 해결책입니다.
+사용자 경험과 개발 효율성, 유지보수성을 모두 고려했을 때 **Cafe24 서버 기반 비동기 AI 자동 번역 시스템**이 가장 강력하고 현실적인 해결책입니다.
 
 이 계획대로 진행하신다면 글로벌 사용자가 접속했을 때도 한국어 콘텐츠를 즉시 자국어로 이해할 수 있는 **최고 수준의 글로벌 플랫폼**이 될 것입니다.

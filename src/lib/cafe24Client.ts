@@ -13,7 +13,7 @@ if (DATA_CLIENT_DEBUG) {
   console.debug('%c[DataClient] Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
 }
 
-export const supabase = createCafe24DataCompat() as any;
+export const cafe24 = createCafe24DataCompat() as any;
 
 authLogger.log('[Cafe24] Data client initialized');
 
@@ -216,7 +216,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
       authLogger.log('[DataClient] Calling auth.getSession() with 4s timeout...');
       const firstGetSession = Promise.race([
-        supabase.auth.getSession(),
+        cafe24.auth.getSession(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Initial getSession timeout')), 4000))
       ]);
 
@@ -239,7 +239,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       // 3. 서버 실시간 세션 확인 (타임아웃 포함)
       authLogger.log('[DataClient] Racing getSession() with 5s timeout...');
       const getSessionWithTimeout = Promise.race([
-        supabase.auth.getSession(),
+        cafe24.auth.getSession(),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('getSession timeout')), 5000)
         )
@@ -268,7 +268,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
         if (!hasAuthParams && (error.message?.includes('token_revoked') || error.message?.includes('Refresh Token has been revoked'))) {
           authLogger.log('[DataClient] Token revoked - clearing local');
-          await supabase.auth.signOut({ scope: 'local' });
+          await cafe24.auth.signOut({ scope: 'local' });
           return null;
         }
         return session;
@@ -287,7 +287,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
           authLogger.log('[DataClient] Refreshing expiring session...');
 
           // [Refresh Guard] 갱신 시도
-          const { data, error: refreshError } = await supabase.auth.refreshSession();
+          const { data, error: refreshError } = await cafe24.auth.refreshSession();
 
           if (refreshError) {
             authLogger.log('[DataClient] Refresh failed:', refreshError);
@@ -301,7 +301,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
             if (isFatalRefresh) {
               authLogger.log('[DataClient] Fatal refresh error - destroying session');
-              await supabase.auth.signOut({ scope: 'local' });
+              await cafe24.auth.signOut({ scope: 'local' });
               return null;
             }
 
@@ -320,7 +320,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       // 6. 최종 서버 유저 검증 (타임아웃 포함)
       authLogger.log('[DataClient] Verifying user with server...');
       const getUserWithTimeout = Promise.race([
-        supabase.auth.getUser(),
+        cafe24.auth.getUser(),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('getUser timeout')), 10000)
         )
@@ -332,7 +332,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
           authLogger.log('[DataClient] User verification failed:', userError);
           const isFatal = (userError as any).status === 401 || (userError as any).status === 403;
           if (isFatal) {
-            await supabase.auth.signOut({ scope: 'local' });
+            await cafe24.auth.signOut({ scope: 'local' });
             return null;
           }
         }

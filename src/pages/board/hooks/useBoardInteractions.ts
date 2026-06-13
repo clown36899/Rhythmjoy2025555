@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useUserInteractions } from '../../../hooks/useUserInteractions';
 
 import type { BoardCategory } from '../components/BoardTabBar';
@@ -121,9 +121,9 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
         try {
             if (isFavorited) {
-                await supabase.from('board_post_favorites').delete().eq('user_id', user.id).eq('post_id', postId);
+                await cafe24.from('board_post_favorites').delete().eq('user_id', user.id).eq('post_id', postId);
             } else {
-                const { error } = await supabase.from('board_post_favorites').insert({ user_id: user.id, post_id: postId }).select();
+                const { error } = await cafe24.from('board_post_favorites').insert({ user_id: user.id, post_id: postId }).select();
                 if (error && error.code !== '23505') throw error;
             }
         } catch (error) {
@@ -153,9 +153,9 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
             try {
                 if (isLiked) {
-                    await supabase.from('board_post_likes').delete().eq('user_id', user.id).eq('post_id', postId);
+                    await cafe24.from('board_post_likes').delete().eq('user_id', user.id).eq('post_id', postId);
                 } else {
-                    const { error } = await supabase.from('board_post_likes').insert({ user_id: user.id, post_id: postId }).select();
+                    const { error } = await cafe24.from('board_post_likes').insert({ user_id: user.id, post_id: postId }).select();
                     if (error && error.code !== '23505') throw error;
                 }
             } catch (error) {
@@ -184,7 +184,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             }));
 
             try {
-                const { data, error } = await supabase.rpc('toggle_anonymous_interaction', {
+                const { data, error } = await cafe24.rpc('toggle_anonymous_interaction', {
                     p_post_id: postId,
                     p_user_id: user.id,
                     p_type: 'like'
@@ -218,9 +218,9 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
             try {
                 if (isDisliked) {
-                    await supabase.from('board_post_dislikes').delete().eq('user_id', user.id).eq('post_id', postId);
+                    await cafe24.from('board_post_dislikes').delete().eq('user_id', user.id).eq('post_id', postId);
                 } else {
-                    const { error } = await supabase.from('board_post_dislikes').insert({ user_id: user.id, post_id: postId }).select();
+                    const { error } = await cafe24.from('board_post_dislikes').insert({ user_id: user.id, post_id: postId }).select();
                     if (error && error.code !== '23505') throw error;
                 }
             } catch (error) {
@@ -247,7 +247,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             }));
 
             try {
-                const { data, error } = await supabase.rpc('toggle_anonymous_interaction', {
+                const { data, error } = await cafe24.rpc('toggle_anonymous_interaction', {
                     p_post_id: postId,
                     p_user_id: user.id,
                     p_type: 'dislike'
@@ -266,14 +266,14 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
             const rpcName = category === 'anonymous' ? 'delete_anonymous_post_with_password' : 'delete_post_with_password';
             const finalPassword = isRealAdmin ? 'ADMIN_BYPASS' : password;
 
-            const { data: success, error } = await supabase.rpc(rpcName, {
+            const { data: success, error } = await cafe24.rpc(rpcName, {
                 p_post_id: postId,
                 p_password: finalPassword
             });
 
             if (error) {
                 if (isRealAdmin && category !== 'anonymous') {
-                    const { error: deleteError } = await supabase.from('board_posts').delete().eq('id', postId);
+                    const { error: deleteError } = await cafe24.from('board_posts').delete().eq('id', postId);
                     if (!deleteError) {
                         loadPosts();
                         return true;

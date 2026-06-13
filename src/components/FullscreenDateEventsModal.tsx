@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import type { Event as AppEvent } from "../lib/cafe24Client";
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from "../lib/cafe24EventsApi";
 import { useModalHistory } from "../hooks/useModalHistory";
@@ -43,7 +43,7 @@ export default function FullscreenDateEventsModal({
         const data = isCafe24EventsBackendEnabled
           ? await fetchCafe24Events({ start: selectedDateStr, end: selectedDateStr, limit: 500 })
           : await (async () => {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
               .from("events")
               .select("*")
               .order("time", { ascending: true });

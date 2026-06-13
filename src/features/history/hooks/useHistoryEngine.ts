@@ -5,7 +5,7 @@ import {
     useNodesState,
     useEdgesState
 } from 'reactflow';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { HistoryRFNode, NodeBehavior } from '../types';
 import { mapDbNodeToRFNode } from '../utils/mappers';
 import { projectNodesToView } from '../utils/projection';
@@ -294,7 +294,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             setLoading(true);
 
             // 1. 노드 페칭
-            const { data: nodesData, error: nodesErr } = await supabase
+            const { data: nodesData, error: nodesErr } = await cafe24
                 .from('history_nodes')
                 .select(HISTORY_NODE_SELECT);
             if (nodesErr) {
@@ -303,7 +303,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             }
 
             // 2. 엣지 페칭
-            const { data: edgesData, error: edgeErr } = await supabase
+            const { data: edgesData, error: edgeErr } = await cafe24
                 .from('history_edges')
                 .select('*');
 
@@ -569,7 +569,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 // 리소스 테이블(영상, 문서, 재생목록 등)
                 if (nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id) {
                     const resourceId = nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id;
-                    await supabase.from('learning_resources').update(syncData).eq('id', resourceId);
+                    await cafe24.from('learning_resources').update(syncData).eq('id', resourceId);
                 }
 
                 // 카테고리 테이블 (폴더 등)
@@ -582,7 +582,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         image_url: nodeData.image_url,
                         year: nodeData.year
                     };
-                    await supabase.from('learning_categories').update(categorySync).eq('id', nodeData.linked_category_id);
+                    await cafe24.from('learning_categories').update(categorySync).eq('id', nodeData.linked_category_id);
                 }
             } catch (syncErr) {
                 console.warn('⚠️ [HistoryEngine] Proxy Sync partly failed:', syncErr);
@@ -647,9 +647,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             let result;
 
             if (isNew) {
-                result = await supabase.from('history_nodes').insert(finalData).select(HISTORY_NODE_SELECT).single();
+                result = await cafe24.from('history_nodes').insert(finalData).select(HISTORY_NODE_SELECT).single();
             } else {
-                result = await supabase.from('history_nodes').update(finalData).eq('id', nodeData.id).select(HISTORY_NODE_SELECT).single();
+                result = await cafe24.from('history_nodes').update(finalData).eq('id', nodeData.id).select(HISTORY_NODE_SELECT).single();
             }
 
             if (result.error) {
@@ -698,7 +698,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             setLoading(true);
 
             // 실제로는 DB 트리거 혹은 재귀 쿼리로 처리하는 것이 안전하지만, 클라이언트 로직으로 시뮬레이션
-            const { error } = await supabase.from('history_nodes').delete().in('id', nodeIds);
+            const { error } = await cafe24.from('history_nodes').delete().in('id', nodeIds);
             if (error) throw error;
 
             nodeIds.forEach(id => allNodesRef.current.delete(id));
@@ -725,7 +725,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 const isLeaf = allNodesRef.current.get(id)?.data.node_behavior === 'LEAF';
                 const calculatedZ = action === 'front' ? maxZ + 1 : minZ - 1;
                 const newZ = isLeaf ? Math.max(1, calculatedZ) : 0;
-                const { data, error } = await supabase.from('history_nodes').update({ z_index: newZ }).eq('id', id).select(HISTORY_NODE_SELECT).single();
+                const { data, error } = await cafe24.from('history_nodes').update({ z_index: newZ }).eq('id', id).select(HISTORY_NODE_SELECT).single();
                 if (error) throw error;
                 const updated = mapDbNodeToRFNode(data, {
                     onNavigate: handleNavigate,
@@ -856,7 +856,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 parent_node_id: newParentId ? Number(newParentId) : null
             };
 
-            const { data, error } = await supabase.from('history_nodes').update(dbData).eq('id', node.data.id).select(HISTORY_NODE_SELECT).single();
+            const { data, error } = await cafe24.from('history_nodes').update(dbData).eq('id', node.data.id).select(HISTORY_NODE_SELECT).single();
             if (error) throw error;
 
             const updated = mapDbNodeToRFNode(data, {
@@ -1126,7 +1126,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             // Upsert fails if required fields (title) are missing for potential inserts.
             // Using generic update for existing rows is safer.
             const promises = updates.map(update =>
-                supabase.from('history_nodes').update({
+                cafe24.from('history_nodes').update({
                     position_x: update.position_x,
                     position_y: update.position_y,
                     width: update.width,
@@ -1271,7 +1271,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 label: ''
             };
 
-            const { data, error } = await supabase.from('history_edges').insert(newEdge).select().single();
+            const { data, error } = await cafe24.from('history_edges').insert(newEdge).select().single();
             if (error) throw error;
 
             const flowEdge: Edge = {
@@ -1297,7 +1297,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      */
     const handleUpdateEdge = useCallback(async (edgeId: string, updates: any) => {
         try {
-            const { data, error } = await supabase.from('history_edges').update(updates).eq('id', edgeId).select().single();
+            const { data, error } = await cafe24.from('history_edges').update(updates).eq('id', edgeId).select().single();
             if (error) throw error;
 
             const existing = allEdgesRef.current.get(edgeId);
@@ -1321,7 +1321,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      */
     const handleDeleteEdge = useCallback(async (edgeId: string) => {
         try {
-            const { error } = await supabase.from('history_edges').delete().eq('id', edgeId);
+            const { error } = await cafe24.from('history_edges').delete().eq('id', edgeId);
             if (error) throw error;
 
             allEdgesRef.current.delete(edgeId);
@@ -1398,7 +1398,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             console.log('📡 [HistoryEngine] Requesting Node Insertion:', newNodeData);
 
             // 1. Insert Parent Node
-            const { data: parentData, error } = await supabase.from('history_nodes').insert(newNodeData).select(HISTORY_NODE_SELECT).single();
+            const { data: parentData, error } = await cafe24.from('history_nodes').insert(newNodeData).select(HISTORY_NODE_SELECT).single();
             if (error) throw error;
 
             const updatedParent = mapDbNodeToRFNode(parentData, {
@@ -1415,14 +1415,14 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 console.log('📂 [HistoryEngine] Folder Drop Detected. Expanding children for:', draggedResource.id);
 
                 // Fetch Resources (Videos, Docs, Playlists)
-                const { data: resources } = await supabase
+                const { data: resources } = await cafe24
                     .from('learning_resources')
                     .select('*')
                     .eq('category_id', draggedResource.id)
                     .order('order_index', { ascending: true });
 
                 // Fetch Sub-categories (Folders)
-                const { data: categories } = await supabase
+                const { data: categories } = await cafe24
                     .from('learning_categories')
                     .select('*')
                     .eq('parent_id', draggedResource.id)
@@ -1472,7 +1472,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                             linked_category_id: (!isResourceFolder && (child.itemType === 'general' || child.itemType === 'folder')) ? child.linkedId : null
                         };
 
-                        return supabase.from('history_nodes').insert(childData).select(HISTORY_NODE_SELECT).single();
+                        return cafe24.from('history_nodes').insert(childData).select(HISTORY_NODE_SELECT).single();
                     });
 
                     // Wait for all inserts
@@ -1502,7 +1502,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     allNodesRef.current.set(updatedParent.id, updatedParent);
 
                     // Update DB for parent size
-                    await supabase.from('history_nodes').update({ width: newWidth, height: newHeight }).eq('id', parentData.id);
+                    await cafe24.from('history_nodes').update({ width: newWidth, height: newHeight }).eq('id', parentData.id);
                 }
             }
 

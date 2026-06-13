@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import SocialSubMenu from '../components/SocialSubMenu';
 import './socialcal.css';
 
@@ -37,7 +37,7 @@ export default function SocialCalendarPage() {
       const lastDayStr = lastDay.toISOString().split('T')[0];
 
       // Fetch Integrated Events
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('events')
         .select(`
           id,

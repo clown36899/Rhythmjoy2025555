@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import LocalLoading from '../../../components/LocalLoading';
 import WebzineRenderer from '../../webzine/components/WebzineRenderer';
@@ -45,7 +45,7 @@ const AdminWebzineList = () => {
             const startDate = new Date(year, month - 1, 1, 0, 0, 0).toISOString();
             const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
 
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('webzine_posts')
                 .select('*')
                 .gte('created_at', startDate)

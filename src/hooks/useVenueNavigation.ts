@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useModalNavigation } from './useModalNavigation';
 
 export function useVenueNavigation() {
@@ -15,7 +15,7 @@ export function useVenueNavigation() {
 
         // 2. Robust Path: Check DB for venue type
         try {
-            const { data } = await supabase
+            const { data } = await cafe24
                 .from('social_places')
                 .select('id')
                 .eq('id', venueId)

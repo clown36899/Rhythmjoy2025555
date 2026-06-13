@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import SimpleHeader from '../../../components/SimpleHeader';
 import ImageCropModal from '../../../components/ImageCropModal';
 import '../register/shopreg.css';
@@ -95,7 +95,7 @@ export default function ShoppingEditPage() {
 
         const fetchShopData = async () => {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('shops')
                     .select(`*, featured_items(*)`)
                     .eq('id', shopId)
@@ -226,7 +226,7 @@ export default function ShoppingEditPage() {
         const filePath = `${folder}/${fileName}`;
 
         // Upload the medium-size WebP image (650px, quality 0.8) for better compression
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await cafe24.storage
             .from('images')
             .upload(filePath, resizedImages.medium);
 
@@ -234,7 +234,7 @@ export default function ShoppingEditPage() {
             throw uploadError;
         }
 
-        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+        const { data } = cafe24.storage.from('images').getPublicUrl(filePath);
         return data.publicUrl;
     };
 
@@ -261,7 +261,7 @@ export default function ShoppingEditPage() {
             }
 
             // 1. Update shops table
-            const { error: shopError } = await supabase
+            const { error: shopError } = await cafe24
                 .from('shops')
                 .update({
                     name: shopName,
@@ -275,7 +275,7 @@ export default function ShoppingEditPage() {
 
             // 2. Update featured_items table
             if (itemId) {
-                const { error: itemError } = await supabase
+                const { error: itemError } = await cafe24
                     .from('featured_items')
                     .update({
                         item_name: itemName,
@@ -308,7 +308,7 @@ export default function ShoppingEditPage() {
 
         try {
             // Delete shop (featured_items will be deleted automatically due to CASCADE)
-            const { error: deleteError } = await supabase
+            const { error: deleteError } = await cafe24
                 .from('shops')
                 .delete()
                 .eq('id', shopId);

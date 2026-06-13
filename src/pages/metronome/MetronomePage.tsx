@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './metronome.css';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import type { MetronomePreset } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -485,7 +485,7 @@ const MetronomePage: React.FC = () => {
     }, []);
 
     const fetchAllPresets = async () => {
-        const { data, error } = await supabase
+        const { data, error } = await cafe24
             .from('metronome_presets')
             .select('*')
             .order('created_at', { ascending: false });
@@ -553,7 +553,7 @@ const MetronomePage: React.FC = () => {
 
         setIsSaving(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('metronome_presets')
                 .upsert({
                     user_id: user.id,
@@ -594,7 +594,7 @@ const MetronomePage: React.FC = () => {
         if (!user || !isAdmin) return;
         if (!confirm('정말 삭제하시겠습니까?')) return;
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('metronome_presets')
             .delete()
             .eq('id', id);

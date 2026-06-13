@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import "./BoardUserManagementModal.css"; // Reuse BOUM styles
 import "../pages/admin/secure-members/page.css"; // Reuse custom overrides
@@ -39,7 +39,7 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
     const loadUsers = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('board_users')
                 .select('id, user_id, nickname, email, provider, profile_image, created_at')
                 .order('created_at', { ascending: false });

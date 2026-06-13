@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { StandardBoardPost as BoardPost } from '../../../types/board';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
@@ -60,7 +60,7 @@ export default function PostDetailModal({
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('board_posts')
         .delete()
         .eq('id', post.id);

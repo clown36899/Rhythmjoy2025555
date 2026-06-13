@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import UniversalEditor from '../../../components/UniversalEditor/Core/UniversalEditor';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { resizeImage } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
@@ -122,7 +122,7 @@ export default function QuickMemoEditor({
 
     const loadBannedWords = async () => {
         try {
-            const { data } = await supabase.from('board_banned_words').select('word');
+            const { data } = await cafe24.from('board_banned_words').select('word');
             if (data) setBannedWords(data.map(w => w.word));
         } catch (error) {
             console.error('금지어 로드 실패:', error);
@@ -187,9 +187,9 @@ export default function QuickMemoEditor({
                         const randomString = Math.random().toString(36).substring(2, 10);
                         const fileName = `${timestamp}_${randomString}.webp`;
                         const resizeResult = await resizeImage(blobUrl, 800, 0.8, fileName);
-                        const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
+                        const { error } = await cafe24.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
                         if (error) throw error;
-                        const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
+                        const publicUrl = cafe24.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
                         finalContent = finalContent.replaceAll(blobUrl, publicUrl);
                     }
                 }
@@ -206,9 +206,9 @@ export default function QuickMemoEditor({
                         resizeImage(fileUrl, 650, 0.75, fileName)
                     ]);
                     const uploadImage = async (path: string, file: Blob) => {
-                        const { error } = await supabase.storage.from("images").upload(path, file);
+                        const { error } = await cafe24.storage.from("images").upload(path, file);
                         if (error) throw error;
-                        return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
+                        return cafe24.storage.from("images").getPublicUrl(path).data.publicUrl;
                     };
                     const [thumbUrl, mainUrl] = await Promise.all([
                         retryOperation(() => uploadImage(`board-images/thumbnails/${fileName}`, thumbnail)),
@@ -235,7 +235,7 @@ export default function QuickMemoEditor({
                         updates.image = imageUrls.image;
                         updates.image_thumbnail = imageUrls.image_thumbnail;
                     }
-                    const { error } = await supabase.from('board_anonymous_posts').update(updates).eq('id', editData.id);
+                    const { error } = await cafe24.from('board_anonymous_posts').update(updates).eq('id', editData.id);
                     if (error) throw error;
                     trackActivitySuccess({
                         id: editData.id,
@@ -248,7 +248,7 @@ export default function QuickMemoEditor({
                     alert('관리자 권한으로 메모가 수정되었습니다!');
                 } else {
                     const finalPassword = (providedPassword || password).trim();
-                    const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
+                    const { data: success, error } = await cafe24.rpc('update_anonymous_post_with_password', {
                         p_post_id: editData.id,
                         p_password: finalPassword,
                         p_title: title.trim(),
@@ -270,7 +270,7 @@ export default function QuickMemoEditor({
                     alert('메모가 수정되었습니다!');
                 }
             } else {
-                const { data: insertedMemo, error } = await supabase.from('board_anonymous_posts').insert({
+                const { data: insertedMemo, error } = await cafe24.from('board_anonymous_posts').insert({
                     title: title.trim(),
                     content: finalContent,
                     author_name: nickname,
@@ -319,11 +319,11 @@ export default function QuickMemoEditor({
         setIsSubmitting(true);
         try {
             if (isAdmin) {
-                const { error } = await supabase.from('board_anonymous_posts').delete().eq('id', editData.id);
+                const { error } = await cafe24.from('board_anonymous_posts').delete().eq('id', editData.id);
                 if (error) throw error;
                 alert('관리자 권한으로 메모가 삭제되었습니다.');
             } else {
-                const { data: success, error } = await supabase.rpc('delete_anonymous_post_with_password', {
+                const { data: success, error } = await cafe24.rpc('delete_anonymous_post_with_password', {
                     p_post_id: editData.id,
                     p_password: (providedPassword || password).trim()
                 });

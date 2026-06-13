@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import { DEFAULT_GENRE_WEIGHTS, type GenreWeightSettings } from "../pages/v2/utils/eventListUtils";
 import "./GenreWeightSettingsModal.css";
 
@@ -27,7 +27,7 @@ export default function GenreWeightSettingsModal({ isOpen, onClose }: GenreWeigh
         setIsLoading(true);
         try {
             // 1. Fetch configured weights
-            const settingsPromise = supabase
+            const settingsPromise = cafe24
                 .from('app_settings')
                 .select('value')
                 .eq('key', 'genre_weights')
@@ -35,7 +35,7 @@ export default function GenreWeightSettingsModal({ isOpen, onClose }: GenreWeigh
 
             // 2. Fetch actual genres from events (to be dynamic) - ONLY for 'class' category
             // We fetch all genres to ensure we capture everything currently in use
-            const eventsPromise = supabase
+            const eventsPromise = cafe24
                 .from('events')
                 .select('genre')
                 .eq('category', 'class') // Context: User requested only class genres
@@ -96,7 +96,7 @@ export default function GenreWeightSettingsModal({ isOpen, onClose }: GenreWeigh
         try {
             // Check if row exists first? 
             // Upsert based on unique key
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('app_settings')
                 .upsert({
                     key: 'genre_weights',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from './PlaylistImportModal.module.css';
 
@@ -32,7 +32,7 @@ export const FolderCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('learning_categories').select('*').order('created_at');
+            const { data } = await cafe24.from('learning_categories').select('*').order('created_at');
             if (data) {
                 setCategories(buildTree(data));
             }
@@ -74,14 +74,14 @@ export const FolderCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
             if (!name.trim()) throw new Error('폴더 이름을 입력해주세요.');
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
             // A "Folder" is a learning_resource of type 'general' or a learning_category.
             // In the context of the timeline, we want to create a node. 
             // If the user chooses 'Save to Library', we create a learning_resource (type=general).
 
-            const { data: newResource, error: insertError } = await supabase
+            const { data: newResource, error: insertError } = await cafe24
                 .from('learning_resources')
                 .insert({
                     title: name,

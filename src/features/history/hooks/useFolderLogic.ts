@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { HistoryRFNode } from '../types';
 
 interface UseFolderLogicProps {
@@ -89,7 +89,7 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
             try {
                 if (child.data.linked_video_id || child.data.linked_document_id || child.data.linked_playlist_id) {
                     const resourceId = child.data.linked_video_id || child.data.linked_document_id || child.data.linked_playlist_id;
-                    await supabase.from('learning_resources').update({ order_index: idx }).eq('id', resourceId);
+                    await cafe24.from('learning_resources').update({ order_index: idx }).eq('id', resourceId);
                 }
             } catch (e) {
                 console.error('Failed to update order_index', e);
@@ -97,7 +97,7 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
 
             // Update ReactFlow + DB
             child.position = { x: newX, y: newY };
-            const { error } = await supabase.from('history_nodes')
+            const { error } = await cafe24.from('history_nodes')
                 .update({ position_x: newX, position_y: newY })
                 .eq('id', Number(child.id));
 
@@ -178,7 +178,7 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
 
         // 🔥 Update DB with new Size AND Z-Index (Enforce low z-index for folders)
-        await supabase.from('history_nodes').update({
+        await cafe24.from('history_nodes').update({
             width: newWidth,
             height: newHeight,
             // position_z: -10 // Optional: if DB supports it, otherwise rely on local sorting

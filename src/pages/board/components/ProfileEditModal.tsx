@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { convertToWebP, extractStoragePath } from '../../../utils/imageUtils';
 import './userreg.css'; // Reusing similar styles
 
@@ -187,7 +187,7 @@ export default function ProfileEditModal({
         setNicknameStatus(prev => ({ ...prev, isAvailable: false, message: '확인 중...', checking: true }));
 
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('board_users')
                 .select('user_id')
                 .eq('nickname', name)
@@ -348,7 +348,7 @@ export default function ProfileEditModal({
 
         if (nickname !== currentUser.nickname) {
             // 최종 중복 체크
-            const { data: nameTakenByOther } = await supabase
+            const { data: nameTakenByOther } = await cafe24
                 .from('board_users')
                 .select('user_id')
                 .eq('nickname', nickname.trim())
@@ -387,7 +387,7 @@ export default function ProfileEditModal({
                 // 이미지 삭제가 요청된 경우
                 if (oldImagePath) {
                     console.log('[프로필 이미지] 스토리지에서 삭제', { path: oldImagePath });
-                    const { error: deleteError } = await supabase.storage
+                    const { error: deleteError } = await cafe24.storage
                         .from('images')
                         .remove([oldImagePath]);
 
@@ -405,7 +405,7 @@ export default function ProfileEditModal({
                 // 기존 이미지 삭제
                 if (oldImagePath) {
                     console.log('[프로필 이미지] 기존 이미지 삭제', { path: oldImagePath });
-                    const { error: deleteError } = await supabase.storage
+                    const { error: deleteError } = await cafe24.storage
                         .from('images')
                         .remove([oldImagePath]);
 
@@ -424,7 +424,7 @@ export default function ProfileEditModal({
                 const filePath = `profiles/${fileName}`;
 
                 console.log('[프로필 이미지] 업로드 시작', { filePath });
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError } = await cafe24.storage
                     .from('images')
                     .upload(filePath, webpBlob, {
                         contentType: 'image/webp',
@@ -437,7 +437,7 @@ export default function ProfileEditModal({
                 }
                 console.log('[프로필 이미지] 업로드 성공');
 
-                const { data: { publicUrl } } = supabase.storage
+                const { data: { publicUrl } } = cafe24.storage
                     .from('images')
                     .getPublicUrl(filePath);
 
@@ -449,7 +449,7 @@ export default function ProfileEditModal({
 
             // 2. DB 업데이트 (board_users 테이블)
             // 세션 확인
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await cafe24.auth.getSession();
             console.log('[프로필 저장] 현재 세션 확인', {
                 hasSession: !!session,
                 sessionUserId: session?.user?.id,
@@ -478,7 +478,7 @@ export default function ProfileEditModal({
                 primary_social: safePrimarySocial || null,
             };
 
-            const { error, data, status, statusText } = await supabase
+            const { error, data, status, statusText } = await cafe24
                 .from('board_users')
                 .upsert({
                     user_id: userId,
@@ -528,14 +528,14 @@ export default function ProfileEditModal({
             console.log('[회원 탈퇴] 시작', { userId });
 
             // 1. RPC 호출 (DB 정보 익명화)
-            const { error: rpcError } = await supabase.rpc('handle_user_withdrawal', {
+            const { error: rpcError } = await cafe24.rpc('handle_user_withdrawal', {
                 p_user_id: userId
             });
 
             if (rpcError) throw rpcError;
 
             // 2. 로그아웃 및 세션 정리
-            await supabase.auth.signOut();
+            await cafe24.auth.signOut();
             sessionStorage.clear();
 
             console.log('[회원 탈퇴] 성공');

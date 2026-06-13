@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { SocialGroup as SocialPlace } from '../types';
 import EventRegistrationModal from '../../../components/EventRegistrationModal';
 import './PlaceCalendar.css';
@@ -47,7 +47,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
 
   const loadWeeklySchedules = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('events')
         .select('*')
         .eq('group_id', place.id)
@@ -92,7 +92,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
     if (!password) return;
 
     try {
-      const { data: scheduleData } = await supabase
+      const { data: scheduleData } = await cafe24
         .from('events')
         .select('password')
         .eq('id', schedule.id)
@@ -103,7 +103,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         return;
       }
 
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('events')
         .delete()
         .eq('id', schedule.id);

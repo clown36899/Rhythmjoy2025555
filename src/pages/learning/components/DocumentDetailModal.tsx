@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import './DocumentDetailModal.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import { HistoryContextWidget } from './HistoryContextWidget';
@@ -80,7 +80,7 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode,
         try {
             setLoading(true);
             // 1. Fetch Document (from learning_resources)
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .eq('id', documentId)
@@ -127,7 +127,7 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode,
 
             if (!editTitle.trim()) throw new Error('제목을 입력해주세요.');
 
-            const { data: updatedData, error: updateError } = await supabase
+            const { data: updatedData, error: updateError } = await cafe24
                 .from('learning_resources')
                 .update({
                     title: editTitle,
@@ -168,7 +168,7 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode,
 
         try {
             setIsSaving(true);
-            const { error: deleteError } = await supabase
+            const { error: deleteError } = await cafe24
                 .from('learning_resources')
                 .delete()
                 .eq('id', documentId);

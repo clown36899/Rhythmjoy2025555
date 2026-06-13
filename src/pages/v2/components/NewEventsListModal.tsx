@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { Event as AppEvent } from '../../../lib/cafe24Client';
 import '../../../styles/domains/events.css';
 import '../../../styles/components/NewEventsListModal.css';
@@ -41,7 +41,7 @@ export default function NewEventsListModal({
             const fetchLatestEvents = async () => {
                 try {
                     const today = new Date().toISOString().slice(0, 10);
-                    const { data, error } = await supabase
+                    const { data, error } = await cafe24
                         .from('events')
                         .select('*')
                         .in('category', ['class', 'party', 'event'])

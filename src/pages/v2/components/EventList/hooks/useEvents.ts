@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { supabase } from "../../../../../lib/cafe24Client";
+import { cafe24 } from "../../../../../lib/cafe24Client";
 import { getLocalDateString } from "../../../utils/eventListUtils";
 import type { Event } from "../../../utils/eventListUtils";
 import { mergeEventIntoArray, removeEventFromArray } from "../../../../../utils/eventMutationSync";
@@ -66,7 +66,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
             const columns = "id, title, date, start_date, end_date, time, location, organizer, category, genre, image, created_at, user_id, venue_id, event_dates, description, video_url, organizer_phone, capacity, registered, link1, link2, link3, link_name1, link_name2, link_name3, password, show_title_on_billboard, storage_path, board_users(nickname, profile_image), price, group_id, image_micro, image_thumbnail, image_medium, image_full";
 
             // Querying only 'events' table
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from("events")
                 .select(columns)
                 .or(`date.gte.${cutoffDate},end_date.gte.${cutoffDate}`);
@@ -117,7 +117,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
         }
 
         // Realtime Subscription for events table only
-        const channel = supabase
+        const channel = cafe24
             .channel('events-list-integrated')
             .on(
                 'postgres_changes',
@@ -129,7 +129,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            cafe24.removeChannel(channel);
         };
     }, [fetchEvents]);
 

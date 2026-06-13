@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { convertToWebP } from '../../../utils/imageUtils';
 import styles from './PlaylistImportModal.module.css';
@@ -35,7 +35,7 @@ export const PersonCreateModal = ({ onClose, onSuccess, context: _context }: Pro
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('learning_categories').select('*').order('created_at');
+            const { data } = await cafe24.from('learning_categories').select('*').order('created_at');
             if (data) {
                 setCategories(buildTree(data));
             }
@@ -94,7 +94,7 @@ export const PersonCreateModal = ({ onClose, onSuccess, context: _context }: Pro
             if (!name.trim()) throw new Error('이름을 입력해주세요.');
             if (!categoryId) throw new Error('카테고리를 선택해주세요.');
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
             let imageUrl = null;
@@ -103,7 +103,7 @@ export const PersonCreateModal = ({ onClose, onSuccess, context: _context }: Pro
                 const fileName = `person-${Date.now()}.webp`;
                 const filePath = `persons/${fileName}`;
 
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError } = await cafe24.storage
                     .from('images')
                     .upload(filePath, webpBlob, {
                         contentType: 'image/webp',
@@ -112,13 +112,13 @@ export const PersonCreateModal = ({ onClose, onSuccess, context: _context }: Pro
 
                 if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
+                const { data: { publicUrl } } = cafe24.storage
                     .from('images')
                     .getPublicUrl(filePath);
                 imageUrl = publicUrl;
             }
 
-            const { data: newResource, error: insertError } = await supabase
+            const { data: newResource, error: insertError } = await cafe24
                 .from('learning_resources')
                 .insert({
                     title: name,

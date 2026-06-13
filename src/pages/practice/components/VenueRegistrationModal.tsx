@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import { resizeImage } from "../../../utils/imageResize";
@@ -42,7 +42,7 @@ export default function VenueRegistrationModal({
     const logVenueEdit = async (action: 'created' | 'updated' | 'deleted', venueId: string, venueName: string, changes?: object) => {
         if (!user) return;
         try {
-            await supabase.from('venue_edit_logs').insert({
+            await cafe24.from('venue_edit_logs').insert({
                 venue_id: venueId,
                 venue_name: venueName,
                 user_id: user.id,
@@ -241,7 +241,7 @@ export default function VenueRegistrationModal({
 
     const loadVenueData = async (id: string) => {
         setLoading(true);
-        const { data } = await supabase
+        const { data } = await cafe24
             .from('venues')
             .select('*')
             .eq('id', id)
@@ -366,9 +366,9 @@ export default function VenueRegistrationModal({
 
             // 수정 시 기존 폴더 파일 삭제 (새로 덮어쓰기 위해)
             if (editVenueId) {
-                const { data: oldFiles } = await supabase.storage.from('images').list(folderPath);
+                const { data: oldFiles } = await cafe24.storage.from('images').list(folderPath);
                 if (oldFiles && oldFiles.length > 0) {
-                    await supabase.storage.from('images').remove(oldFiles.map(f => `${folderPath}/${f.name}`));
+                    await cafe24.storage.from('images').remove(oldFiles.map(f => `${folderPath}/${f.name}`));
                 }
             }
 
@@ -382,17 +382,17 @@ export default function VenueRegistrationModal({
 
                 const file = item.file;
                 const fullImage = await resizeImage(file, 700, 0.85, 'image.webp', 'width');
-                const { error: uploadError } = await supabase.storage
+                const { error: uploadError } = await cafe24.storage
                     .from('images')
                     .upload(fullPath, fullImage, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
                 if (uploadError) throw uploadError;
-                const fullUrl = supabase.storage.from('images').getPublicUrl(fullPath).data.publicUrl;
+                const fullUrl = cafe24.storage.from('images').getPublicUrl(fullPath).data.publicUrl;
 
                 if (idx === 0) {
                     const thumbImage = await resizeImage(file, 200, 0.8, 'thumb.webp', 'width');
                     const thumbPath = `${folderPath}/0_thumb.webp`;
-                    await supabase.storage.from('images').upload(thumbPath, thumbImage, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
-                    const thumbUrl = supabase.storage.from('images').getPublicUrl(thumbPath).data.publicUrl;
+                    await cafe24.storage.from('images').upload(thumbPath, thumbImage, { contentType: 'image/webp', cacheControl: '31536000', upsert: true });
+                    const thumbUrl = cafe24.storage.from('images').getPublicUrl(thumbPath).data.publicUrl;
                     return { url: fullUrl, thumb: thumbUrl };
                 }
                 return fullUrl;
@@ -417,7 +417,7 @@ export default function VenueRegistrationModal({
             };
 
             if (editVenueId) {
-                const { error } = await supabase.from('venues').update(payload).eq('id', editVenueId);
+                const { error } = await cafe24.from('venues').update(payload).eq('id', editVenueId);
                 if (error) throw error;
                 await logVenueEdit('updated', editVenueId, payload.name, payload);
                 trackActivitySuccess({
@@ -431,7 +431,7 @@ export default function VenueRegistrationModal({
                 });
                 alert("수정되었습니다.");
             } else {
-                const { data: inserted, error } = await supabase.from('venues').insert([{ ...payload, id: venueId, user_id: user.id }]).select('id').single();
+                const { data: inserted, error } = await cafe24.from('venues').insert([{ ...payload, id: venueId, user_id: user.id }]).select('id').single();
                 if (error) throw error;
                 if (inserted) await logVenueEdit('created', inserted.id, payload.name, payload);
                 trackActivitySuccess({
@@ -466,11 +466,11 @@ export default function VenueRegistrationModal({
             const venueName = formData.name;
             // storage 폴더 삭제
             const folderPath = `venue-images/${editVenueId}`;
-            const { data: files } = await supabase.storage.from('images').list(folderPath);
+            const { data: files } = await cafe24.storage.from('images').list(folderPath);
             if (files && files.length > 0) {
-                await supabase.storage.from('images').remove(files.map(f => `${folderPath}/${f.name}`));
+                await cafe24.storage.from('images').remove(files.map(f => `${folderPath}/${f.name}`));
             }
-            const { error } = await supabase.from('venues').delete().eq('id', editVenueId);
+            const { error } = await cafe24.from('venues').delete().eq('id', editVenueId);
             if (error) throw error;
             await logVenueEdit('deleted', editVenueId, venueName);
             alert("삭제되었습니다.");

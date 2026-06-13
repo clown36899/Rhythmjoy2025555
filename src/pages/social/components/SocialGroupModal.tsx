@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
@@ -141,7 +141,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         setLoadingMessage('삭제 중...');
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await cafe24.auth.getSession();
             const token = session?.access_token;
 
             const response = await fetch('/api/delete-social-item', {
@@ -223,12 +223,12 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
                 const uploadImage = async (size: string, blob: Blob) => {
                     const path = `${basePath}/${size}.webp`;
-                    const { error } = await supabase.storage.from('images').upload(path, blob, {
+                    const { error } = await cafe24.storage.from('images').upload(path, blob, {
                         contentType: 'image/webp',
                         upsert: true
                     });
                     if (error) throw error;
-                    return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                    return cafe24.storage.from('images').getPublicUrl(path).data.publicUrl;
                 };
 
                 const [microUrl, thumbUrl, medUrl, fullUrl] = await Promise.all([
@@ -275,11 +275,11 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             let result;
             if (editGroup) {
                 const request = canEditWithoutPassword
-                    ? supabase
+                    ? cafe24
                         .from('social_groups')
                         .update(groupData)
                         .eq('id', editGroup.id)
-                    : supabase.rpc('update_social_group_with_password', {
+                    : cafe24.rpc('update_social_group_with_password', {
                         p_group_id: editGroup.id,
                         p_password: password.trim(),
                         p_updates: groupData,
@@ -288,7 +288,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 if (error) throw error;
                 result = { ...editGroup, ...groupData };
             } else {
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('social_groups')
                     .insert([groupData])
                     .select()

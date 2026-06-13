@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../../../lib/cafe24Client';
+import { cafe24 } from '../../../../../lib/cafe24Client';
 
 export interface HomeSectionVisibility {
     show_new_events_banner: boolean;
@@ -23,7 +23,7 @@ export function useHomeSectionVisibility() {
     const [visibility, setVisibility] = useState<HomeSectionVisibility>(DEFAULT_HOME_SECTION_VISIBILITY);
 
     useEffect(() => {
-        supabase
+        cafe24
             .from('app_settings')
             .select('value')
             .eq('key', 'home_section_visibility')

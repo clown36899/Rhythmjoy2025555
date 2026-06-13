@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import type { RealtimeChannel } from '../lib/cafe24ClientTypes';
 
@@ -102,7 +102,7 @@ export function useOnlinePresence() {
 
             if (!globalPresenceChannel) {
                 // console.log('[Presence] 🛰️ 채널 생성');
-                globalPresenceChannel = supabase.channel('online-users');
+                globalPresenceChannel = cafe24.channel('online-users');
 
                 globalPresenceChannel
                     .on('presence', { event: 'sync' }, () => notifyListeners())
@@ -129,7 +129,7 @@ export function useOnlinePresence() {
                 // console.log('[Presence] 🔌 채널 연결 해제');
                 // 페이지 이동 시에도 연결을 끊도록 수정
                 globalPresenceChannel.unsubscribe();
-                supabase.removeChannel(globalPresenceChannel);
+                cafe24.removeChannel(globalPresenceChannel);
                 globalPresenceChannel = null;
                 setIsSubscribed(false);
                 lastTrackedRef.current = null; // 트래킹 상태 초기화

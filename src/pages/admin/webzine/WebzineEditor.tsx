@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import LocalLoading from '../../../components/LocalLoading';
 import './WebzineEditor.css';
@@ -208,9 +208,9 @@ const WebzineEditor = () => {
             try {
                 // Load User Data for MyImpactCard
                 const [eventsRes, postsRes, userRes] = await Promise.all([
-                    supabase.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
-                    supabase.from('board_users').select('profile_image, nickname').eq('user_id', user.id).maybeSingle()
+                    cafe24.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                    cafe24.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
+                    cafe24.from('board_users').select('profile_image, nickname').eq('user_id', user.id).maybeSingle()
                 ]);
 
                 if (!active) return;
@@ -232,7 +232,7 @@ const WebzineEditor = () => {
                 // Editor Logic
                 if (!id) {
                     console.log('[WebzineEditor] Creating new draft...');
-                    const { data, error } = await supabase
+                    const { data, error } = await cafe24
                         .from('webzine_posts')
                         .insert({
                             title: '(제목 없음)',
@@ -252,7 +252,7 @@ const WebzineEditor = () => {
                 }
 
                 console.log('[WebzineEditor] Fetching post:', id);
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('webzine_posts')
                     .select('*')
                     .eq('id', id)
@@ -313,7 +313,7 @@ const WebzineEditor = () => {
                 updated_at: new Date().toISOString()
             };
 
-            const { error } = await supabase.from('webzine_posts').update(updates).eq('id', id);
+            const { error } = await cafe24.from('webzine_posts').update(updates).eq('id', id);
             if (error) throw error;
 
             if (publishOverride !== undefined) {
@@ -413,7 +413,7 @@ const WebzineEditor = () => {
 
             const updatedAttachedImages = [...currentAttachedImages, newImageInfo];
 
-            const { error: updateError } = await supabase
+            const { error: updateError } = await cafe24
                 .from('webzine_posts')
                 .update({ attached_images: updatedAttachedImages })
                 .eq('id', id);

@@ -32,7 +32,6 @@ const TAP_MAX_DURATION_MS = 700;
 const SYNTHETIC_CLICK_SUPPRESS_MS = 700;
 const MENU_ACTION_ANIMATION_MS = 130;
 const SYSTEM_GESTURE_EDGE_GUARD_PX = 80;
-const VISUAL_VIEWPORT_INSET_MAX_PX = 96;
 
 type GestureStart = {
     x: number;
@@ -316,34 +315,6 @@ export const HomeV2MenuPanel: React.FC = () => {
             panelTouchGestureStartRef.current = null;
         }
     }, [applyPanelGesture, isModalGestureBlocked]);
-
-    useEffect(() => {
-        const root = document.documentElement;
-
-        const syncVisualViewportInset = () => {
-            const viewport = window.visualViewport;
-            const rawBottomInset = viewport
-                ? window.innerHeight - viewport.height - viewport.offsetTop
-                : 0;
-            const bottomInset = Math.min(
-                VISUAL_VIEWPORT_INSET_MAX_PX,
-                Math.max(0, Math.round(rawBottomInset)),
-            );
-            root.style.setProperty("--home-v2-visual-bottom-inset", `${bottomInset}px`);
-        };
-
-        syncVisualViewportInset();
-        window.visualViewport?.addEventListener("resize", syncVisualViewportInset);
-        window.visualViewport?.addEventListener("scroll", syncVisualViewportInset);
-        window.addEventListener("resize", syncVisualViewportInset);
-
-        return () => {
-            window.visualViewport?.removeEventListener("resize", syncVisualViewportInset);
-            window.visualViewport?.removeEventListener("scroll", syncVisualViewportInset);
-            window.removeEventListener("resize", syncVisualViewportInset);
-            root.style.removeProperty("--home-v2-visual-bottom-inset");
-        };
-    }, []);
 
     useEffect(() => {
         return () => {

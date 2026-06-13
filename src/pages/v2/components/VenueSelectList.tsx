@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import LocalLoading from '../../../components/LocalLoading';
 import type { ImageObject } from '../../../utils/getEventThumbnail';
 import './VenueSelectList.css';
@@ -36,7 +36,7 @@ export default function VenueSelectList({ activeCategory, onVenueClick }: VenueS
         setLoading(true);
         try {
             // 원본(PracticeRoomList)과 동일하게 display_order로 정렬
-            let query = supabase
+            let query = cafe24
                 .from('venues')
                 .select('*')
                 .eq('is_active', true)

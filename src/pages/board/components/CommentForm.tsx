@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardComment } from '../../../lib/cafe24Client';
 import './comment.css';
@@ -27,7 +27,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
     // Load banned words
     useEffect(() => {
         const loadBannedWords = async () => {
-            const { data } = await supabase.from('board_banned_words').select('word');
+            const { data } = await cafe24.from('board_banned_words').select('word');
             if (data) setBannedWords(data.map(w => w.word));
         };
         loadBannedWords();
@@ -88,7 +88,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                 // Update existing comment
                 if (category === 'anonymous') {
                     if (isAdmin) {
-                        const { data: adminData, error: adminError } = await supabase
+                        const { data: adminData, error: adminError } = await cafe24
                             .from(table)
                             .update({
                                 content: content.trim(),
@@ -100,7 +100,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         resultComment = adminData ? adminData[0] : null;
                     } else {
                         // User update: Use RPC to bypass RLS with password
-                        const { data: success, error: rpcError } = await supabase.rpc('update_anonymous_comment_with_password', {
+                        const { data: success, error: rpcError } = await cafe24.rpc('update_anonymous_comment_with_password', {
                             p_comment_id: editingComment.id,
                             p_password: finalPassword,
                             p_content: content.trim(),
@@ -115,7 +115,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         }
 
                         // Fetch updated comment for local UI update
-                        const { data: updated } = await supabase
+                        const { data: updated } = await cafe24
                             .from(table)
                             .select('*')
                             .eq('id', editingComment.id)
@@ -123,7 +123,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         resultComment = updated;
                     }
                 } else {
-                    const { data, error } = await supabase
+                    const { data, error } = await cafe24
                         .from(table)
                         .update({ content: content.trim() })
                         .eq('id', editingComment.id)
@@ -147,7 +147,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                     commentData.password = null;
                 }
 
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from(table)
                     .insert(commentData)
                     .select();

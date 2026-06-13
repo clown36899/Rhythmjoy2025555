@@ -1,4 +1,4 @@
-import { supabase } from './cafe24Client';
+import { cafe24 } from './cafe24Client';
 
 /**
  * PWA 푸시 알림 유틸리티 함수들
@@ -110,13 +110,13 @@ export const getPushSubscription = async (): Promise<PushSubscription | null> =>
  * [New] 서버에 해당 유저의 구독 정보가 실제로 존재하는지 확인
  */
 export const verifySubscriptionOwnership = async (): Promise<boolean> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await cafe24.auth.getUser();
     if (!user) return false;
 
     const sub = await getPushSubscription();
     if (!sub || !sub.endpoint) return false;
 
-    const { count, error } = await supabase
+    const { count, error } = await cafe24
         .from('user_push_subscriptions')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
@@ -160,7 +160,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
 };
 
 export const saveSubscriptionToDataStore = async (subscription: PushSubscription, prefs?: PushPreferences) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await cafe24.auth.getUser();
     if (!user) return; // Must be logged in
 
     // Get Endpoint (Unique Device ID)
@@ -171,7 +171,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
     let savedDevicePrefs: PushPreferences | null = null;
     try {
         const currentUA = navigator.userAgent;
-        const { data: oldSubs } = await supabase
+        const { data: oldSubs } = await cafe24
             .from('user_push_subscriptions')
             .select('id, endpoint, user_agent, updated_at, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
@@ -207,7 +207,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
 
                 const oldIds = sameDeviceSubs.map(s => s.id);
                 pushDebug(`[Push] Cleaning ${oldIds.length} old subscription(s) for same device (${currentDevice})`);
-                await supabase
+                await cafe24
                     .from('user_push_subscriptions')
                     .delete()
                     .in('id', oldIds);
@@ -239,7 +239,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
     pushDebug('[Push] Saving subscription. Is Admin?', isAdmin);
 
     // Use RPC to safely upsert based on endpoint
-    const { error } = await supabase.rpc('handle_push_subscription', {
+    const { error } = await cafe24.rpc('handle_push_subscription', {
         p_endpoint: endpoint,
         p_subscription: subscription,
         p_user_agent: navigator.userAgent,
@@ -269,13 +269,13 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
 }
 
 export const updatePushPreferences = async (prefs: PushPreferences) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await cafe24.auth.getUser();
     if (!user) return false;
 
     const sub = await getPushSubscription();
     if (!sub || !sub.endpoint) return false;
 
-    const { error } = await supabase
+    const { error } = await cafe24
         .from('user_push_subscriptions')
         .update({
             pref_events: prefs.pref_events,
@@ -301,7 +301,7 @@ export const updatePushPreferences = async (prefs: PushPreferences) => {
  */
 export async function getPushPreferences(): Promise<PushPreferences | null> {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await cafe24.auth.getUser();
         if (!user) return null;
 
         const sub = await getPushSubscription();
@@ -309,7 +309,7 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
             return null;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await cafe24
             .from('user_push_subscriptions')
             .select('pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
@@ -371,9 +371,9 @@ export async function unsubscribeFromPush(): Promise<boolean> {
         }
 
         // 서버에서도 구독 정보 삭제
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await cafe24.auth.getUser();
         if (user) {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('user_push_subscriptions')
                 .delete()
                 .eq('user_id', user.id)

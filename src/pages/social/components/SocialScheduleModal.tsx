@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import { trackActivitySuccess } from '../../../utils/analyticsEvents';
@@ -200,7 +200,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         const targetGroupId = groupId && groupId !== -1 ? groupId : editSchedule?.group_id;
         if (isOpen && targetGroupId && targetGroupId !== -1) {
             const fetchRecruitInfo = async () => {
-                const { data } = await supabase
+                const { data } = await cafe24
                     .from('social_groups')
                     .select('recruit_content, recruit_contact, recruit_link, recruit_image')
                     .eq('id', targetGroupId)
@@ -286,7 +286,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         try {
             const targetId = String(editSchedule.id).replace('social-', '');
 
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('events')
                 .delete()
                 .eq('id', targetId);
@@ -353,12 +353,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
                     const uploadImage = async (size: string, blob: Blob) => {
                         const path = `${storagePath}/${size}.webp`;
-                        const { error } = await supabase.storage.from('images').upload(path, blob, {
+                        const { error } = await cafe24.storage.from('images').upload(path, blob, {
                             contentType: 'image/webp',
                             upsert: true
                         });
                         if (error) throw error;
-                        return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                        return cafe24.storage.from('images').getPublicUrl(path).data.publicUrl;
                     };
 
                     const [microUrl, thumbUrl, medUrl, fullUrl] = await Promise.all([
@@ -418,7 +418,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 // 3. Save
                 if (editSchedule) {
                     const targetId = String(editSchedule.id).replace('social-', '');
-                    const { data, error } = await supabase
+                    const { data, error } = await cafe24
                         .from('events')
                         .update(eventData)
                         .eq('id', targetId)
@@ -457,7 +457,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         onSuccess();
                     }
                 } else {
-                    const { data, error } = await supabase
+                    const { data, error } = await cafe24
                         .from('events')
                         .insert([eventData])
                         .select()
@@ -531,13 +531,13 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     const rand = Math.random().toString(36).substring(2, 7);
                     const path = `social-groups/${groupId}/recruit/${timestamp}_${rand}.webp`;
 
-                    const { error: uploadError } = await supabase.storage.from('images').upload(path, resized.medium, {
+                    const { error: uploadError } = await cafe24.storage.from('images').upload(path, resized.medium, {
                         contentType: 'image/webp',
                         upsert: true
                     });
                     if (uploadError) throw uploadError;
 
-                    imageUrl = supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                    imageUrl = cafe24.storage.from('images').getPublicUrl(path).data.publicUrl;
                 }
 
                 const recruitUpdates = {
@@ -548,12 +548,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 };
 
                 const request = groupPassword
-                    ? supabase.rpc('update_social_group_with_password', {
+                    ? cafe24.rpc('update_social_group_with_password', {
                         p_group_id: groupId,
                         p_password: groupPassword,
                         p_updates: recruitUpdates,
                     })
-                    : supabase
+                    : cafe24
                         .from('social_groups')
                         .update(recruitUpdates)
                         .eq('id', groupId);
@@ -565,7 +565,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 alert('모집 공고가 저장되었습니다.');
 
                 // Fetch latest group data to pass to onSuccess
-                const { data: updatedGroup } = await supabase
+                const { data: updatedGroup } = await cafe24
                     .from('social_groups')
                     .select('*')
                     .eq('id', groupId)

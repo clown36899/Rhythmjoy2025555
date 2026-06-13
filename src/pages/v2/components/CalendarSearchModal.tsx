@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { Event } from '../../../lib/cafe24Client';
 import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
 import { mergeEventIntoArray, removeEventFromArray } from '../../../utils/eventMutationSync';
@@ -134,7 +134,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
         setLoading(true);
         try {
             // Always fetch events
-            const { data: eventsData, error: eventsError } = await supabase
+            const { data: eventsData, error: eventsError } = await cafe24
                 .from('events')
                 .select('id, title, date, start_date, end_date, location, organizer, category, image, image_thumbnail, image_micro, description')
                 .order('date', { ascending: true });
@@ -147,7 +147,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
 
             // Fetch practice rooms and shopping only if searchMode is 'all'
             if (searchMode === 'all') {
-                const { data: practiceData, error: practiceError } = await supabase
+                const { data: practiceData, error: practiceError } = await cafe24
                     .from('venues')
                     .select('id, name, address, description, images')
                     .eq('category', '연습실')
@@ -163,7 +163,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                     setPracticeRooms(processedPractice);
                 }
 
-                const { data: shoppingData, error: shoppingError } = await supabase
+                const { data: shoppingData, error: shoppingError } = await cafe24
                     .from('shops')
                     .select('id, name, description, logo_url')
                     .order('name', { ascending: true });
@@ -177,7 +177,7 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                 }
 
                 // Fetch board posts
-                const { data: postsData, error: postsError } = await supabase
+                const { data: postsData, error: postsError } = await cafe24
                     .from('board_posts')
                     .select('id, title, content, author_nickname, created_at')
                     .order('created_at', { ascending: false })

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import MyImpactCard from '../../user/components/MyImpactCard';
 import type { Event as Cafe24Event } from '../../../lib/cafe24Client';
 import type { StandardBoardPost } from '../../../types/board';
@@ -84,11 +84,11 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
         setLoading(true);
         try {
             const [eventsRes, postsRes, userRes, favEventsRes, favPostsRes] = await Promise.all([
-                supabase.from('events').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', userId).order('created_at', { ascending: false }),
-                supabase.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle(),
-                supabase.from('event_favorites').select('events(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
-                supabase.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
+                cafe24.from('events').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                cafe24.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', userId).order('created_at', { ascending: false }),
+                cafe24.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle(),
+                cafe24.from('event_favorites').select('events(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
+                cafe24.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
             ]);
 
             if (eventsRes.data) setEvents(eventsRes.data);

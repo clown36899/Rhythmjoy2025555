@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 
 export interface BillboardData {
     loading: boolean;
@@ -111,7 +111,7 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
             }
 
             // 1. Fetch Events (Supply)
-            const { data: events, error: eError } = await supabase
+            const { data: events, error: eError } = await cafe24
                 .from('events')
                 .select('id, title, start_date, created_at, category')
                 .gte('start_date', eventStartStr)
@@ -120,7 +120,7 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
             if (eError) throw eError;
 
             // 2. RPC를 통한 분석 데이터 페칭
-            const { data: rpcData, error: rpcError } = await supabase
+            const { data: rpcData, error: rpcError } = await cafe24
                 .rpc('get_monthly_webzine_stats', {
                     p_start_date: startStr,
                     p_end_date: endStr

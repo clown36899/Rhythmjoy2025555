@@ -37,7 +37,7 @@
 - **동기화**: repo의 최신 `scripts/run-ingestion.sh`를 실제 LaunchAgent 대상 `/Users/inteyeo/scripts/run-ingestion.sh`로 재동기화했고 `cmp`로 동일함을 확인했다.
 
 ### 2026-05-28 02:12 수집 안정화 후속 점검
-- **BAT SWING 제외 강화**: 기존에는 `batswing.co.kr`만 제외했으나, 구버전 스크래퍼와 사람이 만든 후보에서 `instagram.com/batswing2003`가 들어올 수 있어 제외 규칙을 URL 패턴 기준으로 확장했다. Netlify `scraped-events` 저장 API, `collection-registry`, daily source guard, 테스트 모두 같은 기준으로 맞춤.
+- **BAT SWING 제외 강화**: 기존에는 `batswing.co.kr`만 제외했으나, 구버전 스크래퍼와 사람이 만든 후보에서 `instagram.com/batswing2003`가 들어올 수 있어 제외 규칙을 URL 패턴 기준으로 확장했다. Cafe24 `scraped-events` 저장 API, `collection-registry`, daily source guard, 테스트 모두 같은 기준으로 맞춤.
 - **구버전 스크래퍼 차단**: `scripts/scrape-events.mjs`와 deprecated `event-ingestion` 스크립트는 기본 실행 시 78 코드로 종료되게 막았다. 현재 수집 기준은 `web-search-ingestion` + `scripts/run-ingestion.sh` + `collection-registry`만 유효하다.
 - **운영 DB 확인**: 운영 `scraped_events`는 총 60건이며 완료 미래/오늘 24건, 완료 과거 0건, 중복 8건, BAT 후보 0건으로 확인했다. 운영 `events`는 오늘 포함 미래 `date` 기준 36건이며 현재 운영 반영된 타장르 이벤트는 0건이다.
 - **인제스터 조회 보정**: `/admin/v2/ingestor` 조회 API가 `structured_data.date >= 오늘(KST)` 조건을 기본 적용하도록 조정했다. 서버 기준 탭 카운트는 신규 8, 완료 24, 중복 8로 확인했다. 과거 미처리 후보는 신규 탭에서 숨겨진다.
@@ -51,7 +51,7 @@
   - 신규 후보 3건: 봉천살롱 2026-06-04 정기 소셜, SNL Jazz Social 시즌8 4회차, 해피홀 5월 마지막주 금햎 DJ 메이저.
   - 완료/이미수집 3건: 경성홀 2026-05-30, 2026-05-31, 2026-06-02.
   - 중복 2건: 봉천살롱 2026-05-28, 해피홀/SNL 2026-05-30. 중복 탭 검증용으로 유지.
-  - 오수집 1건(`경성홀 deladonghyunyoo`, RSF 얼리버드/마감일 오인식)은 Netlify DELETE로 제거했고 연결 Storage 이미지도 삭제됨.
+  - 오수집 1건(`경성홀 deladonghyunyoo`, RSF 얼리버드/마감일 오인식)은 Cafe24 삭제 경로로 제거했고 연결 업로드 이미지도 삭제됨.
 - **과거 완료 데이터 정리**: candidates=0 / deleted=0. 재확인 결과 `is_collected=true AND structured_data.date < 2026-05-28` 잔여 0건.
 - **원인**: 실제 수집 뒤 추가 DB 검증/수동 보정/`INGESTION_STATUS.md` 갱신까지 nested Codex가 계속 수행하면서 summary 블록 출력이 늦어짐. 래퍼는 의도대로 timeout/프로세스 정리/실패 알림까지 수행했다.
 - **조치**:
@@ -343,7 +343,7 @@
 | 실행 스크립트 | `/Users/inteyeo/scripts/run-ingestion.sh` | ✅ Codex 실행 + watchdog + cleanup 로그 |
 | 수집 스킬 | `/Users/inteyeo/Rhythmjoy2025555-5/.agents/skills/web-search-ingestion/SKILL.md` | ✅ 존재 |
 | 실행 로그 | `/Users/inteyeo/claude_ingestion.log` | ✅ 기록 중 |
-| 데이터 저장소 | Supabase `scraped_events` 테이블 (REST API) | ✅ 정상 |
+| 데이터 저장소 | Cafe24 `scraped_events` 저장 API 및 로컬 업로드 | ✅ 정상 |
 
 ### 실행 흐름
 ```
@@ -354,8 +354,8 @@ LaunchAgent (매일 08:00)
   → cleanup-past-collected.mjs: 과거 완료 데이터 대상 JSON 기록 후 삭제
   → codex --search exec (Web Search Ingestion V2 지침)
     → 인스타그램/네이버카페 스크랩 (Playwright browser → 봇판정 방지)
-    → 이미지 Supabase Storage 업로드
-    → Netlify scraped-events 함수로 후보 저장/중복 처리
+    → 이미지 로컬 업로드로 치환 또는 저장
+    → Cafe24 `/api/scraped-events`로 후보 저장/중복 처리
   → Telegram: 수집 완료/실패 알림 (exit code 기반)
 ```
 

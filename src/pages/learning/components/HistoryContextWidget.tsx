@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import './HistoryContextWidget.css';
 
 interface HistoryNode {
@@ -33,7 +33,7 @@ export const HistoryContextWidget = ({ year }: Props) => {
             const decadeStart = Math.floor(year! / 10) * 10;
             const decadeEnd = decadeStart + 9;
 
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('history_nodes')
                 .select('*')
                 .gte('year', decadeStart)

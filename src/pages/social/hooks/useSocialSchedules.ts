@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { UnifiedSocialEvent } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -43,7 +43,7 @@ export function useSocialSchedules() {
                 setTimeout(() => reject(new Error('데이터 로딩 시간 초과 (10초)')), 10000)
             );
 
-            const fetchPromise = supabase
+            const fetchPromise = cafe24
                 .from('events')
                 .select(`
           id, title, date, time,

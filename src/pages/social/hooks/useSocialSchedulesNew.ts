@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { SocialSchedule } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -51,7 +51,7 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
         board_users(nickname)
       `;
 
-            let query = supabase.from('events').select(selectFields);
+            let query = cafe24.from('events').select(selectFields);
 
             if (groupId) {
                 query = query.eq('group_id', groupId);

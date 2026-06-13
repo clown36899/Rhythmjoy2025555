@@ -43,7 +43,7 @@
 /learning/:listId  (상세 학습 뷰/플레이어)
 ```
 
-### 3.2. 데이터베이스 설계 (Supabase)
+### 3.2. 데이터베이스 설계 (Cafe24)
 새로운 테이블 2개를 신설하여 유기적으로 관리합니다.
 
 **1) `learning_playlists` (학습 코스/목록)**
@@ -67,7 +67,7 @@
 ### 3.3. 기술 스택
 - **Frontend**: React, React Router, YouTube IFrame API (기존 `billboard` 로직 재사용 및 경량화)
 - **Styling**: Vanilla CSS (기존 디자인 시스템 계승하되, 학습에 집중할 수 있는 깔끔한 테마 적용)
-- **Backend**: Supabase (PostgreSQL)
+- **Backend**: Cafe24 데이터베이스 및 서버 API
 
 ## 4. 단계별 구현 계획 (Roadmap)
 

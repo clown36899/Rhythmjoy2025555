@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import './VideoThumbnailSection.css';
 
 interface VideoThumbnail {
@@ -39,7 +39,7 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
             try {
                 // Revert to learning_resources as learning_videos table is missing (404)
 
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('learning_resources')
                     .select('*')
                     .eq('type', 'video')

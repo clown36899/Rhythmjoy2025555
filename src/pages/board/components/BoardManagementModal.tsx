@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import LocalLoading from '../../../components/LocalLoading';
 import './BoardManagementModal.css'; // Use dedicated CSS
 
@@ -46,7 +46,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
     const loadCategories = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('board_categories')
                 .select('*')
                 .order('display_order', { ascending: true });
@@ -72,7 +72,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
             : 0;
 
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_categories')
                 .insert({
                     code: newCode,
@@ -98,7 +98,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
 
     const handleToggleActive = async (code: string, currentStatus: boolean) => {
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_categories')
                 .update({ is_active: !currentStatus })
                 .eq('code', code);
@@ -123,7 +123,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
     const handleNameChange = async (code: string, newName: string) => {
         if (!newName.trim()) return;
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_categories')
                 .update({ name: newName })
                 .eq('code', code);
@@ -167,8 +167,8 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
 
         try {
             await Promise.all([
-                supabase.from('board_categories').update({ display_order: targetCat.display_order }).eq('code', currentCat.code),
-                supabase.from('board_categories').update({ display_order: currentCat.display_order }).eq('code', targetCat.code)
+                cafe24.from('board_categories').update({ display_order: targetCat.display_order }).eq('code', currentCat.code),
+                cafe24.from('board_categories').update({ display_order: currentCat.display_order }).eq('code', targetCat.code)
             ]);
 
             if (onUpdate) onUpdate();
@@ -193,7 +193,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
         }
 
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_categories')
                 .delete()
                 .eq('code', code);

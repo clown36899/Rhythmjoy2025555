@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardDetail } from '../hooks/useBoardDetail';
 import UniversalPostEditor from './UniversalPostEditor';
@@ -42,7 +42,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                 return;
             }
             try {
-                const { data } = await supabase
+                const { data } = await cafe24
                     .from('board_users')
                     .select('nickname, profile_image')
                     .eq('user_id', user.id)

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { applyEventMutationToQueryCache } from '../utils/eventMutationSync';
 
 export const useRealtimeSync = () => {
@@ -8,7 +8,7 @@ export const useRealtimeSync = () => {
 
     useEffect(() => {
         // Events 테이블 구독
-        const eventsChannel = supabase
+        const eventsChannel = cafe24
             .channel('events-changes')
             .on('postgres_changes', {
                 event: '*',
@@ -61,7 +61,7 @@ export const useRealtimeSync = () => {
         window.addEventListener('eventDeleted', handleEventDeleted);
 
         return () => {
-            supabase.removeChannel(eventsChannel);
+            cafe24.removeChannel(eventsChannel);
             window.removeEventListener('eventUpdated', handleEventUpdated);
             window.removeEventListener('eventCreated', handleEventCreated);
             window.removeEventListener('eventDeleted', handleEventDeleted);

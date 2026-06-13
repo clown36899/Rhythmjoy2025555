@@ -1,4 +1,4 @@
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { createResizedImages } from './imageResize';
 
 export interface WebzineUploadResult {
@@ -20,12 +20,12 @@ export async function uploadWebzineImage(
     const resized = await createResizedImages(file);
 
     const uploadOne = async (path: string, fileBlob: File): Promise<string> => {
-        const { error } = await supabase.storage.from('images').upload(path, fileBlob, {
+        const { error } = await cafe24.storage.from('images').upload(path, fileBlob, {
             cacheControl: '31536000',
             contentType: fileBlob.type,
         });
         if (error) throw error;
-        return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+        return cafe24.storage.from('images').getPublicUrl(path).data.publicUrl;
     };
 
     onProgress?.('이미지 업로드 중...');
@@ -40,9 +40,9 @@ export async function uploadWebzineImage(
 }
 
 export async function deleteWebzineImageFolder(folderPath: string): Promise<void> {
-    const { data: files } = await supabase.storage.from('images').list(folderPath);
+    const { data: files } = await cafe24.storage.from('images').list(folderPath);
     if (files && files.length > 0) {
         const filePaths = files.map(f => `${folderPath}/${f.name}`);
-        await supabase.storage.from('images').remove(filePaths);
+        await cafe24.storage.from('images').remove(filePaths);
     }
 }

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 
 export interface StatItem {
     type: '강습' | '행사' | '동호회 이벤트+소셜';
@@ -247,7 +247,7 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
         statsDebug(`[Stats#${instanceId.current}] loadServerCache: DB에서 캐시 로드 시도`);
         serverCachePromise = (async () => {
             try {
-                const { data } = await supabase
+                const { data } = await cafe24
                     .from('metrics_cache')
                     .select('value')
                     .eq('key', 'scene_analytics_v3')
@@ -288,7 +288,7 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
         statsDebug(`[Stats#${instanceId.current}] 수동 갱신 시작`);
         setRefreshing(true);
         try {
-            const { error } = await supabase.rpc('refresh_site_stats_index');
+            const { error } = await cafe24.rpc('refresh_site_stats_index');
             if (error) throw error;
             statsDebug(`[Stats#${instanceId.current}] refresh_site_stats_index 완료`);
             if (shouldUseStatsFunction()) {

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 import type { Event as AppEvent } from "../../../lib/cafe24Client";
 
 const getSafeRect = (element: Element | null | undefined) => {
@@ -94,7 +94,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
 
             const loadEventAndScroll = async () => {
                 try {
-                    const { data: event } = await supabase
+                    const { data: event } = await cafe24
                         .from("events")
                         .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,genre,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at,user_id,venue_id,venue_name,venue_custom_link,scope,group_id")
                         .eq("id", id)

@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 
 // Components
 import LocalLoading from "../../../components/LocalLoading";
@@ -178,7 +178,7 @@ const EventList: React.FC<EventListProps> = ({
 
   // 3.7 Realtime Subscription to sync data immediately
   useEffect(() => {
-    const channel = supabase
+    const channel = cafe24
       .channel('v2-event-list-sync')
       .on(
         'postgres_changes',
@@ -190,7 +190,7 @@ const EventList: React.FC<EventListProps> = ({
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      cafe24.removeChannel(channel);
     };
   }, [fetchEvents]);
 

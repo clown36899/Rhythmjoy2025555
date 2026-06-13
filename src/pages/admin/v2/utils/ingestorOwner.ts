@@ -2,10 +2,10 @@ import type { Cafe24Client } from '../../../../lib/cafe24ClientTypes';
 
 let cachedOwnerUserId: string | null = null;
 
-export async function getIngestorOwnerUserId(supabase: Cafe24Client): Promise<string> {
+export async function getIngestorOwnerUserId(cafe24: Cafe24Client): Promise<string> {
   if (cachedOwnerUserId) return cachedOwnerUserId;
 
-  const { data: admins, error: adminError } = await supabase
+  const { data: admins, error: adminError } = await cafe24
     .from('board_admins' as never)
     .select('user_id')
     .order('created_at', { ascending: true })

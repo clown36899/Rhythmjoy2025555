@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import "./AdminAppStatusModal.css";
 
@@ -70,7 +70,7 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
     const loadPwaInstalls = async () => {
         try {
             setPwaLoading(true);
-            const { data: installData, error: installError } = await supabase
+            const { data: installData, error: installError } = await cafe24
                 .from('pwa_installs')
                 .select('*')
                 .not('user_id', 'is', null) // [Fix] 비회원 데이터는 쿼리 단계에서 차단
@@ -81,8 +81,8 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
             const userIds = [...new Set(installData.map(i => i.user_id).filter((id): id is string => !!id))];
 
             const [{ data: profiles }, { data: pushData }] = await Promise.all([
-                supabase.from('board_users').select('user_id, nickname, profile_image').in('user_id', userIds),
-                supabase.from('user_push_subscriptions').select('user_id, pref_events, pref_class, pref_clubs').in('user_id', userIds)
+                cafe24.from('board_users').select('user_id, nickname, profile_image').in('user_id', userIds),
+                cafe24.from('user_push_subscriptions').select('user_id, pref_events, pref_class, pref_clubs').in('user_id', userIds)
             ]);
 
             const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
@@ -121,7 +121,7 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
     const loadPushSubscribers = async () => {
         try {
             setPushLoading(true);
-            const { data: subsData, error } = await supabase
+            const { data: subsData, error } = await cafe24
                 .from('user_push_subscriptions')
                 .select('id, endpoint, user_id, user_agent, is_admin, pref_events, pref_class, pref_clubs, updated_at')
                 .order('updated_at', { ascending: false });
@@ -129,7 +129,7 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
             if (!subsData) return;
 
             const userIds = [...new Set(subsData.map(s => s.user_id))];
-            const { data: profiles } = await supabase
+            const { data: profiles } = await cafe24
                 .from('board_users').select('user_id, nickname, profile_image').in('user_id', userIds);
 
             const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);

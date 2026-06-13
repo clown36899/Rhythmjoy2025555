@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardPost } from '../page';
@@ -117,7 +117,7 @@ export default function PostEditorModal({
     try {
       if (post) {
         // 수정
-        const { error } = await supabase.rpc('update_board_post', {
+        const { error } = await cafe24.rpc('update_board_post', {
           p_post_id: post.id,
           p_user_id: user.id,
           p_title: formData.title,
@@ -130,7 +130,7 @@ export default function PostEditorModal({
         alert('게시글이 수정되었습니다!');
       } else {
         // 새 글 작성
-        const { error } = await supabase.rpc('create_board_post', {
+        const { error } = await cafe24.rpc('create_board_post', {
           p_user_id: user?.id,
           p_title: formData.title,
           p_content: formData.content,

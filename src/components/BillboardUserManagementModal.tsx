@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import type { BillboardUser, BillboardUserSettings } from '../lib/cafe24Client';
 import { hashPassword } from '../utils/passwordHash';
 import "./BillboardUserManagementModal.css";
@@ -69,7 +69,7 @@ export default function BillboardUserManagementModal({
 
   const loadBillboardUsers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('billboard_users')
         .select('*')
         .order('created_at', { ascending: false });
@@ -83,7 +83,7 @@ export default function BillboardUserManagementModal({
 
   const loadEvents = async () => {
     try {
-      const query = supabase
+      const query = cafe24
         .from('events')
         .select('id, title, start_date, end_date, date, image_full, image, video_url');
 
@@ -150,7 +150,7 @@ export default function BillboardUserManagementModal({
     try {
       const passwordHash = await hashPassword(newUserPassword);
 
-      const { data: newUser, error: userError } = await supabase
+      const { data: newUser, error: userError } = await cafe24
         .from('billboard_users')
         .insert({
           name: newUserName,
@@ -163,7 +163,7 @@ export default function BillboardUserManagementModal({
       if (userError) throw userError;
       if (!newUser) throw new Error('User creation failed');
 
-      const { error: settingsError } = await supabase
+      const { error: settingsError } = await cafe24
         .from('billboard_user_settings')
         .insert({
           billboard_user_id: newUser.id,
@@ -194,7 +194,7 @@ export default function BillboardUserManagementModal({
     setSelectedUser(user);
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('billboard_user_settings')
         .select('*')
         .eq('billboard_user_id', user.id)
@@ -233,7 +233,7 @@ export default function BillboardUserManagementModal({
     });
 
     try {
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('billboard_user_settings')
         .update({
           excluded_weekdays: excludedWeekdays,
@@ -354,7 +354,7 @@ export default function BillboardUserManagementModal({
     try {
       const passwordHash = await hashPassword(newPassword);
 
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('billboard_users')
         .update({ password_hash: passwordHash })
         .eq('id', selectedUser.id);

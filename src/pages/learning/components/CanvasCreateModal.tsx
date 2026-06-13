@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from './PlaylistImportModal.module.css';
 
@@ -31,7 +31,7 @@ export const CanvasCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('learning_categories').select('*').order('created_at');
+            const { data } = await cafe24.from('learning_categories').select('*').order('created_at');
             if (data) {
                 setCategories(buildTree(data));
             }
@@ -73,13 +73,13 @@ export const CanvasCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
             if (!title.trim()) throw new Error('캔버스 제목을 입력해주세요.');
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
             // Even if "Node only", if it's a sub-canvas it needs a category entry to hold its own nodes
             // But if the user says "Don't add to drawer", we can perhaps omit parent_id or add a 'hidden' flag.
             // For now, let's create it as a category with subtype 'canvas' but pass it back for node creation.
-            const { data: newCategory, error: insertError } = await supabase
+            const { data: newCategory, error: insertError } = await cafe24
                 .from('learning_categories')
                 .insert({
                     name: title,

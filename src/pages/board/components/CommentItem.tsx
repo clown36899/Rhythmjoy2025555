@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardComment } from '../../../lib/cafe24Client';
@@ -68,7 +68,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
 
         try {
             // Both anonymous and standard comments now use user_id
-            const { error } = await supabase.rpc('toggle_comment_interaction', {
+            const { error } = await cafe24.rpc('toggle_comment_interaction', {
                 p_comment_id: comment.id,
                 p_type: type,
                 p_is_anonymous: isAnonymous,
@@ -79,7 +79,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
 
             // Update local state for immediate feedback
             const table = isAnonymous ? 'board_anonymous_comments' : 'board_comments';
-            const { data: updatedComment } = await supabase
+            const { data: updatedComment } = await cafe24
                 .from(table)
                 .select('*')
                 .eq('id', comment.id)
@@ -141,7 +141,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                 // Verify password via standard select query
                 try {
                     const table = isAnonymous ? 'board_anonymous_comments' : 'board_comments';
-                    const { data, error } = await supabase
+                    const { data, error } = await cafe24
                         .from(table)
                         .select('id')
                         .eq('id', comment.id)

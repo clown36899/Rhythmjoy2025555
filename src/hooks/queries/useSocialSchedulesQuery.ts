@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import type { SocialSchedule } from '../../pages/social/types';
 
 export const useSocialSchedulesQuery = (groupId?: number) => {
@@ -33,7 +33,7 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
         category, genre, scope
       `;
 
-            let query = supabase.from('events').select(selectFields).not('group_id', 'is', null);
+            let query = cafe24.from('events').select(selectFields).not('group_id', 'is', null);
 
             if (groupId) {
                 query = query.eq('group_id', groupId);

@@ -14,6 +14,7 @@
     "build:analyze": "ANALYZE=true vite build",
     "preview": "vite preview --host",
     "start:cafe24": "node server/cafe24/start.js",
+    "audit:cafe24": "node scripts/audit-cafe24-only.mjs",
     "cron:cafe24:stats": "node scripts/run-cafe24-cron-refresh-stats.mjs",
     "test": "vitest",
     "test:ingestion": "node scripts/test-ingestion-standards.mjs",

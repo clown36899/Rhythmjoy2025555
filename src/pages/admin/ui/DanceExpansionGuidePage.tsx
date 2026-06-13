@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { getDanceCollectionScopeExclusionReason, inferDanceTaxonomy } from '../../../utils/danceTaxonomy';
 import './DanceExpansionGuidePage.css';
 
@@ -493,7 +493,7 @@ export default function DanceExpansionGuidePage() {
     const fetchLiveEvents = async () => {
       try {
         setIsLoadingLiveEvents(true);
-        const { data: eventRows, error: eventError } = await supabase
+        const { data: eventRows, error: eventError } = await cafe24
           .from('events' as any)
           .select('id,title,date,start_date,end_date,time,location,venue_name,address,category,genre,description,image,image_thumbnail,image_medium,image_full,dance_scope,dance_genre,activity_type,dance_tags')
           .not('dance_scope', 'is', null)

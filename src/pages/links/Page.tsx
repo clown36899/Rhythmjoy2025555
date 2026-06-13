@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { LinkRegistrationModal } from './components/LinkRegistrationModal';
 import './links.css';
@@ -27,7 +27,7 @@ export default function LinksPage() {
     const fetchLinks = async () => {
         setLoading(true);
         try {
-            const query = supabase.from('site_links').select('*').order('created_at', { ascending: false });
+            const query = cafe24.from('site_links').select('*').order('created_at', { ascending: false });
 
             // RLS 정책에 의해 일반 유저는 승인된 항목과 자신이 쓴 승인대기 항목만 보이고,
             // 관리자는 모든 항목이 보이므로 프론트엔드쪽 쿼리 필터 제거 
@@ -57,7 +57,7 @@ export default function LinksPage() {
     const handleApprove = async (id: number) => {
         if (!isAdmin) return;
         try {
-            const { error } = await supabase.from('site_links').update({ is_approved: true }).eq('id', id);
+            const { error } = await cafe24.from('site_links').update({ is_approved: true }).eq('id', id);
             if (error) throw error;
             fetchLinks();
         } catch (error) {
@@ -68,7 +68,7 @@ export default function LinksPage() {
     const handleDelete = async (id: number) => {
         if (!confirm('정말 삭제하시겠습니까?')) return;
         try {
-            const { error } = await supabase.from('site_links').delete().eq('id', id);
+            const { error } = await cafe24.from('site_links').delete().eq('id', id);
             if (error) throw error;
             fetchLinks();
         } catch (error) {

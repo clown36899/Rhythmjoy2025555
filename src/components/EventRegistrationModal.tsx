@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import { createResizedImages } from "../utils/imageResize";
 import {
   parseVideoUrl,
@@ -255,7 +255,7 @@ export default memo(function EventRegistrationModal({
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const { data, error } = await supabase
+        const { data, error } = await cafe24
           .from('events')
           .select('*')
           .gte('date', formatDateForInput(firstDay))
@@ -324,7 +324,7 @@ export default memo(function EventRegistrationModal({
   useEffect(() => {
     if (isOpen) {
       const fetchGenres = async () => {
-        const { data, error } = await supabase
+        const { data, error } = await cafe24
           .from('events')
           .select('genre,dance_scope,dance_genre')
           .not('genre', 'is', null);
@@ -729,12 +729,12 @@ export default memo(function EventRegistrationModal({
 
               // 이미지 업로드 함수 (재시도 용)
               const uploadImage = async (path: string, file: Blob) => {
-                const { error } = await supabase.storage.from("images").upload(path, file);
+                const { error } = await cafe24.storage.from("images").upload(path, file);
                 if (error) {
                   console.error("Upload failed for path:", path, error);
                   throw error;
                 }
-                return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
+                return cafe24.storage.from("images").getPublicUrl(path).data.publicUrl;
               };
 
               // 병렬 업로드 및 재시도 적용
@@ -858,7 +858,7 @@ export default memo(function EventRegistrationModal({
               if (EVENT_REGISTRATION_DEBUG) {
                 console.debug("🔄 Updating event:", { eventId: editEventData.id, isAdmin });
               }
-              let query = supabase
+              let query = cafe24
                 .from("events")
                 .update(eventData)
                 .eq('id', editEventData.id);
@@ -888,7 +888,7 @@ export default memo(function EventRegistrationModal({
                 console.debug("🆕 [INSERT] Attempting to insert event:", summarizeRegistrationPayload(eventData));
               }
 
-              const { data, error } = await supabase
+              const { data, error } = await cafe24
                 .from("events")
                 .insert([eventData])
                 .select();
@@ -980,7 +980,7 @@ export default memo(function EventRegistrationModal({
                   });
                 }
 
-                supabase.from('notification_queue').insert({
+                cafe24.from('notification_queue').insert({
                   event_id: createdEvent.id,
                   title: pushTitle,
                   body: pushBody,
@@ -1029,10 +1029,10 @@ export default memo(function EventRegistrationModal({
                 // 1. New style folder-based cleanup
                 if (oldStoragePath) {
                   try {
-                    const { data: files } = await supabase.storage.from("images").list(oldStoragePath);
+                    const { data: files } = await cafe24.storage.from("images").list(oldStoragePath);
                     if (files && files.length > 0) {
                       const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
-                      await supabase.storage.from("images").remove(filePaths);
+                      await cafe24.storage.from("images").remove(filePaths);
                       if (EVENT_REGISTRATION_DEBUG) {
                         console.debug(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
                       }
@@ -1059,7 +1059,7 @@ export default memo(function EventRegistrationModal({
 
                 if (individualPaths.length > 0) {
                   try {
-                    await supabase.storage.from("images").remove(individualPaths);
+                    await cafe24.storage.from("images").remove(individualPaths);
                     if (EVENT_REGISTRATION_DEBUG) {
                       console.debug(`✅ [CLEANUP] Deleted ${individualPaths.length} individual legacy files`);
                     }

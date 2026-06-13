@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import { useBoardData } from "../contexts/BoardDataContext";
 
 export interface BillboardSettings {
@@ -107,7 +107,7 @@ export function useBillboardSettings() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { error } = await cafe24
         .from("billboard_settings")
         .upsert(dbData, { onConflict: 'id' });
 
@@ -140,7 +140,7 @@ export function useBillboardSettings() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { error } = await cafe24
         .from("billboard_settings")
         .upsert(dbData, { onConflict: 'id' });
 

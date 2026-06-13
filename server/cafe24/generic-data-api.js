@@ -1347,6 +1347,8 @@ async function getAnalyticsSummaryV2(args = {}) {
       visitCount: 0,
       sessionCount: 0,
       clickCount: 0,
+      sessionClickCount: 0,
+      activityEventCount: 0,
       pageViews: 0,
       firstSeen: timeValue || item.row.created_at || item.row.session_start || null,
       lastSeen: timeValue || item.row.created_at || item.row.session_start || null,
@@ -1359,6 +1361,7 @@ async function getAnalyticsSummaryV2(args = {}) {
       isPwa: asAnalyticsBool(item.row.is_pwa),
       pwaDisplayMode: item.row.pwa_display_mode || null,
       sessions: [],
+      activityLogs: [],
       seenMs: [],
     };
 
@@ -1388,7 +1391,7 @@ async function getAnalyticsSummaryV2(args = {}) {
     if (kind === 'session') {
       current.sessionCount += 1;
       current.pageViews += Math.max(1, Number(item.row.page_views) || 1);
-      current.clickCount += Number(item.row.total_clicks) || 0;
+      current.sessionClickCount += Number(item.row.total_clicks) || 0;
       current.sessions.push({
         session_id: item.row.session_id || null,
         session_start: item.row.session_start || null,
@@ -1404,7 +1407,24 @@ async function getAnalyticsSummaryV2(args = {}) {
         is_pwa: asAnalyticsBool(item.row.is_pwa),
       });
     } else {
-      current.clickCount += 1;
+      current.activityEventCount += 1;
+      current.activityLogs.push({
+        id: item.row.id || `${item.row.session_id || 'activity'}-${item.row.sequence_number || item.index}`,
+        created_at: item.row.created_at || null,
+        type: item.row.target_type || item.row.type || 'activity',
+        title: item.row.target_title || item.row.title || item.row.target_id || null,
+        section: item.row.section || null,
+        route: item.row.route || null,
+        page_url: item.row.page_url || null,
+        target_id: item.row.target_id || null,
+        session_id: item.row.session_id || null,
+        client_ip: analyticsClientIp(item.row),
+        ip_hash: item.row.ip_hash || null,
+        platform: item.row.platform || null,
+        user_agent: item.row.user_agent || null,
+        referrer: item.row.referrer || null,
+        sequence_number: Number.isFinite(Number(item.row.sequence_number)) ? Number(item.row.sequence_number) : null,
+      });
       if (!current.lastPage) current.lastPage = getAnalyticsPage(item.row);
     }
 
@@ -1424,7 +1444,7 @@ async function getAnalyticsSummaryV2(args = {}) {
         ipHash: guest.ipHash,
         visitCount: visitBuckets.size || guest.sessionCount || 1,
         sessionCount: guest.sessionCount,
-        clickCount: guest.clickCount,
+        clickCount: Math.max(guest.activityEventCount || 0, guest.sessionClickCount || 0),
         pageViews: guest.pageViews,
         firstSeen: guest.firstSeen,
         lastSeen: guest.lastSeen,
@@ -1435,6 +1455,9 @@ async function getAnalyticsSummaryV2(args = {}) {
         isPwa: guest.isPwa,
         pwaDisplayMode: guest.pwaDisplayMode,
         sessions: guest.sessions.sort((a, b) => new Date(b.session_start || 0).getTime() - new Date(a.session_start || 0).getTime()),
+        activityLogs: guest.activityLogs
+          .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+          .slice(0, 80),
         lastMs: guest.lastMs,
       };
     })

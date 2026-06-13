@@ -1,5 +1,5 @@
 
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import type { UnifiedSocialEvent } from '../types';
@@ -73,7 +73,7 @@ export default function SocialCalendar({
       onEventCreated: (_date: any, eventId?: any) => {
         // Fetch new event to sync
         if (eventId) {
-          supabase.from('events').select('*').eq('id', eventId).maybeSingle().then(({ data }) => {
+          cafe24.from('events').select('*').eq('id', eventId).maybeSingle().then(({ data }) => {
             if (data) onEventCreated(data);
           });
         }

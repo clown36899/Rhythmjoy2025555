@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import {
     ANALYTICS_ADMIN_SHIELD_KEY,
@@ -74,7 +74,7 @@ export function useViewTracking(
 
         try {
             // 1. 사용자 인증 상태 확인
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
 
             // 2. 비로그인 시 fingerprint 생성/로드
             let fingerprint = null;
@@ -90,7 +90,7 @@ export function useViewTracking(
                     : itemId;
 
             // 3. RPC 호출
-            const { data: wasIncremented, error } = await supabase.rpc('increment_item_views', {
+            const { data: wasIncremented, error } = await cafe24.rpc('increment_item_views', {
                 p_item_id: normalizedItemId,
                 p_item_type: itemType,
                 p_user_id: user?.id || null,

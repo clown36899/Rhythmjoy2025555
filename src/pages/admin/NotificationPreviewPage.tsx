@@ -3,7 +3,7 @@ import NotificationHistoryModal from '../../components/NotificationHistoryModal'
 import { useAuth } from '../../contexts/AuthContext';
 import { notificationStore } from '../../lib/notificationStore';
 import type { NotificationRecord } from '../../lib/notificationStore';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import './NotificationPreviewPage.css';
 
 type LocalEventPreview = {
@@ -110,7 +110,7 @@ export default function NotificationPreviewPage() {
     setStatus('로컬 DB에 테스트 이벤트를 등록하는 중...');
 
     try {
-      const { data: sampleImages } = await supabase
+      const { data: sampleImages } = await cafe24
         .from('events')
         .select('image,image_micro,image_thumbnail,image_medium,image_full')
         .not('image', 'is', null)
@@ -197,7 +197,7 @@ export default function NotificationPreviewPage() {
         },
       ];
 
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('events')
         .insert(rows)
         .select('id,title,date,start_date,location,category,image,image_micro,image_thumbnail,image_medium,image_full');

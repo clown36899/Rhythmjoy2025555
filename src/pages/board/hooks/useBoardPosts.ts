@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { StandardBoardPost, AnonymousBoardPost } from '../../../types/board';
 
 export type BoardPost = StandardBoardPost | AnonymousBoardPost;
@@ -43,7 +43,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 likes, favorites, dislikes, display_order
             `;
 
-            let query: any = (supabase.from(table) as any)
+            let query: any = (cafe24.from(table) as any)
                 .select(isAnon ? anonFields : standardFields, { count: 'exact' });
 
             if (!isAnon) {
@@ -86,7 +86,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             if (!isAnon && !isFreeBoard && data && data.length > 0) {
                 const userIds = Array.from(new Set(data.map((p: any) => p.user_id).filter(Boolean)));
                 if (userIds.length > 0) {
-                    const { data: profiles } = await supabase
+                    const { data: profiles } = await cafe24
                         .from('board_users')
                         .select('user_id, profile_image')
                         .in('user_id', userIds);
@@ -138,7 +138,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
         // console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
 
-        const channel = supabase
+        const channel = cafe24
             .channel(`board_posts:${category}`)
             .on(
                 'postgres_changes',
@@ -172,7 +172,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         return () => {
             // console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
             if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
-            supabase.removeChannel(channel);
+            cafe24.removeChannel(channel);
         };
     }, [category, isAdminChecked, loadPosts]);
 

@@ -472,19 +472,15 @@
 
 @media (hover: none) and (pointer: coarse) {
   .home-v2-menu-panel {
-    --home-v2-menu-bottom-gap: max(
-      44px,
-      calc(env(safe-area-inset-bottom, 0px) + 16px),
-      calc(var(--home-v2-visual-bottom-inset, 0px) + 12px)
-    );
-    --home-v2-menu-expanded-padding-bottom: 18px;
-    --home-v2-menu-compact-padding-bottom: 8px;
-    border-radius: 24px;
+    --home-v2-menu-bottom-gap: 0px;
+    --home-v2-menu-expanded-padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    --home-v2-menu-compact-padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    border-radius: 24px 24px 0 0;
   }
 
   .home-v2-menu-panel.is-compact {
     min-height: 99px;
-    border-radius: 18px;
+    border-radius: 18px 18px 0 0;
   }
 
   .home-v2-menu-panel.is-compact .home-v2-menu-toggle {
@@ -492,7 +488,7 @@
   }
 
   .home-v2-menu-panel.is-expanded {
-    border-radius: 24px;
+    border-radius: 24px 24px 0 0;
   }
 }
 

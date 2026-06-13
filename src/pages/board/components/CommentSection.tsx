@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardComment } from '../../../lib/cafe24Client';
 import CommentForm from './CommentForm';
@@ -25,7 +25,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
         const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
         // Subscribe to real-time updates (Same logic as useBoardPosts)
-        const channel = supabase
+        const channel = cafe24
             .channel(`comments:${postId}:${category}`)
             .on(
                 'postgres_changes',
@@ -102,7 +102,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             });
 
         return () => {
-            supabase.removeChannel(channel);
+            cafe24.removeChannel(channel);
         };
     }, [postId, category]);
 
@@ -111,7 +111,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             if (!silent) setLoading(true);
 
             if (category === 'anonymous') {
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('board_anonymous_comments')
                     .select('*')
                     .eq('post_id', postId)
@@ -119,7 +119,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 if (error) throw error;
                 setComments(data as BoardComment[]);
             } else {
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('board_comments')
                     .select('*')
                     .eq('post_id', postId)
@@ -131,7 +131,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 if (data && data.length > 0) {
                     const userIds = Array.from(new Set(data.map(c => c.user_id).filter(Boolean)));
                     if (userIds.length > 0) {
-                        const { data: profiles } = await supabase
+                        const { data: profiles } = await cafe24
                             .from('board_users')
                             .select('user_id, profile_image')
                             .in('user_id', userIds);
@@ -172,7 +172,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
             if (isAdmin) {
-                const { error } = await supabase.from(table).delete().eq('id', commentId);
+                const { error } = await cafe24.from(table).delete().eq('id', commentId);
                 if (error) throw error;
                 // Optimistic Delete (Admin)
                 setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
@@ -180,7 +180,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             } else {
                 if (category === 'anonymous') {
                     // 1. 익명 전용 게시판: 오직 비밀번호로만 삭제 (RPC)
-                    const { data: success, error } = await supabase.rpc('delete_anonymous_comment_with_password', {
+                    const { data: success, error } = await cafe24.rpc('delete_anonymous_comment_with_password', {
                         p_comment_id: commentId,
                         p_password: password
                     });
@@ -195,7 +195,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     }
                 } else {
                     // 2. 일반 게시판: 오직 로그인 기반 RLS로 삭제 (비밀번호 사용 안 함)
-                    const { error: directError } = await supabase.from(table).delete().eq('id', commentId);
+                    const { error: directError } = await cafe24.from(table).delete().eq('id', commentId);
 
                     if (!directError) {
                         setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));

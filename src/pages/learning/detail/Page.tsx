@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext'; // Import useAuth
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { BookmarkList } from '../components/BookmarkList';
 import { fetchVideoDetails } from '../utils/youtube';
 import { renderTextWithLinks } from '../utils/text';
@@ -365,7 +365,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
             // Unified Fetch Logic for learning_resources
             // 1. Fetch Target Resource
-            const { data: targetResource, error: resourceError } = await supabase
+            const { data: targetResource, error: resourceError } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .eq('id', targetId)
@@ -400,7 +400,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 // Attempt to fetch siblings logic (Same category, or playlist context)
                 if (targetResource.category_id) {
                     // Fetch Category Name
-                    const { data: catData } = await supabase
+                    const { data: catData } = await cafe24
                         .from('learning_categories') // 🔥 [Fix] Correct table for folders
                         .select('name, content, description, metadata') // 🔥 [Fix] Fetch 'content' as requested
                         .eq('id', targetResource.category_id)
@@ -412,7 +412,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     }
 
                     // Fetch Siblings
-                    const { data: siblings } = await supabase
+                    const { data: siblings } = await cafe24
                         .from('learning_resources')
                         .select('*')
                         .eq('type', 'video')
@@ -432,7 +432,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 } else if (targetResource.metadata?.playlist_id) {
                     // It's in a playlist (migrated style)
                     // Fetch playlist resource for title? (Maybe skip for now to save query)
-                    const { data: siblings } = await supabase
+                    const { data: siblings } = await cafe24
                         .from('learning_resources')
                         .select('*')
                         .eq('type', 'video')
@@ -485,7 +485,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             // Fetch Videos
             // Logic: Videos where category_id = targetId OR metadata->playlist_id = targetId
             // This covers both new structure (child of folder) and migrated structure (linked by playlist_id)
-            const { data: videoData, error: videoError } = await supabase
+            const { data: videoData, error: videoError } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .eq('type', 'video')
@@ -526,7 +526,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             return;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await cafe24
             .from('learning_video_bookmarks')
             .select('*')
             .eq('video_id', videoId)
@@ -714,7 +714,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const handleDeleteBookmark = async (id: string) => {
         if (!isAdmin) return;
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_video_bookmarks')
             .delete()
             .eq('id', id);
@@ -780,7 +780,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
         if (editingBookmarkId) {
             // Update
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('learning_video_bookmarks')
                 .update({
                     timestamp,
@@ -794,7 +794,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             }
         } else {
             // Insert
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('learning_video_bookmarks')
                 .insert({
                     video_id: video.id,
@@ -817,7 +817,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         const video = videos[currentVideoIndex];
         if (!video) return;
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_resources')
             .update({ content: editVideoContent })
             .eq('id', video.id);
@@ -836,7 +836,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         if (!isAdmin) return;
         if (!playlist || playlist.id.startsWith('category:')) return;
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_resources')
             .update({ content: editVideoContent }) // Reuse state for simplicity
             .eq('id', playlist.id);
@@ -906,20 +906,20 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         try {
             if (playlist.id.startsWith('category:')) {
                 const categoryId = playlist.id.replace('category:', '');
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Categories are now resources
                     .update({ title: editTitle }) // Use title instead of name
                     .eq('id', categoryId);
                 if (error) throw error;
             } else if (playlist.id.startsWith('video:')) {
                 const videoId = playlist.id.replace('video:', '');
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Changed from learning_videos
                     .update({ title: editTitle })
                     .eq('id', videoId);
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Changed from learning_playlists
                     .update({ title: editTitle })
                     .eq('id', playlist.id);
@@ -965,13 +965,13 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         try {
             if (playlist.id.startsWith('video:')) {
                 const videoId = playlist.id.replace('video:', '');
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources')
                     .update({ description: editDesc })
                     .eq('id', videoId);
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources')
                     .update({ description: editDesc }) // Playlist also uses description in learning_resources
                     .eq('id', playlist.id);
@@ -1007,7 +1007,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             is_on_timeline: true
         };
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_resources')
             .update({
                 metadata: newMetadata
@@ -1043,7 +1043,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             return;
         }
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_resources')
             .update({ title: editVideoTitle })
             .eq('id', video.id);
@@ -1078,7 +1078,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             is_on_timeline: editVideoIsOnTimeline
         };
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_resources')
             .update({
                 metadata: newMetadata
@@ -1109,7 +1109,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         const video = videos[currentVideoIndex];
         if (!video) return;
 
-        const { error } = await supabase
+        const { error } = await cafe24
             .from('learning_resources')
             .update({ description: editVideoMemo })
             .eq('id', video.id);

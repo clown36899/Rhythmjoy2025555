@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { EventCard } from '../v2/components/EventCard';
 import StandardPostList from '../board/components/StandardPostList';
 import type { Event as Cafe24Event } from '../../lib/cafe24Client';
@@ -116,12 +116,12 @@ export default function MyActivitiesPage() {
         try {
             // Parallel Fetch - each handled individually to prevent total failure
             const [eventsRes, postsRes, groupsRes, userRes, favRes, favPostsRes] = await Promise.all([
-                supabase.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('social_groups').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('board_users').select('profile_image').eq('user_id', user.id).maybeSingle(),
-                supabase.from('event_favorites').select('events(*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
-                supabase.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
+                cafe24.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                cafe24.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
+                cafe24.from('social_groups').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+                cafe24.from('board_users').select('profile_image').eq('user_id', user.id).maybeSingle(),
+                cafe24.from('event_favorites').select('events(*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+                cafe24.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
             ]);
 
             // 1. Events & Classes & Social Schedules
@@ -222,7 +222,7 @@ export default function MyActivitiesPage() {
         if (!window.confirm('정말로 이 행사를 삭제하시겠습니까?')) return;
 
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('events')
                 .delete()
                 .eq('id', event.id);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 
 const TestDeletePage = () => {
     const [targetType, setTargetType] = useState<'group' | 'schedule'>('schedule');
@@ -14,7 +14,7 @@ const TestDeletePage = () => {
         addLog(`Starting delete test for ${targetType} ID: ${targetId}`);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await cafe24.auth.getSession();
             const token = session?.access_token;
             addLog(token ? 'Token found' : 'No token found (acting as guest)');
 

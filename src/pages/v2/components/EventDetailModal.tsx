@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { fetchCafe24EventById, isCafe24EventsBackendEnabled, updateCafe24EventById } from '../../../lib/cafe24EventsApi';
 import type { Event as BaseEvent } from '../../../lib/cafe24Client';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
@@ -383,19 +383,19 @@ export default function EventDetailModal({
       const resizedImages = await createResizedImages(file);
 
       const uploadTasks = [
-        retryOperation(() => supabase.storage.from('images').upload(`${basePath}/full.webp`, resizedImages.full, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }),
-        resizedImages.medium ? retryOperation(() => supabase.storage.from('images').upload(`${basePath}/medium.webp`, resizedImages.medium!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
-        resizedImages.thumbnail ? retryOperation(() => supabase.storage.from('images').upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
-        resizedImages.micro ? retryOperation(() => supabase.storage.from('images').upload(`${basePath}/micro.webp`, resizedImages.micro!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve()
+        retryOperation(() => cafe24.storage.from('images').upload(`${basePath}/full.webp`, resizedImages.full, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }),
+        resizedImages.medium ? retryOperation(() => cafe24.storage.from('images').upload(`${basePath}/medium.webp`, resizedImages.medium!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+        resizedImages.thumbnail ? retryOperation(() => cafe24.storage.from('images').upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+        resizedImages.micro ? retryOperation(() => cafe24.storage.from('images').upload(`${basePath}/micro.webp`, resizedImages.micro!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve()
       ];
 
       await Promise.all(uploadTasks);
       if (EVENT_DETAIL_DEBUG) console.debug('[uploadImageAndSave] All versions uploaded');
 
-      const publicUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
-      const mediumUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
-      const thumbnailUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/thumbnail.webp`).data.publicUrl;
-      const microUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/micro.webp`).data.publicUrl;
+      const publicUrl = cafe24.storage.from('images').getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
+      const mediumUrl = cafe24.storage.from('images').getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
+      const thumbnailUrl = cafe24.storage.from('images').getPublicUrl(`${basePath}/thumbnail.webp`).data.publicUrl;
+      const microUrl = cafe24.storage.from('images').getPublicUrl(`${basePath}/micro.webp`).data.publicUrl;
 
       const updates: any = {
         image: publicUrl,
@@ -540,7 +540,7 @@ export default function EventDetailModal({
           // 통합된 events 테이블 데이터 조회 (장소 정보 조인 포함)
           const { data, error } = isCafe24EventsBackendEnabled
             ? { data: await fetchCafe24EventById(originalId), error: null }
-            : await supabase
+            : await cafe24
               .from('events')
               .select('*, board_users(nickname), venues(*)')
               .eq('id', originalId)
@@ -637,7 +637,7 @@ export default function EventDetailModal({
 
       const { data, error } = isCafe24EventsBackendEnabled
         ? { data: await updateCafe24EventById(targetId, updates as Partial<BaseEvent>), error: null }
-        : await supabase
+        : await cafe24
           .from('events')
           .update(updates)
           .eq('id', targetId)
@@ -813,7 +813,7 @@ export default function EventDetailModal({
 
         const uploadTasks = [
           // Full Size
-          retryOperation(() => supabase.storage
+          retryOperation(() => cafe24.storage
             .from('images')
             .upload(`${basePath}/full.webp`, resizedImages.full, {
               contentType: 'image/webp',
@@ -822,7 +822,7 @@ export default function EventDetailModal({
           ).then(({ error }) => { if (error) throw error; }),
 
           // Medium
-          resizedImages.medium ? retryOperation(() => supabase.storage
+          resizedImages.medium ? retryOperation(() => cafe24.storage
             .from('images')
             .upload(`${basePath}/medium.webp`, resizedImages.medium!, {
               contentType: 'image/webp',
@@ -831,7 +831,7 @@ export default function EventDetailModal({
           ).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
 
           // Thumbnail
-          resizedImages.thumbnail ? retryOperation(() => supabase.storage
+          resizedImages.thumbnail ? retryOperation(() => cafe24.storage
             .from('images')
             .upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail!, {
               contentType: 'image/webp',
@@ -840,7 +840,7 @@ export default function EventDetailModal({
           ).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
 
           // Micro
-          resizedImages.micro ? retryOperation(() => supabase.storage
+          resizedImages.micro ? retryOperation(() => cafe24.storage
             .from('images')
             .upload(`${basePath}/micro.webp`, resizedImages.micro!, {
               contentType: 'image/webp',
@@ -857,19 +857,19 @@ export default function EventDetailModal({
           throw uploadError;
         }
 
-        const publicUrl = supabase.storage
+        const publicUrl = cafe24.storage
           .from('images')
           .getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
 
-        const mediumUrl = supabase.storage
+        const mediumUrl = cafe24.storage
           .from('images')
           .getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
 
-        const thumbnailUrl = supabase.storage
+        const thumbnailUrl = cafe24.storage
           .from('images')
           .getPublicUrl(`${basePath}/thumbnail.webp`).data.publicUrl;
 
-        const microUrl = supabase.storage
+        const microUrl = cafe24.storage
           .from('images')
           .getPublicUrl(`${basePath}/micro.webp`).data.publicUrl;
 
@@ -914,7 +914,7 @@ export default function EventDetailModal({
         updatedEvent = await retryOperation(() => updateCafe24EventById(targetId, updates)) as Event | null;
       } else {
         const result = await retryOperation(async () =>
-          await supabase
+          await cafe24
             .from('events')
             .update(updates)
             .eq('id', targetId)
@@ -946,7 +946,7 @@ export default function EventDetailModal({
         }
         if (updates.category !== updatedEvent.category) {
           // Attempt Force Update for Category
-          const { data: retryData, error: retryError } = await supabase
+          const { data: retryData, error: retryError } = await cafe24
             .from('events')
             .update({ category: updates.category })
             .eq('id', draftEvent.id)
@@ -1001,10 +1001,10 @@ export default function EventDetailModal({
           // 1. New style folder-based cleanup
           if (oldStoragePath) {
             try {
-              const { data: files } = await supabase.storage.from("images").list(oldStoragePath);
+              const { data: files } = await cafe24.storage.from("images").list(oldStoragePath);
               if (files && files.length > 0) {
                 const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
-                await supabase.storage.from("images").remove(filePaths);
+                await cafe24.storage.from("images").remove(filePaths);
                 if (EVENT_DETAIL_DEBUG) {
                   console.debug(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
                 }
@@ -1034,7 +1034,7 @@ export default function EventDetailModal({
               // 현재 새로 업로드한 경로는 제외하고 삭제
               const filteredPaths = individualPaths.filter(p => !p.startsWith(`event-posters/${timestamp}`));
               if (filteredPaths.length > 0) {
-                await supabase.storage.from("images").remove(filteredPaths);
+                await cafe24.storage.from("images").remove(filteredPaths);
                 if (EVENT_DETAIL_DEBUG) {
                   console.debug(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
                 }

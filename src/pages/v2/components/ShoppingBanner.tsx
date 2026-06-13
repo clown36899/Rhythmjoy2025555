@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo } from 'react';
-// import { supabase } from '../../../lib/cafe24Client';
+// import { cafe24 } from '../../../lib/cafe24Client';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { Shop } from '../../shopping/page';
 import { useModal } from '../../../hooks/useModal';

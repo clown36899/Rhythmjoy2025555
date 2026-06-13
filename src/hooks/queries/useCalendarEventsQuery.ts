@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events, isCafe24EventsBackendEnabled } from '../../lib/cafe24EventsApi';
 import { isEventInDanceScope, normalizeDanceScope, type DanceScope } from '../../utils/danceTaxonomy';
@@ -55,7 +55,7 @@ export const fetchCalendarEvents = async (startDateStr: string, endDateStr: stri
     ].join(',');
 
     const buildQuery = (columns: string, useScopeColumn: boolean) => {
-        let query = supabase
+        let query = cafe24
             .from("events")
             .select(columns)
             .or(dateRange)

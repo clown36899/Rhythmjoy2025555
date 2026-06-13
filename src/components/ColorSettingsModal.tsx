@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import "./ColorSettingsModal.css";
 
 interface ColorSettingsModalProps {
@@ -22,7 +22,7 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
     // 색상 설정 불러오기
     const loadThemeColors = async () => {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from("theme_settings")
                 .select("*")
                 .eq("id", 1)
@@ -54,7 +54,7 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
     // 색상 저장
     const saveThemeColor = async (colorType: string, color: string) => {
         try {
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from("theme_settings")
                 .update({
                     [colorType]: color,

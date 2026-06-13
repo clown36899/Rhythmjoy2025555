@@ -1,62 +1,23 @@
-# Cafe24 Full Migration
+# Cafe24 Only Policy
 
-Swing Enjoy Cafe24 deployment is a separate production target from the existing Netlify/Supabase site.
+이 프로젝트는 이제 **Cafe24 단일 운영 체계**를 사용한다.
 
-The canonical Cafe24 server and project separation map is now maintained in:
+## 현재 원칙
 
-- `deploy/cafe24/production-target.env`
-- `docs/cafe24-production-inventory.md`
+- 레거시 배포 경로는 운영 경로에서 제거됐다.
+- 레거시 DB, Storage, Auth 의존성은 운영 경로에서 제거됐다.
+- 이벤트 수집, 관리자 검수, 통계 API, 업로드 파일, 로그인 세션은 모두 Cafe24 서버 기준으로 동작한다.
+- 운영 이벤트 후보 저장 엔드포인트는 `https://swingenjoy.com/api/scraped-events`다.
+- V3 후보 검수 엔드포인트는 `https://swingenjoy.com/api/ingestor-v3/candidates`다.
+- 업로드 파일은 Cafe24 서버의 `/uploads/...` 경로로 관리된다.
 
-## Principle
+## 점검 기준
 
-- The existing Netlify/Supabase site remains untouched during migration.
-- Supabase is used only as a read-only import source until cutover.
-- Cafe24 owns the new application database: `swingenjoy_app`.
-- Cafe24 owns event CRUD, Kakao login session storage, analytics logs, and uploaded event files.
-- The Rhythmjoy calendar project is on the same Cafe24 VPS, but its app root, Apache vhost, and services are separate and must not be modified by this app.
+- `/api/events` 또는 관련 관리자 기능이 Cafe24 백엔드를 사용해야 한다.
+- 수집 스크립트와 자동화 문서는 레거시 플랫폼을 다시 안내하면 안 된다.
+- 신규 환경변수, 스크립트, 문서는 Cafe24-only 정책을 따라야 한다.
 
-## Runtime
+## 남겨두는 기록의 범위
 
-- App directory: `/opt/swingenjoy`
-- Node service: `swingenjoy`
-- Shared VPS hostname: `clown313python.cafe24.com`
-- Shared VPS IP: `1.234.23.64`
-- Web entry: Apache proxy to the Node app
-- Event API: `/api/events`
-- Auth API: `/api/auth/me`, `/api/kakao-login`, `/api/auth/logout`
-- Analytics API: `/api/analytics/session`
-- Uploads: `/uploads/...`
-
-## Storage
-
-User-uploaded and migrated event images are stored outside the built frontend bundle:
-
-```text
-/opt/swingenjoy/uploads
-```
-
-The Node app serves this directory at `/uploads`. This keeps uploaded files safe when a new frontend build replaces `dist`.
-
-## Data Import
-
-Events are copied into Cafe24 MySQL with:
-
-```bash
-npm run sync:cafe24:events
-```
-
-Existing Supabase Storage image URLs are copied to Cafe24 storage and rewritten in the Cafe24 database with:
-
-```bash
-npm run migrate:cafe24:event-images
-```
-
-Neither script deletes or updates the original Supabase database or storage.
-
-## Cutover Checks
-
-- `/__health` returns `ok: true`.
-- `/api/events` returns `backend: cafe24-mysql`.
-- `/api/stats/events` and `/api/stats/site` return data from Cafe24.
-- `/admin/cafe24-events` can create, update, and delete events after admin login.
-- Event image fields in Cafe24 DB no longer point to Supabase Storage.
+- `CHANGELOG.md` 같은 이력 문서에는 과거 플랫폼 언급이 남을 수 있다.
+- 운영 지침, 활성 스킬, 자동화 스크립트, 현재 설정 파일은 Cafe24 기준만 남긴다.

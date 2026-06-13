@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { renderTextWithLinksAndResources } from '../../../pages/learning/utils/linkRenderer';
 import { AutocompleteMenu } from './AutocompleteMenu';
 import { createResizedImages } from '../../../utils/imageResize';
@@ -68,8 +68,8 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
     useEffect(() => {
         const fetchAllItems = async () => {
             const [resourcesResponse, nodesResponse] = await Promise.all([
-                supabase.from('learning_resources').select('id, title, type').order('title'),
-                supabase.from('history_nodes').select('id, title, category').order('title')
+                cafe24.from('learning_resources').select('id, title, type').order('title'),
+                cafe24.from('history_nodes').select('id, title, category').order('title')
             ]);
 
             let combined: any[] = [];
@@ -355,7 +355,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         setLoadingResources(true);
         try {
             // Load playlists from unified table
-            const { data: playlistResources } = await supabase
+            const { data: playlistResources } = await cafe24
                 .from('learning_resources')
                 .select('id, title, url')
                 .eq('type', 'playlist')
@@ -363,7 +363,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .limit(20);
 
             // Load individual videos from unified table
-            const { data: videoResources } = await supabase
+            const { data: videoResources } = await cafe24
                 .from('learning_resources')
                 .select('id, title, url')
                 .eq('type', 'video')
@@ -509,10 +509,10 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         const { micro, thumbnail, medium, full } = await createResizedImages(file);
 
                         const uploadPromises = [
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-micro.webp`, micro, { contentType: 'image/webp', upsert: true }),
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-thumbnail.webp`, thumbnail, { contentType: 'image/webp', upsert: true }),
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-medium.webp`, medium, { contentType: 'image/webp', upsert: true }),
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-full.webp`, full, { contentType: 'image/webp', upsert: true })
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-micro.webp`, micro, { contentType: 'image/webp', upsert: true }),
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-thumbnail.webp`, thumbnail, { contentType: 'image/webp', upsert: true }),
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-medium.webp`, medium, { contentType: 'image/webp', upsert: true }),
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-full.webp`, full, { contentType: 'image/webp', upsert: true })
                         ];
 
                         const results = await Promise.all(uploadPromises);
@@ -522,10 +522,10 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         });
 
                         imagesMetadata.push({
-                            micro: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-micro.webp`).data.publicUrl,
-                            thumbnail: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-thumbnail.webp`).data.publicUrl,
-                            medium: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-medium.webp`).data.publicUrl,
-                            full: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-full.webp`).data.publicUrl
+                            micro: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-micro.webp`).data.publicUrl,
+                            thumbnail: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-thumbnail.webp`).data.publicUrl,
+                            medium: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-medium.webp`).data.publicUrl,
+                            full: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-full.webp`).data.publicUrl
                         });
                     } catch (err) {
                         console.error(`Failed to upload image ${i}`, err);

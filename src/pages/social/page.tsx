@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
@@ -165,7 +165,7 @@ const SocialPage: React.FC = () => {
 
   // Helpers
   const verifyGroupPassword = useCallback(async (groupId: number, inputPw: string): Promise<boolean> => {
-    const { data } = await supabase
+    const { data } = await cafe24
       .from('social_groups')
       .select('id')
       .eq('id', groupId)
@@ -227,7 +227,7 @@ const SocialPage: React.FC = () => {
 
 
     // Fetch events overlapping with this week
-    const { data, error } = await supabase
+    const { data, error } = await cafe24
       .from('events')
       .select('*, board_users(nickname)')
       .is('group_id', null) // s.group_id가 있는 것은 useSocialSchedulesNew에서 가져옴

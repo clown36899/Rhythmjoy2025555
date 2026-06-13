@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import "../../../components/BoardUserManagementModal.css"; // Reusing existing styles
 import "./page.css"; // Custom overrides
@@ -42,7 +42,7 @@ export default function SecureMembersPage() {
     const loadUsers = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('board_users')
                 .select('id, user_id, nickname, email, provider, profile_image, created_at')
                 .order('created_at', { ascending: false });

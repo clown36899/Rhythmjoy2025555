@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 
 const SurveyTestPage: React.FC = () => {
@@ -92,7 +92,7 @@ const SurveyTestPage: React.FC = () => {
             if (user) {
                 /*
                 // Actual Code would be:
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('board_users')
                     .update({
                         meta_gender: data.gender,

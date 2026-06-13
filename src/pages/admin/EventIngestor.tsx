@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEvents } from '../v2/components/EventList/hooks/useEvents';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageCropModal from '../../components/ImageCropModal';
 const VenueSelectModal = React.lazy(() => import('../v2/components/VenueSelectModal'));
 import './EventIngestor.css';
 
-const prodClient = supabase;
+const prodClient = cafe24;
 
 interface ScrapedEvent {
     id: string;
@@ -78,7 +78,7 @@ const EventIngestor: React.FC = () => {
     }, []);
 
     const getAdminRequestHeaders = useCallback(async (withJson = false): Promise<Record<string, string>> => {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await cafe24.auth.getSession();
         const token = data.session?.access_token;
         return {
             ...(withJson ? { 'Content-Type': 'application/json' } : {}),
@@ -128,7 +128,7 @@ const EventIngestor: React.FC = () => {
                 return;
             }
 
-            const { data } = await supabase
+            const { data } = await cafe24
                 .from('venues')
                 .select('id, name, address')
                 .eq('is_active', true);

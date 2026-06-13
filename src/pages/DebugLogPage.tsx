@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import './DebugLogPage.css';
 
 export default function DebugLogPage() {
@@ -20,7 +20,7 @@ export default function DebugLogPage() {
         setLogs(storedLogs);
 
         // 2. Auth State
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await cafe24.auth.getSession();
         setAuthState({
             hasSession: !!session,
             email: session?.user?.email,
@@ -69,7 +69,7 @@ export default function DebugLogPage() {
             sessionStorage.clear();
 
             // 4. Cafe24 auth sign-out
-            await supabase.auth.signOut();
+            await cafe24.auth.signOut();
 
             alert('초기화 완료. 메인으로 이동합니다.');
             window.location.href = '/';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
@@ -46,7 +46,7 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('learning_categories').select('*').order('created_at');
+            const { data } = await cafe24.from('learning_categories').select('*').order('created_at');
             if (data) {
                 setCategories(buildTree(data));
             }
@@ -193,7 +193,7 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
             if (!title.trim()) throw new Error('제목을 입력해주세요.');
             if (!categoryId) throw new Error('카테고리를 선택해주세요.');
 
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
             const imagesMetadata: Array<{
@@ -220,10 +220,10 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
                         // Upload all 4 sizes with index prefix
                         const uploadPromises = [
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-micro.webp`, micro, { contentType: 'image/webp', upsert: true }),
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-thumbnail.webp`, thumbnail, { contentType: 'image/webp', upsert: true }),
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-medium.webp`, medium, { contentType: 'image/webp', upsert: true }),
-                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-full.webp`, full, { contentType: 'image/webp', upsert: true })
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-micro.webp`, micro, { contentType: 'image/webp', upsert: true }),
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-thumbnail.webp`, thumbnail, { contentType: 'image/webp', upsert: true }),
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-medium.webp`, medium, { contentType: 'image/webp', upsert: true }),
+                            cafe24.storage.from('learning-images').upload(`${basePath}/image-${i}-full.webp`, full, { contentType: 'image/webp', upsert: true })
                         ];
 
                         const results = await Promise.all(uploadPromises);
@@ -235,10 +235,10 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
                         // Get public URLs
                         imagesMetadata.push({
-                            micro: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-micro.webp`).data.publicUrl,
-                            thumbnail: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-thumbnail.webp`).data.publicUrl,
-                            medium: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-medium.webp`).data.publicUrl,
-                            full: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-full.webp`).data.publicUrl
+                            micro: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-micro.webp`).data.publicUrl,
+                            thumbnail: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-thumbnail.webp`).data.publicUrl,
+                            medium: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-medium.webp`).data.publicUrl,
+                            full: cafe24.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-full.webp`).data.publicUrl
                         });
                     } finally {
                         URL.revokeObjectURL(fileUrl);
@@ -246,7 +246,7 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
                 }
             }
 
-            const { data: newResource, error: insertError } = await supabase
+            const { data: newResource, error: insertError } = await cafe24
                 .from('learning_resources')
                 .insert({
                     title,

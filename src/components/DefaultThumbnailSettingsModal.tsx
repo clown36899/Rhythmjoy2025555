@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../lib/cafe24Client";
+import { cafe24 } from "../lib/cafe24Client";
 import "./DefaultThumbnailSettingsModal.css";
 
 interface DefaultThumbnailSettingsModalProps {
@@ -12,6 +12,9 @@ export default function DefaultThumbnailSettingsModal({
   isOpen,
   onClose,
 }: DefaultThumbnailSettingsModalProps) {
+  const isLegacyExternalStorageUrl = (value: string) =>
+    /^https?:\/\//i.test(value) && !value.includes("/uploads/");
+
   // 강습용 기본 이미지
   const [classThumbnailUrl, setClassThumbnailUrl] = useState<string>("");
   const [classImageFile, setClassImageFile] = useState<File | null>(null);
@@ -32,7 +35,7 @@ export default function DefaultThumbnailSettingsModal({
 
   const loadDefaultThumbnails = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from("billboard_settings")
         .select("default_thumbnail_class, default_thumbnail_event")
         .eq("id", 1)
@@ -91,7 +94,7 @@ export default function DefaultThumbnailSettingsModal({
       const fileName = `default-thumbnail-${category}-${Date.now()}.${fileExt}`;
       const filePath = `default-thumbnails/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await cafe24.storage
         .from("images")
         .upload(filePath, file);
 
@@ -99,7 +102,7 @@ export default function DefaultThumbnailSettingsModal({
         throw uploadError;
       }
 
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = cafe24.storage
         .from("images")
         .getPublicUrl(filePath);
 
@@ -123,17 +126,17 @@ export default function DefaultThumbnailSettingsModal({
         if (uploadedUrl) {
           finalClassUrl = uploadedUrl;
 
-          if (classThumbnailUrl && classThumbnailUrl.includes("supabase")) {
+          if (classThumbnailUrl && isLegacyExternalStorageUrl(classThumbnailUrl)) {
             const oldPath = classThumbnailUrl.split("/").slice(-2).join("/");
-            await supabase.storage.from("images").remove([oldPath]);
+            await cafe24.storage.from("images").remove([oldPath]);
           }
         }
       } else if (!classImagePreview) {
         finalClassUrl = "";
 
-        if (classThumbnailUrl && classThumbnailUrl.includes("supabase")) {
+        if (classThumbnailUrl && isLegacyExternalStorageUrl(classThumbnailUrl)) {
           const oldPath = classThumbnailUrl.split("/").slice(-2).join("/");
-          await supabase.storage.from("images").remove([oldPath]);
+          await cafe24.storage.from("images").remove([oldPath]);
         }
       }
 
@@ -143,21 +146,21 @@ export default function DefaultThumbnailSettingsModal({
         if (uploadedUrl) {
           finalEventUrl = uploadedUrl;
 
-          if (eventThumbnailUrl && eventThumbnailUrl.includes("supabase")) {
+          if (eventThumbnailUrl && isLegacyExternalStorageUrl(eventThumbnailUrl)) {
             const oldPath = eventThumbnailUrl.split("/").slice(-2).join("/");
-            await supabase.storage.from("images").remove([oldPath]);
+            await cafe24.storage.from("images").remove([oldPath]);
           }
         }
       } else if (!eventImagePreview) {
         finalEventUrl = "";
 
-        if (eventThumbnailUrl && eventThumbnailUrl.includes("supabase")) {
+        if (eventThumbnailUrl && isLegacyExternalStorageUrl(eventThumbnailUrl)) {
           const oldPath = eventThumbnailUrl.split("/").slice(-2).join("/");
-          await supabase.storage.from("images").remove([oldPath]);
+          await cafe24.storage.from("images").remove([oldPath]);
         }
       }
 
-      const { error } = await supabase
+      const { error } = await cafe24
         .from("billboard_settings")
         .update({
           default_thumbnail_class: finalClassUrl,

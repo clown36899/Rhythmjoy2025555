@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from './MovePlaylistModal.module.css';
 
@@ -27,7 +27,7 @@ export const MovePlaylistModal = ({ playlistId, currentCategoryId, itemType = 'p
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('learning_categories').select('*').order('created_at');
+            const { data } = await cafe24.from('learning_categories').select('*').order('created_at');
             if (data) {
                 setCategories(buildTree(data));
             }
@@ -56,7 +56,7 @@ export const MovePlaylistModal = ({ playlistId, currentCategoryId, itemType = 'p
             const table = itemType === 'playlist' ? 'learning_playlists' :
                 itemType === 'standalone_video' ? 'learning_videos' : 'learning_documents';
 
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from(table)
                 .update({ category_id: categoryId })
                 .eq('id', playlistId);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/components/QuickNoticeInput.css';
 
@@ -22,7 +22,7 @@ export const QuickNoticeInput: React.FC = () => {
         try {
             // 1. '전광판' 말머리 ID 조회
             let prefixId = null;
-            const { data: prefixData } = await supabase
+            const { data: prefixData } = await cafe24
                 .from('board_prefixes')
                 .select('id')
                 .eq('board_category_code', 'free')
@@ -37,7 +37,7 @@ export const QuickNoticeInput: React.FC = () => {
             // 2. 게시글 등록
             // 전광판은 '자유게시판(free)' 데이터를 사용하므로 여기에 insert 합니다.
             // 제목(title)은 닉네임, 내용(content)은 입력한 메시지로 합니다.
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('board_posts')
                 .insert({
                     category: 'free',

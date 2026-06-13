@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import './ResourceAutocomplete.css';
 
 interface ResourceItem {
@@ -51,14 +51,14 @@ export const ResourceAutocomplete = ({ query, position, onSelect, onClose }: Pro
             setLoading(true);
 
             // 재생목록 검색
-            const { data: playlists } = await supabase
+            const { data: playlists } = await cafe24
                 .from('learning_playlists')
                 .select('id, title')
                 .ilike('title', `%${query}%`)
                 .limit(5);
 
             // 문서 검색
-            const { data: documents } = await supabase
+            const { data: documents } = await cafe24
                 .from('learning_documents')
                 .select('id, title')
                 .ilike('title', `%${query}%`)

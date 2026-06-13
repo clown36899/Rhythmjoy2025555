@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import {
     DEFAULT_NEB_FILTER_SETTINGS,
     NEB_MAX_ITEMS,
@@ -24,7 +24,7 @@ export default function NebFilterSettingsModal({ isOpen, onClose }: Props) {
     useEffect(() => {
         if (!isOpen) return;
         setIsLoading(true);
-        supabase
+        cafe24
             .from('app_settings')
             .select('value')
             .eq('key', 'neb_filter_settings')
@@ -52,7 +52,7 @@ export default function NebFilterSettingsModal({ isOpen, onClose }: Props) {
         setIsSaving(true);
         try {
             const normalizedSettings = normalizeNebFilterSettings(settings);
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from('app_settings')
                 .upsert(
                     { key: 'neb_filter_settings', value: normalizedSettings, description: 'NEB 광고 섹션 노출 필터 설정' },

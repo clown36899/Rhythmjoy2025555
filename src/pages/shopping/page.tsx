@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { logEvent } from '../../lib/analytics';
 import { useModal } from '../../hooks/useModal';
@@ -40,7 +40,7 @@ export default function ShoppingPage() {
     setLoading(true);
     try {
       // 'shops' 테이블과 'featured_items' 테이블을 join하여 한번에 데이터를 가져옵니다.
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('shops')
         .select(`*, featured_items (*)`);
 
@@ -93,7 +93,7 @@ export default function ShoppingPage() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('shop_favorites')
         .select('shop_id')
         .eq('user_id', user.id);
@@ -152,7 +152,7 @@ export default function ShoppingPage() {
 
     if (isFav) {
       // Remove
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('shop_favorites')
         .delete()
         .eq('user_id', user.id)
@@ -169,7 +169,7 @@ export default function ShoppingPage() {
       }
     } else {
       // Add
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('shop_favorites')
         .insert({ user_id: user.id, shop_id: shopId });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -178,7 +178,7 @@ const LearningPage = () => {
         try {
 
             // 1. Fetch Playlists
-            let query = supabase
+            let query = cafe24
                 .from('learning_playlists')
                 .select(`
                     *,
@@ -196,7 +196,7 @@ const LearningPage = () => {
             if (playlistsError) throw playlistsError;
 
             // 2. Fetch Documents
-            let docQuery = supabase
+            let docQuery = cafe24
                 .from('learning_documents')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -209,7 +209,7 @@ const LearningPage = () => {
             if (documentsError) throw documentsError;
 
             // 3. Fetch Categories with Video Counts
-            const { data: categoriesData, error: categoriesError } = await supabase
+            const { data: categoriesData, error: categoriesError } = await cafe24
                 .from('learning_categories')
                 .select(`
                     *,
@@ -230,7 +230,7 @@ const LearningPage = () => {
             if (documentsError) throw documentsError;
 
             // 3. Fetch Standalone Videos (playlist_id is null)
-            let videoQuery = supabase
+            let videoQuery = cafe24
                 .from('learning_videos')
                 .select('*')
                 .is('playlist_id', null)
@@ -244,7 +244,7 @@ const LearningPage = () => {
             if (videosError) throw videosError;
 
             // 5. Fetch Persons/Resources
-            const { data: resourcesData, error: resourcesError } = await supabase
+            const { data: resourcesData, error: resourcesError } = await cafe24
                 .from('learning_resources')
                 .select('*')
                 .eq('type', 'person');
@@ -327,7 +327,7 @@ const LearningPage = () => {
                     const videos = await fetchPlaylistVideos(playlist.youtube_playlist_id!);
                     if (videos.length === 0) continue;
 
-                    await supabase.from('learning_videos').delete().eq('playlist_id', playlist.id);
+                    await cafe24.from('learning_videos').delete().eq('playlist_id', playlist.id);
 
                     const videoData = videos.map((video, index) => ({
                         playlist_id: playlist.id,
@@ -337,9 +337,9 @@ const LearningPage = () => {
                         memo: video.description?.slice(0, 100),
                     }));
 
-                    await supabase.from('learning_videos').insert(videoData);
+                    await cafe24.from('learning_videos').insert(videoData);
 
-                    await supabase
+                    await cafe24
                         .from('learning_playlists')
                         .update({ updated_at: new Date().toISOString() })
                         .eq('id', playlist.id);
@@ -383,7 +383,7 @@ const LearningPage = () => {
 
             // Note: If item.type === 'general', it is a category. Moving a category into another category?
             if (item.type === 'general') {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Migrated: Categories are in learning_resources
                     .update({ category_id: targetCategoryId }) // Folders use category_id as parent_id (or parent_id if column exists, but unified usually uses category_id)
                     // Wait, let's double check if learning_resources stores parent folder in 'category_id'.
@@ -394,7 +394,7 @@ const LearningPage = () => {
                 if (error) throw error;
             } else {
                 // Resources (Video, Playlist, Doc)
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources')
                     .update({ category_id: targetCategoryId })
                     .eq('id', itemId);
@@ -469,25 +469,25 @@ const LearningPage = () => {
         }
         try {
             if (type === 'general') { // Category
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Categories are now resources
                     .update({ title: newName }) // Use title instead of name
                     .eq('id', id);
                 if (error) throw error;
             } else if (type === 'playlist' || type === 'person') {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Migrated to resources
                     .update({ title: newName })
                     .eq('id', id);
                 if (error) throw error;
             } else if (type === 'standalone_video' || type === 'video') {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_resources') // Migrated to resources
                     .update({ title: newName })
                     .eq('id', id);
                 if (error) throw error;
             } else if (type === 'document') {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('learning_documents')
                     .update({ title: newName })
                     .eq('id', id);
@@ -508,7 +508,7 @@ const LearningPage = () => {
             return;
         }
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) {
                 console.error('❌ [Page] No user found during category creation');
                 alert('로그인이 필요합니다.');
@@ -516,7 +516,7 @@ const LearningPage = () => {
             }
 
             console.log('🚀 [Page] Inserting category into data store...');
-            const { error } = await supabase.from('learning_categories').insert({
+            const { error } = await cafe24.from('learning_categories').insert({
                 name,
                 parent_id: null,
                 is_unclassified: false,

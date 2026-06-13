@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SubscriptionInfo {
@@ -34,7 +34,7 @@ export const AdminPushTest: React.FC = () => {
         setFetchingLatest(true);
         try {
             // events 테이블에서 조회 (board_posts에는 type/category 컬럼이 없을 수 있음)
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('events')
                 .select('*')
                 .eq('category', type)
@@ -69,7 +69,7 @@ export const AdminPushTest: React.FC = () => {
     const fetchMySubscriptions = async () => {
         setSubsLoading(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from('user_push_subscriptions')
                 .select('id, user_agent, created_at, endpoint, user_id')
                 .in('user_id', [CLOWN_GMAIL_ID, CLOWN_NAVER_ID]);
@@ -90,7 +90,7 @@ export const AdminPushTest: React.FC = () => {
 
     const handleDeleteSubscription = async (subId: string) => {
         try {
-            await supabase
+            await cafe24
                 .from('user_push_subscriptions')
                 .delete()
                 .eq('id', subId);
@@ -115,7 +115,7 @@ export const AdminPushTest: React.FC = () => {
         setResult(null);
         try {
             // 전체 유저의 중복 구독 정리: 각 user_id + 기기종류별로 가장 최신 1개만 남기고 삭제
-            const { data: allSubs, error } = await supabase
+            const { data: allSubs, error } = await cafe24
                 .from('user_push_subscriptions')
                 .select('id, user_id, user_agent, created_at')
                 .order('created_at', { ascending: false });
@@ -140,7 +140,7 @@ export const AdminPushTest: React.FC = () => {
             } else {
                 for (let i = 0; i < deleteIds.length; i += 50) {
                     const chunk = deleteIds.slice(i, i + 50);
-                    await supabase
+                    await cafe24
                         .from('user_push_subscriptions')
                         .delete()
                         .in('id', chunk);
@@ -180,7 +180,7 @@ export const AdminPushTest: React.FC = () => {
 
             const results = await Promise.all(targetIds.map(async (tid) => {
                 if (!tid) return null;
-                const { data, error } = await supabase.functions.invoke('send-push-notification', {
+                const { data, error } = await cafe24.functions.invoke('send-push-notification', {
                     body: {
                         title: finalTitle,
                         body: body,
@@ -247,7 +247,7 @@ export const AdminPushTest: React.FC = () => {
 
             for (const tid of targetIds) {
                 if (!tid) continue;
-                await supabase.from('notification_queue').insert({
+                await cafe24.from('notification_queue').insert({
                     title: finalTitle,
                     body: body,
                     category: category,

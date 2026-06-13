@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase as prodClient } from '../../../lib/cafe24Client';
+import { cafe24 as prodClient } from '../../../lib/cafe24Client';
 import {
   detectIngestorActivity,
   getIngestorActivityLabel,

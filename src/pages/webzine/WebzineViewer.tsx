@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/cafe24Client';
+import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import LocalLoading from '../../components/LocalLoading';
 import WebzineRenderer from './components/WebzineRenderer';
@@ -32,7 +32,7 @@ const WebzineViewer = () => {
 
             try {
                 // 1. Fetch Post
-                const { data, error } = await supabase
+                const { data, error } = await cafe24
                     .from('webzine_posts')
                     .select('*')
                     .eq('id', id)
@@ -50,7 +50,7 @@ const WebzineViewer = () => {
                 setPost(data);
 
                 // 2. Increment Views (Simple implementation)
-                await supabase.rpc('increment_webzine_view', { row_id: id });
+                await cafe24.rpc('increment_webzine_view', { row_id: id });
 
             } catch (err) {
                 console.error('[WebzineViewer] Failed to load post:', err);

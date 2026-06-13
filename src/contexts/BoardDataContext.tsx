@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 
 interface BoardCategory {
     id: number;
@@ -111,7 +111,7 @@ const loadBoardStaticData = async (force = false): Promise<BoardStaticData> => {
         return boardStaticDataPromise;
     }
 
-    boardStaticDataPromise = supabase.rpc('get_board_static_data').then(({ data: rpcData, error: rpcError }) => {
+    boardStaticDataPromise = cafe24.rpc('get_board_static_data').then(({ data: rpcData, error: rpcError }) => {
         if (rpcError) throw rpcError;
 
         const processedData = {
@@ -185,7 +185,7 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchInteractions = useCallback(async (userId: string) => {
         try {
-            const { data: interactionData, error: interactionError } = await supabase.rpc('get_user_interactions', {
+            const { data: interactionData, error: interactionError } = await cafe24.rpc('get_user_interactions', {
                 p_user_id: userId
             });
             if (interactionError) throw interactionError;
@@ -234,7 +234,7 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
         try {
             if (isCurrentlyFavorite) {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('event_favorites')
                     .delete()
                     .eq('user_id', userId)
@@ -242,7 +242,7 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('event_favorites')
                     .insert({ user_id: userId, event_id: numericId });
 

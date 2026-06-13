@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { extractPlaylistId, fetchPlaylistInfo, fetchPlaylistVideos, extractVideoId, fetchVideoDetails } from '../utils/youtube';
 import styles from './PlaylistImportModal.module.css';
@@ -34,7 +34,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess, context }: Props) => {
 
     useEffect(() => {
         const fetchCategories = async () => {
-            const { data } = await supabase.from('learning_categories').select('*').order('created_at');
+            const { data } = await cafe24.from('learning_categories').select('*').order('created_at');
             if (data) {
                 setCategories(buildTree(data));
             }
@@ -74,7 +74,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess, context }: Props) => {
             }
 
             // 3. DB 저장 - 사용자 정보 가져오기
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await cafe24.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
             if (playlistId) {
@@ -92,7 +92,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess, context }: Props) => {
                 setStatus('새 폴더 생성 중...');
 
                 // 3-1. 새 폴더(카테고리) 생성
-                const { data: newCategory, error: catError } = await supabase
+                const { data: newCategory, error: catError } = await cafe24
                     .from('learning_categories')
                     .insert({
                         name: playlistInfo.title,
@@ -124,7 +124,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess, context }: Props) => {
                     }
                 }));
 
-                const { data: createdVideos, error: videoError } = await supabase
+                const { data: createdVideos, error: videoError } = await cafe24
                     .from('learning_resources')
                     .insert(videoData)
                     .select();
@@ -144,7 +144,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess, context }: Props) => {
 
                 setStatus('DB에 저장하는 중...');
 
-                const { data: newVideo, error: videoError } = await supabase
+                const { data: newVideo, error: videoError } = await cafe24
                     .from('learning_resources')
                     .insert({
                         category_id: categoryId,

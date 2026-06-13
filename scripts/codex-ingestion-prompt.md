@@ -17,8 +17,8 @@ Hard constraints:
 - Do not ask for approval. Proceed autonomously.
 - Keep the whole run within the time budget defined by the skill.
 - Use today's date from the local machine.
-- The wrapper has already run the mandatory past-collected cleanup through `scripts/ingestion/cleanup-past-collected.mjs`.
-- Do not run raw DB `DELETE` cleanup yourself during daily automation. Use `INGESTION_PRE_CLEANUP_COUNT` as the `과거데이터삭제` summary count.
+- The wrapper no longer performs legacy backend past-collected cleanup.
+- Do not run raw DB cleanup yourself during daily automation. Use `INGESTION_PRE_CLEANUP_COUNT` as the `과거데이터삭제` summary count, which is currently fixed to `0` unless a new cleanup backend is introduced.
 - Only insert events that have a verified source URL and a poster image.
 - Treat dates attached to payment deadlines, early-bird deadlines, registration deadlines, notice dates, or post timestamps as non-event dates. For classes, collect only when the actual class/workshop start date is visible. If the post only exposes a deadline date, skip it and record the reason.
 - Do not use cropped social preview images as posters. For Instagram, avoid `twitter:image`, `og:image`, `p240x240`, `s640x640`, or URLs with crop parameters such as `stp=c...` unless you have verified that the original post image itself is square and not cut off.

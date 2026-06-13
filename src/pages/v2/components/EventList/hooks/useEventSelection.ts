@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "../../../../../lib/cafe24Client";
+import { cafe24 } from "../../../../../lib/cafe24Client";
 import { useAuth } from "../../../../../contexts/AuthContext";
 import { addClientLog } from "../../../../../utils/clientLogBuffer";
 import type { Event } from "../../../utils/eventListUtils";
@@ -41,7 +41,7 @@ export function useEventSelection({
         try {
             setIsFetchingDetail(true);
             // Fetch fresh detail from DB (including description, organizer_phone, etc.)
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from("events")
                 .select("*")
                 .eq("id", event.id)
@@ -68,7 +68,7 @@ export function useEventSelection({
         try {
             setIsDeleting(true);
             const cleanId = String(eventId).replace(/^social-/, '');
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            const { data: { session }, error: sessionError } = await cafe24.auth.getSession();
             if (sessionError) console.error("[EventListDelete] Session Error:", sessionError);
             const token = session?.access_token;
 

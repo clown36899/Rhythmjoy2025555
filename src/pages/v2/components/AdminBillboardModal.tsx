@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../../../lib/cafe24Client";
+import { cafe24 } from "../../../lib/cafe24Client";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 import { useBillboardSettings } from "../../../hooks/useBillboardSettings";
 import "../../../styles/domains/events.css";
@@ -122,7 +122,7 @@ export default function AdminBillboardModal({
       const startDate = settings.dateRangeStart || todayStr;
       const endDate = settings.dateRangeEnd;
 
-      let query = supabase
+      let query = cafe24
         .from('events')
         .select('id, title, start_date, date, image_full, image, video_url')
         .gte('start_date', startDate);
@@ -163,7 +163,7 @@ export default function AdminBillboardModal({
       const endDate = userSettings.date_filter_end;
 
       // end_date도 함께 가져오기 (종료일 기준 필터링을 위해)
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('events')
         .select('id, title, start_date, end_date, date, image_full, image, video_url')
         .order('start_date', { ascending: true });
@@ -207,7 +207,7 @@ export default function AdminBillboardModal({
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from("billboard_user_settings")
         .select("*")
         .eq("billboard_user_id", billboardUserId)
@@ -290,7 +290,7 @@ export default function AdminBillboardModal({
     });
 
     try {
-      const { error } = await supabase
+      const { error } = await cafe24
         .from("billboard_user_settings")
         .upsert(
           {
@@ -1048,7 +1048,7 @@ export default function AdminBillboardModal({
 
                   // Storage 업로드
                   const fileName = `default-thumbnail-class-${Date.now()}.webp`;
-                  const { error } = await supabase.storage
+                  const { error } = await cafe24.storage
                     .from('images')
                     .upload(`default-thumbnails/${fileName}`, targetImage, {
                       contentType: 'image/webp',
@@ -1058,7 +1058,7 @@ export default function AdminBillboardModal({
                   if (error) throw error;
 
                   // Public URL 가져오기
-                  const { data: { publicUrl } } = supabase.storage
+                  const { data: { publicUrl } } = cafe24.storage
                     .from('images')
                     .getPublicUrl(`default-thumbnails/${fileName}`);
 
@@ -1079,7 +1079,7 @@ export default function AdminBillboardModal({
                   if (!targetImage) throw new Error("Image resizing failed");
 
                   const fileName = `default-thumbnail-event-${Date.now()}.webp`;
-                  const { error } = await supabase.storage
+                  const { error } = await cafe24.storage
                     .from('images')
                     .upload(`default-thumbnails/${fileName}`, targetImage, {
                       contentType: 'image/webp',
@@ -1088,7 +1088,7 @@ export default function AdminBillboardModal({
 
                   if (error) throw error;
 
-                  const { data: { publicUrl } } = supabase.storage
+                  const { data: { publicUrl } } = cafe24.storage
                     .from('images')
                     .getPublicUrl(`default-thumbnails/${fileName}`);
 

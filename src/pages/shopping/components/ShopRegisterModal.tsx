@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 
@@ -190,7 +190,7 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
         const fileName = `${Date.now()}.webp`;
         const filePath = `${folder}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await cafe24.storage
             .from('images')
             .upload(filePath, resizedImageBlob, {
                 contentType: 'image/webp',
@@ -202,7 +202,7 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             throw uploadError;
         }
 
-        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+        const { data } = cafe24.storage.from('images').getPublicUrl(filePath);
         return data.publicUrl;
     };
 
@@ -232,7 +232,7 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
             }
 
             // 1. Insert into shops table
-            const { data: shopData, error: shopError } = await supabase
+            const { data: shopData, error: shopError } = await cafe24
                 .from('shops')
                 .insert({
                     name: shopName,
@@ -256,7 +256,7 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
                         itemImageUrl = await uploadImage(item.imageFile, 'featured-items');
                     }
 
-                    const { error: itemError } = await supabase
+                    const { error: itemError } = await cafe24
                         .from('featured_items')
                         .insert({
                             shop_id: shopData.id,

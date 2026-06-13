@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import { useAuth } from '../contexts/AuthContext';
 import LocalLoading from './LocalLoading';
 import "./BoardUserManagementModal.css";
@@ -56,7 +56,7 @@ export default function BoardUserManagementModal({
       setLoading(true);
 
       // Fetch users from public schema (system_keys and user_tokens are protected, but board_users is visible)
-      const { data, error } = await supabase
+      const { data, error } = await cafe24
         .from('board_users')
         .select('id, user_id, nickname, profile_image, created_at')
         .order('created_at', { ascending: false });

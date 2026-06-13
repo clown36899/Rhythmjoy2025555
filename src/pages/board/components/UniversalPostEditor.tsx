@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardPost } from '../hooks/useBoardPosts';
@@ -125,7 +125,7 @@ export default function UniversalPostEditor({
 
     const loadBannedWords = async () => {
         try {
-            const { data } = await supabase.from('board_banned_words').select('word');
+            const { data } = await cafe24.from('board_banned_words').select('word');
             if (data) setBannedWords(data.map(w => w.word));
         } catch (error) {
             console.error('금지어 로드 실패:', error);
@@ -239,13 +239,13 @@ export default function UniversalPostEditor({
                         // We can reuse the blobUrl since it points to the file
                         const resizeResult = await resizeImage(blobUrl, 800, 0.8, fileName);
 
-                        const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
+                        const { error } = await cafe24.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
                         if (error) {
                             console.error('Failed to upload inline image:', file.name, error);
                             throw error;
                         }
 
-                        const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
+                        const publicUrl = cafe24.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
 
                         // Replace all occurrences of the blob URL with the real public URL
                         finalContent = finalContent.replaceAll(blobUrl, publicUrl);
@@ -293,7 +293,7 @@ export default function UniversalPostEditor({
                 updates.image = imageUrls.image;
                 updates.image_thumbnail = imageUrls.image_thumbnail;
 
-                const { error } = await supabase
+                const { error } = await cafe24
                     .from('board_posts')
                     .update(updates)
                     .eq('id', post.id);
@@ -313,7 +313,7 @@ export default function UniversalPostEditor({
             } else {
                 let currentNickname = userNickname;
                 if (!currentNickname && user?.id) {
-                    const { data: ud } = await supabase.from('board_users').select('nickname').eq('user_id', user.id).maybeSingle();
+                    const { data: ud } = await cafe24.from('board_users').select('nickname').eq('user_id', user.id).maybeSingle();
                     currentNickname = ud?.nickname;
                 }
 
@@ -336,7 +336,7 @@ export default function UniversalPostEditor({
                     views: 0
                 };
 
-                const { data: insertedPost, error } = await supabase
+                const { data: insertedPost, error } = await cafe24
                     .from('board_posts')
                     .insert([newPost])
                     .select('id')

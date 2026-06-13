@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../lib/cafe24Client';
+import { cafe24 } from '../lib/cafe24Client';
 import LocalLoading from './LocalLoading';
 import "./BoardPrefixManagementModal.css";
 
@@ -94,7 +94,7 @@ export default function BoardPrefixManagementModal({
 
 
   const loadCategories = async () => {
-    const { data } = await supabase.from('board_categories').select('code, name').order('display_order');
+    const { data } = await cafe24.from('board_categories').select('code, name').order('display_order');
     if (data && data.length > 0) {
       setCategories(data);
       // If current selectedCategory is not in the list (or it's initial load), set to first one
@@ -107,7 +107,7 @@ export default function BoardPrefixManagementModal({
   const loadPrefixes = async () => {
     try {
       setLoading(true);
-      let query = supabase
+      let query = cafe24
         .from('board_prefixes')
         .select('*')
         .order('display_order', { ascending: true });
@@ -145,7 +145,7 @@ export default function BoardPrefixManagementModal({
     try {
       if (editingId) {
         // UPDATE Existing
-        const { error } = await supabase
+        const { error } = await cafe24
           .from('board_prefixes')
           .update({
             name: newPrefix.name,
@@ -163,7 +163,7 @@ export default function BoardPrefixManagementModal({
           ? Math.max(...prefixes.map(p => p.display_order))
           : 0;
 
-        const { error } = await supabase
+        const { error } = await cafe24
           .from('board_prefixes')
           .insert({
             name: newPrefix.name,
@@ -207,7 +207,7 @@ export default function BoardPrefixManagementModal({
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await cafe24
         .from('board_prefixes')
         .delete()
         .eq('id', id);

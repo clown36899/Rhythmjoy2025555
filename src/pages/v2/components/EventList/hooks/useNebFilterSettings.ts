@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../../../lib/cafe24Client';
+import { cafe24 } from '../../../../../lib/cafe24Client';
 
 export interface NebFilterSettings {
     sort_by: 'created_at' | 'date';
@@ -42,7 +42,7 @@ export function useNebFilterSettings() {
     const [settings, setSettings] = useState<NebFilterSettings>(DEFAULT_NEB_FILTER_SETTINGS);
 
     useEffect(() => {
-        supabase
+        cafe24
             .from('app_settings')
             .select('value')
             .eq('key', 'neb_filter_settings')

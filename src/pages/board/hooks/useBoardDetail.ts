@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/cafe24Client';
+import { cafe24 } from '../../../lib/cafe24Client';
 import type { BoardPost } from './useBoardPosts';
 import { useViewTracking } from '../../../hooks/useViewTracking';
 
@@ -30,7 +30,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
 
         const table = post.category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
 
-        const channel = supabase
+        const channel = cafe24
             .channel(`post_detail:${post.id}`)
             .on(
                 'postgres_changes',
@@ -65,7 +65,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            cafe24.removeChannel(channel);
         };
     }, [post?.id, post?.category, isAdmin, onPostDeleted]);
 
@@ -76,7 +76,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             // Determine which table to query based on category
             const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
 
-            const { data, error } = await supabase
+            const { data, error } = await cafe24
                 .from(table)
                 .select(`
                     id, 
@@ -116,7 +116,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             // Fetch profile image if user_id exists
             let profileImage = null;
             if (data.user_id) {
-                const { data: userData } = await supabase
+                const { data: userData } = await cafe24
                     .from('board_users')
                     .select('profile_image')
                     .eq('user_id', data.user_id)
@@ -158,7 +158,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         try {
             setUpdating(true);
             const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from(table)
                 .delete()
                 .eq('id', post.id);
@@ -181,7 +181,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         try {
             const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
             const newHiddenState = !post.is_hidden;
-            const { error } = await supabase
+            const { error } = await cafe24
                 .from(table)
                 .update({ is_hidden: newHiddenState })
                 .eq('id', post.id);
