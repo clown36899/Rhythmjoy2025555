@@ -4,16 +4,27 @@
 
 @media (max-width: 760px), (pointer: coarse) {
   .mobile-log-viewer {
+    display: block;
+    font-family: inherit;
+  }
+
+  .mobile-log-viewer--floating {
     position: fixed;
     left: max(10px, env(safe-area-inset-left));
     bottom: calc(12px + env(safe-area-inset-bottom));
     z-index: 2147483000;
-    display: block;
-    font-family: inherit;
     pointer-events: none;
   }
 
+  .mobile-log-viewer--drawer {
+    position: relative;
+    width: 100%;
+    margin: 0 0 9px;
+    pointer-events: auto;
+  }
+
   .mobile-log-viewer__trigger,
+  .mobile-log-viewer__drawer-trigger,
   .mobile-log-viewer__panel {
     pointer-events: auto;
   }
@@ -34,6 +45,41 @@
     -webkit-backdrop-filter: blur(10px);
   }
 
+  .mobile-log-viewer__drawer-trigger {
+    position: relative;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    color: rgba(241, 245, 249, 0.82);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .mobile-log-viewer__drawer-trigger i {
+    font-size: 16px;
+    color: rgba(96, 165, 250, 0.95);
+  }
+
+  .mobile-log-viewer__drawer-trigger span {
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+  }
+
+  .mobile-log-viewer__drawer-trigger strong {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.54);
+    font-size: 10px;
+    font-weight: 900;
+  }
+
   .mobile-log-viewer__dot {
     position: absolute;
     top: -3px;
@@ -43,6 +89,11 @@
     border: 2px solid #111318;
     border-radius: 50%;
     background: #ff5a5f;
+  }
+
+  .mobile-log-viewer__drawer-trigger .mobile-log-viewer__dot {
+    top: 8px;
+    right: 10px;
   }
 
   .mobile-log-viewer__panel {
@@ -56,6 +107,15 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+  }
+
+  .mobile-log-viewer--drawer .mobile-log-viewer__panel {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 2147483001;
+    width: auto;
   }
 
   .mobile-log-viewer__header {

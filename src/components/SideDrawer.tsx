@@ -15,6 +15,7 @@ import { isLegacyIOS } from '../lib/pwaDetect';
 import type { PageAction } from '../contexts/PageActionContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { logUserInteraction } from '../lib/analytics';
+import MobileLogViewer from './MobileLogViewer';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
@@ -1070,6 +1071,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                              </span>
                          </button>
                      )}
+                     <MobileLogViewer placement="drawer" />
                      <div className="SD-version">v{__APP_VERSION__}</div>
                  </div>
              </div>

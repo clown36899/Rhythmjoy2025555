@@ -7,13 +7,19 @@ import {
 } from '../utils/clientLogBuffer';
 import '../styles/components/MobileLogViewer.css';
 
+type MobileLogViewerPlacement = 'hidden' | 'floating' | 'drawer';
+
+interface MobileLogViewerProps {
+  placement?: MobileLogViewerPlacement;
+}
+
 function summarizeLatest(logs: ClientLogEntry[]) {
   const latestError = [...logs].reverse().find((log) => log.level === 'error' || log.level === 'warn');
   if (!latestError) return '문제 상황이 생기면 여기서 로그를 복사할 수 있습니다.';
   return latestError.message.slice(0, 90);
 }
 
-export default function MobileLogViewer() {
+export default function MobileLogViewer({ placement = 'hidden' }: MobileLogViewerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<ClientLogEntry[]>(() => getClientLogs());
   const [copyStatus, setCopyStatus] = useState('');
@@ -46,19 +52,29 @@ export default function MobileLogViewer() {
     setCopyStatus('비움');
   };
 
+  if (placement === 'hidden') return null;
+
   return (
-    <div className={`mobile-log-viewer ${isOpen ? 'is-open' : ''}`}>
+    <div className={`mobile-log-viewer mobile-log-viewer--${placement} ${isOpen ? 'is-open' : ''}`}>
       {!isOpen && (
         <button
           type="button"
-          className="mobile-log-viewer__trigger"
+          className={placement === 'drawer' ? 'mobile-log-viewer__drawer-trigger' : 'mobile-log-viewer__trigger'}
           onClick={() => {
             refresh();
             setIsOpen(true);
           }}
           aria-label="모바일 로그 열기"
         >
-          LOG
+          {placement === 'drawer' ? (
+            <>
+              <i className="ri-file-list-3-line" aria-hidden="true" />
+              <span>모바일 로그</span>
+              <strong>LOG</strong>
+            </>
+          ) : (
+            'LOG'
+          )}
           {(errorCount > 0 || warnCount > 0) && (
             <span className="mobile-log-viewer__dot" aria-label={`${errorCount} errors, ${warnCount} warnings`} />
           )}
