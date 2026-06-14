@@ -151,6 +151,7 @@ const LocalDbTestPage = lazy(() => import('./pages/test/LocalDbTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
 const NotificationPreviewPage = lazy(() => import('./pages/admin/NotificationPreviewPage'));
 const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
+const MediaArchivePage = lazy(() => import('./pages/forum/media/MediaArchivePage'));
 const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
 const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
@@ -278,6 +279,7 @@ const router = createBrowserRouter([
       { path: "/privacy", element: <PrivacyPage /> },
       { path: "/board/*", element: <BoardPage /> },
       { path: "/forum", element: <ForumPage /> },
+      { path: "/forum/media", element: <MediaArchivePage /> },
       { path: "/bpm-tapper", element: <BpmTapperPage /> },
       { path: "/metronome", element: <MetronomePage /> },
       { path: "/my-activities", element: <MyActivitiesPage /> },

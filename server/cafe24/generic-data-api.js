@@ -156,6 +156,7 @@ const loginRequiredMutationTables = new Set([
   'practice_room_favorites',
   'shop_favorites',
   'shops',
+  'sns_media_items',
   'site_links',
   'social_group_favorites',
   'social_groups',
@@ -180,6 +181,7 @@ const ownerScopedMutationTables = new Set([
   'practice_room_favorites',
   'shop_favorites',
   'shops',
+  'sns_media_items',
   'site_links',
   'social_group_favorites',
   'social_groups',
@@ -222,6 +224,7 @@ const parentOwnedMutationTables = {
 
 const adminProtectedMutationFieldsByTable = {
   shops: new Set(['is_active', 'is_approved', 'is_featured', 'featured', 'display_order', 'sort_order']),
+  sns_media_items: new Set(['is_approved', 'approved_at', 'approved_by', 'display_order', 'sort_order']),
   site_links: new Set(['is_approved', 'approved_at', 'approved_by', 'display_order', 'sort_order']),
   social_groups: new Set(['is_active', 'is_approved', 'is_featured', 'display_order', 'sort_order']),
   social_places: new Set(['is_active', 'is_approved', 'display_order', 'sort_order']),
@@ -328,7 +331,7 @@ function isTruthy(value) {
 }
 
 function filterRowsForViewer(table, rows = [], user) {
-  if (table === 'site_links' && !user?.is_admin) {
+  if ((table === 'site_links' || table === 'sns_media_items') && !user?.is_admin) {
     return rows.filter((row) => (
       isTruthy(row.is_approved) ||
       (user && rowOwnerMatches(user, row))

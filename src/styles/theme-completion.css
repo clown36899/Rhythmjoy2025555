@@ -213,14 +213,73 @@ html[data-theme="light"] .home-v2-menu-panel {
 html[data-theme="light"] :is(
   .home-v2-menu-toggle,
   .home-v2-menu-item,
+  .home-v2-menu-quick-item,
+  .home-v2-menu-edit-btn,
+  .home-v2-menu-reset-btn,
   .home-v2-menu-label
 ) {
   color: var(--text-primary);
 }
 
 html[data-theme="light"] .home-v2-menu-item {
-  background: var(--bg-surface-1);
-  border: 1px solid var(--border-secondary);
+  background: transparent;
+  border: 0;
+}
+
+html[data-theme="light"] :is(
+  .home-v2-menu-quick-item,
+  .home-v2-menu-edit-btn,
+  .home-v2-menu-reset-btn
+) {
+  background: transparent;
+  border-color: transparent;
+}
+
+html[data-theme="light"] .home-v2-menu-quick-item.is-active {
+  background: transparent;
+  border-color: transparent;
+}
+
+html[data-theme="light"] .home-v2-menu-item.is-active {
+  background: transparent;
+}
+
+html[data-theme="light"] .home-v2-menu-item.is-pinned {
+  background: transparent;
+}
+
+html[data-theme="light"] .home-v2-menu-item.is-editable.is-pinned {
+  outline-color: rgba(17, 24, 39, 0.2);
+}
+
+html[data-theme="light"] .home-v2-menu-item.is-editable.is-pinned.is-drag-target {
+  outline-color: rgba(59, 130, 246, 0.7);
+}
+
+html[data-theme="light"] .home-v2-menu-edit-btn.is-active,
+html[data-theme="light"] .home-v2-menu-rank-badge {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+html[data-theme="light"] .home-v2-menu-edit-slot {
+  border-color: rgba(17, 24, 39, 0.18);
+  color: rgba(17, 24, 39, 0.3);
+}
+
+html[data-theme="light"] .home-v2-menu-edit-slot.is-drag-target {
+  border-color: rgba(59, 130, 246, 0.7);
+  background: rgba(59, 130, 246, 0.1);
+  color: rgba(17, 24, 39, 0.72);
+}
+
+html[data-theme="light"] .home-v2-menu-drag-overlay {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(17, 24, 39, 0.12);
+  box-shadow:
+    0 18px 38px rgba(17, 24, 39, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
 }
 
 html[data-theme="light"] .board-posts-container.is-standard-board-v2 .board-post-card-notice,
