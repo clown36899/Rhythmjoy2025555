@@ -590,6 +590,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         if (!isEditMode) return;
         if (event.pointerType === "mouse" && event.button !== 0) return;
 
+        event.preventDefault();
         event.stopPropagation();
         const rect = event.currentTarget.getBoundingClientRect();
         pinnedDragStartRef.current = {
@@ -1092,12 +1093,14 @@ export const HomeV2MenuPanel: React.FC = () => {
                                     onPointerUp={isEditMode ? handlePinnedPointerEnd : undefined}
                                     onPointerCancel={isEditMode ? handlePinnedPointerEnd : undefined}
                                     onDragStart={isEditMode ? (event) => event.preventDefault() : undefined}
+                                    onContextMenu={isEditMode ? (event) => event.preventDefault() : undefined}
                                 >
                                     <button
                                         type="button"
                                         className="home-v2-menu-item-main"
                                         onTouchStart={(event) => {
                                             if (isEditMode) {
+                                                event.preventDefault();
                                                 event.stopPropagation();
                                                 return;
                                             }
@@ -1107,6 +1110,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         }}
                                         onTouchMove={(event) => {
                                             if (isEditMode) {
+                                                event.preventDefault();
                                                 event.stopPropagation();
                                                 return;
                                             }
@@ -1116,6 +1120,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         }}
                                         onTouchEnd={(event) => {
                                             if (isEditMode) {
+                                                event.preventDefault();
                                                 event.stopPropagation();
                                                 return;
                                             }

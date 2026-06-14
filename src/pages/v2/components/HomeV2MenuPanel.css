@@ -446,6 +446,10 @@
 .home-v2-menu-item.is-editable {
   background: transparent;
   cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .home-v2-menu-item.is-editable.is-pinned {
@@ -455,6 +459,10 @@
 
 .home-v2-menu-item.is-editable .home-v2-menu-item-main {
   cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .home-v2-menu-item.is-drag-placeholder {
