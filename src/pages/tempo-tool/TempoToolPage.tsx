@@ -14,7 +14,7 @@ const SOUND_OUTPUT_GAIN = 2.35;
 const MAX_SOUND_GAIN = 0.86;
 const VOLUME_STORAGE_KEY = 'tempo_tool_volume';
 const MIN_VOLUME = 0;
-const MAX_VOLUME = 400;
+const MAX_VOLUME = 800;
 const DEFAULT_VOLUME = 100;
 
 type Subdivision = 1 | 2 | 3 | 4;
@@ -186,6 +186,17 @@ const TempoToolPage: React.FC = () => {
         const context = new AudioContextClass();
         audioContextRef.current = context;
         return context;
+    }, []);
+
+    const resumeAudioContext = useCallback(async (context: AudioContext) => {
+        if (context.state !== 'suspended') return true;
+
+        try {
+            await context.resume();
+            return context.state !== 'suspended';
+        } catch {
+            return false;
+        }
     }, []);
 
     const playTone = useCallback((
@@ -441,39 +452,37 @@ const TempoToolPage: React.FC = () => {
         playPresetSound(time, isDownbeat ? 'downbeat' : isMainBeat ? 'main' : 'sub');
     }, [playPresetSound]);
 
-    const playTapFeedback = useCallback(() => {
+    const playTapFeedback = useCallback(async () => {
         try {
             const context = ensureAudioContext();
             if (!context) return;
 
-            if (context.state === 'suspended') {
-                void context.resume();
-            }
+            const isReady = await resumeAudioContext(context);
+            if (!isReady) return;
 
-            playPresetSound(context.currentTime + 0.002, 'tap');
+            playPresetSound(context.currentTime + 0.006, 'tap');
         } catch {
             // Audio feedback is optional; tap measurement must continue even if Web Audio is blocked.
         }
-    }, [ensureAudioContext, playPresetSound]);
+    }, [ensureAudioContext, playPresetSound, resumeAudioContext]);
 
     const handleSoundPresetChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
         const nextSoundPreset = event.target.value as SoundPresetId;
         setSoundPreset(nextSoundPreset);
         soundPresetRef.current = nextSoundPreset;
 
-        try {
+        void (async () => {
             const context = ensureAudioContext();
             if (!context) return;
 
-            if (context.state === 'suspended') {
-                void context.resume();
-            }
+            const isReady = await resumeAudioContext(context);
+            if (!isReady) return;
 
-            playPresetSound(context.currentTime + 0.002, 'tap');
-        } catch {
+            playPresetSound(context.currentTime + 0.006, 'tap');
+        })().catch(() => {
             // Keep selection usable even when autoplay or audio setup is blocked.
-        }
-    }, [ensureAudioContext, playPresetSound]);
+        });
+    }, [ensureAudioContext, playPresetSound, resumeAudioContext]);
 
     const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
         const nextVolume = normalizeVolume(Number(event.currentTarget.value));
@@ -528,16 +537,15 @@ const TempoToolPage: React.FC = () => {
         setIsPlaying(false);
     }, []);
 
-    const startMetronome = useCallback(() => {
+    const startMetronome = useCallback(async () => {
         if (timerRef.current !== null) return;
         if (bpmRef.current <= DEFAULT_BPM) return;
 
         const context = ensureAudioContext();
         if (!context) return;
 
-        if (context.state === 'suspended') {
-            void context.resume();
-        }
+        const isReady = await resumeAudioContext(context);
+        if (!isReady) return;
 
         currentTickRef.current = 0;
         queuedNotesRef.current = [];
@@ -546,7 +554,7 @@ const TempoToolPage: React.FC = () => {
         timerRef.current = window.setInterval(scheduler, 25);
         animationRef.current = requestAnimationFrame(updateVisuals);
         setIsPlaying(true);
-    }, [ensureAudioContext, scheduler, updateVisuals]);
+    }, [ensureAudioContext, resumeAudioContext, scheduler, updateVisuals]);
 
     const togglePlay = useCallback(() => {
         if (!canPlay) return;
@@ -554,7 +562,7 @@ const TempoToolPage: React.FC = () => {
             stopMetronome();
             return;
         }
-        startMetronome();
+        void startMetronome();
     }, [canPlay, isPlaying, startMetronome, stopMetronome]);
 
     const handleTapTempo = useCallback(() => {
@@ -564,7 +572,7 @@ const TempoToolPage: React.FC = () => {
         const intervalFromLastTap = previousTap !== undefined ? now - previousTap : null;
 
         setTapPulse(true);
-        playTapFeedback();
+        void playTapFeedback();
         if (tapPulseTimerRef.current) clearTimeout(tapPulseTimerRef.current);
         tapPulseTimerRef.current = setTimeout(() => setTapPulse(false), 120);
 
