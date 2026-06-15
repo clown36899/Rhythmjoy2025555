@@ -1,13 +1,14 @@
-import { useRef, useLayoutEffect } from 'react';
+import { useRef, useLayoutEffect, type ReactNode } from 'react';
 import './BoardPrefixTabBar.css';
 
 interface BoardPrefixTabBarProps {
     prefixes: any[];
     selectedPrefixId: number | null;
     onPrefixChange: (id: number | null) => void;
+    rightAction?: ReactNode;
 }
 
-export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefixChange }: BoardPrefixTabBarProps) {
+export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefixChange, rightAction }: BoardPrefixTabBarProps) {
     const scrollerRef = useRef<HTMLDivElement>(null);
     const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -22,12 +23,12 @@ export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefix
         }
     }, [selectedPrefixId]);
 
-    // 실제 데이터가 없으면 렌더링하지 않음
-    if (prefixes.length === 0) return null;
+    // 실제 데이터와 우측 액션이 모두 없으면 렌더링하지 않음
+    if (prefixes.length === 0 && !rightAction) return null;
 
     return (
         <div className="board-prefix-tab-outer">
-            <div className="board-prefix-tab-bar">
+            <div className={`board-prefix-tab-bar ${rightAction ? 'has-right-action' : ''}`}>
                 <div className="board-prefix-scroller" ref={scrollerRef}>
                     <button
                         className={`board-prefix-item ${selectedPrefixId === null ? 'active' : ''}`}
@@ -85,6 +86,11 @@ export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefix
                         </button>
                     ))}
                 </div>
+                {rightAction && (
+                    <div className="board-prefix-right-action">
+                        {rightAction}
+                    </div>
+                )}
             </div>
         </div>
     );

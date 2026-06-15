@@ -34,6 +34,7 @@ interface HistoryCanvasProps {
     onNodesDelete?: (nodes: any[]) => void;
     isSelectionMode: boolean;
     nodesDraggable?: boolean;
+    interactionLocked?: boolean;
 }
 
 
@@ -58,7 +59,8 @@ export const HistoryCanvas = ({
     onEdgesDelete,
     onNodesDelete,
     isSelectionMode,
-    nodesDraggable
+    nodesDraggable,
+    interactionLocked = false
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
 
@@ -106,11 +108,12 @@ export const HistoryCanvas = ({
                 maxZoom={CANVAS_CONFIG.maxZoom}
                 selectNodesOnDrag={false}
                 panOnScroll={false} /* 트랙패드 스크롤 시 화면 이동 끄고 줌 우선 */
-                panOnDrag={!isSelectionMode}
-                nodesDraggable={nodesDraggable} /* 🔥 Controlled by parent (Edit Mode) */
-                nodesConnectable={nodesDraggable} /* 🔥 Sync connectable state with Edit Mode */
-                zoomOnScroll={true} /* 마우스 휠 확대/축소 활성화 */
-                zoomOnPinch={true} /* 트랙패드 핀치 줌 활성화 */
+                panOnDrag={!isSelectionMode && !interactionLocked}
+                nodesDraggable={nodesDraggable && !interactionLocked} /* 🔥 Controlled by parent (Edit Mode) */
+                nodesConnectable={nodesDraggable && !interactionLocked} /* 🔥 Sync connectable state with Edit Mode */
+                zoomOnScroll={!interactionLocked} /* 마우스 휠 확대/축소 활성화 */
+                zoomOnPinch={!interactionLocked} /* 트랙패드 핀치 줌 활성화 */
+                elementsSelectable={!interactionLocked}
                 selectionOnDrag={isSelectionMode}
                 preventScrolling={true} /* 브라우저 스크롤 방지 */
                 connectionLineType={ConnectionLineType.Bezier} /* 🔥 Curved Lines */

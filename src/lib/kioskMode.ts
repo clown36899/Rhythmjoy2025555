@@ -3,6 +3,11 @@ export const KIOSK_MODE_VALUE = "mini-pc";
 export const KIOSK_ENTRY_PATH = "/kiosk";
 export const KIOSK_HOME_PATH = "/";
 export const KIOSK_MOBILE_URL = "https://swingenjoy.com/";
+export const KIOSK_MOBILE_GUIDE_EVENT = "kiosk:show-mobile-guide";
+
+type KioskMobileGuideOptions = {
+  closeOnly?: boolean;
+};
 
 const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
@@ -42,6 +47,17 @@ export function isKioskModeEnabled() {
   } catch {
     return false;
   }
+}
+
+export function requestKioskMobileGuide(href = KIOSK_MOBILE_URL, options: KioskMobileGuideOptions = {}) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new CustomEvent(KIOSK_MOBILE_GUIDE_EVENT, {
+    detail: {
+      href,
+      closeOnly: options.closeOnly ?? true,
+    },
+  }));
 }
 
 export function disableKioskMode() {

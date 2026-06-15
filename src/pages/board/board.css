@@ -743,10 +743,20 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   max-width: 1080px;
 }
 
+.is-free-mode .board-prefix-tab-bar.has-right-action {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 .is-free-mode .board-prefix-scroller {
   width: 100%;
   justify-content: center;
   gap: 8px;
+}
+
+.is-free-mode .board-prefix-tab-bar.has-right-action .board-prefix-scroller {
+  padding-left: 8px;
+  padding-right: 6px;
 }
 
 .is-free-mode .board-prefix-item {
@@ -762,6 +772,54 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   background: rgba(92, 141, 246, 0.18);
   border-color: rgba(92, 141, 246, 0.58);
   color: #f8fafc;
+}
+
+.free-board-actionbar {
+  width: min(1080px, calc(100% - 48px));
+  margin: 0 auto 10px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.free-board-write-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(92, 141, 246, 0.58);
+  border-radius: 8px;
+  background: rgba(92, 141, 246, 0.18);
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.free-board-write-button--prefix {
+  min-width: 78px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.free-board-write-button:hover {
+  background: rgba(92, 141, 246, 0.28);
+  border-color: rgba(92, 141, 246, 0.76);
+}
+
+.free-board-write-button:active {
+  transform: scale(0.98);
+}
+
+.free-board-write-button i {
+  font-size: 17px;
 }
 
 .free-board-mode {
@@ -1003,6 +1061,38 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   .is-free-mode .board-prefix-scroller {
     justify-content: flex-start;
     padding: 5px 12px 0;
+  }
+
+  .is-free-mode .board-prefix-tab-bar.has-right-action {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .is-free-mode .board-prefix-tab-bar.has-right-action .board-prefix-scroller {
+    padding-left: 12px;
+    padding-right: 4px;
+  }
+
+  .free-board-actionbar {
+    width: 100%;
+    margin: 0 0 8px;
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+
+  .free-board-actionbar .free-board-write-button {
+    width: 100%;
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .free-board-write-button--prefix {
+    width: auto;
+    min-width: 74px;
+    min-height: 32px;
+    height: 32px;
+    padding: 0 10px;
+    font-size: 13px;
   }
 
   .free-board-mode {

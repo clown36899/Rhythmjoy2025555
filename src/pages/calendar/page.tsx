@@ -970,7 +970,7 @@ export default function CalendarPage() {
     useEffect(() => {
         const handleSetFullscreenMode = () => {
             setTimeout(() => {
-                navigate('/v2');
+                navigate('/');
             }, 0);
         };
         const handleOpenCalendarSearch = () => {

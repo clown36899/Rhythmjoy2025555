@@ -24,7 +24,7 @@ export const SITE_MENU_SECTIONS: MenuSection[] = [
     {
         title: "메인 서비스 (Service)",
         items: [
-            { icon: 'ri-ticket-line', title: '홈', desc: '이벤트 및 강습 모아보기', path: '/v2', type: 'home' },
+            { icon: 'ri-ticket-line', title: '홈', desc: '이벤트 및 강습 모아보기', path: '/', type: 'home' },
             { icon: 'ri-calendar-event-line', title: '전체달력', desc: '월별 전체 일정 달력', path: '/calendar', type: 'calendar' },
             { icon: 'ri-chat-3-line', title: '포럼', desc: '게시판 (공지/자유/익명 등)', path: '/board', type: 'board' },
             { icon: 'ri-map-pin-line', title: '소셜', desc: '소셜 파티 및 행사 정보', path: '/social', type: 'social' },

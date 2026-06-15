@@ -106,7 +106,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
     background: color-mix(in srgb, var(--brand-color) 10%, transparent);
     border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -123,6 +123,12 @@
     color: #3b82f6;
     background: rgba(59, 130, 246, 0.08);
     border-color: rgba(59, 130, 246, 0.2);
+}
+
+.forum-icon-item--media .forum-icon-box {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.22);
 }
 
 .forum-icon-item--bpm-tapper .forum-icon-box {
@@ -155,6 +161,28 @@
     font-size: 24px;
     color: inherit;
     transition: all 0.3s ease;
+}
+
+.forum-icon-status {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    z-index: 2;
+    display: inline-flex;
+    min-width: 36px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 999px;
+    background: #facc15;
+    color: #111827;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+    font-size: 10px;
+    font-weight: 950;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .forum-icon-copy {

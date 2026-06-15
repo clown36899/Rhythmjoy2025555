@@ -1,0 +1,143 @@
+:root {
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.clipper {
+  padding: 14px;
+}
+
+.clipper__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.clipper__mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: block;
+  box-shadow: 0 8px 18px rgba(56, 189, 248, 0.18);
+}
+
+h1 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+p {
+  margin: 3px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.clipper__page {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 88px;
+  padding: 11px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #111827;
+  margin-bottom: 12px;
+}
+
+.clipper__badge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.clipper__thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #020617;
+  border: 1px solid #334155;
+}
+
+.clipper__page strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.clipper__page small {
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clipper__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.clipper__field span {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+select,
+input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #020617;
+  color: #f8fafc;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.clipper__save {
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: #38bdf8;
+  color: #07121b;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.clipper__save:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.clipper__status {
+  min-height: 16px;
+  font-size: 11px;
+  color: #fbbf24;
+}

@@ -10,6 +10,7 @@
     justify-content: center;
     z-index: 3100;
     backdrop-filter: blur(3px);
+    overscroll-behavior: contain;
 }
 
 .node-detail-content {
@@ -25,6 +26,7 @@
     overflow: hidden;
     position: relative;
     animation: detailScaleIn 0.2s ease-out;
+    overscroll-behavior: contain;
 }
 
 @keyframes detailScaleIn {
@@ -121,6 +123,8 @@
     padding: 32px;
     overflow-y: auto;
     flex: 1;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .detail-video {

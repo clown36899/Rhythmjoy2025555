@@ -1,6 +1,7 @@
 .metronome-container {
     width: 100%;
-    height: 100svh;
+    height: 100%;
+    min-height: 0;
     background: var(--bg-surface-1);
     display: flex;
     flex-direction: column;
@@ -12,6 +13,15 @@
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: 20px;
     padding-right: 20px;
+}
+
+.metronome-shell.layout-compact .shell-main-content,
+.metronome-shell.layout-wide .shell-main-content {
+    height: 100svh;
+    min-height: 0;
+    box-sizing: border-box;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: hidden !important;
 }
 
 /* Back to Forum Button */
@@ -206,7 +216,7 @@
     gap: 2px;
     font-size: 1.1rem;
     font-weight: 800;
-    letter-spacing: -0.5px;
+    letter-spacing: 0;
     padding: 4px 0;
 }
 
@@ -230,7 +240,7 @@
     color: var(--text-tertiary);
     opacity: 0.25;
     font-size: 0.8rem;
-    letter-spacing: -3px;
+    letter-spacing: 0;
 }
 
 .note-gap {
@@ -316,20 +326,19 @@
 
 .metronome-content {
     width: 100%;
-    max-width: 450px;
+    max-width: 520px;
     flex: 1;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 2.5vh;
+    gap: clamp(6px, 1.1svh, 12px);
     min-height: 0;
-    padding: 0px 0 120px;
-    /* Remove top padding to touch header/visualizer */
+    height: 100%;
+    padding: 0;
     box-sizing: border-box;
-    overflow-y: auto;
+    overflow-y: hidden;
     overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
 }
 
 .metronome-content::-webkit-scrollbar {
@@ -341,21 +350,21 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2vh;
+    gap: clamp(4px, 0.8svh, 10px);
     flex-shrink: 0;
     width: 100%;
 }
 
 /* P3: Beat group visualization */
 .metronome-visualizer {
-    width: calc(100% + 40px);
-    margin-left: -20px;
-    margin-right: -20px;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
     display: flex;
     justify-content: center;
-    gap: 8px;
-    padding: 2vh 20px;
-    position: sticky;
+    gap: clamp(4px, 1vw, 8px);
+    padding: clamp(6px, 1.2svh, 14px) 20px;
+    position: relative;
     top: 0;
     z-index: 100;
     background: var(--bg-surface-1);
@@ -377,9 +386,11 @@
 }
 
 .beat-indicator {
-    width: clamp(14px, 2.8vh, 20px);
-    height: clamp(14px, 2.8vh, 20px);
+    width: clamp(12px, 2.35svh, 18px);
+    height: clamp(12px, 2.35svh, 18px);
     border-radius: 50%;
+    border: 0;
+    padding: 0;
     background: var(--bg-surface-3);
     transition: all 0.1s ease;
     opacity: 0.2;
@@ -392,10 +403,7 @@
 .beat-indicator::before {
     content: '';
     position: absolute;
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
+    inset: 0;
 }
 
 .beat-indicator:active {
@@ -434,15 +442,46 @@
     width: 100%;
     background: var(--bg-surface-glass);
     border: 1px solid var(--border-glass);
-    border-radius: 28px;
-    padding: clamp(15px, 2.5vh, 25px) 20px;
+    border-radius: clamp(18px, 3svh, 26px);
+    padding: clamp(10px, 1.6svh, 18px) clamp(12px, 3.5vw, 20px);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
+    gap: clamp(7px, 1.15svh, 12px);
     backdrop-filter: blur(24px);
     flex-shrink: 0;
     box-sizing: border-box;
+}
+
+.tempo-status-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.tempo-status-bar span {
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    color: var(--text-tertiary);
+    font-size: clamp(0.62rem, 1.45svh, 0.72rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.tempo-status-bar span.is-live {
+    color: var(--color-sky-500);
+    background: rgba(14, 165, 233, 0.1);
+    border-color: rgba(14, 165, 233, 0.22);
 }
 
 .tempo-value-display {
@@ -452,25 +491,100 @@
 }
 
 .tempo-number {
-    font-size: clamp(3rem, 10vh, 4.2rem);
+    font-size: clamp(2.45rem, 8.2svh, 3.85rem);
     font-weight: 950;
     color: var(--text-primary);
     line-height: 0.85;
     font-variant-numeric: tabular-nums;
 }
 
+.tempo-number-input {
+    width: min(230px, 100%);
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: clamp(2.45rem, 8.2svh, 3.85rem);
+    font-weight: 950;
+    line-height: 0.9;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    outline: none;
+    letter-spacing: 0;
+}
+
+.tempo-number-input::-webkit-outer-spin-button,
+.tempo-number-input::-webkit-inner-spin-button,
+.trainer-field input::-webkit-outer-spin-button,
+.trainer-field input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.tempo-number-input[type='number'],
+.trainer-field input[type='number'] {
+    -moz-appearance: textfield;
+}
+
 .tempo-label {
-    font-size: clamp(0.8rem, 1.8vh, 1rem);
+    font-size: clamp(0.7rem, 1.55svh, 0.9rem);
     font-weight: 800;
     color: var(--color-amber-500);
-    margin-top: 5px;
+    margin-top: 2px;
+}
+
+.tempo-stepper-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 0.8fr 0.8fr 1.2fr 0.8fr 0.8fr;
+    gap: clamp(4px, 1vw, 8px);
+}
+
+.tempo-step-btn,
+.tempo-tap-btn {
+    min-height: clamp(30px, 5svh, 38px);
+    border: 1px solid var(--border-glass);
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    border-radius: 10px;
+    font-size: clamp(0.72rem, 1.75svh, 0.85rem);
+    font-weight: 900;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.tempo-tap-btn {
+    color: var(--color-amber-500);
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.22);
+}
+
+.tempo-step-btn:active,
+.tempo-tap-btn:active {
+    transform: scale(0.96);
+}
+
+.tempo-step-btn:focus-visible,
+.tempo-tap-btn:focus-visible,
+.sound-btn:focus-visible,
+.rhythm-selector-main:focus-visible,
+.play-btn:focus-visible,
+.trainer-switch input:focus-visible+span,
+.trainer-field input:focus-visible,
+.setting-select:focus-visible,
+.tempo-number-input:focus-visible {
+    outline: 2px solid var(--color-sky-500);
+    outline-offset: 3px;
 }
 
 .tempo-slider {
     width: 100%;
     -webkit-appearance: none;
     appearance: none;
-    height: 6px;
+    height: clamp(4px, 0.8svh, 6px);
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.1);
     outline: none;
@@ -479,11 +593,158 @@
 .tempo-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 24px;
-    height: 24px;
+    width: clamp(18px, 3.6svh, 24px);
+    height: clamp(18px, 3.6svh, 24px);
     border-radius: 50%;
     background: var(--text-primary);
     border: 4px solid var(--color-amber-500);
+}
+
+.tempo-slider.volume::-webkit-slider-thumb {
+    border-color: var(--color-teal-500, #14b8a6);
+}
+
+.utility-control-area {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: clamp(6px, 1.2svh, 10px);
+}
+
+.utility-control {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(5px, 0.8svh, 8px);
+    min-width: 0;
+}
+
+.utility-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.utility-value {
+    color: var(--color-teal-500, #14b8a6);
+    background: rgba(20, 184, 166, 0.1);
+    border: 1px solid rgba(20, 184, 166, 0.18);
+    border-radius: 8px;
+    padding: 2px 7px;
+    font-size: clamp(0.68rem, 1.55svh, 0.8rem);
+    font-weight: 850;
+    min-width: 48px;
+    text-align: center;
+}
+
+.trainer-toggle-row {
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0;
+}
+
+.trainer-title {
+    display: block;
+    color: var(--text-primary);
+    font-size: clamp(0.72rem, 1.65svh, 0.84rem);
+    font-weight: 900;
+}
+
+.trainer-subtitle {
+    display: block;
+    color: var(--text-tertiary);
+    font-size: clamp(0.6rem, 1.35svh, 0.7rem);
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.trainer-switch {
+    position: relative;
+    display: inline-flex;
+    width: clamp(42px, 8svh, 50px);
+    height: clamp(24px, 4.8svh, 30px);
+    flex: 0 0 auto;
+}
+
+.trainer-switch input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.trainer-switch span {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass-strong);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    position: relative;
+}
+
+.trainer-switch span::after {
+    content: '';
+    position: absolute;
+    width: calc(100% / 2 - 3px);
+    height: calc(100% - 6px);
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    background: var(--text-tertiary);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.trainer-switch input:checked+span {
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(14, 165, 233, 0.34);
+}
+
+.trainer-switch input:checked+span::after {
+    transform: translateX(calc(100% - 2px));
+    background: var(--color-sky-500);
+}
+
+.trainer-panel {
+    width: 100%;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.trainer-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.trainer-field span {
+    color: var(--text-tertiary);
+    font-size: clamp(0.58rem, 1.25svh, 0.66rem);
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.trainer-field input {
+    width: 100%;
+    min-height: clamp(30px, 5svh, 38px);
+    box-sizing: border-box;
+    border-radius: 10px;
+    border: 1px solid var(--border-glass-strong);
+    background: var(--bg-surface-2);
+    color: var(--text-primary);
+    text-align: center;
+    font-size: clamp(0.78rem, 1.85svh, 0.95rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    outline: none;
 }
 
 /* Settings Grid */
@@ -492,19 +753,19 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: flex-end;
-    gap: clamp(8px, 2vw, 12px);
+    gap: clamp(6px, 1.6vw, 10px);
 }
 
 .setting-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     min-width: 0;
     max-width: 150px;
 }
 
 .setting-label {
-    font-size: 0.75rem;
+    font-size: clamp(0.63rem, 1.45svh, 0.75rem);
     font-weight: 700;
     color: var(--text-tertiary);
     white-space: nowrap;
@@ -516,9 +777,9 @@
     background: var(--bg-surface-2);
     border: 1px solid var(--border-glass-strong);
     color: var(--text-primary);
-    padding: 10px 8px;
-    border-radius: 12px;
-    font-size: 0.85rem;
+    padding: clamp(7px, 1.45svh, 10px) 7px;
+    border-radius: 10px;
+    font-size: clamp(0.7rem, 1.65svh, 0.85rem);
     font-weight: 700;
     cursor: pointer;
     appearance: none;
@@ -536,13 +797,13 @@
 /* Swing/Accent Control Area */
 .swing-control-area {
     width: 100%;
-    margin-top: 5px;
-    padding: 20px;
+    margin-top: 0;
+    padding: clamp(8px, 1.4svh, 12px);
     background: var(--bg-surface-2);
-    border-radius: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+    border-radius: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(6px, 1.1svh, 10px) clamp(8px, 1.8vw, 12px);
     border: 1px solid var(--border-glass-strong);
     box-sizing: border-box;
 }
@@ -550,7 +811,8 @@
 .swing-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 4px;
+    min-width: 0;
     width: 100%;
 }
 
@@ -559,16 +821,17 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    gap: 6px;
 }
 
 .swing-value {
-    font-size: 0.9rem;
+    font-size: clamp(0.65rem, 1.55svh, 0.82rem);
     font-weight: 850;
     color: var(--color-amber-500);
     background: rgba(245, 158, 11, 0.1);
-    padding: 2px 10px;
-    border-radius: 8px;
-    min-width: 45px;
+    padding: 2px 7px;
+    border-radius: 7px;
+    min-width: 38px;
     text-align: center;
 }
 
@@ -579,12 +842,12 @@
 
 .swing-hint {
     margin: 0;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     color: var(--text-tertiary);
     text-align: center;
     font-style: italic;
     opacity: 0.7;
-    margin-top: 5px;
+    margin-top: 0;
     line-height: 1.5;
 }
 
@@ -647,31 +910,41 @@
 
 /* Sound & Rhythm Selector Row */
 .selector-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: clamp(6px, 1.5vw, 10px);
-    align-items: center;
+    align-items: stretch;
     width: 100%;
-    margin: 10px 0 15px 0;
+    margin: 0 0 2px 0;
     min-width: 0;
 }
 
 /* Sound Selector Bar */
 .sound-selector-bar {
-    display: flex;
-    justify-content: center;
-    gap: clamp(4px, 1vw, 8px);
-    padding: clamp(4px, 1vw, 6px);
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    align-items: center;
+    justify-items: center;
+    gap: clamp(2px, 0.8vw, 6px);
+    padding: clamp(3px, 0.8vw, 5px);
     background: rgba(255, 255, 255, 0.03);
     border-radius: 50px;
     border: 1px solid var(--border-glass);
-    flex-shrink: 1;
+    flex-shrink: 0;
     margin: 0;
     min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    cursor: default;
+    user-select: none;
 }
 
 .sound-btn {
-    width: clamp(32px, 9vw, 40px);
-    height: clamp(32px, 9vw, 40px);
+    width: 100%;
+    max-width: clamp(24px, 5.2svh, 34px);
+    height: auto;
+    aspect-ratio: 1;
     border-radius: 50%;
     border: 1px solid var(--border-glass);
     background: var(--bg-surface-3);
@@ -681,8 +954,9 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    font-size: clamp(0.78rem, 2.2vw, 1.05rem);
     position: relative;
+    user-select: none;
 }
 
 /* Premium Tooltip */
@@ -707,6 +981,7 @@
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     z-index: 2000;
     pointer-events: none;
+    display: none;
 }
 
 /* Tooltip Arrow */
@@ -724,10 +999,12 @@
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 2000;
     pointer-events: none;
+    display: none;
 }
 
 .sound-btn:hover::after,
 .sound-btn:hover::before {
+    display: block;
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
@@ -758,6 +1035,7 @@
 
 .rhythm-selector-container {
     position: relative;
+    width: 100%;
     flex: 1;
     margin: 0;
     min-width: 0;
@@ -811,7 +1089,7 @@
     font-size: clamp(0.85rem, 2.2vw, 1rem);
     font-weight: 850;
     color: var(--color-amber-500);
-    letter-spacing: -0.3px;
+    letter-spacing: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -856,7 +1134,7 @@
 .rhythm-dropdown-list {
     position: absolute;
     top: calc(100% + 8px);
-    left: -100px;
+    left: 0;
     right: 0;
     background: var(--bg-surface-1);
     border: 1px solid var(--border-glass-strong);
@@ -975,4 +1253,133 @@
 
 [data-theme='dark'] .metronome-container {
     /* background: #0f172a; */
+}
+
+@media (max-width: 380px) {
+    .metronome-container {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .metronome-visualizer {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .tempo-control-card {
+        padding-left: 14px;
+        padding-right: 14px;
+        border-radius: 22px;
+    }
+
+    .tempo-stepper-row {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .tempo-step-btn,
+    .tempo-tap-btn {
+        min-height: 31px;
+        font-size: 0.78rem;
+        border-radius: 10px;
+    }
+
+    .trainer-panel {
+        gap: 6px;
+    }
+
+    .trainer-field input {
+        min-height: 31px;
+        font-size: 0.86rem;
+    }
+
+    .rhythm-settings {
+        gap: 7px;
+    }
+}
+
+@media (min-width: 760px) and (min-height: 620px) {
+    .metronome-content {
+        max-width: 860px;
+    }
+
+    .tempo-control-card {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
+        align-items: start;
+        column-gap: 16px;
+        row-gap: 10px;
+    }
+
+    .tempo-status-bar,
+    .tempo-value-display,
+    .tempo-stepper-row,
+    .tempo-control-card > .tempo-slider,
+    .selector-row,
+    .rhythm-settings,
+    .utility-control-area {
+        grid-column: 1;
+    }
+
+    .swing-control-area {
+        grid-column: 2;
+        grid-row: 1 / span 7;
+        align-self: stretch;
+    }
+
+    .sound-btn {
+        max-width: 38px;
+    }
+
+    .tempo-control-card:not(:has(.swing-control-area)) {
+        max-width: 520px;
+        margin: 0 auto;
+        display: flex;
+    }
+}
+
+@media (max-height: 700px) {
+    .metronome-shell.layout-compact .shell-main-content,
+    .metronome-shell.layout-wide .shell-main-content {
+        padding-top: calc(54px + env(safe-area-inset-top)) !important;
+        padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .metronome-container {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .metronome-content {
+        gap: 5px;
+    }
+
+    .metronome-visualizer {
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    .tempo-control-card {
+        gap: 6px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .tempo-status-bar span:nth-child(1),
+    .tempo-status-bar span:nth-child(5) {
+        display: none;
+    }
+
+    .tempo-label,
+    .trainer-subtitle {
+        display: none;
+    }
+
+    .swing-control-area {
+        padding: 7px;
+        gap: 5px 8px;
+    }
 }

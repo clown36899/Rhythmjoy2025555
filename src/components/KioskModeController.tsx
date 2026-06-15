@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   enableKioskMode,
+  KIOSK_HOME_PATH,
   isKioskModeEnabled,
+  KIOSK_MOBILE_GUIDE_EVENT,
   KIOSK_MOBILE_URL,
   syncKioskModeClass,
 } from "../lib/kioskMode";
@@ -12,13 +14,26 @@ const KIOSK_QR_DATA_URI =
 
 const KIOSK_ALLOWED_ROOT = "swingenjoy.com";
 const KIOSK_COUNTDOWN_SECONDS = 45;
+const KIOSK_IDLE_RETURN_HOME_MS = 10 * 60 * 1000;
 const KIOSK_SW_RESET_KEY = "rhythmjoy:kiosk-sw-reset";
 const INTERNAL_PROTOCOLS = new Set(["about:", "javascript:"]);
 const LOCALHOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const KIOSK_IDLE_ACTIVITY_EVENTS = [
+  "pointerdown",
+  "mousedown",
+  "touchstart",
+  "click",
+  "keydown",
+  "wheel",
+  "scroll",
+  "input",
+  "change",
+] as const;
 
 type BlockedExternalLink = {
   href: string;
   secondsLeft: number;
+  closeOnly?: boolean;
 };
 
 function isAllowedHost(hostname: string) {
@@ -132,15 +147,30 @@ export default function KioskModeController() {
     }
   }, [isActive]);
 
-  const openExternalGuide = useCallback((rawHref: unknown) => {
+  const openExternalGuide = useCallback((rawHref: unknown, options: { closeOnly?: boolean } = {}) => {
     const url = normalizeUrl(rawHref);
     const href = url?.href || String(rawHref || KIOSK_MOBILE_URL);
 
     setBlockedExternalLink({
       href,
       secondsLeft: KIOSK_COUNTDOWN_SECONDS,
+      closeOnly: options.closeOnly ?? true,
     });
   }, []);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const handleMobileGuideRequest = (event: Event) => {
+      const detail = (event as CustomEvent<{ href?: unknown; closeOnly?: boolean }>).detail;
+      openExternalGuide(detail?.href || KIOSK_MOBILE_URL, { closeOnly: detail?.closeOnly ?? true });
+    };
+
+    window.addEventListener(KIOSK_MOBILE_GUIDE_EVENT, handleMobileGuideRequest);
+    return () => {
+      window.removeEventListener(KIOSK_MOBILE_GUIDE_EVENT, handleMobileGuideRequest);
+    };
+  }, [isActive, openExternalGuide]);
 
   const guardExternalHref = useCallback((rawHref: unknown, event?: Event) => {
     if (!shouldBlockHref(rawHref)) return false;
@@ -149,7 +179,7 @@ export default function KioskModeController() {
       stopNativeEvent(event);
     }
 
-    openExternalGuide(rawHref);
+    openExternalGuide(rawHref, { closeOnly: true });
     return true;
   }, [openExternalGuide]);
 
@@ -222,15 +252,50 @@ export default function KioskModeController() {
     };
   }, [guardExternalHref, isActive]);
 
+  const closeBlockedExternalLink = useCallback(() => {
+    setBlockedExternalLink(null);
+  }, []);
+
   const returnHome = useCallback(() => {
     setBlockedExternalLink(null);
 
-    if (location.pathname !== "/") {
-      navigate("/", { replace: true });
+    if (location.pathname !== KIOSK_HOME_PATH) {
+      navigate(KIOSK_HOME_PATH, { replace: true });
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isActive || location.pathname === KIOSK_HOME_PATH) return;
+
+    let idleTimer: number | null = null;
+    const listenerOptions = { capture: true, passive: true };
+
+    const resetIdleTimer = () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+      }
+
+      idleTimer = window.setTimeout(returnHome, KIOSK_IDLE_RETURN_HOME_MS);
+    };
+
+    resetIdleTimer();
+
+    KIOSK_IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
+      document.addEventListener(eventName, resetIdleTimer, listenerOptions);
+    });
+
+    return () => {
+      if (idleTimer !== null) {
+        window.clearTimeout(idleTimer);
+      }
+
+      KIOSK_IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
+        document.removeEventListener(eventName, resetIdleTimer, listenerOptions);
+      });
+    };
+  }, [isActive, location.pathname, returnHome]);
 
   useEffect(() => {
     if (!blockedExternalLink) return;
@@ -242,7 +307,7 @@ export default function KioskModeController() {
 
         if (nextSecondsLeft <= 0) {
           window.clearInterval(timer);
-          window.setTimeout(returnHome, 0);
+          window.setTimeout(current.closeOnly ? closeBlockedExternalLink : returnHome, 0);
           return current;
         }
 
@@ -254,7 +319,7 @@ export default function KioskModeController() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [blockedExternalLink, returnHome]);
+  }, [blockedExternalLink, closeBlockedExternalLink, returnHome]);
 
   useEffect(() => {
     if (!isActive) {
@@ -388,11 +453,15 @@ export default function KioskModeController() {
               <div className="kel-url">{KIOSK_MOBILE_URL}</div>
               <div className="kel-blocked-url">{blockedExternalLink.href}</div>
               <div className="kel-actions">
-                <button type="button" className="kel-home" onClick={returnHome}>
-                  홈으로 돌아가기
+                <button
+                  type="button"
+                  className="kel-home"
+                  onClick={blockedExternalLink.closeOnly ? closeBlockedExternalLink : returnHome}
+                >
+                  {blockedExternalLink.closeOnly ? "닫기" : "홈으로 돌아가기"}
                 </button>
                 <div className="kel-count">
-                  <span>{blockedExternalLink.secondsLeft}</span>초 후 자동으로 홈으로 돌아갑니다.
+                  <span>{blockedExternalLink.secondsLeft}</span>초 후 자동으로 {blockedExternalLink.closeOnly ? "안내창이 닫힙니다." : "홈으로 돌아갑니다."}
                 </div>
               </div>
             </div>

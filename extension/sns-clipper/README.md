@@ -1,0 +1,31 @@
+# 댄스빌보드 SNS 클리퍼
+
+Chrome Web Store 등록 없이 내 컴퓨터에서만 테스트하는 압축해제 확장 프로그램입니다.
+
+## 설치
+
+1. Chrome 주소창에 `chrome://extensions` 입력
+2. 오른쪽 위 `개발자 모드` 켜기
+3. `압축해제된 확장 프로그램 로드` 클릭
+4. 이 폴더 선택:
+   `/Users/inteyeo/Rhythmjoy2025555-5/extension/sns-clipper`
+
+코드를 수정한 뒤에는 `chrome://extensions`에서 이 확장프로그램 카드의 새로고침 아이콘을 눌러 다시 로드하세요.
+
+## 사용
+
+1. YouTube 또는 Instagram 게시물 페이지 열기
+2. Chrome 툴바의 `댄스빌보드 SNS 클리퍼` 아이콘 클릭
+3. 필요하면 보관함, 컬렉션, 태그, 장르 입력
+4. `아카이브 등록폼 열기` 클릭
+5. 열린 댄스빌보드 등록폼에서 확인 후 저장
+
+클리퍼는 저장할 원본 URL을 주소의 `#clipper?...` 해시로 전달합니다. 서버에는 이 값이 전송되지 않아서 긴 YouTube/Instagram URL 때문에 차단될 가능성을 줄입니다.
+Instagram이나 일반 링크에서는 현재 탭의 `og:image`, `video poster`, 큰 이미지 후보를 읽어 `썸네일 URL`도 함께 전달합니다. 페이지 구조나 로그인 상태에 따라 썸네일 후보가 없을 수도 있습니다.
+
+## 대상
+
+- `운영 사이트`: `https://swingenjoy.com/forum/media`
+- `로컬 개발 서버`: `http://127.0.0.1:5173/forum/media`
+
+로컬 서버를 쓰려면 repo 루트에서 `npm run dev -- --host 127.0.0.1`을 먼저 실행하세요.

@@ -24,9 +24,9 @@ export function useCalendarState() {
         const targetCat = (!cat || cat === "all") ? null : cat;
 
         if (targetCat) {
-            if (currentCat !== targetCat) navigate(`/v2?category=${targetCat}`);
+            if (currentCat !== targetCat) navigate(`/?category=${targetCat}`);
         } else {
-            if (currentCat) navigate("/v2");
+            if (currentCat) navigate("/");
         }
     }, [navigate, searchParams]);
 

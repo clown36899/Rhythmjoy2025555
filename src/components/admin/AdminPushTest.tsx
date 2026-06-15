@@ -21,7 +21,7 @@ export const AdminPushTest: React.FC = () => {
     const [category, setCategory] = useState<'event' | 'class' | 'club'>('class');
     const [genre, setGenre] = useState('솔로재즈');
     const [content, setContent] = useState('test 선생님과 함께하는 즐거운 솔로재즈 시간! 초보자 환영합니다. 놓치지 마세요!');
-    const [targetUrl, setTargetUrl] = useState('https://swingenjoy.com/v2?id=667');
+    const [targetUrl, setTargetUrl] = useState('https://swingenjoy.com/?id=667');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
     const [mySubscriptions, setMySubscriptions] = useState<SubscriptionInfo[]>([]);
@@ -50,7 +50,7 @@ export const AdminPushTest: React.FC = () => {
                 setGenre(data.genre || '');
                 setContent(data.description?.substring(0, 100) || '');
                 setImageUrl(data.image || 'https://swingenjoy.com/logo512.png');
-                setTargetUrl(`${window.location.origin}/v2?id=${data.id}`);
+                setTargetUrl(`${window.location.origin}/?id=${data.id}`);
             }
         } catch (err: any) {
             console.error('[AdminPushTest] Failed to fetch latest data:', err);

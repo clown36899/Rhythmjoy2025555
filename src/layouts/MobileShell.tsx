@@ -13,6 +13,7 @@ import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
+import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
 import '../styles/components/MobileShell.css';
 
 type CalendarHeaderDisplayMode = 'calendar' | 'list' | 'map';
@@ -130,6 +131,17 @@ export const MobileShell: React.FC = () => {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const openLoginOrKioskGuide = useCallback((message?: string) => {
+    if (isKioskModeEnabled()) {
+      requestKioskMobileGuide();
+      return;
+    }
+
+    loginModal.open({
+      message: message || '댄스빌보드 로그인'
+    });
+  }, [loginModal]);
+
   useEffect(() => {
     const handleUpdateCalendarView = (e: any) => {
       if (e.detail) {
@@ -157,17 +169,13 @@ export const MobileShell: React.FC = () => {
 
     const handleProtectedAction = (e: any) => {
       const { message } = e.detail || {};
-      loginModal.open({
-        message: message || '댄스빌보드 로그인'
-      });
+      openLoginOrKioskGuide(message);
     };
 
     // Standardized Login Modal Event
     const handleOpenLoginModal = (e: any) => {
       const { message } = e.detail || {};
-      loginModal.open({
-        message: message || '댄스빌보드 로그인'
-      });
+      openLoginOrKioskGuide(message);
     };
 
     window.addEventListener('openUserProfile', handleOpenUserProfile);
@@ -179,7 +187,7 @@ export const MobileShell: React.FC = () => {
       window.removeEventListener('requestProtectedAction', handleProtectedAction);
       window.removeEventListener('openLoginModal', handleOpenLoginModal);
     };
-  }, [user, userRegistrationModal, loginModal]);
+  }, [user, userRegistrationModal, openLoginOrKioskGuide]);
 
   const clearTranslationErrorTimer = useCallback(() => {
     if (translationErrorTimerRef.current !== null) {

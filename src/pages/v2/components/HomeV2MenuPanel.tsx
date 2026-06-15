@@ -36,9 +36,9 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
 ];
 
 const PINNED_MENU_STORAGE_KEY = "home_v2_pinned_menu_ids";
+const MENU_ORDER_STORAGE_KEY = "home_v2_menu_order_ids";
 const PINNED_MENU_LIMIT = 5;
 const DEFAULT_PINNED_MENU_IDS: string[] = ["tempo-tool"];
-const FEATURED_QUICK_MENU_IDS: string[] = ["tempo-tool"];
 
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
@@ -111,6 +111,35 @@ const getDefaultUnpinnedMenuIds = (pinnedIds: string[], menuItems: HomeMenuItem[
         .filter((id) => !pinnedIdSet.has(id));
 };
 
+const sanitizeMenuOrderIds = (
+    ids: unknown,
+    menuItems: HomeMenuItem[] = HOME_MENU_ITEMS,
+): string[] => {
+    const defaultIds = menuItems.map(getMenuItemKey);
+    if (!Array.isArray(ids)) return defaultIds;
+
+    const validIds = new Set(defaultIds);
+    const cleanIds: string[] = [];
+
+    ids.forEach((id) => {
+        if (typeof id !== "string") return;
+        if (!validIds.has(id) || cleanIds.includes(id)) return;
+        cleanIds.push(id);
+    });
+
+    const cleanIdSet = new Set(cleanIds);
+    return [...cleanIds, ...defaultIds.filter((id) => !cleanIdSet.has(id))];
+};
+
+const sanitizeUnpinnedMenuIds = (
+    ids: unknown,
+    pinnedIds: string[],
+    menuItems: HomeMenuItem[] = HOME_MENU_ITEMS,
+): string[] => {
+    const pinnedIdSet = new Set(pinnedIds);
+    return sanitizeMenuOrderIds(ids, menuItems).filter((id) => !pinnedIdSet.has(id));
+};
+
 const moveEditMenuItem = (
     pinnedIds: string[],
     unpinnedIds: string[],
@@ -181,6 +210,18 @@ const getInitialPinnedMenuIds = () => {
     }
 };
 
+const getInitialMenuOrderIds = () => {
+    if (typeof window === "undefined") return sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
+
+    try {
+        const rawValue = window.localStorage.getItem(MENU_ORDER_STORAGE_KEY);
+        if (!rawValue) return sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
+        return sanitizeMenuOrderIds(JSON.parse(rawValue));
+    } catch {
+        return sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
+    }
+};
+
 export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -196,6 +237,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
     const [pinnedMenuIds, setPinnedMenuIds] = useState<string[]>(getInitialPinnedMenuIds);
+    const [menuOrderIds, setMenuOrderIds] = useState<string[]>(getInitialMenuOrderIds);
     const [draggingPinnedId, setDraggingPinnedId] = useState<string | null>(null);
     const [dragTargetPinnedId, setDragTargetPinnedId] = useState<string | null>(null);
     const [editPinnedMenuIds, setEditPinnedMenuIds] = useState<string[]>([]);
@@ -208,6 +250,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const pinnedDragStartRef = useRef<PinnedDragStart | null>(null);
     const lastDragTargetIdRef = useRef<string | null>(null);
     const pinnedMenuIdsRef = useRef(pinnedMenuIds);
+    const menuOrderIdsRef = useRef(menuOrderIds);
     const editPinnedMenuIdsRef = useRef(editPinnedMenuIds);
     const editUnpinnedMenuIdsRef = useRef(editUnpinnedMenuIds);
     const suppressSyntheticClickUntilRef = useRef(0);
@@ -231,14 +274,8 @@ export const HomeV2MenuPanel: React.FC = () => {
             .filter((item): item is HomeMenuItem => Boolean(item));
     }, [menuItemById, pinnedMenuIds]);
     const quickMenuItems = useMemo(() => {
-        const featuredItems = FEATURED_QUICK_MENU_IDS
-            .map((id) => menuItemById.get(id))
-            .filter((item): item is HomeMenuItem => Boolean(item));
-        const featuredIdSet = new Set(featuredItems.map(getMenuItemKey));
-        const pinnedItems = pinnedMenuItems.filter((item) => !featuredIdSet.has(getMenuItemKey(item)));
-
-        return [...featuredItems, ...pinnedItems].slice(0, PINNED_MENU_LIMIT);
-    }, [menuItemById, pinnedMenuItems]);
+        return pinnedMenuItems.slice(0, PINNED_MENU_LIMIT);
+    }, [pinnedMenuItems]);
     const orderedMenuItems = useMemo(() => {
         if (isEditMode) {
             return [...editPinnedMenuIds, ...editUnpinnedMenuIds]
@@ -247,10 +284,13 @@ export const HomeV2MenuPanel: React.FC = () => {
         }
 
         const pinnedIdSet = new Set(pinnedMenuIds);
-        const unpinnedMenuItems = visibleHomeMenuItems.filter((item) => !pinnedIdSet.has(getMenuItemKey(item)));
+        const unpinnedMenuItems = sanitizeMenuOrderIds(menuOrderIds, visibleHomeMenuItems)
+            .filter((id) => !pinnedIdSet.has(id))
+            .map((id) => menuItemById.get(id))
+            .filter((item): item is HomeMenuItem => Boolean(item));
 
         return [...pinnedMenuItems, ...unpinnedMenuItems];
-    }, [editPinnedMenuIds, editUnpinnedMenuIds, isEditMode, menuItemById, pinnedMenuIds, pinnedMenuItems, visibleHomeMenuItems]);
+    }, [editPinnedMenuIds, editUnpinnedMenuIds, isEditMode, menuItemById, menuOrderIds, pinnedMenuIds, pinnedMenuItems, visibleHomeMenuItems]);
     const expandedMenuCells = useMemo<ExpandedMenuCell[]>(() => {
         if (!isEditMode) {
             return orderedMenuItems.map((item) => ({
@@ -445,26 +485,32 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const startEditMode = useCallback(() => {
         const cleanPinnedIds = sanitizePinnedMenuIds(pinnedMenuIds, visibleHomeMenuItems, visibleDefaultPinnedMenuIds);
-        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
+        const cleanMenuOrderIds = sanitizeMenuOrderIds(menuOrderIds, visibleHomeMenuItems);
+        const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(cleanMenuOrderIds, cleanPinnedIds, visibleHomeMenuItems);
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
+        menuOrderIdsRef.current = cleanMenuOrderIds;
         setEditPinnedMenuIds(cleanPinnedIds);
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
+        setMenuOrderIds(cleanMenuOrderIds);
         setIsEditMode(true);
         resetPinnedDrag();
-    }, [pinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+    }, [menuOrderIds, pinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const finishEditMode = useCallback(() => {
         const cleanPinnedIds = sanitizePinnedMenuIds(editPinnedMenuIds, visibleHomeMenuItems, visibleDefaultPinnedMenuIds);
-        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
+        const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(editUnpinnedMenuIds, cleanPinnedIds, visibleHomeMenuItems);
+        const nextMenuOrderIds = sanitizeMenuOrderIds([...cleanPinnedIds, ...cleanUnpinnedIds], visibleHomeMenuItems);
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
+        menuOrderIdsRef.current = nextMenuOrderIds;
         setPinnedMenuIds(cleanPinnedIds);
+        setMenuOrderIds(nextMenuOrderIds);
         setEditPinnedMenuIds(cleanPinnedIds);
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
         setIsEditMode(false);
         resetPinnedDrag();
-    }, [editPinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+    }, [editPinnedMenuIds, editUnpinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const toggleEditMode = useCallback(() => {
         if (isEditMode) {
@@ -478,9 +524,12 @@ export const HomeV2MenuPanel: React.FC = () => {
     const resetPinnedMenu = useCallback(() => {
         const cleanPinnedIds = [...visibleDefaultPinnedMenuIds];
         const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
+        const nextMenuOrderIds = sanitizeMenuOrderIds([...cleanPinnedIds, ...cleanUnpinnedIds], visibleHomeMenuItems);
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
+        menuOrderIdsRef.current = nextMenuOrderIds;
         setPinnedMenuIds(cleanPinnedIds);
+        setMenuOrderIds(nextMenuOrderIds);
         setEditPinnedMenuIds(cleanPinnedIds);
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
     }, [visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
@@ -715,11 +764,27 @@ export const HomeV2MenuPanel: React.FC = () => {
             event.preventDefault();
             event.stopPropagation();
             suppressSyntheticClickUntilRef.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS;
-            setPinnedMenuIds(sanitizePinnedMenuIds(
+            const cleanPinnedIds = sanitizePinnedMenuIds(
                 editPinnedMenuIdsRef.current,
                 visibleHomeMenuItems,
                 visibleDefaultPinnedMenuIds,
-            ));
+            );
+            const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(
+                editUnpinnedMenuIdsRef.current,
+                cleanPinnedIds,
+                visibleHomeMenuItems,
+            );
+            const nextMenuOrderIds = sanitizeMenuOrderIds([...cleanPinnedIds, ...cleanUnpinnedIds], visibleHomeMenuItems);
+
+            pinnedMenuIdsRef.current = cleanPinnedIds;
+            editPinnedMenuIdsRef.current = cleanPinnedIds;
+            editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
+            menuOrderIdsRef.current = nextMenuOrderIds;
+
+            setPinnedMenuIds(cleanPinnedIds);
+            setEditPinnedMenuIds(cleanPinnedIds);
+            setEditUnpinnedMenuIds(cleanUnpinnedIds);
+            setMenuOrderIds(nextMenuOrderIds);
         }
 
         try {
@@ -876,6 +941,10 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [pinnedMenuIds]);
 
     useEffect(() => {
+        menuOrderIdsRef.current = menuOrderIds;
+    }, [menuOrderIds]);
+
+    useEffect(() => {
         editPinnedMenuIdsRef.current = editPinnedMenuIds;
     }, [editPinnedMenuIds]);
 
@@ -890,6 +959,14 @@ export const HomeV2MenuPanel: React.FC = () => {
             // Storage can be blocked in private or restricted browser modes.
         }
     }, [pinnedMenuIds]);
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(menuOrderIds));
+        } catch {
+            // Storage can be blocked in private or restricted browser modes.
+        }
+    }, [menuOrderIds]);
 
     useEffect(() => {
         if (!isHomeRoute || isExpanded || modalStack.length > 0) return undefined;

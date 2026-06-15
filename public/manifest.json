@@ -2,15 +2,68 @@
   "name": "댄스빌보드",
   "short_name": "댄스빌보드",
   "description": "전국의 스윙 댄스 이벤트 공유 플랫폼",
+  "lang": "ko-KR",
+  "categories": ["social", "events", "entertainment", "education"],
   "id": "/",
   "start_url": "/?utm_source=pwa",
   "display": "standalone",
   "scope": "/",
   "background_color": "#000000",
   "theme_color": "#000000",
+  "share_target": {
+    "action": "/forum/media/share",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
+  "shortcuts": [
+    {
+      "name": "SNS 영상 저장",
+      "short_name": "영상저장",
+      "description": "유튜브와 인스타그램 링크를 SNS 아카이브에 저장합니다",
+      "url": "/forum/media?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "캘린더",
+      "short_name": "캘린더",
+      "description": "스윙 일정 캘린더를 엽니다",
+      "url": "/calendar?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "강습과 행사",
+      "short_name": "강습행사",
+      "description": "강습과 행사 정보를 엽니다",
+      "url": "/events?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

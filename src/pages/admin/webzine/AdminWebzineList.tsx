@@ -111,7 +111,7 @@ const AdminWebzineList = () => {
                 <div className="aw-header-left">
                     <button
                         id="aw-btn-back-home"
-                        onClick={() => navigate('/v2')}
+                        onClick={() => navigate('/')}
                         className="aw-back-btn"
                         aria-label="홈으로 돌아가기"
                     >

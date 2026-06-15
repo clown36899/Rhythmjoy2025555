@@ -79,7 +79,7 @@ window.addEventListener('load', () => {
 
 import { StrictMode, useEffect, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, useLocation } from 'react-router-dom';
 import { authLogger } from './utils/authLogger';
 import './i18n'
 import './index.css'
@@ -123,6 +123,11 @@ import LocalLoading from './components/LocalLoading';
 
 // Pages - HomePage stays static for instant first paint
 import HomePageV2 from './pages/v2/Page';
+
+const LegacyV2Redirect = () => {
+  const location = useLocation();
+  return <Navigate to={`/${location.search}${location.hash}`} replace />;
+};
 
 // Lazy Loaded Pages
 // chunk 로드 실패(배포 후 old hash 404)는 위의 vite:preloadError 핸들러가 처리
@@ -270,7 +275,7 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <HomePageV2 /> },
       { path: "/kiosk", element: <KioskEntryRoute /> },
-      { path: "/v2", element: <HomePageV2 /> },
+      { path: "/v2", element: <LegacyV2Redirect /> },
       // { path: "/v2/events/:id", element: <EventDetailPage /> }, // Disabled
       { path: "/calendar", element: <CalendarPage /> },
       { path: "/events", element: <EventsInfoPage /> },
@@ -286,6 +291,7 @@ const router = createBrowserRouter([
       { path: "/board/*", element: <BoardPage /> },
       { path: "/forum", element: <ForumPage /> },
       { path: "/forum/media", element: <MediaArchivePage /> },
+      { path: "/forum/media/share", element: <MediaArchivePage /> },
       { path: "/bpm-tapper", element: <BpmTapperPage /> },
       { path: "/metronome", element: <MetronomePage /> },
       { path: "/tempo-tool", element: <TempoToolPage /> },

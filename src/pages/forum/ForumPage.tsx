@@ -2,10 +2,29 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './forum.css';
 
+type ForumMenuItem = {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    path: string;
+    color: string;
+    status?: string;
+};
+
 const ForumPage: React.FC = () => {
     const navigate = useNavigate();
 
-    const menuItems = [
+    const menuItems: ForumMenuItem[] = [
+        {
+            id: 'media',
+            title: 'SNS 아카이브',
+            description: '유튜브·인스타 영상',
+            icon: 'ri-movie-2-line',
+            path: '/forum/media',
+            color: '#38bdf8',
+            status: '준비중',
+        },
         {
             id: 'library',
             title: '라이브러리',
@@ -61,6 +80,7 @@ const ForumPage: React.FC = () => {
                         >
                             <div className="forum-icon-box">
                                 <i className={`${item.icon} forum-icon-glyph`}></i>
+                                {item.status && <span className="forum-icon-status">{item.status}</span>}
                             </div>
                             <span className="forum-icon-copy">
                                 <strong className="forum-icon-label">{item.title}</strong>

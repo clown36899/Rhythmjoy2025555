@@ -57,6 +57,13 @@ const result = {
   remainingSources: [],
 };
 
+class RunBudgetReachedError extends Error {
+  constructor(label = '') {
+    super(label ? `run budget reached: ${label}` : 'run budget reached');
+    this.name = 'RunBudgetReachedError';
+  }
+}
+
 const sourceTypeWeight = new Map([
   ['littly', 0],
   ['naver_cafe', 1],
@@ -353,6 +360,21 @@ function runDeadlineGuardMs() {
   return runBudgetMs >= 120_000 ? 60_000 : Math.max(1_000, Math.floor(runBudgetMs * 0.1));
 }
 
+function ensureRunBudgetOrThrow(label = '', minRemainingMs = 0) {
+  if (!hasRunBudget(minRemainingMs)) {
+    throw new RunBudgetReachedError(label);
+  }
+}
+
+function boundedRunTimeout(timeoutMs, guardMs = 1_000) {
+  if (!runBudgetMs) return timeoutMs;
+  const remaining = runRemainingMs() - Math.max(0, guardMs);
+  if (remaining <= 0) {
+    throw new RunBudgetReachedError('bounded step');
+  }
+  return Math.max(1_000, Math.min(timeoutMs, remaining));
+}
+
 function recordDeadlineReached(sources, startIndex) {
   if (result.deadlineReached) return;
   const remaining = sources.slice(startIndex).map((source) => source.id);
@@ -371,6 +393,7 @@ async function throttleInstagram(label, baseDelayMs) {
   const elapsed = Date.now() - lastInstagramHitAt;
   const waitMs = elapsed > baseDelayMs ? 0 : jitter(baseDelayMs - elapsed);
   if (waitMs > 0) {
+    ensureRunBudgetOrThrow(`instagram throttle ${label}`, waitMs + runDeadlineGuardMs());
     log(`instagram safe wait ${Math.round(waitMs / 1000)}s before ${label}`);
     await sleep(waitMs);
   }
@@ -1078,14 +1101,18 @@ async function postCandidate(candidate) {
 
 async function withBoundedStep(label, fn, timeoutMs) {
   let timer;
+  const effectiveTimeoutMs = boundedRunTimeout(timeoutMs, Math.min(5_000, runDeadlineGuardMs()));
   try {
     return await Promise.race([
       fn(),
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`timeout ${timeoutMs}ms`)), timeoutMs);
+        timer = setTimeout(() => reject(new Error(`timeout ${effectiveTimeoutMs}ms`)), effectiveTimeoutMs);
       }),
     ]);
   } catch (error) {
+    if (error instanceof RunBudgetReachedError) {
+      throw error;
+    }
     const message = error.message || 'unknown error';
     if (message.startsWith('no content: ')) {
       recordNoContent(label, message.replace(/^no content:\s*/, ''));
@@ -1107,6 +1134,8 @@ function hasNoContent(label) {
 }
 
 async function collectSource(page, source) {
+  ensureRunBudgetOrThrow(`source ${source.id}`, runDeadlineGuardMs());
+
   if (source.type === 'instagram') {
     if (instagramCircuitOpen) {
       recordInstagramCircuitSkip(source);
@@ -1123,6 +1152,7 @@ async function collectSource(page, source) {
     markInstagramProfileSuccess();
     const candidates = [];
     for (const url of links.slice(0, postLimit)) {
+      ensureRunBudgetOrThrow(`instagram post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       await throttleInstagram(`post ${source.id}`, instagramPostDelayMs);
       const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
       candidates.push(...postCandidates);
@@ -1257,27 +1287,32 @@ async function main() {
       }
 
       log(`source ${source.id} ${source.type} ${source.url}`);
-      const candidates = await collectSource(page, source);
-      const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
-      for (const candidate of deduped) {
-        if (!hasRunBudget(Math.min(10_000, runDeadlineGuardMs()))) {
+      try {
+        const candidates = await collectSource(page, source);
+        const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
+        for (const candidate of deduped) {
+          ensureRunBudgetOrThrow(`post candidate ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
+
+          const sd = candidate.structured_data || {};
+          const runKey = [
+            sd.date,
+            normalizeForCompare(sd.title),
+            normalizeForCompare(sd.location || sd.venue_name),
+          ].join('|');
+          if (seenRunKeys.has(runKey)) {
+            result.skipped += 1;
+            log(`skip ${source.id} ${sd.date}: duplicate within run (${sd.title})`);
+            continue;
+          }
+          seenRunKeys.add(runKey);
+          await postCandidate(candidate);
+        }
+      } catch (error) {
+        if (error instanceof RunBudgetReachedError) {
           recordDeadlineReached(sources, sourceIndex + 1);
           break;
         }
-
-        const sd = candidate.structured_data || {};
-        const runKey = [
-          sd.date,
-          normalizeForCompare(sd.title),
-          normalizeForCompare(sd.location || sd.venue_name),
-        ].join('|');
-        if (seenRunKeys.has(runKey)) {
-          result.skipped += 1;
-          log(`skip ${source.id} ${sd.date}: duplicate within run (${sd.title})`);
-          continue;
-        }
-        seenRunKeys.add(runKey);
-        await postCandidate(candidate);
+        throw error;
       }
 
       if (result.deadlineReached) break;

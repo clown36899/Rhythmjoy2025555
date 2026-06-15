@@ -1,5 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
 import '../styles/domains/overlays.css';
 
 const CAFE24_AUTH_ENABLED =
@@ -17,6 +18,13 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
     const [cafe24GoogleAvailable, setCafe24GoogleAvailable] = useState(!CAFE24_AUTH_ENABLED);
 
     useEffect(() => {
+        if (!isOpen || !isKioskModeEnabled()) return;
+
+        requestKioskMobileGuide();
+        onClose();
+    }, [isOpen, onClose]);
+
+    useEffect(() => {
         if (isOpen && (user || isAuthProcessing)) {
             onClose();
         }
@@ -29,7 +37,7 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
     }, [isOpen]);
 
     useEffect(() => {
-        if (!isOpen || !CAFE24_AUTH_ENABLED) return;
+        if (!isOpen || isKioskModeEnabled() || !CAFE24_AUTH_ENABLED) return;
 
         let cancelled = false;
         fetch('/api/auth/providers', {
@@ -49,7 +57,7 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
         };
     }, [isOpen]);
 
-    if (!isOpen || user || isAuthProcessing) return null;
+    if (!isOpen || isKioskModeEnabled() || user || isAuthProcessing) return null;
 
     const handleProviderLogin = async (
         event: MouseEvent<HTMLButtonElement>,

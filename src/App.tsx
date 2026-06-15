@@ -357,10 +357,6 @@ function AppContent() {
       window.history.replaceState({}, '', newUrl);
     }
 
-    // "/" 경로는 "/v2"로 즉시 리다이렉트되므로 페이지뷰 기록 안함
-    if (location.pathname === '/') {
-      return;
-    }
     logPageView(location.pathname + location.search);
   }, [location, loadUnreadNotifications]);
 

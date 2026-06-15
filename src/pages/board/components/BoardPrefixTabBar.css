@@ -29,17 +29,20 @@
     width: 100%;
     max-width: 650px;
     height: 48px;
-    overflow-x: auto;
+    overflow: hidden;
     overflow-y: hidden;
     white-space: nowrap;
     display: flex;
     align-items: center;
     padding: 0 4px;
+    box-sizing: border-box;
     scrollbar-width: none;
 }
 
 .board-prefix-scroller {
     display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
     overflow-x: auto;
     padding: 5px 16px 0px 16px;
     gap: 6px;
@@ -50,6 +53,15 @@
 
 .board-prefix-scroller::-webkit-scrollbar {
     display: none;
+}
+
+.board-prefix-right-action {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 5px 12px 0 4px;
+    box-sizing: border-box;
 }
 
 .board-prefix-item {

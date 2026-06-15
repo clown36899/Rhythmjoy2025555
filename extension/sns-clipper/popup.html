@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>댄스빌보드 SNS 클리퍼</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="clipper">
+      <header class="clipper__header">
+        <img class="clipper__mark" src="icons/icon-48.png" alt="" />
+        <div>
+          <h1>댄스빌보드 저장</h1>
+          <p>YouTube · Instagram</p>
+        </div>
+      </header>
+
+      <section class="clipper__page">
+        <span id="platformBadge" class="clipper__badge">확인 중</span>
+        <img id="thumbnailPreview" class="clipper__thumb" alt="" hidden />
+        <strong id="pageTitle">현재 페이지를 읽는 중...</strong>
+        <small id="pageUrl"></small>
+      </section>
+
+      <label class="clipper__field">
+        <span>저장 위치</span>
+        <select id="targetMode">
+          <option value="production">운영 사이트</option>
+          <option value="local">로컬 개발 서버</option>
+        </select>
+      </label>
+
+      <label class="clipper__field">
+        <span>보관함</span>
+        <select id="bucketInput">
+          <option value="reference">레퍼런스</option>
+          <option value="class">강습/루틴</option>
+          <option value="performance">공연/잼</option>
+          <option value="social">소셜 분위기</option>
+          <option value="history">역사/인물</option>
+          <option value="music">음악/밴드</option>
+        </select>
+      </label>
+
+      <label class="clipper__field">
+        <span>컬렉션</span>
+        <input id="collectionInput" type="text" placeholder="예: 에어리얼 입문, Shim Sham 버전 모음" />
+      </label>
+
+      <label class="clipper__field">
+        <span>검색 태그</span>
+        <input id="tagsInput" type="text" placeholder="예: 린디합, 소셜, 공연" />
+      </label>
+
+      <label class="clipper__field">
+        <span>장르</span>
+        <input id="genreInput" type="text" placeholder="예: 스윙, 재즈" />
+      </label>
+
+      <button id="saveButton" class="clipper__save" type="button">
+        <span>아카이브 등록폼 열기</span>
+      </button>
+
+      <p id="statusText" class="clipper__status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

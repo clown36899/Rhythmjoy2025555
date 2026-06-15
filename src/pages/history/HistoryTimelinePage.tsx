@@ -1156,6 +1156,8 @@ function HistoryTimelinePage() {
         }
     }, [rfInstance, isAdmin]);
 
+    const isCanvasInteractionLocked = viewingNodeStack.length > 0;
+
     return (
         <div className={`history-timeline-container ${isFullscreen ? 'is-fullscreen' : ''}`}>
             {!isFullscreen && (
@@ -1235,6 +1237,7 @@ function HistoryTimelinePage() {
                     }}
                     isSelectionMode={isSelectionMode}
                     nodesDraggable={isEditMode} /* 🔥 Control dragging via Edit Mode */
+                    interactionLocked={isCanvasInteractionLocked}
                 />
 
                 <div className="floating-canvas-controls">

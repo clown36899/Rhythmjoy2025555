@@ -59,7 +59,7 @@ function buildNotification(events: LocalEventPreview[]): NotificationRecord {
       eventId: String(event.id),
       title: event.title,
       body: `${date} · ${location}`,
-      url: `/v2?id=${event.id}`,
+      url: `/?id=${event.id}`,
       image: getImage(event, index),
       category: event.category || 'event',
       location,
@@ -73,7 +73,7 @@ function buildNotification(events: LocalEventPreview[]): NotificationRecord {
     body: firstEvent
       ? `${firstEvent.start_date || firstEvent.date || ''} · ${firstEvent.location || '장소 정보 없음'}`
       : '로컬 DB 테스트 알림',
-    url: firstEvent ? `/v2?id=${firstEvent.id}` : '/v2',
+    url: firstEvent ? `/?id=${firstEvent.id}` : '/',
     received_at: now,
     is_read: false,
     image: firstEvent ? getImage(firstEvent, 0) : fallbackImages[0],

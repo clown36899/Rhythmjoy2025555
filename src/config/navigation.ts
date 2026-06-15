@@ -14,7 +14,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     {
         label: '홈',
         labelEn: 'Main',
-        path: '/v2',
+        path: '/',
         icon: 'ri-ticket-line',
         iconFilled: 'ri-ticket-fill',
         activeColor: 'text-red-500',

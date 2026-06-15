@@ -54,10 +54,25 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
     // If Admin: Always Show.
     // If Not Admin: Show only if hideEditButton is NOT true.
     const showEditButton = isAdmin || !hideEditButton;
+    const stopBackgroundInteraction = (event: React.SyntheticEvent) => {
+        event.stopPropagation();
+    };
 
     return (
-        <div className="node-detail-overlay" onClick={onClose}>
-            <div className="node-detail-content" onClick={(e) => e.stopPropagation()}>
+        <div
+            className="node-detail-overlay"
+            onClick={onClose}
+            onWheel={stopBackgroundInteraction}
+            onTouchMove={stopBackgroundInteraction}
+            onPointerDown={stopBackgroundInteraction}
+        >
+            <div
+                className="node-detail-content"
+                onClick={(e) => e.stopPropagation()}
+                onWheel={stopBackgroundInteraction}
+                onTouchMove={stopBackgroundInteraction}
+                onPointerDown={stopBackgroundInteraction}
+            >
                 <button className="btn-close-detail" onClick={onClose}>
                     <i className="ri-close-line"></i>
                 </button>

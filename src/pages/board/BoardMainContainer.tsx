@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardStaticData } from '../../contexts/BoardDataContext';
@@ -8,7 +8,6 @@ import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import StandardPostList from './components/StandardPostList';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
 import { useModal } from '../../hooks/useModal';
-import { useModalActions } from '../../contexts/ModalContext';
 import type { BoardEditorPreset } from './components/UniversalPostEditor';
 // import BoardManagementModal from './components/BoardManagementModal';
 // import UniversalPostEditor from './components/UniversalPostEditor';
@@ -143,9 +142,13 @@ export default function BoardMainContainer() {
     // Use global modal management
     const writeModal = useModal('boardWriteModal');
     const editorModal = useModal('boardEditorModal');
-    const { openModal } = useModalActions();
     const [editorPreset, setEditorPreset] = useState<BoardEditorPreset | null>(null);
     const [suggestionAuthFallbackReady, setSuggestionAuthFallbackReady] = useState(false);
+    const requestLoginRequired = useCallback((message: string) => {
+        window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+            detail: { message }
+        }));
+    }, []);
 
     // Keep fresh reference to user for onClick handlers (avoids stale closure issues in PageAction)
     const userRef = useRef(user);
@@ -156,6 +159,10 @@ export default function BoardMainContainer() {
         userRef.current = user;
         authCheckRef.current = isAuthCheckComplete;
     }, [user, isAuthCheckComplete]);
+
+    const handleBoardWriteButtonClick = useCallback(() => {
+        window.dispatchEvent(new CustomEvent('boardWriteClick'));
+    }, []);
 
     // Register FAB action
     useSetPageAction(
@@ -170,9 +177,7 @@ export default function BoardMainContainer() {
                     if (!authCheckRef.current) return;
 
                     if (!userRef.current) {
-                        window.dispatchEvent(new CustomEvent('openLoginModal', {
-                            detail: { message: '글쓰기는 로그인 후 이용 가능합니다.' }
-                        }));
+                        requestLoginRequired('글쓰기는 로그인 후 이용 가능합니다.');
                         return;
                     }
                     setEditorPreset(null);
@@ -190,9 +195,7 @@ export default function BoardMainContainer() {
                 return;
             }
             if (!user) {
-                window.dispatchEvent(new CustomEvent('openLoginModal', {
-                    detail: { message: '글쓰기는 로그인 후 이용 가능합니다.' }
-                }));
+                requestLoginRequired('글쓰기는 로그인 후 이용 가능합니다.');
                 return;
             }
             setEditorPreset(null);
@@ -200,7 +203,7 @@ export default function BoardMainContainer() {
         };
         window.addEventListener('boardWriteClick', handleWriteClick);
         return () => window.removeEventListener('boardWriteClick', handleWriteClick);
-    }, [category, user, editorModal.open, writeModal.open]);
+    }, [category, user, editorModal.open, requestLoginRequired, writeModal.open]);
 
     useEffect(() => {
         const writeIntent = searchParams.get('write');
@@ -238,7 +241,7 @@ export default function BoardMainContainer() {
         if (!user) {
             if (!suggestionLoginPromptedRef.current) {
                 suggestionLoginPromptedRef.current = true;
-                openModal('login', { message: '건의사항 작성은 로그인 후 이용 가능합니다.' });
+                requestLoginRequired('건의사항 작성은 로그인 후 이용 가능합니다.');
             }
             return;
         }
@@ -250,7 +253,7 @@ export default function BoardMainContainer() {
         const params = new URLSearchParams(searchParams);
         params.delete('write');
         setSearchParams(params, { replace: true });
-    }, [category, editorModal.open, isAuthCheckComplete, isAuthProcessing, openModal, searchParams, setSearchParams, suggestionAuthFallbackReady, user]);
+    }, [category, editorModal.open, isAuthCheckComplete, isAuthProcessing, requestLoginRequired, searchParams, setSearchParams, suggestionAuthFallbackReady, user]);
 
     // Swipe Navigation Logic
 
@@ -284,6 +287,23 @@ export default function BoardMainContainer() {
         writeModal.open();
     };
 
+    const shouldShowFreeWriteButton = category === 'free' && !selectedPostId;
+    const freeBoardWriteButton = shouldShowFreeWriteButton ? (
+        <button
+            type="button"
+            className="free-board-write-button free-board-write-button--prefix"
+            onClick={handleBoardWriteButtonClick}
+            data-analytics-id="board_free_write"
+            data-analytics-type="action"
+            data-analytics-title="자유게시판 글쓰기"
+            data-analytics-section="board_free"
+        >
+            <i className="ri-edit-line"></i>
+            <span>글쓰기</span>
+        </button>
+    ) : null;
+    const shouldRenderPrefixTabBar = prefixes.length > 0 || Boolean(freeBoardWriteButton);
+
     return (
         <div
             className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''} ${category === 'free' ? 'is-free-mode' : ''}`}
@@ -297,11 +317,12 @@ export default function BoardMainContainer() {
             )}
 
             {
-                prefixes.length > 0 && (
+                shouldRenderPrefixTabBar && (
                     <BoardPrefixTabBar
                         prefixes={prefixes}
                         selectedPrefixId={selectedPrefixId}
                         onPrefixChange={handlePrefixChange}
+                        rightAction={freeBoardWriteButton}
                     />
                 )
             }
@@ -309,7 +330,7 @@ export default function BoardMainContainer() {
             <div
                 className={`board-posts-container ${category === 'history' ? 'is-history' : ''} ${['free', 'notice', 'market', 'trade', 'anonymous'].includes(category || '') ? 'is-standard-board-v2' : ''} ${category === 'anonymous' ? 'is-anonymous-board' : ''}`}
                 style={{
-                    paddingTop: (category === 'history' || category === 'free') ? (prefixes.length > 0 ? '48px' : '10px') : (prefixes.length > 0 ? '96px' : '48px'),
+                    paddingTop: (category === 'history' || category === 'free') ? (shouldRenderPrefixTabBar ? '48px' : '10px') : (prefixes.length > 0 ? '96px' : '48px'),
                     display: category === 'history' ? 'flex' : 'block',
                     flexDirection: 'column',
                     flex: 1

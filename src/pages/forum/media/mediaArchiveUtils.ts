@@ -107,14 +107,15 @@ function parseInstagram(url: URL): ParsedMediaUrl | null {
   const parts = stripTrailingSlash(url.pathname).split('/').filter(Boolean);
   const kind = parts[0];
   const shortcode = parts[1] || null;
-  if (!shortcode || !['p', 'reel', 'tv'].includes(kind)) return null;
+  if (!shortcode || !['p', 'reel', 'reels', 'tv'].includes(kind)) return null;
 
-  const mediaType: MediaType = kind === 'reel' ? 'reel' : kind === 'tv' ? 'video' : 'post';
+  const normalizedKind = kind === 'reels' ? 'reel' : kind;
+  const mediaType: MediaType = normalizedKind === 'reel' ? 'reel' : normalizedKind === 'tv' ? 'video' : 'post';
 
   return {
     platform: 'instagram',
     media_type: mediaType,
-    normalized_url: `https://www.instagram.com/${kind}/${shortcode}/`,
+    normalized_url: `https://www.instagram.com/${normalizedKind}/${shortcode}/`,
     external_id: shortcode,
     thumbnail_url: null,
     embed_url: null,

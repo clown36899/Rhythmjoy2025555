@@ -1457,7 +1457,7 @@ export default function BillboardPage() {
                   </p>
                   <div className="billboard-qr-wrapper">
                     <QRCodeCanvas
-                      value={`${window.location.origin}/v2?event=${event.id}&category=${event.category}&from=qr`}
+                      value={`${window.location.origin}/?event=${event.id}&category=${event.category}&from=qr`}
                       size={256}
                       level="M"
                       includeMargin={false}
