@@ -12,6 +12,10 @@ const TAP_RESET_MS = 3000;
 const MIN_TAP_INTERVAL_MS = 120;
 const SOUND_OUTPUT_GAIN = 2.35;
 const MAX_SOUND_GAIN = 0.86;
+const VOLUME_STORAGE_KEY = 'tempo_tool_volume';
+const MIN_VOLUME = 0;
+const MAX_VOLUME = 400;
+const DEFAULT_VOLUME = 100;
 
 type Subdivision = 1 | 2 | 3 | 4;
 type SoundPresetId = 'classic' | 'wood' | 'clave' | 'cowbell' | 'hat' | 'rim' | 'kick' | 'brush' | 'synth' | 'deep';
@@ -33,6 +37,21 @@ const clampBpm = (value: number) => Math.round(Math.min(MAX_BPM, Math.max(MIN_BP
 const normalizeBpm = (value: number) => {
     if (!Number.isFinite(value) || value <= DEFAULT_BPM) return DEFAULT_BPM;
     return clampBpm(value);
+};
+
+const normalizeVolume = (value: number) => {
+    if (!Number.isFinite(value)) return DEFAULT_VOLUME;
+    return Math.round(Math.min(MAX_VOLUME, Math.max(MIN_VOLUME, value)));
+};
+
+const readInitialVolume = () => {
+    if (typeof window === 'undefined') return DEFAULT_VOLUME;
+    try {
+        const storedVolume = window.localStorage.getItem(VOLUME_STORAGE_KEY);
+        return storedVolume === null ? DEFAULT_VOLUME : normalizeVolume(Number(storedVolume));
+    } catch {
+        return DEFAULT_VOLUME;
+    }
 };
 
 const trimIntervals = (intervals: number[]) => {
@@ -108,6 +127,7 @@ const TempoToolPage: React.FC = () => {
     const [beatsPerMeasure, setBeatsPerMeasure] = useState(4);
     const [subdivision, setSubdivision] = useState<Subdivision>(1);
     const [soundPreset, setSoundPreset] = useState<SoundPresetId>('classic');
+    const [volume, setVolume] = useState(readInitialVolume);
     const [tapTimes, setTapTimes] = useState<number[]>([]);
     const [confidence, setConfidence] = useState<number | null>(null);
     const [tapPulse, setTapPulse] = useState(false);
@@ -126,6 +146,7 @@ const TempoToolPage: React.FC = () => {
     const beatsRef = useRef(beatsPerMeasure);
     const subdivisionRef = useRef<Subdivision>(subdivision);
     const soundPresetRef = useRef<SoundPresetId>(soundPreset);
+    const volumeRef = useRef(volume);
 
     const totalTicks = beatsPerMeasure * subdivision;
     const canPlay = bpm > DEFAULT_BPM;
@@ -136,6 +157,14 @@ const TempoToolPage: React.FC = () => {
     useEffect(() => { beatsRef.current = beatsPerMeasure; }, [beatsPerMeasure]);
     useEffect(() => { subdivisionRef.current = subdivision; }, [subdivision]);
     useEffect(() => { soundPresetRef.current = soundPreset; }, [soundPreset]);
+    useEffect(() => {
+        volumeRef.current = volume;
+        try {
+            window.localStorage.setItem(VOLUME_STORAGE_KEY, String(volume));
+        } catch {
+            // Persisting the volume is a convenience; audio should still work without storage.
+        }
+    }, [volume]);
 
     const confidenceLabel = useMemo(() => {
         if (confidence === null) return tapTimes.length >= 3 ? '측정중' : '--';
@@ -180,7 +209,12 @@ const TempoToolPage: React.FC = () => {
         const duration = (options.duration ?? 0.055) * voice.duration;
         const attack = options.attack ?? 0.003;
         const release = options.release ?? duration;
-        const gainValue = Math.min(MAX_SOUND_GAIN, Math.max(0.001, (options.gain ?? 0.42) * voice.gain * SOUND_OUTPUT_GAIN));
+        const volumeGain = volumeRef.current / DEFAULT_VOLUME;
+        if (volumeGain <= 0) return;
+        const gainValue = Math.min(
+            MAX_SOUND_GAIN * Math.max(1, volumeGain),
+            Math.max(0.001, (options.gain ?? 0.42) * voice.gain * SOUND_OUTPUT_GAIN * volumeGain)
+        );
         const oscillator = context.createOscillator();
         const envelope = context.createGain();
         const filter = context.createBiquadFilter();
@@ -248,7 +282,12 @@ const TempoToolPage: React.FC = () => {
         filter.frequency.setValueAtTime(options.filterFrequency * voice.pitch, time);
         filter.Q.setValueAtTime(options.filterQ ?? 1.2, time);
         gain.gain.setValueAtTime(0.0001, time);
-        const gainValue = Math.min(MAX_SOUND_GAIN, Math.max(0.001, options.gain * voice.gain * SOUND_OUTPUT_GAIN));
+        const volumeGain = volumeRef.current / DEFAULT_VOLUME;
+        if (volumeGain <= 0) return;
+        const gainValue = Math.min(
+            MAX_SOUND_GAIN * Math.max(1, volumeGain),
+            Math.max(0.001, options.gain * voice.gain * SOUND_OUTPUT_GAIN * volumeGain)
+        );
         gain.gain.exponentialRampToValueAtTime(gainValue, time + (options.attack ?? 0.002));
         gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
 
@@ -435,6 +474,12 @@ const TempoToolPage: React.FC = () => {
             // Keep selection usable even when autoplay or audio setup is blocked.
         }
     }, [ensureAudioContext, playPresetSound]);
+
+    const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement> | React.FormEvent<HTMLInputElement>) => {
+        const nextVolume = normalizeVolume(Number(event.currentTarget.value));
+        volumeRef.current = nextVolume;
+        setVolume(nextVolume);
+    }, []);
 
     const scheduleNote = useCallback((tick: number, time: number) => {
         queuedNotesRef.current.push({ tick, time });
@@ -631,6 +676,21 @@ const TempoToolPage: React.FC = () => {
                                 max={MAX_BPM}
                                 value={bpm}
                                 onChange={(event) => setTempo(Number(event.target.value))}
+                            />
+                        </label>
+
+                        <label className="tempo-tool-slider tempo-tool-slider--volume">
+                            <span>볼륨</span>
+                            <input
+                                type="range"
+                                min={MIN_VOLUME}
+                                max={MAX_VOLUME}
+                                step={5}
+                                value={volume}
+                                onChange={handleVolumeChange}
+                                onInput={handleVolumeChange}
+                                aria-label={`소리 볼륨 ${volume}%`}
+                                aria-valuetext={`${volume}%`}
                             />
                         </label>
 
