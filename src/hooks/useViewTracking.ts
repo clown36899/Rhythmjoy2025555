@@ -3,6 +3,7 @@ import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import {
     ANALYTICS_ADMIN_SHIELD_KEY,
+    isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
     isLocalAnalyticsHost,
@@ -31,6 +32,7 @@ const shouldSkipViewTracking = () => (
     isLocalAnalyticsHost() ||
     isLikelyBotTraffic() ||
     isInternalAnalyticsRoute() ||
+    isKioskAnalyticsContext() ||
     localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true'
 );
 

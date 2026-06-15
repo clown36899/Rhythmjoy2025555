@@ -1,6 +1,7 @@
 import ReactGA from 'react-ga4';
 import {
     ANALYTICS_ADMIN_SHIELD_KEY,
+    isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
     isLocalAnalyticsHost,
@@ -89,13 +90,18 @@ const isAllowedEnvironment = () => {
         return false;
     }
 
-    // 4. 개발 환경 체크 (로컬/스테이징)
+    // 4. 키오스크 환경 체크
+    if (isKioskAnalyticsContext()) {
+        return false;
+    }
+
+    // 5. 개발 환경 체크 (로컬/스테이징)
     if (isDevelopment()) {
         // console.log('[Analytics] 🛠️ Development mode detected. Action skipped.');
         return false;
     }
 
-    // 5. 공식 도메인 화이트리스트 체크 (Prod Only)
+    // 6. 공식 도메인 화이트리스트 체크 (Prod Only)
     const hostname = window.location.hostname;
     const allowedDomains = ['swingenjoy.com', 'swingandjoy.com', 'www.swingenjoy.com', 'www.swingandjoy.com'];
     if (!allowedDomains.includes(hostname) && !isDevelopment()) {

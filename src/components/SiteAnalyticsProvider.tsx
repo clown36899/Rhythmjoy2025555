@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { initializeFingerprint, isInternalAnalyticsRoute, trackEvent, initializeAnalyticsSession } from '../utils/analyticsEngine';
+import { initializeFingerprint, isInternalAnalyticsRoute, isKioskAnalyticsContext, trackEvent, initializeAnalyticsSession } from '../utils/analyticsEngine';
 import type { AnalyticsLog } from '../utils/analyticsEngine';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 
@@ -20,8 +20,12 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
         // 인증 완료 전까지 대기 — 비로그인 찰나 기록 방지 (loading은 항상 false라 사용 불가)
         if (!isAuthCheckComplete) return;
 
-        // [INTERNAL EXCLUSION] 관리자/테스트/빌보드 페이지는 순수 방문자 통계에서 제외
-        if (location.pathname.startsWith('/billboard') || isInternalAnalyticsRoute(location.pathname)) {
+        // [INTERNAL EXCLUSION] 관리자/테스트/빌보드/키오스크는 순수 방문자 통계에서 제외
+        if (
+            location.pathname.startsWith('/billboard') ||
+            isInternalAnalyticsRoute(location.pathname) ||
+            isKioskAnalyticsContext(location.pathname, location.search)
+        ) {
             return;
         }
 

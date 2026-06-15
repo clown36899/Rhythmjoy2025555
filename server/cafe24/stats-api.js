@@ -8,6 +8,7 @@ import {
   analyticsGuestNetworkIdentity,
   isAnalyticsBotUserAgent,
   isAnalyticsDatacenterRow,
+  isAnalyticsExcludedIpRow,
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
 
@@ -821,6 +822,7 @@ export async function recordAnalytics(req, res) {
     trustedIsAdmin ||
     isAnalyticsBotPayload(body, req) ||
     isAnalyticsDatacenterRow(body) ||
+    isAnalyticsExcludedIpRow(body) ||
     isInternalAnalyticsPayload(body)
   ) {
     res.json({ ok: true, skipped: true });

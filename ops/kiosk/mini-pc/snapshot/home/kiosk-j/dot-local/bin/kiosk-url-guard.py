@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
 HOME_URL = "https://swingenjoy.com/"
+KIOSK_ENTRY_URL = "https://swingenjoy.com/kiosk"
 ALLOWED_ROOT = "swingenjoy.com"
 DEBUG_JSON_URL = "http://127.0.0.1:9222/json"
 GUIDE_ORIGIN = "http://127.0.0.1:9230"
@@ -44,6 +45,10 @@ def is_allowed_url(raw_url):
         return is_allowed_host(parsed.hostname)
 
     return False
+
+
+def is_chrome_error_url(raw_url):
+    return raw_url.startswith("chrome-error://") or raw_url.startswith("chrome://network-error")
 
 
 def guide_page(external_url):
@@ -710,6 +715,15 @@ def monitor():
                     continue
                 raw_url = target.get("url", "")
                 if not raw_url:
+                    continue
+
+                if is_chrome_error_url(raw_url):
+                    target_id = target.get("id", "")
+                    prior_url, prior_time = handled.get(target_id, ("", 0))
+                    if prior_url == raw_url and now - prior_time < 3:
+                        continue
+                    if websocket_navigate(target["webSocketDebuggerUrl"], KIOSK_ENTRY_URL):
+                        handled[target_id] = (raw_url, now)
                     continue
 
                 if is_allowed_url(raw_url):

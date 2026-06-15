@@ -2,12 +2,13 @@ import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 import {
+    isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
     isLocalAnalyticsHost,
 } from './analyticsGuards';
 
-export { isInternalAnalyticsRoute, isLikelyBotTraffic };
+export { isInternalAnalyticsRoute, isKioskAnalyticsContext, isLikelyBotTraffic };
 
 const CAFE24_ANALYTICS_ENABLED = import.meta.env.VITE_CAFE24_ANALYTICS_ENABLED !== 'false';
 
@@ -52,7 +53,11 @@ const SESSION_STORAGE_KEYS = {
     LAST_PAGE: 'analytics_session_last_page',
 };
 
-const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED && !isLocalAnalyticsHost() && !isLikelyBotTraffic() && !isInternalAnalyticsRoute();
+const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED
+    && !isLocalAnalyticsHost()
+    && !isLikelyBotTraffic()
+    && !isInternalAnalyticsRoute()
+    && !isKioskAnalyticsContext();
 
 const readStoredNumber = (key: string): number | null => {
     try {

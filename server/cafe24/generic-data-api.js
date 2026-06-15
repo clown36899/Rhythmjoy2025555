@@ -18,6 +18,7 @@ import {
   isAnalyticsBotRow,
   isAnalyticsBotUserAgent,
   isAnalyticsDatacenterRow,
+  isAnalyticsExcludedIpRow,
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
 
@@ -1235,7 +1236,7 @@ function isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds = null)
 
 function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null) {
   if (asAnalyticsBool(row?.analytics_excluded)) return false;
-  if (isAnalyticsBotRow(row) || isAnalyticsDatacenterRow(row) || isAnalyticsInternalRouteRow(row)) return false;
+  if (isAnalyticsBotRow(row) || isAnalyticsDatacenterRow(row) || isAnalyticsExcludedIpRow(row) || isAnalyticsInternalRouteRow(row)) return false;
   if (isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds)) return false;
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (!userId && !hasAnalyticsIdentityEvidence(row)) return false;
@@ -1772,6 +1773,11 @@ function shouldSkipItemView(args = {}, context = {}) {
     ...args,
     client_ip: args.p_client_ip || analyticsClientIp(args) || requestHeaderIp(req),
   })) return true;
+  if (isAnalyticsExcludedIpRow({
+    ...args,
+    client_ip: args.p_client_ip || analyticsClientIp(args) || requestHeaderIp(req),
+    ip_hash: args.p_ip_hash || args.ip_hash,
+  })) return true;
 
   return isAnalyticsInternalRouteRow({
     page_url: args.p_page_url || args.page_url || args.path || args.pathname,
@@ -2076,7 +2082,12 @@ async function getMonthlyWebzineStats(args = {}) {
       (userId && userId.startsWith(excludedPrefix))
     ) return false;
     if (fingerprint && adminDeviceIds.fingerprints.has(fingerprint)) return false;
-    if (asAnalyticsBool(row?.is_admin) || isAnalyticsDatacenterRow(row)) return false;
+    if (
+      asAnalyticsBool(row?.is_admin) ||
+      asAnalyticsBool(row?.analytics_excluded) ||
+      isAnalyticsDatacenterRow(row) ||
+      isAnalyticsExcludedIpRow(row)
+    ) return false;
     return Boolean(row.item_id && row.item_type && (userId || fingerprint || row.viewer_key));
   });
 

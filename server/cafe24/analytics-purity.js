@@ -1,5 +1,15 @@
+import crypto from 'node:crypto';
+
 export const ANALYTICS_BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests|gptbot|chatgpt|oai-searchbot|openai|claude|anthropic|perplexity|bytespider|ccbot|googleother|google-extended|cohere|mistralai|amazonbot|applebot-extended/i;
-export const ANALYTICS_INTERNAL_ROUTE_PATTERN = /^\/(?:admin|test|main-v2-test|debug|__|api)(?:\/|$)/i;
+export const ANALYTICS_KIOSK_ROUTE_PATTERN = /^\/(?:kiosk|키오스크)(?:\/|$)/i;
+export const ANALYTICS_INTERNAL_ROUTE_PATTERN = /^\/(?:admin|test|main-v2-test|debug|__|api|kiosk|키오스크)(?:\/|$)/i;
+
+function splitConfiguredValues(value = '') {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 export function analyticsRowPath(row = {}) {
   return String(row.page_url || row.route || row.entry_page || row.exit_page || row.path || row.pathname || row.target_id || '');
@@ -21,6 +31,39 @@ export function isAnalyticsInternalRouteRow(row = {}) {
 
 export function analyticsClientIp(row = {}) {
   return row.client_ip || row.ip_address || row.ip || null;
+}
+
+export function analyticsIpHash(value = '') {
+  const ip = String(value || '').replace(/^::ffff:/, '').trim();
+  if (!ip) return null;
+  return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 24);
+}
+
+export function analyticsConfiguredExcludedIpHashes() {
+  return new Set([
+    ...splitConfiguredValues(process.env.ANALYTICS_EXCLUDED_IP_HASHES),
+    ...splitConfiguredValues(process.env.ANALYTICS_KIOSK_IP_HASHES),
+  ]);
+}
+
+export function analyticsConfiguredExcludedIps() {
+  return new Set([
+    ...splitConfiguredValues(process.env.ANALYTICS_EXCLUDED_IPS),
+    ...splitConfiguredValues(process.env.ANALYTICS_KIOSK_IPS),
+  ]);
+}
+
+export function isAnalyticsExcludedIpRow(row = {}) {
+  const configuredIps = analyticsConfiguredExcludedIps();
+  const configuredHashes = analyticsConfiguredExcludedIpHashes();
+  const clientIp = analyticsClientIp(row);
+  const rowIpHash = row.ip_hash || row.ipHash || null;
+
+  if (clientIp && configuredIps.has(String(clientIp).replace(/^::ffff:/, '').trim())) return true;
+  if (rowIpHash && configuredHashes.has(String(rowIpHash))) return true;
+
+  const computedHash = analyticsIpHash(clientIp);
+  return Boolean(computedHash && configuredHashes.has(computedHash));
 }
 
 export function isAnalyticsDatacenterIp(value = '') {
