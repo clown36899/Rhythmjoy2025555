@@ -1,0 +1,724 @@
+html.tempo-tool-page-active,
+html.tempo-tool-page-active body,
+html.tempo-tool-page-active #root {
+    height: 100svh;
+    max-height: 100svh;
+    overflow: hidden !important;
+}
+
+html.tempo-tool-page-active .shell-container {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+    overflow: hidden !important;
+}
+
+html.tempo-tool-page-active .shell-main-content {
+    height: 100svh;
+    min-height: 0;
+    max-height: 100svh;
+    box-sizing: border-box;
+    overflow: hidden !important;
+}
+
+.tempo-tool-container {
+    width: 100%;
+    height: calc(100svh - 172px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height: 0;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.04), transparent 36%),
+        var(--bg-surface-1);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+
+.tempo-tool-content {
+    width: min(100%, 760px);
+    height: 100%;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 7px clamp(14px, 4vw, 24px) 10px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 9px;
+    box-sizing: border-box;
+}
+
+.tempo-tool-topbar {
+    min-height: 42px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(128px, 210px);
+    align-items: center;
+    gap: 8px;
+}
+
+.tempo-tool-header h2 {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 1.08rem;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tempo-tool-status-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    justify-self: end;
+    width: 100%;
+}
+
+.tempo-tool-status-row span {
+    min-height: 34px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    background: var(--bg-surface-2);
+    color: var(--text-tertiary);
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 1px;
+    font-size: 0.62rem;
+    font-weight: 850;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.tempo-tool-status-row b {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 950;
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+}
+
+.tempo-tool-core {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 124px);
+    gap: 8px;
+    align-items: stretch;
+}
+
+.tempo-tool-tap-pad {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(244, 63, 94, 0.96), rgba(14, 165, 233, 0.9)),
+        #ec4899;
+    color: #fff;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 7px;
+    padding: 12px;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 90ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.tempo-tool-tap-pad:active,
+.tempo-tool-tap-pad.is-tapping {
+    transform: scale(0.975);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.24);
+    filter: saturate(1.08);
+}
+
+.tempo-tool-tap-pad:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.44);
+    outline-offset: 4px;
+}
+
+.tempo-tool-tap-label {
+    min-height: 24px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.92);
+    display: inline-grid;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: 0.08em;
+}
+
+.tempo-tool-bpm {
+    font-size: 4.9rem;
+    font-weight: 950;
+    line-height: 0.82;
+    font-variant-numeric: tabular-nums;
+}
+
+.tempo-tool-bpm-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.88rem;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: 0.12em;
+}
+
+.tempo-tool-command-strip,
+.tempo-tool-controls {
+    min-height: 0;
+    display: grid;
+    gap: 7px;
+}
+
+.tempo-tool-command-strip {
+    grid-template-rows: minmax(52px, 0.78fr) minmax(0, 1fr);
+}
+
+.tempo-tool-play-btn {
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid rgba(245, 158, 11, 0.34);
+    border-radius: 14px;
+    background: rgba(245, 158, 11, 0.14);
+    color: #f59e0b;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 950;
+    line-height: 1;
+    transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.tempo-tool-play-btn i {
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.tempo-tool-play-btn:active {
+    transform: scale(0.96);
+}
+
+.tempo-tool-play-btn.is-playing {
+    border-color: rgba(20, 184, 166, 0.42);
+    background: rgba(20, 184, 166, 0.16);
+    color: #14b8a6;
+}
+
+.tempo-tool-play-btn:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.tempo-tool-stepper {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.tempo-tool-stepper button,
+.tempo-tool-segmented button,
+.tempo-tool-reset-btn {
+    min-width: 0;
+    min-height: 32px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 10px;
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: transform 120ms ease, background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.tempo-tool-stepper button:active,
+.tempo-tool-segmented button:active,
+.tempo-tool-reset-btn:active {
+    transform: scale(0.96);
+}
+
+.tempo-tool-controls {
+    grid-template-rows: auto auto auto;
+}
+
+.tempo-tool-meter-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(108px, 140px) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.tempo-tool-slider {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.tempo-tool-slider span,
+.tempo-tool-group-label,
+.tempo-tool-sound-select span {
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.tempo-tool-slider input {
+    width: 100%;
+    height: 8px;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(244, 63, 94, 0.92), rgba(14, 165, 233, 0.88), rgba(20, 184, 166, 0.82));
+    outline: none;
+}
+
+.tempo-tool-slider input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    border: 4px solid #0ea5e9;
+    background: #fff;
+    box-shadow: 0 7px 16px rgba(15, 23, 42, 0.24);
+    cursor: pointer;
+}
+
+.tempo-tool-slider input::-moz-range-thumb {
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    border: 4px solid #0ea5e9;
+    background: #fff;
+    box-shadow: 0 7px 16px rgba(15, 23, 42, 0.24);
+    cursor: pointer;
+}
+
+.tempo-tool-sound-select {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+}
+
+.tempo-tool-sound-select select {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    border: 1px solid rgba(14, 165, 233, 0.32);
+    border-radius: 10px;
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 900;
+    line-height: 1;
+    padding: 0 24px 0 9px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, currentColor 50%),
+        linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position:
+        calc(100% - 13px) 13px,
+        calc(100% - 8px) 13px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tempo-tool-sound-select select:focus-visible {
+    outline: 2px solid rgba(14, 165, 233, 0.42);
+    outline-offset: 2px;
+}
+
+.tempo-tool-reset-btn {
+    min-width: 84px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.tempo-tool-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.tempo-tool-control-group {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+}
+
+.tempo-tool-segmented {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.tempo-tool-segmented button.is-active {
+    background: rgba(14, 165, 233, 0.18);
+    border-color: rgba(14, 165, 233, 0.45);
+    color: #0ea5e9;
+}
+
+.tempo-tool-beat-grid {
+    min-height: 24px;
+    display: grid;
+    grid-template-columns: repeat(var(--tempo-grid-cols, 12), minmax(6px, 1fr));
+    gap: 5px;
+    align-items: center;
+}
+
+.tempo-tool-beat {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+    opacity: 0.78;
+    transition: transform 80ms ease, background 80ms ease, opacity 80ms ease;
+}
+
+.tempo-tool-beat.is-main {
+    height: 16px;
+    background: rgba(14, 165, 233, 0.34);
+}
+
+.tempo-tool-beat.is-downbeat {
+    background: rgba(244, 63, 94, 0.58);
+}
+
+.tempo-tool-beat.is-active {
+    transform: scaleY(1.22);
+    background: #f59e0b;
+    opacity: 1;
+}
+
+[data-theme='dark'] .tempo-tool-container {
+    background:
+        linear-gradient(180deg, rgba(14, 165, 233, 0.08), transparent 36%),
+        var(--bg-surface-1);
+}
+
+[data-theme='light'] .tempo-tool-container {
+    background:
+        linear-gradient(180deg, rgba(14, 165, 233, 0.06), transparent 36%),
+        var(--bg-base);
+}
+
+[data-theme='light'] .tempo-tool-status-row span,
+[data-theme='light'] .tempo-tool-stepper button,
+[data-theme='light'] .tempo-tool-segmented button,
+[data-theme='light'] .tempo-tool-sound-select select,
+[data-theme='light'] .tempo-tool-reset-btn {
+    background: var(--bg-surface-1);
+    border-color: var(--border-secondary);
+}
+
+[data-theme='light'] .tempo-tool-status-row b {
+    color: var(--text-primary);
+}
+
+@media (min-width: 720px) {
+    .tempo-tool-content {
+        width: min(100%, 820px);
+        gap: 11px;
+        padding-top: 10px;
+        padding-bottom: 14px;
+    }
+
+    .tempo-tool-core {
+        grid-template-columns: minmax(0, 1fr) minmax(118px, 150px);
+        gap: 12px;
+    }
+
+    .tempo-tool-bpm {
+        font-size: 6rem;
+    }
+
+    .tempo-tool-command-strip {
+        gap: 9px;
+    }
+
+    .tempo-tool-stepper {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .tempo-tool-stepper button,
+    .tempo-tool-segmented button,
+    .tempo-tool-sound-select select,
+    .tempo-tool-reset-btn {
+        min-height: 36px;
+    }
+}
+
+@media (max-width: 520px) {
+    .tempo-tool-content {
+        padding-right: clamp(16px, 5vw, 24px);
+        padding-left: clamp(16px, 5vw, 24px);
+    }
+
+    .tempo-tool-topbar {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .tempo-tool-header h2 {
+        font-size: 1.05rem;
+    }
+
+    .tempo-tool-status-row span {
+        min-height: 32px;
+        font-size: 0.58rem;
+    }
+
+    .tempo-tool-status-row b {
+        font-size: 0.82rem;
+    }
+
+    .tempo-tool-core {
+        grid-template-columns: minmax(0, 1fr) minmax(88px, 112px);
+    }
+
+    .tempo-tool-bpm {
+        font-size: 4.2rem;
+    }
+
+    .tempo-tool-meter-line {
+        grid-template-columns: minmax(0, 1fr) minmax(86px, 108px) auto;
+        gap: 6px;
+    }
+
+    .tempo-tool-sound-select {
+        grid-template-columns: 26px minmax(0, 1fr);
+    }
+
+    .tempo-tool-reset-btn {
+        min-width: 76px;
+        padding: 0 9px;
+    }
+
+    .tempo-tool-options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-height: 640px) {
+    .tempo-tool-content {
+        gap: 6px;
+        padding-top: 4px;
+        padding-bottom: 6px;
+    }
+
+    .tempo-tool-topbar {
+        min-height: 34px;
+    }
+
+    .tempo-tool-header h2 {
+        font-size: 0.98rem;
+    }
+
+    .tempo-tool-status-row span {
+        min-height: 28px;
+        border-radius: 7px;
+        font-size: 0.52rem;
+    }
+
+    .tempo-tool-status-row b {
+        font-size: 0.72rem;
+    }
+
+    .tempo-tool-core {
+        gap: 6px;
+    }
+
+    .tempo-tool-tap-pad {
+        border-radius: 14px;
+        gap: 4px;
+        padding: 8px;
+    }
+
+    .tempo-tool-tap-label {
+        min-height: 18px;
+        padding: 0 8px;
+        font-size: 0.58rem;
+    }
+
+    .tempo-tool-bpm {
+        font-size: 3.1rem;
+    }
+
+    .tempo-tool-bpm-label {
+        font-size: 0.68rem;
+    }
+
+    .tempo-tool-command-strip,
+    .tempo-tool-controls {
+        gap: 5px;
+    }
+
+    .tempo-tool-command-strip {
+        grid-template-rows: minmax(38px, 0.72fr) minmax(0, 1fr);
+    }
+
+    .tempo-tool-play-btn {
+        border-radius: 10px;
+        font-size: 0.68rem;
+    }
+
+    .tempo-tool-play-btn i {
+        font-size: 1.05rem;
+    }
+
+    .tempo-tool-stepper,
+    .tempo-tool-segmented {
+        gap: 4px;
+    }
+
+    .tempo-tool-stepper button,
+    .tempo-tool-segmented button,
+    .tempo-tool-reset-btn {
+        min-height: 26px;
+        border-radius: 8px;
+        font-size: 0.66rem;
+    }
+
+    .tempo-tool-meter-line,
+    .tempo-tool-options {
+        gap: 5px;
+    }
+
+    .tempo-tool-meter-line {
+        grid-template-columns: minmax(0, 1fr) minmax(84px, 104px) auto;
+    }
+
+    .tempo-tool-slider,
+    .tempo-tool-control-group {
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 5px;
+    }
+
+    .tempo-tool-slider span,
+    .tempo-tool-group-label,
+    .tempo-tool-sound-select span {
+        font-size: 0.62rem;
+    }
+
+    .tempo-tool-slider input {
+        height: 6px;
+    }
+
+    .tempo-tool-slider input::-webkit-slider-thumb {
+        width: 18px;
+        height: 18px;
+        border-width: 3px;
+    }
+
+    .tempo-tool-slider input::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-width: 3px;
+    }
+
+    .tempo-tool-sound-select {
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 4px;
+    }
+
+    .tempo-tool-sound-select select {
+        height: 26px;
+        border-radius: 8px;
+        font-size: 0.64rem;
+        padding-right: 18px;
+        padding-left: 7px;
+        background-position:
+            calc(100% - 10px) 11px,
+            calc(100% - 6px) 11px;
+        background-size: 4px 4px, 4px 4px;
+    }
+
+    .tempo-tool-reset-btn {
+        min-width: 70px;
+        padding: 0 8px;
+    }
+
+    .tempo-tool-beat-grid {
+        min-height: 17px;
+        gap: 3px;
+    }
+
+    .tempo-tool-beat {
+        height: 7px;
+    }
+
+    .tempo-tool-beat.is-main {
+        height: 11px;
+    }
+}
+
+@media (max-height: 520px) {
+    .tempo-tool-content {
+        gap: 4px;
+        padding-top: 3px;
+        padding-bottom: 4px;
+    }
+
+    .tempo-tool-topbar {
+        min-height: 30px;
+    }
+
+    .tempo-tool-header h2 {
+        font-size: 0.9rem;
+    }
+
+    .tempo-tool-status-row {
+        gap: 4px;
+    }
+
+    .tempo-tool-status-row span {
+        min-height: 25px;
+    }
+
+    .tempo-tool-bpm {
+        font-size: 2.68rem;
+    }
+
+    .tempo-tool-tap-label {
+        display: none;
+    }
+
+    .tempo-tool-stepper button,
+    .tempo-tool-segmented button,
+    .tempo-tool-reset-btn {
+        min-height: 23px;
+    }
+
+    .tempo-tool-beat-grid {
+        min-height: 13px;
+    }
+}

@@ -157,6 +157,7 @@ const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
 const MediaArchivePage = lazy(() => import('./pages/forum/media/MediaArchivePage'));
 const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
+const TempoToolPage = lazy(() => import('./pages/tempo-tool/TempoToolPage'));
 const KioskEntryRoute = lazy(() => import('./pages/kiosk/KioskEntryRoute'));
 const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
 const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
@@ -287,6 +288,7 @@ const router = createBrowserRouter([
       { path: "/forum/media", element: <MediaArchivePage /> },
       { path: "/bpm-tapper", element: <BpmTapperPage /> },
       { path: "/metronome", element: <MetronomePage /> },
+      { path: "/tempo-tool", element: <TempoToolPage /> },
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },

@@ -1,16 +1,38 @@
+html.bpm-tapper-page-active,
+html.bpm-tapper-page-active body,
+html.bpm-tapper-page-active #root {
+    height: 100svh;
+    max-height: 100svh;
+    overflow: hidden !important;
+}
+
+html.bpm-tapper-page-active .shell-container {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+    overflow: hidden !important;
+}
+
+html.bpm-tapper-page-active .shell-main-content {
+    height: 100svh;
+    min-height: 0;
+    max-height: 100svh;
+    box-sizing: border-box;
+    overflow: hidden !important;
+}
+
 .bpm-tapper-container {
     width: 100%;
-    height: 100svh;
+    height: calc(100svh - 172px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     background: var(--bg-surface-1);
-    /* padding-top: calc(60px + env(safe-area-inset-top)); - Shell에서 처리하므로 제거 */
     padding-top: 0;
-    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    padding-bottom: 0;
     box-sizing: border-box;
     overflow: hidden;
-    /* Absolutely no scroll */
     position: relative;
 }
 
@@ -19,44 +41,59 @@
     max-width: 450px;
     height: 100%;
     padding: 0 20px;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
     align-items: center;
-    justify-content: space-between;
-    /* Spread elements vertically */
+    gap: 12px;
+    box-sizing: border-box;
+    min-height: 0;
 }
 
 .bpm-tapper-header {
     text-align: center;
-    padding-top: 10px;
+    padding-top: clamp(4px, 1.4svh, 12px);
+    flex: 0 0 auto;
 }
 
 .bpm-tapper-title {
-    font-size: clamp(1.2rem, 5vw, 1.6rem);
+    font-size: clamp(1.16rem, 4.8vw, 1.55rem);
     font-weight: 800;
     color: var(--text-primary, #111827);
-    margin-bottom: 4px;
+    margin: 0 0 4px;
 }
 
 .bpm-tapper-subtitle {
     font-size: clamp(0.8rem, 3.5vw, 0.95rem);
     color: var(--text-muted, #9ca3af);
+    margin: 0;
 }
 
 .bpm-display-area {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     min-height: 0;
-    /* Important for flex child scaling */
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.bpm-display-area:focus-visible {
+    outline: 3px solid rgba(236, 72, 153, 0.42);
+    outline-offset: 6px;
+    border-radius: 28px;
 }
 
 .bpm-circle {
-    /* Scale circle based on the smaller of width/height area */
-    width: min(65vw, 35svh);
-    height: min(65vw, 35svh);
+    width: min(64vw, 31svh);
+    height: min(64vw, 31svh);
+    min-width: 176px;
+    min-height: 176px;
     max-width: 280px;
     max-height: 280px;
     border-radius: 50%;
@@ -85,7 +122,7 @@
 }
 
 .bpm-number {
-    font-size: clamp(3rem, 15vw, 5.5rem);
+    font-size: clamp(2.8rem, 14vw, 5.3rem);
     font-weight: 900;
     line-height: 0.9;
     font-variant-numeric: tabular-nums;
@@ -119,18 +156,23 @@
     width: 100%;
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    gap: 8px;
+    margin-bottom: 0;
+    flex: 0 0 auto;
 }
 
-.stat-item {
+.bpm-stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10px 24px;
+    justify-content: center;
+    padding: 9px 18px;
     background: var(--bg-secondary, #f3f4f6);
-    border-radius: 20px;
-    min-width: 120px;
+    border-radius: 16px;
+    min-width: 106px;
+    min-height: 54px;
     border: 1px solid var(--border-light, #e5e7eb);
+    box-sizing: border-box;
 }
 
 .stat-label {
@@ -141,24 +183,28 @@
 }
 
 .stat-value {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 800;
     color: var(--text-primary, #111827);
+    font-variant-numeric: tabular-nums;
 }
 
 .bpm-tapper-footer {
     width: 100%;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding-bottom: 10px;
+    justify-content: center;
+    padding-bottom: clamp(4px, 1.2svh, 10px);
 }
 
-.bpm-reset-btn {
+.bpm-action-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 12px 28px;
+    min-height: 44px;
+    min-width: 132px;
+    padding: 11px 22px;
     background: var(--bg-surface, #ffffff);
     border: 1px solid var(--border-light, #e5e7eb);
     border-radius: 14px;
@@ -167,15 +213,14 @@
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 12px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
 }
 
-.bpm-reset-btn:active {
+.bpm-action-btn:active {
     background: var(--bg-secondary, #f9fafb);
     transform: scale(0.96);
 }
-
 
 @keyframes pulseRing {
     0% {
@@ -197,7 +242,7 @@
     color: #f9fafb;
 }
 
-[data-theme='dark'] .stat-item {
+[data-theme='dark'] .bpm-stat-item {
     background: #1f2937;
     border-color: #374151;
 }
@@ -206,13 +251,74 @@
     color: #f9fafb;
 }
 
-[data-theme='dark'] .bpm-reset-btn {
+[data-theme='dark'] .bpm-action-btn {
     background: #1f2937;
     border-color: #374151;
     color: #9ca3af;
 }
 
-[data-theme='dark'] .bpm-reset-btn:active {
+[data-theme='dark'] .bpm-action-btn:active {
     background: #283344;
     color: #f9fafb;
+}
+
+@media (max-height: 640px) {
+    .bpm-tapper-content {
+        gap: 7px;
+        padding: 0 18px;
+    }
+
+    .bpm-circle {
+        width: min(62vw, 28svh);
+        height: min(62vw, 28svh);
+        min-width: 136px;
+        min-height: 136px;
+    }
+
+    .bpm-tapper-title {
+        font-size: 1.08rem;
+    }
+
+    .bpm-tapper-subtitle {
+        font-size: 0.78rem;
+    }
+
+    .bpm-stat-item {
+        min-height: 46px;
+        padding: 7px 14px;
+    }
+
+    .bpm-action-btn {
+        min-height: 40px;
+        font-size: 0.86rem;
+    }
+}
+
+@media (max-height: 540px) {
+    .bpm-tapper-header {
+        padding-top: 2px;
+    }
+
+    .bpm-tapper-subtitle {
+        display: none;
+    }
+
+    .bpm-circle {
+        width: min(56vw, 25svh);
+        height: min(56vw, 25svh);
+        min-width: 116px;
+        min-height: 116px;
+    }
+
+    .bpm-stat-item {
+        min-height: 38px;
+        padding: 5px 12px;
+        border-radius: 11px;
+    }
+
+    .bpm-action-btn {
+        min-height: 32px;
+        padding: 6px 16px;
+        border-radius: 10px;
+    }
 }

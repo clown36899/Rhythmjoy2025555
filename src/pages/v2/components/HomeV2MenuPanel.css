@@ -162,13 +162,41 @@
   font-size: 10px;
 }
 
+.home-v2-menu-status-badge {
+  position: absolute;
+  top: -9px;
+  right: -24px;
+  z-index: 3;
+  display: inline-flex;
+  min-width: 34px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #facc15;
+  color: #111827;
+  box-shadow: 0 4px 9px rgba(0, 0, 0, 0.3);
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.home-v2-menu-quick-icon .home-v2-menu-status-badge {
+  top: -8px;
+  right: -23px;
+  transform: scale(0.9);
+}
+
 .home-v2-menu-quick-item>span:last-child {
   display: block;
   width: 100%;
   min-width: 0;
   overflow: hidden;
   color: currentColor;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 850;
   line-height: 1.05;
   text-align: center;
@@ -266,7 +294,8 @@
 }
 
 .home-v2-menu-edit-btn,
-.home-v2-menu-reset-btn {
+.home-v2-menu-reset-btn,
+.home-v2-menu-visibility-btn {
   position: absolute;
   height: 46px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -293,18 +322,41 @@
   padding: 0 8px;
 }
 
+.home-v2-menu-visibility-btn {
+  left: 0;
+  display: inline-flex;
+  min-width: 78px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 9px;
+}
+
+.home-v2-menu-visibility-btn.is-hidden {
+  border-color: rgba(250, 204, 21, 0.52);
+  background: rgba(250, 204, 21, 0.16);
+  color: #fef3c7;
+}
+
+.home-v2-menu-visibility-btn:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .home-v2-menu-edit-btn.is-active {
   background: #3d73ff;
   color: #fff;
 }
 
 .home-v2-menu-edit-btn i,
-.home-v2-menu-reset-btn i {
+.home-v2-menu-reset-btn i,
+.home-v2-menu-visibility-btn i {
   font-size: 19px;
   line-height: 1;
 }
 
-.home-v2-menu-reset-btn span {
+.home-v2-menu-reset-btn span,
+.home-v2-menu-visibility-btn span {
   font-size: 12px;
   font-weight: 900;
   line-height: 1;
@@ -667,6 +719,10 @@
 
 .home-v2-menu-icon--metronome {
   --icon-rgb: 245, 158, 11;
+}
+
+.home-v2-menu-icon--tempo {
+  --icon-rgb: 20, 184, 166;
 }
 
 .home-v2-menu-icon--shopping {

@@ -4,16 +4,19 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
+import { useTempoToolVisibilitySettings } from "../../../hooks/useTempoToolVisibilitySettings";
 import "./HomeV2MenuPanel.css";
 
 type HomeMenuItem = {
     id: string;
     label: string;
+    shortLabel?: string;
     icon: string;
     auxIcon?: string;
     theme: string;
     to?: string;
     action?: string;
+    status?: string;
 };
 
 const HOME_MENU_ITEMS: HomeMenuItem[] = [
@@ -22,18 +25,20 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "events", label: "강습&행사", icon: "ri-ticket-2-line", auxIcon: "ri-book-open-line", theme: "events", to: "/events" },
     { id: "board", label: "자유게시판", icon: "ri-chat-3-line", theme: "board", to: "/board" },
     { id: "places", label: "map", icon: "ri-map-pin-2-line", theme: "places", to: "/places" },
-    { id: "forum-media", label: "SNS 아카이브", icon: "ri-movie-2-line", theme: "media", to: "/forum/media" },
+    { id: "forum-media", label: "SNS 아카이브", icon: "ri-movie-2-line", theme: "media", to: "/forum/media", status: "준비중" },
     { id: "forum-library", label: "라이브러리", icon: "ri-book-open-line", theme: "library", to: "/board?category=history" },
     { id: "forum-links", label: "사이트 모음", icon: "ri-earth-line", theme: "links", to: "/links" },
     { id: "bpm-tapper", label: "BPM 측정기", icon: "ri-pulse-line", theme: "bpm", to: "/bpm-tapper" },
     { id: "metronome", label: "메트로놈", icon: "ri-timer-flash-line", theme: "metronome", to: "/metronome" },
+    { id: "tempo-tool", label: "BPM 측정기/메트로놈", shortLabel: "BPM/메트로놈", icon: "ri-speed-up-line", theme: "tempo", to: "/tempo-tool" },
     { id: "shopping", label: "쇼핑", icon: "ri-shopping-bag-3-line", theme: "shopping", to: "/shopping" },
     { id: "guide", label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
 ];
 
 const PINNED_MENU_STORAGE_KEY = "home_v2_pinned_menu_ids";
 const PINNED_MENU_LIMIT = 5;
-const DEFAULT_PINNED_MENU_IDS: string[] = [];
+const DEFAULT_PINNED_MENU_IDS: string[] = ["tempo-tool"];
+const FEATURED_QUICK_MENU_IDS: string[] = ["tempo-tool"];
 
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
@@ -99,9 +104,9 @@ const getEditDropTargetKey = (target: EditDropTarget | null) => {
     return `item:${target.id}:${target.placement}`;
 };
 
-const getDefaultUnpinnedMenuIds = (pinnedIds: string[]) => {
+const getDefaultUnpinnedMenuIds = (pinnedIds: string[], menuItems: HomeMenuItem[] = HOME_MENU_ITEMS) => {
     const pinnedIdSet = new Set(pinnedIds);
-    return HOME_MENU_ITEMS
+    return menuItems
         .map(getMenuItemKey)
         .filter((id) => !pinnedIdSet.has(id));
 };
@@ -148,16 +153,20 @@ const moveEditMenuItem = (
     };
 };
 
-const sanitizePinnedMenuIds = (ids: unknown): string[] => {
-    if (!Array.isArray(ids)) return [...DEFAULT_PINNED_MENU_IDS];
+const sanitizePinnedMenuIds = (
+    ids: unknown,
+    menuItems: HomeMenuItem[] = HOME_MENU_ITEMS,
+    fallbackIds: string[] = DEFAULT_PINNED_MENU_IDS,
+): string[] => {
+    if (!Array.isArray(ids)) return [...fallbackIds];
 
-    const validIds = new Set(HOME_MENU_ITEMS.map(getMenuItemKey));
+    const validIds = new Set(menuItems.map(getMenuItemKey));
     const cleanIds = ids
         .filter((id): id is string => typeof id === "string" && validIds.has(id))
         .filter((id, index, list) => list.indexOf(id) === index)
         .slice(0, PINNED_MENU_LIMIT);
 
-    return cleanIds;
+    return cleanIds.length > 0 ? cleanIds : [...fallbackIds];
 };
 
 const getInitialPinnedMenuIds = () => {
@@ -176,8 +185,13 @@ export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { openModal, closeModal, modalStack } = useModalContext();
+    const {
+        settings: tempoToolVisibilitySettings,
+        isLoading: isTempoToolVisibilityLoading,
+        saveSettings: saveTempoToolVisibilitySettings,
+    } = useTempoToolVisibilitySettings();
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
@@ -187,6 +201,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const [editPinnedMenuIds, setEditPinnedMenuIds] = useState<string[]>([]);
     const [editUnpinnedMenuIds, setEditUnpinnedMenuIds] = useState<string[]>([]);
     const [pinnedDragOverlay, setPinnedDragOverlay] = useState<PinnedDragOverlay | null>(null);
+    const [isSavingTempoToolVisibility, setIsSavingTempoToolVisibility] = useState(false);
     const panelPointerGestureStartRef = useRef<GestureStart | null>(null);
     const panelTouchGestureStartRef = useRef<GestureStart | null>(null);
     const menuPressStartRef = useRef<PressStart | null>(null);
@@ -198,14 +213,32 @@ export const HomeV2MenuPanel: React.FC = () => {
     const suppressSyntheticClickUntilRef = useRef(0);
     const menuActionTimerRef = useRef<number | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
+    const shouldHideTempoTool = (!isAdmin && isTempoToolVisibilityLoading) || (!isAdmin && tempoToolVisibilitySettings.hidden);
+    const visibleHomeMenuItems = useMemo(() => {
+        if (!shouldHideTempoTool) return HOME_MENU_ITEMS;
+        return HOME_MENU_ITEMS.filter((item) => item.id !== "tempo-tool");
+    }, [shouldHideTempoTool]);
+    const visibleDefaultPinnedMenuIds = useMemo(() => {
+        const visibleMenuItemIds = new Set(visibleHomeMenuItems.map(getMenuItemKey));
+        return DEFAULT_PINNED_MENU_IDS.filter((id) => visibleMenuItemIds.has(id));
+    }, [visibleHomeMenuItems]);
     const menuItemById = useMemo(() => {
-        return new Map(HOME_MENU_ITEMS.map((item) => [getMenuItemKey(item), item]));
-    }, []);
+        return new Map(visibleHomeMenuItems.map((item) => [getMenuItemKey(item), item]));
+    }, [visibleHomeMenuItems]);
     const pinnedMenuItems = useMemo(() => {
         return pinnedMenuIds
             .map((id) => menuItemById.get(id))
             .filter((item): item is HomeMenuItem => Boolean(item));
     }, [menuItemById, pinnedMenuIds]);
+    const quickMenuItems = useMemo(() => {
+        const featuredItems = FEATURED_QUICK_MENU_IDS
+            .map((id) => menuItemById.get(id))
+            .filter((item): item is HomeMenuItem => Boolean(item));
+        const featuredIdSet = new Set(featuredItems.map(getMenuItemKey));
+        const pinnedItems = pinnedMenuItems.filter((item) => !featuredIdSet.has(getMenuItemKey(item)));
+
+        return [...featuredItems, ...pinnedItems].slice(0, PINNED_MENU_LIMIT);
+    }, [menuItemById, pinnedMenuItems]);
     const orderedMenuItems = useMemo(() => {
         if (isEditMode) {
             return [...editPinnedMenuIds, ...editUnpinnedMenuIds]
@@ -214,10 +247,10 @@ export const HomeV2MenuPanel: React.FC = () => {
         }
 
         const pinnedIdSet = new Set(pinnedMenuIds);
-        const unpinnedMenuItems = HOME_MENU_ITEMS.filter((item) => !pinnedIdSet.has(getMenuItemKey(item)));
+        const unpinnedMenuItems = visibleHomeMenuItems.filter((item) => !pinnedIdSet.has(getMenuItemKey(item)));
 
         return [...pinnedMenuItems, ...unpinnedMenuItems];
-    }, [editPinnedMenuIds, editUnpinnedMenuIds, isEditMode, menuItemById, pinnedMenuIds, pinnedMenuItems]);
+    }, [editPinnedMenuIds, editUnpinnedMenuIds, isEditMode, menuItemById, pinnedMenuIds, pinnedMenuItems, visibleHomeMenuItems]);
     const expandedMenuCells = useMemo<ExpandedMenuCell[]>(() => {
         if (!isEditMode) {
             return orderedMenuItems.map((item) => ({
@@ -411,19 +444,19 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, []);
 
     const startEditMode = useCallback(() => {
-        const cleanPinnedIds = sanitizePinnedMenuIds(pinnedMenuIds);
-        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds);
+        const cleanPinnedIds = sanitizePinnedMenuIds(pinnedMenuIds, visibleHomeMenuItems, visibleDefaultPinnedMenuIds);
+        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
         setEditPinnedMenuIds(cleanPinnedIds);
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
         setIsEditMode(true);
         resetPinnedDrag();
-    }, [pinnedMenuIds, resetPinnedDrag]);
+    }, [pinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const finishEditMode = useCallback(() => {
-        const cleanPinnedIds = sanitizePinnedMenuIds(editPinnedMenuIds);
-        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds);
+        const cleanPinnedIds = sanitizePinnedMenuIds(editPinnedMenuIds, visibleHomeMenuItems, visibleDefaultPinnedMenuIds);
+        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
         setPinnedMenuIds(cleanPinnedIds);
@@ -431,7 +464,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
         setIsEditMode(false);
         resetPinnedDrag();
-    }, [editPinnedMenuIds, resetPinnedDrag]);
+    }, [editPinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const toggleEditMode = useCallback(() => {
         if (isEditMode) {
@@ -443,14 +476,34 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [finishEditMode, isEditMode, startEditMode]);
 
     const resetPinnedMenu = useCallback(() => {
-        const cleanPinnedIds = [...DEFAULT_PINNED_MENU_IDS];
-        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds);
+        const cleanPinnedIds = [...visibleDefaultPinnedMenuIds];
+        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
         setPinnedMenuIds(cleanPinnedIds);
         setEditPinnedMenuIds(cleanPinnedIds);
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
-    }, []);
+    }, [visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+
+    const toggleTempoToolVisibility = useCallback(async () => {
+        if (!isAdmin || isSavingTempoToolVisibility) return;
+
+        setIsSavingTempoToolVisibility(true);
+        try {
+            await saveTempoToolVisibilitySettings({
+                hidden: !tempoToolVisibilitySettings.hidden,
+            });
+        } catch {
+            alert("숨김 설정 저장에 실패했습니다.");
+        } finally {
+            setIsSavingTempoToolVisibility(false);
+        }
+    }, [
+        isAdmin,
+        isSavingTempoToolVisibility,
+        saveTempoToolVisibilitySettings,
+        tempoToolVisibilitySettings.hidden,
+    ]);
 
     const getEditDropTarget = useCallback((clientX: number, clientY: number): EditDropTarget | null => {
         if (typeof document === "undefined") return null;
@@ -662,7 +715,11 @@ export const HomeV2MenuPanel: React.FC = () => {
             event.preventDefault();
             event.stopPropagation();
             suppressSyntheticClickUntilRef.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS;
-            setPinnedMenuIds(sanitizePinnedMenuIds(editPinnedMenuIdsRef.current));
+            setPinnedMenuIds(sanitizePinnedMenuIds(
+                editPinnedMenuIdsRef.current,
+                visibleHomeMenuItems,
+                visibleDefaultPinnedMenuIds,
+            ));
         }
 
         try {
@@ -672,7 +729,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         }
 
         resetPinnedDrag();
-    }, [resetPinnedDrag]);
+    }, [resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const openRegistrationChoice = () => {
         openModal("registrationChoice", {
@@ -952,14 +1009,14 @@ export const HomeV2MenuPanel: React.FC = () => {
             onTouchEnd={handlePanelTouchEnd}
             onTouchCancel={resetPanelTouchGesture}
         >
-            <div className={`home-v2-menu-compact-row ${pinnedMenuItems.length === 0 ? "has-no-quick-items" : ""}`}>
-                {pinnedMenuItems.length > 0 && (
+            <div className={`home-v2-menu-compact-row ${quickMenuItems.length === 0 ? "has-no-quick-items" : ""}`}>
+                {quickMenuItems.length > 0 && (
                     <div
                         className="home-v2-menu-quickbar"
-                        style={{ "--quick-count": String(pinnedMenuItems.length) } as React.CSSProperties}
+                        style={{ "--quick-count": String(quickMenuItems.length) } as React.CSSProperties}
                         aria-label="고정 메뉴"
                     >
-                        {pinnedMenuItems.map((item) => {
+                        {quickMenuItems.map((item) => {
                             const itemKey = getMenuItemKey(item);
                             return (
                                 <button
@@ -1000,8 +1057,9 @@ export const HomeV2MenuPanel: React.FC = () => {
                                     <span className={`home-v2-menu-quick-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
                                         <i className={item.icon} />
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
+                                        {item.status && <span className="home-v2-menu-status-badge">{item.status}</span>}
                                     </span>
-                                    <span>{t(item.label)}</span>
+                                    <span>{t(item.shortLabel ?? item.label)}</span>
                                 </button>
                             );
                         })}
@@ -1026,6 +1084,24 @@ export const HomeV2MenuPanel: React.FC = () => {
 
                 {isExpanded && (
                     <>
+                        {isAdmin && !isEditMode && (
+                            <button
+                                type="button"
+                                className={`home-v2-menu-visibility-btn ${tempoToolVisibilitySettings.hidden ? "is-hidden" : ""}`}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    void toggleTempoToolVisibility();
+                                }}
+                                disabled={isSavingTempoToolVisibility || isTempoToolVisibilityLoading}
+                                aria-label={tempoToolVisibilitySettings.hidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
+                                aria-pressed={tempoToolVisibilitySettings.hidden}
+                                title={tempoToolVisibilitySettings.hidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
+                            >
+                                <i className={tempoToolVisibilitySettings.hidden ? "ri-eye-line" : "ri-eye-off-line"} aria-hidden="true" />
+                                <span>{tempoToolVisibilitySettings.hidden ? "공개" : "숨김"}</span>
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             className={`home-v2-menu-edit-btn ${isEditMode ? "is-active" : ""}`}
@@ -1148,6 +1224,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         <span className={`home-v2-menu-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
                                             <i className={item.icon} />
                                             {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
+                                            {item.status && <span className="home-v2-menu-status-badge">{item.status}</span>}
                                         </span>
                                         <span className="home-v2-menu-label">{t(item.label)}</span>
                                     </button>
@@ -1205,6 +1282,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                         <span className={`home-v2-menu-icon home-v2-menu-icon--${overlayItem.theme}`}>
                             <i className={overlayItem.icon} />
                             {overlayItem.auxIcon && <i className={`home-v2-menu-icon-aux ${overlayItem.auxIcon}`} />}
+                            {overlayItem.status && <span className="home-v2-menu-status-badge">{overlayItem.status}</span>}
                         </span>
                         <span className="home-v2-menu-label">{t(overlayItem.label)}</span>
                     </div>
