@@ -5,12 +5,33 @@ This folder is a snapshot of the kiosk configuration currently installed on the 
 ## Included
 
 - Chrome kiosk systemd user service
-- External URL guard systemd user service and Python script
+- Legacy external URL guard systemd user service and Python script
 - Display setup systemd user service and script
-- Kiosk Chrome extension files
+- Legacy Kiosk Chrome extension files
 - Chrome managed policy for update UI, popups, and external protocol blocking
 - Status logs captured at backup time
 - Restore script
+
+## Current Kiosk URL
+
+The mini PC should open the site-owned kiosk route:
+
+```text
+https://swingenjoy.com/kiosk
+```
+
+That route enables kiosk mode in the web app, then redirects to `/`.
+Kiosk CSS, QR external-link guidance, and carousel controls now live in the site code.
+The old mini PC URL guard and Chrome extension files are kept only as a legacy fallback.
+
+Latest verified production deploy:
+
+- Checked at `2026-06-15 13:52 KST`
+- `version.json` buildTime: `1781499072842`
+- Main bundle: `assets/index-B3LKFnlq.js`
+- Main CSS: `assets/index-B_uTh6zM.css`
+- Mini PC menu expands upward from `150px` to about `375px`; no internal menu scroll.
+- Genre tabs start below the enlarged kiosk header.
 
 ## Repository Path Names
 
@@ -38,7 +59,8 @@ The script may ask for the kiosk user's sudo password when installing the Chrome
 ## Quick Check After Restore
 
 ```bash
-ssh kiosk-j@172.30.1.13 'systemctl --user is-active kiosk-chrome.service kiosk-url-guard.service kiosk-display.service'
+ssh kiosk-j@172.30.1.13 'systemctl --user is-active kiosk-chrome.service kiosk-display.service; systemctl --user is-enabled kiosk-url-guard.service || true'
 ```
 
-All three services should print `active`.
+`kiosk-chrome.service` and `kiosk-display.service` should print `active`.
+`kiosk-url-guard.service` should be disabled unless intentionally using the legacy fallback.

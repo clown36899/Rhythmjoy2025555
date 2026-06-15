@@ -10,7 +10,7 @@ Type=simple
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/run/user/1000/gdm/Xauthority
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
-ExecStart=/usr/bin/google-chrome-stable --kiosk --user-data-dir=/home/kiosk-j/.config/kiosk-chrome-profile --force-device-scale-factor=1.40 --high-dpi-support=1 --noerrdialogs --disable-infobars --no-first-run --no-default-browser-check --disable-session-crashed-bubble --disable-notifications --deny-permission-prompts --disable-translate --check-for-update-interval=31536000 "--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT" --disable-background-networking --disable-component-update --disable-extensions-except=/home/kiosk-j/.local/share/kiosk-domain-guard --load-extension=/home/kiosk-j/.local/share/kiosk-domain-guard --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --disable-features=TranslateUI,MediaRouter --autoplay-policy=no-user-gesture-required https://swingenjoy.com/
+ExecStart=/usr/bin/google-chrome-stable --kiosk --user-data-dir=/home/kiosk-j/.config/kiosk-chrome-profile --force-device-scale-factor=1.40 --high-dpi-support=1 --noerrdialogs --disable-infobars --no-first-run --no-default-browser-check --disable-session-crashed-bubble --disable-notifications --deny-permission-prompts --disable-translate --check-for-update-interval=31536000 "--simulate-outdated-no-au=Tue, 31 Dec 2099 23:59:59 GMT" --disable-background-networking --disable-component-update --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --disable-features=TranslateUI,MediaRouter --autoplay-policy=no-user-gesture-required https://swingenjoy.com/kiosk
 Restart=always
 RestartSec=5
 

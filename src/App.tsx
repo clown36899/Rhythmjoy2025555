@@ -17,6 +17,7 @@ import { isPWAMode, getMobilePlatform } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import DeploymentAutoRefresh from './components/DeploymentAutoRefresh';
 import { AppNoticeToast } from './components/common/AppNoticeToast';
+import KioskModeController from './components/KioskModeController';
 
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions, useModalState } from './contexts/ModalContext';
@@ -365,6 +366,7 @@ function AppContent() {
 
   return (
     <>
+      <KioskModeController />
       <Suspense fallback={
         <div className="full-screen-fallback">
           <LocalLoading />

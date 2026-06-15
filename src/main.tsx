@@ -1,7 +1,9 @@
 import { initClientLogBuffer } from './utils/clientLogBuffer';
 import { logReloadDiagnostic } from './utils/reloadDiagnostics';
+import { isKioskModeEnabled } from './lib/kioskMode';
 
 const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
+const IS_KIOSK_BOOT = isKioskModeEnabled();
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
 if (BOOT_DEBUG) {
     console.debug('%c[Main] JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
@@ -22,7 +24,7 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   }
 }
 
-if (import.meta.env.PROD && !window.location.pathname.includes('/billboard/')) {
+if (import.meta.env.PROD && !window.location.pathname.includes('/billboard/') && !IS_KIOSK_BOOT) {
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({
       immediate: true,
@@ -82,6 +84,7 @@ import { authLogger } from './utils/authLogger';
 import './i18n'
 import './index.css'
 import './styles/theme-completion.css'
+import './styles/kiosk-mode.css'
 
 authLogger.log('[Main] 🚀 App entry point reached');
 import { isPWAMode } from './lib/pwaDetect'
@@ -154,6 +157,7 @@ const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
 const MediaArchivePage = lazy(() => import('./pages/forum/media/MediaArchivePage'));
 const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
+const KioskEntryRoute = lazy(() => import('./pages/kiosk/KioskEntryRoute'));
 const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
 const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
 const AdminUiSamplesPage = lazy(() => import('./pages/admin/ui/AdminUiSamplesPage'));
@@ -264,6 +268,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: "/", element: <HomePageV2 /> },
+      { path: "/kiosk", element: <KioskEntryRoute /> },
       { path: "/v2", element: <HomePageV2 /> },
       // { path: "/v2/events/:id", element: <EventDetailPage /> }, // Disabled
       { path: "/calendar", element: <CalendarPage /> },

@@ -20,8 +20,6 @@ need_file() {
   fi
 }
 
-need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-local/bin/kiosk-url-guard.py"
-need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-local/share/kiosk-domain-guard"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-chrome.service"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-url-guard.service"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-local/bin/kiosk-display-setup.sh"
@@ -53,11 +51,12 @@ ssh "${SSH_ARGS[@]}" "${HOST}" '
   chmod 700 ~/.local/bin
   chmod 755 ~/.local/bin/kiosk-url-guard.py ~/.local/bin/kiosk-display-setup.sh
   systemctl --user daemon-reload
-  systemctl --user enable --now kiosk-display.service kiosk-url-guard.service kiosk-chrome.service
+  systemctl --user enable --now kiosk-display.service kiosk-chrome.service
+  systemctl --user disable --now kiosk-url-guard.service || true
   printf "Installing Chrome policy with sudo. Enter the kiosk sudo password if prompted.\n"
   sudo install -d -m 755 /etc/opt/chrome/policies/managed
   sudo install -m 644 /tmp/kiosk-restore-policy/kiosk-suppress-update-ui.json /etc/opt/chrome/policies/managed/kiosk-suppress-update-ui.json
-  systemctl --user restart kiosk-display.service kiosk-url-guard.service kiosk-chrome.service
+  systemctl --user restart kiosk-display.service kiosk-chrome.service
 '
 
 printf 'Mini PC kiosk restore complete for %s\n' "${HOST}"

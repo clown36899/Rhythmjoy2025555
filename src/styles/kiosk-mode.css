@@ -1,0 +1,340 @@
+html.kiosk-link-router-active.v2-home-mode,
+html.kiosk-link-router-active.v2-home-mode body.v2-home-mode {
+  overflow-x: hidden !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .shell-header.global-header-fixed {
+  height: 128px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .header-content-inner {
+  height: 128px !important;
+  padding-left: 28px !important;
+  padding-right: 28px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .header-left-content,
+html.kiosk-link-router-active.v2-home-mode .header-events-content {
+  height: 108px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .header-logo-container {
+  transform: scale(1.5) !important;
+  transform-origin: left center !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .header-right-buttons {
+  transform: scale(1.5) !important;
+  transform-origin: right center !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-container,
+html.kiosk-link-router-active.v2-home-mode .home-main {
+  padding-top: 34px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout,
+html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid,
+html.kiosk-link-router-active.v2-home-mode .home-neb-hero-pane,
+html.kiosk-link-router-active.v2-home-mode .NEB-container {
+  width: 100vw !important;
+  max-width: none !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-header {
+  width: 80vw !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  min-height: 38px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-indicators {
+  width: 80vw !important;
+  margin: 24px auto 24px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+html.kiosk-link-router-active.v2-home-mode .NEB-track {
+  width: 100vw !important;
+  height: 710px !important;
+  min-height: 710px !important;
+  overflow: hidden !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slide {
+  width: min(65vw, 620px) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 415 / 539 !important;
+  top: 0 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-active {
+  left: 238px !important;
+  transform: none !important;
+  z-index: 30 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-1,
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-2,
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-3 {
+  display: block !important;
+  z-index: 10 !important;
+  transform-origin: top left !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-1 {
+  left: 100px !important;
+  top: 0 !important;
+  transform: none !important;
+  z-index: 20 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-2 {
+  left: 54px !important;
+  top: 0 !important;
+  transform: none !important;
+  z-index: 15 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-3 {
+  left: 8px !important;
+  top: 0 !important;
+  transform: none !important;
+  z-index: 10 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-imageWrapper,
+html.kiosk-link-router-active.v2-home-mode .NEB-image {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-image {
+  object-fit: contain !important;
+  background: #111 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
+  width: 100vw !important;
+  margin-top: 20px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
+  width: min(65vw, 620px) !important;
+  margin-left: 238px !important;
+  margin-right: 0 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary strong {
+  font-size: clamp(28px, 4.2vw, 44px) !important;
+  line-height: 1.08 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryMeta {
+  font-size: clamp(19px, 2.4vw, 28px) !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+  left: 9vw !important;
+  width: 152px !important;
+  height: 166px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn img {
+  width: 152px !important;
+  height: 166px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {
+  width: 82vw !important;
+  height: 150px !important;
+  min-height: 150px !important;
+  max-height: 150px !important;
+  left: 50% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  transform: translateX(-50%) !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - 24px) !important;
+  overflow: visible !important;
+}
+
+@supports (height: 100dvh) {
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded {
+    max-height: calc(100dvh - 24px) !important;
+  }
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-v2-menu-toggle {
+  height: 124px !important;
+  font-size: 39px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home-v2-menu-toggle {
+  height: 58px !important;
+  font-size: inherit !important;
+}
+
+#kiosk-carousel-controls {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+#kiosk-carousel-controls button {
+  position: fixed;
+  width: 78px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .76);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 62px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .36);
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#kiosk-carousel-controls .kcc-prev {
+  left: 16px;
+}
+
+#kiosk-carousel-controls .kcc-next {
+  right: 16px;
+}
+
+#kiosk-carousel-controls button:active {
+  transform: translateY(-50%) scale(.96) !important;
+  background: rgba(25, 25, 25, .9);
+}
+
+#kiosk-external-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, .56), rgba(0, 0, 0, 0) 55%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #fff;
+  cursor: default;
+}
+
+#kiosk-external-lock * {
+  box-sizing: border-box;
+  user-select: none;
+}
+
+#kiosk-external-lock .kel-panel {
+  width: min(980px, calc(100vw - 56px));
+  min-height: 210px;
+  margin: 0 0 34px;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 26px;
+  align-items: center;
+  padding: 22px 28px;
+  border-radius: 8px;
+  background: rgba(12, 12, 12, .92);
+  box-shadow: 0 18px 70px rgba(0, 0, 0, .48);
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+
+#kiosk-external-lock img {
+  width: 160px;
+  height: 160px;
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px;
+}
+
+#kiosk-external-lock .kel-title {
+  font-size: 32px;
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+#kiosk-external-lock .kel-copy {
+  margin-top: 10px;
+  font-size: 24px;
+  font-weight: 760;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, .9);
+}
+
+#kiosk-external-lock .kel-url,
+#kiosk-external-lock .kel-blocked-url {
+  margin-top: 12px;
+  font-size: 18px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, .68);
+  word-break: break-all;
+}
+
+#kiosk-external-lock .kel-blocked-url {
+  font-size: 15px;
+  color: rgba(255, 255, 255, .38);
+}
+
+#kiosk-external-lock .kel-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+#kiosk-external-lock .kel-home {
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font-size: 20px;
+  font-weight: 850;
+  padding: 12px 18px;
+  cursor: pointer;
+}
+
+#kiosk-external-lock .kel-count {
+  font-size: 17px;
+  color: rgba(255, 255, 255, .58);
+}
+
+@media (max-width: 720px) {
+  #kiosk-external-lock {
+    align-items: center;
+  }
+
+  #kiosk-external-lock .kel-panel {
+    width: calc(100vw - 32px);
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    margin: 0;
+  }
+}

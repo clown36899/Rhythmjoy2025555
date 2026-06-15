@@ -113,17 +113,31 @@ Mini PC 백업:
 ops/kiosk/mini-pc/
 ```
 
+## 2026-06-15 이후 변경
+
+키오스크 전용 동작은 Mini PC Chrome extension/Python 주입 대신 사이트 라우트가 담당한다.
+
+- Mini PC 시작 주소: `https://swingenjoy.com/kiosk`
+- `/kiosk`는 사이트에서 키오스크 모드를 저장하고 `/`로 이동한다.
+- 키오스크 CSS, 외부 링크 QR 안내, 광고 좌우 버튼은 사이트 코드가 처리한다.
+- Mini PC의 `kiosk-url-guard.service`와 `kiosk-domain-guard` extension은 legacy fallback으로만 보관한다.
+- Chrome managed policy는 외부 앱 호출 확인창 방지용 안전장치로 계속 유지한다.
+- 2026-06-15 13:52 KST 배포에서 키오스크 하단 메뉴 펼침 문제를 고쳤다. 접힘 높이 `150px`, 펼침 높이 약 `375px`, `overflowY: visible`로 확인했다.
+- 같은 배포에서 장르 탭이 헤더에 가리지 않도록 키오스크 홈 본문 시작 위치를 소폭 내렸다. Mini PC 실측 기준 header bottom `127.99px`, genre top `134.99px`.
+- Cafe24 운영 배포와 git commit/push를 진행했다. 현재 작업트리에 키오스크 변경 외 다른 미완성 변경도 있으므로, 이후 커밋은 범위를 다시 확인해야 한다.
+
 ## 다음 채팅에서 이어받는 방법
 
 다음 Codex 채팅에서 프로젝트 `Rhythmjoy2025555-5`를 열고 이렇게 말하면 된다.
 
 ```text
-ops/kiosk/HANDOFF.md와 ops/kiosk/CHAT_SUMMARY.md부터 읽고 키오스크 작업 이어서 해줘.
+ops/kiosk/HANDOFF.md와 ops/kiosk/CHAT_SUMMARY.md부터 읽고 키오스크 작업 이어서 해줘. 키오스크 전용 주소는 https://swingenjoy.com/kiosk 야.
 ```
 
 ## 아직 커밋 전
 
-이 문서를 작성한 시점 기준, `ops/kiosk/`는 프로젝트에 추가됐지만 아직 commit/push는 하지 않았다.
+이 문서를 작성한 시점 기준, 운영 배포와 키오스크 변경 커밋/푸시를 진행했다.
+다만 작업트리에는 키오스크 외 다른 변경이 남아 있을 수 있으므로 다음 커밋 전 파일 범위를 반드시 다시 확인한다.
 
 추천 커밋:
 

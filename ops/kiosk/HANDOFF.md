@@ -11,7 +11,8 @@
 ## 현재 관리 대상
 
 - Mini PC Ubuntu 키오스크
-- Mini PC의 Chrome 키오스크 실행, 세로 화면, TV 전용 CSS, 외부 링크 가드
+- Mini PC의 Chrome 키오스크 실행과 세로 화면
+- 사이트 `/kiosk` 라우트의 TV 전용 CSS, 외부 링크 가드, QR 안내
 - Android TV의 키오스크 방해 요소 차단 메모
 
 ## 저장 원칙
@@ -25,7 +26,7 @@
 ## 다음 채팅에서 물어볼 문장
 
 ```text
-ops/kiosk/HANDOFF.md부터 읽고 미니PC 키오스크 상태 이어서 봐줘.
+ops/kiosk/HANDOFF.md부터 읽고 미니PC 키오스크 상태 이어서 봐줘. 키오스크 전용 주소는 https://swingenjoy.com/kiosk 야.
 ```
 
 ## 현재 스냅샷 위치
