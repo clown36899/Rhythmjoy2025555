@@ -204,6 +204,25 @@
   white-space: nowrap;
 }
 
+.home-v2-menu-quick-label--tempo {
+  display: grid !important;
+  align-content: center;
+  gap: 1px;
+  overflow: visible !important;
+  font-size: 9.5px !important;
+  line-height: 1.05 !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.home-v2-menu-quick-label--tempo span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
 .home-v2-menu-panel.is-compact {
   min-height: 94px;
   padding-bottom: var(--home-v2-menu-compact-padding-bottom);
@@ -748,6 +767,24 @@
   letter-spacing: 0;
   text-overflow: ellipsis;
   transition: opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.home-v2-menu-label--tempo {
+  display: grid;
+  gap: 1px;
+  overflow: visible;
+  font-size: 8.8px;
+  line-height: 1.05;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.home-v2-menu-label--tempo span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: clip;
   white-space: nowrap;
 }
 

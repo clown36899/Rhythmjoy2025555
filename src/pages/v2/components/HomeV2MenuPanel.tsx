@@ -1059,7 +1059,14 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                                         {item.status && <span className="home-v2-menu-status-badge">{item.status}</span>}
                                     </span>
-                                    <span>{t(item.shortLabel ?? item.label)}</span>
+                                    <span className={`home-v2-menu-quick-label ${item.id === "tempo-tool" ? "home-v2-menu-quick-label--tempo" : ""}`}>
+                                        {item.id === "tempo-tool" ? (
+                                            <>
+                                                <span>BPM</span>
+                                                <span>메트로놈</span>
+                                            </>
+                                        ) : t(item.shortLabel ?? item.label)}
+                                    </span>
                                 </button>
                             );
                         })}
@@ -1226,7 +1233,14 @@ export const HomeV2MenuPanel: React.FC = () => {
                                             {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                                             {item.status && <span className="home-v2-menu-status-badge">{item.status}</span>}
                                         </span>
-                                        <span className="home-v2-menu-label">{t(item.label)}</span>
+                                        <span className={`home-v2-menu-label ${item.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
+                                            {item.id === "tempo-tool" ? (
+                                                <>
+                                                    <span>BPM 측정기</span>
+                                                    <span>메트로놈</span>
+                                                </>
+                                            ) : t(item.label)}
+                                        </span>
                                     </button>
                                     {isEditMode && isPinned && <span className="home-v2-menu-rank-badge">{pinnedIndex + 1}</span>}
                                 </div>
@@ -1284,7 +1298,14 @@ export const HomeV2MenuPanel: React.FC = () => {
                             {overlayItem.auxIcon && <i className={`home-v2-menu-icon-aux ${overlayItem.auxIcon}`} />}
                             {overlayItem.status && <span className="home-v2-menu-status-badge">{overlayItem.status}</span>}
                         </span>
-                        <span className="home-v2-menu-label">{t(overlayItem.label)}</span>
+                        <span className={`home-v2-menu-label ${overlayItem.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
+                            {overlayItem.id === "tempo-tool" ? (
+                                <>
+                                    <span>BPM 측정기</span>
+                                    <span>메트로놈</span>
+                                </>
+                            ) : t(overlayItem.label)}
+                        </span>
                     </div>
                 );
             })()}

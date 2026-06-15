@@ -567,7 +567,11 @@ const TempoToolPage: React.FC = () => {
         <div className="tempo-tool-container">
             <div className="tempo-tool-content">
                 <header className="tempo-tool-header tempo-tool-topbar">
-                    <h2>BPM 측정기/메트로놈</h2>
+                    <h2 aria-label="BPM 측정기/메트로놈">
+                        <span className="tempo-tool-title-line">BPM 측정기</span>
+                        <span className="tempo-tool-title-separator" aria-hidden="true">/</span>
+                        <span className="tempo-tool-title-line">메트로놈</span>
+                    </h2>
                     <div className="tempo-tool-status-row" aria-label="측정 상태">
                         <span>
                             <b>{tapTimes.length}</b>

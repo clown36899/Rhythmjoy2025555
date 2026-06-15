@@ -56,14 +56,24 @@ html.tempo-tool-page-active .shell-main-content {
 .tempo-tool-header h2 {
     min-width: 0;
     margin: 0;
-    overflow: hidden;
     color: var(--text-primary);
     font-size: 1.08rem;
     font-weight: 950;
-    line-height: 1;
+    line-height: 1.05;
     letter-spacing: 0;
-    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.tempo-tool-title-line {
+    display: inline-block;
     white-space: nowrap;
+}
+
+.tempo-tool-title-separator {
+    display: inline-block;
+    padding: 0 1px;
 }
 
 .tempo-tool-status-row {
@@ -489,7 +499,15 @@ html.tempo-tool-page-active .shell-main-content {
     }
 
     .tempo-tool-header h2 {
-        font-size: 1.05rem;
+        display: grid;
+        gap: 1px;
+        align-content: center;
+        font-size: clamp(0.78rem, 3.2vw, 0.9rem);
+        line-height: 1.05;
+    }
+
+    .tempo-tool-title-separator {
+        display: none;
     }
 
     .tempo-tool-status-row span {
@@ -540,7 +558,7 @@ html.tempo-tool-page-active .shell-main-content {
     }
 
     .tempo-tool-header h2 {
-        font-size: 0.98rem;
+        font-size: clamp(0.74rem, 3vw, 0.84rem);
     }
 
     .tempo-tool-status-row span {
@@ -693,7 +711,8 @@ html.tempo-tool-page-active .shell-main-content {
     }
 
     .tempo-tool-header h2 {
-        font-size: 0.9rem;
+        font-size: clamp(0.68rem, 2.8vw, 0.76rem);
+        line-height: 1;
     }
 
     .tempo-tool-status-row {
