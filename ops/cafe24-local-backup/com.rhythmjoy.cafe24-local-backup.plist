@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.rhythmjoy.cafe24-local-backup</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/inteyeo/Rhythmjoy2025555-5/scripts/backup-cafe24-to-local.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>CAFE24_LOCAL_BACKUP_ROOT</key>
+    <string>/Users/inteyeo/RhythmjoyBackups/swingenjoy-cafe24</string>
+    <key>CAFE24_LOCAL_BACKUP_KEEP</key>
+    <string>30</string>
+    <key>CAFE24_BACKUP_INCLUDE_UPLOADS</key>
+    <string>1</string>
+    <key>CAFE24_BACKUP_INCLUDE_SECRETS</key>
+    <string>1</string>
+    <key>CAFE24_BACKUP_INCLUDE_SERVER_CONFIG</key>
+    <string>1</string>
+    <key>CAFE24_BACKUP_INCLUDE_RUNTIME_EXTRAS</key>
+    <string>1</string>
+    <key>CAFE24_BACKUP_INCLUDE_RHYTHMJOY_CALENDAR</key>
+    <string>1</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>4</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/inteyeo/RhythmjoyBackups/swingenjoy-cafe24/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/inteyeo/RhythmjoyBackups/swingenjoy-cafe24/logs/launchd.err.log</string>
+</dict>
+</plist>
