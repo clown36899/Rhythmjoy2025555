@@ -23,6 +23,21 @@ interface BottomNavigationProps {
     onPageActionClick?: () => void;
 }
 
+const getBottomNavigationAnalyticsId = (path: string) => {
+    const pathKeyMap: Record<string, string> = {
+        '/': 'home',
+        '/calendar': 'calendar',
+        '/forum': 'forum',
+        '/social': 'social',
+        '/shopping': 'shopping',
+        '/guide': 'guide',
+        '/v2': 'home',
+    };
+
+    const key = pathKeyMap[path] || path.replace(/^\/+/, '').replace(/[^a-z0-9]+/gi, '_') || 'home';
+    return `bottom_nav_${key}`;
+};
+
 export function BottomNavigation({ pageAction, onPageActionClick }: BottomNavigationProps) {
     const navigate = useNavigate();
     const location = useLocation();
@@ -118,10 +133,11 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                                 }
                             }}
                             className={`bottom-nav-item ${isActive ? 'active' : 'inactive'} ${isMaintenance ? 'maintenance' : ''}`}
-                            data-analytics-id={item.path}
+                            data-analytics-id={getBottomNavigationAnalyticsId(item.path)}
                             data-analytics-type="nav_item"
                             data-analytics-title={item.label}
                             data-analytics-section="bottom_navigation"
+                            data-analytics-category="bottom_app"
                         >
                             <i
                                 className={`${isActive ? item.iconFilled : item.icon} bottom-nav-icon`}
@@ -159,6 +175,8 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                             data-analytics-id="fab_action_center"
                             data-analytics-type="action"
                             data-analytics-title={pageAction.label || "Action"}
+                            data-analytics-section="bottom_navigation"
+                            data-analytics-category="bottom_action"
                         >
                             <i
                                 className={`${pageAction.icon} bottom-nav-icon fab-icon-only`}

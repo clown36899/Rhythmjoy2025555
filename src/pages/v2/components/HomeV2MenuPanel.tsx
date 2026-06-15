@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
 import { useTempoToolVisibilitySettings } from "../../../hooks/useTempoToolVisibilitySettings";
+import { trackActivitySuccess } from "../../../utils/analyticsEvents";
 import "./HomeV2MenuPanel.css";
 
 type HomeMenuItem = {
@@ -471,7 +472,20 @@ export const HomeV2MenuPanel: React.FC = () => {
         return location.pathname === path;
     };
 
+    const trackHomeMenuAppClick = (item: HomeMenuItem) => {
+        trackActivitySuccess({
+            id: `home_menu_${item.id}`,
+            type: "nav_item",
+            title: item.label,
+            section: "bottom_menu_apps",
+            category: "bottom_app",
+            userId: user?.id,
+            isAdmin,
+        });
+    };
+
     const handleMenuItemClick = (item: HomeMenuItem) => {
+        trackHomeMenuAppClick(item);
         if (item.to) handleNavigate(item.to);
     };
 
@@ -816,6 +830,15 @@ export const HomeV2MenuPanel: React.FC = () => {
     };
 
     const handleAddAction = () => {
+        trackActivitySuccess({
+            id: "home_menu_register",
+            type: "action",
+            title: "일정 등록",
+            section: "bottom_menu_apps",
+            category: "bottom_action",
+            userId: user?.id,
+            isAdmin,
+        });
         setIsExpanded(false);
         if (!user) {
             window.dispatchEvent(new CustomEvent("requestProtectedAction", {

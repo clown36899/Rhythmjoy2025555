@@ -37,6 +37,26 @@ const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
 const getAnalyticsUserDisplayName = (userId: string | null | undefined, nickname?: string | null) =>
     nickname || (userId ? `회원 ${userId.substring(0, 8)}` : '회원');
 
+interface BottomMenuAppUserStat {
+    visitorKey: string;
+    label: string;
+    userId?: string | null;
+    isGuest: boolean;
+    count: number;
+    lastUsed: string | null;
+}
+
+interface BottomMenuAppStat {
+    id: string;
+    title: string;
+    count: number;
+    uniqueVisitors: number;
+    memberClicks: number;
+    guestClicks: number;
+    lastUsed: string | null;
+    users: BottomMenuAppUserStat[];
+}
+
 interface AnalyticsSummary {
     total_clicks: number;
     user_clicks: number; // 고유 방문자 기준
@@ -105,6 +125,7 @@ interface AnalyticsSummary {
     daily_visit_trend?: { date: string; count: number }[];
     total_pv?: number; // [PHASE 24] 실제 PV (전체 로그 수)
     guest_list?: GuestInfo[];
+    bottom_menu_apps?: BottomMenuAppStat[];
 }
 
 interface UserInfo {
@@ -114,6 +135,7 @@ interface UserInfo {
     visitLogs: string[]; // Timestamps
     avgDuration?: number; // Average session duration in seconds
     activityCount?: number;
+    bottomMenuClicks?: number;
     pageViews?: number;
     lastPage?: string | null;
     sessions?: UserSessionInfo[];
@@ -191,6 +213,53 @@ interface GuestInfo {
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const SESSION_DURATION_CAP_SECONDS = 30 * 60;
+
+const BOTTOM_MENU_SECTIONS = new Set(['bottom_navigation', 'bottom_menu_apps']);
+const BOTTOM_MENU_APP_LABELS: Record<string, string> = {
+    bottom_nav_home: '하단 네비 · 홈',
+    bottom_nav_calendar: '하단 네비 · 전체달력',
+    bottom_nav_forum: '하단 네비 · 포럼',
+    bottom_nav_social: '하단 네비 · 소셜',
+    bottom_nav_shopping: '하단 네비 · 쇼핑',
+    bottom_nav_guide: '하단 네비 · 안내',
+    bottom_nav_fab: '하단 네비 · 중앙 액션',
+    home_menu_home: '홈 메뉴 · 홈',
+    home_menu_calendar: '홈 메뉴 · 캘린더',
+    home_menu_events: '홈 메뉴 · 강습&행사',
+    home_menu_board: '홈 메뉴 · 자유게시판',
+    home_menu_places: '홈 메뉴 · map',
+    'home_menu_forum-media': '홈 메뉴 · SNS 아카이브',
+    'home_menu_forum-library': '홈 메뉴 · 라이브러리',
+    'home_menu_forum-links': '홈 메뉴 · 사이트 모음',
+    'home_menu_bpm-tapper': '홈 메뉴 · BPM 측정기',
+    home_menu_metronome: '홈 메뉴 · 메트로놈',
+    'home_menu_tempo-tool': '홈 메뉴 · BPM/메트로놈',
+    home_menu_shopping: '홈 메뉴 · 쇼핑',
+    home_menu_guide: '홈 메뉴 · 안내',
+    home_menu_register: '홈 메뉴 · 일정 등록',
+};
+
+const LEGACY_BOTTOM_NAV_ID_MAP: Record<string, string> = {
+    '/': 'bottom_nav_home',
+    '/v2': 'bottom_nav_home',
+    '/calendar': 'bottom_nav_calendar',
+    '/forum': 'bottom_nav_forum',
+    '/social': 'bottom_nav_social',
+    '/shopping': 'bottom_nav_shopping',
+    '/guide': 'bottom_nav_guide',
+    fab_action_center: 'bottom_nav_fab',
+};
+
+const normalizeBottomMenuAppId = (row: any) => {
+    if (!BOTTOM_MENU_SECTIONS.has(String(row.section || ''))) return null;
+
+    const rawId = String(row.target_id || '').trim();
+    if (!rawId) return null;
+    if (LEGACY_BOTTOM_NAV_ID_MAP[rawId]) return LEGACY_BOTTOM_NAV_ID_MAP[rawId];
+    if (rawId.startsWith('bottom_nav_') || rawId.startsWith('home_menu_')) return rawId;
+
+    return `bottom_app_${rawId.replace(/^\/+/, '').replace(/[^a-z0-9_-]+/gi, '_') || 'unknown'}`;
+};
 
 export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
@@ -789,6 +858,17 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             });
 
+            const bottomMenuClicksByUser = new Map<string, number>();
+            validData.forEach((event: any, index: number) => {
+                if (!normalizeBottomMenuAppId(event)) return;
+
+                const visitorKey = getVisitorKey(event, event.session_id || event.id || index);
+                if (!visitorKey.startsWith('user:')) return;
+
+                const userId = visitorKey.slice(5);
+                bottomMenuClicksByUser.set(userId, (bottomMenuClicksByUser.get(userId) || 0) + 1);
+            });
+
             const userSessionDetailMap = new Map<string, UserSessionInfo[]>();
             logicalSessions.forEach((session: any) => {
                 const visitorKey = getVisitorKey(session, session.session_id);
@@ -882,6 +962,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         visitLogs: userInfo.visitLogs.sort((a, b) => new Date(b).getTime() - new Date(a).getTime()),
                         avgDuration,
                         activityCount: userActivityMap.get(userInfo.user_id)?.length || 0,
+                        bottomMenuClicks: bottomMenuClicksByUser.get(userInfo.user_id) || 0,
                         pageViews: userInfo.pageViews || 0,
                         lastPage: userInfo.lastPage || userActivityMap.get(userInfo.user_id)?.[0]?.page_url || userActivityMap.get(userInfo.user_id)?.[0]?.route || null,
                         sessions: userSessionDetailMap.get(userInfo.user_id) || [],
@@ -890,7 +971,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 })
                 .sort((a, b) => b.visitCount - a.visitCount);
 
-            if (sessionUserList.length > 0 && localUserList.length === 0) {
+            if (sessionUserList.length > 0) {
                 localUserList = sessionUserList;
                 setUserList(sessionUserList);
             }
@@ -1023,6 +1104,67 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .map((guest, index) => ({ ...guest, label: `Guest ${index + 1}` }));
 
             setGuestList(rpcGuestList || nextGuestList);
+
+            const guestLabelMap = new Map<string, string>(
+                nextGuestList.map((guest) => [guest.key, guest.label])
+            );
+            const bottomAppMap = new Map<string, BottomMenuAppStat & { userMap: Map<string, BottomMenuAppUserStat> }>();
+
+            validData.forEach((event: any, index: number) => {
+                const appId = normalizeBottomMenuAppId(event);
+                if (!appId) return;
+
+                const visitorKey = getVisitorKey(event, event.session_id || event.id || index);
+                const isGuest = !visitorKey.startsWith('user:');
+                const userId = isGuest ? null : visitorKey.slice(5);
+                const existing = bottomAppMap.get(appId) || {
+                    id: appId,
+                    title: BOTTOM_MENU_APP_LABELS[appId] || event.target_title || appId,
+                    count: 0,
+                    uniqueVisitors: 0,
+                    memberClicks: 0,
+                    guestClicks: 0,
+                    lastUsed: null,
+                    users: [],
+                    userMap: new Map<string, BottomMenuAppUserStat>(),
+                };
+
+                existing.count += 1;
+                if (isGuest) existing.guestClicks += 1;
+                else existing.memberClicks += 1;
+                if (!existing.lastUsed || new Date(event.created_at).getTime() > new Date(existing.lastUsed).getTime()) {
+                    existing.lastUsed = event.created_at;
+                }
+
+                const userStat = existing.userMap.get(visitorKey) || {
+                    visitorKey,
+                    label: isGuest
+                        ? (guestLabelMap.get(visitorKey) || 'Guest')
+                        : getAnalyticsUserDisplayName(userId, nicknameMap.get(userId!) || rpcNicknameMap.get(userId!) || null),
+                    userId,
+                    isGuest,
+                    count: 0,
+                    lastUsed: null,
+                };
+
+                userStat.count += 1;
+                if (!userStat.lastUsed || new Date(event.created_at).getTime() > new Date(userStat.lastUsed).getTime()) {
+                    userStat.lastUsed = event.created_at;
+                }
+
+                existing.userMap.set(visitorKey, userStat);
+                existing.uniqueVisitors = existing.userMap.size;
+                bottomAppMap.set(appId, existing);
+            });
+
+            const bottomMenuAppStats = Array.from(bottomAppMap.values())
+                .map(({ userMap, ...app }) => ({
+                    ...app,
+                    users: Array.from(userMap.values())
+                        .sort((a, b) => b.count - a.count || new Date(b.lastUsed || 0).getTime() - new Date(a.lastUsed || 0).getTime())
+                        .slice(0, 12),
+                }))
+                .sort((a, b) => b.count - a.count || new Date(b.lastUsed || 0).getTime() - new Date(a.lastUsed || 0).getTime());
 
             let sessionStats = { total_sessions: 0, avg_duration: 0, bounce_rate: 0 };
 
@@ -1385,7 +1527,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 items_by_type: itemsByTypeRecord,
                 visitor_stats,
                 daily_visit_trend: dailyVisitTrend,
-                total_pv: validData.length // [PHASE 24] 전체 로그 기반 PV
+                total_pv: validData.length, // [PHASE 24] 전체 로그 기반 PV
+                bottom_menu_apps: bottomMenuAppStats
             };
 
             setSummary(newSummary as any);
@@ -1646,6 +1789,84 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         ip || '기록 없음 (이전 로그)'
     );
 
+    const renderBottomMenuAppsPanel = (periodLabel?: string) => {
+        const apps = summary?.bottom_menu_apps || [];
+        if (apps.length === 0) return null;
+
+        const totalClicks = apps.reduce((sum, app) => sum + app.count, 0);
+        const uniqueVisitors = new Set(apps.flatMap(app => app.users.map(user => user.visitorKey))).size;
+        const maxClicks = Math.max(...apps.map(app => app.count), 1);
+
+        return (
+            <div className="analytics-section-group bottom-menu-app-section">
+                <div className="analytics-section-title">
+                    <i className="ri-layout-bottom-2-line"></i> 하단 메뉴 앱 사용
+                    {periodLabel && <span className="section-period">{periodLabel}</span>}
+                </div>
+
+                <div className="bottom-menu-app-kpis">
+                    <div>
+                        <span>앱 클릭</span>
+                        <strong>{totalClicks.toLocaleString()}</strong>
+                    </div>
+                    <div>
+                        <span>사용 앱</span>
+                        <strong>{apps.length.toLocaleString()}</strong>
+                    </div>
+                    <div>
+                        <span>사용자</span>
+                        <strong>{uniqueVisitors.toLocaleString()}</strong>
+                    </div>
+                </div>
+
+                <div className="bottom-menu-app-list">
+                    {apps.slice(0, 12).map((app, index) => {
+                        const percent = totalClicks > 0 ? (app.count / totalClicks) * 100 : 0;
+                        const width = (app.count / maxClicks) * 100;
+
+                        return (
+                            <details key={app.id} className="bottom-menu-app-row" open={index < 3}>
+                                <summary>
+                                    <span className="item-rank">{index + 1}</span>
+                                    <span className="bottom-menu-app-main">
+                                        <strong>{app.title}</strong>
+                                        <span>
+                                            {app.uniqueVisitors}명 · 회원 {app.memberClicks} / Guest {app.guestClicks}
+                                            {app.lastUsed && ` · 최근 ${formatDateTime(app.lastUsed)}`}
+                                        </span>
+                                        <span className="bottom-menu-app-meter">
+                                            <span style={{ width: `${width}%` }}></span>
+                                        </span>
+                                    </span>
+                                    <span className="bottom-menu-app-count">
+                                        {app.count}
+                                        <small>{percent.toFixed(1)}%</small>
+                                    </span>
+                                    <i className="ri-arrow-down-s-line bottom-menu-app-chevron"></i>
+                                </summary>
+                                <div className="bottom-menu-user-list">
+                                    {app.users.length > 0 ? (
+                                        app.users.map((user) => (
+                                            <div key={`${app.id}-${user.visitorKey}`} className="bottom-menu-user-row">
+                                                <span>
+                                                    {user.label}
+                                                    {user.isGuest && <small>Guest</small>}
+                                                </span>
+                                                <strong>{user.count}회</strong>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="no-data-msg">사용자 데이터가 없습니다.</div>
+                                    )}
+                                </div>
+                            </details>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -1796,6 +2017,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     </div>
 
                                     {renderSessionPwaPanel('최근 1년')}
+                                    {renderBottomMenuAppsPanel('최근 1년')}
 
                                     {/* S4: 접속 패턴 분석 (요일/시간대/월별) */}
                                     {summary.visitor_stats && (
@@ -2062,6 +2284,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     </div>
 
                                     {renderSessionPwaPanel()}
+                                    {renderBottomMenuAppsPanel()}
 
                                     {/* D4: 클릭 & 방문자 트렌드 (다일 기간일 때만) */}
                                     {dateRange.start !== dateRange.end && trendData.length > 1 && (
@@ -2288,7 +2511,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                     <span className="guest-count">({user.visitCount}회)</span>
                                                                 </span>
                                                                 <span className="guest-subline">
-                                                                    활동 {user.activityCount || 0}회 · {user.pageViews || 0}PV · 최근 {user.lastPage || '-'}
+                                                                    활동 {user.activityCount || 0}회 · 하단메뉴 {user.bottomMenuClicks || 0}회 · {user.pageViews || 0}PV · 최근 {user.lastPage || '-'}
                                                                 </span>
                                                             </span>
                                                             <span className="user-id">{user.user_id.substring(0, 8)}...</span>
@@ -2305,6 +2528,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                 <div><span>평균 체류</span><strong>{formatDuration(user.avgDuration || 0)}</strong></div>
                                                                 <div><span>보정 세션</span><strong>{user.visitCount}개</strong></div>
                                                                 <div><span>활동 로그</span><strong>{user.activityCount || 0}개</strong></div>
+                                                                <div><span>하단 메뉴</span><strong>{user.bottomMenuClicks || 0}회</strong></div>
                                                                 <div><span>페이지뷰</span><strong>{user.pageViews || 0}회</strong></div>
                                                                 <div><span>최근 경로</span><strong>{user.lastPage || '-'}</strong></div>
                                                             </div>
