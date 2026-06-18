@@ -48,6 +48,37 @@
     box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
 }
 
+.ingestor-mode-toggle {
+    display: inline-flex;
+    width: fit-content;
+    padding: 3px;
+    margin-bottom: 14px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ingestor-mode-toggle button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.ingestor-mode-toggle button.active {
+    background: #4f46e5;
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.28);
+}
+
 .ingestor-stats {
     display: flex;
     gap: 15px;
@@ -316,9 +347,347 @@
     font-weight: bold;
 }
 
+/* === 인제스터 월간 달력 === */
+.ingestor-calendar-section {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: #171717;
+    overflow-x: auto;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.ingestor-calendar-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ingestor-calendar-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 260px;
+}
+
+.ingestor-calendar-title-group h2 {
+    gap: 8px;
+}
+
+.ingestor-calendar-month-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ingestor-calendar-month-control strong {
+    min-width: 105px;
+    text-align: center;
+    color: #f5f5f5;
+    font-size: 1rem;
+}
+
+.ingestor-calendar-icon-btn,
+.ingestor-calendar-today-btn,
+.ingestor-calendar-reset-hidden {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 700;
+}
+
+.ingestor-calendar-icon-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.ingestor-calendar-today-btn,
+.ingestor-calendar-reset-hidden {
+    height: 32px;
+    padding: 0 11px;
+    font-size: 0.8rem;
+}
+
+.ingestor-calendar-icon-btn:hover,
+.ingestor-calendar-today-btn:hover,
+.ingestor-calendar-reset-hidden:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.26);
+}
+
+.ingestor-calendar-filter-row {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ingestor-calendar-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    color: #b6bbc6;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.ingestor-calendar-filter b {
+    color: inherit;
+    font-size: 0.75rem;
+}
+
+.ingestor-calendar-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.ingestor-calendar-filter.active {
+    color: #fff;
+}
+
+.ingestor-calendar-filter.status-new.active {
+    background: rgba(14, 165, 233, 0.22);
+    border-color: rgba(14, 165, 233, 0.55);
+    color: #7dd3fc;
+}
+
+.ingestor-calendar-filter.status-completed.active {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #86efac;
+}
+
+.ingestor-calendar-filter.status-db.active {
+    background: rgba(168, 85, 247, 0.18);
+    border-color: rgba(168, 85, 247, 0.46);
+    color: #d8b4fe;
+}
+
+.ingestor-calendar-filter.status-ignored.active {
+    background: rgba(148, 163, 184, 0.16);
+    border-color: rgba(148, 163, 184, 0.38);
+    color: #cbd5e1;
+}
+
+.ingestor-calendar-reset-hidden {
+    border-color: rgba(245, 158, 11, 0.42);
+    background: rgba(245, 158, 11, 0.12);
+    color: #fcd34d;
+}
+
+.ingestor-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    min-width: 760px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ingestor-calendar-weekdays div {
+    padding: 9px 10px;
+    color: #a9b0bc;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-align: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ingestor-calendar-weekdays div:last-child {
+    border-right: none;
+}
+
+.ingestor-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    min-width: 760px;
+}
+
+.ingestor-calendar-day {
+    min-height: 148px;
+    padding: 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background: #141414;
+}
+
+.ingestor-calendar-day:nth-child(7n) {
+    border-right: none;
+}
+
+.ingestor-calendar-day.outside-month {
+    background: #101010;
+    opacity: 0.52;
+}
+
+.ingestor-calendar-day.is-today {
+    box-shadow: inset 0 0 0 2px rgba(245, 158, 11, 0.7);
+}
+
+.ingestor-calendar-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 22px;
+    margin-bottom: 7px;
+    color: #f3f4f6;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.ingestor-calendar-day-header em {
+    min-width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #d1d5db;
+    font-size: 0.68rem;
+    font-style: normal;
+}
+
+.ingestor-calendar-day-items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.ingestor-calendar-event {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px;
+    align-items: stretch;
+    min-height: 28px;
+    overflow: hidden;
+    border-radius: 6px;
+    border-left: 3px solid currentColor;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.ingestor-calendar-event.status-new {
+    color: #38bdf8;
+    background: rgba(14, 165, 233, 0.12);
+}
+
+.ingestor-calendar-event.status-completed {
+    color: #4ade80;
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.ingestor-calendar-event.status-db {
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.11);
+}
+
+.ingestor-calendar-event.status-ignored {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.1);
+}
+
+.ingestor-calendar-event-main,
+.ingestor-calendar-event-hide {
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ingestor-calendar-event-main {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 5px;
+    padding: 5px 6px;
+    text-align: left;
+}
+
+.ingestor-calendar-event-status {
+    flex: 0 0 auto;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.24);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+}
+
+.ingestor-calendar-event-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #f8fafc;
+    font-size: 0.74rem;
+    font-weight: 650;
+}
+
+.ingestor-calendar-event-hide {
+    width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    opacity: 0.65;
+}
+
+.ingestor-calendar-event-hide:hover {
+    background: rgba(0, 0, 0, 0.22);
+    opacity: 1;
+}
+
+.ingestor-calendar-more {
+    padding: 3px 6px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-align: center;
+}
+
 @media (max-width: 600px) {
     .ingestor-grid {
         grid-template-columns: 1fr;
+    }
+
+    .ingestor-calendar-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ingestor-calendar-title-group {
+        min-width: 0;
+    }
+
+    .ingestor-calendar-filter-row {
+        justify-content: flex-start;
+    }
+
+    .ingestor-calendar-weekdays,
+    .ingestor-calendar-grid {
+        min-width: 720px;
+    }
+
+    .ingestor-calendar-day {
+        min-height: 124px;
+        padding: 6px;
     }
 }
 

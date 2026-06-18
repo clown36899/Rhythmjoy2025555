@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ImageCropModal from '../../../components/ImageCropModal';
 import EventEditModal from './components/EventEditModal';
 import { useAuth } from '../../../contexts/AuthContext';
 import { cafe24 as prodClient } from '../../../lib/cafe24Client';
+import { fetchCafe24Events } from '../../../lib/cafe24EventsApi';
 import {
   detectIngestorActivity,
   getIngestorActivityLabel,
@@ -68,6 +69,28 @@ interface ScrapedEvent {
 
 type TabKey = 'new' | 'collected' | 'duplicate';
 type ScopeFilter = 'all' | 'swing' | 'salsa' | 'bachata' | 'tango' | 'street';
+type CalendarLayoutMode = 'compact' | 'expanded' | 'horizontal';
+type CalendarItemKind = TabKey | 'db';
+type IngestorViewMode = 'list' | 'calendar';
+
+interface OperationalEvent {
+  id: string | number;
+  title?: string | null;
+  date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  event_dates?: string[] | null;
+  time?: string | null;
+  location?: string | null;
+  venue_name?: string | null;
+  organizer?: string | null;
+  link1?: string | null;
+  image?: string | null;
+  image_micro?: string | null;
+  image_thumbnail?: string | null;
+  image_medium?: string | null;
+  image_full?: string | null;
+}
 
 interface TangoSceneEvent {
   id: string;
@@ -137,10 +160,150 @@ const SCOPE_FILTER_OPTIONS: Array<{ key: ScopeFilter; label: string; description
   { key: 'street', label: '스트릿', description: '확장 조사' },
 ];
 
+interface CalendarCandidateItem {
+  id: string;
+  eventId: string;
+  tab: CalendarItemKind;
+  source: 'candidate' | 'db';
+  date: string;
+  title: string;
+  keyword?: string;
+  location?: string;
+  time?: string;
+  sourceUrl?: string;
+  imageUrl?: string;
+}
+
+const CALENDAR_PAGE_SIZE = 500;
+const CALENDAR_HIDDEN_STORAGE_KEY = 'event-ingestor-v2-calendar-hidden-v1';
+const OPERATIONAL_ASSET_ORIGIN = 'https://swingenjoy.com';
+const CALENDAR_TAB_LABELS: Record<CalendarItemKind, string> = {
+  new: '신규',
+  collected: '완료',
+  duplicate: '중복',
+  db: '운영DB',
+};
+const CALENDAR_CANDIDATE_TABS: TabKey[] = ['new', 'collected'];
+const CALENDAR_FILTER_TABS: CalendarItemKind[] = ['new', 'collected', 'db'];
+const CALENDAR_LAYOUT_LABELS: Record<CalendarLayoutMode, string> = {
+  compact: '압축',
+  expanded: '펼침',
+  horizontal: '가로형',
+};
+const CALENDAR_WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+const isCalendarDateKey = (value?: string | null): value is string => (
+  typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+);
+
+const toCalendarDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getCalendarMonthDays = (monthDate: Date) => {
+  const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const last = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  const cursor = new Date(first);
+  cursor.setDate(first.getDate() - first.getDay());
+
+  const end = new Date(last);
+  end.setDate(last.getDate() + (6 - last.getDay()));
+
+  const days: Date[] = [];
+  while (cursor <= end) {
+    days.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+};
+
+const getCalendarCandidateId = (id: string | number) => `candidate:${id}`;
+
+const resolveProductionAssetUrl = (value?: string | null) => {
+  const url = String(value || '').trim();
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:image')) return url;
+  if (url.startsWith('/uploads/')) return `${OPERATIONAL_ASSET_ORIGIN}${url}`;
+  return url;
+};
+
+const getOperationalImageUrl = (event: OperationalEvent) => resolveProductionAssetUrl(
+  event.image_thumbnail || event.image_medium || event.image || event.image_full || event.image_micro
+);
+
+const normalizeCalendarUrlKey = (value?: string | null) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, OPERATIONAL_ASSET_ORIGIN);
+    url.hash = '';
+    url.search = '';
+    return `${url.hostname.toLowerCase()}${url.pathname.replace(/\/+$/, '').toLowerCase()}`;
+  } catch {
+    return raw.split('#')[0].split('?')[0].replace(/\/+$/, '').toLowerCase();
+  }
+};
+
+const normalizeCalendarTextKey = (value?: string | null) => (
+  String(value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/dj\s*/gi, '')
+    .replace(/[^\w가-힣]+/g, '')
+);
+
+const addCalendarDuplicateKeys = (keys: Set<string>, item: Pick<CalendarCandidateItem, 'date' | 'sourceUrl' | 'imageUrl' | 'title' | 'location'>) => {
+  const sourceKey = normalizeCalendarUrlKey(item.sourceUrl);
+  if (sourceKey) keys.add(`${item.date}|source|${sourceKey}`);
+
+  const imageKey = normalizeCalendarUrlKey(item.imageUrl);
+  if (imageKey) keys.add(`${item.date}|image|${imageKey}`);
+
+  const titleKey = normalizeCalendarTextKey(item.title);
+  const locationKey = normalizeCalendarTextKey(item.location);
+  if (titleKey.length >= 4 && locationKey.length >= 2) {
+    keys.add(`${item.date}|title-location|${titleKey}|${locationKey}`);
+  }
+};
+
+const isCalendarDuplicateOfCandidate = (keys: Set<string>, item: Pick<CalendarCandidateItem, 'date' | 'sourceUrl' | 'imageUrl' | 'title' | 'location'>) => {
+  const checks: string[] = [];
+  const sourceKey = normalizeCalendarUrlKey(item.sourceUrl);
+  if (sourceKey) checks.push(`${item.date}|source|${sourceKey}`);
+
+  const imageKey = normalizeCalendarUrlKey(item.imageUrl);
+  if (imageKey) checks.push(`${item.date}|image|${imageKey}`);
+
+  const titleKey = normalizeCalendarTextKey(item.title);
+  const locationKey = normalizeCalendarTextKey(item.location);
+  if (titleKey.length >= 4 && locationKey.length >= 2) {
+    checks.push(`${item.date}|title-location|${titleKey}|${locationKey}`);
+  }
+
+  return checks.some(key => keys.has(key));
+};
+
+const getCalendarDateLabel = (dateKey: string) => {
+  if (!isCalendarDateKey(dateKey)) return dateKey;
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const weekday = CALENDAR_WEEKDAY_LABELS[date.getDay()] || '';
+  return `${year}년 ${month}월 ${day}일 (${weekday})`;
+};
+
+const isLocalIngestorBypass = () => (
+  typeof window !== 'undefined'
+  && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+);
+
 const EventIngestorV2: React.FC = () => {
   const { isAdmin, isAuthCheckComplete } = useAuth();
   const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('new');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -156,6 +319,35 @@ const EventIngestorV2: React.FC = () => {
   const [tangoSceneMap, setTangoSceneMap] = useState<TangoSceneMap | null>(null);
   const [tangoSceneLoading, setTangoSceneLoading] = useState(false);
   const [tangoSceneError, setTangoSceneError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<IngestorViewMode>('list');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [calendarEventsByTab, setCalendarEventsByTab] = useState<Record<TabKey, ScrapedEvent[]>>({
+    new: [],
+    collected: [],
+    duplicate: [],
+  });
+  const [operationalCalendarEvents, setOperationalCalendarEvents] = useState<OperationalEvent[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [operationalLoading, setOperationalLoading] = useState(false);
+  const [calendarTabFilters, setCalendarTabFilters] = useState<Record<CalendarItemKind, boolean>>({
+    new: true,
+    collected: true,
+    duplicate: true,
+    db: true,
+  });
+  const [calendarLayoutMode, setCalendarLayoutMode] = useState<CalendarLayoutMode>('compact');
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+  const [hiddenCalendarIds, setHiddenCalendarIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(CALENDAR_HIDDEN_STORAGE_KEY);
+      return new Set(saved ? JSON.parse(saved) : []);
+    } catch {
+      return new Set();
+    }
+  });
 
   // Modals
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -167,15 +359,30 @@ const EventIngestorV2: React.FC = () => {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const listRequestSeq = useRef(0);
+  const localIngestorBypass = isLocalIngestorBypass();
+  const canAccessIngestor = isAdmin || localIngestorBypass;
+  const isIngestorAuthReady = isAuthCheckComplete || localIngestorBypass;
 
-  const getAdminRequestHeaders = async (withJson = false): Promise<Record<string, string>> => {
+  const getAdminRequestHeaders = useCallback(async (withJson = false): Promise<Record<string, string>> => {
+    if (localIngestorBypass) {
+      return withJson ? { 'Content-Type': 'application/json' } : {};
+    }
     const { data } = await prodClient.auth.getSession();
     const token = data.session?.access_token;
     return {
       ...(withJson ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-  };
+  }, [localIngestorBypass]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CALENDAR_HIDDEN_STORAGE_KEY, JSON.stringify(Array.from(hiddenCalendarIds)));
+    } catch (err) {
+      console.warn('인제스터 달력 숨김 저장 실패:', err);
+    }
+  }, [hiddenCalendarIds]);
 
   const resetSecondaryFilters = () => {
     setActivityFilter('전체');
@@ -183,51 +390,52 @@ const EventIngestorV2: React.FC = () => {
     setTagFilter('all');
   };
 
-  const handleTabChange = (tab: TabKey) => {
-    setActiveTab(tab);
-    setSelectedIds(new Set());
-    setCurrentPage(1);
-    resetSecondaryFilters();
-  };
-
-  const handleScopeChange = (scope: ScopeFilter) => {
-    setScopeFilter(scope);
-    setSelectedIds(new Set());
-    setCurrentPage(1);
-    resetSecondaryFilters();
-  };
-
-  const buildScrapedEventsUrl = (page: number, tab: TabKey, scope: ScopeFilter) => {
+  const buildScrapedEventsUrl = (page: number, tab: TabKey, scope: ScopeFilter, pageSize?: number) => {
     const params = new URLSearchParams({ page: String(page), tab });
+    if (pageSize) params.set('pageSize', String(pageSize));
     if (scope !== 'all') params.set('scope', scope);
     return `/api/scraped-events?${params.toString()}`;
   };
 
   const fetchScrapedEvents = async (page = 1, tab = activeTab, scope = scopeFilter) => {
-    if (!isAuthCheckComplete || !isAdmin) {
+    if (!isIngestorAuthReady || !canAccessIngestor) {
       setLoading(false);
       return;
     }
 
+    const requestSeq = listRequestSeq.current + 1;
+    listRequestSeq.current = requestSeq;
+
     try {
       setLoading(true);
+      setListError(null);
       const res = await fetch(buildScrapedEventsUrl(page, tab, scope), {
         headers: await getAdminRequestHeaders(),
+        cache: 'no-store',
       });
-      if (!res.ok) throw new Error('데이터를 불러오지 못했습니다.');
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `데이터를 불러오지 못했습니다. (${res.status})`);
+      }
       const json = await res.json();
+      if (requestSeq !== listRequestSeq.current) return;
       setScrapedEvents(json.data || json);
       setTotalCount(json.total || 0);
       setCurrentPage(page);
     } catch (err) {
       console.error(err);
+      if (requestSeq === listRequestSeq.current) {
+        setScrapedEvents([]);
+        setTotalCount(0);
+        setListError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
+      }
     } finally {
-      setLoading(false);
+      if (requestSeq === listRequestSeq.current) setLoading(false);
     }
   };
 
   const fetchTabCounts = async (scope = scopeFilter) => {
-    if (!isAuthCheckComplete || !isAdmin) {
+    if (!isIngestorAuthReady || !canAccessIngestor) {
       setTabCounts({ new: 0, collected: 0, duplicate: 0 });
       return;
     }
@@ -236,9 +444,9 @@ const EventIngestorV2: React.FC = () => {
       const scopeQuery = scope === 'all' ? '' : `&scope=${scope}`;
       const headers = await getAdminRequestHeaders();
       const [resNew, resCollected, resDuplicate] = await Promise.all([
-        fetch(`/api/scraped-events?page=1&tab=new${scopeQuery}`, { headers }),
-        fetch(`/api/scraped-events?page=1&tab=collected${scopeQuery}`, { headers }),
-        fetch(`/api/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers }),
+        fetch(`/api/scraped-events?page=1&tab=new${scopeQuery}`, { headers, cache: 'no-store' }),
+        fetch(`/api/scraped-events?page=1&tab=collected${scopeQuery}`, { headers, cache: 'no-store' }),
+        fetch(`/api/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers, cache: 'no-store' }),
       ]);
       const [jsonNew, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resCollected.json(), resDuplicate.json()]);
       setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
@@ -247,14 +455,129 @@ const EventIngestorV2: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (!isAuthCheckComplete || !isAdmin) return;
-    fetchScrapedEvents(1, activeTab, scopeFilter);
-    fetchTabCounts(scopeFilter);
-  }, [activeTab, scopeFilter, isAdmin, isAuthCheckComplete]);
+  const handleTabChange = (tab: TabKey) => {
+    setViewMode('list');
+    setActiveTab(tab);
+    setSelectedIds(new Set());
+    setCurrentPage(1);
+    resetSecondaryFilters();
+    if (tab === activeTab) {
+      void fetchScrapedEvents(1, tab, scopeFilter);
+      void fetchTabCounts(scopeFilter);
+    }
+  };
+
+  const handleScopeChange = (scope: ScopeFilter) => {
+    setScopeFilter(scope);
+    setSelectedIds(new Set());
+    setCurrentPage(1);
+    resetSecondaryFilters();
+    if (scope === scopeFilter) {
+      void fetchScrapedEvents(1, activeTab, scope);
+      void fetchTabCounts(scope);
+    }
+  };
+
+  const fetchAllCalendarTabEvents = useCallback(async (tab: TabKey, scope: ScopeFilter, headers: Record<string, string>) => {
+    const all: ScrapedEvent[] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const res = await fetch(buildScrapedEventsUrl(page, tab, scope, CALENDAR_PAGE_SIZE), { headers, cache: 'no-store' });
+      if (!res.ok) throw new Error(`${CALENDAR_TAB_LABELS[tab]} 달력 데이터를 불러오지 못했습니다.`);
+      const json = await res.json();
+      const data = (json.data || json || []) as ScrapedEvent[];
+      all.push(...data);
+      total = Number(json.total || data.length);
+      if (data.length === 0) break;
+      page += 1;
+    } while (all.length < total);
+
+    return all;
+  }, []);
+
+  const fetchOperationalCalendarEvents = useCallback(async (scope: ScopeFilter, month: Date) => {
+    const days = getCalendarMonthDays(month);
+    const start = toCalendarDateKey(days[0]);
+    const end = toCalendarDateKey(days[days.length - 1]);
+    return fetchCafe24Events({
+      start,
+      end,
+      scope: scope === 'all' ? undefined : scope,
+      limit: 3000,
+    }) as Promise<OperationalEvent[]>;
+  }, []);
+
+  const refreshOperationalEvents = useCallback(async (scope = scopeFilter, month = calendarMonth) => {
+    if (!isIngestorAuthReady || !canAccessIngestor) {
+      setOperationalCalendarEvents([]);
+      setOperationalLoading(false);
+      return;
+    }
+
+    try {
+      setOperationalLoading(true);
+      setOperationalCalendarEvents(await fetchOperationalCalendarEvents(scope, month));
+    } catch (err) {
+      console.error('운영 DB 이벤트 로드 실패:', err);
+      setOperationalCalendarEvents([]);
+    } finally {
+      setOperationalLoading(false);
+    }
+  }, [calendarMonth, canAccessIngestor, fetchOperationalCalendarEvents, isIngestorAuthReady, scopeFilter]);
+
+  const refreshCalendarEvents = useCallback(async (scope = scopeFilter, month = calendarMonth) => {
+    if (!isIngestorAuthReady || !canAccessIngestor) {
+      setCalendarEventsByTab({ new: [], collected: [], duplicate: [] });
+      setCalendarLoading(false);
+      return;
+    }
+
+    try {
+      setCalendarLoading(true);
+      const headers = await getAdminRequestHeaders();
+      const [newResult, collectedResult] = await Promise.allSettled([
+        fetchAllCalendarTabEvents('new', scope, headers),
+        fetchAllCalendarTabEvents('collected', scope, headers),
+      ]);
+
+      const readResult = <T,>(result: PromiseSettledResult<T>, fallback: T) => {
+        if (result.status === 'fulfilled') return result.value;
+        console.error('달력 데이터 일부 로드 실패:', result.reason);
+        return fallback;
+      };
+
+      setCalendarEventsByTab({
+        new: readResult(newResult, [] as ScrapedEvent[]),
+        collected: readResult(collectedResult, [] as ScrapedEvent[]),
+        duplicate: [],
+      });
+    } catch (err) {
+      console.error('달력 데이터 로드 실패:', err);
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [calendarMonth, canAccessIngestor, fetchAllCalendarTabEvents, getAdminRequestHeaders, isIngestorAuthReady, scopeFilter]);
 
   useEffect(() => {
-    if (!isAuthCheckComplete || !isAdmin) {
+    if (!isIngestorAuthReady || !canAccessIngestor) return;
+    fetchScrapedEvents(1, activeTab, scopeFilter);
+    fetchTabCounts(scopeFilter);
+  }, [activeTab, scopeFilter, canAccessIngestor, isIngestorAuthReady]);
+
+  useEffect(() => {
+    if (viewMode !== 'calendar') return;
+    refreshCalendarEvents(scopeFilter, calendarMonth);
+  }, [calendarMonth, refreshCalendarEvents, scopeFilter, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== 'list' && viewMode !== 'calendar') return;
+    refreshOperationalEvents(scopeFilter, calendarMonth);
+  }, [calendarMonth, refreshOperationalEvents, scopeFilter, viewMode]);
+
+  useEffect(() => {
+    if (!isIngestorAuthReady || !canAccessIngestor) {
       setVenues([]);
       return;
     }
@@ -270,10 +593,10 @@ const EventIngestorV2: React.FC = () => {
       setVenues((data || []) as VenueRecord[]);
     };
     fetchVenues();
-  }, [isAdmin, isAuthCheckComplete]);
+  }, [canAccessIngestor, isIngestorAuthReady]);
 
   useEffect(() => {
-    if (!isAuthCheckComplete || !isAdmin) return;
+    if (!isIngestorAuthReady || !canAccessIngestor) return;
     if (scopeFilter !== 'tango') return;
 
     let alive = true;
@@ -294,7 +617,7 @@ const EventIngestorV2: React.FC = () => {
 
     fetchTangoSceneMap();
     return () => { alive = false; };
-  }, [scopeFilter, isAdmin, isAuthCheckComplete]);
+  }, [scopeFilter, canAccessIngestor, isIngestorAuthReady]);
 
   const scopeLocalCounts = useMemo(() => {
     const counts = new Map<ScopeFilter, number>();
@@ -362,6 +685,163 @@ const EventIngestorV2: React.FC = () => {
     });
   }, [activityFilter, familyFilter, scopeFilter, scrapedEvents, tagFilter]);
 
+  const visibleFilteredEvents = filteredEvents;
+
+  const calendarItems = useMemo(() => {
+    const rangeDays = getCalendarMonthDays(calendarMonth);
+    const rangeStart = toCalendarDateKey(rangeDays[0]);
+    const rangeEnd = toCalendarDateKey(rangeDays[rangeDays.length - 1]);
+    const candidateItems = CALENDAR_CANDIDATE_TABS.flatMap((tab) => (
+      calendarEventsByTab[tab]
+        .filter(event => isCalendarDateKey(event.structured_data?.date) && event.structured_data.date >= rangeStart && event.structured_data.date <= rangeEnd)
+        .map((event): CalendarCandidateItem => ({
+          id: getCalendarCandidateId(event.id),
+          eventId: event.id,
+          tab,
+          source: 'candidate',
+          date: event.structured_data.date,
+          title: event.structured_data.title || event.id,
+          keyword: event.keyword,
+          location: event.structured_data.location || event.structured_data.venue_name || undefined,
+          time: event.structured_data.times?.[0],
+          sourceUrl: event.source_url,
+          imageUrl: resolveProductionAssetUrl(event.poster_url) || undefined,
+        }))
+    ));
+
+    const candidateDuplicateKeys = new Set<string>();
+    candidateItems.forEach(item => addCalendarDuplicateKeys(candidateDuplicateKeys, item));
+
+    const dbItems = operationalCalendarEvents.flatMap((event) => {
+      const eventDates = Array.isArray(event.event_dates) ? event.event_dates : [];
+      const fallbackDate = event.start_date || event.date;
+      const dateKeys = Array.from(new Set(
+        [...eventDates, fallbackDate].filter((date): date is string => isCalendarDateKey(date))
+      )).filter(date => date >= rangeStart && date <= rangeEnd);
+      return dateKeys
+        .map((date): CalendarCandidateItem => ({
+          id: `db:${event.id}:${date}`,
+          eventId: String(event.id),
+          tab: 'db',
+          source: 'db',
+          date,
+          title: event.title || '제목 없음',
+          keyword: event.organizer || undefined,
+          location: event.location || event.venue_name || undefined,
+          time: event.time ? String(event.time).slice(0, 5) : undefined,
+          sourceUrl: event.link1 || undefined,
+          imageUrl: getOperationalImageUrl(event) || undefined,
+        }))
+        .filter(item => !isCalendarDuplicateOfCandidate(candidateDuplicateKeys, item));
+    });
+
+    return [...candidateItems, ...dbItems];
+  }, [calendarEventsByTab, calendarMonth, operationalCalendarEvents]);
+
+  const calendarCounts = useMemo(() => {
+    return calendarItems.reduce<Record<CalendarItemKind, number>>((acc, item) => {
+      acc[item.tab] += 1;
+      return acc;
+    }, { new: 0, collected: 0, duplicate: 0, db: 0 });
+  }, [calendarItems]);
+
+  const visibleCalendarItems = useMemo(() => (
+    calendarItems.filter(item => calendarTabFilters[item.tab] && !hiddenCalendarIds.has(item.id))
+  ), [calendarItems, calendarTabFilters, hiddenCalendarIds]);
+
+  const calendarItemsByDate = useMemo(() => {
+    const order: Record<CalendarItemKind, number> = { new: 0, collected: 1, duplicate: 2, db: 3 };
+    const map = new Map<string, CalendarCandidateItem[]>();
+    visibleCalendarItems.forEach(item => {
+      const list = map.get(item.date) || [];
+      list.push(item);
+      map.set(item.date, list);
+    });
+    map.forEach(list => {
+      list.sort((a, b) => order[a.tab] - order[b.tab] || a.title.localeCompare(b.title, 'ko'));
+    });
+    return map;
+  }, [visibleCalendarItems]);
+
+  const selectedCalendarDateItems = useMemo(() => {
+    if (!selectedCalendarDate) return [];
+    const order: Record<CalendarItemKind, number> = { new: 0, collected: 1, duplicate: 2, db: 3 };
+    return calendarItems
+      .filter(item => item.date === selectedCalendarDate && !hiddenCalendarIds.has(item.id))
+      .sort((a, b) => order[a.tab] - order[b.tab] || a.title.localeCompare(b.title, 'ko'));
+  }, [calendarItems, hiddenCalendarIds, selectedCalendarDate]);
+
+  const operationalListItems = useMemo(() => (
+    calendarItems
+      .filter(item => item.source === 'db' && item.date.startsWith(`${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, '0')}`))
+      .sort((a, b) => b.date.localeCompare(a.date) || String(b.time || '').localeCompare(String(a.time || '')) || a.title.localeCompare(b.title, 'ko'))
+  ), [calendarItems, calendarMonth]);
+
+  const calendarDays = useMemo(() => getCalendarMonthDays(calendarMonth), [calendarMonth]);
+  const calendarMonthLabel = `${calendarMonth.getFullYear()}년 ${calendarMonth.getMonth() + 1}월`;
+  const todayKey = toCalendarDateKey(new Date());
+
+  const handleCalendarMonthShift = useCallback((offset: number) => {
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+  }, []);
+
+  const handleCalendarToday = useCallback(() => {
+    const today = new Date();
+    setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+  }, []);
+
+  const toggleCalendarTabFilter = useCallback((tab: CalendarItemKind) => {
+    setCalendarTabFilters(prev => ({ ...prev, [tab]: !prev[tab] }));
+  }, []);
+
+  const hideCalendarItem = useCallback((item: CalendarCandidateItem) => {
+    setHiddenCalendarIds(prev => {
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+  }, []);
+
+  const clearHiddenCalendarItems = useCallback(() => {
+    setHiddenCalendarIds(new Set());
+  }, []);
+
+  const openCalendarDay = useCallback((dateKey: string) => {
+    setSelectedCalendarDate(dateKey);
+  }, []);
+
+  const handleCalendarItemClick = useCallback((item: CalendarCandidateItem) => {
+    if (item.source === 'db') {
+      if (item.sourceUrl) window.open(item.sourceUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    if (item.tab !== activeTab) {
+      setActiveTab(item.tab as TabKey);
+      setSelectedIds(new Set([item.eventId]));
+      setCurrentPage(1);
+      setViewMode('list');
+      return;
+    }
+
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.add(item.eventId);
+      return next;
+    });
+    window.setTimeout(() => {
+      document.getElementById(`ingestor-v2-row-${item.eventId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 0);
+  }, [activeTab]);
+
+  const handleCalendarDetailItemClick = useCallback((item: CalendarCandidateItem) => {
+    handleCalendarItemClick(item);
+    setSelectedCalendarDate(null);
+  }, [handleCalendarItemClick]);
+
   const tangoPreviewEvents = useMemo(() => {
     if (!tangoSceneMap) return [];
     return tangoSceneMap.todayEvents.length ? tangoSceneMap.todayEvents : tangoSceneMap.weekEvents.slice(0, 6);
@@ -390,7 +870,8 @@ const EventIngestorV2: React.FC = () => {
         }
         return updated;
       });
-      fetchTabCounts();
+      await fetchTabCounts();
+      await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
     } catch (err) {
       console.error(err);
       alert('업데이트 중 에러 발생');
@@ -462,10 +943,10 @@ const EventIngestorV2: React.FC = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredEvents.length) {
+    if (selectedIds.size === visibleFilteredEvents.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredEvents.map(e => e.id)));
+      setSelectedIds(new Set(visibleFilteredEvents.map(e => e.id)));
     }
   };
 
@@ -482,6 +963,8 @@ const EventIngestorV2: React.FC = () => {
     setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
     setSelectedIds(new Set());
     setBulkProgress(null);
+    await fetchTabCounts();
+    await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
   };
 
   const handleBulkCollect = async () => {
@@ -498,7 +981,8 @@ const EventIngestorV2: React.FC = () => {
     }
     setSelectedIds(new Set());
     setBulkProgress(null);
-    fetchTabCounts();
+    await fetchTabCounts();
+    await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
   };
 
   const registerEventToProd = async (event: ScrapedEvent): Promise<string> => {
@@ -589,7 +1073,7 @@ const EventIngestorV2: React.FC = () => {
 
   const handleBulkRegister = async () => {
     if (!selectedIds.size) return;
-    const targets = filteredEvents.filter(e => selectedIds.has(e.id));
+    const targets = visibleFilteredEvents.filter(e => selectedIds.has(e.id));
     if (!targets.length) {
       alert('현재 필터/탭에서 등록할 선택 항목을 찾지 못했습니다. 목록을 새로고침한 뒤 다시 선택하세요.');
       setSelectedIds(new Set());
@@ -622,6 +1106,7 @@ const EventIngestorV2: React.FC = () => {
     });
     setBulkProgress(null);
     await fetchTabCounts();
+    await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
 
     if (errors.length) {
       alert(`일괄 등록 결과: ${successIds.size}/${targets.length}개 완료\n\n실패:\n${errors.join('\n')}`);
@@ -634,13 +1119,14 @@ const EventIngestorV2: React.FC = () => {
     setIsEditModalOpen(false);
     setSelectedEvent(null);
     await fetchScrapedEvents();
+    await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
   };
 
-  if (!isAuthCheckComplete) {
+  if (!isIngestorAuthReady) {
     return <div className="ingestor-v2-container">관리자 권한을 확인하는 중...</div>;
   }
 
-  if (!isAdmin) {
+  if (!canAccessIngestor) {
     return (
       <div className="ingestor-v2-container">
         <header className="ingestor-v2-header">
@@ -659,6 +1145,26 @@ const EventIngestorV2: React.FC = () => {
           <button className={activeTab === 'new' ? 'active' : ''} onClick={() => handleTabChange('new')}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
           <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => handleTabChange('collected')}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
           <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => handleTabChange('duplicate')}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
+        </div>
+        <div className="ingestor-view-toggle" aria-label="인제스터 보기 방식">
+          <button
+            type="button"
+            className={viewMode === 'list' ? 'active' : ''}
+            onClick={() => setViewMode('list')}
+            aria-pressed={viewMode === 'list'}
+          >
+            <i className="ri-list-check-2" aria-hidden="true"></i>
+            리스트
+          </button>
+          <button
+            type="button"
+            className={viewMode === 'calendar' ? 'active' : ''}
+            onClick={() => setViewMode('calendar')}
+            aria-pressed={viewMode === 'calendar'}
+          >
+            <i className="ri-calendar-event-line" aria-hidden="true"></i>
+            달력
+          </button>
         </div>
         <div className="ingestor-taxonomy-filters">
           <div className="scope-filter-group" aria-label="장르 필터">
@@ -736,7 +1242,207 @@ const EventIngestorV2: React.FC = () => {
         </div>
       </header>
 
-      {scopeFilter === 'tango' && (
+      {viewMode === 'calendar' && (
+      <section className={`ingestor-v2-calendar-panel mode-${calendarLayoutMode}`} aria-label="인제스터 월간 달력">
+        <div className="ingestor-v2-calendar-toolbar">
+          <div className="ingestor-v2-calendar-title-wrap">
+            <h2>
+              <i className="ri-calendar-event-line" aria-hidden="true"></i>
+              전체달력 월간보기
+              <span>{visibleCalendarItems.length}</span>
+              {(calendarLoading || operationalLoading) && <em>로드중</em>}
+            </h2>
+            <div className="ingestor-v2-calendar-month-nav">
+              <button type="button" onClick={() => handleCalendarMonthShift(-1)} aria-label="이전 달" title="이전 달">
+                <i className="ri-arrow-left-s-line" aria-hidden="true"></i>
+              </button>
+              <strong>{calendarMonthLabel}</strong>
+              <button type="button" onClick={() => handleCalendarMonthShift(1)} aria-label="다음 달" title="다음 달">
+                <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+              </button>
+              <button type="button" className="calendar-today-btn" onClick={handleCalendarToday}>오늘</button>
+            </div>
+            <div className="ingestor-v2-calendar-layout-toggle" aria-label="월간 달력 보기 방식">
+              {(['compact', 'expanded', 'horizontal'] as CalendarLayoutMode[]).map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={calendarLayoutMode === mode ? 'active' : ''}
+                  onClick={() => setCalendarLayoutMode(mode)}
+                  aria-pressed={calendarLayoutMode === mode}
+                >
+                  {CALENDAR_LAYOUT_LABELS[mode]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="ingestor-v2-calendar-filters" aria-label="달력 표시 항목">
+            {CALENDAR_FILTER_TABS.map(tab => (
+              <button
+                key={tab}
+                type="button"
+                className={`calendar-filter filter-${tab} ${calendarTabFilters[tab] ? 'active' : ''}`}
+                onClick={() => toggleCalendarTabFilter(tab)}
+                aria-pressed={calendarTabFilters[tab]}
+              >
+                <span aria-hidden="true"></span>
+                {CALENDAR_TAB_LABELS[tab]}
+                <b>{calendarCounts[tab]}</b>
+              </button>
+            ))}
+            {hiddenCalendarIds.size > 0 && (
+              <button type="button" className="calendar-hidden-reset" onClick={clearHiddenCalendarItems}>
+                숨김 해제 {hiddenCalendarIds.size}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="ingestor-v2-calendar-weekdays">
+          {CALENDAR_WEEKDAY_LABELS.map(day => (
+            <div key={day}>{day}</div>
+          ))}
+        </div>
+        <div className="ingestor-v2-calendar-grid">
+          {calendarDays.map(day => {
+            const dateKey = toCalendarDateKey(day);
+            const dayItems = calendarItemsByDate.get(dateKey) || [];
+            const visibleDayItems = calendarLayoutMode === 'compact' ? dayItems.slice(0, 5) : dayItems;
+            const isOutsideMonth = day.getMonth() !== calendarMonth.getMonth();
+
+            return (
+              <div
+                key={dateKey}
+                className={`ingestor-v2-calendar-day ${isOutsideMonth ? 'outside-month' : ''} ${dateKey === todayKey ? 'is-today' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => openCalendarDay(dateKey)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openCalendarDay(dateKey);
+                  }
+                }}
+              >
+                <div className="calendar-day-head">
+                  <span>{day.getDate()}</span>
+                  {dayItems.length > 0 && <em>{dayItems.length}</em>}
+                </div>
+                <div className="calendar-day-list">
+                  {visibleDayItems.map(item => (
+                    <div
+                      key={item.id}
+                      className={`calendar-event-item status-${item.tab}`}
+                      title={`${CALENDAR_TAB_LABELS[item.tab]} · ${item.title}`}
+                    >
+                      <button
+                        type="button"
+                        className={`calendar-event-thumb ${item.imageUrl ? '' : 'is-empty'}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (item.imageUrl) {
+                            setZoomImage(item.imageUrl);
+                          }
+                        }}
+                        aria-label={item.imageUrl ? `${item.title} 이미지 크게보기` : `${item.title} 이미지 없음`}
+                        title={item.imageUrl ? '이미지 크게보기' : '이미지 없음'}
+                      >
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt="" loading="lazy" />
+                        ) : (
+                          <i className="ri-image-line" aria-hidden="true"></i>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="calendar-event-main"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleCalendarItemClick(item);
+                        }}
+                      >
+                        <span>{CALENDAR_TAB_LABELS[item.tab]}</span>
+                        <strong>{item.time ? `${item.time} ` : ''}{item.title}</strong>
+                      </button>
+                      <button
+                        type="button"
+                        className="calendar-event-hide"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          hideCalendarItem(item);
+                        }}
+                        aria-label={`${item.title} 숨기기`}
+                        title="숨김"
+                      >
+                        <i className="ri-eye-off-line" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  ))}
+                  {calendarLayoutMode === 'compact' && dayItems.length > visibleDayItems.length && (
+                    <div className="calendar-more-count">+{dayItems.length - visibleDayItems.length}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+      )}
+
+      {viewMode === 'calendar' && selectedCalendarDate && (
+        <div className="calendar-day-modal-overlay" onClick={() => setSelectedCalendarDate(null)}>
+          <div className="calendar-day-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="calendar-day-modal-head">
+              <div>
+                <span>일자별 전체보기</span>
+                <h3>
+                  {getCalendarDateLabel(selectedCalendarDate)}
+                  <em>{selectedCalendarDateItems.length}</em>
+                </h3>
+              </div>
+              <button type="button" onClick={() => setSelectedCalendarDate(null)} aria-label="닫기">
+                <i className="ri-close-line" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div className="calendar-day-modal-list">
+              {selectedCalendarDateItems.length > 0 ? selectedCalendarDateItems.map(item => (
+                <div key={item.id} className={`calendar-day-modal-item status-${item.tab}`}>
+                  <button
+                    type="button"
+                    className={`modal-item-thumb ${item.imageUrl ? '' : 'is-empty'}`}
+                    onClick={() => item.imageUrl && setZoomImage(item.imageUrl)}
+                    aria-label={item.imageUrl ? `${item.title} 이미지 크게보기` : '이미지 없음'}
+                  >
+                    {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : <i className="ri-image-line" aria-hidden="true"></i>}
+                  </button>
+                  <button type="button" className="modal-item-main" onClick={() => handleCalendarDetailItemClick(item)}>
+                    <span>{CALENDAR_TAB_LABELS[item.tab]}</span>
+                    <strong>{item.time ? `${item.time} ` : ''}{item.title}</strong>
+                    <em>{[item.location, item.keyword].filter(Boolean).join(' · ') || '상세 정보 없음'}</em>
+                  </button>
+                  {item.sourceUrl && (
+                    <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()}>
+                      원본
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    className="modal-item-hide"
+                    onClick={() => hideCalendarItem(item)}
+                    aria-label={`${item.title} 숨기기`}
+                  >
+                    <i className="ri-eye-off-line" aria-hidden="true"></i>
+                  </button>
+                </div>
+              )) : (
+                <div className="calendar-day-modal-empty">표시할 항목이 없습니다.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'list' && scopeFilter === 'tango' && (
         <section className="tango-scene-panel" aria-label="탱고 씬맵">
           <div className="tango-scene-panel-head">
             <div>
@@ -860,7 +1566,7 @@ const EventIngestorV2: React.FC = () => {
       )}
 
       {/* 일괄 액션 바 */}
-      {selectedIds.size > 0 && (
+      {viewMode === 'list' && selectedIds.size > 0 && (
         <div className="bulk-action-bar">
           <span className="bulk-count">{selectedIds.size}개 선택됨</span>
           {bulkProgress ? (
@@ -879,37 +1585,60 @@ const EventIngestorV2: React.FC = () => {
         </div>
       )}
 
-      {loading ? (
+      {viewMode === 'list' && (loading ? (
         <div className="loading-state">데이터를 불러오는 중...</div>
       ) : (
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={filteredEvents.length > 0 && selectedIds.size === filteredEvents.length}
-                    onChange={toggleSelectAll}
-                  />
-                </th>
-                <th style={{ width: 32, textAlign: 'center', color: '#888', fontSize: '0.75rem' }}>#</th>
-                <th>미리보기</th>
-                <th>날짜 / 제목</th>
-                <th>장소</th>
-                <th>출처</th>
-                <th>액션</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEvents.map((event) => {
+        <>
+          <section className="candidate-list-panel" aria-label="수집 후보 리스트">
+            <div className="candidate-list-head">
+              <div>
+                <span>수집 후보</span>
+                <h2>
+                  {CALENDAR_TAB_LABELS[activeTab]} 리스트
+                  <em>{visibleFilteredEvents.length}</em>
+                  {totalCount !== visibleFilteredEvents.length && <b>전체 {totalCount}</b>}
+                </h2>
+              </div>
+              <button type="button" className="candidate-list-refresh" onClick={() => fetchScrapedEvents(1, activeTab, scopeFilter)}>
+                <i className="ri-refresh-line" aria-hidden="true"></i>
+                새로고침
+              </button>
+            </div>
+            {listError && (
+              <div className="list-error-banner">
+                <strong>리스트 API 연결 실패</strong>
+                <span>{listError}</span>
+              </div>
+            )}
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        checked={visibleFilteredEvents.length > 0 && selectedIds.size === visibleFilteredEvents.length}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
+                    <th style={{ width: 32, textAlign: 'center', color: '#888', fontSize: '0.75rem' }}>#</th>
+                    <th>미리보기</th>
+                    <th>날짜 / 제목</th>
+                    <th>장소</th>
+                    <th>출처</th>
+                    <th>액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+              {visibleFilteredEvents.map((event) => {
                 const activity = detectIngestorActivity(event);
                 const activityLabel = getIngestorActivityLabel(event);
                 const genreMeta = getIngestorGenreMeta(event);
                 const rowTags = getIngestorTags(event);
+                const posterUrl = resolveProductionAssetUrl(event.poster_url);
 
                 return (
-                <tr key={event.id} className={`${processingId === event.id ? 'row-processing' : ''} ${selectedIds.has(event.id) ? 'row-selected' : ''}`}>
+                <tr id={`ingestor-v2-row-${event.id}`} key={event.id} className={`${processingId === event.id ? 'row-processing' : ''} ${selectedIds.has(event.id) ? 'row-selected' : ''}`}>
                   <td className="col-check">
                     <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)} />
                   </td>
@@ -920,9 +1649,9 @@ const EventIngestorV2: React.FC = () => {
                     {event.display_no ? `#${event.display_no}` : event.id.slice(0, 6)}
                   </td>
                   <td className="col-preview col-clickable" onClick={() => toggleSelect(event.id)}>
-                    {event.poster_url ? (
-                      <div className="thumbnail-box" onClick={e => { e.stopPropagation(); setZoomImage(event.poster_url || null); }}>
-                        <img src={event.poster_url} alt="thumbnail" loading="lazy" />
+                    {posterUrl ? (
+                      <div className="thumbnail-box" onClick={e => { e.stopPropagation(); setZoomImage(posterUrl); }}>
+                        <img src={posterUrl} alt="thumbnail" loading="lazy" />
                         <span className="zoom-hint">🔍 크게보기</span>
                       </div>
                     ) : <div className="no-image">이미지 미수집</div>}
@@ -986,14 +1715,14 @@ const EventIngestorV2: React.FC = () => {
                       <button className="btn-register" onClick={() => { setSelectedEvent(event); setIsEditModalOpen(true); }}>등록</button>
                       <button className="btn-crop" onClick={async () => {
                         setSelectedEvent(event);
-                        if (event.poster_url) {
+                        if (posterUrl) {
                           try {
-                            const res = await fetch(event.poster_url);
+                            const res = await fetch(posterUrl);
                             const blob = await res.blob();
                             const reader = new FileReader();
                             reader.onloadend = () => { setCropImageSrc(reader.result as string); setIsCropModalOpen(true); };
                             reader.readAsDataURL(blob);
-                          } catch { setCropImageSrc(event.poster_url); setIsCropModalOpen(true); }
+                          } catch { setCropImageSrc(posterUrl); setIsCropModalOpen(true); }
                         } else { setCropImageSrc(null); setIsCropModalOpen(true); }
                       }}>이미지</button>
                       {activeTab === 'duplicate' && (
@@ -1007,23 +1736,107 @@ const EventIngestorV2: React.FC = () => {
                           body: JSON.stringify({ id: event.id }),
                         });
                         setScrapedEvents(prev => prev.filter(e => e.id !== event.id));
+                        setSelectedIds(prev => {
+                          if (!prev.has(event.id)) return prev;
+                          const next = new Set(prev);
+                          next.delete(event.id);
+                          return next;
+                        });
+                        await fetchTabCounts();
+                        await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
                       }}>제외</button>
                     </div>
                   </td>
                 </tr>
                 );
               })}
-            </tbody>
-          </table>
-          {filteredEvents.length === 0 && (
-            <div className="empty-state">
-              {scopeFilter === 'tango'
-                ? '탱고 DB 후보는 비어 있습니다. 위 씬맵에서 라이브 일정과 장소 흐름을 확인하세요.'
-                : '해당 탭에 데이터가 없습니다.'}
+                </tbody>
+              </table>
+              {visibleFilteredEvents.length === 0 && (
+                <div className="empty-state">
+                  {listError
+                    ? '리스트 데이터를 다시 불러오지 못했습니다. 로컬 DB 연결 또는 운영 DB 터널을 확인하세요.'
+                    : scopeFilter === 'tango'
+                      ? '탱고 DB 후보는 비어 있습니다. 위 씬맵에서 라이브 일정과 장소 흐름을 확인하세요.'
+                      : '해당 탭에 데이터가 없습니다.'}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+          </section>
+
+          <section className="operational-db-panel" aria-label="운영 DB 리스트">
+            <div className="operational-db-head">
+              <div>
+                <span>Operational DB</span>
+                <h2>
+                  운영 DB 리스트
+                  <em>{operationalListItems.length}</em>
+                  {operationalLoading && <b>로드중</b>}
+                </h2>
+              </div>
+              <div className="ingestor-v2-calendar-month-nav">
+                <button type="button" onClick={() => handleCalendarMonthShift(-1)} aria-label="이전 달" title="이전 달">
+                  <i className="ri-arrow-left-s-line" aria-hidden="true"></i>
+                </button>
+                <strong>{calendarMonthLabel}</strong>
+                <button type="button" onClick={() => handleCalendarMonthShift(1)} aria-label="다음 달" title="다음 달">
+                  <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+                </button>
+                <button type="button" className="calendar-today-btn" onClick={handleCalendarToday}>오늘</button>
+              </div>
+            </div>
+
+            <div className="operational-db-table-wrap">
+              <table className="operational-db-table">
+                <thead>
+                  <tr>
+                    <th>이미지</th>
+                    <th>날짜 / 제목</th>
+                    <th>장소</th>
+                    <th>출처</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {operationalListItems.map(item => (
+                    <tr key={item.id}>
+                      <td className="operational-db-image-cell">
+                        {item.imageUrl ? (
+                          <button type="button" className="operational-db-thumb" onClick={() => setZoomImage(item.imageUrl || null)}>
+                            <img src={item.imageUrl} alt="" loading="lazy" />
+                            <span>크게</span>
+                          </button>
+                        ) : (
+                          <div className="operational-db-no-image">이미지 없음</div>
+                        )}
+                      </td>
+                      <td>
+                        <div className="operational-db-title-cell">
+                          <span>{item.date}{item.time ? ` · ${item.time}` : ''}</span>
+                          <strong>{item.title}</strong>
+                          <em>{item.keyword || '운영 DB'}</em>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="operational-db-location">{item.location || '장소미정'}</div>
+                      </td>
+                      <td>
+                        {item.sourceUrl ? (
+                          <a className="operational-db-link" href={item.sourceUrl} target="_blank" rel="noopener noreferrer">원본</a>
+                        ) : (
+                          <span className="operational-db-muted">없음</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!operationalLoading && operationalListItems.length === 0 && (
+                <div className="operational-db-empty">해당 월 운영 DB 이벤트가 없습니다.</div>
+              )}
+            </div>
+          </section>
+        </>
+      ))}
 
       {/* Lightbox Zoom */}
       {zoomImage && (

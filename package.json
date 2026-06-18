@@ -11,6 +11,7 @@
     "build:cafe24:functions": "node scripts/build-cafe24-functions.mjs",
     "build:cafe24": "npm run build:only && npm run build:cafe24:functions",
     "deploy:cafe24": "bash scripts/deploy-cafe24.sh",
+    "local:prod-db:8888": "npm run build:only && bash scripts/start-local-prod-db-server.sh",
     "build:analyze": "ANALYZE=true vite build",
     "preview": "vite preview --host",
     "start:cafe24": "node server/cafe24/start.js",

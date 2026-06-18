@@ -36,6 +36,13 @@ const TYPE_NAMES: Record<string, string> = {
 const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
 const getAnalyticsUserDisplayName = (userId: string | null | undefined, nickname?: string | null) =>
     nickname || (userId ? `회원 ${userId.substring(0, 8)}` : '회원');
+const asAnalyticsBool = (value: unknown) => (
+    value === true ||
+    value === 1 ||
+    String(value || '').toLowerCase() === 'true' ||
+    String(value || '').toLowerCase() === '1'
+);
+const normalizeAnalyticsEmail = (value: unknown) => String(value || '').trim().toLowerCase();
 
 interface BottomMenuAppUserStat {
     visitorKey: string;
@@ -419,6 +426,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
             const excludedPrefix = '91b04b25';
             const adminUserIds = new Set<string>();
+            const adminEmails = new Set<string>();
             const { data: adminRows, error: adminRowsError } = await cafe24
                 .from('board_admins')
                 .select('user_id,email,admin_email');
@@ -428,6 +436,35 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             } else {
                 (adminRows || []).forEach((row: any) => {
                     if (row.user_id) adminUserIds.add(String(row.user_id));
+                    const email = normalizeAnalyticsEmail(row.email || row.admin_email);
+                    if (email) adminEmails.add(email);
+                });
+            }
+
+            const [{ data: analyticsUsers, error: analyticsUsersError }, { data: boardUsersForAdmin, error: boardUsersForAdminError }] = await Promise.all([
+                cafe24.from('users').select('id,email,is_admin'),
+                cafe24.from('board_users').select('user_id,email,admin_email,is_admin'),
+            ]);
+
+            if (analyticsUsersError) {
+                console.warn('[Analytics] Failed to fetch analytics user admin identities:', analyticsUsersError);
+            } else {
+                (analyticsUsers || []).forEach((row: any) => {
+                    const email = normalizeAnalyticsEmail(row.email);
+                    if (asAnalyticsBool(row.is_admin) || (email && adminEmails.has(email))) {
+                        if (row.id) adminUserIds.add(String(row.id));
+                    }
+                });
+            }
+
+            if (boardUsersForAdminError) {
+                console.warn('[Analytics] Failed to fetch board user admin identities:', boardUsersForAdminError);
+            } else {
+                (boardUsersForAdmin || []).forEach((row: any) => {
+                    const email = normalizeAnalyticsEmail(row.email || row.admin_email);
+                    if (asAnalyticsBool(row.is_admin) || (email && adminEmails.has(email))) {
+                        if (row.user_id) adminUserIds.add(String(row.user_id));
+                    }
                 });
             }
 
@@ -574,7 +611,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 adminDeviceChanged = false;
                 [...allSessions, ...data].forEach((row: any) => {
                     const networkDeviceId = getFilterGuestNetworkIdentity(row);
-                    const directAdmin = row.is_admin || (row.user_id && adminUserIds.has(String(row.user_id)));
+                    const directAdmin = asAnalyticsBool(row.is_admin) || (row.user_id && adminUserIds.has(String(row.user_id)));
                     const linkedAdminDevice = (
                         (row.session_id && adminSessionIds.has(String(row.session_id))) ||
                         (row.fingerprint && adminFingerprints.has(String(row.fingerprint))) ||
@@ -606,7 +643,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             };
 
             const isAdminAnalyticsRow = (row: any) => {
-                if (row.is_admin) return true;
+                if (asAnalyticsBool(row.is_admin)) return true;
                 if (row.user_id) return adminUserIds.has(String(row.user_id));
                 if (row.session_id && adminSessionIds.has(String(row.session_id))) return true;
                 if (row.fingerprint && adminFingerprints.has(String(row.fingerprint))) return true;
@@ -700,9 +737,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (sessionUserId) return `user:${sessionUserId}`;
                 const fingerprintUserId = getSingleIdentity(fingerprintToUser, fingerprint);
                 if (fingerprintUserId) return `user:${fingerprintUserId}`;
-                if (fingerprint) return `guest:${fingerprint}`;
                 const guestNetworkIdentity = getGuestNetworkIdentity(row);
                 if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
+                if (fingerprint) return `guest:${fingerprint}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
                 return 'guest:unknown';
             };
@@ -806,8 +843,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const engagedVisitorKeys = new Set<string>();
             validData.forEach((d: any) => engagedVisitorKeys.add(getVisitorKey(d, d.session_id || d.id)));
             const guestMissingIdentifier = [
-                ...sessionData.filter((s: any) => !s.user_id && !s.fingerprint),
-                ...validData.filter((d: any) => !d.user_id && !d.fingerprint)
+                ...sessionData.filter((s: any) => !s.user_id && !s.fingerprint && !getGuestNetworkIdentity(s)),
+                ...validData.filter((d: any) => !d.user_id && !d.fingerprint && !getGuestNetworkIdentity(d))
             ].length;
             const fingerprintTypeMap = new Map<string, { user: boolean; guest: boolean }>();
             [...sessionData, ...validData].forEach((row: any) => {
@@ -1446,8 +1483,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 const eventMap = new Map<string, { title: string, type: string, count: number }>();
                 logs.forEach(l => {
                     const visitorKey = getVisitorKey(l, l.session_id || l.id);
-                    if (visitorKey.startsWith('user:') && !l.is_admin) dUser++;
-                    else if (!visitorKey.startsWith('user:') && !l.is_admin) dGuest++;
+                    if (visitorKey.startsWith('user:') && !asAnalyticsBool(l.is_admin)) dUser++;
+                    else if (!visitorKey.startsWith('user:') && !asAnalyticsBool(l.is_admin)) dGuest++;
                     const key = l.target_type + ':' + l.target_id;
                     const existing = eventMap.get(key) || { title: l.target_title || l.target_id, type: l.target_type, count: 0 };
                     eventMap.set(key, { ...existing, count: existing.count + 1 });
@@ -2082,15 +2119,15 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
                                         {renderTypeShareChart()}
                                         <div className="analytics-grid" style={{ marginTop: '16px' }}>
-                                            <div className="grid-section">
+                                            <div className="grid-section popular-content-panel">
                                                 <h3><i className="ri-trophy-line"></i> 기간 통합 인기 콘텐츠 (Top 20)</h3>
-                                                <div className="ranking-list">
+                                                <div className="ranking-list popular-ranking-list">
                                                     {summary.total_top_items.length > 0 ? (
                                                         summary.total_top_items.map((item, idx) => (
                                                             <div key={idx} className="ranking-item">
                                                                 <span className="item-rank">{idx + 1}</span>
                                                                 <div className="item-info">
-                                                                    <span className="item-title">{item.title}</span>
+                                                                    <span className="item-title" title={item.title}>{item.title}</span>
                                                                     <span className="item-meta">{getTypeName(item.type)}</span>
                                                                 </div>
                                                                 <span className="item-count">{item.count}</span>
@@ -2101,7 +2138,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="grid-section">
+                                            <div className="grid-section section-breakdown-panel">
                                                 <h3><i className="ri-pie-chart-line"></i> 섹션별 유입 비중</h3>
                                                 <div className="section-breakdown">
                                                     {summary.total_sections.map((sec, idx) => {
@@ -2341,15 +2378,15 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
                                         {renderTypeShareChart()}
                                         <div className="analytics-grid" style={{ marginTop: '16px' }}>
-                                            <div className="grid-section">
+                                            <div className="grid-section popular-content-panel">
                                                 <h3><i className="ri-trophy-line"></i> 인기 콘텐츠 (Top 20)</h3>
-                                                <div className="ranking-list">
+                                                <div className="ranking-list popular-ranking-list">
                                                     {summary.total_top_items.length > 0 ? (
                                                         summary.total_top_items.map((item, idx) => (
                                                             <div key={idx} className="ranking-item">
                                                                 <span className="item-rank">{idx + 1}</span>
                                                                 <div className="item-info">
-                                                                    <span className="item-title">{item.title}</span>
+                                                                    <span className="item-title" title={item.title}>{item.title}</span>
                                                                     <span className="item-meta">{getTypeName(item.type)}</span>
                                                                 </div>
                                                                 <span className="item-count">{item.count}</span>
@@ -2361,7 +2398,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                 </div>
                                             </div>
                                             {summary.total_sections.length > 0 && (
-                                                <div className="grid-section">
+                                                <div className="grid-section section-breakdown-panel">
                                                     <h3><i className="ri-pie-chart-line"></i> 섹션별 비중</h3>
                                                     <div className="section-breakdown">
                                                         {summary.total_sections.map((sec, idx) => {

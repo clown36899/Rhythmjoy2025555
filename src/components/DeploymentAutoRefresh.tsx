@@ -54,6 +54,11 @@ function markReloadRequested(targetBuildId: string) {
   }
 }
 
+function isLocalHostRuntime() {
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+}
+
 export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRefreshProps) {
   const [pendingReload, setPendingReload] = useState(false);
   const hasOpenModalRef = useRef(hasOpenModal);
@@ -68,7 +73,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
   }, [hasOpenModal]);
 
   useEffect(() => {
-    if (!import.meta.env.PROD || !__BUILD_TIME__) return;
+    if (!import.meta.env.PROD || !__BUILD_TIME__ || isLocalHostRuntime()) return;
 
     const clearTimers = () => {
       if (reloadTimerRef.current !== null) {

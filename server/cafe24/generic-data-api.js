@@ -1247,9 +1247,9 @@ function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix =
 function analyticsIdentifier(row, fallback = '', identity = null) {
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (userId) return `user:${userId}`;
-  if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
   const guestNetworkIdentity = analyticsGuestNetworkIdentity(row);
   if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
+  if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
   if (row?.session_id) return `session:${String(row.session_id)}`;
   return `unknown:${fallback || 'visitor'}`;
 }

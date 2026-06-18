@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { cafe24 } from "../../../../../lib/cafe24Client";
+import { fetchCafe24Events } from "../../../../../lib/cafe24EventsApi";
 import { getLocalDateString } from "../../../utils/eventListUtils";
 import type { Event } from "../../../utils/eventListUtils";
 import { mergeEventIntoArray, removeEventFromArray } from "../../../../../utils/eventMutationSync";
@@ -63,17 +64,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
             const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
             const cutoffDate = getLocalDateString(threeMonthsAgo);
 
-            const columns = "id, title, date, start_date, end_date, time, location, organizer, category, genre, image, created_at, user_id, venue_id, event_dates, description, video_url, organizer_phone, capacity, registered, link1, link2, link3, link_name1, link_name2, link_name3, password, show_title_on_billboard, storage_path, board_users(nickname, profile_image), price, group_id, image_micro, image_thumbnail, image_medium, image_full";
-
-            // Querying only 'events' table
-            const { data, error } = await cafe24
-                .from("events")
-                .select(columns)
-                .or(`date.gte.${cutoffDate},end_date.gte.${cutoffDate}`);
-
-            if (error) throw error;
-
-            const allItems = (data || []) as any[];
+            const allItems = await fetchCafe24Events({ cutoff: cutoffDate, limit: 3000 }) as any[];
 
             // Map results for legacy compatibility if needed, though they are all in one table now.
             // Some UI parts might still expect 'social-' prefix for distinction.

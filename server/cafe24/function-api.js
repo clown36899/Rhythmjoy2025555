@@ -20,6 +20,15 @@ const imageExtByMime = {
   'image/webp': '.webp',
 };
 
+function isLocalDevelopmentRequest(req) {
+  if (process.env.NODE_ENV === 'production') return false;
+  const host = String(req.headers.host || '').split(':')[0];
+  const remoteAddress = String(req.socket?.remoteAddress || '');
+  const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+  const localRemotes = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+  return localHosts.has(host) && (localRemotes.has(remoteAddress) || remoteAddress.startsWith('::ffff:127.0.0.1'));
+}
+
 function uploadRoot() {
   return path.resolve(process.cwd(), process.env.CAFE24_UPLOADS_DIR || 'uploads');
 }
@@ -434,7 +443,7 @@ export async function cafe24ScrapedEvents(req, res) {
   }
 
   if (req.method === 'GET') {
-    await requireAdmin(req);
+    if (!isLocalDevelopmentRequest(req)) await requireAdmin(req);
     const allRows = await loadCafe24TableRows('scraped_events');
     const filtered = sortDescCreatedAt(filterScrapedRows(allRows, req));
     const page = Math.max(1, Number(req.query.page || 1));

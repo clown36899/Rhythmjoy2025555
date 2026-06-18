@@ -497,12 +497,15 @@ function invalidateAnalyticsAdminIdentityCache() {
   analyticsAdminIdentityCache.expiresAt = 0;
 }
 
-function analyticsIdentityMatchMethod(row, sessionId, fingerprint) {
+function analyticsIdentityMatchMethod(row, sessionId, fingerprint, networkDeviceId) {
   if (sessionId && row?.session_id && String(row.session_id) === String(sessionId)) {
     return 'session_id';
   }
   if (fingerprint && row?.fingerprint && String(row.fingerprint) === String(fingerprint)) {
     return 'fingerprint';
+  }
+  if (networkDeviceId && analyticsGuestNetworkIdentity(row) === networkDeviceId) {
+    return 'network_device';
   }
   return null;
 }
@@ -551,9 +554,10 @@ async function linkAnalyticsRowsToIdentity({
   isAdmin = false,
   sessionId,
   fingerprint,
+  networkDeviceId,
   reason = null,
 }) {
-  if ((!userId && !isAdmin) || (!sessionId && !fingerprint)) return { updated: 0 };
+  if ((!userId && !isAdmin) || (!sessionId && !fingerprint && !networkDeviceId)) return { updated: 0 };
 
   const [sessions, logs] = await Promise.all([
     loadCafe24TableRows('session_logs').catch(() => []),
@@ -567,7 +571,7 @@ async function linkAnalyticsRowsToIdentity({
   let updated = 0;
 
   for (const { table, row } of targets) {
-    const method = analyticsIdentityMatchMethod(row, sessionId, fingerprint);
+    const method = analyticsIdentityMatchMethod(row, sessionId, fingerprint, networkDeviceId);
     if (!method || !shouldUpdateAnalyticsIdentityRow(row, { userId, isAdmin })) continue;
 
     const nextRow = buildAnalyticsIdentityRow(row, {
@@ -625,6 +629,7 @@ async function saveSessionStart(body, req) {
       isAdmin: asBool(row.is_admin, false),
       sessionId: row.session_id,
       fingerprint: row.fingerprint,
+      networkDeviceId: analyticsGuestNetworkIdentity(row),
       reason: asBool(row.is_admin, false) ? 'session_admin_identity' : 'session_authenticated_identity',
     });
   }
@@ -664,6 +669,7 @@ async function saveSessionEnd(body, req) {
       isAdmin: asBool(row.is_admin, false),
       sessionId: row.session_id,
       fingerprint: row.fingerprint,
+      networkDeviceId: analyticsGuestNetworkIdentity(row),
       reason: asBool(row.is_admin, false) ? 'session_admin_identity' : 'session_authenticated_identity',
     });
   }
@@ -706,6 +712,7 @@ async function saveAnalyticsEvent(body, req) {
       isAdmin: asBool(row.is_admin, false),
       sessionId: row.session_id,
       fingerprint: row.fingerprint,
+      networkDeviceId: analyticsGuestNetworkIdentity(row),
       reason: asBool(row.is_admin, false) ? 'event_admin_identity' : 'event_authenticated_identity',
     });
   }
@@ -783,15 +790,15 @@ export async function recordAnalytics(req, res) {
   const trustedUserId = currentUser?.id ? String(currentUser.id) : null;
   const requestSessionId = asString(req.body?.session_id || req.body?.sessionId);
   const requestFingerprint = asString(req.body?.fingerprint);
-  let trustedIsAdmin = Boolean(currentUser?.is_admin);
+  const requestNetworkDeviceId = analyticsGuestNetworkIdentity({
+    ...req.body,
+    client_ip: req.body?.client_ip || requestIp,
+    ip_hash: req.body?.ip_hash || hashIp(requestIp),
+    user_agent: requestUserAgent(req, req.body || {}),
+  });
+  let trustedIsAdmin = asBool(currentUser?.is_admin, false);
   if (!trustedIsAdmin) {
     const adminIdentities = await getAnalyticsAdminIdentityCache();
-    const requestNetworkDeviceId = analyticsGuestNetworkIdentity({
-      ...req.body,
-      client_ip: req.body?.client_ip || requestIp,
-      ip_hash: req.body?.ip_hash || hashIp(requestIp),
-      user_agent: requestUserAgent(req, req.body || {}),
-    });
     trustedIsAdmin = Boolean(
       (requestSessionId && adminIdentities.sessionIds.has(requestSessionId)) ||
       (requestFingerprint && adminIdentities.fingerprints.has(requestFingerprint)) ||
@@ -813,6 +820,7 @@ export async function recordAnalytics(req, res) {
       isAdmin: trustedIsAdmin,
       sessionId: requestSessionId,
       fingerprint: requestFingerprint,
+      networkDeviceId: requestNetworkDeviceId,
       reason: trustedIsAdmin ? 'request_admin_identity' : 'request_authenticated_identity',
     });
   }

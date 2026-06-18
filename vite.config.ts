@@ -190,6 +190,11 @@ export default defineConfig({
     } : true,
     // API 프록시 설정 (Express 서버로 전달)
     proxy: {
+      '/prod-api': {
+        target: 'https://swingenjoy.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/prod-api/, ''),
+      },
       '/api': {
         target: API_DEV_PROXY_TARGET,
         changeOrigin: true,

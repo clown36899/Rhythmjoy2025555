@@ -44,6 +44,129 @@ interface VenueRecord {
     address?: string;
 }
 
+type IngestorCalendarStatus = 'new' | 'completed' | 'db' | 'ignored';
+type IngestorDisplayMode = 'list' | 'calendar';
+
+interface IngestorCalendarItem {
+    id: string;
+    source: 'scraped' | 'db';
+    sourceId: string;
+    date: string;
+    title: string;
+    keyword?: string;
+    location?: string;
+    time?: string;
+    sourceUrl?: string;
+    status: IngestorCalendarStatus;
+}
+
+const CALENDAR_HIDDEN_STORAGE_KEY = 'event-ingestor-calendar-hidden-v1';
+const CALENDAR_STATUS_LABELS: Record<IngestorCalendarStatus, string> = {
+    new: '신규',
+    completed: '완료',
+    db: 'DB',
+    ignored: '제외',
+};
+const PRODUCTION_ASSET_ORIGIN = 'https://swingenjoy.com';
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+const isDateKey = (value?: string | null): value is string => (
+    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+);
+
+const resolveProductionAssetUrl = (value?: string | null) => {
+    const url = String(value || '').trim();
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:image')) return url;
+    if (url.startsWith('/uploads/')) return `${PRODUCTION_ASSET_ORIGIN}${url}`;
+    return url;
+};
+
+const normalizeCalendarUrlKey = (value?: string | null) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    try {
+        const url = new URL(raw, PRODUCTION_ASSET_ORIGIN);
+        url.hash = '';
+        url.search = '';
+        return `${url.hostname.toLowerCase()}${url.pathname.replace(/\/+$/, '').toLowerCase()}`;
+    } catch {
+        return raw.split('#')[0].split('?')[0].replace(/\/+$/, '').toLowerCase();
+    }
+};
+
+const normalizeCalendarTextKey = (value?: string | null) => (
+    String(value || '')
+        .normalize('NFKC')
+        .toLowerCase()
+        .replace(/dj\s*/gi, '')
+        .replace(/[^\w가-힣]+/g, '')
+);
+
+const addCalendarDuplicateKeys = (keys: Set<string>, item: Pick<IngestorCalendarItem, 'date' | 'sourceUrl' | 'title' | 'location'>) => {
+    const sourceKey = normalizeCalendarUrlKey(item.sourceUrl);
+    if (sourceKey) keys.add(`${item.date}|source|${sourceKey}`);
+
+    const titleKey = normalizeCalendarTextKey(item.title);
+    const locationKey = normalizeCalendarTextKey(item.location);
+    if (titleKey.length >= 4 && locationKey.length >= 2) {
+        keys.add(`${item.date}|title-location|${titleKey}|${locationKey}`);
+    }
+};
+
+const isCalendarDuplicateOfScraped = (keys: Set<string>, item: Pick<IngestorCalendarItem, 'date' | 'sourceUrl' | 'title' | 'location'>) => {
+    const checks: string[] = [];
+    const sourceKey = normalizeCalendarUrlKey(item.sourceUrl);
+    if (sourceKey) checks.push(`${item.date}|source|${sourceKey}`);
+
+    const titleKey = normalizeCalendarTextKey(item.title);
+    const locationKey = normalizeCalendarTextKey(item.location);
+    if (titleKey.length >= 4 && locationKey.length >= 2) {
+        checks.push(`${item.date}|title-location|${titleKey}|${locationKey}`);
+    }
+
+    return checks.some(key => keys.has(key));
+};
+
+const toDateKey = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getScrapedDate = (event: ScrapedEvent) => (
+    event.structured_data?.date || event.parsed_data?.date || ''
+);
+
+const getScrapedTitle = (event: ScrapedEvent) => (
+    event.structured_data?.title || event.parsed_data?.title || event.id
+);
+
+const getMonthDays = (monthDate: Date) => {
+    const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const last = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+    const cursor = new Date(first);
+    cursor.setDate(first.getDate() - first.getDay());
+
+    const end = new Date(last);
+    end.setDate(last.getDate() + (6 - last.getDay()));
+
+    const days: Date[] = [];
+    while (cursor <= end) {
+        days.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return days;
+};
+
+const getCalendarItemId = (source: IngestorCalendarItem['source'], id: string | number) => `${source}:${id}`;
+
+const isLocalIngestorBypass = () => (
+    typeof window !== 'undefined'
+    && ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+);
+
 const EventIngestor: React.FC = () => {
     const { user, isAdmin, isAuthCheckComplete } = useAuth();
     const queryClient = useQueryClient();
@@ -53,12 +176,34 @@ const EventIngestor: React.FC = () => {
     const [loadingScraped, setLoadingScraped] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showComparison, setShowComparison] = useState(false);
+    const [displayMode, setDisplayMode] = useState<IngestorDisplayMode>('list');
     const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const [venues, setVenues] = useState<VenueRecord[]>([]);
     const [genreMap, setGenreMap] = useState<Record<string, string[]>>({}); // scraped.id -> genres[]
     const [isProcessing, setIsProcessing] = useState(false); // 일괄 처리 중 로딩 상태
     const isInitialLoadRef = useRef(false); // 최초 로딩 완료 여부 추적 (깜빡임 방지용)
+    const [calendarMonth, setCalendarMonth] = useState(() => {
+        const today = new Date();
+        return new Date(today.getFullYear(), today.getMonth(), 1);
+    });
+    const [calendarStatusFilters, setCalendarStatusFilters] = useState<Record<IngestorCalendarStatus, boolean>>({
+        new: true,
+        completed: true,
+        db: true,
+        ignored: true,
+    });
+    const [hiddenCalendarItemIds, setHiddenCalendarItemIds] = useState<Set<string>>(() => {
+        try {
+            const saved = localStorage.getItem(CALENDAR_HIDDEN_STORAGE_KEY);
+            return new Set(saved ? JSON.parse(saved) : []);
+        } catch {
+            return new Set();
+        }
+    });
+    const localIngestorBypass = isLocalIngestorBypass();
+    const canAccessIngestor = isAdmin || localIngestorBypass;
+    const isIngestorAuthReady = isAuthCheckComplete || localIngestorBypass;
 
     // 이미지 편집 관련 상태
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -77,18 +222,29 @@ const EventIngestor: React.FC = () => {
         };
     }, []);
 
+    useEffect(() => {
+        try {
+            localStorage.setItem(CALENDAR_HIDDEN_STORAGE_KEY, JSON.stringify(Array.from(hiddenCalendarItemIds)));
+        } catch (err) {
+            console.warn('Failed to persist ingestor calendar hidden items:', err);
+        }
+    }, [hiddenCalendarItemIds]);
+
     const getAdminRequestHeaders = useCallback(async (withJson = false): Promise<Record<string, string>> => {
+        if (localIngestorBypass) {
+            return withJson ? { 'Content-Type': 'application/json' } : {};
+        }
         const { data } = await cafe24.auth.getSession();
         const token = data.session?.access_token;
         return {
             ...(withJson ? { 'Content-Type': 'application/json' } : {}),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
-    }, []);
+    }, [localIngestorBypass]);
 
     const fetchScraped = useCallback(async () => {
-        if (!isAuthCheckComplete) return;
-        if (!isAdmin) {
+        if (!isIngestorAuthReady) return;
+        if (!canAccessIngestor) {
             setScrapedEvents([]);
             setSelectedIds(new Set());
             setLoadingScraped(false);
@@ -100,6 +256,7 @@ const EventIngestor: React.FC = () => {
             // Cafe24 API에서 수집 후보 데이터 조회
             const res = await fetch(`/api/scraped-events?type=${currentTab}`, {
                 headers: await getAdminRequestHeaders(),
+                cache: 'no-store',
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
@@ -113,7 +270,7 @@ const EventIngestor: React.FC = () => {
         } finally {
             setLoadingScraped(false);
         }
-    }, [currentTab, getAdminRequestHeaders, isAdmin, isAuthCheckComplete]);
+    }, [canAccessIngestor, currentTab, getAdminRequestHeaders, isIngestorAuthReady]);
 
     useEffect(() => {
         fetchScraped();
@@ -122,8 +279,8 @@ const EventIngestor: React.FC = () => {
     // Venues 로딩 (장소 자동 매칭용)
     useEffect(() => {
         const fetchVenues = async () => {
-            if (!isAuthCheckComplete) return;
-            if (!isAdmin) {
+            if (!isIngestorAuthReady) return;
+            if (!canAccessIngestor) {
                 setVenues([]);
                 return;
             }
@@ -135,7 +292,7 @@ const EventIngestor: React.FC = () => {
             if (data) setVenues(data);
         };
         fetchVenues();
-    }, [isAdmin, isAuthCheckComplete]);
+    }, [canAccessIngestor, isIngestorAuthReady]);
 
     // 장소명으로 venue 매칭
     const matchVenue = useCallback((locationName: string): VenueRecord | null => {
@@ -204,7 +361,7 @@ const EventIngestor: React.FC = () => {
             let imageFull: string | null = null;
             let storagePath: string | null = null;
 
-            const posterUrl = scraped.poster_url || scraped.screenshot_url;
+            const posterUrl = resolveProductionAssetUrl(scraped.poster_url || scraped.screenshot_url);
             if (posterUrl) {
                 try {
                     // 로컬 이미지 fetch → Blob → File
@@ -394,7 +551,7 @@ const EventIngestor: React.FC = () => {
 
     // ===== 이미지 편집 함수 =====
     const handleEditImage = useCallback(async (event: ScrapedEvent) => {
-        const imageUrl = event.poster_url || event.screenshot_url;
+        const imageUrl = resolveProductionAssetUrl(event.poster_url || event.screenshot_url);
         if (!imageUrl) {
             alert('편집할 이미지가 없습니다.');
             return;
@@ -558,7 +715,7 @@ const EventIngestor: React.FC = () => {
 
     const buildEventDetail = (e: ScrapedEvent) => {
         const data = e.structured_data;
-        const imageUrl = e.poster_url || e.screenshot_url;
+        const imageUrl = resolveProductionAssetUrl(e.poster_url || e.screenshot_url);
         const issues: string[] = [];
         if (!imageUrl) issues.push('이미지 누락');
         if (!data?.date) issues.push('날짜 누락');
@@ -672,6 +829,140 @@ const EventIngestor: React.FC = () => {
 
         return { newList: newItemList, duplicateList: duplicateItemList, ignoredList: ignoredItemList, anchorIds };
     }, [scrapedEvents, existingEvents]);
+
+    const visibleNewList = newList;
+    const visibleDuplicateList = duplicateList;
+    const visibleIgnoredList = ignoredList;
+
+    const calendarItems = useMemo(() => {
+        const items: IngestorCalendarItem[] = [];
+
+        const pushScrapedItem = (event: ScrapedEvent, status: IngestorCalendarStatus) => {
+            const date = getScrapedDate(event);
+            if (!isDateKey(date)) return;
+            items.push({
+                id: getCalendarItemId('scraped', event.id),
+                source: 'scraped',
+                sourceId: event.id,
+                date,
+                title: getScrapedTitle(event),
+                keyword: event.keyword,
+                location: event.structured_data?.location,
+                time: event.structured_data?.times?.[0],
+                sourceUrl: event.source_url,
+                status,
+            });
+        };
+
+        newList.forEach(event => pushScrapedItem(event, 'new'));
+        ignoredList.forEach(event => pushScrapedItem(event, 'ignored'));
+
+        const scrapedDuplicateKeys = new Set<string>();
+        items
+            .filter(item => item.source === 'scraped')
+            .forEach(item => addCalendarDuplicateKeys(scrapedDuplicateKeys, item));
+
+        existingEvents.forEach((event: any) => {
+            const eventDates = Array.isArray(event.event_dates) ? event.event_dates : [];
+            const fallbackDate = event.start_date || event.date;
+            const dateKeys = Array.from(new Set((eventDates.length > 0 ? eventDates : [fallbackDate]).filter(isDateKey)));
+
+            dateKeys.forEach(date => {
+                const dbItem: IngestorCalendarItem = {
+                    id: getCalendarItemId('db', `${event.id}:${date}`),
+                    source: 'db',
+                    sourceId: String(event.id),
+                    date,
+                    title: event.title || '제목 없음',
+                    keyword: event.organizer || event.link_name1 || undefined,
+                    location: event.location || event.venue_name || undefined,
+                    time: event.time ? String(event.time).slice(0, 5) : undefined,
+                    sourceUrl: event.link1 || undefined,
+                    status: 'db',
+                };
+                if (!isCalendarDuplicateOfScraped(scrapedDuplicateKeys, dbItem)) {
+                    items.push(dbItem);
+                }
+            });
+        });
+
+        return items;
+    }, [existingEvents, ignoredList, newList]);
+
+    const calendarItemCounts = useMemo(() => {
+        return calendarItems.reduce<Record<IngestorCalendarStatus, number>>((acc, item) => {
+            acc[item.status] += 1;
+            return acc;
+        }, { new: 0, completed: 0, db: 0, ignored: 0 });
+    }, [calendarItems]);
+
+    const visibleCalendarItems = useMemo(() => (
+        calendarItems.filter(item => calendarStatusFilters[item.status] && !hiddenCalendarItemIds.has(item.id))
+    ), [calendarItems, calendarStatusFilters, hiddenCalendarItemIds]);
+
+    const calendarItemsByDate = useMemo(() => {
+        const statusOrder: Record<IngestorCalendarStatus, number> = { new: 0, completed: 1, db: 2, ignored: 3 };
+        const map = new Map<string, IngestorCalendarItem[]>();
+        visibleCalendarItems.forEach(item => {
+            const list = map.get(item.date) || [];
+            list.push(item);
+            map.set(item.date, list);
+        });
+        map.forEach(list => {
+            list.sort((a, b) => statusOrder[a.status] - statusOrder[b.status] || a.title.localeCompare(b.title));
+        });
+        return map;
+    }, [visibleCalendarItems]);
+
+    const calendarDays = useMemo(() => getMonthDays(calendarMonth), [calendarMonth]);
+    const calendarMonthLabel = `${calendarMonth.getFullYear()}년 ${calendarMonth.getMonth() + 1}월`;
+    const todayKey = toDateKey(new Date());
+
+    const toggleCalendarStatusFilter = useCallback((status: IngestorCalendarStatus) => {
+        setCalendarStatusFilters(prev => ({ ...prev, [status]: !prev[status] }));
+    }, []);
+
+    const handleCalendarMonthShift = useCallback((offset: number) => {
+        setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+    }, []);
+
+    const handleCalendarToday = useCallback(() => {
+        const today = new Date();
+        setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    }, []);
+
+    const hideCalendarItem = useCallback((item: IngestorCalendarItem) => {
+        setHiddenCalendarItemIds(prev => {
+            const next = new Set(prev);
+            next.add(item.id);
+            return next;
+        });
+    }, []);
+
+    const clearHiddenCalendarItems = useCallback(() => {
+        setHiddenCalendarItemIds(new Set());
+    }, []);
+
+    const handleCalendarItemClick = useCallback((item: IngestorCalendarItem) => {
+        if (item.source === 'scraped') {
+            setSelectedIds(prev => {
+                const next = new Set(prev);
+                next.add(item.sourceId);
+                return next;
+            });
+            window.setTimeout(() => {
+                document.getElementById(`ingestor-card-${item.sourceId}`)?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            }, 0);
+            return;
+        }
+
+        if (item.sourceUrl) {
+            window.open(item.sourceUrl, '_blank');
+        }
+    }, []);
 
     // ===== 퍼지 매칭 유틸 =====
     const normalize = (s: string) => s.replace(/[\s!\-_.,()（）]/g, '').toLowerCase();
@@ -832,11 +1123,11 @@ const EventIngestor: React.FC = () => {
         return groups.sort((a, b) => a.scrapedDate.localeCompare(b.scrapedDate));
     }, [showComparison, scrapedEvents, existingEvents]);
 
-    if (!isAuthCheckComplete) {
+    if (!isIngestorAuthReady) {
         return <div className="event-ingestor-container">관리자 권한을 확인하는 중...</div>;
     }
 
-    if (!isAdmin) {
+    if (!canAccessIngestor) {
         return (
             <div className="event-ingestor-container">
                 <header className="event-ingestor-header">
@@ -913,15 +1204,160 @@ const EventIngestor: React.FC = () => {
                         🎓 강습/워크숍
                     </button>
                 </div>
+                <div className="ingestor-mode-toggle" aria-label="인제스터 보기 방식">
+                    <button
+                        type="button"
+                        className={displayMode === 'list' ? 'active' : ''}
+                        onClick={() => setDisplayMode('list')}
+                        aria-pressed={displayMode === 'list'}
+                    >
+                        <i className="ri-list-check-2" aria-hidden="true"></i>
+                        리스트
+                    </button>
+                    <button
+                        type="button"
+                        className={displayMode === 'calendar' ? 'active' : ''}
+                        onClick={() => setDisplayMode('calendar')}
+                        aria-pressed={displayMode === 'calendar'}
+                    >
+                        <i className="ri-calendar-event-line" aria-hidden="true"></i>
+                        달력
+                    </button>
+                </div>
                 <div className="ingestor-stats">
                     <span>수집된 총 항목: <b>{scrapedEvents.length}</b></span>
                     <span>DB 등록 이벤트: <b>{existingEvents.length}</b></span>
-                    <span>신규 후보: <b>{newList.length}</b></span>
-                    <span>중복 발견: <b>{duplicateList.length}</b></span>
+                    <span>신규 후보: <b>{visibleNewList.length}</b></span>
+                    <span>완료/중복: <b>{visibleDuplicateList.length}</b></span>
+                    {hiddenCalendarItemIds.size > 0 && <span>숨김: <b>{hiddenCalendarItemIds.size}</b></span>}
                 </div>
             </header>
 
             <main>
+                {displayMode === 'calendar' && (
+                <section className="ingestor-section ingestor-calendar-section">
+                    <div className="ingestor-calendar-toolbar">
+                        <div className="ingestor-calendar-title-group">
+                            <h2>
+                                <i className="ri-calendar-event-line" aria-hidden="true"></i>
+                                전체달력 월간보기
+                                <span className="count-badge">{visibleCalendarItems.length}</span>
+                            </h2>
+                            <div className="ingestor-calendar-month-control">
+                                <button
+                                    type="button"
+                                    className="ingestor-calendar-icon-btn"
+                                    onClick={() => handleCalendarMonthShift(-1)}
+                                    aria-label="이전 달"
+                                    title="이전 달"
+                                >
+                                    <i className="ri-arrow-left-s-line" aria-hidden="true"></i>
+                                </button>
+                                <strong>{calendarMonthLabel}</strong>
+                                <button
+                                    type="button"
+                                    className="ingestor-calendar-icon-btn"
+                                    onClick={() => handleCalendarMonthShift(1)}
+                                    aria-label="다음 달"
+                                    title="다음 달"
+                                >
+                                    <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="ingestor-calendar-today-btn"
+                                    onClick={handleCalendarToday}
+                                >
+                                    오늘
+                                </button>
+                            </div>
+                        </div>
+                        <div className="ingestor-calendar-filter-row" aria-label="달력 표시 항목">
+                            {(Object.keys(CALENDAR_STATUS_LABELS) as IngestorCalendarStatus[]).map(status => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    className={`ingestor-calendar-filter status-${status} ${calendarStatusFilters[status] ? 'active' : ''}`}
+                                    onClick={() => toggleCalendarStatusFilter(status)}
+                                    aria-pressed={calendarStatusFilters[status]}
+                                >
+                                    <span className="ingestor-calendar-status-dot" aria-hidden="true"></span>
+                                    <span>{CALENDAR_STATUS_LABELS[status]}</span>
+                                    <b>{calendarItemCounts[status]}</b>
+                                </button>
+                            ))}
+                            {hiddenCalendarItemIds.size > 0 && (
+                                <button
+                                    type="button"
+                                    className="ingestor-calendar-reset-hidden"
+                                    onClick={clearHiddenCalendarItems}
+                                >
+                                    숨김 해제 {hiddenCalendarItemIds.size}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="ingestor-calendar-weekdays">
+                        {WEEKDAY_LABELS.map(day => (
+                            <div key={day}>{day}</div>
+                        ))}
+                    </div>
+                    <div className="ingestor-calendar-grid">
+                        {calendarDays.map(day => {
+                            const dateKey = toDateKey(day);
+                            const dayItems = calendarItemsByDate.get(dateKey) || [];
+                            const isOutsideMonth = day.getMonth() !== calendarMonth.getMonth();
+                            const visibleDayItems = dayItems.slice(0, 5);
+
+                            return (
+                                <div
+                                    key={dateKey}
+                                    className={`ingestor-calendar-day ${isOutsideMonth ? 'outside-month' : ''} ${dateKey === todayKey ? 'is-today' : ''}`}
+                                >
+                                    <div className="ingestor-calendar-day-header">
+                                        <span>{day.getDate()}</span>
+                                        {dayItems.length > 0 && <em>{dayItems.length}</em>}
+                                    </div>
+                                    <div className="ingestor-calendar-day-items">
+                                        {visibleDayItems.map(item => (
+                                            <div
+                                                key={item.id}
+                                                className={`ingestor-calendar-event status-${item.status}`}
+                                                title={`${CALENDAR_STATUS_LABELS[item.status]} · ${item.title}`}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className="ingestor-calendar-event-main"
+                                                    onClick={() => handleCalendarItemClick(item)}
+                                                >
+                                                    <span className="ingestor-calendar-event-status">{CALENDAR_STATUS_LABELS[item.status]}</span>
+                                                    <span className="ingestor-calendar-event-title">{item.time ? `${item.time} ` : ''}{item.title}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="ingestor-calendar-event-hide"
+                                                    onClick={() => hideCalendarItem(item)}
+                                                    aria-label={`${item.title} 숨기기`}
+                                                    title="숨김"
+                                                >
+                                                    <i className="ri-eye-off-line" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {dayItems.length > visibleDayItems.length && (
+                                            <div className="ingestor-calendar-more">+{dayItems.length - visibleDayItems.length}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+                )}
+
+                {displayMode === 'list' && (
+                <>
                 {/* 비교 테이블 */}
                 {showComparison && (
                     <section className="ingestor-section comparison-section">
@@ -1025,37 +1461,37 @@ const EventIngestor: React.FC = () => {
                     <div className="section-header-row">
                         <h2>
                             <span className="icon">🆕</span> 신규 이벤트 후보
-                            <span className="count-badge">{newList.length}</span>
+                            <span className="count-badge">{visibleNewList.length}</span>
                         </h2>
-                        {newList.length > 0 && (
+                        {visibleNewList.length > 0 && (
                             <label className="select-all-label">
                                 <input
                                     type="checkbox"
-                                    checked={newList.every(item => selectedIds.has(item.id))}
+                                    checked={visibleNewList.every(item => selectedIds.has(item.id))}
                                     ref={el => {
                                         if (el) {
-                                            const someSelected = newList.some(item => selectedIds.has(item.id));
-                                            const allSelected = newList.every(item => selectedIds.has(item.id));
+                                            const someSelected = visibleNewList.some(item => selectedIds.has(item.id));
+                                            const allSelected = visibleNewList.every(item => selectedIds.has(item.id));
                                             el.indeterminate = someSelected && !allSelected;
                                         }
                                     }}
-                                    onChange={() => handleToggleSelectAll(newList.map(item => item.id))}
+                                    onChange={() => handleToggleSelectAll(visibleNewList.map(item => item.id))}
                                 />
                                 <span>전체 선택</span>
                             </label>
                         )}
                     </div>
-                    {newList.length === 0 ? (
+                    {visibleNewList.length === 0 ? (
                         <p className="no-data">새로운 수집 데이터가 없습니다.</p>
                     ) : (
                         <div className="ingestor-source-groups">
-                            {Array.from(new Set(newList.map(item => item.keyword || '알수없음'))).map(keyword => (
+                            {Array.from(new Set(visibleNewList.map(item => item.keyword || '알수없음'))).map(keyword => (
                                 <div key={`new-${keyword}`} className="source-group-block" style={{ marginBottom: '40px' }}>
                                     <h3 style={{ padding: '8px 16px', background: '#2563eb', borderRadius: '20px', color: '#fff', display: 'inline-block', marginBottom: '15px', fontSize: '1.1rem', fontWeight: '600' }}>
-                                        🎯 {keyword} <span style={{fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.8}}>({newList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
+                                        🎯 {keyword} <span style={{fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.8}}>({visibleNewList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
                                     </h3>
                                     <div className="ingestor-grid">
-                                        {newList.filter(item => (item.keyword || '알수없음') === keyword).map((item) => (
+                                        {visibleNewList.filter(item => (item.keyword || '알수없음') === keyword).map((item) => (
                                             <EventCard
                                                 key={item.id}
                                                 event={item}
@@ -1102,39 +1538,39 @@ const EventIngestor: React.FC = () => {
                     )}
                 </section>
 
-                {duplicateList.length > 0 && (
+                {visibleDuplicateList.length > 0 && (
                     <section className="ingestor-section duplicate-section">
                         <div className="section-header-row">
                             <h2>
                                 <span className="icon">⚠️</span> 발견된 중복 항목 (DB 존재)
-                                <span className="count-badge">{duplicateList.length}</span>
+                                <span className="count-badge">{visibleDuplicateList.length}</span>
                             </h2>
-                            {duplicateList.length > 0 && (
+                            {visibleDuplicateList.length > 0 && (
                                 <label className="select-all-label">
                                     <input
                                         type="checkbox"
-                                        checked={duplicateList.every(item => selectedIds.has(item.id))}
+                                        checked={visibleDuplicateList.every(item => selectedIds.has(item.id))}
                                         ref={el => {
                                             if (el) {
-                                                const someSelected = duplicateList.some(item => selectedIds.has(item.id));
-                                                const allSelected = duplicateList.every(item => selectedIds.has(item.id));
+                                                const someSelected = visibleDuplicateList.some(item => selectedIds.has(item.id));
+                                                const allSelected = visibleDuplicateList.every(item => selectedIds.has(item.id));
                                                 el.indeterminate = someSelected && !allSelected;
                                             }
                                         }}
-                                        onChange={() => handleToggleSelectAll(duplicateList.map(item => item.id))}
+                                        onChange={() => handleToggleSelectAll(visibleDuplicateList.map(item => item.id))}
                                     />
                                     <span>전체 선택</span>
                                 </label>
                             )}
                         </div>
                         <div className="ingestor-source-groups">
-                            {Array.from(new Set(duplicateList.map(item => item.keyword || '알수없음'))).map(keyword => (
+                            {Array.from(new Set(visibleDuplicateList.map(item => item.keyword || '알수없음'))).map(keyword => (
                                 <div key={`dup-${keyword}`} className="source-group-block" style={{ marginBottom: '40px' }}>
                                     <h3 style={{ padding: '8px 16px', background: '#4b5563', borderRadius: '20px', color: '#fff', display: 'inline-block', marginBottom: '15px', fontSize: '1.1rem', fontWeight: '600' }}>
-                                        ⚠️ {keyword} <span style={{fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.8}}>({duplicateList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
+                                        ⚠️ {keyword} <span style={{fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.8}}>({visibleDuplicateList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
                                     </h3>
                                     <div className="ingestor-grid">
-                                        {duplicateList.filter(item => (item.keyword || '알수없음') === keyword).map(item => (
+                                        {visibleDuplicateList.filter(item => (item.keyword || '알수없음') === keyword).map(item => (
                                             <EventCard
                                                 key={item.id}
                                                 event={item}
@@ -1158,22 +1594,22 @@ const EventIngestor: React.FC = () => {
                 )}
 
                 {/* === IGNORED SECTION (숨겨진 앵커 노출용) === */}
-                {ignoredList.length > 0 && (
+                {visibleIgnoredList.length > 0 && (
                     <section className="ingestor-section ignored-section" style={{ marginTop: '50px', opacity: 0.8 }}>
                         <div className="section-header-row">
                             <h2>
                                 <span role="img" aria-label="ignored">🚫</span> 수집 제외 항목 (Fast-Fail 앵커)
-                                <span className="count-badge ignored-count" style={{ background: '#374151', color: '#fff' }}>{ignoredList.length}</span>
+                                <span className="count-badge ignored-count" style={{ background: '#374151', color: '#fff' }}>{visibleIgnoredList.length}</span>
                             </h2>
                         </div>
                         <div className="ingestor-source-groups">
-                            {Array.from(new Set(ignoredList.map(item => item.keyword || '알수없음'))).map(keyword => (
+                            {Array.from(new Set(visibleIgnoredList.map(item => item.keyword || '알수없음'))).map(keyword => (
                                 <div key={`ign-${keyword}`} className="source-group-block" style={{ marginBottom: '20px' }}>
                                     <h3 style={{ padding: '6px 12px', background: '#374151', borderRadius: '15px', color: '#ccc', display: 'inline-block', marginBottom: '10px', fontSize: '0.95rem', fontWeight: '500' }}>
-                                        🚫 {keyword} <span style={{fontSize: '0.85rem', fontWeight: 'normal', opacity: 0.7}}>({ignoredList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
+                                        🚫 {keyword} <span style={{fontSize: '0.85rem', fontWeight: 'normal', opacity: 0.7}}>({visibleIgnoredList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
                                     </h3>
                                     <div className="ingestor-grid" style={{ opacity: 0.6 }}>
-                                        {ignoredList.filter(item => (item.keyword || '알수없음') === keyword).map(item => (
+                                        {visibleIgnoredList.filter(item => (item.keyword || '알수없음') === keyword).map(item => (
                                             <EventCard
                                                 key={item.id}
                                                 event={item}
@@ -1189,6 +1625,8 @@ const EventIngestor: React.FC = () => {
                             ))}
                         </div>
                     </section>
+                )}
+                </>
                 )}
 
                 {/* 이미지 크롭 모달 */}
@@ -1261,7 +1699,7 @@ const EventCard: React.FC<EventCardProps> = ({
         status: 'UNKNOWN'
     };
 
-    const imageUrl = (event as any).poster_url || (event as any).screenshot_url;
+    const imageUrl = resolveProductionAssetUrl((event as any).poster_url || (event as any).screenshot_url);
     const keywords = (event as any).allKeywords || ((event as any).keyword ? [(event as any).keyword] : []);
     const hasNoDate = !eventData.date;
 
@@ -1311,7 +1749,10 @@ const EventCard: React.FC<EventCardProps> = ({
     };
 
     return (
-        <div className={`ingestor-card ${eventData.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''} ${hasNoDate ? 'no-date-warning' : ''}`}>
+        <div
+            id={`ingestor-card-${(event as any).id}`}
+            className={`ingestor-card ${eventData.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''} ${hasNoDate ? 'no-date-warning' : ''}`}
+        >
             <div className="card-header">
                 <div className="header-left">
                     {!isIgnored && (
