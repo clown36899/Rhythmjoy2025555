@@ -12,7 +12,7 @@
   "theme_color": "#000000",
   "share_target": {
     "action": "/forum/media/share",
-    "method": "GET",
+    "method": "POST",
     "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",

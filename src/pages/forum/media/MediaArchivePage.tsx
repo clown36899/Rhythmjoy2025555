@@ -136,6 +136,8 @@ type MediaArchiveForm = typeof emptyForm;
 
 const PENDING_MEDIA_DRAFT_KEY = 'swingenjoy:media-archive-pending-draft';
 const PENDING_MEDIA_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const SHARE_TARGET_CACHE = 'rhythmjoy-share-targets-v1';
+const SHARE_TARGET_PATH = '/__pwa-share-target/';
 
 interface PendingMediaDraft {
   form: MediaArchiveForm;
@@ -266,6 +268,36 @@ function stripSharedUrl(value?: string | null, url?: string | null) {
   if (explicitUrl) text = text.replace(explicitUrl, ' ');
   text = text.replace(/https?:\/\/[^\s"'<>]+/gi, ' ');
   return compactText(text);
+}
+
+async function readStoredShareTargetParams(shareId: string) {
+  const safeShareId = String(shareId || '').replace(/[^a-z0-9-]/gi, '');
+  if (!safeShareId || typeof window === 'undefined' || !('caches' in window)) return null;
+
+  try {
+    const cache = await window.caches.open(SHARE_TARGET_CACHE);
+    const request = new Request(`${window.location.origin}${SHARE_TARGET_PATH}${safeShareId}`);
+    const response = await cache.match(request);
+    if (!response) return null;
+
+    const payload = await response.json().catch(() => null) as {
+      title?: string;
+      text?: string;
+      url?: string;
+    } | null;
+    await cache.delete(request);
+    if (!payload) return null;
+
+    const params = new URLSearchParams();
+    if (payload.title) params.set('title', payload.title);
+    if (payload.text) params.set('text', payload.text);
+    if (payload.url) params.set('url', payload.url);
+    params.set('source', 'Android 공유');
+    return params;
+  } catch (error) {
+    console.warn('[MediaArchive] stored share payload read failed:', error);
+    return null;
+  }
 }
 
 function getSharedMediaUrl(params: URLSearchParams) {
@@ -902,7 +934,42 @@ const MediaArchivePage: React.FC = () => {
   }, [form.url]);
 
   useEffect(() => {
+    let cancelled = false;
     const searchParams = new URLSearchParams(location.search);
+    const shareId = compactText(searchParams.get('share_id'));
+
+    if (location.pathname.includes('/forum/media/share') && shareId) {
+      (async () => {
+        const params = await readStoredShareTargetParams(shareId);
+        if (cancelled || !params) return;
+
+        const addUrl = getSharedMediaUrl(params);
+        if (!addUrl) return;
+        const importKey = [
+          shareId,
+          addUrl,
+          params.get('title') || '',
+          params.get('text') || '',
+        ].join(':');
+        if (clipperImportKeyRef.current === importKey) return;
+        clipperImportKeyRef.current = importKey;
+
+        setShowForm(true);
+        setDraftNotice('공유로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.');
+        setForm((prev) => {
+          const nextForm = buildImportedForm(prev, params, addUrl, true);
+          savePendingMediaDraft(nextForm, 'android-share');
+          return nextForm;
+        });
+
+        navigate('/forum/media', { replace: true });
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const hashValue = location.hash.startsWith('#clipper?')
       ? location.hash.slice('#clipper?'.length)
       : location.hash.startsWith('#?')
@@ -938,6 +1005,9 @@ const MediaArchivePage: React.FC = () => {
     });
 
     navigate('/forum/media', { replace: true });
+    return () => {
+      cancelled = true;
+    };
   }, [location.hash, location.pathname, location.search, navigate]);
 
   useEffect(() => {

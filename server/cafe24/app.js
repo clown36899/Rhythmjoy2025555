@@ -57,6 +57,10 @@ const rawBody = express.raw({
   type: '*/*',
   limit: process.env.CAFE24_BODY_LIMIT || '50mb',
 });
+const urlencodedBody = express.urlencoded({
+  extended: false,
+  limit: process.env.CAFE24_SHARE_TARGET_BODY_LIMIT || '128kb',
+});
 const jsonBody = express.json({
   limit: process.env.CAFE24_BODY_LIMIT || '50mb',
 });
@@ -167,6 +171,82 @@ app.post('/api/invitations/validate', jsonBody, jsonRoute(cafe24ValidateInvitati
 app.delete('/api/invitations/:id', jsonBody, jsonRoute(cafe24DeleteInvitation));
 app.get('/api/billboard-manifest', jsonRoute(cafe24BillboardManifest));
 
+function compactShareTargetText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function trimShareTargetText(value) {
+  return String(value || '').trim();
+}
+
+function extractShareTargetUrl(value) {
+  const match = compactShareTargetText(value).match(/https?:\/\/[^\s"'<>]+/i);
+  return match ? match[0].replace(/[),.?!\]]+$/, '') : '';
+}
+
+function stripShareTargetUrl(value, url) {
+  let text = compactShareTargetText(value);
+  if (url) text = text.replace(url, ' ');
+  return compactShareTargetText(text.replace(/https?:\/\/[^\s"'<>]+/gi, ' '));
+}
+
+function buildShareTargetDraft(body = {}) {
+  const url = compactShareTargetText(body.url || body.add || body.link)
+    || extractShareTargetUrl(body.text)
+    || extractShareTargetUrl(body.title);
+  const title = compactShareTargetText(body.title);
+  const description = trimShareTargetText(stripShareTargetUrl(body.text, url));
+
+  return {
+    form: {
+      url,
+      title,
+      description,
+      authorName: '',
+      thumbnailUrl: '',
+      archiveBucket: 'reference',
+      collectionName: '',
+      tags: '',
+      danceGenre: '',
+      sourceContext: 'Android 공유',
+      publishedAt: '',
+    },
+    savedAt: Date.now(),
+    source: 'android-share',
+  };
+}
+
+function sendShareTargetBootstrap(req, res) {
+  const draft = buildShareTargetDraft(req.body || {});
+  const draftJson = JSON.stringify(draft).replace(/</g, '\\u003c');
+  res
+    .status(200)
+    .type('html')
+    .send(`<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>공유 저장 중</title>
+</head>
+<body>
+  <script>
+    (function () {
+      try {
+        var draft = ${draftJson};
+        if (draft && draft.form && (draft.form.url || draft.form.title || draft.form.description)) {
+          localStorage.setItem('swingenjoy:media-archive-pending-draft', JSON.stringify(draft));
+        }
+      } catch (error) {}
+      location.replace('/forum/media');
+    }());
+  </script>
+</body>
+</html>`);
+}
+
+app.post('/forum/media/share', urlencodedBody, sendShareTargetBootstrap);
+
 app.use('/uploads', express.static(uploadsDir, {
   etag: true,
   maxAge: '30d',
@@ -208,7 +288,8 @@ app.use((req, res, next) => {
   }
 
   const acceptsHtml = req.accepts(['html', 'json']) === 'html';
-  if (!acceptsHtml) {
+  const isPwaShareTarget = req.path === '/forum/media/share';
+  if (!acceptsHtml && !isPwaShareTarget) {
     next();
     return;
   }

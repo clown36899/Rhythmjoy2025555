@@ -139,7 +139,7 @@ export default function LinksPage() {
                             <div className="link-card-body">
                                 <div className="link-neon-icon">
                                     {link.image_url ? (
-                                        <img src={link.image_url} alt={link.title} />
+                                        <img src={link.image_url} alt={link.title} loading="lazy" referrerPolicy="no-referrer" />
                                     ) : (
                                         <div className="icon-placeholder">
                                             {link.title.charAt(0).toUpperCase()}

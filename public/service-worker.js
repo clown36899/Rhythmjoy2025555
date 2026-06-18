@@ -13,6 +13,9 @@ const runtimeRevision = indexPrecacheEntry?.revision || 'dev';
 const RUNTIME_CACHE_PREFIX = 'rhythmjoy-runtime-';
 const LEGACY_CACHE_PREFIX = 'rhythmjoy-cache-';
 const CACHE_NAME = `${RUNTIME_CACHE_PREFIX}${runtimeRevision}`;
+const SHARE_TARGET_CACHE = 'rhythmjoy-share-targets-v1';
+const SHARE_TARGET_PATH = '/__pwa-share-target/';
+const SHARE_TARGET_MAX_AGE_MS = 10 * 60 * 1000;
 // Last updated: 2026-06-11 (v56)
 self.addEventListener('install', (event) => {
   // Cache only the shell essentials. Build-specific cache names prevent stale Cafe24 HTML.
@@ -31,6 +34,84 @@ self.addEventListener('install', (event) => {
       })
   );
 });
+
+function compactShareValue(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function hasIncomingShareParams(url) {
+  return ['title', 'text', 'url', 'add', 'link'].some((key) => url.searchParams.has(key));
+}
+
+function hasUsefulSharePayload(payload) {
+  return Boolean(payload?.title || payload?.text || payload?.url);
+}
+
+async function readShareTargetPayload(request, url) {
+  const payload = {
+    title: compactShareValue(url.searchParams.get('title')),
+    text: compactShareValue(url.searchParams.get('text')),
+    url: compactShareValue(url.searchParams.get('url') || url.searchParams.get('add') || url.searchParams.get('link')),
+    savedAt: Date.now()
+  };
+
+  if (request.method === 'POST') {
+    try {
+      const formData = await request.formData();
+      payload.title = compactShareValue(formData.get('title')) || payload.title;
+      payload.text = compactShareValue(formData.get('text')) || payload.text;
+      payload.url = compactShareValue(formData.get('url') || formData.get('add') || formData.get('link')) || payload.url;
+    } catch (error) {
+      console.warn('[SW] Share target form parsing failed:', error);
+    }
+  }
+
+  return payload;
+}
+
+async function cleanupStoredShareTargets(cache) {
+  const requests = await cache.keys();
+  await Promise.all(requests.map(async (request) => {
+    try {
+      const response = await cache.match(request);
+      const payload = await response?.clone().json();
+      if (!payload?.savedAt || Date.now() - Number(payload.savedAt) > SHARE_TARGET_MAX_AGE_MS) {
+        await cache.delete(request);
+      }
+    } catch {
+      await cache.delete(request);
+    }
+  }));
+}
+
+async function handleShareTargetRequest(request, url) {
+  const payload = await readShareTargetPayload(request, url);
+  if (!hasUsefulSharePayload(payload)) {
+    return Response.redirect(new URL('/forum/media', self.location.origin).href, 303);
+  }
+
+  const shareId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const cache = await caches.open(SHARE_TARGET_CACHE);
+  await cleanupStoredShareTargets(cache);
+  await cache.put(
+    new Request(`${self.location.origin}${SHARE_TARGET_PATH}${shareId}`),
+    new Response(JSON.stringify(payload), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      }
+    })
+  );
+
+  return Response.redirect(new URL(`/forum/media/share?share_id=${encodeURIComponent(shareId)}`, self.location.origin).href, 303);
+}
+
+async function appShellFallback(response) {
+  if (response?.ok) return response;
+  const cached = await caches.match('/index.html');
+  if (cached) return cached;
+  return response;
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -59,6 +140,22 @@ self.addEventListener('activate', (event) => {
 // Fetch 이벤트 핸들러 - 네트워크 우선
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isShareTargetRoute = isSameOrigin && url.pathname === '/forum/media/share';
+
+  if (
+    isShareTargetRoute &&
+    (
+      event.request.method === 'POST' ||
+      (event.request.method === 'GET' && hasIncomingShareParams(url) && !url.searchParams.has('share_id'))
+    )
+  ) {
+    event.respondWith(handleShareTargetRequest(event.request, url));
+    if (event.stopImmediatePropagation) {
+      event.stopImmediatePropagation();
+    }
+    return;
+  }
 
   const isApiRequest =
     url.pathname.startsWith('/api/') ||
@@ -101,12 +198,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(freshNavigationRequest)
         .then(response => {
+          const contentType = response.headers.get('Content-Type') || '';
           // 성공 시 index.html 캐시 갱신
-          if (response.ok) {
+          if (response.ok && contentType.includes('text/html')) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone));
           }
-          return response;
+          return appShellFallback(response);
         })
         .catch(() => caches.match('/index.html'))
     );

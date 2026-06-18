@@ -11,6 +11,64 @@ interface LinkRegistrationModalProps {
     editLink?: SiteLink | null;
 }
 
+interface ThumbnailOption {
+    url: string;
+    label?: string;
+    source?: string;
+}
+
+const thumbnailSourceLabels: Record<string, string> = {
+    'og-image': '대표 이미지',
+    'meta-image': '페이지 대표 이미지',
+    'json-ld': '등록 이미지',
+    'image-src': '링크 이미지',
+    'preload-image': '페이지 이미지',
+    'page-image': '페이지 이미지',
+    'apple-touch-icon': '사이트 아이콘',
+    'favicon': '사이트 아이콘',
+    'favicon-fallback': '사이트 아이콘',
+    'direct-image': '원본 이미지',
+    'screenshot': '사이트 스크린샷'
+};
+
+const normalizeThumbnailOptions = (data: any): ThumbnailOption[] => {
+    const rawOptions = data?.thumbnail_options || data?.thumbnailOptions || [];
+    const options = Array.isArray(rawOptions) ? rawOptions : [];
+    const fallbackImage = typeof data?.image_url === 'string' ? data.image_url : '';
+    const seen = new Set<string>();
+
+    return [
+        ...options,
+        ...(fallbackImage ? [{ url: fallbackImage, label: '대표 이미지', source: 'fallback' }] : [])
+    ].reduce<ThumbnailOption[]>((acc, option) => {
+        const url = typeof option?.url === 'string' ? option.url.trim() : '';
+        if (!url || seen.has(url)) return acc;
+        seen.add(url);
+        acc.push({
+            url,
+            label: option.label || thumbnailSourceLabels[option.source] || '썸네일 후보',
+            source: option.source || 'candidate'
+        });
+        return acc;
+    }, []);
+};
+
+const isFetchableUrlInput = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (trimmed.length < 4 || /\s/.test(trimmed)) return false;
+
+    if (/^https?:\/\//i.test(trimmed)) {
+        try {
+            const hostname = new URL(trimmed).hostname;
+            return hostname === 'localhost' || hostname.includes('.');
+        } catch (_error) {
+            return false;
+        }
+    }
+
+    return /^[^\s/]+\.[^\s]{2,}/.test(trimmed);
+};
+
 export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ isOpen, onClose, onSuccess, categories, editLink }) => {
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
@@ -20,10 +78,13 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     const [isSubmitting, setSubmitting] = useState(false);
     const [isFetchingInfo, setIsFetchingInfo] = useState(false);
     const [ogImageUrl, setOgImageUrl] = useState(''); // Fallback 로고/썸네일 저장용
+    const [thumbnailOptions, setThumbnailOptions] = useState<ThumbnailOption[]>([]);
+    const [thumbnailFetchError, setThumbnailFetchError] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const lastFetchedUrlRef = React.useRef('');
 
     React.useEffect(() => {
         if (isOpen && editLink) {
@@ -33,7 +94,14 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setDescription(editLink.description || '');
             setCategory(editLink.category);
             setOgImageUrl(editLink.image_url || '');
+            setThumbnailOptions(editLink.image_url ? [{
+                url: editLink.image_url,
+                label: '현재 이미지',
+                source: 'saved'
+            }] : []);
+            setThumbnailFetchError('');
             setSelectedFile(null);
+            lastFetchedUrlRef.current = '';
         } else if (isOpen && !editLink) {
             setTitle('');
             setUrl('');
@@ -41,13 +109,14 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setDescription('');
             setCategory('');
             setOgImageUrl('');
+            setThumbnailOptions([]);
+            setThumbnailFetchError('');
             setSelectedFile(null);
+            lastFetchedUrlRef.current = '';
         }
     }, [isOpen, editLink]);
 
-    if (!isOpen) return null;
-
-    const handleAutoFetch = async () => {
+    const handleAutoFetch = React.useCallback(async (force = false) => {
         if (!url.trim()) return;
 
         let formattedUrl = url.trim();
@@ -56,32 +125,62 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setUrl(formattedUrl);
         }
 
+        if (!force && lastFetchedUrlRef.current === formattedUrl) return;
+        lastFetchedUrlRef.current = formattedUrl;
+
         setIsFetchingInfo(true);
+        setThumbnailFetchError('');
         try {
-            // 사이트 이름과 설정을 가져오기 위해 엣지 함수 호출 (thum.io 차단 문제로 바로 OG 이미지 활용)
-            const res = await fetch(`/api/fetch-og-image?url=${encodeURIComponent(formattedUrl)}`);
+            const res = await fetch('/api/fetch-og-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: formattedUrl })
+            });
             if (res.ok) {
                 const data = await res.json();
                 if (data.title && !title) setTitle(data.title);
                 if (data.description && !description) setDescription(data.description);
 
-                if (data.image_url) {
-                    setImageUrl(data.image_url);
-                    setOgImageUrl(data.image_url); // Fallback용 파싱된 로고/OG 이미지 저장
+                const options = normalizeThumbnailOptions(data);
+                setThumbnailOptions(options);
+
+                if (options.length > 0) {
+                    setImageUrl(options[0].url);
+                    setOgImageUrl(options[0].url);
                 } else {
-                    // 서버에서 못 찾았을 경우 에러 UI를 띄우기 위해 빈값 처리
                     setImageUrl('');
                     setOgImageUrl('');
+                    setThumbnailFetchError('선택 가능한 썸네일을 찾지 못했습니다.');
                 }
+            } else {
+                throw new Error(`metadata fetch failed: ${res.status}`);
             }
             setSelectedFile(null); // URL 자동 추출 시 사용자가 선택한 로컬 파일은 취소
         } catch (error) {
             console.error('Fetch error:', error);
-            // 메타데이터 가져오기 실패는 스크린샷 실패와 무관하므로 로깅만 수행
+            setThumbnailFetchError('썸네일 후보를 불러오지 못했습니다.');
         } finally {
             setTimeout(() => setIsFetchingInfo(false), 500); // UI 피드백을 위해 살짝 대기
         }
+    }, [description, title, url]);
+
+    React.useEffect(() => {
+        if (!isOpen || !isFetchableUrlInput(url)) return;
+
+        const timer = window.setTimeout(() => {
+            void handleAutoFetch(false);
+        }, 800);
+
+        return () => window.clearTimeout(timer);
+    }, [handleAutoFetch, isOpen, url]);
+
+    const selectThumbnailOption = (option: ThumbnailOption) => {
+        setImageUrl(option.url);
+        setOgImageUrl(option.url);
+        setSelectedFile(null);
     };
+
+    if (!isOpen) return null;
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -191,16 +290,32 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                     <form id="link-registration-form" onSubmit={handleSubmit} className="links-form">
                         <div className="form-group">
                             <label>사이트 주소 (URL) <span className="required-star">*</span></label>
-                            <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                onBlur={handleAutoFetch}
-                                placeholder="예: swingenjoy.com (입력 후 바깥을 클릭하면 썸네일을 자동 검색합니다)"
-                                required
-                                className="glass-input"
-                            />
+                            <div className="link-url-fetch-row">
+                                <input
+                                    type="text"
+                                    value={url}
+                                    onChange={(e) => {
+                                        setUrl(e.target.value);
+                                        setThumbnailFetchError('');
+                                    }}
+                                    onBlur={() => handleAutoFetch()}
+                                    placeholder="예: swingenjoy.com"
+                                    required
+                                    className="glass-input"
+                                />
+                                <button
+                                    type="button"
+                                    className="link-fetch-btn"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => handleAutoFetch(true)}
+                                    disabled={isFetchingInfo || !url.trim()}
+                                    title="썸네일 후보 검색"
+                                >
+                                    <i className={isFetchingInfo ? 'ri-loader-4-line ri-spin' : 'ri-search-eye-line'}></i>
+                                </button>
+                            </div>
                             {isFetchingInfo && <div className="input-hint" style={{ color: '#a855f7' }}>썸네일 자동 검색 중... <i className="ri-loader-4-line ri-spin"></i></div>}
+                            {!isFetchingInfo && thumbnailFetchError && <div className="input-hint input-hint-error">{thumbnailFetchError}</div>}
                         </div>
 
                         <div className="form-group">
@@ -231,6 +346,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                                         <img
                                             src={imageUrl}
                                             alt="썸네일 미리보기"
+                                            referrerPolicy="no-referrer"
                                             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', zIndex: 1 }}
                                             onError={(e) => {
                                                 // OG Image 로드 실패 시 안내 텍스트 표시
@@ -291,6 +407,38 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                                     onClick={(e) => e.stopPropagation()} // 라벨 클릭 이벤트 중복 방지
                                 />
                             </div>
+
+                            {thumbnailOptions.length > 0 && (
+                                <div className="thumbnail-options">
+                                    {thumbnailOptions.map((option, idx) => {
+                                        const label = option.label || thumbnailSourceLabels[option.source || ''] || '썸네일 후보';
+                                        const selected = imageUrl === option.url && !selectedFile;
+                                        return (
+                                            <button
+                                                type="button"
+                                                key={`${option.url}-${idx}`}
+                                                className={`thumbnail-option ${selected ? 'active' : ''}`}
+                                                onClick={() => selectThumbnailOption(option)}
+                                                title={label}
+                                            >
+                                                <span className="thumbnail-option-frame">
+                                                    <img
+                                                        src={option.url}
+                                                        alt={label}
+                                                        loading="lazy"
+                                                        referrerPolicy="no-referrer"
+                                                        onError={(e) => {
+                                                            e.currentTarget.style.display = 'none';
+                                                            e.currentTarget.parentElement?.classList.add('is-broken');
+                                                        }}
+                                                    />
+                                                </span>
+                                                <span className="thumbnail-option-label">{label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <input
