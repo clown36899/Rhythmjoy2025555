@@ -615,10 +615,7 @@ export default function CalendarPage() {
             if (todayEl) {
                 const todayRect = getSafeRect(todayEl);
                 if (todayRect) {
-                    const isDesktopCalendar = document.documentElement.clientWidth > 720;
-                    const todayBodyRect = isDesktopCalendar
-                        ? getSafeRect(todayEl.querySelector('.calendar-cell-fullscreen-body'))
-                        : null;
+                    const todayBodyRect = getSafeRect(todayEl.querySelector('.calendar-cell-fullscreen-body'));
                     const targetRect = todayBodyRect || todayRect;
                     const finalY = (targetRect.top + window.scrollY) - gridAbsoluteTop;
                     return Math.max(0, gridAbsoluteTop + finalY - headerBottom);
