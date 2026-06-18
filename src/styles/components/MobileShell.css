@@ -1416,17 +1416,20 @@
 
 .header-logo-domain {
   font-size: 11px;
+  line-height: 1.25;
   width: 100%;
   display: flex;
   justify-content: space-between;
   color: var(--text-tertiary);
   margin-top: min(0.3vw, 2px);
+  padding-bottom: 1px;
   font-weight: 500;
   opacity: 0.8;
 }
 
 .header-logo-domain span {
   display: inline-block;
+  line-height: inherit;
 }
 
 .header-simple-title-row {
