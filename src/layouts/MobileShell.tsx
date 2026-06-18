@@ -537,64 +537,66 @@ export const MobileShell: React.FC = () => {
               {/* 2. Calendar Page (Full Screen) */}
               {isCalendarPage && (
                 <div className="calendar-header-sample">
-                  <button
-                    className="header-hamburger-btn calendar-header-menu-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.dispatchEvent(new CustomEvent('openDrawer'));
-                    }}
-                    data-analytics-id="header_hamburger"
-                    data-analytics-type="action"
-                    data-analytics-title="사이드 메뉴"
-                    data-analytics-section="header"
-                    aria-label="사이드 메뉴"
-                  >
-                    <i className="ri-menu-line"></i>
-                  </button>
-
-                  <div className="calendar-header-title-control">
+                  <div className="calendar-header-main-cluster">
                     <button
-                      type="button"
-                      className="calendar-header-month-step"
-                      onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
-                      data-analytics-id="cal_prev_month_title"
+                      className="header-hamburger-btn calendar-header-menu-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.dispatchEvent(new CustomEvent('openDrawer'));
+                      }}
+                      data-analytics-id="header_hamburger"
                       data-analytics-type="action"
-                      data-analytics-title="이전 달 이동(캘린더 헤더)"
-                      data-analytics-section="header_calendar"
-                      aria-label="이전 달"
+                      data-analytics-title="사이드 메뉴"
+                      data-analytics-section="header"
+                      aria-label="사이드 메뉴"
                     >
-                      <i className="ri-arrow-left-s-line"></i>
+                      <i className="ri-menu-line"></i>
                     </button>
 
-                    <button
-                      type="button"
-                      className="calendar-header-title-lockup"
-                      onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
-                      data-analytics-id="cal_open_month_navigator_title"
-                      data-analytics-type="action"
-                      data-analytics-title="월 선택 열기(캘린더 헤더)"
-                      data-analytics-section="header_calendar"
-                      aria-label={`${calendarView.year}년 ${calendarView.month + 1}월 선택`}
-                    >
-                      <strong>
-                        <span>{calendarView.year}</span>
-                        <em>{String(calendarView.month + 1).padStart(2, '0')}</em>
-                      </strong>
-                      <small>캘린더</small>
-                    </button>
+                    <div className="calendar-header-title-control">
+                      <button
+                        type="button"
+                        className="calendar-header-month-step"
+                        onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
+                        data-analytics-id="cal_prev_month_title"
+                        data-analytics-type="action"
+                        data-analytics-title="이전 달 이동(캘린더 헤더)"
+                        data-analytics-section="header_calendar"
+                        aria-label="이전 달"
+                      >
+                        <i className="ri-arrow-left-s-line"></i>
+                      </button>
 
-                    <button
-                      type="button"
-                      className="calendar-header-month-step"
-                      onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
-                      data-analytics-id="cal_next_month_title"
-                      data-analytics-type="action"
-                      data-analytics-title="다음 달 이동(캘린더 헤더)"
-                      data-analytics-section="header_calendar"
-                      aria-label="다음 달"
-                    >
-                      <i className="ri-arrow-right-s-line"></i>
-                    </button>
+                      <button
+                        type="button"
+                        className="calendar-header-title-lockup"
+                        onClick={() => window.dispatchEvent(new CustomEvent('openCalendarNavigator'))}
+                        data-analytics-id="cal_open_month_navigator_title"
+                        data-analytics-type="action"
+                        data-analytics-title="월 선택 열기(캘린더 헤더)"
+                        data-analytics-section="header_calendar"
+                        aria-label={`${calendarView.year}년 ${calendarView.month + 1}월 선택`}
+                      >
+                        <strong>
+                          <span>{calendarView.year}년</span>
+                          <em>{calendarView.month + 1}월</em>
+                        </strong>
+                        <small>월 선택</small>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="calendar-header-month-step"
+                        onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
+                        data-analytics-id="cal_next_month_title"
+                        data-analytics-type="action"
+                        data-analytics-title="다음 달 이동(캘린더 헤더)"
+                        data-analytics-section="header_calendar"
+                        aria-label="다음 달"
+                      >
+                        <i className="ri-arrow-right-s-line"></i>
+                      </button>
+                    </div>
                   </div>
 
                   <button
@@ -609,40 +611,42 @@ export const MobileShell: React.FC = () => {
                     오늘
                   </button>
 
-                  <div className="calendar-header-view-switch" aria-label="캘린더 보기 방식">
-                    {([
-                      ['calendar', '캘린더'],
-                      ['list', '리스트'],
-                      ['map', '지도'],
-                    ] as const).map(([mode, label]) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        className={calendarHeaderDisplayMode === mode ? 'active' : ''}
-                        onClick={() => handleCalendarHeaderDisplayMode(mode)}
-                        aria-pressed={calendarHeaderDisplayMode === mode}
-                        title={`${label} 보기`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <div className="calendar-header-menu-cluster">
+                    <div className="calendar-header-view-switch" aria-label="캘린더 보기 방식">
+                      {([
+                        ['calendar', '캘린더'],
+                        ['list', '리스트'],
+                        ['map', '지도'],
+                      ] as const).map(([mode, label]) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={calendarHeaderDisplayMode === mode ? 'active' : ''}
+                          onClick={() => handleCalendarHeaderDisplayMode(mode)}
+                          aria-pressed={calendarHeaderDisplayMode === mode}
+                          title={`${label} 보기`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
 
-                  <div className="calendar-month-nav calendar-month-nav--sample">
-                    <button
-                      type="button"
-                      className="calendar-today-header-btn"
-                      onClick={() => {
-                        console.log('[MobileShell] Today button clicked, dispatching goToToday');
-                        window.dispatchEvent(new CustomEvent('goToToday'));
-                      }}
-                      data-analytics-id="cal_goto_today_btn"
-                      data-analytics-type="action"
-                      data-analytics-title="오늘로 이동"
-                      data-analytics-section="header_calendar"
-                    >
-                      오늘
-                    </button>
+                    <div className="calendar-month-nav calendar-month-nav--sample">
+                      <button
+                        type="button"
+                        className="calendar-today-header-btn"
+                        onClick={() => {
+                          console.log('[MobileShell] Today button clicked, dispatching goToToday');
+                          window.dispatchEvent(new CustomEvent('goToToday'));
+                        }}
+                        data-analytics-id="cal_goto_today_btn"
+                        data-analytics-type="action"
+                        data-analytics-title="오늘로 이동"
+                        data-analytics-section="header_calendar"
+                      >
+                        오늘
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
