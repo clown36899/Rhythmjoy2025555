@@ -388,6 +388,22 @@ function sourceOrderWeight(source) {
   return sourceTypeWeight.get(source.type) ?? 5;
 }
 
+function estimatedInstagramSourceBudgetMs(postCount = 1) {
+  const safePostCount = Math.max(1, Number(postCount) || 1);
+  const profileBudgetMs = instagramSourceDelayMs + sourceTimeoutMs + instagramProfileWaitMs + 3_000;
+  const perPostBudgetMs = instagramPostDelayMs + postTimeoutMs + postRequestTimeoutMs + imageFetchTimeoutMs + 2_000;
+  return profileBudgetMs + (safePostCount * perPostBudgetMs) + runDeadlineGuardMs();
+}
+
+function resolveInstagramPostLimit(linkCount = postLimit) {
+  const maxPosts = Math.max(1, Math.min(postLimit, Number(linkCount) || 0));
+  if (!runBudgetMs) return maxPosts;
+  for (let count = maxPosts; count >= 1; count -= 1) {
+    if (runRemainingMs() >= estimatedInstagramSourceBudgetMs(count)) return count;
+  }
+  return 0;
+}
+
 async function throttleInstagram(label, baseDelayMs) {
   if (!instagramSafeMode || !baseDelayMs) return;
   const elapsed = Date.now() - lastInstagramHitAt;
@@ -1137,6 +1153,7 @@ async function collectSource(page, source) {
   ensureRunBudgetOrThrow(`source ${source.id}`, runDeadlineGuardMs());
 
   if (source.type === 'instagram') {
+    ensureRunBudgetOrThrow(`instagram source ${source.id}`, estimatedInstagramSourceBudgetMs(1));
     if (instagramCircuitOpen) {
       recordInstagramCircuitSkip(source);
       return [];
@@ -1151,7 +1168,14 @@ async function collectSource(page, source) {
     }
     markInstagramProfileSuccess();
     const candidates = [];
-    for (const url of links.slice(0, postLimit)) {
+    const instagramPostLimit = resolveInstagramPostLimit(links.length);
+    if (instagramPostLimit <= 0) {
+      throw new RunBudgetReachedError(`instagram posts ${source.id}`);
+    }
+    if (instagramPostLimit < Math.min(postLimit, links.length)) {
+      log(`instagram post scan capped ${source.id}: ${instagramPostLimit}/${Math.min(postLimit, links.length)} remaining_ms=${runRemainingMs()}`);
+    }
+    for (const url of links.slice(0, instagramPostLimit)) {
       ensureRunBudgetOrThrow(`instagram post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       await throttleInstagram(`post ${source.id}`, instagramPostDelayMs);
       const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
@@ -1309,7 +1333,7 @@ async function main() {
         }
       } catch (error) {
         if (error instanceof RunBudgetReachedError) {
-          recordDeadlineReached(sources, sourceIndex + 1);
+          recordDeadlineReached(sources, sourceIndex);
           break;
         }
         throw error;
