@@ -257,6 +257,10 @@ function trimText(value?: string | null) {
   return String(value || '').trim();
 }
 
+function preventMediaArchiveDrag(event: React.DragEvent<HTMLElement>) {
+  event.preventDefault();
+}
+
 function truncateText(value?: string | null, maxLength = 64) {
   const text = compactText(value);
   if (text.length <= maxLength) return text;
@@ -619,7 +623,7 @@ const MediaEmbed: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
           data-instgrm-permalink={item.normalized_url}
           data-instgrm-version="14"
         >
-          <a href={item.normalized_url} target="_blank" rel="noreferrer">
+          <a href={item.normalized_url} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
             Instagram에서 보기
           </a>
         </blockquote>
@@ -628,7 +632,7 @@ const MediaEmbed: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
   }
 
   return (
-    <a className="media-link-fallback" href={item.normalized_url || item.url} target="_blank" rel="noreferrer">
+    <a className="media-link-fallback" href={item.normalized_url || item.url} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
       <i className="ri-external-link-line" />
       원본 열기
     </a>
@@ -699,7 +703,7 @@ const MediaCard: React.FC<{
       </div>
 
       <div className="media-card-actions">
-        <a href={originalUrl} target="_blank" rel="noreferrer">
+        <a href={originalUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
           <i className="ri-external-link-line" />
           원본
         </a>
@@ -921,7 +925,7 @@ const MediaItemEditPanel: React.FC<{
 const MediaMiniCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
   const originalUrl = item.normalized_url || item.url;
   return (
-    <a className="media-mini-card" href={originalUrl} target="_blank" rel="noreferrer">
+    <a className="media-mini-card" href={originalUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
       <span className="media-mini-thumb">
         {item.thumbnail_url ? (
           <img src={item.thumbnail_url} alt="" loading="lazy" draggable={false} />
@@ -1906,7 +1910,7 @@ const MediaArchivePage: React.FC = () => {
   };
 
   return (
-    <main className="media-archive-page">
+    <main className="media-archive-page" onDragStartCapture={preventMediaArchiveDrag}>
       <header className="media-archive-header">
         <button className="media-back-button" type="button" onClick={() => navigate('/forum')}>
           <i className="ri-arrow-left-line" />
