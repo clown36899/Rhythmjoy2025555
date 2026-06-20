@@ -35,6 +35,7 @@ export interface SnsMediaItem {
 export interface SnsMediaPlaylist {
   id: string;
   name: string;
+  parent_id?: string | null;
   description?: string | null;
   category?: string | null;
   dance_genre?: string | null;

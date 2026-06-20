@@ -128,6 +128,7 @@ const emptyForm = {
   archiveBucket: 'reference',
   playlistId: '',
   newPlaylistName: '',
+  newPlaylistParentId: '',
   collectionName: '',
   tags: '',
   danceGenre: '',
@@ -166,6 +167,7 @@ function normalizeMediaArchiveForm(value?: Partial<MediaArchiveForm> | null): Me
     archiveBucket: ARCHIVE_BUCKETS.some((item) => item.id === archiveBucket) ? archiveBucket : emptyForm.archiveBucket,
     playlistId: compactText(value?.playlistId),
     newPlaylistName: compactText(value?.newPlaylistName),
+    newPlaylistParentId: compactText(value?.newPlaylistParentId),
     collectionName: compactText(value?.collectionName),
     tags: compactText(value?.tags),
     danceGenre: compactText(value?.danceGenre),
@@ -270,6 +272,7 @@ function createArchiveEntityId(prefix: string) {
 
 const emptyPlaylistForm = {
   name: '',
+  parentId: '',
   description: '',
   category: '',
   danceGenre: '',
@@ -283,6 +286,7 @@ type MediaPlaylistForm = typeof emptyPlaylistForm;
 function playlistFormFromPlaylist(playlist: SnsMediaPlaylist): MediaPlaylistForm {
   return {
     name: compactText(playlist.name),
+    parentId: compactText(playlist.parent_id),
     description: trimText(playlist.description),
     category: compactText(playlist.category),
     danceGenre: compactText(playlist.dance_genre),
@@ -295,6 +299,7 @@ function playlistFormFromPlaylist(playlist: SnsMediaPlaylist): MediaPlaylistForm
 function buildPlaylistSearchText(playlist: Partial<SnsMediaPlaylist>) {
   return [
     playlist.name,
+    playlist.parent_id,
     playlist.description,
     playlist.category,
     playlist.dance_genre,
@@ -307,6 +312,75 @@ function getFormCollectionName(form: MediaArchiveForm, playlists: SnsMediaPlayli
   if (newPlaylistName) return newPlaylistName;
   const selectedPlaylist = preferredPlaylist || playlists.find((playlist) => playlist.id === form.playlistId);
   return compactText(selectedPlaylist?.name) || compactText(form.collectionName);
+}
+
+function getPlaylistParentId(playlist?: SnsMediaPlaylist | null) {
+  return compactText(playlist?.parent_id);
+}
+
+function sortPlaylistsByName(playlists: SnsMediaPlaylist[]) {
+  return [...playlists].sort((a, b) => compactText(a.name).localeCompare(compactText(b.name), 'ko'));
+}
+
+function getPlaylistPath(playlist: SnsMediaPlaylist, playlists: SnsMediaPlaylist[]) {
+  const byId = new Map(playlists.map((entry) => [entry.id, entry]));
+  const names: string[] = [];
+  const seen = new Set<string>();
+  let cursor: SnsMediaPlaylist | undefined = playlist;
+
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    names.unshift(compactText(cursor.name) || '이름 없음');
+    const parentId = getPlaylistParentId(cursor);
+    cursor = parentId ? byId.get(parentId) : undefined;
+  }
+
+  return names.join(' / ');
+}
+
+function isPlaylistDescendant(playlistId: string, ancestorId: string, playlists: SnsMediaPlaylist[]) {
+  if (!playlistId || !ancestorId) return false;
+  const byId = new Map(playlists.map((entry) => [entry.id, entry]));
+  const seen = new Set<string>();
+  let cursor = byId.get(playlistId);
+
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    const parentId = getPlaylistParentId(cursor);
+    if (parentId === ancestorId) return true;
+    cursor = parentId ? byId.get(parentId) : undefined;
+  }
+
+  return false;
+}
+
+function buildPlaylistTreeOptions(playlists: SnsMediaPlaylist[], excludedId = '') {
+  const allowed = playlists.filter((playlist) => (
+    playlist.id !== excludedId &&
+    !isPlaylistDescendant(playlist.id, excludedId, playlists)
+  ));
+  const byParent = new Map<string, SnsMediaPlaylist[]>();
+  allowed.forEach((playlist) => {
+    const parentId = getPlaylistParentId(playlist);
+    const parentExists = parentId && allowed.some((entry) => entry.id === parentId);
+    const key = parentExists ? parentId : '';
+    byParent.set(key, [...(byParent.get(key) || []), playlist]);
+  });
+
+  const result: Array<{ playlist: SnsMediaPlaylist; depth: number; path: string }> = [];
+  const visit = (parentId: string, depth: number, visited: Set<string>) => {
+    const children = sortPlaylistsByName(byParent.get(parentId) || []);
+    children.forEach((playlist) => {
+      if (visited.has(playlist.id)) return;
+      const nextVisited = new Set(visited);
+      nextVisited.add(playlist.id);
+      result.push({ playlist, depth, path: getPlaylistPath(playlist, playlists) });
+      visit(playlist.id, depth + 1, nextVisited);
+    });
+  };
+
+  visit('', 0, new Set());
+  return result;
 }
 
 function extractFirstUrl(value?: string | null) {
@@ -709,12 +783,14 @@ const MediaItemEditPanel: React.FC<{
   onClose: () => void;
   onSubmit: (event: React.FormEvent) => void;
 }> = ({ item, form, playlists, availableGenres, onChange, onClose, onSubmit }) => {
+  const playlistOptions = useMemo(() => buildPlaylistTreeOptions(playlists), [playlists]);
   const updateForm = (patch: Partial<MediaArchiveForm>) => onChange({ ...form, ...patch });
   const handlePlaylistChange = (playlistId: string) => {
     const playlist = playlists.find((entry) => entry.id === playlistId);
     updateForm({
       playlistId,
       newPlaylistName: '',
+      newPlaylistParentId: '',
       collectionName: playlist ? playlist.name : form.collectionName,
     });
   };
@@ -774,8 +850,8 @@ const MediaItemEditPanel: React.FC<{
             <span>재생목록</span>
             <select value={form.playlistId} onChange={(event) => handlePlaylistChange(event.target.value)}>
               <option value="">선택 안 함</option>
-              {playlists.map((playlist) => (
-                <option key={playlist.id} value={playlist.id}>{playlist.name}</option>
+              {playlistOptions.map(({ playlist, path }) => (
+                <option key={playlist.id} value={playlist.id}>{path}</option>
               ))}
             </select>
           </label>
@@ -786,6 +862,18 @@ const MediaItemEditPanel: React.FC<{
               onChange={(event) => updateForm({ newPlaylistName: event.target.value, playlistId: '' })}
               placeholder="바로 만들어 묶기"
             />
+          </label>
+          <label className="media-field media-field--wide">
+            <span>새 재생목록 위치</span>
+            <select
+              value={form.newPlaylistParentId}
+              onChange={(event) => updateForm({ newPlaylistParentId: event.target.value, playlistId: '' })}
+            >
+              <option value="">최상위</option>
+              {playlistOptions.map(({ playlist, path }) => (
+                <option key={playlist.id} value={playlist.id}>{path}</option>
+              ))}
+            </select>
           </label>
           <label className="media-field media-field--wide">
             <span>컬렉션 이름</span>
@@ -917,61 +1005,71 @@ const BucketArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
   );
 };
 
-interface PlaylistArchiveGroup {
+interface LegacyArchiveGroup {
   key: string;
   title: string;
   items: SnsMediaItem[];
-  playlist?: SnsMediaPlaylist;
-  description?: string | null;
-  category?: string | null;
-  danceGenre?: string | null;
-  tags?: string[];
 }
 
-function buildPlaylistArchiveGroups(items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
-  const groups = new Map<string, PlaylistArchiveGroup>();
-  const playlistsById = new Map(playlists.map((playlist) => [playlist.id, playlist]));
+function getPlaylistChildren(parentId: string, playlists: SnsMediaPlaylist[]) {
+  const playlistIds = new Set(playlists.map((playlist) => playlist.id));
+  return sortPlaylistsByName(playlists.filter((playlist) => {
+    const currentParentId = getPlaylistParentId(playlist);
+    if (parentId) return currentParentId === parentId;
+    return !currentParentId || !playlistIds.has(currentParentId);
+  }));
+}
 
-  playlists.forEach((playlist) => {
-    groups.set(`playlist:${playlist.id}`, {
-      key: `playlist:${playlist.id}`,
-      title: playlist.name,
-      items: [],
-      playlist,
-      description: playlist.description,
-      category: playlist.category,
-      danceGenre: playlist.dance_genre,
-      tags: playlist.tags || [],
-    });
-  });
+function getPlaylistBranchIds(playlistId: string, playlists: SnsMediaPlaylist[]) {
+  const ids = new Set<string>();
+  const visit = (id: string) => {
+    if (!id || ids.has(id)) return;
+    ids.add(id);
+    getPlaylistChildren(id, playlists).forEach((child) => visit(child.id));
+  };
+  visit(playlistId);
+  return ids;
+}
 
-  items.forEach((item) => {
-    const playlist = item.playlist_id ? playlistsById.get(item.playlist_id) : null;
-    if (playlist) {
-      const key = `playlist:${playlist.id}`;
-      const group = groups.get(key);
-      if (group) group.items.push(item);
-      return;
-    }
+function getPlaylistBranchItems(playlistId: string, items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
+  const branchIds = getPlaylistBranchIds(playlistId, playlists);
+  return items.filter((item) => item.playlist_id && branchIds.has(item.playlist_id));
+}
 
-    const title = compactText(item.collection_name) || '컬렉션 미지정';
-    const key = `collection:${title}`;
-    const group = groups.get(key) || {
-      key,
-      title,
-      items: [],
-    };
-    group.items.push(item);
-    groups.set(key, group);
-  });
+function getPlaylistDirectItems(playlistId: string, items: SnsMediaItem[]) {
+  return items.filter((item) => item.playlist_id === playlistId);
+}
 
-  return Array.from(groups.values()).sort((a, b) => {
+function buildLegacyArchiveGroups(items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
+  const playlistIds = new Set(playlists.map((playlist) => playlist.id));
+  return groupByKey(
+    items.filter((item) => !item.playlist_id || !playlistIds.has(item.playlist_id)),
+    (item) => compactText(item.collection_name) || '컬렉션 미지정',
+  ).map((group) => ({
+    key: `collection:${group.key}`,
+    title: group.key,
+    items: group.items,
+  })).sort((a, b) => {
     if (a.title === '컬렉션 미지정') return 1;
     if (b.title === '컬렉션 미지정') return -1;
-    if (a.playlist && !b.playlist) return -1;
-    if (!a.playlist && b.playlist) return 1;
     return b.items.length - a.items.length || a.title.localeCompare(b.title, 'ko');
   });
+}
+
+function getPlaylistBreadcrumbs(playlist: SnsMediaPlaylist, playlists: SnsMediaPlaylist[]) {
+  const byId = new Map(playlists.map((entry) => [entry.id, entry]));
+  const crumbs: SnsMediaPlaylist[] = [];
+  const seen = new Set<string>();
+  let cursor: SnsMediaPlaylist | undefined = playlist;
+
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    crumbs.unshift(cursor);
+    const parentId = getPlaylistParentId(cursor);
+    cursor = parentId ? byId.get(parentId) : undefined;
+  }
+
+  return crumbs;
 }
 
 const CollectionArchiveView: React.FC<{
@@ -980,94 +1078,176 @@ const CollectionArchiveView: React.FC<{
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
 }> = ({ items, playlists, canManagePlaylist, onEditPlaylist }) => {
-  const [activeGroupKey, setActiveGroupKey] = useState('');
-  const groups = useMemo(() => buildPlaylistArchiveGroups(items, playlists), [items, playlists]);
-  const activeGroup = groups.find((group) => group.key === activeGroupKey);
+  const [activePlaylistId, setActivePlaylistId] = useState('');
+  const [activeLegacyKey, setActiveLegacyKey] = useState('');
+  const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
+  const legacyGroups = useMemo(() => buildLegacyArchiveGroups(items, playlists), [items, playlists]);
+  const activeLegacyGroup = legacyGroups.find((group) => group.key === activeLegacyKey) || null;
+  const currentParentId = activePlaylist?.id || '';
+  const visiblePlaylists = useMemo(() => getPlaylistChildren(currentParentId, playlists), [currentParentId, playlists]);
+  const directItems = activePlaylist ? getPlaylistDirectItems(activePlaylist.id, items) : [];
+  const breadcrumbs = activePlaylist ? getPlaylistBreadcrumbs(activePlaylist, playlists) : [];
 
   useEffect(() => {
-    if (activeGroupKey && !activeGroup) setActiveGroupKey('');
-  }, [activeGroup, activeGroupKey]);
+    if (activePlaylistId && !activePlaylist) setActivePlaylistId('');
+  }, [activePlaylist, activePlaylistId]);
 
-  if (!groups.length) {
-    return <ModeEmptyState icon="ri-folder-3-line" title="재생목록이 없습니다" detail="장르, 분류, 강습 시리즈를 직접 만들어 카드를 묶을 수 있습니다." />;
-  }
+  useEffect(() => {
+    if (activeLegacyKey && !activeLegacyGroup) setActiveLegacyKey('');
+  }, [activeLegacyGroup, activeLegacyKey]);
 
-  if (activeGroup) {
+  const renderPlaylistCard = (playlist: SnsMediaPlaylist) => {
+    const childCount = getPlaylistChildren(playlist.id, playlists).length;
+    const branchItems = getPlaylistBranchItems(playlist.id, items, playlists);
+    const coverUrls = [
+      safeImageUrl(playlist.cover_url),
+      ...branchItems.map((item) => safeImageUrl(item.thumbnail_url)),
+    ].filter(Boolean).slice(0, 3);
+    const metadata = [
+      playlist.category,
+      playlist.dance_genre,
+      childCount ? `${childCount}개 하위` : '',
+      ...(playlist.tags || []).slice(0, 3),
+    ].filter(Boolean) as string[];
+
+    return (
+      <article key={playlist.id} className="media-collection-card media-collection-card--folder">
+        <div className="media-cover-stack">
+          {coverUrls.length ? coverUrls.map((url, index) => <img key={`${playlist.id}-${index}`} src={url} alt="" loading="lazy" draggable={false} />) : <i className="ri-folder-video-line" />}
+        </div>
+        <header>
+          <h2>{playlist.name}</h2>
+          <span>{branchItems.length}개</span>
+        </header>
+        {!!metadata.length && (
+          <div className="media-collection-meta">
+            {metadata.map((entry) => <span key={entry}>{entry}</span>)}
+          </div>
+        )}
+        {playlist.description && <p className="media-collection-description">{playlist.description}</p>}
+        <div className="media-mini-list">
+          {branchItems.slice(0, 4).map((item) => <MediaMiniCard key={item.id} item={item} />)}
+        </div>
+        <div className="media-collection-actions">
+          <button type="button" onClick={() => {
+            setActiveLegacyKey('');
+            setActivePlaylistId(playlist.id);
+          }}>
+            <i className="ri-folder-open-line" />
+            열기
+          </button>
+          {canManagePlaylist(playlist) && (
+            <button type="button" onClick={() => onEditPlaylist(playlist)}>
+              <i className="ri-edit-2-line" />
+              수정
+            </button>
+          )}
+        </div>
+      </article>
+    );
+  };
+
+  const renderLegacyCard = (group: LegacyArchiveGroup) => (
+    <article key={group.key} className="media-collection-card">
+      <div className="media-cover-stack">
+        {group.items.filter((item) => item.thumbnail_url).slice(0, 3).length ? (
+          group.items
+            .filter((item) => item.thumbnail_url)
+            .slice(0, 3)
+            .map((item) => <img key={item.id} src={item.thumbnail_url || ''} alt="" loading="lazy" draggable={false} />)
+        ) : <i className="ri-folder-video-line" />}
+      </div>
+      <header>
+        <h2>{group.title}</h2>
+        <span>{group.items.length}개</span>
+      </header>
+      <div className="media-mini-list">
+        {group.items.slice(0, 5).map((item) => <MediaMiniCard key={item.id} item={item} />)}
+      </div>
+      <div className="media-collection-actions">
+        <button type="button" onClick={() => {
+          setActivePlaylistId('');
+          setActiveLegacyKey(group.key);
+        }}>
+          <i className="ri-play-list-2-line" />
+          열기
+        </button>
+      </div>
+    </article>
+  );
+
+  if (activeLegacyGroup) {
     return (
       <section className="media-playlist-detail">
         <header className="media-playlist-detail-header">
-          <button type="button" className="media-icon-button" onClick={() => setActiveGroupKey('')} aria-label="재생목록 목록으로">
+          <button type="button" className="media-icon-button" onClick={() => setActiveLegacyKey('')} aria-label="재생목록 목록으로">
             <i className="ri-arrow-left-line" />
           </button>
           <div>
-            <p className="media-eyebrow">{activeGroup.playlist ? 'Playlist' : 'Collection'}</p>
-            <h2>{activeGroup.title}</h2>
-            <span>{activeGroup.items.length}개 카드</span>
+            <p className="media-eyebrow">Collection</p>
+            <h2>{activeLegacyGroup.title}</h2>
+            <span>{activeLegacyGroup.items.length}개 카드</span>
           </div>
-          {activeGroup.playlist && canManagePlaylist(activeGroup.playlist) && (
-            <button type="button" className="media-ghost-button" onClick={() => onEditPlaylist(activeGroup.playlist as SnsMediaPlaylist)}>
+        </header>
+        <div className="media-mini-grid media-mini-grid--detail">
+          {activeLegacyGroup.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+        </div>
+      </section>
+    );
+  }
+
+  if (!activePlaylist && !visiblePlaylists.length && !legacyGroups.length) {
+    return <ModeEmptyState icon="ri-folder-3-line" title="폴더가 없습니다" detail="댄스, 린디합, 패턴처럼 자유롭게 상위/하위 폴더를 만들 수 있습니다." />;
+  }
+
+  if (activePlaylist) {
+    return (
+      <section className="media-playlist-detail">
+        <nav className="media-playlist-breadcrumbs" aria-label="재생목록 경로">
+          <button type="button" onClick={() => setActivePlaylistId('')}>최상위</button>
+          {breadcrumbs.map((crumb) => (
+            <button key={crumb.id} type="button" className={crumb.id === activePlaylist.id ? 'active' : ''} onClick={() => setActivePlaylistId(crumb.id)}>
+              {crumb.name}
+            </button>
+          ))}
+        </nav>
+        <header className="media-playlist-detail-header">
+          <button type="button" className="media-icon-button" onClick={() => setActivePlaylistId(getPlaylistParentId(activePlaylist))} aria-label="상위 폴더로">
+            <i className="ri-arrow-left-line" />
+          </button>
+          <div>
+            <p className="media-eyebrow">Folder</p>
+            <h2>{activePlaylist.name}</h2>
+            <span>{getPlaylistBranchItems(activePlaylist.id, items, playlists).length}개 카드 · {visiblePlaylists.length}개 하위</span>
+          </div>
+          {canManagePlaylist(activePlaylist) && (
+            <button type="button" className="media-ghost-button" onClick={() => onEditPlaylist(activePlaylist)}>
               <i className="ri-edit-2-line" />
               수정
             </button>
           )}
         </header>
-        {activeGroup.description && <p className="media-playlist-description">{activeGroup.description}</p>}
-        {activeGroup.items.length ? (
-          <div className="media-mini-grid media-mini-grid--detail">
-            {activeGroup.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+        {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
+        {!!visiblePlaylists.length && (
+          <div className="media-collection-grid media-collection-grid--nested">
+            {visiblePlaylists.map(renderPlaylistCard)}
           </div>
-        ) : (
-          <ModeEmptyState icon="ri-inbox-line" title="아직 카드가 없습니다" detail="카드를 수정하면서 이 재생목록을 선택하면 여기에 모입니다." />
         )}
+        {directItems.length ? (
+          <div className="media-mini-grid media-mini-grid--detail">
+            {directItems.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+          </div>
+        ) : !visiblePlaylists.length ? (
+          <ModeEmptyState icon="ri-inbox-line" title="아직 카드가 없습니다" detail="카드를 수정하면서 이 폴더를 선택하면 여기에 모입니다." />
+        ) : null}
       </section>
     );
   }
 
   return (
     <section className="media-collection-grid">
-      {groups.map((group) => {
-        const coverUrls = [
-          safeImageUrl(group.playlist?.cover_url),
-          ...group.items.map((item) => safeImageUrl(item.thumbnail_url)),
-        ].filter(Boolean).slice(0, 3);
-        const metadata = [
-          group.category,
-          group.danceGenre,
-          ...(group.tags || []).slice(0, 3),
-        ].filter(Boolean) as string[];
-        return (
-          <article key={group.key} className="media-collection-card">
-            <div className="media-cover-stack">
-              {coverUrls.length ? coverUrls.map((url, index) => <img key={`${group.key}-${index}`} src={url} alt="" loading="lazy" draggable={false} />) : <i className="ri-folder-video-line" />}
-            </div>
-            <header>
-              <h2>{group.title}</h2>
-              <span>{group.items.length}개</span>
-            </header>
-            {!!metadata.length && (
-              <div className="media-collection-meta">
-                {metadata.map((entry) => <span key={entry}>{entry}</span>)}
-              </div>
-            )}
-            {group.description && <p className="media-collection-description">{group.description}</p>}
-            <div className="media-mini-list">
-              {group.items.slice(0, 5).map((item) => <MediaMiniCard key={item.id} item={item} />)}
-            </div>
-            <div className="media-collection-actions">
-              <button type="button" onClick={() => setActiveGroupKey(group.key)}>
-                <i className="ri-play-list-2-line" />
-                열기
-              </button>
-              {group.playlist && canManagePlaylist(group.playlist) && (
-                <button type="button" onClick={() => onEditPlaylist(group.playlist as SnsMediaPlaylist)}>
-                  <i className="ri-edit-2-line" />
-                  수정
-                </button>
-              )}
-            </div>
-          </article>
-        );
-      })}
+      {visiblePlaylists.map(renderPlaylistCard)}
+      {legacyGroups.map(renderLegacyCard)}
     </section>
   );
 };
@@ -1208,6 +1388,13 @@ const MediaArchivePage: React.FC = () => {
     const fromPlaylists = playlists.map((playlist) => playlist.dance_genre).filter(Boolean) as string[];
     return Array.from(new Set([...GENRE_PRESETS, ...fromItems, ...fromPlaylists])).sort((a, b) => a.localeCompare(b, 'ko'));
   }, [items, playlists]);
+
+  const playlistParentOptions = useMemo(
+    () => buildPlaylistTreeOptions(playlists, editingPlaylist?.id || ''),
+    [editingPlaylist?.id, playlists],
+  );
+
+  const playlistOptions = useMemo(() => buildPlaylistTreeOptions(playlists), [playlists]);
 
   const previewItem = useMemo<SnsMediaItem>(() => {
     const media = parsed || parseMediaUrl(form.url);
@@ -1461,6 +1648,7 @@ const MediaArchivePage: React.FC = () => {
     const payload: Partial<SnsMediaPlaylist> = {
       id: existing?.id || createMediaPlaylistId(),
       name,
+      parent_id: compactText(sourceForm.parentId) || null,
       description: trimText(sourceForm.description) || null,
       category: compactText(sourceForm.category) || null,
       dance_genre: compactText(sourceForm.danceGenre) || null,
@@ -1526,6 +1714,7 @@ const MediaArchivePage: React.FC = () => {
       return savePlaylistFromForm({
         ...emptyPlaylistForm,
         name: newPlaylistName,
+        parentId: compactText(sourceForm.newPlaylistParentId),
         category: compactText(sourceForm.collectionName),
         danceGenre: compactText(sourceForm.danceGenre),
         tags: sourceForm.tags,
@@ -1764,6 +1953,18 @@ const MediaArchivePage: React.FC = () => {
               />
             </label>
             <label className="media-field">
+              <span>상위 폴더</span>
+              <select
+                value={playlistForm.parentId}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, parentId: event.target.value }))}
+              >
+                <option value="">최상위</option>
+                {playlistParentOptions.map(({ playlist, path }) => (
+                  <option key={playlist.id} value={playlist.id}>{path}</option>
+                ))}
+              </select>
+            </label>
+            <label className="media-field">
               <span>분류</span>
               <input
                 value={playlistForm.category}
@@ -1904,13 +2105,14 @@ const MediaArchivePage: React.FC = () => {
                       ...prev,
                       playlistId: event.target.value,
                       newPlaylistName: '',
+                      newPlaylistParentId: '',
                       collectionName: playlist ? playlist.name : prev.collectionName,
                     }));
                   }}
                 >
                   <option value="">{playlistsLoading ? '불러오는 중...' : '선택 안 함'}</option>
-                  {playlists.map((playlist) => (
-                    <option key={playlist.id} value={playlist.id}>{playlist.name}</option>
+                  {playlistOptions.map(({ playlist, path }) => (
+                    <option key={playlist.id} value={playlist.id}>{path}</option>
                   ))}
                 </select>
               </label>
@@ -1921,6 +2123,18 @@ const MediaArchivePage: React.FC = () => {
                   onChange={(event) => setForm((prev) => ({ ...prev, newPlaylistName: event.target.value, playlistId: '' }))}
                   placeholder="저장하면서 만들기"
                 />
+              </label>
+              <label className="media-field media-field--wide">
+                <span>새 재생목록 위치</span>
+                <select
+                  value={form.newPlaylistParentId}
+                  onChange={(event) => setForm((prev) => ({ ...prev, newPlaylistParentId: event.target.value, playlistId: '' }))}
+                >
+                  <option value="">최상위</option>
+                  {playlistOptions.map(({ playlist, path }) => (
+                    <option key={playlist.id} value={playlist.id}>{path}</option>
+                  ))}
+                </select>
               </label>
               <label className="media-field media-field--wide">
                 <span>컬렉션 이름</span>
