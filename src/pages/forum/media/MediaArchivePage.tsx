@@ -1100,85 +1100,139 @@ const CollectionArchiveView: React.FC<{
     if (activeLegacyKey && !activeLegacyGroup) setActiveLegacyKey('');
   }, [activeLegacyGroup, activeLegacyKey]);
 
-  const renderPlaylistCard = (playlist: SnsMediaPlaylist) => {
+  const renderPlaylistRow = (playlist: SnsMediaPlaylist) => {
     const childCount = getPlaylistChildren(playlist.id, playlists).length;
     const branchItems = getPlaylistBranchItems(playlist.id, items, playlists);
-    const coverUrls = [
-      safeImageUrl(playlist.cover_url),
-      ...branchItems.map((item) => safeImageUrl(item.thumbnail_url)),
-    ].filter(Boolean).slice(0, 3);
     const metadata = [
       playlist.category,
       playlist.dance_genre,
-      childCount ? `${childCount}개 하위` : '',
       ...(playlist.tags || []).slice(0, 3),
     ].filter(Boolean) as string[];
 
     return (
-      <article key={playlist.id} className="media-collection-card media-collection-card--folder">
-        <div className="media-cover-stack">
-          {coverUrls.length ? coverUrls.map((url, index) => <img key={`${playlist.id}-${index}`} src={url} alt="" loading="lazy" draggable={false} />) : <i className="ri-folder-video-line" />}
-        </div>
-        <header>
-          <h2>{playlist.name}</h2>
-          <span>{branchItems.length}개</span>
-        </header>
-        {!!metadata.length && (
-          <div className="media-collection-meta">
-            {metadata.map((entry) => <span key={entry}>{entry}</span>)}
-          </div>
-        )}
-        {playlist.description && <p className="media-collection-description">{playlist.description}</p>}
-        <div className="media-mini-list">
-          {branchItems.slice(0, 4).map((item) => <MediaMiniCard key={item.id} item={item} />)}
-        </div>
-        <div className="media-collection-actions">
-          <button type="button" onClick={() => {
+      <article key={playlist.id} className="media-folder-row">
+        <button
+          type="button"
+          className="media-folder-row-main"
+          onClick={() => {
             setActiveLegacyKey('');
             setActivePlaylistId(playlist.id);
-          }}>
-            <i className="ri-folder-open-line" />
-            열기
+          }}
+        >
+          <span className="media-folder-row-icon"><i className="ri-folder-3-line" /></span>
+          <span className="media-folder-row-copy">
+            <strong>{playlist.name}</strong>
+            <small>{branchItems.length}개 카드{childCount ? ` · ${childCount}개 하위` : ''}</small>
+            {!!metadata.length && (
+              <span className="media-folder-row-tags">
+                {metadata.map((entry) => <span key={entry}>{entry}</span>)}
+              </span>
+            )}
+          </span>
+          <i className="ri-arrow-right-s-line" />
+        </button>
+        {canManagePlaylist(playlist) && (
+          <button type="button" className="media-folder-row-action" onClick={() => onEditPlaylist(playlist)} aria-label={`${playlist.name} 수정`}>
+            <i className="ri-edit-2-line" />
           </button>
-          {canManagePlaylist(playlist) && (
-            <button type="button" onClick={() => onEditPlaylist(playlist)}>
-              <i className="ri-edit-2-line" />
-              수정
-            </button>
-          )}
-        </div>
+        )}
       </article>
     );
   };
 
-  const renderLegacyCard = (group: LegacyArchiveGroup) => (
-    <article key={group.key} className="media-collection-card">
-      <div className="media-cover-stack">
-        {group.items.filter((item) => item.thumbnail_url).slice(0, 3).length ? (
-          group.items
-            .filter((item) => item.thumbnail_url)
-            .slice(0, 3)
-            .map((item) => <img key={item.id} src={item.thumbnail_url || ''} alt="" loading="lazy" draggable={false} />)
-        ) : <i className="ri-folder-video-line" />}
-      </div>
-      <header>
-        <h2>{group.title}</h2>
-        <span>{group.items.length}개</span>
-      </header>
-      <div className="media-mini-list">
-        {group.items.slice(0, 5).map((item) => <MediaMiniCard key={item.id} item={item} />)}
-      </div>
-      <div className="media-collection-actions">
-        <button type="button" onClick={() => {
+  const renderLegacyRow = (group: LegacyArchiveGroup) => (
+    <article key={group.key} className="media-folder-row media-folder-row--legacy">
+      <button
+        type="button"
+        className="media-folder-row-main"
+        onClick={() => {
           setActivePlaylistId('');
           setActiveLegacyKey(group.key);
-        }}>
-          <i className="ri-play-list-2-line" />
-          열기
-        </button>
-      </div>
+        }}
+      >
+        <span className="media-folder-row-icon"><i className="ri-stack-line" /></span>
+        <span className="media-folder-row-copy">
+          <strong>{group.title}</strong>
+          <small>{group.items.length}개 카드</small>
+        </span>
+        <i className="ri-arrow-right-s-line" />
+      </button>
     </article>
   );
+
+  const renderFolderList = (children: React.ReactNode) => (
+    <div className="media-folder-list">
+      {children}
+    </div>
+  );
+
+  const renderSectionHeader = (title: string, count: number) => (
+    <header className="media-folder-section-header">
+      <h3>{title}</h3>
+      <span>{count}개</span>
+    </header>
+  );
+
+  const renderPathTrail = () => (
+    <div className="media-folder-path-trail">
+      <button type="button" onClick={() => setActivePlaylistId('')}>최상위</button>
+      {breadcrumbs.map((crumb) => (
+        <button key={crumb.id} type="button" className={crumb.id === activePlaylist?.id ? 'active' : ''} onClick={() => setActivePlaylistId(crumb.id)}>
+          {crumb.name}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderActivePlaylist = () => {
+    if (!activePlaylist) return null;
+    const parentId = getPlaylistParentId(activePlaylist);
+    const parentPlaylist = parentId ? playlists.find((playlist) => playlist.id === parentId) : null;
+    const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
+
+    return (
+      <section className="media-playlist-detail">
+        <nav className="media-folder-path" aria-label="재생목록 경로">
+          <button type="button" className="media-folder-up-button" onClick={() => setActivePlaylistId(parentId)}>
+            <i className="ri-arrow-left-line" />
+            {parentPlaylist ? parentPlaylist.name : '최상위'}
+          </button>
+          {renderPathTrail()}
+        </nav>
+        <header className="media-playlist-detail-header">
+          <span className="media-folder-current-icon"><i className="ri-folder-open-line" /></span>
+          <div>
+            <p className="media-eyebrow">Folder</p>
+            <h2>{activePlaylist.name}</h2>
+            <span>{branchItems.length}개 카드 · {visiblePlaylists.length}개 하위</span>
+          </div>
+          {canManagePlaylist(activePlaylist) && (
+            <button type="button" className="media-ghost-button" onClick={() => onEditPlaylist(activePlaylist)}>
+              <i className="ri-edit-2-line" />
+              수정
+            </button>
+          )}
+        </header>
+        {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
+        {!!visiblePlaylists.length && (
+          <section className="media-folder-section">
+            {renderSectionHeader('하위 폴더', visiblePlaylists.length)}
+            {renderFolderList(visiblePlaylists.map(renderPlaylistRow))}
+          </section>
+        )}
+        {directItems.length ? (
+          <section className="media-folder-section">
+            {renderSectionHeader('영상 카드', directItems.length)}
+            <div className="media-mini-list media-mini-list--detail">
+              {directItems.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+            </div>
+          </section>
+        ) : !visiblePlaylists.length ? (
+          <ModeEmptyState icon="ri-inbox-line" title="아직 카드가 없습니다" detail="카드를 수정하면서 이 폴더를 선택하면 여기에 모입니다." />
+        ) : null}
+      </section>
+    );
+  };
 
   if (activeLegacyGroup) {
     return (
@@ -1205,53 +1259,24 @@ const CollectionArchiveView: React.FC<{
   }
 
   if (activePlaylist) {
-    return (
-      <section className="media-playlist-detail">
-        <nav className="media-playlist-breadcrumbs" aria-label="재생목록 경로">
-          <button type="button" onClick={() => setActivePlaylistId('')}>최상위</button>
-          {breadcrumbs.map((crumb) => (
-            <button key={crumb.id} type="button" className={crumb.id === activePlaylist.id ? 'active' : ''} onClick={() => setActivePlaylistId(crumb.id)}>
-              {crumb.name}
-            </button>
-          ))}
-        </nav>
-        <header className="media-playlist-detail-header">
-          <button type="button" className="media-icon-button" onClick={() => setActivePlaylistId(getPlaylistParentId(activePlaylist))} aria-label="상위 폴더로">
-            <i className="ri-arrow-left-line" />
-          </button>
-          <div>
-            <p className="media-eyebrow">Folder</p>
-            <h2>{activePlaylist.name}</h2>
-            <span>{getPlaylistBranchItems(activePlaylist.id, items, playlists).length}개 카드 · {visiblePlaylists.length}개 하위</span>
-          </div>
-          {canManagePlaylist(activePlaylist) && (
-            <button type="button" className="media-ghost-button" onClick={() => onEditPlaylist(activePlaylist)}>
-              <i className="ri-edit-2-line" />
-              수정
-            </button>
-          )}
-        </header>
-        {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
-        {!!visiblePlaylists.length && (
-          <div className="media-collection-grid media-collection-grid--nested">
-            {visiblePlaylists.map(renderPlaylistCard)}
-          </div>
-        )}
-        {directItems.length ? (
-          <div className="media-mini-grid media-mini-grid--detail">
-            {directItems.map((item) => <MediaMiniCard key={item.id} item={item} />)}
-          </div>
-        ) : !visiblePlaylists.length ? (
-          <ModeEmptyState icon="ri-inbox-line" title="아직 카드가 없습니다" detail="카드를 수정하면서 이 폴더를 선택하면 여기에 모입니다." />
-        ) : null}
-      </section>
-    );
+    return renderActivePlaylist();
   }
 
   return (
-    <section className="media-collection-grid">
-      {visiblePlaylists.map(renderPlaylistCard)}
-      {legacyGroups.map(renderLegacyCard)}
+    <section className="media-library-view">
+      <header className="media-library-header">
+        <div>
+          <p className="media-eyebrow">Library</p>
+          <h2>재생목록</h2>
+          <span>{visiblePlaylists.length}개 폴더 · {legacyGroups.length}개 컬렉션</span>
+        </div>
+      </header>
+      {renderFolderList(
+        <>
+          {visiblePlaylists.map(renderPlaylistRow)}
+          {legacyGroups.map(renderLegacyRow)}
+        </>,
+      )}
     </section>
   );
 };
