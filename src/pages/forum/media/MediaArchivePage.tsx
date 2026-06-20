@@ -11,6 +11,7 @@ import {
   type MediaPlatform,
   type MediaType,
   type SnsMediaItem,
+  type SnsMediaPlaylist,
 } from './mediaArchiveUtils';
 import './mediaArchive.css';
 
@@ -125,6 +126,8 @@ const emptyForm = {
   authorName: '',
   thumbnailUrl: '',
   archiveBucket: 'reference',
+  playlistId: '',
+  newPlaylistName: '',
   collectionName: '',
   tags: '',
   danceGenre: '',
@@ -161,6 +164,8 @@ function normalizeMediaArchiveForm(value?: Partial<MediaArchiveForm> | null): Me
     authorName: compactText(value?.authorName),
     thumbnailUrl: compactText(value?.thumbnailUrl),
     archiveBucket: ARCHIVE_BUCKETS.some((item) => item.id === archiveBucket) ? archiveBucket : emptyForm.archiveBucket,
+    playlistId: compactText(value?.playlistId),
+    newPlaylistName: compactText(value?.newPlaylistName),
     collectionName: compactText(value?.collectionName),
     tags: compactText(value?.tags),
     danceGenre: compactText(value?.danceGenre),
@@ -254,6 +259,54 @@ function truncateText(value?: string | null, maxLength = 64) {
   const text = compactText(value);
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+function createArchiveEntityId(prefix: string) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+const emptyPlaylistForm = {
+  name: '',
+  description: '',
+  category: '',
+  danceGenre: '',
+  tags: '',
+  coverUrl: '',
+  isPublic: false,
+};
+
+type MediaPlaylistForm = typeof emptyPlaylistForm;
+
+function playlistFormFromPlaylist(playlist: SnsMediaPlaylist): MediaPlaylistForm {
+  return {
+    name: compactText(playlist.name),
+    description: trimText(playlist.description),
+    category: compactText(playlist.category),
+    danceGenre: compactText(playlist.dance_genre),
+    tags: (playlist.tags || []).join(', '),
+    coverUrl: safeImageUrl(playlist.cover_url),
+    isPublic: Boolean(playlist.is_public),
+  };
+}
+
+function buildPlaylistSearchText(playlist: Partial<SnsMediaPlaylist>) {
+  return [
+    playlist.name,
+    playlist.description,
+    playlist.category,
+    playlist.dance_genre,
+    ...(playlist.tags || []),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function getFormCollectionName(form: MediaArchiveForm, playlists: SnsMediaPlaylist[], preferredPlaylist?: SnsMediaPlaylist | null) {
+  const newPlaylistName = compactText(form.newPlaylistName);
+  if (newPlaylistName) return newPlaylistName;
+  const selectedPlaylist = preferredPlaylist || playlists.find((playlist) => playlist.id === form.playlistId);
+  return compactText(selectedPlaylist?.name) || compactText(form.collectionName);
 }
 
 function extractFirstUrl(value?: string | null) {
@@ -427,10 +480,28 @@ function getLearningStageId(item: SnsMediaItem) {
 }
 
 function createMediaArchiveId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `media-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return createArchiveEntityId('media');
+}
+
+function createMediaPlaylistId() {
+  return createArchiveEntityId('playlist');
+}
+
+function formFromMediaItem(item: SnsMediaItem): MediaArchiveForm {
+  return normalizeMediaArchiveForm({
+    url: item.url || item.normalized_url,
+    title: item.title,
+    description: item.description,
+    authorName: item.author_name,
+    thumbnailUrl: item.thumbnail_url,
+    archiveBucket: item.archive_bucket || emptyForm.archiveBucket,
+    playlistId: item.playlist_id,
+    collectionName: item.collection_name,
+    tags: (item.tags || []).join(', '),
+    danceGenre: item.dance_genre,
+    sourceContext: item.source_context,
+    publishedAt: item.published_at,
+  });
 }
 
 function loadInstagramScript() {
@@ -493,9 +564,10 @@ const MediaEmbed: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
 const MediaCard: React.FC<{
   item: SnsMediaItem;
   canManage: boolean;
+  onEdit: (item: SnsMediaItem) => void;
   onApprove: (item: SnsMediaItem) => void;
   onDelete: (item: SnsMediaItem) => void;
-}> = ({ item, canManage, onApprove, onDelete }) => {
+}> = ({ item, canManage, onEdit, onApprove, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const dateLabel = item.published_at || item.created_at;
   const originalUrl = item.normalized_url || item.url;
@@ -557,6 +629,12 @@ const MediaCard: React.FC<{
           <i className="ri-external-link-line" />
           원본
         </a>
+        {canManage && (
+          <button type="button" onClick={() => onEdit(item)}>
+            <i className="ri-edit-2-line" />
+            수정
+          </button>
+        )}
         {canManage && !item.is_approved && (
           <button type="button" onClick={() => onApprove(item)}>
             <i className="ri-check-line" />
@@ -619,6 +697,136 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
         <span className="media-preview-action"><i className="ri-external-link-line" />원본</span>
       </div>
     </article>
+  );
+};
+
+const MediaItemEditPanel: React.FC<{
+  item: SnsMediaItem;
+  form: MediaArchiveForm;
+  playlists: SnsMediaPlaylist[];
+  availableGenres: string[];
+  onChange: (form: MediaArchiveForm) => void;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}> = ({ item, form, playlists, availableGenres, onChange, onClose, onSubmit }) => {
+  const updateForm = (patch: Partial<MediaArchiveForm>) => onChange({ ...form, ...patch });
+  const handlePlaylistChange = (playlistId: string) => {
+    const playlist = playlists.find((entry) => entry.id === playlistId);
+    updateForm({
+      playlistId,
+      newPlaylistName: '',
+      collectionName: playlist ? playlist.name : form.collectionName,
+    });
+  };
+
+  return (
+    <div className="media-modal-backdrop" role="dialog" aria-modal="true" aria-label="SNS 카드 수정">
+      <form className="media-edit-panel" onSubmit={onSubmit}>
+        <header className="media-edit-header">
+          <div>
+            <p className="media-eyebrow">Edit Archive</p>
+            <h2>{item.title || 'SNS 카드 수정'}</h2>
+          </div>
+          <button type="button" className="media-icon-button" onClick={onClose} aria-label="닫기">
+            <i className="ri-close-line" />
+          </button>
+        </header>
+
+        <div className="media-bucket-picker" aria-label="보관함 선택">
+          {ARCHIVE_BUCKETS.map((bucket) => (
+            <button
+              key={bucket.id}
+              type="button"
+              className={form.archiveBucket === bucket.id ? 'active' : ''}
+              onClick={() => updateForm({ archiveBucket: bucket.id })}
+            >
+              <i className={bucket.icon} />
+              {bucket.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="media-field-grid">
+          <label className="media-field media-field--wide">
+            <span>URL</span>
+            <input value={form.url} onChange={(event) => updateForm({ url: event.target.value })} required />
+          </label>
+          <label className="media-field">
+            <span>제목</span>
+            <input value={form.title} onChange={(event) => updateForm({ title: event.target.value })} />
+          </label>
+          <label className="media-field">
+            <span>작성자/채널</span>
+            <input value={form.authorName} onChange={(event) => updateForm({ authorName: event.target.value })} />
+          </label>
+          <label className="media-field">
+            <span>춤 장르</span>
+            <input value={form.danceGenre} onChange={(event) => updateForm({ danceGenre: event.target.value })} list="media-edit-genre-presets" />
+            <datalist id="media-edit-genre-presets">
+              {availableGenres.map((genreName) => <option key={genreName} value={genreName} />)}
+            </datalist>
+          </label>
+          <label className="media-field">
+            <span>날짜</span>
+            <input type="date" value={form.publishedAt} onChange={(event) => updateForm({ publishedAt: event.target.value })} />
+          </label>
+          <label className="media-field">
+            <span>재생목록</span>
+            <select value={form.playlistId} onChange={(event) => handlePlaylistChange(event.target.value)}>
+              <option value="">선택 안 함</option>
+              {playlists.map((playlist) => (
+                <option key={playlist.id} value={playlist.id}>{playlist.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="media-field">
+            <span>새 재생목록</span>
+            <input
+              value={form.newPlaylistName}
+              onChange={(event) => updateForm({ newPlaylistName: event.target.value, playlistId: '' })}
+              placeholder="바로 만들어 묶기"
+            />
+          </label>
+          <label className="media-field media-field--wide">
+            <span>컬렉션 이름</span>
+            <input
+              value={form.collectionName}
+              onChange={(event) => updateForm({ collectionName: event.target.value })}
+              placeholder="재생목록을 쓰지 않는 임시 묶음 이름"
+            />
+          </label>
+          <label className="media-field media-field--wide">
+            <span>검색 태그</span>
+            <input value={form.tags} onChange={(event) => updateForm({ tags: event.target.value })} />
+          </label>
+          <label className="media-field media-field--wide">
+            <span>원본 설명 / 메모</span>
+            <textarea value={form.description} onChange={(event) => updateForm({ description: event.target.value })} rows={4} />
+          </label>
+          <details className="media-advanced-fields">
+            <summary>고급 정보</summary>
+            <div className="media-field-grid">
+              <label className="media-field media-field--wide">
+                <span>썸네일 URL</span>
+                <input value={form.thumbnailUrl} onChange={(event) => updateForm({ thumbnailUrl: event.target.value })} />
+              </label>
+              <label className="media-field media-field--wide">
+                <span>출처 맥락</span>
+                <input value={form.sourceContext} onChange={(event) => updateForm({ sourceContext: event.target.value })} />
+              </label>
+            </div>
+          </details>
+        </div>
+
+        <div className="media-edit-actions">
+          <button type="button" onClick={onClose}>취소</button>
+          <button type="submit" className="media-save-button">
+            <i className="ri-save-3-line" />
+            수정 저장
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 
@@ -709,33 +917,153 @@ const BucketArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
   );
 };
 
-const CollectionArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
-  const groups = groupByKey(items, (item) => compactText(item.collection_name) || '컬렉션 미지정')
-    .sort((a, b) => {
-      if (a.key === '컬렉션 미지정') return 1;
-      if (b.key === '컬렉션 미지정') return -1;
-      return b.items.length - a.items.length || a.key.localeCompare(b.key, 'ko');
+interface PlaylistArchiveGroup {
+  key: string;
+  title: string;
+  items: SnsMediaItem[];
+  playlist?: SnsMediaPlaylist;
+  description?: string | null;
+  category?: string | null;
+  danceGenre?: string | null;
+  tags?: string[];
+}
+
+function buildPlaylistArchiveGroups(items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
+  const groups = new Map<string, PlaylistArchiveGroup>();
+  const playlistsById = new Map(playlists.map((playlist) => [playlist.id, playlist]));
+
+  playlists.forEach((playlist) => {
+    groups.set(`playlist:${playlist.id}`, {
+      key: `playlist:${playlist.id}`,
+      title: playlist.name,
+      items: [],
+      playlist,
+      description: playlist.description,
+      category: playlist.category,
+      danceGenre: playlist.dance_genre,
+      tags: playlist.tags || [],
     });
+  });
+
+  items.forEach((item) => {
+    const playlist = item.playlist_id ? playlistsById.get(item.playlist_id) : null;
+    if (playlist) {
+      const key = `playlist:${playlist.id}`;
+      const group = groups.get(key);
+      if (group) group.items.push(item);
+      return;
+    }
+
+    const title = compactText(item.collection_name) || '컬렉션 미지정';
+    const key = `collection:${title}`;
+    const group = groups.get(key) || {
+      key,
+      title,
+      items: [],
+    };
+    group.items.push(item);
+    groups.set(key, group);
+  });
+
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.title === '컬렉션 미지정') return 1;
+    if (b.title === '컬렉션 미지정') return -1;
+    if (a.playlist && !b.playlist) return -1;
+    if (!a.playlist && b.playlist) return 1;
+    return b.items.length - a.items.length || a.title.localeCompare(b.title, 'ko');
+  });
+}
+
+const CollectionArchiveView: React.FC<{
+  items: SnsMediaItem[];
+  playlists: SnsMediaPlaylist[];
+  canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
+  onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
+}> = ({ items, playlists, canManagePlaylist, onEditPlaylist }) => {
+  const [activeGroupKey, setActiveGroupKey] = useState('');
+  const groups = useMemo(() => buildPlaylistArchiveGroups(items, playlists), [items, playlists]);
+  const activeGroup = groups.find((group) => group.key === activeGroupKey);
+
+  useEffect(() => {
+    if (activeGroupKey && !activeGroup) setActiveGroupKey('');
+  }, [activeGroup, activeGroupKey]);
 
   if (!groups.length) {
-    return <ModeEmptyState icon="ri-folder-3-line" title="컬렉션이 없습니다" detail="같은 안무, 인물, 강습 시리즈를 한 이름으로 묶을 수 있습니다." />;
+    return <ModeEmptyState icon="ri-folder-3-line" title="재생목록이 없습니다" detail="장르, 분류, 강습 시리즈를 직접 만들어 카드를 묶을 수 있습니다." />;
+  }
+
+  if (activeGroup) {
+    return (
+      <section className="media-playlist-detail">
+        <header className="media-playlist-detail-header">
+          <button type="button" className="media-icon-button" onClick={() => setActiveGroupKey('')} aria-label="재생목록 목록으로">
+            <i className="ri-arrow-left-line" />
+          </button>
+          <div>
+            <p className="media-eyebrow">{activeGroup.playlist ? 'Playlist' : 'Collection'}</p>
+            <h2>{activeGroup.title}</h2>
+            <span>{activeGroup.items.length}개 카드</span>
+          </div>
+          {activeGroup.playlist && canManagePlaylist(activeGroup.playlist) && (
+            <button type="button" className="media-ghost-button" onClick={() => onEditPlaylist(activeGroup.playlist as SnsMediaPlaylist)}>
+              <i className="ri-edit-2-line" />
+              수정
+            </button>
+          )}
+        </header>
+        {activeGroup.description && <p className="media-playlist-description">{activeGroup.description}</p>}
+        {activeGroup.items.length ? (
+          <div className="media-mini-grid media-mini-grid--detail">
+            {activeGroup.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+          </div>
+        ) : (
+          <ModeEmptyState icon="ri-inbox-line" title="아직 카드가 없습니다" detail="카드를 수정하면서 이 재생목록을 선택하면 여기에 모입니다." />
+        )}
+      </section>
+    );
   }
 
   return (
     <section className="media-collection-grid">
       {groups.map((group) => {
-        const covers = group.items.filter((item) => item.thumbnail_url).slice(0, 3);
+        const coverUrls = [
+          safeImageUrl(group.playlist?.cover_url),
+          ...group.items.map((item) => safeImageUrl(item.thumbnail_url)),
+        ].filter(Boolean).slice(0, 3);
+        const metadata = [
+          group.category,
+          group.danceGenre,
+          ...(group.tags || []).slice(0, 3),
+        ].filter(Boolean) as string[];
         return (
           <article key={group.key} className="media-collection-card">
             <div className="media-cover-stack">
-              {covers.length ? covers.map((item) => <img key={item.id} src={item.thumbnail_url || ''} alt="" loading="lazy" draggable={false} />) : <i className="ri-folder-video-line" />}
+              {coverUrls.length ? coverUrls.map((url, index) => <img key={`${group.key}-${index}`} src={url} alt="" loading="lazy" draggable={false} />) : <i className="ri-folder-video-line" />}
             </div>
             <header>
-              <h2>{group.key}</h2>
+              <h2>{group.title}</h2>
               <span>{group.items.length}개</span>
             </header>
+            {!!metadata.length && (
+              <div className="media-collection-meta">
+                {metadata.map((entry) => <span key={entry}>{entry}</span>)}
+              </div>
+            )}
+            {group.description && <p className="media-collection-description">{group.description}</p>}
             <div className="media-mini-list">
               {group.items.slice(0, 5).map((item) => <MediaMiniCard key={item.id} item={item} />)}
+            </div>
+            <div className="media-collection-actions">
+              <button type="button" onClick={() => setActiveGroupKey(group.key)}>
+                <i className="ri-play-list-2-line" />
+                열기
+              </button>
+              {group.playlist && canManagePlaylist(group.playlist) && (
+                <button type="button" onClick={() => onEditPlaylist(group.playlist as SnsMediaPlaylist)}>
+                  <i className="ri-edit-2-line" />
+                  수정
+                </button>
+              )}
             </div>
           </article>
         );
@@ -848,7 +1176,9 @@ const MediaArchivePage: React.FC = () => {
   const location = useLocation();
   const { user, isAdmin, userProfile, signInWithKakao } = useAuth();
   const [items, setItems] = useState<SnsMediaItem[]>([]);
+  const [playlists, setPlaylists] = useState<SnsMediaPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playlistsLoading, setPlaylistsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
@@ -859,7 +1189,12 @@ const MediaArchivePage: React.FC = () => {
   const [archiveBucketFilter, setArchiveBucketFilter] = useState('all');
   const [viewMode, setViewMode] = useState<ArchiveViewMode>('grid');
   const [showForm, setShowForm] = useState(false);
+  const [showPlaylistForm, setShowPlaylistForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [playlistForm, setPlaylistForm] = useState<MediaPlaylistForm>(emptyPlaylistForm);
+  const [editingPlaylist, setEditingPlaylist] = useState<SnsMediaPlaylist | null>(null);
+  const [editingItem, setEditingItem] = useState<SnsMediaItem | null>(null);
+  const [editForm, setEditForm] = useState<MediaArchiveForm>(emptyForm);
   const [draftNotice, setDraftNotice] = useState('');
   const [parsed, setParsed] = useState(() => parseMediaUrl(''));
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -870,8 +1205,9 @@ const MediaArchivePage: React.FC = () => {
 
   const availableGenres = useMemo(() => {
     const fromItems = items.map((item) => item.dance_genre).filter(Boolean) as string[];
-    return Array.from(new Set([...GENRE_PRESETS, ...fromItems])).sort((a, b) => a.localeCompare(b, 'ko'));
-  }, [items]);
+    const fromPlaylists = playlists.map((playlist) => playlist.dance_genre).filter(Boolean) as string[];
+    return Array.from(new Set([...GENRE_PRESETS, ...fromItems, ...fromPlaylists])).sort((a, b) => a.localeCompare(b, 'ko'));
+  }, [items, playlists]);
 
   const previewItem = useMemo<SnsMediaItem>(() => {
     const media = parsed || parseMediaUrl(form.url);
@@ -890,7 +1226,8 @@ const MediaArchivePage: React.FC = () => {
       thumbnail_url: thumbnailUrl,
       embed_url: media?.embed_url || null,
       archive_bucket: form.archiveBucket,
-      collection_name: form.collectionName.trim() || null,
+      playlist_id: form.playlistId || null,
+      collection_name: getFormCollectionName(form, playlists) || null,
       description: form.description.trim() || null,
       author_name: form.authorName.trim() || null,
       tags,
@@ -903,7 +1240,7 @@ const MediaArchivePage: React.FC = () => {
       published_at: form.publishedAt || null,
       search_text: '',
     };
-  }, [form, parsed]);
+  }, [form, parsed, playlists]);
 
   const fetchItems = useCallback(async (nextPage = 0, append = false) => {
     if (append) setLoadingMore(true);
@@ -938,9 +1275,30 @@ const MediaArchivePage: React.FC = () => {
     }
   }, [archiveBucketFilter, genre, platform, submittedQuery]);
 
+  const fetchPlaylists = useCallback(async () => {
+    setPlaylistsLoading(true);
+    try {
+      const { data, error } = await cafe24
+        .from('sns_media_playlists')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      setPlaylists((data || []) as SnsMediaPlaylist[]);
+    } catch (error) {
+      console.error('[MediaArchive] playlist fetch failed:', error);
+      setPlaylists([]);
+    } finally {
+      setPlaylistsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchItems(0, false);
   }, [fetchItems]);
+
+  useEffect(() => {
+    fetchPlaylists();
+  }, [fetchPlaylists]);
 
   useEffect(() => {
     const node = sentinelRef.current;
@@ -1068,6 +1426,174 @@ const MediaArchivePage: React.FC = () => {
     setShowForm(true);
   };
 
+  const resetPlaylistForm = () => {
+    setPlaylistForm(emptyPlaylistForm);
+    setEditingPlaylist(null);
+  };
+
+  const handleTogglePlaylistForm = () => {
+    if (showPlaylistForm) {
+      setShowPlaylistForm(false);
+      resetPlaylistForm();
+      return;
+    }
+    setShowPlaylistForm(true);
+  };
+
+  const canManagePlaylist = useCallback((playlist: SnsMediaPlaylist) => (
+    Boolean(isAdmin || playlist.created_by === user?.id || playlist.owner_id === user?.id)
+  ), [isAdmin, user?.id]);
+
+  const savePlaylistFromForm = async (sourceForm: MediaPlaylistForm, existing?: SnsMediaPlaylist | null) => {
+    if (!user) {
+      await signInWithKakao();
+      return null;
+    }
+
+    const name = compactText(sourceForm.name);
+    if (!name) {
+      alert('재생목록 이름을 입력해주세요.');
+      return null;
+    }
+
+    const tags = normalizeTags(sourceForm.tags);
+    const now = new Date().toISOString();
+    const payload: Partial<SnsMediaPlaylist> = {
+      id: existing?.id || createMediaPlaylistId(),
+      name,
+      description: trimText(sourceForm.description) || null,
+      category: compactText(sourceForm.category) || null,
+      dance_genre: compactText(sourceForm.danceGenre) || null,
+      tags,
+      tags_text: tags.join(', '),
+      cover_url: safeImageUrl(sourceForm.coverUrl) || null,
+      is_public: Boolean(sourceForm.isPublic),
+      owner_id: existing?.owner_id || user.id,
+      created_by: existing?.created_by || user.id,
+      created_by_name: existing?.created_by_name || getDisplayName(user, userProfile?.nickname),
+      updated_at: now,
+    };
+    payload.search_text = buildPlaylistSearchText(payload).slice(0, 2000);
+
+    const result = existing
+      ? await cafe24.from('sns_media_playlists').update(payload).eq('id', existing.id)
+      : await cafe24.from('sns_media_playlists').insert(payload);
+
+    if (result.error) throw result.error;
+
+    if (existing) {
+      const relabelResult = await cafe24
+        .from('sns_media_items')
+        .update({ collection_name: name, updated_at: now })
+        .eq('playlist_id', existing.id);
+      if (relabelResult.error) {
+        console.warn('[MediaArchive] playlist item relabel failed:', relabelResult.error);
+      }
+    }
+
+    const saved = payload as SnsMediaPlaylist;
+    setPlaylists((prev) => {
+      const next = prev.filter((playlist) => playlist.id !== saved.id);
+      return [saved, ...next];
+    });
+    return saved;
+  };
+
+  const handlePlaylistSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      const saved = await savePlaylistFromForm(playlistForm, editingPlaylist);
+      if (!saved) return;
+      setShowPlaylistForm(false);
+      resetPlaylistForm();
+      await fetchPlaylists();
+      await fetchItems(0, false);
+    } catch (error) {
+      console.error('[MediaArchive] playlist save failed:', error);
+      alert('재생목록 저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleEditPlaylist = (playlist: SnsMediaPlaylist) => {
+    setEditingPlaylist(playlist);
+    setPlaylistForm(playlistFormFromPlaylist(playlist));
+    setShowPlaylistForm(true);
+  };
+
+  const resolveFormPlaylist = async (sourceForm: MediaArchiveForm) => {
+    const newPlaylistName = compactText(sourceForm.newPlaylistName);
+    if (newPlaylistName) {
+      return savePlaylistFromForm({
+        ...emptyPlaylistForm,
+        name: newPlaylistName,
+        category: compactText(sourceForm.collectionName),
+        danceGenre: compactText(sourceForm.danceGenre),
+        tags: sourceForm.tags,
+      });
+    }
+    return playlists.find((playlist) => playlist.id === sourceForm.playlistId) || null;
+  };
+
+  const handleEditItem = (item: SnsMediaItem) => {
+    setEditingItem(item);
+    setEditForm(formFromMediaItem(item));
+  };
+
+  const handleItemEditSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingItem || !user) return;
+
+    const media = parseMediaUrl(editForm.url);
+    if (!media) {
+      alert('유튜브나 인스타그램 URL을 확인해주세요.');
+      return;
+    }
+
+    try {
+      const playlist = await resolveFormPlaylist(editForm);
+      const titleFallback = media.platform === 'instagram'
+        ? truncateText(editForm.description, 68) || `${platformLabel(media.platform)} ${mediaTypeLabel(media.media_type)}`
+        : `${platformLabel(media.platform)} ${mediaTypeLabel(media.media_type)}`;
+      const title = isGenericImportedTitle(editForm.title, media.platform)
+        ? titleFallback
+        : editForm.title.trim() || titleFallback;
+      const tags = normalizeTags(editForm.tags);
+      const payload: Partial<SnsMediaItem> = {
+        ...media,
+        title,
+        url: editForm.url.trim(),
+        description: editForm.description.trim() || null,
+        author_name: editForm.authorName.trim() || null,
+        thumbnail_url: safeImageUrl(editForm.thumbnailUrl) || media.thumbnail_url,
+        tags,
+        tags_text: tags.join(', '),
+        archive_bucket: editForm.archiveBucket,
+        playlist_id: playlist?.id || editForm.playlistId || null,
+        collection_name: getFormCollectionName(editForm, playlists, playlist) || null,
+        dance_genre: editForm.danceGenre.trim() || null,
+        source_context: editForm.sourceContext.trim() || null,
+        published_at: editForm.publishedAt || null,
+        updated_at: new Date().toISOString(),
+        search_text: '',
+      };
+      payload.search_text = buildSearchText(payload).slice(0, 2000);
+
+      const { error } = await cafe24
+        .from('sns_media_items')
+        .update(payload)
+        .eq('id', editingItem.id);
+      if (error) throw error;
+
+      setEditingItem(null);
+      setEditForm(emptyForm);
+      await fetchPlaylists();
+      await fetchItems(0, false);
+    } catch (error) {
+      console.error('[MediaArchive] item update failed:', error);
+      alert('수정 저장 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) {
@@ -1082,50 +1608,53 @@ const MediaArchivePage: React.FC = () => {
       return;
     }
 
-    const titleFallback = media.platform === 'instagram'
-      ? truncateText(form.description, 68) || `${platformLabel(media.platform)} ${mediaTypeLabel(media.media_type)}`
-      : `${platformLabel(media.platform)} ${mediaTypeLabel(media.media_type)}`;
-    const title = isGenericImportedTitle(form.title, media.platform)
-      ? titleFallback
-      : form.title.trim() || titleFallback;
-    const tags = normalizeTags(form.tags);
-    const now = new Date().toISOString();
-    const payload: Partial<SnsMediaItem> = {
-      ...media,
-      id: createMediaArchiveId(),
-      title,
-      url: form.url.trim(),
-      description: form.description.trim() || null,
-      author_name: form.authorName.trim() || null,
-      thumbnail_url: safeImageUrl(form.thumbnailUrl) || media.thumbnail_url,
-      tags,
-      tags_text: tags.join(', '),
-      archive_bucket: form.archiveBucket,
-      collection_name: form.collectionName.trim() || null,
-      dance_genre: form.danceGenre.trim() || null,
-      source_context: form.sourceContext.trim() || null,
-      created_by: user.id,
-      created_by_name: getDisplayName(user, userProfile?.nickname),
-      published_at: form.publishedAt || null,
-      updated_at: now,
-      search_text: '',
-    } as Partial<SnsMediaItem>;
-
-    payload.search_text = buildSearchText(payload).slice(0, 2000);
-
-    if (isAdmin) {
-      payload.is_approved = true;
-      payload.approved_at = now;
-      payload.approved_by = user.id;
-    }
-
     try {
+      const playlist = await resolveFormPlaylist(form);
+      const titleFallback = media.platform === 'instagram'
+        ? truncateText(form.description, 68) || `${platformLabel(media.platform)} ${mediaTypeLabel(media.media_type)}`
+        : `${platformLabel(media.platform)} ${mediaTypeLabel(media.media_type)}`;
+      const title = isGenericImportedTitle(form.title, media.platform)
+        ? titleFallback
+        : form.title.trim() || titleFallback;
+      const tags = normalizeTags(form.tags);
+      const now = new Date().toISOString();
+      const payload: Partial<SnsMediaItem> = {
+        ...media,
+        id: createMediaArchiveId(),
+        title,
+        url: form.url.trim(),
+        description: form.description.trim() || null,
+        author_name: form.authorName.trim() || null,
+        thumbnail_url: safeImageUrl(form.thumbnailUrl) || media.thumbnail_url,
+        tags,
+        tags_text: tags.join(', '),
+        archive_bucket: form.archiveBucket,
+        playlist_id: playlist?.id || form.playlistId || null,
+        collection_name: getFormCollectionName(form, playlists, playlist) || null,
+        dance_genre: form.danceGenre.trim() || null,
+        source_context: form.sourceContext.trim() || null,
+        created_by: user.id,
+        created_by_name: getDisplayName(user, userProfile?.nickname),
+        published_at: form.publishedAt || null,
+        updated_at: now,
+        search_text: '',
+      } as Partial<SnsMediaItem>;
+
+      payload.search_text = buildSearchText(payload).slice(0, 2000);
+
+      if (isAdmin) {
+        payload.is_approved = true;
+        payload.approved_at = now;
+        payload.approved_by = user.id;
+      }
+
       const { error } = await cafe24
         .from('sns_media_items')
         .insert(payload);
       if (error) throw error;
       resetForm();
       setShowForm(false);
+      await fetchPlaylists();
       await fetchItems(0, false);
     } catch (error) {
       console.error('[MediaArchive] save failed:', error);
@@ -1158,7 +1687,16 @@ const MediaArchivePage: React.FC = () => {
 
   const renderArchiveView = () => {
     if (viewMode === 'buckets') return <BucketArchiveView items={items} />;
-    if (viewMode === 'collections') return <CollectionArchiveView items={items} />;
+    if (viewMode === 'collections') {
+      return (
+        <CollectionArchiveView
+          items={items}
+          playlists={playlists}
+          canManagePlaylist={canManagePlaylist}
+          onEditPlaylist={handleEditPlaylist}
+        />
+      );
+    }
     if (viewMode === 'learning') return <LearningArchiveView items={items} />;
     if (viewMode === 'timeline') return <TimelineArchiveView items={items} />;
     if (viewMode === 'compare') return <CompareArchiveView items={items} />;
@@ -1169,6 +1707,7 @@ const MediaArchivePage: React.FC = () => {
             key={item.id}
             item={item}
             canManage={isAdmin || item.created_by === user?.id}
+            onEdit={handleEditItem}
             onApprove={handleApprove}
             onDelete={handleDelete}
           />
@@ -1188,11 +1727,106 @@ const MediaArchivePage: React.FC = () => {
           <h1>SNS 영상 아카이브</h1>
           <p>유튜브, 인스타그램 Reels와 게시물을 모아 검색합니다.</p>
         </div>
-        <button className="media-add-button" type="button" onClick={handleToggleForm}>
-          <i className={showForm ? 'ri-close-line' : 'ri-add-line'} />
-          <span>{showForm ? '닫기' : '영상 추가'}</span>
-        </button>
+        <div className="media-header-actions">
+          <button className="media-add-button media-add-button--secondary" type="button" onClick={handleTogglePlaylistForm}>
+            <i className={showPlaylistForm ? 'ri-close-line' : 'ri-folder-add-line'} />
+            <span>{showPlaylistForm ? '목록 닫기' : '재생목록'}</span>
+          </button>
+          <button className="media-add-button" type="button" onClick={handleToggleForm}>
+            <i className={showForm ? 'ri-close-line' : 'ri-add-line'} />
+            <span>{showForm ? '닫기' : '영상 추가'}</span>
+          </button>
+        </div>
       </header>
+
+      {showPlaylistForm && (
+        <form className="media-playlist-panel" onSubmit={handlePlaylistSubmit}>
+          <header className="media-playlist-form-header">
+            <div>
+              <p className="media-eyebrow">Playlist</p>
+              <h2>{editingPlaylist ? '재생목록 수정' : '재생목록 추가'}</h2>
+            </div>
+            <button type="button" className="media-icon-button" onClick={() => {
+              setShowPlaylistForm(false);
+              resetPlaylistForm();
+            }} aria-label="재생목록 폼 닫기">
+              <i className="ri-close-line" />
+            </button>
+          </header>
+          <div className="media-field-grid">
+            <label className="media-field">
+              <span>이름</span>
+              <input
+                value={playlistForm.name}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="예: Lindy Hop 기본기"
+                required
+              />
+            </label>
+            <label className="media-field">
+              <span>분류</span>
+              <input
+                value={playlistForm.category}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, category: event.target.value }))}
+                placeholder="예: 장르, 루틴, 공연, 역사"
+              />
+            </label>
+            <label className="media-field">
+              <span>춤 장르</span>
+              <input
+                value={playlistForm.danceGenre}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, danceGenre: event.target.value }))}
+                list="media-playlist-genre-presets"
+              />
+              <datalist id="media-playlist-genre-presets">
+                {availableGenres.map((item) => <option key={item} value={item} />)}
+              </datalist>
+            </label>
+            <label className="media-field">
+              <span>커버 URL</span>
+              <input
+                value={playlistForm.coverUrl}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, coverUrl: event.target.value }))}
+                placeholder="비워두면 카드 썸네일을 사용"
+              />
+            </label>
+            <label className="media-field media-field--wide">
+              <span>태그</span>
+              <input
+                value={playlistForm.tags}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, tags: event.target.value }))}
+                placeholder="예: 스윙아웃, 초급, 영감"
+              />
+            </label>
+            <label className="media-field media-field--wide">
+              <span>설명</span>
+              <textarea
+                value={playlistForm.description}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, description: event.target.value }))}
+                rows={3}
+              />
+            </label>
+            <label className="media-check-field">
+              <input
+                type="checkbox"
+                checked={playlistForm.isPublic}
+                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, isPublic: event.target.checked }))}
+              />
+              <span>공개 재생목록</span>
+            </label>
+          </div>
+          <div className="media-edit-actions">
+            <button type="button" onClick={() => {
+              setShowPlaylistForm(false);
+              resetPlaylistForm();
+            }}>취소</button>
+            <button type="submit" className="media-save-button">
+              <i className="ri-save-3-line" />
+              {canCreate ? '저장' : '로그인 후 저장'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {showForm && (
         <form className="media-submit-panel media-submit-panel--composer" onSubmit={handleSubmit}>
@@ -1260,12 +1894,40 @@ const MediaArchivePage: React.FC = () => {
                 <span>날짜</span>
                 <input type="date" value={form.publishedAt} onChange={(event) => setForm((prev) => ({ ...prev, publishedAt: event.target.value }))} />
               </label>
+              <label className="media-field">
+                <span>재생목록</span>
+                <select
+                  value={form.playlistId}
+                  onChange={(event) => {
+                    const playlist = playlists.find((entry) => entry.id === event.target.value);
+                    setForm((prev) => ({
+                      ...prev,
+                      playlistId: event.target.value,
+                      newPlaylistName: '',
+                      collectionName: playlist ? playlist.name : prev.collectionName,
+                    }));
+                  }}
+                >
+                  <option value="">{playlistsLoading ? '불러오는 중...' : '선택 안 함'}</option>
+                  {playlists.map((playlist) => (
+                    <option key={playlist.id} value={playlist.id}>{playlist.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="media-field">
+                <span>새 재생목록</span>
+                <input
+                  value={form.newPlaylistName}
+                  onChange={(event) => setForm((prev) => ({ ...prev, newPlaylistName: event.target.value, playlistId: '' }))}
+                  placeholder="저장하면서 만들기"
+                />
+              </label>
               <label className="media-field media-field--wide">
-                <span>컬렉션</span>
+                <span>컬렉션 이름</span>
                 <input
                   value={form.collectionName}
                   onChange={(event) => setForm((prev) => ({ ...prev, collectionName: event.target.value }))}
-                  placeholder="예: Shim Sham 버전 모음, 에어리얼 입문, Frankie Manning 히스토리"
+                  placeholder="재생목록을 쓰지 않는 임시 묶음 이름"
                 />
               </label>
               <label className="media-field media-field--wide">
@@ -1301,6 +1963,21 @@ const MediaArchivePage: React.FC = () => {
             </button>
           </section>
         </form>
+      )}
+
+      {editingItem && (
+        <MediaItemEditPanel
+          item={editingItem}
+          form={editForm}
+          playlists={playlists}
+          availableGenres={availableGenres}
+          onChange={setEditForm}
+          onClose={() => {
+            setEditingItem(null);
+            setEditForm(emptyForm);
+          }}
+          onSubmit={handleItemEditSubmit}
+        />
       )}
 
       <section className="media-controls">

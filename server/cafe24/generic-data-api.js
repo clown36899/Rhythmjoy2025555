@@ -158,6 +158,7 @@ const loginRequiredMutationTables = new Set([
   'shop_favorites',
   'shops',
   'sns_media_items',
+  'sns_media_playlists',
   'site_links',
   'social_group_favorites',
   'social_groups',
@@ -183,6 +184,7 @@ const ownerScopedMutationTables = new Set([
   'shop_favorites',
   'shops',
   'sns_media_items',
+  'sns_media_playlists',
   'site_links',
   'social_group_favorites',
   'social_groups',
@@ -335,6 +337,12 @@ function filterRowsForViewer(table, rows = [], user) {
   if ((table === 'site_links' || table === 'sns_media_items') && !user?.is_admin) {
     return rows.filter((row) => (
       isTruthy(row.is_approved) ||
+      (user && rowOwnerMatches(user, row))
+    ));
+  }
+  if (table === 'sns_media_playlists' && !user?.is_admin) {
+    return rows.filter((row) => (
+      isTruthy(row.is_public) ||
       (user && rowOwnerMatches(user, row))
     ));
   }

@@ -17,6 +17,7 @@ export interface SnsMediaItem {
   tags?: string[];
   tags_text?: string;
   archive_bucket?: string | null;
+  playlist_id?: string | null;
   collection_name?: string | null;
   dance_genre?: string | null;
   source_context?: string | null;
@@ -28,6 +29,24 @@ export interface SnsMediaItem {
   approved_at?: string | null;
   approved_by?: string | null;
   published_at?: string | null;
+  search_text?: string;
+}
+
+export interface SnsMediaPlaylist {
+  id: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  dance_genre?: string | null;
+  tags?: string[];
+  tags_text?: string;
+  cover_url?: string | null;
+  is_public?: boolean;
+  owner_id?: string | null;
+  created_by?: string | null;
+  created_by_name?: string | null;
+  created_at?: string;
+  updated_at?: string;
   search_text?: string;
 }
 
@@ -174,6 +193,7 @@ export function buildSearchText(item: Partial<SnsMediaItem>) {
     item.platform,
     item.media_type,
     item.archive_bucket,
+    item.playlist_id,
     item.collection_name,
     item.dance_genre,
     item.source_context,
