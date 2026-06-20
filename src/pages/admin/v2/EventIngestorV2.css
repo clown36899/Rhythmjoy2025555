@@ -136,18 +136,20 @@
 }
 
 .col-preview {
-  width: 80px;
+  width: 120px;
 }
 
 .thumbnail-box {
   position: relative;
-  width: 60px;
-  height: 80px;
+  width: 108px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 8px;
   overflow: hidden;
   cursor: zoom-in;
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: transform 0.2s ease;
+  touch-action: pan-y;
 }
 
 .thumbnail-box:hover {
@@ -159,6 +161,10 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    pointer-events: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 .zoom-hint {
@@ -356,6 +362,9 @@
     max-height: 90vh;
     border-radius: 12px;
     box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 
@@ -1035,13 +1044,14 @@ thead input[type="checkbox"]:checked::after {
 }
 
 .operational-db-image-cell {
-  width: 76px;
+  width: 118px;
 }
 
 .operational-db-thumb {
   position: relative;
-  width: 56px;
-  height: 74px;
+  width: 100px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   padding: 0;
   overflow: hidden;
   border: 1px solid rgba(216, 180, 254, 0.34);
@@ -1049,12 +1059,17 @@ thead input[type="checkbox"]:checked::after {
   background: rgba(0, 0, 0, 0.26);
   color: #fff;
   cursor: zoom-in;
+  touch-action: pan-y;
 }
 
 .operational-db-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .operational-db-thumb span {
@@ -1077,8 +1092,9 @@ thead input[type="checkbox"]:checked::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 74px;
+  width: 100px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border: 1px dashed rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   color: #71717a;
@@ -1399,7 +1415,7 @@ thead input[type="checkbox"]:checked::after {
 
 .calendar-event-item {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 24px;
+  grid-template-columns: 34px minmax(0, 1fr) 24px;
   min-height: 1.75rem;
   overflow: hidden;
   border-left: 3px solid currentColor;
@@ -1444,15 +1460,21 @@ thead input[type="checkbox"]:checked::after {
   padding: 0.16rem 0 0.16rem 0.22rem;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   cursor: zoom-in;
+  touch-action: pan-y;
 }
 
 .calendar-event-thumb img {
-  width: 18px;
-  height: 22px;
+  width: 26px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 4px;
   object-fit: cover;
   background: rgba(0, 0, 0, 0.28);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .calendar-event-thumb.is-empty {
@@ -1637,7 +1659,7 @@ thead input[type="checkbox"]:checked::after {
 
 .calendar-day-modal-item {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto 34px;
+  grid-template-columns: 84px minmax(0, 1fr) auto 34px;
   align-items: stretch;
   min-height: 3.7rem;
   border-left: 4px solid currentColor;
@@ -1668,14 +1690,20 @@ thead input[type="checkbox"]:checked::after {
   padding: 0.35rem;
   border-right: 1px solid rgba(255, 255, 255, 0.07);
   cursor: zoom-in;
+  touch-action: pan-y;
 }
 
 .modal-item-thumb img {
-  width: 44px;
-  height: 54px;
+  width: 68px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 6px;
   object-fit: cover;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .modal-item-thumb.is-empty {
@@ -1905,18 +1933,20 @@ thead input[type="checkbox"]:checked::after {
   .data-table tbody { display: block; width: 100%; }
 
   /*
-   * 카드 Grid (td 순서: check / preview / info / venue / source / actions)
+   * 카드 Grid (td 순서: check / no / preview / info / venue / source / actions)
    *
-   *  [thumb] [info ................] [chk]
-   *  [venue ....] [src] [act act act    ]
+   *  [thumb] [info .................] [chk]
+   *  [venue .........] [src .........]
+   *  [actions .......................]
    */
   .data-table tr {
     display: grid;
-    grid-template-columns: 56px 1fr auto 20px;
-    grid-template-rows: auto auto;
+    grid-template-columns: 96px minmax(0, 1fr) 20px;
+    grid-template-rows: auto auto auto;
     grid-template-areas:
-      "thumb info  info  check"
-      "venue src   acts  acts";
+      "thumb info check"
+      "venue src src"
+      "acts acts acts";
     column-gap: 0.55rem;
     row-gap: 0.4rem;
     background: rgba(30, 30, 35, 0.85);
@@ -1932,15 +1962,21 @@ thead input[type="checkbox"]:checked::after {
 
   /* 체크 */
   .col-check  { grid-area: check; align-self: start; padding-top: 2px; }
+  .col-row-number { display: none; }
 
   /* 썸네일 */
   .col-preview { grid-area: thumb; }
 
-  .thumbnail-box { width: 56px; height: 72px; }
+  .thumbnail-box {
+    width: 96px;
+    aspect-ratio: 16 / 9;
+    height: auto;
+  }
 
   .no-image {
-    width: 56px;
-    height: 72px;
+    width: 96px;
+    aspect-ratio: 16 / 9;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1986,7 +2022,7 @@ thead input[type="checkbox"]:checked::after {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 110px;
+    max-width: none;
   }
 
   .col-venue .venue-addr { display: none; }

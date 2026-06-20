@@ -377,7 +377,7 @@ function buildArchiveUrl() {
   const params = new URLSearchParams();
   params.set('add', activeTab.url);
   params.set('title', activeResolvedTitle || cleanTitle(activeTab.title));
-  params.set('source', 'Chrome 클리퍼');
+  params.set('source', '데스크톱 공유');
   params.set('bucket', bucketInput.value);
   if (collectionInput.value.trim()) params.set('collection', collectionInput.value.trim());
   if (activeThumbnailUrl) params.set('thumbnail', activeThumbnailUrl);

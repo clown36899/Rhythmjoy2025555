@@ -138,6 +138,8 @@ const PENDING_MEDIA_DRAFT_KEY = 'swingenjoy:media-archive-pending-draft';
 const PENDING_MEDIA_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const SHARE_TARGET_CACHE = 'rhythmjoy-share-targets-v1';
 const SHARE_TARGET_PATH = '/__pwa-share-target/';
+const MOBILE_SHARE_SOURCE_LABEL = '모바일 공유';
+const DESKTOP_SHARE_SOURCE_LABEL = '데스크톱 공유';
 
 interface PendingMediaDraft {
   form: MediaArchiveForm;
@@ -292,12 +294,37 @@ async function readStoredShareTargetParams(shareId: string) {
     if (payload.title) params.set('title', payload.title);
     if (payload.text) params.set('text', payload.text);
     if (payload.url) params.set('url', payload.url);
-    params.set('source', 'Android 공유');
+    params.set('source', MOBILE_SHARE_SOURCE_LABEL);
     return params;
   } catch (error) {
     console.warn('[MediaArchive] stored share payload read failed:', error);
     return null;
   }
+}
+
+function normalizeImportSource(value?: string | null) {
+  const source = compactText(value);
+  if (!source) return '';
+  const normalized = source.toLowerCase();
+  if (normalized.includes('android') || normalized.includes('mobile') || source.includes('모바일')) {
+    return MOBILE_SHARE_SOURCE_LABEL;
+  }
+  if (
+    normalized.includes('chrome') ||
+    normalized.includes('desktop') ||
+    normalized.includes('clipper') ||
+    source.includes('데스크톱') ||
+    source.includes('클리퍼')
+  ) {
+    return DESKTOP_SHARE_SOURCE_LABEL;
+  }
+  return source;
+}
+
+function getImportSourceContext(params: URLSearchParams, isShareTarget: boolean, previous?: string | null) {
+  return normalizeImportSource(params.get('source')) ||
+    normalizeImportSource(previous) ||
+    (isShareTarget ? MOBILE_SHARE_SOURCE_LABEL : DESKTOP_SHARE_SOURCE_LABEL);
 }
 
 function getSharedMediaUrl(params: URLSearchParams) {
@@ -354,7 +381,7 @@ function buildImportedForm(prev: MediaArchiveForm, params: URLSearchParams, addU
     tags: params.get('tags') || prev.tags,
     danceGenre: params.get('genre') || prev.danceGenre,
     publishedAt: safeInputDate(params.get('published')) || prev.publishedAt,
-    sourceContext: params.get('source') || prev.sourceContext || (isShareTarget ? 'Android 공유' : 'Chrome 클리퍼'),
+    sourceContext: getImportSourceContext(params, isShareTarget, prev.sourceContext),
   });
 }
 
@@ -488,7 +515,7 @@ const MediaCard: React.FC<{
         ) : (
           <button className="media-preview-button" type="button" onClick={handlePreviewClick}>
             {item.thumbnail_url ? (
-              <img src={item.thumbnail_url} alt="" loading="lazy" />
+              <img src={item.thumbnail_url} alt="" loading="lazy" draggable={false} />
             ) : (
               <span className="media-preview-placeholder">
                 <i className={item.platform === 'instagram' ? 'ri-instagram-line' : 'ri-play-circle-line'} />
@@ -555,7 +582,7 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
       <div className="media-preview">
         <div className="media-preview-button media-preview-button--static">
           {item.thumbnail_url ? (
-            <img src={item.thumbnail_url} alt="" />
+            <img src={item.thumbnail_url} alt="" draggable={false} />
           ) : (
             <span className="media-preview-placeholder">
               <i className={item.platform === 'instagram' ? 'ri-instagram-line' : item.platform === 'youtube' ? 'ri-youtube-line' : 'ri-link'} />
@@ -601,7 +628,7 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
     <a className="media-mini-card" href={originalUrl} target="_blank" rel="noreferrer">
       <span className="media-mini-thumb">
         {item.thumbnail_url ? (
-          <img src={item.thumbnail_url} alt="" loading="lazy" />
+          <img src={item.thumbnail_url} alt="" loading="lazy" draggable={false} />
         ) : (
           <i className={item.platform === 'instagram' ? 'ri-instagram-line' : item.platform === 'youtube' ? 'ri-youtube-line' : 'ri-link'} />
         )}
@@ -701,7 +728,7 @@ const CollectionArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) =
         return (
           <article key={group.key} className="media-collection-card">
             <div className="media-cover-stack">
-              {covers.length ? covers.map((item) => <img key={item.id} src={item.thumbnail_url || ''} alt="" loading="lazy" />) : <i className="ri-folder-video-line" />}
+              {covers.length ? covers.map((item) => <img key={item.id} src={item.thumbnail_url || ''} alt="" loading="lazy" draggable={false} />) : <i className="ri-folder-video-line" />}
             </div>
             <header>
               <h2>{group.key}</h2>
@@ -955,10 +982,10 @@ const MediaArchivePage: React.FC = () => {
         clipperImportKeyRef.current = importKey;
 
         setShowForm(true);
-        setDraftNotice('공유로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.');
+        setDraftNotice('공유 등록으로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.');
         setForm((prev) => {
           const nextForm = buildImportedForm(prev, params, addUrl, true);
-          savePendingMediaDraft(nextForm, 'android-share');
+          savePendingMediaDraft(nextForm, 'mobile-share');
           return nextForm;
         });
 
@@ -996,11 +1023,11 @@ const MediaArchivePage: React.FC = () => {
 
     setShowForm(true);
     setDraftNotice(isShareTarget
-      ? '공유로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.'
-      : '클리퍼에서 받은 내용을 임시 보관했습니다. 저장 버튼을 누르면 DB에 저장됩니다.');
+      ? '공유 등록으로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.'
+      : '데스크톱 공유 등록으로 받은 내용을 임시 보관했습니다. 저장 버튼을 누르면 DB에 저장됩니다.');
     setForm((prev) => {
       const nextForm = buildImportedForm(prev, params, addUrl, isShareTarget);
-      savePendingMediaDraft(nextForm, isShareTarget ? 'android-share' : 'chrome-clipper');
+      savePendingMediaDraft(nextForm, isShareTarget ? 'mobile-share' : 'desktop-share');
       return nextForm;
     });
 
@@ -1262,7 +1289,7 @@ const MediaArchivePage: React.FC = () => {
                   </label>
                   <label className="media-field media-field--wide">
                     <span>출처 맥락</span>
-                    <input value={form.sourceContext} onChange={(event) => setForm((prev) => ({ ...prev, sourceContext: event.target.value }))} placeholder="예: Chrome 클리퍼, 서울 스윙씬, 수업 참고" />
+                    <input value={form.sourceContext} onChange={(event) => setForm((prev) => ({ ...prev, sourceContext: event.target.value }))} placeholder="예: 모바일 공유, 데스크톱 공유, 수업 참고" />
                   </label>
                 </div>
               </details>

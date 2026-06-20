@@ -192,7 +192,7 @@ export default function FullscreenDateEventsModal({
                   >
                     <div className="DEM-thumbnail">
                       {thumbnail ? (
-                        <img src={thumbnail} alt={event.title} loading="lazy" />
+                        <img src={thumbnail} alt={event.title} loading="lazy" draggable={false} />
                       ) : (
                         <div className="DEM-fallback">
                           {event.title.charAt(0)}

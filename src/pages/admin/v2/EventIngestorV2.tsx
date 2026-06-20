@@ -1348,7 +1348,7 @@ const EventIngestorV2: React.FC = () => {
                         title={item.imageUrl ? '이미지 크게보기' : '이미지 없음'}
                       >
                         {item.imageUrl ? (
-                          <img src={item.imageUrl} alt="" loading="lazy" />
+                          <img src={item.imageUrl} alt="" loading="lazy" draggable={false} />
                         ) : (
                           <i className="ri-image-line" aria-hidden="true"></i>
                         )}
@@ -1413,7 +1413,7 @@ const EventIngestorV2: React.FC = () => {
                     onClick={() => item.imageUrl && setZoomImage(item.imageUrl)}
                     aria-label={item.imageUrl ? `${item.title} 이미지 크게보기` : '이미지 없음'}
                   >
-                    {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : <i className="ri-image-line" aria-hidden="true"></i>}
+                    {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" draggable={false} /> : <i className="ri-image-line" aria-hidden="true"></i>}
                   </button>
                   <button type="button" className="modal-item-main" onClick={() => handleCalendarDetailItemClick(item)}>
                     <span>{CALENDAR_TAB_LABELS[item.tab]}</span>
@@ -1643,6 +1643,7 @@ const EventIngestorV2: React.FC = () => {
                     <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)} />
                   </td>
                   <td
+                    className="col-row-number"
                     style={{ textAlign: 'center', fontSize: '0.75rem', color: '#888', fontWeight: 700, minWidth: 28 }}
                     title={event.display_no ? `표시번호 #${event.display_no}` : `DB ID: ${event.id}`}
                   >
@@ -1651,7 +1652,7 @@ const EventIngestorV2: React.FC = () => {
                   <td className="col-preview col-clickable" onClick={() => toggleSelect(event.id)}>
                     {posterUrl ? (
                       <div className="thumbnail-box" onClick={e => { e.stopPropagation(); setZoomImage(posterUrl); }}>
-                        <img src={posterUrl} alt="thumbnail" loading="lazy" />
+                        <img src={posterUrl} alt="thumbnail" loading="lazy" draggable={false} />
                         <span className="zoom-hint">🔍 크게보기</span>
                       </div>
                     ) : <div className="no-image">이미지 미수집</div>}
@@ -1802,7 +1803,7 @@ const EventIngestorV2: React.FC = () => {
                       <td className="operational-db-image-cell">
                         {item.imageUrl ? (
                           <button type="button" className="operational-db-thumb" onClick={() => setZoomImage(item.imageUrl || null)}>
-                            <img src={item.imageUrl} alt="" loading="lazy" />
+                            <img src={item.imageUrl} alt="" loading="lazy" draggable={false} />
                             <span>크게</span>
                           </button>
                         ) : (
@@ -1842,7 +1843,7 @@ const EventIngestorV2: React.FC = () => {
       {zoomImage && (
         <div className="lightbox-overlay" onClick={() => setZoomImage(null)}>
           <div className="lightbox-content">
-            <img src={zoomImage} alt="zoom" />
+            <img src={zoomImage} alt="zoom" draggable={false} />
             <button className="lightbox-close-btn">닫기</button>
           </div>
         </div>

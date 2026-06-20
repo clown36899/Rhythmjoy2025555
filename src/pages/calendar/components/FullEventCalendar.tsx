@@ -204,7 +204,7 @@ const CalendarCell = memo(({
                           className="calendar-fullscreen-image"
                           loading="lazy"
                           decoding="async"
-                          draggable="false"
+                          draggable={false}
                         />
                       </picture>
                       {locationText && (
@@ -233,7 +233,7 @@ const CalendarCell = memo(({
           </>
         ) : (
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
-          /* [Social Fix] 소셜 이벤트는 is-social 클래스 적용 → 실제 카드와 동일한 1:1 비율 유지 */
+          /* Keep social/event skeleton thumbnails aligned with the 16:9 card media ratio. */
           events.map((event) => {
             const isSocialSkeleton = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             return (
