@@ -53,6 +53,15 @@ const thumbnailSourceLabels: Record<string, string> = {
     'screenshot': '사이트 스크린샷'
 };
 
+const accountThumbnailSources = new Set([
+    'account-avatar',
+    'clipper',
+    'saved',
+    'direct-image',
+    'og-image',
+    'meta-image'
+]);
+
 const normalizeThumbnailOptions = (data: any): ThumbnailOption[] => {
     const rawOptions = data?.thumbnail_options || data?.thumbnailOptions || [];
     const options = Array.isArray(rawOptions) ? rawOptions : [];
@@ -71,6 +80,17 @@ const normalizeThumbnailOptions = (data: any): ThumbnailOption[] => {
             label: option.label || thumbnailSourceLabels[option.source] || '썸네일 후보',
             source: option.source || 'candidate'
         });
+        return acc;
+    }, []);
+};
+
+const mergeThumbnailOptions = (options: ThumbnailOption[]): ThumbnailOption[] => {
+    const seen = new Set<string>();
+    return options.reduce<ThumbnailOption[]>((acc, option) => {
+        const url = option.url.trim();
+        if (!url || seen.has(url)) return acc;
+        seen.add(url);
+        acc.push(option);
         return acc;
     }, []);
 };
@@ -215,23 +235,52 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.title && !title) {
+                const currentTitle = title.trim();
+                const fallbackTitle = getFallbackTitle(target);
+                const shouldReplaceTitle = !currentTitle || (
+                    target?.linkType === 'person_account' &&
+                    (currentTitle === fallbackTitle || isWeakFetchedTitle(currentTitle))
+                );
+
+                if (data.title && shouldReplaceTitle) {
                     setTitle(target?.linkType === 'person_account' && isWeakFetchedTitle(data.title)
                         ? getFallbackTitle(target)
                         : data.title);
                 }
                 if (data.description && !description) setDescription(data.description);
 
-                const options = normalizeThumbnailOptions(data);
+                const isAccountFetch = target?.linkType === 'person_account';
+                const currentImageUrl = imageUrl.trim();
+                const fetchedOptions = normalizeThumbnailOptions(data);
+                const accountSafeOptions = isAccountFetch
+                    ? fetchedOptions.filter((option) => accountThumbnailSources.has(option.source || ''))
+                    : fetchedOptions;
+                const hasFetchedAccountAvatar = accountSafeOptions.some((option) => option.source === 'account-avatar');
+                const options = isAccountFetch && currentImageUrl && !hasFetchedAccountAvatar
+                    ? mergeThumbnailOptions([
+                        { url: currentImageUrl, label: '현재 프로필 이미지', source: 'clipper' },
+                        ...accountSafeOptions
+                    ])
+                    : accountSafeOptions;
                 setThumbnailOptions(options);
 
                 if (options.length > 0) {
-                    setImageUrl(options[0].url);
-                    setOgImageUrl(options[0].url);
+                    const preferredOption = isAccountFetch
+                        ? options.find((option) => option.source === 'account-avatar')
+                            || options.find((option) => option.url === currentImageUrl)
+                            || options[0]
+                        : options[0];
+                    setImageUrl(preferredOption.url);
+                    setOgImageUrl(preferredOption.url);
                 } else {
-                    setImageUrl('');
-                    setOgImageUrl('');
-                    setThumbnailFetchError('선택 가능한 썸네일을 찾지 못했습니다.');
+                    if (isAccountFetch && currentImageUrl) {
+                        setThumbnailOptions([{ url: currentImageUrl, label: '현재 프로필 이미지', source: 'clipper' }]);
+                        setThumbnailFetchError('새 프로필 이미지를 찾지 못해 기존 이미지를 유지했습니다.');
+                    } else {
+                        setImageUrl('');
+                        setOgImageUrl('');
+                        setThumbnailFetchError('선택 가능한 썸네일을 찾지 못했습니다.');
+                    }
                 }
             } else {
                 throw new Error(`metadata fetch failed: ${res.status}`);
@@ -243,7 +292,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
         } finally {
             setTimeout(() => setIsFetchingInfo(false), 500); // UI 피드백을 위해 살짝 대기
         }
-    }, [applyDetectedTarget, description, title, url]);
+    }, [applyDetectedTarget, description, imageUrl, title, url]);
 
     React.useEffect(() => {
         if (!isOpen || !isFetchableUrlInput(url)) return;

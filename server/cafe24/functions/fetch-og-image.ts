@@ -129,6 +129,37 @@ function isYouTubeAccountUrl(url: URL): boolean {
     );
 }
 
+const INSTAGRAM_RESERVED_PATHS = new Set([
+    'about',
+    'accounts',
+    'api',
+    'developer',
+    'direct',
+    'explore',
+    'p',
+    'privacy',
+    'reel',
+    'reels',
+    'stories',
+    'tv'
+]);
+
+function isInstagramUrl(url: URL): boolean {
+    const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '').toLowerCase();
+    return host === 'instagram.com';
+}
+
+function getInstagramAccountHandle(url: URL): string {
+    if (!isInstagramUrl(url)) return '';
+    const handle = (url.pathname.split('/').filter(Boolean)[0] || '').replace(/^@+/, '').trim();
+    if (!handle || INSTAGRAM_RESERVED_PATHS.has(handle.toLowerCase())) return '';
+    return /^[A-Za-z0-9._]+$/.test(handle) ? handle : '';
+}
+
+function isInstagramAccountUrl(url: URL): boolean {
+    return Boolean(getInstagramAccountHandle(url));
+}
+
 function isGenericYouTubeImageUrl(url: string): boolean {
     const value = String(url || '').toLowerCase();
     return (
@@ -244,6 +275,24 @@ function extractYouTubeTitleFromHtml(html: string): string {
     return '';
 }
 
+function extractYouTubeAccountMetadataFromHtml(html: string): { title: string; description: string } {
+    const markerIndex = html.indexOf('"channelMetadataRenderer"');
+    if (markerIndex < 0) return { title: '', description: '' };
+
+    const rawJson = extractBalancedJson(html, markerIndex);
+    if (!rawJson) return { title: '', description: '' };
+
+    try {
+        const metadata = JSON.parse(rawJson) as Record<string, unknown>;
+        return {
+            title: decodeHtml(typeof metadata.title === 'string' ? metadata.title : '').trim(),
+            description: cleanLongText(decodeHtml(typeof metadata.description === 'string' ? metadata.description : ''))
+        };
+    } catch (_error) {
+        return { title: '', description: '' };
+    }
+}
+
 function decodeJsonStringFragment(value: string): string {
     try {
         return JSON.parse(`"${value.replace(/"/g, '\\"')}"`);
@@ -274,6 +323,60 @@ function extractYouTubeAccountAvatarFromHtml(html: string): string {
             const sizeOf = (value: string) => Number(value.match(/[?=&]s(?:z)?=(\d+)/)?.[1] || value.match(/=s(\d+)/)?.[1] || 0);
             return sizeOf(b) - sizeOf(a);
         })[0] || '';
+}
+
+type InstagramProfileInfo = {
+    username: string;
+    fullName: string;
+    biography: string;
+    avatarUrl: string;
+};
+
+async function fetchInstagramProfileInfo(handle: string): Promise<InstagramProfileInfo | null> {
+    const cleanHandle = String(handle || '').replace(/^@+/, '').trim();
+    if (!cleanHandle || !/^[A-Za-z0-9._]+$/.test(cleanHandle)) return null;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    try {
+        const response = await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(cleanHandle)}`, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': '*/*',
+                'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': `https://www.instagram.com/${encodeURIComponent(cleanHandle)}/`,
+                'X-IG-App-ID': '936619743392459',
+                'X-ASBD-ID': '129477'
+            }
+        });
+        if (!response.ok) return null;
+
+        const data = await response.json() as {
+            data?: {
+                user?: {
+                    username?: string;
+                    full_name?: string;
+                    biography?: string;
+                    profile_pic_url?: string;
+                    profile_pic_url_hd?: string;
+                };
+            };
+        };
+        const user = data?.data?.user;
+        if (!user) return null;
+
+        return {
+            username: decodeHtml(user.username || cleanHandle),
+            fullName: decodeHtml(user.full_name || ''),
+            biography: cleanLongText(decodeHtml(user.biography || '')),
+            avatarUrl: user.profile_pic_url_hd || user.profile_pic_url || ''
+        };
+    } catch (_error) {
+        return null;
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 function sortThumbnailOptions(options: ThumbnailOption[]): ThumbnailOption[] {
@@ -364,6 +467,8 @@ export const handler: Handler = async (event) => {
 
         const thumbnailOptions: ThumbnailOption[] = [];
         const seen = new Set<string>();
+        const isInstagramAccount = isInstagramAccountUrl(parsedTarget);
+        const isYouTubeAccount = isYouTubeAccountUrl(parsedTarget);
         const addCandidate = (rawUrl: string, label: string, source: string) => {
             const normalized = resolveCandidateUrl(rawUrl, parsedTarget);
             if (!normalized || seen.has(normalized)) return;
@@ -371,6 +476,29 @@ export const handler: Handler = async (event) => {
             seen.add(normalized);
             thumbnailOptions.push({ url: normalized, label, source });
         };
+
+        const instagramHandle = getInstagramAccountHandle(parsedTarget);
+        if (instagramHandle) {
+            const profile = await fetchInstagramProfileInfo(instagramHandle);
+            if (profile?.avatarUrl) {
+                addCandidate(profile.avatarUrl, '프로필 이미지', 'account-avatar');
+                const limitedOptions = sortThumbnailOptions(thumbnailOptions).slice(0, MAX_THUMBNAIL_CANDIDATES);
+                const title = profile.fullName || profile.username || instagramHandle;
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        url: targetUrl,
+                        title,
+                        description: profile.biography,
+                        image_url: limitedOptions[0]?.url || null,
+                        thumbnail_options: limitedOptions,
+                        thumbnailOptions: limitedOptions,
+                        success: true
+                    })
+                };
+            }
+        }
 
         // Fetch the target page html
         const controller = new AbortController();
@@ -416,24 +544,27 @@ export const handler: Handler = async (event) => {
         const metaTags = tagAttrs(html, 'meta');
         const linkTags = tagAttrs(html, 'link');
         const imgTags = tagAttrs(html, 'img');
+        const youtubeAccountMetadata = isYouTubeAccount ? extractYouTubeAccountMetadataFromHtml(html) : { title: '', description: '' };
 
         // Extract Title
         const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-        let title = firstMetaContent(metaTags, ['og:title', 'twitter:title', 'og:site_name'])
+        let title = youtubeAccountMetadata.title
+            || firstMetaContent(metaTags, ['og:title', 'twitter:title', 'og:site_name'])
             || (titleMatch && titleMatch[1] ? titleMatch[1] : '');
         title = decodeHtml(title);
-        if (isYouTubeUrl(parsedTarget)) {
+        if (isYouTubeUrl(parsedTarget) && !isYouTubeAccount) {
             title = extractYouTubeTitleFromHtml(html) || title;
         }
 
         // Extract Description
-        let description = firstMetaContent(metaTags, ['description', 'og:description', 'twitter:description']);
+        let description = youtubeAccountMetadata.description
+            || firstMetaContent(metaTags, ['description', 'og:description', 'twitter:description']);
         description = decodeHtml(description);
-        if (isYouTubeUrl(parsedTarget)) {
+        if (isYouTubeUrl(parsedTarget) && !isYouTubeAccount) {
             description = extractYouTubeDescriptionFromHtml(html) || description;
         }
 
-        if (isYouTubeAccountUrl(parsedTarget)) {
+        if (isYouTubeAccount) {
             const accountAvatar = extractYouTubeAccountAvatarFromHtml(html);
             if (accountAvatar) addCandidate(accountAvatar, '프로필 이미지', 'account-avatar');
         }
@@ -482,7 +613,9 @@ export const handler: Handler = async (event) => {
         });
 
         addCandidate(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(parsedTarget.hostname)}&sz=256`, '사이트 아이콘', 'favicon-fallback');
-        addCandidate(screenshotUrl(targetUrl), '사이트 스크린샷', 'screenshot');
+        if (!isInstagramAccount) {
+            addCandidate(screenshotUrl(targetUrl), '사이트 스크린샷', 'screenshot');
+        }
 
         const limitedOptions = sortThumbnailOptions(thumbnailOptions).slice(0, MAX_THUMBNAIL_CANDIDATES);
         const image_url = limitedOptions[0]?.url || null;

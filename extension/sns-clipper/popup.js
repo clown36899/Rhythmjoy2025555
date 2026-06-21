@@ -422,6 +422,23 @@ function readPageMetaFromPage() {
   const isInstagram = host === 'instagram.com';
   const isYouTube = ['youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host);
   const pathParts = location.pathname.split('/').filter(Boolean);
+  const instagramReservedPaths = new Set([
+    'about',
+    'accounts',
+    'api',
+    'developer',
+    'direct',
+    'explore',
+    'p',
+    'privacy',
+    'reel',
+    'reels',
+    'stories',
+    'tv',
+  ]);
+  const isInstagramAccountPage = isInstagram &&
+    /^[A-Za-z0-9._]+$/.test(pathParts[0] || '') &&
+    !instagramReservedPaths.has(String(pathParts[0] || '').toLowerCase());
   const isYouTubeAccountPage = isYouTube && (
     (pathParts[0] || '').startsWith('@') ||
     ['channel', 'c', 'user'].includes(pathParts[0] || '')
@@ -464,6 +481,25 @@ function readPageMetaFromPage() {
     text = text.replace(/^[^:]{1,80}\s+on\s+Instagram:\s*/i, '');
     text = text.replace(/^["“]|["”]$/g, '').trim();
     return isNoiseText(text) ? '' : text;
+  };
+  const decodeJsonStringFragment = (value) => {
+    try {
+      return JSON.parse(`"${String(value || '').replace(/"/g, '\\"')}"`);
+    } catch {
+      return String(value || '')
+        .replace(/\\\//g, '/')
+        .replace(/\\u0026/g, '&')
+        .replace(/&amp;/gi, '&');
+    }
+  };
+  const isGenericInstagramImageUrl = (url) => {
+    const value = String(url || '').toLowerCase();
+    return (
+      value.includes('static.cdninstagram.com') ||
+      value.includes('/rsrc.php/') ||
+      value.includes('instagram-logo') ||
+      value.includes('instagram.com/static')
+    );
   };
   const parseInstagramMetaText = (value) => {
     const text = cleanText(value);
@@ -518,6 +554,52 @@ function readPageMetaFromPage() {
       .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
       .map((node) => cleanInstagramCaption(node.textContent))
       .find((text) => text && text.length >= 8) || '';
+  };
+  const pickInstagramProfileAvatarFromDom = () => {
+    const selectors = [
+      'main header img[src]',
+      'header img[src]',
+      'main img[alt*="profile picture"][src]',
+      'main img[alt*="프로필"][src]',
+      'img[src*="t51.2885-19"][src]',
+      'img[src*="scontent"][src]',
+      'img[src*="fbcdn.net"][src]',
+    ];
+    const candidates = selectors
+      .flatMap((selector, selectorIndex) => Array.from(document.querySelectorAll(selector)).map((img) => ({ img, selectorIndex })))
+      .map(({ img, selectorIndex }) => {
+        const image = img;
+        const rect = image.getBoundingClientRect();
+        const src = cleanUrl(image.currentSrc || image.src);
+        const visibleArea = Math.max(rect.width, 0) * Math.max(rect.height, 0);
+        const naturalArea = Math.max(image.naturalWidth || 0, 0) * Math.max(image.naturalHeight || 0, 0);
+        const squareBias = Math.abs((image.naturalWidth || rect.width || 0) - (image.naturalHeight || rect.height || 0));
+        const profilePicBias = src.includes('t51.2885-19') ? 0 : 1;
+        return { src, visibleArea, naturalArea, squareBias, profilePicBias, selectorIndex };
+      })
+      .filter((item) => (
+        item.src &&
+        !isGenericInstagramImageUrl(item.src) &&
+        (item.src.includes('t51.2885-19') || item.visibleArea >= 1200 || item.naturalArea >= 1200)
+      ))
+      .sort((a, b) => (
+        a.profilePicBias - b.profilePicBias ||
+        a.selectorIndex - b.selectorIndex ||
+        a.squareBias - b.squareBias ||
+        b.visibleArea + b.naturalArea / 100 - (a.visibleArea + a.naturalArea / 100)
+      ));
+    if (candidates[0]?.src) return candidates[0].src;
+
+    const html = document.documentElement?.innerHTML || '';
+    const encodedPattern = /"profile_pic_url_hd"\s*:\s*"((?:\\.|[^"\\])+)"/g;
+    const plainPattern = /https?:\/\/[^"'<>\\\s]+t51\.2885-19[^"'<>\\\s]+/g;
+    const scriptCandidates = [
+      ...Array.from(html.matchAll(encodedPattern)).map((match) => decodeJsonStringFragment(match[1])),
+      ...Array.from(html.matchAll(plainPattern)).map((match) => match[0]),
+    ]
+      .map(cleanUrl)
+      .filter((src) => src && !isGenericInstagramImageUrl(src));
+    return scriptCandidates[0] || '';
   };
   const textFromRuns = (value) => {
     if (!value) return '';
@@ -591,6 +673,19 @@ function readPageMetaFromPage() {
     return selectors
       .map((selector) => cleanLongText(document.querySelector(selector)?.textContent))
       .find((text) => text.length >= 8 && !/^더보기$/i.test(text)) || '';
+  };
+  const pickYouTubeChannelDescriptionFromDom = () => {
+    const selectors = [
+      'meta[property="og:description"]',
+      'meta[name="description"]',
+      'meta[name="twitter:description"]',
+      'yt-page-header-view-model [role="text"]',
+      'ytd-channel-about-metadata-renderer #description-container',
+      'ytd-channel-about-metadata-renderer yt-attributed-string',
+    ];
+    return selectors
+      .map((selector) => cleanLongText(document.querySelector(selector)?.getAttribute('content') || document.querySelector(selector)?.textContent))
+      .find((text) => text.length >= 8 && !/^youtube$/i.test(text)) || '';
   };
   const pickYouTubeChannelAvatarFromDom = () => {
     const selectors = [
@@ -690,7 +785,9 @@ function readPageMetaFromPage() {
     normalizedDescription = caption || description;
     title = author && caption ? `${author}: ${caption}` : caption || metaTitle;
   }
-  if (isYouTube) {
+  if (isYouTubeAccountPage) {
+    normalizedDescription = pickYouTubeChannelDescriptionFromDom() || description;
+  } else if (isYouTube) {
     normalizedDescription = pickYouTubeDescriptionFromPageData() || pickYouTubeDescriptionFromDom() || description;
   }
 
@@ -702,9 +799,10 @@ function readPageMetaFromPage() {
   );
 
   const youtubeAccountAvatar = isYouTubeAccountPage ? pickYouTubeChannelAvatarFromDom() : '';
+  const instagramAccountAvatar = isInstagramAccountPage ? pickInstagramProfileAvatarFromDom() : '';
 
   return {
-    thumbnail: youtubeAccountAvatar || fromMeta || poster || candidates[0]?.src || '',
+    thumbnail: instagramAccountAvatar || youtubeAccountAvatar || fromMeta || poster || candidates[0]?.src || '',
     title,
     description: normalizedDescription,
     author,
