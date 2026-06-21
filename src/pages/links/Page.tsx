@@ -5,10 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LinkRegistrationModal, type LinkRegistrationDraft } from './components/LinkRegistrationModal';
 import {
     getDisplayDomain,
-    isWeakAccountDescription,
     getLinkTypeLabel,
     getPlatformIcon,
     getPlatformLabel,
+    isWeakAccountDescription,
     parseLinkTarget,
     type AccountPlatform,
     type LinkType,
@@ -16,7 +16,7 @@ import {
 import './links.css';
 
 export interface SiteLink {
-    id: number;
+    id: number | string;
     title: string;
     url: string;
     normalized_url?: string;
@@ -26,12 +26,35 @@ export interface SiteLink {
     link_type?: LinkType;
     account_platform?: AccountPlatform;
     account_handle?: string;
+    person_group_id?: string | null;
+    person_group_title?: string | null;
+    person_group_description?: string | null;
+    person_group_image_url?: string | null;
+    person_group_category?: string | null;
+    person_group_primary_link_id?: number | string | null;
     created_by: string;
     is_approved: boolean;
     created_at: string;
 }
 
 type TypeFilter = 'all' | LinkType;
+
+type AccountCardItem = {
+    kind: 'single' | 'group';
+    key: string;
+    links: SiteLink[];
+    representative: SiteLink;
+    groupId?: string;
+};
+
+type PersonMergeDraft = {
+    groupId: string;
+    title: string;
+    description: string;
+    imageUrl: string;
+    category: string;
+    primaryLinkId: number | string;
+};
 
 const TYPE_FILTERS: Array<{ value: TypeFilter; label: string; icon: string }> = [
     { value: 'all', label: '전체', icon: 'ri-stack-line' },
@@ -41,6 +64,87 @@ const TYPE_FILTERS: Array<{ value: TypeFilter; label: string; icon: string }> = 
 
 const getResolvedLinkType = (link: SiteLink): LinkType => (
     link.link_type === 'person_account' ? 'person_account' : 'site'
+);
+
+const getLinkKey = (link: SiteLink) => String(link.id);
+
+const isTruthy = (value: unknown) => (
+    value === true ||
+    value === 1 ||
+    String(value || '').toLowerCase() === 'true' ||
+    String(value || '') === '1'
+);
+
+const firstText = (values: Array<string | null | undefined>) => (
+    values.map((value) => String(value || '').trim()).find(Boolean) || ''
+);
+
+const getPersonGroupId = (link: SiteLink) => String(link.person_group_id || '').trim();
+
+const getTargetUrl = (link: SiteLink) => link.normalized_url || link.url;
+
+const createPersonGroupId = () => `person-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const uniqueBy = <T,>(items: T[], keyFn: (item: T) => string) => {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+        const key = keyFn(item);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
+const getPrimaryLink = (links: SiteLink[]) => {
+    const primaryId = firstText(links.map((link) => String(link.person_group_primary_link_id || '')));
+    return links.find((link) => String(link.id) === primaryId) || links[0];
+};
+
+const getAccountDisplayTitle = (links: SiteLink[]) => (
+    firstText(links.map((link) => link.person_group_title)) || getPrimaryLink(links)?.title || ''
+);
+
+const getAccountDisplayDescription = (links: SiteLink[]) => (
+    firstText(links.map((link) => link.person_group_description)) ||
+    firstText(links.map((link) => link.description)) ||
+    ''
+);
+
+const getAccountDisplayImage = (links: SiteLink[]) => (
+    firstText(links.map((link) => link.person_group_image_url)) ||
+    getPrimaryLink(links)?.image_url ||
+    firstText(links.map((link) => link.image_url)) ||
+    ''
+);
+
+const getAccountDisplayCategory = (links: SiteLink[]) => (
+    firstText(links.map((link) => link.person_group_category)) ||
+    getPrimaryLink(links)?.category ||
+    '인물'
+);
+
+const getPlatforms = (links: SiteLink[]) => (
+    uniqueBy(
+        links
+            .map((link) => link.account_platform || 'other')
+            .filter((platform): platform is AccountPlatform => Boolean(platform)),
+        (platform) => platform
+    )
+);
+
+const getHandleSummary = (links: SiteLink[]) => (
+    uniqueBy(
+        links
+            .map((link) => String(link.account_handle || '').trim())
+            .filter(Boolean),
+        (handle) => handle.toLowerCase()
+    )
+        .map((handle) => `@${handle}`)
+        .join(' · ')
+);
+
+const getCategoryForFilter = (link: SiteLink) => (
+    link.person_group_category || link.category
 );
 
 export default function LinksPage() {
@@ -54,15 +158,15 @@ export default function LinksPage() {
     const [initialDraft, setInitialDraft] = useState<LinkRegistrationDraft | null>(null);
     const [filterType, setFilterType] = useState<TypeFilter>('all');
     const [filterCategory, setFilterCategory] = useState<string>('전체');
+    const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(() => new Set());
+    const [mergeLinks, setMergeLinks] = useState<SiteLink[] | null>(null);
+    const [bridgeLinks, setBridgeLinks] = useState<SiteLink[] | null>(null);
     const importedDraftKeyRef = useRef('');
 
     const fetchLinks = async () => {
         setLoading(true);
         try {
             const query = cafe24.from('site_links').select('*').order('created_at', { ascending: false });
-
-            // RLS 정책에 의해 일반 유저는 승인된 항목과 자신이 쓴 승인대기 항목만 보이고,
-            // 관리자는 모든 항목이 보이므로 프론트엔드쪽 쿼리 필터 제거 
 
             const { data, error } = await query;
             if (error) throw error;
@@ -133,23 +237,70 @@ export default function LinksPage() {
         navigate('/links', { replace: true });
     }, [location.hash, location.search, navigate]);
 
+    const accountLinks = useMemo(() => (
+        links.filter((link) => getResolvedLinkType(link) === 'person_account')
+    ), [links]);
+
     const typeFilteredLinks = useMemo(() => (
         filterType === 'all'
             ? links
             : links.filter(link => getResolvedLinkType(link) === filterType)
     ), [filterType, links]);
 
-    // 동적으로 존재하는 카테고리 추출
     const allCategories = useMemo(() => (
-        Array.from(new Set(typeFilteredLinks.map(link => link.category))).filter(Boolean).sort()
+        Array.from(new Set(typeFilteredLinks.map(link => getCategoryForFilter(link)))).filter(Boolean).sort()
     ), [typeFilteredLinks]);
 
-    // 필터링된 배열 계산
     const filteredLinks = useMemo(() => (
         filterCategory === '전체'
             ? typeFilteredLinks
-            : typeFilteredLinks.filter(link => link.category === filterCategory)
+            : typeFilteredLinks.filter(link => getCategoryForFilter(link) === filterCategory)
     ), [filterCategory, typeFilteredLinks]);
+
+    const groupMembersById = useMemo(() => {
+        const map = new Map<string, SiteLink[]>();
+        accountLinks.forEach((link) => {
+            const groupId = getPersonGroupId(link);
+            if (!groupId) return;
+            const members = map.get(groupId) || [];
+            members.push(link);
+            map.set(groupId, members);
+        });
+        return map;
+    }, [accountLinks]);
+
+    const cardItems = useMemo<AccountCardItem[]>(() => {
+        const seenGroups = new Set<string>();
+        return filteredLinks.reduce<AccountCardItem[]>((items, link) => {
+            const isAccount = getResolvedLinkType(link) === 'person_account';
+            const groupId = isAccount ? getPersonGroupId(link) : '';
+            if (isAccount && groupId) {
+                if (seenGroups.has(groupId)) return items;
+                seenGroups.add(groupId);
+                const members = groupMembersById.get(groupId) || [link];
+                items.push({
+                    kind: 'group',
+                    key: `group:${groupId}`,
+                    groupId,
+                    links: members,
+                    representative: getPrimaryLink(members),
+                });
+                return items;
+            }
+
+            items.push({
+                kind: 'single',
+                key: `link:${getLinkKey(link)}`,
+                links: [link],
+                representative: link,
+            });
+            return items;
+        }, []);
+    }, [filteredLinks, groupMembersById]);
+
+    const selectedLinks = useMemo(() => (
+        accountLinks.filter((link) => selectedAccountIds.has(getLinkKey(link)))
+    ), [accountLinks, selectedAccountIds]);
 
     useEffect(() => {
         if (filterCategory !== '전체' && !allCategories.includes(filterCategory)) {
@@ -157,7 +308,7 @@ export default function LinksPage() {
         }
     }, [allCategories, filterCategory]);
 
-    const handleApprove = async (id: number) => {
+    const handleApprove = async (id: SiteLink['id']) => {
         if (!isAdmin) return;
         try {
             const { error } = await cafe24.from('site_links').update({ is_approved: true }).eq('id', id);
@@ -168,7 +319,21 @@ export default function LinksPage() {
         }
     };
 
-    const handleDelete = async (id: number) => {
+    const handleApproveMany = async (targetLinks: SiteLink[]) => {
+        if (!isAdmin) return;
+        try {
+            const results = await Promise.all(targetLinks.map((link) => (
+                cafe24.from('site_links').update({ is_approved: true }).eq('id', link.id)
+            )));
+            const failed = results.find((result: any) => result?.error);
+            if (failed) throw failed.error;
+            fetchLinks();
+        } catch (error) {
+            alert('승인 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleDelete = async (id: SiteLink['id']) => {
         if (!confirm('정말 삭제하시겠습니까?')) return;
         try {
             const { error } = await cafe24.from('site_links').delete().eq('id', id);
@@ -177,6 +342,89 @@ export default function LinksPage() {
         } catch (error) {
             alert('삭제 중 오류가 발생했습니다.');
         }
+    };
+
+    const toggleAccountSelection = (targetLinks: SiteLink[], checked?: boolean) => {
+        setSelectedAccountIds((prev) => {
+            const next = new Set(prev);
+            const shouldSelect = checked ?? !targetLinks.every((link) => next.has(getLinkKey(link)));
+            targetLinks.forEach((link) => {
+                if (shouldSelect) next.add(getLinkKey(link));
+                else next.delete(getLinkKey(link));
+            });
+            return next;
+        });
+    };
+
+    const openMergeModalForSelection = () => {
+        const selected = uniqueBy(selectedLinks, getLinkKey);
+        if (selected.length < 2) {
+            alert('합칠 인물 계정을 2개 이상 선택해주세요.');
+            return;
+        }
+        setMergeLinks(selected);
+    };
+
+    const handleSaveMerge = async (draft: PersonMergeDraft, targetLinks: SiteLink[]) => {
+        if (!isAdmin) return;
+        const updatedAt = new Date().toISOString();
+        const payload = {
+            person_group_id: draft.groupId,
+            person_group_title: draft.title.trim(),
+            person_group_description: draft.description.trim(),
+            person_group_image_url: draft.imageUrl.trim(),
+            person_group_category: draft.category.trim() || '인물',
+            person_group_primary_link_id: draft.primaryLinkId,
+            updated_at: updatedAt,
+        };
+
+        try {
+            const results = await Promise.all(targetLinks.map((link) => (
+                cafe24.from('site_links').update(payload).eq('id', link.id)
+            )));
+            const failed = results.find((result: any) => result?.error);
+            if (failed) throw failed.error;
+            setSelectedAccountIds(new Set());
+            setMergeLinks(null);
+            await fetchLinks();
+        } catch (error) {
+            console.error('Person merge failed:', error);
+            alert('인물 계정 병합 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleUngroup = async (targetLinks: SiteLink[]) => {
+        if (!isAdmin) return;
+        if (!confirm('이 인물 묶음을 해제하시겠습니까? 개별 계정은 삭제되지 않습니다.')) return;
+        try {
+            const payload = {
+                person_group_id: null,
+                person_group_title: null,
+                person_group_description: null,
+                person_group_image_url: null,
+                person_group_category: null,
+                person_group_primary_link_id: null,
+                updated_at: new Date().toISOString(),
+            };
+            const results = await Promise.all(targetLinks.map((link) => (
+                cafe24.from('site_links').update(payload).eq('id', link.id)
+            )));
+            const failed = results.find((result: any) => result?.error);
+            if (failed) throw failed.error;
+            setSelectedAccountIds(new Set());
+            setBridgeLinks(null);
+            await fetchLinks();
+        } catch (error) {
+            console.error('Person ungroup failed:', error);
+            alert('묶음 해제 중 오류가 발생했습니다.');
+        }
+    };
+
+    const openEditModal = (link: SiteLink) => {
+        setBridgeLinks(null);
+        setInitialDraft(null);
+        setEditTarget(link);
+        setIsModalOpen(true);
     };
 
     return (
@@ -219,7 +467,7 @@ export default function LinksPage() {
                         <span className="category-count">{typeFilteredLinks.length}</span>
                     </button>
                     {allCategories.map(cat => {
-                        const count = typeFilteredLinks.filter(l => l.category === cat).length;
+                        const count = typeFilteredLinks.filter(l => getCategoryForFilter(l) === cat).length;
                         return (
                             <button
                                 key={cat}
@@ -234,12 +482,37 @@ export default function LinksPage() {
                 </div>
             </div>
 
+            {isAdmin && filterType !== 'site' && accountLinks.length > 1 && (
+                <div className="person-merge-toolbar">
+                    <div className="person-merge-toolbar-copy">
+                        <strong>{selectedLinks.length > 0 ? `${selectedLinks.length}개 계정 선택됨` : '인물 계정 병합'}</strong>
+                        <span>같은 사람의 Instagram, YouTube 계정을 하나의 브릿지 카드로 묶을 수 있습니다.</span>
+                    </div>
+                    <div className="person-merge-toolbar-actions">
+                        {selectedLinks.length > 0 && (
+                            <button type="button" className="glass-btn secondary" onClick={() => setSelectedAccountIds(new Set())}>
+                                선택 해제
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="glass-btn primary"
+                            onClick={openMergeModalForSelection}
+                            disabled={selectedLinks.length < 2}
+                        >
+                            <i className="ri-git-merge-line"></i>
+                            합치기
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {loading ? (
                 <div className="links-glass-loading">
                     <div className="spinner-glow"></div>
                     <p>데이터를 불러오는 중입니다...</p>
                 </div>
-            ) : filteredLinks.length === 0 ? (
+            ) : cardItems.length === 0 ? (
                 <div className="links-glass-empty">
                     <div className="empty-icon-glow"><i className="ri-folder-open-line"></i></div>
                     <h3>등록된 링크가 없습니다</h3>
@@ -247,87 +520,136 @@ export default function LinksPage() {
                 </div>
             ) : (
                 <div className="links-glass-grid">
-                    {filteredLinks.map((link) => {
+                    {cardItems.map((item) => {
+                        const link = item.representative;
                         const resolvedType = getResolvedLinkType(link);
-                        const accountHandle = link.account_handle?.trim();
-                        const targetUrl = link.normalized_url || link.url;
                         const isAccountCard = resolvedType === 'person_account';
+                        const isGroup = item.kind === 'group';
+                        const title = isAccountCard ? getAccountDisplayTitle(item.links) : link.title;
+                        const description = isAccountCard ? getAccountDisplayDescription(item.links) : link.description;
+                        const imageUrl = isAccountCard ? getAccountDisplayImage(item.links) : link.image_url;
+                        const category = isAccountCard ? getAccountDisplayCategory(item.links) : link.category;
+                        const targetUrl = getTargetUrl(getPrimaryLink(item.links));
+                        const accountHandle = getHandleSummary(item.links);
+                        const platforms = getPlatforms(item.links);
+                        const isSelected = item.links.length > 0 && item.links.every((target) => selectedAccountIds.has(getLinkKey(target)));
+                        const isPending = item.links.some((target) => !isTruthy(target.is_approved));
+                        const canManageSingle = item.kind === 'single' && (isAdmin || (user && user.id === link.created_by));
+
                         return (
-                        <div key={link.id} className={`glass-card link-item ${isAccountCard ? 'account-card' : ''} ${!link.is_approved ? 'pending' : ''}`}
-                            onClick={() => window.open(targetUrl, '_blank', 'noopener noreferrer')}>
+                            <div
+                                key={item.key}
+                                className={`glass-card link-item ${isAccountCard ? 'account-card' : ''} ${isGroup ? 'grouped-account-card' : ''} ${isPending ? 'pending' : ''}`}
+                                onClick={() => {
+                                    if (isGroup) setBridgeLinks(item.links);
+                                    else window.open(targetUrl, '_blank', 'noopener noreferrer');
+                                }}
+                            >
 
-                            {!link.is_approved && (
-                                <div className="glass-badge-pending">
-                                    <i className="ri-time-line"></i> 승인 대기중
-                                </div>
-                            )}
-
-                            <div className="link-card-body">
-                                <div className="link-neon-icon">
-                                    {link.image_url ? (
-                                        <img
-                                            src={link.image_url}
-                                            alt={link.title}
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer"
-                                            className={isAccountCard ? 'account-avatar-image' : undefined}
+                                {isAdmin && isAccountCard && (
+                                    <label className={`merge-select-control ${isSelected ? 'active' : ''}`} onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={(event) => toggleAccountSelection(item.links, event.target.checked)}
                                         />
-                                    ) : (
-                                        <div className={`icon-placeholder ${isAccountCard ? 'account-placeholder' : ''}`}>
-                                            {isAccountCard
-                                                ? <i className={getPlatformIcon(link.account_platform)}></i>
-                                                : link.title.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
-                                    {isAccountCard && (
-                                        <span className={`link-platform-float ${link.account_platform || 'other'}`}>
-                                            <i className={getPlatformIcon(link.account_platform)}></i>
-                                        </span>
-                                    )}
-                                </div>
-                                <div className={`link-content ${isAccountCard ? 'account-profile-content' : ''}`}>
-                                    {isAccountCard ? (
-                                        <div className="account-profile-meta">
-                                            <span className={`account-platform-pill ${link.account_platform || 'other'}`}>
-                                                <i className={getPlatformIcon(link.account_platform)}></i>
-                                                <span>{getPlatformLabel(link.account_platform)}</span>
-                                            </span>
-                                            <span className="glass-tag">{link.category || getLinkTypeLabel(resolvedType)}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="link-meta">
-                                            <span className="glass-tag">{link.category || getLinkTypeLabel(resolvedType)}</span>
-                                            <span className={`glass-tag link-type-tag ${resolvedType}`}>{getLinkTypeLabel(resolvedType)}</span>
-                                            <span className="link-domain">{getDisplayDomain(targetUrl)}</span>
-                                        </div>
-                                    )}
-                                    <h3 className="link-title" title={link.title}>{link.title}</h3>
-                                    {isAccountCard && accountHandle && (
-                                        <p className="account-handle-line" title={`@${accountHandle}`}>@{accountHandle}</p>
-                                    )}
-                                    <p className="link-desc" title={link.description || link.url}>{link.description || link.url}</p>
-                                </div>
-                                <div className="link-hover-arrow">
-                                    <i className="ri-arrow-right-up-line"></i>
-                                </div>
-                            </div>
+                                        <span>{isSelected ? '선택됨' : '선택'}</span>
+                                    </label>
+                                )}
 
-                            {(isAdmin || (user && user.id === link.created_by)) && (
-                                <div className="link-glass-actions" onClick={e => e.stopPropagation()}>
-                                    <button onClick={() => { setInitialDraft(null); setEditTarget(link); setIsModalOpen(true); }} className="glass-action-btn edit">
-                                        <i className="ri-pencil-line"></i> 수정
-                                    </button>
-                                    {isAdmin && !link.is_approved && (
-                                        <button onClick={() => handleApprove(link.id)} className="glass-action-btn approve">
-                                            <i className="ri-check-line"></i> 승인
-                                        </button>
-                                    )}
-                                    <button onClick={() => handleDelete(link.id)} className="glass-action-btn delete">
-                                        <i className="ri-delete-bin-line"></i> 삭제
-                                    </button>
+                                {isPending && (
+                                    <div className="glass-badge-pending">
+                                        <i className="ri-time-line"></i> 승인 대기중
+                                    </div>
+                                )}
+
+                                <div className="link-card-body">
+                                    <div className="link-neon-icon">
+                                        {imageUrl ? (
+                                            <img
+                                                src={imageUrl}
+                                                alt={title}
+                                                loading="lazy"
+                                                referrerPolicy="no-referrer"
+                                                className={isAccountCard ? 'account-avatar-image' : undefined}
+                                            />
+                                        ) : (
+                                            <div className={`icon-placeholder ${isAccountCard ? 'account-placeholder' : ''}`}>
+                                                {isAccountCard
+                                                    ? <i className={getPlatformIcon(link.account_platform)}></i>
+                                                    : title.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        {isAccountCard && (
+                                            <span className={`link-platform-float ${isGroup ? 'multi' : link.account_platform || 'other'}`}>
+                                                <i className={isGroup ? 'ri-links-line' : getPlatformIcon(link.account_platform)}></i>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className={`link-content ${isAccountCard ? 'account-profile-content' : ''}`}>
+                                        {isAccountCard ? (
+                                            <div className="account-profile-meta">
+                                                {platforms.map((platform) => (
+                                                    <span key={platform} className={`account-platform-pill ${platform}`}>
+                                                        <i className={getPlatformIcon(platform)}></i>
+                                                        <span>{getPlatformLabel(platform)}</span>
+                                                    </span>
+                                                ))}
+                                                {isGroup && <span className="glass-tag merged-person-tag">{item.links.length}개 계정</span>}
+                                                <span className="glass-tag">{category || getLinkTypeLabel(resolvedType)}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="link-meta">
+                                                <span className="glass-tag">{category || getLinkTypeLabel(resolvedType)}</span>
+                                                <span className={`glass-tag link-type-tag ${resolvedType}`}>{getLinkTypeLabel(resolvedType)}</span>
+                                                <span className="link-domain">{getDisplayDomain(targetUrl)}</span>
+                                            </div>
+                                        )}
+                                        <h3 className="link-title" title={title}>{title}</h3>
+                                        {isAccountCard && accountHandle && (
+                                            <p className="account-handle-line" title={accountHandle}>{accountHandle}</p>
+                                        )}
+                                        <p className="link-desc" title={description || targetUrl}>
+                                            {description || (isGroup ? '연결된 SNS 계정을 선택해서 열 수 있습니다.' : targetUrl)}
+                                        </p>
+                                    </div>
+                                    <div className="link-hover-arrow">
+                                        <i className={isGroup ? 'ri-list-check-2' : 'ri-arrow-right-up-line'}></i>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+
+                                {item.kind === 'group' && isAdmin && (
+                                    <div className="link-glass-actions" onClick={e => e.stopPropagation()}>
+                                        <button onClick={() => setMergeLinks(item.links)} className="glass-action-btn edit">
+                                            <i className="ri-git-merge-line"></i> 병합 수정
+                                        </button>
+                                        {isPending && (
+                                            <button onClick={() => handleApproveMany(item.links.filter((target) => !isTruthy(target.is_approved)))} className="glass-action-btn approve">
+                                                <i className="ri-check-line"></i> 모두 승인
+                                            </button>
+                                        )}
+                                        <button onClick={() => handleUngroup(item.links)} className="glass-action-btn ungroup">
+                                            <i className="ri-scissors-cut-line"></i> 분리
+                                        </button>
+                                    </div>
+                                )}
+
+                                {canManageSingle && (
+                                    <div className="link-glass-actions" onClick={e => e.stopPropagation()}>
+                                        <button onClick={() => openEditModal(link)} className="glass-action-btn edit">
+                                            <i className="ri-pencil-line"></i> 수정
+                                        </button>
+                                        {isAdmin && !isTruthy(link.is_approved) && (
+                                            <button onClick={() => handleApprove(link.id)} className="glass-action-btn approve">
+                                                <i className="ri-check-line"></i> 승인
+                                            </button>
+                                        )}
+                                        <button onClick={() => handleDelete(link.id)} className="glass-action-btn delete">
+                                            <i className="ri-delete-bin-line"></i> 삭제
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         );
                     })}
                 </div>
@@ -343,6 +665,229 @@ export default function LinksPage() {
                     initialDraft={initialDraft}
                 />
             )}
+
+            {mergeLinks && (
+                <PersonMergeModal
+                    links={mergeLinks}
+                    onClose={() => setMergeLinks(null)}
+                    onSave={(draft) => handleSaveMerge(draft, mergeLinks)}
+                />
+            )}
+
+            {bridgeLinks && (
+                <PersonBridgeModal
+                    links={bridgeLinks}
+                    isAdmin={isAdmin}
+                    onClose={() => setBridgeLinks(null)}
+                    onEditLink={openEditModal}
+                    onUngroup={handleUngroup}
+                />
+            )}
+        </div>
+    );
+}
+
+function PersonMergeModal({
+    links,
+    onClose,
+    onSave,
+}: {
+    links: SiteLink[];
+    onClose: () => void;
+    onSave: (draft: PersonMergeDraft) => void;
+}) {
+    const existingGroupIds = useMemo(() => (
+        uniqueBy(links.map(getPersonGroupId).filter(Boolean), (groupId) => groupId)
+    ), [links]);
+    const initialGroupId = useMemo(() => (
+        existingGroupIds.length === 1 ? existingGroupIds[0] : createPersonGroupId()
+    ), [existingGroupIds]);
+    const initialPrimary = getPrimaryLink(links);
+
+    const [title, setTitle] = useState(getAccountDisplayTitle(links));
+    const [description, setDescription] = useState(getAccountDisplayDescription(links));
+    const [imageUrl, setImageUrl] = useState(getAccountDisplayImage(links));
+    const [category, setCategory] = useState(getAccountDisplayCategory(links));
+    const [primaryLinkId, setPrimaryLinkId] = useState<number | string>(initialPrimary.id);
+
+    useEffect(() => {
+        setTitle(getAccountDisplayTitle(links));
+        setDescription(getAccountDisplayDescription(links));
+        setImageUrl(getAccountDisplayImage(links));
+        setCategory(getAccountDisplayCategory(links));
+        setPrimaryLinkId(getPrimaryLink(links).id);
+    }, [links]);
+
+    const submit = () => {
+        if (!title.trim()) {
+            alert('대표 이름을 입력해주세요.');
+            return;
+        }
+
+        onSave({
+            groupId: initialGroupId,
+            title,
+            description,
+            imageUrl,
+            category,
+            primaryLinkId,
+        });
+    };
+
+    return (
+        <div className="links-modal-overlay glass-overlay">
+            <div className="links-modal-panel glass-panel person-merge-panel" onClick={e => e.stopPropagation()}>
+                <div className="links-modal-header">
+                    <h2 className="links-modal-title">인물 계정 합치기</h2>
+                    <button className="links-modal-close" onClick={onClose}><i className="ri-close-line"></i></button>
+                </div>
+
+                <div className="links-modal-body">
+                    <div className="merge-preview-strip">
+                        {imageUrl ? (
+                            <img src={imageUrl} alt={title || '대표 이미지'} referrerPolicy="no-referrer" />
+                        ) : (
+                            <div className="merge-preview-placeholder"><i className="ri-user-follow-line"></i></div>
+                        )}
+                        <div>
+                            <strong>{title || '대표 이름'}</strong>
+                            <span>{links.length}개 SNS 계정 연결</span>
+                        </div>
+                    </div>
+
+                    <div className="links-form">
+                        <div className="form-group">
+                            <label>대표 이름</label>
+                            <input className="glass-input" value={title} onChange={(event) => setTitle(event.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label>분류</label>
+                            <input className="glass-input" value={category} onChange={(event) => setCategory(event.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label>대표 이미지 URL</label>
+                            <input className="glass-input" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label>간단한 설명</label>
+                            <textarea className="glass-input form-textarea" value={description} onChange={(event) => setDescription(event.target.value)} />
+                        </div>
+                        <div className="form-group">
+                            <label>대표 기준 계정</label>
+                            <select className="glass-input" value={String(primaryLinkId)} onChange={(event) => setPrimaryLinkId(event.target.value)}>
+                                {links.map((link) => (
+                                    <option key={getLinkKey(link)} value={String(link.id)}>
+                                        {getPlatformLabel(link.account_platform)} @{link.account_handle || link.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="merge-source-list">
+                        {links.map((link) => (
+                            <div key={getLinkKey(link)} className="merge-source-item">
+                                <div className="merge-source-thumb">
+                                    {link.image_url ? (
+                                        <img src={link.image_url} alt={link.title} referrerPolicy="no-referrer" />
+                                    ) : (
+                                        <i className={getPlatformIcon(link.account_platform)}></i>
+                                    )}
+                                </div>
+                                <div className="merge-source-copy">
+                                    <strong>{link.title}</strong>
+                                    <span>{getPlatformLabel(link.account_platform)} @{link.account_handle || '-'}</span>
+                                </div>
+                                <div className="merge-source-actions">
+                                    <button type="button" onClick={() => setTitle(link.title)}>이름</button>
+                                    {link.image_url && <button type="button" onClick={() => setImageUrl(link.image_url || '')}>사진</button>}
+                                    {link.description && <button type="button" onClick={() => setDescription(link.description)}>설명</button>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="links-modal-actions">
+                    <button type="button" onClick={onClose} className="glass-btn secondary">취소</button>
+                    <button type="button" onClick={submit} className="glass-btn primary">
+                        <i className="ri-git-merge-line"></i>
+                        합치기 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PersonBridgeModal({
+    links,
+    isAdmin,
+    onClose,
+    onEditLink,
+    onUngroup,
+}: {
+    links: SiteLink[];
+    isAdmin: boolean;
+    onClose: () => void;
+    onEditLink: (link: SiteLink) => void;
+    onUngroup: (links: SiteLink[]) => void;
+}) {
+    const title = getAccountDisplayTitle(links);
+    const description = getAccountDisplayDescription(links);
+    const imageUrl = getAccountDisplayImage(links);
+
+    return (
+        <div className="links-modal-overlay glass-overlay">
+            <div className="links-modal-panel glass-panel person-bridge-panel" onClick={e => e.stopPropagation()}>
+                <div className="links-modal-header">
+                    <h2 className="links-modal-title">{title}</h2>
+                    <button className="links-modal-close" onClick={onClose}><i className="ri-close-line"></i></button>
+                </div>
+                <div className="links-modal-body">
+                    <div className="bridge-profile-head">
+                        {imageUrl ? (
+                            <img src={imageUrl} alt={title} referrerPolicy="no-referrer" />
+                        ) : (
+                            <div className="bridge-profile-placeholder"><i className="ri-user-follow-line"></i></div>
+                        )}
+                        {description && <p>{description}</p>}
+                    </div>
+
+                    <div className="bridge-account-list">
+                        {links.map((link) => {
+                            const targetUrl = getTargetUrl(link);
+                            return (
+                                <div key={getLinkKey(link)} className="bridge-account-row">
+                                    <button type="button" className="bridge-account-main" onClick={() => window.open(targetUrl, '_blank', 'noopener noreferrer')}>
+                                        <span className={`bridge-platform-icon ${link.account_platform || 'other'}`}>
+                                            <i className={getPlatformIcon(link.account_platform)}></i>
+                                        </span>
+                                        <span className="bridge-account-copy">
+                                            <strong>{getPlatformLabel(link.account_platform)}</strong>
+                                            <em>@{link.account_handle || link.title}</em>
+                                        </span>
+                                        <i className="ri-arrow-right-up-line"></i>
+                                    </button>
+                                    {isAdmin && (
+                                        <button type="button" className="bridge-edit-btn" onClick={() => onEditLink(link)}>
+                                            <i className="ri-pencil-line"></i>
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+                {isAdmin && (
+                    <div className="links-modal-actions">
+                        <button type="button" onClick={() => onUngroup(links)} className="glass-btn secondary">
+                            <i className="ri-scissors-cut-line"></i>
+                            묶음 해제
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
