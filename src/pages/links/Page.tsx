@@ -245,8 +245,9 @@ export default function LinksPage() {
                         const resolvedType = getResolvedLinkType(link);
                         const accountHandle = link.account_handle?.trim();
                         const targetUrl = link.normalized_url || link.url;
+                        const isAccountCard = resolvedType === 'person_account';
                         return (
-                        <div key={link.id} className={`glass-card link-item ${resolvedType === 'person_account' ? 'account-card' : ''} ${!link.is_approved ? 'pending' : ''}`}
+                        <div key={link.id} className={`glass-card link-item ${isAccountCard ? 'account-card' : ''} ${!link.is_approved ? 'pending' : ''}`}
                             onClick={() => window.open(targetUrl, '_blank', 'noopener noreferrer')}>
 
                             {!link.is_approved && (
@@ -258,31 +259,46 @@ export default function LinksPage() {
                             <div className="link-card-body">
                                 <div className="link-neon-icon">
                                     {link.image_url ? (
-                                        <img src={link.image_url} alt={link.title} loading="lazy" referrerPolicy="no-referrer" />
+                                        <img
+                                            src={link.image_url}
+                                            alt={link.title}
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer"
+                                            className={isAccountCard ? 'account-avatar-image' : undefined}
+                                        />
                                     ) : (
-                                        <div className={`icon-placeholder ${resolvedType === 'person_account' ? 'account-placeholder' : ''}`}>
-                                            {resolvedType === 'person_account'
+                                        <div className={`icon-placeholder ${isAccountCard ? 'account-placeholder' : ''}`}>
+                                            {isAccountCard
                                                 ? <i className={getPlatformIcon(link.account_platform)}></i>
                                                 : link.title.charAt(0).toUpperCase()}
                                         </div>
                                     )}
-                                    {resolvedType === 'person_account' && (
+                                    {isAccountCard && (
                                         <span className={`link-platform-float ${link.account_platform || 'other'}`}>
                                             <i className={getPlatformIcon(link.account_platform)}></i>
                                         </span>
                                     )}
                                 </div>
-                                <div className="link-content">
-                                    <div className="link-meta">
-                                        <span className="glass-tag">{link.category || getLinkTypeLabel(resolvedType)}</span>
-                                        <span className={`glass-tag link-type-tag ${resolvedType}`}>{getLinkTypeLabel(resolvedType)}</span>
-                                        <span className="link-domain">
-                                            {resolvedType === 'person_account'
-                                                ? `${getPlatformLabel(link.account_platform)}${accountHandle ? ` · @${accountHandle}` : ''}`
-                                                : getDisplayDomain(targetUrl)}
-                                        </span>
-                                    </div>
+                                <div className={`link-content ${isAccountCard ? 'account-profile-content' : ''}`}>
+                                    {isAccountCard ? (
+                                        <div className="account-profile-meta">
+                                            <span className={`account-platform-pill ${link.account_platform || 'other'}`}>
+                                                <i className={getPlatformIcon(link.account_platform)}></i>
+                                                <span>{getPlatformLabel(link.account_platform)}</span>
+                                            </span>
+                                            <span className="glass-tag">{link.category || getLinkTypeLabel(resolvedType)}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="link-meta">
+                                            <span className="glass-tag">{link.category || getLinkTypeLabel(resolvedType)}</span>
+                                            <span className={`glass-tag link-type-tag ${resolvedType}`}>{getLinkTypeLabel(resolvedType)}</span>
+                                            <span className="link-domain">{getDisplayDomain(targetUrl)}</span>
+                                        </div>
+                                    )}
                                     <h3 className="link-title" title={link.title}>{link.title}</h3>
+                                    {isAccountCard && accountHandle && (
+                                        <p className="account-handle-line" title={`@${accountHandle}`}>@{accountHandle}</p>
+                                    )}
                                     <p className="link-desc" title={link.description || link.url}>{link.description || link.url}</p>
                                 </div>
                                 <div className="link-hover-arrow">

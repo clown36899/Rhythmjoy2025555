@@ -159,8 +159,10 @@ function isGenericYouTubeImage(url) {
   if (!value) return false;
   return (
     value.includes('youtube-logo') ||
+    value.includes('youtube.com/img/desktop') ||
     value.includes('/youtube/img/') ||
     value.includes('/yt/about/') ||
+    value.includes('yt_1200') ||
     value.includes('youtube_social') ||
     value.includes('yt_logo')
   );
@@ -419,6 +421,23 @@ function readPageMetaFromPage() {
   const host = location.hostname.replace(/^www\./, '').toLowerCase();
   const isInstagram = host === 'instagram.com';
   const isYouTube = ['youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host);
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const isYouTubeAccountPage = isYouTube && (
+    (pathParts[0] || '').startsWith('@') ||
+    ['channel', 'c', 'user'].includes(pathParts[0] || '')
+  );
+  const isGenericYouTubeImageUrl = (url) => {
+    const value = String(url || '').toLowerCase();
+    return (
+      value.includes('youtube-logo') ||
+      value.includes('youtube.com/img/desktop') ||
+      value.includes('/youtube/img/') ||
+      value.includes('/yt/about/') ||
+      value.includes('yt_1200') ||
+      value.includes('youtube_social') ||
+      value.includes('yt_logo')
+    );
+  };
   const isNoiseText = (value) => {
     const text = cleanText(value).toLowerCase();
     if (!text || text.length < 2) return true;
@@ -573,6 +592,39 @@ function readPageMetaFromPage() {
       .map((selector) => cleanLongText(document.querySelector(selector)?.textContent))
       .find((text) => text.length >= 8 && !/^더보기$/i.test(text)) || '';
   };
+  const pickYouTubeChannelAvatarFromDom = () => {
+    const selectors = [
+      'yt-page-header-view-model img[src]',
+      'ytd-page-header-renderer img[src]',
+      'ytd-c4-tabbed-header-renderer #avatar img[src]',
+      'ytd-channel-header-renderer #avatar img[src]',
+      'yt-decorated-avatar-view-model img[src]',
+      'img[src*="yt3.ggpht.com"]',
+      'img[src*="yt3.googleusercontent.com"]',
+    ];
+    const candidatesBySelector = selectors
+      .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+      .map((img) => {
+        const image = img;
+        const rect = image.getBoundingClientRect();
+        const src = cleanUrl(image.currentSrc || image.src);
+        const visibleArea = Math.max(rect.width, 0) * Math.max(rect.height, 0);
+        const naturalArea = Math.max(image.naturalWidth || 0, 0) * Math.max(image.naturalHeight || 0, 0);
+        const squareBias = Math.abs((image.naturalWidth || rect.width || 0) - (image.naturalHeight || rect.height || 0));
+        return { src, visibleArea, naturalArea, squareBias };
+      })
+      .filter((item) => (
+        item.src &&
+        !isGenericYouTubeImageUrl(item.src) &&
+        (item.src.includes('yt3.') || item.visibleArea >= 800 || item.naturalArea >= 800)
+      ))
+      .sort((a, b) => (
+        Number(b.src.includes('yt3.')) - Number(a.src.includes('yt3.')) ||
+        a.squareBias - b.squareBias ||
+        b.visibleArea + b.naturalArea / 100 - (a.visibleArea + a.naturalArea / 100)
+      ));
+    return candidatesBySelector[0]?.src || '';
+  };
 
   const fromMeta = [
     'meta[property="og:image"]',
@@ -649,8 +701,10 @@ function readPageMetaFromPage() {
     ''
   );
 
+  const youtubeAccountAvatar = isYouTubeAccountPage ? pickYouTubeChannelAvatarFromDom() : '';
+
   return {
-    thumbnail: fromMeta || poster || candidates[0]?.src || '',
+    thumbnail: youtubeAccountAvatar || fromMeta || poster || candidates[0]?.src || '',
     title,
     description: normalizedDescription,
     author,

@@ -49,6 +49,7 @@ const thumbnailSourceLabels: Record<string, string> = {
     'favicon': '사이트 아이콘',
     'favicon-fallback': '사이트 아이콘',
     'direct-image': '원본 이미지',
+    'account-avatar': '프로필 이미지',
     'screenshot': '사이트 스크린샷'
 };
 

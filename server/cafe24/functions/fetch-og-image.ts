@@ -18,16 +18,17 @@ const MAX_PAGE_IMAGE_CANDIDATES = 8;
 const MAX_THUMBNAIL_CANDIDATES = 14;
 const sourcePriority: Record<string, number> = {
     'direct-image': 0,
-    'og-image': 1,
-    'meta-image': 2,
-    'json-ld': 3,
-    'image-src': 4,
-    'preload-image': 5,
-    'page-image': 6,
-    'screenshot': 7,
-    'apple-touch-icon': 8,
-    'favicon': 9,
-    'favicon-fallback': 10
+    'account-avatar': 1,
+    'og-image': 2,
+    'meta-image': 3,
+    'json-ld': 4,
+    'image-src': 5,
+    'preload-image': 6,
+    'page-image': 7,
+    'screenshot': 8,
+    'apple-touch-icon': 9,
+    'favicon': 10,
+    'favicon-fallback': 11
 };
 
 function decodeHtml(value: string): string {
@@ -116,6 +117,29 @@ function screenshotUrl(targetUrl: string): string {
 function isYouTubeUrl(url: URL): boolean {
     const host = url.hostname.replace(/^www\./, '').toLowerCase();
     return host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com' || host === 'youtu.be';
+}
+
+function isYouTubeAccountUrl(url: URL): boolean {
+    const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '').toLowerCase();
+    const parts = url.pathname.split('/').filter(Boolean);
+    const first = parts[0] || '';
+    return host === 'youtube.com' && (
+        first.startsWith('@') ||
+        (['channel', 'c', 'user'].includes(first) && Boolean(parts[1]))
+    );
+}
+
+function isGenericYouTubeImageUrl(url: string): boolean {
+    const value = String(url || '').toLowerCase();
+    return (
+        value.includes('youtube-logo') ||
+        value.includes('youtube.com/img/desktop') ||
+        value.includes('/youtube/img/') ||
+        value.includes('/yt/about/') ||
+        value.includes('yt_1200') ||
+        value.includes('youtube_social') ||
+        value.includes('yt_logo')
+    );
 }
 
 function textFromRuns(value: unknown): string {
@@ -220,6 +244,38 @@ function extractYouTubeTitleFromHtml(html: string): string {
     return '';
 }
 
+function decodeJsonStringFragment(value: string): string {
+    try {
+        return JSON.parse(`"${value.replace(/"/g, '\\"')}"`);
+    } catch (_error) {
+        return decodeHtml(value)
+            .replace(/\\\//g, '/')
+            .replace(/\\u0026/g, '&')
+            .replace(/\\u003d/g, '=');
+    }
+}
+
+function extractYouTubeAccountAvatarFromHtml(html: string): string {
+    const candidates = new Set<string>();
+    const encodedUrlPattern = /https?:\\\/\\\/yt3\.(?:ggpht|googleusercontent)\.com\\\/[^"\\]+(?:\\u0026[^"\\]+)*/g;
+    const plainUrlPattern = /https?:\/\/yt3\.(?:ggpht|googleusercontent)\.com\/[^"'<>\\\s]+/g;
+
+    Array.from(html.matchAll(encodedUrlPattern)).forEach((match) => {
+        candidates.add(decodeJsonStringFragment(match[0]));
+    });
+    Array.from(html.matchAll(plainUrlPattern)).forEach((match) => {
+        candidates.add(decodeHtml(match[0]));
+    });
+
+    return Array.from(candidates)
+        .map((url) => url.replace(/\\u0026/g, '&').replace(/\\\//g, '/'))
+        .filter((url) => url && !isGenericYouTubeImageUrl(url))
+        .sort((a, b) => {
+            const sizeOf = (value: string) => Number(value.match(/[?=&]s(?:z)?=(\d+)/)?.[1] || value.match(/=s(\d+)/)?.[1] || 0);
+            return sizeOf(b) - sizeOf(a);
+        })[0] || '';
+}
+
 function sortThumbnailOptions(options: ThumbnailOption[]): ThumbnailOption[] {
     return options
         .map((option, index) => ({ option, index }))
@@ -311,6 +367,7 @@ export const handler: Handler = async (event) => {
         const addCandidate = (rawUrl: string, label: string, source: string) => {
             const normalized = resolveCandidateUrl(rawUrl, parsedTarget);
             if (!normalized || seen.has(normalized)) return;
+            if (isYouTubeUrl(parsedTarget) && isGenericYouTubeImageUrl(normalized)) return;
             seen.add(normalized);
             thumbnailOptions.push({ url: normalized, label, source });
         };
@@ -374,6 +431,11 @@ export const handler: Handler = async (event) => {
         description = decodeHtml(description);
         if (isYouTubeUrl(parsedTarget)) {
             description = extractYouTubeDescriptionFromHtml(html) || description;
+        }
+
+        if (isYouTubeAccountUrl(parsedTarget)) {
+            const accountAvatar = extractYouTubeAccountAvatarFromHtml(html);
+            if (accountAvatar) addCandidate(accountAvatar, '프로필 이미지', 'account-avatar');
         }
 
         // Extract representative images.
