@@ -1289,15 +1289,21 @@ const CollectionArchiveView: React.FC<{
           <span className="media-folder-current-icon"><i className="ri-folder-open-line" /></span>
           <div>
             <p className="media-eyebrow">Folder</p>
-            <h2>{activePlaylist.name}</h2>
+            <span className="media-folder-detail-title">
+              <h2>{activePlaylist.name}</h2>
+              {canManagePlaylist(activePlaylist) && (
+                <button
+                  type="button"
+                  className="media-folder-inline-action"
+                  onClick={() => onEditPlaylist(activePlaylist)}
+                  aria-label={`${activePlaylist.name} 수정`}
+                >
+                  <i className="ri-edit-2-line" />
+                </button>
+              )}
+            </span>
             <span>{branchItems.length}개 카드 · {visiblePlaylists.length}개 하위</span>
           </div>
-          {canManagePlaylist(activePlaylist) && (
-            <button type="button" className="media-ghost-button" onClick={() => onEditPlaylist(activePlaylist)}>
-              <i className="ri-edit-2-line" />
-              수정
-            </button>
-          )}
         </header>
         {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
         {!!visiblePlaylists.length && (

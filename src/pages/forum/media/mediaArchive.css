@@ -1120,16 +1120,28 @@
 }
 
 .media-playlist-detail-header h2 {
+  min-width: 0;
   margin: 0;
   font-size: 1.08rem;
   line-height: 1.25;
   letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .media-playlist-detail-header span {
   color: var(--text-tertiary);
   font-size: 0.78rem;
   font-weight: 850;
+}
+
+.media-folder-detail-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary) !important;
 }
 
 .media-playlist-description,
@@ -1675,10 +1687,5 @@
 
   .media-playlist-detail-header {
     grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .media-playlist-detail-header .media-ghost-button {
-    grid-column: 1 / -1;
-    width: 100%;
   }
 }
