@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
-import { LinkRegistrationModal } from './components/LinkRegistrationModal';
+import { LinkRegistrationModal, type LinkRegistrationDraft } from './components/LinkRegistrationModal';
 import {
     getDisplayDomain,
     getLinkTypeLabel,
     getPlatformIcon,
     getPlatformLabel,
+    parseLinkTarget,
     type AccountPlatform,
     type LinkType,
 } from './linkUtils';
@@ -41,13 +43,17 @@ const getResolvedLinkType = (link: SiteLink): LinkType => (
 );
 
 export default function LinksPage() {
+    const location = useLocation();
+    const navigate = useNavigate();
     const { user, isAdmin } = useAuth();
     const [links, setLinks] = useState<SiteLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<SiteLink | null>(null);
+    const [initialDraft, setInitialDraft] = useState<LinkRegistrationDraft | null>(null);
     const [filterType, setFilterType] = useState<TypeFilter>('all');
     const [filterCategory, setFilterCategory] = useState<string>('전체');
+    const importedDraftKeyRef = useRef('');
 
     const fetchLinks = async () => {
         setLoading(true);
@@ -70,6 +76,56 @@ export default function LinksPage() {
     useEffect(() => {
         fetchLinks();
     }, [isAdmin]);
+
+    useEffect(() => {
+        const hashValue = location.hash.startsWith('#clipper?')
+            ? location.hash.slice('#clipper?'.length)
+            : location.hash.startsWith('#?')
+                ? location.hash.slice(2)
+                : '';
+        const hashParams = new URLSearchParams(hashValue);
+        const searchParams = new URLSearchParams(location.search);
+        const hasSearchImport = ['add', 'url', 'link'].some((key) => searchParams.has(key));
+        const params = hashValue ? hashParams : hasSearchImport ? searchParams : null;
+        if (!params) return;
+
+        const rawUrl = params.get('url') || params.get('add') || params.get('link') || '';
+        const parsed = parseLinkTarget(rawUrl);
+        if (!rawUrl || !parsed) return;
+
+        const requestedType = params.get('type') || params.get('link_type');
+        const resolvedType: LinkType = requestedType === 'person_account' || parsed.linkType === 'person_account'
+            ? 'person_account'
+            : 'site';
+        const importKey = [
+            resolvedType,
+            parsed.normalizedUrl,
+            params.get('title') || '',
+            params.get('thumbnail') || params.get('image') || '',
+            params.get('description') || '',
+        ].join(':');
+        if (importedDraftKeyRef.current === importKey) return;
+        importedDraftKeyRef.current = importKey;
+
+        setEditTarget(null);
+        const paramPlatform = params.get('platform');
+        setInitialDraft({
+            url: parsed.normalizedUrl,
+            title: params.get('title') || '',
+            imageUrl: params.get('thumbnail') || params.get('image') || '',
+            description: params.get('description') || '',
+            category: params.get('category') || (resolvedType === 'person_account' ? '인물' : ''),
+            linkType: resolvedType,
+            accountPlatform: resolvedType === 'person_account' && (paramPlatform === 'instagram' || paramPlatform === 'youtube')
+                ? paramPlatform
+                : resolvedType === 'person_account'
+                    ? parsed.accountPlatform
+                    : 'other',
+            accountHandle: resolvedType === 'person_account' ? (params.get('handle') || parsed.accountHandle) : '',
+        });
+        setIsModalOpen(true);
+        navigate('/links', { replace: true });
+    }, [location.hash, location.search, navigate]);
 
     const typeFilteredLinks = useMemo(() => (
         filterType === 'all'
@@ -123,7 +179,7 @@ export default function LinksPage() {
                 <div className="links-hero-content">
                     <p className="subtitle-glass">댄스씬의 사이트와 인물 계정을 모아봅니다.</p>
                 </div>
-                <button className="links-action-btn glass-btn-primary" onClick={() => { setEditTarget(null); setIsModalOpen(true); }}>
+                <button className="links-action-btn glass-btn-primary" onClick={() => { setInitialDraft(null); setEditTarget(null); setIsModalOpen(true); }}>
                     <i className="ri-add-line"></i>
                     <span>사이트·계정 등록</span>
                 </button>
@@ -236,7 +292,7 @@ export default function LinksPage() {
 
                             {(isAdmin || (user && user.id === link.created_by)) && (
                                 <div className="link-glass-actions" onClick={e => e.stopPropagation()}>
-                                    <button onClick={() => { setEditTarget(link); setIsModalOpen(true); }} className="glass-action-btn edit">
+                                    <button onClick={() => { setInitialDraft(null); setEditTarget(link); setIsModalOpen(true); }} className="glass-action-btn edit">
                                         <i className="ri-pencil-line"></i> 수정
                                     </button>
                                     {isAdmin && !link.is_approved && (
@@ -258,10 +314,11 @@ export default function LinksPage() {
             {isModalOpen && (
                 <LinkRegistrationModal
                     isOpen={isModalOpen}
-                    onClose={() => { setIsModalOpen(false); setEditTarget(null); }}
+                    onClose={() => { setIsModalOpen(false); setEditTarget(null); setInitialDraft(null); }}
                     onSuccess={fetchLinks}
                     categories={allCategories}
                     editLink={editTarget}
+                    initialDraft={initialDraft}
                 />
             )}
         </div>

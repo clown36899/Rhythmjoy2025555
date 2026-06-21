@@ -32,6 +32,14 @@
       </label>
 
       <label class="clipper__field">
+        <span>등록 대상</span>
+        <select id="captureMode">
+          <option value="media">SNS 게시물/영상</option>
+          <option value="account">인물 계정</option>
+        </select>
+      </label>
+
+      <label class="clipper__field" data-media-only="true">
         <span>자료 유형</span>
         <select id="bucketInput">
           <option value="reference">참고자료</option>
@@ -43,7 +51,7 @@
         </select>
       </label>
 
-      <label class="clipper__field">
+      <label class="clipper__field" data-media-only="true">
         <span>재생목록/폴더</span>
         <select id="playlistInput">
           <option value="">불러오는 중...</option>
@@ -51,24 +59,24 @@
         <small id="playlistStatus" class="clipper__field-note"></small>
       </label>
 
-      <label class="clipper__field">
+      <label class="clipper__field" data-media-only="true">
         <span>새 재생목록</span>
         <input id="newPlaylistInput" type="text" placeholder="저장하면서 만들기" />
       </label>
 
-      <label class="clipper__field">
+      <label class="clipper__field" data-media-only="true">
         <span>새 재생목록 위치</span>
         <select id="newPlaylistParentInput">
           <option value="">최상위</option>
         </select>
       </label>
 
-      <label class="clipper__field">
+      <label class="clipper__field" data-media-only="true">
         <span>검색 태그</span>
         <input id="tagsInput" type="text" placeholder="예: 린디합, 소셜, 공연" />
       </label>
 
-      <label class="clipper__field">
+      <label class="clipper__field" data-media-only="true">
         <span>장르</span>
         <input id="genreInput" type="text" placeholder="예: 스윙, 재즈" />
       </label>

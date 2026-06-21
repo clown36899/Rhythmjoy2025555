@@ -18,6 +18,18 @@ interface LinkRegistrationModalProps {
     onSuccess: () => void;
     categories: string[];
     editLink?: SiteLink | null;
+    initialDraft?: LinkRegistrationDraft | null;
+}
+
+export interface LinkRegistrationDraft {
+    url?: string;
+    title?: string;
+    imageUrl?: string;
+    description?: string;
+    category?: string;
+    linkType?: LinkType;
+    accountPlatform?: AccountPlatform;
+    accountHandle?: string;
 }
 
 interface ThumbnailOption {
@@ -89,7 +101,7 @@ const isWeakFetchedTitle = (value?: string | null) => {
     return !title || ['instagram', 'youtube', 'instagram photos and videos'].includes(title);
 };
 
-export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ isOpen, onClose, onSuccess, categories, editLink }) => {
+export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ isOpen, onClose, onSuccess, categories, editLink, initialDraft }) => {
     const [title, setTitle] = useState('');
     const [url, setUrl] = useState('');
     const [imageUrl, setImageUrl] = useState('');
@@ -147,21 +159,38 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setSelectedFile(null);
             lastFetchedUrlRef.current = '';
         } else if (isOpen && !editLink) {
-            setTitle('');
-            setUrl('');
-            setImageUrl('');
-            setDescription('');
-            setCategory('');
-            setLinkType('site');
-            setAccountPlatform('other');
-            setAccountHandle('');
-            setOgImageUrl('');
-            setThumbnailOptions([]);
+            const draftUrl = initialDraft?.url || '';
+            const parsed = parseLinkTarget(draftUrl);
+            const resolvedType = initialDraft?.linkType === 'person_account' || parsed?.linkType === 'person_account'
+                ? 'person_account'
+                : 'site';
+            const resolvedPlatform = resolvedType === 'person_account'
+                ? (initialDraft?.accountPlatform || parsed?.accountPlatform || 'other')
+                : 'other';
+            const resolvedHandle = resolvedType === 'person_account'
+                ? (initialDraft?.accountHandle || parsed?.accountHandle || '')
+                : '';
+            const resolvedImageUrl = initialDraft?.imageUrl || '';
+
+            setTitle(initialDraft?.title || getFallbackTitle(parsed) || '');
+            setUrl(parsed?.normalizedUrl || draftUrl);
+            setImageUrl(resolvedImageUrl);
+            setDescription(initialDraft?.description || '');
+            setCategory(initialDraft?.category || (resolvedType === 'person_account' ? DEFAULT_ACCOUNT_CATEGORY : ''));
+            setLinkType(resolvedType);
+            setAccountPlatform(resolvedPlatform);
+            setAccountHandle(resolvedHandle);
+            setOgImageUrl(resolvedImageUrl);
+            setThumbnailOptions(resolvedImageUrl ? [{
+                url: resolvedImageUrl,
+                label: '가져온 이미지',
+                source: 'clipper'
+            }] : []);
             setThumbnailFetchError('');
             setSelectedFile(null);
             lastFetchedUrlRef.current = '';
         }
-    }, [isOpen, editLink]);
+    }, [isOpen, editLink, initialDraft]);
 
     const handleAutoFetch = React.useCallback(async (force = false) => {
         if (!url.trim()) return;

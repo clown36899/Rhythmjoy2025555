@@ -3,11 +3,17 @@ const TARGETS = {
   local: 'http://127.0.0.1:5173/forum/media',
 };
 
+const LINK_TARGETS = {
+  production: 'https://swingenjoy.com/links',
+  local: 'http://127.0.0.1:5173/links',
+};
+
 const pageTitle = document.getElementById('pageTitle');
 const pageUrl = document.getElementById('pageUrl');
 const platformBadge = document.getElementById('platformBadge');
 const thumbnailPreview = document.getElementById('thumbnailPreview');
 const targetMode = document.getElementById('targetMode');
+const captureMode = document.getElementById('captureMode');
 const bucketInput = document.getElementById('bucketInput');
 const playlistInput = document.getElementById('playlistInput');
 const playlistStatus = document.getElementById('playlistStatus');
@@ -17,6 +23,7 @@ const tagsInput = document.getElementById('tagsInput');
 const genreInput = document.getElementById('genreInput');
 const saveButton = document.getElementById('saveButton');
 const statusText = document.getElementById('statusText');
+const mediaOnlyFields = Array.from(document.querySelectorAll('[data-media-only="true"]'));
 
 let activeTab = null;
 let activeThumbnailUrl = '';
@@ -40,6 +47,75 @@ function detectPlatform(url) {
   } catch {
     return 'Unknown';
   }
+}
+
+const INSTAGRAM_RESERVED_PATHS = new Set([
+  'about',
+  'accounts',
+  'api',
+  'developer',
+  'direct',
+  'explore',
+  'p',
+  'privacy',
+  'reel',
+  'reels',
+  'stories',
+  'tv',
+]);
+
+const YOUTUBE_ACCOUNT_PATHS = new Set(['channel', 'c', 'user']);
+
+function cleanHandle(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^@+/, '')
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '');
+}
+
+function parseAccountTarget(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '').replace(/^m\./, '').toLowerCase();
+    const parts = parsed.pathname.split('/').filter(Boolean);
+
+    if (host === 'instagram.com') {
+      const handle = cleanHandle(parts[0]);
+      if (handle && !INSTAGRAM_RESERVED_PATHS.has(handle.toLowerCase())) {
+        return {
+          platform: 'instagram',
+          handle,
+          normalizedUrl: `https://www.instagram.com/${handle}/`,
+        };
+      }
+    }
+
+    if (host === 'youtube.com') {
+      const first = parts[0] || '';
+      if (first.startsWith('@')) {
+        const handle = cleanHandle(first);
+        if (handle) {
+          return {
+            platform: 'youtube',
+            handle,
+            normalizedUrl: `https://www.youtube.com/@${handle}`,
+          };
+        }
+      }
+      if (YOUTUBE_ACCOUNT_PATHS.has(first) && parts[1]) {
+        const handle = cleanHandle(parts[1]);
+        return {
+          platform: 'youtube',
+          handle,
+          normalizedUrl: `https://www.youtube.com/${first}/${handle}`,
+        };
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function getYouTubeVideoId(url) {
@@ -126,6 +202,10 @@ function compactText(value) {
 
 function getTargetBaseUrl() {
   return TARGETS[targetMode.value] || TARGETS.production;
+}
+
+function getLinkTargetBaseUrl() {
+  return LINK_TARGETS[targetMode.value] || LINK_TARGETS.production;
 }
 
 function getApiUrl(path) {
@@ -590,6 +670,32 @@ function updatePageMetadataPreview(meta) {
   thumbnailPreview.hidden = false;
 }
 
+function updateCaptureModeUi() {
+  const isAccountMode = captureMode.value === 'account';
+  const accountTarget = parseAccountTarget(activeTab?.url || '');
+  const baseDisabled = !activeTab?.url || activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('edge://');
+
+  mediaOnlyFields.forEach((field) => {
+    field.hidden = isAccountMode;
+  });
+
+  saveButton.querySelector('span').textContent = isAccountMode ? '계정 등록폼 열기' : '공유 등록폼 열기';
+  saveButton.disabled = baseDisabled || (isAccountMode && !accountTarget);
+
+  if (isAccountMode) {
+    if (accountTarget) {
+      setStatus(`${accountTarget.platform === 'instagram' ? 'Instagram' : 'YouTube'} 계정 @${accountTarget.handle} 등록폼으로 보냅니다.`);
+    } else {
+      setStatus('인물 계정은 Instagram 프로필 또는 YouTube 채널 페이지에서만 등록할 수 있어요.');
+    }
+    return;
+  }
+
+  if (accountTarget) {
+    setStatus('계정 페이지입니다. 계정을 저장하려면 등록 대상을 인물 계정으로 바꾸세요.');
+  }
+}
+
 async function updatePagePreview(tab) {
   activeTab = tab;
   const url = tab?.url || '';
@@ -618,6 +724,8 @@ async function updatePagePreview(tab) {
   } else {
     setStatus('');
   }
+
+  updateCaptureModeUi();
 }
 
 async function loadSettings() {
@@ -686,6 +794,30 @@ function buildArchiveUrl() {
   return `${base}#clipper?${params.toString()}`;
 }
 
+function buildAccountUrl() {
+  const accountTarget = parseAccountTarget(activeTab.url);
+  if (!accountTarget) return '';
+
+  const base = getLinkTargetBaseUrl();
+  const params = new URLSearchParams();
+  const platformLabel = accountTarget.platform === 'instagram' ? 'Instagram' : 'YouTube';
+  let title = cleanTitle(activePageMeta.author || activeResolvedTitle || activeTab.title);
+  if (!title || isGenericTitle(title, platformLabel)) {
+    title = accountTarget.platform === 'youtube' ? `@${accountTarget.handle}` : accountTarget.handle;
+  }
+
+  params.set('type', 'person_account');
+  params.set('url', accountTarget.normalizedUrl);
+  params.set('title', title);
+  params.set('category', '인물');
+  params.set('platform', accountTarget.platform);
+  params.set('handle', accountTarget.handle);
+  params.set('source', '데스크톱 공유');
+  if (activeThumbnailUrl) params.set('thumbnail', activeThumbnailUrl);
+  if (activePageMeta.description) params.set('description', activePageMeta.description.slice(0, 4000));
+  return `${base}#clipper?${params.toString()}`;
+}
+
 async function init() {
   await loadSettings();
   await fetchPlaylists();
@@ -696,7 +828,9 @@ async function init() {
 targetMode.addEventListener('change', async () => {
   await saveSettings();
   await fetchPlaylists();
+  updateCaptureModeUi();
 });
+captureMode.addEventListener('change', updateCaptureModeUi);
 bucketInput.addEventListener('change', saveSettings);
 playlistInput.addEventListener('change', async () => {
   if (playlistInput.value) {
@@ -718,7 +852,12 @@ genreInput.addEventListener('change', saveSettings);
 saveButton.addEventListener('click', async () => {
   if (!activeTab?.url) return;
   await saveSettings();
-  await chrome.tabs.create({ url: buildArchiveUrl(), active: true });
+  const url = captureMode.value === 'account' ? buildAccountUrl() : buildArchiveUrl();
+  if (!url) {
+    setStatus('이 페이지에서는 선택한 등록 대상을 만들 수 없어요.');
+    return;
+  }
+  await chrome.tabs.create({ url, active: true });
 });
 
 init().catch((error) => {
