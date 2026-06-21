@@ -742,12 +742,50 @@
 
 .media-library-view,
 .media-playlist-detail {
+  position: relative;
   max-width: 1160px;
   margin: 0 auto;
   border: 1px solid var(--border-secondary);
   border-radius: 8px;
   background: var(--bg-surface-1);
   padding: 12px;
+  overflow: hidden;
+}
+
+.media-library-stack {
+  transform-origin: center top;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .media-library-stack--forward {
+    animation: media-folder-forward-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+
+  .media-library-stack--back {
+    animation: media-folder-back-in 190ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+@keyframes media-folder-forward-in {
+  from {
+    opacity: 0;
+    transform: translateX(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes media-folder-back-in {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 .media-library-header {
@@ -773,6 +811,26 @@
   font-weight: 850;
 }
 
+.media-library-sections,
+.media-library-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.media-library-sections {
+  gap: 14px;
+}
+
+.media-library-section {
+  gap: 8px;
+}
+
+.media-library-section--uncategorized {
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-secondary);
+}
+
 .media-folder-list {
   display: flex;
   flex-direction: column;
@@ -780,6 +838,7 @@
 }
 
 .media-folder-row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
@@ -796,6 +855,11 @@
   padding: 8px 10px 8px 8px;
   text-align: left;
   background: color-mix(in srgb, var(--bg-deep) 64%, transparent);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.media-folder-row-main:active {
+  transform: scale(0.992);
 }
 
 .media-folder-row-main > i {
@@ -818,6 +882,22 @@
   width: 44px;
   height: 44px;
   font-size: 1.25rem;
+}
+
+.media-folder-row--legacy .media-folder-row-icon {
+  border-color: color-mix(in srgb, #a78bfa 26%, transparent);
+  background: color-mix(in srgb, #a78bfa 15%, transparent);
+  color: #c4b5fd;
+}
+
+.media-folder-row--uncategorized .media-folder-row-main {
+  background: color-mix(in srgb, var(--bg-deep) 78%, #94a3b8 8%);
+}
+
+.media-folder-row--uncategorized .media-folder-row-icon {
+  border-color: color-mix(in srgb, #94a3b8 28%, transparent);
+  background: color-mix(in srgb, #94a3b8 14%, transparent);
+  color: #cbd5e1;
 }
 
 .media-folder-current-icon {
@@ -884,6 +964,10 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, #38bdf8 18%, var(--border-secondary));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-deep) 56%, transparent);
 }
 
 .media-folder-up-button {
@@ -937,6 +1021,28 @@
   border-color: transparent;
 }
 
+.media-folder-room {
+  border-color: color-mix(in srgb, #38bdf8 30%, var(--border-secondary));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #38bdf8 10%, transparent), transparent 118px),
+    var(--bg-surface-1);
+}
+
+.media-folder-room::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #38bdf8, #2dd4bf);
+}
+
+.media-legacy-detail--uncategorized {
+  border-color: color-mix(in srgb, #94a3b8 26%, var(--border-secondary));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #94a3b8 8%, transparent), transparent 104px),
+    var(--bg-surface-1);
+}
+
 .media-playlist-detail-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -971,6 +1077,31 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 12px;
+}
+
+.media-folder-section--children .media-folder-list {
+  position: relative;
+  padding-left: 14px;
+}
+
+.media-folder-section--children .media-folder-list::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: color-mix(in srgb, #38bdf8 34%, var(--border-secondary));
+}
+
+.media-folder-section--children .media-folder-row::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 34px;
+  width: 10px;
+  height: 1px;
+  background: color-mix(in srgb, #38bdf8 34%, var(--border-secondary));
 }
 
 .media-folder-section-header {

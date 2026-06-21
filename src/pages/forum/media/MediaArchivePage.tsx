@@ -1015,6 +1015,8 @@ interface LegacyArchiveGroup {
   items: SnsMediaItem[];
 }
 
+type MediaArchiveNavigationDirection = 'neutral' | 'forward' | 'back';
+
 function getPlaylistChildren(parentId: string, playlists: SnsMediaPlaylist[]) {
   const playlistIds = new Set(playlists.map((playlist) => playlist.id));
   return sortPlaylistsByName(playlists.filter((playlist) => {
@@ -1084,6 +1086,7 @@ const CollectionArchiveView: React.FC<{
 }> = ({ items, playlists, canManagePlaylist, onEditPlaylist }) => {
   const [activePlaylistId, setActivePlaylistId] = useState('');
   const [activeLegacyKey, setActiveLegacyKey] = useState('');
+  const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>('neutral');
   const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
   const legacyGroups = useMemo(() => buildLegacyArchiveGroups(items, playlists), [items, playlists]);
   const activeLegacyGroup = legacyGroups.find((group) => group.key === activeLegacyKey) || null;
@@ -1091,14 +1094,45 @@ const CollectionArchiveView: React.FC<{
   const visiblePlaylists = useMemo(() => getPlaylistChildren(currentParentId, playlists), [currentParentId, playlists]);
   const directItems = activePlaylist ? getPlaylistDirectItems(activePlaylist.id, items) : [];
   const breadcrumbs = activePlaylist ? getPlaylistBreadcrumbs(activePlaylist, playlists) : [];
+  const uncategorizedLegacyGroups = legacyGroups.filter((group) => group.title === '컬렉션 미지정');
+  const namedLegacyGroups = legacyGroups.filter((group) => group.title !== '컬렉션 미지정');
+  const stackClassName = `media-library-stack media-library-stack--${navigationDirection}`;
 
   useEffect(() => {
-    if (activePlaylistId && !activePlaylist) setActivePlaylistId('');
+    if (activePlaylistId && !activePlaylist) {
+      setNavigationDirection('back');
+      setActivePlaylistId('');
+    }
   }, [activePlaylist, activePlaylistId]);
 
   useEffect(() => {
-    if (activeLegacyKey && !activeLegacyGroup) setActiveLegacyKey('');
+    if (activeLegacyKey && !activeLegacyGroup) {
+      setNavigationDirection('back');
+      setActiveLegacyKey('');
+    }
   }, [activeLegacyGroup, activeLegacyKey]);
+
+  const navigateToPlaylist = (playlistId: string, direction: MediaArchiveNavigationDirection = 'forward') => {
+    setNavigationDirection(direction);
+    setActiveLegacyKey('');
+    setActivePlaylistId(playlistId);
+  };
+
+  const navigateToRoot = () => {
+    setNavigationDirection('back');
+    setActivePlaylistId('');
+    setActiveLegacyKey('');
+  };
+
+  const navigateToLegacyGroup = (groupKey: string) => {
+    setNavigationDirection('forward');
+    setActivePlaylistId('');
+    setActiveLegacyKey(groupKey);
+  };
+
+  const getLegacyGroupDisplayTitle = (group: LegacyArchiveGroup) => (
+    group.title === '컬렉션 미지정' ? '미분류' : group.title
+  );
 
   const renderPlaylistRow = (playlist: SnsMediaPlaylist) => {
     const childCount = getPlaylistChildren(playlist.id, playlists).length;
@@ -1114,10 +1148,7 @@ const CollectionArchiveView: React.FC<{
         <button
           type="button"
           className="media-folder-row-main"
-          onClick={() => {
-            setActiveLegacyKey('');
-            setActivePlaylistId(playlist.id);
-          }}
+          onClick={() => navigateToPlaylist(playlist.id, 'forward')}
         >
           <span className="media-folder-row-icon"><i className="ri-folder-3-line" /></span>
           <span className="media-folder-row-copy">
@@ -1140,25 +1171,29 @@ const CollectionArchiveView: React.FC<{
     );
   };
 
-  const renderLegacyRow = (group: LegacyArchiveGroup) => (
-    <article key={group.key} className="media-folder-row media-folder-row--legacy">
-      <button
-        type="button"
-        className="media-folder-row-main"
-        onClick={() => {
-          setActivePlaylistId('');
-          setActiveLegacyKey(group.key);
-        }}
-      >
-        <span className="media-folder-row-icon"><i className="ri-stack-line" /></span>
-        <span className="media-folder-row-copy">
-          <strong>{group.title}</strong>
-          <small>{group.items.length}개 카드</small>
-        </span>
-        <i className="ri-arrow-right-s-line" />
-      </button>
-    </article>
-  );
+  const renderLegacyRow = (group: LegacyArchiveGroup) => {
+    const isUncategorized = group.title === '컬렉션 미지정';
+    const icon = isUncategorized ? 'ri-inbox-archive-line' : 'ri-stack-line';
+    const title = getLegacyGroupDisplayTitle(group);
+    const detail = isUncategorized ? '폴더 없음' : '기존 컬렉션';
+
+    return (
+      <article key={group.key} className={`media-folder-row ${isUncategorized ? 'media-folder-row--uncategorized' : 'media-folder-row--legacy'}`}>
+        <button
+          type="button"
+          className="media-folder-row-main"
+          onClick={() => navigateToLegacyGroup(group.key)}
+        >
+          <span className="media-folder-row-icon"><i className={icon} /></span>
+          <span className="media-folder-row-copy">
+            <strong>{title}</strong>
+            <small>{group.items.length}개 카드 · {detail}</small>
+          </span>
+          <i className="ri-arrow-right-s-line" />
+        </button>
+      </article>
+    );
+  };
 
   const renderFolderList = (children: React.ReactNode) => (
     <div className="media-folder-list">
@@ -1175,14 +1210,24 @@ const CollectionArchiveView: React.FC<{
 
   const renderPathTrail = () => (
     <div className="media-folder-path-trail">
-      <button type="button" onClick={() => setActivePlaylistId('')}>최상위</button>
+      <button type="button" onClick={navigateToRoot}>최상위</button>
       {breadcrumbs.map((crumb) => (
-        <button key={crumb.id} type="button" className={crumb.id === activePlaylist?.id ? 'active' : ''} onClick={() => setActivePlaylistId(crumb.id)}>
+        <button key={crumb.id} type="button" className={crumb.id === activePlaylist?.id ? 'active' : ''} onClick={() => navigateToPlaylist(crumb.id, 'back')}>
           {crumb.name}
         </button>
       ))}
     </div>
   );
+
+  const renderLibrarySection = (title: string, count: number, children: React.ReactNode, variant = '') => {
+    if (!count) return null;
+    return (
+      <section className={`media-library-section ${variant ? `media-library-section--${variant}` : ''}`}>
+        {renderSectionHeader(title, count)}
+        {renderFolderList(children)}
+      </section>
+    );
+  };
 
   const renderActivePlaylist = () => {
     if (!activePlaylist) return null;
@@ -1191,9 +1236,9 @@ const CollectionArchiveView: React.FC<{
     const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
 
     return (
-      <section className="media-playlist-detail">
+      <section key={activePlaylist.id} className={`media-playlist-detail media-folder-room ${stackClassName}`}>
         <nav className="media-folder-path" aria-label="재생목록 경로">
-          <button type="button" className="media-folder-up-button" onClick={() => setActivePlaylistId(parentId)}>
+          <button type="button" className="media-folder-up-button" onClick={() => navigateToPlaylist(parentId, 'back')}>
             <i className="ri-arrow-left-line" />
             {parentPlaylist ? parentPlaylist.name : '최상위'}
           </button>
@@ -1215,7 +1260,7 @@ const CollectionArchiveView: React.FC<{
         </header>
         {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
         {!!visiblePlaylists.length && (
-          <section className="media-folder-section">
+          <section className="media-folder-section media-folder-section--children">
             {renderSectionHeader('하위 폴더', visiblePlaylists.length)}
             {renderFolderList(visiblePlaylists.map(renderPlaylistRow))}
           </section>
@@ -1235,15 +1280,16 @@ const CollectionArchiveView: React.FC<{
   };
 
   if (activeLegacyGroup) {
+    const isUncategorized = activeLegacyGroup.title === '컬렉션 미지정';
     return (
-      <section className="media-playlist-detail">
+      <section key={activeLegacyGroup.key} className={`media-playlist-detail media-legacy-detail ${isUncategorized ? 'media-legacy-detail--uncategorized' : ''} ${stackClassName}`}>
         <header className="media-playlist-detail-header">
-          <button type="button" className="media-icon-button" onClick={() => setActiveLegacyKey('')} aria-label="재생목록 목록으로">
+          <button type="button" className="media-icon-button" onClick={navigateToRoot} aria-label="재생목록 목록으로">
             <i className="ri-arrow-left-line" />
           </button>
           <div>
-            <p className="media-eyebrow">Collection</p>
-            <h2>{activeLegacyGroup.title}</h2>
+            <p className="media-eyebrow">{isUncategorized ? 'Unsorted' : 'Collection'}</p>
+            <h2>{getLegacyGroupDisplayTitle(activeLegacyGroup)}</h2>
             <span>{activeLegacyGroup.items.length}개 카드</span>
           </div>
         </header>
@@ -1263,20 +1309,19 @@ const CollectionArchiveView: React.FC<{
   }
 
   return (
-    <section className="media-library-view">
+    <section key="library-root" className={`media-library-view ${stackClassName}`}>
       <header className="media-library-header">
         <div>
           <p className="media-eyebrow">Library</p>
           <h2>재생목록</h2>
-          <span>{visiblePlaylists.length}개 폴더 · {legacyGroups.length}개 컬렉션</span>
+          <span>{visiblePlaylists.length}개 폴더 · {namedLegacyGroups.length}개 컬렉션 · {uncategorizedLegacyGroups.length}개 미분류</span>
         </div>
       </header>
-      {renderFolderList(
-        <>
-          {visiblePlaylists.map(renderPlaylistRow)}
-          {legacyGroups.map(renderLegacyRow)}
-        </>,
-      )}
+      <div className="media-library-sections">
+        {renderLibrarySection('폴더', visiblePlaylists.length, visiblePlaylists.map(renderPlaylistRow), 'folders')}
+        {renderLibrarySection('기존 컬렉션', namedLegacyGroups.length, namedLegacyGroups.map(renderLegacyRow), 'legacy')}
+        {renderLibrarySection('미분류', uncategorizedLegacyGroups.length, uncategorizedLegacyGroups.map(renderLegacyRow), 'uncategorized')}
+      </div>
     </section>
   );
 };
