@@ -1111,6 +1111,27 @@ function getPlaylistDirectItems(playlistId: string, items: SnsMediaItem[]) {
   return items.filter((item) => item.playlist_id === playlistId);
 }
 
+function getMediaItemCoverUrl(item: SnsMediaItem) {
+  const parsed = parseMediaUrl(item.normalized_url || item.url || '');
+  return safeImageUrl(item.thumbnail_url) || safeImageUrl(parsed?.thumbnail_url);
+}
+
+function getCoverUrls(mediaItems: SnsMediaItem[], coverUrl?: string | null) {
+  const seen = new Set<string>();
+  const urls = [safeImageUrl(coverUrl), ...mediaItems.map(getMediaItemCoverUrl)]
+    .filter(Boolean)
+    .filter((url) => {
+      if (seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    });
+  return urls.slice(0, 3);
+}
+
+function getPlaylistCoverUrls(playlist: SnsMediaPlaylist, items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
+  return getCoverUrls(getPlaylistBranchItems(playlist.id, items, playlists), playlist.cover_url);
+}
+
 function buildLegacyArchiveGroups(items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
   const playlistIds = new Set(playlists.map((playlist) => playlist.id));
   return groupByKey(
@@ -1221,10 +1242,26 @@ const CollectionArchiveView: React.FC<{
     group.title === '컬렉션 미지정' ? '미분류' : group.title
   );
 
+  const renderFolderCover = (urls: string[], fallbackIcon: string, count: number, modifier = '') => (
+    <span className={`media-folder-cover-stack ${modifier}`} aria-hidden="true">
+      {urls.length ? urls.map((url, index) => (
+        <span key={`${url}:${index}`} className={`media-folder-cover-card media-folder-cover-card--${index + 1}`}>
+          <img src={url} alt="" loading="lazy" draggable={false} />
+        </span>
+      )) : (
+        <span className="media-folder-cover-empty">
+          <i className={fallbackIcon} />
+        </span>
+      )}
+      {count > 0 && <span className="media-folder-cover-count">{count}</span>}
+    </span>
+  );
+
   const renderPlaylistRow = (playlist: SnsMediaPlaylist) => {
     const rowKey = `playlist:${playlist.id}`;
     const childCount = getPlaylistChildren(playlist.id, playlists).length;
     const branchItems = getPlaylistBranchItems(playlist.id, items, playlists);
+    const coverUrls = getPlaylistCoverUrls(playlist, items, playlists);
     const metadata = [
       playlist.category,
       playlist.dance_genre,
@@ -1240,7 +1277,7 @@ const CollectionArchiveView: React.FC<{
           onClick={() => openWithPressFeedback(rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
           onKeyDown={(event) => handleRowKeyDown(event, rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
         >
-          <span className="media-folder-row-icon"><i className="ri-folder-3-line" /></span>
+          {renderFolderCover(coverUrls, 'ri-folder-3-line', branchItems.length)}
           <span className="media-folder-row-copy">
             <span className="media-folder-row-title">
               <strong>{playlist.name}</strong>
@@ -1277,6 +1314,7 @@ const CollectionArchiveView: React.FC<{
     const icon = isUncategorized ? 'ri-inbox-archive-line' : 'ri-stack-line';
     const title = getLegacyGroupDisplayTitle(group);
     const detail = isUncategorized ? '폴더 없음' : '기존 컬렉션';
+    const coverUrls = getCoverUrls(group.items);
 
     return (
       <article key={group.key} className={`media-folder-row ${isUncategorized ? 'media-folder-row--uncategorized' : 'media-folder-row--legacy'}`}>
@@ -1287,7 +1325,7 @@ const CollectionArchiveView: React.FC<{
           onClick={() => openWithPressFeedback(rowKey, () => navigateToLegacyGroup(group.key))}
           onKeyDown={(event) => handleRowKeyDown(event, rowKey, () => navigateToLegacyGroup(group.key))}
         >
-          <span className="media-folder-row-icon"><i className={icon} /></span>
+          {renderFolderCover(coverUrls, icon, group.items.length)}
           <span className="media-folder-row-copy">
             <span className="media-folder-row-title">
               <strong>{title}</strong>
@@ -1338,6 +1376,7 @@ const CollectionArchiveView: React.FC<{
     const parentId = getPlaylistParentId(activePlaylist);
     const parentPlaylist = parentId ? playlists.find((playlist) => playlist.id === parentId) : null;
     const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
+    const coverUrls = getPlaylistCoverUrls(activePlaylist, items, playlists);
 
     return (
       <section key={activePlaylist.id} className={`media-playlist-detail media-folder-room ${stackClassName}`}>
@@ -1349,7 +1388,7 @@ const CollectionArchiveView: React.FC<{
           {renderPathTrail()}
         </nav>
         <header className="media-playlist-detail-header">
-          <span className="media-folder-current-icon"><i className="ri-folder-open-line" /></span>
+          {renderFolderCover(coverUrls, 'ri-folder-open-line', branchItems.length, 'media-folder-cover-stack--header')}
           <div>
             <p className="media-eyebrow">Folder</p>
             <span className="media-folder-detail-title">
