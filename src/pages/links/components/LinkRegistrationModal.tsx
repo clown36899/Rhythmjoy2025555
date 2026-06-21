@@ -380,7 +380,11 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
         <div className="links-modal-overlay glass-overlay">
             <div className="links-modal-panel glass-panel" onClick={e => e.stopPropagation()}>
                 <div className="links-modal-header">
-                    <h2 className="links-modal-title">{editLink ? '링크 정보 수정' : '새 링크 등록'}</h2>
+                    <h2 className="links-modal-title">
+                        {editLink
+                            ? (linkType === 'person_account' ? '인물 계정 수정' : '링크 정보 수정')
+                            : (linkType === 'person_account' ? '새 인물 계정 등록' : '새 링크 등록')}
+                    </h2>
                     <button className="links-modal-close" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
 

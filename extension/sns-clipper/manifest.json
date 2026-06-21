@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "댄스빌보드 공유 등록",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "현재 YouTube, Instagram 페이지를 댄스빌보드 SNS 아카이브 또는 인물 계정 등록폼으로 보냅니다.",
   "icons": {
     "16": "icons/icon-16.png",

@@ -85,7 +85,7 @@ export default function LinksPage() {
                 : '';
         const hashParams = new URLSearchParams(hashValue);
         const searchParams = new URLSearchParams(location.search);
-        const hasSearchImport = ['add', 'url', 'link'].some((key) => searchParams.has(key));
+        const hasSearchImport = ['clipper', 'add', 'url', 'link'].some((key) => searchParams.has(key));
         const params = hashValue ? hashParams : hasSearchImport ? searchParams : null;
         if (!params) return;
 

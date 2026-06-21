@@ -859,6 +859,7 @@ function buildAccountUrl() {
     title = accountTarget.platform === 'youtube' ? `@${accountTarget.handle}` : accountTarget.handle;
   }
 
+  params.set('clipper', 'account');
   params.set('type', 'person_account');
   params.set('url', accountTarget.normalizedUrl);
   params.set('title', title);
@@ -868,7 +869,7 @@ function buildAccountUrl() {
   params.set('source', '데스크톱 공유');
   if (activeThumbnailUrl) params.set('thumbnail', activeThumbnailUrl);
   if (activePageMeta.description) params.set('description', activePageMeta.description.slice(0, 4000));
-  return `${base}#clipper?${params.toString()}`;
+  return `${base}?${params.toString()}`;
 }
 
 async function init() {
