@@ -659,6 +659,7 @@
 
 .media-mini-card {
   min-width: 0;
+  width: 100%;
   display: grid;
   grid-template-columns: 74px minmax(0, 1fr);
   gap: 9px;
@@ -669,6 +670,10 @@
   background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
   color: var(--text-primary);
   text-decoration: none;
+  text-align: left;
+  font: inherit;
+  appearance: none;
+  cursor: pointer;
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
   user-drag: none;
@@ -676,11 +681,29 @@
   touch-action: pan-y;
 }
 
-.media-mini-card * {
+.media-mini-card:not(.is-playing) * {
   pointer-events: none;
 }
 
+.media-mini-card--expanded {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  cursor: default;
+  user-select: text;
+  touch-action: pan-y;
+}
+
+.media-mini-player {
+  width: 100%;
+  min-height: 170px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #05080d;
+}
+
 .media-mini-thumb {
+  position: relative;
   width: 74px;
   aspect-ratio: 16 / 9;
   display: inline-flex;
@@ -698,6 +721,12 @@
   height: 100%;
   object-fit: cover;
   pointer-events: none;
+}
+
+.media-mini-thumb .media-play {
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
 }
 
 .media-mini-copy {

@@ -608,7 +608,18 @@ function loadInstagramScript() {
   window.instgrm?.Embeds?.process?.();
 }
 
-const MediaEmbed: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
+function getAutoplayEmbedUrl(url?: string | null) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set('autoplay', '1');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+const MediaEmbed: React.FC<{ item: SnsMediaItem; autoplay?: boolean }> = ({ item, autoplay = false }) => {
   useEffect(() => {
     if (item.platform === 'instagram') {
       window.setTimeout(loadInstagramScript, 50);
@@ -619,7 +630,7 @@ const MediaEmbed: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
     return (
       <iframe
         className="media-embed-frame"
-        src={item.embed_url}
+        src={autoplay ? getAutoplayEmbedUrl(item.embed_url) : item.embed_url}
         title={item.title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
@@ -673,7 +684,7 @@ const MediaCard: React.FC<{
     <article className={`media-card media-card--${item.platform} ${!item.is_approved ? 'is-pending' : ''}`}>
       <div className="media-preview">
         {expanded ? (
-          <MediaEmbed item={item} />
+          <MediaEmbed item={item} autoplay />
         ) : (
           <button className="media-preview-button" type="button" onClick={handlePreviewClick}>
             {item.thumbnail_url ? (
@@ -715,10 +726,12 @@ const MediaCard: React.FC<{
       </div>
 
       <div className="media-card-actions">
-        <a href={originalUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
-          <i className="ri-external-link-line" />
-          원본
-        </a>
+        {item.platform !== 'youtube' && (
+          <a href={originalUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
+            <i className="ri-external-link-line" />
+            원본
+          </a>
+        )}
         {canManage && (
           <button type="button" onClick={() => onEdit(item)}>
             <i className="ri-edit-2-line" />
@@ -935,28 +948,45 @@ const MediaItemEditPanel: React.FC<{
 };
 
 const MediaMiniCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
-  const originalUrl = item.normalized_url || item.url;
+  const [expanded, setExpanded] = useState(false);
+  const metaText = [
+    item.author_name,
+    item.dance_genre,
+    item.collection_name,
+    platformLabel(item.platform),
+  ].filter(Boolean).join(' · ');
+
+  if (expanded) {
+    return (
+      <article className="media-mini-card media-mini-card--expanded is-playing">
+        <div className="media-mini-player">
+          <MediaEmbed item={item} autoplay />
+        </div>
+        <span className="media-mini-copy">
+          <strong>{item.title || '제목 없음'}</strong>
+          <small>{metaText}</small>
+        </span>
+      </article>
+    );
+  }
+
   return (
-    <a className="media-mini-card" href={originalUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
+    <button className="media-mini-card" type="button" onClick={() => setExpanded(true)}>
       <span className="media-mini-thumb">
         {item.thumbnail_url ? (
           <img src={item.thumbnail_url} alt="" loading="lazy" draggable={false} />
         ) : (
           <i className={item.platform === 'instagram' ? 'ri-instagram-line' : item.platform === 'youtube' ? 'ri-youtube-line' : 'ri-link'} />
         )}
+        <span className="media-play">
+          <i className={item.platform === 'youtube' ? 'ri-play-fill' : 'ri-external-link-line'} />
+        </span>
       </span>
       <span className="media-mini-copy">
         <strong>{item.title || '제목 없음'}</strong>
-        <small>
-          {[
-            item.author_name,
-            item.dance_genre,
-            item.collection_name,
-            platformLabel(item.platform),
-          ].filter(Boolean).join(' · ')}
-        </small>
+        <small>{metaText}</small>
       </span>
-    </a>
+    </button>
   );
 };
 
