@@ -26,6 +26,7 @@ declare global {
 }
 
 const PAGE_SIZE = 18;
+const MEDIA_ARCHIVE_PRESS_DELAY_MS = 140;
 const PLATFORM_FILTERS: Array<{ value: 'all' | MediaPlatform; label: string }> = [
   { value: 'all', label: '전체' },
   { value: 'youtube', label: 'YouTube' },
@@ -1087,6 +1088,8 @@ const CollectionArchiveView: React.FC<{
   const [activePlaylistId, setActivePlaylistId] = useState('');
   const [activeLegacyKey, setActiveLegacyKey] = useState('');
   const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>('neutral');
+  const [pressedRowKey, setPressedRowKey] = useState('');
+  const pressTimerRef = useRef<number | null>(null);
   const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
   const legacyGroups = useMemo(() => buildLegacyArchiveGroups(items, playlists), [items, playlists]);
   const activeLegacyGroup = legacyGroups.find((group) => group.key === activeLegacyKey) || null;
@@ -1112,6 +1115,26 @@ const CollectionArchiveView: React.FC<{
     }
   }, [activeLegacyGroup, activeLegacyKey]);
 
+  useEffect(() => () => {
+    if (pressTimerRef.current) window.clearTimeout(pressTimerRef.current);
+  }, []);
+
+  const openWithPressFeedback = (rowKey: string, navigate: () => void) => {
+    if (pressTimerRef.current) window.clearTimeout(pressTimerRef.current);
+    setPressedRowKey(rowKey);
+    pressTimerRef.current = window.setTimeout(() => {
+      pressTimerRef.current = null;
+      navigate();
+      setPressedRowKey('');
+    }, MEDIA_ARCHIVE_PRESS_DELAY_MS);
+  };
+
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLElement>, rowKey: string, navigate: () => void) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    openWithPressFeedback(rowKey, navigate);
+  };
+
   const navigateToPlaylist = (playlistId: string, direction: MediaArchiveNavigationDirection = 'forward') => {
     setNavigationDirection(direction);
     setActiveLegacyKey('');
@@ -1135,6 +1158,7 @@ const CollectionArchiveView: React.FC<{
   );
 
   const renderPlaylistRow = (playlist: SnsMediaPlaylist) => {
+    const rowKey = `playlist:${playlist.id}`;
     const childCount = getPlaylistChildren(playlist.id, playlists).length;
     const branchItems = getPlaylistBranchItems(playlist.id, items, playlists);
     const metadata = [
@@ -1145,14 +1169,31 @@ const CollectionArchiveView: React.FC<{
 
     return (
       <article key={playlist.id} className="media-folder-row">
-        <button
-          type="button"
-          className="media-folder-row-main"
-          onClick={() => navigateToPlaylist(playlist.id, 'forward')}
+        <div
+          role="button"
+          tabIndex={0}
+          className={`media-folder-row-main ${pressedRowKey === rowKey ? 'is-pressing' : ''}`}
+          onClick={() => openWithPressFeedback(rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
+          onKeyDown={(event) => handleRowKeyDown(event, rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
         >
           <span className="media-folder-row-icon"><i className="ri-folder-3-line" /></span>
           <span className="media-folder-row-copy">
-            <strong>{playlist.name}</strong>
+            <span className="media-folder-row-title">
+              <strong>{playlist.name}</strong>
+              {canManagePlaylist(playlist) && (
+                <button
+                  type="button"
+                  className="media-folder-inline-action"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onEditPlaylist(playlist);
+                  }}
+                  aria-label={`${playlist.name} 수정`}
+                >
+                  <i className="ri-edit-2-line" />
+                </button>
+              )}
+            </span>
             <small>{branchItems.length}개 카드{childCount ? ` · ${childCount}개 하위` : ''}</small>
             {!!metadata.length && (
               <span className="media-folder-row-tags">
@@ -1161,17 +1202,13 @@ const CollectionArchiveView: React.FC<{
             )}
           </span>
           <i className="ri-arrow-right-s-line" />
-        </button>
-        {canManagePlaylist(playlist) && (
-          <button type="button" className="media-folder-row-action" onClick={() => onEditPlaylist(playlist)} aria-label={`${playlist.name} 수정`}>
-            <i className="ri-edit-2-line" />
-          </button>
-        )}
+        </div>
       </article>
     );
   };
 
   const renderLegacyRow = (group: LegacyArchiveGroup) => {
+    const rowKey = `legacy:${group.key}`;
     const isUncategorized = group.title === '컬렉션 미지정';
     const icon = isUncategorized ? 'ri-inbox-archive-line' : 'ri-stack-line';
     const title = getLegacyGroupDisplayTitle(group);
@@ -1179,18 +1216,22 @@ const CollectionArchiveView: React.FC<{
 
     return (
       <article key={group.key} className={`media-folder-row ${isUncategorized ? 'media-folder-row--uncategorized' : 'media-folder-row--legacy'}`}>
-        <button
-          type="button"
-          className="media-folder-row-main"
-          onClick={() => navigateToLegacyGroup(group.key)}
+        <div
+          role="button"
+          tabIndex={0}
+          className={`media-folder-row-main ${pressedRowKey === rowKey ? 'is-pressing' : ''}`}
+          onClick={() => openWithPressFeedback(rowKey, () => navigateToLegacyGroup(group.key))}
+          onKeyDown={(event) => handleRowKeyDown(event, rowKey, () => navigateToLegacyGroup(group.key))}
         >
           <span className="media-folder-row-icon"><i className={icon} /></span>
           <span className="media-folder-row-copy">
-            <strong>{title}</strong>
+            <span className="media-folder-row-title">
+              <strong>{title}</strong>
+            </span>
             <small>{group.items.length}개 카드 · {detail}</small>
           </span>
           <i className="ri-arrow-right-s-line" />
-        </button>
+        </div>
       </article>
     );
   };
