@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LinkRegistrationModal, type LinkRegistrationDraft } from './components/LinkRegistrationModal';
 import {
     getDisplayDomain,
+    isWeakAccountDescription,
     getLinkTypeLabel,
     getPlatformIcon,
     getPlatformLabel,
@@ -109,11 +110,16 @@ export default function LinksPage() {
 
         setEditTarget(null);
         const paramPlatform = params.get('platform');
+        const rawDescription = params.get('description') || '';
+        const draftDescription = resolvedType === 'person_account' && isWeakAccountDescription(rawDescription, parsed)
+            ? ''
+            : rawDescription;
+
         setInitialDraft({
             url: parsed.normalizedUrl,
             title: params.get('title') || '',
             imageUrl: params.get('thumbnail') || params.get('image') || '',
-            description: params.get('description') || '',
+            description: draftDescription,
             category: params.get('category') || (resolvedType === 'person_account' ? '인물' : ''),
             linkType: resolvedType,
             accountPlatform: resolvedType === 'person_account' && (paramPlatform === 'instagram' || paramPlatform === 'youtube')

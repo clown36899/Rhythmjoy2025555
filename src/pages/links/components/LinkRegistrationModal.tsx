@@ -6,6 +6,7 @@ import {
     getFallbackTitle,
     getPlatformIcon,
     getPlatformLabel,
+    isWeakAccountDescription,
     normalizeLinkUrl,
     parseLinkTarget,
     type AccountPlatform,
@@ -218,7 +219,10 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setTitle(initialDraft?.title || getFallbackTitle(parsed) || '');
             setUrl(parsed?.normalizedUrl || draftUrl);
             setImageUrl(resolvedImageUrl);
-            setDescription(initialDraft?.description || '');
+            const draftDescription = initialDraft?.description || '';
+            setDescription(resolvedType === 'person_account' && isWeakAccountDescription(draftDescription, parsed)
+                ? ''
+                : draftDescription);
             setCategory(initialDraft?.category || (resolvedType === 'person_account' ? DEFAULT_ACCOUNT_CATEGORY : ''));
             setLinkType(resolvedType);
             setAccountPlatform(resolvedPlatform);
@@ -269,9 +273,16 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                         ? getFallbackTitle(target)
                         : data.title);
                 }
-                if (data.description && !description) setDescription(data.description);
-
                 const isAccountFetch = target?.linkType === 'person_account';
+                const fetchedDescription = typeof data.description === 'string' ? data.description.trim() : '';
+                const currentDescription = description.trim();
+                const currentDescriptionIsWeak = isAccountFetch && isWeakAccountDescription(currentDescription, target);
+                if (fetchedDescription && (!currentDescription || currentDescriptionIsWeak) && !(isAccountFetch && isWeakAccountDescription(fetchedDescription, target))) {
+                    setDescription(fetchedDescription);
+                } else if (currentDescriptionIsWeak) {
+                    setDescription('');
+                }
+
                 const currentImageUrl = imageUrl.trim();
                 const fetchedOptions = normalizeThumbnailOptions(data);
                 const accountSafeOptions = isAccountFetch

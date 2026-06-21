@@ -200,6 +200,22 @@ function cleanAccountTitle(title, accountTarget) {
   return value;
 }
 
+function isWeakAccountDescription(description, accountTarget) {
+  const value = String(description || '').replace(/\s+/g, ' ').trim();
+  if (!value) return true;
+  const lower = value.toLowerCase();
+  if (accountTarget?.platform === 'instagram') {
+    return (
+      /팔로워\s*[\d,.a-z가-힣]+\s*명?,?\s*팔로잉\s*[\d,.a-z가-힣]+\s*명?,?\s*게시물\s*[\d,.a-z가-힣]+\s*개/i.test(value) ||
+      /님의\s+instagram\s+사진\s+및\s+동영상\s+보기/i.test(value) ||
+      /see\s+instagram\s+photos\s+and\s+videos\s+from/i.test(lower) ||
+      /followers?.*following.*posts?.*instagram/i.test(lower) ||
+      lower.includes('see everyday moments from your close friends')
+    );
+  }
+  return false;
+}
+
 function truncateText(value, maxLength) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   if (text.length <= maxLength) return text;
@@ -509,6 +525,19 @@ function readPageMetaFromPage() {
     }
     return ['instagram', 'reels', 'instagram reels', '인스타그램', '게시물', 'posts', 'profile', '프로필', '릴스'].includes(text.toLowerCase()) ? '' : text;
   };
+  const cleanInstagramAccountDescription = (value) => {
+    const text = cleanLongText(value);
+    const flat = cleanText(text);
+    const lower = flat.toLowerCase();
+    const isWeak = (
+      /팔로워\s*[\d,.a-z가-힣]+\s*명?,?\s*팔로잉\s*[\d,.a-z가-힣]+\s*명?,?\s*게시물\s*[\d,.a-z가-힣]+\s*개/i.test(flat) ||
+      /님의\s+instagram\s+사진\s+및\s+동영상\s+보기/i.test(flat) ||
+      /see\s+instagram\s+photos\s+and\s+videos\s+from/i.test(lower) ||
+      /followers?.*following.*posts?.*instagram/i.test(lower) ||
+      lower.includes('see everyday moments from your close friends')
+    );
+    return isWeak ? '' : text;
+  };
   const decodeJsonStringFragment = (value) => {
     try {
       return JSON.parse(`"${String(value || '').replace(/"/g, '\\"')}"`);
@@ -808,7 +837,7 @@ function readPageMetaFromPage() {
     const accountTitle = cleanInstagramAccountTitle(metaTitle) || cleanInstagramAccountTitle(document.title);
     author = accountTitle || author;
     title = accountTitle || metaTitle;
-    normalizedDescription = description;
+    normalizedDescription = cleanInstagramAccountDescription(description);
   } else if (isInstagram) {
     const parsedFromTitle = parseInstagramMetaText(metaTitle);
     const parsedFromDescription = parseInstagramMetaText(description);
@@ -1052,7 +1081,9 @@ function buildAccountUrl() {
   params.set('handle', accountTarget.handle);
   params.set('source', '데스크톱 공유');
   if (activeThumbnailUrl) params.set('thumbnail', activeThumbnailUrl);
-  if (activePageMeta.description) params.set('description', activePageMeta.description.slice(0, 4000));
+  if (activePageMeta.description && !isWeakAccountDescription(activePageMeta.description, accountTarget)) {
+    params.set('description', activePageMeta.description.slice(0, 4000));
+  }
   return `${base}?${params.toString()}`;
 }
 

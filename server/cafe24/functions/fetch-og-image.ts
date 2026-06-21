@@ -405,6 +405,24 @@ type InstagramProfileInfo = {
     avatarUrl: string;
 };
 
+function isWeakInstagramAccountDescription(value: string): boolean {
+    const description = cleanLongText(value).replace(/\s+/g, ' ').trim();
+    if (!description) return true;
+    const lower = description.toLowerCase();
+    return (
+        /팔로워\s*[\d,.a-z가-힣]+\s*명?,?\s*팔로잉\s*[\d,.a-z가-힣]+\s*명?,?\s*게시물\s*[\d,.a-z가-힣]+\s*개/i.test(description) ||
+        /님의\s+instagram\s+사진\s+및\s+동영상\s+보기/i.test(description) ||
+        /see\s+instagram\s+photos\s+and\s+videos\s+from/i.test(lower) ||
+        /followers?.*following.*posts?.*instagram/i.test(lower) ||
+        lower.includes('see everyday moments from your close friends')
+    );
+}
+
+function cleanInstagramAccountDescription(value: string): string {
+    const description = cleanLongText(decodeHtml(value || ''));
+    return isWeakInstagramAccountDescription(description) ? '' : description;
+}
+
 async function fetchInstagramProfileInfo(handle: string): Promise<InstagramProfileInfo | null> {
     const cleanHandle = String(handle || '').replace(/^@+/, '').trim();
     if (!cleanHandle || !/^[A-Za-z0-9._]+$/.test(cleanHandle)) return null;
@@ -442,7 +460,7 @@ async function fetchInstagramProfileInfo(handle: string): Promise<InstagramProfi
         return {
             username: decodeHtml(user.username || cleanHandle),
             fullName: decodeHtml(user.full_name || ''),
-            biography: cleanLongText(decodeHtml(user.biography || '')),
+            biography: cleanInstagramAccountDescription(user.biography || ''),
             avatarUrl: user.profile_pic_url_hd || user.profile_pic_url || ''
         };
     } catch (_error) {
@@ -636,6 +654,9 @@ export const handler: Handler = async (event) => {
         description = decodeHtml(description);
         if (isYouTubeUrl(parsedTarget) && !isYouTubeAccount) {
             description = extractYouTubeDescriptionFromHtml(html) || description;
+        }
+        if (isInstagramAccount) {
+            description = cleanInstagramAccountDescription(description);
         }
 
         if (isYouTubeAccount) {

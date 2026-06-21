@@ -126,6 +126,24 @@ export function getFallbackTitle(target: ParsedLinkTarget | null) {
     return '';
 }
 
+export function isWeakAccountDescription(value?: string | null, target?: ParsedLinkTarget | null) {
+    const description = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!description) return true;
+
+    const lower = description.toLowerCase();
+    if (target?.accountPlatform === 'instagram') {
+        return (
+            /팔로워\s*[\d,.a-z가-힣]+\s*명?,?\s*팔로잉\s*[\d,.a-z가-힣]+\s*명?,?\s*게시물\s*[\d,.a-z가-힣]+\s*개/i.test(description) ||
+            /님의\s+instagram\s+사진\s+및\s+동영상\s+보기/i.test(description) ||
+            /see\s+instagram\s+photos\s+and\s+videos\s+from/i.test(lower) ||
+            /followers?.*following.*posts?.*instagram/i.test(lower) ||
+            lower.includes('see everyday moments from your close friends')
+        );
+    }
+
+    return false;
+}
+
 export function getDisplayDomain(value: string) {
     try {
         return new URL(value).hostname.replace(/^www\./, '');
