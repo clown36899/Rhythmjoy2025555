@@ -500,13 +500,13 @@
 
 .media-search {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
 }
 
-.media-search i {
+.media-search > i {
   color: var(--text-tertiary);
   font-size: 1.2rem;
   padding-left: 4px;
@@ -514,6 +514,36 @@
 
 .media-search button {
   padding: 0 14px;
+}
+
+.media-search .media-search-clear {
+  width: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.media-search-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  margin: -2px 0 10px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, #38bdf8 28%, var(--border-secondary));
+  border-radius: 999px;
+  background: color-mix(in srgb, #38bdf8 12%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.media-search-status strong {
+  color: #e0f2fe;
 }
 
 .media-view-switch {
@@ -857,6 +887,81 @@
 
 .media-library-section {
   gap: 8px;
+}
+
+.media-library-search-view {
+  border-color: color-mix(in srgb, #38bdf8 28%, var(--border-secondary));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #38bdf8 8%, transparent), transparent 118px),
+    var(--bg-surface-1);
+}
+
+.media-library-search-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, #38bdf8 18%, var(--border-secondary));
+}
+
+.media-library-section--results {
+  margin-bottom: 14px;
+}
+
+.media-search-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.media-search-result-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, #38bdf8 18%, var(--border-secondary));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-deep) 58%, transparent);
+}
+
+.media-search-result-card .media-mini-card {
+  border-color: transparent;
+  background: transparent;
+  padding: 2px;
+}
+
+.media-result-location-button {
+  min-width: 0;
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border-color: color-mix(in srgb, #38bdf8 20%, var(--border-secondary));
+  background: color-mix(in srgb, #38bdf8 7%, var(--bg-surface-2));
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.media-result-location-button span {
+  color: #7dd3fc;
+  font-size: 0.7rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.media-result-location-button strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 0.77rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-result-location-button:active {
+  transform: translateY(1px) scale(0.985);
+  border-color: color-mix(in srgb, #38bdf8 50%, var(--border-secondary));
+  background: color-mix(in srgb, #38bdf8 14%, var(--bg-surface-2));
 }
 
 .media-library-section--uncategorized {

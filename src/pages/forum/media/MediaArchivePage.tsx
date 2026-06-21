@@ -1164,12 +1164,17 @@ function getPlaylistBreadcrumbs(playlist: SnsMediaPlaylist, playlists: SnsMediaP
   return crumbs;
 }
 
+function getItemLegacyGroupKey(item: SnsMediaItem) {
+  return `collection:${compactText(item.collection_name) || '컬렉션 미지정'}`;
+}
+
 const CollectionArchiveView: React.FC<{
   items: SnsMediaItem[];
   playlists: SnsMediaPlaylist[];
+  searchQuery: string;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
-}> = ({ items, playlists, canManagePlaylist, onEditPlaylist }) => {
+}> = ({ items, playlists, searchQuery, canManagePlaylist, onEditPlaylist }) => {
   const [activePlaylistId, setActivePlaylistId] = useState('');
   const [activeLegacyKey, setActiveLegacyKey] = useState('');
   const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>('neutral');
@@ -1179,12 +1184,18 @@ const CollectionArchiveView: React.FC<{
   const legacyGroups = useMemo(() => buildLegacyArchiveGroups(items, playlists), [items, playlists]);
   const activeLegacyGroup = legacyGroups.find((group) => group.key === activeLegacyKey) || null;
   const currentParentId = activePlaylist?.id || '';
-  const visiblePlaylists = useMemo(() => getPlaylistChildren(currentParentId, playlists), [currentParentId, playlists]);
+  const isSearching = Boolean(compactText(searchQuery));
+  const visiblePlaylists = useMemo(() => {
+    const children = getPlaylistChildren(currentParentId, playlists);
+    if (!isSearching) return children;
+    return children.filter((playlist) => getPlaylistBranchItems(playlist.id, items, playlists).length > 0);
+  }, [currentParentId, isSearching, items, playlists]);
   const directItems = activePlaylist ? getPlaylistDirectItems(activePlaylist.id, items) : [];
   const breadcrumbs = activePlaylist ? getPlaylistBreadcrumbs(activePlaylist, playlists) : [];
   const uncategorizedLegacyGroups = legacyGroups.filter((group) => group.title === '컬렉션 미지정');
   const namedLegacyGroups = legacyGroups.filter((group) => group.title !== '컬렉션 미지정');
   const stackClassName = `media-library-stack media-library-stack--${navigationDirection}`;
+  const playlistsById = useMemo(() => new Map(playlists.map((playlist) => [playlist.id, playlist])), [playlists]);
 
   useEffect(() => {
     if (activePlaylistId && !activePlaylist) {
@@ -1199,6 +1210,12 @@ const CollectionArchiveView: React.FC<{
       setActiveLegacyKey('');
     }
   }, [activeLegacyGroup, activeLegacyKey]);
+
+  useEffect(() => {
+    setNavigationDirection('neutral');
+    setActivePlaylistId('');
+    setActiveLegacyKey('');
+  }, [searchQuery]);
 
   useEffect(() => () => {
     if (pressTimerRef.current) window.clearTimeout(pressTimerRef.current);
@@ -1371,6 +1388,77 @@ const CollectionArchiveView: React.FC<{
     );
   };
 
+  const renderSearchResultItem = (item: SnsMediaItem) => {
+    const playlist = item.playlist_id ? playlistsById.get(item.playlist_id) : null;
+    const legacyKey = playlist ? '' : getItemLegacyGroupKey(item);
+    const legacyGroup = legacyGroups.find((group) => group.key === legacyKey) || null;
+    const locationLabel = playlist
+      ? getPlaylistPath(playlist, playlists)
+      : legacyGroup
+        ? getLegacyGroupDisplayTitle(legacyGroup)
+        : '미분류';
+    const locationIcon = playlist ? 'ri-folder-3-line' : 'ri-stack-line';
+
+    return (
+      <article key={item.id} className="media-search-result-card">
+        <MediaMiniCard item={item} />
+        <button
+          type="button"
+          className="media-result-location-button"
+          onClick={() => {
+            if (playlist) {
+              navigateToPlaylist(playlist.id, 'forward');
+              return;
+            }
+            if (legacyGroup) navigateToLegacyGroup(legacyGroup.key);
+          }}
+          disabled={!playlist && !legacyGroup}
+        >
+          <i className={locationIcon} />
+          <span>위치</span>
+          <strong>{locationLabel}</strong>
+          <i className="ri-arrow-right-s-line" />
+        </button>
+      </article>
+    );
+  };
+
+  const renderSearchResults = () => (
+    <section key="library-search" className={`media-library-view media-library-search-view ${stackClassName}`}>
+      <header className="media-library-header media-library-search-header">
+        <div>
+          <p className="media-eyebrow">Search</p>
+          <h2>검색된 카드</h2>
+          <span>{items.length}개 카드 · 원래 위치로 바로 이동 가능</span>
+        </div>
+      </header>
+      <section className="media-library-section media-library-section--results">
+        {renderSectionHeader('결과', items.length)}
+        <div className="media-search-result-list">
+          {items.map(renderSearchResultItem)}
+        </div>
+      </section>
+      {!!visiblePlaylists.length && (
+        <section className="media-library-section media-library-section--related-folders">
+          {renderSectionHeader('관련 폴더', visiblePlaylists.length)}
+          {renderFolderList(visiblePlaylists.map(renderPlaylistRow))}
+        </section>
+      )}
+      {!!namedLegacyGroups.length && (
+        <section className="media-library-section media-library-section--related-legacy">
+          {renderSectionHeader('관련 컬렉션', namedLegacyGroups.length)}
+          {renderFolderList(namedLegacyGroups.map(renderLegacyRow))}
+        </section>
+      )}
+      {!!uncategorizedLegacyGroups.length && (
+        <section className="media-library-section media-library-section--uncategorized">
+          {renderSectionHeader('미분류 결과', uncategorizedLegacyGroups.length)}
+          {renderFolderList(uncategorizedLegacyGroups.map(renderLegacyRow))}
+        </section>
+      )}
+    </section>
+  );
+
   const renderActivePlaylist = () => {
     if (!activePlaylist) return null;
     const parentId = getPlaylistParentId(activePlaylist);
@@ -1455,6 +1543,10 @@ const CollectionArchiveView: React.FC<{
 
   if (activePlaylist) {
     return renderActivePlaylist();
+  }
+
+  if (isSearching) {
+    return renderSearchResults();
   }
 
   return (
@@ -1654,6 +1746,8 @@ const MediaArchivePage: React.FC = () => {
     };
   }, [form, parsed, playlists]);
 
+  const activeSearchQuery = compactText(submittedQuery);
+
   const fetchItems = useCallback(async (nextPage = 0, append = false) => {
     if (append) setLoadingMore(true);
     else setLoading(true);
@@ -1707,6 +1801,14 @@ const MediaArchivePage: React.FC = () => {
   useEffect(() => {
     fetchItems(0, false);
   }, [fetchItems]);
+
+  useEffect(() => {
+    const nextQuery = compactText(query);
+    const timer = window.setTimeout(() => {
+      setSubmittedQuery((prev) => (prev === nextQuery ? prev : nextQuery));
+    }, 280);
+    return () => window.clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     fetchPlaylists();
@@ -2191,6 +2293,7 @@ const MediaArchivePage: React.FC = () => {
         <CollectionArchiveView
           items={items}
           playlists={playlists}
+          searchQuery={activeSearchQuery}
           canManagePlaylist={canManagePlaylist}
           onEditPlaylist={handleEditPlaylist}
         />
@@ -2512,8 +2615,27 @@ const MediaArchivePage: React.FC = () => {
         }}>
           <i className="ri-search-line" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 작성자, 컬렉션, 태그 검색" />
+          {query && (
+            <button
+              type="button"
+              className="media-search-clear"
+              onClick={() => {
+                setQuery('');
+                setSubmittedQuery('');
+              }}
+              aria-label="검색어 지우기"
+            >
+              <i className="ri-close-line" />
+            </button>
+          )}
           <button type="submit">검색</button>
         </form>
+        {activeSearchQuery && (
+          <div className="media-search-status">
+            <i className="ri-search-eye-line" />
+            <span><strong>{activeSearchQuery}</strong> 검색 결과</span>
+          </div>
+        )}
         <div className="media-view-switch" aria-label="보기 모드">
           {ARCHIVE_VIEW_MODES.map((mode) => (
             <button
@@ -2557,9 +2679,25 @@ const MediaArchivePage: React.FC = () => {
         <div className="media-state">불러오는 중...</div>
       ) : items.length === 0 ? (
         <div className="media-state media-state--empty">
-          <i className="ri-film-line" />
-          <strong>아직 저장된 영상이 없습니다</strong>
-          <span>좋은 영상 링크를 첫 번째로 모아보세요.</span>
+          <i className={activeSearchQuery ? 'ri-search-line' : 'ri-film-line'} />
+          <strong>{activeSearchQuery ? '검색 결과가 없습니다' : '아직 저장된 영상이 없습니다'}</strong>
+          <span>{activeSearchQuery ? '검색어를 줄이거나 필터를 전체로 바꿔보세요.' : '좋은 영상 링크를 첫 번째로 모아보세요.'}</span>
+          {activeSearchQuery && (
+            <button
+              type="button"
+              className="media-ghost-button"
+              onClick={() => {
+                setQuery('');
+                setSubmittedQuery('');
+                setPlatform('all');
+                setArchiveBucketFilter('all');
+                setGenre('all');
+              }}
+            >
+              <i className="ri-close-circle-line" />
+              검색 초기화
+            </button>
+          )}
         </div>
       ) : (
         renderArchiveView()
