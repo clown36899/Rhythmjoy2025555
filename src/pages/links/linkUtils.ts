@@ -141,6 +141,20 @@ export function isWeakAccountDescription(value?: string | null, target?: ParsedL
         );
     }
 
+    if (target?.accountPlatform === 'youtube') {
+        return (
+            /^youtube$/i.test(description) ||
+            /친구,\s*가족을\s*비롯해\s*전\s*세계\s*사람들과\s*동영상\s*공유/i.test(description) ||
+            /youtube에서\s+마음에\s+드는\s+동영상과\s+음악을\s+감상하고/i.test(description) ||
+            /share\s+your\s+videos\s+with\s+friends,\s*family,\s*and\s+the\s+world/i.test(lower) ||
+            /enjoy\s+the\s+videos\s+and\s+music\s+you\s+love/i.test(lower) ||
+            /구독자\s*[\d,.천만억kmb]+\s*명/i.test(description) ||
+            /동영상\s*[\d,.천만억kmb]+\s*개/i.test(description) ||
+            lower.includes('subscribers') ||
+            lower.includes(' videos')
+        );
+    }
+
     return false;
 }
 

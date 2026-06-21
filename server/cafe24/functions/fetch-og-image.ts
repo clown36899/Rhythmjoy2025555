@@ -423,6 +423,28 @@ function cleanInstagramAccountDescription(value: string): string {
     return isWeakInstagramAccountDescription(description) ? '' : description;
 }
 
+function isWeakYouTubeAccountDescription(value: string): boolean {
+    const description = cleanLongText(value).replace(/\s+/g, ' ').trim();
+    if (!description) return true;
+    const lower = description.toLowerCase();
+    return (
+        /^youtube$/i.test(description) ||
+        /친구,\s*가족을\s*비롯해\s*전\s*세계\s*사람들과\s*동영상\s*공유/i.test(description) ||
+        /youtube에서\s+마음에\s+드는\s+동영상과\s+음악을\s+감상하고/i.test(description) ||
+        /share\s+your\s+videos\s+with\s+friends,\s*family,\s*and\s+the\s+world/i.test(lower) ||
+        /enjoy\s+the\s+videos\s+and\s+music\s+you\s+love/i.test(lower) ||
+        /구독자\s*[\d,.천만억kmb]+\s*명/i.test(description) ||
+        /동영상\s*[\d,.천만억kmb]+\s*개/i.test(description) ||
+        lower.includes('subscribers') ||
+        lower.includes(' videos')
+    );
+}
+
+function cleanYouTubeAccountDescription(value: string): string {
+    const description = cleanLongText(decodeHtml(value || ''));
+    return isWeakYouTubeAccountDescription(description) ? '' : description;
+}
+
 async function fetchInstagramProfileInfo(handle: string): Promise<InstagramProfileInfo | null> {
     const cleanHandle = String(handle || '').replace(/^@+/, '').trim();
     if (!cleanHandle || !/^[A-Za-z0-9._]+$/.test(cleanHandle)) return null;
@@ -657,6 +679,9 @@ export const handler: Handler = async (event) => {
         }
         if (isInstagramAccount) {
             description = cleanInstagramAccountDescription(description);
+        }
+        if (isYouTubeAccount) {
+            description = cleanYouTubeAccountDescription(description);
         }
 
         if (isYouTubeAccount) {
