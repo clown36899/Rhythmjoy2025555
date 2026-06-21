@@ -133,6 +133,60 @@
     display: none;
 }
 
+.links-type-filter {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.link-type-chip {
+    min-width: 0;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background: rgba(var(--color-bg-secondary-rgb, 20, 20, 20), 0.65);
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.link-type-chip span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.link-type-chip b {
+    min-width: 22px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.link-type-chip:hover,
+.link-type-chip.active {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.link-type-chip.active b {
+    background: #10b981;
+    color: #fff;
+}
+
 .glass-pill {
     flex: 0 0 auto;
     display: flex;
@@ -278,6 +332,46 @@
     -webkit-text-fill-color: transparent;
 }
 
+.account-placeholder {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    -webkit-text-fill-color: currentColor;
+    font-size: 34px;
+}
+
+.link-platform-float {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.link-platform-float.instagram {
+    background: #e1306c;
+}
+
+.link-platform-float.youtube {
+    background: #ff0033;
+}
+
+.link-platform-float.other {
+    background: #10b981;
+}
+
 .link-content {
     flex-grow: 1;
     overflow: hidden;
@@ -299,6 +393,16 @@
     border-radius: 6px;
     font-weight: 700;
     letter-spacing: 0.2px;
+}
+
+.link-type-tag.person_account {
+    background: rgba(16, 185, 129, 0.14);
+    color: #10b981;
+}
+
+.link-type-tag.site {
+    background: rgba(59, 130, 246, 0.14);
+    color: #3b82f6;
 }
 
 .link-domain {
@@ -621,6 +725,35 @@
     min-width: 0;
 }
 
+.link-kind-select {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.link-kind-option {
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.link-kind-option:hover,
+.link-kind-option.active {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
 .link-fetch-btn {
     width: 44px;
     min-width: 44px;
@@ -656,6 +789,29 @@
 
 .input-hint-error {
     color: #f87171;
+}
+
+.account-detected-pill {
+    width: fit-content;
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.account-detected-pill b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-text-primary);
 }
 
 .thumbnail-options {

@@ -1,20 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { cafe24 } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
 import { LinkRegistrationModal } from './components/LinkRegistrationModal';
+import {
+    getDisplayDomain,
+    getLinkTypeLabel,
+    getPlatformIcon,
+    getPlatformLabel,
+    type AccountPlatform,
+    type LinkType,
+} from './linkUtils';
 import './links.css';
 
 export interface SiteLink {
     id: number;
     title: string;
     url: string;
+    normalized_url?: string;
     description: string;
     image_url?: string;
     category: string;
+    link_type?: LinkType;
+    account_platform?: AccountPlatform;
+    account_handle?: string;
     created_by: string;
     is_approved: boolean;
     created_at: string;
 }
+
+type TypeFilter = 'all' | LinkType;
+
+const TYPE_FILTERS: Array<{ value: TypeFilter; label: string; icon: string }> = [
+    { value: 'all', label: '전체', icon: 'ri-stack-line' },
+    { value: 'person_account', label: '인물 계정', icon: 'ri-user-follow-line' },
+    { value: 'site', label: '사이트', icon: 'ri-global-line' },
+];
+
+const getResolvedLinkType = (link: SiteLink): LinkType => (
+    link.link_type === 'person_account' ? 'person_account' : 'site'
+);
 
 export default function LinksPage() {
     const { user, isAdmin } = useAuth();
@@ -22,6 +46,7 @@ export default function LinksPage() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<SiteLink | null>(null);
+    const [filterType, setFilterType] = useState<TypeFilter>('all');
     const [filterCategory, setFilterCategory] = useState<string>('전체');
 
     const fetchLinks = async () => {
@@ -46,13 +71,29 @@ export default function LinksPage() {
         fetchLinks();
     }, [isAdmin]);
 
+    const typeFilteredLinks = useMemo(() => (
+        filterType === 'all'
+            ? links
+            : links.filter(link => getResolvedLinkType(link) === filterType)
+    ), [filterType, links]);
+
     // 동적으로 존재하는 카테고리 추출
-    const allCategories = Array.from(new Set(links.map(link => link.category))).filter(Boolean).sort();
+    const allCategories = useMemo(() => (
+        Array.from(new Set(typeFilteredLinks.map(link => link.category))).filter(Boolean).sort()
+    ), [typeFilteredLinks]);
 
     // 필터링된 배열 계산
-    const filteredLinks = filterCategory === '전체'
-        ? links
-        : links.filter(link => link.category === filterCategory);
+    const filteredLinks = useMemo(() => (
+        filterCategory === '전체'
+            ? typeFilteredLinks
+            : typeFilteredLinks.filter(link => link.category === filterCategory)
+    ), [filterCategory, typeFilteredLinks]);
+
+    useEffect(() => {
+        if (filterCategory !== '전체' && !allCategories.includes(filterCategory)) {
+            setFilterCategory('전체');
+        }
+    }, [allCategories, filterCategory]);
 
     const handleApprove = async (id: number) => {
         if (!isAdmin) return;
@@ -80,25 +121,43 @@ export default function LinksPage() {
         <div className="links-page-glass-container">
             <header className="links-hero-header">
                 <div className="links-hero-content">
-                    <p className="subtitle-glass">당신의 댄스 라이프를 풍성하게 해줄 유용한 링크 모음</p>
+                    <p className="subtitle-glass">댄스씬의 사이트와 인물 계정을 모아봅니다.</p>
                 </div>
                 <button className="links-action-btn glass-btn-primary" onClick={() => { setEditTarget(null); setIsModalOpen(true); }}>
                     <i className="ri-add-line"></i>
-                    <span>새로운 사이트 등록</span>
+                    <span>사이트·계정 등록</span>
                 </button>
             </header>
 
             <div className="links-glass-filter-wrapper">
+                <div className="links-type-filter" aria-label="링크 유형 필터">
+                    {TYPE_FILTERS.map(item => {
+                        const count = item.value === 'all'
+                            ? links.length
+                            : links.filter(link => getResolvedLinkType(link) === item.value).length;
+                        return (
+                            <button
+                                key={item.value}
+                                className={`link-type-chip ${filterType === item.value ? 'active' : ''}`}
+                                onClick={() => setFilterType(item.value)}
+                            >
+                                <i className={item.icon}></i>
+                                <span>{item.label}</span>
+                                <b>{count}</b>
+                            </button>
+                        );
+                    })}
+                </div>
                 <div className="links-category-filter">
                     <button
                         className={`glass-pill ${filterCategory === '전체' ? 'active' : ''}`}
                         onClick={() => setFilterCategory('전체')}
                     >
                         <span className="category-text">전체</span>
-                        <span className="category-count">{links.length}</span>
+                        <span className="category-count">{typeFilteredLinks.length}</span>
                     </button>
                     {allCategories.map(cat => {
-                        const count = links.filter(l => l.category === cat).length;
+                        const count = typeFilteredLinks.filter(l => l.category === cat).length;
                         return (
                             <button
                                 key={cat}
@@ -120,15 +179,19 @@ export default function LinksPage() {
                 </div>
             ) : filteredLinks.length === 0 ? (
                 <div className="links-glass-empty">
-                    <div className="empty-icon-glow"><i className="ri-ghost-smile-line"></i></div>
-                    <h3>등록된 사이트가 없습니다</h3>
-                    <p>가장 먼저 유용한 링크를 공유해보세요!</p>
+                    <div className="empty-icon-glow"><i className="ri-folder-open-line"></i></div>
+                    <h3>등록된 링크가 없습니다</h3>
+                    <p>가장 먼저 유용한 사이트나 계정을 공유해보세요.</p>
                 </div>
             ) : (
                 <div className="links-glass-grid">
-                    {filteredLinks.map((link) => (
-                        <div key={link.id} className={`glass-card link-item ${!link.is_approved ? 'pending' : ''}`}
-                            onClick={() => window.open(link.url, '_blank', 'noopener noreferrer')}>
+                    {filteredLinks.map((link) => {
+                        const resolvedType = getResolvedLinkType(link);
+                        const accountHandle = link.account_handle?.trim();
+                        const targetUrl = link.normalized_url || link.url;
+                        return (
+                        <div key={link.id} className={`glass-card link-item ${resolvedType === 'person_account' ? 'account-card' : ''} ${!link.is_approved ? 'pending' : ''}`}
+                            onClick={() => window.open(targetUrl, '_blank', 'noopener noreferrer')}>
 
                             {!link.is_approved && (
                                 <div className="glass-badge-pending">
@@ -141,20 +204,27 @@ export default function LinksPage() {
                                     {link.image_url ? (
                                         <img src={link.image_url} alt={link.title} loading="lazy" referrerPolicy="no-referrer" />
                                     ) : (
-                                        <div className="icon-placeholder">
-                                            {link.title.charAt(0).toUpperCase()}
+                                        <div className={`icon-placeholder ${resolvedType === 'person_account' ? 'account-placeholder' : ''}`}>
+                                            {resolvedType === 'person_account'
+                                                ? <i className={getPlatformIcon(link.account_platform)}></i>
+                                                : link.title.charAt(0).toUpperCase()}
                                         </div>
+                                    )}
+                                    {resolvedType === 'person_account' && (
+                                        <span className={`link-platform-float ${link.account_platform || 'other'}`}>
+                                            <i className={getPlatformIcon(link.account_platform)}></i>
+                                        </span>
                                     )}
                                 </div>
                                 <div className="link-content">
                                     <div className="link-meta">
-                                        <span className="glass-tag">{link.category}</span>
-                                        <span className="link-domain">{
-                                            (() => {
-                                                try { return new URL(link.url).hostname.replace('www.', ''); }
-                                                catch (e) { return link.url; }
-                                            })()
-                                        }</span>
+                                        <span className="glass-tag">{link.category || getLinkTypeLabel(resolvedType)}</span>
+                                        <span className={`glass-tag link-type-tag ${resolvedType}`}>{getLinkTypeLabel(resolvedType)}</span>
+                                        <span className="link-domain">
+                                            {resolvedType === 'person_account'
+                                                ? `${getPlatformLabel(link.account_platform)}${accountHandle ? ` · @${accountHandle}` : ''}`
+                                                : getDisplayDomain(targetUrl)}
+                                        </span>
                                     </div>
                                     <h3 className="link-title" title={link.title}>{link.title}</h3>
                                     <p className="link-desc" title={link.description || link.url}>{link.description || link.url}</p>
@@ -180,7 +250,8 @@ export default function LinksPage() {
                                 </div>
                             )}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
