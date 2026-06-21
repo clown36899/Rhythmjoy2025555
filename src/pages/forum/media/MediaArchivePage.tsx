@@ -36,7 +36,7 @@ const PLATFORM_FILTERS: Array<{ value: 'all' | MediaPlatform; label: string }> =
 
 const GENRE_PRESETS = ['스윙', '린디합', '재즈', '발보아', '블루스', '탱고', '살사', '바차타'];
 const ARCHIVE_BUCKETS = [
-  { id: 'reference', label: '레퍼런스', icon: 'ri-bookmark-3-line' },
+  { id: 'reference', label: '참고자료', icon: 'ri-bookmark-3-line' },
   { id: 'class', label: '강습/루틴', icon: 'ri-graduation-cap-line' },
   { id: 'performance', label: '공연/잼', icon: 'ri-movie-2-line' },
   { id: 'social', label: '소셜 분위기', icon: 'ri-group-line' },
@@ -45,7 +45,7 @@ const ARCHIVE_BUCKETS = [
 ] as const;
 const ARCHIVE_VIEW_MODES = [
   { id: 'grid', label: '카드', icon: 'ri-layout-grid-line' },
-  { id: 'buckets', label: '보관함', icon: 'ri-archive-drawer-line' },
+  { id: 'buckets', label: '자료 유형', icon: 'ri-archive-drawer-line' },
   { id: 'collections', label: '컬렉션', icon: 'ri-folder-3-line' },
   { id: 'learning', label: '학습경로', icon: 'ri-route-line' },
   { id: 'timeline', label: '타임라인', icon: 'ri-timeline-view' },
@@ -824,7 +824,7 @@ const MediaItemEditPanel: React.FC<{
           </button>
         </header>
 
-        <div className="media-bucket-picker" aria-label="보관함 선택">
+        <div className="media-bucket-picker" aria-label="자료 유형 선택">
           {ARCHIVE_BUCKETS.map((bucket) => (
             <button
               key={bucket.id}
@@ -998,7 +998,7 @@ const BucketArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
     .filter((group) => group.items.length > 0);
 
   if (!groups.length) {
-    return <ModeEmptyState icon="ri-archive-drawer-line" title="보관함에 걸린 영상이 없습니다" detail="저장할 때 보관함을 고르면 여기에 모입니다." />;
+    return <ModeEmptyState icon="ri-archive-drawer-line" title="자료 유형이 지정된 영상이 없습니다" detail="저장할 때 자료 유형을 고르면 여기에 모입니다." />;
   }
 
   return (
@@ -1395,7 +1395,7 @@ const LearningArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => 
     })),
     {
       id: 'reference',
-      label: '레퍼런스 보류함',
+      label: '참고자료 보류함',
       description: '아직 학습 단계가 정해지지 않은 참고 자료',
       icon: 'ri-bookmark-3-line',
       items: referenceItems,
@@ -2186,7 +2186,7 @@ const MediaArchivePage: React.FC = () => {
               </div>
             )}
 
-            <div className="media-bucket-picker" aria-label="보관함 선택">
+            <div className="media-bucket-picker" aria-label="자료 유형 선택">
               {ARCHIVE_BUCKETS.map((item) => (
                 <button
                   key={item.id}
@@ -2357,8 +2357,8 @@ const MediaArchivePage: React.FC = () => {
             </button>
           ))}
         </div>
-        <div className="media-filter-row media-filter-row--scroll" aria-label="보관함 필터">
-          <button type="button" className={archiveBucketFilter === 'all' ? 'active' : ''} onClick={() => setArchiveBucketFilter('all')}>전체 보관함</button>
+        <div className="media-filter-row media-filter-row--scroll" aria-label="자료 유형 필터">
+          <button type="button" className={archiveBucketFilter === 'all' ? 'active' : ''} onClick={() => setArchiveBucketFilter('all')}>전체 유형</button>
           {ARCHIVE_BUCKETS.map((item) => (
             <button key={item.id} type="button" className={archiveBucketFilter === item.id ? 'active' : ''} onClick={() => setArchiveBucketFilter(item.id)}>
               <i className={item.icon} />
