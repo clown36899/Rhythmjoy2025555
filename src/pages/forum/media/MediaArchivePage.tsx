@@ -271,6 +271,8 @@ function trimText(value?: string | null) {
 }
 
 function preventMediaArchiveDrag(event: React.DragEvent<HTMLElement>) {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest('[data-media-drag-allowed="true"]')) return;
   event.preventDefault();
 }
 
@@ -1207,11 +1209,15 @@ const CollectionArchiveView: React.FC<{
   searchQuery: string;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
-}> = ({ items, playlists, searchQuery, canManagePlaylist, onEditPlaylist }) => {
+  onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
+}> = ({ items, playlists, searchQuery, canManagePlaylist, onEditPlaylist, onMovePlaylist }) => {
   const [activePlaylistId, setActivePlaylistId] = useState('');
   const [activeLegacyKey, setActiveLegacyKey] = useState('');
   const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>('neutral');
   const [pressedRowKey, setPressedRowKey] = useState('');
+  const [isOrganizing, setIsOrganizing] = useState(false);
+  const [draggedPlaylistId, setDraggedPlaylistId] = useState('');
+  const [dropTargetId, setDropTargetId] = useState('');
   const pressTimerRef = useRef<number | null>(null);
   const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
   const legacyGroups = useMemo(() => buildLegacyArchiveGroups(items, playlists), [items, playlists]);
@@ -1248,6 +1254,9 @@ const CollectionArchiveView: React.FC<{
     setNavigationDirection('neutral');
     setActivePlaylistId('');
     setActiveLegacyKey('');
+    setIsOrganizing(false);
+    setDraggedPlaylistId('');
+    setDropTargetId('');
   }, [searchQuery]);
 
   useEffect(() => () => {
@@ -1292,6 +1301,121 @@ const CollectionArchiveView: React.FC<{
     group.title === '컬렉션 미지정' ? '미분류' : group.title
   );
 
+  const clearPlaylistDragState = () => {
+    setDraggedPlaylistId('');
+    setDropTargetId('');
+  };
+
+  const getDraggedPlaylist = () => (
+    draggedPlaylistId ? playlists.find((playlist) => playlist.id === draggedPlaylistId) || null : null
+  );
+
+  const canDropPlaylistInto = (target: SnsMediaPlaylist) => {
+    const source = getDraggedPlaylist();
+    if (!source) return false;
+    if (source.id === target.id) return false;
+    if (isPlaylistDescendant(target.id, source.id, playlists)) return false;
+    return true;
+  };
+
+  const canDropPlaylistToParent = (parentId: string) => {
+    const source = getDraggedPlaylist();
+    if (!source) return false;
+    const nextParentId = compactText(parentId);
+    if (source.id === nextParentId) return false;
+    if (nextParentId && isPlaylistDescendant(nextParentId, source.id, playlists)) return false;
+    if (getPlaylistParentId(source) === nextParentId) return false;
+    return true;
+  };
+
+  const getDropTargetClassName = (targetKey: string, canDrop: boolean) => {
+    if (dropTargetId !== targetKey) return '';
+    return canDrop ? ' is-drop-target' : ' is-drop-blocked';
+  };
+
+  const handlePlaylistDragStart = (event: React.DragEvent<HTMLElement>, playlist: SnsMediaPlaylist) => {
+    event.stopPropagation();
+    if (!isOrganizing || !canManagePlaylist(playlist)) {
+      event.preventDefault();
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', playlist.id);
+    event.dataTransfer.setData('application/x-swingenjoy-playlist', playlist.id);
+    setDraggedPlaylistId(playlist.id);
+    setDropTargetId('');
+  };
+
+  const handlePlaylistDragOver = (event: React.DragEvent<HTMLElement>, target: SnsMediaPlaylist) => {
+    if (!isOrganizing || !draggedPlaylistId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const canDrop = canDropPlaylistInto(target);
+    event.dataTransfer.dropEffect = canDrop ? 'move' : 'none';
+    setDropTargetId(target.id);
+  };
+
+  const handlePlaylistDropTargetLeave = (event: React.DragEvent<HTMLElement>, targetKey: string) => {
+    const relatedTarget = event.relatedTarget as Node | null;
+    if (relatedTarget && event.currentTarget.contains(relatedTarget)) return;
+    setDropTargetId((current) => (current === targetKey ? '' : current));
+  };
+
+  const handlePlaylistDrop = async (event: React.DragEvent<HTMLElement>, target: SnsMediaPlaylist) => {
+    if (!isOrganizing || !draggedPlaylistId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const source = getDraggedPlaylist();
+    clearPlaylistDragState();
+    if (!source) return;
+    if (source.id === target.id || isPlaylistDescendant(target.id, source.id, playlists)) return;
+    await onMovePlaylist(source, target.id);
+  };
+
+  const handlePlaylistParentDragOver = (event: React.DragEvent<HTMLElement>, parentId: string, targetKey: string) => {
+    if (!isOrganizing || !draggedPlaylistId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const canDrop = canDropPlaylistToParent(parentId);
+    event.dataTransfer.dropEffect = canDrop ? 'move' : 'none';
+    setDropTargetId(targetKey);
+  };
+
+  const handlePlaylistParentDrop = async (event: React.DragEvent<HTMLElement>, parentId: string, targetKey: string) => {
+    if (!isOrganizing || !draggedPlaylistId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const source = getDraggedPlaylist();
+    const canDrop = canDropPlaylistToParent(parentId);
+    clearPlaylistDragState();
+    if (!source || !canDrop) return;
+    await onMovePlaylist(source, targetKey === 'path:root' ? '' : parentId);
+  };
+
+  const renderOrganizeButton = () => (
+    <button
+      type="button"
+      className={`media-folder-organize-button ${isOrganizing ? 'active' : ''}`}
+      onClick={() => {
+        clearPlaylistDragState();
+        setIsOrganizing((current) => !current);
+      }}
+    >
+      <i className={isOrganizing ? 'ri-check-line' : 'ri-drag-move-2-line'} />
+      {isOrganizing ? '이동 완료' : '정리'}
+    </button>
+  );
+
+  const renderOrganizeHint = () => (
+    isOrganizing ? (
+      <div className="media-folder-organize-hint">
+        <i className="ri-drag-move-line" />
+        핸들을 잡고 다른 재생목록 위에 놓으면 그 안으로, 상단 경로에 놓으면 그 위치로 이동합니다.
+      </div>
+    ) : null
+  );
+
   const renderFolderCover = (urls: string[], fallbackIcon: string, count: number, modifier = '') => (
     <span className={`media-folder-cover-stack ${modifier}`} aria-hidden="true">
       {urls.length ? urls.map((url, index) => (
@@ -1312,6 +1436,10 @@ const CollectionArchiveView: React.FC<{
     const childCount = getPlaylistChildren(playlist.id, playlists).length;
     const branchItems = getPlaylistBranchItems(playlist.id, items, playlists);
     const coverUrls = getPlaylistCoverUrls(playlist, items, playlists);
+    const canManage = canManagePlaylist(playlist);
+    const isDragging = draggedPlaylistId === playlist.id;
+    const isDropTarget = dropTargetId === playlist.id;
+    const canDrop = isDropTarget && canDropPlaylistInto(playlist);
     const metadata = [
       playlist.category,
       playlist.dance_genre,
@@ -1319,19 +1447,22 @@ const CollectionArchiveView: React.FC<{
     ].filter(Boolean) as string[];
 
     return (
-      <article key={playlist.id} className="media-folder-row">
+      <article key={playlist.id} className={`media-folder-row ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? (canDrop ? 'is-drop-target' : 'is-drop-blocked') : ''}`}>
         <div
           role="button"
           tabIndex={0}
           className={`media-folder-row-main ${pressedRowKey === rowKey ? 'is-pressing' : ''}`}
           onClick={() => openWithPressFeedback(rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
           onKeyDown={(event) => handleRowKeyDown(event, rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
+          onDragOver={(event) => handlePlaylistDragOver(event, playlist)}
+          onDragLeave={(event) => handlePlaylistDropTargetLeave(event, playlist.id)}
+          onDrop={(event) => handlePlaylistDrop(event, playlist)}
         >
           {renderFolderCover(coverUrls, 'ri-folder-3-line', branchItems.length)}
           <span className="media-folder-row-copy">
             <span className="media-folder-row-title">
               <strong>{playlist.name}</strong>
-              {canManagePlaylist(playlist) && (
+              {canManage && (
                 <button
                   type="button"
                   className="media-folder-inline-action"
@@ -1352,6 +1483,21 @@ const CollectionArchiveView: React.FC<{
               </span>
             )}
           </span>
+          {isOrganizing && canManage && (
+            <button
+              type="button"
+              className="media-folder-drag-handle"
+              draggable
+              data-media-drag-allowed="true"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+              onDragStart={(event) => handlePlaylistDragStart(event, playlist)}
+              onDragEnd={clearPlaylistDragState}
+              aria-label={`${playlist.name} 이동`}
+            >
+              <i className="ri-drag-move-line" />
+            </button>
+          )}
           <i className="ri-arrow-right-s-line" />
         </div>
       </article>
@@ -1403,11 +1549,23 @@ const CollectionArchiveView: React.FC<{
 
   const renderPathTrail = () => (
     <div className="media-folder-path-trail">
-      {breadcrumbs.map((crumb) => (
-        <button key={crumb.id} type="button" className={crumb.id === activePlaylist?.id ? 'active' : ''} onClick={() => navigateToPlaylist(crumb.id, 'back')}>
-          {crumb.name}
-        </button>
-      ))}
+      {breadcrumbs.map((crumb) => {
+        const targetKey = `path:${crumb.id}`;
+        const canDrop = canDropPlaylistToParent(crumb.id);
+        return (
+          <button
+            key={crumb.id}
+            type="button"
+            className={`${crumb.id === activePlaylist?.id ? 'active' : ''}${getDropTargetClassName(targetKey, canDrop)}`}
+            onClick={() => navigateToPlaylist(crumb.id, 'back')}
+            onDragOver={(event) => handlePlaylistParentDragOver(event, crumb.id, targetKey)}
+            onDragLeave={(event) => handlePlaylistDropTargetLeave(event, targetKey)}
+            onDrop={(event) => handlePlaylistParentDrop(event, crumb.id, targetKey)}
+          >
+            {crumb.name}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -1498,11 +1656,20 @@ const CollectionArchiveView: React.FC<{
     const parentPlaylist = parentId ? playlists.find((playlist) => playlist.id === parentId) : null;
     const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
     const coverUrls = getPlaylistCoverUrls(activePlaylist, items, playlists);
+    const upDropTargetKey = parentId ? `path:${parentId}` : 'path:root';
+    const canDropToUpTarget = canDropPlaylistToParent(parentId);
 
     return (
       <section key={activePlaylist.id} className={`media-playlist-detail media-folder-room ${stackClassName}`}>
         <nav className="media-folder-path" aria-label="재생목록 경로">
-          <button type="button" className="media-folder-up-button" onClick={() => navigateToPlaylist(parentId, 'back')}>
+          <button
+            type="button"
+            className={`media-folder-up-button${getDropTargetClassName(upDropTargetKey, canDropToUpTarget)}`}
+            onClick={() => navigateToPlaylist(parentId, 'back')}
+            onDragOver={(event) => handlePlaylistParentDragOver(event, parentId, upDropTargetKey)}
+            onDragLeave={(event) => handlePlaylistDropTargetLeave(event, upDropTargetKey)}
+            onDrop={(event) => handlePlaylistParentDrop(event, parentId, upDropTargetKey)}
+          >
             <i className="ri-arrow-left-line" />
             {parentPlaylist ? parentPlaylist.name : '최상위'}
           </button>
@@ -1527,7 +1694,9 @@ const CollectionArchiveView: React.FC<{
             </span>
             <span>{branchItems.length}개 카드 · {visiblePlaylists.length}개 하위</span>
           </div>
+          {renderOrganizeButton()}
         </header>
+        {renderOrganizeHint()}
         {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
         {!!visiblePlaylists.length && (
           <section className="media-folder-section media-folder-section--children">
@@ -1590,7 +1759,9 @@ const CollectionArchiveView: React.FC<{
           <h2>재생목록</h2>
           <span>{visiblePlaylists.length}개 폴더 · {namedLegacyGroups.length}개 컬렉션 · {uncategorizedLegacyGroups.length}개 미분류</span>
         </div>
+        {renderOrganizeButton()}
       </header>
+      {renderOrganizeHint()}
       <div className="media-library-sections">
         {renderLibrarySection('폴더', visiblePlaylists.length, visiblePlaylists.map(renderPlaylistRow), 'folders')}
         {renderLibrarySection('기존 컬렉션', namedLegacyGroups.length, namedLegacyGroups.map(renderLegacyRow), 'legacy')}
@@ -2165,6 +2336,61 @@ const MediaArchivePage: React.FC = () => {
     setShowPlaylistForm(true);
   };
 
+  const handleMovePlaylist = useCallback(async (playlist: SnsMediaPlaylist, parentId: string) => {
+    if (!user) {
+      await signInWithKakao();
+      return false;
+    }
+
+    if (!canManagePlaylist(playlist)) {
+      alert('이 재생목록을 이동할 권한이 없습니다.');
+      return false;
+    }
+
+    const nextParentId = compactText(parentId);
+    if (nextParentId === playlist.id) return false;
+    if (nextParentId && !playlists.some((entry) => entry.id === nextParentId)) {
+      alert('이동할 재생목록을 찾을 수 없습니다.');
+      return false;
+    }
+    if (nextParentId && isPlaylistDescendant(nextParentId, playlist.id, playlists)) {
+      alert('자기 하위 재생목록 안으로는 이동할 수 없습니다.');
+      return false;
+    }
+    if (getPlaylistParentId(playlist) === nextParentId) return false;
+
+    const now = new Date().toISOString();
+    const nextPlaylist: SnsMediaPlaylist = {
+      ...playlist,
+      parent_id: nextParentId || null,
+      updated_at: now,
+    };
+    const payload: Partial<SnsMediaPlaylist> = {
+      parent_id: nextPlaylist.parent_id,
+      updated_at: now,
+      search_text: buildPlaylistSearchText(nextPlaylist).slice(0, 2000),
+    };
+
+    setPlaylists((prev) => prev.map((entry) => (
+      entry.id === playlist.id ? { ...entry, ...payload } : entry
+    )));
+
+    const { error } = await cafe24
+      .from('sns_media_playlists')
+      .update(payload)
+      .eq('id', playlist.id);
+
+    if (error) {
+      console.error('[MediaArchive] playlist move failed:', error);
+      alert('재생목록 이동 중 오류가 발생했습니다.');
+      await fetchPlaylists();
+      return false;
+    }
+
+    await fetchPlaylists();
+    return true;
+  }, [canManagePlaylist, fetchPlaylists, playlists, signInWithKakao, user]);
+
   const resolveFormPlaylist = async (sourceForm: MediaArchiveForm) => {
     const newPlaylistName = compactText(sourceForm.newPlaylistName);
     if (newPlaylistName) {
@@ -2344,6 +2570,7 @@ const MediaArchivePage: React.FC = () => {
           searchQuery={activeSearchQuery}
           canManagePlaylist={canManagePlaylist}
           onEditPlaylist={handleEditPlaylist}
+          onMovePlaylist={handleMovePlaylist}
         />
       );
     }
