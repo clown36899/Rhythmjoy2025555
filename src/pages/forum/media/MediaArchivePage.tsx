@@ -1251,7 +1251,6 @@ const CollectionArchiveView: React.FC<{
 
   const renderPathTrail = () => (
     <div className="media-folder-path-trail">
-      <button type="button" onClick={navigateToRoot}>최상위</button>
       {breadcrumbs.map((crumb) => (
         <button key={crumb.id} type="button" className={crumb.id === activePlaylist?.id ? 'active' : ''} onClick={() => navigateToPlaylist(crumb.id, 'back')}>
           {crumb.name}
