@@ -167,6 +167,20 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     const lastFetchedUrlRef = React.useRef('');
     const metadataOwnerUrlRef = React.useRef('');
     const shouldRefreshInitialAccountDraftRef = React.useRef(false);
+    const fetchRequestIdRef = React.useRef(0);
+    const activeFetchControllerRef = React.useRef<AbortController | null>(null);
+    const fetchDoneTimerRef = React.useRef<number | null>(null);
+
+    const cancelPendingInfoFetch = React.useCallback(() => {
+        fetchRequestIdRef.current += 1;
+        activeFetchControllerRef.current?.abort();
+        activeFetchControllerRef.current = null;
+        if (fetchDoneTimerRef.current) {
+            window.clearTimeout(fetchDoneTimerRef.current);
+            fetchDoneTimerRef.current = null;
+        }
+        setIsFetchingInfo(false);
+    }, []);
 
     const applyDetectedTarget = React.useCallback((value: string, fillTitle = false) => {
         const target = parseLinkTarget(value);
@@ -185,6 +199,8 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     }, []);
 
     React.useEffect(() => {
+        cancelPendingInfoFetch();
+
         if (isOpen && editLink) {
             setTitle(editLink.title);
             setUrl(editLink.normalized_url || editLink.url);
@@ -248,7 +264,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                 (initialDraft.source || initialDraft.description || initialDraft.imageUrl || initialDraft.title)
             );
         }
-    }, [isOpen, editLink, initialDraft]);
+    }, [cancelPendingInfoFetch, isOpen, editLink, initialDraft]);
 
     const handleAutoFetch = React.useCallback(async (force = false) => {
         if (!url.trim()) return;
@@ -264,16 +280,31 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
         if (!force && lastFetchedUrlRef.current === fetchUrl) return;
         lastFetchedUrlRef.current = fetchUrl;
 
+        fetchRequestIdRef.current += 1;
+        const requestId = fetchRequestIdRef.current;
+        activeFetchControllerRef.current?.abort();
+        const controller = new AbortController();
+        activeFetchControllerRef.current = controller;
+        if (fetchDoneTimerRef.current) {
+            window.clearTimeout(fetchDoneTimerRef.current);
+            fetchDoneTimerRef.current = null;
+        }
+
+        const isCurrentRequest = () => fetchRequestIdRef.current === requestId && !controller.signal.aborted;
+
         setIsFetchingInfo(true);
         setThumbnailFetchError('');
         try {
             const res = await fetch('/api/fetch-og-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: fetchUrl })
+                body: JSON.stringify({ url: fetchUrl }),
+                signal: controller.signal
             });
+            if (!isCurrentRequest()) return;
             if (res.ok) {
                 const data = await res.json();
+                if (!isCurrentRequest()) return;
                 const currentTitle = title.trim();
                 const fallbackTitle = getFallbackTitle(target);
                 const isAccountFetch = target?.linkType === 'person_account';
@@ -343,6 +374,9 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             }
             setSelectedFile(null); // URL 자동 추출 시 사용자가 선택한 로컬 파일은 취소
         } catch (error) {
+            if (!isCurrentRequest() || (error instanceof Error && error.name === 'AbortError')) {
+                return;
+            }
             console.error('Fetch error:', error);
             if (target?.linkType === 'person_account' && shouldRefreshInitialAccountDraftRef.current) {
                 setDescription('');
@@ -350,7 +384,15 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             }
             setThumbnailFetchError('썸네일 후보를 불러오지 못했습니다.');
         } finally {
-            setTimeout(() => setIsFetchingInfo(false), 500); // UI 피드백을 위해 살짝 대기
+            if (isCurrentRequest()) {
+                fetchDoneTimerRef.current = window.setTimeout(() => {
+                    if (fetchRequestIdRef.current === requestId) {
+                        setIsFetchingInfo(false);
+                        activeFetchControllerRef.current = null;
+                        fetchDoneTimerRef.current = null;
+                    }
+                }, 500); // UI 피드백을 위해 살짝 대기
+            }
         }
     }, [applyDetectedTarget, description, imageUrl, title, url]);
 
@@ -397,6 +439,13 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (isFetchingInfo) {
+            alert('정보를 가져오는 중입니다. 완료된 뒤 등록해주세요.');
+            return;
+        }
+
+        if (isSubmitting) return;
 
         const { data: { user } } = await cafe24.auth.getUser();
         if (!user) {
@@ -486,6 +535,8 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
         }
     };
 
+    const isInteractionLocked = isSubmitting || isFetchingInfo;
+
     return (
         <div className="links-modal-overlay glass-overlay">
             <div className="links-modal-panel glass-panel" onClick={e => e.stopPropagation()}>
@@ -500,6 +551,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
 
                 <div className="links-modal-body">
                     <form id="link-registration-form" onSubmit={handleSubmit} className="links-form">
+                        <fieldset className="link-registration-fieldset" disabled={isInteractionLocked}>
                         <div className="form-group">
                             <label>유형 <span className="required-star">*</span></label>
                             <div className="link-kind-select" role="group" aria-label="링크 유형">
@@ -588,7 +640,9 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                                     cursor: 'pointer',
                                     transition: 'all 0.2s'
                                 }}
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => {
+                                    if (!isInteractionLocked) fileInputRef.current?.click();
+                                }}
                                 onMouseOver={(e) => { e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)'; e.currentTarget.style.background = 'rgba(168, 85, 247, 0.05)'; }}
                                 onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.background = 'rgba(0,0,0,0.2)'; }}
                             >
@@ -759,13 +813,18 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                                 className="glass-input form-textarea"
                             />
                         </div>
+                        </fieldset>
                     </form>
                 </div>
 
                 <div className="links-modal-actions">
                     <button type="button" onClick={onClose} className="glass-btn secondary">취소</button>
-                    <button type="submit" form="link-registration-form" disabled={isSubmitting} className="glass-btn primary">
-                        {isSubmitting ? (editLink ? '수정 중...' : '등록 중...') : (editLink ? '수정하기' : '등록하기')}
+                    <button type="submit" form="link-registration-form" disabled={isInteractionLocked} className="glass-btn primary">
+                        {isFetchingInfo
+                            ? '정보 가져오는 중...'
+                            : isSubmitting
+                                ? (editLink ? '수정 중...' : '등록 중...')
+                                : (editLink ? '수정하기' : '등록하기')}
                     </button>
                 </div>
             </div>
