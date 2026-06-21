@@ -232,6 +232,7 @@ export default function LinksPage() {
                     ? parsed.accountPlatform
                     : 'other',
             accountHandle: resolvedType === 'person_account' ? (params.get('handle') || parsed.accountHandle) : '',
+            source: params.get('source') || '',
         });
         setIsModalOpen(true);
         navigate('/links', { replace: true });

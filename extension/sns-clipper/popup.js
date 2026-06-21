@@ -38,6 +38,7 @@ let activePageMeta = {
   author: '',
   description: '',
   publishedAt: '',
+  url: '',
 };
 let activeResolvedTitle = '';
 let activePageStatus = '';
@@ -732,16 +733,20 @@ function readPageMetaFromPage() {
   };
   const pickYouTubeChannelDescriptionFromDom = () => {
     const selectors = [
-      'meta[property="og:description"]',
-      'meta[name="description"]',
-      'meta[name="twitter:description"]',
       'yt-page-header-view-model [role="text"]',
       'ytd-channel-about-metadata-renderer #description-container',
       'ytd-channel-about-metadata-renderer yt-attributed-string',
     ];
     return selectors
       .map((selector) => cleanLongText(document.querySelector(selector)?.getAttribute('content') || document.querySelector(selector)?.textContent))
-      .find((text) => text.length >= 8 && !/^youtube$/i.test(text)) || '';
+      .find((text) => {
+        const lower = cleanText(text).toLowerCase();
+        if (text.length < 8 || /^youtube$/i.test(text)) return false;
+        if (/^@?[a-z0-9._-]+$/i.test(text)) return false;
+        if (/구독자\s*[\d,.천만억kmb]+\s*명/i.test(text)) return false;
+        if (/동영상\s*[\d,.천만억kmb]+\s*개/i.test(text)) return false;
+        return !lower.includes('subscribers') && !lower.includes('videos');
+      }) || '';
   };
   const pickYouTubeChannelAvatarFromDom = () => {
     const selectors = [
@@ -863,6 +868,7 @@ function readPageMetaFromPage() {
   const instagramAccountAvatar = isInstagramAccountPage ? pickInstagramProfileAvatarFromDom() : '';
 
   return {
+    url: location.href,
     thumbnail: instagramAccountAvatar || youtubeAccountAvatar || fromMeta || poster || candidates[0]?.src || '',
     title,
     description: normalizedDescription,
@@ -880,10 +886,10 @@ async function getActiveTabMetadata(tab, platform) {
       target: { tabId: tab.id },
       func: readPageMetaFromPage,
     });
-    return results?.[0]?.result || { thumbnail: '', title: '', description: '', author: '', publishedAt: '' };
+    return results?.[0]?.result || { thumbnail: '', title: '', description: '', author: '', publishedAt: '', url: '' };
   } catch (error) {
     console.warn('[sns-clipper] metadata extraction failed', error);
-    return { thumbnail: '', title: '', description: '', author: '', publishedAt: '' };
+    return { thumbnail: '', title: '', description: '', author: '', publishedAt: '', url: '' };
   }
 }
 
@@ -893,6 +899,7 @@ function updatePageMetadataPreview(meta) {
     author: meta?.author || '',
     description: meta?.description || '',
     publishedAt: meta?.publishedAt || '',
+    url: meta?.url || '',
   };
   const url = meta?.thumbnail || '';
   activeThumbnailUrl = url || '';

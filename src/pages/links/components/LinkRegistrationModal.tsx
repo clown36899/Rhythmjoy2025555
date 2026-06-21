@@ -31,6 +31,7 @@ export interface LinkRegistrationDraft {
     linkType?: LinkType;
     accountPlatform?: AccountPlatform;
     accountHandle?: string;
+    source?: string;
 }
 
 interface ThumbnailOption {
@@ -165,6 +166,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const lastFetchedUrlRef = React.useRef('');
     const metadataOwnerUrlRef = React.useRef('');
+    const shouldRefreshInitialAccountDraftRef = React.useRef(false);
 
     const applyDetectedTarget = React.useCallback((value: string, fillTitle = false) => {
         const target = parseLinkTarget(value);
@@ -204,6 +206,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setSelectedFile(null);
             lastFetchedUrlRef.current = '';
             metadataOwnerUrlRef.current = editLink.normalized_url || editLink.url;
+            shouldRefreshInitialAccountDraftRef.current = false;
         } else if (isOpen && !editLink) {
             const draftUrl = initialDraft?.url || '';
             const parsed = parseLinkTarget(draftUrl);
@@ -239,6 +242,11 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setSelectedFile(null);
             lastFetchedUrlRef.current = '';
             metadataOwnerUrlRef.current = parsed?.normalizedUrl || draftUrl;
+            shouldRefreshInitialAccountDraftRef.current = Boolean(
+                resolvedType === 'person_account' &&
+                initialDraft &&
+                (initialDraft.source || initialDraft.description || initialDraft.imageUrl || initialDraft.title)
+            );
         }
     }, [isOpen, editLink, initialDraft]);
 
@@ -269,7 +277,11 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                 const currentTitle = title.trim();
                 const fallbackTitle = getFallbackTitle(target);
                 const isAccountFetch = target?.linkType === 'person_account';
-                const shouldReplaceAccountMetadata = Boolean(isAccountFetch && (force || isDifferentMetadataTarget));
+                const shouldReplaceAccountMetadata = Boolean(isAccountFetch && (
+                    force ||
+                    isDifferentMetadataTarget ||
+                    shouldRefreshInitialAccountDraftRef.current
+                ));
                 const shouldReplaceTitle = !currentTitle || (
                     isAccountFetch &&
                     (currentTitle === fallbackTitle || isWeakFetchedTitle(currentTitle) || isFallbackAccountTitle(currentTitle, target))
@@ -298,7 +310,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                     ? fetchedOptions.filter((option) => accountThumbnailSources.has(option.source || ''))
                     : fetchedOptions;
                 const hasFetchedAccountAvatar = accountSafeOptions.some((option) => option.source === 'account-avatar');
-                const options = isAccountFetch && currentImageUrl && !hasFetchedAccountAvatar
+                const options = isAccountFetch && currentImageUrl && !hasFetchedAccountAvatar && !shouldReplaceAccountMetadata
                     ? mergeThumbnailOptions([
                         { url: currentImageUrl, label: '현재 프로필 이미지', source: 'clipper' },
                         ...accountSafeOptions
@@ -325,12 +337,17 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                     }
                 }
                 metadataOwnerUrlRef.current = fetchUrl;
+                shouldRefreshInitialAccountDraftRef.current = false;
             } else {
                 throw new Error(`metadata fetch failed: ${res.status}`);
             }
             setSelectedFile(null); // URL 자동 추출 시 사용자가 선택한 로컬 파일은 취소
         } catch (error) {
             console.error('Fetch error:', error);
+            if (target?.linkType === 'person_account' && shouldRefreshInitialAccountDraftRef.current) {
+                setDescription('');
+                shouldRefreshInitialAccountDraftRef.current = false;
+            }
             setThumbnailFetchError('썸네일 후보를 불러오지 못했습니다.');
         } finally {
             setTimeout(() => setIsFetchingInfo(false), 500); // UI 피드백을 위해 살짝 대기
