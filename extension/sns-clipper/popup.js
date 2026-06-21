@@ -9,7 +9,10 @@ const platformBadge = document.getElementById('platformBadge');
 const thumbnailPreview = document.getElementById('thumbnailPreview');
 const targetMode = document.getElementById('targetMode');
 const bucketInput = document.getElementById('bucketInput');
-const collectionInput = document.getElementById('collectionInput');
+const playlistInput = document.getElementById('playlistInput');
+const playlistStatus = document.getElementById('playlistStatus');
+const newPlaylistInput = document.getElementById('newPlaylistInput');
+const newPlaylistParentInput = document.getElementById('newPlaylistParentInput');
 const tagsInput = document.getElementById('tagsInput');
 const genreInput = document.getElementById('genreInput');
 const saveButton = document.getElementById('saveButton');
@@ -24,6 +27,8 @@ let activePageMeta = {
   publishedAt: '',
 };
 let activeResolvedTitle = '';
+let playlists = [];
+let savedSettings = {};
 
 function detectPlatform(url) {
   try {
@@ -113,6 +118,183 @@ function resolveArchiveTitle(platform, browserTitle, meta = {}) {
 
 function setStatus(message) {
   statusText.textContent = message || '';
+}
+
+function compactText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function getTargetBaseUrl() {
+  return TARGETS[targetMode.value] || TARGETS.production;
+}
+
+function getApiUrl(path) {
+  return new URL(path, getTargetBaseUrl()).toString();
+}
+
+function getPlaylistParentId(playlist) {
+  return compactText(playlist?.parent_id);
+}
+
+function sortPlaylistsByName(items) {
+  return [...items].sort((a, b) => compactText(a.name).localeCompare(compactText(b.name), 'ko'));
+}
+
+function getPlaylistPath(playlist, allPlaylists) {
+  const byId = new Map(allPlaylists.map((entry) => [entry.id, entry]));
+  const segments = [];
+  const visited = new Set();
+  let cursor = playlist;
+  while (cursor && !visited.has(cursor.id)) {
+    visited.add(cursor.id);
+    segments.unshift(compactText(cursor.name) || '이름 없음');
+    const parentId = getPlaylistParentId(cursor);
+    cursor = parentId ? byId.get(parentId) : null;
+  }
+  return segments.join(' / ');
+}
+
+function buildPlaylistTreeOptions(allPlaylists) {
+  const playlistIds = new Set(allPlaylists.map((playlist) => playlist.id));
+  const byParent = new Map();
+
+  allPlaylists.forEach((playlist) => {
+    const parentId = getPlaylistParentId(playlist);
+    const key = parentId && playlistIds.has(parentId) ? parentId : '';
+    byParent.set(key, [...(byParent.get(key) || []), playlist]);
+  });
+
+  const result = [];
+  const visit = (parentId, depth, visited) => {
+    const children = sortPlaylistsByName(byParent.get(parentId) || []);
+    children.forEach((playlist) => {
+      if (visited.has(playlist.id)) return;
+      const nextVisited = new Set(visited);
+      nextVisited.add(playlist.id);
+      result.push({ playlist, depth, path: getPlaylistPath(playlist, allPlaylists) });
+      visit(playlist.id, depth + 1, nextVisited);
+    });
+  };
+
+  visit('', 0, new Set());
+  return result;
+}
+
+function getSelectedPlaylist() {
+  return playlists.find((playlist) => playlist.id === playlistInput.value) || null;
+}
+
+function appendOption(select, value, label) {
+  const option = document.createElement('option');
+  option.value = value;
+  option.textContent = label;
+  select.appendChild(option);
+}
+
+function renderPlaylistOptions() {
+  const options = buildPlaylistTreeOptions(playlists);
+  const selectedPlaylistId = savedSettings.playlistId || playlistInput.value || '';
+  const selectedParentId = savedSettings.newPlaylistParentId || newPlaylistParentInput.value || '';
+
+  playlistInput.innerHTML = '';
+  appendOption(playlistInput, '', playlists.length ? '선택 안 함' : '재생목록 없음');
+  options.forEach(({ playlist, path }) => {
+    appendOption(playlistInput, playlist.id, path);
+  });
+  playlistInput.disabled = !playlists.length;
+  playlistInput.value = playlists.some((playlist) => playlist.id === selectedPlaylistId) ? selectedPlaylistId : '';
+
+  newPlaylistParentInput.innerHTML = '';
+  appendOption(newPlaylistParentInput, '', '최상위');
+  options.forEach(({ playlist, path }) => {
+    appendOption(newPlaylistParentInput, playlist.id, path);
+  });
+  newPlaylistParentInput.value = playlists.some((playlist) => playlist.id === selectedParentId) ? selectedParentId : '';
+
+  playlistStatus.textContent = playlists.length
+    ? `${playlists.length}개 폴더를 불러왔어요. 선택하면 앱 등록폼에도 그대로 반영됩니다.`
+    : '폴더가 없으면 앱 등록폼에서 새 재생목록을 만들 수 있어요.';
+}
+
+async function readPlaylistsFromCurrentSite() {
+  const response = await fetch('/api/cafe24-data/sns_media_playlists/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      table: 'sns_media_playlists',
+      action: 'select',
+      select: '*',
+      filters: [],
+      orFilters: [],
+      orders: [{ column: 'updated_at', ascending: false }],
+    }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.error) {
+    throw new Error(payload?.error?.message || payload?.message || response.statusText);
+  }
+  return Array.isArray(payload?.data) ? payload.data : [];
+}
+
+async function fetchPlaylistsFromOpenAppTab() {
+  const origin = new URL(getTargetBaseUrl()).origin;
+  const tabs = await chrome.tabs.query({ url: `${origin}/*` });
+  const preferredTabs = [...tabs].sort((a, b) => Number(Boolean(b.active)) - Number(Boolean(a.active)));
+
+  for (const tab of preferredTabs) {
+    if (!tab.id) continue;
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: readPlaylistsFromCurrentSite,
+      });
+      const data = results?.[0]?.result;
+      if (Array.isArray(data)) return data;
+    } catch (error) {
+      console.warn('[sns-clipper] playlist tab sync failed', error);
+    }
+  }
+
+  return null;
+}
+
+async function fetchPlaylistsFromApi() {
+  const response = await fetch(getApiUrl('/api/cafe24-data/sns_media_playlists/query'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      table: 'sns_media_playlists',
+      action: 'select',
+      select: '*',
+      filters: [],
+      orFilters: [],
+      orders: [{ column: 'updated_at', ascending: false }],
+    }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.error) {
+    throw new Error(payload?.error?.message || payload?.message || response.statusText);
+  }
+  return Array.isArray(payload?.data) ? payload.data : [];
+}
+
+async function fetchPlaylists() {
+  playlistInput.disabled = true;
+  playlistStatus.textContent = '재생목록/폴더를 불러오는 중...';
+  try {
+    playlists = await fetchPlaylistsFromOpenAppTab();
+    if (!playlists) {
+      playlists = await fetchPlaylistsFromApi();
+    }
+    renderPlaylistOptions();
+  } catch (error) {
+    console.warn('[sns-clipper] playlist fetch failed', error);
+    playlists = [];
+    renderPlaylistOptions();
+    playlistStatus.textContent = '폴더 목록을 불러오지 못했어요. 열린 앱 등록폼에서 선택할 수 있습니다.';
+  }
 }
 
 function readPageMetaFromPage() {
@@ -354,21 +536,34 @@ async function updatePagePreview(tab) {
 }
 
 async function loadSettings() {
-  const saved = await chrome.storage.local.get(['targetMode', 'bucket', 'collection', 'tags', 'genre']);
-  targetMode.value = saved.targetMode || 'production';
-  bucketInput.value = saved.bucket || 'reference';
-  collectionInput.value = saved.collection || '';
-  tagsInput.value = saved.tags || '';
-  genreInput.value = saved.genre || '';
+  savedSettings = await chrome.storage.local.get([
+    'targetMode',
+    'bucket',
+    'playlistId',
+    'newPlaylistName',
+    'newPlaylistParentId',
+    'tags',
+    'genre',
+  ]);
+  targetMode.value = savedSettings.targetMode || 'production';
+  bucketInput.value = savedSettings.bucket || 'reference';
+  newPlaylistInput.value = savedSettings.newPlaylistName || '';
+  tagsInput.value = savedSettings.tags || '';
+  genreInput.value = savedSettings.genre || '';
 }
 
 async function saveSettings() {
-  await chrome.storage.local.set({
+  savedSettings = {
     targetMode: targetMode.value,
     bucket: bucketInput.value,
-    collection: collectionInput.value,
+    playlistId: playlistInput.value,
+    newPlaylistName: newPlaylistInput.value.trim(),
+    newPlaylistParentId: newPlaylistParentInput.value,
     tags: tagsInput.value,
     genre: genreInput.value,
+  };
+  await chrome.storage.local.set({
+    ...savedSettings,
   });
 }
 
@@ -379,7 +574,24 @@ function buildArchiveUrl() {
   params.set('title', activeResolvedTitle || cleanTitle(activeTab.title));
   params.set('source', '데스크톱 공유');
   params.set('bucket', bucketInput.value);
-  if (collectionInput.value.trim()) params.set('collection', collectionInput.value.trim());
+  const selectedPlaylist = getSelectedPlaylist();
+  const newPlaylistName = newPlaylistInput.value.trim();
+  if (newPlaylistName) {
+    params.set('playlistId', '');
+    params.set('newPlaylistName', newPlaylistName);
+    if (newPlaylistParentInput.value) params.set('newPlaylistParentId', newPlaylistParentInput.value);
+    params.set('collection', newPlaylistName);
+  } else if (selectedPlaylist) {
+    params.set('playlistId', selectedPlaylist.id);
+    params.set('playlist', selectedPlaylist.id);
+    params.set('collection', compactText(selectedPlaylist.name));
+    if (!genreInput.value.trim() && selectedPlaylist.dance_genre) {
+      params.set('genre', compactText(selectedPlaylist.dance_genre));
+    }
+  } else {
+    params.set('playlistId', '');
+    params.set('collection', '');
+  }
   if (activeThumbnailUrl) params.set('thumbnail', activeThumbnailUrl);
   if (activePageMeta.author) params.set('author', activePageMeta.author);
   if (activePageMeta.description) params.set('description', activePageMeta.description.slice(0, 1200));
@@ -391,13 +603,30 @@ function buildArchiveUrl() {
 
 async function init() {
   await loadSettings();
+  await fetchPlaylists();
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   await updatePagePreview(tabs[0]);
 }
 
-targetMode.addEventListener('change', saveSettings);
+targetMode.addEventListener('change', async () => {
+  await saveSettings();
+  await fetchPlaylists();
+});
 bucketInput.addEventListener('change', saveSettings);
-collectionInput.addEventListener('change', saveSettings);
+playlistInput.addEventListener('change', async () => {
+  if (playlistInput.value) {
+    newPlaylistInput.value = '';
+    newPlaylistParentInput.value = '';
+  }
+  await saveSettings();
+});
+newPlaylistInput.addEventListener('input', async () => {
+  if (newPlaylistInput.value.trim()) {
+    playlistInput.value = '';
+  }
+  await saveSettings();
+});
+newPlaylistParentInput.addEventListener('change', saveSettings);
 tagsInput.addEventListener('change', saveSettings);
 genreInput.addEventListener('change', saveSettings);
 

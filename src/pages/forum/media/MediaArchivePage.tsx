@@ -501,6 +501,14 @@ function deriveArchiveTitle(params: URLSearchParams, addUrl: string) {
 
 function buildImportedForm(prev: MediaArchiveForm, params: URLSearchParams, addUrl: string, isShareTarget: boolean) {
   const sharedDescription = params.get('description') || stripSharedUrl(params.get('text'), addUrl);
+  const readFirstParam = (...keys: string[]) => {
+    const key = keys.find((entry) => params.has(entry));
+    return key ? params.get(key) || '' : null;
+  };
+  const playlistId = readFirstParam('playlistId', 'playlist', 'folderId') ?? prev.playlistId;
+  const newPlaylistName = readFirstParam('newPlaylistName', 'new_playlist') ?? prev.newPlaylistName;
+  const newPlaylistParentId = readFirstParam('newPlaylistParentId', 'new_playlist_parent') ?? prev.newPlaylistParentId;
+  const collectionName = readFirstParam('collection') ?? prev.collectionName;
   return normalizeMediaArchiveForm({
     ...prev,
     url: addUrl,
@@ -509,7 +517,10 @@ function buildImportedForm(prev: MediaArchiveForm, params: URLSearchParams, addU
     authorName: params.get('author') || prev.authorName,
     thumbnailUrl: safeImageUrl(params.get('thumbnail')) || prev.thumbnailUrl,
     archiveBucket: params.get('bucket') || prev.archiveBucket,
-    collectionName: params.get('collection') || prev.collectionName,
+    playlistId: newPlaylistName ? '' : playlistId,
+    newPlaylistName,
+    newPlaylistParentId: newPlaylistName ? newPlaylistParentId : '',
+    collectionName,
     tags: params.get('tags') || prev.tags,
     danceGenre: params.get('genre') || prev.danceGenre,
     publishedAt: safeInputDate(params.get('published')) || prev.publishedAt,
@@ -1682,6 +1693,9 @@ const MediaArchivePage: React.FC = () => {
       params.get('author') || '',
       params.get('description') || '',
       params.get('collection') || '',
+      params.get('playlistId') || params.get('playlist') || params.get('folderId') || '',
+      params.get('newPlaylistName') || params.get('new_playlist') || '',
+      params.get('newPlaylistParentId') || params.get('new_playlist_parent') || '',
     ].join(':');
     if (clipperImportKeyRef.current === importKey) return;
     clipperImportKeyRef.current = importKey;

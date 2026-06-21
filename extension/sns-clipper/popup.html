@@ -24,7 +24,7 @@
       </section>
 
       <label class="clipper__field">
-        <span>저장 위치</span>
+        <span>연결 대상</span>
         <select id="targetMode">
           <option value="production">운영 사이트</option>
           <option value="local">로컬 개발 서버</option>
@@ -44,8 +44,23 @@
       </label>
 
       <label class="clipper__field">
-        <span>컬렉션</span>
-        <input id="collectionInput" type="text" placeholder="예: 에어리얼 입문, Shim Sham 버전 모음" />
+        <span>재생목록/폴더</span>
+        <select id="playlistInput">
+          <option value="">불러오는 중...</option>
+        </select>
+        <small id="playlistStatus" class="clipper__field-note"></small>
+      </label>
+
+      <label class="clipper__field">
+        <span>새 재생목록</span>
+        <input id="newPlaylistInput" type="text" placeholder="저장하면서 만들기" />
+      </label>
+
+      <label class="clipper__field">
+        <span>새 재생목록 위치</span>
+        <select id="newPlaylistParentInput">
+          <option value="">최상위</option>
+        </select>
       </label>
 
       <label class="clipper__field">
