@@ -826,6 +826,39 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
   );
 };
 
+const MediaModalFrame: React.FC<{
+  label: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ label, onClose, children }) => {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="media-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const MediaItemEditPanel: React.FC<{
   item: SnsMediaItem;
   form: MediaArchiveForm;
@@ -848,8 +881,8 @@ const MediaItemEditPanel: React.FC<{
   };
 
   return (
-    <div className="media-modal-backdrop" role="dialog" aria-modal="true" aria-label="SNS 카드 수정">
-      <form className="media-edit-panel" onSubmit={onSubmit}>
+    <MediaModalFrame label="SNS 카드 수정" onClose={onClose}>
+      <form className="media-edit-panel media-modal-panel" onSubmit={onSubmit}>
         <header className="media-edit-header">
           <div>
             <p className="media-eyebrow">Edit Archive</p>
@@ -966,7 +999,7 @@ const MediaItemEditPanel: React.FC<{
           </button>
         </div>
       </form>
-    </div>
+    </MediaModalFrame>
   );
 };
 
@@ -2016,12 +2049,18 @@ const MediaArchivePage: React.FC = () => {
     clearPendingMediaDraft();
   };
 
+  const closeMediaForm = () => {
+    setShowForm(false);
+    resetForm();
+  };
+
   const handleToggleForm = () => {
     if (showForm) {
-      setShowForm(false);
-      resetForm();
+      closeMediaForm();
       return;
     }
+    setShowPlaylistForm(false);
+    resetPlaylistForm();
     setShowForm(true);
   };
 
@@ -2030,12 +2069,17 @@ const MediaArchivePage: React.FC = () => {
     setEditingPlaylist(null);
   };
 
+  const closePlaylistForm = () => {
+    setShowPlaylistForm(false);
+    resetPlaylistForm();
+  };
+
   const handleTogglePlaylistForm = () => {
     if (showPlaylistForm) {
-      setShowPlaylistForm(false);
-      resetPlaylistForm();
+      closePlaylistForm();
       return;
     }
+    if (showForm) closeMediaForm();
     setShowPlaylistForm(true);
   };
 
@@ -2115,6 +2159,7 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleEditPlaylist = (playlist: SnsMediaPlaylist) => {
+    setShowForm(false);
     setEditingPlaylist(playlist);
     setPlaylistForm(playlistFormFromPlaylist(playlist));
     setShowPlaylistForm(true);
@@ -2136,6 +2181,9 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleEditItem = (item: SnsMediaItem) => {
+    setShowForm(false);
+    setShowPlaylistForm(false);
+    resetPlaylistForm();
     setEditingItem(item);
     setEditForm(formFromMediaItem(item));
   };
@@ -2331,119 +2379,125 @@ const MediaArchivePage: React.FC = () => {
         </div>
         <div className="media-header-actions">
           <button className="media-add-button media-add-button--secondary" type="button" onClick={handleTogglePlaylistForm}>
-            <i className={showPlaylistForm ? 'ri-close-line' : 'ri-folder-add-line'} />
-            <span>{showPlaylistForm ? '목록 닫기' : '재생목록'}</span>
+            <i className="ri-folder-add-line" />
+            <span>재생목록</span>
           </button>
           <button className="media-add-button" type="button" onClick={handleToggleForm}>
-            <i className={showForm ? 'ri-close-line' : 'ri-add-line'} />
-            <span>{showForm ? '닫기' : '영상 추가'}</span>
+            <i className="ri-add-line" />
+            <span>영상 추가</span>
           </button>
         </div>
       </header>
 
       {showPlaylistForm && (
-        <form className="media-playlist-panel" onSubmit={handlePlaylistSubmit}>
-          <header className="media-playlist-form-header">
-            <div>
-              <p className="media-eyebrow">Playlist</p>
-              <h2>{editingPlaylist ? '재생목록 수정' : '재생목록 추가'}</h2>
+        <MediaModalFrame label={editingPlaylist ? '재생목록 수정' : '재생목록 추가'} onClose={closePlaylistForm}>
+          <form className="media-playlist-panel media-modal-panel" onSubmit={handlePlaylistSubmit}>
+            <header className="media-playlist-form-header">
+              <div>
+                <p className="media-eyebrow">Playlist</p>
+                <h2>{editingPlaylist ? '재생목록 수정' : '재생목록 추가'}</h2>
+              </div>
+              <button type="button" className="media-icon-button" onClick={closePlaylistForm} aria-label="재생목록 폼 닫기">
+                <i className="ri-close-line" />
+              </button>
+            </header>
+            <div className="media-field-grid">
+              <label className="media-field">
+                <span>이름</span>
+                <input
+                  value={playlistForm.name}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder="예: Lindy Hop 기본기"
+                  required
+                />
+              </label>
+              <label className="media-field">
+                <span>상위 폴더</span>
+                <select
+                  value={playlistForm.parentId}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, parentId: event.target.value }))}
+                >
+                  <option value="">최상위</option>
+                  {playlistParentOptions.map(({ playlist, path }) => (
+                    <option key={playlist.id} value={playlist.id}>{path}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="media-field">
+                <span>분류</span>
+                <input
+                  value={playlistForm.category}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, category: event.target.value }))}
+                  placeholder="예: 장르, 루틴, 공연, 역사"
+                />
+              </label>
+              <label className="media-field">
+                <span>춤 장르</span>
+                <input
+                  value={playlistForm.danceGenre}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, danceGenre: event.target.value }))}
+                  list="media-playlist-genre-presets"
+                />
+                <datalist id="media-playlist-genre-presets">
+                  {availableGenres.map((item) => <option key={item} value={item} />)}
+                </datalist>
+              </label>
+              <label className="media-field">
+                <span>커버 URL</span>
+                <input
+                  value={playlistForm.coverUrl}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, coverUrl: event.target.value }))}
+                  placeholder="비워두면 카드 썸네일을 사용"
+                />
+              </label>
+              <label className="media-field media-field--wide">
+                <span>태그</span>
+                <input
+                  value={playlistForm.tags}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, tags: event.target.value }))}
+                  placeholder="예: 스윙아웃, 초급, 영감"
+                />
+              </label>
+              <label className="media-field media-field--wide">
+                <span>설명</span>
+                <textarea
+                  value={playlistForm.description}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, description: event.target.value }))}
+                  rows={3}
+                />
+              </label>
+              <label className="media-check-field">
+                <input
+                  type="checkbox"
+                  checked={playlistForm.isPublic}
+                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, isPublic: event.target.checked }))}
+                />
+                <span>공개 재생목록</span>
+              </label>
             </div>
-            <button type="button" className="media-icon-button" onClick={() => {
-              setShowPlaylistForm(false);
-              resetPlaylistForm();
-            }} aria-label="재생목록 폼 닫기">
-              <i className="ri-close-line" />
-            </button>
-          </header>
-          <div className="media-field-grid">
-            <label className="media-field">
-              <span>이름</span>
-              <input
-                value={playlistForm.name}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, name: event.target.value }))}
-                placeholder="예: Lindy Hop 기본기"
-                required
-              />
-            </label>
-            <label className="media-field">
-              <span>상위 폴더</span>
-              <select
-                value={playlistForm.parentId}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, parentId: event.target.value }))}
-              >
-                <option value="">최상위</option>
-                {playlistParentOptions.map(({ playlist, path }) => (
-                  <option key={playlist.id} value={playlist.id}>{path}</option>
-                ))}
-              </select>
-            </label>
-            <label className="media-field">
-              <span>분류</span>
-              <input
-                value={playlistForm.category}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, category: event.target.value }))}
-                placeholder="예: 장르, 루틴, 공연, 역사"
-              />
-            </label>
-            <label className="media-field">
-              <span>춤 장르</span>
-              <input
-                value={playlistForm.danceGenre}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, danceGenre: event.target.value }))}
-                list="media-playlist-genre-presets"
-              />
-              <datalist id="media-playlist-genre-presets">
-                {availableGenres.map((item) => <option key={item} value={item} />)}
-              </datalist>
-            </label>
-            <label className="media-field">
-              <span>커버 URL</span>
-              <input
-                value={playlistForm.coverUrl}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, coverUrl: event.target.value }))}
-                placeholder="비워두면 카드 썸네일을 사용"
-              />
-            </label>
-            <label className="media-field media-field--wide">
-              <span>태그</span>
-              <input
-                value={playlistForm.tags}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, tags: event.target.value }))}
-                placeholder="예: 스윙아웃, 초급, 영감"
-              />
-            </label>
-            <label className="media-field media-field--wide">
-              <span>설명</span>
-              <textarea
-                value={playlistForm.description}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, description: event.target.value }))}
-                rows={3}
-              />
-            </label>
-            <label className="media-check-field">
-              <input
-                type="checkbox"
-                checked={playlistForm.isPublic}
-                onChange={(event) => setPlaylistForm((prev) => ({ ...prev, isPublic: event.target.checked }))}
-              />
-              <span>공개 재생목록</span>
-            </label>
-          </div>
-          <div className="media-edit-actions">
-            <button type="button" onClick={() => {
-              setShowPlaylistForm(false);
-              resetPlaylistForm();
-            }}>취소</button>
-            <button type="submit" className="media-save-button">
-              <i className="ri-save-3-line" />
-              {canCreate ? '저장' : '로그인 후 저장'}
-            </button>
-          </div>
-        </form>
+            <div className="media-edit-actions">
+              <button type="button" onClick={closePlaylistForm}>취소</button>
+              <button type="submit" className="media-save-button">
+                <i className="ri-save-3-line" />
+                {canCreate ? '저장' : '로그인 후 저장'}
+              </button>
+            </div>
+          </form>
+        </MediaModalFrame>
       )}
 
       {showForm && (
-        <form className="media-submit-panel media-submit-panel--composer" onSubmit={handleSubmit}>
+        <MediaModalFrame label="영상 추가" onClose={closeMediaForm}>
+        <form className="media-submit-panel media-submit-panel--composer media-modal-panel media-composer-modal" onSubmit={handleSubmit}>
+          <header className="media-modal-form-header">
+            <div>
+              <p className="media-eyebrow">Add Archive</p>
+              <h2>영상 추가</h2>
+            </div>
+            <button type="button" className="media-icon-button" onClick={closeMediaForm} aria-label="영상 추가 닫기">
+              <i className="ri-close-line" />
+            </button>
+          </header>
           <section className="media-compose-preview" aria-label="등록 미리보기">
             <div className="media-compose-section-title">
               <i className="ri-eye-line" />
@@ -2591,6 +2645,7 @@ const MediaArchivePage: React.FC = () => {
             </button>
           </section>
         </form>
+        </MediaModalFrame>
       )}
 
       {editingItem && (
