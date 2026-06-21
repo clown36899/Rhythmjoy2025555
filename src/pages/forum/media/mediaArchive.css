@@ -1885,7 +1885,7 @@
 .media-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: var(--z-modal-stack-3, 13000);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1902,6 +1902,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
 }
 
 .media-edit-panel,
@@ -2018,6 +2019,7 @@
   .media-submit-panel.media-modal-panel {
     width: 100%;
     max-height: calc(100svh - 52px);
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
