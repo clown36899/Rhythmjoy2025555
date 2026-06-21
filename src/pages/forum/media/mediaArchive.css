@@ -372,6 +372,12 @@
   resize: vertical;
 }
 
+.media-field-help {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
 .media-submit-preview {
   display: flex;
   align-items: center;

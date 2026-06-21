@@ -152,6 +152,18 @@ interface PendingMediaDraft {
   source: string;
 }
 
+interface RemoteMediaMetadata {
+  title?: string | null;
+  description?: string | null;
+  image_url?: string | null;
+  thumbnail_options?: Array<{ url?: string | null }>;
+  thumbnailOptions?: Array<{ url?: string | null }>;
+  author?: string | null;
+  published?: string | null;
+  publishedAt?: string | null;
+  published_at?: string | null;
+}
+
 function getArchiveBucketMeta(value?: string | null) {
   return ARCHIVE_BUCKETS.find((item) => item.id === value) || ARCHIVE_BUCKETS[0];
 }
@@ -526,6 +538,17 @@ function buildImportedForm(prev: MediaArchiveForm, params: URLSearchParams, addU
     publishedAt: safeInputDate(params.get('published')) || prev.publishedAt,
     sourceContext: getImportSourceContext(params, isShareTarget, prev.sourceContext),
   });
+}
+
+function getRemoteMetadataThumbnail(data: RemoteMediaMetadata) {
+  const fromOptions = (data.thumbnail_options || data.thumbnailOptions || [])
+    .map((option) => safeImageUrl(option?.url))
+    .find(Boolean);
+  return safeImageUrl(data.image_url) || fromOptions || '';
+}
+
+function getRemoteMetadataPublishedDate(data: RemoteMediaMetadata) {
+  return safeInputDate(data.published || data.publishedAt || data.published_at);
 }
 
 function getItemText(item: SnsMediaItem) {
@@ -1538,8 +1561,10 @@ const MediaArchivePage: React.FC = () => {
   const [editForm, setEditForm] = useState<MediaArchiveForm>(emptyForm);
   const [draftNotice, setDraftNotice] = useState('');
   const [parsed, setParsed] = useState(() => parseMediaUrl(''));
+  const [metadataLoading, setMetadataLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const clipperImportKeyRef = useRef('');
+  const metadataFetchKeyRef = useRef('');
   const restoredDraftRef = useRef(false);
 
   const canCreate = Boolean(user);
@@ -1667,6 +1692,86 @@ const MediaArchivePage: React.FC = () => {
   }, [form.url]);
 
   useEffect(() => {
+    const sourceUrl = compactText(form.url);
+    const media = parseMediaUrl(sourceUrl);
+    if (!showForm || !sourceUrl || !media) return undefined;
+
+    const metadataUrl = media.normalized_url || sourceUrl;
+    if (metadataFetchKeyRef.current === metadataUrl) return undefined;
+    metadataFetchKeyRef.current = metadataUrl;
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setMetadataLoading(true);
+
+    (async () => {
+      try {
+        const response = await fetch('/api/fetch-og-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: metadataUrl }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`metadata fetch failed: ${response.status}`);
+        const data = (await response.json()) as RemoteMediaMetadata;
+        if (cancelled) return;
+
+        setForm((prev) => {
+          const prevUrl = compactText(prev.url);
+          const prevMedia = parseMediaUrl(prevUrl);
+          const sameUrl = prevMedia?.normalized_url === metadataUrl || prevUrl === sourceUrl;
+          if (!sameUrl) return prev;
+
+          const next = { ...prev };
+          const remoteTitle = compactText(data.title);
+          const remoteDescription = trimText(data.description);
+          const remoteThumbnail = getRemoteMetadataThumbnail(data);
+          const remotePublished = getRemoteMetadataPublishedDate(data);
+          let changed = false;
+
+          if (
+            remoteTitle &&
+            !isGenericImportedTitle(remoteTitle, prevMedia?.platform) &&
+            isGenericImportedTitle(next.title, prevMedia?.platform)
+          ) {
+            next.title = remoteTitle;
+            changed = true;
+          }
+          if (remoteDescription && !trimText(next.description)) {
+            next.description = remoteDescription;
+            changed = true;
+          }
+          if (remoteThumbnail && prevMedia?.platform !== 'youtube' && !safeImageUrl(next.thumbnailUrl)) {
+            next.thumbnailUrl = remoteThumbnail;
+            changed = true;
+          }
+          if (data.author && !compactText(next.authorName)) {
+            next.authorName = compactText(data.author);
+            changed = true;
+          }
+          if (remotePublished && !next.publishedAt) {
+            next.publishedAt = remotePublished;
+            changed = true;
+          }
+
+          return changed ? normalizeMediaArchiveForm(next) : prev;
+        });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn('[MediaArchive] metadata fetch failed:', error);
+        }
+      } finally {
+        if (!cancelled) setMetadataLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [form.url, showForm]);
+
+  useEffect(() => {
     let cancelled = false;
     const searchParams = new URLSearchParams(location.search);
     const shareId = compactText(searchParams.get('share_id'));
@@ -1765,6 +1870,8 @@ const MediaArchivePage: React.FC = () => {
     setForm(emptyForm);
     setParsed(null);
     setDraftNotice('');
+    setMetadataLoading(false);
+    metadataFetchKeyRef.current = '';
     clearPendingMediaDraft();
   };
 
@@ -2315,6 +2422,7 @@ const MediaArchivePage: React.FC = () => {
               <label className="media-field media-field--wide">
                 <span>원본 설명 / 메모</span>
                 <textarea value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} rows={3} placeholder="원본 설명이 있으면 자동 입력됩니다. 나중에 찾을 포인트를 덧붙여도 됩니다." />
+                {metadataLoading && <small className="media-field-help">원본 페이지 설명을 확인하는 중...</small>}
               </label>
               <details className="media-advanced-fields">
                 <summary>고급 정보</summary>

@@ -83,6 +83,16 @@ function firstMetaContent(metaTags: Record<string, string>[], keys: string[]): s
     return match?.content || '';
 }
 
+function cleanLongText(value: string): string {
+    return String(value || '')
+        .replace(/\r/g, '')
+        .split('\n')
+        .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+}
+
 function firstSrcFromSrcset(value: string): string {
     const first = String(value || '').split(',')[0] || '';
     return first.trim().split(/\s+/)[0] || '';
@@ -101,6 +111,113 @@ function resolveCandidateUrl(rawUrl: string, pageUrl: URL): string {
 function screenshotUrl(targetUrl: string): string {
     const cleanTarget = String(targetUrl || '').replace(/#.*$/, '');
     return `https://image.thum.io/get/width/900/crop/500/noanimate/${cleanTarget}`;
+}
+
+function isYouTubeUrl(url: URL): boolean {
+    const host = url.hostname.replace(/^www\./, '').toLowerCase();
+    return host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com' || host === 'youtu.be';
+}
+
+function textFromRuns(value: unknown): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value !== 'object') return '';
+    const record = value as Record<string, unknown>;
+    if (typeof record.simpleText === 'string') return record.simpleText;
+    if (Array.isArray(record.runs)) {
+        return record.runs
+            .map((run) => (run && typeof run === 'object' && typeof (run as Record<string, unknown>).text === 'string'
+                ? (run as Record<string, string>).text
+                : ''))
+            .join('');
+    }
+    return '';
+}
+
+function extractBalancedJson(text: string, startIndex: number): string {
+    const openIndex = text.indexOf('{', startIndex);
+    if (openIndex < 0) return '';
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = openIndex; index < text.length; index += 1) {
+        const char = text[index];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (char === '\\') {
+            escaped = true;
+            continue;
+        }
+        if (char === '"') {
+            inString = !inString;
+            continue;
+        }
+        if (inString) continue;
+        if (char === '{') depth += 1;
+        if (char === '}') depth -= 1;
+        if (depth === 0) return text.slice(openIndex, index + 1);
+    }
+    return '';
+}
+
+function extractYouTubeDescriptionFromHtml(html: string): string {
+    const scripts = Array.from(html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)).map((match) => match[1] || '');
+    for (const script of scripts) {
+        const markerIndex = script.indexOf('ytInitialPlayerResponse');
+        if (markerIndex < 0) continue;
+        const rawJson = extractBalancedJson(script, markerIndex);
+        if (!rawJson) continue;
+        try {
+            const response = JSON.parse(rawJson) as Record<string, unknown>;
+            const videoDetails = response.videoDetails as Record<string, unknown> | undefined;
+            const microformat = response.microformat as Record<string, unknown> | undefined;
+            const playerMicroformat = microformat?.playerMicroformatRenderer as Record<string, unknown> | undefined;
+            const candidates = [
+                typeof videoDetails?.shortDescription === 'string' ? videoDetails.shortDescription : '',
+                textFromRuns(playerMicroformat?.description),
+            ];
+            const description = candidates.map(cleanLongText).find((text) => text.length >= 8);
+            if (description) return description;
+        } catch (_error) {
+            // Continue; YouTube can emit multiple script payloads.
+        }
+    }
+    const shortDescription = html.match(/"shortDescription"\s*:\s*"((?:\\.|[^"\\])*)"/);
+    if (shortDescription?.[1]) {
+        try {
+            return cleanLongText(JSON.parse(`"${shortDescription[1]}"`));
+        } catch (_error) {
+            return cleanLongText(decodeHtml(shortDescription[1]));
+        }
+    }
+    return '';
+}
+
+function extractYouTubeTitleFromHtml(html: string): string {
+    const scripts = Array.from(html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)).map((match) => match[1] || '');
+    for (const script of scripts) {
+        const markerIndex = script.indexOf('ytInitialPlayerResponse');
+        if (markerIndex < 0) continue;
+        const rawJson = extractBalancedJson(script, markerIndex);
+        if (!rawJson) continue;
+        try {
+            const response = JSON.parse(rawJson) as Record<string, unknown>;
+            const videoDetails = response.videoDetails as Record<string, unknown> | undefined;
+            const microformat = response.microformat as Record<string, unknown> | undefined;
+            const playerMicroformat = microformat?.playerMicroformatRenderer as Record<string, unknown> | undefined;
+            const candidates = [
+                typeof videoDetails?.title === 'string' ? videoDetails.title : '',
+                textFromRuns(playerMicroformat?.title),
+            ];
+            const title = candidates.map((value) => decodeHtml(value).trim()).find((value) => value.length >= 2);
+            if (title) return title;
+        } catch (_error) {
+            // Continue; YouTube can emit multiple script payloads.
+        }
+    }
+    return '';
 }
 
 function sortThumbnailOptions(options: ThumbnailOption[]): ThumbnailOption[] {
@@ -248,10 +365,16 @@ export const handler: Handler = async (event) => {
         let title = firstMetaContent(metaTags, ['og:title', 'twitter:title', 'og:site_name'])
             || (titleMatch && titleMatch[1] ? titleMatch[1] : '');
         title = decodeHtml(title);
+        if (isYouTubeUrl(parsedTarget)) {
+            title = extractYouTubeTitleFromHtml(html) || title;
+        }
 
         // Extract Description
         let description = firstMetaContent(metaTags, ['description', 'og:description', 'twitter:description']);
         description = decodeHtml(description);
+        if (isYouTubeUrl(parsedTarget)) {
+            description = extractYouTubeDescriptionFromHtml(html) || description;
+        }
 
         // Extract representative images.
         ['og:image', 'og:image:url', 'og:image:secure_url'].forEach((key) => {

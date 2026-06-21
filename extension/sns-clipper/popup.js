@@ -304,10 +304,19 @@ function readPageMetaFromPage() {
     return url;
   };
   const cleanText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+  const cleanLongText = (value) => String(value || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
   const pickText = (selectors) => selectors
     .map((selector) => cleanText(document.querySelector(selector)?.getAttribute('content') || document.querySelector(selector)?.textContent))
     .find(Boolean) || '';
-  const isInstagram = location.hostname.replace(/^www\./, '').toLowerCase() === 'instagram.com';
+  const host = location.hostname.replace(/^www\./, '').toLowerCase();
+  const isInstagram = host === 'instagram.com';
+  const isYouTube = ['youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host);
   const isNoiseText = (value) => {
     const text = cleanText(value).toLowerCase();
     if (!text || text.length < 2) return true;
@@ -389,6 +398,79 @@ function readPageMetaFromPage() {
       .map((node) => cleanInstagramCaption(node.textContent))
       .find((text) => text && text.length >= 8) || '';
   };
+  const textFromRuns = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value.simpleText === 'string') return value.simpleText;
+    if (Array.isArray(value.runs)) {
+      return value.runs.map((run) => run?.text || '').join('');
+    }
+    return '';
+  };
+  const extractBalancedJson = (text, startIndex) => {
+    const openIndex = text.indexOf('{', startIndex);
+    if (openIndex < 0) return '';
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = openIndex; index < text.length; index += 1) {
+      const char = text[index];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (char === '{') depth += 1;
+      if (char === '}') depth -= 1;
+      if (depth === 0) return text.slice(openIndex, index + 1);
+    }
+    return '';
+  };
+  const getYouTubePlayerResponse = () => {
+    const scripts = Array.from(document.scripts).map((script) => script.textContent || '');
+    for (const script of scripts) {
+      const markerIndex = script.indexOf('ytInitialPlayerResponse');
+      if (markerIndex < 0) continue;
+      const rawJson = extractBalancedJson(script, markerIndex);
+      if (!rawJson) continue;
+      try {
+        return JSON.parse(rawJson);
+      } catch {
+        // Keep scanning; YouTube can emit multiple script payloads.
+      }
+    }
+    return null;
+  };
+  const pickYouTubeDescriptionFromPageData = () => {
+    const response = getYouTubePlayerResponse();
+    const candidates = [
+      response?.videoDetails?.shortDescription,
+      textFromRuns(response?.microformat?.playerMicroformatRenderer?.description),
+    ];
+    return candidates.map(cleanLongText).find((text) => text.length >= 8) || '';
+  };
+  const pickYouTubeDescriptionFromDom = () => {
+    const selectors = [
+      'ytd-watch-metadata #description-inline-expander #attributed-snippet-text',
+      'ytd-watch-metadata ytd-text-inline-expander #attributed-snippet-text',
+      'ytd-watch-metadata #description-inline-expander yt-attributed-string',
+      'ytd-watch-metadata ytd-text-inline-expander yt-attributed-string',
+      '#description-inline-expander',
+      '#description-text',
+      'ytd-video-secondary-info-renderer #description',
+    ];
+    return selectors
+      .map((selector) => cleanLongText(document.querySelector(selector)?.textContent))
+      .find((text) => text.length >= 8 && !/^더보기$/i.test(text)) || '';
+  };
 
   const fromMeta = [
     'meta[property="og:image"]',
@@ -453,6 +535,9 @@ function readPageMetaFromPage() {
     author = author || parsedFromTitle.author || parsedFromDescription.author || pickInstagramAuthorFromDom();
     normalizedDescription = caption || description;
     title = author && caption ? `${author}: ${caption}` : caption || metaTitle;
+  }
+  if (isYouTube) {
+    normalizedDescription = pickYouTubeDescriptionFromPageData() || pickYouTubeDescriptionFromDom() || description;
   }
 
   const publishedAt = cleanText(
@@ -594,7 +679,7 @@ function buildArchiveUrl() {
   }
   if (activeThumbnailUrl) params.set('thumbnail', activeThumbnailUrl);
   if (activePageMeta.author) params.set('author', activePageMeta.author);
-  if (activePageMeta.description) params.set('description', activePageMeta.description.slice(0, 1200));
+  if (activePageMeta.description) params.set('description', activePageMeta.description.slice(0, 4000));
   if (activePageMeta.publishedAt) params.set('published', activePageMeta.publishedAt.slice(0, 10));
   if (tagsInput.value.trim()) params.set('tags', tagsInput.value.trim());
   if (genreInput.value.trim()) params.set('genre', genreInput.value.trim());
