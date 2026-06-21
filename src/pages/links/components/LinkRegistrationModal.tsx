@@ -164,6 +164,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const lastFetchedUrlRef = React.useRef('');
+    const metadataOwnerUrlRef = React.useRef('');
 
     const applyDetectedTarget = React.useCallback((value: string, fillTitle = false) => {
         const target = parseLinkTarget(value);
@@ -202,6 +203,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setThumbnailFetchError('');
             setSelectedFile(null);
             lastFetchedUrlRef.current = '';
+            metadataOwnerUrlRef.current = editLink.normalized_url || editLink.url;
         } else if (isOpen && !editLink) {
             const draftUrl = initialDraft?.url || '';
             const parsed = parseLinkTarget(draftUrl);
@@ -236,6 +238,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
             setThumbnailFetchError('');
             setSelectedFile(null);
             lastFetchedUrlRef.current = '';
+            metadataOwnerUrlRef.current = parsed?.normalizedUrl || draftUrl;
         }
     }, [isOpen, editLink, initialDraft]);
 
@@ -248,6 +251,8 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
         setUrl(fetchUrl);
         if (target) applyDetectedTarget(fetchUrl, true);
 
+        const metadataOwnerUrl = metadataOwnerUrlRef.current;
+        const isDifferentMetadataTarget = Boolean(metadataOwnerUrl && metadataOwnerUrl !== fetchUrl);
         if (!force && lastFetchedUrlRef.current === fetchUrl) return;
         lastFetchedUrlRef.current = fetchUrl;
 
@@ -263,21 +268,25 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                 const data = await res.json();
                 const currentTitle = title.trim();
                 const fallbackTitle = getFallbackTitle(target);
+                const isAccountFetch = target?.linkType === 'person_account';
+                const shouldReplaceAccountMetadata = Boolean(isAccountFetch && (force || isDifferentMetadataTarget));
                 const shouldReplaceTitle = !currentTitle || (
-                    target?.linkType === 'person_account' &&
+                    isAccountFetch &&
                     (currentTitle === fallbackTitle || isWeakFetchedTitle(currentTitle) || isFallbackAccountTitle(currentTitle, target))
                 );
 
-                if (data.title && shouldReplaceTitle) {
-                    setTitle(target?.linkType === 'person_account' && isWeakFetchedTitle(data.title)
+                if (data.title && (shouldReplaceTitle || shouldReplaceAccountMetadata)) {
+                    setTitle(isAccountFetch && isWeakFetchedTitle(data.title)
                         ? getFallbackTitle(target)
                         : data.title);
                 }
-                const isAccountFetch = target?.linkType === 'person_account';
                 const fetchedDescription = typeof data.description === 'string' ? data.description.trim() : '';
                 const currentDescription = description.trim();
                 const currentDescriptionIsWeak = isAccountFetch && isWeakAccountDescription(currentDescription, target);
-                if (fetchedDescription && (!currentDescription || currentDescriptionIsWeak) && !(isAccountFetch && isWeakAccountDescription(fetchedDescription, target))) {
+                const fetchedDescriptionIsWeak = isAccountFetch && isWeakAccountDescription(fetchedDescription, target);
+                if (shouldReplaceAccountMetadata) {
+                    setDescription(fetchedDescription && !fetchedDescriptionIsWeak ? fetchedDescription : '');
+                } else if (fetchedDescription && (!currentDescription || currentDescriptionIsWeak) && !fetchedDescriptionIsWeak) {
                     setDescription(fetchedDescription);
                 } else if (currentDescriptionIsWeak) {
                     setDescription('');
@@ -306,7 +315,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                     setImageUrl(preferredOption.url);
                     setOgImageUrl(preferredOption.url);
                 } else {
-                    if (isAccountFetch && currentImageUrl) {
+                    if (isAccountFetch && currentImageUrl && !shouldReplaceAccountMetadata) {
                         setThumbnailOptions([{ url: currentImageUrl, label: '현재 프로필 이미지', source: 'clipper' }]);
                         setThumbnailFetchError('새 프로필 이미지를 찾지 못해 기존 이미지를 유지했습니다.');
                     } else {
@@ -315,6 +324,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                         setThumbnailFetchError('선택 가능한 썸네일을 찾지 못했습니다.');
                     }
                 }
+                metadataOwnerUrlRef.current = fetchUrl;
             } else {
                 throw new Error(`metadata fetch failed: ${res.status}`);
             }
