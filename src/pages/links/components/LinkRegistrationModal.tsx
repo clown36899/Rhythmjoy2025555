@@ -119,7 +119,29 @@ const getResolvedLinkType = (link?: SiteLink | null): LinkType => (
 
 const isWeakFetchedTitle = (value?: string | null) => {
     const title = String(value || '').trim().toLowerCase();
-    return !title || ['instagram', 'youtube', 'instagram photos and videos'].includes(title);
+    return !title || [
+        'instagram',
+        'youtube',
+        'instagram photos and videos',
+        'reels',
+        'instagram reels',
+        '인스타그램',
+        '게시물',
+        'posts',
+        'profile',
+        '프로필',
+        '릴스',
+    ].includes(title);
+};
+
+const isFallbackAccountTitle = (value: string, target: ReturnType<typeof parseLinkTarget>) => {
+    if (!target || target.linkType !== 'person_account') return false;
+    const title = value.trim();
+    const handle = target.accountHandle.trim();
+    if (!title || !handle) return false;
+    const normalizedTitle = title.replace(/^@+/, '').toLowerCase();
+    const normalizedHandle = handle.replace(/^@+/, '').toLowerCase();
+    return normalizedTitle === normalizedHandle || title === getFallbackTitle(target);
 };
 
 export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ isOpen, onClose, onSuccess, categories, editLink, initialDraft }) => {
@@ -239,7 +261,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                 const fallbackTitle = getFallbackTitle(target);
                 const shouldReplaceTitle = !currentTitle || (
                     target?.linkType === 'person_account' &&
-                    (currentTitle === fallbackTitle || isWeakFetchedTitle(currentTitle))
+                    (currentTitle === fallbackTitle || isWeakFetchedTitle(currentTitle) || isFallbackAccountTitle(currentTitle, target))
                 );
 
                 if (data.title && shouldReplaceTitle) {

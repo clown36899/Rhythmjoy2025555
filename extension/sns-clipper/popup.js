@@ -180,12 +180,24 @@ function isGenericTitle(title, platform) {
   const value = cleanTitle(title).toLowerCase();
   if (!value) return true;
   if (platform === 'Instagram') {
-    return ['instagram', 'reels', 'instagram reels', '인스타그램'].includes(value);
+    return ['instagram', 'reels', 'instagram reels', '인스타그램', '게시물', 'posts', 'profile', '프로필', '릴스'].includes(value);
   }
   if (platform === 'YouTube') {
     return ['youtube', 'youtube premium'].includes(value);
   }
   return false;
+}
+
+function cleanAccountTitle(title, accountTarget) {
+  let value = cleanTitle(title);
+  if (accountTarget?.platform === 'instagram' && accountTarget.handle) {
+    const escapedHandle = accountTarget.handle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    value = value
+      .replace(new RegExp(`\\s*\\(@?${escapedHandle}\\)\\s*$`, 'i'), '')
+      .replace(new RegExp(`\\s*@${escapedHandle}\\s*$`, 'i'), '')
+      .trim();
+  }
+  return value;
 }
 
 function truncateText(value, maxLength) {
@@ -211,7 +223,7 @@ function resolveArchiveTitle(platform, browserTitle, meta = {}) {
 function resolveAccountTitle(accountTarget, browserTitle, meta = {}) {
   const platformLabel = getAccountPlatformLabel(accountTarget);
   const candidates = [meta.author, meta.title, browserTitle]
-    .map(cleanTitle)
+    .map((title) => cleanAccountTitle(title, accountTarget))
     .filter((title) => title && !isGenericTitle(title, platformLabel));
   return candidates[0] || (accountTarget.platform === 'youtube' ? `@${accountTarget.handle}` : accountTarget.handle);
 }
@@ -439,6 +451,7 @@ function readPageMetaFromPage() {
   const isInstagramAccountPage = isInstagram &&
     /^[A-Za-z0-9._]+$/.test(pathParts[0] || '') &&
     !instagramReservedPaths.has(String(pathParts[0] || '').toLowerCase());
+  const instagramAccountHandle = isInstagramAccountPage ? String(pathParts[0] || '') : '';
   const isYouTubeAccountPage = isYouTube && (
     (pathParts[0] || '').startsWith('@') ||
     ['channel', 'c', 'user'].includes(pathParts[0] || '')
@@ -481,6 +494,20 @@ function readPageMetaFromPage() {
     text = text.replace(/^[^:]{1,80}\s+on\s+Instagram:\s*/i, '');
     text = text.replace(/^["“]|["”]$/g, '').trim();
     return isNoiseText(text) ? '' : text;
+  };
+  const cleanInstagramAccountTitle = (value) => {
+    let text = cleanText(value)
+      .replace(/\s*•\s*Instagram.*$/i, '')
+      .replace(/\s*-\s*Instagram\s*$/i, '')
+      .trim();
+    if (instagramAccountHandle) {
+      const escapedHandle = instagramAccountHandle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      text = text
+        .replace(new RegExp(`\\s*\\(@?${escapedHandle}\\)\\s*$`, 'i'), '')
+        .replace(new RegExp(`\\s*@${escapedHandle}\\s*$`, 'i'), '')
+        .trim();
+    }
+    return ['instagram', 'reels', 'instagram reels', '인스타그램', '게시물', 'posts', 'profile', '프로필', '릴스'].includes(text.toLowerCase()) ? '' : text;
   };
   const decodeJsonStringFragment = (value) => {
     try {
@@ -777,7 +804,12 @@ function readPageMetaFromPage() {
 
   let title = metaTitle;
   let normalizedDescription = description;
-  if (isInstagram) {
+  if (isInstagramAccountPage) {
+    const accountTitle = cleanInstagramAccountTitle(metaTitle) || cleanInstagramAccountTitle(document.title);
+    author = accountTitle || author;
+    title = accountTitle || metaTitle;
+    normalizedDescription = description;
+  } else if (isInstagram) {
     const parsedFromTitle = parseInstagramMetaText(metaTitle);
     const parsedFromDescription = parseInstagramMetaText(description);
     const caption = pickInstagramCaptionFromDom() || parsedFromTitle.caption || parsedFromDescription.caption;
@@ -1006,7 +1038,7 @@ function buildAccountUrl() {
   const base = getLinkTargetBaseUrl();
   const params = new URLSearchParams();
   const platformLabel = accountTarget.platform === 'instagram' ? 'Instagram' : 'YouTube';
-  let title = cleanTitle(activePageMeta.author || activeResolvedTitle || activeTab.title);
+  let title = cleanAccountTitle(activePageMeta.author || activeResolvedTitle || activeTab.title, accountTarget);
   if (!title || isGenericTitle(title, platformLabel)) {
     title = accountTarget.platform === 'youtube' ? `@${accountTarget.handle}` : accountTarget.handle;
   }
