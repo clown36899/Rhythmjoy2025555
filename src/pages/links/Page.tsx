@@ -49,11 +49,6 @@ type AccountCardItem = {
 
 type PersonMergeDraft = {
     groupId: string;
-    title: string;
-    description: string;
-    imageUrl: string;
-    category: string;
-    primaryLinkId: number | string;
 };
 
 const TYPE_FILTERS: Array<{ value: TypeFilter; label: string; icon: string }> = [
@@ -100,27 +95,24 @@ const getPrimaryLink = (links: SiteLink[]) => {
     return links.find((link) => String(link.id) === primaryId) || links[0];
 };
 
-const getAccountDisplayTitle = (links: SiteLink[]) => (
-    firstText(links.map((link) => link.person_group_title)) || getPrimaryLink(links)?.title || ''
+const getAccountTitle = (link: SiteLink) => (
+    firstText([link.title, link.account_handle ? `@${link.account_handle}` : '']) || '이름 없는 계정'
 );
 
-const getAccountDisplayDescription = (links: SiteLink[]) => (
-    firstText(links.map((link) => link.person_group_description)) ||
-    firstText(links.map((link) => link.description)) ||
-    ''
-);
+const getAccountClusterTitle = (links: SiteLink[]) => {
+    const titles = uniqueBy(
+        links.map(getAccountTitle).filter(Boolean),
+        (title) => title.toLowerCase()
+    );
 
-const getAccountDisplayImage = (links: SiteLink[]) => (
-    firstText(links.map((link) => link.person_group_image_url)) ||
-    getPrimaryLink(links)?.image_url ||
-    firstText(links.map((link) => link.image_url)) ||
-    ''
-);
+    if (titles.length === 0) return '인물 계정 묶음';
+    if (titles.length === 1) return titles[0];
+    if (titles.length === 2) return titles.join(' · ');
+    return `${titles[0]} 외 ${titles.length - 1}개 계정`;
+};
 
-const getAccountDisplayCategory = (links: SiteLink[]) => (
-    firstText(links.map((link) => link.person_group_category)) ||
-    getPrimaryLink(links)?.category ||
-    '인물'
+const getAccountClusterCategory = (links: SiteLink[]) => (
+    firstText(links.map((link) => link.person_group_category)) || firstText(links.map((link) => link.category)) || '인물'
 );
 
 const getPlatforms = (links: SiteLink[]) => (
@@ -371,11 +363,11 @@ export default function LinksPage() {
         const updatedAt = new Date().toISOString();
         const payload = {
             person_group_id: draft.groupId,
-            person_group_title: draft.title.trim(),
-            person_group_description: draft.description.trim(),
-            person_group_image_url: draft.imageUrl.trim(),
-            person_group_category: draft.category.trim() || '인물',
-            person_group_primary_link_id: draft.primaryLinkId,
+            person_group_title: null,
+            person_group_description: null,
+            person_group_image_url: null,
+            person_group_category: null,
+            person_group_primary_link_id: null,
             updated_at: updatedAt,
         };
 
@@ -526,10 +518,10 @@ export default function LinksPage() {
                         const resolvedType = getResolvedLinkType(link);
                         const isAccountCard = resolvedType === 'person_account';
                         const isGroup = item.kind === 'group';
-                        const title = isAccountCard ? getAccountDisplayTitle(item.links) : link.title;
-                        const description = isAccountCard ? getAccountDisplayDescription(item.links) : link.description;
-                        const imageUrl = isAccountCard ? getAccountDisplayImage(item.links) : link.image_url;
-                        const category = isAccountCard ? getAccountDisplayCategory(item.links) : link.category;
+                        const title = isGroup ? getAccountClusterTitle(item.links) : isAccountCard ? getAccountTitle(link) : link.title;
+                        const description = isGroup ? '' : link.description;
+                        const imageUrl = isGroup ? '' : link.image_url;
+                        const category = isGroup ? getAccountClusterCategory(item.links) : link.category;
                         const targetUrl = getTargetUrl(getPrimaryLink(item.links));
                         const accountHandle = getHandleSummary(item.links);
                         const platforms = getPlatforms(item.links);
@@ -565,28 +557,32 @@ export default function LinksPage() {
                                 )}
 
                                 <div className="link-card-body">
-                                    <div className="link-neon-icon">
-                                        {imageUrl ? (
-                                            <img
-                                                src={imageUrl}
-                                                alt={title}
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer"
-                                                className={isAccountCard ? 'account-avatar-image' : undefined}
-                                            />
-                                        ) : (
-                                            <div className={`icon-placeholder ${isAccountCard ? 'account-placeholder' : ''}`}>
-                                                {isAccountCard
-                                                    ? <i className={getPlatformIcon(link.account_platform)}></i>
-                                                    : title.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
-                                        {isAccountCard && (
-                                            <span className={`link-platform-float ${isGroup ? 'multi' : link.account_platform || 'other'}`}>
-                                                <i className={isGroup ? 'ri-links-line' : getPlatformIcon(link.account_platform)}></i>
-                                            </span>
-                                        )}
-                                    </div>
+                                    {isGroup ? (
+                                        <AccountAvatarStack links={item.links} variant="card" />
+                                    ) : (
+                                        <div className="link-neon-icon">
+                                            {imageUrl ? (
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={title}
+                                                    loading="lazy"
+                                                    referrerPolicy="no-referrer"
+                                                    className={isAccountCard ? 'account-avatar-image' : undefined}
+                                                />
+                                            ) : (
+                                                <div className={`icon-placeholder ${isAccountCard ? 'account-placeholder' : ''}`}>
+                                                    {isAccountCard
+                                                        ? <i className={getPlatformIcon(link.account_platform)}></i>
+                                                        : title.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                            {isAccountCard && (
+                                                <span className={`link-platform-float ${link.account_platform || 'other'}`}>
+                                                    <i className={getPlatformIcon(link.account_platform)}></i>
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                     <div className={`link-content ${isAccountCard ? 'account-profile-content' : ''}`}>
                                         {isAccountCard ? (
                                             <div className="account-profile-meta">
@@ -610,9 +606,21 @@ export default function LinksPage() {
                                         {isAccountCard && accountHandle && (
                                             <p className="account-handle-line" title={accountHandle}>{accountHandle}</p>
                                         )}
-                                        <p className="link-desc" title={description || targetUrl}>
-                                            {description || (isGroup ? '연결된 SNS 계정을 선택해서 열 수 있습니다.' : targetUrl)}
-                                        </p>
+                                        {isGroup ? (
+                                            <div className="account-cluster-list" aria-label="묶인 계정">
+                                                {item.links.slice(0, 4).map((target) => (
+                                                    <span key={getLinkKey(target)}>
+                                                        <i className={getPlatformIcon(target.account_platform)}></i>
+                                                        <b>{getAccountTitle(target)}</b>
+                                                    </span>
+                                                ))}
+                                                {item.links.length > 4 && <em>+{item.links.length - 4}</em>}
+                                            </div>
+                                        ) : (
+                                            <p className="link-desc" title={description || targetUrl}>
+                                                {description || targetUrl}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="link-hover-arrow">
                                         <i className={isGroup ? 'ri-list-check-2' : 'ri-arrow-right-up-line'}></i>
@@ -703,36 +711,10 @@ function PersonMergeModal({
     const initialGroupId = useMemo(() => (
         existingGroupIds.length === 1 ? existingGroupIds[0] : createPersonGroupId()
     ), [existingGroupIds]);
-    const initialPrimary = getPrimaryLink(links);
-
-    const [title, setTitle] = useState(getAccountDisplayTitle(links));
-    const [description, setDescription] = useState(getAccountDisplayDescription(links));
-    const [imageUrl, setImageUrl] = useState(getAccountDisplayImage(links));
-    const [category, setCategory] = useState(getAccountDisplayCategory(links));
-    const [primaryLinkId, setPrimaryLinkId] = useState<number | string>(initialPrimary.id);
-
-    useEffect(() => {
-        setTitle(getAccountDisplayTitle(links));
-        setDescription(getAccountDisplayDescription(links));
-        setImageUrl(getAccountDisplayImage(links));
-        setCategory(getAccountDisplayCategory(links));
-        setPrimaryLinkId(getPrimaryLink(links).id);
-    }, [links]);
+    const title = getAccountClusterTitle(links);
 
     const submit = () => {
-        if (!title.trim()) {
-            alert('대표 이름을 입력해주세요.');
-            return;
-        }
-
-        onSave({
-            groupId: initialGroupId,
-            title,
-            description,
-            imageUrl,
-            category,
-            primaryLinkId,
-        });
+        onSave({ groupId: initialGroupId });
     };
 
     return (
@@ -744,65 +726,21 @@ function PersonMergeModal({
                 </div>
 
                 <div className="links-modal-body">
-                    <div className="merge-preview-strip">
-                        {imageUrl ? (
-                            <img src={imageUrl} alt={title || '대표 이미지'} referrerPolicy="no-referrer" />
-                        ) : (
-                            <div className="merge-preview-placeholder"><i className="ri-user-follow-line"></i></div>
-                        )}
+                    <div className="merge-preview-strip account-cluster-preview">
+                        <AccountAvatarStack links={links} variant="modal" />
                         <div>
-                            <strong>{title || '대표 이름'}</strong>
-                            <span>{links.length}개 SNS 계정 연결</span>
-                        </div>
-                    </div>
-
-                    <div className="links-form">
-                        <div className="form-group">
-                            <label>대표 이름</label>
-                            <input className="glass-input" value={title} onChange={(event) => setTitle(event.target.value)} />
-                        </div>
-                        <div className="form-group">
-                            <label>분류</label>
-                            <input className="glass-input" value={category} onChange={(event) => setCategory(event.target.value)} />
-                        </div>
-                        <div className="form-group">
-                            <label>대표 이미지 URL</label>
-                            <input className="glass-input" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} />
-                        </div>
-                        <div className="form-group">
-                            <label>간단한 설명</label>
-                            <textarea className="glass-input form-textarea" value={description} onChange={(event) => setDescription(event.target.value)} />
-                        </div>
-                        <div className="form-group">
-                            <label>대표 기준 계정</label>
-                            <select className="glass-input" value={String(primaryLinkId)} onChange={(event) => setPrimaryLinkId(event.target.value)}>
-                                {links.map((link) => (
-                                    <option key={getLinkKey(link)} value={String(link.id)}>
-                                        {getPlatformLabel(link.account_platform)} @{link.account_handle || link.title}
-                                    </option>
-                                ))}
-                            </select>
+                            <strong>{title}</strong>
+                            <span>각 계정의 이름, 이미지, 링크는 그대로 살리고 한 카드 안에 묶습니다.</span>
                         </div>
                     </div>
 
                     <div className="merge-source-list">
                         {links.map((link) => (
                             <div key={getLinkKey(link)} className="merge-source-item">
-                                <div className="merge-source-thumb">
-                                    {link.image_url ? (
-                                        <img src={link.image_url} alt={link.title} referrerPolicy="no-referrer" />
-                                    ) : (
-                                        <i className={getPlatformIcon(link.account_platform)}></i>
-                                    )}
-                                </div>
+                                <AccountAvatar link={link} />
                                 <div className="merge-source-copy">
-                                    <strong>{link.title}</strong>
+                                    <strong>{getAccountTitle(link)}</strong>
                                     <span>{getPlatformLabel(link.account_platform)} @{link.account_handle || '-'}</span>
-                                </div>
-                                <div className="merge-source-actions">
-                                    <button type="button" onClick={() => setTitle(link.title)}>이름</button>
-                                    {link.image_url && <button type="button" onClick={() => setImageUrl(link.image_url || '')}>사진</button>}
-                                    {link.description && <button type="button" onClick={() => setDescription(link.description)}>설명</button>}
                                 </div>
                             </div>
                         ))}
@@ -813,7 +751,7 @@ function PersonMergeModal({
                     <button type="button" onClick={onClose} className="glass-btn secondary">취소</button>
                     <button type="button" onClick={submit} className="glass-btn primary">
                         <i className="ri-git-merge-line"></i>
-                        합치기 저장
+                        한 인물로 묶기
                     </button>
                 </div>
             </div>
@@ -834,9 +772,7 @@ function PersonBridgeModal({
     onEditLink: (link: SiteLink) => void;
     onUngroup: (links: SiteLink[]) => void;
 }) {
-    const title = getAccountDisplayTitle(links);
-    const description = getAccountDisplayDescription(links);
-    const imageUrl = getAccountDisplayImage(links);
+    const title = getAccountClusterTitle(links);
 
     return (
         <div className="links-modal-overlay glass-overlay">
@@ -846,13 +782,12 @@ function PersonBridgeModal({
                     <button className="links-modal-close" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
                 <div className="links-modal-body">
-                    <div className="bridge-profile-head">
-                        {imageUrl ? (
-                            <img src={imageUrl} alt={title} referrerPolicy="no-referrer" />
-                        ) : (
-                            <div className="bridge-profile-placeholder"><i className="ri-user-follow-line"></i></div>
-                        )}
-                        {description && <p>{description}</p>}
+                    <div className="bridge-profile-head account-cluster-preview">
+                        <AccountAvatarStack links={links} variant="modal" />
+                        <div>
+                            <strong>{links.length}개 계정</strong>
+                            <span>열고 싶은 SNS 계정을 선택하세요.</span>
+                        </div>
                     </div>
 
                     <div className="bridge-account-list">
@@ -861,12 +796,10 @@ function PersonBridgeModal({
                             return (
                                 <div key={getLinkKey(link)} className="bridge-account-row">
                                     <button type="button" className="bridge-account-main" onClick={() => window.open(targetUrl, '_blank', 'noopener noreferrer')}>
-                                        <span className={`bridge-platform-icon ${link.account_platform || 'other'}`}>
-                                            <i className={getPlatformIcon(link.account_platform)}></i>
-                                        </span>
+                                        <AccountAvatar link={link} />
                                         <span className="bridge-account-copy">
-                                            <strong>{getPlatformLabel(link.account_platform)}</strong>
-                                            <em>@{link.account_handle || link.title}</em>
+                                            <strong>{getAccountTitle(link)}</strong>
+                                            <em>{getPlatformLabel(link.account_platform)} @{link.account_handle || '-'}</em>
                                         </span>
                                         <i className="ri-arrow-right-up-line"></i>
                                     </button>
@@ -889,6 +822,48 @@ function PersonBridgeModal({
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+function AccountAvatar({ link }: { link: SiteLink }) {
+    return (
+        <span className="account-mini-avatar">
+            {link.image_url ? (
+                <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" />
+            ) : (
+                <i className={getPlatformIcon(link.account_platform)}></i>
+            )}
+            <span className={`account-mini-platform ${link.account_platform || 'other'}`}>
+                <i className={getPlatformIcon(link.account_platform)}></i>
+            </span>
+        </span>
+    );
+}
+
+function AccountAvatarStack({ links, variant }: { links: SiteLink[]; variant: 'card' | 'modal' }) {
+    const visibleLinks = links.slice(0, variant === 'card' ? 3 : 4);
+    const hiddenCount = Math.max(0, links.length - visibleLinks.length);
+
+    return (
+        <div className={`account-avatar-stack ${variant}`} aria-label={`${links.length}개 계정`}>
+            {visibleLinks.map((link, index) => (
+                <span
+                    key={getLinkKey(link)}
+                    className="account-stack-avatar"
+                    style={{ zIndex: visibleLinks.length - index } as React.CSSProperties}
+                >
+                    {link.image_url ? (
+                        <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" />
+                    ) : (
+                        <i className={getPlatformIcon(link.account_platform)}></i>
+                    )}
+                    <span className={`account-mini-platform ${link.account_platform || 'other'}`}>
+                        <i className={getPlatformIcon(link.account_platform)}></i>
+                    </span>
+                </span>
+            ))}
+            {hiddenCount > 0 && <span className="account-stack-more">+{hiddenCount}</span>}
         </div>
     );
 }
