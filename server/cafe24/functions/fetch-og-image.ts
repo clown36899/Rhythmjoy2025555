@@ -1,3 +1,7 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 type Handler = (event: {
     httpMethod: string;
     queryStringParameters?: Record<string, string | undefined> | null;
@@ -16,6 +20,7 @@ type ThumbnailOption = {
 
 const MAX_PAGE_IMAGE_CANDIDATES = 8;
 const MAX_THUMBNAIL_CANDIDATES = 14;
+const MAX_CACHED_ACCOUNT_IMAGE_BYTES = 8 * 1024 * 1024;
 const sourcePriority: Record<string, number> = {
     'direct-image': 0,
     'account-avatar': 1,
@@ -102,6 +107,7 @@ function firstSrcFromSrcset(value: string): string {
 function resolveCandidateUrl(rawUrl: string, pageUrl: URL): string {
     const value = decodeHtml(String(rawUrl || '').replace(/^url\((.*)\)$/i, '$1').replace(/^["']|["']$/g, ''));
     if (!value || /^(?:data|blob|javascript|mailto|tel):/i.test(value)) return '';
+    if (value.startsWith('/uploads/')) return value;
     try {
         return new URL(value, pageUrl).toString();
     } catch (_error) {
@@ -112,6 +118,73 @@ function resolveCandidateUrl(rawUrl: string, pageUrl: URL): string {
 function screenshotUrl(targetUrl: string): string {
     const cleanTarget = String(targetUrl || '').replace(/#.*$/, '');
     return `https://image.thum.io/get/width/900/crop/500/noanimate/${cleanTarget}`;
+}
+
+function uploadRoot(): string {
+    return path.resolve(process.cwd(), process.env.CAFE24_UPLOADS_DIR || 'uploads');
+}
+
+function publicUploadUrl(...parts: string[]): string {
+    return `/uploads/${parts.map((part) => String(part || '').replace(/^\/+|\/+$/g, '')).filter(Boolean).join('/')}`;
+}
+
+function extensionFromContentType(contentType: string): string {
+    const value = String(contentType || '').split(';')[0].trim().toLowerCase();
+    if (value === 'image/jpeg' || value === 'image/jpg') return 'jpg';
+    if (value === 'image/png') return 'png';
+    if (value === 'image/webp') return 'webp';
+    if (value === 'image/gif') return 'gif';
+    return '';
+}
+
+function safeFileSegment(value: string): string {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80) || 'account';
+}
+
+async function cacheRemoteAccountImage(rawUrl: string, pageUrl: URL, sourceKey: string): Promise<string> {
+    const imageUrl = resolveCandidateUrl(rawUrl, pageUrl);
+    if (!imageUrl) return '';
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+    try {
+        const response = await fetch(imageUrl, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': pageUrl.toString()
+            }
+        });
+        if (!response.ok) return '';
+
+        const contentType = response.headers.get('content-type') || '';
+        const ext = extensionFromContentType(contentType);
+        if (!ext) return '';
+
+        const arrayBuffer = await response.arrayBuffer();
+        if (!arrayBuffer.byteLength || arrayBuffer.byteLength > MAX_CACHED_ACCOUNT_IMAGE_BYTES) return '';
+
+        const buffer = Buffer.from(arrayBuffer);
+        const contentHash = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 16);
+        const fileName = `${safeFileSegment(sourceKey)}-${contentHash}.${ext}`;
+        const uploadDir = path.join(uploadRoot(), 'images', 'account-profiles');
+        const filePath = path.join(uploadDir, fileName);
+
+        await fs.mkdir(uploadDir, { recursive: true });
+        await fs.writeFile(filePath, buffer);
+
+        return publicUploadUrl('images', 'account-profiles', fileName);
+    } catch (_error) {
+        return '';
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 function isYouTubeUrl(url: URL): boolean {
@@ -481,7 +554,8 @@ export const handler: Handler = async (event) => {
         if (instagramHandle) {
             const profile = await fetchInstagramProfileInfo(instagramHandle);
             if (profile?.avatarUrl) {
-                addCandidate(profile.avatarUrl, '프로필 이미지', 'account-avatar');
+                const cachedAvatar = await cacheRemoteAccountImage(profile.avatarUrl, parsedTarget, `instagram-${instagramHandle}`);
+                addCandidate(cachedAvatar || profile.avatarUrl, '프로필 이미지', 'account-avatar');
                 const limitedOptions = sortThumbnailOptions(thumbnailOptions).slice(0, MAX_THUMBNAIL_CANDIDATES);
                 const title = profile.fullName || profile.username || instagramHandle;
                 return {
@@ -566,7 +640,11 @@ export const handler: Handler = async (event) => {
 
         if (isYouTubeAccount) {
             const accountAvatar = extractYouTubeAccountAvatarFromHtml(html);
-            if (accountAvatar) addCandidate(accountAvatar, '프로필 이미지', 'account-avatar');
+            if (accountAvatar) {
+                const youtubeKey = parsedTarget.pathname.split('/').filter(Boolean).join('-') || parsedTarget.hostname;
+                const cachedAvatar = await cacheRemoteAccountImage(accountAvatar, parsedTarget, `youtube-${youtubeKey}`);
+                addCandidate(cachedAvatar || accountAvatar, '프로필 이미지', 'account-avatar');
+            }
         }
 
         // Extract representative images.
