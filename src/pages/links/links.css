@@ -1414,16 +1414,14 @@
     min-width: 0;
 }
 
-.account-cluster-preview > div > strong,
-.merge-preview-strip > div > strong {
+.account-cluster-preview-copy > strong {
     display: block;
     color: var(--color-text-primary);
     font-size: 17px;
     line-height: 1.3;
 }
 
-.account-cluster-preview > div > span,
-.merge-preview-strip > div > span {
+.account-cluster-preview-copy > span {
     display: block;
     color: var(--color-text-secondary);
     font-size: 12px;

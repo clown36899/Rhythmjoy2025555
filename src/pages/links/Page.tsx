@@ -728,7 +728,7 @@ function PersonMergeModal({
                 <div className="links-modal-body">
                     <div className="merge-preview-strip account-cluster-preview">
                         <AccountAvatarStack links={links} variant="modal" />
-                        <div>
+                        <div className="account-cluster-preview-copy">
                             <strong>{title}</strong>
                             <span>각 계정의 이름, 이미지, 링크는 그대로 살리고 한 카드 안에 묶습니다.</span>
                         </div>
@@ -784,7 +784,7 @@ function PersonBridgeModal({
                 <div className="links-modal-body">
                     <div className="bridge-profile-head account-cluster-preview">
                         <AccountAvatarStack links={links} variant="modal" />
-                        <div>
+                        <div className="account-cluster-preview-copy">
                             <strong>{links.length}개 계정</strong>
                             <span>열고 싶은 SNS 계정을 선택하세요.</span>
                         </div>
