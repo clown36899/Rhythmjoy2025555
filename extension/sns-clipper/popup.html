@@ -12,7 +12,7 @@
         <img class="clipper__mark" src="icons/icon-48.png" alt="" />
         <div>
           <h1>댄스빌보드 공유 등록</h1>
-          <p>YouTube · Instagram</p>
+          <p id="clipperSubtitle">YouTube · Instagram</p>
         </div>
       </header>
 
@@ -21,6 +21,24 @@
         <img id="thumbnailPreview" class="clipper__thumb" alt="" hidden />
         <strong id="pageTitle">현재 페이지를 읽는 중...</strong>
         <small id="pageUrl"></small>
+      </section>
+
+      <section id="accountInfo" class="clipper__account-info" hidden>
+        <strong>인물 계정으로 등록</strong>
+        <dl>
+          <div>
+            <dt>플랫폼</dt>
+            <dd id="accountPlatformText">-</dd>
+          </div>
+          <div>
+            <dt>계정</dt>
+            <dd id="accountHandleText">-</dd>
+          </div>
+          <div>
+            <dt>저장 위치</dt>
+            <dd id="accountDestinationText">사이트 모음</dd>
+          </div>
+        </dl>
       </section>
 
       <label class="clipper__field">

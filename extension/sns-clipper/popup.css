@@ -7,6 +7,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   width: 360px;
@@ -67,6 +71,11 @@ p {
   font-weight: 800;
 }
 
+.clipper.is-account-mode .clipper__badge {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+
 .clipper__thumb {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -90,6 +99,51 @@ p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.clipper__account-info {
+  padding: 11px;
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 8px;
+  background: rgba(20, 83, 45, 0.18);
+  margin-bottom: 12px;
+}
+
+.clipper__account-info strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #dcfce7;
+  font-size: 13px;
+}
+
+.clipper__account-info dl {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+}
+
+.clipper__account-info div {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.clipper__account-info dt {
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.clipper__account-info dd {
+  min-width: 0;
+  margin: 0;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .clipper__field {

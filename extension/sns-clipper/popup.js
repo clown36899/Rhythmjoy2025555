@@ -8,10 +8,16 @@ const LINK_TARGETS = {
   local: 'http://127.0.0.1:5173/links',
 };
 
+const clipperRoot = document.querySelector('.clipper');
+const clipperSubtitle = document.getElementById('clipperSubtitle');
 const pageTitle = document.getElementById('pageTitle');
 const pageUrl = document.getElementById('pageUrl');
 const platformBadge = document.getElementById('platformBadge');
 const thumbnailPreview = document.getElementById('thumbnailPreview');
+const accountInfo = document.getElementById('accountInfo');
+const accountPlatformText = document.getElementById('accountPlatformText');
+const accountHandleText = document.getElementById('accountHandleText');
+const accountDestinationText = document.getElementById('accountDestinationText');
 const targetMode = document.getElementById('targetMode');
 const captureMode = document.getElementById('captureMode');
 const bucketInput = document.getElementById('bucketInput');
@@ -34,6 +40,7 @@ let activePageMeta = {
   publishedAt: '',
 };
 let activeResolvedTitle = '';
+let activePageStatus = '';
 let playlists = [];
 let savedSettings = {};
 
@@ -65,6 +72,12 @@ const INSTAGRAM_RESERVED_PATHS = new Set([
 ]);
 
 const YOUTUBE_ACCOUNT_PATHS = new Set(['channel', 'c', 'user']);
+
+function getAccountPlatformLabel(accountTarget) {
+  if (accountTarget?.platform === 'instagram') return 'Instagram';
+  if (accountTarget?.platform === 'youtube') return 'YouTube';
+  return '계정';
+}
 
 function cleanHandle(value) {
   return String(value || '')
@@ -155,6 +168,7 @@ function isGenericYouTubeImage(url) {
 
 function cleanTitle(title) {
   return String(title || '')
+    .replace(/^\(\d+\)\s*/, '')
     .replace(/\s*-\s*YouTube\s*$/i, '')
     .replace(/\s*•\s*Instagram.*$/i, '')
     .trim();
@@ -190,6 +204,14 @@ function resolveArchiveTitle(platform, browserTitle, meta = {}) {
   }
   if (tabTitle && !isGenericTitle(tabTitle, platform)) return tabTitle;
   return platform === 'Instagram' ? 'Instagram 게시물' : tabTitle || '제목 없음';
+}
+
+function resolveAccountTitle(accountTarget, browserTitle, meta = {}) {
+  const platformLabel = getAccountPlatformLabel(accountTarget);
+  const candidates = [meta.author, meta.title, browserTitle]
+    .map(cleanTitle)
+    .filter((title) => title && !isGenericTitle(title, platformLabel));
+  return candidates[0] || (accountTarget.platform === 'youtube' ? `@${accountTarget.handle}` : accountTarget.handle);
 }
 
 function setStatus(message) {
@@ -670,30 +692,57 @@ function updatePageMetadataPreview(meta) {
   thumbnailPreview.hidden = false;
 }
 
+function renderAccountInfo(accountTarget) {
+  if (!accountTarget) {
+    accountInfo.hidden = true;
+    return;
+  }
+
+  accountInfo.hidden = false;
+  accountPlatformText.textContent = getAccountPlatformLabel(accountTarget);
+  accountHandleText.textContent = `@${accountTarget.handle}`;
+  accountDestinationText.textContent = targetMode.value === 'local' ? '사이트 모음 · 로컬' : '사이트 모음';
+}
+
 function updateCaptureModeUi() {
   const isAccountMode = captureMode.value === 'account';
   const accountTarget = parseAccountTarget(activeTab?.url || '');
   const baseDisabled = !activeTab?.url || activeTab.url.startsWith('chrome://') || activeTab.url.startsWith('edge://');
+  const platform = detectPlatform(activeTab?.url || '');
 
+  clipperRoot.classList.toggle('is-account-mode', isAccountMode);
   mediaOnlyFields.forEach((field) => {
     field.hidden = isAccountMode;
   });
 
   saveButton.querySelector('span').textContent = isAccountMode ? '계정 등록폼 열기' : '공유 등록폼 열기';
   saveButton.disabled = baseDisabled || (isAccountMode && !accountTarget);
+  clipperSubtitle.textContent = isAccountMode ? '인물 계정 등록' : 'YouTube · Instagram';
 
   if (isAccountMode) {
     if (accountTarget) {
-      setStatus(`${accountTarget.platform === 'instagram' ? 'Instagram' : 'YouTube'} 계정 @${accountTarget.handle} 등록폼으로 보냅니다.`);
+      const accountTitle = resolveAccountTitle(accountTarget, activeTab?.title || '', activePageMeta);
+      pageTitle.textContent = accountTitle;
+      platformBadge.textContent = `${getAccountPlatformLabel(accountTarget)} 계정`;
+      renderAccountInfo(accountTarget);
+      setStatus(`${getAccountPlatformLabel(accountTarget)} 계정 @${accountTarget.handle} · 사이트 모음 등록폼으로 보냅니다.`);
     } else {
+      pageTitle.textContent = activeResolvedTitle || cleanTitle(activeTab?.title || '') || '계정 페이지를 찾지 못했습니다';
+      platformBadge.textContent = platform;
+      renderAccountInfo(null);
       setStatus('인물 계정은 Instagram 프로필 또는 YouTube 채널 페이지에서만 등록할 수 있어요.');
     }
     return;
   }
 
+  pageTitle.textContent = activeResolvedTitle || cleanTitle(activeTab?.title || '') || '제목 없음';
+  platformBadge.textContent = platform;
+  renderAccountInfo(null);
   if (accountTarget) {
     setStatus('계정 페이지입니다. 계정을 저장하려면 등록 대상을 인물 계정으로 바꾸세요.');
+    return;
   }
+  setStatus(activePageStatus);
 }
 
 async function updatePagePreview(tab) {
@@ -701,11 +750,15 @@ async function updatePagePreview(tab) {
   const url = tab?.url || '';
   const title = cleanTitle(tab?.title || '');
   const platform = detectPlatform(url);
+  const accountTarget = parseAccountTarget(url);
   const pageMeta = await getActiveTabMetadata(tab, platform);
   if (platform === 'YouTube') {
     pageMeta.thumbnail = getYouTubeThumbnailUrl(url) || (isGenericYouTubeImage(pageMeta.thumbnail) ? '' : pageMeta.thumbnail);
   }
-  activeResolvedTitle = resolveArchiveTitle(platform, title, pageMeta);
+  captureMode.value = accountTarget ? 'account' : 'media';
+  activeResolvedTitle = accountTarget
+    ? resolveAccountTitle(accountTarget, title, pageMeta)
+    : resolveArchiveTitle(platform, title, pageMeta);
 
   pageTitle.textContent = activeResolvedTitle;
   pageUrl.textContent = url;
@@ -714,15 +767,15 @@ async function updatePagePreview(tab) {
   updatePageMetadataPreview(pageMeta);
 
   if (platform === 'Link') {
-    setStatus(activeThumbnailUrl ? '페이지 썸네일 후보를 찾았어요.' : '유튜브/인스타가 아니어도 링크로 저장할 수 있어요.');
+    activePageStatus = activeThumbnailUrl ? '페이지 썸네일 후보를 찾았어요.' : '유튜브/인스타가 아니어도 링크로 저장할 수 있어요.';
   } else if (platform === 'Instagram') {
-    setStatus(activeThumbnailUrl ? '인스타 썸네일 후보를 찾았어요.' : '썸네일을 못 찾으면 원본 링크만 저장됩니다.');
+    activePageStatus = activeThumbnailUrl ? '인스타 썸네일 후보를 찾았어요.' : '썸네일을 못 찾으면 원본 링크만 저장됩니다.';
   } else if (platform === 'YouTube') {
-    setStatus(activePageMeta.description || activePageMeta.author ? '원본 설명과 채널 정보를 가져왔어요.' : '');
+    activePageStatus = activePageMeta.description || activePageMeta.author ? '원본 설명과 채널 정보를 가져왔어요.' : '';
   } else if (platform === 'Unknown') {
-    setStatus('이 페이지는 저장하기 어려울 수 있어요.');
+    activePageStatus = '이 페이지는 저장하기 어려울 수 있어요.';
   } else {
-    setStatus('');
+    activePageStatus = '';
   }
 
   updateCaptureModeUi();
