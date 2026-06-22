@@ -10,6 +10,7 @@ import { useSetPageAction } from '../../contexts/PageActionContext';
 import { getLocalDateString, getKSTDay } from '../v2/utils/eventListUtils';
 import { useEventActions } from '../v2/hooks/useEventActions';
 import { getEventMutation, mergeEventIntoArray, removeEventFromArray } from '../../utils/eventMutationSync';
+import { getLightweightEventImage } from '../../utils/getEventThumbnail';
 
 
 // Components
@@ -341,19 +342,20 @@ const SocialPage: React.FC = () => {
     if (eventsThisWeek.length === 0) return schedules;
 
     const convertedEvents = eventsThisWeek.flatMap(e => {
-      const mediumImage = e.image_medium ||
+      const mediumImage = getLightweightEventImage(e, ['image_medium']) ||
         (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
           ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
-          : e.image);
+          : undefined);
 
       const baseEvent = {
         id: `event-${e.id}`, // Add prefix to avoid collision
         group_id: -1, // 행사 구분을 위한 플래그
         title: e.title,
         description: e.description,
+        image: e.image,
         image_url: e.image,
-        image_micro: e.image_micro || e.image,
-        image_thumbnail: e.image_thumbnail || e.image,
+        image_micro: getLightweightEventImage(e, ['image_micro']),
+        image_thumbnail: getLightweightEventImage(e, ['image_thumbnail']),
         image_medium: mediumImage,
         image_full: e.image_full || e.image,
         place_name: e.location,

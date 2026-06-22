@@ -1,5 +1,6 @@
 export interface EventThumbnailData {
   image?: string;
+  image_url?: string;
   image_micro?: string;
   image_thumbnail?: string;
   image_medium?: string;
@@ -20,6 +21,63 @@ export interface ImageObject {
   medium?: string;
   full?: string;
   micro?: string;
+}
+
+type ImageField = 'image_micro' | 'image_thumbnail' | 'image_medium' | 'image' | 'image_full' | 'image_url';
+
+const LIGHTWEIGHT_CARD_FIELDS: ImageField[] = ['image_thumbnail', 'image_medium', 'image_micro'];
+const LIGHTWEIGHT_THUMBNAIL_FIELDS: ImageField[] = ['image_micro', 'image_thumbnail', 'image_medium'];
+const DISPLAY_IMAGE_FIELDS: ImageField[] = ['image_medium', 'image_thumbnail', 'image_micro', 'image', 'image_full', 'image_url'];
+
+function normalizeImageUrl(value: string | undefined | null): string {
+  return String(value || '').trim();
+}
+
+function getImageFieldValue(event: EventThumbnailData, field: ImageField): string | undefined {
+  return normalizeImageUrl(event[field]) || undefined;
+}
+
+function isFullSizeAlias(event: EventThumbnailData, url: string | undefined): boolean {
+  const normalized = normalizeImageUrl(url);
+  if (!normalized) return false;
+
+  return [event.image, event.image_full]
+    .map(normalizeImageUrl)
+    .filter(Boolean)
+    .includes(normalized);
+}
+
+export function getLightweightEventImage(
+  event: EventThumbnailData | null | undefined,
+  fields: ImageField[] = LIGHTWEIGHT_THUMBNAIL_FIELDS,
+): string | undefined {
+  if (!event) return undefined;
+
+  for (const field of fields) {
+    const candidate = getImageFieldValue(event, field);
+    if (!candidate) continue;
+    if (field === 'image' || field === 'image_full' || field === 'image_url') continue;
+    if (isFullSizeAlias(event, candidate)) continue;
+    return candidate;
+  }
+
+  return undefined;
+}
+
+export function getEventDisplayImage(
+  event: EventThumbnailData | null | undefined,
+  fallback?: string,
+): string {
+  if (!event) return fallback || DEFAULT_THUMBNAILS.thumbnail;
+
+  for (const field of DISPLAY_IMAGE_FIELDS) {
+    const candidate = field === 'image_micro'
+      ? getLightweightEventImage(event, ['image_micro'])
+      : getImageFieldValue(event, field);
+    if (candidate) return candidate;
+  }
+
+  return fallback || DEFAULT_THUMBNAILS.thumbnail;
 }
 
 /**
@@ -54,19 +112,8 @@ export function getCardThumbnail(
 ): string | undefined {
   if (!event) return undefined;
 
-  // 1. Thumbnail (Ideal)
-  if (event.image_thumbnail) return event.image_thumbnail;
-
-  // 2. Medium (Resize to 400)
-  if (event.image_medium) return getOptimizedImageUrl(event.image_medium, 400);
-
-  // 3. Full Image (Resize to 400)
-  if (event.image) return getOptimizedImageUrl(event.image, 400);
-
-  // 4. Fallback to Micro if nothing else (might be blurry but better than empty)
-  if (event.image_micro) return event.image_micro;
-
-  return undefined;
+  const lightweightImage = getLightweightEventImage(event, LIGHTWEIGHT_CARD_FIELDS);
+  return lightweightImage ? getOptimizedImageUrl(lightweightImage, 400) : undefined;
 }
 
 /**
@@ -83,25 +130,8 @@ export function getEventThumbnail(
     return DEFAULT_THUMBNAILS.thumbnail;
   }
 
-  // 1순위: micro (달력용 100px)
-  if (event?.image_micro) {
-    return event.image_micro;
-  }
-
-  // 2순위: thumbnail (리스트용 400px)
-  if (event?.image_thumbnail) {
-    return event.image_thumbnail;
-  }
-
-  // 3순위: medium (모달용 650px)
-  if (event?.image_medium) {
-    return event.image_medium;
-  }
-
-  // 4순위: image (full 또는 레거시)
-  if (event?.image) {
-    return event.image;
-  }
+  const lightweightImage = getLightweightEventImage(event);
+  if (lightweightImage) return lightweightImage;
 
   // 기본 썸네일 - thumbnail 크기 사용
   return DEFAULT_THUMBNAILS.thumbnail;

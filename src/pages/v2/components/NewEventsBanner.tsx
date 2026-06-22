@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEventThumbnail } from '../../../utils/getEventThumbnail';
+import { getEventThumbnail, getLightweightEventImage } from '../../../utils/getEventThumbnail';
 import { useModalContext } from '../../../contexts/ModalContext';
 import type { Event } from '../utils/eventListUtils';
 import { formatEventDate } from '../../../utils/dateUtils';
@@ -27,6 +27,36 @@ const UNKNOWN_SOCIAL_IMAGE_ANALYSIS: SocialAdImageAnalysis = {
     kind: 'unknown',
     confidence: 0,
 };
+
+const getMainAdImage = (
+    event: Event,
+    defaultThumbnailClass?: string,
+    defaultThumbnailEvent?: string,
+) =>
+    getLightweightEventImage(event, ['image_medium', 'image_thumbnail', 'image_micro']) ||
+    event.image ||
+    event.image_full ||
+    getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+
+const getMainAdIndicatorImage = (
+    event: Event,
+    defaultThumbnailClass?: string,
+    defaultThumbnailEvent?: string,
+) =>
+    getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium']) ||
+    event.image ||
+    event.image_full ||
+    getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+
+const getMainAdPreviewImage = (
+    event: Event,
+    defaultThumbnailClass?: string,
+    defaultThumbnailEvent?: string,
+) =>
+    getLightweightEventImage(event, ['image_thumbnail', 'image_micro', 'image_medium']) ||
+    event.image ||
+    event.image_full ||
+    getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
 
 const isSocialAdEvent = (event: Event) => {
     const category = String(event.category || '').toLowerCase();
@@ -586,6 +616,30 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         '--neb-summary-left': hasMultipleEvents ? '30%' : '7%',
         '--neb-summary-width': hasMultipleEvents ? '64%' : '86%',
     } as React.CSSProperties;
+    const bannerImages = useMemo(
+        () => events.map((event) => getMainAdImage(event, defaultThumbnailClass, defaultThumbnailEvent)),
+        [events, defaultThumbnailClass, defaultThumbnailEvent]
+    );
+    const indicatorImages = useMemo(
+        () => events.map((event) => getMainAdIndicatorImage(event, defaultThumbnailClass, defaultThumbnailEvent)),
+        [events, defaultThumbnailClass, defaultThumbnailEvent]
+    );
+    const currentBannerImage = bannerImages[currentIndex];
+
+    useEffect(() => {
+        if (!currentBannerImage || typeof document === 'undefined') return undefined;
+
+        const preloadLink = document.createElement('link');
+        preloadLink.rel = 'preload';
+        preloadLink.as = 'image';
+        preloadLink.href = currentBannerImage;
+        preloadLink.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(preloadLink);
+
+        return () => {
+            preloadLink.remove();
+        };
+    }, [currentBannerImage]);
 
     const getDateLabel = (event: Event) => {
         if (event.event_dates && event.event_dates.length > 0) {
@@ -670,16 +724,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
             } as React.CSSProperties,
         };
     };
-    const getBannerImage = (event: Event) =>
-        event.image_medium ||
-        event.image_thumbnail ||
-        event.image ||
-        event.image_full ||
-        getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
-    const getIndicatorImage = (event: Event) =>
-        event.image_micro ||
-        event.image_thumbnail ||
-        getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+    const getBannerImage = (event: Event, index: number) =>
+        bannerImages[index] || getMainAdImage(event, defaultThumbnailClass, defaultThumbnailEvent);
+    const getIndicatorImage = (event: Event, index: number) =>
+        indicatorImages[index] || getMainAdIndicatorImage(event, defaultThumbnailClass, defaultThumbnailEvent);
     const getAuthorProfile = (event: Event) => {
         const boardUsers = event.board_users;
         const profile = Array.isArray(boardUsers) ? boardUsers[0] : boardUsers;
@@ -754,7 +802,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 {events.length > 1 && (
                     <div className="NEB-indicators">
                         {events.map((event, index) => {
-                            const indicatorImage = getIndicatorImage(event);
+                            const indicatorImage = getIndicatorImage(event, index);
 
                             return (
                                 <button
@@ -778,9 +826,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 <div className="NEB-slider">
                     <div className="NEB-track">
                         {events.map((event, index) => {
-                            const eventThumbnail = getBannerImage(event);
                             const isActiveSlide = index === currentIndex;
+                            const eventThumbnail = isActiveSlide
+                                ? getBannerImage(event, index)
+                                : getMainAdPreviewImage(event, defaultThumbnailClass, defaultThumbnailEvent);
                             const placement = getSlidePlacement(index);
+                            const imageLoading = isActiveSlide ? 'eager' : 'lazy';
+                            const imageFetchPriority = isActiveSlide ? 'high' : 'low';
                             const edgeTone = edgeToneByUrl[eventThumbnail];
                             const edgeToneClass = isActiveSlide && edgeTone === 'dark' ? 'is-dark-edge' : '';
                             const socialImageAnalysis = getSocialImageAnalysis(eventThumbnail);
@@ -804,9 +856,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             src={eventThumbnail}
                                             alt={event.title}
                                             className="NEB-image"
-                                            loading={isActiveSlide ? 'eager' : 'lazy'}
+                                            loading={imageLoading}
                                             decoding="async"
-                                            fetchPriority={isActiveSlide ? 'high' : 'low'}
+                                            fetchPriority={imageFetchPriority}
                                             onLoad={() => {
                                                 ensureImageEdgeTone(eventThumbnail);
                                                 ensureSocialAdImageKind(eventThumbnail, event);
@@ -831,10 +883,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             <div className="NEB-socialPhotoPoster" aria-hidden="true">
                                                 <span className="NEB-socialPhotoPortrait">
                                                     <img
-                                                        src={eventThumbnail}
-                                                        alt=""
-                                                        loading={isActiveSlide ? 'eager' : 'lazy'}
-                                                        decoding="async"
+                                                    src={eventThumbnail}
+                                                    alt=""
+                                                    loading={imageLoading}
+                                                    decoding="async"
                                                     />
                                                 </span>
                                                 <span className="NEB-socialPhotoCopy">

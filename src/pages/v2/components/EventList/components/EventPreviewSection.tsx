@@ -193,10 +193,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         return nextEvents.slice(0, NEB_MAX_ITEMS);
     }, [preferredScope, selectedScopeAdEvents, visibleEvents, visibleFallbackEvents]);
     const isFallbackMixed = selectedScopeAdEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeAdEvents.length;
-    const [activeIndex, setActiveIndex] = useState(() => {
-        if (!displayEvents || displayEvents.length === 0) return 0;
-        return Math.floor(Math.random() * displayEvents.length);
-    });
+    const [activeIndex, setActiveIndex] = useState(0);
     const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
     useEffect(() => {
         if (typeof window !== "undefined") {

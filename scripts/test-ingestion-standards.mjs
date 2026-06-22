@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import {
   buildCafe24Payload,
   hasBadPosterUrl,
+  isCollectableDateTime,
   makeDeterministicId,
   prepareCandidate,
   textSimilarity,
   validateCandidate,
 } from './ingestion/candidate-utils.mjs';
-import { dynamicSearchQueries, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
+import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
 
 const TODAY = '2026-05-23';
 
@@ -152,6 +153,18 @@ assert.equal(validateCandidate(baseCandidate({ poster_url: 'https://cdn.example.
 
 assert.equal(validateCandidate(baseCandidate({ structured_data: { title: '과거 이벤트', date: '2026-05-01' } }), { today: TODAY }).ok, false);
 assert.equal(validateCandidate(baseCandidate({ poster_url: '' }), { today: TODAY }).ok, false);
+assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day candidates without explicit future time must not be saved');
+assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha 11:30', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day candidates whose time has already passed must not be saved');
+assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha 오후 8:30', { today: TODAY, nowMinutes: 12 * 60 }), true, 'same-day candidates need explicit future time');
+assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 신청 마감 23:59', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day deadline times must not be treated as event start times');
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23',
+  structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'] },
+}), { today: TODAY, nowMinutes: 12 * 60 }).ok, false, 'same-day candidates without time fail standard validation');
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23 20:30',
+  structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'] },
+}), { today: TODAY, nowMinutes: 12 * 60 }).ok, true, 'same-day candidates with future time pass standard validation');
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'K-pop cover dance audition 2026.06.01',
   structured_data: { title: 'K-pop cover audition', date: '2026-06-01' },
@@ -194,6 +207,18 @@ assert.equal(validateCandidate(baseCandidate({
   structured_data: { title: '스윙패밀리 강습/행사 강습', date: '2026-06-06', event_type: '강습', activity_type: 'class' },
 }), { today: TODAY }).ok, false, 'generic source-name class fallback titles must not be saved');
 assert.equal(validateCandidate(baseCandidate({
+  keyword: '해피홀',
+  source_url: 'https://www.instagram.com/happyhall2004/p/DZohigakR0I/',
+  extracted_text: '6월19일 금햅 DJ 나나씨 DJ time PM 8:30 12,000원',
+  structured_data: { title: '무료 라인강습은 없으며,', date: '2026-06-19', event_type: '소셜', activity_type: 'social', djs: ['나나씨'] },
+}), { today: TODAY }).ok, false, 'caption fragments must not become automatic event titles');
+assert.equal(validateCandidate(baseCandidate({
+  keyword: '네오스윙 인스타그램',
+  source_url: 'https://www.instagram.com/neo_swing/p/DZo3Vz0qTkb/',
+  extracted_text: '금햅 라인강습 쉬어요. 출빠 이벤트 하러 금햅가자 6월19일 소셜 DJ',
+  structured_data: { title: '잊지말고 다음주 수업과 소셜에서 만나요 🍀', date: '2026-06-19', event_type: '소셜', activity_type: 'social', djs: ['DJ'] },
+}), { today: TODAY }).ok, false, 'instructional caption sentences must not become automatic event titles');
+assert.equal(validateCandidate(baseCandidate({
   keyword: '스윙프렌즈 카페',
   source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/mt-test',
   extracted_text: '스윙프렌즈 연합엠티 We Are One 9월 19일 토요일',
@@ -204,8 +229,24 @@ assert.ok(textSimilarity('국제 스윙 댄스 페스티벌', '스윙댄스 국�
 assert.ok(getCollectionSources('swing').length >= 20, 'swing sources should remain broad');
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'swingfamily-lessons'), 'swing lesson cafe should be in stable registry');
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'sweetyswing-lessons'), 'sweetyswing mobile cafe should be in stable registry');
+assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'happyhall2004' && source.runOrder < 0), 'happyhall should run early enough to avoid daily budget starvation');
+assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'neo_swing' && source.type === 'instagram' && source.saveEnabled), 'neoswing instagram should be part of daily automation');
+const priorityOneRunOrder = getAutomationSourceList('swing-daily')
+  .filter((source) => source.saveEnabled && source.scope === 'swing' && Number(source.priority) === 1)
+  .sort((a, b) => {
+    const weight = (source) => {
+      if (source.runOrder !== null && source.runOrder !== undefined) return Number(source.runOrder);
+      return ({ littly: 0, naver_cafe: 1, daum_cafe: 2, website: 3, instagram: 10 })[source.type] ?? 5;
+    };
+    return weight(a) - weight(b) || a.name.localeCompare(b.name, 'ko');
+  })
+  .map((source) => source.id);
+assert.ok(priorityOneRunOrder.indexOf('happyhall2004') < priorityOneRunOrder.indexOf('swingscandal-littly'), 'happyhall should still run before other priority-one sources');
+assert.ok(priorityOneRunOrder.indexOf('neo_swing') > priorityOneRunOrder.indexOf('swingfamily-lessons'), 'priority-one cafe/littly sources should run before neo_swing');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'swingkids-oneday-littly' && source.type === 'littly' && source.saveEnabled), 'swingkids one-day hub should be part of daily automation');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'swingfriends-oneday-littly' && source.type === 'littly' && source.saveEnabled), 'swingfriends one-day hub should be part of daily automation');
+assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigakR0I/')?.id, 'happyhall2004', 'instagram source matching should respect account path');
+assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
 assert.ok(dynamicSearchQueries.swing.some((query) => /원데이|체험|오픈\s*클래스/.test(query)), 'swing dynamic search should include one-day/trial class discovery');
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');
 assert.equal(getAutomationSourceList('swing-daily').some((source) => /batswing/i.test(source.id + source.url)), false, 'daily automation must not include BAT SWING url or handle');

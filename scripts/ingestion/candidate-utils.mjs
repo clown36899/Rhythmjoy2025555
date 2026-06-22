@@ -165,10 +165,73 @@ function normalizeCandidateVenueStructuredData(structuredData = {}) {
 }
 
 export function todayISO(now = new Date()) {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
+function to24HourNumber(hour, meridiem = '') {
+  let value = Number(hour);
+  if (/오후|저녁|pm/i.test(meridiem) && value < 12) value += 12;
+  if (/오전|am/i.test(meridiem) && value === 12) value = 0;
+  return value;
+}
+
+export function kstNowMinutes(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+  return (hour * 60) + minute;
+}
+
+export function inferStartMinutes(text = '') {
+  const minutes = [];
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  const nonEventTimeRe = /마감|얼리\s*버드|얼리버드|입금|결제|할인|등록|신청|접수|납부|계좌|deadline|early\s*bird|payment/i;
+  const patterns = [
+    /(오전|오후|저녁|AM|PM)\s*(\d{1,2})\s*[:：]\s*(\d{2})\b/gi,
+    /(오전|오후|저녁|AM|PM)\s*(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분?)?/gi,
+    /(?:^|[^\d])(\d{1,2})\s*[:：]\s*(\d{2})\b/g,
+    /(?:^|[^\d])(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분?)?/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of raw.matchAll(pattern)) {
+      const index = match.index || 0;
+      const context = raw.slice(Math.max(0, index - 24), index + match[0].length + 24);
+      if (nonEventTimeRe.test(context)) continue;
+      const hasMeridiem = /오전|오후|저녁|AM|PM/i.test(match[1] || '');
+      const meridiem = hasMeridiem ? match[1] : '';
+      const hour = hasMeridiem ? match[2] : match[1];
+      const minute = hasMeridiem ? (match[3] || '0') : (match[2] || '0');
+      const numericHour = Number(hour);
+      const numericMinute = Number(minute);
+      if (!Number.isFinite(numericHour) || !Number.isFinite(numericMinute)) continue;
+      if (numericHour < 0 || numericHour > 24 || numericMinute < 0 || numericMinute > 59) continue;
+      minutes.push((to24HourNumber(numericHour, meridiem) * 60) + numericMinute);
+    }
+  }
+
+  return [...new Set(minutes)].sort((a, b) => a - b);
+}
+
+export function isCollectableDateTime(date = '', text = '', {
+  today = todayISO(),
+  nowMinutes = kstNowMinutes(),
+} = {}) {
+  if (!date) return false;
+  if (date > today) return true;
+  if (date < today) return false;
+  const times = inferStartMinutes(text);
+  return times.length > 0 && times.some((minute) => minute >= nowMinutes);
 }
 
 export function normalizeSourceUrl(url = '') {
@@ -326,6 +389,19 @@ function looksLikeGenericSourceFallbackTitle(candidate, source, activity) {
   return true;
 }
 
+function looksLikeLowQualityAutoTitle(candidate) {
+  const title = titleOf(candidate)
+    .replace(/[“”"']+$/g, '')
+    .trim();
+  if (!title) return true;
+  if (/[，,]\s*$/.test(title)) return true;
+  if (/(?:은|는|을|를|며|고|에서|까지)\s*$/.test(title)) return true;
+  if (/^(?:무료|유료)?\s*라인\s*강습(?:은|는|이|을|를)?\b/i.test(title)) return true;
+  if (/^(?:잊지\s*말고|일찍\s*오셔서|아직|여러분|문의|연락처|신청은|프로필\s*링크)/i.test(title)) return true;
+  if (/(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title)) return true;
+  return false;
+}
+
 const naverCafeChromeRe = /말머리|공지사항|필독|작성자|조회수?|댓글|목록|URL\s*복사|인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|채팅|좋아요|신고|게시글|멤버\s*리스트/i;
 
 function looksLikeNaverCafeChromeTitle(candidate) {
@@ -444,7 +520,7 @@ export function getCollectionExclusionReason(taxonomy) {
   return null;
 }
 
-export function validateCandidate(candidate, { today = todayISO() } = {}) {
+export function validateCandidate(candidate, { today = todayISO(), nowMinutes = kstNowMinutes() } = {}) {
   const errors = [];
   const warnings = [];
   const sourceUrl = normalizeSourceUrl(candidate.source_url);
@@ -462,6 +538,9 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (blockedKeywordReason) errors.push(blockedKeywordReason);
   if (!date) errors.push('structured_data.date required');
   if (date && date < today) errors.push(`past event date: ${date} < ${today}`);
+  if (date && date === today && !isCollectableDateTime(date, text, { today, nowMinutes })) {
+    errors.push('same-day event requires an explicit future start time');
+  }
   if (looksLikeDeadlineOnlyDate(text, date, taxonomy.activity_type)) {
     errors.push('event date looks like a deadline/registration/payment date, not an actual event date');
   }
@@ -470,6 +549,9 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   }
   if (looksLikeGenericSourceFallbackTitle(candidate, source, taxonomy.activity_type)) {
     errors.push('generic source fallback title is not enough for automatic collection');
+  }
+  if (looksLikeLowQualityAutoTitle(candidate)) {
+    errors.push('auto title looks like a caption fragment, not an event title');
   }
   if (looksLikeNaverCafeChromeTitle(candidate)) {
     errors.push('naver cafe title still contains board chrome/notice prefix');

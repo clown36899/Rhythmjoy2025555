@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { useEventActions } from '../hooks/useEventActions';
 import { useNavigate } from 'react-router-dom';
+import { getLightweightEventImage } from '../../../utils/getEventThumbnail';
 import "../../../styles/components/UnifiedScheduleSection.css";
 
 interface UnifiedScheduleSectionProps {
@@ -175,6 +176,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                         // Find first index of each group for anchor identification
                         const isFirstInGroup = combinedList.findIndex(x => x.group === item.group) === idx;
                         const isTodayItem = partitionedData.todayIdSet.has(item.id);
+                        const avatarImage = getLightweightEventImage(item, ['image_thumbnail', 'image_medium', 'image_micro']);
 
                         return (
                             <div
@@ -201,10 +203,12 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                 )}
 
                                 <div className="USS-cardAvatar">
-                                    {(item.image_thumbnail || item.image_medium || item.image_url) ? (
+                                    {avatarImage ? (
                                         <img
-                                            src={item.image_thumbnail || item.image_medium || item.image_url || ''}
+                                            src={avatarImage}
                                             alt={item.title}
+                                            loading="lazy"
+                                            decoding="async"
                                         />
                                     ) : (
                                         <div className="USS-placeholder">

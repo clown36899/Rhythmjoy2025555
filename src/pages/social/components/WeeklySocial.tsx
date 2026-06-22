@@ -7,6 +7,7 @@ import { useEventActions } from '../../v2/hooks/useEventActions';
 import EventDetailModal from '../../v2/components/EventDetailModal';
 import EventRegistrationModal from '../../../components/EventRegistrationModal';
 import LocalLoading from '../../../components/LocalLoading';
+import { getLightweightEventImage } from '../../../utils/getEventThumbnail';
 import './WeeklySocial.css';
 
 interface WeeklySocialProps {
@@ -25,6 +26,9 @@ interface DisplayItem {
     id: string;
     title: string;
     image?: string;
+    image_url?: string;
+    image_medium?: string;
+    image_full?: string;
     date?: string;
     time?: string;
     sub: string;
@@ -76,13 +80,16 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             return {
                 id: String(s.id),
                 title: s.title,
-                image: s.image_url,
+                image: s.image || s.image_full,
+                image_url: s.image_url,
                 date: dateStr,
                 time: s.start_time,
                 sub: `${s.start_time ? s.start_time.substring(0, 5) : ''} ${s.place_name || ''}`,
                 category: 'social', // Mostly social here
                 image_micro: s.image_micro,
                 image_thumbnail: s.image_thumbnail, // ✅ 추가
+                image_medium: s.image_medium,
+                image_full: s.image_full,
                 originalEvent: { ...s, id: `social-${s.id}` }
             };
         });
@@ -236,9 +243,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
     const renderRegularCompactCard = (item: SocialSchedule) => {
         const getSmallImage = (item: SocialSchedule) => {
-            if (item.image_micro) return item.image_micro;
-            if (item.image_thumbnail) return item.image_thumbnail;
-            return item.image_url || '';
+            return getLightweightEventImage(item, ['image_micro', 'image_thumbnail', 'image_medium']) || '';
         };
 
         return (
@@ -486,7 +491,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                 <div className="daily-items-list">
                                                     {grouped[date].map(item => (
                                                         <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
-                                                            <img src={item.image_thumbnail || item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
+                                                            <img src={getLightweightEventImage(item, ['image_thumbnail', 'image_micro']) || '/logo.png'} alt={item.title} className="daily-item-thumb" loading="lazy" decoding="async" onError={e => e.currentTarget.src = '/logo.png'} />
                                                             <div className="daily-item-info">
                                                                 <div className="daily-item-title">{item.title}</div>
                                                                 <div className="daily-item-sub">{item.sub}</div>
@@ -541,9 +546,9 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                                 e.stopPropagation();
                                                                 eventModal.setSelectedEvent(item.originalEvent);
                                                             }}>
-                                                            {(item.image_micro || item.image_thumbnail || item.image) ? (
+                                                            {getLightweightEventImage(item, ['image_micro', 'image_thumbnail']) ? (
                                                                 <div className="social-event-card-img-wrapper">
-                                                                    <img src={item.image_micro || item.image_thumbnail || item.image} alt="" />
+                                                                    <img src={getLightweightEventImage(item, ['image_micro', 'image_thumbnail'])} alt="" loading="lazy" decoding="async" />
                                                                 </div>
                                                             ) : (
                                                                 <div className={`social-fullscreen-placeholder ${categoryColor} social-event-card-placeholder`}>
@@ -581,7 +586,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                 <div className="daily-items-list">
                                     {filteredItemsForView.map(item => (
                                         <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
-                                            <img src={item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
+                                            <img src={getLightweightEventImage(item, ['image_thumbnail', 'image_micro']) || '/logo.png'} alt={item.title} className="daily-item-thumb" loading="lazy" decoding="async" onError={e => e.currentTarget.src = '/logo.png'} />
                                             <div className="daily-item-info">
                                                 <div className="daily-item-title">{item.title}</div>
                                                 <div className="daily-item-sub">{item.sub}</div>

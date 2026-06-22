@@ -41,13 +41,9 @@ export const EventCard = memo(({
   className = "", // Destructure className
   loading = "lazy",
 }: EventCardProps) => {
-  // 1. Try explicit thumbnail
-  // 2. Use optimized card thumbnail helper
-  const explicitThumbnail = event.image_thumbnail;
   const optimizedUrl = getCardThumbnail(event);
 
   const thumbnailUrl =
-    explicitThumbnail ||
     optimizedUrl ||
     getEventThumbnail(
       event,

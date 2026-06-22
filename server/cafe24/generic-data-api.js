@@ -9,6 +9,7 @@ import {
   sanitizeEventsForViewer,
   userMatchesId,
 } from './event-security.js';
+import { removeEventUploads } from './upload-cleanup.js';
 import {
   analyticsClientIp,
   analyticsGuestNetworkIdentity,
@@ -800,9 +801,9 @@ async function saveEventRow(row) {
       event.genre || null,
       event.dance_scope || null,
       event.activity_type || null,
-      event.image || event.image_url || null,
-      event.image_thumbnail || event.image || event.image_url || null,
-      event.image_medium || event.image || event.image_url || null,
+      event.image || event.image_url || event.image_full || event.image_medium || event.image_thumbnail || null,
+      event.image_thumbnail || null,
+      event.image_medium || null,
       event.description || null,
       event.link1 || null,
       event.link_name1 || null,
@@ -830,6 +831,7 @@ async function deleteRows(table, rows) {
   const pool = getMysqlPool();
 
   if (table === 'events') {
+    await Promise.all(rows.map((row) => removeEventUploads(row)));
     await pool.query(
       `DELETE FROM events WHERE id IN (${rows.map(() => '?').join(',')})`,
       rows.map((row) => String(row.id)),

@@ -10,6 +10,7 @@ import '../../../styles/components/NewEventsListModalV3.css';
 import '../../../styles/components/NewEventsListModalV4.css';
 import '../../../styles/components/NewEventsListModalV5.css';
 import { formatEventDate } from '../../../utils/dateUtils';
+import { getEventThumbnail, getLightweightEventImage } from '../../../utils/getEventThumbnail';
 
 interface NewEventsListModalProps {
     isOpen: boolean;
@@ -18,6 +19,12 @@ interface NewEventsListModalProps {
     onEventClick: (event: AppEvent) => void;
     initialVersion?: number; // 1-5: 쇼케이스 버전, 6: 목록, undefined: 셀렉터
 }
+
+const getShowcaseImage = (event: AppEvent) =>
+    getLightweightEventImage(event, ['image_medium', 'image_thumbnail', 'image_micro'])
+    || event.image
+    || event.image_full
+    || getEventThumbnail(event);
 
 export default function NewEventsListModal({
     isOpen,
@@ -287,7 +294,7 @@ export default function NewEventsListModal({
                                                     className={`NEL-kineticTile ${v1ActiveIndex === idx ? 'v1-active-tile' : ''}`}
                                                     style={{ '--delay': `${idx * 0.2}s` } as any}
                                                 >
-                                                    <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                    <img src={getShowcaseImage(event)} alt="" loading="lazy" decoding="async" />
                                                 </div>
                                             ))}
                                         </div>
@@ -307,7 +314,7 @@ export default function NewEventsListModal({
                                                 >
                                                     <div className="v1-spot-card">
                                                         <div className="v1-spot-media">
-                                                            <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                            <img src={getShowcaseImage(event)} alt="" loading="lazy" decoding="async" />
                                                         </div>
                                                         <div className="v1-spot-info">
                                                             <span className="v1-spot-cat">{getCategoryName(event.category)}</span>
@@ -330,7 +337,7 @@ export default function NewEventsListModal({
                                         <div className="NEL-streamBelt">
                                             {[...activeEvents, ...activeEvents].map((event, idx) => (
                                                 <div key={`${event.id}-${idx}`} className="NEL-streamItem">
-                                                    <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                    <img src={getShowcaseImage(event)} alt="" loading="lazy" decoding="async" />
                                                     <div className="NEL-streamLabel">
                                                         <span>{getCategoryName(event.category)}</span>
                                                         <h4>{event.title}</h4>
@@ -346,7 +353,7 @@ export default function NewEventsListModal({
                                                 {activeEvents.map((event, idx) => (
                                                     <div key={event.id} className="NEL-cinemaCard" style={{ '--idx': idx } as any}>
                                                         <div className="NEL-cardPoster">
-                                                            <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                            <img src={getShowcaseImage(event)} alt="" loading="lazy" decoding="async" />
                                                         </div>
                                                         <div className="NEL-cardInfo">
                                                             <div className="NEL-cardHeader">
@@ -368,7 +375,7 @@ export default function NewEventsListModal({
                                                 {v5GridPages[v5GridPage]?.map(event => (
                                                     <div key={event.id} className="v5-grid-card" onClick={() => onEventClick(event)}>
                                                         <div className="v5-grid-thumb">
-                                                            <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                            <img src={getShowcaseImage(event)} alt="" loading="lazy" decoding="async" />
                                                             <span className={`v5-grid-cat ${getCategoryColor(event.category)}`}>{getCategoryName(event.category)}</span>
                                                         </div>
                                                         <div className="v5-grid-info">
@@ -407,7 +414,7 @@ export default function NewEventsListModal({
                                                         style={{ '--v4-delay': `${idx * 0.15}s` } as any}
                                                     >
                                                         <div className="v4-poster-media">
-                                                            <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                            <img src={getShowcaseImage(event)} alt="" loading="lazy" decoding="async" />
                                                             <div className="v4-poster-overlay">
                                                                 <span className="v4-p-cat">{getCategoryName(event.category)}</span>
                                                                 <h4 className="v4-p-title">{event.title}</h4>

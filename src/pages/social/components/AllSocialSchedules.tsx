@@ -6,6 +6,7 @@ import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useEventActions } from '../../v2/hooks/useEventActions';
 import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
+import { getLightweightEventImage } from '../../../utils/getEventThumbnail';
 
 interface AllSocialSchedulesProps {
     schedules: SocialSchedule[];
@@ -105,9 +106,7 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     if (schedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
-        if (item.image_thumbnail) return item.image_thumbnail;
-        if (item.image_medium) return item.image_medium;
-        return item.image_url || '';
+        return getLightweightEventImage(item, ['image_thumbnail', 'image_medium', 'image_micro']) || '';
     };
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
@@ -242,7 +241,7 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                         )}
                                     </div>
                                     {getMediumImage(item) ? (
-                                        <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
+                                        <img src={getMediumImage(item)} alt={item.title} loading="lazy" decoding="async" />
                                     ) : (
                                         <div className="all-social-placeholder">
                                             <i className="ri-calendar-event-line"></i>

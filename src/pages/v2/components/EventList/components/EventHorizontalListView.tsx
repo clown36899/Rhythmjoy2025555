@@ -1,5 +1,6 @@
 import Footer from "../../Footer";
 import type { Event } from "../../../utils/eventListUtils";
+import { getLightweightEventImage } from "../../../../../utils/getEventThumbnail";
 // import "../../../styles/EventHorizontalListView.css"; // Migrated to events.css
 
 interface EventHorizontalListViewProps {
@@ -58,41 +59,44 @@ export function EventHorizontalListView({
                         {/* 가로 카드 리스트 */}
                         <div className="EHLV-list">
                             {monthEvents.map((event) => (
-                                <div
-                                    key={event.id}
-                                    className="EHLV-card"
-                                    onClick={() => onEventClick(event)}
-                                >
-                                    {/* 왼쪽: 이미지 (최적화: 썸네일 사용 및 지연 로딩) */}
-                                    <div className="EHLV-cardImage">
-                                        {event.image_thumbnail || event.image_medium || event.image ? (
-                                            <img
-                                                src={event.image_thumbnail || event.image_medium || event.image}
-                                                alt={event.title}
-                                                loading="lazy"
-                                            />
-                                        ) : (
-                                            <img src={defaultThumbnailEvent} alt={event.title} loading="lazy" />
-                                        )}
-                                    </div>
+                                (() => {
+                                    const imageSrc = getLightweightEventImage(event, ['image_thumbnail', 'image_medium', 'image_micro']) || defaultThumbnailEvent;
 
-                                    {/* 오른쪽: 정보 */}
-                                    <div className="EHLV-cardContent">
-                                        <h3 className="EHLV-cardTitle">{event.title}</h3>
-                                        <p className="EHLV-cardDate">
-                                            {event.start_date === event.end_date || !event.end_date
-                                                ? formatDate(event.start_date || event.date || "")
-                                                : `${formatDate(event.start_date || "")} - ${formatDate(event.end_date || "")}`
-                                            }
-                                        </p>
-                                        {event.location && (
-                                            <p className="EHLV-cardLocation">
-                                                <i className="ri-map-pin-line"></i>
-                                                {event.location}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
+                                    return (
+                                        <div
+                                            key={event.id}
+                                            className="EHLV-card"
+                                            onClick={() => onEventClick(event)}
+                                        >
+                                            {/* 왼쪽: 이미지 (최적화: 썸네일 사용 및 지연 로딩) */}
+                                            <div className="EHLV-cardImage">
+                                                <img
+                                                    src={imageSrc}
+                                                    alt={event.title}
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                />
+                                            </div>
+
+                                            {/* 오른쪽: 정보 */}
+                                            <div className="EHLV-cardContent">
+                                                <h3 className="EHLV-cardTitle">{event.title}</h3>
+                                                <p className="EHLV-cardDate">
+                                                    {event.start_date === event.end_date || !event.end_date
+                                                        ? formatDate(event.start_date || event.date || "")
+                                                        : `${formatDate(event.start_date || "")} - ${formatDate(event.end_date || "")}`
+                                                    }
+                                                </p>
+                                                {event.location && (
+                                                    <p className="EHLV-cardLocation">
+                                                        <i className="ri-map-pin-line"></i>
+                                                        {event.location}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()
                             ))}
                         </div>
                     </div>

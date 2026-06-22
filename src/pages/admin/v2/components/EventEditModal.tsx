@@ -14,6 +14,25 @@ interface EventEditModalProps {
     onSuccess: (id: string) => void;
 }
 
+type EditableCategory = 'social' | 'event' | 'class' | 'club';
+
+function normalizeEditableCategory(value: string): EditableCategory {
+    return ['social', 'event', 'class', 'club'].includes(value) ? value as EditableCategory : 'event';
+}
+
+function eventTypeFromCategory(category: EditableCategory) {
+    if (category === 'social') return '소셜';
+    if (category === 'class') return '강습';
+    return '파티/행사';
+}
+
+function activityFromCategory(category: EditableCategory, recruitmentKind: RecruitmentKind | null): DanceActivity {
+    if (recruitmentKind) return 'recruit';
+    if (category === 'social') return 'social';
+    if (category === 'class') return 'class';
+    return 'event';
+}
+
 const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event, venues = [], onSuccess }) => {
     const [formData, setFormData] = useState<any>(null);
     const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
@@ -58,13 +77,14 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
     };
 
     const handleCategoryChange = (category: string) => {
+        const normalizedCategory = normalizeEditableCategory(category);
         const genre = category === 'social' ? '소셜' : category === 'class' ? '강습' : '파티';
         setFormData((prev: any) => ({
             ...prev,
-            category,
+            category: normalizedCategory,
             genre,
             recruitment_kind: '',
-            group_id: category === 'social' ? 2 : null,
+            group_id: normalizedCategory === 'social' ? 2 : null,
         }));
     };
 
@@ -125,11 +145,16 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
             const formattedTitle = formData.djs.length > 0
                 ? `DJ ${formData.djs.join(', ')} | ${formData.title}`
                 : formData.title;
+            const selectedCategory = normalizeEditableCategory(formData.category);
+            const recruitmentKind = (formData.recruitment_kind || getIngestorRecruitmentKind(event)) as RecruitmentKind | null;
+            const selectedActivity = activityFromCategory(selectedCategory, recruitmentKind);
+            const selectedEventType = eventTypeFromCategory(selectedCategory);
             const baseMapped = mapIngestorEvent({
                     ...event,
                     structured_data: {
                         ...event.structured_data,
-                        event_type: event.structured_data?.event_type || detectEventType(event),
+                        event_type: selectedEventType || event.structured_data?.event_type || detectEventType(event),
+                        activity_type: selectedActivity,
                         location: formData.location,
                         address: formData.address,
                         venue_id: formData.venue_id,
@@ -138,15 +163,14 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                         times: formData.time ? [formData.time] : event.structured_data?.times,
                     },
                 }, venues);
-            const recruitmentKind = (formData.recruitment_kind || getIngestorRecruitmentKind(event)) as RecruitmentKind | null;
             const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
             const mapped = {
                 ...baseMapped,
-                category: recruitmentKind ? 'event' : formData.category,
+                category: recruitmentKind ? 'event' : selectedCategory === 'club' ? 'event' : selectedCategory,
                 genre: recruitmentLabel || formData.genre || baseMapped.genre,
-                activity_type: recruitmentKind ? 'recruit' : baseMapped.activity_type,
+                activity_type: selectedActivity,
                 dance_tags: ensureRecruitmentTags(baseMapped.dance_tags, recruitmentKind),
-                group_id: recruitmentKind ? null : (formData.category === 'social' ? 2 : null),
+                group_id: recruitmentKind ? null : (selectedCategory === 'social' ? 2 : null),
             };
             const duplicate = await findRegisteredDuplicate(formattedTitle, mapped);
 
@@ -184,6 +208,8 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 ...event.structured_data,
                 title: formData.title,
                 date: formData.date,
+                event_type: selectedEventType,
+                category: mapped.category,
                 location: formData.location,
                 address: formData.address,
                 venue_id: formData.venue_id,
@@ -194,6 +220,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 genre: mapped.genre,
                 subgenre: mapped.genre,
                 tags: mapped.dance_tags,
+                times: formData.time ? [formData.time] : event.structured_data?.times,
             };
 
             // 2. Service-role 함수로 운영 DB 등록. 함수가 관리자 작성자 user_id를 강제한다.
@@ -204,6 +231,10 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     scrapedEventId: event.id,
                     eventData: insertPayload,
                     scrapedStructuredData,
+                    scrapedEventPatch: {
+                        extracted_text: formData.description,
+                        poster_url: formData.poster_url || event.poster_url || '',
+                    },
                     existingEventId: duplicate?.id || null,
                 }),
             });

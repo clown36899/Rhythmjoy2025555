@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { buildCafe24Payload, getBlockedKeywordReason, normalizeSourceUrl, prepareCandidate } from './candidate-utils.mjs';
+import {
+  buildCafe24Payload,
+  getBlockedKeywordReason,
+  isCollectableDateTime,
+  normalizeSourceUrl,
+  prepareCandidate,
+  todayISO,
+} from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
 
 chromium.use(stealthPlugin());
@@ -41,7 +48,7 @@ const instagramSourceDelayMs = Number(process.env.INGESTION_INSTAGRAM_SOURCE_DEL
 const instagramPostDelayMs = Number(process.env.INGESTION_INSTAGRAM_POST_DELAY_MS || (instagramSafeMode ? 12_000 : 0));
 const instagramProfileWaitMs = Number(process.env.INGESTION_INSTAGRAM_PROFILE_WAIT_MS || (instagramSafeMode ? 5_500 : 1_800));
 const instagramFailureCircuitThreshold = Number(process.env.INGESTION_INSTAGRAM_FAILURE_CIRCUIT_THRESHOLD || (instagramSafeMode ? 3 : 0));
-const today = todayKST();
+const today = todayISO();
 const runStartedAtMs = Date.now();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 
@@ -109,6 +116,7 @@ const sourceSpecificVenue = new Map([
   ['swingkids-oneday-littly', '스윙키즈'],
   ['swingfriends-oneday-littly', '스윙프렌즈'],
   ['swing_friends', '스윙타임'],
+  ['neo_swing', '해피홀'],
   ['neoswing-daum', '해피홀'],
   ['swinghouse-littly', '비밥바'],
   ['goldenswing', '당산벙커'],
@@ -118,15 +126,6 @@ const sourceSpecificVenue = new Map([
 let lastInstagramHitAt = 0;
 let instagramProfileFailureStreak = 0;
 let instagramCircuitOpen = false;
-
-function todayKST() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-}
 
 function log(message) {
   console.log(`[native-ingestion] ${message}`);
@@ -251,13 +250,23 @@ function extractInstagramCaptionTitle(value = '') {
     .find((line) => line.length >= 6 && line.length <= 64 && !/^\d+\s*(?:likes?|comments?)/i.test(line)) || '';
 }
 
+function looksLikeCaptionFragmentTitle(value = '') {
+  const title = cleanTitle(value);
+  return !title
+    || /[，,]\s*$/.test(title)
+    || /(?:은|는|을|를|며|고|에서|까지)\s*$/.test(title)
+    || /^(?:무료|유료)?\s*라인\s*강습(?:은|는|이|을|를)?\b/i.test(title)
+    || /^(?:잊지\s*말고|일찍\s*오셔서|아직|여러분|문의|연락처|신청은|프로필\s*링크)/i.test(title)
+    || /(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title);
+}
+
 function makeCandidateTitle({ source, rawTitle, rawText = '', cleanText, eventType, djs = [] }) {
   const instagramCaptionTitle = extractInstagramCaptionTitle(rawTitle);
-  if (instagramCaptionTitle) return instagramCaptionTitle;
+  if (instagramCaptionTitle && !looksLikeCaptionFragmentTitle(instagramCaptionTitle)) return instagramCaptionTitle;
 
   const cleaned = cleanTitle(rawTitle || '');
   const looksGeneratedByPlatform = /on\s+Instagram|Instagram\s+photos|네이버\s*카페|Daum\s*카페|강습일정\s*필독말머리/i.test(rawTitle || '');
-  if (cleaned && cleaned.length <= 64 && !looksGeneratedByPlatform && !looksLikeNonTitleLine(cleaned)) return cleaned;
+  if (cleaned && cleaned.length <= 64 && !looksGeneratedByPlatform && !looksLikeNonTitleLine(cleaned) && !looksLikeCaptionFragmentTitle(cleaned)) return cleaned;
 
   const posterTitle = pickPosterTitleLine(rawText, eventType, djs);
   if (posterTitle) return posterTitle;
@@ -265,7 +274,7 @@ function makeCandidateTitle({ source, rawTitle, rawText = '', cleanText, eventTy
   const firstMeaningfulLine = String(rawText || cleanText || '')
     .split(/\n| {2,}/)
     .map((line) => cleanTitle(line))
-    .find((line) => line.length >= 6 && line.length <= 64 && !looksLikeNonTitleLine(line));
+    .find((line) => line.length >= 6 && line.length <= 64 && !looksLikeNonTitleLine(line) && !looksLikeCaptionFragmentTitle(line));
   if (firstMeaningfulLine && !/on\s+Instagram/i.test(firstMeaningfulLine)) return firstMeaningfulLine;
 
   if (eventType === '소셜' && djs.length) return `${source.name} 소셜 (${djs.slice(0, 2).join(', ')})`;
@@ -385,7 +394,55 @@ function recordDeadlineReached(sources, startIndex) {
 }
 
 function sourceOrderWeight(source) {
+  const hasRunOrder = source.runOrder !== null && source.runOrder !== undefined;
+  const runOrder = Number(source.runOrder);
+  if (hasRunOrder && Number.isFinite(runOrder)) return runOrder;
   return sourceTypeWeight.get(source.type) ?? 5;
+}
+
+function instagramProfileUrl(url = '') {
+  try {
+    const parsed = new URL(url);
+    if (/instagram\.com$/i.test(parsed.hostname) && !parsed.searchParams.has('hl')) {
+      parsed.searchParams.set('hl', 'ko');
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function instagramHandleFromSource(source = {}) {
+  try {
+    const parsed = new URL(source.url || '');
+    return parsed.pathname.split('/').filter(Boolean)[0] || '';
+  } catch {
+    return '';
+  }
+}
+
+function instagramShortcodeFromUrl(url = '') {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/)?.[1] || '';
+  } catch {
+    return '';
+  }
+}
+
+function instagramPostUrlFromShortcode(handle = '', shortcode = '') {
+  if (!shortcode) return '';
+  return handle
+    ? `https://www.instagram.com/${handle}/p/${shortcode}/`
+    : `https://www.instagram.com/p/${shortcode}/`;
+}
+
+function sortInstagramShortcodesNewestFirst(values = []) {
+  return [...values].sort((a, b) => {
+    const aCode = instagramShortcodeFromUrl(a);
+    const bCode = instagramShortcodeFromUrl(b);
+    return bCode.localeCompare(aCode) || a.localeCompare(b);
+  });
 }
 
 function estimatedInstagramSourceBudgetMs(postCount = 1) {
@@ -463,10 +520,10 @@ function extractDates(text = '') {
 
 function inferActivity(text = '') {
   if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
+  if (/소셜|social|(?<![A-Za-z0-9가-힣])DJ|디제이|파티|party/i.test(text)) return { activity: 'social', eventType: '소셜' };
   if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원\s*데이|원데이|오픈\s*클래스|체험\s*(?:클래스|강습|수업)|일일\s*(?:클래스|강습|수업)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|배워)|입문|초급|중급|class|lesson|workshop|one\s*day|oneday|open\s*class/i.test(text)) {
     return { activity: 'class', eventType: '강습' };
   }
-  if (/소셜|social|DJ|디제이|파티|party/i.test(text)) return { activity: 'social', eventType: '소셜' };
   return { activity: 'event', eventType: '행사' };
 }
 
@@ -478,12 +535,17 @@ function inferVenue(text = '', source) {
 
 function inferDjs(text = '') {
   const djs = [];
-  for (const match of text.matchAll(/(?:DJ|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
+  for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
     const value = compactText(match[1])
+      .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
       .replace(/\s*(?:와|과|및|님|입니다|입니다\.|와 함께).*$/i, '')
       .replace(/\s*(?:소셜은|소셜\s*은|참석|되시며|됩니다|문의|입장|현금|카드|제로페이).*$/i, '')
+      .replace(/\s*(?:月|월|생일|잼서클|라인\s*강습|있어요|쉬어요|\d+\s*기|지터벅|확정|환영).*$/i, '')
       .replace(/\s*(?:AM|PM|오전|오후)\b.*$/i, '')
       .replace(/\s*\d{1,2}[:：]\d{2}.*$/, '')
+      .replace(/^[._\-\s]+/, '')
+      .replace(/\b([A-Za-z가-힣._-]{1,12})\s+\1\b/i, '$1')
+      .replace(/^(.{1,12})\s+\1$/u, '$1')
       .trim();
     if (
       value
@@ -515,6 +577,11 @@ function inferTimes(text = '') {
     const endMinute = match[5] || '00';
     times.push(`${startHour}:${startMinute}-${endHour}:${endMinute}`);
   }
+  const singlePattern = /(?:DJ\s*time|time|시작|오픈|입장)?\s*(오전|오후|저녁|AM|PM)\s*(\d{1,2})\s*[:：]\s*(\d{2})/gi;
+  for (const match of text.matchAll(singlePattern)) {
+    const hour = to24Hour(match[2], match[1] || '');
+    times.push(`${hour}:${match[3]}`);
+  }
   return unique(times).slice(0, 3);
 }
 
@@ -534,6 +601,7 @@ function extractSocialScheduleItems(text = '', source) {
     const date = isoDate(getYearForMonth(month), month, day);
     if (date < today) continue;
     const segment = compactText(match[4] || '');
+    if (!isCollectableDateTime(date, `${match[0]}\n${segment}`)) continue;
     const dayLabel = match[3] || '';
     const titleDay = socialDayTitle(dayLabel);
     items.push({
@@ -543,6 +611,48 @@ function extractSocialScheduleItems(text = '', source) {
       djs: inferDjs(segment),
       times: inferTimes(segment),
       fee: inferFee(segment),
+    });
+  }
+  const seen = new Set(items.map((item) => `${item.date}:${item.djs.join(',')}`));
+  for (const item of extractHappyHallWeeklySocialItems(raw, source)) {
+    const key = `${item.date}:${item.djs.join(',')}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(item);
+  }
+  return items;
+}
+
+function dayLabelFromISO(date = '') {
+  const index = new Date(`${date}T00:00:00+09:00`).getDay();
+  return ['일', '월', '화', '수', '목', '금', '토'][index] || '';
+}
+
+function extractHappyHallWeeklySocialItems(raw = '', source) {
+  const sourceValue = `${source?.id || ''} ${source?.name || ''}`;
+  if (!/(happyhall2004|neo_swing|neoswing|해피홀|네오스윙)/i.test(sourceValue)) return [];
+  if (!/(금\s*햅|일\s*햅|해피홀|happy\s*hall|DJ|디제이)/i.test(raw)) return [];
+  const dates = extractDates(raw).slice(0, 4);
+  const djs = inferDjs(raw);
+  if (!dates.length || !djs.length) return [];
+  const times = inferTimes(raw);
+  const fee = inferFee(raw);
+  const items = [];
+  for (const [index, date] of dates.entries()) {
+    const assignedDj = djs[index] || (dates.length === 1 ? djs[0] : '');
+    if (!assignedDj) continue;
+    const assignedTime = times[index] || (dates.length === 1 ? times[0] : '');
+    const textForDate = `${raw} ${assignedTime || ''}`;
+    if (!isCollectableDateTime(date, textForDate)) continue;
+    const day = dayLabelFromISO(date);
+    const titleDay = socialDayTitle(day);
+    items.push({
+      date,
+      day,
+      title: `${source.name} ${titleDay || ''} 소셜`.replace(/\s+/g, ' ').trim(),
+      djs: [assignedDj],
+      times: assignedTime ? [assignedTime] : [],
+      fee,
     });
   }
   return items;
@@ -587,21 +697,49 @@ function pickPosterImage(images = []) {
   return pickPosterImages(images, 1)[0] || '';
 }
 
-function pickInstagramPostImageUrls(images = [], limit = 4) {
+function pickInstagramPostImages(images = [], limit = 4) {
   const eligible = images.filter(isUsablePosterImage);
+  if (!eligible.length) return [];
   const maxRenderedArea = Math.max(0, ...eligible.map(imageRenderedArea));
-  const primaryImages = maxRenderedArea >= 90_000
-    ? eligible.filter((image) => imageRenderedArea(image) >= maxRenderedArea * 0.55)
-    : eligible.slice(0, limit);
+  const maxNaturalArea = Math.max(0, ...eligible.map(imageNaturalArea));
+  const primaryImages = eligible
+    .filter((image) => {
+      const renderedArea = imageRenderedArea(image);
+      const naturalArea = imageNaturalArea(image);
+      if (maxRenderedArea >= 90_000 && renderedArea >= maxRenderedArea * 0.55) return true;
+      // Instagram carousels often keep only the active slide visibly rendered.
+      // Keep similarly large off-screen images so multi-image posts do not collapse to one poster.
+      return maxNaturalArea > 0 && naturalArea >= maxNaturalArea * 0.55;
+    })
+    .sort((a, b) => (
+      Number(b.priority || 0) - Number(a.priority || 0)
+      || imageRenderedArea(b) - imageRenderedArea(a)
+      || imageNaturalArea(b) - imageNaturalArea(a)
+    ));
   const seen = new Set();
   return primaryImages
-    .map((image) => image.src)
-    .filter((src) => {
+    .filter((image) => {
+      const src = image.src;
       if (seen.has(src)) return false;
       seen.add(src);
       return true;
     })
     .slice(0, limit);
+}
+
+function pickInstagramPostImageUrls(images = [], limit = 4) {
+  return pickInstagramPostImages(images, limit).map((image) => image.src);
+}
+
+function cleanInstagramImageAlt(value = '') {
+  const raw = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!raw || /프로필\s*사진|profile picture/i.test(raw)) return '';
+  const quoted = raw.match(/문구\s*:\s*['"“”‘’]?\s*([\s\S]{6,700}?)(?:['"“”‘’]?\s*(?:의\s*이미지|의\s*사진|일\s*수\s*있음)|$)/i);
+  if (quoted?.[1]) return quoted[1].trim();
+  return raw
+    .replace(/^Photo by [^.]+ on [^.]+\.?\s*/i, '')
+    .replace(/(?:의\s*이미지|의\s*사진)일\s*수\s*있음\.?$/i, '')
+    .trim();
 }
 
 async function imageToDataUrl(page, imageUrl, referer = '') {
@@ -648,24 +786,54 @@ async function safeGoto(page, url, timeout = sourceTimeoutMs) {
   await page.waitForTimeout(1800);
 }
 
+async function bestEffortGoto(page, url, timeout = 15_000) {
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+  } catch (error) {
+    if (!/timeout/i.test(error.message || '')) throw error;
+  }
+  await page.waitForTimeout(1800);
+}
+
 async function collectInstagramLinks(page, source) {
-  await safeGoto(page, source.url);
+  await safeGoto(page, instagramProfileUrl(source.url));
   await page.waitForTimeout(instagramProfileWaitMs);
   await page.keyboard.press('Escape').catch(() => {});
   const state = await page.evaluate(() => {
-    const links = [...new Set([...document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')]
-      .map((a) => a.href)
-      .filter(Boolean)
-      .map((href) => href.split('?')[0]))].slice(0, 8);
+    const links = [...document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')]
+      .map((a, index) => ({
+        href: a.href ? a.href.split('?')[0] : '',
+        text: (a.textContent || '').replace(/\s+/g, ' ').trim(),
+        index,
+      }))
+      .filter((item) => item.href)
+      .sort((a, b) => {
+        const aPinned = /고정|pinned/i.test(a.text) ? 1 : 0;
+        const bPinned = /고정|pinned/i.test(b.text) ? 1 : 0;
+        return aPinned - bPinned || a.index - b.index;
+      });
+    const seen = new Set();
+    const dedupedLinks = [];
+    for (const item of links) {
+      if (seen.has(item.href)) continue;
+      seen.add(item.href);
+      dedupedLinks.push(item.href);
+    }
     const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 3000);
     const title = document.title || '';
     const url = window.location.href;
-    return { links, bodyText, title, url };
+    return { links: dedupedLinks.slice(0, 8), bodyText, title, url };
   }).catch(() => ({ links: [], bodyText: '', title: '', url: '' }));
 
   if (state.links.length) return state.links;
 
   const pageText = `${state.title}\n${state.bodyText}\n${state.url}`;
+  const fallbackLinks = await collectInstagramLinksViaImginn(page, source);
+  if (fallbackLinks.length) {
+    log(`instagram profile fallback ${source.id}: imginn ${fallbackLinks.length} links`);
+    return fallbackLinks;
+  }
+
   if (/no\s+posts\s+yet|아직\s*게시물|게시물\s*없음/i.test(pageText)) {
     throw new Error('no content: instagram no posts yet');
   }
@@ -674,6 +842,33 @@ async function collectInstagramLinks(page, source) {
   }
 
   throw new Error('instagram post list unavailable');
+}
+
+async function collectInstagramLinksViaImginn(page, source) {
+  const handle = instagramHandleFromSource(source);
+  if (!handle) return [];
+  const discoveryUrl = `https://imginn.com/${handle}/`;
+  try {
+    await bestEffortGoto(page, discoveryUrl, Math.min(sourceTimeoutMs, 15_000));
+    await page.waitForTimeout(2_500);
+    const state = await page.evaluate(() => {
+      const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 1200);
+      const links = [...document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')]
+        .map((a) => a.href)
+        .filter(Boolean);
+      return { bodyText, links };
+    });
+    if (/cloudflare|attention required|sorry, you have been blocked|captcha/i.test(state.bodyText || '')) {
+      return [];
+    }
+    const urls = [...new Set(state.links
+      .map((url) => instagramPostUrlFromShortcode(handle, instagramShortcodeFromUrl(url)))
+      .filter(Boolean))];
+    return sortInstagramShortcodesNewestFirst(urls).slice(0, Math.max(postLimit * 3, 8));
+  } catch (error) {
+    log(`instagram profile fallback failed ${source.id}: ${error.message || error}`);
+    return [];
+  }
 }
 
 async function scrapeInstagramPost(page, url, source) {
@@ -701,10 +896,17 @@ async function scrapeInstagramPost(page, url, source) {
     return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images };
   });
 
-  let text = data.articleText || data.metaDescription || data.ogTitle || '';
+  const primaryImages = pickInstagramPostImages(data.images, postLimit);
+  const imageAltText = primaryImages
+    .map((image) => cleanInstagramImageAlt(image.alt || ''))
+    .filter(Boolean)
+    .join('\n');
+  let text = [imageAltText, data.articleText || data.metaDescription || data.ogTitle || '']
+    .filter(Boolean)
+    .join('\n');
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
-  const posterUrls = pickInstagramPostImageUrls(data.images, postLimit);
+  const posterUrls = primaryImages.map((image) => image.src);
   const fallbackPosterUrl = pickPosterImage([
     { src: data.ogImage, w: 336, h: 336, priority: 1 },
     { src: data.twitterImage, w: 336, h: 336, priority: 1 },
@@ -808,19 +1010,30 @@ async function scrapeNaverArticle(page, link, source) {
 
 async function collectDaumArticleLinks(page, source) {
   await safeGoto(page, source.url);
-  return await page.evaluate(() => [...new Map([...document.querySelectorAll('a[href*="m.cafe.daum.net"]')]
-    .map((a) => [a.href.split('#')[0], {
-      href: a.href.split('#')[0],
-      title: (a.textContent || '').trim(),
-    }])
-    .filter(([, item]) => /\/[A-Za-z0-9]+\/\d+\??/.test(item.href) && item.title)
-  ).values()].slice(0, 20)).catch(() => []);
+  return await page.evaluate(() => {
+    const textOf = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
+    const items = [...document.querySelectorAll('a[href]')]
+      .map((a, index) => {
+        const href = a.href.split('#')[0];
+        const row = a.closest('li, .list_detail, .box_board, .item, .article_item, .cont_post') || a.parentElement;
+        const title = textOf(a) || textOf(row);
+        return { href, title, rowText: textOf(row), index };
+      })
+      .filter((item) => (
+        /^https?:\/\/m\.cafe\.daum\.net\/[^/]+\/[A-Za-z0-9]+\/\d+\??/i.test(item.href)
+        && !/\/comments\??$/i.test(item.href)
+        && item.title
+      ));
+    return [...new Map(items.map((item) => [item.href, item])).values()]
+      .sort((a, b) => a.index - b.index)
+      .slice(0, 20);
+  }).catch(() => []);
 }
 
 async function scrapeDaumArticle(page, link, source) {
   await safeGoto(page, link.href, postTimeoutMs);
   const data = await page.evaluate(() => {
-    const title = document.querySelector('h3, h2, .tit_subject, .tit_view')?.textContent || '';
+    const title = document.querySelector('.tit_subject, .article_title, .tit_view, h3, h2')?.textContent || '';
     const text = document.body.innerText || '';
     const images = [...document.querySelectorAll('img')]
       .map((img) => ({
@@ -1033,6 +1246,11 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   };
 
   for (const [index, date] of dates.entries()) {
+    if (!isCollectableDateTime(date, `${candidateTitle}\n${cleanText}`)) {
+      result.skipped += 1;
+      log(`skip ${source.id} ${date}: same-day event has no future time or is already past`);
+      continue;
+    }
     const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
     const imageData = await getImageData(candidatePosterUrl);
     const raw = {

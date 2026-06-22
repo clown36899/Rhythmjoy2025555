@@ -1,5 +1,6 @@
 import { getMysqlPool } from './mysql-pool.js';
 import { getCurrentUser, requireAdmin } from './auth-api.js';
+import { removeEventUploads } from './upload-cleanup.js';
 import {
   attachEventAuthors,
   canManageEvent,
@@ -153,9 +154,9 @@ function normalizeEventPayload(input, existing = null, user = null) {
     genre: source.genre || null,
     dance_scope: source.dance_scope || 'swing',
     activity_type: source.activity_type || source.category || 'event',
-    image: source.image || source.image_url || '',
-    image_thumbnail: source.image_thumbnail || source.image || source.image_url || '',
-    image_medium: source.image_medium || source.image || source.image_url || '',
+    image: source.image || source.image_url || source.image_full || source.image_medium || source.image_thumbnail || '',
+    image_thumbnail: source.image_thumbnail || '',
+    image_medium: source.image_medium || '',
     description: source.description || '',
     link1: source.link1 || '',
     link_name1: source.link_name1 || '',
@@ -402,6 +403,7 @@ export async function deleteCafe24Event(req, res) {
   }
 
   await requireEventOwnerOrAdmin(req, existing);
+  const imageCleanup = await removeEventUploads(existing);
   const pool = getMysqlPool();
   const [result] = await pool.execute(`DELETE FROM ${tableName} WHERE id = ?`, [String(req.params.id)]);
 
@@ -410,5 +412,11 @@ export async function deleteCafe24Event(req, res) {
     return;
   }
 
-  res.json({ ok: true, id: String(req.params.id) });
+  res.json({
+    ok: true,
+    id: String(req.params.id),
+    deletedImages: imageCleanup.count,
+    deletedImageUrls: imageCleanup.urls,
+    deletedStoragePath: imageCleanup.storagePath,
+  });
 }

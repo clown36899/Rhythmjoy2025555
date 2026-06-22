@@ -98,7 +98,9 @@ export MYSQL_EVENTS_TABLE="${MYSQL_EVENTS_TABLE:-events}"
 export CAFE24_HOST="${CAFE24_HOST:-127.0.0.1}"
 export PORT="${LOCAL_APP_PORT}"
 export CAFE24_PORT="${LOCAL_APP_PORT}"
+export CAFE24_UPLOADS_FALLBACK_ORIGIN="${CAFE24_UPLOADS_FALLBACK_ORIGIN:-https://swingenjoy.com}"
 
 echo "Serving local Swing Enjoy on http://${CAFE24_HOST}:${LOCAL_APP_PORT}"
 echo "Using Cafe24 production DB through SSH tunnel 127.0.0.1:${LOCAL_MYSQL_PORT}"
+echo "Using production uploads fallback ${CAFE24_UPLOADS_FALLBACK_ORIGIN}/uploads"
 node server/cafe24/start.js

@@ -5,8 +5,8 @@ import { useCalendarEventsQuery } from "../../../hooks/queries/useCalendarEvents
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import DateEventsModal from "./DateEventsModal";
 import type { DanceScope } from "../../../utils/danceTaxonomy";
+import { getLightweightEventImage } from "../../../utils/getEventThumbnail";
 import "../styles/FullEventCalendar.css";
-// import { getEventThumbnail } from "../../../utils/getEventThumbnail"; // Removed unused import
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
 const FULL_EVENT_CALENDAR_DEBUG = import.meta.env.VITE_FULL_EVENT_CALENDAR_DEBUG === 'true';
@@ -161,8 +161,11 @@ const CalendarCell = memo(({
         {shouldRenderEvents ? (
           <>
           {events.map((event) => {
-            const thumbnailUrl = event.image_micro || event.image_thumbnail || event.image_medium || event.image || event.image_full;
-            const desktopThumbnailUrl = event.image_thumbnail || event.image_medium || event.image || event.image_full || event.image_micro;
+            const thumbnailUrl = getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium'])
+              || event.image
+              || event.image_full;
+            const desktopThumbnailUrl = getLightweightEventImage(event, ['image_thumbnail', 'image_medium', 'image_micro'])
+              || thumbnailUrl;
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = event.venue_name || event.place_name || event.location || '';
             const category = String(event.category || '').toLowerCase();

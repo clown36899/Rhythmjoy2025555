@@ -76,6 +76,7 @@ const source = ({
   sourceKind = discoveryOnly ? 'hub' : 'origin',
   sceneRole = scope === 'swing' ? 'stable_ingestion' : 'scene_research',
   promotionPolicy = discoveryOnly ? 'external_hub_only' : 'verified_original_required',
+  runOrder = null,
   notes = '',
 }) => ({
   id,
@@ -93,11 +94,13 @@ const source = ({
   sourceKind,
   sceneRole,
   promotionPolicy,
+  runOrder,
   notes,
 });
 
 export const collectionSources = [
-  source({ id: 'happyhall2004', name: '해피홀', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/happyhall2004/', priority: 1 }),
+  source({ id: 'happyhall2004', name: '해피홀', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/happyhall2004/', priority: 1, runOrder: -1.0 }),
+  source({ id: 'neo_swing', name: '네오스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/neo_swing/', priority: 1, notes: '네오스윙 Linktree에서 공식 채널로 확인. Daum 카페 공지는 이미지 없는 글이 많아 포스터가 있는 Instagram 원본을 우선 확인' }),
   source({ id: 'swingtimebar', name: '스윙타임', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingtimebar/', priority: 1 }),
   source({ id: 'fiesta_swingdance', name: '피에스타', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/fiesta_swingdance/', priority: 1 }),
   source({ id: 'bongcheonsalon', name: '봉천살롱', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/bongcheonsalon/', priority: 1 }),
@@ -297,7 +300,9 @@ export function findSourceByUrl(url = '') {
   return collectionSources.find((item) => {
     if (item.match instanceof RegExp) return item.match.test(url);
     const matchValue = String(item.match || item.url).toLowerCase().replace(/\/$/, '');
-    return normalized.startsWith(matchValue) || normalized.includes(new URL(item.url).hostname.replace(/^www\./, ''));
+    if (normalized.startsWith(matchValue)) return true;
+    if (['instagram', 'facebook'].includes(item.type)) return false;
+    return normalized.includes(new URL(item.url).hostname.replace(/^www\./, ''));
   }) || null;
 }
 
@@ -331,6 +336,7 @@ export function getAutomationSourceList(profile = 'swing-daily') {
     sourceKind: item.sourceKind,
     sceneRole: item.sceneRole,
     promotionPolicy: item.promotionPolicy,
+    runOrder: item.runOrder,
     automationProfile: selected.id,
     saveEnabled: (item.scope === 'swing' || selected.saveExpandedCandidates) && !item.discoveryOnly,
     notes: item.notes,

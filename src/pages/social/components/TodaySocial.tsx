@@ -6,6 +6,7 @@ import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { PWAInstallButton } from '../../../components/PWAInstallButton';
 import { useEventActions } from '../../v2/hooks/useEventActions';
+import { getLightweightEventImage } from '../../../utils/getEventThumbnail';
 
 // 1. Props 인터페이스 수정
 interface TodaySocialProps {
@@ -59,13 +60,7 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     if (displaySchedules.length <= 1) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
-        if (item.image_thumbnail) return item.image_thumbnail;
-        if (item.image_medium) return item.image_medium;
-        if (item.image_micro) return item.image_micro;
-        if (item.image_full) return item.image_full;
-        if (item.image_url) return item.image_url;
-        if (item.image_url) return item.image_url;
-        return '';
+        return getLightweightEventImage(item, ['image_thumbnail', 'image_medium', 'image_micro']) || '';
     };
 
     // D-day 계산 함수 (TodaySocial용)
@@ -163,7 +158,7 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
 
                             <div className="today-card-image">
                                 {getMediumImage(item) ? (
-                                    <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
+                                    <img src={getMediumImage(item)} alt={item.title} loading="lazy" decoding="async" />
                                 ) : (
                                     <div className="today-placeholder">
                                         <i className="ri-calendar-event-line"></i>

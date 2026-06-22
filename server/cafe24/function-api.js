@@ -8,6 +8,7 @@ import {
   saveCafe24TableRow,
 } from './generic-data-api.js';
 import { canManageEvent, userMatchesId } from './event-security.js';
+import { removeEventUploads as removeEventUploadFiles } from './upload-cleanup.js';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -164,6 +165,104 @@ function resolveLocalUpload(value) {
   const relative = decodeURIComponent(String(value).split('?')[0].replace(/^\/uploads\/?/, ''));
   const target = path.resolve(root, relative);
   return target.startsWith(root) ? target : null;
+}
+
+async function readImageSourceBuffer(value) {
+  const source = String(value || '').trim();
+  if (!source) return null;
+
+  if (source.startsWith('data:image')) {
+    const { buffer, mimeType } = decodeBase64Payload(source);
+    return buffer.length ? { buffer, mimeType } : null;
+  }
+
+  if (source.startsWith('/uploads/')) {
+    const target = resolveLocalUpload(source);
+    if (!target) return null;
+    return {
+      buffer: await fs.readFile(target),
+      mimeType: '',
+    };
+  }
+
+  if (/^https?:\/\//i.test(source) && !isBlockedRemoteAssetUrl(source)) {
+    return fetchBuffer(source);
+  }
+
+  return null;
+}
+
+async function loadSharp() {
+  try {
+    const sharpModule = await import('sharp');
+    return sharpModule.default || sharpModule;
+  } catch (error) {
+    console.warn('[cafe24:function-api] sharp unavailable; image variants skipped:', error?.message || error);
+    return null;
+  }
+}
+
+async function createImageVariant(sharp, buffer, width, quality) {
+  return sharp(buffer)
+    .rotate()
+    .resize({ width, withoutEnlargement: true })
+    .webp({ quality })
+    .toBuffer();
+}
+
+async function localizeEventImageVariants(url, folder, filenameHint = 'poster') {
+  const value = String(url || '').trim();
+  if (!value) return null;
+
+  const localizedOriginal = await localizeImageUrl(value, folder, filenameHint);
+  const source = await readImageSourceBuffer(localizedOriginal || value);
+  const fallbackUrl = localizedOriginal || value;
+
+  if (!source?.buffer?.length) {
+    return {
+      image: fallbackUrl,
+      image_full: fallbackUrl,
+    };
+  }
+
+  const sharp = await loadSharp();
+  if (!sharp) {
+    return {
+      image: fallbackUrl,
+      image_full: fallbackUrl,
+    };
+  }
+
+  try {
+    const variants = {
+      micro: await createImageVariant(sharp, source.buffer, 100, 70),
+      thumbnail: await createImageVariant(sharp, source.buffer, 300, 75),
+      medium: await createImageVariant(sharp, source.buffer, 650, 90),
+      full: await createImageVariant(sharp, source.buffer, 1300, 85),
+    };
+
+    const [micro, thumbnail, medium, full] = await Promise.all([
+      writeUploadFile(folder, 'micro.webp', variants.micro),
+      writeUploadFile(folder, 'thumbnail.webp', variants.thumbnail),
+      writeUploadFile(folder, 'medium.webp', variants.medium),
+      writeUploadFile(folder, 'full.webp', variants.full),
+    ]);
+
+    return {
+      image: full,
+      image_micro: micro,
+      image_thumbnail: thumbnail,
+      image_medium: medium,
+      image_full: full,
+      storage_path: folder.replace(/^images\//, ''),
+    };
+  } catch (error) {
+    console.warn('[cafe24:function-api] image variants skipped:', error?.message || error);
+    return {
+      image: fallbackUrl,
+      image_full: fallbackUrl,
+    };
+  }
 }
 
 async function removeLocalUpload(value) {
@@ -474,7 +573,8 @@ export async function cafe24ScrapedEvents(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    await requireAdmin(req);
+    const isIngestionDelete = hasValidIngestionToken(req);
+    if (!isIngestionDelete) await requireAdmin(req);
     const ids = Array.isArray(req.body?.ids)
       ? req.body.ids.map(String)
       : [req.body?.id].filter(Boolean).map(String);
@@ -484,7 +584,7 @@ export async function cafe24ScrapedEvents(req, res) {
       if (await removeLocalUpload(row.poster_url)) deletedImages.push(row.poster_url);
     }
     await deleteCafe24TableRows('scraped_events', rows);
-    res.json({ ok: true, deleted: rows.length, deletedImages });
+    res.json({ ok: true, deleted: rows.length, deletedIds: rows.map((row) => row.id), deletedImages });
     return;
   }
 
@@ -508,15 +608,92 @@ async function getOwnerUserId(req) {
 }
 
 function normalizeImageFields(eventData, fallbackImageUrl) {
-  const primary = eventData.image_full || eventData.image_medium || eventData.image_thumbnail || eventData.image || fallbackImageUrl || null;
+  const primary = eventData.image_full || eventData.image || fallbackImageUrl || eventData.image_medium || eventData.image_thumbnail || eventData.image_micro || null;
   return {
-    image: eventData.image || primary,
-    image_micro: eventData.image_micro || eventData.image_thumbnail || primary,
-    image_thumbnail: eventData.image_thumbnail || eventData.image_medium || primary,
-    image_medium: eventData.image_medium || eventData.image_full || primary,
-    image_full: eventData.image_full || eventData.image || primary,
+    image: eventData.image || eventData.image_full || fallbackImageUrl || eventData.image_medium || eventData.image_thumbnail || eventData.image_micro || primary,
+    image_micro: eventData.image_micro || null,
+    image_thumbnail: eventData.image_thumbnail || null,
+    image_medium: eventData.image_medium || null,
+    image_full: eventData.image_full || eventData.image || fallbackImageUrl || null,
     storage_path: eventData.storage_path || null,
   };
+}
+
+function pickScrapedEventPatch(value = {}) {
+  const patch = {};
+  for (const key of ['keyword', 'poster_url', 'extracted_text']) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) patch[key] = value[key];
+  }
+  return patch;
+}
+
+function normalizedEventCategory(eventData = {}) {
+  const category = String(eventData.category || '').toLowerCase();
+  return ['social', 'class', 'event', 'club'].includes(category) ? category : '';
+}
+
+function activityFromEventData(eventData = {}) {
+  const existing = String(eventData.activity_type || '').toLowerCase();
+  if (existing === 'recruit') return 'recruit';
+  const category = normalizedEventCategory(eventData);
+  if (category === 'social') return 'social';
+  if (category === 'class') return 'class';
+  if (category === 'event' || category === 'club') return 'event';
+  const genre = String(eventData.genre || '');
+  if (genre.includes('소셜')) return 'social';
+  if (genre.includes('강습')) return 'class';
+  return ['social', 'class', 'event'].includes(existing) ? existing : '';
+}
+
+function eventTypeFromEventData(eventData = {}) {
+  const category = normalizedEventCategory(eventData);
+  const activity = activityFromEventData(eventData);
+  const genre = String(eventData.genre || '');
+  if (category === 'social' || activity === 'social' || genre.includes('소셜')) return '소셜';
+  if (category === 'class' || activity === 'class' || genre.includes('강습')) return '강습';
+  return '파티/행사';
+}
+
+function structuredDataFromEventData(eventData = {}) {
+  const patch = {};
+  const directKeys = [
+    'title',
+    'date',
+    'location',
+    'address',
+    'venue_id',
+    'venue_name',
+    'location_link',
+    'category',
+    'genre',
+    'dance_scope',
+    'dance_genre',
+    'start_date',
+    'end_date',
+  ];
+  for (const key of directKeys) {
+    if (Object.prototype.hasOwnProperty.call(eventData, key)) patch[key] = eventData[key];
+  }
+  if (Object.prototype.hasOwnProperty.call(eventData, 'event_type')) {
+    patch.event_type = eventData.event_type;
+  } else if (eventData.activity_type || eventData.category || eventData.genre) {
+    patch.event_type = eventTypeFromEventData(eventData);
+  }
+  const activityType = activityFromEventData(eventData);
+  if (activityType) patch.activity_type = activityType;
+  if (Object.prototype.hasOwnProperty.call(eventData, 'dance_tags')) patch.tags = eventData.dance_tags;
+  if (Object.prototype.hasOwnProperty.call(eventData, 'subgenre')) patch.subgenre = eventData.subgenre;
+  else if (Object.prototype.hasOwnProperty.call(eventData, 'genre')) patch.subgenre = eventData.genre;
+  if (Object.prototype.hasOwnProperty.call(eventData, 'time')) patch.times = eventData.time ? [eventData.time] : [];
+  return patch;
+}
+
+function scrapedEventPatchFromEventData(eventData = {}) {
+  const patch = {};
+  if (Object.prototype.hasOwnProperty.call(eventData, 'description')) patch.extracted_text = eventData.description || '';
+  const poster = eventData.image_full || eventData.image_medium || eventData.image_thumbnail || eventData.image;
+  if (poster !== undefined && poster !== null) patch.poster_url = poster;
+  return patch;
 }
 
 export async function cafe24IngestorRegisterEvent(req, res) {
@@ -553,28 +730,30 @@ export async function cafe24IngestorRegisterEvent(req, res) {
 
   let imageFields = normalizeImageFields(eventData, scrapedEvent.poster_url || eventData.image || eventData.image_full || null);
   const folder = `images/ingestor-events/${safeSegment(scrapedEventId)}`;
-  const localized = await localizeImageUrl(
+  const generatedImageFields = await localizeEventImageVariants(
     imageFields.image_full || imageFields.image || scrapedEvent.poster_url,
     folder,
     'poster',
   );
-  if (localized) {
+  if (generatedImageFields) {
     imageFields = {
-      image: localized,
-      image_micro: localized,
-      image_thumbnail: localized,
-      image_medium: localized,
-      image_full: localized,
-      storage_path: folder.replace(/^images\//, ''),
+      ...imageFields,
+      ...generatedImageFields,
     };
   }
 
   const mergedStructuredData = {
     ...(scrapedEvent.structured_data || {}),
+    ...structuredDataFromEventData(eventData),
     ...(body.scrapedStructuredData || {}),
+  };
+  const scrapedEventPatch = {
+    ...scrapedEventPatchFromEventData(eventData),
+    ...pickScrapedEventPatch(body.scrapedEventPatch || {}),
   };
   await saveCafe24TableRow('scraped_events', {
     ...scrapedEvent,
+    ...scrapedEventPatch,
     is_collected: true,
     status: 'collected',
     structured_data: mergedStructuredData,
@@ -626,18 +805,7 @@ function eventIdCandidates(eventId) {
 }
 
 async function removeEventUploads(event) {
-  const values = [event.image, event.image_micro, event.image_thumbnail, event.image_medium, event.image_full].filter(Boolean);
-  let count = 0;
-  for (const value of values) {
-    if (await removeLocalUpload(value)) count += 1;
-  }
-  if (event.storage_path) {
-    const target = path.resolve(uploadRoot(), 'images', String(event.storage_path).replace(/^\/+/, ''));
-    if (target.startsWith(uploadRoot())) {
-      await fs.rm(target, { force: true, recursive: true }).catch(() => {});
-    }
-  }
-  return count;
+  return removeEventUploadFiles(event);
 }
 
 export async function cafe24DeleteEventFunction(req, res) {
@@ -661,9 +829,15 @@ export async function cafe24DeleteEventFunction(req, res) {
     return;
   }
 
-  const deletedImages = await removeEventUploads(target);
+  const imageCleanup = await removeEventUploads(target);
   await deleteCafe24TableRows('events', [target]);
-  res.json({ success: true, deletedImages, deletedEventId: target.id });
+  res.json({
+    success: true,
+    deletedImages: imageCleanup.count,
+    deletedImageUrls: imageCleanup.urls,
+    deletedStoragePath: imageCleanup.storagePath,
+    deletedEventId: target.id,
+  });
 }
 
 export async function cafe24DeleteSocialItem(req, res) {

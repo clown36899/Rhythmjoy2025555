@@ -53,6 +53,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 const app = express();
 const distDir = path.resolve(process.cwd(), process.env.CAFE24_DIST_DIR || 'dist');
 const uploadsDir = path.resolve(process.cwd(), process.env.CAFE24_UPLOADS_DIR || 'uploads');
+const uploadsFallbackOrigin = String(process.env.CAFE24_UPLOADS_FALLBACK_ORIGIN || '').replace(/\/+$/g, '');
 const rawBody = express.raw({
   type: '*/*',
   limit: process.env.CAFE24_BODY_LIMIT || '50mb',
@@ -84,9 +85,47 @@ app.get('/__health', (_req, res) => {
     ok: true,
     dist: existsSync(path.join(distDir, 'index.html')),
     uploads: uploadsDir,
+    uploadsFallbackOrigin: uploadsFallbackOrigin || null,
     functions: process.env.CAFE24_FUNCTIONS_DIR || 'dist-cafe24/functions',
   });
 });
+
+async function proxyMissingUpload(req, res, next) {
+  if (!uploadsFallbackOrigin) {
+    next();
+    return;
+  }
+
+  try {
+    const uploadPath = req.originalUrl.startsWith('/uploads/')
+      ? req.originalUrl
+      : `/uploads${req.url}`;
+    const remoteUrl = new URL(uploadPath, uploadsFallbackOrigin);
+    const response = await fetch(remoteUrl, {
+      headers: {
+        Accept: req.get('accept') || 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'User-Agent': 'SwingEnjoyLocalProdDb/1.0',
+      },
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || contentType.toLowerCase().includes('text/html')) {
+      next();
+      return;
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentType) res.setHeader('Content-Type', contentType);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('X-Uploads-Fallback-Origin', uploadsFallbackOrigin);
+    const body = Buffer.from(await response.arrayBuffer());
+    res.status(response.status).send(body);
+  } catch (error) {
+    console.warn('[cafe24:uploads-fallback]', error?.message || error);
+    next();
+  }
+}
 
 function alias(functionName) {
   return (req, _res, next) => {
@@ -251,6 +290,11 @@ app.use('/uploads', express.static(uploadsDir, {
   etag: true,
   maxAge: '30d',
 }));
+app.use('/uploads', proxyMissingUpload);
+app.use('/uploads', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(404).type('text/plain').send('Upload not found');
+});
 
 app.all(/^\/api\/([^/?#]+)(?:\/.*)?$/, rawBody, async (req, res, next) => {
   try {
