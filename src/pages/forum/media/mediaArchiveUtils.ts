@@ -114,6 +114,19 @@ function parseYouTube(url: URL): ParsedMediaUrl | null {
 
   if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
     const parts = stripTrailingSlash(url.pathname).split('/').filter(Boolean);
+    const listId = url.searchParams.get('list');
+    if (listId && (url.pathname === '/watch' || parts[0] === 'watch' || parts[0] === 'playlist' || parts[1] === 'videoseries')) {
+      const coverVideoId = url.searchParams.get('v');
+      return {
+        platform: 'youtube',
+        media_type: 'playlist',
+        normalized_url: `https://www.youtube.com/playlist?list=${encodeURIComponent(listId)}`,
+        external_id: listId,
+        thumbnail_url: coverVideoId && YOUTUBE_ID_RE.test(coverVideoId) ? `https://i.ytimg.com/vi/${coverVideoId}/hqdefault.jpg` : null,
+        embed_url: `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(listId)}`,
+      };
+    }
+
     if (url.pathname === '/watch') {
       videoId = url.searchParams.get('v');
     } else if (parts[0] === 'shorts') {
@@ -122,7 +135,6 @@ function parseYouTube(url: URL): ParsedMediaUrl | null {
     } else if (parts[0] === 'embed') {
       videoId = parts[1] || null;
     } else if (parts[0] === 'playlist') {
-      const listId = url.searchParams.get('list');
       return {
         platform: 'youtube',
         media_type: 'playlist',
