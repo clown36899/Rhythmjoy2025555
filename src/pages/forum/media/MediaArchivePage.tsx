@@ -842,6 +842,8 @@ function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; 
     if (options.autoplay) parsed.searchParams.set('autoplay', '1');
     if (options.minimalControls) {
       parsed.searchParams.set('controls', '0');
+      parsed.searchParams.set('disablekb', '1');
+      parsed.searchParams.set('fs', '0');
       parsed.searchParams.set('iv_load_policy', '3');
       parsed.searchParams.set('modestbranding', '1');
       parsed.searchParams.set('playsinline', '1');
@@ -867,7 +869,7 @@ const MediaEmbed: React.FC<{
   if (item.platform === 'youtube' && item.embed_url) {
     return (
       <iframe
-        className="media-embed-frame"
+        className={`media-embed-frame ${minimalControls ? 'media-embed-frame--minimal' : ''}`}
         src={getYouTubeEmbedUrl(item.embed_url, { autoplay, minimalControls })}
         title={item.title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -1488,6 +1490,7 @@ const MediaMiniCard: React.FC<{
     item.collection_name,
     platformLabel(item.platform),
   ].filter(Boolean).join(' · ');
+  const originalUrl = item.normalized_url || item.url;
   const canEdit = canManage && Boolean(onEdit);
 
   if (expanded) {
@@ -1512,6 +1515,19 @@ const MediaMiniCard: React.FC<{
               <i className="ri-close-line" />
               닫기
             </button>
+            {originalUrl && (
+              <a
+                className="media-mini-action-button"
+                href={originalUrl}
+                target="_blank"
+                rel="noreferrer"
+                draggable={false}
+                onDragStart={preventMediaArchiveDrag}
+              >
+                <i className="ri-youtube-line" />
+                원본
+              </a>
+            )}
             {canEdit && (
               <button
                 type="button"
