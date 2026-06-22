@@ -835,18 +835,29 @@ function loadInstagramScript() {
   window.instgrm?.Embeds?.process?.();
 }
 
-function getAutoplayEmbedUrl(url?: string | null) {
+function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; minimalControls?: boolean } = {}) {
   if (!url) return '';
   try {
     const parsed = new URL(url);
-    parsed.searchParams.set('autoplay', '1');
+    if (options.autoplay) parsed.searchParams.set('autoplay', '1');
+    if (options.minimalControls) {
+      parsed.searchParams.set('controls', '0');
+      parsed.searchParams.set('iv_load_policy', '3');
+      parsed.searchParams.set('modestbranding', '1');
+      parsed.searchParams.set('playsinline', '1');
+      parsed.searchParams.set('rel', '0');
+    }
     return parsed.toString();
   } catch {
     return url;
   }
 }
 
-const MediaEmbed: React.FC<{ item: SnsMediaItem; autoplay?: boolean }> = ({ item, autoplay = false }) => {
+const MediaEmbed: React.FC<{
+  item: SnsMediaItem;
+  autoplay?: boolean;
+  minimalControls?: boolean;
+}> = ({ item, autoplay = false, minimalControls = false }) => {
   useEffect(() => {
     if (item.platform === 'instagram') {
       window.setTimeout(loadInstagramScript, 50);
@@ -857,7 +868,7 @@ const MediaEmbed: React.FC<{ item: SnsMediaItem; autoplay?: boolean }> = ({ item
     return (
       <iframe
         className="media-embed-frame"
-        src={autoplay ? getAutoplayEmbedUrl(item.embed_url) : item.embed_url}
+        src={getYouTubeEmbedUrl(item.embed_url, { autoplay, minimalControls })}
         title={item.title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
@@ -969,8 +980,12 @@ const TranslatedDescription: React.FC<{
     normalizeDescriptionText(originalText) !== normalizeDescriptionText(translatedText),
   );
   const visibleText = hasOriginal && showOriginal ? originalText : translatedText || originalText;
-  const isCardDescription = className.split(/\s+/).includes('media-card-description');
-  const canExpand = isCardDescription && (visibleText.length > 180 || visibleText.includes('\n'));
+  const descriptionClasses = className.split(/\s+/).filter(Boolean);
+  const isExpandableDescription = (
+    descriptionClasses.includes('media-card-description') ||
+    descriptionClasses.includes('media-mini-description')
+  );
+  const canExpand = isExpandableDescription && (visibleText.length > 180 || visibleText.includes('\n'));
 
   if (!visibleText) return null;
 
@@ -1479,26 +1494,39 @@ const MediaMiniCard: React.FC<{
     return (
       <article className="media-mini-card media-mini-card--expanded is-playing">
         <div className="media-mini-player">
-          <MediaEmbed item={item} autoplay />
+          <MediaEmbed item={item} autoplay minimalControls />
         </div>
         <div className="media-mini-expanded-footer">
           <span className="media-mini-copy">
             <strong>{item.title || '제목 없음'}</strong>
             <small>{metaText}</small>
           </span>
-          {canEdit && (
+          <span className="media-mini-expanded-actions">
             <button
               type="button"
-              className="media-mini-edit-button"
+              className="media-mini-action-button"
               draggable={false}
               onDragStart={preventMediaArchiveDrag}
-              onClick={() => onEdit?.(item)}
+              onClick={() => onPlayItem('')}
             >
-              <i className="ri-edit-2-line" />
-              수정
+              <i className="ri-close-line" />
+              닫기
             </button>
-          )}
+            {canEdit && (
+              <button
+                type="button"
+                className="media-mini-edit-button"
+                draggable={false}
+                onDragStart={preventMediaArchiveDrag}
+                onClick={() => onEdit?.(item)}
+              >
+                <i className="ri-edit-2-line" />
+                수정
+              </button>
+            )}
+          </span>
         </div>
+        <TranslatedDescription value={item} className="media-mini-description" />
       </article>
     );
   }
@@ -1548,6 +1576,7 @@ const MediaMiniCard: React.FC<{
           수정
         </button>
       )}
+      <TranslatedDescription value={item} className="media-mini-description" />
     </article>
   );
 };
