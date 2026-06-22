@@ -7,6 +7,10 @@ import { useModalActions } from '../../../contexts/ModalContext';
 import { useEventActions } from '../hooks/useEventActions';
 import { useNavigate } from 'react-router-dom';
 import { getLightweightEventImage } from '../../../utils/getEventThumbnail';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../../../hooks/useTempoToolVisibilitySettings';
 import "../../../styles/components/UnifiedScheduleSection.css";
 
 interface UnifiedScheduleSectionProps {
@@ -27,6 +31,11 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
     const navigate = useNavigate();
     const { openModal, closeModal } = useModalActions();
     const { isAdmin, user, signInWithKakao } = useAuth();
+    const {
+        settings: menuVisibilitySettings,
+        isLoading: isMenuVisibilityLoading,
+    } = useTempoToolVisibilitySettings();
+    const showCalendarLink = isAdmin || (!isMenuVisibilityLoading && !isTempoToolItemHidden(menuVisibilitySettings, 'calendar'));
     const { handleDeleteClick, isDeleting, deleteProgress } = useEventActions({
         adminType: null,
         user,
@@ -157,17 +166,19 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                         </>
                     )}
                 </div>
-                <button
-                    className="USS-viewAllBtn manual-label-wrapper"
-                    onClick={() => {
-                        navigate('/calendar?category=social&scrollToToday=true');
-                    }}
-                >
-                    <span className="translated-part">View All</span>
-                    <span className="fixed-part ko" translate="no">전체보기</span>
-                    <span className="fixed-part en" translate="no">All</span>
-                    <i className="ri-arrow-right-s-line USS-navIcon"></i>
-                </button>
+                {showCalendarLink && (
+                    <button
+                        className="USS-viewAllBtn manual-label-wrapper"
+                        onClick={() => {
+                            navigate('/calendar?category=social&scrollToToday=true');
+                        }}
+                    >
+                        <span className="translated-part">View All</span>
+                        <span className="fixed-part ko" translate="no">전체보기</span>
+                        <span className="fixed-part en" translate="no">All</span>
+                        <i className="ri-arrow-right-s-line USS-navIcon"></i>
+                    </button>
+                )}
             </div>
 
             <HorizontalScrollNav ref={scrollerRef}>

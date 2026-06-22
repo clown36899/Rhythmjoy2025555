@@ -46,7 +46,7 @@ export async function saveTempoToolVisibilitySettings(
       {
         key: TEMPO_TOOL_VISIBILITY_SETTINGS_KEY,
         value: normalizedSettings,
-        description: 'BPM 측정기/메트로놈 메뉴 및 접근 숨김 설정',
+        description: '홈 메뉴 앱 숨김 설정',
       },
       { onConflict: 'key' },
     );

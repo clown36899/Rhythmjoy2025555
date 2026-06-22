@@ -43,7 +43,11 @@ const PINNED_MENU_STORAGE_KEY = "home_v2_pinned_menu_ids";
 const MENU_ORDER_STORAGE_KEY = "home_v2_menu_order_ids";
 const PINNED_MENU_LIMIT = 5;
 const DEFAULT_PINNED_MENU_IDS: string[] = ["tempo-tool"];
-const HIDEABLE_MENU_ITEM_IDS = new Set(["bpm-tapper", "metronome", "tempo-tool"]);
+const HIDEABLE_MENU_ITEM_IDS = new Set(
+    HOME_MENU_ITEMS
+        .filter((item) => item.id !== "home")
+        .map((item) => item.id),
+);
 
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
@@ -261,7 +265,6 @@ export const HomeV2MenuPanel: React.FC = () => {
     const suppressSyntheticClickUntilRef = useRef(0);
     const menuActionTimerRef = useRef<number | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
-    const isTempoToolHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, "tempo-tool");
     const visibleHomeMenuItems = useMemo(() => {
         return HOME_MENU_ITEMS.filter((item) => {
             if (isAdmin) return true;
@@ -585,10 +588,6 @@ export const HomeV2MenuPanel: React.FC = () => {
         tempoToolVisibilitySettings.hidden,
         tempoToolVisibilitySettings.hiddenItemIds,
     ]);
-
-    const toggleTempoToolVisibility = useCallback(() => {
-        void toggleMenuItemVisibility("tempo-tool");
-    }, [toggleMenuItemVisibility]);
 
     const getMenuItemStatus = useCallback((item: HomeMenuItem) => {
         if (isAdmin && isTempoToolItemHidden(tempoToolVisibilitySettings, item.id)) return "숨김";
@@ -1241,24 +1240,6 @@ export const HomeV2MenuPanel: React.FC = () => {
 
                 {isExpanded && (
                     <>
-                        {isAdmin && !isEditMode && (
-                            <button
-                                type="button"
-                                className={`home-v2-menu-visibility-btn ${isTempoToolHidden ? "is-hidden" : ""}`}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    toggleTempoToolVisibility();
-                                }}
-                                disabled={isSavingTempoToolVisibility || isTempoToolVisibilityLoading}
-                                aria-label={isTempoToolHidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
-                                aria-pressed={isTempoToolHidden}
-                                title={isTempoToolHidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
-                            >
-                                <i className={isTempoToolHidden ? "ri-eye-line" : "ri-eye-off-line"} aria-hidden="true" />
-                                <span>{isTempoToolHidden ? "공개" : "숨김"}</span>
-                            </button>
-                        )}
-
                         <button
                             type="button"
                             className={`home-v2-menu-edit-btn ${isEditMode ? "is-active" : ""}`}

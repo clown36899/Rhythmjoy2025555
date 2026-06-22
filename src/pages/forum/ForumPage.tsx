@@ -9,6 +9,7 @@ import './forum.css';
 
 type ForumMenuItem = {
     id: string;
+    visibilityId?: string;
     title: string;
     description: string;
     icon: string;
@@ -28,6 +29,7 @@ const ForumPage: React.FC = () => {
     const menuItems: ForumMenuItem[] = [
         {
             id: 'media',
+            visibilityId: 'forum-media',
             title: 'SNS 아카이브',
             description: '유튜브·인스타 영상',
             icon: 'ri-movie-2-line',
@@ -37,6 +39,7 @@ const ForumPage: React.FC = () => {
         },
         {
             id: 'library',
+            visibilityId: 'forum-library',
             title: '라이브러리',
             description: '자료 보관소',
             icon: 'ri-book-open-line',
@@ -45,6 +48,7 @@ const ForumPage: React.FC = () => {
         },
         {
             id: 'links',
+            visibilityId: 'forum-links',
             title: '사이트 모음',
             description: '유용한 관련 링크',
             icon: 'ri-earth-line',
@@ -80,11 +84,11 @@ const ForumPage: React.FC = () => {
                     {menuItems
                         .filter((item) => {
                             if (isAdmin) return true;
-                            if (isTempoToolVisibilityLoading) return item.id !== 'bpm-tapper' && item.id !== 'metronome';
-                            return !isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);
+                            if (isTempoToolVisibilityLoading) return false;
+                            return !isTempoToolItemHidden(tempoToolVisibilitySettings, item.visibilityId ?? item.id);
                         })
                         .map((item) => {
-                            const isHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);
+                            const isHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, item.visibilityId ?? item.id);
                             const status = isAdmin && isHidden ? '숨김' : item.status;
 
                             return (

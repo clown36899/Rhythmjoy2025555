@@ -1,5 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../../../hooks/useTempoToolVisibilitySettings';
 import "../../../styles/components/HomeNavButtonsSection.css";
 
 interface HomeNavButtonsSectionProps {
@@ -14,6 +19,17 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
     classImages = []
 }) => {
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
+    const {
+        settings: menuVisibilitySettings,
+        isLoading: isMenuVisibilityLoading,
+    } = useTempoToolVisibilitySettings();
+
+    const isMenuItemVisible = (itemId: string) => (
+        isAdmin || (!isMenuVisibilityLoading && !isTempoToolItemHidden(menuVisibilitySettings, itemId))
+    );
+    const showCalendarCard = isMenuItemVisible('calendar');
+    const showEventsCards = isMenuItemVisible('events');
 
     const handleSocialClick = () => {
         navigate('/calendar?category=social&scrollToToday=true');
@@ -99,10 +115,12 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
         );
     };
 
+    if (!showCalendarCard && !showEventsCards) return null;
+
     return (
         <section className="HNBS-container">
             <div className="HNBS-grid">
-                {renderNavCard(
+                {showCalendarCard && renderNavCard(
                     'social', 
                     '소셜정보', 
                     handleSocialClick, 
@@ -110,7 +128,7 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                     '달력의 소셜 탭으로 바로 이동', 
                     '/calendar?category=social'
                 )}
-                {renderNavCard(
+                {showEventsCards && renderNavCard(
                     'event', 
                     '행사정보', 
                     handleEventsClick, 
@@ -118,7 +136,7 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                     '행사 전용 페이지로 이동', 
                     '/events'
                 )}
-                {renderNavCard(
+                {showEventsCards && renderNavCard(
                     'class', 
                     '강습정보', 
                     handleClassesClick, 

@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
 import { cafe24 } from '../../../lib/cafe24Client';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../../../hooks/useTempoToolVisibilitySettings';
 import './VideoThumbnailSection.css';
 
 interface VideoThumbnail {
@@ -33,6 +38,12 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
     const [videos, setVideos] = useState<VideoThumbnail[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
+    const {
+        settings: menuVisibilitySettings,
+        isLoading: isMenuVisibilityLoading,
+    } = useTempoToolVisibilitySettings();
+    const isLibraryHidden = !isAdmin && isTempoToolItemHidden(menuVisibilitySettings, 'forum-library');
 
     useEffect(() => {
         const fetchRecentVideos = async () => {
@@ -77,6 +88,9 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
 
         fetchRecentVideos();
     }, []);
+
+    if (!isAdmin && isMenuVisibilityLoading) return null;
+    if (isLibraryHidden) return null;
 
     if (loading) {
         return (

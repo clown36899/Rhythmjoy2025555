@@ -78,7 +78,7 @@ window.addEventListener('load', () => {
   setTimeout(() => sessionStorage.removeItem('chunkRetries'), 3000);
 });
 
-import { StrictMode, useEffect, lazy, Suspense } from 'react'
+import { StrictMode, useEffect, lazy, Suspense, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Navigate, useLocation } from 'react-router-dom';
 import { authLogger } from './utils/authLogger';
@@ -106,7 +106,7 @@ import 'mobile-drag-drop/default.css';
 
 import { PageActionProvider } from './contexts/PageActionContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BoardDataProvider } from './contexts/BoardDataContext';
 import { ModalProvider } from './contexts/ModalContext';
 import { LoadingProvider } from './contexts/LoadingContext';
@@ -114,6 +114,10 @@ import { InstallPromptProvider } from './contexts/InstallPromptContext';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
+import {
+  isTempoToolItemHidden,
+  useTempoToolVisibilitySettings,
+} from './hooks/useTempoToolVisibilitySettings';
 
 import App from './App.tsx'
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
@@ -184,6 +188,20 @@ const BillboardFallback = () => (
     <LocalLoading message="로딩 중..." />
   </div>
 );
+
+function MenuVisibilityGate({ itemId, children }: { itemId: string; children: ReactNode }) {
+  const { isAdmin, isAuthCheckComplete } = useAuth();
+  const {
+    settings: menuVisibilitySettings,
+    isLoading: isMenuVisibilityLoading,
+  } = useTempoToolVisibilitySettings();
+
+  if (isAdmin) return <>{children}</>;
+  if (!isAuthCheckComplete || isMenuVisibilityLoading) return null;
+  if (isTempoToolItemHidden(menuVisibilitySettings, itemId)) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+}
 
 const router = createBrowserRouter([
   {
@@ -278,24 +296,24 @@ const router = createBrowserRouter([
       { path: "/kiosk", element: <KioskEntryRoute /> },
       { path: "/v2", element: <LegacyV2Redirect /> },
       // { path: "/v2/events/:id", element: <EventDetailPage /> }, // Disabled
-      { path: "/calendar", element: <CalendarPage /> },
-      { path: "/events", element: <EventsInfoPage /> },
+      { path: "/calendar", element: <MenuVisibilityGate itemId="calendar"><CalendarPage /></MenuVisibilityGate> },
+      { path: "/events", element: <MenuVisibilityGate itemId="events"><EventsInfoPage /></MenuVisibilityGate> },
       { path: "/oneday-recruits", element: <OneDayRecruitPage /> },
       { path: "/social", element: <SocialPage /> },
       { path: "/social/calendar", element: <SocialCalendarPage /> },
       { path: "/social/clubs", element: <SocialClubsPage /> },
       { path: "/social/swing-bars", element: <SocialSwingBarsPage /> },
       { path: "/practice", element: <PracticePage /> },
-      { path: "/shopping", element: <ShoppingPage /> },
-      { path: "/guide", element: <GuidePage /> },
+      { path: "/shopping", element: <MenuVisibilityGate itemId="shopping"><ShoppingPage /></MenuVisibilityGate> },
+      { path: "/guide", element: <MenuVisibilityGate itemId="guide"><GuidePage /></MenuVisibilityGate> },
       { path: "/privacy", element: <PrivacyPage /> },
-      { path: "/board/*", element: <BoardPage /> },
+      { path: "/board/*", element: <MenuVisibilityGate itemId="board"><BoardPage /></MenuVisibilityGate> },
       { path: "/forum", element: <ForumPage /> },
-      { path: "/forum/media", element: <MediaArchivePage /> },
-      { path: "/forum/media/share", element: <MediaArchivePage /> },
-      { path: "/bpm-tapper", element: <BpmTapperPage /> },
-      { path: "/metronome", element: <MetronomePage /> },
-      { path: "/tempo-tool", element: <TempoToolPage /> },
+      { path: "/forum/media", element: <MenuVisibilityGate itemId="forum-media"><MediaArchivePage /></MenuVisibilityGate> },
+      { path: "/forum/media/share", element: <MenuVisibilityGate itemId="forum-media"><MediaArchivePage /></MenuVisibilityGate> },
+      { path: "/bpm-tapper", element: <MenuVisibilityGate itemId="bpm-tapper"><BpmTapperPage /></MenuVisibilityGate> },
+      { path: "/metronome", element: <MenuVisibilityGate itemId="metronome"><MetronomePage /></MenuVisibilityGate> },
+      { path: "/tempo-tool", element: <MenuVisibilityGate itemId="tempo-tool"><TempoToolPage /></MenuVisibilityGate> },
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },
@@ -310,8 +328,8 @@ const router = createBrowserRouter([
       { path: "/admin/ui/calendar-guide", element: <Suspense fallback={null}><CalendarGuidePage /></Suspense> },
       { path: "/admin/ui/v2-main-ad-guide", element: <Suspense fallback={null}><V2MainAdGuidePage /></Suspense> },
       { path: "/admin/ui/dance-expansion-guide", element: <Suspense fallback={null}><DanceExpansionGuidePage /></Suspense> },
-      { path: "/links", element: <LinksPage /> },
-      { path: "/places", element: <PlacesPage /> },
+      { path: "/links", element: <MenuVisibilityGate itemId="forum-links"><LinksPage /></MenuVisibilityGate> },
+      { path: "/places", element: <MenuVisibilityGate itemId="places"><PlacesPage /></MenuVisibilityGate> },
 
       // Webzine Routes
       { path: "/webzine/:id", element: <WebzineViewer /> },

@@ -319,8 +319,7 @@
 }
 
 .home-v2-menu-edit-btn,
-.home-v2-menu-reset-btn,
-.home-v2-menu-visibility-btn {
+.home-v2-menu-reset-btn {
   position: absolute;
   height: 46px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -347,41 +346,18 @@
   padding: 0 8px;
 }
 
-.home-v2-menu-visibility-btn {
-  left: 0;
-  display: inline-flex;
-  min-width: 78px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 9px;
-}
-
-.home-v2-menu-visibility-btn.is-hidden {
-  border-color: rgba(250, 204, 21, 0.52);
-  background: rgba(250, 204, 21, 0.16);
-  color: #fef3c7;
-}
-
-.home-v2-menu-visibility-btn:disabled {
-  cursor: wait;
-  opacity: 0.62;
-}
-
 .home-v2-menu-edit-btn.is-active {
   background: #3d73ff;
   color: #fff;
 }
 
 .home-v2-menu-edit-btn i,
-.home-v2-menu-reset-btn i,
-.home-v2-menu-visibility-btn i {
+.home-v2-menu-reset-btn i {
   font-size: 19px;
   line-height: 1;
 }
 
-.home-v2-menu-reset-btn span,
-.home-v2-menu-visibility-btn span {
+.home-v2-menu-reset-btn span {
   font-size: 12px;
   font-weight: 900;
   line-height: 1;

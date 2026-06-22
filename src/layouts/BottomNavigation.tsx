@@ -12,6 +12,11 @@ import {
 import { useEffect } from 'react';
 import { logUserInteraction } from '../lib/analytics';
 import { useModalActions } from '../contexts/ModalContext';
+import { useAuth } from '../contexts/AuthContext';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../hooks/useTempoToolVisibilitySettings';
 
 interface BottomNavigationProps {
     pageAction?: {
@@ -38,11 +43,26 @@ const getBottomNavigationAnalyticsId = (path: string) => {
     return `bottom_nav_${key}`;
 };
 
+const getBottomNavigationVisibilityId = (path: string) => {
+    const pathKeyMap: Record<string, string> = {
+        '/calendar': 'calendar',
+        '/shopping': 'shopping',
+        '/guide': 'guide',
+    };
+
+    return pathKeyMap[path] ?? null;
+};
+
 export function BottomNavigation({ pageAction, onPageActionClick }: BottomNavigationProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
     const { openModal } = useModalActions();
+    const { isAdmin } = useAuth();
+    const {
+        settings: menuVisibilitySettings,
+        isLoading: isMenuVisibilityLoading,
+    } = useTempoToolVisibilitySettings();
     const currentPath = location.pathname;
 
 
@@ -107,7 +127,12 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
             onWheel={(e) => e.stopPropagation()}
         >
             {(() => {
-                const items = [...NAVIGATION_ITEMS];
+                const items = NAVIGATION_ITEMS.filter((item) => {
+                    const visibilityId = getBottomNavigationVisibilityId(item.path);
+                    if (!visibilityId || isAdmin) return true;
+                    if (isMenuVisibilityLoading) return false;
+                    return !isTempoToolItemHidden(menuVisibilitySettings, visibilityId);
+                });
                 // Insert FAB in the middle (index 3)
                 const buttons = items.map((item, _index) => {
                     let isActive = false;
