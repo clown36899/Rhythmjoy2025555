@@ -16,6 +16,17 @@ import {
 } from './mediaArchiveUtils';
 import './mediaArchive.css';
 
+type YouTubePlayerInstance = {
+  playVideo?: () => void;
+  pauseVideo?: () => void;
+  seekTo?: (seconds: number, allowSeekAhead?: boolean) => void;
+  getCurrentTime?: () => number;
+  getDuration?: () => number;
+  getPlaybackRate?: () => number;
+  setPlaybackRate?: (rate: number) => void;
+  destroy?: () => void;
+};
+
 declare global {
   interface Window {
     instgrm?: {
@@ -23,6 +34,24 @@ declare global {
         process?: () => void;
       };
     };
+    YT?: {
+      Player: new (
+        element: HTMLIFrameElement,
+        options: {
+          events?: {
+            onReady?: (event: { target: YouTubePlayerInstance }) => void;
+            onStateChange?: (event: { data: number; target: YouTubePlayerInstance }) => void;
+          };
+        },
+      ) => YouTubePlayerInstance;
+      PlayerState?: {
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+      };
+    };
+    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
@@ -835,10 +864,44 @@ function loadInstagramScript() {
   window.instgrm?.Embeds?.process?.();
 }
 
-type YouTubePlayerCommand = {
-  id: number;
-  func: 'playVideo' | 'pauseVideo';
-};
+let youtubeIframeApiPromise: Promise<void> | null = null;
+
+function loadYouTubeIframeApi() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.resolve();
+  }
+  if (window.YT?.Player) return Promise.resolve();
+  if (youtubeIframeApiPromise) return youtubeIframeApiPromise;
+
+  youtubeIframeApiPromise = new Promise((resolve, reject) => {
+    const previousCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousCallback?.();
+      resolve();
+    };
+
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://www.youtube.com/iframe_api"]');
+    if (existing) return;
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.onerror = () => {
+      youtubeIframeApiPromise = null;
+      reject(new Error('YouTube IFrame API load failed'));
+    };
+    document.body.appendChild(script);
+  });
+
+  return youtubeIframeApiPromise;
+}
+
+function formatMediaTime(value?: number) {
+  const safeValue = Number.isFinite(value) && value ? Math.max(0, Math.floor(value)) : 0;
+  const minutes = Math.floor(safeValue / 60);
+  const seconds = safeValue % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
 
 function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; minimalControls?: boolean } = {}) {
   if (!url) return '';
@@ -864,20 +927,11 @@ function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; 
   }
 }
 
-function postYouTubePlayerCommand(frame: HTMLIFrameElement | null, func: YouTubePlayerCommand['func']) {
-  frame?.contentWindow?.postMessage(JSON.stringify({
-    event: 'command',
-    func,
-    args: [],
-  }), '*');
-}
-
 const MediaEmbed: React.FC<{
   item: SnsMediaItem;
   autoplay?: boolean;
   minimalControls?: boolean;
-  playerCommand?: YouTubePlayerCommand | null;
-}> = ({ item, autoplay = false, minimalControls = false, playerCommand = null }) => {
+}> = ({ item, autoplay = false, minimalControls = false }) => {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
@@ -885,11 +939,6 @@ const MediaEmbed: React.FC<{
       window.setTimeout(loadInstagramScript, 50);
     }
   }, [item.platform, item.id]);
-
-  useEffect(() => {
-    if (item.platform !== 'youtube' || !playerCommand) return;
-    postYouTubePlayerCommand(frameRef.current, playerCommand.func);
-  }, [item.platform, playerCommand]);
 
   if (item.platform === 'youtube' && item.embed_url) {
     return (
@@ -925,6 +974,208 @@ const MediaEmbed: React.FC<{
       <i className="ri-external-link-line" />
       원본 열기
     </a>
+  );
+};
+
+const YOUTUBE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const YOUTUBE_STATE_ENDED = 0;
+const YOUTUBE_STATE_PLAYING = 1;
+const YOUTUBE_STATE_PAUSED = 2;
+
+const YouTubeCustomPlayer: React.FC<{
+  item: SnsMediaItem;
+  originalUrl: string;
+}> = ({ item, originalUrl }) => {
+  const frameRef = useRef<HTMLIFrameElement | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const playerRef = useRef<YouTubePlayerInstance | null>(null);
+  const [ready, setReady] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
+  const safeDuration = duration > 0 ? duration : 0;
+  const seekValue = safeDuration > 0 ? Math.min(currentTime, safeDuration) : 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    let createdPlayer: YouTubePlayerInstance | null = null;
+    setReady(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaybackRate(1);
+    setIsPaused(false);
+
+    loadYouTubeIframeApi()
+      .then(() => {
+        if (cancelled || !frameRef.current || !window.YT?.Player) return;
+
+        createdPlayer = new window.YT.Player(frameRef.current, {
+          events: {
+            onReady: (event) => {
+              if (cancelled) return;
+              playerRef.current = event.target;
+              setReady(true);
+              setDuration(event.target.getDuration?.() || 0);
+              setPlaybackRate(event.target.getPlaybackRate?.() || 1);
+              event.target.playVideo?.();
+            },
+            onStateChange: (event) => {
+              if (event.data === (window.YT?.PlayerState?.PLAYING ?? YOUTUBE_STATE_PLAYING)) {
+                setIsPaused(false);
+              }
+              if (
+                event.data === (window.YT?.PlayerState?.PAUSED ?? YOUTUBE_STATE_PAUSED) ||
+                event.data === (window.YT?.PlayerState?.ENDED ?? YOUTUBE_STATE_ENDED)
+              ) {
+                setIsPaused(true);
+              }
+            },
+          },
+        });
+        playerRef.current = createdPlayer;
+      })
+      .catch(() => {
+        setReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+      playerRef.current = null;
+      try {
+        createdPlayer?.destroy?.();
+      } catch {
+        // YouTube iframe cleanup can throw if the iframe has already navigated.
+      }
+    };
+  }, [item.id, embedUrl]);
+
+  useEffect(() => {
+    if (!ready) return undefined;
+    const intervalId = window.setInterval(() => {
+      const player = playerRef.current;
+      if (!player) return;
+      setCurrentTime(player.getCurrentTime?.() || 0);
+      setDuration(player.getDuration?.() || 0);
+      setPlaybackRate(player.getPlaybackRate?.() || 1);
+    }, 500);
+
+    return () => window.clearInterval(intervalId);
+  }, [ready]);
+
+  const togglePlayback = () => {
+    const player = playerRef.current;
+    if (!player) return;
+    if (isPaused) {
+      player.playVideo?.();
+      setIsPaused(false);
+      return;
+    }
+    player.pauseVideo?.();
+    setIsPaused(true);
+  };
+
+  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.target.value);
+    setCurrentTime(nextTime);
+    playerRef.current?.seekTo?.(nextTime, true);
+  };
+
+  const handlePlaybackRateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextRate = Number(event.target.value);
+    setPlaybackRate(nextRate);
+    try {
+      playerRef.current?.setPlaybackRate?.(nextRate);
+    } catch {
+      setPlaybackRate(playerRef.current?.getPlaybackRate?.() || 1);
+    }
+  };
+
+  const handleFullscreen = () => {
+    shellRef.current?.requestFullscreen?.();
+  };
+
+  return (
+    <div className="media-custom-player" ref={shellRef}>
+      <div className="media-mini-player">
+        <iframe
+          ref={frameRef}
+          className="media-embed-frame media-embed-frame--minimal"
+          src={embedUrl}
+          title={item.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
+      <div className="media-custom-controls" aria-label="YouTube 플레이어 컨트롤">
+        <button
+          type="button"
+          className="media-mini-action-button media-custom-control-button"
+          draggable={false}
+          disabled={!ready}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={togglePlayback}
+        >
+          <i className={isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
+          {isPaused ? '재생' : '일시정지'}
+        </button>
+        <span className="media-custom-time">{formatMediaTime(currentTime)}</span>
+        <input
+          className="media-custom-seek"
+          type="range"
+          min="0"
+          max={safeDuration || 0}
+          step="0.1"
+          value={seekValue}
+          disabled={!ready || !safeDuration}
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onChange={handleSeek}
+          aria-label="재생 위치"
+        />
+        <span className="media-custom-time">{formatMediaTime(safeDuration)}</span>
+        <label className="media-custom-speed">
+          <span>속도</span>
+          <select
+            value={playbackRate}
+            disabled={!ready}
+            onChange={handlePlaybackRateChange}
+            aria-label="재생 속도"
+          >
+            {YOUTUBE_SPEED_OPTIONS.map((rate) => (
+              <option key={rate} value={rate}>
+                {rate}x
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="media-mini-action-button media-custom-control-button"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={handleFullscreen}
+        >
+          <i className="ri-fullscreen-line" />
+          전체
+        </button>
+        {originalUrl && (
+          <a
+            className="media-mini-action-button media-custom-control-button media-mini-youtube-button"
+            href={originalUrl}
+            target="_blank"
+            rel="noreferrer"
+            draggable={false}
+            onDragStart={preventMediaArchiveDrag}
+            aria-label="원본 YouTube에서 보기"
+          >
+            <i className="ri-youtube-line" />
+            유튜브
+          </a>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -1183,6 +1434,7 @@ const MediaCard: React.FC<{
   const expanded = playingItemId === item.id;
   const dateLabel = item.published_at || item.created_at;
   const originalUrl = item.normalized_url || item.url;
+  const showCustomYouTubePlayer = expanded && item.platform === 'youtube' && Boolean(item.embed_url);
   const handlePreviewClick = () => {
     if (item.platform === 'instagram' || item.platform === 'other') {
       window.open(originalUrl, '_blank', 'noopener,noreferrer');
@@ -1193,9 +1445,13 @@ const MediaCard: React.FC<{
 
   return (
     <article className={`media-card media-card--${item.platform} ${!item.is_approved ? 'is-pending' : ''}`}>
-      <div className="media-preview">
+      <div className={`media-preview ${showCustomYouTubePlayer ? 'media-preview--custom-player' : ''}`}>
         {expanded ? (
-          <MediaEmbed item={item} autoplay />
+          showCustomYouTubePlayer ? (
+            <YouTubeCustomPlayer item={item} originalUrl={originalUrl} />
+          ) : (
+            <MediaEmbed item={item} autoplay />
+          )
         ) : (
           <button className="media-preview-button" type="button" onClick={handlePreviewClick}>
             <MediaThumbnailImage
@@ -1511,8 +1767,6 @@ const MediaMiniCard: React.FC<{
   onEdit?: (item: SnsMediaItem) => void;
 } & MediaPlaybackProps> = ({ item, canManage = false, onEdit, playingItemId, onPlayItem }) => {
   const expanded = playingItemId === item.id;
-  const [isPaused, setIsPaused] = useState(false);
-  const [playerCommand, setPlayerCommand] = useState<YouTubePlayerCommand | null>(null);
   const metaText = [
     item.author_name,
     item.dance_genre,
@@ -1522,39 +1776,22 @@ const MediaMiniCard: React.FC<{
   const originalUrl = item.normalized_url || item.url;
   const canEdit = canManage && Boolean(onEdit);
 
-  useEffect(() => {
-    if (expanded) setIsPaused(false);
-  }, [expanded, item.id]);
-
-  const sendPlayerCommand = (func: YouTubePlayerCommand['func']) => {
-    setPlayerCommand({ id: Date.now(), func });
-    setIsPaused(func === 'pauseVideo');
-  };
-
   if (expanded) {
     return (
       <article className="media-mini-card media-mini-card--expanded is-playing">
-        <div className="media-mini-player">
-          <MediaEmbed item={item} autoplay minimalControls playerCommand={playerCommand} />
-        </div>
+        {item.platform === 'youtube' && item.embed_url ? (
+          <YouTubeCustomPlayer item={item} originalUrl={originalUrl} />
+        ) : (
+          <div className="media-mini-player">
+            <MediaEmbed item={item} autoplay />
+          </div>
+        )}
         <div className="media-mini-expanded-footer">
           <span className="media-mini-copy">
             <strong>{item.title || '제목 없음'}</strong>
             <small>{metaText}</small>
           </span>
           <span className="media-mini-expanded-actions">
-            {item.platform === 'youtube' && (
-              <button
-                type="button"
-                className="media-mini-action-button"
-                draggable={false}
-                onDragStart={preventMediaArchiveDrag}
-                onClick={() => sendPlayerCommand(isPaused ? 'playVideo' : 'pauseVideo')}
-              >
-                <i className={isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
-                {isPaused ? '재생' : '일시정지'}
-              </button>
-            )}
             <button
               type="button"
               className="media-mini-action-button"
@@ -1565,19 +1802,6 @@ const MediaMiniCard: React.FC<{
               <i className="ri-close-line" />
               닫기
             </button>
-            {originalUrl && (
-              <a
-                className="media-mini-action-button"
-                href={originalUrl}
-                target="_blank"
-                rel="noreferrer"
-                draggable={false}
-                onDragStart={preventMediaArchiveDrag}
-              >
-                <i className="ri-youtube-line" />
-                원본
-              </a>
-            )}
             {canEdit && (
               <button
                 type="button"

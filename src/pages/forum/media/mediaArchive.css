@@ -874,6 +874,107 @@
   background: #05080d;
 }
 
+.media-custom-player {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.media-custom-player:fullscreen {
+  padding: 12px;
+  background: #000;
+}
+
+.media-custom-player:fullscreen .media-mini-player {
+  min-height: 0;
+  height: calc(100vh - 74px);
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.media-custom-controls {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto auto minmax(80px, 1fr) auto auto auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-surface-1) 88%, #05080d);
+  user-select: none;
+}
+
+.media-custom-control-button {
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 8px;
+}
+
+.media-custom-time {
+  min-width: 32px;
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.media-custom-seek {
+  min-width: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  accent-color: var(--media-accent-strong);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.media-custom-seek:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.media-custom-seek::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-tertiary) 34%, transparent);
+}
+
+.media-custom-seek::-webkit-slider-thumb {
+  margin-top: -5px;
+}
+
+.media-custom-speed {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.media-custom-speed select {
+  min-width: 58px;
+  min-height: 32px;
+  padding: 0 7px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-surface-2) 82%, transparent);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.media-mini-youtube-button {
+  border-color: color-mix(in srgb, #ff0033 45%, var(--border-secondary));
+  background: color-mix(in srgb, #ff0033 68%, #111827);
+  color: #fff;
+}
+
 .media-mini-expanded-footer {
   min-width: 0;
   display: grid;
@@ -1007,6 +1108,12 @@
   border-color: var(--media-accent-border);
   background: var(--media-accent-soft);
   color: var(--text-primary);
+}
+
+.media-mini-action-button:disabled,
+.media-mini-edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .media-collection-grid {
@@ -2252,6 +2359,15 @@
   min-height: 0;
 }
 
+.media-preview--custom-player {
+  aspect-ratio: auto;
+  background: transparent;
+}
+
+.media-preview--custom-player .media-mini-player {
+  min-height: 190px;
+}
+
 .media-preview-button {
   position: relative;
   display: block;
@@ -2707,6 +2823,23 @@
   .media-grid,
   .media-mini-grid {
     grid-template-columns: 1fr;
+  }
+
+  .media-custom-controls {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+  }
+
+  .media-custom-seek {
+    grid-column: 1 / -1;
+    order: 2;
+  }
+
+  .media-custom-speed {
+    grid-column: 1 / span 2;
+  }
+
+  .media-custom-control-button {
+    padding: 0 7px;
   }
 
   .media-playlist-detail-toolbar {
