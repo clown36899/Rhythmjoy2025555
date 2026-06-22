@@ -31,6 +31,11 @@ const pwaDebug = (...args: unknown[]) => {
   if (PWA_DEBUG) console.debug(...args);
 };
 
+const shouldPrefetchCalendarForPath = (pathname: string) => (
+  pathname === '/' ||
+  pathname === '/main-v2-test'
+);
+
 function AppContent() {
   const location = useLocation();
 
@@ -42,6 +47,7 @@ function AppContent() {
 
   // [Cache] 달력 데이터 사전 페칭 (Prefetching)
   useEffect(() => {
+    if (!shouldPrefetchCalendarForPath(location.pathname)) return;
     if (calendarPrefetchStarted) return;
 
     const prefetchCalendar = async () => {
@@ -64,7 +70,7 @@ function AppContent() {
       }
     };
 
-    const delayMs = location.pathname.startsWith('/board') ? 6000 : 1800;
+    const delayMs = 1800;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let idleId: number | null = null;
 

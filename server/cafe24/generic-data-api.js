@@ -571,6 +571,53 @@ function splitTopLevel(input) {
   return parts;
 }
 
+const SELECT_PROJECTABLE_TABLES = new Set(['board_posts', 'board_anonymous_posts']);
+
+function getSelectProjectionKey(part) {
+  const token = String(part || '').trim();
+  if (!token || token === '*') return token;
+
+  const relationIndex = token.indexOf('(');
+  if (relationIndex >= 0) {
+    const head = token.slice(0, relationIndex).trim();
+    const aliasIndex = head.indexOf(':');
+    const outputKey = aliasIndex > 0 ? head.slice(0, aliasIndex) : head;
+    return outputKey.split('!')[0].trim();
+  }
+
+  const aliasIndex = token.indexOf(':');
+  if (aliasIndex > 0) return token.slice(0, aliasIndex).trim();
+  return token.replace(/\s+.*/, '').trim();
+}
+
+function getSelectProjectionKeys(select = '') {
+  const parts = splitTopLevel(String(select || '')).filter(Boolean);
+  if (!parts.length) return null;
+
+  const keys = [];
+  for (const part of parts) {
+    const key = getSelectProjectionKey(part);
+    if (key === '*') return null;
+    if (key) keys.push(key);
+  }
+
+  return keys.length ? Array.from(new Set(keys)) : null;
+}
+
+function projectRowsBySelect(table, rows = [], select = '') {
+  if (!SELECT_PROJECTABLE_TABLES.has(table)) return rows;
+  const keys = getSelectProjectionKeys(select);
+  if (!keys) return rows;
+
+  return rows.map((row) => {
+    const next = {};
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(row, key)) next[key] = row[key];
+    }
+    return next;
+  });
+}
+
 function parseExpression(expr) {
   const normalized = expr.trim();
   if (normalized.startsWith('and(') && normalized.endsWith(')')) {
@@ -850,15 +897,17 @@ async function findRelated(table, field, value) {
   return rows.find((row) => String(getValue(row, field)) === String(value)) || null;
 }
 
-async function findBoardPrefix(row) {
+async function findBoardPrefix(row, prefixRows = null) {
+  const prefixes = prefixRows || await loadRows('board_prefixes');
+
   if (row.prefix_id !== undefined && row.prefix_id !== null && row.prefix_id !== '') {
-    const byId = await findRelated('board_prefixes', 'id', row.prefix_id);
+    const byId = prefixes.find((prefix) => String(getValue(prefix, 'id')) === String(row.prefix_id));
     if (byId) return byId;
   }
 
   const prefixCode = row.prefix_code || row.prefix;
   if (prefixCode !== undefined && prefixCode !== null && prefixCode !== '') {
-    return findRelated('board_prefixes', 'code', prefixCode);
+    return prefixes.find((prefix) => String(getValue(prefix, 'code')) === String(prefixCode)) || null;
   }
 
   return null;
@@ -877,6 +926,7 @@ async function hydrateRows(table, rows, select = '', user = null) {
   const wantsLinkedDocument = select.includes('linked_document');
   const wantsLinkedPlaylist = select.includes('linked_playlist');
   const wantsLinkedCategory = select.includes('linked_category');
+  const boardPrefixes = table === 'board_posts' && wantsPrefix ? await loadRows('board_prefixes') : null;
   const featuredItems = table === 'shops' && wantsFeaturedItems ? await loadRows('featured_items') : [];
   const socialGroupFavorites = table === 'social_groups' && wantsSocialGroupFavorites ? await loadRows('social_group_favorites') : [];
 
@@ -896,7 +946,7 @@ async function hydrateRows(table, rows, select = '', user = null) {
       next.board_posts = await findRelated('board_posts', 'id', row.post_id);
     }
     if (table === 'board_posts' && wantsPrefix) {
-      next.prefix = await findBoardPrefix(row);
+      next.prefix = await findBoardPrefix(row, boardPrefixes);
     }
     if (table === 'shops' && wantsFeaturedItems) {
       next.featured_items = sortRows(featuredItems.filter((item) => String(item.shop_id) === String(row.id)));
@@ -2268,6 +2318,7 @@ export async function queryRecords(req, res) {
   } else {
     data = sanitizeRowsForViewer(table, data, user);
   }
+  data = projectRowsBySelect(table, data, body.select || '');
 
   if (body.head) {
     res.json(responsePayload({ data: null, count }));

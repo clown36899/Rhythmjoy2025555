@@ -179,7 +179,7 @@ export default function AnonymousPostList({
                                             dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
                                         />
 
-                                        {post.image && (
+                                        {post.image_thumbnail && (
                                             <div
                                                 className="memo-thumbnail-wrapper"
                                                 onClick={(e) => {
@@ -188,9 +188,10 @@ export default function AnonymousPostList({
                                                 }}
                                             >
                                                 <img
-                                                    src={post.image_thumbnail || post.image}
+                                                    src={post.image_thumbnail}
                                                     alt="Memo attachment"
                                                     loading="lazy"
+                                                    decoding="async"
                                                 />
                                                 <div className="thumbnail-zoom-overlay">
                                                     <i className="ri-zoom-in-line"></i>

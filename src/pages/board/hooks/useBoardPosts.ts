@@ -39,7 +39,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 prefix:board_prefixes(id, name, color, admin_only),
                 created_at, updated_at, category,
                 ${isFreeBoard ? '' : 'content,'}
-                image_thumbnail, image, is_hidden, comment_count,
+                image_thumbnail, ${isFreeBoard ? '' : 'image,'} is_hidden, comment_count,
                 likes, favorites, dislikes, display_order
             `;
 

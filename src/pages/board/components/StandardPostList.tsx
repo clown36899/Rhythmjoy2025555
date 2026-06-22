@@ -88,12 +88,12 @@ export default function StandardPostList({
     );
 
     const renderFreeThumbnail = (post: StandardBoardPost) => {
-        const src = post.image_thumbnail || post.image;
+        const src = post.image_thumbnail;
         if (!src) return <span className="free-board-no-thumb" aria-hidden="true" />;
 
         return (
             <div className="free-board-thumb">
-                <img src={src} alt="" loading="lazy" draggable={false} />
+                <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />
             </div>
         );
     };
@@ -189,7 +189,7 @@ export default function StandardPostList({
                     <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>
                 </div>
             </div>
-            {(post.image_thumbnail || post.image) && renderFreeThumbnail(post)}
+            {post.image_thumbnail && renderFreeThumbnail(post)}
         </article>
     );
 
@@ -203,7 +203,7 @@ export default function StandardPostList({
             <div className="board-post-top-row">
                 {post.image_thumbnail && (
                     <div className="board-post-thumbnail">
-                        <img src={post.image_thumbnail} alt="thumbnail" loading="lazy" draggable={false} />
+                        <img src={post.image_thumbnail} alt="thumbnail" loading="lazy" decoding="async" draggable={false} />
                     </div>
                 )}
 
