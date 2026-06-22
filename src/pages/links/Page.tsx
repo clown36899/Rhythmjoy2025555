@@ -84,7 +84,7 @@ const getPersonGroupId = (link: SiteLink) => String(link.person_group_id || '').
 
 const getTargetUrl = (link: SiteLink) => link.normalized_url || link.url;
 
-const createPersonGroupId = () => `person-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createPersonGroupId = () => `bridge-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const uniqueBy = <T,>(items: T[], keyFn: (item: T) => string) => {
     const seen = new Set<string>();
@@ -114,24 +114,29 @@ const getPrimaryLink = (links: SiteLink[]) => {
     return links.find((link) => String(link.id) === primaryId) || links[0];
 };
 
-const getAccountTitle = (link: SiteLink) => (
-    firstText([link.title, link.account_handle ? `@${link.account_handle}` : '']) || '이름 없는 계정'
+const getLinkDisplayTitle = (link: SiteLink) => (
+    getResolvedLinkType(link) === 'person_account'
+        ? firstText([link.title, link.account_handle ? `@${link.account_handle}` : '']) || '이름 없는 계정'
+        : firstText([link.title, getDisplayDomain(getTargetUrl(link))]) || '이름 없는 사이트'
 );
 
 const getAccountClusterTitle = (links: SiteLink[]) => {
+    const savedTitle = firstText(links.map((link) => link.person_group_title));
+    if (savedTitle) return savedTitle;
+
     const titles = uniqueBy(
-        links.map(getAccountTitle).filter(Boolean),
+        links.map(getLinkDisplayTitle).filter(Boolean),
         (title) => title.toLowerCase()
     );
 
-    if (titles.length === 0) return '인물 계정 묶음';
+    if (titles.length === 0) return '링크 묶음';
     if (titles.length === 1) return titles[0];
     if (titles.length === 2) return titles.join(' · ');
-    return `${titles[0]} 외 ${titles.length - 1}개 계정`;
+    return `${titles[0]} 외 ${titles.length - 1}개 링크`;
 };
 
 const getAccountClusterCategory = (links: SiteLink[]) => (
-    firstText(links.map((link) => link.person_group_category)) || firstText(links.map((link) => link.category)) || '인물'
+    firstText(links.map((link) => link.person_group_category)) || firstText(links.map((link) => link.category)) || '링크'
 );
 
 const getPlatforms = (links: SiteLink[]) => (
@@ -153,6 +158,24 @@ const getHandleSummary = (links: SiteLink[]) => (
         .map((handle) => `@${handle}`)
         .join(' · ')
 );
+
+const getBridgeItemCountLabel = (links: SiteLink[]) => {
+    const accountCount = links.filter((link) => getResolvedLinkType(link) === 'person_account').length;
+    const siteCount = links.length - accountCount;
+
+    if (accountCount > 0 && siteCount > 0) return `${siteCount}개 사이트 · ${accountCount}개 계정`;
+    if (accountCount > 0) return `${accountCount}개 계정`;
+    return `${siteCount}개 사이트`;
+};
+
+const getLinkSecondaryText = (link: SiteLink) => {
+    const targetUrl = getTargetUrl(link);
+    if (getResolvedLinkType(link) === 'person_account') {
+        const handle = String(link.account_handle || '').trim();
+        return handle ? `${getPlatformLabel(link.account_platform)} @${handle}` : getPlatformLabel(link.account_platform);
+    }
+    return getDisplayDomain(targetUrl);
+};
 
 const getCategoryForFilter = (link: SiteLink) => (
     link.person_group_category || link.category
@@ -253,7 +276,7 @@ export default function LinksPage() {
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const [activeSearchSuggestionIndex, setActiveSearchSuggestionIndex] = useState(0);
     const [filterCategory, setFilterCategory] = useState<string>('전체');
-    const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(() => new Set());
+    const [selectedMergeIds, setSelectedMergeIds] = useState<Set<string>>(() => new Set());
     const [mergeLinks, setMergeLinks] = useState<SiteLink[] | null>(null);
     const [bridgeLinks, setBridgeLinks] = useState<SiteLink[] | null>(null);
     const [isManageMode, setIsManageMode] = useState(false);
@@ -334,13 +357,9 @@ export default function LinksPage() {
         navigate('/links', { replace: true });
     }, [location.hash, location.search, navigate]);
 
-    const accountLinks = useMemo(() => (
-        links.filter((link) => getResolvedLinkType(link) === 'person_account')
-    ), [links]);
-
     const groupMembersById = useMemo(() => {
         const map = new Map<string, SiteLink[]>();
-        accountLinks.forEach((link) => {
+        links.forEach((link) => {
             const groupId = getPersonGroupId(link);
             if (!groupId) return;
             const members = map.get(groupId) || [];
@@ -348,7 +367,7 @@ export default function LinksPage() {
             map.set(groupId, members);
         });
         return map;
-    }, [accountLinks]);
+    }, [links]);
 
     const normalizedSearchQuery = normalizeSearchValue(searchQuery);
 
@@ -376,9 +395,8 @@ export default function LinksPage() {
     const cardItems = useMemo<AccountCardItem[]>(() => {
         const seenGroups = new Set<string>();
         return filteredLinks.reduce<AccountCardItem[]>((items, link) => {
-            const isAccount = getResolvedLinkType(link) === 'person_account';
-            const groupId = isAccount ? getPersonGroupId(link) : '';
-            if (isAccount && groupId) {
+            const groupId = getPersonGroupId(link);
+            if (groupId) {
                 if (seenGroups.has(groupId)) return items;
                 seenGroups.add(groupId);
                 const members = groupMembersById.get(groupId) || [link];
@@ -403,8 +421,8 @@ export default function LinksPage() {
     }, [filteredLinks, groupMembersById]);
 
     const selectedLinks = useMemo(() => (
-        accountLinks.filter((link) => selectedAccountIds.has(getLinkKey(link)))
-    ), [accountLinks, selectedAccountIds]);
+        links.filter((link) => selectedMergeIds.has(getLinkKey(link)))
+    ), [links, selectedMergeIds]);
     const canUseLocalManageTools = isLocalRuntimeHost();
     const canUseManageMode = isAdmin || Boolean(user) || canUseLocalManageTools;
     const canMutateLinksAsAdmin = isAdmin || canUseLocalManageTools;
@@ -454,8 +472,8 @@ export default function LinksPage() {
         }
     };
 
-    const toggleAccountSelection = (targetLinks: SiteLink[], checked?: boolean) => {
-        setSelectedAccountIds((prev) => {
+    const toggleMergeSelection = (targetLinks: SiteLink[], checked?: boolean) => {
+        setSelectedMergeIds((prev) => {
             const next = new Set(prev);
             const shouldSelect = checked ?? !targetLinks.every((link) => next.has(getLinkKey(link)));
             targetLinks.forEach((link) => {
@@ -470,7 +488,7 @@ export default function LinksPage() {
         if (!showAdminManageTools) return;
         const selected = uniqueBy(selectedLinks, getLinkKey);
         if (selected.length < 2) {
-            alert('합칠 인물 계정을 2개 이상 선택해주세요.');
+            alert('합칠 사이트나 인물 계정을 2개 이상 선택해주세요.');
             return;
         }
         setMergeLinks(selected);
@@ -478,7 +496,7 @@ export default function LinksPage() {
 
     const leaveManageMode = () => {
         setIsManageMode(false);
-        setSelectedAccountIds(new Set());
+        setSelectedMergeIds(new Set());
         setMergeLinks(null);
     };
 
@@ -499,18 +517,18 @@ export default function LinksPage() {
             await runLinkUpdatesInBatches(targetLinks, (link) => (
                 cafe24.from('site_links').update(payload).eq('id', link.id)
             ));
-            setSelectedAccountIds(new Set());
+            setSelectedMergeIds(new Set());
             setMergeLinks(null);
             await fetchLinks();
         } catch (error) {
             console.error('Person merge failed:', error);
-            alert('인물 계정 병합 중 오류가 발생했습니다.');
+            alert('사이트·인물 병합 중 오류가 발생했습니다.');
         }
     };
 
     const handleUngroup = async (targetLinks: SiteLink[]) => {
         if (!canMutateLinksAsAdmin) return;
-        if (!confirm('이 인물 묶음을 해제하시겠습니까? 개별 계정은 삭제되지 않습니다.')) return;
+        if (!confirm('이 묶음을 해제하시겠습니까? 개별 링크는 삭제되지 않습니다.')) return;
         try {
             const payload = {
                 person_group_id: null,
@@ -524,7 +542,7 @@ export default function LinksPage() {
             await runLinkUpdatesInBatches(targetLinks, (link) => (
                 cafe24.from('site_links').update(payload).eq('id', link.id)
             ));
-            setSelectedAccountIds(new Set());
+            setSelectedMergeIds(new Set());
             setBridgeLinks(null);
             await fetchLinks();
         } catch (error) {
@@ -668,15 +686,15 @@ export default function LinksPage() {
                 </div>
             </div>
 
-            {showAdminManageTools && accountLinks.length > 1 && (
+            {showAdminManageTools && links.length > 1 && (
                 <div className="person-merge-toolbar">
                     <div className="person-merge-toolbar-copy">
-                        <strong>{selectedLinks.length > 0 ? `${selectedLinks.length}개 계정 선택됨` : '인물 계정 병합'}</strong>
-                        <span>같은 사람의 Instagram, YouTube 계정을 하나의 브릿지 카드로 묶을 수 있습니다.</span>
+                        <strong>{selectedLinks.length > 0 ? `${selectedLinks.length}개 링크 선택됨` : '사이트·인물 병합'}</strong>
+                        <span>사이트와 Instagram, YouTube 계정을 하나의 브릿지 카드로 묶을 수 있습니다.</span>
                     </div>
                     <div className="person-merge-toolbar-actions">
                         {selectedLinks.length > 0 && (
-                            <button type="button" className="glass-btn secondary" onClick={() => setSelectedAccountIds(new Set())}>
+                            <button type="button" className="glass-btn secondary" onClick={() => setSelectedMergeIds(new Set())}>
                                 선택 해제
                             </button>
                         )}
@@ -710,25 +728,26 @@ export default function LinksPage() {
                         const link = item.representative;
                         const resolvedType = getResolvedLinkType(link);
                         const isAccountCard = resolvedType === 'person_account';
+                        const isBridgeCard = item.kind === 'group' || isAccountCard;
                         const isGroup = item.kind === 'group';
-                        const title = isGroup ? getAccountClusterTitle(item.links) : isAccountCard ? getAccountTitle(link) : link.title;
+                        const title = isGroup ? getAccountClusterTitle(item.links) : getLinkDisplayTitle(link);
                         const description = isGroup ? '' : link.description;
                         const imageUrl = isGroup ? '' : link.image_url;
                         const category = isGroup ? getAccountClusterCategory(item.links) : link.category;
                         const targetUrl = getTargetUrl(getPrimaryLink(item.links));
                         const accountHandle = getHandleSummary(item.links);
                         const platforms = getPlatforms(item.links);
-                        const isSelected = item.links.length > 0 && item.links.every((target) => selectedAccountIds.has(getLinkKey(target)));
+                        const isSelected = item.links.length > 0 && item.links.every((target) => selectedMergeIds.has(getLinkKey(target)));
                         const isPending = item.links.some((target) => !isTruthy(target.is_approved));
                         const canManageSingle = isManageMode && item.kind === 'single' && (canMutateLinksAsAdmin || (user && user.id === link.created_by));
 
                         return (
                             <div
                                 key={item.key}
-                                className={`glass-card link-item ${isAccountCard ? 'account-card' : ''} ${isGroup ? 'grouped-account-card' : ''} ${isPending ? 'pending' : ''} ${isManageMode ? 'is-manage-mode' : ''}`}
+                                className={`glass-card link-item ${isBridgeCard ? 'account-card' : ''} ${isGroup ? 'grouped-account-card' : ''} ${isPending ? 'pending' : ''} ${isManageMode ? 'is-manage-mode' : ''}`}
                                 onClick={() => {
-                                    if (showAdminManageTools && isAccountCard) {
-                                        toggleAccountSelection(item.links);
+                                    if (showAdminManageTools) {
+                                        toggleMergeSelection(item.links);
                                         return;
                                     }
                                     if (isManageMode) return;
@@ -737,12 +756,12 @@ export default function LinksPage() {
                                 }}
                             >
 
-                                {showAdminManageTools && isAccountCard && (
+                                {showAdminManageTools && (
                                     <label className={`merge-select-control ${isSelected ? 'active' : ''}`} onClick={(e) => e.stopPropagation()}>
                                         <input
                                             type="checkbox"
                                             checked={isSelected}
-                                            onChange={(event) => toggleAccountSelection(item.links, event.target.checked)}
+                                            onChange={(event) => toggleMergeSelection(item.links, event.target.checked)}
                                         />
                                         <span>{isSelected ? '선택됨' : '선택'}</span>
                                     </label>
@@ -782,8 +801,8 @@ export default function LinksPage() {
                                             )}
                                         </div>
                                     )}
-                                    <div className={`link-content ${isAccountCard ? 'account-profile-content' : ''}`}>
-                                        {isAccountCard ? (
+                                    <div className={`link-content ${isBridgeCard ? 'account-profile-content' : ''}`}>
+                                        {isBridgeCard ? (
                                             <div className="account-profile-meta">
                                                 {platforms.map((platform) => (
                                                     <span key={platform} className={`account-platform-pill ${platform}`}>
@@ -791,7 +810,7 @@ export default function LinksPage() {
                                                         <span>{getPlatformLabel(platform)}</span>
                                                     </span>
                                                 ))}
-                                                {isGroup && <span className="glass-tag merged-person-tag">{item.links.length}개 계정</span>}
+                                                {isGroup && <span className="glass-tag merged-person-tag">{getBridgeItemCountLabel(item.links)}</span>}
                                                 <span className="glass-tag">{category || getLinkTypeLabel(resolvedType)}</span>
                                             </div>
                                         ) : (
@@ -802,15 +821,15 @@ export default function LinksPage() {
                                             </div>
                                         )}
                                         <h3 className="link-title" title={title}>{title}</h3>
-                                        {isAccountCard && accountHandle && (
+                                        {isBridgeCard && accountHandle && (
                                             <p className="account-handle-line" title={accountHandle}>{accountHandle}</p>
                                         )}
                                         {isGroup ? (
-                                            <div className="account-cluster-list" aria-label="묶인 계정">
+                                            <div className="account-cluster-list" aria-label="묶인 링크">
                                                 {item.links.slice(0, 4).map((target) => (
                                                     <span key={getLinkKey(target)}>
                                                         <i className={getPlatformIcon(target.account_platform)}></i>
-                                                        <b>{getAccountTitle(target)}</b>
+                                                        <b>{getLinkDisplayTitle(target)}</b>
                                                     </span>
                                                 ))}
                                                 {item.links.length > 4 && <em>+{item.links.length - 4}</em>}
@@ -920,7 +939,7 @@ function PersonMergeModal({
         <div className="links-modal-overlay glass-overlay">
             <div className="links-modal-panel glass-panel person-merge-panel" onClick={e => e.stopPropagation()}>
                 <div className="links-modal-header">
-                    <h2 className="links-modal-title">인물 계정 합치기</h2>
+                    <h2 className="links-modal-title">사이트·인물 합치기</h2>
                     <button className="links-modal-close" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
 
@@ -929,7 +948,7 @@ function PersonMergeModal({
                         <AccountAvatarStack links={links} variant="modal" />
                         <div className="account-cluster-preview-copy">
                             <strong>{title}</strong>
-                            <span>각 계정의 이름, 이미지, 링크는 그대로 살리고 한 카드 안에 묶습니다.</span>
+                            <span>각 사이트와 계정의 이름, 이미지, 링크는 그대로 살리고 한 카드 안에 묶습니다.</span>
                         </div>
                     </div>
 
@@ -938,8 +957,8 @@ function PersonMergeModal({
                             <div key={getLinkKey(link)} className="merge-source-item">
                                 <AccountAvatar link={link} />
                                 <div className="merge-source-copy">
-                                    <strong>{getAccountTitle(link)}</strong>
-                                    <span>{getPlatformLabel(link.account_platform)} @{link.account_handle || '-'}</span>
+                                    <strong>{getLinkDisplayTitle(link)}</strong>
+                                    <span>{getLinkSecondaryText(link)}</span>
                                 </div>
                             </div>
                         ))}
@@ -950,7 +969,7 @@ function PersonMergeModal({
                     <button type="button" onClick={onClose} className="glass-btn secondary">취소</button>
                     <button type="button" onClick={submit} className="glass-btn primary">
                         <i className="ri-git-merge-line"></i>
-                        한 인물로 묶기
+                        브릿지 카드로 묶기
                     </button>
                 </div>
             </div>
@@ -984,8 +1003,8 @@ function PersonBridgeModal({
                     <div className="bridge-profile-head account-cluster-preview">
                         <AccountAvatarStack links={links} variant="modal" />
                         <div className="account-cluster-preview-copy">
-                            <strong>{links.length}개 계정</strong>
-                            <span>열고 싶은 SNS 계정을 선택하세요.</span>
+                            <strong>{getBridgeItemCountLabel(links)}</strong>
+                            <span>열고 싶은 사이트나 SNS 계정을 선택하세요.</span>
                         </div>
                     </div>
 
@@ -997,8 +1016,8 @@ function PersonBridgeModal({
                                     <button type="button" className="bridge-account-main" onClick={() => window.open(targetUrl, '_blank', 'noopener noreferrer')}>
                                         <AccountAvatar link={link} />
                                         <span className="bridge-account-copy">
-                                            <strong>{getAccountTitle(link)}</strong>
-                                            <em>{getPlatformLabel(link.account_platform)} @{link.account_handle || '-'}</em>
+                                            <strong>{getLinkDisplayTitle(link)}</strong>
+                                            <em>{getLinkSecondaryText(link)}</em>
                                         </span>
                                         <i className="ri-arrow-right-up-line"></i>
                                     </button>
@@ -1029,7 +1048,7 @@ function AccountAvatar({ link }: { link: SiteLink }) {
     return (
         <span className="account-mini-avatar">
             {link.image_url ? (
-                <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
+                <img src={link.image_url} alt={getLinkDisplayTitle(link)} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
             ) : (
                 <i className={getPlatformIcon(link.account_platform)}></i>
             )}
@@ -1049,7 +1068,7 @@ function AccountAvatarStack({ links, variant }: { links: SiteLink[]; variant: 'c
     const hiddenLabel = hiddenCount > 99 ? '99+' : `+${hiddenCount}`;
 
     return (
-        <div className={`account-avatar-stack ${variant}`} aria-label={`${links.length}개 계정`}>
+        <div className={`account-avatar-stack ${variant}`} aria-label={getBridgeItemCountLabel(links)}>
             {visibleLinks.map((link, index) => (
                 <span
                     key={getLinkKey(link)}
@@ -1057,7 +1076,7 @@ function AccountAvatarStack({ links, variant }: { links: SiteLink[]; variant: 'c
                     style={{ zIndex: visibleLinks.length - index } as React.CSSProperties}
                 >
                     {link.image_url ? (
-                        <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
+                        <img src={link.image_url} alt={getLinkDisplayTitle(link)} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
                     ) : (
                         <i className={getPlatformIcon(link.account_platform)}></i>
                     )}

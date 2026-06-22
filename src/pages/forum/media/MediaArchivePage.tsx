@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
+import ImageCropModal from '../../../components/ImageCropModal';
+import { createResizedImages } from '../../../utils/imageResize';
 import {
   buildSearchText,
   mediaTypeLabel,
@@ -47,13 +49,17 @@ type MediaPlaybackProps = {
   onPlayItem: (itemId: string) => void;
 };
 
-const getDisplayName = (user: ReturnType<typeof useAuth>['user'], fallback?: string | null) => (
-  fallback ||
-  user?.user_metadata?.name ||
-  user?.user_metadata?.full_name ||
-  user?.email?.split('@')[0] ||
-  '사용자'
-);
+const getDisplayName = (user: ReturnType<typeof useAuth>['user'], fallback?: string | null): string => {
+  const metadataName = user?.user_metadata?.name;
+  const metadataFullName = user?.user_metadata?.full_name;
+  return (
+    compactText(fallback) ||
+    (typeof metadataName === 'string' ? compactText(metadataName) : '') ||
+    (typeof metadataFullName === 'string' ? compactText(metadataFullName) : '') ||
+    compactText(user?.email?.split('@')[0]) ||
+    '사용자'
+  );
+};
 
 const buildOrFilter = (term: string) => {
   const safe = term.trim().replace(/[(),]/g, ' ');
@@ -205,6 +211,12 @@ function safeImageUrl(value?: string | null) {
   } catch {
     return '';
   }
+}
+
+function previewImageUrl(value?: string | null) {
+  const trimmed = String(value || '').trim();
+  if (/^data:image\//i.test(trimmed)) return trimmed;
+  return safeImageUrl(trimmed);
 }
 
 function safeExternalUrl(value?: string | null) {
@@ -752,6 +764,15 @@ function getRemoteShortcutThumbnail(data: RemoteMediaMetadata) {
     safeImageUrl(data.image_url) ||
     options[0]?.url ||
     ''
+  );
+}
+
+function isGeneratedShortcutCoverUrl(value?: string | null) {
+  const url = compactText(value).toLowerCase();
+  return (
+    url.includes('image.thum.io/get/') ||
+    url.includes('thum.io/get/') ||
+    url.includes('s.wordpress.com/mshots/v1/')
   );
 }
 
@@ -2446,7 +2467,13 @@ const MediaArchivePage: React.FC = () => {
   const [parsed, setParsed] = useState(() => parseMediaUrl(''));
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [playlistMetadataLoading, setPlaylistMetadataLoading] = useState(false);
+  const [playlistMetadataError, setPlaylistMetadataError] = useState('');
+  const [playlistCoverFile, setPlaylistCoverFile] = useState<File | null>(null);
+  const [playlistCoverTempSrc, setPlaylistCoverTempSrc] = useState<string | null>(null);
+  const [isPlaylistCoverCropOpen, setIsPlaylistCoverCropOpen] = useState(false);
+  const [playlistCoverLoadFailed, setPlaylistCoverLoadFailed] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const playlistCoverFileInputRef = useRef<HTMLInputElement | null>(null);
   const clipperImportKeyRef = useRef('');
   const metadataFetchKeyRef = useRef('');
   const playlistMetadataFetchKeyRef = useRef('');
@@ -2474,6 +2501,83 @@ const MediaArchivePage: React.FC = () => {
   );
 
   const playlistOptions = useMemo(() => buildPlaylistTreeOptions(playlists), [playlists]);
+
+  const playlistCoverPreviewUrl = useMemo(
+    () => previewImageUrl(playlistForm.coverUrl),
+    [playlistForm.coverUrl],
+  );
+
+  const fetchPlaylistShortcutMetadata = useCallback(async (
+    shortcutUrl: string,
+    options: { replaceCover?: boolean; signal?: AbortSignal } = {},
+  ) => {
+    const normalizedShortcutUrl = safeExternalUrl(shortcutUrl);
+    if (!normalizedShortcutUrl) return false;
+
+    setPlaylistMetadataLoading(true);
+    setPlaylistMetadataError('');
+    try {
+      const response = await fetch('/api/fetch-og-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: normalizedShortcutUrl }),
+        signal: options.signal,
+      });
+      if (!response.ok) throw new Error(`metadata fetch failed: ${response.status}`);
+      const data = (await response.json()) as RemoteMediaMetadata;
+
+      const remoteTitle = compactText(data.title);
+      const remoteDescription = trimText(data.description);
+      const remoteThumbnail = getRemoteShortcutThumbnail(data);
+
+      setPlaylistForm((prev) => {
+        if (!prev.isShortcut || safeExternalUrl(prev.shortcutUrl) !== normalizedShortcutUrl) return prev;
+
+        const next = { ...prev };
+        let changed = false;
+
+        if (remoteTitle && !compactText(next.name)) {
+          next.name = remoteTitle;
+          changed = true;
+        }
+        if (remoteDescription && !trimText(next.description)) {
+          next.description = remoteDescription;
+          changed = true;
+        }
+        if (remoteThumbnail) {
+          const currentCover = compactText(next.coverUrl);
+          const shouldReplaceCover = Boolean(
+            options.replaceCover ||
+            !previewImageUrl(currentCover) ||
+            isGeneratedShortcutCoverUrl(currentCover)
+          );
+          if (shouldReplaceCover && currentCover !== remoteThumbnail) {
+            next.coverUrl = remoteThumbnail;
+            changed = true;
+          }
+        }
+
+        return changed ? next : prev;
+      });
+
+      if (remoteThumbnail && options.replaceCover) {
+        setPlaylistCoverFile(null);
+        setPlaylistCoverLoadFailed(false);
+      }
+      if (!remoteThumbnail && options.replaceCover) {
+        setPlaylistMetadataError('커버 후보를 찾지 못했습니다. 파일 업로드나 직접 URL 입력을 사용해주세요.');
+      }
+      return true;
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.warn('[MediaArchive] playlist metadata fetch failed:', error);
+        setPlaylistMetadataError('사이트 커버를 가져오지 못했습니다. 파일 업로드나 직접 URL 입력을 사용해주세요.');
+      }
+      return false;
+    } finally {
+      if (!options.signal?.aborted) setPlaylistMetadataLoading(false);
+    }
+  }, []);
 
   const previewItem = useMemo<SnsMediaItem>(() => {
     const media = parsed || parseMediaUrl(form.url);
@@ -2611,6 +2715,10 @@ const MediaArchivePage: React.FC = () => {
   }, [query]);
 
   useEffect(() => {
+    setPlaylistCoverLoadFailed(false);
+  }, [playlistForm.coverUrl]);
+
+  useEffect(() => {
     const node = sentinelRef.current;
     if (!node || !hasMore || loading || loadingMore) return undefined;
 
@@ -2715,59 +2823,12 @@ const MediaArchivePage: React.FC = () => {
     playlistMetadataFetchKeyRef.current = shortcutUrl;
 
     const controller = new AbortController();
-    let cancelled = false;
-    setPlaylistMetadataLoading(true);
-
-    (async () => {
-      try {
-        const response = await fetch('/api/fetch-og-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: shortcutUrl }),
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error(`metadata fetch failed: ${response.status}`);
-        const data = (await response.json()) as RemoteMediaMetadata;
-        if (cancelled) return;
-
-        setPlaylistForm((prev) => {
-          if (!prev.isShortcut || safeExternalUrl(prev.shortcutUrl) !== shortcutUrl) return prev;
-
-          const next = { ...prev };
-          const remoteTitle = compactText(data.title);
-          const remoteDescription = trimText(data.description);
-          const remoteThumbnail = getRemoteShortcutThumbnail(data);
-          let changed = false;
-
-          if (remoteTitle && !compactText(next.name)) {
-            next.name = remoteTitle;
-            changed = true;
-          }
-          if (remoteDescription && !trimText(next.description)) {
-            next.description = remoteDescription;
-            changed = true;
-          }
-          if (remoteThumbnail && !safeImageUrl(next.coverUrl)) {
-            next.coverUrl = remoteThumbnail;
-            changed = true;
-          }
-
-          return changed ? next : prev;
-        });
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          console.warn('[MediaArchive] playlist metadata fetch failed:', error);
-        }
-      } finally {
-        if (!cancelled) setPlaylistMetadataLoading(false);
-      }
-    })();
+    void fetchPlaylistShortcutMetadata(shortcutUrl, { signal: controller.signal });
 
     return () => {
-      cancelled = true;
       controller.abort();
     };
-  }, [playlistForm.isShortcut, playlistForm.shortcutUrl, showPlaylistForm]);
+  }, [fetchPlaylistShortcutMetadata, playlistForm.isShortcut, playlistForm.shortcutUrl, showPlaylistForm]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2895,6 +2956,14 @@ const MediaArchivePage: React.FC = () => {
     setPlaylistForm(emptyPlaylistForm);
     setEditingPlaylist(null);
     setPlaylistMetadataLoading(false);
+    setPlaylistMetadataError('');
+    setPlaylistCoverFile(null);
+    setPlaylistCoverTempSrc(null);
+    setIsPlaylistCoverCropOpen(false);
+    setPlaylistCoverLoadFailed(false);
+    if (playlistCoverFileInputRef.current) {
+      playlistCoverFileInputRef.current.value = '';
+    }
     playlistMetadataFetchKeyRef.current = '';
   };
 
@@ -2921,11 +2990,63 @@ const MediaArchivePage: React.FC = () => {
     setShowAddChoice(false);
   };
 
+  const readPlaylistCoverFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일을 선택해주세요.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageSource = event.target?.result as string;
+      setPlaylistCoverTempSrc(imageSource);
+      setIsPlaylistCoverCropOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePlaylistCoverFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) readPlaylistCoverFile(file);
+    event.target.value = '';
+  };
+
+  const openPlaylistCoverEditor = () => {
+    if (playlistCoverPreviewUrl) {
+      setPlaylistCoverTempSrc(playlistCoverPreviewUrl);
+      setIsPlaylistCoverCropOpen(true);
+      return;
+    }
+    playlistCoverFileInputRef.current?.click();
+  };
+
+  const handlePlaylistCoverCropComplete = (croppedFile: File, croppedPreviewUrl: string) => {
+    setPlaylistCoverFile(croppedFile);
+    setPlaylistCoverTempSrc(croppedPreviewUrl);
+    setPlaylistCoverLoadFailed(false);
+    setPlaylistForm((prev) => ({ ...prev, coverUrl: croppedPreviewUrl }));
+  };
+
+  const uploadPlaylistCoverFile = async (playlistId: string, file: File) => {
+    const resized = await createResizedImages(file, undefined, `playlist-cover-${playlistId}.jpg`);
+    const uploadFile = resized.full;
+    const extension = uploadFile.name.split('.').pop() || 'webp';
+    const path = `sns-media-playlists/${playlistId}/cover.${extension}`;
+    const { error } = await cafe24.storage
+      .from('images')
+      .upload(path, uploadFile, { upsert: true, contentType: uploadFile.type });
+    if (error) throw error;
+    return cafe24.storage.from('images').getPublicUrl(path).data.publicUrl;
+  };
+
   const canManagePlaylist = useCallback((playlist: SnsMediaPlaylist) => (
     Boolean(isAdmin || playlist.created_by === user?.id || playlist.owner_id === user?.id)
   ), [isAdmin, user?.id]);
 
-  const savePlaylistFromForm = async (sourceForm: MediaPlaylistForm, existing?: SnsMediaPlaylist | null) => {
+  const savePlaylistFromForm = async (
+    sourceForm: MediaPlaylistForm,
+    existing?: SnsMediaPlaylist | null,
+    coverFile?: File | null,
+  ) => {
     if (!user) {
       await signInWithKakao();
       return null;
@@ -2944,8 +3065,12 @@ const MediaArchivePage: React.FC = () => {
       alert('사이트 바로가기 URL을 http:// 또는 https:// 주소로 입력해주세요.');
       return null;
     }
+    const playlistId = existing?.id || createMediaPlaylistId();
+    const coverUrl = coverFile
+      ? await uploadPlaylistCoverFile(playlistId, coverFile)
+      : safeImageUrl(sourceForm.coverUrl) || null;
     const payload: Partial<SnsMediaPlaylist> = {
-      id: existing?.id || createMediaPlaylistId(),
+      id: playlistId,
       name,
       parent_id: compactText(sourceForm.parentId) || null,
       description: trimText(sourceForm.description) || null,
@@ -2953,13 +3078,13 @@ const MediaArchivePage: React.FC = () => {
       dance_genre: compactText(sourceForm.danceGenre) || null,
       tags,
       tags_text: tags.join(', '),
-      cover_url: safeImageUrl(sourceForm.coverUrl) || null,
+      cover_url: coverUrl,
       is_shortcut: Boolean(sourceForm.isShortcut),
       shortcut_url: shortcutUrl || null,
       is_public: Boolean(sourceForm.isPublic),
       owner_id: existing?.owner_id || user.id,
       created_by: existing?.created_by || user.id,
-      created_by_name: existing?.created_by_name || getDisplayName(user, userProfile?.nickname),
+      created_by_name: existing?.created_by_name || getDisplayName(user, typeof userProfile?.nickname === 'string' ? userProfile.nickname : null),
       updated_at: now,
     };
     payload.search_text = buildPlaylistSearchText(payload).slice(0, 2000);
@@ -2991,7 +3116,7 @@ const MediaArchivePage: React.FC = () => {
   const handlePlaylistSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      const saved = await savePlaylistFromForm(playlistForm, editingPlaylist);
+      const saved = await savePlaylistFromForm(playlistForm, editingPlaylist, playlistCoverFile);
       if (!saved) return;
       setShowPlaylistForm(false);
       resetPlaylistForm();
@@ -3379,14 +3504,98 @@ const MediaArchivePage: React.FC = () => {
                   {availableGenres.map((item) => <option key={item} value={item} />)}
                 </datalist>
               </label>
-              <label className="media-field">
+              <div className="media-field media-field--wide media-playlist-cover-field">
                 <span>커버 URL</span>
-                <input
-                  value={playlistForm.coverUrl}
-                  onChange={(event) => setPlaylistForm((prev) => ({ ...prev, coverUrl: event.target.value }))}
-                  placeholder="비워두면 카드 썸네일을 사용"
-                />
-              </label>
+                <div className="media-cover-url-row">
+                  <input
+                    value={playlistForm.coverUrl}
+                    onChange={(event) => {
+                      setPlaylistCoverFile(null);
+                      setPlaylistMetadataError('');
+                      setPlaylistForm((prev) => ({ ...prev, coverUrl: event.target.value }));
+                    }}
+                    placeholder="비워두면 카드 썸네일을 사용"
+                  />
+                  <button
+                    type="button"
+                    className="media-ghost-button"
+                    onClick={() => {
+                      const shortcutUrl = safeExternalUrl(playlistForm.shortcutUrl);
+                      if (!shortcutUrl) {
+                        alert('먼저 바로가기 URL을 입력해주세요.');
+                        return;
+                      }
+                      void fetchPlaylistShortcutMetadata(shortcutUrl, { replaceCover: true });
+                    }}
+                    disabled={!playlistForm.isShortcut || !safeExternalUrl(playlistForm.shortcutUrl) || playlistMetadataLoading}
+                  >
+                    <i className={playlistMetadataLoading ? 'ri-loader-4-line ri-spin' : 'ri-search-eye-line'} />
+                    가져오기
+                  </button>
+                  <button
+                    type="button"
+                    className="media-ghost-button"
+                    onClick={() => playlistCoverFileInputRef.current?.click()}
+                  >
+                    <i className="ri-upload-cloud-2-line" />
+                    업로드
+                  </button>
+                  <button
+                    type="button"
+                    className="media-ghost-button"
+                    onClick={openPlaylistCoverEditor}
+                    disabled={!playlistCoverPreviewUrl}
+                  >
+                    <i className="ri-crop-2-line" />
+                    편집
+                  </button>
+                  <button
+                    type="button"
+                    className="media-ghost-button"
+                    onClick={() => {
+                      setPlaylistCoverFile(null);
+                      setPlaylistCoverTempSrc(null);
+                      setPlaylistCoverLoadFailed(false);
+                      setPlaylistForm((prev) => ({ ...prev, coverUrl: '' }));
+                    }}
+                    disabled={!compactText(playlistForm.coverUrl) && !playlistCoverFile}
+                    aria-label="커버 지우기"
+                  >
+                    <i className="ri-close-line" />
+                  </button>
+                </div>
+                <small className={`media-field-help ${playlistMetadataError ? 'media-field-help--error' : ''}`}>
+                  {playlistMetadataError || (playlistMetadataLoading ? '사이트 제목과 커버 후보를 확인하는 중...' : '바로가기 커버가 깨지면 다시 가져오거나 업로드 후 편집하세요.')}
+                </small>
+                {(playlistCoverPreviewUrl || compactText(playlistForm.coverUrl)) && (
+                  <div className={`media-cover-editor-preview ${playlistCoverLoadFailed ? 'is-broken' : ''}`}>
+                    {playlistCoverPreviewUrl && !playlistCoverLoadFailed ? (
+                      <img
+                        src={playlistCoverPreviewUrl}
+                        alt="카드 커버 미리보기"
+                        draggable={false}
+                        onDragStart={preventMediaArchiveDrag}
+                        onError={() => setPlaylistCoverLoadFailed(true)}
+                      />
+                    ) : (
+                      <span className="media-cover-editor-placeholder">
+                        <i className="ri-image-line" />
+                        <b>커버를 불러오지 못했습니다</b>
+                      </span>
+                    )}
+                    <div className="media-cover-editor-actions">
+                      <button type="button" onClick={() => playlistCoverFileInputRef.current?.click()}>
+                        <i className="ri-upload-cloud-2-line" />
+                        업로드
+                      </button>
+                      <button type="button" onClick={openPlaylistCoverEditor} disabled={!playlistCoverPreviewUrl}>
+                        <i className="ri-crop-2-line" />
+                        편집
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <label className="media-check-field">
                 <input
                   type="checkbox"
@@ -3410,12 +3619,6 @@ const MediaArchivePage: React.FC = () => {
                   <small className="media-field-help">
                     {playlistMetadataLoading ? '사이트 제목과 썸네일을 확인하는 중...' : '저장 후 카드 클릭 시 이 사이트를 새 창으로 엽니다.'}
                   </small>
-                  {safeImageUrl(playlistForm.coverUrl) && (
-                    <div className="media-submit-preview">
-                      <img src={safeImageUrl(playlistForm.coverUrl)} alt="" draggable={false} onDragStart={preventMediaArchiveDrag} />
-                      <span>카드 커버 미리보기</span>
-                    </div>
-                  )}
                 </label>
               )}
               <label className="media-field media-field--wide">
@@ -3450,6 +3653,23 @@ const MediaArchivePage: React.FC = () => {
                 {canCreate ? '저장' : '로그인 후 저장'}
               </button>
             </div>
+            <input
+              ref={playlistCoverFileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handlePlaylistCoverFileSelect}
+            />
+            <ImageCropModal
+              isOpen={isPlaylistCoverCropOpen}
+              imageUrl={playlistCoverTempSrc}
+              onClose={() => setIsPlaylistCoverCropOpen(false)}
+              onCropComplete={handlePlaylistCoverCropComplete}
+              onChangeImage={() => playlistCoverFileInputRef.current?.click()}
+              onImageUpdate={readPlaylistCoverFile}
+              fileName={`${compactText(playlistForm.name) || 'playlist-cover'}.jpg`}
+              originalImageUrl={playlistCoverTempSrc}
+            />
           </form>
         </MediaModalFrame>
       )}
