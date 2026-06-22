@@ -15,6 +15,13 @@
     animation: fadeIn 0.4s ease-out;
 }
 
+.links-page-glass-container img,
+.links-modal-overlay img {
+    -webkit-user-drag: none;
+    user-drag: none;
+    user-select: none;
+}
+
 /* Background Glowing Orbs */
 .links-page-glass-container::before {
     content: '';

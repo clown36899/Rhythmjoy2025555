@@ -70,6 +70,12 @@ const isTruthy = (value: unknown) => (
     String(value || '') === '1'
 );
 
+function preventLinksPageDrag(event: React.DragEvent<HTMLElement>) {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('[data-links-drag-allowed="true"]')) return;
+    event.preventDefault();
+}
+
 const firstText = (values: Array<string | null | undefined>) => (
     values.map((value) => String(value || '').trim()).find(Boolean) || ''
 );
@@ -557,7 +563,7 @@ export default function LinksPage() {
     };
 
     return (
-        <div className="links-page-glass-container">
+        <div className="links-page-glass-container" onDragStartCapture={preventLinksPageDrag}>
             <header className="links-hero-header">
                 <div className="links-hero-content">
                     <p className="subtitle-glass">댄스씬의 사이트와 인물 계정을 모아봅니다.</p>
@@ -759,6 +765,7 @@ export default function LinksPage() {
                                                     alt={title}
                                                     loading="lazy"
                                                     referrerPolicy="no-referrer"
+                                                    draggable={false}
                                                     className={isAccountCard ? 'account-avatar-image' : undefined}
                                                 />
                                             ) : (
@@ -1022,7 +1029,7 @@ function AccountAvatar({ link }: { link: SiteLink }) {
     return (
         <span className="account-mini-avatar">
             {link.image_url ? (
-                <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" />
+                <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
             ) : (
                 <i className={getPlatformIcon(link.account_platform)}></i>
             )}
@@ -1050,7 +1057,7 @@ function AccountAvatarStack({ links, variant }: { links: SiteLink[]; variant: 'c
                     style={{ zIndex: visibleLinks.length - index } as React.CSSProperties}
                 >
                     {link.image_url ? (
-                        <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" />
+                        <img src={link.image_url} alt={getAccountTitle(link)} loading="lazy" referrerPolicy="no-referrer" draggable={false} />
                     ) : (
                         <i className={getPlatformIcon(link.account_platform)}></i>
                     )}

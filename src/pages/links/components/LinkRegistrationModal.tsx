@@ -652,6 +652,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                                             src={imageUrl}
                                             alt="썸네일 미리보기"
                                             referrerPolicy="no-referrer"
+                                            draggable={false}
                                             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', zIndex: 1 }}
                                             onError={(e) => {
                                                 // OG Image 로드 실패 시 안내 텍스트 표시
@@ -732,6 +733,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
                                                         alt={label}
                                                         loading="lazy"
                                                         referrerPolicy="no-referrer"
+                                                        draggable={false}
                                                         onError={(e) => {
                                                             e.currentTarget.style.display = 'none';
                                                             e.currentTarget.parentElement?.classList.add('is-broken');
