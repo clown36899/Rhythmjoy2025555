@@ -955,6 +955,7 @@ const TranslatedDescription: React.FC<{
   className: string;
 }> = ({ value, className }) => {
   const [showOriginal, setShowOriginal] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const translatedText = trimText(value.description_translated) || trimText(value.description);
   const originalText = trimText(value.description_original);
   const hasOriginal = Boolean(
@@ -962,12 +963,26 @@ const TranslatedDescription: React.FC<{
     normalizeDescriptionText(originalText) !== normalizeDescriptionText(translatedText),
   );
   const visibleText = hasOriginal && showOriginal ? originalText : translatedText || originalText;
+  const isCardDescription = className.split(/\s+/).includes('media-card-description');
+  const canExpand = isCardDescription && (visibleText.length > 180 || visibleText.includes('\n'));
 
   if (!visibleText) return null;
 
   return (
-    <div className={`media-translated-description ${className}`}>
+    <div className={`media-translated-description ${className} ${expanded ? 'is-expanded' : ''}`}>
       <p className="media-translated-description-text">{renderTextWithLinks(visibleText)}</p>
+      {canExpand && (
+        <button
+          type="button"
+          className="media-description-toggle"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <i className={expanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+          {expanded ? '접기' : '자세히'}
+        </button>
+      )}
       {hasOriginal && (
         <button
           type="button"
