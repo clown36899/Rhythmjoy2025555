@@ -11,6 +11,11 @@ export interface SnsMediaItem {
   normalized_url: string;
   external_id?: string | null;
   description?: string | null;
+  description_original?: string | null;
+  description_translated?: string | null;
+  description_language?: string | null;
+  translation_language?: string | null;
+  translation_source?: string | null;
   author_name?: string | null;
   thumbnail_url?: string | null;
   embed_url?: string | null;
@@ -37,6 +42,11 @@ export interface SnsMediaPlaylist {
   name: string;
   parent_id?: string | null;
   description?: string | null;
+  description_original?: string | null;
+  description_translated?: string | null;
+  description_language?: string | null;
+  translation_language?: string | null;
+  translation_source?: string | null;
   category?: string | null;
   dance_genre?: string | null;
   tags?: string[];
@@ -190,6 +200,8 @@ export function buildSearchText(item: Partial<SnsMediaItem>) {
   return [
     item.title,
     item.description,
+    item.description_original,
+    item.description_translated,
     item.author_name,
     item.platform,
     item.media_type,

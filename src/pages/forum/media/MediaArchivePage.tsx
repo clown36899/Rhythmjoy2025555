@@ -9,7 +9,6 @@ import {
   parseMediaUrl,
   platformLabel,
   type MediaPlatform,
-  type MediaType,
   type SnsMediaItem,
   type SnsMediaPlaylist,
 } from './mediaArchiveUtils';
@@ -219,6 +218,51 @@ function preventMediaArchiveDrag(event: React.DragEvent<HTMLElement>) {
   event.preventDefault();
 }
 
+const TEXT_URL_RE = /https?:\/\/[^\s<>"']+/gi;
+
+function splitTrailingUrlPunctuation(value: string) {
+  const match = value.match(/^(.+?)([),.;!?]+)?$/);
+  return {
+    url: match?.[1] || value,
+    suffix: match?.[2] || '',
+  };
+}
+
+function renderTextWithLinks(value?: string | null) {
+  const lines = String(value || '').split(/\r?\n/);
+  const nodes: React.ReactNode[] = [];
+
+  lines.forEach((line, lineIndex) => {
+    let cursor = 0;
+    Array.from(line.matchAll(TEXT_URL_RE)).forEach((match, matchIndex) => {
+      const rawUrl = match[0];
+      const start = match.index || 0;
+      const { url, suffix } = splitTrailingUrlPunctuation(rawUrl);
+
+      if (start > cursor) nodes.push(line.slice(cursor, start));
+      nodes.push(
+        <a
+          key={`url:${lineIndex}:${matchIndex}:${url}`}
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+        >
+          {url}
+        </a>,
+      );
+      if (suffix) nodes.push(suffix);
+      cursor = start + rawUrl.length;
+    });
+
+    if (cursor < line.length) nodes.push(line.slice(cursor));
+    if (lineIndex < lines.length - 1) nodes.push(<br key={`br:${lineIndex}`} />);
+  });
+
+  return nodes;
+}
+
 function truncateText(value?: string | null, maxLength = 64) {
   const text = compactText(value);
   if (text.length <= maxLength) return text;
@@ -263,6 +307,8 @@ function buildPlaylistSearchText(playlist: Partial<SnsMediaPlaylist>) {
     playlist.name,
     playlist.parent_id,
     playlist.description,
+    playlist.description_original,
+    playlist.description_translated,
     playlist.category,
     playlist.dance_genre,
     ...(playlist.tags || []),
@@ -352,6 +398,91 @@ function getPlaylistPath(playlist: SnsMediaPlaylist, playlists: SnsMediaPlaylist
   }
 
   return names.join(' / ');
+}
+
+function getPlaylistDepth(playlist: SnsMediaPlaylist, playlists: SnsMediaPlaylist[]) {
+  const byId = new Map(playlists.map((entry) => [entry.id, entry]));
+  const seen = new Set<string>();
+  let depth = 0;
+  let cursor = playlist;
+
+  while (cursor && !seen.has(cursor.id)) {
+    seen.add(cursor.id);
+    const parentId = getPlaylistParentId(cursor);
+    const parent = parentId ? byId.get(parentId) : null;
+    if (!parent) break;
+    depth += 1;
+    cursor = parent;
+  }
+
+  return depth;
+}
+
+function playlistMatchesSearchQuery(playlist: SnsMediaPlaylist, query: string, playlists: SnsMediaPlaylist[]) {
+  const term = normalizeSuggestionValue(query);
+  if (!term) return false;
+
+  return [
+    playlist.name,
+    playlist.description,
+    playlist.description_original,
+    playlist.description_translated,
+    playlist.category,
+    playlist.dance_genre,
+    playlist.tags_text,
+    playlist.search_text,
+    getPlaylistPath(playlist, playlists),
+    ...(playlist.tags || []),
+  ]
+    .filter(Boolean)
+    .some((value) => normalizeSuggestionValue(value).includes(term));
+}
+
+function getRelevantSearchPlaylists(searchQuery: string, items: SnsMediaItem[], playlists: SnsMediaPlaylist[]) {
+  const term = normalizeSuggestionValue(searchQuery);
+  if (!term) return [];
+
+  const byId = new Map(playlists.map((playlist) => [playlist.id, playlist]));
+  const relevantIds = new Set<string>();
+  const directlyMatchedIds = new Set<string>();
+
+  const addPlaylistBranch = (playlistId?: string | null, directMatch = false) => {
+    let cursorId = compactText(playlistId);
+    const seen = new Set<string>();
+
+    while (cursorId && !seen.has(cursorId)) {
+      seen.add(cursorId);
+      const playlist = byId.get(cursorId);
+      if (!playlist) break;
+      relevantIds.add(playlist.id);
+      if (directMatch) directlyMatchedIds.add(playlist.id);
+      cursorId = getPlaylistParentId(playlist);
+    }
+  };
+
+  items.forEach((item) => addPlaylistBranch(item.playlist_id));
+  playlists.forEach((playlist) => {
+    if (playlistMatchesSearchQuery(playlist, term, playlists)) {
+      addPlaylistBranch(playlist.id, true);
+    }
+  });
+
+  return Array.from(relevantIds)
+    .map((id) => byId.get(id))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const depthDiff = getPlaylistDepth(a, playlists) - getPlaylistDepth(b, playlists);
+      if (depthDiff) return depthDiff;
+
+      const aDirect = directlyMatchedIds.has(a.id);
+      const bDirect = directlyMatchedIds.has(b.id);
+      if (aDirect !== bDirect) return aDirect ? -1 : 1;
+
+      const countDiff = getPlaylistBranchItems(b.id, items, playlists).length - getPlaylistBranchItems(a.id, items, playlists).length;
+      if (countDiff) return countDiff;
+
+      return getPlaylistPath(a, playlists).localeCompare(getPlaylistPath(b, playlists), 'ko');
+    }) as SnsMediaPlaylist[];
 }
 
 function isPlaylistDescendant(playlistId: string, ancestorId: string, playlists: SnsMediaPlaylist[]) {
@@ -691,6 +822,50 @@ function getPlatformFallbackIcon(platform?: MediaPlatform | null) {
   return 'ri-link';
 }
 
+type TranslatableDescription = {
+  description?: string | null;
+  description_original?: string | null;
+  description_translated?: string | null;
+};
+
+function normalizeDescriptionText(value?: string | null) {
+  return compactText(value).toLowerCase();
+}
+
+const TranslatedDescription: React.FC<{
+  value: TranslatableDescription;
+  className: string;
+}> = ({ value, className }) => {
+  const [showOriginal, setShowOriginal] = useState(false);
+  const translatedText = trimText(value.description_translated) || trimText(value.description);
+  const originalText = trimText(value.description_original);
+  const hasOriginal = Boolean(
+    originalText &&
+    normalizeDescriptionText(originalText) !== normalizeDescriptionText(translatedText),
+  );
+  const visibleText = hasOriginal && showOriginal ? originalText : translatedText || originalText;
+
+  if (!visibleText) return null;
+
+  return (
+    <div className={`media-translated-description ${className}`}>
+      <p className="media-translated-description-text">{renderTextWithLinks(visibleText)}</p>
+      {hasOriginal && (
+        <button
+          type="button"
+          className="media-translation-toggle"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={() => setShowOriginal((current) => !current)}
+        >
+          <i className={showOriginal ? 'ri-translate-2' : 'ri-file-text-line'} />
+          {showOriginal ? '번역 보기' : '원문 보기'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const MediaCard: React.FC<{
   item: SnsMediaItem;
   canManage: boolean;
@@ -737,7 +912,7 @@ const MediaCard: React.FC<{
           {!item.is_approved && <span className="media-pending-badge">대기</span>}
         </div>
         <h2>{item.title || '제목 없음'}</h2>
-        {item.description && <p>{item.description}</p>}
+        <TranslatedDescription value={item} className="media-card-description" />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -804,7 +979,7 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
           <span>{mediaTypeLabel(item.media_type)}</span>
         </div>
         <h2>{item.title || '제목 없음'}</h2>
-        {item.description && <p>{item.description}</p>}
+        <TranslatedDescription value={item} className="media-card-description" />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -1251,6 +1426,10 @@ const CollectionArchiveView: React.FC<{
   const namedLegacyGroups = legacyGroups.filter((group) => group.title !== '컬렉션 미지정');
   const stackClassName = `media-library-stack media-library-stack--${navigationDirection}`;
   const playlistsById = useMemo(() => new Map(playlists.map((playlist) => [playlist.id, playlist])), [playlists]);
+  const searchPlaylists = useMemo(
+    () => getRelevantSearchPlaylists(searchQuery, items, playlists),
+    [items, playlists, searchQuery],
+  );
 
   useEffect(() => {
     if (activePlaylistId && !activePlaylist) {
@@ -1811,20 +1990,22 @@ const CollectionArchiveView: React.FC<{
       <header className="media-library-header media-library-search-header">
         <div>
           <p className="media-eyebrow">Search</p>
-          <h2>검색된 카드</h2>
-          <span>{items.length}개 카드 · 원래 위치로 바로 이동 가능</span>
+          <h2>검색 결과</h2>
+          <span>{searchPlaylists.length}개 재생목록 · {items.length}개 카드 · 원래 위치로 바로 이동 가능</span>
         </div>
       </header>
-      <section className="media-library-section media-library-section--results">
-        {renderSectionHeader('결과', items.length)}
-        <div className="media-search-result-list">
-          {items.map(renderSearchResultItem)}
-        </div>
-      </section>
-      {!!visiblePlaylists.length && (
-        <section className="media-library-section media-library-section--related-folders">
-          {renderSectionHeader('관련 폴더', visiblePlaylists.length)}
-          {renderFolderList(visiblePlaylists.map(renderPlaylistRow))}
+      {!!searchPlaylists.length && (
+        <section className="media-library-section media-library-section--search-playlists">
+          {renderSectionHeader('재생목록', searchPlaylists.length)}
+          {renderFolderList(searchPlaylists.map(renderPlaylistRow))}
+        </section>
+      )}
+      {!!items.length && (
+        <section className="media-library-section media-library-section--results">
+          {renderSectionHeader('검색된 카드', items.length)}
+          <div className="media-search-result-list">
+            {items.map(renderSearchResultItem)}
+          </div>
         </section>
       )}
       {!!namedLegacyGroups.length && (
@@ -1896,7 +2077,7 @@ const CollectionArchiveView: React.FC<{
           </div>
         </div>
         {renderOrganizeHint()}
-        {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
+        <TranslatedDescription value={activePlaylist} className="media-playlist-description" />
         {!!visiblePlaylists.length && (
           <section className="media-folder-section media-folder-section--children">
             {renderSectionHeader('하위 폴더', visiblePlaylists.length)}
@@ -2076,6 +2257,10 @@ const MediaArchivePage: React.FC = () => {
   }, [form, parsed, playlists]);
 
   const activeSearchQuery = compactText(submittedQuery);
+  const hasSearchPlaylistResults = useMemo(
+    () => Boolean(activeSearchQuery && getRelevantSearchPlaylists(activeSearchQuery, items, playlists).length),
+    [activeSearchQuery, items, playlists],
+  );
 
   const fetchItems = useCallback(async (nextPage = 0, append = false) => {
     if (append) setLoadingMore(true);
@@ -3145,9 +3330,9 @@ const MediaArchivePage: React.FC = () => {
         )}
       </section>
 
-      {loading ? (
+      {loading || (activeSearchQuery && playlistsLoading && items.length === 0) ? (
         <div className="media-state">불러오는 중...</div>
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !hasSearchPlaylistResults ? (
         <div className="media-state media-state--empty">
           <i className={activeSearchQuery ? 'ri-search-line' : 'ri-film-line'} />
           <strong>{activeSearchQuery ? '검색 결과가 없습니다' : '아직 저장된 영상이 없습니다'}</strong>
