@@ -16,6 +16,15 @@ export interface SnsMediaItem {
   description_language?: string | null;
   translation_language?: string | null;
   translation_source?: string | null;
+  source_name?: string | null;
+  source_url?: string | null;
+  source_repository_url?: string | null;
+  license_name?: string | null;
+  license_url?: string | null;
+  license_notice?: string | null;
+  adaptation_note?: string | null;
+  no_endorsement_notice?: string | null;
+  rights_note?: string | null;
   author_name?: string | null;
   thumbnail_url?: string | null;
   embed_url?: string | null;
@@ -47,6 +56,15 @@ export interface SnsMediaPlaylist {
   description_language?: string | null;
   translation_language?: string | null;
   translation_source?: string | null;
+  source_name?: string | null;
+  source_url?: string | null;
+  source_repository_url?: string | null;
+  license_name?: string | null;
+  license_url?: string | null;
+  license_notice?: string | null;
+  adaptation_note?: string | null;
+  no_endorsement_notice?: string | null;
+  rights_note?: string | null;
   category?: string | null;
   dance_genre?: string | null;
   tags?: string[];
@@ -202,6 +220,15 @@ export function buildSearchText(item: Partial<SnsMediaItem>) {
     item.description,
     item.description_original,
     item.description_translated,
+    item.source_name,
+    item.source_url,
+    item.source_repository_url,
+    item.license_name,
+    item.license_url,
+    item.license_notice,
+    item.adaptation_note,
+    item.no_endorsement_notice,
+    item.rights_note,
     item.author_name,
     item.platform,
     item.media_type,

@@ -28,6 +28,14 @@ const PAGE_SIZE = 18;
 const MEDIA_ARCHIVE_PRESS_DELAY_MS = 140;
 const GENRE_PRESETS = ['스윙', '린디합', '재즈', '발보아', '블루스', '탱고', '살사', '바차타'];
 const DEFAULT_ARCHIVE_BUCKET = 'reference';
+const LINDY_COLLECTION_SOURCE_NAME = 'The Lindy Collection';
+const LINDY_COLLECTION_SITE_URL = 'https://www.lindycollection.com/';
+const LINDY_COLLECTION_LICENSE_NAME = 'CC BY-NC-SA 4.0';
+const LINDY_COLLECTION_LICENSE_URL = 'https://creativecommons.org/licenses/by-nc-sa/4.0/';
+const LINDY_COLLECTION_REPOSITORY_URL = 'https://github.com/lindycollection/www.lindycollection.com';
+const LINDY_COLLECTION_DEFAULT_ADAPTATION_NOTE = '한국어 번역/요약 및 SwingEnjoy SNS 아카이브용 재구성';
+const LINDY_COLLECTION_DEFAULT_NO_ENDORSEMENT = 'Lindy Collection의 공식 제휴 또는 보증을 의미하지 않습니다.';
+const LINDY_COLLECTION_DEFAULT_RIGHTS_NOTE = '링크된 원본 영상은 각 게시자와 플랫폼의 권리 조건을 따릅니다.';
 type MediaSearchSuggestion = {
   value: string;
   label: string;
@@ -263,6 +271,14 @@ function renderTextWithLinks(value?: string | null) {
   return nodes;
 }
 
+function extractFirstUrlMatching(value: string, predicate: (url: string) => boolean) {
+  for (const match of value.matchAll(TEXT_URL_RE)) {
+    const { url } = splitTrailingUrlPunctuation(match[0]);
+    if (predicate(url)) return url;
+  }
+  return '';
+}
+
 function truncateText(value?: string | null, maxLength = 64) {
   const text = compactText(value);
   if (text.length <= maxLength) return text;
@@ -309,6 +325,15 @@ function buildPlaylistSearchText(playlist: Partial<SnsMediaPlaylist>) {
     playlist.description,
     playlist.description_original,
     playlist.description_translated,
+    playlist.source_name,
+    playlist.source_url,
+    playlist.source_repository_url,
+    playlist.license_name,
+    playlist.license_url,
+    playlist.license_notice,
+    playlist.adaptation_note,
+    playlist.no_endorsement_notice,
+    playlist.rights_note,
     playlist.category,
     playlist.dance_genre,
     ...(playlist.tags || []),
@@ -427,6 +452,15 @@ function playlistMatchesSearchQuery(playlist: SnsMediaPlaylist, query: string, p
     playlist.description,
     playlist.description_original,
     playlist.description_translated,
+    playlist.source_name,
+    playlist.source_url,
+    playlist.source_repository_url,
+    playlist.license_name,
+    playlist.license_url,
+    playlist.license_notice,
+    playlist.adaptation_note,
+    playlist.no_endorsement_notice,
+    playlist.rights_note,
     playlist.category,
     playlist.dance_genre,
     playlist.tags_text,
@@ -823,9 +857,27 @@ function getPlatformFallbackIcon(platform?: MediaPlatform | null) {
 }
 
 type TranslatableDescription = {
+  id?: string | null;
+  title?: string | null;
+  name?: string | null;
   description?: string | null;
   description_original?: string | null;
   description_translated?: string | null;
+  translation_source?: string | null;
+  author_name?: string | null;
+  collection_name?: string | null;
+  source_context?: string | null;
+  source_name?: string | null;
+  source_url?: string | null;
+  source_repository_url?: string | null;
+  license_name?: string | null;
+  license_url?: string | null;
+  license_notice?: string | null;
+  adaptation_note?: string | null;
+  no_endorsement_notice?: string | null;
+  rights_note?: string | null;
+  tags?: string[];
+  tags_text?: string | null;
 };
 
 function normalizeDescriptionText(value?: string | null) {
@@ -863,6 +915,147 @@ const TranslatedDescription: React.FC<{
         </button>
       )}
     </div>
+  );
+};
+
+function getLicenseDetectionText(value: TranslatableDescription) {
+  return [
+    value.id,
+    value.title,
+    value.name,
+    value.description,
+    value.description_original,
+    value.description_translated,
+    value.author_name,
+    value.collection_name,
+    value.source_context,
+    value.source_name,
+    value.source_url,
+    value.license_name,
+    value.license_url,
+    value.tags_text,
+    ...(value.tags || []),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function isLindyCollectionEntry(value: TranslatableDescription) {
+  const text = getLicenseDetectionText(value);
+  return (
+    text.includes('lindy collection') ||
+    text.includes('lindycollection') ||
+    text.includes('lindycollection.com')
+  );
+}
+
+function getLindyCollectionSourceUrl(value: TranslatableDescription) {
+  const metadataUrl = compactText(value.source_url);
+  if (/^https?:\/\/(www\.)?lindycollection\.com\//i.test(metadataUrl)) return metadataUrl;
+
+  return extractFirstUrlMatching(
+    [
+      value.description,
+      value.description_translated,
+      value.description_original,
+      value.source_context,
+    ].filter(Boolean).join('\n'),
+    (url) => /^https?:\/\/(www\.)?lindycollection\.com\//i.test(url),
+  ) || LINDY_COLLECTION_SITE_URL;
+}
+
+const LicenseAttributionNotice: React.FC<{
+  value: TranslatableDescription;
+  compact?: boolean;
+}> = ({ value, compact = false }) => {
+  const hasExplicitLicense = Boolean(compactText(value.license_name) || compactText(value.license_url));
+  const isLindyEntry = isLindyCollectionEntry(value);
+  if (!hasExplicitLicense && !isLindyEntry) return null;
+
+  const sourceName = compactText(value.source_name) || (isLindyEntry ? LINDY_COLLECTION_SOURCE_NAME : '');
+  const sourceUrl = sourceName ? getLindyCollectionSourceUrl(value) : compactText(value.source_url);
+  const repositoryUrl = compactText(value.source_repository_url) || (isLindyEntry ? LINDY_COLLECTION_REPOSITORY_URL : '');
+  const licenseName = compactText(value.license_name) || (isLindyEntry ? LINDY_COLLECTION_LICENSE_NAME : '');
+  const licenseUrl = compactText(value.license_url) || (isLindyEntry ? LINDY_COLLECTION_LICENSE_URL : '');
+  const hasTranslation = Boolean(
+    compactText(value.translation_source) ||
+    (
+      trimText(value.description_original) &&
+      normalizeDescriptionText(value.description_original) !== normalizeDescriptionText(value.description_translated || value.description)
+    ),
+  );
+  const adaptationNote = compactText(value.adaptation_note) || (hasTranslation && isLindyEntry ? LINDY_COLLECTION_DEFAULT_ADAPTATION_NOTE : '');
+  const noEndorsementNotice = compactText(value.no_endorsement_notice) || (isLindyEntry ? LINDY_COLLECTION_DEFAULT_NO_ENDORSEMENT : '');
+  const rightsNote = compactText(value.rights_note) || (isLindyEntry ? LINDY_COLLECTION_DEFAULT_RIGHTS_NOTE : '');
+
+  return (
+    <aside className={`media-license-notice ${compact ? 'media-license-notice--compact' : ''}`} aria-label="라이선스 및 출처 정보">
+      {sourceName && (
+        <span>
+          <i className="ri-links-line" />
+          자료 출처:
+          {' '}
+          {sourceUrl ? (
+            <a href={sourceUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
+              {sourceName}
+            </a>
+          ) : sourceName}
+        </span>
+      )}
+      {licenseName && (
+        <span>
+          <i className="ri-creative-commons-line" />
+          라이선스:
+          {' '}
+          {licenseUrl ? (
+            <a href={licenseUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
+              {licenseName}
+            </a>
+          ) : licenseName}
+        </span>
+      )}
+      {adaptationNote && (
+        <span>
+          <i className="ri-translate-2" />
+          {adaptationNote}
+        </span>
+      )}
+      {repositoryUrl && !compact && (
+        <span>
+          <i className="ri-github-line" />
+          <a href={repositoryUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
+            원본 저장소
+          </a>
+        </span>
+      )}
+      {noEndorsementNotice && (
+        <span>
+          <i className="ri-shield-check-line" />
+          {noEndorsementNotice}
+        </span>
+      )}
+      {rightsNote && !compact && (
+        <span>
+          <i className="ri-information-line" />
+          {rightsNote}
+        </span>
+      )}
+    </aside>
+  );
+};
+
+const MiniLicenseBadge: React.FC<{ value: TranslatableDescription }> = ({ value }) => {
+  const hasExplicitLicense = Boolean(compactText(value.license_name) || compactText(value.license_url));
+  const isLindyEntry = isLindyCollectionEntry(value);
+  if (!hasExplicitLicense && !isLindyEntry) return null;
+
+  const licenseName = compactText(value.license_name) || (isLindyEntry ? LINDY_COLLECTION_LICENSE_NAME : '라이선스 표시');
+  const adapted = Boolean(compactText(value.adaptation_note) || compactText(value.translation_source) || isLindyEntry);
+
+  return (
+    <small className="media-mini-license">
+      <i className="ri-creative-commons-line" />
+      {licenseName}
+      {adapted ? ' · 번역/편집됨' : ''}
+    </small>
   );
 };
 
@@ -913,6 +1106,7 @@ const MediaCard: React.FC<{
         </div>
         <h2>{item.title || '제목 없음'}</h2>
         <TranslatedDescription value={item} className="media-card-description" />
+        <LicenseAttributionNotice value={item} compact />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -980,6 +1174,7 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
         </div>
         <h2>{item.title || '제목 없음'}</h2>
         <TranslatedDescription value={item} className="media-card-description" />
+        <LicenseAttributionNotice value={item} compact />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -1216,6 +1411,7 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
         <span className="media-mini-copy">
           <strong>{item.title || '제목 없음'}</strong>
           <small>{metaText}</small>
+          <MiniLicenseBadge value={item} />
         </span>
       </article>
     );
@@ -1245,6 +1441,7 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
       <span className="media-mini-copy">
         <strong>{item.title || '제목 없음'}</strong>
         <small>{metaText}</small>
+        <MiniLicenseBadge value={item} />
       </span>
     </button>
   );
@@ -2078,6 +2275,7 @@ const CollectionArchiveView: React.FC<{
         </div>
         {renderOrganizeHint()}
         <TranslatedDescription value={activePlaylist} className="media-playlist-description" />
+        <LicenseAttributionNotice value={activePlaylist} />
         {!!visiblePlaylists.length && (
           <section className="media-folder-section media-folder-section--children">
             {renderSectionHeader('하위 폴더', visiblePlaylists.length)}

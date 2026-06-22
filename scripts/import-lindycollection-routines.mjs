@@ -14,6 +14,13 @@ const SOURCE_NAME = 'Lindy Collection';
 const IMPORTER_NAME = 'Lindy Collection Importer';
 const DEFAULT_TAGS = ['Lindy Collection', '루틴', 'routine', 'lindy hop', 'solo jazz', '스윙'];
 const TRANSLATION_SOURCE = 'manual-ko-2026-06-22';
+const SOURCE_REPOSITORY_URL = 'https://github.com/lindycollection/www.lindycollection.com';
+const LICENSE_NAME = 'CC BY-NC-SA 4.0';
+const LICENSE_URL = 'https://creativecommons.org/licenses/by-nc-sa/4.0/';
+const LICENSE_NOTICE = 'Lindy Collection site content is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.';
+const ADAPTATION_NOTE = '한국어 번역/요약 및 SwingEnjoy SNS 아카이브용 재구성';
+const NO_ENDORSEMENT_NOTICE = 'Lindy Collection의 공식 제휴 또는 보증을 의미하지 않습니다.';
+const RIGHTS_NOTE = '링크된 원본 영상은 각 게시자와 플랫폼의 권리 조건을 따릅니다.';
 const ROUTINE_DESCRIPTION_TRANSLATIONS = {
   al_leon_shim_sham: [
     '알 민스와 리언 제임스가 대중화한 Shim Sham 변형입니다.',
@@ -222,6 +229,15 @@ function buildSearchText(row) {
     row.description,
     row.description_original,
     row.description_translated,
+    row.source_name,
+    row.source_url,
+    row.source_repository_url,
+    row.license_name,
+    row.license_url,
+    row.license_notice,
+    row.adaptation_note,
+    row.no_endorsement_notice,
+    row.rights_note,
     row.author_name,
     row.collection_name,
     row.dance_genre,
@@ -232,6 +248,20 @@ function buildSearchText(row) {
     .join(' ')
     .toLowerCase()
     .slice(0, 2000);
+}
+
+function lindyLicenseMetadata(sourceUrl) {
+  return {
+    source_name: SOURCE_NAME,
+    source_url: sourceUrl,
+    source_repository_url: SOURCE_REPOSITORY_URL,
+    license_name: LICENSE_NAME,
+    license_url: LICENSE_URL,
+    license_notice: LICENSE_NOTICE,
+    adaptation_note: ADAPTATION_NOTE,
+    no_endorsement_notice: NO_ENDORSEMENT_NOTICE,
+    rights_note: RIGHTS_NOTE,
+  };
 }
 
 function uniqueBy(items, getKey) {
@@ -319,6 +349,45 @@ function mediaBase(now) {
   };
 }
 
+function buildSourceLinkItem({
+  id,
+  title,
+  sourceUrl,
+  playlistId,
+  collectionName,
+  tags,
+  now,
+  translatedDescription,
+  originalDescription,
+}) {
+  const row = {
+    id,
+    platform: 'other',
+    media_type: 'link',
+    title,
+    url: sourceUrl,
+    normalized_url: sourceUrl,
+    external_id: null,
+    description: translatedDescription,
+    description_original: originalDescription,
+    description_translated: translatedDescription,
+    description_language: 'en',
+    translation_language: 'ko',
+    translation_source: TRANSLATION_SOURCE,
+    ...lindyLicenseMetadata(sourceUrl),
+    thumbnail_url: null,
+    embed_url: null,
+    tags,
+    tags_text: tags.join(', '),
+    playlist_id: playlistId,
+    collection_name: collectionName,
+    source_context: `Lindy Collection source page / ${collectionName}`,
+    ...mediaBase(now),
+  };
+  row.search_text = buildSearchText(row);
+  return row;
+}
+
 function buildRows(routines) {
   const now = new Date().toISOString();
   const playlistRows = [];
@@ -345,6 +414,7 @@ function buildRows(routines) {
     description_language: 'en',
     translation_language: 'ko',
     translation_source: TRANSLATION_SOURCE,
+    ...lindyLicenseMetadata(ROUTINES_URL),
     tags: DEFAULT_TAGS,
     tags_text: DEFAULT_TAGS.join(', '),
     cover_url: firstCover,
@@ -352,6 +422,23 @@ function buildRows(routines) {
   };
   rootPlaylist.search_text = buildSearchText(rootPlaylist);
   playlistRows.push(rootPlaylist);
+  itemRows.push(buildSourceLinkItem({
+    id: `${ROOT_PLAYLIST_ID}-source-link`,
+    title: 'Lindy Collection: Routines 원본 사이트',
+    sourceUrl: ROUTINES_URL,
+    playlistId: ROOT_PLAYLIST_ID,
+    collectionName: 'Lindy Collection: Routines',
+    tags: DEFAULT_TAGS,
+    now,
+    translatedDescription: [
+      'Lindy Collection Routines 원본 사이트 링크입니다.',
+      `출처: ${ROUTINES_URL}`,
+    ].join('\n'),
+    originalDescription: [
+      'Source link for the Lindy Collection Routines page.',
+      `Source: ${ROUTINES_URL}`,
+    ].join('\n'),
+  }));
 
   for (const routine of routines) {
     const playlistId = `lindycollection-routine-${safeSlug(routine.slug)}`;
@@ -375,6 +462,7 @@ function buildRows(routines) {
       description_language: 'en',
       translation_language: 'ko',
       translation_source: TRANSLATION_SOURCE,
+      ...lindyLicenseMetadata(routine.url),
       tags,
       tags_text: tags.join(', '),
       cover_url: coverUrl,
@@ -382,6 +470,23 @@ function buildRows(routines) {
     };
     routinePlaylist.search_text = buildSearchText(routinePlaylist);
     playlistRows.push(routinePlaylist);
+    itemRows.push(buildSourceLinkItem({
+      id: `lindycollection-${safeSlug(routine.slug)}-source-link`,
+      title: `${routine.title} 원본 페이지`,
+      sourceUrl: routine.url,
+      playlistId,
+      collectionName: routine.title,
+      tags,
+      now,
+      translatedDescription: [
+        `Lindy Collection의 "${routine.title}" 루틴 원본 페이지 링크입니다.`,
+        `출처: ${routine.url}`,
+      ].join('\n'),
+      originalDescription: [
+        `Source link for the "${routine.title}" routine page in Lindy Collection.`,
+        `Source: ${routine.url}`,
+      ].join('\n'),
+    }));
 
     routine.videos.forEach((entry, index) => {
       const media = entry.media;
@@ -409,6 +514,7 @@ function buildRows(routines) {
         description_language: 'en',
         translation_language: 'ko',
         translation_source: TRANSLATION_SOURCE,
+        ...lindyLicenseMetadata(routine.url),
         thumbnail_url: media.thumbnail_url,
         embed_url: media.embed_url,
         tags,
