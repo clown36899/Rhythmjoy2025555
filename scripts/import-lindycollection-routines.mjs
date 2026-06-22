@@ -470,23 +470,6 @@ function buildRows(routines) {
     };
     routinePlaylist.search_text = buildSearchText(routinePlaylist);
     playlistRows.push(routinePlaylist);
-    itemRows.push(buildSourceLinkItem({
-      id: `lindycollection-${safeSlug(routine.slug)}-source-link`,
-      title: `${routine.title} 원본 페이지`,
-      sourceUrl: routine.url,
-      playlistId,
-      collectionName: routine.title,
-      tags,
-      now,
-      translatedDescription: [
-        `Lindy Collection의 "${routine.title}" 루틴 원본 페이지 링크입니다.`,
-        `출처: ${routine.url}`,
-      ].join('\n'),
-      originalDescription: [
-        `Source link for the "${routine.title}" routine page in Lindy Collection.`,
-        `Source: ${routine.url}`,
-      ].join('\n'),
-    }));
 
     routine.videos.forEach((entry, index) => {
       const media = entry.media;
@@ -585,6 +568,24 @@ async function upsertRows(tableName, rows) {
   return rows.length;
 }
 
+async function deleteStaleRows(tableName, keepIds, prefix) {
+  if (!keepIds.length) return 0;
+  const pool = createPool();
+  const placeholders = keepIds.map(() => '?').join(', ');
+  try {
+    const [result] = await pool.execute(
+      `DELETE FROM generic_records
+       WHERE table_name = ?
+         AND record_id LIKE ?
+         AND record_id NOT IN (${placeholders})`,
+      [tableName, `${prefix}%`, ...keepIds],
+    );
+    return result.affectedRows || 0;
+  } finally {
+    await pool.end();
+  }
+}
+
 async function main() {
   const routines = await scrapeRoutines();
   const { playlistRows, itemRows } = buildRows(routines);
@@ -614,7 +615,9 @@ async function main() {
 
   const playlistsWritten = await upsertRows('sns_media_playlists', playlistRows);
   const itemsWritten = await upsertRows('sns_media_items', itemRows);
-  console.log(`Applied ${playlistsWritten} playlists and ${itemsWritten} media items.`);
+  const stalePlaylistsDeleted = await deleteStaleRows('sns_media_playlists', playlistRows.map((row) => row.id), 'lindycollection-');
+  const staleItemsDeleted = await deleteStaleRows('sns_media_items', itemRows.map((row) => row.id), 'lindycollection-');
+  console.log(`Applied ${playlistsWritten} playlists and ${itemsWritten} media items. Removed ${stalePlaylistsDeleted} stale playlists and ${staleItemsDeleted} stale media items.`);
 }
 
 main().catch((error) => {

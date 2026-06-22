@@ -1050,7 +1050,7 @@
   position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto auto;
+  grid-template-columns: 72px minmax(0, 1fr) auto auto auto;
   gap: 11px;
   align-items: center;
   min-height: 76px;
@@ -1480,9 +1480,12 @@
 }
 
 .media-folder-source-button {
-  width: fit-content;
-  max-width: 100%;
-  min-height: 28px;
+  justify-self: end;
+  width: auto;
+  min-width: 58px;
+  max-width: 92px;
+  height: 30px;
+  min-height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1495,8 +1498,16 @@
   font: inherit;
   font-size: 0.72rem;
   font-weight: 900;
+  white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.media-folder-source-button span {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .media-folder-source-button:active {
@@ -2424,6 +2435,11 @@
 
   .media-add-button {
     width: 100%;
+  }
+
+  .media-folder-row-main {
+    gap: 8px;
+    grid-template-columns: 72px minmax(0, 1fr) auto auto auto;
   }
 
   .media-submit-panel {

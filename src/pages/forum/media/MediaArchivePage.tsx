@@ -112,8 +112,8 @@ interface RemoteMediaMetadata {
   title?: string | null;
   description?: string | null;
   image_url?: string | null;
-  thumbnail_options?: Array<{ url?: string | null }>;
-  thumbnailOptions?: Array<{ url?: string | null }>;
+  thumbnail_options?: Array<{ url?: string | null; source?: string | null; label?: string | null }>;
+  thumbnailOptions?: Array<{ url?: string | null; source?: string | null; label?: string | null }>;
   author?: string | null;
   published?: string | null;
   publishedAt?: string | null;
@@ -197,6 +197,17 @@ function readPendingMediaDraft(): PendingMediaDraft | null {
 }
 
 function safeImageUrl(value?: string | null) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  try {
+    const url = new URL(trimmed);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function safeExternalUrl(value?: string | null) {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
   try {
@@ -300,6 +311,8 @@ const emptyPlaylistForm = {
   danceGenre: '',
   tags: '',
   coverUrl: '',
+  isShortcut: false,
+  shortcutUrl: '',
   isPublic: false,
 };
 
@@ -314,6 +327,8 @@ function playlistFormFromPlaylist(playlist: SnsMediaPlaylist): MediaPlaylistForm
     danceGenre: compactText(playlist.dance_genre),
     tags: (playlist.tags || []).join(', '),
     coverUrl: safeImageUrl(playlist.cover_url),
+    isShortcut: Boolean(playlist.is_shortcut),
+    shortcutUrl: safeExternalUrl(playlist.shortcut_url),
     isPublic: Boolean(playlist.is_public),
   };
 }
@@ -325,6 +340,7 @@ function buildPlaylistSearchText(playlist: Partial<SnsMediaPlaylist>) {
     playlist.description,
     playlist.description_original,
     playlist.description_translated,
+    playlist.shortcut_url,
     playlist.source_name,
     playlist.source_url,
     playlist.source_repository_url,
@@ -405,6 +421,14 @@ function getPlaylistParentId(playlist?: SnsMediaPlaylist | null) {
   return compactText(playlist?.parent_id);
 }
 
+function getPlaylistShortcutUrl(playlist?: SnsMediaPlaylist | null) {
+  return playlist?.is_shortcut ? safeExternalUrl(playlist.shortcut_url) : '';
+}
+
+function isShortcutPlaylist(playlist?: SnsMediaPlaylist | null) {
+  return Boolean(getPlaylistShortcutUrl(playlist));
+}
+
 function sortPlaylistsByName(playlists: SnsMediaPlaylist[]) {
   return [...playlists].sort((a, b) => compactText(a.name).localeCompare(compactText(b.name), 'ko'));
 }
@@ -452,6 +476,7 @@ function playlistMatchesSearchQuery(playlist: SnsMediaPlaylist, query: string, p
     playlist.description,
     playlist.description_original,
     playlist.description_translated,
+    playlist.shortcut_url,
     playlist.source_name,
     playlist.source_url,
     playlist.source_repository_url,
@@ -538,6 +563,7 @@ function isPlaylistDescendant(playlistId: string, ancestorId: string, playlists:
 function buildPlaylistTreeOptions(playlists: SnsMediaPlaylist[], excludedId = '') {
   const allowed = playlists.filter((playlist) => (
     playlist.id !== excludedId &&
+    !isShortcutPlaylist(playlist) &&
     !isPlaylistDescendant(playlist.id, excludedId, playlists)
   ));
   const byParent = new Map<string, SnsMediaPlaylist[]>();
@@ -709,6 +735,24 @@ function getRemoteMetadataThumbnail(data: RemoteMediaMetadata) {
     .map((option) => safeImageUrl(option?.url))
     .find(Boolean);
   return safeImageUrl(data.image_url) || fromOptions || '';
+}
+
+function getRemoteShortcutThumbnail(data: RemoteMediaMetadata) {
+  const options = (data.thumbnail_options || data.thumbnailOptions || [])
+    .map((option) => ({
+      url: safeImageUrl(option?.url),
+      source: compactText(option?.source).toLowerCase(),
+    }))
+    .filter((option) => option.url);
+  const preferredSources = new Set(['direct-image', 'account-avatar', 'og-image', 'meta-image', 'json-ld', 'image-src', 'preload-image']);
+  return (
+    options.find((option) => preferredSources.has(option.source))?.url ||
+    options.find((option) => option.source === 'screenshot')?.url ||
+    options.find((option) => option.source === 'page-image')?.url ||
+    safeImageUrl(data.image_url) ||
+    options[0]?.url ||
+    ''
+  );
 }
 
 function getRemoteMetadataPublishedDate(data: RemoteMediaMetadata) {
@@ -1594,7 +1638,10 @@ const CollectionArchiveView: React.FC<{
   const visiblePlaylists = useMemo(() => {
     const children = getPlaylistChildren(currentParentId, playlists);
     if (!isSearching) return children;
-    return children.filter((playlist) => getPlaylistBranchItems(playlist.id, items, playlists).length > 0);
+    return children.filter((playlist) => (
+      isShortcutPlaylist(playlist) ||
+      getPlaylistBranchItems(playlist.id, items, playlists).length > 0
+    ));
   }, [currentParentId, isSearching, items, playlists]);
   const directItems = activePlaylist ? getPlaylistDirectItems(activePlaylist.id, items) : [];
   const breadcrumbs = activePlaylist ? getPlaylistBreadcrumbs(activePlaylist, playlists) : [];
@@ -1697,6 +1744,7 @@ const CollectionArchiveView: React.FC<{
 
   const canMovePlaylistInto = (source: SnsMediaPlaylist, target: SnsMediaPlaylist) => {
     if (source.id === target.id) return false;
+    if (isShortcutPlaylist(target)) return false;
     if (isPlaylistDescendant(target.id, source.id, playlists)) return false;
     return true;
   };
@@ -1782,7 +1830,7 @@ const CollectionArchiveView: React.FC<{
     if (event.pointerType !== 'mouse' || event.button !== 0) return;
 
     const target = event.target as HTMLElement | null;
-    if (target?.closest('.media-folder-inline-action')) return;
+    if (target?.closest('.media-folder-inline-action, .media-folder-source-button')) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -1970,12 +2018,20 @@ const CollectionArchiveView: React.FC<{
     const isDragging = draggedPlaylistId === playlist.id;
     const isDropTarget = dropTargetId === playlist.id;
     const canDrop = isDropTarget && canDropPlaylistInto(playlist);
+    const shortcutUrl = getPlaylistShortcutUrl(playlist);
     const sourceUrl = compactText(playlist.source_url) || (isLindyCollectionEntry(playlist) ? getLindyCollectionSourceUrl(playlist) : '');
+    const rowActionUrl = shortcutUrl || (!getPlaylistParentId(playlist) ? sourceUrl : '');
+    const rowActionLabel = shortcutUrl ? '바로가기' : '원문';
     const metadata = [
+      shortcutUrl ? '바로가기' : null,
       playlist.category,
       playlist.dance_genre,
       ...(playlist.tags || []).slice(0, 3),
     ].filter(Boolean) as string[];
+    const openShortcut = () => {
+      if (!shortcutUrl) return;
+      window.open(shortcutUrl, '_blank', 'noopener,noreferrer');
+    };
 
     return (
       <article key={playlist.id} className={`media-folder-row ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? (canDrop ? 'is-drop-target' : 'is-drop-blocked') : ''}`}>
@@ -1988,9 +2044,9 @@ const CollectionArchiveView: React.FC<{
           data-media-playlist-drop-id={playlist.id}
           onClick={() => {
             if (isOrganizing || suppressPlaylistOpenRef.current) return;
-            openWithPressFeedback(rowKey, () => navigateToPlaylist(playlist.id, 'forward'));
+            openWithPressFeedback(rowKey, shortcutUrl ? openShortcut : () => navigateToPlaylist(playlist.id, 'forward'));
           }}
-          onKeyDown={(event) => handleRowKeyDown(event, rowKey, () => navigateToPlaylist(playlist.id, 'forward'))}
+          onKeyDown={(event) => handleRowKeyDown(event, rowKey, shortcutUrl ? openShortcut : () => navigateToPlaylist(playlist.id, 'forward'))}
           onPointerDown={(event) => handlePlaylistPointerDown(event, playlist)}
           onDragStart={(event) => handlePlaylistDragStart(event, playlist)}
           onDragEnd={handlePlaylistDragEnd}
@@ -1998,7 +2054,7 @@ const CollectionArchiveView: React.FC<{
           onDragLeave={(event) => handlePlaylistDropTargetLeave(event, playlist.id)}
           onDrop={(event) => handlePlaylistDrop(event, playlist)}
         >
-          {renderFolderCover(coverUrls, 'ri-folder-3-line', branchItems.length)}
+          {renderFolderCover(coverUrls, shortcutUrl ? 'ri-external-link-line' : 'ri-folder-3-line', branchItems.length)}
           <span className="media-folder-row-copy">
             <span className="media-folder-row-title">
               <strong>{playlist.name}</strong>
@@ -2017,29 +2073,29 @@ const CollectionArchiveView: React.FC<{
                 </button>
               )}
             </span>
-            <small>{branchItems.length}개 카드{childCount ? ` · ${childCount}개 하위` : ''}</small>
+            <small>{shortcutUrl ? '사이트 바로가기' : `${branchItems.length}개 카드${childCount ? ` · ${childCount}개 하위` : ''}`}</small>
             {!!metadata.length && (
               <span className="media-folder-row-tags">
                 {metadata.map((entry) => <span key={entry}>{entry}</span>)}
               </span>
             )}
-            {sourceUrl && (
-              <button
-                type="button"
-                className="media-folder-source-button"
-                draggable={false}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  window.open(sourceUrl, '_blank', 'noopener,noreferrer');
-                }}
-                aria-label={`${playlist.name} 원문 사이트 열기`}
-              >
-                <i className="ri-external-link-line" />
-                원문 사이트
-              </button>
-            )}
           </span>
+          {rowActionUrl && (
+            <button
+              type="button"
+              className="media-folder-source-button"
+              draggable={false}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                window.open(rowActionUrl, '_blank', 'noopener,noreferrer');
+              }}
+              aria-label={`${playlist.name} ${rowActionLabel} 열기`}
+            >
+              <i className="ri-external-link-line" />
+              <span>{rowActionLabel}</span>
+            </button>
+          )}
           {isOrganizing && canManage && (
             <span
               className="media-folder-drag-handle"
@@ -2389,9 +2445,11 @@ const MediaArchivePage: React.FC = () => {
   const [draftNotice, setDraftNotice] = useState('');
   const [parsed, setParsed] = useState(() => parseMediaUrl(''));
   const [metadataLoading, setMetadataLoading] = useState(false);
+  const [playlistMetadataLoading, setPlaylistMetadataLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const clipperImportKeyRef = useRef('');
   const metadataFetchKeyRef = useRef('');
+  const playlistMetadataFetchKeyRef = useRef('');
   const restoredDraftRef = useRef(false);
 
   const canCreate = Boolean(user);
@@ -2651,6 +2709,67 @@ const MediaArchivePage: React.FC = () => {
   }, [form.url, showForm]);
 
   useEffect(() => {
+    const shortcutUrl = safeExternalUrl(playlistForm.shortcutUrl);
+    if (!showPlaylistForm || !playlistForm.isShortcut || !shortcutUrl) return undefined;
+    if (playlistMetadataFetchKeyRef.current === shortcutUrl) return undefined;
+    playlistMetadataFetchKeyRef.current = shortcutUrl;
+
+    const controller = new AbortController();
+    let cancelled = false;
+    setPlaylistMetadataLoading(true);
+
+    (async () => {
+      try {
+        const response = await fetch('/api/fetch-og-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: shortcutUrl }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`metadata fetch failed: ${response.status}`);
+        const data = (await response.json()) as RemoteMediaMetadata;
+        if (cancelled) return;
+
+        setPlaylistForm((prev) => {
+          if (!prev.isShortcut || safeExternalUrl(prev.shortcutUrl) !== shortcutUrl) return prev;
+
+          const next = { ...prev };
+          const remoteTitle = compactText(data.title);
+          const remoteDescription = trimText(data.description);
+          const remoteThumbnail = getRemoteShortcutThumbnail(data);
+          let changed = false;
+
+          if (remoteTitle && !compactText(next.name)) {
+            next.name = remoteTitle;
+            changed = true;
+          }
+          if (remoteDescription && !trimText(next.description)) {
+            next.description = remoteDescription;
+            changed = true;
+          }
+          if (remoteThumbnail && !safeImageUrl(next.coverUrl)) {
+            next.coverUrl = remoteThumbnail;
+            changed = true;
+          }
+
+          return changed ? next : prev;
+        });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn('[MediaArchive] playlist metadata fetch failed:', error);
+        }
+      } finally {
+        if (!cancelled) setPlaylistMetadataLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [playlistForm.isShortcut, playlistForm.shortcutUrl, showPlaylistForm]);
+
+  useEffect(() => {
     let cancelled = false;
     const searchParams = new URLSearchParams(location.search);
     const shareId = compactText(searchParams.get('share_id'));
@@ -2775,6 +2894,8 @@ const MediaArchivePage: React.FC = () => {
   const resetPlaylistForm = () => {
     setPlaylistForm(emptyPlaylistForm);
     setEditingPlaylist(null);
+    setPlaylistMetadataLoading(false);
+    playlistMetadataFetchKeyRef.current = '';
   };
 
   const closePlaylistForm = () => {
@@ -2818,6 +2939,11 @@ const MediaArchivePage: React.FC = () => {
 
     const tags = normalizeTags(sourceForm.tags);
     const now = new Date().toISOString();
+    const shortcutUrl = sourceForm.isShortcut ? safeExternalUrl(sourceForm.shortcutUrl) : '';
+    if (sourceForm.isShortcut && !shortcutUrl) {
+      alert('사이트 바로가기 URL을 http:// 또는 https:// 주소로 입력해주세요.');
+      return null;
+    }
     const payload: Partial<SnsMediaPlaylist> = {
       id: existing?.id || createMediaPlaylistId(),
       name,
@@ -2828,6 +2954,8 @@ const MediaArchivePage: React.FC = () => {
       tags,
       tags_text: tags.join(', '),
       cover_url: safeImageUrl(sourceForm.coverUrl) || null,
+      is_shortcut: Boolean(sourceForm.isShortcut),
+      shortcut_url: shortcutUrl || null,
       is_public: Boolean(sourceForm.isPublic),
       owner_id: existing?.owner_id || user.id,
       created_by: existing?.created_by || user.id,
@@ -3259,6 +3387,37 @@ const MediaArchivePage: React.FC = () => {
                   placeholder="비워두면 카드 썸네일을 사용"
                 />
               </label>
+              <label className="media-check-field">
+                <input
+                  type="checkbox"
+                  checked={playlistForm.isShortcut}
+                  onChange={(event) => setPlaylistForm((prev) => ({
+                    ...prev,
+                    isShortcut: event.target.checked,
+                  }))}
+                />
+                <span>사이트 바로가기형 재생목록</span>
+              </label>
+              {playlistForm.isShortcut && (
+                <label className="media-field media-field--wide">
+                  <span>바로가기 URL</span>
+                  <input
+                    value={playlistForm.shortcutUrl}
+                    onChange={(event) => setPlaylistForm((prev) => ({ ...prev, shortcutUrl: event.target.value }))}
+                    placeholder="https://example.com"
+                    required={playlistForm.isShortcut}
+                  />
+                  <small className="media-field-help">
+                    {playlistMetadataLoading ? '사이트 제목과 썸네일을 확인하는 중...' : '저장 후 카드 클릭 시 이 사이트를 새 창으로 엽니다.'}
+                  </small>
+                  {safeImageUrl(playlistForm.coverUrl) && (
+                    <div className="media-submit-preview">
+                      <img src={safeImageUrl(playlistForm.coverUrl)} alt="" draggable={false} onDragStart={preventMediaArchiveDrag} />
+                      <span>카드 커버 미리보기</span>
+                    </div>
+                  )}
+                </label>
+              )}
               <label className="media-field media-field--wide">
                 <span>태그</span>
                 <input

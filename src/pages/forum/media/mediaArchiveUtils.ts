@@ -65,6 +65,8 @@ export interface SnsMediaPlaylist {
   adaptation_note?: string | null;
   no_endorsement_notice?: string | null;
   rights_note?: string | null;
+  is_shortcut?: boolean;
+  shortcut_url?: string | null;
   category?: string | null;
   dance_genre?: string | null;
   tags?: string[];
