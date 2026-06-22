@@ -3129,14 +3129,25 @@ const MediaArchivePage: React.FC = () => {
 
   const uploadPlaylistCoverFile = async (playlistId: string, file: File) => {
     const resized = await createResizedImages(file, undefined, `playlist-cover-${playlistId}.jpg`);
-    const uploadFile = resized.full;
-    const extension = uploadFile.name.split('.').pop() || 'webp';
-    const path = `sns-media-playlists/${playlistId}/cover.${extension}`;
-    const { error } = await cafe24.storage
-      .from('images')
-      .upload(path, uploadFile, { upsert: true, contentType: uploadFile.type });
-    if (error) throw error;
-    return cafe24.storage.from('images').getPublicUrl(path).data.publicUrl;
+    const variants = [
+      ['micro', resized.micro],
+      ['thumbnail', resized.thumbnail],
+      ['medium', resized.medium],
+      ['full', resized.full],
+    ] as const;
+
+    const uploadedUrls = await Promise.all(variants.map(async ([name, uploadFile]) => {
+      const extension = uploadFile.name.split('.').pop() || 'webp';
+      const path = `sns-media-playlists/${playlistId}/cover-${name}.${extension}`;
+      const { error } = await cafe24.storage
+        .from('images')
+        .upload(path, uploadFile, { upsert: true, contentType: uploadFile.type });
+      if (error) throw error;
+      return [name, cafe24.storage.from('images').getPublicUrl(path).data.publicUrl] as const;
+    }));
+
+    const publicUrls = Object.fromEntries(uploadedUrls) as Record<typeof variants[number][0], string>;
+    return publicUrls.medium || publicUrls.thumbnail || publicUrls.full || publicUrls.micro;
   };
 
   const canManagePlaylist = useCallback((playlist: SnsMediaPlaylist) => (
