@@ -1,5 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../../hooks/useTempoToolVisibilitySettings';
 import './forum.css';
 
 type ForumMenuItem = {
@@ -14,6 +19,11 @@ type ForumMenuItem = {
 
 const ForumPage: React.FC = () => {
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
+    const {
+        settings: tempoToolVisibilitySettings,
+        isLoading: isTempoToolVisibilityLoading,
+    } = useTempoToolVisibilitySettings();
 
     const menuItems: ForumMenuItem[] = [
         {
@@ -67,27 +77,42 @@ const ForumPage: React.FC = () => {
                     <p className="forum-hub-subtitle">자료, 링크, 연습 도구를 한 곳에서 엽니다.</p>
                 </header>
                 <div className="forum-grid">
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.id}
-                            className={`forum-icon-item forum-icon-item--${item.id}`}
-                            onClick={() => navigate(item.path)}
-                            style={{ '--brand-color': item.color } as React.CSSProperties}
-                            data-analytics-id={item.id}
-                            data-analytics-type="nav_item"
-                            data-analytics-title={item.title}
-                            data-analytics-section="forum_hub"
-                        >
-                            <div className="forum-icon-box">
-                                <i className={`${item.icon} forum-icon-glyph`}></i>
-                                {item.status && <span className="forum-icon-status">{item.status}</span>}
-                            </div>
-                            <span className="forum-icon-copy">
-                                <strong className="forum-icon-label">{item.title}</strong>
-                                <em>{item.description}</em>
-                            </span>
-                        </button>
-                    ))}
+                    {menuItems
+                        .filter((item) => {
+                            if (isAdmin) return true;
+                            if (isTempoToolVisibilityLoading) return item.id !== 'bpm-tapper' && item.id !== 'metronome';
+                            return !isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);
+                        })
+                        .map((item) => {
+                            const isHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);
+                            const status = isAdmin && isHidden ? '숨김' : item.status;
+
+                            return (
+                                <button
+                                    key={item.id}
+                                    className={`forum-icon-item forum-icon-item--${item.id}`}
+                                    onClick={() => navigate(item.path)}
+                                    style={{ '--brand-color': item.color } as React.CSSProperties}
+                                    data-analytics-id={item.id}
+                                    data-analytics-type="nav_item"
+                                    data-analytics-title={item.title}
+                                    data-analytics-section="forum_hub"
+                                >
+                                    <div className="forum-icon-box">
+                                        <i className={`${item.icon} forum-icon-glyph`}></i>
+                                        {status && (
+                                            <span className={`forum-icon-status ${isHidden ? 'forum-icon-status--hidden' : ''}`.trim()}>
+                                                {status}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="forum-icon-copy">
+                                        <strong className="forum-icon-label">{item.title}</strong>
+                                        <em>{item.description}</em>
+                                    </span>
+                                </button>
+                            );
+                        })}
                 </div>
             </div>
         </div>

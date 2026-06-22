@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Navigate } from 'react-router-dom';
 import './metronome.css';
 import { cafe24 } from '../../lib/cafe24Client';
 import type { MetronomePreset } from '../../lib/cafe24Client';
 import { useAuth } from '../../contexts/AuthContext';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../../hooks/useTempoToolVisibilitySettings';
 
 type SoundId = 'classic' | 'wood' | 'elec' | 'perc' | 'brush' | 'kick' | 'hat' | 'cowbell' | 'clave';
 type BeatRole = 'downbeat' | 'backbeat' | 'primary' | 'offbeat' | 'triplet';
@@ -167,7 +172,7 @@ const roleTone: Record<BeatRole, { gain: number; pitch: number }> = {
     triplet: { gain: 0.62, pitch: 0.62 },
 };
 
-const MetronomePage: React.FC = () => {
+const MetronomePageInner: React.FC = () => {
     const { user, isAdmin } = useAuth();
 
     // State
@@ -1616,6 +1621,21 @@ const MetronomePage: React.FC = () => {
             </div>
         </div>
     );
+};
+
+const MetronomePage: React.FC = () => {
+    const { isAdmin, isAuthCheckComplete } = useAuth();
+    const {
+        settings: tempoToolVisibilitySettings,
+        isLoading: isTempoToolVisibilityLoading,
+    } = useTempoToolVisibilitySettings();
+    const isAccessCheckPending = isTempoToolVisibilityLoading || !isAuthCheckComplete;
+    const isAccessBlocked = isTempoToolItemHidden(tempoToolVisibilitySettings, 'metronome') && !isAdmin;
+
+    if (isAccessCheckPending) return null;
+    if (isAccessBlocked) return <Navigate to="/" replace />;
+
+    return <MetronomePageInner />;
 };
 
 export default MetronomePage;

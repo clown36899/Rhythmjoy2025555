@@ -350,6 +350,46 @@ function filterRowsForViewer(table, rows = [], user) {
   return rows;
 }
 
+function collectVisibleSnsMediaPlaylistIds(playlists = [], items = [], user) {
+  const visibleIds = new Set();
+  const playlistsById = new Map(playlists.map((row) => [String(row.id || ''), row]));
+
+  const addPlaylistBranch = (playlistId) => {
+    let cursorId = String(playlistId || '');
+    const seen = new Set();
+    while (cursorId && !seen.has(cursorId)) {
+      seen.add(cursorId);
+      const playlist = playlistsById.get(cursorId);
+      if (!playlist) break;
+      visibleIds.add(cursorId);
+      cursorId = String(playlist.parent_id || '').trim();
+    }
+  };
+
+  playlists.forEach((row) => {
+    if (isTruthy(row.is_public) || (user && rowOwnerMatches(user, row))) {
+      addPlaylistBranch(row.id);
+    }
+  });
+
+  items.forEach((row) => {
+    if (!row?.playlist_id) return;
+    if (isTruthy(row.is_approved) || (user && rowOwnerMatches(user, row))) {
+      addPlaylistBranch(row.playlist_id);
+    }
+  });
+
+  return visibleIds;
+}
+
+async function filterSnsMediaPlaylistsForViewer(rows = [], user) {
+  if (user?.is_admin) return rows;
+
+  const items = await loadRows('sns_media_items');
+  const visibleIds = collectVisibleSnsMediaPlaylistIds(rows, items, user);
+  return rows.filter((row) => visibleIds.has(String(row.id || '')));
+}
+
 async function requireLoggedInMutationUser(req) {
   const user = await getCurrentUser(req);
   if (!user) throw httpError('로그인이 필요합니다.', 401);
@@ -2308,7 +2348,10 @@ export async function queryRecords(req, res) {
   const body = req.body || {};
   const user = await getCurrentUser(req);
   const rows = await loadRows(table);
-  let data = applyFilters(filterRowsForViewer(table, rows, user), body.filters || [], body.orFilters || []);
+  const visibleRows = table === 'sns_media_playlists'
+    ? await filterSnsMediaPlaylistsForViewer(rows, user)
+    : filterRowsForViewer(table, rows, user);
+  let data = applyFilters(visibleRows, body.filters || [], body.orFilters || []);
   const count = data.length;
   data = applyOrders(data, body.orders || []);
   data = applyRange(data, body.range, body.limit);

@@ -1,4 +1,5 @@
 export const ANALYTICS_ADMIN_SHIELD_KEY = 'ga-admin-shield';
+export const ANALYTICS_ADMIN_DEVICE_KEY = 'ga-admin-device-shield';
 
 export const ANALYTICS_BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|selenium|webdriver|curl|wget|python-requests|gptbot|chatgpt|oai-searchbot|openai|claude|anthropic|perplexity|bytespider|ccbot|googleother|google-extended|cohere|mistralai|amazonbot|applebot-extended/i;
 export const ANALYTICS_KIOSK_ROUTE_PATTERN = /^\/(?:kiosk|키오스크)(?:\/|$)/i;
@@ -76,5 +77,8 @@ export const isLocalAnalyticsHost = (
 
 export const isAdminAnalyticsShielded = (): boolean => {
     if (typeof window === 'undefined') return false;
-    return localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true';
+    return (
+        localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true' ||
+        localStorage.getItem(ANALYTICS_ADMIN_DEVICE_KEY) === 'true'
+    );
 };

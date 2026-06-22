@@ -152,6 +152,10 @@ function asBool(value, fallback = false) {
   return fallback;
 }
 
+function analyticsExclusionReason(body, fallback = null) {
+  return asString(body.analytics_exclusion_reason || body.exclusion_reason) || fallback;
+}
+
 function asInt(value, fallback = null) {
   if (value === undefined || value === null || value === '') return fallback;
   const numeric = Number(value);
@@ -367,10 +371,11 @@ async function buildCafe24SiteStats() {
   const pool = getMysqlPool();
   const [eventRows] = await pool.query(`SELECT raw_json FROM ${EVENT_TABLE}`);
   const events = eventRows.map((row) => parseJson(row.raw_json, {}));
-  const [boardUsers, pwaInstalls, pushSubscriptions] = await Promise.all([
+  const [boardUsers, pwaInstalls, pushSubscriptions, adminIdentities] = await Promise.all([
     loadGenericRows('board_users'),
     loadGenericRows('pwa_installs'),
     loadGenericRows('user_push_subscriptions'),
+    getAnalyticsAdminIdentityCache().catch(() => ({ userIds: new Set() })),
   ]);
 
   const stats = {
@@ -419,19 +424,27 @@ async function buildCafe24SiteStats() {
       .filter((row) => String(row?.status || '').toLowerCase() !== 'deleted')
       .map((row) => row.user_id)
       .filter(Boolean)
+      .filter((userId) => !adminIdentities.userIds?.has(String(userId)))
       .map(String),
   );
-  const memberCount = activeMemberIds.size || boardUsers.length;
+  const memberCount = activeMemberIds.size || boardUsers.filter((row) => (
+    row?.user_id && !adminIdentities.userIds?.has(String(row.user_id))
+  )).length;
+  const isNonAdminActiveMember = (userId) => (
+    userId &&
+    !adminIdentities.userIds?.has(String(userId)) &&
+    (!activeMemberIds.size || activeMemberIds.has(String(userId)))
+  );
   const pwaCount = new Set(
     pwaInstalls
       .map((row) => row.user_id)
-      .filter((userId) => userId && (!activeMemberIds.size || activeMemberIds.has(String(userId))))
+      .filter(isNonAdminActiveMember)
       .map(String),
   ).size;
   const pushCount = new Set(
     pushSubscriptions
       .map((row) => row.user_id)
-      .filter((userId) => userId && (!activeMemberIds.size || activeMemberIds.has(String(userId))))
+      .filter(isNonAdminActiveMember)
       .map(String),
   ).size;
   const eventBreakdown = {
@@ -604,6 +617,14 @@ async function saveSessionStart(body, req) {
     user_id: asString(body.user_id || body.userId) ?? existing?.user_id ?? null,
     fingerprint: asString(body.fingerprint) ?? existing?.fingerprint ?? null,
     is_admin: asBool(body.is_admin, asBool(existing?.is_admin, false)),
+    analytics_excluded: asBool(
+      body.analytics_excluded,
+      asBool(existing?.analytics_excluded, false) || asBool(body.is_admin, false),
+    ),
+    analytics_exclusion_reason: analyticsExclusionReason(
+      body,
+      existing?.analytics_exclusion_reason || (asBool(body.is_admin, false) ? 'admin_identity' : null),
+    ),
     session_start: sessionStart,
     page_views: asInt(body.page_views, existing?.page_views ?? 1) || 1,
     total_clicks: asInt(body.total_clicks, existing?.total_clicks ?? 0) || 0,
@@ -654,6 +675,14 @@ async function saveSessionEnd(body, req) {
     user_id: asString(body.user_id || body.userId) ?? existing?.user_id ?? null,
     fingerprint: asString(body.fingerprint) ?? existing?.fingerprint ?? null,
     is_admin: asBool(body.is_admin, asBool(existing?.is_admin, false)),
+    analytics_excluded: asBool(
+      body.analytics_excluded,
+      asBool(existing?.analytics_excluded, false) || asBool(body.is_admin, false),
+    ),
+    analytics_exclusion_reason: analyticsExclusionReason(
+      body,
+      existing?.analytics_exclusion_reason || (asBool(body.is_admin, false) ? 'admin_identity' : null),
+    ),
     user_agent: existing?.user_agent || requestUserAgent(req, body) || null,
     platform: existing?.platform || asString(body.platform) || null,
     client_ip: existing?.client_ip || asString(body.client_ip) || requestClientIp(req),
@@ -689,6 +718,11 @@ async function saveAnalyticsEvent(body, req) {
     user_id: asString(body.user_id || body.userId),
     fingerprint: asString(body.fingerprint),
     is_admin: asBool(body.is_admin, false),
+    analytics_excluded: asBool(body.analytics_excluded, asBool(body.is_admin, false)),
+    analytics_exclusion_reason: analyticsExclusionReason(
+      body,
+      asBool(body.is_admin, false) ? 'admin_identity' : null,
+    ),
     user_agent: requestUserAgent(req, body),
     platform: asString(body.platform),
     client_ip: asString(body.client_ip) || requestClientIp(req),
@@ -825,9 +859,19 @@ export async function recordAnalytics(req, res) {
     });
   }
 
+  if (trustedIsAdmin) {
+    await saveCafe24AnalyticsCompat({
+      ...body,
+      analytics_excluded: true,
+      analytics_exclusion_reason: 'trusted_admin_identity',
+    }, req);
+    invalidateAnalyticsAdminIdentityCache();
+    res.json({ ok: true, skipped: true, reason: 'admin_identity' });
+    return;
+  }
+
   if (
     asBool(body.analytics_excluded, false) ||
-    trustedIsAdmin ||
     isAnalyticsBotPayload(body, req) ||
     isAnalyticsDatacenterRow(body) ||
     isAnalyticsExcludedIpRow(body) ||

@@ -8,6 +8,8 @@ const LINK_TARGETS = {
   local: 'http://127.0.0.1:5173/links',
 };
 
+const DEFAULT_ARCHIVE_BUCKET = 'reference';
+
 const clipperRoot = document.querySelector('.clipper');
 const clipperSubtitle = document.getElementById('clipperSubtitle');
 const pageTitle = document.getElementById('pageTitle');
@@ -20,7 +22,6 @@ const accountHandleText = document.getElementById('accountHandleText');
 const accountDestinationText = document.getElementById('accountDestinationText');
 const targetMode = document.getElementById('targetMode');
 const captureMode = document.getElementById('captureMode');
-const bucketInput = document.getElementById('bucketInput');
 const playlistInput = document.getElementById('playlistInput');
 const playlistStatus = document.getElementById('playlistStatus');
 const newPlaylistInput = document.getElementById('newPlaylistInput');
@@ -1017,7 +1018,6 @@ async function updatePagePreview(tab) {
 async function loadSettings() {
   savedSettings = await chrome.storage.local.get([
     'targetMode',
-    'bucket',
     'playlistId',
     'newPlaylistName',
     'newPlaylistParentId',
@@ -1025,7 +1025,6 @@ async function loadSettings() {
     'genre',
   ]);
   targetMode.value = savedSettings.targetMode || 'production';
-  bucketInput.value = savedSettings.bucket || 'reference';
   newPlaylistInput.value = savedSettings.newPlaylistName || '';
   tagsInput.value = savedSettings.tags || '';
   genreInput.value = savedSettings.genre || '';
@@ -1034,7 +1033,6 @@ async function loadSettings() {
 async function saveSettings() {
   savedSettings = {
     targetMode: targetMode.value,
-    bucket: bucketInput.value,
     playlistId: playlistInput.value,
     newPlaylistName: newPlaylistInput.value.trim(),
     newPlaylistParentId: newPlaylistParentInput.value,
@@ -1052,7 +1050,7 @@ function buildArchiveUrl() {
   params.set('add', activeTab.url);
   params.set('title', activeResolvedTitle || cleanTitle(activeTab.title));
   params.set('source', '데스크톱 공유');
-  params.set('bucket', bucketInput.value);
+  params.set('bucket', DEFAULT_ARCHIVE_BUCKET);
   const selectedPlaylist = getSelectedPlaylist();
   const newPlaylistName = newPlaylistInput.value.trim();
   if (newPlaylistName) {
@@ -1120,7 +1118,6 @@ targetMode.addEventListener('change', async () => {
   updateCaptureModeUi();
 });
 captureMode.addEventListener('change', updateCaptureModeUi);
-bucketInput.addEventListener('change', saveSettings);
 playlistInput.addEventListener('change', async () => {
   if (playlistInput.value) {
     newPlaylistInput.value = '';

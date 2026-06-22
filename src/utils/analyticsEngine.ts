@@ -2,6 +2,7 @@ import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 import {
+    isAdminAnalyticsShielded,
     isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
@@ -53,11 +54,17 @@ const SESSION_STORAGE_KEYS = {
     LAST_PAGE: 'analytics_session_last_page',
 };
 
-const shouldTrackAnalytics = () => SITE_ANALYTICS_CONFIG.ENABLED
+const shouldAllowAnalyticsTransport = () => SITE_ANALYTICS_CONFIG.ENABLED
     && !isLocalAnalyticsHost()
     && !isLikelyBotTraffic()
     && !isInternalAnalyticsRoute()
     && !isKioskAnalyticsContext();
+
+const shouldTrackAnalytics = () => shouldAllowAnalyticsTransport()
+    && !isAdminAnalyticsShielded();
+
+const shouldSendAdminIdentity = (isAdmin?: boolean) => shouldAllowAnalyticsTransport()
+    && Boolean(isAdmin);
 
 const readStoredNumber = (key: string): number | null => {
     try {
@@ -253,6 +260,7 @@ export const detectPWAMode = (): { isPWA: boolean; displayMode: string | null } 
  */
 export const trackPWAInstall = async (user?: { id: string }) => {
     if (!shouldTrackAnalytics()) return;
+    if (isAdminAnalyticsShielded()) return;
 
     const currentSessionId = getOrCreateSessionId();
     const utm = parseUTMParams();
@@ -301,7 +309,8 @@ export const trackPWAInstall = async (user?: { id: string }) => {
  * 세션 초기화 및 사이트 접속 기록 (순수 로그인 집계용)
  */
 export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?: boolean) => {
-    if (!shouldTrackAnalytics()) return;
+    const isAdminIdentity = Boolean(isAdmin);
+    if (!shouldTrackAnalytics() && !shouldSendAdminIdentity(isAdminIdentity)) return;
 
     const currentSessionId = getOrCreateSessionId();
     trackPageViewForCurrentSession();
@@ -324,7 +333,9 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
                 session_id: currentSessionId,
                 user_id: user?.id || null,
                 fingerprint: fingerprint || null,
-                is_admin: isAdmin || false,
+                is_admin: isAdminIdentity,
+                analytics_excluded: isAdminIdentity,
+                analytics_exclusion_reason: isAdminIdentity ? 'client_admin_identity' : null,
                 entry_page: window.location.pathname,
                 referrer: referrer || null,
                 utm_source: utm.utm_source,
@@ -442,7 +453,7 @@ export const trackEvent = (log: AnalyticsLog) => {
     if (!shouldTrackAnalytics()) return;
 
     // [PHASE 6] DB 용량 절약을 위해 관리자 로그 원천 차단
-    if (log.is_admin) return;
+    if (log.is_admin || isAdminAnalyticsShielded()) return;
 
     const cacheKey = log.target_type + ':' + log.target_id + ':' + log.section;
     const now = Date.now();

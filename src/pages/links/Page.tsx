@@ -37,8 +37,6 @@ export interface SiteLink {
     created_at: string;
 }
 
-type TypeFilter = 'all' | LinkType;
-
 type AccountCardItem = {
     kind: 'single' | 'group';
     key: string;
@@ -51,11 +49,13 @@ type PersonMergeDraft = {
     groupId: string;
 };
 
-const TYPE_FILTERS: Array<{ value: TypeFilter; label: string; icon: string }> = [
-    { value: 'all', label: '전체', icon: 'ri-stack-line' },
-    { value: 'person_account', label: '인물 계정', icon: 'ri-user-follow-line' },
-    { value: 'site', label: '사이트', icon: 'ri-global-line' },
-];
+type SearchSuggestion = {
+    value: string;
+    label: string;
+    meta: string;
+    icon: string;
+    priority: number;
+};
 
 const getResolvedLinkType = (link: SiteLink): LinkType => (
     link.link_type === 'person_account' ? 'person_account' : 'site'
@@ -152,6 +152,88 @@ const getCategoryForFilter = (link: SiteLink) => (
     link.person_group_category || link.category
 );
 
+const normalizeSearchValue = (value: unknown) => (
+    String(value || '').trim().toLowerCase()
+);
+
+const getSearchTextForLink = (link: SiteLink, groupMembersById: Map<string, SiteLink[]>) => {
+    const groupId = getPersonGroupId(link);
+    const relatedLinks = groupId ? (groupMembersById.get(groupId) || [link]) : [link];
+    return relatedLinks.map((target) => [
+        target.title,
+        target.description,
+        target.url,
+        target.normalized_url,
+        target.category,
+        target.person_group_category,
+        target.account_handle,
+        target.account_platform,
+        getDisplayDomain(getTargetUrl(target)),
+        getLinkTypeLabel(getResolvedLinkType(target)),
+    ].map(normalizeSearchValue).join(' ')).join(' ');
+};
+
+const addSearchSuggestion = (
+    suggestions: SearchSuggestion[],
+    seen: Set<string>,
+    value: unknown,
+    meta: string,
+    icon: string,
+    priority: number
+) => {
+    const label = String(value || '').trim();
+    if (!label) return;
+    const key = label.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    suggestions.push({ value: label, label, meta, icon, priority });
+};
+
+const getHashKeywords = (description: string) => (
+    Array.from(description.matchAll(/#[\p{L}\p{N}_-]+/gu)).map((match) => match[0])
+);
+
+const getSearchSuggestions = (
+    links: SiteLink[],
+    groupMembersById: Map<string, SiteLink[]>,
+    query: string
+) => {
+    const seen = new Set<string>();
+    const groupIds = new Set<string>();
+    const suggestions: SearchSuggestion[] = [];
+
+    links.forEach((link) => {
+        const groupId = getPersonGroupId(link);
+        if (groupId && !groupIds.has(groupId)) {
+            groupIds.add(groupId);
+            const members = groupMembersById.get(groupId) || [link];
+            addSearchSuggestion(suggestions, seen, getAccountClusterTitle(members), '묶음 제목', 'ri-links-line', 0);
+        }
+
+        addSearchSuggestion(suggestions, seen, link.title, '제목', 'ri-bookmark-line', 1);
+        addSearchSuggestion(suggestions, seen, link.account_handle ? `@${link.account_handle}` : '', '계정', 'ri-at-line', 2);
+        addSearchSuggestion(suggestions, seen, getCategoryForFilter(link), '키워드', 'ri-price-tag-3-line', 3);
+        addSearchSuggestion(suggestions, seen, getDisplayDomain(getTargetUrl(link)), '도메인', 'ri-global-line', 4);
+        getHashKeywords(link.description || '').forEach((keyword) => {
+            addSearchSuggestion(suggestions, seen, keyword, '키워드', 'ri-hashtag', 3);
+        });
+    });
+
+    const normalizedQuery = normalizeSearchValue(query);
+    return suggestions
+        .filter((suggestion) => {
+            if (!normalizedQuery) return true;
+            return normalizeSearchValue(`${suggestion.label} ${suggestion.meta}`).includes(normalizedQuery);
+        })
+        .sort((a, b) => a.priority - b.priority || a.label.localeCompare(b.label, 'ko'))
+        .slice(0, 8);
+};
+
+const isLocalRuntimeHost = () => {
+    if (typeof window === 'undefined') return false;
+    return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+};
+
 export default function LinksPage() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -161,11 +243,14 @@ export default function LinksPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<SiteLink | null>(null);
     const [initialDraft, setInitialDraft] = useState<LinkRegistrationDraft | null>(null);
-    const [filterType, setFilterType] = useState<TypeFilter>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [activeSearchSuggestionIndex, setActiveSearchSuggestionIndex] = useState(0);
     const [filterCategory, setFilterCategory] = useState<string>('전체');
     const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(() => new Set());
     const [mergeLinks, setMergeLinks] = useState<SiteLink[] | null>(null);
     const [bridgeLinks, setBridgeLinks] = useState<SiteLink[] | null>(null);
+    const [isManageMode, setIsManageMode] = useState(false);
     const importedDraftKeyRef = useRef('');
 
     const fetchLinks = async () => {
@@ -247,22 +332,6 @@ export default function LinksPage() {
         links.filter((link) => getResolvedLinkType(link) === 'person_account')
     ), [links]);
 
-    const typeFilteredLinks = useMemo(() => (
-        filterType === 'all'
-            ? links
-            : links.filter(link => getResolvedLinkType(link) === filterType)
-    ), [filterType, links]);
-
-    const allCategories = useMemo(() => (
-        Array.from(new Set(typeFilteredLinks.map(link => getCategoryForFilter(link)))).filter(Boolean).sort()
-    ), [typeFilteredLinks]);
-
-    const filteredLinks = useMemo(() => (
-        filterCategory === '전체'
-            ? typeFilteredLinks
-            : typeFilteredLinks.filter(link => getCategoryForFilter(link) === filterCategory)
-    ), [filterCategory, typeFilteredLinks]);
-
     const groupMembersById = useMemo(() => {
         const map = new Map<string, SiteLink[]>();
         accountLinks.forEach((link) => {
@@ -274,6 +343,29 @@ export default function LinksPage() {
         });
         return map;
     }, [accountLinks]);
+
+    const normalizedSearchQuery = normalizeSearchValue(searchQuery);
+
+    const searchSuggestions = useMemo(() => (
+        getSearchSuggestions(links, groupMembersById, searchQuery)
+    ), [groupMembersById, links, searchQuery]);
+
+    const showSearchSuggestions = isSearchFocused && searchSuggestions.length > 0;
+
+    const searchedLinks = useMemo(() => {
+        if (!normalizedSearchQuery) return links;
+        return links.filter((link) => getSearchTextForLink(link, groupMembersById).includes(normalizedSearchQuery));
+    }, [groupMembersById, links, normalizedSearchQuery]);
+
+    const allCategories = useMemo(() => (
+        Array.from(new Set(searchedLinks.map(link => getCategoryForFilter(link)))).filter(Boolean).sort()
+    ), [searchedLinks]);
+
+    const filteredLinks = useMemo(() => (
+        filterCategory === '전체'
+            ? searchedLinks
+            : searchedLinks.filter(link => getCategoryForFilter(link) === filterCategory)
+    ), [filterCategory, searchedLinks]);
 
     const cardItems = useMemo<AccountCardItem[]>(() => {
         const seenGroups = new Set<string>();
@@ -307,6 +399,10 @@ export default function LinksPage() {
     const selectedLinks = useMemo(() => (
         accountLinks.filter((link) => selectedAccountIds.has(getLinkKey(link)))
     ), [accountLinks, selectedAccountIds]);
+    const canUseLocalManageTools = isLocalRuntimeHost();
+    const canUseManageMode = isAdmin || Boolean(user) || canUseLocalManageTools;
+    const canMutateLinksAsAdmin = isAdmin || canUseLocalManageTools;
+    const showAdminManageTools = canMutateLinksAsAdmin && isManageMode;
 
     useEffect(() => {
         if (filterCategory !== '전체' && !allCategories.includes(filterCategory)) {
@@ -314,8 +410,12 @@ export default function LinksPage() {
         }
     }, [allCategories, filterCategory]);
 
+    useEffect(() => {
+        setActiveSearchSuggestionIndex(0);
+    }, [normalizedSearchQuery, searchSuggestions.length]);
+
     const handleApprove = async (id: SiteLink['id']) => {
-        if (!isAdmin) return;
+        if (!canMutateLinksAsAdmin) return;
         try {
             const { error } = await cafe24.from('site_links').update({ is_approved: true }).eq('id', id);
             if (error) throw error;
@@ -326,7 +426,7 @@ export default function LinksPage() {
     };
 
     const handleApproveMany = async (targetLinks: SiteLink[]) => {
-        if (!isAdmin) return;
+        if (!canMutateLinksAsAdmin) return;
         try {
             await runLinkUpdatesInBatches(targetLinks, (link) => (
                 cafe24.from('site_links').update({ is_approved: true }).eq('id', link.id)
@@ -361,6 +461,7 @@ export default function LinksPage() {
     };
 
     const openMergeModalForSelection = () => {
+        if (!showAdminManageTools) return;
         const selected = uniqueBy(selectedLinks, getLinkKey);
         if (selected.length < 2) {
             alert('합칠 인물 계정을 2개 이상 선택해주세요.');
@@ -369,8 +470,14 @@ export default function LinksPage() {
         setMergeLinks(selected);
     };
 
+    const leaveManageMode = () => {
+        setIsManageMode(false);
+        setSelectedAccountIds(new Set());
+        setMergeLinks(null);
+    };
+
     const handleSaveMerge = async (draft: PersonMergeDraft, targetLinks: SiteLink[]) => {
-        if (!isAdmin) return;
+        if (!canMutateLinksAsAdmin) return;
         const updatedAt = new Date().toISOString();
         const payload = {
             person_group_id: draft.groupId,
@@ -396,7 +503,7 @@ export default function LinksPage() {
     };
 
     const handleUngroup = async (targetLinks: SiteLink[]) => {
-        if (!isAdmin) return;
+        if (!canMutateLinksAsAdmin) return;
         if (!confirm('이 인물 묶음을 해제하시겠습니까? 개별 계정은 삭제되지 않습니다.')) return;
         try {
             const payload = {
@@ -427,36 +534,109 @@ export default function LinksPage() {
         setIsModalOpen(true);
     };
 
+    const selectSearchSuggestion = (suggestion: SearchSuggestion) => {
+        setSearchQuery(suggestion.value);
+        setFilterCategory('전체');
+        setIsSearchFocused(false);
+    };
+
+    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!showSearchSuggestions) return;
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setActiveSearchSuggestionIndex((index) => (index + 1) % searchSuggestions.length);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActiveSearchSuggestionIndex((index) => (index - 1 + searchSuggestions.length) % searchSuggestions.length);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            selectSearchSuggestion(searchSuggestions[activeSearchSuggestionIndex] || searchSuggestions[0]);
+        } else if (event.key === 'Escape') {
+            setIsSearchFocused(false);
+        }
+    };
+
     return (
         <div className="links-page-glass-container">
             <header className="links-hero-header">
                 <div className="links-hero-content">
                     <p className="subtitle-glass">댄스씬의 사이트와 인물 계정을 모아봅니다.</p>
                 </div>
-                <button className="links-action-btn glass-btn-primary" onClick={() => { setInitialDraft(null); setEditTarget(null); setIsModalOpen(true); }}>
-                    <i className="ri-add-line"></i>
-                    <span>사이트·계정 등록</span>
-                </button>
+                <div className="links-header-actions">
+                    {canUseManageMode && (
+                        <button
+                            type="button"
+                            className={`links-manage-toggle ${isManageMode ? 'active' : ''}`}
+                            onClick={() => {
+                                if (isManageMode) leaveManageMode();
+                                else setIsManageMode(true);
+                            }}
+                        >
+                            <i className={isManageMode ? 'ri-eye-line' : 'ri-edit-2-line'}></i>
+                            <span>{isManageMode ? '뷰모드' : '편집'}</span>
+                        </button>
+                    )}
+                    <button className="links-action-btn glass-btn-primary" onClick={() => { setInitialDraft(null); setEditTarget(null); setIsModalOpen(true); }}>
+                        <i className="ri-add-line"></i>
+                        <span>사이트·계정 등록</span>
+                    </button>
+                </div>
             </header>
 
             <div className="links-glass-filter-wrapper">
-                <div className="links-type-filter" aria-label="링크 유형 필터">
-                    {TYPE_FILTERS.map(item => {
-                        const count = item.value === 'all'
-                            ? links.length
-                            : links.filter(link => getResolvedLinkType(link) === item.value).length;
-                        return (
+                <div className="links-local-search-wrap">
+                    <label className="links-local-search" aria-label="사이트 검색">
+                        <i className="ri-search-line"></i>
+                        <input
+                            type="search"
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => window.setTimeout(() => setIsSearchFocused(false), 120)}
+                            onKeyDown={handleSearchKeyDown}
+                            placeholder="사이트·계정 검색"
+                            role="combobox"
+                            aria-expanded={showSearchSuggestions}
+                            aria-controls="links-search-suggestions"
+                            aria-autocomplete="list"
+                        />
+                        {searchQuery && (
                             <button
-                                key={item.value}
-                                className={`link-type-chip ${filterType === item.value ? 'active' : ''}`}
-                                onClick={() => setFilterType(item.value)}
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setFilterCategory('전체');
+                                }}
+                                aria-label="검색어 지우기"
                             >
-                                <i className={item.icon}></i>
-                                <span>{item.label}</span>
-                                <b>{count}</b>
+                                <i className="ri-close-line"></i>
                             </button>
-                        );
-                    })}
+                        )}
+                    </label>
+                    {showSearchSuggestions && (
+                        <div className="links-search-suggestions" id="links-search-suggestions" role="listbox">
+                            {searchSuggestions.map((suggestion, index) => (
+                                <button
+                                    key={`${suggestion.meta}:${suggestion.value}`}
+                                    type="button"
+                                    className={index === activeSearchSuggestionIndex ? 'active' : ''}
+                                    role="option"
+                                    aria-selected={index === activeSearchSuggestionIndex}
+                                    onMouseEnter={() => setActiveSearchSuggestionIndex(index)}
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        selectSearchSuggestion(suggestion);
+                                    }}
+                                >
+                                    <i className={suggestion.icon}></i>
+                                    <span>
+                                        <strong>{suggestion.label}</strong>
+                                        <em>{suggestion.meta}</em>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div className="links-category-filter">
                     <button
@@ -464,10 +644,10 @@ export default function LinksPage() {
                         onClick={() => setFilterCategory('전체')}
                     >
                         <span className="category-text">전체</span>
-                        <span className="category-count">{typeFilteredLinks.length}</span>
+                        <span className="category-count">{searchedLinks.length}</span>
                     </button>
                     {allCategories.map(cat => {
-                        const count = typeFilteredLinks.filter(l => getCategoryForFilter(l) === cat).length;
+                        const count = searchedLinks.filter(l => getCategoryForFilter(l) === cat).length;
                         return (
                             <button
                                 key={cat}
@@ -482,7 +662,7 @@ export default function LinksPage() {
                 </div>
             </div>
 
-            {isAdmin && filterType !== 'site' && accountLinks.length > 1 && (
+            {showAdminManageTools && accountLinks.length > 1 && (
                 <div className="person-merge-toolbar">
                     <div className="person-merge-toolbar-copy">
                         <strong>{selectedLinks.length > 0 ? `${selectedLinks.length}개 계정 선택됨` : '인물 계정 병합'}</strong>
@@ -534,19 +714,24 @@ export default function LinksPage() {
                         const platforms = getPlatforms(item.links);
                         const isSelected = item.links.length > 0 && item.links.every((target) => selectedAccountIds.has(getLinkKey(target)));
                         const isPending = item.links.some((target) => !isTruthy(target.is_approved));
-                        const canManageSingle = item.kind === 'single' && (isAdmin || (user && user.id === link.created_by));
+                        const canManageSingle = isManageMode && item.kind === 'single' && (canMutateLinksAsAdmin || (user && user.id === link.created_by));
 
                         return (
                             <div
                                 key={item.key}
-                                className={`glass-card link-item ${isAccountCard ? 'account-card' : ''} ${isGroup ? 'grouped-account-card' : ''} ${isPending ? 'pending' : ''}`}
+                                className={`glass-card link-item ${isAccountCard ? 'account-card' : ''} ${isGroup ? 'grouped-account-card' : ''} ${isPending ? 'pending' : ''} ${isManageMode ? 'is-manage-mode' : ''}`}
                                 onClick={() => {
+                                    if (showAdminManageTools && isAccountCard) {
+                                        toggleAccountSelection(item.links);
+                                        return;
+                                    }
+                                    if (isManageMode) return;
                                     if (isGroup) setBridgeLinks(item.links);
                                     else window.open(targetUrl, '_blank', 'noopener noreferrer');
                                 }}
                             >
 
-                                {isAdmin && isAccountCard && (
+                                {showAdminManageTools && isAccountCard && (
                                     <label className={`merge-select-control ${isSelected ? 'active' : ''}`} onClick={(e) => e.stopPropagation()}>
                                         <input
                                             type="checkbox"
@@ -634,7 +819,7 @@ export default function LinksPage() {
                                     </div>
                                 </div>
 
-                                {item.kind === 'group' && isAdmin && (
+                                {item.kind === 'group' && showAdminManageTools && (
                                     <div className="link-glass-actions" onClick={e => e.stopPropagation()}>
                                         <button onClick={() => setMergeLinks(item.links)} className="glass-action-btn edit">
                                             <i className="ri-git-merge-line"></i> 병합 수정
@@ -655,7 +840,7 @@ export default function LinksPage() {
                                         <button onClick={() => openEditModal(link)} className="glass-action-btn edit">
                                             <i className="ri-pencil-line"></i> 수정
                                         </button>
-                                        {isAdmin && !isTruthy(link.is_approved) && (
+                                        {canMutateLinksAsAdmin && !isTruthy(link.is_approved) && (
                                             <button onClick={() => handleApprove(link.id)} className="glass-action-btn approve">
                                                 <i className="ri-check-line"></i> 승인
                                             </button>
@@ -693,7 +878,7 @@ export default function LinksPage() {
             {bridgeLinks && (
                 <PersonBridgeModal
                     links={bridgeLinks}
-                    isAdmin={isAdmin}
+                    isAdmin={showAdminManageTools}
                     onClose={() => setBridgeLinks(null)}
                     onEditLink={openEditModal}
                     onUngroup={handleUngroup}

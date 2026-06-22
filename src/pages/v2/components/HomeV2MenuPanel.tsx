@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
-import { useTempoToolVisibilitySettings } from "../../../hooks/useTempoToolVisibilitySettings";
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from "../../../hooks/useTempoToolVisibilitySettings";
 import { trackActivitySuccess } from "../../../utils/analyticsEvents";
 import "./HomeV2MenuPanel.css";
 
@@ -40,6 +43,7 @@ const PINNED_MENU_STORAGE_KEY = "home_v2_pinned_menu_ids";
 const MENU_ORDER_STORAGE_KEY = "home_v2_menu_order_ids";
 const PINNED_MENU_LIMIT = 5;
 const DEFAULT_PINNED_MENU_IDS: string[] = ["tempo-tool"];
+const HIDEABLE_MENU_ITEM_IDS = new Set(["bpm-tapper", "metronome", "tempo-tool"]);
 
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
@@ -257,11 +261,14 @@ export const HomeV2MenuPanel: React.FC = () => {
     const suppressSyntheticClickUntilRef = useRef(0);
     const menuActionTimerRef = useRef<number | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
-    const shouldHideTempoTool = (!isAdmin && isTempoToolVisibilityLoading) || (!isAdmin && tempoToolVisibilitySettings.hidden);
+    const isTempoToolHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, "tempo-tool");
     const visibleHomeMenuItems = useMemo(() => {
-        if (!shouldHideTempoTool) return HOME_MENU_ITEMS;
-        return HOME_MENU_ITEMS.filter((item) => item.id !== "tempo-tool");
-    }, [shouldHideTempoTool]);
+        return HOME_MENU_ITEMS.filter((item) => {
+            if (isAdmin) return true;
+            if (isTempoToolVisibilityLoading && HIDEABLE_MENU_ITEM_IDS.has(item.id)) return false;
+            return !isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);
+        });
+    }, [isAdmin, isTempoToolVisibilityLoading, tempoToolVisibilitySettings]);
     const visibleDefaultPinnedMenuIds = useMemo(() => {
         const visibleMenuItemIds = new Set(visibleHomeMenuItems.map(getMenuItemKey));
         return DEFAULT_PINNED_MENU_IDS.filter((id) => visibleMenuItemIds.has(id));
@@ -548,15 +555,25 @@ export const HomeV2MenuPanel: React.FC = () => {
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
     }, [visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
-    const toggleTempoToolVisibility = useCallback(async () => {
+    const toggleMenuItemVisibility = useCallback(async (itemId: string) => {
         if (!isAdmin || isSavingTempoToolVisibility) return;
+
+        const currentlyHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, itemId);
+        const nextHiddenItemIds = new Set(tempoToolVisibilitySettings.hiddenItemIds);
+        if (currentlyHidden) {
+            nextHiddenItemIds.delete(itemId);
+        } else {
+            nextHiddenItemIds.add(itemId);
+        }
 
         setIsSavingTempoToolVisibility(true);
         try {
             await saveTempoToolVisibilitySettings({
-                hidden: !tempoToolVisibilitySettings.hidden,
+                hidden: itemId === "tempo-tool" ? !currentlyHidden : tempoToolVisibilitySettings.hidden,
+                hiddenItemIds: Array.from(nextHiddenItemIds),
             });
-        } catch {
+        } catch (error) {
+            console.error("[HomeV2MenuPanel] Failed to save menu visibility settings:", error);
             alert("숨김 설정 저장에 실패했습니다.");
         } finally {
             setIsSavingTempoToolVisibility(false);
@@ -566,7 +583,39 @@ export const HomeV2MenuPanel: React.FC = () => {
         isSavingTempoToolVisibility,
         saveTempoToolVisibilitySettings,
         tempoToolVisibilitySettings.hidden,
+        tempoToolVisibilitySettings.hiddenItemIds,
     ]);
+
+    const toggleTempoToolVisibility = useCallback(() => {
+        void toggleMenuItemVisibility("tempo-tool");
+    }, [toggleMenuItemVisibility]);
+
+    const getMenuItemStatus = useCallback((item: HomeMenuItem) => {
+        if (isAdmin && isTempoToolItemHidden(tempoToolVisibilitySettings, item.id)) return "숨김";
+        return item.status;
+    }, [isAdmin, tempoToolVisibilitySettings]);
+
+    const getMenuItemStatusClassName = useCallback((item: HomeMenuItem) => (
+        `home-v2-menu-status-badge ${isTempoToolItemHidden(tempoToolVisibilitySettings, item.id) ? "is-hidden" : ""}`.trim()
+    ), [tempoToolVisibilitySettings]);
+
+    const getMenuItemVisibilityLabel = useCallback((item: HomeMenuItem, hidden: boolean) => (
+        hidden ? `${item.label} 공개` : `${item.label} 숨김`
+    ), []);
+
+    const getMenuItemVisibilityIcon = useCallback((hidden: boolean) => (
+        hidden ? "ri-eye-line" : "ri-eye-off-line"
+    ), []);
+
+    const handleMenuItemVisibilityClick = useCallback((event: React.MouseEvent, itemId: string) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void toggleMenuItemVisibility(itemId);
+    }, [toggleMenuItemVisibility]);
+
+    const stopMenuItemVisibilityDrag = useCallback((event: React.SyntheticEvent) => {
+        event.stopPropagation();
+    }, []);
 
     const getEditDropTarget = useCallback((clientX: number, clientY: number): EditDropTarget | null => {
         if (typeof document === "undefined") return null;
@@ -1118,6 +1167,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                     >
                         {quickMenuItems.map((item) => {
                             const itemKey = getMenuItemKey(item);
+                            const itemStatus = getMenuItemStatus(item);
                             return (
                                 <button
                                     key={`quick-${itemKey}`}
@@ -1157,7 +1207,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                     <span className={`home-v2-menu-quick-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
                                         <i className={item.icon} />
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
-                                        {item.status && <span className="home-v2-menu-status-badge">{item.status}</span>}
+                                        {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
                                     </span>
                                     <span className={`home-v2-menu-quick-label ${item.id === "tempo-tool" ? "home-v2-menu-quick-label--tempo" : ""}`}>
                                         {item.id === "tempo-tool" ? (
@@ -1194,18 +1244,18 @@ export const HomeV2MenuPanel: React.FC = () => {
                         {isAdmin && !isEditMode && (
                             <button
                                 type="button"
-                                className={`home-v2-menu-visibility-btn ${tempoToolVisibilitySettings.hidden ? "is-hidden" : ""}`}
+                                className={`home-v2-menu-visibility-btn ${isTempoToolHidden ? "is-hidden" : ""}`}
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    void toggleTempoToolVisibility();
+                                    toggleTempoToolVisibility();
                                 }}
                                 disabled={isSavingTempoToolVisibility || isTempoToolVisibilityLoading}
-                                aria-label={tempoToolVisibilitySettings.hidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
-                                aria-pressed={tempoToolVisibilitySettings.hidden}
-                                title={tempoToolVisibilitySettings.hidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
+                                aria-label={isTempoToolHidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
+                                aria-pressed={isTempoToolHidden}
+                                title={isTempoToolHidden ? "BPM 측정기/메트로놈 공개" : "BPM 측정기/메트로놈 숨김"}
                             >
-                                <i className={tempoToolVisibilitySettings.hidden ? "ri-eye-line" : "ri-eye-off-line"} aria-hidden="true" />
-                                <span>{tempoToolVisibilitySettings.hidden ? "공개" : "숨김"}</span>
+                                <i className={isTempoToolHidden ? "ri-eye-line" : "ri-eye-off-line"} aria-hidden="true" />
+                                <span>{isTempoToolHidden ? "공개" : "숨김"}</span>
                             </button>
                         )}
 
@@ -1261,6 +1311,8 @@ export const HomeV2MenuPanel: React.FC = () => {
 
                             const { item } = cell;
                             const itemKey = getMenuItemKey(item);
+                            const itemHidden = isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);
+                            const itemStatus = getMenuItemStatus(item);
                             const pinnedIndex = cell.pinnedIndex;
                             const isPinned = pinnedIndex >= 0;
                             const isDropBefore = dragTargetPinnedId === `item:${itemKey}:before`;
@@ -1331,7 +1383,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         <span className={`home-v2-menu-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
                                             <i className={item.icon} />
                                             {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
-                                            {item.status && <span className="home-v2-menu-status-badge">{item.status}</span>}
+                                            {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
                                         </span>
                                         <span className={`home-v2-menu-label ${item.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
                                             {item.id === "tempo-tool" ? (
@@ -1342,6 +1394,22 @@ export const HomeV2MenuPanel: React.FC = () => {
                                             ) : t(item.label)}
                                         </span>
                                     </button>
+                                    {isAdmin && isEditMode && HIDEABLE_MENU_ITEM_IDS.has(item.id) && (
+                                        <button
+                                            type="button"
+                                            className={`home-v2-menu-item-visibility ${itemHidden ? "is-hidden" : ""}`}
+                                            onPointerDown={stopMenuItemVisibilityDrag}
+                                            onTouchStart={stopMenuItemVisibilityDrag}
+                                            onMouseDown={stopMenuItemVisibilityDrag}
+                                            onClick={(event) => handleMenuItemVisibilityClick(event, item.id)}
+                                            disabled={isSavingTempoToolVisibility || isTempoToolVisibilityLoading}
+                                            aria-label={getMenuItemVisibilityLabel(item, itemHidden)}
+                                            aria-pressed={itemHidden}
+                                            title={getMenuItemVisibilityLabel(item, itemHidden)}
+                                        >
+                                            <i className={getMenuItemVisibilityIcon(itemHidden)} aria-hidden="true" />
+                                        </button>
+                                    )}
                                     {isEditMode && isPinned && <span className="home-v2-menu-rank-badge">{pinnedIndex + 1}</span>}
                                 </div>
                             );
@@ -1381,6 +1449,7 @@ export const HomeV2MenuPanel: React.FC = () => {
             {pinnedDragOverlay && (() => {
                 const overlayItem = menuItemById.get(pinnedDragOverlay.id);
                 if (!overlayItem) return null;
+                const overlayItemStatus = getMenuItemStatus(overlayItem);
 
                 return (
                     <div
@@ -1396,7 +1465,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                         <span className={`home-v2-menu-icon home-v2-menu-icon--${overlayItem.theme}`}>
                             <i className={overlayItem.icon} />
                             {overlayItem.auxIcon && <i className={`home-v2-menu-icon-aux ${overlayItem.auxIcon}`} />}
-                            {overlayItem.status && <span className="home-v2-menu-status-badge">{overlayItem.status}</span>}
+                            {overlayItemStatus && <span className={getMenuItemStatusClassName(overlayItem)}>{overlayItemStatus}</span>}
                         </span>
                         <span className={`home-v2-menu-label ${overlayItem.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
                             {overlayItem.id === "tempo-tool" ? (

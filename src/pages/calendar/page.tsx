@@ -270,18 +270,25 @@ export default function CalendarPage() {
 
             const sortedRows = Array.from(rows.entries())
                 .sort(([topA], [topB]) => topA - topB)
-                .map(([top, rowCells]) => ({
-                    top,
-                    cells: rowCells
+                .map(([top, rowCells]) => {
+                    const rowEntries = rowCells
                         .map(cell => ({ cell, rect: getSafeRect(cell) }))
                         .filter((entry): entry is { cell: HTMLElement; rect: DOMRect } => !!entry.rect)
-                        .sort((a, b) => a.rect.left - b.rect.left)
-                        .map(entry => entry.cell),
-                }));
+                        .sort((a, b) => a.rect.left - b.rect.left);
+                    const bodyTop = Math.min(...rowEntries.map(({ cell, rect }) => (
+                        Math.round(getSafeRect(cell.querySelector('.calendar-cell-fullscreen-body'))?.top ?? rect.top)
+                    )));
+
+                    return {
+                        top,
+                        bodyTop,
+                        cells: rowEntries.map(entry => entry.cell),
+                    };
+                });
 
             let activeRow = sortedRows[0];
             for (const row of sortedRows) {
-                if (row.top <= switchLineY) activeRow = row;
+                if (row.bodyTop <= switchLineY) activeRow = row;
                 else break;
             }
 
@@ -379,6 +386,8 @@ export default function CalendarPage() {
     const todayScrollRunIdRef = useRef(0);
     const mountTimeRef = useRef(Date.now());
     const lastCalendarEntryKeyRef = useRef<string | null>(null);
+    const calendarWheelSnapTimerRef = useRef<number | null>(null);
+    const lastTouchAtRef = useRef(0);
     // [Fix] useEffect([currentMonth])가 마운트/재진입 직후 shouldScrollToToday를 덮어쓰는 것을 방지
     const skipCurrentMonthEffectRef = useRef(true);
 
@@ -456,6 +465,153 @@ export default function CalendarPage() {
             document.body.style.overflow = '';
         }
     }, [showRegisterModal, showCalendarNavigator, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
+
+    useEffect(() => {
+        const clearSnapTimer = () => {
+            if (calendarWheelSnapTimerRef.current !== null) {
+                window.clearTimeout(calendarWheelSnapTimerRef.current);
+                calendarWheelSnapTimerRef.current = null;
+            }
+        };
+
+        if (displayMode !== 'calendar') {
+            clearSnapTimer();
+            return;
+        }
+
+        const handleTouchStart = () => {
+            lastTouchAtRef.current = Date.now();
+            clearSnapTimer();
+        };
+
+        const shouldUseMouseSettleSnap = () => {
+            if (typeof window.matchMedia !== 'function') return false;
+            return window.matchMedia('(min-width: 721px) and (hover: hover) and (pointer: fine)').matches;
+        };
+
+        const getCalendarWeekSnapTargets = () => {
+            const cells = Array.from(document.querySelectorAll<HTMLElement>('[data-active-month="true"] .calendar-cell-fullscreen[data-date]'));
+            const stickyWeekdays = document.querySelector<HTMLElement>('.calendar-sticky-weekdays');
+            const stickyControls = document.querySelector<HTMLElement>('.calendar-live-sticky-controls');
+            if (cells.length === 0) return [];
+
+            const stickyBottom = getSafeRect(stickyWeekdays)?.bottom ?? getSafeRect(stickyControls)?.bottom ?? 0;
+            const maxScrollY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+            const rows = new Map<number, HTMLElement[]>();
+
+            cells.forEach((cell) => {
+                const rect = getSafeRect(cell);
+                if (!rect) return;
+                const rowTop = Math.round(rect.top);
+                const existing = rows.get(rowTop);
+                if (existing) existing.push(cell);
+                else rows.set(rowTop, [cell]);
+            });
+
+            return Array.from(rows.values())
+                .map((rowCells) => rowCells
+                    .map(cell => ({ cell, rect: getSafeRect(cell) }))
+                    .filter((entry): entry is { cell: HTMLElement; rect: DOMRect } => !!entry.rect)
+                    .sort((a, b) => a.rect.left - b.rect.left)[0]
+                )
+                .filter((entry): entry is { cell: HTMLElement; rect: DOMRect } => !!entry)
+                .map(({ cell, rect }) => {
+                    const anchorRect = getSafeRect(cell.querySelector('.calendar-cell-fullscreen-body')) ?? rect;
+                    const targetY = Math.round(anchorRect.top + window.scrollY - stickyBottom - 1);
+                    return targetY;
+                })
+                .filter((targetY) => {
+                    if (!Number.isFinite(targetY)) return false;
+                    if (targetY < 0 || targetY > maxScrollY) return false;
+                    return true;
+                })
+                .sort((a, b) => a - b);
+        };
+
+        const isInsideScrollableCalendar = (target: EventTarget | null) => {
+            if (!(target instanceof Element)) return false;
+            const calendarPage = target.closest('.calendar-page-container');
+            if (!calendarPage) return false;
+
+            const horizontalScrollable = target.closest<HTMLElement>('.calendar-dance-scope-switch, .calendar-filter-switch');
+            if (horizontalScrollable && horizontalScrollable.scrollWidth > horizontalScrollable.clientWidth + 2) {
+                return false;
+            }
+
+            return true;
+        };
+
+        const snapToNearestWeekBoundary = () => {
+            const isAnyModalOpen = showRegisterModal
+                || showCalendarNavigator
+                || showCalendarSearch
+                || showMapModal
+                || !!selectedVenueId
+                || !!socialEditEvent
+                || eventModal.showEditModal
+                || eventModal.showPasswordModal
+                || !!eventModal.selectedEvent;
+
+            if (isAnyModalOpen || Date.now() - lastTouchAtRef.current < 900 || !shouldUseMouseSettleSnap()) {
+                return;
+            }
+
+            const targets = getCalendarWeekSnapTargets();
+            if (targets.length < 1) return;
+
+            const currentY = window.scrollY;
+            const nearestTargetY = targets.reduce((nearest, target) => (
+                Math.abs(target - currentY) < Math.abs(nearest - currentY) ? target : nearest
+            ), targets[0]);
+            const snapDistance = Math.abs(nearestTargetY - currentY);
+
+            if (snapDistance < 2 || snapDistance > 40) return;
+
+            window.scrollTo({ top: nearestTargetY, behavior: 'smooth' });
+        };
+
+        const handleWheelSnap = (event: WheelEvent) => {
+            if (
+                event.ctrlKey
+                || Math.abs(event.deltaY) < 4
+                || Date.now() - lastTouchAtRef.current < 900
+                || !shouldUseMouseSettleSnap()
+                || !isInsideScrollableCalendar(event.target)
+            ) {
+                return;
+            }
+
+            clearSnapTimer();
+            calendarWheelSnapTimerRef.current = window.setTimeout(() => {
+                snapToNearestWeekBoundary();
+                calendarWheelSnapTimerRef.current = null;
+            }, 180);
+        };
+
+        window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        window.addEventListener('wheel', handleWheelSnap, { passive: true });
+
+        return () => {
+            clearSnapTimer();
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('wheel', handleWheelSnap);
+        };
+    }, [
+        displayMode,
+        currentMonth,
+        calendarData,
+        tabFilter,
+        danceScope,
+        showRegisterModal,
+        showCalendarNavigator,
+        showCalendarSearch,
+        showMapModal,
+        selectedVenueId,
+        socialEditEvent,
+        eventModal.showEditModal,
+        eventModal.showPasswordModal,
+        eventModal.selectedEvent,
+    ]);
 
 
     // [Precision Fix] 캘린더 위치 및 높이 사전 계산기 (Self-Healing Logic)

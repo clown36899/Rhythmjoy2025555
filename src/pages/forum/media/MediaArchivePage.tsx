@@ -27,69 +27,18 @@ declare global {
 
 const PAGE_SIZE = 18;
 const MEDIA_ARCHIVE_PRESS_DELAY_MS = 140;
-const PLATFORM_FILTERS: Array<{ value: 'all' | MediaPlatform; label: string }> = [
-  { value: 'all', label: '전체' },
-  { value: 'youtube', label: 'YouTube' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'other', label: 'Link' },
-];
-
 const GENRE_PRESETS = ['스윙', '린디합', '재즈', '발보아', '블루스', '탱고', '살사', '바차타'];
-const ARCHIVE_BUCKETS = [
-  { id: 'reference', label: '참고자료', icon: 'ri-bookmark-3-line' },
-  { id: 'class', label: '강습/루틴', icon: 'ri-graduation-cap-line' },
-  { id: 'performance', label: '공연/잼', icon: 'ri-movie-2-line' },
-  { id: 'social', label: '소셜 분위기', icon: 'ri-group-line' },
-  { id: 'history', label: '역사/인물', icon: 'ri-time-line' },
-  { id: 'music', label: '음악/밴드', icon: 'ri-music-2-line' },
-] as const;
-const ARCHIVE_VIEW_MODES = [
-  { id: 'grid', label: '카드', icon: 'ri-layout-grid-line' },
-  { id: 'buckets', label: '자료 유형', icon: 'ri-archive-drawer-line' },
-  { id: 'collections', label: '컬렉션', icon: 'ri-folder-3-line' },
-  { id: 'learning', label: '학습경로', icon: 'ri-route-line' },
-  { id: 'timeline', label: '타임라인', icon: 'ri-timeline-view' },
-  { id: 'compare', label: '비교', icon: 'ri-layout-column-line' },
-] as const;
-const LEARNING_STAGES = [
-  {
-    id: 'intro',
-    label: '입문/기초',
-    description: '처음 보는 사람도 따라갈 수 있는 기본기 자료',
-    icon: 'ri-seedling-line',
-    keywords: ['입문', '초급', '기초', 'basic', 'beginner', 'intro'],
-  },
-  {
-    id: 'rhythm',
-    label: '리듬/몸쓰기',
-    description: '바운스, 펄스, 그루브처럼 춤의 질감을 잡는 자료',
-    icon: 'ri-rhythm-line',
-    keywords: ['리듬', '바운스', '펄스', 'groove', 'pulse', 'bounce', '몸쓰기'],
-  },
-  {
-    id: 'technique',
-    label: '기술/드릴',
-    description: '스윙아웃, 풋워크, 에어리얼, 스타일링처럼 반복 연습할 자료',
-    icon: 'ri-tools-line',
-    keywords: ['스윙아웃', '풋워크', '에어리얼', '스타일링', '턴', '변형', 'swingout', 'footwork', 'aerial', 'turn', 'variation'],
-  },
-  {
-    id: 'routine',
-    label: '루틴/코레오',
-    description: '안무, 루틴, 여러 버전을 묶어 비교하기 좋은 자료',
-    icon: 'ri-repeat-2-line',
-    keywords: ['루틴', '안무', '코레오', 'choreo', 'routine', 'shim sham', '버전'],
-  },
-  {
-    id: 'context',
-    label: '역사/맥락',
-    description: '인물, 시대, 장소, 인터뷰, 다큐 자료',
-    icon: 'ri-time-line',
-    keywords: ['역사', '인물', '인터뷰', '다큐', 'history', 'frankie', 'norma', 'savoy', 'hellzapoppin'],
-  },
-] as const;
-
-type ArchiveViewMode = typeof ARCHIVE_VIEW_MODES[number]['id'];
+const DEFAULT_ARCHIVE_BUCKET = 'reference';
+type MediaSearchSuggestion = {
+  value: string;
+  label: string;
+  group: string;
+  icon: string;
+};
+type MediaPlaybackProps = {
+  playingItemId: string;
+  onPlayItem: (itemId: string) => void;
+};
 
 const getDisplayName = (user: ReturnType<typeof useAuth>['user'], fallback?: string | null) => (
   fallback ||
@@ -126,7 +75,7 @@ const emptyForm = {
   description: '',
   authorName: '',
   thumbnailUrl: '',
-  archiveBucket: 'reference',
+  archiveBucket: DEFAULT_ARCHIVE_BUCKET,
   playlistId: '',
   newPlaylistName: '',
   newPlaylistParentId: '',
@@ -164,20 +113,14 @@ interface RemoteMediaMetadata {
   published_at?: string | null;
 }
 
-function getArchiveBucketMeta(value?: string | null) {
-  return ARCHIVE_BUCKETS.find((item) => item.id === value) || ARCHIVE_BUCKETS[0];
-}
-
 function normalizeMediaArchiveForm(value?: Partial<MediaArchiveForm> | null): MediaArchiveForm {
-  const archiveBucket = String(value?.archiveBucket || emptyForm.archiveBucket);
-
   return {
     url: compactText(value?.url),
     title: compactText(value?.title),
     description: trimText(value?.description),
     authorName: compactText(value?.authorName),
     thumbnailUrl: compactText(value?.thumbnailUrl),
-    archiveBucket: ARCHIVE_BUCKETS.some((item) => item.id === archiveBucket) ? archiveBucket : emptyForm.archiveBucket,
+    archiveBucket: compactText(value?.archiveBucket) || emptyForm.archiveBucket,
     playlistId: compactText(value?.playlistId),
     newPlaylistName: compactText(value?.newPlaylistName),
     newPlaylistParentId: compactText(value?.newPlaylistParentId),
@@ -324,6 +267,60 @@ function buildPlaylistSearchText(playlist: Partial<SnsMediaPlaylist>) {
     playlist.dance_genre,
     ...(playlist.tags || []),
   ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function normalizeSuggestionValue(value?: string | null) {
+  return compactText(value).toLowerCase();
+}
+
+function addMediaSearchSuggestion(
+  target: Map<string, MediaSearchSuggestion>,
+  value: string | null | undefined,
+  group: string,
+  icon: string,
+  label = value,
+) {
+  const normalized = normalizeSuggestionValue(value);
+  if (!normalized || target.has(`${group}:${normalized}`)) return;
+  target.set(`${group}:${normalized}`, {
+    value: compactText(value),
+    label: compactText(label || value),
+    group,
+    icon,
+  });
+}
+
+function getMediaArchiveSearchSuggestions(
+  query: string,
+  items: SnsMediaItem[],
+  playlists: SnsMediaPlaylist[],
+) {
+  const term = normalizeSuggestionValue(query);
+  if (!term) return [];
+
+  const suggestions = new Map<string, MediaSearchSuggestion>();
+  const matches = (value?: string | null) => normalizeSuggestionValue(value).includes(term);
+  const maybeAdd = (value: string | null | undefined, group: string, icon: string, label = value) => {
+    if (matches(value) || matches(label)) addMediaSearchSuggestion(suggestions, value, group, icon, label);
+  };
+
+  playlists.forEach((playlist) => {
+    maybeAdd(playlist.name, '재생목록', 'ri-folder-3-line');
+    maybeAdd(playlist.category, '분류', 'ri-price-tag-3-line');
+    maybeAdd(playlist.dance_genre, '장르', 'ri-disc-line');
+    (playlist.tags || []).forEach((tag) => maybeAdd(tag, '태그', 'ri-hashtag'));
+  });
+
+  items.forEach((item) => {
+    maybeAdd(item.title, '제목', 'ri-film-line');
+    maybeAdd(item.author_name, '작성자', 'ri-user-smile-line');
+    maybeAdd(item.collection_name, '컬렉션', 'ri-stack-line');
+    maybeAdd(item.dance_genre, '장르', 'ri-disc-line');
+    (item.tags || []).forEach((tag) => maybeAdd(tag, '태그', 'ri-hashtag'));
+    maybeAdd(mediaTypeLabel(item.media_type), '자료', 'ri-archive-drawer-line');
+  });
+
+  return Array.from(suggestions.values()).slice(0, 8);
 }
 
 function getFormCollectionName(form: MediaArchiveForm, playlists: SnsMediaPlaylist[], preferredPlaylist?: SnsMediaPlaylist | null) {
@@ -553,30 +550,6 @@ function getRemoteMetadataPublishedDate(data: RemoteMediaMetadata) {
   return safeInputDate(data.published || data.publishedAt || data.published_at);
 }
 
-function getItemText(item: SnsMediaItem) {
-  return compactText([
-    item.title,
-    item.description,
-    item.author_name,
-    item.collection_name,
-    item.dance_genre,
-    item.archive_bucket,
-    ...(item.tags || []),
-  ].filter(Boolean).join(' ')).toLowerCase();
-}
-
-function itemHasKeyword(item: SnsMediaItem, keywords: readonly string[]) {
-  const text = getItemText(item);
-  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
-}
-
-function getItemYear(item: SnsMediaItem) {
-  const value = item.published_at || item.created_at;
-  if (!value) return '날짜 미정';
-  const year = new Date(value).getFullYear();
-  return Number.isFinite(year) ? String(year) : '날짜 미정';
-}
-
 function groupByKey(items: SnsMediaItem[], getKey: (item: SnsMediaItem) => string) {
   const groups = new Map<string, SnsMediaItem[]>();
   items.forEach((item) => {
@@ -584,14 +557,6 @@ function groupByKey(items: SnsMediaItem[], getKey: (item: SnsMediaItem) => strin
     groups.set(key, [...(groups.get(key) || []), item]);
   });
   return Array.from(groups.entries()).map(([key, groupItems]) => ({ key, items: groupItems }));
-}
-
-function getLearningStageId(item: SnsMediaItem) {
-  if (item.archive_bucket === 'history') return 'context';
-  const matched = LEARNING_STAGES.find((stage) => itemHasKeyword(item, stage.keywords));
-  if (matched) return matched.id;
-  if (item.archive_bucket === 'class') return 'technique';
-  return 'reference';
 }
 
 function createMediaArchiveId() {
@@ -687,14 +652,53 @@ const MediaEmbed: React.FC<{ item: SnsMediaItem; autoplay?: boolean }> = ({ item
   );
 };
 
+const MediaThumbnailImage: React.FC<{
+  src?: string | null;
+  alt?: string;
+  loading?: 'lazy' | 'eager';
+  fallbackIcon: string;
+  fallbackClassName: string;
+}> = ({ src, alt = '', loading, fallbackIcon, fallbackClassName }) => {
+  const imageSrc = compactText(src);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [imageSrc]);
+
+  if (!imageSrc || failed) {
+    return (
+      <span className={fallbackClassName}>
+        <i className={fallbackIcon} />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={imageSrc}
+      alt={alt}
+      loading={loading}
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+function getPlatformFallbackIcon(platform?: MediaPlatform | null) {
+  if (platform === 'instagram') return 'ri-instagram-line';
+  if (platform === 'youtube') return 'ri-youtube-line';
+  return 'ri-link';
+}
+
 const MediaCard: React.FC<{
   item: SnsMediaItem;
   canManage: boolean;
   onEdit: (item: SnsMediaItem) => void;
   onApprove: (item: SnsMediaItem) => void;
   onDelete: (item: SnsMediaItem) => void;
-}> = ({ item, canManage, onEdit, onApprove, onDelete }) => {
-  const [expanded, setExpanded] = useState(false);
+} & MediaPlaybackProps> = ({ item, canManage, onEdit, onApprove, onDelete, playingItemId, onPlayItem }) => {
+  const expanded = playingItemId === item.id;
   const dateLabel = item.published_at || item.created_at;
   const originalUrl = item.normalized_url || item.url;
   const handlePreviewClick = () => {
@@ -702,7 +706,7 @@ const MediaCard: React.FC<{
       window.open(originalUrl, '_blank', 'noopener,noreferrer');
       return;
     }
-    setExpanded(true);
+    onPlayItem(item.id);
   };
 
   return (
@@ -712,13 +716,12 @@ const MediaCard: React.FC<{
           <MediaEmbed item={item} autoplay />
         ) : (
           <button className="media-preview-button" type="button" onClick={handlePreviewClick}>
-            {item.thumbnail_url ? (
-              <img src={item.thumbnail_url} alt="" loading="lazy" draggable={false} />
-            ) : (
-              <span className="media-preview-placeholder">
-                <i className={item.platform === 'instagram' ? 'ri-instagram-line' : 'ri-play-circle-line'} />
-              </span>
-            )}
+            <MediaThumbnailImage
+              src={item.thumbnail_url}
+              loading="lazy"
+              fallbackIcon={item.platform === 'instagram' ? 'ri-instagram-line' : 'ri-play-circle-line'}
+              fallbackClassName="media-preview-placeholder"
+            />
             <span className="media-play">
               <i className={item.platform === 'instagram' || item.platform === 'other' ? 'ri-external-link-line' : 'ri-play-fill'} />
             </span>
@@ -728,9 +731,6 @@ const MediaCard: React.FC<{
 
       <div className="media-card-body">
         <div className="media-card-meta">
-          {item.archive_bucket && (
-            <span><i className={getArchiveBucketMeta(item.archive_bucket).icon} />{getArchiveBucketMeta(item.archive_bucket).label}</span>
-          )}
           {item.collection_name && <span><i className="ri-folder-3-line" />{item.collection_name}</span>}
           <span>{platformLabel(item.platform)}</span>
           <span>{mediaTypeLabel(item.media_type)}</span>
@@ -781,19 +781,16 @@ const MediaCard: React.FC<{
 
 const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
   const dateLabel = item.published_at || item.created_at;
-  const bucket = getArchiveBucketMeta(item.archive_bucket);
 
   return (
     <article className={`media-card media-card--preview media-card--${item.platform}`}>
       <div className="media-preview">
         <div className="media-preview-button media-preview-button--static">
-          {item.thumbnail_url ? (
-            <img src={item.thumbnail_url} alt="" draggable={false} />
-          ) : (
-            <span className="media-preview-placeholder">
-              <i className={item.platform === 'instagram' ? 'ri-instagram-line' : item.platform === 'youtube' ? 'ri-youtube-line' : 'ri-link'} />
-            </span>
-          )}
+          <MediaThumbnailImage
+            src={item.thumbnail_url}
+            fallbackIcon={getPlatformFallbackIcon(item.platform)}
+            fallbackClassName="media-preview-placeholder"
+          />
           <span className="media-play">
             <i className={item.platform === 'youtube' ? 'ri-play-fill' : 'ri-external-link-line'} />
           </span>
@@ -802,7 +799,6 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
 
       <div className="media-card-body">
         <div className="media-card-meta">
-          <span><i className={bucket.icon} />{bucket.label}</span>
           {item.collection_name && <span><i className="ri-folder-3-line" />{item.collection_name}</span>}
           <span>{platformLabel(item.platform)}</span>
           <span>{mediaTypeLabel(item.media_type)}</span>
@@ -861,6 +857,42 @@ const MediaModalFrame: React.FC<{
   );
 };
 
+const MediaAddChoiceModal: React.FC<{
+  onClose: () => void;
+  onSelectMedia: () => void;
+  onSelectPlaylist: () => void;
+}> = ({ onClose, onSelectMedia, onSelectPlaylist }) => (
+  <MediaModalFrame label="SNS 아카이브 추가" onClose={onClose}>
+    <section className="media-add-choice-panel media-modal-panel">
+      <header className="media-add-choice-header">
+        <div>
+          <p className="media-eyebrow">Add</p>
+          <h2>무엇을 추가할까요?</h2>
+        </div>
+        <button type="button" className="media-icon-button" onClick={onClose} aria-label="추가 선택 닫기">
+          <i className="ri-close-line" />
+        </button>
+      </header>
+      <div className="media-add-choice-grid">
+        <button type="button" onClick={onSelectMedia}>
+          <i className="ri-film-line" />
+          <span>
+            <strong>개별 영상</strong>
+            <small>YouTube, Instagram 게시물을 카드로 저장</small>
+          </span>
+        </button>
+        <button type="button" onClick={onSelectPlaylist}>
+          <i className="ri-folder-add-line" />
+          <span>
+            <strong>재생목록</strong>
+            <small>영상을 담을 상위/하위 폴더 만들기</small>
+          </span>
+        </button>
+      </div>
+    </section>
+  </MediaModalFrame>
+);
+
 const MediaItemEditPanel: React.FC<{
   item: SnsMediaItem;
   form: MediaArchiveForm;
@@ -894,20 +926,6 @@ const MediaItemEditPanel: React.FC<{
             <i className="ri-close-line" />
           </button>
         </header>
-
-        <div className="media-bucket-picker" aria-label="자료 유형 선택">
-          {ARCHIVE_BUCKETS.map((bucket) => (
-            <button
-              key={bucket.id}
-              type="button"
-              className={form.archiveBucket === bucket.id ? 'active' : ''}
-              onClick={() => updateForm({ archiveBucket: bucket.id })}
-            >
-              <i className={bucket.icon} />
-              {bucket.label}
-            </button>
-          ))}
-        </div>
 
         <div className="media-field-grid">
           <label className="media-field media-field--wide">
@@ -1005,8 +1023,8 @@ const MediaItemEditPanel: React.FC<{
   );
 };
 
-const MediaMiniCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
-  const [expanded, setExpanded] = useState(false);
+const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ item, playingItemId, onPlayItem }) => {
+  const expanded = playingItemId === item.id;
   const metaText = [
     item.author_name,
     item.dance_genre,
@@ -1028,14 +1046,23 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
     );
   }
 
+  const handlePlay = () => {
+    if (item.platform === 'instagram' || item.platform === 'other') {
+      window.open(item.normalized_url || item.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    onPlayItem(item.id);
+  };
+
   return (
-    <button className="media-mini-card" type="button" onClick={() => setExpanded(true)}>
+    <button className="media-mini-card" type="button" onClick={handlePlay}>
       <span className="media-mini-thumb">
-        {item.thumbnail_url ? (
-          <img src={item.thumbnail_url} alt="" loading="lazy" draggable={false} />
-        ) : (
-          <i className={item.platform === 'instagram' ? 'ri-instagram-line' : item.platform === 'youtube' ? 'ri-youtube-line' : 'ri-link'} />
-        )}
+        <MediaThumbnailImage
+          src={item.thumbnail_url}
+          loading="lazy"
+          fallbackIcon={getPlatformFallbackIcon(item.platform)}
+          fallbackClassName="media-mini-thumb-placeholder"
+        />
         <span className="media-play">
           <i className={item.platform === 'youtube' ? 'ri-play-fill' : 'ri-external-link-line'} />
         </span>
@@ -1049,13 +1076,13 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
 };
 
 const ArchivePlacementPreview: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
-  const bucket = getArchiveBucketMeta(item.archive_bucket);
   const chips = [
-    { key: 'bucket', icon: bucket.icon, label: bucket.label },
     item.dance_genre ? { key: 'genre', icon: 'ri-disc-line', label: item.dance_genre } : null,
     item.collection_name ? { key: 'collection', icon: 'ri-folder-3-line', label: item.collection_name } : null,
     ...(item.tags || []).slice(0, 4).map((tag) => ({ key: `tag-${tag}`, icon: 'ri-price-tag-3-line', label: tag })),
   ].filter(Boolean) as Array<{ key: string; icon: string; label: string }>;
+
+  if (!chips.length) return null;
 
   return (
     <div className="media-placement-preview">
@@ -1076,38 +1103,6 @@ const ModeEmptyState: React.FC<{ icon: string; title: string; detail: string }> 
     <span>{detail}</span>
   </div>
 );
-
-const BucketArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
-  const groups = ARCHIVE_BUCKETS
-    .map((bucket) => ({
-      bucket,
-      items: items.filter((item) => (item.archive_bucket || 'reference') === bucket.id),
-    }))
-    .filter((group) => group.items.length > 0);
-
-  if (!groups.length) {
-    return <ModeEmptyState icon="ri-archive-drawer-line" title="자료 유형이 지정된 영상이 없습니다" detail="저장할 때 자료 유형을 고르면 여기에 모입니다." />;
-  }
-
-  return (
-    <section className="media-board">
-      {groups.map((group) => (
-        <article key={group.bucket.id} className="media-board-section">
-          <header>
-            <span className="media-board-icon"><i className={group.bucket.icon} /></span>
-            <div>
-              <h2>{group.bucket.label}</h2>
-              <p>{group.items.length}개</p>
-            </div>
-          </header>
-          <div className="media-mini-grid">
-            {group.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
-          </div>
-        </article>
-      ))}
-    </section>
-  );
-};
 
 interface LegacyArchiveGroup {
   key: string;
@@ -1210,7 +1205,16 @@ const CollectionArchiveView: React.FC<{
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
-}> = ({ items, playlists, searchQuery, canManagePlaylist, onEditPlaylist, onMovePlaylist }) => {
+} & MediaPlaybackProps> = ({
+  items,
+  playlists,
+  searchQuery,
+  canManagePlaylist,
+  onEditPlaylist,
+  onMovePlaylist,
+  playingItemId,
+  onPlayItem,
+}) => {
   const [activePlaylistId, setActivePlaylistId] = useState('');
   const [activeLegacyKey, setActiveLegacyKey] = useState('');
   const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>('neutral');
@@ -1569,7 +1573,7 @@ const CollectionArchiveView: React.FC<{
       }}
     >
       <i className={isOrganizing ? 'ri-check-line' : 'ri-drag-move-2-line'} />
-      {isOrganizing ? '이동 완료' : '정리'}
+      {isOrganizing ? '이동 완료' : '이동편집'}
     </button>
   );
 
@@ -1586,7 +1590,12 @@ const CollectionArchiveView: React.FC<{
     <span className={`media-folder-cover-stack ${modifier}`} aria-hidden="true">
       {urls.length ? urls.map((url, index) => (
         <span key={`${url}:${index}`} className={`media-folder-cover-card media-folder-cover-card--${index + 1}`}>
-          <img src={url} alt="" loading="lazy" draggable={false} />
+          <MediaThumbnailImage
+            src={url}
+            loading="lazy"
+            fallbackIcon={fallbackIcon}
+            fallbackClassName="media-folder-cover-image-fallback"
+          />
         </span>
       )) : (
         <span className="media-folder-cover-empty">
@@ -1775,7 +1784,7 @@ const CollectionArchiveView: React.FC<{
 
     return (
       <article key={item.id} className="media-search-result-card">
-        <MediaMiniCard item={item} />
+        <MediaMiniCard item={item} playingItemId={playingItemId} onPlayItem={onPlayItem} />
         <button
           type="button"
           className="media-result-location-button"
@@ -1838,7 +1847,6 @@ const CollectionArchiveView: React.FC<{
     const parentId = getPlaylistParentId(activePlaylist);
     const parentPlaylist = parentId ? playlists.find((playlist) => playlist.id === parentId) : null;
     const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
-    const coverUrls = getPlaylistCoverUrls(activePlaylist, items, playlists);
     const upDropTargetKey = parentId ? `path:${parentId}` : 'path:root';
     const canDropToUpTarget = canDropPlaylistToParent(parentId);
 
@@ -1860,27 +1868,33 @@ const CollectionArchiveView: React.FC<{
           </button>
           {renderPathTrail()}
         </nav>
-        <header className="media-playlist-detail-header">
-          {renderFolderCover(coverUrls, 'ri-folder-open-line', branchItems.length, 'media-folder-cover-stack--header')}
-          <div>
-            <p className="media-eyebrow">Folder</p>
-            <span className="media-folder-detail-title">
-              <h2>{activePlaylist.name}</h2>
-              {canManagePlaylist(activePlaylist) && (
-                <button
-                  type="button"
-                  className="media-folder-inline-action"
-                  onClick={() => onEditPlaylist(activePlaylist)}
-                  aria-label={`${activePlaylist.name} 수정`}
-                >
-                  <i className="ri-edit-2-line" />
-                </button>
-              )}
+        <div className="media-playlist-detail-toolbar" aria-label={`${activePlaylist.name} 폴더 정보`}>
+          <h2 className="media-visually-hidden">{activePlaylist.name}</h2>
+          <div className="media-playlist-detail-stats">
+            <span>
+              <i className="ri-movie-2-line" />
+              {branchItems.length}개 카드
             </span>
-            <span>{branchItems.length}개 카드 · {visiblePlaylists.length}개 하위</span>
+            <span>
+              <i className="ri-folder-3-line" />
+              {visiblePlaylists.length}개 하위
+            </span>
           </div>
-          {renderOrganizeButton()}
-        </header>
+          <div className="media-playlist-detail-actions">
+            {canManagePlaylist(activePlaylist) && (
+              <button
+                type="button"
+                className="media-folder-organize-button media-folder-edit-button"
+                onClick={() => onEditPlaylist(activePlaylist)}
+                aria-label={`${activePlaylist.name} 수정`}
+              >
+                <i className="ri-edit-2-line" />
+                폴더 수정
+              </button>
+            )}
+            {renderOrganizeButton()}
+          </div>
+        </div>
         {renderOrganizeHint()}
         {activePlaylist.description && <p className="media-playlist-description">{activePlaylist.description}</p>}
         {!!visiblePlaylists.length && (
@@ -1893,7 +1907,14 @@ const CollectionArchiveView: React.FC<{
           <section className="media-folder-section">
             {renderSectionHeader('영상 카드', directItems.length)}
             <div className="media-mini-list media-mini-list--detail">
-              {directItems.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+              {directItems.map((item) => (
+                <MediaMiniCard
+                  key={item.id}
+                  item={item}
+                  playingItemId={playingItemId}
+                  onPlayItem={onPlayItem}
+                />
+              ))}
             </div>
           </section>
         ) : !visiblePlaylists.length ? (
@@ -1919,7 +1940,14 @@ const CollectionArchiveView: React.FC<{
           </div>
         </header>
         <div className="media-mini-grid media-mini-grid--detail">
-          {activeLegacyGroup.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
+          {activeLegacyGroup.items.map((item) => (
+            <MediaMiniCard
+              key={item.id}
+              item={item}
+              playingItemId={playingItemId}
+              onPlayItem={onPlayItem}
+            />
+          ))}
         </div>
       </section>
     );
@@ -1958,110 +1986,12 @@ const CollectionArchiveView: React.FC<{
   );
 };
 
-const LearningArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
-  const referenceItems = items.filter((item) => getLearningStageId(item) === 'reference');
-  const groups = [
-    ...LEARNING_STAGES.map((stage) => ({
-      id: stage.id,
-      label: stage.label,
-      description: stage.description,
-      icon: stage.icon,
-      items: items.filter((item) => getLearningStageId(item) === stage.id),
-    })),
-    {
-      id: 'reference',
-      label: '참고자료 보류함',
-      description: '아직 학습 단계가 정해지지 않은 참고 자료',
-      icon: 'ri-bookmark-3-line',
-      items: referenceItems,
-    },
-  ].filter((group) => group.items.length > 0);
-
-  if (!groups.length) {
-    return <ModeEmptyState icon="ri-route-line" title="학습 경로에 놓을 영상이 없습니다" detail="강습, 루틴, 기술 태그가 쌓이면 경로처럼 보입니다." />;
-  }
-
-  return (
-    <section className="media-pathway">
-      {groups.map((group, index) => (
-        <article key={group.id} className="media-path-stage">
-          <header>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <i className={group.icon} />
-            <div>
-              <h2>{group.label}</h2>
-              <p>{group.description}</p>
-            </div>
-          </header>
-          <div className="media-mini-list">
-            {group.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
-          </div>
-        </article>
-      ))}
-    </section>
-  );
-};
-
-const TimelineArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
-  const groups = groupByKey(items, getItemYear)
-    .sort((a, b) => {
-      if (a.key === '날짜 미정') return 1;
-      if (b.key === '날짜 미정') return -1;
-      return Number(b.key) - Number(a.key);
-    });
-
-  if (!groups.length) {
-    return <ModeEmptyState icon="ri-timeline-view" title="타임라인에 놓을 영상이 없습니다" detail="날짜가 있는 자료는 연도별로 정렬됩니다." />;
-  }
-
-  return (
-    <section className="media-timeline">
-      {groups.map((group) => (
-        <article key={group.key} className="media-timeline-row">
-          <header>
-            <span>{group.key}</span>
-            <small>{group.items.length}개</small>
-          </header>
-          <div className="media-mini-grid">
-            {group.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
-          </div>
-        </article>
-      ))}
-    </section>
-  );
-};
-
-const CompareArchiveView: React.FC<{ items: SnsMediaItem[] }> = ({ items }) => {
-  const groups = groupByKey(items.filter((item) => compactText(item.collection_name)), (item) => compactText(item.collection_name))
-    .filter((group) => group.items.length >= 2)
-    .sort((a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key, 'ko'));
-
-  if (!groups.length) {
-    return <ModeEmptyState icon="ri-layout-column-line" title="비교할 묶음이 아직 없습니다" detail="같은 컬렉션 이름으로 2개 이상 저장하면 나란히 비교됩니다." />;
-  }
-
-  return (
-    <section className="media-compare">
-      {groups.map((group) => (
-        <article key={group.key} className="media-compare-section">
-          <header>
-            <h2>{group.key}</h2>
-            <span>{group.items.length}개 버전</span>
-          </header>
-          <div className="media-compare-grid">
-            {group.items.map((item) => <MediaMiniCard key={item.id} item={item} />)}
-          </div>
-        </article>
-      ))}
-    </section>
-  );
-};
-
 const MediaArchivePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, userProfile, signInWithKakao } = useAuth();
   const [items, setItems] = useState<SnsMediaItem[]>([]);
+  const [suggestionItems, setSuggestionItems] = useState<SnsMediaItem[]>([]);
   const [playlists, setPlaylists] = useState<SnsMediaPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [playlistsLoading, setPlaylistsLoading] = useState(true);
@@ -2070,12 +2000,12 @@ const MediaArchivePage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
-  const [platform, setPlatform] = useState<'all' | MediaPlatform>('all');
-  const [genre, setGenre] = useState('all');
-  const [archiveBucketFilter, setArchiveBucketFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<ArchiveViewMode>('grid');
+  const [playingItemId, setPlayingItemId] = useState('');
+  const [showAddChoice, setShowAddChoice] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showPlaylistForm, setShowPlaylistForm] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [highlightedSearchSuggestionIndex, setHighlightedSearchSuggestionIndex] = useState(-1);
   const [form, setForm] = useState(emptyForm);
   const [playlistForm, setPlaylistForm] = useState<MediaPlaylistForm>(emptyPlaylistForm);
   const [editingPlaylist, setEditingPlaylist] = useState<SnsMediaPlaylist | null>(null);
@@ -2090,6 +2020,14 @@ const MediaArchivePage: React.FC = () => {
   const restoredDraftRef = useRef(false);
 
   const canCreate = Boolean(user);
+  const searchSuggestions = useMemo(
+    () => getMediaArchiveSearchSuggestions(query, suggestionItems.length ? suggestionItems : items, playlists),
+    [items, playlists, query, suggestionItems],
+  );
+  const showSearchSuggestions = searchFocused && Boolean(compactText(query)) && searchSuggestions.length > 0;
+  const handlePlayItem = useCallback((itemId: string) => {
+    setPlayingItemId(itemId);
+  }, []);
 
   const availableGenres = useMemo(() => {
     const fromItems = items.map((item) => item.dance_genre).filter(Boolean) as string[];
@@ -2150,9 +2088,6 @@ const MediaArchivePage: React.FC = () => {
         .order('created_at', { ascending: false })
         .range(nextPage * PAGE_SIZE, nextPage * PAGE_SIZE + PAGE_SIZE - 1);
 
-      if (platform !== 'all') request = request.eq('platform', platform);
-      if (genre !== 'all') request = request.eq('dance_genre', genre);
-      if (archiveBucketFilter !== 'all') request = request.eq('archive_bucket', archiveBucketFilter);
       const orFilter = buildOrFilter(submittedQuery);
       if (orFilter) request = request.or(orFilter);
 
@@ -2170,7 +2105,7 @@ const MediaArchivePage: React.FC = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [archiveBucketFilter, genre, platform, submittedQuery]);
+  }, [submittedQuery]);
 
   const fetchPlaylists = useCallback(async () => {
     setPlaylistsLoading(true);
@@ -2189,6 +2124,21 @@ const MediaArchivePage: React.FC = () => {
     }
   }, []);
 
+  const fetchSuggestionItems = useCallback(async () => {
+    try {
+      const { data, error } = await cafe24
+        .from('sns_media_items')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .range(0, 199);
+      if (error) throw error;
+      setSuggestionItems((data || []) as SnsMediaItem[]);
+    } catch (error) {
+      console.warn('[MediaArchive] search suggestion fetch failed:', error);
+      setSuggestionItems([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchItems(0, false);
   }, [fetchItems]);
@@ -2204,6 +2154,24 @@ const MediaArchivePage: React.FC = () => {
   useEffect(() => {
     fetchPlaylists();
   }, [fetchPlaylists]);
+
+  useEffect(() => {
+    fetchSuggestionItems();
+  }, [fetchSuggestionItems]);
+
+  useEffect(() => {
+    setPlayingItemId('');
+  }, [submittedQuery]);
+
+  useEffect(() => {
+    if (playingItemId && !items.some((item) => item.id === playingItemId)) {
+      setPlayingItemId('');
+    }
+  }, [items, playingItemId]);
+
+  useEffect(() => {
+    setHighlightedSearchSuggestionIndex(-1);
+  }, [query]);
 
   useEffect(() => {
     const node = sentinelRef.current;
@@ -2324,6 +2292,8 @@ const MediaArchivePage: React.FC = () => {
         if (clipperImportKeyRef.current === importKey) return;
         clipperImportKeyRef.current = importKey;
 
+        setShowAddChoice(false);
+        setShowPlaylistForm(false);
         setShowForm(true);
         setDraftNotice('공유 등록으로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.');
         setForm((prev) => {
@@ -2367,6 +2337,8 @@ const MediaArchivePage: React.FC = () => {
     if (clipperImportKeyRef.current === importKey) return;
     clipperImportKeyRef.current = importKey;
 
+    setShowAddChoice(false);
+    setShowPlaylistForm(false);
     setShowForm(true);
     setDraftNotice(isShareTarget
       ? '공유 등록으로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.'
@@ -2391,6 +2363,8 @@ const MediaArchivePage: React.FC = () => {
     const draft = readPendingMediaDraft();
     if (!draft) return;
     restoredDraftRef.current = true;
+    setShowAddChoice(false);
+    setShowPlaylistForm(false);
     setShowForm(true);
     setForm(draft.form);
     setDraftNotice(user
@@ -2412,11 +2386,8 @@ const MediaArchivePage: React.FC = () => {
     resetForm();
   };
 
-  const handleToggleForm = () => {
-    if (showForm) {
-      closeMediaForm();
-      return;
-    }
+  const openMediaForm = () => {
+    setShowAddChoice(false);
     setShowPlaylistForm(false);
     resetPlaylistForm();
     setShowForm(true);
@@ -2432,13 +2403,22 @@ const MediaArchivePage: React.FC = () => {
     resetPlaylistForm();
   };
 
-  const handleTogglePlaylistForm = () => {
-    if (showPlaylistForm) {
-      closePlaylistForm();
-      return;
-    }
+  const openPlaylistForm = () => {
+    setShowAddChoice(false);
     if (showForm) closeMediaForm();
     setShowPlaylistForm(true);
+  };
+
+  const openAddChoice = () => {
+    if (showForm) closeMediaForm();
+    if (showPlaylistForm) closePlaylistForm();
+    setEditingItem(null);
+    setEditForm(emptyForm);
+    setShowAddChoice(true);
+  };
+
+  const closeAddChoice = () => {
+    setShowAddChoice(false);
   };
 
   const canManagePlaylist = useCallback((playlist: SnsMediaPlaylist) => (
@@ -2510,6 +2490,7 @@ const MediaArchivePage: React.FC = () => {
       resetPlaylistForm();
       await fetchPlaylists();
       await fetchItems(0, false);
+      await fetchSuggestionItems();
     } catch (error) {
       console.error('[MediaArchive] playlist save failed:', error);
       alert('재생목록 저장 중 오류가 발생했습니다.');
@@ -2517,6 +2498,7 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleEditPlaylist = (playlist: SnsMediaPlaylist) => {
+    setShowAddChoice(false);
     setShowForm(false);
     setEditingPlaylist(playlist);
     setPlaylistForm(playlistFormFromPlaylist(playlist));
@@ -2575,8 +2557,9 @@ const MediaArchivePage: React.FC = () => {
     }
 
     await fetchPlaylists();
+    await fetchSuggestionItems();
     return true;
-  }, [canManagePlaylist, fetchPlaylists, playlists, signInWithKakao, user]);
+  }, [canManagePlaylist, fetchPlaylists, fetchSuggestionItems, playlists, signInWithKakao, user]);
 
   const resolveFormPlaylist = async (sourceForm: MediaArchiveForm) => {
     const newPlaylistName = compactText(sourceForm.newPlaylistName);
@@ -2594,6 +2577,7 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleEditItem = (item: SnsMediaItem) => {
+    setShowAddChoice(false);
     setShowForm(false);
     setShowPlaylistForm(false);
     resetPlaylistForm();
@@ -2650,6 +2634,7 @@ const MediaArchivePage: React.FC = () => {
       setEditForm(emptyForm);
       await fetchPlaylists();
       await fetchItems(0, false);
+      await fetchSuggestionItems();
     } catch (error) {
       console.error('[MediaArchive] item update failed:', error);
       alert('수정 저장 중 오류가 발생했습니다.');
@@ -2718,6 +2703,7 @@ const MediaArchivePage: React.FC = () => {
       setShowForm(false);
       await fetchPlaylists();
       await fetchItems(0, false);
+      await fetchSuggestionItems();
     } catch (error) {
       console.error('[MediaArchive] save failed:', error);
       alert('저장 중 오류가 발생했습니다.');
@@ -2735,6 +2721,7 @@ const MediaArchivePage: React.FC = () => {
       return;
     }
     fetchItems(0, false);
+    fetchSuggestionItems();
   };
 
   const handleDelete = async (item: SnsMediaItem) => {
@@ -2745,38 +2732,63 @@ const MediaArchivePage: React.FC = () => {
       return;
     }
     fetchItems(0, false);
+    fetchSuggestionItems();
+  };
+
+  const selectSearchSuggestion = (suggestion: MediaSearchSuggestion) => {
+    setQuery(suggestion.value);
+    setSubmittedQuery(suggestion.value);
+    setSearchFocused(false);
+    setHighlightedSearchSuggestionIndex(-1);
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSearchSuggestions) {
+      if (event.key === 'Escape') setSearchFocused(false);
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setHighlightedSearchSuggestionIndex((current) => (
+        current + 1 >= searchSuggestions.length ? 0 : current + 1
+      ));
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedSearchSuggestionIndex((current) => (
+        current <= 0 ? searchSuggestions.length - 1 : current - 1
+      ));
+      return;
+    }
+
+    if (event.key === 'Enter' && highlightedSearchSuggestionIndex >= 0) {
+      event.preventDefault();
+      const suggestion = searchSuggestions[highlightedSearchSuggestionIndex];
+      if (suggestion) selectSearchSuggestion(suggestion);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      setSearchFocused(false);
+      setHighlightedSearchSuggestionIndex(-1);
+    }
   };
 
   const renderArchiveView = () => {
-    if (viewMode === 'buckets') return <BucketArchiveView items={items} />;
-    if (viewMode === 'collections') {
-      return (
-        <CollectionArchiveView
-          items={items}
-          playlists={playlists}
-          searchQuery={activeSearchQuery}
-          canManagePlaylist={canManagePlaylist}
-          onEditPlaylist={handleEditPlaylist}
-          onMovePlaylist={handleMovePlaylist}
-        />
-      );
-    }
-    if (viewMode === 'learning') return <LearningArchiveView items={items} />;
-    if (viewMode === 'timeline') return <TimelineArchiveView items={items} />;
-    if (viewMode === 'compare') return <CompareArchiveView items={items} />;
     return (
-      <section className="media-grid">
-        {items.map((item) => (
-          <MediaCard
-            key={item.id}
-            item={item}
-            canManage={isAdmin || item.created_by === user?.id}
-            onEdit={handleEditItem}
-            onApprove={handleApprove}
-            onDelete={handleDelete}
-          />
-        ))}
-      </section>
+      <CollectionArchiveView
+        items={items}
+        playlists={playlists}
+        searchQuery={activeSearchQuery}
+        canManagePlaylist={canManagePlaylist}
+        onEditPlaylist={handleEditPlaylist}
+        onMovePlaylist={handleMovePlaylist}
+        playingItemId={playingItemId}
+        onPlayItem={handlePlayItem}
+      />
     );
   };
 
@@ -2792,16 +2804,20 @@ const MediaArchivePage: React.FC = () => {
           <p>유튜브, 인스타그램 Reels와 게시물을 모아 검색합니다.</p>
         </div>
         <div className="media-header-actions">
-          <button className="media-add-button media-add-button--secondary" type="button" onClick={handleTogglePlaylistForm}>
-            <i className="ri-folder-add-line" />
-            <span>재생목록</span>
-          </button>
-          <button className="media-add-button" type="button" onClick={handleToggleForm}>
+          <button className="media-add-button" type="button" onClick={openAddChoice}>
             <i className="ri-add-line" />
-            <span>영상 추가</span>
+            <span>추가</span>
           </button>
         </div>
       </header>
+
+      {showAddChoice && (
+        <MediaAddChoiceModal
+          onClose={closeAddChoice}
+          onSelectMedia={openMediaForm}
+          onSelectPlaylist={openPlaylistForm}
+        />
+      )}
 
       {showPlaylistForm && (
         <MediaModalFrame label={editingPlaylist ? '재생목록 수정' : '재생목록 추가'} onClose={closePlaylistForm}>
@@ -2932,20 +2948,6 @@ const MediaArchivePage: React.FC = () => {
                 <span>{draftNotice}</span>
               </div>
             )}
-
-            <div className="media-bucket-picker" aria-label="자료 유형 선택">
-              {ARCHIVE_BUCKETS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={form.archiveBucket === item.id ? 'active' : ''}
-                  onClick={() => setForm((prev) => ({ ...prev, archiveBucket: item.id }))}
-                >
-                  <i className={item.icon} />
-                  {item.label}
-                </button>
-              ))}
-            </div>
 
             <div className="media-field-grid">
               <label className="media-field media-field--wide">
@@ -3081,9 +3083,44 @@ const MediaArchivePage: React.FC = () => {
         <form className="media-search" onSubmit={(event) => {
           event.preventDefault();
           setSubmittedQuery(query.trim());
+          setSearchFocused(false);
         }}>
           <i className="ri-search-line" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 작성자, 컬렉션, 태그 검색" />
+          <div className="media-search-input-wrap">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => {
+                window.setTimeout(() => setSearchFocused(false), 120);
+              }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="제목, 작성자, 컬렉션, 태그 검색"
+              aria-autocomplete="list"
+              aria-expanded={showSearchSuggestions}
+            />
+            {showSearchSuggestions && (
+              <div className="media-search-suggestions" role="listbox" aria-label="검색 자동완성">
+                {searchSuggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion.group}:${suggestion.value}`}
+                    type="button"
+                    className={highlightedSearchSuggestionIndex === index ? 'active' : ''}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectSearchSuggestion(suggestion)}
+                    role="option"
+                    aria-selected={highlightedSearchSuggestionIndex === index}
+                  >
+                    <i className={suggestion.icon} />
+                    <span>
+                      <strong>{suggestion.label}</strong>
+                      <small>{suggestion.group}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {query && (
             <button
               type="button"
@@ -3091,6 +3128,7 @@ const MediaArchivePage: React.FC = () => {
               onClick={() => {
                 setQuery('');
                 setSubmittedQuery('');
+                setSearchFocused(false);
               }}
               aria-label="검색어 지우기"
             >
@@ -3105,43 +3143,6 @@ const MediaArchivePage: React.FC = () => {
             <span><strong>{activeSearchQuery}</strong> 검색 결과</span>
           </div>
         )}
-        <div className="media-view-switch" aria-label="보기 모드">
-          {ARCHIVE_VIEW_MODES.map((mode) => (
-            <button
-              key={mode.id}
-              type="button"
-              className={viewMode === mode.id ? 'active' : ''}
-              onClick={() => setViewMode(mode.id)}
-            >
-              <i className={mode.icon} />
-              {mode.label}
-            </button>
-          ))}
-        </div>
-        <div className="media-filter-row" aria-label="플랫폼 필터">
-          {PLATFORM_FILTERS.map((item) => (
-            <button key={item.value} type="button" className={platform === item.value ? 'active' : ''} onClick={() => setPlatform(item.value)}>
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="media-filter-row media-filter-row--scroll" aria-label="자료 유형 필터">
-          <button type="button" className={archiveBucketFilter === 'all' ? 'active' : ''} onClick={() => setArchiveBucketFilter('all')}>전체 유형</button>
-          {ARCHIVE_BUCKETS.map((item) => (
-            <button key={item.id} type="button" className={archiveBucketFilter === item.id ? 'active' : ''} onClick={() => setArchiveBucketFilter(item.id)}>
-              <i className={item.icon} />
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className="media-filter-row media-filter-row--scroll" aria-label="장르 필터">
-          <button type="button" className={genre === 'all' ? 'active' : ''} onClick={() => setGenre('all')}>전체 장르</button>
-          {availableGenres.map((item) => (
-            <button key={item} type="button" className={genre === item ? 'active' : ''} onClick={() => setGenre(item)}>
-              {item}
-            </button>
-          ))}
-        </div>
       </section>
 
       {loading ? (
@@ -3150,7 +3151,7 @@ const MediaArchivePage: React.FC = () => {
         <div className="media-state media-state--empty">
           <i className={activeSearchQuery ? 'ri-search-line' : 'ri-film-line'} />
           <strong>{activeSearchQuery ? '검색 결과가 없습니다' : '아직 저장된 영상이 없습니다'}</strong>
-          <span>{activeSearchQuery ? '검색어를 줄이거나 필터를 전체로 바꿔보세요.' : '좋은 영상 링크를 첫 번째로 모아보세요.'}</span>
+          <span>{activeSearchQuery ? '검색어를 줄여보세요.' : '좋은 영상 링크를 첫 번째로 모아보세요.'}</span>
           {activeSearchQuery && (
             <button
               type="button"
@@ -3158,9 +3159,6 @@ const MediaArchivePage: React.FC = () => {
               onClick={() => {
                 setQuery('');
                 setSubmittedQuery('');
-                setPlatform('all');
-                setArchiveBucketFilter('all');
-                setGenre('all');
               }}
             >
               <i className="ri-close-circle-line" />

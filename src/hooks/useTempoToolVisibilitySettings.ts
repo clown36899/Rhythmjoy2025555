@@ -3,20 +3,38 @@ import { cafe24 } from '../lib/cafe24Client';
 
 export interface TempoToolVisibilitySettings {
   hidden: boolean;
+  hiddenItemIds: string[];
 }
 
 export const TEMPO_TOOL_VISIBILITY_SETTINGS_KEY = 'tempo_tool_visibility';
 export const DEFAULT_TEMPO_TOOL_VISIBILITY_SETTINGS: TempoToolVisibilitySettings = {
   hidden: false,
+  hiddenItemIds: [],
 };
 
 const TEMPO_TOOL_VISIBILITY_CHANGE_EVENT = 'tempo-tool-visibility-change';
 
 export const normalizeTempoToolVisibilitySettings = (
   value?: Partial<TempoToolVisibilitySettings> | null,
-): TempoToolVisibilitySettings => ({
-  hidden: value?.hidden === true,
-});
+): TempoToolVisibilitySettings => {
+  const hiddenItemIds = Array.isArray(value?.hiddenItemIds)
+    ? Array.from(new Set(value.hiddenItemIds.filter((itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0)))
+    : [];
+
+  return {
+    hidden: value?.hidden === true,
+    hiddenItemIds,
+  };
+};
+
+export const isTempoToolItemHidden = (
+  settings: TempoToolVisibilitySettings,
+  itemId: string,
+) => (
+  itemId === 'tempo-tool'
+    ? settings.hidden || settings.hiddenItemIds.includes(itemId)
+    : settings.hiddenItemIds.includes(itemId)
+);
 
 export async function saveTempoToolVisibilitySettings(
   settings: Partial<TempoToolVisibilitySettings>,

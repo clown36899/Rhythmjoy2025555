@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import {
-    ANALYTICS_ADMIN_SHIELD_KEY,
+    isAdminAnalyticsShielded,
     isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
@@ -33,7 +33,7 @@ const shouldSkipViewTracking = () => (
     isLikelyBotTraffic() ||
     isInternalAnalyticsRoute() ||
     isKioskAnalyticsContext() ||
-    localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true'
+    isAdminAnalyticsShielded()
 );
 
 /**
@@ -101,7 +101,7 @@ export function useViewTracking(
                 p_platform: navigator.platform,
                 p_page_url: window.location.pathname,
                 p_route: window.location.pathname,
-                p_is_admin: localStorage.getItem(ANALYTICS_ADMIN_SHIELD_KEY) === 'true'
+                p_is_admin: isAdminAnalyticsShielded()
             });
 
             if (error) {

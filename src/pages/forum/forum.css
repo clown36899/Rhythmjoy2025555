@@ -185,6 +185,12 @@
     white-space: nowrap;
 }
 
+.forum-icon-status--hidden {
+    border-color: rgba(255, 255, 255, 0.34);
+    background: #111827;
+    color: #ffffff;
+}
+
 .forum-icon-copy {
     display: flex;
     min-width: 0;

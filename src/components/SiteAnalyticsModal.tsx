@@ -1288,6 +1288,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .order('installed_at', { ascending: false });
 
             if (!installError && installData) {
+                const filteredInstallData = installData.filter((inst: any) => {
+                    const userId = resolveAnalyticsUserId(inst);
+                    return (
+                        !isAdminAnalyticsRow(inst) &&
+                        (userId ? !userId.startsWith(excludedPrefix) : true)
+                    );
+                });
                 const pwaSessions = logicalSessions.filter((s: any) => s.is_pwa === true);
                 const browserSessions = logicalSessions.filter((s: any) => s.is_pwa === false);
                 const pwaCompletedSessions = pwaSessions.filter((s: any) => s.has_duration);
@@ -1310,7 +1317,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     });
 
                 // [FIX] 최근 설치 유저 닉네임 별도 조회 (Safe Fetch)
-                const installUserIds = installData
+                const installUserIds = filteredInstallData
                     .slice(0, 50)
                     .map((i: any) => i.user_id)
                     .filter((id: any) => id && id.length > 20); // Check for valid UUID-like strings
@@ -1336,7 +1343,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                 // Deduplicate installs by user_id (Keep latest) and exclude guests
                 const uniqueInstallMap = new Map();
-                installData.forEach((inst: any) => {
+                filteredInstallData.forEach((inst: any) => {
                     if (inst.user_id && !uniqueInstallMap.has(inst.user_id)) {
                         uniqueInstallMap.set(inst.user_id, inst);
                     }

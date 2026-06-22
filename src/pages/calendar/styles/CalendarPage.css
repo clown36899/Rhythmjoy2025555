@@ -16,6 +16,7 @@ html {
     --cal-sample-thumb-bg: #0f1115;
     --cal-sample-event-bg: rgba(255, 255, 255, 0.06);
     --cal-sample-border: rgba(255, 255, 255, 0.11);
+    --cal-week-boundary: #000000;
     --cal-sample-text: #f6f7f9;
     --cal-sample-muted: #a8b0bd;
     --cal-sample-soft: #767f8d;

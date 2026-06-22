@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTempoToolVisibilitySettings } from '../../hooks/useTempoToolVisibilitySettings';
+import {
+    isTempoToolItemHidden,
+    useTempoToolVisibilitySettings,
+} from '../../hooks/useTempoToolVisibilitySettings';
 import './tempo-tool.css';
 
 const MIN_BPM = 40;
@@ -151,7 +154,7 @@ const TempoToolPage: React.FC = () => {
     const totalTicks = beatsPerMeasure * subdivision;
     const canPlay = bpm > DEFAULT_BPM;
     const isAccessCheckPending = isTempoToolVisibilityLoading || !isAuthCheckComplete;
-    const isAccessBlocked = tempoToolVisibilitySettings.hidden && !isAdmin;
+    const isAccessBlocked = isTempoToolItemHidden(tempoToolVisibilitySettings, 'tempo-tool') && !isAdmin;
 
     useEffect(() => { bpmRef.current = bpm; }, [bpm]);
     useEffect(() => { beatsRef.current = beatsPerMeasure; }, [beatsPerMeasure]);

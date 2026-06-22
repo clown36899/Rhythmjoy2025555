@@ -7,6 +7,7 @@ import {
   saveCafe24TableRow,
 } from '../server/cafe24/generic-data-api.js';
 import { getMysqlPool } from '../server/cafe24/mysql-pool.js';
+import { analyticsGuestNetworkIdentity } from '../server/cafe24/analytics-purity.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -91,16 +92,19 @@ function buildAdminIdentity({ admins, users, boardUsers }) {
 function buildAdminDeviceClosure(rows, userIds) {
   const sessionIds = new Set();
   const fingerprints = new Set();
+  const networkDeviceIds = new Set();
   let changed = true;
 
   while (changed) {
     changed = false;
     for (const { row } of rows) {
+      const networkDeviceId = analyticsGuestNetworkIdentity(row);
       const directAdmin = asBool(row?.is_admin, false)
         || (row?.user_id && userIds.has(String(row.user_id)));
       const linkedAdminDevice = Boolean(
         (row?.session_id && sessionIds.has(String(row.session_id))) ||
-        (row?.fingerprint && fingerprints.has(String(row.fingerprint)))
+        (row?.fingerprint && fingerprints.has(String(row.fingerprint))) ||
+        (networkDeviceId && networkDeviceIds.has(networkDeviceId))
       );
       if (!directAdmin && !linkedAdminDevice) continue;
 
@@ -112,16 +116,22 @@ function buildAdminDeviceClosure(rows, userIds) {
         fingerprints.add(String(row.fingerprint));
         changed = true;
       }
+      if (networkDeviceId && !networkDeviceIds.has(networkDeviceId)) {
+        networkDeviceIds.add(networkDeviceId);
+        changed = true;
+      }
     }
   }
 
-  return { sessionIds, fingerprints };
+  return { sessionIds, fingerprints, networkDeviceIds };
 }
 
 function isAdminDeviceRow(row, deviceIds) {
+  const networkDeviceId = analyticsGuestNetworkIdentity(row);
   return Boolean(
     (row?.session_id && deviceIds.sessionIds.has(String(row.session_id))) ||
-    (row?.fingerprint && deviceIds.fingerprints.has(String(row.fingerprint)))
+    (row?.fingerprint && deviceIds.fingerprints.has(String(row.fingerprint))) ||
+    (networkDeviceId && deviceIds.networkDeviceIds.has(networkDeviceId))
   );
 }
 
@@ -146,7 +156,14 @@ async function main() {
     ...analyticsLogs.map((row) => ({ table: 'site_analytics_logs', row })),
   ];
   const deviceIds = buildAdminDeviceClosure(rows, identity.userIds);
-  const targets = rows.filter(({ row }) => isAdminDeviceRow(row, deviceIds) && !asBool(row?.is_admin, false));
+  const targets = rows.filter(({ row }) => (
+    isAdminDeviceRow(row, deviceIds) &&
+    (
+      !asBool(row?.is_admin, false) ||
+      !asBool(row?.analytics_excluded, false) ||
+      !row?.analytics_exclusion_reason
+    )
+  ));
   const now = Date.now();
   const recentRows = (days) => rows.filter(({ row }) => rowTime(row) >= now - days * 24 * 60 * 60 * 1000);
   const targetRows = targets.map(({ row }) => row);
@@ -157,6 +174,7 @@ async function main() {
     adminEmails: identity.adminEmails.size,
     adminSessions: deviceIds.sessionIds.size,
     adminFingerprints: deviceIds.fingerprints.size,
+    adminNetworkDevices: deviceIds.networkDeviceIds.size,
     sessionLogsTotal: sessionLogs.length,
     analyticsLogsTotal: analyticsLogs.length,
     targetsTotal: targets.length,
@@ -185,7 +203,13 @@ async function main() {
 
     const repairedAt = new Date().toISOString();
     for (const { table, row } of targets) {
-      const nextRow = { ...row, is_admin: true, updated_at: repairedAt };
+      const nextRow = {
+        ...row,
+        is_admin: true,
+        analytics_excluded: true,
+        analytics_exclusion_reason: row.analytics_exclusion_reason || 'audit_admin_device_repair',
+        updated_at: repairedAt,
+      };
       await saveCafe24TableRow(table, nextRow, table === 'session_logs' ? ['session_id'] : []);
       result.repaired += 1;
     }
@@ -194,7 +218,7 @@ async function main() {
   if (json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
-    console.log(`[analytics-admin-devices] admin users: ${result.adminUsers}, sessions: ${result.adminSessions}, fingerprints: ${result.adminFingerprints}`);
+    console.log(`[analytics-admin-devices] admin users: ${result.adminUsers}, sessions: ${result.adminSessions}, fingerprints: ${result.adminFingerprints}, network devices: ${result.adminNetworkDevices}`);
     console.log(`[analytics-admin-devices] targets: ${result.targetsTotal} (session_logs ${result.targetsByTable.session_logs}, site_analytics_logs ${result.targetsByTable.site_analytics_logs})`);
     console.log(`[analytics-admin-devices] mobile targets: ${result.mobileTargets}, last1d: ${result.last1dTargets}, last7d: ${result.last7dTargets}, last30d: ${result.last30dTargets}`);
     if (result.backupFile) console.log(`[analytics-admin-devices] backup: ${result.backupFile}`);
