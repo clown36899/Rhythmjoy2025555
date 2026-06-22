@@ -2980,7 +2980,7 @@ const MediaArchivePage: React.FC = () => {
   return (
     <main className="media-archive-page" onDragStartCapture={preventMediaArchiveDrag}>
       <header className="media-archive-header">
-        <button className="media-back-button" type="button" onClick={() => navigate('/forum')}>
+        <button className="media-back-button" type="button" onClick={() => navigate('/')} aria-label="홈으로 이동">
           <i className="ri-arrow-left-line" />
         </button>
         <div>
