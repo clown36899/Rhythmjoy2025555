@@ -799,10 +799,16 @@ function createMediaPlaylistId() {
 }
 
 function formFromMediaItem(item: SnsMediaItem): MediaArchiveForm {
+  const displayDescription = (
+    trimText(item.description_translated) ||
+    trimText(item.description) ||
+    trimText(item.description_original)
+  );
+
   return normalizeMediaArchiveForm({
     url: item.url || item.normalized_url,
     title: item.title,
-    description: item.description,
+    description: displayDescription,
     authorName: item.author_name,
     thumbnailUrl: item.thumbnail_url,
     archiveBucket: item.archive_bucket || emptyForm.archiveBucket,
@@ -1455,7 +1461,11 @@ const MediaItemEditPanel: React.FC<{
   );
 };
 
-const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ item, playingItemId, onPlayItem }) => {
+const MediaMiniCard: React.FC<{
+  item: SnsMediaItem;
+  canManage?: boolean;
+  onEdit?: (item: SnsMediaItem) => void;
+} & MediaPlaybackProps> = ({ item, canManage = false, onEdit, playingItemId, onPlayItem }) => {
   const expanded = playingItemId === item.id;
   const metaText = [
     item.author_name,
@@ -1463,6 +1473,7 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
     item.collection_name,
     platformLabel(item.platform),
   ].filter(Boolean).join(' · ');
+  const canEdit = canManage && Boolean(onEdit);
 
   if (expanded) {
     return (
@@ -1470,10 +1481,24 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
         <div className="media-mini-player">
           <MediaEmbed item={item} autoplay />
         </div>
-        <span className="media-mini-copy">
-          <strong>{item.title || '제목 없음'}</strong>
-          <small>{metaText}</small>
-        </span>
+        <div className="media-mini-expanded-footer">
+          <span className="media-mini-copy">
+            <strong>{item.title || '제목 없음'}</strong>
+            <small>{metaText}</small>
+          </span>
+          {canEdit && (
+            <button
+              type="button"
+              className="media-mini-edit-button"
+              draggable={false}
+              onDragStart={preventMediaArchiveDrag}
+              onClick={() => onEdit?.(item)}
+            >
+              <i className="ri-edit-2-line" />
+              수정
+            </button>
+          )}
+        </div>
       </article>
     );
   }
@@ -1487,23 +1512,43 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
   };
 
   return (
-    <button className="media-mini-card" type="button" onClick={handlePlay}>
-      <span className="media-mini-thumb">
-        <MediaThumbnailImage
-          src={item.thumbnail_url}
-          loading="lazy"
-          fallbackIcon={getPlatformFallbackIcon(item.platform)}
-          fallbackClassName="media-mini-thumb-placeholder"
-        />
-        <span className="media-play">
-          <i className={item.platform === 'youtube' ? 'ri-play-fill' : 'ri-external-link-line'} />
+    <article className={`media-mini-card ${canEdit ? 'media-mini-card--editable' : ''}`}>
+      <button
+        className="media-mini-main-button"
+        type="button"
+        draggable={false}
+        onDragStart={preventMediaArchiveDrag}
+        onClick={handlePlay}
+      >
+        <span className="media-mini-thumb">
+          <MediaThumbnailImage
+            src={item.thumbnail_url}
+            loading="lazy"
+            fallbackIcon={getPlatformFallbackIcon(item.platform)}
+            fallbackClassName="media-mini-thumb-placeholder"
+          />
+          <span className="media-play">
+            <i className={item.platform === 'youtube' ? 'ri-play-fill' : 'ri-external-link-line'} />
+          </span>
         </span>
-      </span>
-      <span className="media-mini-copy">
-        <strong>{item.title || '제목 없음'}</strong>
-        <small>{metaText}</small>
-      </span>
-    </button>
+        <span className="media-mini-copy">
+          <strong>{item.title || '제목 없음'}</strong>
+          <small>{metaText}</small>
+        </span>
+      </button>
+      {canEdit && (
+        <button
+          type="button"
+          className="media-mini-edit-button"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={() => onEdit?.(item)}
+        >
+          <i className="ri-edit-2-line" />
+          수정
+        </button>
+      )}
+    </article>
   );
 };
 
@@ -1634,14 +1679,18 @@ const CollectionArchiveView: React.FC<{
   items: SnsMediaItem[];
   playlists: SnsMediaPlaylist[];
   searchQuery: string;
+  canManageItem: (item: SnsMediaItem) => boolean;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
+  onEditItem: (item: SnsMediaItem) => void;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
 } & MediaPlaybackProps> = ({
   items,
   playlists,
   searchQuery,
+  canManageItem,
   canManagePlaylist,
+  onEditItem,
   onEditPlaylist,
   onMovePlaylist,
   playingItemId,
@@ -2382,6 +2431,8 @@ const CollectionArchiveView: React.FC<{
                 <MediaMiniCard
                   key={item.id}
                   item={item}
+                  canManage={canManageItem(item)}
+                  onEdit={onEditItem}
                   playingItemId={playingItemId}
                   onPlayItem={onPlayItem}
                 />
@@ -2415,6 +2466,8 @@ const CollectionArchiveView: React.FC<{
             <MediaMiniCard
               key={item.id}
               item={item}
+              canManage={canManageItem(item)}
+              onEdit={onEditItem}
               playingItemId={playingItemId}
               onPlayItem={onPlayItem}
             />
@@ -3061,6 +3114,10 @@ const MediaArchivePage: React.FC = () => {
     Boolean(isAdmin || playlist.created_by === user?.id || playlist.owner_id === user?.id)
   ), [isAdmin, user?.id]);
 
+  const canManageItem = useCallback((item: SnsMediaItem) => (
+    Boolean(isAdmin || item.created_by === user?.id)
+  ), [isAdmin, user?.id]);
+
   const savePlaylistFromForm = async (
     sourceForm: MediaPlaylistForm,
     existing?: SnsMediaPlaylist | null,
@@ -3255,11 +3312,12 @@ const MediaArchivePage: React.FC = () => {
         ? titleFallback
         : editForm.title.trim() || titleFallback;
       const tags = normalizeTags(editForm.tags);
+      const description = editForm.description.trim() || null;
       const payload: Partial<SnsMediaItem> = {
         ...media,
         title,
         url: editForm.url.trim(),
-        description: editForm.description.trim() || null,
+        description,
         author_name: editForm.authorName.trim() || null,
         thumbnail_url: safeImageUrl(editForm.thumbnailUrl) || media.thumbnail_url,
         tags,
@@ -3273,6 +3331,9 @@ const MediaArchivePage: React.FC = () => {
         updated_at: new Date().toISOString(),
         search_text: '',
       };
+      if (trimText(editingItem.description_translated) || trimText(editingItem.description_original)) {
+        payload.description_translated = description;
+      }
       payload.search_text = buildSearchText(payload).slice(0, 2000);
 
       const { error } = await cafe24
@@ -3434,7 +3495,9 @@ const MediaArchivePage: React.FC = () => {
         items={items}
         playlists={playlists}
         searchQuery={activeSearchQuery}
+        canManageItem={canManageItem}
         canManagePlaylist={canManagePlaylist}
+        onEditItem={handleEditItem}
         onEditPlaylist={handleEditPlaylist}
         onMovePlaylist={handleMovePlaylist}
         playingItemId={playingItemId}

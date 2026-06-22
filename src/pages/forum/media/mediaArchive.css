@@ -815,7 +815,7 @@
   min-width: 0;
   width: 100%;
   display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 9px;
   align-items: center;
   padding: 7px;
@@ -824,9 +824,6 @@
   background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
   color: var(--text-primary);
   text-decoration: none;
-  text-align: left;
-  font: inherit;
-  appearance: none;
   cursor: pointer;
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
@@ -835,7 +832,28 @@
   touch-action: pan-y;
 }
 
-.media-mini-card:not(.is-playing) * {
+.media-mini-card--editable {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.media-mini-main-button {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
+.media-mini-main-button * {
   pointer-events: none;
 }
 
@@ -854,6 +872,14 @@
   overflow: hidden;
   border-radius: 7px;
   background: #05080d;
+}
+
+.media-mini-expanded-footer {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
 }
 
 .media-mini-thumb {
@@ -917,6 +943,35 @@
   font-weight: 750;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.media-mini-edit-button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 9px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-surface-2) 82%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 850;
+  appearance: none;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+  user-select: none;
+}
+
+.media-mini-edit-button:active {
+  transform: translateY(1px) scale(0.985);
+  border-color: var(--media-accent-border);
+  background: var(--media-accent-soft);
+  color: var(--text-primary);
 }
 
 .media-collection-grid {
