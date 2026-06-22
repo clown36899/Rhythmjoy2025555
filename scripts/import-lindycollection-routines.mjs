@@ -514,7 +514,6 @@ function buildRows(routines) {
         description_language: 'en',
         translation_language: 'ko',
         translation_source: TRANSLATION_SOURCE,
-        ...lindyLicenseMetadata(routine.url),
         thumbnail_url: media.thumbnail_url,
         embed_url: media.embed_url,
         tags,

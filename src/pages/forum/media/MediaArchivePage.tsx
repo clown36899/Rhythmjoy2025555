@@ -1042,23 +1042,6 @@ const LicenseAttributionNotice: React.FC<{
   );
 };
 
-const MiniLicenseBadge: React.FC<{ value: TranslatableDescription }> = ({ value }) => {
-  const hasExplicitLicense = Boolean(compactText(value.license_name) || compactText(value.license_url));
-  const isLindyEntry = isLindyCollectionEntry(value);
-  if (!hasExplicitLicense && !isLindyEntry) return null;
-
-  const licenseName = compactText(value.license_name) || (isLindyEntry ? LINDY_COLLECTION_LICENSE_NAME : '라이선스 표시');
-  const adapted = Boolean(compactText(value.adaptation_note) || compactText(value.translation_source) || isLindyEntry);
-
-  return (
-    <small className="media-mini-license">
-      <i className="ri-creative-commons-line" />
-      {licenseName}
-      {adapted ? ' · 번역/편집됨' : ''}
-    </small>
-  );
-};
-
 const MediaCard: React.FC<{
   item: SnsMediaItem;
   canManage: boolean;
@@ -1106,7 +1089,6 @@ const MediaCard: React.FC<{
         </div>
         <h2>{item.title || '제목 없음'}</h2>
         <TranslatedDescription value={item} className="media-card-description" />
-        <LicenseAttributionNotice value={item} compact />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -1174,7 +1156,6 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
         </div>
         <h2>{item.title || '제목 없음'}</h2>
         <TranslatedDescription value={item} className="media-card-description" />
-        <LicenseAttributionNotice value={item} compact />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -1411,7 +1392,6 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
         <span className="media-mini-copy">
           <strong>{item.title || '제목 없음'}</strong>
           <small>{metaText}</small>
-          <MiniLicenseBadge value={item} />
         </span>
       </article>
     );
@@ -1441,7 +1421,6 @@ const MediaMiniCard: React.FC<{ item: SnsMediaItem } & MediaPlaybackProps> = ({ 
       <span className="media-mini-copy">
         <strong>{item.title || '제목 없음'}</strong>
         <small>{metaText}</small>
-        <MiniLicenseBadge value={item} />
       </span>
     </button>
   );
@@ -1991,6 +1970,7 @@ const CollectionArchiveView: React.FC<{
     const isDragging = draggedPlaylistId === playlist.id;
     const isDropTarget = dropTargetId === playlist.id;
     const canDrop = isDropTarget && canDropPlaylistInto(playlist);
+    const sourceUrl = compactText(playlist.source_url) || (isLindyCollectionEntry(playlist) ? getLindyCollectionSourceUrl(playlist) : '');
     const metadata = [
       playlist.category,
       playlist.dance_genre,
@@ -2042,6 +2022,22 @@ const CollectionArchiveView: React.FC<{
               <span className="media-folder-row-tags">
                 {metadata.map((entry) => <span key={entry}>{entry}</span>)}
               </span>
+            )}
+            {sourceUrl && (
+              <button
+                type="button"
+                className="media-folder-source-button"
+                draggable={false}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+                }}
+                aria-label={`${playlist.name} 원문 사이트 열기`}
+              >
+                <i className="ri-external-link-line" />
+                원문 사이트
+              </button>
             )}
           </span>
           {isOrganizing && canManage && (
