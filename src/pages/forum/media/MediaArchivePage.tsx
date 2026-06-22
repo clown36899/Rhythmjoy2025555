@@ -2059,6 +2059,9 @@ const CollectionArchiveView: React.FC<{
     const sourceUrl = compactText(playlist.source_url) || (isLindyCollectionEntry(playlist) ? getLindyCollectionSourceUrl(playlist) : '');
     const rowActionUrl = shortcutUrl || (!getPlaylistParentId(playlist) ? sourceUrl : '');
     const rowActionLabel = shortcutUrl ? '바로가기' : '원문';
+    const rowSubtitle = shortcutUrl
+      ? trimText(playlist.description)
+      : `${branchItems.length}개 카드${childCount ? ` · ${childCount}개 하위` : ''}`;
     const metadata = [
       shortcutUrl ? '바로가기' : null,
       playlist.category,
@@ -2110,7 +2113,7 @@ const CollectionArchiveView: React.FC<{
                 </button>
               )}
             </span>
-            <small>{shortcutUrl ? '사이트 바로가기' : `${branchItems.length}개 카드${childCount ? ` · ${childCount}개 하위` : ''}`}</small>
+            {rowSubtitle && <small>{rowSubtitle}</small>}
             {!!metadata.length && (
               <span className="media-folder-row-tags">
                 {metadata.map((entry) => <span key={entry}>{entry}</span>)}
