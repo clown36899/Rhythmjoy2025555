@@ -2315,6 +2315,10 @@
   display: block;
 }
 
+.media-embed-frame--minimal {
+  pointer-events: none;
+}
+
 .media-instagram-embed {
   overflow: auto;
   background: #fff;

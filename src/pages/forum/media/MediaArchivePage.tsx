@@ -835,6 +835,11 @@ function loadInstagramScript() {
   window.instgrm?.Embeds?.process?.();
 }
 
+type YouTubePlayerCommand = {
+  id: number;
+  func: 'playVideo' | 'pauseVideo';
+};
+
 function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; minimalControls?: boolean } = {}) {
   if (!url) return '';
   try {
@@ -843,11 +848,15 @@ function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; 
     if (options.minimalControls) {
       parsed.searchParams.set('controls', '0');
       parsed.searchParams.set('disablekb', '1');
+      parsed.searchParams.set('enablejsapi', '1');
       parsed.searchParams.set('fs', '0');
       parsed.searchParams.set('iv_load_policy', '3');
       parsed.searchParams.set('modestbranding', '1');
       parsed.searchParams.set('playsinline', '1');
       parsed.searchParams.set('rel', '0');
+      if (typeof window !== 'undefined') {
+        parsed.searchParams.set('origin', window.location.origin);
+      }
     }
     return parsed.toString();
   } catch {
@@ -855,20 +864,37 @@ function getYouTubeEmbedUrl(url?: string | null, options: { autoplay?: boolean; 
   }
 }
 
+function postYouTubePlayerCommand(frame: HTMLIFrameElement | null, func: YouTubePlayerCommand['func']) {
+  frame?.contentWindow?.postMessage(JSON.stringify({
+    event: 'command',
+    func,
+    args: [],
+  }), '*');
+}
+
 const MediaEmbed: React.FC<{
   item: SnsMediaItem;
   autoplay?: boolean;
   minimalControls?: boolean;
-}> = ({ item, autoplay = false, minimalControls = false }) => {
+  playerCommand?: YouTubePlayerCommand | null;
+}> = ({ item, autoplay = false, minimalControls = false, playerCommand = null }) => {
+  const frameRef = useRef<HTMLIFrameElement | null>(null);
+
   useEffect(() => {
     if (item.platform === 'instagram') {
       window.setTimeout(loadInstagramScript, 50);
     }
   }, [item.platform, item.id]);
 
+  useEffect(() => {
+    if (item.platform !== 'youtube' || !playerCommand) return;
+    postYouTubePlayerCommand(frameRef.current, playerCommand.func);
+  }, [item.platform, playerCommand]);
+
   if (item.platform === 'youtube' && item.embed_url) {
     return (
       <iframe
+        ref={frameRef}
         className={`media-embed-frame ${minimalControls ? 'media-embed-frame--minimal' : ''}`}
         src={getYouTubeEmbedUrl(item.embed_url, { autoplay, minimalControls })}
         title={item.title}
@@ -982,14 +1008,15 @@ const TranslatedDescription: React.FC<{
     normalizeDescriptionText(originalText) !== normalizeDescriptionText(translatedText),
   );
   const visibleText = hasOriginal && showOriginal ? originalText : translatedText || originalText;
+  const hasVisibleText = Boolean(compactText(visibleText));
   const descriptionClasses = className.split(/\s+/).filter(Boolean);
   const isExpandableDescription = (
     descriptionClasses.includes('media-card-description') ||
     descriptionClasses.includes('media-mini-description')
   );
-  const canExpand = isExpandableDescription && (visibleText.length > 180 || visibleText.includes('\n'));
+  const canExpand = hasVisibleText && isExpandableDescription && (visibleText.length > 180 || visibleText.includes('\n'));
 
-  if (!visibleText) return null;
+  if (!hasVisibleText) return null;
 
   return (
     <div className={`media-translated-description ${className} ${expanded ? 'is-expanded' : ''}`}>
@@ -1015,7 +1042,7 @@ const TranslatedDescription: React.FC<{
           onClick={() => setShowOriginal((current) => !current)}
         >
           <i className={showOriginal ? 'ri-translate-2' : 'ri-file-text-line'} />
-          {showOriginal ? '번역 보기' : '원문 보기'}
+          {showOriginal ? '번역 보기' : '번역원문보기'}
         </button>
       )}
     </div>
@@ -1484,6 +1511,8 @@ const MediaMiniCard: React.FC<{
   onEdit?: (item: SnsMediaItem) => void;
 } & MediaPlaybackProps> = ({ item, canManage = false, onEdit, playingItemId, onPlayItem }) => {
   const expanded = playingItemId === item.id;
+  const [isPaused, setIsPaused] = useState(false);
+  const [playerCommand, setPlayerCommand] = useState<YouTubePlayerCommand | null>(null);
   const metaText = [
     item.author_name,
     item.dance_genre,
@@ -1493,11 +1522,20 @@ const MediaMiniCard: React.FC<{
   const originalUrl = item.normalized_url || item.url;
   const canEdit = canManage && Boolean(onEdit);
 
+  useEffect(() => {
+    if (expanded) setIsPaused(false);
+  }, [expanded, item.id]);
+
+  const sendPlayerCommand = (func: YouTubePlayerCommand['func']) => {
+    setPlayerCommand({ id: Date.now(), func });
+    setIsPaused(func === 'pauseVideo');
+  };
+
   if (expanded) {
     return (
       <article className="media-mini-card media-mini-card--expanded is-playing">
         <div className="media-mini-player">
-          <MediaEmbed item={item} autoplay minimalControls />
+          <MediaEmbed item={item} autoplay minimalControls playerCommand={playerCommand} />
         </div>
         <div className="media-mini-expanded-footer">
           <span className="media-mini-copy">
@@ -1505,6 +1543,18 @@ const MediaMiniCard: React.FC<{
             <small>{metaText}</small>
           </span>
           <span className="media-mini-expanded-actions">
+            {item.platform === 'youtube' && (
+              <button
+                type="button"
+                className="media-mini-action-button"
+                draggable={false}
+                onDragStart={preventMediaArchiveDrag}
+                onClick={() => sendPlayerCommand(isPaused ? 'playVideo' : 'pauseVideo')}
+              >
+                <i className={isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
+                {isPaused ? '재생' : '일시정지'}
+              </button>
+            )}
             <button
               type="button"
               className="media-mini-action-button"
