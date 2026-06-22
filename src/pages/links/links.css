@@ -1226,17 +1226,21 @@
     justify-content: center;
     isolation: isolate;
     flex-shrink: 0;
+    flex-wrap: nowrap;
+    overflow: visible;
 }
 
 .account-avatar-stack.card {
-    width: 176px;
+    width: 224px;
+    max-width: 100%;
     height: 116px;
     margin: 0 auto 2px;
 }
 
 .account-avatar-stack.modal {
-    width: 142px;
-    min-width: 142px;
+    width: 228px;
+    min-width: 0;
+    max-width: 100%;
     height: 82px;
     justify-content: flex-start;
 }
@@ -1256,7 +1260,10 @@
     align-items: center;
     justify-content: center;
     position: relative;
+    box-sizing: border-box;
     overflow: visible;
+    flex: 0 0 78px;
+    aspect-ratio: 1 / 1;
     box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
 }
 
@@ -1268,7 +1275,31 @@
 .account-avatar-stack.card .account-stack-avatar {
     width: 92px;
     height: 92px;
+    flex-basis: 92px;
     margin-left: -28px;
+}
+
+.account-avatar-stack.card .account-stack-more {
+    width: 62px;
+    height: 62px;
+    flex-basis: 62px;
+    margin-left: -24px;
+    align-self: center;
+}
+
+.account-avatar-stack.modal .account-stack-avatar {
+    width: 72px;
+    height: 72px;
+    flex-basis: 72px;
+    margin-left: -20px;
+}
+
+.account-avatar-stack.modal .account-stack-more {
+    width: 54px;
+    height: 54px;
+    flex-basis: 54px;
+    margin-left: -16px;
+    align-self: center;
 }
 
 .account-stack-avatar img {
@@ -1287,7 +1318,7 @@
     z-index: 0;
     color: var(--color-text-primary);
     font-weight: 900;
-    font-size: 14px;
+    font-size: 13px;
     background: rgba(59, 130, 246, 0.2);
 }
 
@@ -1303,7 +1334,7 @@
     justify-content: center;
     position: relative;
     overflow: visible;
-    flex-shrink: 0;
+    flex: 0 0 44px;
 }
 
 .account-mini-avatar img {
@@ -1464,6 +1495,13 @@
     display: grid;
     gap: 10px;
     margin-top: 16px;
+}
+
+.person-merge-panel .merge-source-list,
+.person-bridge-panel .bridge-account-list {
+    max-height: min(52vh, 520px);
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .merge-source-item {

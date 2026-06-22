@@ -90,6 +90,19 @@ const uniqueBy = <T,>(items: T[], keyFn: (item: T) => string) => {
     });
 };
 
+const runLinkUpdatesInBatches = async (
+    links: SiteLink[],
+    updateLink: (link: SiteLink) => Promise<any>,
+    batchSize = 15
+) => {
+    for (let index = 0; index < links.length; index += batchSize) {
+        const batch = links.slice(index, index + batchSize);
+        const results = await Promise.all(batch.map(updateLink));
+        const failed = results.find((result: any) => result?.error);
+        if (failed) throw failed.error;
+    }
+};
+
 const getPrimaryLink = (links: SiteLink[]) => {
     const primaryId = firstText(links.map((link) => String(link.person_group_primary_link_id || '')));
     return links.find((link) => String(link.id) === primaryId) || links[0];
@@ -315,11 +328,9 @@ export default function LinksPage() {
     const handleApproveMany = async (targetLinks: SiteLink[]) => {
         if (!isAdmin) return;
         try {
-            const results = await Promise.all(targetLinks.map((link) => (
+            await runLinkUpdatesInBatches(targetLinks, (link) => (
                 cafe24.from('site_links').update({ is_approved: true }).eq('id', link.id)
-            )));
-            const failed = results.find((result: any) => result?.error);
-            if (failed) throw failed.error;
+            ));
             fetchLinks();
         } catch (error) {
             alert('승인 중 오류가 발생했습니다.');
@@ -372,11 +383,9 @@ export default function LinksPage() {
         };
 
         try {
-            const results = await Promise.all(targetLinks.map((link) => (
+            await runLinkUpdatesInBatches(targetLinks, (link) => (
                 cafe24.from('site_links').update(payload).eq('id', link.id)
-            )));
-            const failed = results.find((result: any) => result?.error);
-            if (failed) throw failed.error;
+            ));
             setSelectedAccountIds(new Set());
             setMergeLinks(null);
             await fetchLinks();
@@ -399,11 +408,9 @@ export default function LinksPage() {
                 person_group_primary_link_id: null,
                 updated_at: new Date().toISOString(),
             };
-            const results = await Promise.all(targetLinks.map((link) => (
+            await runLinkUpdatesInBatches(targetLinks, (link) => (
                 cafe24.from('site_links').update(payload).eq('id', link.id)
-            )));
-            const failed = results.find((result: any) => result?.error);
-            if (failed) throw failed.error;
+            ));
             setSelectedAccountIds(new Set());
             setBridgeLinks(null);
             await fetchLinks();
@@ -842,8 +849,12 @@ function AccountAvatar({ link }: { link: SiteLink }) {
 }
 
 function AccountAvatarStack({ links, variant }: { links: SiteLink[]; variant: 'card' | 'modal' }) {
-    const visibleLinks = links.slice(0, variant === 'card' ? 3 : 4);
+    const visibleLimit = variant === 'card'
+        ? links.length > 3 ? 2 : 3
+        : links.length > 4 ? 3 : 4;
+    const visibleLinks = links.slice(0, visibleLimit);
     const hiddenCount = Math.max(0, links.length - visibleLinks.length);
+    const hiddenLabel = hiddenCount > 99 ? '99+' : `+${hiddenCount}`;
 
     return (
         <div className={`account-avatar-stack ${variant}`} aria-label={`${links.length}개 계정`}>
@@ -863,7 +874,7 @@ function AccountAvatarStack({ links, variant }: { links: SiteLink[]; variant: 'c
                     </span>
                 </span>
             ))}
-            {hiddenCount > 0 && <span className="account-stack-more">+{hiddenCount}</span>}
+            {hiddenCount > 0 && <span className="account-stack-more">{hiddenLabel}</span>}
         </div>
     );
 }
