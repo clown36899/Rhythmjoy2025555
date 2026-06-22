@@ -205,6 +205,7 @@ function readPendingMediaDraft(): PendingMediaDraft | null {
 function safeImageUrl(value?: string | null) {
   const trimmed = String(value || '').trim();
   if (!trimmed) return '';
+  if (/^\/uploads\/[^\s"'<>]+$/i.test(trimmed)) return trimmed;
   try {
     const url = new URL(trimmed);
     return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
