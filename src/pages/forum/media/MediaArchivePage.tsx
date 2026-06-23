@@ -1007,10 +1007,16 @@ const YOUTUBE_STATE_PAUSED = 2;
 const YOUTUBE_STATE_CUED = 5;
 const MEDIA_JOG_PREVIEW_RATE = 0.25;
 const MEDIA_JOG_PAINT_DELAY_MS = 90;
+const MEDIA_JOG_POINTER_SEEK_INTERVAL_MS = 70;
+const MEDIA_JOG_TOUCH_SEEK_INTERVAL_MS = 150;
+const MEDIA_JOG_POINTER_MIN_SEEK_STEP_SECONDS = 0.18;
+const MEDIA_JOG_TOUCH_MIN_SEEK_STEP_SECONDS = 0.35;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
 const MEDIA_QUICK_SKIP_SECONDS = [-1, 1];
 const MEDIA_DETAIL_SKIP_SECONDS = [-10, -5, 5, 10];
+type MediaJogEventSource = 'pointer' | 'touch';
+type MediaJogInputMode = 'pointer' | 'touch';
 
 const YouTubeCustomPlayer: React.FC<{
   item: SnsMediaItem;
@@ -1022,10 +1028,17 @@ const YouTubeCustomPlayer: React.FC<{
     startX: number;
     startTime: number;
     lastTime: number;
+    pendingOffset: number;
     wasPaused: boolean;
     previousPlaybackRate: number;
+    inputMode: MediaJogInputMode;
+    eventSource: MediaJogEventSource;
     rafId: number | null;
+    seekTimerId: number | null;
     paintTimerId: number | null;
+    lastSeekIssuedAt: number;
+    lastSeekTime: number;
+    pendingSeekTime: number;
     pointerId: number | null;
     captureTarget: HTMLElement | null;
   } | null>(null);
@@ -1061,6 +1074,12 @@ const YouTubeCustomPlayer: React.FC<{
     setJogOffsetSeconds(0);
     if (jogSessionRef.current?.rafId) {
       window.cancelAnimationFrame(jogSessionRef.current.rafId);
+    }
+    if (jogSessionRef.current?.seekTimerId) {
+      window.clearTimeout(jogSessionRef.current.seekTimerId);
+    }
+    if (jogSessionRef.current?.paintTimerId) {
+      window.clearTimeout(jogSessionRef.current.paintTimerId);
     }
     jogSessionRef.current = null;
 
@@ -1105,6 +1124,12 @@ const YouTubeCustomPlayer: React.FC<{
       cancelled = true;
       if (jogSessionRef.current?.rafId) {
         window.cancelAnimationFrame(jogSessionRef.current.rafId);
+      }
+      if (jogSessionRef.current?.seekTimerId) {
+        window.clearTimeout(jogSessionRef.current.seekTimerId);
+      }
+      if (jogSessionRef.current?.paintTimerId) {
+        window.clearTimeout(jogSessionRef.current.paintTimerId);
       }
       jogSessionRef.current = null;
       playerRef.current = null;
@@ -1159,6 +1184,51 @@ const YouTubeCustomPlayer: React.FC<{
     }, MEDIA_JOG_PAINT_DELAY_MS);
   }, []);
 
+  const issueJogSeek = useCallback((session: NonNullable<typeof jogSessionRef.current>, time: number, force = false) => {
+    const player = playerRef.current;
+    if (!player) return;
+    const now = window.performance?.now?.() ?? Date.now();
+    const seekInterval = session.inputMode === 'touch'
+      ? MEDIA_JOG_TOUCH_SEEK_INTERVAL_MS
+      : MEDIA_JOG_POINTER_SEEK_INTERVAL_MS;
+    const minSeekStep = session.inputMode === 'touch'
+      ? MEDIA_JOG_TOUCH_MIN_SEEK_STEP_SECONDS
+      : MEDIA_JOG_POINTER_MIN_SEEK_STEP_SECONDS;
+    const canSeekNow =
+      force ||
+      session.lastSeekIssuedAt <= 0 ||
+      now - session.lastSeekIssuedAt >= seekInterval ||
+      Math.abs(time - session.lastSeekTime) >= minSeekStep;
+
+    session.pendingSeekTime = time;
+
+    const runSeek = (targetTime: number) => {
+      const nextPlayer = playerRef.current;
+      if (!nextPlayer || jogSessionRef.current !== session) return;
+      nextPlayer.seekTo?.(targetTime, true);
+      session.lastSeekIssuedAt = window.performance?.now?.() ?? Date.now();
+      session.lastSeekTime = targetTime;
+      paintJogFrame(session);
+    };
+
+    if (canSeekNow) {
+      if (session.seekTimerId) {
+        window.clearTimeout(session.seekTimerId);
+        session.seekTimerId = null;
+      }
+      runSeek(time);
+      return;
+    }
+
+    if (session.seekTimerId) return;
+    const delay = Math.max(0, seekInterval - (now - session.lastSeekIssuedAt));
+    session.seekTimerId = window.setTimeout(() => {
+      if (jogSessionRef.current !== session) return;
+      session.seekTimerId = null;
+      runSeek(session.pendingSeekTime);
+    }, delay);
+  }, [paintJogFrame]);
+
   const togglePlayback = () => {
     const player = playerRef.current;
     if (!player) return;
@@ -1189,7 +1259,13 @@ const YouTubeCustomPlayer: React.FC<{
     seekToTime(Number(event.target.value));
   };
 
-  const beginJog = useCallback((clientX: number, pointerId: number | null = null, captureTarget: HTMLElement | null = null) => {
+  const beginJog = useCallback((
+    clientX: number,
+    inputMode: MediaJogInputMode,
+    eventSource: MediaJogEventSource,
+    pointerId: number | null = null,
+    captureTarget: HTMLElement | null = null,
+  ) => {
     const player = playerRef.current;
     if (!ready || !player) return false;
     const startTime = player.getCurrentTime?.() ?? currentTime;
@@ -1212,6 +1288,9 @@ const YouTubeCustomPlayer: React.FC<{
     if (jogSessionRef.current?.rafId) {
       window.cancelAnimationFrame(jogSessionRef.current.rafId);
     }
+    if (jogSessionRef.current?.seekTimerId) {
+      window.clearTimeout(jogSessionRef.current.seekTimerId);
+    }
     if (jogSessionRef.current?.paintTimerId) {
       window.clearTimeout(jogSessionRef.current.paintTimerId);
     }
@@ -1219,10 +1298,17 @@ const YouTubeCustomPlayer: React.FC<{
       startX: clientX,
       startTime,
       lastTime: startTime,
+      pendingOffset: 0,
       wasPaused,
       previousPlaybackRate,
+      inputMode,
+      eventSource,
       rafId: null,
+      seekTimerId: null,
       paintTimerId: null,
+      lastSeekIssuedAt: 0,
+      lastSeekTime: startTime,
+      pendingSeekTime: startTime,
       pointerId,
       captureTarget,
     };
@@ -1239,16 +1325,17 @@ const YouTubeCustomPlayer: React.FC<{
     const nextOffset = Math.max(-MEDIA_JOG_MAX_OFFSET_SECONDS, Math.min(MEDIA_JOG_MAX_OFFSET_SECONDS, rawOffset));
     const nextTime = Math.max(0, Math.min(safeDuration || Number.POSITIVE_INFINITY, session.startTime + nextOffset));
     session.lastTime = nextTime;
-    setJogOffsetSeconds(nextOffset);
-    setCurrentTime(nextTime);
-    if (session.rafId) {
-      window.cancelAnimationFrame(session.rafId);
-      session.rafId = null;
+    session.pendingOffset = nextOffset;
+    if (!session.rafId) {
+      session.rafId = window.requestAnimationFrame(() => {
+        if (jogSessionRef.current !== session) return;
+        setJogOffsetSeconds(session.pendingOffset);
+        setCurrentTime(session.lastTime);
+        session.rafId = null;
+      });
     }
-    const player = playerRef.current;
-    player?.seekTo?.(nextTime, true);
-    paintJogFrame(session);
-  }, [paintJogFrame, ready, safeDuration]);
+    issueJogSeek(session, nextTime);
+  }, [issueJogSeek, ready, safeDuration]);
 
   const finishJog = useCallback(() => {
     const session = jogSessionRef.current;
@@ -1256,8 +1343,14 @@ const YouTubeCustomPlayer: React.FC<{
     if (session.rafId) {
       window.cancelAnimationFrame(session.rafId);
     }
+    if (session.seekTimerId) {
+      window.clearTimeout(session.seekTimerId);
+      session.seekTimerId = null;
+    }
     clearJogPaintTimer(session);
-    playerRef.current?.seekTo?.(session.lastTime, true);
+    setJogOffsetSeconds(session.pendingOffset);
+    setCurrentTime(session.lastTime);
+    issueJogSeek(session, session.lastTime, true);
     try {
       playerRef.current?.setPlaybackRate?.(session.previousPlaybackRate);
       setPlaybackRate(session.previousPlaybackRate);
@@ -1281,26 +1374,36 @@ const YouTubeCustomPlayer: React.FC<{
     jogSessionRef.current = null;
     setIsJogging(false);
     setJogOffsetSeconds(0);
-  }, [playbackRate]);
+  }, [issueJogSeek, playbackRate]);
 
   useEffect(() => {
     if (!isJogging) return undefined;
 
     const handleWindowPointerMove = (event: PointerEvent) => {
+      const session = jogSessionRef.current;
+      if (!session || session.eventSource !== 'pointer') return;
+      if (session.pointerId !== null && event.pointerId !== session.pointerId) return;
       event.preventDefault();
       updateJogToClientX(event.clientX);
     };
     const handleWindowPointerEnd = (event: PointerEvent) => {
+      const session = jogSessionRef.current;
+      if (!session || session.eventSource !== 'pointer') return;
+      if (session.pointerId !== null && event.pointerId !== session.pointerId) return;
       event.preventDefault();
       finishJog();
     };
     const handleWindowTouchMove = (event: TouchEvent) => {
+      const session = jogSessionRef.current;
+      if (!session || session.eventSource !== 'touch') return;
       const touch = event.touches[0];
       if (!touch) return;
       event.preventDefault();
       updateJogToClientX(touch.clientX);
     };
     const handleWindowTouchEnd = (event: TouchEvent) => {
+      const session = jogSessionRef.current;
+      if (!session || session.eventSource !== 'touch') return;
       event.preventDefault();
       finishJog();
     };
@@ -1339,7 +1442,7 @@ const YouTubeCustomPlayer: React.FC<{
     } catch {
       captureTarget = null;
     }
-    beginJog(event.clientX, event.pointerId, captureTarget);
+    beginJog(event.clientX, event.pointerType === 'touch' ? 'touch' : 'pointer', 'pointer', event.pointerId, captureTarget);
   };
 
   const handleJogTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
@@ -1347,7 +1450,7 @@ const YouTubeCustomPlayer: React.FC<{
     const touch = event.touches[0];
     if (!touch) return;
     event.preventDefault();
-    beginJog(touch.clientX);
+    beginJog(touch.clientX, 'touch', 'touch');
   };
 
   const handlePlaybackRateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
