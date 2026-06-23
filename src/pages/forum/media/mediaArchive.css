@@ -844,6 +844,26 @@ html.media-archive-page-active .shell-main-content {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.media-mini-card--organizable {
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-color: var(--media-accent-border);
+  cursor: grab;
+  touch-action: none;
+}
+
+.media-mini-card--editable.media-mini-card--organizable {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.media-mini-card--organizable:active {
+  cursor: grabbing;
+}
+
+.media-mini-card.is-dragging {
+  opacity: 0.58;
+  transform: scale(0.985);
+}
+
 .media-mini-main-button {
   min-width: 0;
   width: 100%;
@@ -859,6 +879,10 @@ html.media-archive-page-active .shell-main-content {
   font: inherit;
   appearance: none;
   cursor: pointer;
+}
+
+.media-mini-card--organizable .media-mini-main-button {
+  cursor: grab;
 }
 
 .media-mini-main-button * {
@@ -1330,7 +1354,8 @@ html.media-archive-page-active .shell-main-content {
 }
 
 .media-mini-action-button,
-.media-mini-edit-button {
+.media-mini-edit-button,
+.media-mini-drag-handle {
   min-height: 34px;
   display: inline-flex;
   align-items: center;
@@ -1358,6 +1383,18 @@ html.media-archive-page-active .shell-main-content {
   border-color: var(--media-accent-border);
   background: var(--media-accent-soft);
   color: var(--text-primary);
+}
+
+.media-mini-drag-handle {
+  width: 34px;
+  min-width: 34px;
+  padding: 0;
+  cursor: grab;
+  color: var(--media-accent-strong);
+}
+
+.media-mini-card--organizable:active .media-mini-drag-handle {
+  cursor: grabbing;
 }
 
 .media-mini-action-button:disabled,
@@ -1667,6 +1704,7 @@ html.media-archive-page-active .shell-main-content {
 .media-folder-row-main.is-organizable {
   cursor: grab;
   border-color: var(--media-accent-border);
+  touch-action: none;
 }
 
 .media-folder-row-main.is-organizable:active {

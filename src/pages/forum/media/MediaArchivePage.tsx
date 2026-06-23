@@ -1021,6 +1021,9 @@ const MEDIA_JOG_TOUCH_BUFFERING_MIN_SEEK_STEP_SECONDS = 0.55;
 const MEDIA_JOG_BUFFERING_COOLDOWN_MS = 700;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
+const MEDIA_PLAYER_TIME_UPDATE_EPSILON_SECONDS = 0.05;
+const MEDIA_PLAYER_DURATION_UPDATE_EPSILON_SECONDS = 0.25;
+const MEDIA_PLAYER_LOADED_UPDATE_EPSILON = 0.003;
 const MEDIA_QUICK_SKIP_SECONDS = [-1, 1];
 const MEDIA_DETAIL_SKIP_SECONDS = [-10, -5, 5, 10];
 type MediaJogEventSource = 'pointer' | 'touch';
@@ -1043,6 +1046,17 @@ const arePlaybackRatesEqual = (left: number[], right: number[]) => (
 const getSlowestJogPlaybackRate = (rates: number[]) => (
   rates.find((rate) => rate > 0 && rate < 1) ?? rates[0] ?? MEDIA_JOG_PREVIEW_RATE
 );
+
+const setNumberIfMeaningfullyChanged = (
+  setter: React.Dispatch<React.SetStateAction<number>>,
+  nextValue: number,
+  epsilon = 0,
+) => {
+  if (!Number.isFinite(nextValue)) return;
+  setter((previousValue) => (
+    Math.abs(previousValue - nextValue) <= epsilon ? previousValue : nextValue
+  ));
+};
 
 const YouTubeCustomPlayer: React.FC<{
   item: SnsMediaItem;
@@ -1188,15 +1202,30 @@ const YouTubeCustomPlayer: React.FC<{
     const intervalId = window.setInterval(() => {
       const player = playerRef.current;
       if (!player) return;
-      setCurrentTime(player.getCurrentTime?.() || 0);
-      setDuration(player.getDuration?.() || 0);
-      setLoadedFraction(player.getVideoLoadedFraction?.() || 0);
+      const isJogActive = Boolean(jogSessionRef.current);
+      if (!isJogActive) {
+        setNumberIfMeaningfullyChanged(
+          setCurrentTime,
+          player.getCurrentTime?.() || 0,
+          MEDIA_PLAYER_TIME_UPDATE_EPSILON_SECONDS,
+        );
+      }
+      setNumberIfMeaningfullyChanged(
+        setDuration,
+        player.getDuration?.() || 0,
+        MEDIA_PLAYER_DURATION_UPDATE_EPSILON_SECONDS,
+      );
+      setNumberIfMeaningfullyChanged(
+        setLoadedFraction,
+        player.getVideoLoadedFraction?.() || 0,
+        MEDIA_PLAYER_LOADED_UPDATE_EPSILON,
+      );
       const nextPlaybackRates = normalizeYouTubePlaybackRates(player.getAvailablePlaybackRates?.());
       setAvailablePlaybackRates((previousRates) => (
         arePlaybackRatesEqual(previousRates, nextPlaybackRates) ? previousRates : nextPlaybackRates
       ));
-      if (!jogSessionRef.current) {
-        setPlaybackRate(player.getPlaybackRate?.() || 1);
+      if (!isJogActive) {
+        setNumberIfMeaningfullyChanged(setPlaybackRate, player.getPlaybackRate?.() || 1);
       }
     }, 500);
 
@@ -1413,9 +1442,9 @@ const YouTubeCustomPlayer: React.FC<{
       window.clearTimeout(session.seekTimerId);
       session.seekTimerId = null;
     }
-    clearJogPaintTimer(session);
     setJogOffsetSeconds(session.pendingOffset);
     setCurrentTime(session.lastTime);
+    clearJogPaintTimer(session);
     issueJogSeek(session, session.lastTime, true);
     try {
       playerRef.current?.setPlaybackRate?.(session.previousPlaybackRate);
@@ -1434,7 +1463,6 @@ const YouTubeCustomPlayer: React.FC<{
       playerRef.current?.playVideo?.();
       setIsPaused(false);
     } else {
-      playerRef.current?.pauseVideo?.();
       setIsPaused(true);
     }
     jogSessionRef.current = null;
@@ -2254,8 +2282,22 @@ const MediaItemEditPanel: React.FC<{
 const MediaMiniCard: React.FC<{
   item: SnsMediaItem;
   canManage?: boolean;
+  canMove?: boolean;
+  isDragging?: boolean;
+  isOrganizing?: boolean;
   onEdit?: (item: SnsMediaItem) => void;
-} & MediaPlaybackProps> = ({ item, canManage = false, onEdit, playingItemId, onPlayItem }) => {
+  onMovePointerDown?: (event: React.PointerEvent<HTMLElement>, item: SnsMediaItem) => void;
+} & MediaPlaybackProps> = ({
+  item,
+  canManage = false,
+  canMove = false,
+  isDragging = false,
+  isOrganizing = false,
+  onEdit,
+  onMovePointerDown,
+  playingItemId,
+  onPlayItem,
+}) => {
   const expanded = playingItemId === item.id;
   const metaText = [
     item.author_name,
@@ -2317,15 +2359,30 @@ const MediaMiniCard: React.FC<{
     }
     onPlayItem(item.id);
   };
+  const canDragMove = isOrganizing && canMove && Boolean(onMovePointerDown);
 
   return (
-    <article className={`media-mini-card ${canEdit ? 'media-mini-card--editable' : ''}`}>
+    <article
+      className={`media-mini-card ${canEdit ? 'media-mini-card--editable' : ''} ${canDragMove ? 'media-mini-card--organizable' : ''} ${isDragging ? 'is-dragging' : ''}`}
+      draggable={false}
+      data-media-drag-allowed={canDragMove ? 'true' : undefined}
+      onPointerDown={(event) => {
+        if (canDragMove) onMovePointerDown?.(event, item);
+      }}
+    >
       <button
         className="media-mini-main-button"
         type="button"
         draggable={false}
         onDragStart={preventMediaArchiveDrag}
-        onClick={handlePlay}
+        onClick={(event) => {
+          if (canDragMove) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+          handlePlay();
+        }}
       >
         <span className="media-mini-thumb">
           <MediaThumbnailImage
@@ -2354,6 +2411,14 @@ const MediaMiniCard: React.FC<{
           <i className="ri-edit-2-line" />
           수정
         </button>
+      )}
+      {canDragMove && (
+        <span
+          className="media-mini-drag-handle"
+          aria-hidden="true"
+        >
+          <i className="ri-drag-move-line" />
+        </span>
       )}
     </article>
   );
@@ -2515,23 +2580,42 @@ function getItemLegacyGroupKey(item: SnsMediaItem) {
   return `collection:${compactText(item.collection_name) || '컬렉션 미지정'}`;
 }
 
+type MediaPointerDragSource =
+  | { kind: 'playlist'; playlist: SnsMediaPlaylist }
+  | { kind: 'item'; item: SnsMediaItem };
+
+type MediaPointerDragSession = MediaPointerDragSource & {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  previousUserSelect: string;
+  dragging: boolean;
+  cleanup: (() => void) | null;
+};
+
 const CollectionArchiveView: React.FC<{
   items: SnsMediaItem[];
   playlists: SnsMediaPlaylist[];
   searchQuery: string;
+  canOrganize: boolean;
   canManageItem: (item: SnsMediaItem) => boolean;
+  canMoveItem: (item: SnsMediaItem) => boolean;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditItem: (item: SnsMediaItem) => void;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
+  onMoveItem: (item: SnsMediaItem, playlistId: string) => Promise<boolean>;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
 } & MediaPlaybackProps> = ({
   items,
   playlists,
   searchQuery,
+  canOrganize,
   canManageItem,
+  canMoveItem,
   canManagePlaylist,
   onEditItem,
   onEditPlaylist,
+  onMoveItem,
   onMovePlaylist,
   playingItemId,
   onPlayItem,
@@ -2542,6 +2626,7 @@ const CollectionArchiveView: React.FC<{
   const [pressedRowKey, setPressedRowKey] = useState('');
   const [isOrganizing, setIsOrganizing] = useState(false);
   const [draggedPlaylistId, setDraggedPlaylistId] = useState('');
+  const [draggedItemId, setDraggedItemId] = useState('');
   const [dropTargetId, setDropTargetId] = useState('');
   const [dragPreview, setDragPreview] = useState<{ id: string; label: string; x: number; y: number } | null>(null);
   const archiveHistoryStackRef = useRef<string[]>([]);
@@ -2550,15 +2635,7 @@ const CollectionArchiveView: React.FC<{
   const suppressPlaylistOpenRef = useRef(false);
   const folderPathAnchorRef = useRef<HTMLDivElement | null>(null);
   const folderPathRef = useRef<HTMLElement | null>(null);
-  const pointerDragRef = useRef<{
-    playlist: SnsMediaPlaylist;
-    pointerId: number;
-    startX: number;
-    startY: number;
-    previousUserSelect: string;
-    dragging: boolean;
-    cleanup: (() => void) | null;
-  } | null>(null);
+  const pointerDragRef = useRef<MediaPointerDragSession | null>(null);
   const [folderPathFixed, setFolderPathFixed] = useState(false);
   const [folderPathFrame, setFolderPathFrame] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
@@ -2591,6 +2668,16 @@ const CollectionArchiveView: React.FC<{
       setActivePlaylistId('');
     }
   }, [activePlaylist, activePlaylistId]);
+
+  useEffect(() => {
+    if (!canOrganize && isOrganizing) {
+      setDraggedPlaylistId('');
+      setDraggedItemId('');
+      setDropTargetId('');
+      setDragPreview(null);
+      setIsOrganizing(false);
+    }
+  }, [canOrganize, isOrganizing]);
 
   useEffect(() => {
     if (activeLegacyKey && !activeLegacyGroup) {
@@ -2679,6 +2766,7 @@ const CollectionArchiveView: React.FC<{
     setActiveLegacyKey('');
     setIsOrganizing(false);
     setDraggedPlaylistId('');
+    setDraggedItemId('');
     setDropTargetId('');
     archiveHistoryStackRef.current = [];
   }, [searchQuery]);
@@ -2695,6 +2783,7 @@ const CollectionArchiveView: React.FC<{
       setNavigationDirection('back');
       setIsOrganizing(false);
       setDraggedPlaylistId('');
+      setDraggedItemId('');
       setDropTargetId('');
       setDragPreview(null);
 
@@ -2818,6 +2907,7 @@ const CollectionArchiveView: React.FC<{
 
   const clearPlaylistDragState = () => {
     setDraggedPlaylistId('');
+    setDraggedItemId('');
     setDropTargetId('');
     setDragPreview(null);
   };
@@ -2837,7 +2927,12 @@ const CollectionArchiveView: React.FC<{
     draggedPlaylistId ? playlists.find((playlist) => playlist.id === draggedPlaylistId) || null : null
   );
 
+  const getDraggedItem = () => (
+    draggedItemId ? items.find((item) => item.id === draggedItemId) || null : null
+  );
+
   const canMovePlaylistInto = (source: SnsMediaPlaylist, target: SnsMediaPlaylist) => {
+    if (!canOrganize) return false;
     if (source.id === target.id) return false;
     if (isShortcutPlaylist(target)) return false;
     if (isPlaylistDescendant(target.id, source.id, playlists)) return false;
@@ -2851,6 +2946,7 @@ const CollectionArchiveView: React.FC<{
   };
 
   const canMovePlaylistToParent = (source: SnsMediaPlaylist, parentId: string) => {
+    if (!canOrganize) return false;
     const nextParentId = compactText(parentId);
     if (source.id === nextParentId) return false;
     if (nextParentId && isPlaylistDescendant(nextParentId, source.id, playlists)) return false;
@@ -2864,12 +2960,44 @@ const CollectionArchiveView: React.FC<{
     return canMovePlaylistToParent(source, parentId);
   };
 
+  const canMoveItemToPlaylist = (source: SnsMediaItem, targetPlaylistId: string) => {
+    if (!canOrganize) return false;
+    if (!canMoveItem(source)) return false;
+    const nextPlaylistId = compactText(targetPlaylistId);
+    if (compactText(source.playlist_id) === nextPlaylistId) return false;
+    if (!nextPlaylistId) return true;
+    const target = playlists.find((playlist) => playlist.id === nextPlaylistId);
+    if (!target) return false;
+    if (isShortcutPlaylist(target)) return false;
+    return true;
+  };
+
+  const canDropItemInto = (target: SnsMediaPlaylist) => {
+    const source = getDraggedItem();
+    if (!source) return false;
+    return canMoveItemToPlaylist(source, target.id);
+  };
+
+  const canDropItemToParent = (parentId: string) => {
+    const source = getDraggedItem();
+    if (!source) return false;
+    return canMoveItemToPlaylist(source, parentId);
+  };
+
+  const canDropIntoPlaylistTarget = (target: SnsMediaPlaylist) => (
+    draggedItemId ? canDropItemInto(target) : canDropPlaylistInto(target)
+  );
+
+  const canDropToParentTarget = (parentId: string) => (
+    draggedItemId ? canDropItemToParent(parentId) : canDropPlaylistToParent(parentId)
+  );
+
   const getDropTargetClassName = (targetKey: string, canDrop: boolean) => {
     if (dropTargetId !== targetKey) return '';
     return canDrop ? ' is-drop-target' : ' is-drop-blocked';
   };
 
-  const getPointerDropCandidate = (source: SnsMediaPlaylist, x: number, y: number) => {
+  const getPointerDropCandidate = (source: MediaPointerDragSource, x: number, y: number) => {
     const element = document.elementFromPoint(x, y) as HTMLElement | null;
     const playlistDropTarget = element?.closest('[data-media-playlist-drop-id]') as HTMLElement | null;
     if (playlistDropTarget) {
@@ -2880,7 +3008,9 @@ const CollectionArchiveView: React.FC<{
           type: 'playlist' as const,
           target,
           targetKey: target.id,
-          canDrop: canMovePlaylistInto(source, target),
+          canDrop: source.kind === 'playlist'
+            ? canMovePlaylistInto(source.playlist, target)
+            : canMoveItemToPlaylist(source.item, target.id),
         };
       }
     }
@@ -2893,7 +3023,9 @@ const CollectionArchiveView: React.FC<{
         type: 'parent' as const,
         parentId,
         targetKey,
-        canDrop: canMovePlaylistToParent(source, parentId),
+        canDrop: source.kind === 'playlist'
+          ? canMovePlaylistToParent(source.playlist, parentId)
+          : canMoveItemToPlaylist(source.item, parentId),
       };
     }
 
@@ -2902,7 +3034,7 @@ const CollectionArchiveView: React.FC<{
 
   const handlePlaylistDragStart = (event: React.DragEvent<HTMLElement>, playlist: SnsMediaPlaylist) => {
     event.stopPropagation();
-    if (!isOrganizing || !canManagePlaylist(playlist)) {
+    if (!canOrganize || !isOrganizing || !canManagePlaylist(playlist)) {
       event.preventDefault();
       return;
     }
@@ -2921,8 +3053,8 @@ const CollectionArchiveView: React.FC<{
   };
 
   const handlePlaylistPointerDown = (event: React.PointerEvent<HTMLElement>, playlist: SnsMediaPlaylist) => {
-    if (!isOrganizing || !canManagePlaylist(playlist)) return;
-    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    if (!canOrganize || !isOrganizing || !canManagePlaylist(playlist)) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
 
     const target = event.target as HTMLElement | null;
     if (target?.closest('.media-folder-inline-action, .media-folder-source-button')) return;
@@ -2932,7 +3064,8 @@ const CollectionArchiveView: React.FC<{
 
     if (pointerDragRef.current?.cleanup) pointerDragRef.current.cleanup();
 
-    const dragSession = {
+    const dragSession: MediaPointerDragSession = {
+      kind: 'playlist',
       playlist,
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -2948,7 +3081,7 @@ const CollectionArchiveView: React.FC<{
 
       const wasDragging = session.dragging;
       const candidate = !cancelled && upEvent && wasDragging
-        ? getPointerDropCandidate(session.playlist, upEvent.clientX, upEvent.clientY)
+        ? getPointerDropCandidate(session, upEvent.clientX, upEvent.clientY)
         : null;
 
       if (session.cleanup) session.cleanup();
@@ -2958,6 +3091,7 @@ const CollectionArchiveView: React.FC<{
       clearPlaylistDragState();
 
       if (!candidate?.canDrop) return;
+      if (session.kind !== 'playlist') return;
       if (candidate.type === 'playlist') {
         void onMovePlaylist(session.playlist, candidate.target.id);
         return;
@@ -2980,7 +3114,7 @@ const CollectionArchiveView: React.FC<{
       }
 
       moveEvent.preventDefault();
-      const candidate = getPointerDropCandidate(playlist, moveEvent.clientX, moveEvent.clientY);
+      const candidate = getPointerDropCandidate(dragSession, moveEvent.clientX, moveEvent.clientY);
       setDropTargetId(candidate?.targetKey || '');
       setDragPreview({
         id: playlist.id,
@@ -3013,8 +3147,102 @@ const CollectionArchiveView: React.FC<{
     document.addEventListener('pointercancel', handlePointerCancel, { passive: false });
   };
 
+  const handleItemPointerDown = (event: React.PointerEvent<HTMLElement>, item: SnsMediaItem) => {
+    if (!canOrganize || !isOrganizing || !canMoveItem(item)) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.media-mini-edit-button, .media-mini-action-button, .media-custom-player, .media-mini-player, a, input, textarea, select')) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (pointerDragRef.current?.cleanup) pointerDragRef.current.cleanup();
+
+    const dragSession: MediaPointerDragSession = {
+      kind: 'item',
+      item,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      previousUserSelect: document.body.style.userSelect,
+      dragging: false,
+      cleanup: null,
+    };
+
+    const finishPointerDrag = (upEvent?: PointerEvent, cancelled = false) => {
+      const session = pointerDragRef.current;
+      if (!session || session.pointerId !== dragSession.pointerId) return;
+
+      const wasDragging = session.dragging;
+      const candidate = !cancelled && upEvent && wasDragging
+        ? getPointerDropCandidate(session, upEvent.clientX, upEvent.clientY)
+        : null;
+
+      if (session.cleanup) session.cleanup();
+      document.body.style.userSelect = session.previousUserSelect;
+      pointerDragRef.current = null;
+      keepPlaylistOpenSuppressed();
+      clearPlaylistDragState();
+
+      if (!candidate?.canDrop || session.kind !== 'item') return;
+      if (candidate.type === 'playlist') {
+        void onMoveItem(session.item, candidate.target.id);
+        return;
+      }
+      void onMoveItem(session.item, candidate.parentId);
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== dragSession.pointerId) return;
+      const deltaX = moveEvent.clientX - dragSession.startX;
+      const deltaY = moveEvent.clientY - dragSession.startY;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      if (!dragSession.dragging && distance < 4) return;
+      if (!dragSession.dragging) {
+        dragSession.dragging = true;
+        document.body.style.userSelect = 'none';
+        keepPlaylistOpenSuppressed();
+        setDraggedItemId(item.id);
+      }
+
+      moveEvent.preventDefault();
+      const candidate = getPointerDropCandidate(dragSession, moveEvent.clientX, moveEvent.clientY);
+      setDropTargetId(candidate?.targetKey || '');
+      setDragPreview({
+        id: item.id,
+        label: item.title || '제목 없음',
+        x: moveEvent.clientX,
+        y: moveEvent.clientY,
+      });
+    };
+
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      if (upEvent.pointerId !== dragSession.pointerId) return;
+      upEvent.preventDefault();
+      finishPointerDrag(upEvent);
+    };
+
+    const handlePointerCancel = (cancelEvent: PointerEvent) => {
+      if (cancelEvent.pointerId !== dragSession.pointerId) return;
+      finishPointerDrag(cancelEvent, true);
+    };
+
+    dragSession.cleanup = () => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointercancel', handlePointerCancel);
+    };
+
+    pointerDragRef.current = dragSession;
+    document.addEventListener('pointermove', handlePointerMove, { passive: false });
+    document.addEventListener('pointerup', handlePointerUp, { passive: false });
+    document.addEventListener('pointercancel', handlePointerCancel, { passive: false });
+  };
+
   const handlePlaylistDragOver = (event: React.DragEvent<HTMLElement>, target: SnsMediaPlaylist) => {
-    if (!isOrganizing || !draggedPlaylistId) return;
+    if (!canOrganize || !isOrganizing || !draggedPlaylistId) return;
     event.preventDefault();
     event.stopPropagation();
     const canDrop = canDropPlaylistInto(target);
@@ -3029,7 +3257,7 @@ const CollectionArchiveView: React.FC<{
   };
 
   const handlePlaylistDrop = async (event: React.DragEvent<HTMLElement>, target: SnsMediaPlaylist) => {
-    if (!isOrganizing || !draggedPlaylistId) return;
+    if (!canOrganize || !isOrganizing || !draggedPlaylistId) return;
     event.preventDefault();
     event.stopPropagation();
     const source = getDraggedPlaylist();
@@ -3041,7 +3269,7 @@ const CollectionArchiveView: React.FC<{
   };
 
   const handlePlaylistParentDragOver = (event: React.DragEvent<HTMLElement>, parentId: string, targetKey: string) => {
-    if (!isOrganizing || !draggedPlaylistId) return;
+    if (!canOrganize || !isOrganizing || !draggedPlaylistId) return;
     event.preventDefault();
     event.stopPropagation();
     const canDrop = canDropPlaylistToParent(parentId);
@@ -3050,7 +3278,7 @@ const CollectionArchiveView: React.FC<{
   };
 
   const handlePlaylistParentDrop = async (event: React.DragEvent<HTMLElement>, parentId: string, targetKey: string) => {
-    if (!isOrganizing || !draggedPlaylistId) return;
+    if (!canOrganize || !isOrganizing || !draggedPlaylistId) return;
     event.preventDefault();
     event.stopPropagation();
     const source = getDraggedPlaylist();
@@ -3061,25 +3289,28 @@ const CollectionArchiveView: React.FC<{
     await onMovePlaylist(source, targetKey === 'path:root' ? '' : parentId);
   };
 
-  const renderOrganizeButton = () => (
-    <button
-      type="button"
-      className={`media-folder-organize-button ${isOrganizing ? 'active' : ''}`}
-      onClick={() => {
-        clearPlaylistDragState();
-        setIsOrganizing((current) => !current);
-      }}
-    >
-      <i className={isOrganizing ? 'ri-check-line' : 'ri-drag-move-2-line'} />
-      {isOrganizing ? '이동 완료' : '이동편집'}
-    </button>
-  );
+  const renderOrganizeButton = () => {
+    if (!canOrganize) return null;
+    return (
+      <button
+        type="button"
+        className={`media-folder-organize-button ${isOrganizing ? 'active' : ''}`}
+        onClick={() => {
+          clearPlaylistDragState();
+          setIsOrganizing((current) => !current);
+        }}
+      >
+        <i className={isOrganizing ? 'ri-check-line' : 'ri-drag-move-2-line'} />
+        {isOrganizing ? '이동 완료' : '이동편집'}
+      </button>
+    );
+  };
 
   const renderOrganizeHint = () => (
     isOrganizing ? (
       <div className="media-folder-organize-hint">
         <i className="ri-drag-move-line" />
-        재생목록을 잡고 다른 재생목록 위에 놓으면 그 안으로, 상단 경로에 놓으면 그 위치로 이동합니다.
+        재생목록이나 영상 카드를 잡고 다른 재생목록 위에 놓으면 그 안으로, 상단 경로에 놓으면 그 위치로 이동합니다.
       </div>
     ) : null
   );
@@ -3112,7 +3343,7 @@ const CollectionArchiveView: React.FC<{
     const canManage = canManagePlaylist(playlist);
     const isDragging = draggedPlaylistId === playlist.id;
     const isDropTarget = dropTargetId === playlist.id;
-    const canDrop = isDropTarget && canDropPlaylistInto(playlist);
+    const canDrop = isDropTarget && canDropIntoPlaylistTarget(playlist);
     const shortcutUrl = getPlaylistShortcutUrl(playlist);
     const sourceUrl = compactText(playlist.source_url) || (isLindyCollectionEntry(playlist) ? getLindyCollectionSourceUrl(playlist) : '');
     const rowActionUrl = shortcutUrl || (!getPlaylistParentId(playlist) ? sourceUrl : '');
@@ -3255,7 +3486,7 @@ const CollectionArchiveView: React.FC<{
     <div className="media-folder-path-trail">
       {breadcrumbs.map((crumb) => {
         const targetKey = `path:${crumb.id}`;
-        const canDrop = canDropPlaylistToParent(crumb.id);
+        const canDrop = canDropToParentTarget(crumb.id);
         return (
           <button
             key={crumb.id}
@@ -3376,7 +3607,7 @@ const CollectionArchiveView: React.FC<{
     const parentPlaylist = parentId ? playlists.find((playlist) => playlist.id === parentId) : null;
     const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
     const upDropTargetKey = parentId ? `path:${parentId}` : 'path:root';
-    const canDropToUpTarget = canDropPlaylistToParent(parentId);
+    const canDropToUpTarget = canDropToParentTarget(parentId);
     const folderPathAnchorStyle = folderPathFixed
       ? { height: `${folderPathFrame.height}px` }
       : undefined;
@@ -3463,7 +3694,11 @@ const CollectionArchiveView: React.FC<{
                   key={item.id}
                   item={item}
                   canManage={canManageItem(item)}
+                  canMove={canMoveItem(item)}
+                  isDragging={draggedItemId === item.id}
+                  isOrganizing={isOrganizing}
                   onEdit={onEditItem}
+                  onMovePointerDown={handleItemPointerDown}
                   playingItemId={playingItemId}
                   onPlayItem={onPlayItem}
                 />
@@ -4165,6 +4400,14 @@ const MediaArchivePage: React.FC = () => {
     Boolean(isAdmin || item.created_by === user?.id)
   ), [isAdmin, user?.id]);
 
+  const canMoveItem = useCallback((item: SnsMediaItem) => {
+    if (canManageItem(item)) return true;
+    const sourcePlaylistId = compactText(item.playlist_id);
+    if (!sourcePlaylistId) return false;
+    const sourcePlaylist = playlists.find((playlist) => playlist.id === sourcePlaylistId);
+    return Boolean(sourcePlaylist && canManagePlaylist(sourcePlaylist));
+  }, [canManageItem, canManagePlaylist, playlists]);
+
   const savePlaylistFromForm = async (
     sourceForm: MediaPlaylistForm,
     existing?: SnsMediaPlaylist | null,
@@ -4266,6 +4509,11 @@ const MediaArchivePage: React.FC = () => {
       return false;
     }
 
+    if (!isAdmin) {
+      alert('이동 편집은 관리자만 사용할 수 있습니다.');
+      return false;
+    }
+
     if (!canManagePlaylist(playlist)) {
       alert('이 재생목록을 이동할 권한이 없습니다.');
       return false;
@@ -4314,7 +4562,76 @@ const MediaArchivePage: React.FC = () => {
     await fetchPlaylists();
     await fetchSuggestionItems();
     return true;
-  }, [canManagePlaylist, fetchPlaylists, fetchSuggestionItems, playlists, signInWithKakao, user]);
+  }, [canManagePlaylist, fetchPlaylists, fetchSuggestionItems, isAdmin, playlists, signInWithKakao, user]);
+
+  const handleMoveItem = useCallback(async (item: SnsMediaItem, playlistId: string) => {
+    if (!user) {
+      await signInWithKakao();
+      return false;
+    }
+
+    if (!isAdmin) {
+      alert('이동 편집은 관리자만 사용할 수 있습니다.');
+      return false;
+    }
+
+    if (!canMoveItem(item)) {
+      alert('이 카드를 이동할 권한이 없습니다.');
+      return false;
+    }
+
+    const nextPlaylistId = compactText(playlistId);
+    const targetPlaylist = nextPlaylistId
+      ? playlists.find((playlist) => playlist.id === nextPlaylistId) || null
+      : null;
+    if (nextPlaylistId && !targetPlaylist) {
+      alert('이동할 재생목록을 찾을 수 없습니다.');
+      return false;
+    }
+    if (targetPlaylist && isShortcutPlaylist(targetPlaylist)) {
+      alert('바로가기형 재생목록에는 영상 카드를 넣을 수 없습니다.');
+      return false;
+    }
+    if (compactText(item.playlist_id) === nextPlaylistId) return false;
+
+    const now = new Date().toISOString();
+    const nextItem: SnsMediaItem = {
+      ...item,
+      playlist_id: nextPlaylistId || null,
+      collection_name: targetPlaylist ? compactText(targetPlaylist.name) || null : null,
+      updated_at: now,
+    };
+    const payload: Partial<SnsMediaItem> = {
+      playlist_id: nextItem.playlist_id,
+      collection_name: nextItem.collection_name,
+      updated_at: now,
+      search_text: buildSearchText(nextItem).slice(0, 2000),
+    };
+    const applyLocalMove = (entry: SnsMediaItem) => (
+      entry.id === item.id ? { ...entry, ...payload } : entry
+    );
+
+    setItems((prev) => prev.map(applyLocalMove));
+    setSuggestionItems((prev) => prev.map(applyLocalMove));
+
+    const { error } = await cafe24
+      .from('sns_media_items')
+      .update(payload)
+      .eq('id', item.id);
+
+    if (error) {
+      console.error('[MediaArchive] media item move failed:', error);
+      alert('카드 이동 중 오류가 발생했습니다.');
+      await fetchItems(0, false);
+      await fetchSuggestionItems();
+      return false;
+    }
+
+    await fetchPlaylists();
+    await fetchItems(0, false);
+    await fetchSuggestionItems();
+    return true;
+  }, [canMoveItem, fetchItems, fetchPlaylists, fetchSuggestionItems, isAdmin, playlists, signInWithKakao, user]);
 
   const resolveFormPlaylist = async (sourceForm: MediaArchiveForm) => {
     const newPlaylistName = compactText(sourceForm.newPlaylistName);
@@ -4542,10 +4859,13 @@ const MediaArchivePage: React.FC = () => {
         items={items}
         playlists={playlists}
         searchQuery={activeSearchQuery}
+        canOrganize={Boolean(isAdmin)}
         canManageItem={canManageItem}
+        canMoveItem={canMoveItem}
         canManagePlaylist={canManagePlaylist}
         onEditItem={handleEditItem}
         onEditPlaylist={handleEditPlaylist}
+        onMoveItem={handleMoveItem}
         onMovePlaylist={handleMovePlaylist}
         playingItemId={playingItemId}
         onPlayItem={handlePlayItem}
