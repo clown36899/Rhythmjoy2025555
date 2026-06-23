@@ -920,10 +920,25 @@
 
 .media-custom-timeline-row {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.media-custom-timeline-meta {
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
+}
+
+.media-custom-quick-controls {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .media-custom-control-row {
@@ -993,6 +1008,7 @@
 
 .media-custom-timeline {
   --media-player-progress: 0%;
+  --media-player-buffered: 0%;
   position: relative;
   min-width: 0;
   height: 24px;
@@ -1014,7 +1030,14 @@
 
 .media-custom-timeline::before {
   right: 0;
-  background: color-mix(in srgb, var(--text-tertiary) 30%, transparent);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--text-tertiary) 48%, transparent) 0%,
+      color-mix(in srgb, var(--text-tertiary) 48%, transparent) var(--media-player-buffered),
+      color-mix(in srgb, var(--text-tertiary) 20%, transparent) var(--media-player-buffered),
+      color-mix(in srgb, var(--text-tertiary) 20%, transparent) 100%
+    );
 }
 
 .media-custom-timeline::after {
@@ -3041,11 +3064,19 @@
   }
 
   .media-custom-timeline-row {
-    grid-template-columns: 1fr;
     gap: 5px;
   }
 
-  .media-custom-timeline-row .media-custom-time-group {
+  .media-custom-timeline-meta {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .media-custom-quick-controls {
+    gap: 5px;
+  }
+
+  .media-custom-timeline-meta .media-custom-time-group {
     justify-self: flex-end;
   }
 

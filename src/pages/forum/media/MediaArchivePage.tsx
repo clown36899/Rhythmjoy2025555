@@ -22,6 +22,7 @@ type YouTubePlayerInstance = {
   seekTo?: (seconds: number, allowSeekAhead?: boolean) => void;
   getCurrentTime?: () => number;
   getDuration?: () => number;
+  getVideoLoadedFraction?: () => number;
   getPlaybackRate?: () => number;
   setPlaybackRate?: (rate: number) => void;
   destroy?: () => void;
@@ -1002,6 +1003,8 @@ const YOUTUBE_STATE_PLAYING = 1;
 const YOUTUBE_STATE_PAUSED = 2;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
+const MEDIA_QUICK_SKIP_SECONDS = [-1, 1];
+const MEDIA_DETAIL_SKIP_SECONDS = [-10, -5, 5, 10];
 
 const YouTubeCustomPlayer: React.FC<{
   item: SnsMediaItem;
@@ -1015,11 +1018,14 @@ const YouTubeCustomPlayer: React.FC<{
     lastTime: number;
     wasPaused: boolean;
     rafId: number | null;
+    pointerId: number | null;
+    captureTarget: HTMLElement | null;
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [loadedFraction, setLoadedFraction] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isJogging, setIsJogging] = useState(false);
   const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
@@ -1027,7 +1033,12 @@ const YouTubeCustomPlayer: React.FC<{
   const safeDuration = duration > 0 ? duration : 0;
   const seekValue = safeDuration > 0 ? Math.min(currentTime, safeDuration) : 0;
   const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (seekValue / safeDuration) * 100)) : 0;
-  const timelineStyle = { '--media-player-progress': `${progressPercent}%` } as React.CSSProperties;
+  const loadedPercent = Math.min(100, Math.max(0, loadedFraction * 100));
+  const loadedEndTime = safeDuration * Math.min(1, Math.max(0, loadedFraction));
+  const timelineStyle = {
+    '--media-player-progress': `${progressPercent}%`,
+    '--media-player-buffered': `${loadedPercent}%`,
+  } as React.CSSProperties;
   const jogOffsetLabel = `${jogOffsetSeconds > 0 ? '+' : ''}${jogOffsetSeconds.toFixed(1)}s`;
 
   useEffect(() => {
@@ -1036,6 +1047,7 @@ const YouTubeCustomPlayer: React.FC<{
     setReady(false);
     setCurrentTime(0);
     setDuration(0);
+    setLoadedFraction(0);
     setPlaybackRate(1);
     setIsPaused(false);
     setIsJogging(false);
@@ -1056,6 +1068,7 @@ const YouTubeCustomPlayer: React.FC<{
               playerRef.current = event.target;
               setReady(true);
               setDuration(event.target.getDuration?.() || 0);
+              setLoadedFraction(event.target.getVideoLoadedFraction?.() || 0);
               setPlaybackRate(event.target.getPlaybackRate?.() || 1);
               event.target.playVideo?.();
             },
@@ -1100,6 +1113,7 @@ const YouTubeCustomPlayer: React.FC<{
       if (!player) return;
       setCurrentTime(player.getCurrentTime?.() || 0);
       setDuration(player.getDuration?.() || 0);
+      setLoadedFraction(player.getVideoLoadedFraction?.() || 0);
       setPlaybackRate(player.getPlaybackRate?.() || 1);
     }, 500);
 
@@ -1136,19 +1150,9 @@ const YouTubeCustomPlayer: React.FC<{
     seekToTime(Number(event.target.value));
   };
 
-  const handleJogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!ready) return;
-    const delta = event.key === 'ArrowLeft' ? -0.5 : event.key === 'ArrowRight' ? 0.5 : 0;
-    if (!delta) return;
-    event.preventDefault();
-    skipBy(delta);
-  };
-
-  const handleJogPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+  const beginJog = useCallback((clientX: number, pointerId: number | null = null, captureTarget: HTMLElement | null = null) => {
     const player = playerRef.current;
-    if (!ready || !player) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (!ready || !player) return false;
     const startTime = player.getCurrentTime?.() ?? currentTime;
     const wasPaused = isPaused;
     if (!wasPaused) {
@@ -1159,21 +1163,23 @@ const YouTubeCustomPlayer: React.FC<{
       window.cancelAnimationFrame(jogSessionRef.current.rafId);
     }
     jogSessionRef.current = {
-      startX: event.clientX,
+      startX: clientX,
       startTime,
       lastTime: startTime,
       wasPaused,
       rafId: null,
+      pointerId,
+      captureTarget,
     };
     setIsJogging(true);
     setJogOffsetSeconds(0);
-  };
+    return true;
+  }, [currentTime, isPaused, ready]);
 
-  const handleJogPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const updateJogToClientX = useCallback((clientX: number) => {
     const session = jogSessionRef.current;
     if (!session || !ready) return;
-    event.preventDefault();
-    const rawOffset = (event.clientX - session.startX) * MEDIA_JOG_SECONDS_PER_PIXEL;
+    const rawOffset = (clientX - session.startX) * MEDIA_JOG_SECONDS_PER_PIXEL;
     const nextOffset = Math.max(-MEDIA_JOG_MAX_OFFSET_SECONDS, Math.min(MEDIA_JOG_MAX_OFFSET_SECONDS, rawOffset));
     const nextTime = Math.max(0, Math.min(safeDuration || Number.POSITIVE_INFINITY, session.startTime + nextOffset));
     session.lastTime = nextTime;
@@ -1183,23 +1189,25 @@ const YouTubeCustomPlayer: React.FC<{
       window.cancelAnimationFrame(session.rafId);
     }
     session.rafId = window.requestAnimationFrame(() => {
-      playerRef.current?.seekTo?.(nextTime, true);
+      const isBuffered = loadedEndTime > 0 && nextTime <= loadedEndTime + 0.2;
+      playerRef.current?.seekTo?.(nextTime, !isBuffered);
       session.rafId = null;
     });
-  };
+  }, [loadedEndTime, ready, safeDuration]);
 
-  const finishJog = (event: React.PointerEvent<HTMLDivElement>) => {
+  const finishJog = useCallback(() => {
     const session = jogSessionRef.current;
     if (!session) return;
-    event.preventDefault();
     if (session.rafId) {
       window.cancelAnimationFrame(session.rafId);
     }
     playerRef.current?.seekTo?.(session.lastTime, true);
-    try {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    } catch {
-      // Pointer capture may already be released by the browser.
+    if (session.captureTarget && session.pointerId !== null) {
+      try {
+        session.captureTarget.releasePointerCapture(session.pointerId);
+      } catch {
+        // Pointer capture may already be released by the browser.
+      }
     }
     if (!session.wasPaused) {
       playerRef.current?.playVideo?.();
@@ -1208,6 +1216,72 @@ const YouTubeCustomPlayer: React.FC<{
     jogSessionRef.current = null;
     setIsJogging(false);
     setJogOffsetSeconds(0);
+  }, []);
+
+  useEffect(() => {
+    if (!isJogging) return undefined;
+
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      event.preventDefault();
+      updateJogToClientX(event.clientX);
+    };
+    const handleWindowPointerEnd = (event: PointerEvent) => {
+      event.preventDefault();
+      finishJog();
+    };
+    const handleWindowTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      event.preventDefault();
+      updateJogToClientX(touch.clientX);
+    };
+    const handleWindowTouchEnd = (event: TouchEvent) => {
+      event.preventDefault();
+      finishJog();
+    };
+
+    window.addEventListener('pointermove', handleWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', handleWindowPointerEnd, { passive: false });
+    window.addEventListener('pointercancel', handleWindowPointerEnd, { passive: false });
+    window.addEventListener('touchmove', handleWindowTouchMove, { passive: false });
+    window.addEventListener('touchend', handleWindowTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', handleWindowTouchEnd, { passive: false });
+
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerEnd);
+      window.removeEventListener('pointercancel', handleWindowPointerEnd);
+      window.removeEventListener('touchmove', handleWindowTouchMove);
+      window.removeEventListener('touchend', handleWindowTouchEnd);
+      window.removeEventListener('touchcancel', handleWindowTouchEnd);
+    };
+  }, [finishJog, isJogging, updateJogToClientX]);
+
+  const handleJogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!ready) return;
+    const delta = event.key === 'ArrowLeft' ? -0.5 : event.key === 'ArrowRight' ? 0.5 : 0;
+    if (!delta) return;
+    event.preventDefault();
+    skipBy(delta);
+  };
+
+  const handleJogPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    let captureTarget: HTMLElement | null = event.currentTarget;
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      captureTarget = null;
+    }
+    beginJog(event.clientX, event.pointerId, captureTarget);
+  };
+
+  const handleJogTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (jogSessionRef.current) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    event.preventDefault();
+    beginJog(touch.clientX);
   };
 
   const handlePlaybackRateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1253,11 +1327,40 @@ const YouTubeCustomPlayer: React.FC<{
               aria-label="재생 위치"
             />
           </div>
-          <span className="media-custom-time-group" aria-label={`현재 ${formatMediaTime(currentTime)}, 전체 ${formatMediaTime(safeDuration)}`}>
-            <span>{formatMediaTime(currentTime)}</span>
-            <span>/</span>
-            <span>{formatMediaTime(safeDuration)}</span>
-          </span>
+          <div className="media-custom-timeline-meta">
+            <div className="media-custom-quick-controls" aria-label="빠른 조그 컨트롤">
+              <button
+                type="button"
+                className="media-custom-play-button"
+                draggable={false}
+                disabled={!ready}
+                onDragStart={preventMediaArchiveDrag}
+                onClick={togglePlayback}
+                aria-label={ready ? (isPaused ? '재생' : '일시정지') : '로딩 중'}
+              >
+                <i className={!ready ? 'ri-loader-4-line ri-spin' : isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
+              </button>
+              {MEDIA_QUICK_SKIP_SECONDS.map((seconds) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  className="media-custom-skip-button"
+                  draggable={false}
+                  disabled={!ready}
+                  onDragStart={preventMediaArchiveDrag}
+                  onClick={() => skipBy(seconds)}
+                  aria-label={`${Math.abs(seconds)}초 ${seconds < 0 ? '뒤로' : '앞으로'}`}
+                >
+                  {seconds > 0 ? `+${seconds}` : seconds}
+                </button>
+              ))}
+            </div>
+            <span className="media-custom-time-group" aria-label={`현재 ${formatMediaTime(currentTime)}, 전체 ${formatMediaTime(safeDuration)}`}>
+              <span>{formatMediaTime(currentTime)}</span>
+              <span>/</span>
+              <span>{formatMediaTime(safeDuration)}</span>
+            </span>
+          </div>
         </div>
         <div
           className={`media-custom-jog ${isJogging ? 'is-jogging' : ''}`}
@@ -1271,9 +1374,7 @@ const YouTubeCustomPlayer: React.FC<{
           draggable={false}
           onDragStart={preventMediaArchiveDrag}
           onPointerDown={handleJogPointerDown}
-          onPointerMove={handleJogPointerMove}
-          onPointerUp={finishJog}
-          onPointerCancel={finishJog}
+          onTouchStart={handleJogTouchStart}
           onKeyDown={handleJogKeyDown}
         >
           <span className="media-custom-jog-side">뒤로</span>
@@ -1284,18 +1385,7 @@ const YouTubeCustomPlayer: React.FC<{
           <span className="media-custom-jog-side">앞으로</span>
         </div>
         <div className="media-custom-control-row">
-          <button
-            type="button"
-            className="media-custom-play-button"
-            draggable={false}
-            disabled={!ready}
-            onDragStart={preventMediaArchiveDrag}
-            onClick={togglePlayback}
-            aria-label={ready ? (isPaused ? '재생' : '일시정지') : '로딩 중'}
-          >
-            <i className={!ready ? 'ri-loader-4-line ri-spin' : isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
-          </button>
-          {[-10, -5, -1, 1, 5, 10].map((seconds) => (
+          {MEDIA_DETAIL_SKIP_SECONDS.map((seconds) => (
             <button
               key={seconds}
               type="button"
