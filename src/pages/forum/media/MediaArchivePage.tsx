@@ -273,6 +273,25 @@ function trimText(value?: string | null) {
   return String(value || '').trim();
 }
 
+function isWeakImportedMediaDescription(value?: string | null) {
+  const description = compactText(value);
+  if (!description) return false;
+  const lower = description.toLowerCase();
+  return (
+    /^youtube$/i.test(description) ||
+    /youtube에서\s+마음에\s+드는\s+동영상과\s+음악을\s+감상하고/i.test(description) ||
+    /직접\s+만든\s+콘텐츠를\s+업로드하여\s+친구/i.test(description) ||
+    /친구,\s*가족뿐\s+아니라\s+전\s+세계\s+사람들과\s+콘텐츠를\s+공유/i.test(description) ||
+    /enjoy\s+the\s+videos\s+and\s+music\s+you\s+love/i.test(lower) ||
+    /share\s+(?:it\s+all|your\s+videos)\s+with\s+friends,\s*family,\s*and\s+the\s+world/i.test(lower)
+  );
+}
+
+function cleanImportedMediaDescription(value?: string | null) {
+  const description = trimText(value);
+  return isWeakImportedMediaDescription(description) ? '' : description;
+}
+
 function preventMediaArchiveDrag(event: React.DragEvent<HTMLElement>) {
   const target = event.target as HTMLElement | null;
   if (target?.closest('[data-media-drag-allowed="true"]')) return;
@@ -981,22 +1000,37 @@ const YOUTUBE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const YOUTUBE_STATE_ENDED = 0;
 const YOUTUBE_STATE_PLAYING = 1;
 const YOUTUBE_STATE_PAUSED = 2;
+const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
+const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
+const MEDIA_JOG_SEEK_INTERVAL_MS = 120;
 
 const YouTubeCustomPlayer: React.FC<{
   item: SnsMediaItem;
-  originalUrl: string;
-}> = ({ item, originalUrl }) => {
+}> = ({ item }) => {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
+  const jogSessionRef = useRef<{
+    startX: number;
+    startTime: number;
+    lastTime: number;
+    lastSeekAt: number;
+    wasPaused: boolean;
+    rafId: number | null;
+  } | null>(null);
   const [ready, setReady] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [isJogging, setIsJogging] = useState(false);
+  const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
   const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
   const safeDuration = duration > 0 ? duration : 0;
   const seekValue = safeDuration > 0 ? Math.min(currentTime, safeDuration) : 0;
+  const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (seekValue / safeDuration) * 100)) : 0;
+  const timelineStyle = { '--media-player-progress': `${progressPercent}%` } as React.CSSProperties;
+  const jogOffsetLabel = `${jogOffsetSeconds > 0 ? '+' : ''}${jogOffsetSeconds.toFixed(1)}s`;
 
   useEffect(() => {
     let cancelled = false;
@@ -1006,6 +1040,12 @@ const YouTubeCustomPlayer: React.FC<{
     setDuration(0);
     setPlaybackRate(1);
     setIsPaused(false);
+    setIsJogging(false);
+    setJogOffsetSeconds(0);
+    if (jogSessionRef.current?.rafId) {
+      window.cancelAnimationFrame(jogSessionRef.current.rafId);
+    }
+    jogSessionRef.current = null;
 
     loadYouTubeIframeApi()
       .then(() => {
@@ -1042,6 +1082,10 @@ const YouTubeCustomPlayer: React.FC<{
 
     return () => {
       cancelled = true;
+      if (jogSessionRef.current?.rafId) {
+        window.cancelAnimationFrame(jogSessionRef.current.rafId);
+      }
+      jogSessionRef.current = null;
       playerRef.current = null;
       try {
         createdPlayer?.destroy?.();
@@ -1076,10 +1120,97 @@ const YouTubeCustomPlayer: React.FC<{
     setIsPaused(true);
   };
 
-  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextTime = Number(event.target.value);
+  const seekToTime = (time: number) => {
+    const upperBound = safeDuration || Number.POSITIVE_INFINITY;
+    const nextTime = Math.max(0, Math.min(upperBound, time));
     setCurrentTime(nextTime);
     playerRef.current?.seekTo?.(nextTime, true);
+  };
+
+  const skipBy = (deltaSeconds: number) => {
+    const player = playerRef.current;
+    if (!player) return;
+    const baseTime = player.getCurrentTime?.() ?? currentTime;
+    seekToTime(baseTime + deltaSeconds);
+  };
+
+  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
+    seekToTime(Number(event.target.value));
+  };
+
+  const handleJogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!ready) return;
+    const delta = event.key === 'ArrowLeft' ? -0.5 : event.key === 'ArrowRight' ? 0.5 : 0;
+    if (!delta) return;
+    event.preventDefault();
+    skipBy(delta);
+  };
+
+  const handleJogPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const player = playerRef.current;
+    if (!ready || !player) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const startTime = player.getCurrentTime?.() ?? currentTime;
+    const wasPaused = isPaused;
+    if (!wasPaused) {
+      player.pauseVideo?.();
+      setIsPaused(true);
+    }
+    if (jogSessionRef.current?.rafId) {
+      window.cancelAnimationFrame(jogSessionRef.current.rafId);
+    }
+    jogSessionRef.current = {
+      startX: event.clientX,
+      startTime,
+      lastTime: startTime,
+      lastSeekAt: 0,
+      wasPaused,
+      rafId: null,
+    };
+    setIsJogging(true);
+    setJogOffsetSeconds(0);
+  };
+
+  const handleJogPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const session = jogSessionRef.current;
+    if (!session || !ready) return;
+    event.preventDefault();
+    const rawOffset = (event.clientX - session.startX) * MEDIA_JOG_SECONDS_PER_PIXEL;
+    const nextOffset = Math.max(-MEDIA_JOG_MAX_OFFSET_SECONDS, Math.min(MEDIA_JOG_MAX_OFFSET_SECONDS, rawOffset));
+    const nextTime = Math.max(0, Math.min(safeDuration || Number.POSITIVE_INFINITY, session.startTime + nextOffset));
+    session.lastTime = nextTime;
+    setJogOffsetSeconds(nextOffset);
+    setCurrentTime(nextTime);
+    const now = window.performance.now();
+    if (session.rafId || now - session.lastSeekAt < MEDIA_JOG_SEEK_INTERVAL_MS) return;
+    session.lastSeekAt = now;
+    session.rafId = window.requestAnimationFrame(() => {
+      playerRef.current?.seekTo?.(session.lastTime, false);
+      session.rafId = null;
+    });
+  };
+
+  const finishJog = (event: React.PointerEvent<HTMLDivElement>) => {
+    const session = jogSessionRef.current;
+    if (!session) return;
+    event.preventDefault();
+    if (session.rafId) {
+      window.cancelAnimationFrame(session.rafId);
+    }
+    playerRef.current?.seekTo?.(session.lastTime, true);
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may already be released by the browser.
+    }
+    if (!session.wasPaused) {
+      playerRef.current?.playVideo?.();
+      setIsPaused(false);
+    }
+    jogSessionRef.current = null;
+    setIsJogging(false);
+    setJogOffsetSeconds(0);
   };
 
   const handlePlaybackRateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1097,7 +1228,7 @@ const YouTubeCustomPlayer: React.FC<{
   };
 
   return (
-    <div className="media-custom-player" ref={shellRef}>
+    <div className={`media-custom-player ${ready ? 'is-ready' : 'is-loading'}`} ref={shellRef}>
       <div className="media-mini-player">
         <iframe
           ref={frameRef}
@@ -1109,71 +1240,104 @@ const YouTubeCustomPlayer: React.FC<{
         />
       </div>
       <div className="media-custom-controls" aria-label="YouTube 플레이어 컨트롤">
-        <button
-          type="button"
-          className="media-mini-action-button media-custom-control-button"
+        <div className="media-custom-timeline-row">
+          <div className="media-custom-timeline" style={timelineStyle}>
+            <input
+              className="media-custom-seek"
+              type="range"
+              min="0"
+              max={safeDuration || 0}
+              step="0.1"
+              value={seekValue}
+              disabled={!ready || !safeDuration}
+              draggable={false}
+              onDragStart={preventMediaArchiveDrag}
+              onChange={handleSeek}
+              aria-label="재생 위치"
+            />
+          </div>
+          <span className="media-custom-time-group" aria-label={`현재 ${formatMediaTime(currentTime)}, 전체 ${formatMediaTime(safeDuration)}`}>
+            <span>{formatMediaTime(currentTime)}</span>
+            <span>/</span>
+            <span>{formatMediaTime(safeDuration)}</span>
+          </span>
+        </div>
+        <div
+          className={`media-custom-jog ${isJogging ? 'is-jogging' : ''}`}
+          role="slider"
+          tabIndex={ready ? 0 : -1}
+          aria-label="드래그로 재생 위치 미세 조정"
+          aria-valuemin={-MEDIA_JOG_MAX_OFFSET_SECONDS}
+          aria-valuemax={MEDIA_JOG_MAX_OFFSET_SECONDS}
+          aria-valuenow={Number(jogOffsetSeconds.toFixed(1))}
+          aria-disabled={!ready}
           draggable={false}
-          disabled={!ready}
           onDragStart={preventMediaArchiveDrag}
-          onClick={togglePlayback}
+          onPointerDown={handleJogPointerDown}
+          onPointerMove={handleJogPointerMove}
+          onPointerUp={finishJog}
+          onPointerCancel={finishJog}
+          onKeyDown={handleJogKeyDown}
         >
-          <i className={isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
-          {isPaused ? '재생' : '일시정지'}
-        </button>
-        <span className="media-custom-time">{formatMediaTime(currentTime)}</span>
-        <input
-          className="media-custom-seek"
-          type="range"
-          min="0"
-          max={safeDuration || 0}
-          step="0.1"
-          value={seekValue}
-          disabled={!ready || !safeDuration}
-          draggable={false}
-          onDragStart={preventMediaArchiveDrag}
-          onChange={handleSeek}
-          aria-label="재생 위치"
-        />
-        <span className="media-custom-time">{formatMediaTime(safeDuration)}</span>
-        <label className="media-custom-speed">
-          <span>속도</span>
-          <select
-            value={playbackRate}
+          <span className="media-custom-jog-side">뒤로</span>
+          <span className="media-custom-jog-handle" aria-hidden="true">
+            <i className="ri-drag-move-2-line" />
+            <span>{isJogging ? jogOffsetLabel : '드래그'}</span>
+          </span>
+          <span className="media-custom-jog-side">앞으로</span>
+        </div>
+        <div className="media-custom-control-row">
+          <button
+            type="button"
+            className="media-custom-play-button"
+            draggable={false}
             disabled={!ready}
-            onChange={handlePlaybackRateChange}
-            aria-label="재생 속도"
+            onDragStart={preventMediaArchiveDrag}
+            onClick={togglePlayback}
+            aria-label={ready ? (isPaused ? '재생' : '일시정지') : '로딩 중'}
           >
-            {YOUTUBE_SPEED_OPTIONS.map((rate) => (
-              <option key={rate} value={rate}>
-                {rate}x
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="media-mini-action-button media-custom-control-button"
-          draggable={false}
-          onDragStart={preventMediaArchiveDrag}
-          onClick={handleFullscreen}
-        >
-          <i className="ri-fullscreen-line" />
-          전체
-        </button>
-        {originalUrl && (
-          <a
-            className="media-mini-action-button media-custom-control-button media-mini-youtube-button"
-            href={originalUrl}
-            target="_blank"
-            rel="noreferrer"
+            <i className={!ready ? 'ri-loader-4-line ri-spin' : isPaused ? 'ri-play-fill' : 'ri-pause-fill'} />
+          </button>
+          {[-10, -5, -1, 1, 5, 10].map((seconds) => (
+            <button
+              key={seconds}
+              type="button"
+              className="media-custom-skip-button"
+              draggable={false}
+              disabled={!ready}
+              onDragStart={preventMediaArchiveDrag}
+              onClick={() => skipBy(seconds)}
+              aria-label={`${Math.abs(seconds)}초 ${seconds < 0 ? '뒤로' : '앞으로'}`}
+            >
+              {seconds > 0 ? `+${seconds}` : seconds}
+            </button>
+          ))}
+          <label className="media-custom-speed">
+            <span>속도</span>
+            <select
+              value={playbackRate}
+              disabled={!ready}
+              onChange={handlePlaybackRateChange}
+              aria-label="재생 속도"
+            >
+              {YOUTUBE_SPEED_OPTIONS.map((rate) => (
+                <option key={rate} value={rate}>
+                  {rate}x
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="media-custom-action-button"
             draggable={false}
             onDragStart={preventMediaArchiveDrag}
-            aria-label="원본 YouTube에서 보기"
+            onClick={handleFullscreen}
           >
-            <i className="ri-youtube-line" />
-            유튜브
-          </a>
-        )}
+            <i className="ri-fullscreen-line" />
+            전체
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1249,11 +1413,12 @@ function normalizeDescriptionText(value?: string | null) {
 const TranslatedDescription: React.FC<{
   value: TranslatableDescription;
   className: string;
-}> = ({ value, className }) => {
+  allowExpand?: boolean;
+}> = ({ value, className, allowExpand = true }) => {
   const [showOriginal, setShowOriginal] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const translatedText = trimText(value.description_translated) || trimText(value.description);
-  const originalText = trimText(value.description_original);
+  const translatedText = cleanImportedMediaDescription(value.description_translated) || cleanImportedMediaDescription(value.description);
+  const originalText = cleanImportedMediaDescription(value.description_original);
   const hasOriginal = Boolean(
     originalText &&
     normalizeDescriptionText(originalText) !== normalizeDescriptionText(translatedText),
@@ -1265,7 +1430,7 @@ const TranslatedDescription: React.FC<{
     descriptionClasses.includes('media-card-description') ||
     descriptionClasses.includes('media-mini-description')
   );
-  const canExpand = hasVisibleText && isExpandableDescription && (visibleText.length > 180 || visibleText.includes('\n'));
+  const canExpand = allowExpand && hasVisibleText && isExpandableDescription && (visibleText.length > 180 || visibleText.includes('\n'));
 
   if (!hasVisibleText) return null;
 
@@ -1448,7 +1613,7 @@ const MediaCard: React.FC<{
       <div className={`media-preview ${showCustomYouTubePlayer ? 'media-preview--custom-player' : ''}`}>
         {expanded ? (
           showCustomYouTubePlayer ? (
-            <YouTubeCustomPlayer item={item} originalUrl={originalUrl} />
+            <YouTubeCustomPlayer item={item} />
           ) : (
             <MediaEmbed item={item} autoplay />
           )
@@ -1475,7 +1640,7 @@ const MediaCard: React.FC<{
           {!item.is_approved && <span className="media-pending-badge">대기</span>}
         </div>
         <h2>{item.title || '제목 없음'}</h2>
-        <TranslatedDescription value={item} className="media-card-description" />
+        <TranslatedDescription value={item} className="media-card-description" allowExpand={expanded} />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -1542,7 +1707,7 @@ const MediaPreviewCard: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
           <span>{mediaTypeLabel(item.media_type)}</span>
         </div>
         <h2>{item.title || '제목 없음'}</h2>
-        <TranslatedDescription value={item} className="media-card-description" />
+        <TranslatedDescription value={item} className="media-card-description" allowExpand={false} />
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -1773,14 +1938,13 @@ const MediaMiniCard: React.FC<{
     item.collection_name,
     platformLabel(item.platform),
   ].filter(Boolean).join(' · ');
-  const originalUrl = item.normalized_url || item.url;
   const canEdit = canManage && Boolean(onEdit);
 
   if (expanded) {
     return (
       <article className="media-mini-card media-mini-card--expanded is-playing">
         {item.platform === 'youtube' && item.embed_url ? (
-          <YouTubeCustomPlayer item={item} originalUrl={originalUrl} />
+          <YouTubeCustomPlayer item={item} />
         ) : (
           <div className="media-mini-player">
             <MediaEmbed item={item} autoplay />
@@ -1866,7 +2030,7 @@ const MediaMiniCard: React.FC<{
           수정
         </button>
       )}
-      <TranslatedDescription value={item} className="media-mini-description" />
+      <TranslatedDescription value={item} className="media-mini-description" allowExpand={false} />
     </article>
   );
 };
@@ -1907,6 +2071,33 @@ interface LegacyArchiveGroup {
 }
 
 type MediaArchiveNavigationDirection = 'neutral' | 'forward' | 'back';
+type MediaArchiveHistoryView =
+  | { kind: 'playlist'; id: string }
+  | { kind: 'legacy'; id: string };
+
+const MEDIA_ARCHIVE_HISTORY_VIEW_KEY = '__swingenjoyMediaArchiveView';
+
+function getMediaArchiveHistoryViewKey(view: MediaArchiveHistoryView) {
+  return `${view.kind}:${view.id}`;
+}
+
+function getMediaArchiveHistoryView(state: unknown): MediaArchiveHistoryView | null {
+  if (!state || typeof state !== 'object') return null;
+  const value = (state as Record<string, unknown>)[MEDIA_ARCHIVE_HISTORY_VIEW_KEY];
+  if (!value || typeof value !== 'object') return null;
+  const kind = (value as Record<string, unknown>).kind;
+  const id = (value as Record<string, unknown>).id;
+  if ((kind !== 'playlist' && kind !== 'legacy') || typeof id !== 'string' || !id) return null;
+  return { kind, id };
+}
+
+function pushMediaArchiveHistoryView(view: MediaArchiveHistoryView) {
+  if (typeof window === 'undefined') return;
+  const currentState = window.history.state;
+  const nextState = currentState && typeof currentState === 'object' ? { ...currentState } : {};
+  nextState[MEDIA_ARCHIVE_HISTORY_VIEW_KEY] = view;
+  window.history.pushState(nextState, '', window.location.href);
+}
 
 function getPlaylistChildren(parentId: string, playlists: SnsMediaPlaylist[]) {
   const playlistIds = new Set(playlists.map((playlist) => playlist.id));
@@ -2023,6 +2214,7 @@ const CollectionArchiveView: React.FC<{
   const [draggedPlaylistId, setDraggedPlaylistId] = useState('');
   const [dropTargetId, setDropTargetId] = useState('');
   const [dragPreview, setDragPreview] = useState<{ id: string; label: string; x: number; y: number } | null>(null);
+  const archiveHistoryStackRef = useRef<string[]>([]);
   const pressTimerRef = useRef<number | null>(null);
   const dragClickSuppressTimerRef = useRef<number | null>(null);
   const suppressPlaylistOpenRef = useRef(false);
@@ -2088,6 +2280,42 @@ const CollectionArchiveView: React.FC<{
     if (pointerDragRef.current?.cleanup) pointerDragRef.current.cleanup();
   }, []);
 
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const view = getMediaArchiveHistoryView(event.state);
+      setNavigationDirection('back');
+      setIsOrganizing(false);
+      setDraggedPlaylistId('');
+      setDropTargetId('');
+      setDragPreview(null);
+
+      if (!view) {
+        archiveHistoryStackRef.current = [];
+        setActivePlaylistId('');
+        setActiveLegacyKey('');
+        return;
+      }
+
+      const viewKey = getMediaArchiveHistoryViewKey(view);
+      const targetIndex = archiveHistoryStackRef.current.lastIndexOf(viewKey);
+      archiveHistoryStackRef.current = targetIndex >= 0
+        ? archiveHistoryStackRef.current.slice(0, targetIndex + 1)
+        : [...archiveHistoryStackRef.current, viewKey];
+
+      if (view.kind === 'playlist') {
+        setActiveLegacyKey('');
+        setActivePlaylistId(view.id);
+        return;
+      }
+
+      setActivePlaylistId('');
+      setActiveLegacyKey(view.id);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const openWithPressFeedback = (rowKey: string, navigate: () => void) => {
     if (pressTimerRef.current) window.clearTimeout(pressTimerRef.current);
     setPressedRowKey(rowKey);
@@ -2104,22 +2332,71 @@ const CollectionArchiveView: React.FC<{
     openWithPressFeedback(rowKey, navigate);
   };
 
-  const navigateToPlaylist = (playlistId: string, direction: MediaArchiveNavigationDirection = 'forward') => {
+  const applyArchiveView = (view: MediaArchiveHistoryView | null, direction: MediaArchiveNavigationDirection) => {
     setNavigationDirection(direction);
-    setActiveLegacyKey('');
-    setActivePlaylistId(playlistId);
+    setIsOrganizing(false);
+    setDraggedPlaylistId('');
+    setDropTargetId('');
+    setDragPreview(null);
+
+    if (!view) {
+      setActivePlaylistId('');
+      setActiveLegacyKey('');
+      return;
+    }
+
+    if (view.kind === 'playlist') {
+      setActiveLegacyKey('');
+      setActivePlaylistId(view.id);
+      return;
+    }
+
+    setActivePlaylistId('');
+    setActiveLegacyKey(view.id);
+  };
+
+  const pushArchiveView = (view: MediaArchiveHistoryView) => {
+    const viewKey = getMediaArchiveHistoryViewKey(view);
+    const stack = archiveHistoryStackRef.current;
+    if (stack[stack.length - 1] === viewKey) return;
+    pushMediaArchiveHistoryView(view);
+    archiveHistoryStackRef.current = [...archiveHistoryStackRef.current, viewKey];
+  };
+
+  const goBackToArchiveView = (view: MediaArchiveHistoryView | null) => {
+    const stack = archiveHistoryStackRef.current;
+    let steps = stack.length;
+    if (view) {
+      const targetIndex = stack.lastIndexOf(getMediaArchiveHistoryViewKey(view));
+      if (targetIndex < 0) return false;
+      steps = stack.length - 1 - targetIndex;
+    }
+
+    if (steps <= 0 || steps > stack.length) return false;
+    window.history.go(-steps);
+    return true;
+  };
+
+  const navigateToPlaylist = (playlistId: string, direction: MediaArchiveNavigationDirection = 'forward') => {
+    const view = playlistId ? { kind: 'playlist' as const, id: playlistId } : null;
+    if (direction === 'forward' && view) {
+      pushArchiveView(view);
+      applyArchiveView(view, direction);
+      return;
+    }
+    if (direction === 'back' && goBackToArchiveView(view)) return;
+    applyArchiveView(view, direction);
   };
 
   const navigateToRoot = () => {
-    setNavigationDirection('back');
-    setActivePlaylistId('');
-    setActiveLegacyKey('');
+    if (goBackToArchiveView(null)) return;
+    applyArchiveView(null, 'back');
   };
 
   const navigateToLegacyGroup = (groupKey: string) => {
-    setNavigationDirection('forward');
-    setActivePlaylistId('');
-    setActiveLegacyKey(groupKey);
+    const view = { kind: 'legacy' as const, id: groupKey };
+    pushArchiveView(view);
+    applyArchiveView(view, 'forward');
   };
 
   const getLegacyGroupDisplayTitle = (group: LegacyArchiveGroup) => (
@@ -2918,7 +3195,7 @@ const MediaArchivePage: React.FC = () => {
       const data = (await response.json()) as RemoteMediaMetadata;
 
       const remoteTitle = compactText(data.title);
-      const remoteDescription = trimText(data.description);
+      const remoteDescription = cleanImportedMediaDescription(data.description);
       const remoteThumbnail = getRemoteShortcutThumbnail(data);
 
       setPlaylistForm((prev) => {
@@ -3160,7 +3437,7 @@ const MediaArchivePage: React.FC = () => {
 
           const next = { ...prev };
           const remoteTitle = compactText(data.title);
-          const remoteDescription = trimText(data.description);
+          const remoteDescription = cleanImportedMediaDescription(data.description);
           const remoteThumbnail = getRemoteMetadataThumbnail(data);
           const remotePublished = getRemoteMetadataPublishedDate(data);
           let changed = false;
