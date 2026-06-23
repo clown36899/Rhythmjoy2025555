@@ -24,6 +24,7 @@ type YouTubePlayerInstance = {
   getDuration?: () => number;
   getVideoLoadedFraction?: () => number;
   getPlaybackRate?: () => number;
+  getPlayerState?: () => number;
   setPlaybackRate?: (rate: number) => void;
   destroy?: () => void;
 };
@@ -68,6 +69,7 @@ const LINDY_COLLECTION_REPOSITORY_URL = 'https://github.com/lindycollection/www.
 const LINDY_COLLECTION_DEFAULT_ADAPTATION_NOTE = '한국어 번역/요약 및 SwingEnjoy SNS 아카이브용 재구성';
 const LINDY_COLLECTION_DEFAULT_NO_ENDORSEMENT = 'Lindy Collection의 공식 제휴 또는 보증을 의미하지 않습니다.';
 const LINDY_COLLECTION_DEFAULT_RIGHTS_NOTE = '링크된 원본 영상은 각 게시자와 플랫폼의 권리 조건을 따릅니다.';
+const MEDIA_DESCRIPTION_EXPAND_MIN_LENGTH = 80;
 type MediaSearchSuggestion = {
   value: string;
   label: string;
@@ -998,9 +1000,13 @@ const MediaEmbed: React.FC<{
 };
 
 const YOUTUBE_SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const YOUTUBE_STATE_UNSTARTED = -1;
 const YOUTUBE_STATE_ENDED = 0;
 const YOUTUBE_STATE_PLAYING = 1;
 const YOUTUBE_STATE_PAUSED = 2;
+const YOUTUBE_STATE_CUED = 5;
+const MEDIA_JOG_PREVIEW_RATE = 0.25;
+const MEDIA_JOG_PAINT_DELAY_MS = 90;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
 const MEDIA_QUICK_SKIP_SECONDS = [-1, 1];
@@ -1017,7 +1023,9 @@ const YouTubeCustomPlayer: React.FC<{
     startTime: number;
     lastTime: number;
     wasPaused: boolean;
+    previousPlaybackRate: number;
     rafId: number | null;
+    paintTimerId: number | null;
     pointerId: number | null;
     captureTarget: HTMLElement | null;
   } | null>(null);
@@ -1034,7 +1042,6 @@ const YouTubeCustomPlayer: React.FC<{
   const seekValue = safeDuration > 0 ? Math.min(currentTime, safeDuration) : 0;
   const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (seekValue / safeDuration) * 100)) : 0;
   const loadedPercent = Math.min(100, Math.max(0, loadedFraction * 100));
-  const loadedEndTime = safeDuration * Math.min(1, Math.max(0, loadedFraction));
   const timelineStyle = {
     '--media-player-progress': `${progressPercent}%`,
     '--media-player-buffered': `${loadedPercent}%`,
@@ -1049,7 +1056,7 @@ const YouTubeCustomPlayer: React.FC<{
     setDuration(0);
     setLoadedFraction(0);
     setPlaybackRate(1);
-    setIsPaused(false);
+    setIsPaused(true);
     setIsJogging(false);
     setJogOffsetSeconds(0);
     if (jogSessionRef.current?.rafId) {
@@ -1070,6 +1077,7 @@ const YouTubeCustomPlayer: React.FC<{
               setDuration(event.target.getDuration?.() || 0);
               setLoadedFraction(event.target.getVideoLoadedFraction?.() || 0);
               setPlaybackRate(event.target.getPlaybackRate?.() || 1);
+              setIsPaused(true);
               event.target.playVideo?.();
             },
             onStateChange: (event) => {
@@ -1077,6 +1085,8 @@ const YouTubeCustomPlayer: React.FC<{
                 setIsPaused(false);
               }
               if (
+                event.data === YOUTUBE_STATE_UNSTARTED ||
+                event.data === YOUTUBE_STATE_CUED ||
                 event.data === (window.YT?.PlayerState?.PAUSED ?? YOUTUBE_STATE_PAUSED) ||
                 event.data === (window.YT?.PlayerState?.ENDED ?? YOUTUBE_STATE_ENDED)
               ) {
@@ -1114,11 +1124,40 @@ const YouTubeCustomPlayer: React.FC<{
       setCurrentTime(player.getCurrentTime?.() || 0);
       setDuration(player.getDuration?.() || 0);
       setLoadedFraction(player.getVideoLoadedFraction?.() || 0);
-      setPlaybackRate(player.getPlaybackRate?.() || 1);
+      if (!jogSessionRef.current) {
+        setPlaybackRate(player.getPlaybackRate?.() || 1);
+      }
     }, 500);
 
     return () => window.clearInterval(intervalId);
   }, [ready]);
+
+  const clearJogPaintTimer = (session: NonNullable<typeof jogSessionRef.current>) => {
+    if (!session.paintTimerId) return;
+    window.clearTimeout(session.paintTimerId);
+    session.paintTimerId = null;
+  };
+
+  const paintJogFrame = useCallback((session: NonNullable<typeof jogSessionRef.current>) => {
+    const player = playerRef.current;
+    if (!player) return;
+    clearJogPaintTimer(session);
+    try {
+      player.playVideo?.();
+    } catch {
+      // Some embedded videos may reject programmatic playback until YouTube has fully initialized.
+    }
+    if (!session.wasPaused) return;
+    session.paintTimerId = window.setTimeout(() => {
+      if (jogSessionRef.current !== session) return;
+      try {
+        player.pauseVideo?.();
+      } catch {
+        // Keep the jog session alive even if the iframe ignores the pause request.
+      }
+      session.paintTimerId = null;
+    }, MEDIA_JOG_PAINT_DELAY_MS);
+  }, []);
 
   const togglePlayback = () => {
     const player = playerRef.current;
@@ -1154,27 +1193,44 @@ const YouTubeCustomPlayer: React.FC<{
     const player = playerRef.current;
     if (!ready || !player) return false;
     const startTime = player.getCurrentTime?.() ?? currentTime;
-    const wasPaused = isPaused;
-    if (!wasPaused) {
-      player.pauseVideo?.();
-      setIsPaused(true);
+    const playerState = player.getPlayerState?.();
+    const wasPaused =
+      playerState === undefined
+        ? isPaused
+        : playerState !== (window.YT?.PlayerState?.PLAYING ?? YOUTUBE_STATE_PLAYING);
+    const previousPlaybackRate = player.getPlaybackRate?.() || playbackRate || 1;
+    try {
+      player.setPlaybackRate?.(MEDIA_JOG_PREVIEW_RATE);
+    } catch {
+      // Not every YouTube embed accepts every playback rate.
+    }
+    try {
+      player.playVideo?.();
+    } catch {
+      // The iframe can still reject playback if YouTube is not ready for commands.
     }
     if (jogSessionRef.current?.rafId) {
       window.cancelAnimationFrame(jogSessionRef.current.rafId);
+    }
+    if (jogSessionRef.current?.paintTimerId) {
+      window.clearTimeout(jogSessionRef.current.paintTimerId);
     }
     jogSessionRef.current = {
       startX: clientX,
       startTime,
       lastTime: startTime,
       wasPaused,
+      previousPlaybackRate,
       rafId: null,
+      paintTimerId: null,
       pointerId,
       captureTarget,
     };
+    paintJogFrame(jogSessionRef.current);
     setIsJogging(true);
     setJogOffsetSeconds(0);
     return true;
-  }, [currentTime, isPaused, ready]);
+  }, [currentTime, isPaused, paintJogFrame, playbackRate, ready]);
 
   const updateJogToClientX = useCallback((clientX: number) => {
     const session = jogSessionRef.current;
@@ -1187,13 +1243,12 @@ const YouTubeCustomPlayer: React.FC<{
     setCurrentTime(nextTime);
     if (session.rafId) {
       window.cancelAnimationFrame(session.rafId);
-    }
-    session.rafId = window.requestAnimationFrame(() => {
-      const isBuffered = loadedEndTime > 0 && nextTime <= loadedEndTime + 0.2;
-      playerRef.current?.seekTo?.(nextTime, !isBuffered);
       session.rafId = null;
-    });
-  }, [loadedEndTime, ready, safeDuration]);
+    }
+    const player = playerRef.current;
+    player?.seekTo?.(nextTime, true);
+    paintJogFrame(session);
+  }, [paintJogFrame, ready, safeDuration]);
 
   const finishJog = useCallback(() => {
     const session = jogSessionRef.current;
@@ -1201,7 +1256,14 @@ const YouTubeCustomPlayer: React.FC<{
     if (session.rafId) {
       window.cancelAnimationFrame(session.rafId);
     }
+    clearJogPaintTimer(session);
     playerRef.current?.seekTo?.(session.lastTime, true);
+    try {
+      playerRef.current?.setPlaybackRate?.(session.previousPlaybackRate);
+      setPlaybackRate(session.previousPlaybackRate);
+    } catch {
+      setPlaybackRate(playerRef.current?.getPlaybackRate?.() || playbackRate);
+    }
     if (session.captureTarget && session.pointerId !== null) {
       try {
         session.captureTarget.releasePointerCapture(session.pointerId);
@@ -1212,11 +1274,14 @@ const YouTubeCustomPlayer: React.FC<{
     if (!session.wasPaused) {
       playerRef.current?.playVideo?.();
       setIsPaused(false);
+    } else {
+      playerRef.current?.pauseVideo?.();
+      setIsPaused(true);
     }
     jogSessionRef.current = null;
     setIsJogging(false);
     setJogOffsetSeconds(0);
-  }, []);
+  }, [playbackRate]);
 
   useEffect(() => {
     if (!isJogging) return undefined;
@@ -1266,6 +1331,7 @@ const YouTubeCustomPlayer: React.FC<{
   };
 
   const handleJogPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (jogSessionRef.current) return;
     event.preventDefault();
     let captureTarget: HTMLElement | null = event.currentTarget;
     try {
@@ -1517,7 +1583,10 @@ const TranslatedDescription: React.FC<{
     descriptionClasses.includes('media-card-description') ||
     descriptionClasses.includes('media-mini-description')
   );
-  const canExpand = allowExpand && hasVisibleText && isExpandableDescription && (visibleText.length > 180 || visibleText.includes('\n'));
+  const canExpand = allowExpand && hasVisibleText && isExpandableDescription && (
+    visibleText.length > MEDIA_DESCRIPTION_EXPAND_MIN_LENGTH ||
+    visibleText.includes('\n')
+  );
 
   if (!hasVisibleText) return null;
 
@@ -1533,7 +1602,7 @@ const TranslatedDescription: React.FC<{
           onClick={() => setExpanded((current) => !current)}
         >
           <i className={expanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
-          {expanded ? '접기' : '자세히'}
+          {expanded ? '접기' : '자세히 보기'}
         </button>
       )}
       {hasOriginal && (
@@ -1727,7 +1796,7 @@ const MediaCard: React.FC<{
           {!item.is_approved && <span className="media-pending-badge">대기</span>}
         </div>
         <h2>{item.title || '제목 없음'}</h2>
-        <TranslatedDescription value={item} className="media-card-description" allowExpand={expanded} />
+        {expanded && <TranslatedDescription value={item} className="media-card-description" />}
         <div className="media-card-info">
           {item.author_name && <span><i className="ri-user-smile-line" />{item.author_name}</span>}
           {item.dance_genre && <span><i className="ri-disc-line" />{item.dance_genre}</span>}
@@ -2117,7 +2186,6 @@ const MediaMiniCard: React.FC<{
           수정
         </button>
       )}
-      <TranslatedDescription value={item} className="media-mini-description" allowExpand={false} />
     </article>
   );
 };
@@ -2268,6 +2336,12 @@ function getPlaylistBreadcrumbs(playlist: SnsMediaPlaylist, playlists: SnsMediaP
   return crumbs;
 }
 
+function getPlaylistHistoryLineage(playlistId: string, playlists: SnsMediaPlaylist[]): MediaArchiveHistoryView[] {
+  const playlist = playlists.find((entry) => entry.id === playlistId);
+  if (!playlist) return playlistId ? [{ kind: 'playlist', id: playlistId }] : [];
+  return getPlaylistBreadcrumbs(playlist, playlists).map((entry) => ({ kind: 'playlist', id: entry.id }));
+}
+
 function getItemLegacyGroupKey(item: SnsMediaItem) {
   return `collection:${compactText(item.collection_name) || '컬렉션 미지정'}`;
 }
@@ -2359,6 +2433,7 @@ const CollectionArchiveView: React.FC<{
     setIsOrganizing(false);
     setDraggedPlaylistId('');
     setDropTargetId('');
+    archiveHistoryStackRef.current = [];
   }, [searchQuery]);
 
   useEffect(() => () => {
@@ -2450,6 +2525,10 @@ const CollectionArchiveView: React.FC<{
     archiveHistoryStackRef.current = [...archiveHistoryStackRef.current, viewKey];
   };
 
+  const pushArchiveViews = (views: MediaArchiveHistoryView[]) => {
+    views.forEach((view) => pushArchiveView(view));
+  };
+
   const goBackToArchiveView = (view: MediaArchiveHistoryView | null) => {
     const stack = archiveHistoryStackRef.current;
     let steps = stack.length;
@@ -2467,7 +2546,7 @@ const CollectionArchiveView: React.FC<{
   const navigateToPlaylist = (playlistId: string, direction: MediaArchiveNavigationDirection = 'forward') => {
     const view = playlistId ? { kind: 'playlist' as const, id: playlistId } : null;
     if (direction === 'forward' && view) {
-      pushArchiveView(view);
+      pushArchiveViews(getPlaylistHistoryLineage(playlistId, playlists));
       applyArchiveView(view, direction);
       return;
     }
