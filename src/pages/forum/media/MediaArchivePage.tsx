@@ -25,6 +25,7 @@ type YouTubePlayerInstance = {
   getVideoLoadedFraction?: () => number;
   getPlaybackRate?: () => number;
   getPlayerState?: () => number;
+  getAvailablePlaybackRates?: () => number[];
   setPlaybackRate?: (rate: number) => void;
   destroy?: () => void;
 };
@@ -43,6 +44,7 @@ declare global {
           events?: {
             onReady?: (event: { target: YouTubePlayerInstance }) => void;
             onStateChange?: (event: { data: number; target: YouTubePlayerInstance }) => void;
+            onPlaybackRateChange?: (event: { data: number; target: YouTubePlayerInstance }) => void;
           };
         },
       ) => YouTubePlayerInstance;
@@ -1004,19 +1006,43 @@ const YOUTUBE_STATE_UNSTARTED = -1;
 const YOUTUBE_STATE_ENDED = 0;
 const YOUTUBE_STATE_PLAYING = 1;
 const YOUTUBE_STATE_PAUSED = 2;
+const YOUTUBE_STATE_BUFFERING = 3;
 const YOUTUBE_STATE_CUED = 5;
 const MEDIA_JOG_PREVIEW_RATE = 0.25;
 const MEDIA_JOG_PAINT_DELAY_MS = 90;
 const MEDIA_JOG_POINTER_SEEK_INTERVAL_MS = 70;
 const MEDIA_JOG_TOUCH_SEEK_INTERVAL_MS = 150;
+const MEDIA_JOG_POINTER_BUFFERING_SEEK_INTERVAL_MS = 120;
+const MEDIA_JOG_TOUCH_BUFFERING_SEEK_INTERVAL_MS = 220;
 const MEDIA_JOG_POINTER_MIN_SEEK_STEP_SECONDS = 0.18;
 const MEDIA_JOG_TOUCH_MIN_SEEK_STEP_SECONDS = 0.35;
+const MEDIA_JOG_POINTER_BUFFERING_MIN_SEEK_STEP_SECONDS = 0.28;
+const MEDIA_JOG_TOUCH_BUFFERING_MIN_SEEK_STEP_SECONDS = 0.55;
+const MEDIA_JOG_BUFFERING_COOLDOWN_MS = 700;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
 const MEDIA_QUICK_SKIP_SECONDS = [-1, 1];
 const MEDIA_DETAIL_SKIP_SECONDS = [-10, -5, 5, 10];
 type MediaJogEventSource = 'pointer' | 'touch';
 type MediaJogInputMode = 'pointer' | 'touch';
+
+const normalizeYouTubePlaybackRates = (rates?: number[]) => {
+  const normalized = Array.from(new Set((rates || [])
+    .filter((rate) => Number.isFinite(rate) && rate > 0)
+    .map((rate) => Number(rate.toFixed(2)))))
+    .sort((a, b) => a - b);
+
+  if (!normalized.length) return YOUTUBE_SPEED_OPTIONS;
+  return normalized.includes(1) ? normalized : [...normalized, 1].sort((a, b) => a - b);
+};
+
+const arePlaybackRatesEqual = (left: number[], right: number[]) => (
+  left.length === right.length && left.every((rate, index) => rate === right[index])
+);
+
+const getSlowestJogPlaybackRate = (rates: number[]) => (
+  rates.find((rate) => rate > 0 && rate < 1) ?? rates[0] ?? MEDIA_JOG_PREVIEW_RATE
+);
 
 const YouTubeCustomPlayer: React.FC<{
   item: SnsMediaItem;
@@ -1039,6 +1065,7 @@ const YouTubeCustomPlayer: React.FC<{
     lastSeekIssuedAt: number;
     lastSeekTime: number;
     pendingSeekTime: number;
+    lastBufferingAt: number;
     pointerId: number | null;
     captureTarget: HTMLElement | null;
   } | null>(null);
@@ -1048,6 +1075,7 @@ const YouTubeCustomPlayer: React.FC<{
   const [duration, setDuration] = useState(0);
   const [loadedFraction, setLoadedFraction] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [availablePlaybackRates, setAvailablePlaybackRates] = useState<number[]>(YOUTUBE_SPEED_OPTIONS);
   const [isJogging, setIsJogging] = useState(false);
   const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
   const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
@@ -1069,6 +1097,7 @@ const YouTubeCustomPlayer: React.FC<{
     setDuration(0);
     setLoadedFraction(0);
     setPlaybackRate(1);
+    setAvailablePlaybackRates(YOUTUBE_SPEED_OPTIONS);
     setIsPaused(true);
     setIsJogging(false);
     setJogOffsetSeconds(0);
@@ -1092,9 +1121,11 @@ const YouTubeCustomPlayer: React.FC<{
             onReady: (event) => {
               if (cancelled) return;
               playerRef.current = event.target;
+              const nextPlaybackRates = normalizeYouTubePlaybackRates(event.target.getAvailablePlaybackRates?.());
               setReady(true);
               setDuration(event.target.getDuration?.() || 0);
               setLoadedFraction(event.target.getVideoLoadedFraction?.() || 0);
+              setAvailablePlaybackRates(nextPlaybackRates);
               setPlaybackRate(event.target.getPlaybackRate?.() || 1);
               setIsPaused(true);
               event.target.playVideo?.();
@@ -1111,6 +1142,17 @@ const YouTubeCustomPlayer: React.FC<{
               ) {
                 setIsPaused(true);
               }
+            },
+            onPlaybackRateChange: (event) => {
+              if (cancelled) return;
+              const nextRate = typeof event.data === 'number'
+                ? event.data
+                : event.target.getPlaybackRate?.() || 1;
+              setPlaybackRate(nextRate);
+              const nextPlaybackRates = normalizeYouTubePlaybackRates(event.target.getAvailablePlaybackRates?.());
+              setAvailablePlaybackRates((previousRates) => (
+                arePlaybackRatesEqual(previousRates, nextPlaybackRates) ? previousRates : nextPlaybackRates
+              ));
             },
           },
         });
@@ -1149,6 +1191,10 @@ const YouTubeCustomPlayer: React.FC<{
       setCurrentTime(player.getCurrentTime?.() || 0);
       setDuration(player.getDuration?.() || 0);
       setLoadedFraction(player.getVideoLoadedFraction?.() || 0);
+      const nextPlaybackRates = normalizeYouTubePlaybackRates(player.getAvailablePlaybackRates?.());
+      setAvailablePlaybackRates((previousRates) => (
+        arePlaybackRatesEqual(previousRates, nextPlaybackRates) ? previousRates : nextPlaybackRates
+      ));
       if (!jogSessionRef.current) {
         setPlaybackRate(player.getPlaybackRate?.() || 1);
       }
@@ -1188,12 +1234,25 @@ const YouTubeCustomPlayer: React.FC<{
     const player = playerRef.current;
     if (!player) return;
     const now = window.performance?.now?.() ?? Date.now();
+    const isBuffering = player.getPlayerState?.() === (window.YT?.PlayerState?.BUFFERING ?? YOUTUBE_STATE_BUFFERING);
+    if (isBuffering) {
+      session.lastBufferingAt = now;
+    }
+    const recentlyBuffered = session.lastBufferingAt > 0 && now - session.lastBufferingAt < MEDIA_JOG_BUFFERING_COOLDOWN_MS;
     const seekInterval = session.inputMode === 'touch'
-      ? MEDIA_JOG_TOUCH_SEEK_INTERVAL_MS
-      : MEDIA_JOG_POINTER_SEEK_INTERVAL_MS;
+      ? recentlyBuffered
+        ? MEDIA_JOG_TOUCH_BUFFERING_SEEK_INTERVAL_MS
+        : MEDIA_JOG_TOUCH_SEEK_INTERVAL_MS
+      : recentlyBuffered
+        ? MEDIA_JOG_POINTER_BUFFERING_SEEK_INTERVAL_MS
+        : MEDIA_JOG_POINTER_SEEK_INTERVAL_MS;
     const minSeekStep = session.inputMode === 'touch'
-      ? MEDIA_JOG_TOUCH_MIN_SEEK_STEP_SECONDS
-      : MEDIA_JOG_POINTER_MIN_SEEK_STEP_SECONDS;
+      ? recentlyBuffered
+        ? MEDIA_JOG_TOUCH_BUFFERING_MIN_SEEK_STEP_SECONDS
+        : MEDIA_JOG_TOUCH_MIN_SEEK_STEP_SECONDS
+      : recentlyBuffered
+        ? MEDIA_JOG_POINTER_BUFFERING_MIN_SEEK_STEP_SECONDS
+        : MEDIA_JOG_POINTER_MIN_SEEK_STEP_SECONDS;
     const canSeekNow =
       force ||
       session.lastSeekIssuedAt <= 0 ||
@@ -1275,8 +1334,12 @@ const YouTubeCustomPlayer: React.FC<{
         ? isPaused
         : playerState !== (window.YT?.PlayerState?.PLAYING ?? YOUTUBE_STATE_PLAYING);
     const previousPlaybackRate = player.getPlaybackRate?.() || playbackRate || 1;
+    const nextPlaybackRates = normalizeYouTubePlaybackRates(player.getAvailablePlaybackRates?.());
+    setAvailablePlaybackRates((previousRates) => (
+      arePlaybackRatesEqual(previousRates, nextPlaybackRates) ? previousRates : nextPlaybackRates
+    ));
     try {
-      player.setPlaybackRate?.(MEDIA_JOG_PREVIEW_RATE);
+      player.setPlaybackRate?.(getSlowestJogPlaybackRate(nextPlaybackRates));
     } catch {
       // Not every YouTube embed accepts every playback rate.
     }
@@ -1309,6 +1372,9 @@ const YouTubeCustomPlayer: React.FC<{
       lastSeekIssuedAt: 0,
       lastSeekTime: startTime,
       pendingSeekTime: startTime,
+      lastBufferingAt: playerState === (window.YT?.PlayerState?.BUFFERING ?? YOUTUBE_STATE_BUFFERING)
+        ? (window.performance?.now?.() ?? Date.now())
+        : 0,
       pointerId,
       captureTarget,
     };
@@ -1576,7 +1642,7 @@ const YouTubeCustomPlayer: React.FC<{
               onChange={handlePlaybackRateChange}
               aria-label="재생 속도"
             >
-              {YOUTUBE_SPEED_OPTIONS.map((rate) => (
+              {availablePlaybackRates.map((rate) => (
                 <option key={rate} value={rate}>
                   {rate}x
                 </option>
