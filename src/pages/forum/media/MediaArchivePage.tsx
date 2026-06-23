@@ -2548,6 +2548,8 @@ const CollectionArchiveView: React.FC<{
   const pressTimerRef = useRef<number | null>(null);
   const dragClickSuppressTimerRef = useRef<number | null>(null);
   const suppressPlaylistOpenRef = useRef(false);
+  const folderPathAnchorRef = useRef<HTMLDivElement | null>(null);
+  const folderPathRef = useRef<HTMLElement | null>(null);
   const pointerDragRef = useRef<{
     playlist: SnsMediaPlaylist;
     pointerId: number;
@@ -2557,6 +2559,8 @@ const CollectionArchiveView: React.FC<{
     dragging: boolean;
     cleanup: (() => void) | null;
   } | null>(null);
+  const [folderPathFixed, setFolderPathFixed] = useState(false);
+  const [folderPathFrame, setFolderPathFrame] = useState({ top: 0, left: 0, width: 0, height: 0 });
   const activePlaylist = playlists.find((playlist) => playlist.id === activePlaylistId) || null;
   const legacyGroups = useMemo(() => buildLegacyArchiveGroups(items, playlists), [items, playlists]);
   const activeLegacyGroup = legacyGroups.find((group) => group.key === activeLegacyKey) || null;
@@ -2594,6 +2598,80 @@ const CollectionArchiveView: React.FC<{
       setActiveLegacyKey('');
     }
   }, [activeLegacyGroup, activeLegacyKey]);
+
+  useEffect(() => {
+    if (!activePlaylist) {
+      setFolderPathFixed(false);
+      setFolderPathFrame({ top: 0, left: 0, width: 0, height: 0 });
+      return undefined;
+    }
+
+    let frameRequest = 0;
+    const getStickyTop = () => {
+      const path = folderPathRef.current;
+      if (!path) return 70;
+      const parsedTop = Number.parseFloat(window.getComputedStyle(path).top);
+      return Number.isFinite(parsedTop) ? parsedTop : 70;
+    };
+    const updateFolderPathPosition = () => {
+      frameRequest = 0;
+      const anchor = folderPathAnchorRef.current;
+      const path = folderPathRef.current;
+      if (!anchor || !path) {
+        setFolderPathFixed(false);
+        return;
+      }
+
+      const top = getStickyTop();
+      const anchorRect = anchor.getBoundingClientRect();
+      const pathRect = path.getBoundingClientRect();
+      const detailRect = anchor.closest('.media-playlist-detail')?.getBoundingClientRect();
+      const height = pathRect.height || anchorRect.height;
+      const shouldFix = anchorRect.top <= top && (!detailRect || detailRect.bottom > top + height + 12);
+
+      setFolderPathFrame((prev) => {
+        const next = {
+          top,
+          left: anchorRect.left,
+          width: anchorRect.width,
+          height,
+        };
+        if (
+          Math.abs(prev.top - next.top) < 0.5 &&
+          Math.abs(prev.left - next.left) < 0.5 &&
+          Math.abs(prev.width - next.width) < 0.5 &&
+          Math.abs(prev.height - next.height) < 0.5
+        ) {
+          return prev;
+        }
+        return next;
+      });
+      setFolderPathFixed((prev) => (prev === shouldFix ? prev : shouldFix));
+    };
+    const scheduleUpdate = () => {
+      if (frameRequest) return;
+      frameRequest = window.requestAnimationFrame(updateFolderPathPosition);
+    };
+
+    updateFolderPathPosition();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('orientationchange', scheduleUpdate);
+    document.addEventListener('scroll', scheduleUpdate, { passive: true, capture: true });
+    document.addEventListener('touchmove', scheduleUpdate, { passive: true });
+    document.addEventListener('wheel', scheduleUpdate, { passive: true });
+    const fallbackTimer = window.setInterval(scheduleUpdate, 120);
+    return () => {
+      if (frameRequest) window.cancelAnimationFrame(frameRequest);
+      window.clearInterval(fallbackTimer);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('orientationchange', scheduleUpdate);
+      document.removeEventListener('scroll', scheduleUpdate, true);
+      document.removeEventListener('touchmove', scheduleUpdate);
+      document.removeEventListener('wheel', scheduleUpdate);
+    };
+  }, [activePlaylist]);
 
   useEffect(() => {
     setNavigationDirection('neutral');
@@ -3299,25 +3377,47 @@ const CollectionArchiveView: React.FC<{
     const branchItems = getPlaylistBranchItems(activePlaylist.id, items, playlists);
     const upDropTargetKey = parentId ? `path:${parentId}` : 'path:root';
     const canDropToUpTarget = canDropPlaylistToParent(parentId);
+    const folderPathAnchorStyle = folderPathFixed
+      ? { height: `${folderPathFrame.height}px` }
+      : undefined;
+    const folderPathStyle = folderPathFixed
+      ? {
+          top: `${folderPathFrame.top}px`,
+          left: `${folderPathFrame.left}px`,
+          width: `${folderPathFrame.width}px`,
+        }
+      : undefined;
 
     return (
       <section key={activePlaylist.id} className={`media-playlist-detail media-folder-room ${stackClassName}`}>
-        <nav className="media-folder-path" aria-label="재생목록 경로">
-          <button
-            type="button"
-            className={`media-folder-up-button${getDropTargetClassName(upDropTargetKey, canDropToUpTarget)}`}
-            data-media-parent-drop-id={parentId}
-            data-media-parent-drop-key={upDropTargetKey}
-            onClick={() => navigateToPlaylist(parentId, 'back')}
-            onDragOver={(event) => handlePlaylistParentDragOver(event, parentId, upDropTargetKey)}
-            onDragLeave={(event) => handlePlaylistDropTargetLeave(event, upDropTargetKey)}
-            onDrop={(event) => handlePlaylistParentDrop(event, parentId, upDropTargetKey)}
+        <div
+          ref={folderPathAnchorRef}
+          className={`media-folder-path-anchor${folderPathFixed ? ' is-fixed' : ''}`}
+          style={folderPathAnchorStyle}
+        >
+          <nav
+            ref={folderPathRef}
+            className={`media-folder-path${folderPathFixed ? ' is-fixed' : ''}`}
+            aria-label="재생목록 경로"
+            style={folderPathStyle}
           >
-            <i className="ri-arrow-left-line" />
-            {parentPlaylist ? parentPlaylist.name : '최상위'}
-          </button>
-          {renderPathTrail()}
-        </nav>
+            <button
+              type="button"
+              className={`media-folder-up-button${getDropTargetClassName(upDropTargetKey, canDropToUpTarget)}`}
+              aria-label={`${parentPlaylist ? parentPlaylist.name : '최상위'}로 이동`}
+              title={`${parentPlaylist ? parentPlaylist.name : '최상위'}로 이동`}
+              data-media-parent-drop-id={parentId}
+              data-media-parent-drop-key={upDropTargetKey}
+              onClick={() => navigateToPlaylist(parentId, 'back')}
+              onDragOver={(event) => handlePlaylistParentDragOver(event, parentId, upDropTargetKey)}
+              onDragLeave={(event) => handlePlaylistDropTargetLeave(event, upDropTargetKey)}
+              onDrop={(event) => handlePlaylistParentDrop(event, parentId, upDropTargetKey)}
+            >
+              <i className="ri-arrow-left-line" />
+            </button>
+            {renderPathTrail()}
+          </nav>
+        </div>
         <div className="media-playlist-detail-toolbar" aria-label={`${activePlaylist.name} 폴더 정보`}>
           <h2 className="media-visually-hidden">{activePlaylist.name}</h2>
           <div className="media-playlist-detail-stats">
@@ -3481,6 +3581,11 @@ const MediaArchivePage: React.FC = () => {
   const metadataFetchKeyRef = useRef('');
   const playlistMetadataFetchKeyRef = useRef('');
   const restoredDraftRef = useRef(false);
+
+  useEffect(() => {
+    document.documentElement.classList.add('media-archive-page-active');
+    return () => document.documentElement.classList.remove('media-archive-page-active');
+  }, []);
 
   const canCreate = Boolean(user);
   const searchSuggestions = useMemo(

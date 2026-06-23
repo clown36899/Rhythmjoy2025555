@@ -14,6 +14,14 @@
   touch-action: pan-y;
 }
 
+html.media-archive-page-active,
+html.media-archive-page-active body,
+html.media-archive-page-active #root,
+html.media-archive-page-active .shell-container,
+html.media-archive-page-active .shell-main-content {
+  overflow: visible !important;
+}
+
 .media-visually-hidden {
   position: absolute;
   width: 1px;
@@ -1388,13 +1396,18 @@
   transform-origin: center top;
 }
 
+.media-playlist-detail.media-library-stack {
+  animation: none !important;
+  transform: none !important;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .media-library-stack--forward {
-    animation: media-folder-forward-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    animation: media-folder-forward-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .media-library-stack--back {
-    animation: media-folder-back-in 190ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: media-folder-back-in 190ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
 
@@ -2073,27 +2086,44 @@
   color: var(--text-primary);
 }
 
+.media-folder-path-anchor {
+  min-width: 0;
+  margin-bottom: 12px;
+}
+
 .media-folder-path {
+  position: sticky;
+  top: calc(62px + env(safe-area-inset-top) + 8px);
+  z-index: 30;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   padding: 8px;
   border: 1px solid var(--border-secondary);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-deep) 56%, transparent);
+  background: color-mix(in srgb, var(--bg-deep) 88%, transparent);
+  backdrop-filter: blur(12px) saturate(135%);
+  box-shadow: 0 8px 18px color-mix(in srgb, #000 22%, transparent);
+  box-sizing: border-box;
+}
+
+.media-folder-path.is-fixed {
+  position: fixed;
+  z-index: 900;
 }
 
 .media-folder-up-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  width: 42px;
+  min-width: 42px;
   min-height: 36px;
-  padding: 0 10px;
+  padding: 0;
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 1rem;
 }
 
 .media-folder-path-trail {
@@ -2122,6 +2152,12 @@
   font-size: 0.74rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .media-folder-path {
+    top: calc(54px + env(safe-area-inset-top) + 8px);
+  }
 }
 
 .media-folder-path-trail button + button::before {
@@ -2154,6 +2190,7 @@
 }
 
 .media-folder-room {
+  overflow: visible;
   border-color: var(--border-secondary);
   background: var(--bg-surface-1);
 }
