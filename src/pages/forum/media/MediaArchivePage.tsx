@@ -1002,7 +1002,6 @@ const YOUTUBE_STATE_PLAYING = 1;
 const YOUTUBE_STATE_PAUSED = 2;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
-const MEDIA_JOG_SEEK_INTERVAL_MS = 120;
 
 const YouTubeCustomPlayer: React.FC<{
   item: SnsMediaItem;
@@ -1014,7 +1013,6 @@ const YouTubeCustomPlayer: React.FC<{
     startX: number;
     startTime: number;
     lastTime: number;
-    lastSeekAt: number;
     wasPaused: boolean;
     rafId: number | null;
   } | null>(null);
@@ -1164,7 +1162,6 @@ const YouTubeCustomPlayer: React.FC<{
       startX: event.clientX,
       startTime,
       lastTime: startTime,
-      lastSeekAt: 0,
       wasPaused,
       rafId: null,
     };
@@ -1182,11 +1179,11 @@ const YouTubeCustomPlayer: React.FC<{
     session.lastTime = nextTime;
     setJogOffsetSeconds(nextOffset);
     setCurrentTime(nextTime);
-    const now = window.performance.now();
-    if (session.rafId || now - session.lastSeekAt < MEDIA_JOG_SEEK_INTERVAL_MS) return;
-    session.lastSeekAt = now;
+    if (session.rafId) {
+      window.cancelAnimationFrame(session.rafId);
+    }
     session.rafId = window.requestAnimationFrame(() => {
-      playerRef.current?.seekTo?.(session.lastTime, false);
+      playerRef.current?.seekTo?.(nextTime, true);
       session.rafId = null;
     });
   };
