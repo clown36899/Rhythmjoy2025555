@@ -7,6 +7,12 @@
   box-sizing: border-box;
 }
 
+button,
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -155,6 +161,244 @@ p {
 
 .clipper__field span {
   color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.clipper-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid #2a2f36;
+  border-radius: 8px;
+  background: #15171a;
+}
+
+.clipper-folder__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.clipper-folder__path {
+  min-width: 0;
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 4px 7px;
+  border: 1px solid #252a31;
+  border-radius: 7px;
+  background: #111316;
+}
+
+.clipper-folder__path:has(.clipper-folder__back[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.clipper-folder__back,
+.clipper-folder__new,
+.clipper-folder__crumbs button,
+.clipper-folder__row {
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clipper-folder__back {
+  width: 27px;
+  height: 27px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.clipper-folder__back:hover,
+.clipper-folder__back:focus-visible {
+  background: #202329;
+  color: #f8fafc;
+  outline: none;
+}
+
+.clipper-folder__crumbs {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.clipper-folder__crumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.clipper-folder__crumbs button {
+  max-width: 150px;
+  min-height: 27px;
+  flex: 0 0 auto;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a7b0bd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.clipper-folder__crumbs button + button::before {
+  content: "/";
+  margin-right: 6px;
+  color: #64748b;
+}
+
+.clipper-folder__crumbs button:hover,
+.clipper-folder__crumbs button:focus-visible,
+.clipper-folder__crumbs button.is-current {
+  color: #f8fafc;
+  outline: none;
+}
+
+.clipper-folder__new {
+  min-height: 34px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.clipper-folder__new:hover,
+.clipper-folder__new:focus-visible {
+  background: #202329;
+  color: #f8fafc;
+  outline: none;
+}
+
+.clipper-folder__create {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid #29313a;
+  border-radius: 7px;
+  background: #111316;
+}
+
+.clipper-folder__create span {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.clipper-folder__create input {
+  height: 36px;
+  padding: 0 0 1px;
+  border: 0;
+  border-bottom: 1px solid #343b45;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.clipper-folder__create input:focus {
+  border-bottom-color: #94a3b8;
+  outline: none;
+}
+
+.clipper-folder__list {
+  max-height: 176px;
+  overflow: auto;
+  border: 1px solid #252a31;
+  border-radius: 7px;
+  background: #101114;
+}
+
+.clipper-folder__row {
+  width: 100%;
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid #23272e;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.clipper-folder__row:last-child {
+  border-bottom: 0;
+}
+
+.clipper-folder__row span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.clipper-folder__row strong,
+.clipper-folder__row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clipper-folder__row strong {
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.clipper-folder__row small {
+  color: #7b8492;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.clipper-folder__row b {
+  color: #7b8492;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.clipper-folder__row:hover,
+.clipper-folder__row:focus-visible {
+  background: #1b1e23;
+  outline: none;
+}
+
+.clipper-folder__row:hover b,
+.clipper-folder__row:focus-visible b {
+  color: #e5e7eb;
+}
+
+.clipper-folder__empty {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  color: #7b8492;
   font-size: 12px;
   font-weight: 800;
 }

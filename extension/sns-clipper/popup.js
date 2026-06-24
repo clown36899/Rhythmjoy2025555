@@ -1,11 +1,11 @@
 const TARGETS = {
   production: 'https://swingenjoy.com/forum/media',
-  local: 'http://127.0.0.1:5173/forum/media',
+  local: 'http://127.0.0.1:8888/forum/media',
 };
 
 const LINK_TARGETS = {
   production: 'https://swingenjoy.com/links',
-  local: 'http://127.0.0.1:5173/links',
+  local: 'http://127.0.0.1:8888/links',
 };
 
 const DEFAULT_ARCHIVE_BUCKET = 'reference';
@@ -22,10 +22,14 @@ const accountHandleText = document.getElementById('accountHandleText');
 const accountDestinationText = document.getElementById('accountDestinationText');
 const targetMode = document.getElementById('targetMode');
 const captureMode = document.getElementById('captureMode');
-const playlistInput = document.getElementById('playlistInput');
+const playlistBrowser = document.getElementById('playlistBrowser');
+const folderBackButton = document.getElementById('folderBackButton');
+const folderBreadcrumbs = document.getElementById('folderBreadcrumbs');
+const playlistList = document.getElementById('playlistList');
 const playlistStatus = document.getElementById('playlistStatus');
+const newPlaylistToggle = document.getElementById('newPlaylistToggle');
+const newPlaylistField = document.getElementById('newPlaylistField');
 const newPlaylistInput = document.getElementById('newPlaylistInput');
-const newPlaylistParentInput = document.getElementById('newPlaylistParentInput');
 const tagsInput = document.getElementById('tagsInput');
 const genreInput = document.getElementById('genreInput');
 const saveButton = document.getElementById('saveButton');
@@ -45,6 +49,9 @@ let activeResolvedTitle = '';
 let activePageStatus = '';
 let playlists = [];
 let savedSettings = {};
+let currentFolderId = '';
+let selectedPlaylistId = '';
+let showCreateForm = false;
 
 function detectPlatform(url) {
   try {
@@ -301,7 +308,7 @@ function getPlaylistPath(playlist, allPlaylists) {
   return segments.join(' / ');
 }
 
-function buildPlaylistTreeOptions(allPlaylists) {
+function buildPlaylistChildrenMap(allPlaylists) {
   const playlistIds = new Set(allPlaylists.map((playlist) => playlist.id));
   const byParent = new Map();
 
@@ -311,56 +318,129 @@ function buildPlaylistTreeOptions(allPlaylists) {
     byParent.set(key, [...(byParent.get(key) || []), playlist]);
   });
 
-  const result = [];
-  const visit = (parentId, depth, visited) => {
-    const children = sortPlaylistsByName(byParent.get(parentId) || []);
-    children.forEach((playlist) => {
-      if (visited.has(playlist.id)) return;
-      const nextVisited = new Set(visited);
-      nextVisited.add(playlist.id);
-      result.push({ playlist, depth, path: getPlaylistPath(playlist, allPlaylists) });
-      visit(playlist.id, depth + 1, nextVisited);
-    });
-  };
-
-  visit('', 0, new Set());
-  return result;
+  return byParent;
 }
 
 function getSelectedPlaylist() {
-  return playlists.find((playlist) => playlist.id === playlistInput.value) || null;
+  return playlists.find((playlist) => playlist.id === selectedPlaylistId) || null;
 }
 
-function appendOption(select, value, label) {
-  const option = document.createElement('option');
-  option.value = value;
-  option.textContent = label;
-  select.appendChild(option);
+function getPlaylistById(playlistId) {
+  return playlists.find((playlist) => playlist.id === playlistId) || null;
 }
 
-function renderPlaylistOptions() {
-  const options = buildPlaylistTreeOptions(playlists);
-  const selectedPlaylistId = savedSettings.playlistId || playlistInput.value || '';
-  const selectedParentId = savedSettings.newPlaylistParentId || newPlaylistParentInput.value || '';
+function getPlaylistBreadcrumbs(playlistId) {
+  const byId = new Map(playlists.map((playlist) => [playlist.id, playlist]));
+  const breadcrumbs = [];
+  const visited = new Set();
+  let cursor = byId.get(playlistId) || null;
+  while (cursor && !visited.has(cursor.id)) {
+    visited.add(cursor.id);
+    breadcrumbs.unshift(cursor);
+    const parentId = getPlaylistParentId(cursor);
+    cursor = parentId ? byId.get(parentId) || null : null;
+  }
+  return breadcrumbs;
+}
 
-  playlistInput.innerHTML = '';
-  appendOption(playlistInput, '', playlists.length ? '선택 안 함' : '재생목록 없음');
-  options.forEach(({ playlist, path }) => {
-    appendOption(playlistInput, playlist.id, path);
+function getCurrentPathLabel() {
+  const currentPlaylist = currentFolderId ? getPlaylistById(currentFolderId) : null;
+  const path = currentPlaylist ? getPlaylistPath(currentPlaylist, playlists) : '';
+  return path ? `/${path}` : '/';
+}
+
+function setCurrentFolder(nextFolderId) {
+  const normalizedId = nextFolderId && getPlaylistById(nextFolderId) ? nextFolderId : '';
+  currentFolderId = normalizedId;
+  if (newPlaylistInput.value.trim()) {
+    selectedPlaylistId = '';
+  } else {
+    selectedPlaylistId = normalizedId;
+  }
+  renderPlaylistBrowser();
+}
+
+function renderBreadcrumbs() {
+  folderBreadcrumbs.innerHTML = '';
+  const rootButton = document.createElement('button');
+  rootButton.type = 'button';
+  rootButton.className = currentFolderId ? '' : 'is-current';
+  rootButton.textContent = '/';
+  rootButton.addEventListener('click', () => {
+    setCurrentFolder('');
+    saveSettings();
   });
-  playlistInput.disabled = !playlists.length;
-  playlistInput.value = playlists.some((playlist) => playlist.id === selectedPlaylistId) ? selectedPlaylistId : '';
+  folderBreadcrumbs.appendChild(rootButton);
 
-  newPlaylistParentInput.innerHTML = '';
-  appendOption(newPlaylistParentInput, '', '최상위');
-  options.forEach(({ playlist, path }) => {
-    appendOption(newPlaylistParentInput, playlist.id, path);
+  getPlaylistBreadcrumbs(currentFolderId).forEach((playlist) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = playlist.id === currentFolderId ? 'is-current' : '';
+    button.textContent = compactText(playlist.name) || '이름 없음';
+    button.addEventListener('click', () => {
+      setCurrentFolder(playlist.id);
+      saveSettings();
+    });
+    folderBreadcrumbs.appendChild(button);
   });
-  newPlaylistParentInput.value = playlists.some((playlist) => playlist.id === selectedParentId) ? selectedParentId : '';
+}
 
-  playlistStatus.textContent = playlists.length
-    ? `${playlists.length}개 폴더를 불러왔어요. 선택하면 앱 등록폼에도 그대로 반영됩니다.`
-    : '폴더가 없으면 앱 등록폼에서 새 재생목록을 만들 수 있어요.';
+function renderPlaylistBrowser() {
+  const childrenByParent = buildPlaylistChildrenMap(playlists);
+  const currentPlaylist = currentFolderId ? getPlaylistById(currentFolderId) : null;
+  const currentChildren = sortPlaylistsByName(childrenByParent.get(currentFolderId) || []);
+  const parentId = currentPlaylist ? getPlaylistParentId(currentPlaylist) : '';
+
+  playlistBrowser.classList.toggle('is-empty', !playlists.length);
+  folderBackButton.hidden = !currentPlaylist;
+  folderBackButton.onclick = () => {
+    setCurrentFolder(parentId);
+    saveSettings();
+  };
+  renderBreadcrumbs();
+
+  newPlaylistField.hidden = !showCreateForm;
+  newPlaylistInput.placeholder = `${getCurrentPathLabel()}에 만들 이름`;
+
+  playlistList.innerHTML = '';
+  if (!currentChildren.length) {
+    const empty = document.createElement('div');
+    empty.className = 'clipper-folder__empty';
+    empty.textContent = playlists.length ? '하위 폴더 없음' : '재생목록 없음';
+    playlistList.appendChild(empty);
+  } else {
+    currentChildren.forEach((playlist) => {
+      const childCount = (childrenByParent.get(playlist.id) || []).length;
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'clipper-folder__row';
+      row.dataset.playlistId = playlist.id;
+      row.setAttribute('aria-label', `${compactText(playlist.name) || '이름 없음'} 폴더 열기`);
+
+      const text = document.createElement('span');
+      const title = document.createElement('strong');
+      title.textContent = compactText(playlist.name) || '이름 없음';
+      text.appendChild(title);
+      if (childCount > 0) {
+        const meta = document.createElement('small');
+        meta.textContent = `${childCount}개 하위 폴더`;
+        text.appendChild(meta);
+      }
+
+      const arrow = document.createElement('b');
+      arrow.textContent = '›';
+      row.appendChild(text);
+      row.appendChild(arrow);
+      row.addEventListener('click', () => {
+        newPlaylistInput.value = '';
+        setCurrentFolder(playlist.id);
+        saveSettings();
+      });
+      playlistList.appendChild(row);
+    });
+  }
+
+  playlistStatus.textContent = playlists.length ? `${getCurrentPathLabel()} 저장` : '';
 }
 
 async function readPlaylistsFromCurrentSite() {
@@ -428,19 +508,25 @@ async function fetchPlaylistsFromApi() {
 }
 
 async function fetchPlaylists() {
-  playlistInput.disabled = true;
-  playlistStatus.textContent = '재생목록/폴더를 불러오는 중...';
+  playlistStatus.textContent = '불러오는 중...';
   try {
     playlists = await fetchPlaylistsFromOpenAppTab();
     if (!playlists) {
       playlists = await fetchPlaylistsFromApi();
     }
-    renderPlaylistOptions();
+    const preferredId = newPlaylistInput.value.trim()
+      ? compactText(savedSettings.newPlaylistParentId)
+      : compactText(savedSettings.playlistId);
+    currentFolderId = preferredId && getPlaylistById(preferredId) ? preferredId : '';
+    selectedPlaylistId = newPlaylistInput.value.trim() ? '' : currentFolderId;
+    renderPlaylistBrowser();
   } catch (error) {
     console.warn('[sns-clipper] playlist fetch failed', error);
     playlists = [];
-    renderPlaylistOptions();
-    playlistStatus.textContent = '폴더 목록을 불러오지 못했어요. 열린 앱 등록폼에서 선택할 수 있습니다.';
+    currentFolderId = '';
+    selectedPlaylistId = '';
+    renderPlaylistBrowser();
+    playlistStatus.textContent = '폴더 목록을 불러오지 못했습니다.';
   }
 }
 
@@ -1026,16 +1112,22 @@ async function loadSettings() {
   ]);
   targetMode.value = savedSettings.targetMode || 'production';
   newPlaylistInput.value = savedSettings.newPlaylistName || '';
+  showCreateForm = Boolean(newPlaylistInput.value.trim());
+  currentFolderId = showCreateForm
+    ? compactText(savedSettings.newPlaylistParentId)
+    : compactText(savedSettings.playlistId);
+  selectedPlaylistId = showCreateForm ? '' : currentFolderId;
   tagsInput.value = savedSettings.tags || '';
   genreInput.value = savedSettings.genre || '';
 }
 
 async function saveSettings() {
+  const newPlaylistName = newPlaylistInput.value.trim();
   savedSettings = {
     targetMode: targetMode.value,
-    playlistId: playlistInput.value,
-    newPlaylistName: newPlaylistInput.value.trim(),
-    newPlaylistParentId: newPlaylistParentInput.value,
+    playlistId: newPlaylistName ? '' : selectedPlaylistId,
+    newPlaylistName,
+    newPlaylistParentId: newPlaylistName ? currentFolderId : '',
     tags: tagsInput.value,
     genre: genreInput.value,
   };
@@ -1056,7 +1148,7 @@ function buildArchiveUrl() {
   if (newPlaylistName) {
     params.set('playlistId', '');
     params.set('newPlaylistName', newPlaylistName);
-    if (newPlaylistParentInput.value) params.set('newPlaylistParentId', newPlaylistParentInput.value);
+    if (currentFolderId) params.set('newPlaylistParentId', currentFolderId);
     params.set('collection', newPlaylistName);
   } else if (selectedPlaylist) {
     params.set('playlistId', selectedPlaylist.id);
@@ -1118,20 +1210,17 @@ targetMode.addEventListener('change', async () => {
   updateCaptureModeUi();
 });
 captureMode.addEventListener('change', updateCaptureModeUi);
-playlistInput.addEventListener('change', async () => {
-  if (playlistInput.value) {
-    newPlaylistInput.value = '';
-    newPlaylistParentInput.value = '';
-  }
+newPlaylistToggle.addEventListener('click', async () => {
+  showCreateForm = true;
+  selectedPlaylistId = '';
+  renderPlaylistBrowser();
   await saveSettings();
 });
 newPlaylistInput.addEventListener('input', async () => {
-  if (newPlaylistInput.value.trim()) {
-    playlistInput.value = '';
-  }
+  selectedPlaylistId = newPlaylistInput.value.trim() ? '' : currentFolderId;
+  renderPlaylistBrowser();
   await saveSettings();
 });
-newPlaylistParentInput.addEventListener('change', saveSettings);
 tagsInput.addEventListener('change', saveSettings);
 genreInput.addEventListener('change', saveSettings);
 

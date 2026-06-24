@@ -2279,14 +2279,17 @@ const MediaAddChoiceModal: React.FC<{
   </MediaModalFrame>
 );
 
+function getPlaylistSlashPath(playlist: SnsMediaPlaylist | null | undefined, playlists: SnsMediaPlaylist[]) {
+  if (!playlist) return '/';
+  const path = getPlaylistPath(playlist, playlists);
+  return path ? `/${path}` : '/';
+}
+
 const PlaylistTreePicker: React.FC<{
   label: string;
   playlists: SnsMediaPlaylist[];
   value: string;
   onChange: (playlistId: string) => void;
-  emptyLabel: string;
-  emptyDescription: string;
-  emptyIcon?: string;
   excludedId?: string;
   help?: string;
 }> = ({
@@ -2294,9 +2297,6 @@ const PlaylistTreePicker: React.FC<{
   playlists,
   value,
   onChange,
-  emptyLabel,
-  emptyDescription,
-  emptyIcon = 'ri-folder-open-line',
   excludedId = '',
   help,
 }) => {
@@ -2312,17 +2312,14 @@ const PlaylistTreePicker: React.FC<{
     () => buildPlaylistChildrenMap(selectablePlaylists),
     [selectablePlaylists],
   );
-  const selectedPlaylist = playlistById.get(value) || null;
-  const initialParentId = selectedPlaylist ? getPlaylistParentId(selectedPlaylist) : '';
+  const initialParentId = value && playlistById.has(value) ? value : '';
   const [currentParentId, setCurrentParentId] = useState(initialParentId);
-  const [filter, setFilter] = useState('');
   const lastValueRef = useRef(value);
 
   useEffect(() => {
     if (value === lastValueRef.current) return;
     lastValueRef.current = value;
-    const nextSelected = playlistById.get(value) || null;
-    setCurrentParentId(nextSelected ? getPlaylistParentId(nextSelected) : '');
+    setCurrentParentId(value && playlistById.has(value) ? value : '');
   }, [playlistById, value]);
 
   useEffect(() => {
@@ -2331,127 +2328,258 @@ const PlaylistTreePicker: React.FC<{
   }, [currentParentId, playlistById]);
 
   const currentParent = currentParentId ? playlistById.get(currentParentId) || null : null;
-  const currentBreadcrumbs = currentParent ? getPlaylistBreadcrumbs(currentParent, selectablePlaylists) : [];
-  const normalizedFilter = normalizeSuggestionValue(filter);
   const currentChildren = childrenByParent.get(currentParentId) || [];
-  const visiblePlaylists = normalizedFilter
-    ? selectablePlaylists
-      .filter((playlist) => normalizeSuggestionValue(`${playlist.name} ${getPlaylistPath(playlist, playlists)}`).includes(normalizedFilter))
-      .slice(0, 30)
-    : currentChildren;
+  const currentBreadcrumbs = currentParent ? getPlaylistBreadcrumbs(currentParent, selectablePlaylists) : [];
 
-  const selectPlaylist = (playlistId: string) => {
-    lastValueRef.current = playlistId;
-    onChange(playlistId);
+  const navigateTo = (playlistId: string) => {
+    const nextPlaylistId = playlistId && playlistById.has(playlistId) ? playlistId : '';
+    lastValueRef.current = nextPlaylistId;
+    setCurrentParentId(nextPlaylistId);
+    onChange(nextPlaylistId);
   };
 
-  const handleEmptySelect = () => {
-    lastValueRef.current = '';
-    onChange('');
-    setFilter('');
-    setCurrentParentId('');
-  };
-
-  const handlePlaylistSelect = (playlist: SnsMediaPlaylist) => {
-    selectPlaylist(playlist.id);
-    if ((childrenByParent.get(playlist.id) || []).length) {
-      setCurrentParentId(playlist.id);
-      setFilter('');
-    }
-  };
+  const navigateToPlaylist = (playlist: SnsMediaPlaylist) => navigateTo(playlist.id);
 
   return (
-    <div className="media-field media-field--wide media-tree-picker">
+    <div className="media-field media-field--wide media-location-picker">
       <span>{label}</span>
-      <div className="media-tree-picker-selected" aria-live="polite">
-        <i className={selectedPlaylist ? 'ri-folder-3-line' : emptyIcon} />
-        <span>
-          <strong>{selectedPlaylist ? selectedPlaylist.name : emptyLabel}</strong>
-          <small>{selectedPlaylist ? getPlaylistPath(selectedPlaylist, playlists) : emptyDescription}</small>
-        </span>
-        {selectedPlaylist && (
-          <button type="button" onClick={handleEmptySelect}>
-            <i className="ri-close-line" />
-            지우기
-          </button>
-        )}
-      </div>
-      <div className="media-tree-picker-browser">
-        <div className="media-tree-picker-toolbar">
-          <div className="media-tree-picker-search">
-            <i className="ri-search-line" />
-            <input
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              placeholder="재생목록 검색"
-            />
-          </div>
-          <button type="button" onClick={handleEmptySelect} className={!selectedPlaylist ? 'active' : ''}>
-            <i className={emptyIcon} />
-            {emptyLabel}
-          </button>
-        </div>
-
-        {!normalizedFilter && (
-          <nav className="media-tree-picker-crumbs" aria-label={`${label} 탐색 경로`}>
-            <button type="button" className={!currentParentId ? 'active' : ''} onClick={() => setCurrentParentId('')}>
-              최상위
+      <div className="media-location-browser">
+        <div className={`media-location-path ${currentParent ? 'has-back' : ''}`} aria-live="polite">
+          {currentParent && (
+            <button type="button" className="media-location-back" onClick={() => navigateTo(getPlaylistParentId(currentParent))} aria-label="상위 폴더로 이동">
+              <i className="ri-arrow-left-line" />
+            </button>
+          )}
+          <i className={currentParent ? 'ri-folder-open-line' : 'ri-folder-line'} />
+          <nav className="media-location-crumbs" aria-label={`${label} 경로`}>
+            <button type="button" className={!currentParent ? 'is-current' : ''} onClick={() => navigateTo('')}>
+              /
             </button>
             {currentBreadcrumbs.map((playlist) => (
               <button
                 key={playlist.id}
                 type="button"
-                className={playlist.id === currentParentId ? 'active' : ''}
-                onClick={() => setCurrentParentId(playlist.id)}
+                className={playlist.id === currentParentId ? 'is-current' : ''}
+                onClick={() => navigateTo(playlist.id)}
               >
-                {playlist.name}
+                {playlist.name || '이름 없음'}
               </button>
             ))}
           </nav>
-        )}
+        </div>
 
-        <div className="media-tree-picker-list">
-          {visiblePlaylists.length ? visiblePlaylists.map((playlist) => {
+        <div className="media-location-folder-list">
+          {currentChildren.length ? currentChildren.map((playlist) => {
             const childCount = (childrenByParent.get(playlist.id) || []).length;
-            const isSelected = playlist.id === value;
+            const playlistLabel = playlist.name || '이름 없음';
             return (
-              <article key={playlist.id} className={`media-tree-picker-row ${isSelected ? 'is-selected' : ''}`}>
-                <button
-                  type="button"
-                  className="media-tree-picker-row-main"
-                  onClick={() => handlePlaylistSelect(playlist)}
-                >
-                  <i className="ri-folder-3-line" />
-                  <span>
-                    <strong>{playlist.name || '이름 없음'}</strong>
-                    <small>{normalizedFilter ? getPlaylistPath(playlist, playlists) : `${childCount}개 하위`}</small>
-                  </span>
-                </button>
-                {childCount > 0 && (
-                  <button
-                    type="button"
-                    className="media-tree-picker-open"
-                    onClick={() => {
-                      setCurrentParentId(playlist.id);
-                      setFilter('');
-                    }}
-                    aria-label={`${playlist.name} 하위 재생목록 보기`}
-                  >
-                    하위
-                    <i className="ri-arrow-right-s-line" />
-                  </button>
-                )}
-              </article>
+              <button
+                key={playlist.id}
+                type="button"
+                className="media-location-folder-row"
+                onClick={() => navigateToPlaylist(playlist)}
+                aria-label={`${playlistLabel} 폴더 열기`}
+              >
+                <i className="ri-folder-3-line" />
+                <span>
+                  <strong>{playlistLabel}</strong>
+                  {childCount > 0 && <small>{childCount}개 하위 폴더</small>}
+                </span>
+                <i className="ri-arrow-right-s-line" />
+              </button>
             );
           }) : (
-            <div className="media-tree-picker-empty">
+            <div className="media-location-empty">
               <i className="ri-folder-warning-line" />
-              <span>{normalizedFilter ? '검색 결과가 없습니다.' : '이 위치에 하위 재생목록이 없습니다.'}</span>
+              <span>하위 폴더 없음</span>
             </div>
           )}
         </div>
       </div>
       {help && <small className="media-field-help">{help}</small>}
+    </div>
+  );
+};
+
+const MediaPlaylistDestinationPicker: React.FC<{
+  playlists: SnsMediaPlaylist[];
+  playlistId: string;
+  newPlaylistName: string;
+  newPlaylistParentId: string;
+  onChange: (patch: Partial<MediaArchiveForm>) => void;
+}> = ({
+  playlists,
+  playlistId,
+  newPlaylistName,
+  newPlaylistParentId,
+  onChange,
+}) => {
+  const selectablePlaylists = useMemo(
+    () => getSelectableTreePlaylists(playlists),
+    [playlists],
+  );
+  const playlistById = useMemo(
+    () => new Map(selectablePlaylists.map((playlist) => [playlist.id, playlist])),
+    [selectablePlaylists],
+  );
+  const childrenByParent = useMemo(
+    () => buildPlaylistChildrenMap(selectablePlaylists),
+    [selectablePlaylists],
+  );
+  const selectedPlaylist = playlistById.get(playlistId) || null;
+  const creatingName = compactText(newPlaylistName);
+  const initialParentId = creatingName
+    ? compactText(newPlaylistParentId)
+    : selectedPlaylist
+      ? selectedPlaylist.id
+      : '';
+  const [currentParentId, setCurrentParentId] = useState(initialParentId);
+  const lastValueRef = useRef(`${playlistId}|${newPlaylistName}|${newPlaylistParentId}`);
+
+  useEffect(() => {
+    const nextValue = `${playlistId}|${newPlaylistName}|${newPlaylistParentId}`;
+    if (nextValue === lastValueRef.current) return;
+    lastValueRef.current = nextValue;
+    const nextSelected = playlistById.get(playlistId) || null;
+    setCurrentParentId(compactText(newPlaylistName)
+      ? compactText(newPlaylistParentId)
+      : nextSelected
+        ? nextSelected.id
+        : '');
+  }, [newPlaylistName, newPlaylistParentId, playlistById, playlistId]);
+
+  useEffect(() => {
+    if (!currentParentId || playlistById.has(currentParentId)) return;
+    setCurrentParentId('');
+  }, [currentParentId, playlistById]);
+
+  const currentParent = currentParentId ? playlistById.get(currentParentId) || null : null;
+  const currentChildren = childrenByParent.get(currentParentId) || [];
+  const currentPath = getPlaylistSlashPath(currentParent, selectablePlaylists);
+  const currentBreadcrumbs = currentParent ? getPlaylistBreadcrumbs(currentParent, selectablePlaylists) : [];
+  const [showCreateForm, setShowCreateForm] = useState(Boolean(creatingName));
+
+  useEffect(() => {
+    if (creatingName) setShowCreateForm(true);
+  }, [creatingName]);
+
+  const patchValue = (patch: Partial<MediaArchiveForm>) => {
+    lastValueRef.current = `${patch.playlistId ?? playlistId}|${patch.newPlaylistName ?? newPlaylistName}|${patch.newPlaylistParentId ?? newPlaylistParentId}`;
+    onChange(patch);
+  };
+
+  const navigateTo = (parentId: string) => {
+    const nextParentId = parentId && playlistById.has(parentId) ? parentId : '';
+    const nextPlaylist = nextParentId ? playlistById.get(nextParentId) || null : null;
+    setCurrentParentId(nextParentId);
+    if (creatingName) {
+      patchValue({
+        playlistId: '',
+        newPlaylistParentId: nextParentId,
+      });
+      return;
+    }
+    patchValue({
+      playlistId: nextParentId,
+      newPlaylistName: '',
+      newPlaylistParentId: '',
+      collectionName: nextPlaylist?.name || '',
+    });
+  };
+
+  const handleNewPlaylistName = (value: string) => {
+    const nextName = compactText(value);
+    patchValue({
+      newPlaylistName: value,
+      newPlaylistParentId: nextName ? currentParentId : '',
+      ...(nextName ? { playlistId: '', collectionName: value } : {}),
+    });
+  };
+
+  const startNewPlaylist = () => {
+    setShowCreateForm(true);
+    patchValue({
+      newPlaylistParentId: currentParentId,
+    });
+  };
+
+  return (
+    <div className="media-field media-field--wide media-destination-picker">
+      <span>저장 위치</span>
+      <div className="media-destination-simple">
+        <div className={`media-location-path ${currentParent ? 'has-back' : ''} ${currentParentId && !creatingName ? 'is-target' : ''}`}>
+          {currentParent && (
+            <button type="button" className="media-location-back" onClick={() => navigateTo(getPlaylistParentId(currentParent))} aria-label="상위 폴더로 이동">
+              <i className="ri-arrow-left-line" />
+            </button>
+          )}
+          <i className={currentParent ? 'ri-folder-open-line' : 'ri-folder-line'} />
+          <nav className="media-location-crumbs" aria-label="저장 위치 경로">
+            <button type="button" className={!currentParent ? 'is-current' : ''} onClick={() => navigateTo('')}>
+              /
+            </button>
+            {currentBreadcrumbs.map((playlist) => (
+              <button
+                key={playlist.id}
+                type="button"
+                className={playlist.id === currentParentId ? 'is-current' : ''}
+                onClick={() => navigateTo(playlist.id)}
+              >
+                {playlist.name || '이름 없음'}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="media-destination-actions">
+          <button type="button" className="media-destination-action" onClick={startNewPlaylist}>
+            <i className="ri-add-line" />
+            새 재생목록
+          </button>
+        </div>
+
+        {showCreateForm && (
+          <label className={`media-destination-create-row ${creatingName ? 'is-active' : ''}`}>
+            <span>
+              <i className="ri-add-line" />
+              새 재생목록 이름
+            </span>
+            <input
+              value={newPlaylistName}
+              onChange={(event) => handleNewPlaylistName(event.target.value)}
+              placeholder={`${currentPath}에 만들 이름`}
+            />
+          </label>
+        )}
+
+        <div className="media-location-folder-list">
+          {currentChildren.length ? currentChildren.map((playlist) => {
+            const childCount = (childrenByParent.get(playlist.id) || []).length;
+            const playlistLabel = playlist.name || '이름 없음';
+            return (
+              <button
+                key={playlist.id}
+                type="button"
+                className="media-location-folder-row"
+                onClick={() => navigateTo(playlist.id)}
+                aria-label={`${playlistLabel} 폴더 열기`}
+              >
+                <i className="ri-folder-3-line" />
+                <span>
+                  <strong>{playlistLabel}</strong>
+                  {childCount > 0 && <small>{childCount}개 하위 폴더</small>}
+                </span>
+                <i className="ri-arrow-right-s-line" />
+              </button>
+            );
+          }) : (
+            <div className="media-location-empty">
+              <i className="ri-folder-warning-line" />
+              <span>하위 폴더 없음</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -2466,15 +2594,6 @@ const MediaItemEditPanel: React.FC<{
   onSubmit: (event: React.FormEvent) => void;
 }> = ({ item, form, playlists, availableGenres, onChange, onClose, onSubmit }) => {
   const updateForm = (patch: Partial<MediaArchiveForm>) => onChange({ ...form, ...patch });
-  const handlePlaylistChange = (playlistId: string) => {
-    const playlist = playlists.find((entry) => entry.id === playlistId);
-    updateForm({
-      playlistId,
-      newPlaylistName: '',
-      newPlaylistParentId: '',
-      collectionName: playlist ? playlist.name : form.collectionName,
-    });
-  };
 
   return (
     <MediaModalFrame label="SNS 카드 수정" onClose={onClose}>
@@ -2513,31 +2632,12 @@ const MediaItemEditPanel: React.FC<{
             <span>날짜</span>
             <input type="date" value={form.publishedAt} onChange={(event) => updateForm({ publishedAt: event.target.value })} />
           </label>
-          <PlaylistTreePicker
-            label="재생목록"
+          <MediaPlaylistDestinationPicker
             playlists={playlists}
-            value={form.playlistId}
-            onChange={handlePlaylistChange}
-            emptyLabel="선택 안 함"
-            emptyDescription="아직 재생목록에 넣지 않습니다."
-            emptyIcon="ri-inbox-line"
-          />
-          <label className="media-field">
-            <span>새 재생목록</span>
-            <input
-              value={form.newPlaylistName}
-              onChange={(event) => updateForm({ newPlaylistName: event.target.value, playlistId: '' })}
-              placeholder="바로 만들어 묶기"
-            />
-          </label>
-          <PlaylistTreePicker
-            label="새 재생목록 위치"
-            playlists={playlists}
-            value={form.newPlaylistParentId}
-            onChange={(playlistId) => updateForm({ newPlaylistParentId: playlistId, playlistId: '' })}
-            emptyLabel="최상위"
-            emptyDescription="새 재생목록을 최상위에 만듭니다."
-            help={form.newPlaylistName ? undefined : '새 재생목록 이름을 입력하면 이 위치가 적용됩니다.'}
+            playlistId={form.playlistId}
+            newPlaylistName={form.newPlaylistName}
+            newPlaylistParentId={form.newPlaylistParentId}
+            onChange={updateForm}
           />
           <label className="media-field media-field--wide">
             <span>컬렉션 이름</span>
@@ -5266,12 +5366,10 @@ const MediaArchivePage: React.FC = () => {
                 />
               </label>
               <PlaylistTreePicker
-                label="상위 폴더"
+                label="상위 위치"
                 playlists={playlists}
                 value={playlistForm.parentId}
                 onChange={(playlistId) => setPlaylistForm((prev) => ({ ...prev, parentId: playlistId }))}
-                emptyLabel="최상위"
-                emptyDescription="최상위 재생목록으로 저장합니다."
                 excludedId={editingPlaylist?.id || ''}
               />
               <label className="media-field">
@@ -5525,40 +5623,12 @@ const MediaArchivePage: React.FC = () => {
                 <span>날짜</span>
                 <input type="date" value={form.publishedAt} onChange={(event) => setForm((prev) => ({ ...prev, publishedAt: event.target.value }))} />
               </label>
-              <PlaylistTreePicker
-                label="재생목록"
+              <MediaPlaylistDestinationPicker
                 playlists={playlists}
-                value={form.playlistId}
-                onChange={(playlistId) => {
-                  const playlist = playlists.find((entry) => entry.id === playlistId);
-                  setForm((prev) => ({
-                    ...prev,
-                    playlistId,
-                    newPlaylistName: '',
-                    newPlaylistParentId: '',
-                    collectionName: playlist ? playlist.name : prev.collectionName,
-                  }));
-                }}
-                emptyLabel={playlistsLoading ? '불러오는 중...' : '선택 안 함'}
-                emptyDescription="저장 위치를 정하지 않으면 미분류로 들어갑니다."
-                emptyIcon="ri-inbox-line"
-              />
-              <label className="media-field">
-                <span>새 재생목록</span>
-                <input
-                  value={form.newPlaylistName}
-                  onChange={(event) => setForm((prev) => ({ ...prev, newPlaylistName: event.target.value, playlistId: '' }))}
-                  placeholder="저장하면서 만들기"
-                />
-              </label>
-              <PlaylistTreePicker
-                label="새 재생목록 위치"
-                playlists={playlists}
-                value={form.newPlaylistParentId}
-                onChange={(playlistId) => setForm((prev) => ({ ...prev, newPlaylistParentId: playlistId, playlistId: '' }))}
-                emptyLabel="최상위"
-                emptyDescription="새 재생목록을 최상위에 만듭니다."
-                help={form.newPlaylistName ? undefined : '새 재생목록 이름을 입력하면 이 위치가 적용됩니다.'}
+                playlistId={form.playlistId}
+                newPlaylistName={form.newPlaylistName}
+                newPlaylistParentId={form.newPlaylistParentId}
+                onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
               />
               <label className="media-field media-field--wide">
                 <span>컬렉션 이름</span>

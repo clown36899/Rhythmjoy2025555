@@ -57,25 +57,24 @@
         </select>
       </label>
 
-      <label class="clipper__field" data-media-only="true">
-        <span>재생목록/폴더</span>
-        <select id="playlistInput">
-          <option value="">불러오는 중...</option>
-        </select>
+      <section class="clipper__field clipper__field--wide" data-media-only="true">
+        <span>저장 위치</span>
+        <div id="playlistBrowser" class="clipper-folder" aria-live="polite">
+          <div class="clipper-folder__top">
+            <div class="clipper-folder__path">
+              <button id="folderBackButton" class="clipper-folder__back" type="button" aria-label="상위 폴더로 이동" hidden>←</button>
+              <nav id="folderBreadcrumbs" class="clipper-folder__crumbs" aria-label="저장 위치 경로"></nav>
+            </div>
+            <button id="newPlaylistToggle" class="clipper-folder__new" type="button">+ 새 재생목록</button>
+          </div>
+          <label id="newPlaylistField" class="clipper-folder__create" hidden>
+            <span>새 재생목록 이름</span>
+            <input id="newPlaylistInput" type="text" placeholder="/에 만들 이름" />
+          </label>
+          <div id="playlistList" class="clipper-folder__list"></div>
+        </div>
         <small id="playlistStatus" class="clipper__field-note"></small>
-      </label>
-
-      <label class="clipper__field" data-media-only="true">
-        <span>새 재생목록</span>
-        <input id="newPlaylistInput" type="text" placeholder="저장하면서 만들기" />
-      </label>
-
-      <label class="clipper__field" data-media-only="true">
-        <span>새 재생목록 위치</span>
-        <select id="newPlaylistParentInput">
-          <option value="">최상위</option>
-        </select>
-      </label>
+      </section>
 
       <label class="clipper__field" data-media-only="true">
         <span>검색 태그</span>
