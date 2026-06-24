@@ -57,6 +57,12 @@ const TAP_MAX_DURATION_MS = 700;
 const SYNTHETIC_CLICK_SUPPRESS_MS = 700;
 const MENU_ACTION_ANIMATION_MS = 130;
 const SYSTEM_GESTURE_EDGE_GUARD_PX = 80;
+const MEDIA_PLAYER_BOTTOM_NAV_EVENT = "swingenjoy:media-player-bottom-nav";
+
+type MediaPlayerBottomNavEventDetail = {
+    id?: string;
+    active?: boolean;
+};
 
 type GestureStart = {
     x: number;
@@ -253,11 +259,13 @@ export const HomeV2MenuPanel: React.FC = () => {
     const [editUnpinnedMenuIds, setEditUnpinnedMenuIds] = useState<string[]>([]);
     const [pinnedDragOverlay, setPinnedDragOverlay] = useState<PinnedDragOverlay | null>(null);
     const [isSavingTempoToolVisibility, setIsSavingTempoToolVisibility] = useState(false);
+    const [isMediaPlayerEngaged, setIsMediaPlayerEngaged] = useState(false);
     const panelPointerGestureStartRef = useRef<GestureStart | null>(null);
     const panelTouchGestureStartRef = useRef<GestureStart | null>(null);
     const menuPressStartRef = useRef<PressStart | null>(null);
     const pinnedDragStartRef = useRef<PinnedDragStart | null>(null);
     const lastDragTargetIdRef = useRef<string | null>(null);
+    const mediaPlayerEngagedIdsRef = useRef<Set<string>>(new Set());
     const pinnedMenuIdsRef = useRef(pinnedMenuIds);
     const menuOrderIdsRef = useRef(menuOrderIds);
     const editPinnedMenuIdsRef = useRef(editPinnedMenuIds);
@@ -1040,6 +1048,34 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [menuOrderIds]);
 
     useEffect(() => {
+        const handleMediaPlayerBottomNav = (event: Event) => {
+            const detail = (event as CustomEvent<MediaPlayerBottomNavEventDetail>).detail;
+            const eventId = detail?.id || "global";
+            const nextIds = new Set(mediaPlayerEngagedIdsRef.current);
+
+            if (detail?.active) {
+                nextIds.add(eventId);
+            } else {
+                nextIds.delete(eventId);
+            }
+
+            mediaPlayerEngagedIdsRef.current = nextIds;
+            setIsMediaPlayerEngaged(nextIds.size > 0);
+        };
+
+        window.addEventListener(MEDIA_PLAYER_BOTTOM_NAV_EVENT, handleMediaPlayerBottomNav);
+        return () => {
+            window.removeEventListener(MEDIA_PLAYER_BOTTOM_NAV_EVENT, handleMediaPlayerBottomNav);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (location.pathname === "/forum/media") return;
+        mediaPlayerEngagedIdsRef.current.clear();
+        setIsMediaPlayerEngaged(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
         if (!isHomeRoute || isExpanded || modalStack.length > 0) return undefined;
 
         let screenPointerGestureStart: GestureStart | null = null;
@@ -1145,7 +1181,7 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     return (
         <section
-            className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} is-compact`}
+            className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} ${isMediaPlayerEngaged ? "is-media-player-engaged" : ""} is-compact`}
             aria-label={t("mainMenu")}
             translate="no"
             onPointerDown={handlePanelPointerDown}

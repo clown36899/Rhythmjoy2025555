@@ -72,6 +72,8 @@ const LINDY_COLLECTION_DEFAULT_ADAPTATION_NOTE = '한국어 번역/요약 및 Sw
 const LINDY_COLLECTION_DEFAULT_NO_ENDORSEMENT = 'Lindy Collection의 공식 제휴 또는 보증을 의미하지 않습니다.';
 const LINDY_COLLECTION_DEFAULT_RIGHTS_NOTE = '링크된 원본 영상은 각 게시자와 플랫폼의 권리 조건을 따릅니다.';
 const MEDIA_DESCRIPTION_EXPAND_MIN_LENGTH = 80;
+const MEDIA_PLAYER_BOTTOM_NAV_EVENT = 'swingenjoy:media-player-bottom-nav';
+const MEDIA_PLAYER_CONTROL_ENGAGED_MS = 2600;
 type MediaSearchSuggestion = {
   value: string;
   label: string;
@@ -1064,6 +1066,8 @@ const YouTubeCustomPlayer: React.FC<{
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
+  const bottomNavEventIdRef = useRef(`media-player-${Math.random().toString(36).slice(2)}`);
+  const controlEngagedTimerRef = useRef<number | null>(null);
   const jogSessionRef = useRef<{
     startX: number;
     startTime: number;
@@ -1092,6 +1096,8 @@ const YouTubeCustomPlayer: React.FC<{
   const [availablePlaybackRates, setAvailablePlaybackRates] = useState<number[]>(YOUTUBE_SPEED_OPTIONS);
   const [isJogging, setIsJogging] = useState(false);
   const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
+  const [isControlEngaged, setIsControlEngaged] = useState(false);
+  const [isPlayerVisible, setIsPlayerVisible] = useState(false);
   const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
   const safeDuration = duration > 0 ? duration : 0;
   const seekValue = safeDuration > 0 ? Math.min(currentTime, safeDuration) : 0;
@@ -1102,6 +1108,58 @@ const YouTubeCustomPlayer: React.FC<{
     '--media-player-buffered': `${loadedPercent}%`,
   } as React.CSSProperties;
   const jogOffsetLabel = `${jogOffsetSeconds > 0 ? '+' : ''}${jogOffsetSeconds.toFixed(1)}s`;
+  const shouldHideBottomNav = isPlayerVisible && (ready || isJogging || isControlEngaged);
+
+  const emitBottomNavEngagement = useCallback((active: boolean) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(MEDIA_PLAYER_BOTTOM_NAV_EVENT, {
+      detail: {
+        id: bottomNavEventIdRef.current,
+        active,
+      },
+    }));
+  }, []);
+
+  const markControlsEngaged = useCallback((durationMs = MEDIA_PLAYER_CONTROL_ENGAGED_MS) => {
+    setIsControlEngaged(true);
+    if (controlEngagedTimerRef.current !== null) {
+      window.clearTimeout(controlEngagedTimerRef.current);
+    }
+    controlEngagedTimerRef.current = window.setTimeout(() => {
+      controlEngagedTimerRef.current = null;
+      setIsControlEngaged(false);
+    }, durationMs);
+  }, []);
+
+  useEffect(() => {
+    const element = shellRef.current;
+    if (!element || typeof IntersectionObserver === 'undefined') {
+      setIsPlayerVisible(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      setIsPlayerVisible(Boolean(entry?.isIntersecting && entry.intersectionRatio > 0.08));
+    }, {
+      threshold: [0, 0.08, 0.2],
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    emitBottomNavEngagement(shouldHideBottomNav);
+    return () => emitBottomNavEngagement(false);
+  }, [emitBottomNavEngagement, shouldHideBottomNav]);
+
+  useEffect(() => () => {
+    if (controlEngagedTimerRef.current !== null) {
+      window.clearTimeout(controlEngagedTimerRef.current);
+    }
+    emitBottomNavEngagement(false);
+  }, [emitBottomNavEngagement]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1320,6 +1378,7 @@ const YouTubeCustomPlayer: React.FC<{
   const togglePlayback = () => {
     const player = playerRef.current;
     if (!player) return;
+    markControlsEngaged();
     if (isPaused) {
       player.playVideo?.();
       setIsPaused(false);
@@ -1330,6 +1389,7 @@ const YouTubeCustomPlayer: React.FC<{
   };
 
   const seekToTime = (time: number) => {
+    markControlsEngaged();
     const upperBound = safeDuration || Number.POSITIVE_INFINITY;
     const nextTime = Math.max(0, Math.min(upperBound, time));
     setCurrentTime(nextTime);
@@ -1339,6 +1399,7 @@ const YouTubeCustomPlayer: React.FC<{
   const skipBy = (deltaSeconds: number) => {
     const player = playerRef.current;
     if (!player) return;
+    markControlsEngaged();
     const baseTime = player.getCurrentTime?.() ?? currentTime;
     seekToTime(baseTime + deltaSeconds);
   };
@@ -1356,6 +1417,7 @@ const YouTubeCustomPlayer: React.FC<{
   ) => {
     const player = playerRef.current;
     if (!ready || !player) return false;
+    markControlsEngaged();
     const startTime = player.getCurrentTime?.() ?? currentTime;
     const playerState = player.getPlayerState?.();
     const wasPaused =
@@ -1411,7 +1473,7 @@ const YouTubeCustomPlayer: React.FC<{
     setIsJogging(true);
     setJogOffsetSeconds(0);
     return true;
-  }, [currentTime, isPaused, paintJogFrame, playbackRate, ready]);
+  }, [currentTime, isPaused, markControlsEngaged, paintJogFrame, playbackRate, ready]);
 
   const updateJogToClientX = useCallback((clientX: number) => {
     const session = jogSessionRef.current;
@@ -1548,6 +1610,7 @@ const YouTubeCustomPlayer: React.FC<{
   };
 
   const handlePlaybackRateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    markControlsEngaged();
     const nextRate = Number(event.target.value);
     setPlaybackRate(nextRate);
     try {
@@ -1558,6 +1621,7 @@ const YouTubeCustomPlayer: React.FC<{
   };
 
   const handleFullscreen = () => {
+    markControlsEngaged();
     shellRef.current?.requestFullscreen?.();
   };
 
@@ -1573,7 +1637,13 @@ const YouTubeCustomPlayer: React.FC<{
           allowFullScreen
         />
       </div>
-      <div className="media-custom-controls" aria-label="YouTube 플레이어 컨트롤">
+      <div
+        className="media-custom-controls"
+        aria-label="YouTube 플레이어 컨트롤"
+        onPointerDown={() => markControlsEngaged()}
+        onFocusCapture={() => markControlsEngaged()}
+        onKeyDownCapture={() => markControlsEngaged()}
+      >
         <div className="media-custom-timeline-row">
           <div className="media-custom-timeline" style={timelineStyle}>
             <input

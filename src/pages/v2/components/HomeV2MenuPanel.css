@@ -24,9 +24,17 @@
     min-height 240ms cubic-bezier(0.22, 0.88, 0.25, 1),
     padding-bottom 240ms cubic-bezier(0.22, 0.88, 0.25, 1),
     bottom 220ms ease,
+    opacity 180ms ease,
+    transform 220ms ease,
     border-radius 240ms ease,
     box-shadow 240ms ease;
-  will-change: min-height;
+  will-change: min-height, transform;
+}
+
+.home-v2-menu-panel.is-media-player-engaged.is-compact:not(.is-expanded) {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(calc(100% + 14px));
 }
 
 .home-v2-menu-toggle {
