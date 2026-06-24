@@ -29,7 +29,7 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "events", label: "강습&행사", icon: "ri-ticket-2-line", auxIcon: "ri-book-open-line", theme: "events", to: "/events" },
     { id: "board", label: "자유게시판", icon: "ri-chat-3-line", theme: "board", to: "/board" },
     { id: "places", label: "map", icon: "ri-map-pin-2-line", theme: "places", to: "/places" },
-    { id: "forum-media", label: "SNS 아카이브", icon: "ri-movie-2-line", theme: "media", to: "/forum/media", status: "준비중" },
+    { id: "forum-media", label: "SNS 아카이브", icon: "ri-movie-2-line", theme: "media", to: "/forum/media" },
     { id: "forum-library", label: "라이브러리", icon: "ri-book-open-line", theme: "library", to: "/board?category=history" },
     { id: "forum-links", label: "사이트 모음", icon: "ri-earth-line", theme: "links", to: "/links" },
     { id: "bpm-tapper", label: "BPM 측정기", icon: "ri-pulse-line", theme: "bpm", to: "/bpm-tapper" },

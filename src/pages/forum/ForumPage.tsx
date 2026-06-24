@@ -35,7 +35,6 @@ const ForumPage: React.FC = () => {
             icon: 'ri-movie-2-line',
             path: '/forum/media',
             color: '#38bdf8',
-            status: '준비중',
         },
         {
             id: 'library',
