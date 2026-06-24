@@ -139,6 +139,8 @@ type MediaArchiveForm = typeof emptyForm;
 
 const PENDING_MEDIA_DRAFT_KEY = 'swingenjoy:media-archive-pending-draft';
 const PENDING_MEDIA_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const MEDIA_PLAYLIST_CONTEXT_KEY = 'swingenjoy:media-archive-current-playlist';
+const MEDIA_PLAYLIST_CONTEXT_TTL_MS = 2 * 60 * 60 * 1000;
 const SHARE_TARGET_CACHE = 'rhythmjoy-share-targets-v1';
 const SHARE_TARGET_PATH = '/__pwa-share-target/';
 const MOBILE_SHARE_SOURCE_LABEL = '모바일 공유';
@@ -148,6 +150,12 @@ interface PendingMediaDraft {
   form: MediaArchiveForm;
   savedAt: number;
   source: string;
+}
+
+interface MediaPlaylistContext {
+  playlistId: string;
+  name: string;
+  savedAt: number;
 }
 
 interface RemoteMediaMetadata {
@@ -234,6 +242,52 @@ function readPendingMediaDraft(): PendingMediaDraft | null {
     };
   } catch {
     clearPendingMediaDraft();
+    return null;
+  }
+}
+
+function saveMediaPlaylistContext(playlist: Pick<SnsMediaPlaylist, 'id' | 'name'>) {
+  if (typeof window === 'undefined') return;
+  const playlistId = compactText(playlist.id);
+  if (!playlistId) return;
+
+  const context: MediaPlaylistContext = {
+    playlistId,
+    name: compactText(playlist.name),
+    savedAt: Date.now(),
+  };
+
+  try {
+    window.sessionStorage.setItem(MEDIA_PLAYLIST_CONTEXT_KEY, JSON.stringify(context));
+  } catch {
+    // The form can still be completed manually when session storage is unavailable.
+  }
+}
+
+function readMediaPlaylistContext(): MediaPlaylistContext | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(MEDIA_PLAYLIST_CONTEXT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<MediaPlaylistContext>;
+    const savedAt = Number(parsed.savedAt || 0);
+    if (!savedAt || Date.now() - savedAt > MEDIA_PLAYLIST_CONTEXT_TTL_MS) {
+      window.sessionStorage.removeItem(MEDIA_PLAYLIST_CONTEXT_KEY);
+      return null;
+    }
+    const playlistId = compactText(parsed.playlistId);
+    if (!playlistId) return null;
+    return {
+      playlistId,
+      name: compactText(parsed.name),
+      savedAt,
+    };
+  } catch {
+    try {
+      window.sessionStorage.removeItem(MEDIA_PLAYLIST_CONTEXT_KEY);
+    } catch {
+      // Ignore storage cleanup failures.
+    }
     return null;
   }
 }
@@ -769,16 +823,27 @@ function deriveArchiveTitle(params: URLSearchParams, addUrl: string) {
   return rawTitle;
 }
 
-function buildImportedForm(prev: MediaArchiveForm, params: URLSearchParams, addUrl: string, isShareTarget: boolean) {
+function buildImportedForm(
+  prev: MediaArchiveForm,
+  params: URLSearchParams,
+  addUrl: string,
+  isShareTarget: boolean,
+  defaultPlaylistContext: MediaPlaylistContext | null = null,
+) {
   const sharedDescription = params.get('description') || stripSharedUrl(params.get('text'), addUrl);
   const readFirstParam = (...keys: string[]) => {
     const key = keys.find((entry) => params.has(entry));
     return key ? params.get(key) || '' : null;
   };
-  const playlistId = readFirstParam('playlistId', 'playlist', 'folderId') ?? prev.playlistId;
+  const defaultPlaylistId = compactText(defaultPlaylistContext?.playlistId);
+  const explicitPlaylistId = readFirstParam('playlistId', 'playlist', 'folderId');
+  const playlistId = explicitPlaylistId ?? (prev.playlistId || defaultPlaylistId);
   const newPlaylistName = readFirstParam('newPlaylistName', 'new_playlist') ?? prev.newPlaylistName;
   const newPlaylistParentId = readFirstParam('newPlaylistParentId', 'new_playlist_parent') ?? prev.newPlaylistParentId;
-  const collectionName = readFirstParam('collection') ?? prev.collectionName;
+  const collectionName = readFirstParam('collection') ?? (
+    prev.collectionName ||
+    (playlistId && playlistId === defaultPlaylistId ? defaultPlaylistContext?.name || '' : '')
+  );
   return normalizeMediaArchiveForm({
     ...prev,
     url: addUrl,
@@ -2675,6 +2740,7 @@ const CollectionArchiveView: React.FC<{
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
   onMoveItem: (item: SnsMediaItem, playlistId: string) => Promise<boolean>;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
+  onActivePlaylistChange?: (playlist: SnsMediaPlaylist | null) => void;
 } & MediaPlaybackProps> = ({
   items,
   playlists,
@@ -2687,6 +2753,7 @@ const CollectionArchiveView: React.FC<{
   onEditPlaylist,
   onMoveItem,
   onMovePlaylist,
+  onActivePlaylistChange,
   playingItemId,
   onPlayItem,
 }) => {
@@ -2738,6 +2805,10 @@ const CollectionArchiveView: React.FC<{
       setActivePlaylistId('');
     }
   }, [activePlaylist, activePlaylistId]);
+
+  useEffect(() => {
+    onActivePlaylistChange?.(activePlaylist);
+  }, [activePlaylist, onActivePlaylistChange]);
 
   useEffect(() => {
     if (!canOrganize && isOrganizing) {
@@ -3886,6 +3957,8 @@ const MediaArchivePage: React.FC = () => {
   const metadataFetchKeyRef = useRef('');
   const playlistMetadataFetchKeyRef = useRef('');
   const restoredDraftRef = useRef(false);
+  const [activePlaylistContext, setActivePlaylistContext] = useState<MediaPlaylistContext | null>(() => readMediaPlaylistContext());
+  const activePlaylistContextRef = useRef<MediaPlaylistContext | null>(activePlaylistContext);
 
   useEffect(() => {
     document.documentElement.classList.add('media-archive-page-active');
@@ -3893,6 +3966,43 @@ const MediaArchivePage: React.FC = () => {
   }, []);
 
   const canCreate = Boolean(user);
+  useEffect(() => {
+    activePlaylistContextRef.current = activePlaylistContext;
+  }, [activePlaylistContext]);
+
+  const getDefaultPlaylistContext = useCallback(() => (
+    activePlaylistContextRef.current || readMediaPlaylistContext()
+  ), []);
+
+  const applyCurrentPlaylistToForm = useCallback((sourceForm: MediaArchiveForm) => {
+    const context = activePlaylistContextRef.current;
+    if (!context?.playlistId) return normalizeMediaArchiveForm(sourceForm);
+    return normalizeMediaArchiveForm({
+      ...sourceForm,
+      playlistId: context.playlistId,
+      newPlaylistName: '',
+      newPlaylistParentId: '',
+      collectionName: context.name || sourceForm.collectionName,
+    });
+  }, []);
+
+  const handleActivePlaylistChange = useCallback((playlist: SnsMediaPlaylist | null) => {
+    if (!playlist) {
+      activePlaylistContextRef.current = null;
+      setActivePlaylistContext(null);
+      return;
+    }
+
+    const context: MediaPlaylistContext = {
+      playlistId: playlist.id,
+      name: compactText(playlist.name),
+      savedAt: Date.now(),
+    };
+    activePlaylistContextRef.current = context;
+    setActivePlaylistContext(context);
+    saveMediaPlaylistContext(playlist);
+  }, []);
+
   const searchSuggestions = useMemo(
     () => getMediaArchiveSearchSuggestions(query, suggestionItems.length ? suggestionItems : items, playlists),
     [items, playlists, query, suggestionItems],
@@ -4269,7 +4379,7 @@ const MediaArchivePage: React.FC = () => {
         setShowForm(true);
         setDraftNotice('공유 등록으로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.');
         setForm((prev) => {
-          const nextForm = buildImportedForm(prev, params, addUrl, true);
+          const nextForm = buildImportedForm(prev, params, addUrl, true, getDefaultPlaylistContext());
           savePendingMediaDraft(nextForm, 'mobile-share');
           return nextForm;
         });
@@ -4316,7 +4426,7 @@ const MediaArchivePage: React.FC = () => {
       ? '공유 등록으로 받은 내용을 임시 보관했습니다. 로그인 후에도 이어서 DB에 저장할 수 있습니다.'
       : '데스크톱 공유 등록으로 받은 내용을 임시 보관했습니다. 저장 버튼을 누르면 DB에 저장됩니다.');
     setForm((prev) => {
-      const nextForm = buildImportedForm(prev, params, addUrl, isShareTarget);
+      const nextForm = buildImportedForm(prev, params, addUrl, isShareTarget, getDefaultPlaylistContext());
       savePendingMediaDraft(nextForm, isShareTarget ? 'mobile-share' : 'desktop-share');
       return nextForm;
     });
@@ -4325,7 +4435,7 @@ const MediaArchivePage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [location.hash, location.pathname, location.search, navigate]);
+  }, [getDefaultPlaylistContext, location.hash, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (restoredDraftRef.current) return;
@@ -4344,8 +4454,8 @@ const MediaArchivePage: React.FC = () => {
       : '공유 내용을 임시 보관 중입니다. 로그인 후 같은 내용으로 이어서 저장됩니다.');
   }, [location.hash, location.search, user]);
 
-  const resetForm = () => {
-    setForm(emptyForm);
+  const resetForm = (nextForm: MediaArchiveForm = emptyForm) => {
+    setForm(nextForm);
     setParsed(null);
     setDraftNotice('');
     setMetadataLoading(false);
@@ -4362,6 +4472,7 @@ const MediaArchivePage: React.FC = () => {
     setShowAddChoice(false);
     setShowPlaylistForm(false);
     resetPlaylistForm();
+    resetForm(applyCurrentPlaylistToForm(emptyForm));
     setShowForm(true);
   };
 
@@ -4937,6 +5048,7 @@ const MediaArchivePage: React.FC = () => {
         onEditPlaylist={handleEditPlaylist}
         onMoveItem={handleMoveItem}
         onMovePlaylist={handleMovePlaylist}
+        onActivePlaylistChange={handleActivePlaylistChange}
         playingItemId={playingItemId}
         onPlayItem={handlePlayItem}
       />
