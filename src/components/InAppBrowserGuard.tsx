@@ -44,12 +44,10 @@ export const InAppBrowserGuard: React.FC = () => {
             // Mark that we attempted redirect
             sessionStorage.setItem('iab_redirect_attempted', 'true');
 
-            // Android Intent: Open PWA if installed, otherwise fallback to Chrome browser
+            // Android Intent: leave the in-app browser through Chrome, not an installed PWA.
             const urlWithoutScheme = targetUrl.replace(/^https?:\/\//, '');
-            // Removing package specification allows Android to check for installed PWA first
-            // If PWA is installed, it will open the PWA app
-            // If not, it will open in Chrome browser
-            const intentUrl = `intent://${urlWithoutScheme}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+            const fallbackUrl = encodeURIComponent(targetUrl);
+            const intentUrl = `intent://${urlWithoutScheme}#Intent;scheme=https;package=com.android.chrome;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallbackUrl};end`;
 
             window.location.href = intentUrl;
         }
