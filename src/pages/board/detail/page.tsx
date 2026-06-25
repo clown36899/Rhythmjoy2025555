@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useBoardDetail } from '../hooks/useBoardDetail';
 import UniversalPostEditor from '../components/UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import CommentSection from '../components/CommentSection';
@@ -10,23 +11,31 @@ import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import '../board.css';
 import './detail.css';
 import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
-import type { BoardPost } from '../hooks/useBoardPosts';
 
 export default function BoardDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, isAdmin } = useAuth();
-    const [post, setPost] = useState<BoardPost | null>(null);
+    const { user, isAdmin, userProfile } = useAuth();
     const [showEditorModal, setShowEditorModal] = useState(false);
-    const [updating, setUpdating] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
 
+    const handlePostDeleted = useCallback(() => {
+        navigate('/board');
+    }, [navigate]);
 
-    useEffect(() => {
-        if (id) {
-            loadPost(id);
-        }
-    }, [id, isAdmin]);
+    const {
+        post,
+        loading,
+        error,
+        updating,
+        handleDelete: deletePost,
+        handleToggleHidden,
+        refreshPost
+    } = useBoardDetail({
+        postId: id,
+        onPostDeleted: handlePostDeleted,
+        isAdmin
+    });
 
     useEffect(() => {
         const loadUserData = async () => {
@@ -34,161 +43,39 @@ export default function BoardDetailPage() {
                 setUserData(null);
                 return;
             }
+            if (userProfile) {
+                setUserData({
+                    nickname: userProfile.nickname,
+                    profile_image: userProfile.profile_image || undefined
+                });
+                return;
+            }
             try {
-                const { data } = await cafe24
+                const { data, error } = await cafe24
                     .from('board_users')
                     .select('nickname, profile_image')
                     .eq('user_id', user.id)
                     .maybeSingle();
 
+                if (error) throw error;
                 if (data) {
                     setUserData(data);
+                } else {
+                    setUserData(null);
                 }
             } catch (error) {
                 console.error('사용자 정보 로드 실패:', error);
+                setUserData(null);
             }
         };
         loadUserData();
-    }, [user]);
-
-    // Realtime Subscription for updates
-    useEffect(() => {
-        if (!post?.id || !post?.category) return;
-
-        const table = post.category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
-
-        const channel = cafe24
-            .channel(`post_detail:${post.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: table,
-                    filter: `id=eq.${post.id}`
-                },
-                (payload) => {
-                    console.log('[Realtime Detail] Event received:', payload);
-
-                    if (payload.eventType === 'UPDATE' && payload.new) {
-                        const newPost = payload.new as any;
-
-                        // Handle Soft Delete
-                        if (newPost.is_hidden && !isAdmin) {
-                            alert('삭제된 게시글입니다.');
-                            navigate('/board');
-                            return;
-                        }
-
-                        setPost(prev => prev ? { ...prev, ...newPost } : null);
-                    }
-
-                    if (payload.eventType === 'DELETE') {
-                        alert('삭제된 게시글입니다.');
-                        navigate('/board');
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            cafe24.removeChannel(channel);
-        };
-    }, [post?.id, post?.category, isAdmin, user?.id, navigate]);
-
-
-
-    const loadPost = async (postId: string) => {
-        try {
-            const { data, error } = await cafe24
-                .from('board_posts')
-                .select(`
-                    id, 
-                    title, 
-                    content, 
-                    author_name, 
-                    author_nickname, 
-                    user_id, 
-                    views, 
-                    is_notice,
-                    is_hidden, 
-                    prefix_id,
-                    prefix:board_prefixes(id, name, color, admin_only),
-                    created_at, 
-                    updated_at,
-                    category,
-                    image,
-                    image_thumbnail,
-                    likes,
-                    dislikes,
-                    display_order
-                `)
-                .eq('id', postId)
-                .maybeSingle();
-
-            if (error) throw error;
-            if (!data) {
-                setPost(null);
-                return;
-            }
-
-            if (data.is_hidden && !isAdmin) {
-                setPost(null);
-                return;
-            }
-
-            // Fetch profile image if user_id exists
-            let profileImage = null;
-            if (data.user_id) {
-                const { data: userData } = await cafe24
-                    .from('board_users')
-                    .select('profile_image')
-                    .eq('user_id', data.user_id)
-                    .maybeSingle();
-                profileImage = userData?.profile_image || null;
-            }
-
-            const transformedPost = {
-                ...data,
-                prefix: Array.isArray(data.prefix) ? data.prefix[0] : data.prefix,
-                author_profile_image: profileImage,
-                likes: data.likes || 0,
-                dislikes: data.dislikes || 0
-            };
-
-            setPost(transformedPost as BoardPost);
-
-            // NOTE: View counting is handled by useBoardDetail hook
-
-        } catch (error) {
-            console.error('게시글 로딩 실패:', error);
-        }
-    };
+    }, [user, userProfile]);
 
     // NOTE: incrementViews is now handled by useBoardDetail hook
     // Removed duplicate logic to prevent double-counting
 
     const handleDelete = async () => {
-        if (!post) return;
-        if (!confirm('정말 삭제하시겠습니까?')) return;
-
-        try {
-            setUpdating(true);
-            const { error } = await cafe24
-                .from('board_posts')
-                .delete()
-                .eq('id', post.id);
-
-            if (error) throw error;
-
-            alert('게시글이 삭제되었습니다.');
-            navigate('/board');
-        } catch (error) {
-            console.error('게시글 삭제 실패:', error);
-            alert('게시글 삭제 중 오류가 발생했습니다.');
-        } finally {
-            setUpdating(false);
-        }
+        await deletePost();
     };
 
     const handleEdit = () => {
@@ -200,28 +87,8 @@ export default function BoardDetailPage() {
         setShowEditorModal(true);
     };
 
-    const handleToggleHidden = async () => {
-        if (!post || !isAdmin) return;
-
-        try {
-            const newHiddenState = !post.is_hidden;
-            const { error } = await cafe24
-                .from('board_posts')
-                .update({ is_hidden: newHiddenState })
-                .eq('id', post.id);
-
-            if (error) throw error;
-
-            setPost(prev => prev ? { ...prev, is_hidden: newHiddenState } : null);
-            alert(`게시글이 ${newHiddenState ? '숨김' : '공개'} 처리되었습니다.`);
-        } catch (error) {
-            console.error('숨김 처리 실패:', error);
-            alert('오류가 발생했습니다.');
-        }
-    };
-
     const handlePostUpdated = () => {
-        if (id) loadPost(id);
+        refreshPost();
         setShowEditorModal(false);
     };
 
@@ -245,6 +112,34 @@ export default function BoardDetailPage() {
         if (name.includes('잡담')) return 'green';
         return 'slate';
     };
+
+    if (loading && !post) {
+        return (
+            <div className="board-detail-container">
+                <div className="board-detail-loading">
+                    <i className="ri-loader-4-line"></i>
+                    <p>게시글을 불러오는 중입니다.</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error && !post) {
+        return (
+            <div className="board-detail-container">
+                <div className="board-detail-error">
+                    <i className="ri-error-warning-line"></i>
+                    <p>게시글을 불러오지 못했습니다.</p>
+                    <button type="button" className="board-detail-retry-btn" onClick={refreshPost}>
+                        다시 시도
+                    </button>
+                    <button onClick={() => navigate('/board')} className="board-detail-btn board-detail-btn-back">
+                        목록으로 돌아가기
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (!post) {
         return (

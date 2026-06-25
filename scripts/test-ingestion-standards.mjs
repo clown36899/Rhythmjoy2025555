@@ -183,6 +183,12 @@ assert.equal(validateCandidate(baseCandidate({
   structured_data: { title: '스윙 입문 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
 }), { today: TODAY }).ok, true, 'visible class start dates should still pass even when the post has a separate deadline');
 assert.equal(validateCandidate(baseCandidate({
+  keyword: '스윙패밀리 강습/행사',
+  source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156300?boardtype=L&menuid=13&referrerAllArticles=false',
+  extracted_text: '스윙패밀리 32기 졸업공연 안내 2026.06.27 오후 8:00 봉천살롱에서 진행됩니다.',
+  structured_data: { title: '스윙패밀리 32기 졸업공연', date: '2026-06-27', event_type: '행사', activity_type: 'event', location: '봉천살롱' },
+}), { today: TODAY }).ok, true, 'swing graduation performances with explicit future date and poster must be collected');
+assert.equal(validateCandidate(baseCandidate({
   keyword: '스윙프렌즈 카페',
   source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/53903?boardtype=L&menuid=85&referrerAllArticles=false',
   extracted_text: '사항 필독말머리[공지사항] 2026년도 2학기 정규수업이 확정되었습니다.(3차 수정) 6월27일 7월4일',
@@ -236,15 +242,26 @@ const priorityOneRunOrder = getAutomationSourceList('swing-daily')
   .sort((a, b) => {
     const weight = (source) => {
       if (source.runOrder !== null && source.runOrder !== undefined) return Number(source.runOrder);
-      return ({ littly: 0, naver_cafe: 1, daum_cafe: 2, website: 3, instagram: 10 })[source.type] ?? 5;
+      return ({ naver_cafe: 1, daum_cafe: 2, website: 3, instagram: 10 })[source.type] ?? 5;
     };
     return weight(a) - weight(b) || a.name.localeCompare(b.name, 'ko');
   })
   .map((source) => source.id);
-assert.ok(priorityOneRunOrder.indexOf('happyhall2004') < priorityOneRunOrder.indexOf('swingscandal-littly'), 'happyhall should still run before other priority-one sources');
-assert.ok(priorityOneRunOrder.indexOf('neo_swing') > priorityOneRunOrder.indexOf('swingfamily-lessons'), 'priority-one cafe/littly sources should run before neo_swing');
-assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'swingkids-oneday-littly' && source.type === 'littly' && source.saveEnabled), 'swingkids one-day hub should be part of daily automation');
-assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'swingfriends-oneday-littly' && source.type === 'littly' && source.saveEnabled), 'swingfriends one-day hub should be part of daily automation');
+assert.ok(priorityOneRunOrder.indexOf('happyhall2004') < priorityOneRunOrder.indexOf('neo_swing'), 'happyhall should still run before later priority-one instagram sources');
+assert.ok(priorityOneRunOrder.indexOf('swingfamily-lessons') < priorityOneRunOrder.indexOf('neo_swing'), 'swingfamily graduation/class board should run before later priority-one instagram sources');
+assert.ok(priorityOneRunOrder.indexOf('swingscandal-cafe') < priorityOneRunOrder.indexOf('neo_swing'), 'priority-one naver cafe sources should run before later priority-one instagram sources');
+const priorityTwoRunOrder = getAutomationSourceList('swing-daily')
+  .filter((source) => source.saveEnabled && source.scope === 'swing' && Number(source.priority) === 2)
+  .sort((a, b) => {
+    const weight = (source) => {
+      if (source.runOrder !== null && source.runOrder !== undefined) return Number(source.runOrder);
+      return ({ naver_cafe: 1, daum_cafe: 2, website: 3, instagram: 10 })[source.type] ?? 5;
+    };
+    return weight(a) - weight(b) || a.name.localeCompare(b.name, 'ko');
+  })
+  .map((source) => source.id);
+assert.ok(priorityTwoRunOrder.indexOf('swingtown-cafe') < priorityTwoRunOrder.indexOf('goldenswing'), 'swingtown event board should run before lower-yield priority-two instagram sources');
+assert.equal(getAutomationSourceList('swing-daily').some((source) => source.type === 'littly'), false, 'daily automation must exclude littly hubs');
 assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigakR0I/')?.id, 'happyhall2004', 'instagram source matching should respect account path');
 assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
 assert.ok(dynamicSearchQueries.swing.some((query) => /원데이|체험|오픈\s*클래스/.test(query)), 'swing dynamic search should include one-day/trial class discovery');

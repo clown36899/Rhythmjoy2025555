@@ -14,23 +14,27 @@ import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] 
 
 interface BoardDetailModalProps {
     postId: string;
+    category?: string;
     isOpen: boolean;
     onClose: () => void;
 }
 
-export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetailModalProps) {
-    const { user, isAdmin } = useAuth();
+export default function BoardDetailModal({ postId, category, isOpen, onClose }: BoardDetailModalProps) {
+    const { user, isAdmin, userProfile } = useAuth();
     const [showEditorModal, setShowEditorModal] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
 
     const {
         post,
+        loading,
+        error,
         updating,
         handleDelete: deletePost,
         handleToggleHidden,
         refreshPost
     } = useBoardDetail({
         postId,
+        category,
         onPostDeleted: onClose,
         isAdmin
     });
@@ -41,22 +45,33 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                 setUserData(null);
                 return;
             }
+            if (userProfile) {
+                setUserData({
+                    nickname: userProfile.nickname,
+                    profile_image: userProfile.profile_image || undefined
+                });
+                return;
+            }
             try {
-                const { data } = await cafe24
+                const { data, error } = await cafe24
                     .from('board_users')
                     .select('nickname, profile_image')
                     .eq('user_id', user.id)
                     .maybeSingle();
 
+                if (error) throw error;
                 if (data) {
                     setUserData(data);
+                } else {
+                    setUserData(null);
                 }
             } catch (error) {
                 console.error('사용자 정보 로드 실패:', error);
+                setUserData(null);
             }
         };
         loadUserData();
-    }, [user]);
+    }, [user, userProfile]);
 
     const handleDelete = async () => {
         await deletePost();
@@ -118,7 +133,20 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                 </div>
 
                 {/* Content */}
-                {!post ? (
+                {loading && !post ? (
+                    <div className="board-detail-loading">
+                        <i className="ri-loader-4-line"></i>
+                        <p>게시글을 불러오는 중입니다.</p>
+                    </div>
+                ) : error && !post ? (
+                    <div className="board-detail-error">
+                        <i className="ri-error-warning-line"></i>
+                        <p>게시글을 불러오지 못했습니다.</p>
+                        <button type="button" className="board-detail-retry-btn" onClick={refreshPost}>
+                            다시 시도
+                        </button>
+                    </div>
+                ) : !post ? (
                     <div className="board-detail-error">
                         <i className="ri-error-warning-line"></i>
                         <p>게시글을 찾을 수 없습니다.</p>

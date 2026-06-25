@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import type { BoardPost } from './useBoardPosts';
 import { useViewTracking } from '../../../hooks/useViewTracking';
@@ -10,19 +10,138 @@ interface UseBoardDetailProps {
     isAdmin?: boolean;
 }
 
+const getBoardDetailRequestKey = (postId: string | number | undefined, category?: string) => {
+    if (!postId) return null;
+    return `${category || 'free'}:${String(postId)}`;
+};
+
 export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: UseBoardDetailProps) {
     const [post, setPost] = useState<BoardPost | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(() => Boolean(postId));
     const [updating, setUpdating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
+    const loadRequestRef = useRef(0);
 
     // View tracking Hook
     const { incrementView } = useViewTracking(postId || '', 'board_post');
 
-    useEffect(() => {
-        if (postId) {
-            loadPost(postId);
+    const loadPost = useCallback(async (targetPostId: string) => {
+        const requestId = loadRequestRef.current + 1;
+        loadRequestRef.current = requestId;
+        const isLatestRequest = () => loadRequestRef.current === requestId;
+        const requestKey = getBoardDetailRequestKey(targetPostId, category);
+
+        try {
+            setLoading(true);
+            setError(null);
+            setPost(prev => prev && String(prev.id) === String(targetPostId) ? prev : null);
+
+            const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
+            const selectColumns = category === 'anonymous'
+                ? `
+                    id,
+                    title,
+                    content,
+                    author_name,
+                    author_nickname,
+                    views,
+                    is_notice,
+                    is_hidden,
+                    created_at,
+                    updated_at,
+                    image,
+                    image_thumbnail,
+                    likes,
+                    dislikes,
+                    display_order
+                `
+                : `
+                    id,
+                    title,
+                    content,
+                    author_name,
+                    author_nickname,
+                    user_id,
+                    board_users(profile_image),
+                    views,
+                    is_notice,
+                    is_hidden,
+                    prefix_id,
+                    prefix:board_prefixes(id, name, color, admin_only),
+                    created_at,
+                    updated_at,
+                    category,
+                    image,
+                    image_thumbnail,
+                    likes,
+                    dislikes,
+                    display_order
+                `;
+
+            const { data, error } = await cafe24
+                .from(table)
+                .select(selectColumns)
+                .eq('id', targetPostId)
+                .maybeSingle();
+
+            if (!isLatestRequest()) return;
+            if (error) throw error;
+            if (!data) {
+                setPost(null);
+                setLoadedRequestKey(requestKey);
+                return;
+            }
+
+            if (data.is_hidden && !isAdmin) {
+                setPost(null);
+                setLoadedRequestKey(requestKey);
+                return;
+            }
+
+            const boardUser = Array.isArray((data as any).board_users)
+                ? (data as any).board_users[0]
+                : (data as any).board_users;
+
+            const transformedPost = {
+                ...data,
+                prefix: Array.isArray(data.prefix) ? data.prefix[0] : data.prefix,
+                author_profile_image: boardUser?.profile_image || null,
+                category: (data as any).category || category || 'free',
+                likes: data.likes || 0,
+                dislikes: data.dislikes || 0
+            };
+
+            setPost(transformedPost as BoardPost);
+            setLoadedRequestKey(requestKey);
+
+            incrementView().then(wasIncremented => {
+                if (!isLatestRequest() || !wasIncremented) return;
+                setPost(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : null);
+            });
+        } catch (error) {
+            if (!isLatestRequest()) return;
+            console.error('게시글 로딩 실패:', error);
+            setError(error instanceof Error ? error.message : '게시글 로딩 실패');
+            setPost(null);
+            setLoadedRequestKey(requestKey);
+        } finally {
+            if (isLatestRequest()) setLoading(false);
         }
-    }, [postId, isAdmin]);
+    }, [category, incrementView, isAdmin]);
+
+    useEffect(() => {
+        if (!postId) {
+            loadRequestRef.current += 1;
+            setPost(null);
+            setError(null);
+            setLoadedRequestKey(null);
+            setLoading(false);
+            return;
+        }
+
+        loadPost(postId);
+    }, [loadPost, postId]);
 
     // Realtime Subscription for updates
     useEffect(() => {
@@ -68,85 +187,6 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             cafe24.removeChannel(channel);
         };
     }, [post?.id, post?.category, isAdmin, onPostDeleted]);
-
-    const loadPost = async (postId: string) => {
-        try {
-            setLoading(true);
-
-            // Determine which table to query based on category
-            const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
-
-            const { data, error } = await cafe24
-                .from(table)
-                .select(`
-                    id, 
-                    title, 
-                    content, 
-                    author_name, 
-                    author_nickname, 
-                    user_id, 
-                    views, 
-                    is_notice,
-                    is_hidden, 
-                    prefix_id,
-                    prefix:board_prefixes(id, name, color, admin_only),
-                    created_at, 
-                    updated_at,
-                    category,
-                    image,
-                    image_thumbnail,
-                    likes,
-                    dislikes,
-                    display_order
-                `)
-                .eq('id', postId)
-                .maybeSingle();
-
-            if (error) throw error;
-            if (!data) {
-                setPost(null);
-                return;
-            }
-
-            if (data.is_hidden && !isAdmin) {
-                setPost(null);
-                return;
-            }
-
-            // Fetch profile image if user_id exists
-            let profileImage = null;
-            if (data.user_id) {
-                const { data: userData } = await cafe24
-                    .from('board_users')
-                    .select('profile_image')
-                    .eq('user_id', data.user_id)
-                    .maybeSingle();
-                profileImage = userData?.profile_image || null;
-            }
-
-            const transformedPost = {
-                ...data,
-                prefix: Array.isArray(data.prefix) ? data.prefix[0] : data.prefix,
-                author_profile_image: profileImage,
-                likes: data.likes || 0,
-                dislikes: data.dislikes || 0
-            };
-
-            setPost(transformedPost as BoardPost);
-
-            // Increment views using Hook
-            incrementView().then(wasIncremented => {
-                if (wasIncremented) {
-                    setPost(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : null);
-                }
-            });
-
-        } catch (error) {
-            console.error('게시글 로딩 실패:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // NOTE: View tracking is now handled by useViewTracking Hook
     // See src/hooks/useViewTracking.ts for implementation
@@ -200,9 +240,16 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         if (postId) loadPost(postId);
     };
 
+    const currentRequestKey = getBoardDetailRequestKey(postId, category);
+    const currentPost = post && currentRequestKey === loadedRequestKey && String(post.id) === String(postId)
+        ? post
+        : null;
+    const isLookupPending = Boolean(currentRequestKey && !currentPost && !error && loadedRequestKey !== currentRequestKey);
+
     return {
-        post,
-        loading,
+        post: currentPost,
+        loading: loading || isLookupPending,
+        error,
         updating,
         setUpdating,
         handleDelete,

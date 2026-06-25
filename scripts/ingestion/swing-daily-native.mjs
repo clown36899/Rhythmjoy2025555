@@ -32,7 +32,13 @@ const sourcePriorities = (process.env.INGESTION_NATIVE_SOURCE_PRIORITY || proces
   .filter(Boolean)
   .map((priority) => Number(priority))
   .filter((priority) => Number.isFinite(priority));
+const sourceBatchTotal = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_TOTAL || 0));
+const sourceBatchIndex = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_INDEX || 0));
 const postLimit = Number(process.env.INGESTION_NATIVE_POST_LIMIT || 4);
+const instagramSourcePostLimit = Number(process.env.INGESTION_NATIVE_INSTAGRAM_POST_LIMIT || 2);
+const naverSourcePostLimit = Number(process.env.INGESTION_NATIVE_NAVER_POST_LIMIT || 3);
+const daumSourcePostLimit = Number(process.env.INGESTION_NATIVE_DAUM_POST_LIMIT || 3);
+const littlySourceCardLimit = Number(process.env.INGESTION_NATIVE_LITTLY_CARD_LIMIT || 6);
 const maxFutureDays = Number(process.env.INGESTION_NATIVE_MAX_FUTURE_DAYS || 180);
 const sourceTimeoutMs = Number(process.env.INGESTION_NATIVE_SOURCE_TIMEOUT_MS || 45000);
 const postTimeoutMs = Number(process.env.INGESTION_NATIVE_POST_TIMEOUT_MS || 28000);
@@ -51,6 +57,7 @@ const instagramFailureCircuitThreshold = Number(process.env.INGESTION_INSTAGRAM_
 const today = todayISO();
 const runStartedAtMs = Date.now();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
+const graduationEventPattern = /졸업\s*(?:공연|파티)|graduation\s*(?:show|party|performance)/i;
 
 const result = {
   inserted: 0,
@@ -294,6 +301,7 @@ function looksLikeGenericTitle(title = '', source, eventType = '') {
 
 function looksLikeBroadScheduleNotice(title = '', text = '') {
   const value = `${title}\n${text}`;
+  if (graduationEventPattern.test(value)) return false;
   return /(?:\d{4}\s*년도\s*)?\d+\s*학기\s*정규\s*수업.*확정|정규\s*수업\s*시간표|전체\s*강습\s*일정|강습\s*전체\s*일정|공지사항.*정규\s*수업|공지사항.*정규수업/i.test(value);
 }
 
@@ -453,12 +461,26 @@ function estimatedInstagramSourceBudgetMs(postCount = 1) {
 }
 
 function resolveInstagramPostLimit(linkCount = postLimit) {
-  const maxPosts = Math.max(1, Math.min(postLimit, Number(linkCount) || 0));
+  const maxPosts = Math.max(1, Math.min(postLimit, instagramSourcePostLimit, Number(linkCount) || 0));
   if (!runBudgetMs) return maxPosts;
   for (let count = maxPosts; count >= 1; count -= 1) {
     if (runRemainingMs() >= estimatedInstagramSourceBudgetMs(count)) return count;
   }
   return 0;
+}
+
+function resolveSourceScanLimit(source, discoveredCount = 0) {
+  const count = Math.max(0, Number(discoveredCount) || 0);
+  if (count <= 0) return 0;
+
+  const sourceText = `${source?.name || ''}\n${source?.notes || ''}\n${source?.id || ''}`;
+  const graduationBoost = graduationEventPattern.test(sourceText) ? 1 : 0;
+
+  if (source.type === 'instagram') return Math.max(1, Math.min(count, instagramSourcePostLimit + graduationBoost));
+  if (source.type === 'naver_cafe') return Math.max(1, Math.min(count, naverSourcePostLimit + graduationBoost));
+  if (source.type === 'daum_cafe') return Math.max(1, Math.min(count, daumSourcePostLimit + graduationBoost));
+  if (source.type === 'littly') return Math.max(1, Math.min(count, littlySourceCardLimit + (graduationBoost * 2)));
+  return Math.max(1, Math.min(count, postLimit));
 }
 
 async function throttleInstagram(label, baseDelayMs) {
@@ -521,6 +543,7 @@ function extractDates(text = '') {
 function inferActivity(text = '') {
   if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
   if (/소셜|social|(?<![A-Za-z0-9가-힣])DJ|디제이|파티|party/i.test(text)) return { activity: 'social', eventType: '소셜' };
+  if (graduationEventPattern.test(text)) return { activity: 'event', eventType: '행사' };
   if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원\s*데이|원데이|오픈\s*클래스|체험\s*(?:클래스|강습|수업)|일일\s*(?:클래스|강습|수업)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|배워)|입문|초급|중급|class|lesson|workshop|one\s*day|oneday|open\s*class/i.test(text)) {
     return { activity: 'class', eventType: '강습' };
   }
@@ -934,6 +957,7 @@ async function collectNaverArticleLinks(page, source) {
     };
     const isAdminNotice = (title) => /\[?운영진공지\]?|필독|윤리위원회|강사\s*선정\s*발표|강사\s*모집\s*공고|강습\s*신청\s*및\s*입금\s*방법/i.test(title);
     const hasEventDate = (title) => /\b20\d{2}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2}|(?:^|\s)\d{1,2}[./월]\s*\d{1,2}(?:일|\b)/.test(title);
+    const hasGraduationEvent = (title) => /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(title);
     const items = [...document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]')]
       .map((anchor, index) => {
         const href = anchor.href.split('&commentFocus=')[0];
@@ -954,9 +978,11 @@ async function collectNaverArticleLinks(page, source) {
     return deduped
       .filter((item) => !isAdminNotice(`${item.title} ${item.rowText}`))
       .sort((a, b) => {
+        const aGraduation = hasGraduationEvent(`${a.title} ${a.rowText}`) ? 0 : 1;
+        const bGraduation = hasGraduationEvent(`${b.title} ${b.rowText}`) ? 0 : 1;
         const aDate = hasEventDate(a.title) ? 0 : 1;
         const bDate = hasEventDate(b.title) ? 0 : 1;
-        return aDate - bDate || a.index - b.index;
+        return aGraduation - bGraduation || aDate - bDate || a.index - b.index;
       })
       .slice(0, 24);
   }).catch(() => []);
@@ -1012,6 +1038,8 @@ async function collectDaumArticleLinks(page, source) {
   await safeGoto(page, source.url);
   return await page.evaluate(() => {
     const textOf = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
+    const hasGraduationEvent = (title) => /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(title);
+    const hasEventDate = (title) => /\b20\d{2}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2}|(?:^|\s)\d{1,2}[./월]\s*\d{1,2}(?:일|\b)/.test(title);
     const items = [...document.querySelectorAll('a[href]')]
       .map((a, index) => {
         const href = a.href.split('#')[0];
@@ -1025,7 +1053,13 @@ async function collectDaumArticleLinks(page, source) {
         && item.title
       ));
     return [...new Map(items.map((item) => [item.href, item])).values()]
-      .sort((a, b) => a.index - b.index)
+      .sort((a, b) => {
+        const aGraduation = hasGraduationEvent(`${a.title} ${a.rowText}`) ? 0 : 1;
+        const bGraduation = hasGraduationEvent(`${b.title} ${b.rowText}`) ? 0 : 1;
+        const aDate = hasEventDate(a.title) ? 0 : 1;
+        const bDate = hasEventDate(b.title) ? 0 : 1;
+        return aGraduation - bGraduation || aDate - bDate || a.index - b.index;
+      })
       .slice(0, 20);
   }).catch(() => []);
 }
@@ -1114,6 +1148,11 @@ async function collectLittlyCards(page, source) {
       .filter((item) => {
         if (oneDayHub && !oneDayRe.test(item.ownText)) return false;
         return collectableRe.test(item.text);
+      })
+      .sort((a, b) => {
+        const aGraduation = /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(`${a.title} ${a.body} ${a.text}`) ? 0 : 1;
+        const bGraduation = /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(`${b.title} ${b.body} ${b.text}`) ? 0 : 1;
+        return aGraduation - bGraduation || a.index - b.index;
       })
       .slice(0, 18);
   }, source.sourceKind || '').catch(() => []);
@@ -1410,7 +1449,7 @@ async function collectSource(page, source) {
       return [];
     }
     const candidates = [];
-    for (const link of links.slice(0, postLimit)) {
+    for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
       const postCandidates = await withBoundedStep(`${source.id}:article`, () => scrapeNaverArticle(page, link, source), postTimeoutMs + 8000);
       candidates.push(...postCandidates);
     }
@@ -1425,7 +1464,7 @@ async function collectSource(page, source) {
       return [];
     }
     const candidates = [];
-    for (const link of links.slice(0, postLimit)) {
+    for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
       const postCandidates = await withBoundedStep(`${source.id}:article`, () => scrapeDaumArticle(page, link, source), postTimeoutMs + 8000);
       candidates.push(...postCandidates);
     }
@@ -1440,7 +1479,7 @@ async function collectSource(page, source) {
       return [];
     }
     const candidates = [];
-    for (const card of cards.slice(0, postLimit * 3)) {
+    for (const card of cards.slice(0, resolveSourceScanLimit(source, cards.length))) {
       const cardCandidates = await withBoundedStep(`${source.id}:card`, () => scrapeLittlyCard(page, card, source), postTimeoutMs + 5000);
       candidates.push(...cardCandidates);
     }
@@ -1502,9 +1541,10 @@ async function main() {
     .sort((a, b) => sourceOrderWeight(a) - sourceOrderWeight(b)
       || Number(a.priority || 99) - Number(b.priority || 99)
       || a.name.localeCompare(b.name, 'ko'))
+    .filter((source, index) => sourceBatchTotal > 1 ? index % sourceBatchTotal === sourceBatchIndex : true)
     .slice(0, sourceLimit > 0 ? sourceLimit : undefined);
 
-  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} priorities=${sourcePriorities.join(',') || 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
+  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
   const page = await context.newPage();
@@ -1601,8 +1641,18 @@ function printSummary() {
   console.log('==TELEGRAM_SUMMARY_END==');
 }
 
-main().catch((error) => {
-  result.issues.push(error.message);
-  printSummary();
-  process.exitCode = 1;
-});
+async function flushAndExit(code) {
+  await new Promise((resolve) => process.stdout.write('', resolve));
+  await new Promise((resolve) => process.stderr.write('', resolve));
+  process.exit(code);
+}
+
+main()
+  .then(async () => {
+    await flushAndExit(0);
+  })
+  .catch(async (error) => {
+    result.issues.push(error.message);
+    printSummary();
+    await flushAndExit(1);
+  });

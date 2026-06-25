@@ -357,6 +357,22 @@
     animation: spin 1s linear infinite;
 }
 
+.board-detail-retry-btn {
+    margin-top: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #f9fafb;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.board-detail-retry-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
 /* ==========================================================================
    Board detail refined surface
    ========================================================================== */

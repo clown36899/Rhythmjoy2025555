@@ -503,6 +503,7 @@ export default function BoardMainContainer() {
                     <Suspense fallback={null}>
                         <BoardDetailModal
                             postId={selectedPostId}
+                            category={category}
                             isOpen={true}
                             onClose={handleCloseModal}
                         />

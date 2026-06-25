@@ -27,8 +27,32 @@ type QueryState = {
   options?: Record<string, unknown>;
 };
 
+function responsePayload(data: unknown, response: Response, error: unknown = null) {
+  return {
+    data,
+    error,
+    count: null,
+    status: response.status,
+    statusText: response.statusText,
+  };
+}
+
 async function readResponse(response: Response) {
-  const payload = await response.json().catch(() => null);
+  const text = await response.text().catch(() => '');
+  let payload: any = null;
+
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      return responsePayload(null, response, {
+        message: `Cafe24 API returned non-JSON response (${response.status})`,
+        status: response.status,
+        details: text.slice(0, 300),
+      });
+    }
+  }
+
   if (!response.ok) {
     return {
       data: null,
@@ -41,17 +65,80 @@ async function readResponse(response: Response) {
       statusText: response.statusText,
     };
   }
-  return payload;
+
+  if (payload && typeof payload === 'object') return payload;
+  return responsePayload(payload, response);
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isReadOnlyDataRequest(url: string, body: unknown) {
+  if (url.includes('/query')) return true;
+
+  if (url.includes('/api/cafe24-rpc/')) {
+    const rpcName = decodeURIComponent(url.split('/api/cafe24-rpc/').pop() || '');
+    return rpcName.startsWith('get_') || rpcName === 'refresh_site_stats_index' || rpcName === 'refresh_site_metrics';
+  }
+
+  const action = (body as { action?: string } | null)?.action;
+  return action === 'select';
+}
+
+function isRetryableResult(result: any) {
+  const status = Number(result?.status ?? result?.error?.status ?? 0);
+  const message = String(result?.error?.message || '');
+  return status === 0 || status === 408 || status === 429 || status >= 500 || message.includes('non-JSON response');
+}
+
+function networkErrorResult(url: string, error: unknown) {
+  return {
+    data: null,
+    error: {
+      message: error instanceof Error ? error.message : `Failed to fetch ${url}`,
+      status: 0,
+      details: error instanceof Error ? error.stack : String(error),
+    },
+    count: null,
+    status: 0,
+    statusText: 'Network Error',
+  };
 }
 
 async function postJson(url: string, body: unknown) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify(body || {}),
-  });
-  return readResponse(response);
+  const canRetry = isReadOnlyDataRequest(url, body);
+  const attempts = canRetry ? 3 : 1;
+  let lastResult: any = null;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(body || {}),
+      });
+      const result = await readResponse(response);
+      lastResult = result;
+
+      if (canRetry && attempt < attempts - 1 && isRetryableResult(result)) {
+        await sleep(attempt === 0 ? 250 : 800);
+        continue;
+      }
+
+      return result;
+    } catch (error) {
+      lastResult = networkErrorResult(url, error);
+      if (canRetry && attempt < attempts - 1) {
+        await sleep(attempt === 0 ? 250 : 800);
+        continue;
+      }
+      return lastResult;
+    }
+  }
+
+  return lastResult;
 }
 
 function toBase64(input: Blob | ArrayBuffer | string) {
