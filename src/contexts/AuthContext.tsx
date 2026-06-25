@@ -49,6 +49,19 @@ export interface UserProfile {
   primary_social?: string | null;
 }
 
+const profileFromCafe24Auth = (profile: any, userObj: User | null): UserProfile => ({
+  nickname: profile?.nickname || getUserMetadataNickname(userObj),
+  profile_image: profile?.profile_image || getUserMetadataProfileImage(userObj),
+  headline: profile?.headline || null,
+  profile_badge: profile?.profile_badge || null,
+  profile_theme: profile?.profile_theme || null,
+  bio: profile?.bio || null,
+  region: profile?.region || null,
+  dance_genres: profile?.dance_genres || null,
+  social_links: profile?.social_links || null,
+  primary_social: profile?.primary_social || null,
+});
+
 
 
 interface AuthContextType {
@@ -531,28 +544,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (CAFE24_AUTH_ENABLED) {
       if (user) {
-        const profile = {
-          nickname: getUserMetadataNickname(user),
-          profile_image: getUserMetadataProfileImage(user),
-          headline: null,
-          profile_badge: null,
-          profile_theme: null,
-          bio: null,
-          region: null,
-          dance_genres: null,
-          social_links: null,
-          primary_social: null,
-        };
-        setUserProfile(profile);
-        if (lastProcessedUserId.current !== user.id) {
-          lastProcessedUserId.current = user.id;
-          void ensureBoardUser(user)
-            .then(() => refreshUserProfile())
-            .catch((error) => {
-              console.warn('[AuthContext] Cafe24 board user sync failed:', error);
-              return refreshUserProfile();
-            });
-        }
+        lastProcessedUserId.current = user.id;
       } else if (isAuthCheckComplete) {
         lastProcessedUserId.current = null;
         setUserProfile(null);
@@ -588,6 +580,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setIsAdmin(Boolean(data.isAdmin));
       setAdminStatus(Boolean(data.isAdmin));
+      if (nextUser) {
+        const nextProfile = profileFromCafe24Auth(data.profile, nextUser);
+        setUserProfile(nextProfile);
+        localStorage.setItem('userProfile', JSON.stringify(nextProfile));
+      } else {
+        setUserProfile(null);
+        localStorage.removeItem('userProfile');
+      }
       setIsAuthCheckComplete(true);
       return;
     }
@@ -611,10 +611,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((response) => response.json())
         .then((data) => {
           if (!isMounted) return;
-          setUser(data.user || null);
+          const nextUser = data.user || null;
+          setUser(nextUser);
           setSession(null);
           setIsAdmin(Boolean(data.isAdmin));
           setAdminStatus(Boolean(data.isAdmin));
+          if (nextUser) {
+            const nextProfile = profileFromCafe24Auth(data.profile, nextUser);
+            setUserProfile(nextProfile);
+            localStorage.setItem('userProfile', JSON.stringify(nextProfile));
+          } else {
+            setUserProfile(null);
+            localStorage.removeItem('userProfile');
+          }
           setLoading(false);
           setIsAuthProcessing(false);
           setIsAuthCheckComplete(true);
@@ -627,6 +636,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
           setIsAdmin(false);
           setAdminStatus(false);
+          setUserProfile(null);
+          localStorage.removeItem('userProfile');
           setLoading(false);
           setIsAuthProcessing(false);
           setIsAuthCheckComplete(true);

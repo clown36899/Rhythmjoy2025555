@@ -5,8 +5,10 @@ const SESSION_COOKIE = 'swingenjoy_session';
 const GOOGLE_OAUTH_NONCE_COOKIE = 'swingenjoy_google_oauth_nonce';
 const SESSION_DAYS = Number(process.env.SESSION_DAYS || 30);
 const SESSION_USER_CACHE_MS = Number(process.env.SESSION_USER_CACHE_MS || 30000);
+const ADMIN_ROWS_CACHE_MS = Number(process.env.ADMIN_ROWS_CACHE_MS || 30000);
 const sessionUserCache = new Map();
 const sessionUserLoads = new Map();
+let boardAdminRowsCache = null;
 
 function parseCookies(req) {
   const cookie = req.headers.cookie || '';
@@ -193,9 +195,18 @@ async function resolveAdminFlag(pool, row) {
   if (isConfiguredAdminEmail(row.email)) return true;
 
   try {
-    const [adminRows] = await pool.execute(
-      "SELECT data_json FROM generic_records WHERE table_name = 'board_admins'",
-    );
+    const now = Date.now();
+    if (!boardAdminRowsCache || boardAdminRowsCache.expiresAt <= now) {
+      const [adminRows] = await pool.execute(
+        "SELECT data_json FROM generic_records WHERE table_name = 'board_admins'",
+      );
+      boardAdminRowsCache = {
+        rows: adminRows,
+        expiresAt: now + Math.max(1000, ADMIN_ROWS_CACHE_MS),
+      };
+    }
+
+    const adminRows = boardAdminRowsCache.rows;
     const userIds = new Set([
       String(row.id || ''),
       ...(Array.isArray(row.legacy_user_ids) ? row.legacy_user_ids.map(String) : []),
@@ -211,6 +222,18 @@ async function resolveAdminFlag(pool, row) {
   }
 }
 
+async function attachSessionUserFlag(pool, row) {
+  if (!row) return null;
+  const [isAdmin, boardProfile] = await Promise.all([
+    resolveAdminFlag(pool, row),
+    loadBoardUserProfile(pool, row.id),
+  ]);
+  if (isAdmin && !row.is_admin) {
+    pool.execute('UPDATE users SET is_admin = 1 WHERE id = ? AND is_admin = 0', [row.id]).catch(() => {});
+  }
+  return { ...row, board_profile: boardProfile, is_admin: isAdmin ? 1 : 0, legacy_user_ids: [] };
+}
+
 async function attachAdminFlag(pool, row) {
   if (!row) return null;
   const withLegacyIdentity = await attachLegacyBoardUserIdentity(pool, row);
@@ -221,16 +244,37 @@ async function attachAdminFlag(pool, row) {
   return { ...withLegacyIdentity, is_admin: isAdmin ? 1 : 0 };
 }
 
+async function loadBoardUserProfile(pool, userId) {
+  if (!userId) return null;
+  try {
+    const [records] = await pool.execute(
+      `SELECT data_json
+         FROM generic_records
+        WHERE table_name = 'board_users'
+          AND record_id = ?
+        LIMIT 1`,
+      [String(userId)],
+    );
+    const profile = parseJson(records?.[0]?.data_json, null);
+    return String(profile?.user_id || '') === String(userId) ? profile : null;
+  } catch {
+    return null;
+  }
+}
+
 function rowToUser(row) {
   if (!row) return null;
+  const profile = row.board_profile || {};
+  const nickname = profile.nickname || row.nickname;
+  const profileImage = profile.profile_image || row.profile_image;
   return {
     id: row.id,
     email: row.email,
     user_metadata: {
-      name: row.nickname,
-      full_name: row.nickname,
-      avatar_url: row.profile_image,
-      picture: row.profile_image,
+      name: nickname,
+      full_name: nickname,
+      avatar_url: profileImage,
+      picture: profileImage,
       provider: row.provider,
     },
     app_metadata: {
@@ -242,14 +286,84 @@ function rowToUser(row) {
 
 function publicUser(row) {
   if (!row) return null;
+  const profile = row.board_profile || {};
   return {
     id: row.id,
     email: row.email,
-    nickname: row.nickname,
-    profile_image: row.profile_image,
+    nickname: profile.nickname || row.nickname,
+    profile_image: profile.profile_image || row.profile_image,
     provider: row.provider,
+    headline: profile.headline || null,
+    profile_badge: profile.profile_badge || null,
+    profile_theme: profile.profile_theme || null,
+    bio: profile.bio || null,
+    region: profile.region || null,
+    dance_genres: profile.dance_genres || null,
+    social_links: profile.social_links || null,
+    primary_social: profile.primary_social || null,
     is_admin: Boolean(row.is_admin),
   };
+}
+
+function toMysqlDateTime(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+async function syncBoardUserProfile(pool, row) {
+  if (!row?.id) return;
+
+  const userId = String(row.id);
+  const [records] = await pool.execute(
+    `SELECT record_id, data_json
+       FROM generic_records
+      WHERE table_name = 'board_users'
+        AND (record_id = ? OR data_json LIKE ? ESCAPE '\\\\')
+      LIMIT 20`,
+    [userId, `%${escapeLikePattern(userId)}%`],
+  );
+
+  const matched = records
+    .map((record) => ({
+      recordId: record.record_id,
+      data: parseJson(record.data_json, null),
+    }))
+    .find((record) => String(record.data?.user_id || '') === userId);
+
+  const existing = matched?.data || {};
+  const now = new Date().toISOString();
+  const isWithdrawn = existing.status === 'deleted' || existing.nickname === '탈퇴한 사용자';
+  const next = {
+    ...existing,
+    user_id: userId,
+    email: row.email || existing.email || null,
+    provider: row.provider || existing.provider || 'email',
+    nickname: isWithdrawn
+      ? row.nickname || existing.nickname || row.email?.split('@')[0] || 'User'
+      : existing.nickname || row.nickname || row.email?.split('@')[0] || 'User',
+    profile_image: existing.profile_image || row.profile_image || null,
+    status: isWithdrawn ? 'active' : existing.status,
+    deleted_at: isWithdrawn ? null : existing.deleted_at,
+    created_at: existing.created_at || now,
+    updated_at: now,
+  };
+
+  await pool.execute(
+    `INSERT INTO generic_records (table_name, record_id, data_json, created_at, updated_at)
+     VALUES ('board_users', ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       data_json = VALUES(data_json),
+       updated_at = VALUES(updated_at),
+       imported_at = CURRENT_TIMESTAMP`,
+    [
+      matched?.recordId || userId,
+      JSON.stringify(next),
+      toMysqlDateTime(next.created_at),
+      toMysqlDateTime(next.updated_at),
+    ],
+  );
 }
 
 function getRequestOrigin(req) {
@@ -523,7 +637,7 @@ export async function getCurrentUser(req) {
     }
 
     pool.execute('UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [sessionId]).catch(() => {});
-    const user = await attachAdminFlag(pool, rows[0]);
+    const user = await attachSessionUserFlag(pool, rows[0]);
     setCachedSessionUser(sessionId, user);
     return user;
   })();
@@ -564,6 +678,7 @@ export async function kakaoLogin(req, res) {
   const accessToken = kakaoAccessToken || await fetchKakaoToken(code, redirectUri);
   const profile = await fetchKakaoProfile(accessToken);
   const userRow = await upsertUser(profile);
+  await syncBoardUserProfile(getMysqlPool(), userRow).catch(() => {});
   const { sessionId, expiresAt } = await createSession(userRow.id);
 
   setSessionCookie(req, res, sessionId, expiresAt);
@@ -591,6 +706,7 @@ export async function devLogin(req, res) {
   }
 
   const { sessionId, expiresAt } = await createSession(userRow.id);
+  await syncBoardUserProfile(pool, userRow).catch(() => {});
   setSessionCookie(req, res, sessionId, expiresAt);
   res.json({
     ok: true,
@@ -666,6 +782,7 @@ export async function googleLoginCallback(req, res) {
     const accessToken = await fetchGoogleToken(code, getGoogleRedirectUri(req));
     const profile = await fetchGoogleProfile(accessToken);
     const userRow = await upsertUser(profile);
+    await syncBoardUserProfile(getMysqlPool(), userRow).catch(() => {});
     const { sessionId, expiresAt } = await createSession(userRow.id);
 
     clearGoogleNonceCookie(req, res);
@@ -679,9 +796,6 @@ export async function googleLoginCallback(req, res) {
 
 export async function me(req, res) {
   const userRow = await getCurrentUser(req);
-  if (userRow) {
-    await refreshSessionExpiry(req, res).catch(() => {});
-  }
   res.json({
     user: rowToUser(userRow),
     profile: publicUser(userRow),

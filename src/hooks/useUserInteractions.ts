@@ -6,19 +6,9 @@ export const useUserInteractions = (userId: string | null) => {
     const { loading, error } = useBoardStaticData();
 
     useEffect(() => {
-        if (!userId || interactions || loading) return;
-
-        let cancelled = false;
-        const run = () => {
-            if (!cancelled) refreshInteractions(userId);
-        };
-
-        const timerId = window.setTimeout(run, 250);
-
-        return () => {
-            cancelled = true;
-            window.clearTimeout(timerId);
-        };
+        if (userId && !interactions && !loading) {
+            refreshInteractions(userId);
+        }
     }, [userId, interactions, loading, refreshInteractions]);
 
     const refreshInteractionsCallback = useCallback(() => {

@@ -26,10 +26,29 @@ import {
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const GENERIC_ROWS_CACHE_MS = Number(process.env.GENERIC_ROWS_CACHE_MS || 30000);
-const cacheableRowsTables = new Set(['board_prefixes', 'board_banned_words']);
-const cacheableRecordTables = new Set(['board_users']);
+const boardStaticTables = [
+  'board_categories',
+  'board_prefixes',
+  'theme_settings',
+  'billboard_settings',
+  'practice_rooms',
+  'venues',
+  'shops',
+  'app_settings',
+];
+const boardStaticTableSet = new Set(boardStaticTables);
+const boardStaticDataCacheKey = '__rpc:get_board_static_data';
+const cacheableRowsTables = new Set([
+  ...boardStaticTables,
+  'board_banned_words',
+  'board_posts',
+  'board_anonymous_posts',
+]);
+const recordIdLookupFields = new Set(['id', 'code', 'key', 'token', 'endpoint']);
+const cacheableRecordTables = new Set([...boardStaticTables, 'board_users', 'board_posts', 'board_anonymous_posts']);
 const rowsCache = new Map();
 const recordRowsCache = new Map();
+const userInteractionsCache = new Map();
 
 function pad2(value) {
   return String(value).padStart(2, '0');
@@ -63,8 +82,20 @@ function setCachedValue(cache, key, value) {
   });
 }
 
+function cacheRecordRows(table, rows = []) {
+  if (!cacheableRecordTables.has(table)) return;
+  for (const row of rows) {
+    const recordId = getRecordId(row, [], table);
+    if (recordId !== undefined && recordId !== null && recordId !== '') {
+      setCachedValue(recordRowsCache, `${table}:${String(recordId)}`, [row]);
+    }
+  }
+}
+
 function invalidateGenericRowsCache(table) {
   rowsCache.delete(table);
+  if (boardStaticTableSet.has(table)) rowsCache.delete(boardStaticDataCacheKey);
+  if (userInteractionTables.has(table)) userInteractionsCache.clear();
   for (const key of recordRowsCache.keys()) {
     if (key.startsWith(`${table}:`)) recordRowsCache.delete(key);
   }
@@ -867,7 +898,35 @@ async function loadRows(table) {
   );
   const parsedRows = rows.map((row) => parseJson(row.data_json, {}));
   if (cacheableRowsTables.has(table)) setCachedValue(rowsCache, table, parsedRows);
+  cacheRecordRows(table, parsedRows);
   return parsedRows;
+}
+
+async function loadRowsByTables(tables) {
+  const safeTables = tables.filter(Boolean);
+  for (const table of safeTables) assertTableName(table);
+  if (!safeTables.length) return {};
+
+  const pool = getMysqlPool();
+  const [rows] = await pool.query(
+    `SELECT table_name, data_json
+       FROM generic_records
+      WHERE table_name IN (${safeTables.map(() => '?').join(',')})`,
+    safeTables,
+  );
+
+  const grouped = Object.fromEntries(safeTables.map((table) => [table, []]));
+  for (const row of rows) {
+    if (!grouped[row.table_name]) grouped[row.table_name] = [];
+    grouped[row.table_name].push(parseJson(row.data_json, {}));
+  }
+
+  for (const table of safeTables) {
+    if (cacheableRowsTables.has(table)) setCachedValue(rowsCache, table, grouped[table] || []);
+    cacheRecordRows(table, grouped[table] || []);
+  }
+
+  return grouped;
 }
 
 async function loadRowsByRecordId(table, recordId) {
@@ -886,6 +945,23 @@ async function loadRowsByRecordId(table, recordId) {
   );
   const parsedRows = rows.map((row) => parseJson(row.data_json, {}));
   if (cacheableRecordTables.has(table)) setCachedValue(recordRowsCache, cacheKey, parsedRows);
+  return parsedRows;
+}
+
+async function loadRowsByRecordIdPrefix(table, recordIdPrefix, limit = 20000) {
+  assertTableName(table);
+  if (recordIdPrefix === undefined || recordIdPrefix === null || recordIdPrefix === '') return [];
+
+  const pool = getMysqlPool();
+  const rowLimit = normalizedRowLimit(limit, 20000);
+  const [rows] = await pool.execute(
+    `SELECT data_json FROM generic_records
+      WHERE table_name = ? AND record_id LIKE ? ESCAPE '\\\\'
+      LIMIT ${rowLimit}`,
+    [table, `${escapeLikePattern(recordIdPrefix)}%`],
+  );
+  const parsedRows = rows.map((row) => parseJson(row.data_json, {}));
+  cacheRecordRows(table, parsedRows);
   return parsedRows;
 }
 
@@ -917,9 +993,11 @@ async function loadRowsByJsonField(table, field, value, limit = 20) {
       [table, `%${escapeLikePattern(value)}%`],
     );
   }
-  return rows
+  const parsedRows = rows
     .map((row) => parseJson(row.data_json, {}))
     .filter((row) => String(getValue(row, field)) === String(value));
+  cacheRecordRows(table, parsedRows);
+  return parsedRows;
 }
 
 async function loadRowsByActor(table, userId, limit = 20000) {
@@ -954,9 +1032,11 @@ async function loadRowsByActor(table, userId, limit = 20000) {
     );
   }
 
-  return rows
+  const parsedRows = rows
     .map((row) => parseJson(row.data_json, {}))
     .filter((row) => actorMatches(row, userId));
+  cacheRecordRows(table, parsedRows);
+  return parsedRows;
 }
 
 async function loadRowsForQuery(table, body = {}) {
@@ -965,6 +1045,16 @@ async function loadRowsForQuery(table, body = {}) {
 
   const narrowFilter = table === 'events' ? null : getNarrowEqFilter(body);
   if (narrowFilter?.field === 'id') return loadRowsByRecordId(table, narrowFilter.value);
+  const compositeKeys = compositeKeysByTable[table] || [];
+  if (narrowFilter && compositeKeys[0] === narrowFilter.field) {
+    return loadRowsByRecordIdPrefix(table, `${String(narrowFilter.value)}:`, 20000);
+  }
+  if (
+    narrowFilter &&
+    (recordIdLookupFields.has(narrowFilter.field) || (table === 'board_users' && narrowFilter.field === 'user_id'))
+  ) {
+    return loadRowsByRecordId(table, narrowFilter.value);
+  }
   if (narrowFilter) return loadRowsByJsonField(table, narrowFilter.field, narrowFilter.value, 20000);
 
   return loadRows(table);
@@ -1939,25 +2029,18 @@ function defaultBillboardSettings() {
 }
 
 async function getBoardStaticData() {
-  const [
-    categories,
-    prefixes,
-    themeSettings,
-    billboardSettings,
-    practiceRooms,
-    venues,
-    shops,
-    appSettings,
-  ] = await Promise.all([
-    loadRows('board_categories'),
-    loadRows('board_prefixes'),
-    loadRows('theme_settings'),
-    loadRows('billboard_settings'),
-    loadRows('practice_rooms'),
-    loadRows('venues'),
-    loadRows('shops'),
-    loadRows('app_settings'),
-  ]);
+  const cached = getCachedValue(rowsCache, boardStaticDataCacheKey);
+  if (cached) return cached;
+
+  const staticRows = await loadRowsByTables(boardStaticTables);
+  const categories = staticRows.board_categories || [];
+  const prefixes = staticRows.board_prefixes || [];
+  const themeSettings = staticRows.theme_settings || [];
+  const billboardSettings = staticRows.billboard_settings || [];
+  const practiceRooms = staticRows.practice_rooms || [];
+  const venues = staticRows.venues || [];
+  const shops = staticRows.shops || [];
+  const appSettings = staticRows.app_settings || [];
 
   const groupedPrefixes = {};
   for (const prefix of sortRows(prefixes).filter((row) => row.is_active !== false)) {
@@ -1969,7 +2052,7 @@ async function getBoardStaticData() {
   const genreWeightsRow = appSettings.find((row) => row.key === 'genre_weights');
   const practiceRows = practiceRooms.length ? practiceRooms : venues;
 
-  return {
+  const result = {
     categories: sortRows(categories).filter((row) => row.is_active !== false),
     prefixes: groupedPrefixes,
     theme_settings: themeSettings[0] || defaultThemeSettings(),
@@ -1978,6 +2061,8 @@ async function getBoardStaticData() {
     shops: sortRows(shops).filter((row) => row.is_active !== false),
     genre_weights: genreWeightsRow?.value || {},
   };
+  setCachedValue(rowsCache, boardStaticDataCacheKey, result);
+  return result;
 }
 
 function actorMatches(row, userId) {
@@ -1994,6 +2079,30 @@ function interactionIds(rows, userId, idField, numeric = false) {
     .filter((value) => value !== undefined && value !== null && value !== '')
     .map((value) => (numeric ? Number(value) : String(value)))
     .filter((value) => (numeric ? Number.isFinite(value) : Boolean(value)));
+}
+
+const userInteractionTables = new Set([
+  'board_post_likes',
+  'board_post_dislikes',
+  'board_post_favorites',
+  'board_anonymous_likes',
+  'board_anonymous_dislikes',
+  'board_comment_likes',
+  'board_comment_dislikes',
+  'board_anonymous_comment_likes',
+  'board_anonymous_comment_dislikes',
+  'event_favorites',
+  'social_group_favorites',
+  'practice_room_favorites',
+  'shop_favorites',
+]);
+const userRecordPrefixInteractionTables = userInteractionTables;
+
+function loadUserInteractionRows(table, userId) {
+  if (userRecordPrefixInteractionTables.has(table)) {
+    return loadRowsByRecordIdPrefix(table, `${String(userId)}:`, 20000);
+  }
+  return loadRowsByActor(table, userId);
 }
 
 async function getUserInteractions(userId) {
@@ -2015,6 +2124,10 @@ async function getUserInteractions(userId) {
     };
   }
 
+  const cacheKey = String(userId);
+  const cached = getCachedValue(userInteractionsCache, cacheKey);
+  if (cached) return cached;
+
   const [
     postLikes,
     postDislikes,
@@ -2030,22 +2143,22 @@ async function getUserInteractions(userId) {
     practiceRoomFavorites,
     shopFavorites,
   ] = await Promise.all([
-    loadRowsByActor('board_post_likes', userId),
-    loadRowsByActor('board_post_dislikes', userId),
-    loadRowsByActor('board_post_favorites', userId),
-    loadRowsByActor('board_anonymous_likes', userId),
-    loadRowsByActor('board_anonymous_dislikes', userId),
-    loadRowsByActor('board_comment_likes', userId),
-    loadRowsByActor('board_comment_dislikes', userId),
-    loadRowsByActor('board_anonymous_comment_likes', userId),
-    loadRowsByActor('board_anonymous_comment_dislikes', userId),
-    loadRowsByActor('event_favorites', userId),
-    loadRowsByActor('social_group_favorites', userId),
-    loadRowsByActor('practice_room_favorites', userId),
-    loadRowsByActor('shop_favorites', userId),
+    loadUserInteractionRows('board_post_likes', userId),
+    loadUserInteractionRows('board_post_dislikes', userId),
+    loadUserInteractionRows('board_post_favorites', userId),
+    loadUserInteractionRows('board_anonymous_likes', userId),
+    loadUserInteractionRows('board_anonymous_dislikes', userId),
+    loadUserInteractionRows('board_comment_likes', userId),
+    loadUserInteractionRows('board_comment_dislikes', userId),
+    loadUserInteractionRows('board_anonymous_comment_likes', userId),
+    loadUserInteractionRows('board_anonymous_comment_dislikes', userId),
+    loadUserInteractionRows('event_favorites', userId),
+    loadUserInteractionRows('social_group_favorites', userId),
+    loadUserInteractionRows('practice_room_favorites', userId),
+    loadUserInteractionRows('shop_favorites', userId),
   ]);
 
-  return {
+  const result = {
     post_likes: interactionIds(postLikes, userId, 'post_id', false),
     post_dislikes: interactionIds(postDislikes, userId, 'post_id', false),
     post_favorites: interactionIds(postFavorites, userId, 'post_id', false),
@@ -2060,6 +2173,8 @@ async function getUserInteractions(userId) {
     practice_room_favorites: interactionIds(practiceRoomFavorites, userId, 'practice_room_id', false),
     shop_favorites: interactionIds(shopFavorites, userId, 'shop_id', false),
   };
+  setCachedValue(userInteractionsCache, cacheKey, result);
+  return result;
 }
 
 function viewTargetTable(itemType) {
@@ -2694,30 +2809,39 @@ export async function deleteRecords(req, res) {
 export async function callRpc(req, res) {
   const name = req.params.name;
   const args = req.body?.args || {};
-  const user = await getCurrentUser(req);
-
-  if (adminOnlyRpcNames.has(name)) {
-    await requireAdmin(req);
-  }
-
-  if (name === 'get_user_admin_status') {
-    res.json(responsePayload({ data: Boolean(user?.is_admin) }));
-    return;
-  }
 
   if (name === 'get_board_static_data') {
     res.json(responsePayload({ data: await getBoardStaticData() }));
     return;
   }
 
+  let user;
+  const loadUser = async () => {
+    if (user === undefined) user = await getCurrentUser(req);
+    return user;
+  };
+
+  if (adminOnlyRpcNames.has(name)) {
+    user = await requireAdmin(req);
+  }
+
+  if (name === 'get_user_admin_status') {
+    const currentUser = await loadUser();
+    res.json(responsePayload({ data: Boolean(currentUser?.is_admin) }));
+    return;
+  }
+
   if (name === 'get_user_interactions') {
-    const requestedUserId = args.p_user_id || args.user_id || user?.id;
-    if (requestedUserId && !user?.is_admin && !userMatchesId(user, requestedUserId)) {
+    const currentUser = await loadUser();
+    const requestedUserId = args.p_user_id || args.user_id || currentUser?.id;
+    if (requestedUserId && !currentUser?.is_admin && !userMatchesId(currentUser, requestedUserId)) {
       throw httpError('조회 권한이 없습니다.', 403);
     }
     res.json(responsePayload({ data: await getUserInteractions(requestedUserId) }));
     return;
   }
+
+  user = await loadUser();
 
   if (name === 'create_usage_snapshot') {
     await createUsageSnapshot(args);

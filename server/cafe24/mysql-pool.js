@@ -20,7 +20,7 @@ export function getMysqlPool() {
     user: requireEnv('MYSQL_USER'),
     password: requireEnv('MYSQL_PASSWORD'),
     waitForConnections: true,
-    connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 5),
+    connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
     charset: 'utf8mb4',
     timezone: '+09:00',
   });

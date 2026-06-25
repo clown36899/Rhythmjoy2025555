@@ -22,7 +22,6 @@ interface BoardDetailModalProps {
 export default function BoardDetailModal({ postId, category, isOpen, onClose }: BoardDetailModalProps) {
     const { user, isAdmin, userProfile } = useAuth();
     const [showEditorModal, setShowEditorModal] = useState(false);
-    const [showComments, setShowComments] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
 
     const {
@@ -39,20 +38,6 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
         onPostDeleted: onClose,
         isAdmin
     });
-
-    useEffect(() => {
-        if (!post?.id) {
-            setShowComments(false);
-            return;
-        }
-
-        setShowComments(false);
-        const timerId = window.setTimeout(() => {
-            setShowComments(true);
-        }, 80);
-
-        return () => window.clearTimeout(timerId);
-    }, [post?.id]);
 
     useEffect(() => {
         const loadUserData = async () => {
@@ -301,11 +286,9 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
                         </div>
 
                         {/* Comment Section */}
-                        {showComments && (
-                            <Suspense fallback={null}>
-                                <CommentSection postId={post.id} category={(post as any).category || 'free'} />
-                            </Suspense>
-                        )}
+                        <Suspense fallback={null}>
+                            <CommentSection postId={post.id} category={(post as any).category || 'free'} />
+                        </Suspense>
                     </div>
                 )}
 
