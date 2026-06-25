@@ -431,7 +431,7 @@ const stopEditorKeyboardPropagation = (event: KeyboardEvent) => {
 };
 
 export default function SwingFloorCouncilPage() {
-  const { user, userProfile, isAuthCheckComplete, isAuthProcessing, signInWithKakao } = useAuth();
+  const { user, userProfile, isAuthCheckComplete, isAuthProcessing, isLoggingOut, signInWithKakao, signOut } = useAuth();
   const [content, setContent] = useState<CouncilContent>(DEFAULT_CONTENT);
   const [draft, setDraft] = useState<CouncilContent>(DEFAULT_CONTENT);
   const [draftListText, setDraftListText] = useState<Record<CouncilListKey, string>>(() => (
@@ -510,6 +510,16 @@ export default function SwingFloorCouncilPage() {
     } catch (error) {
       console.error('[SwingFloorCouncilPage] kakao login failed:', error);
       setStatusMessage('카카오 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
+
+  const handleLogout = async () => {
+    setStatusMessage('');
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('[SwingFloorCouncilPage] logout failed:', error);
+      setStatusMessage('로그아웃에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 
@@ -625,26 +635,44 @@ export default function SwingFloorCouncilPage() {
               : '편집하려면 카카오 로그인이 필요합니다'}
         </span>
         {isAuthCheckComplete && isKakaoUser ? (
-          isEditing ? (
-            <>
-              <button type="button" onClick={handleSave} disabled={isSaving}>
-                {isSaving ? '저장 중' : '저장'}
+          <div className="sfc-admin-actions">
+            {isEditing ? (
+              <>
+                <button type="button" onClick={handleSave} disabled={isSaving || isLoggingOut}>
+                  {isSaving ? '저장 중' : '저장'}
+                </button>
+                <button type="button" onClick={handleCancelEdit} disabled={isSaving || isLoggingOut}>
+                  취소
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={handleStartEdit} disabled={isLoggingOut}>
+                내용 편집
               </button>
-              <button type="button" onClick={handleCancelEdit} disabled={isSaving}>
-                취소
-              </button>
-            </>
-          ) : (
-            <button type="button" onClick={handleStartEdit}>
-              내용 편집
+            )}
+            <button type="button" className="sfc-logout-button" onClick={handleLogout} disabled={isSaving || isLoggingOut}>
+              {isLoggingOut ? '로그아웃 중' : '로그아웃'}
             </button>
-          )
+          </div>
+        ) : user ? (
+          <div className="sfc-admin-actions">
+            <button type="button" className="sfc-kakao-button" onClick={handleKakaoLogin} disabled={!isAuthCheckComplete || isAuthProcessing || isLoggingOut}>
+              {isAuthProcessing ? '로그인 확인 중' : '카카오 로그인'}
+            </button>
+            <button type="button" className="sfc-logout-button" onClick={handleLogout} disabled={isLoggingOut}>
+              {isLoggingOut ? '로그아웃 중' : '로그아웃'}
+            </button>
+          </div>
         ) : (
           <button type="button" className="sfc-kakao-button" onClick={handleKakaoLogin} disabled={!isAuthCheckComplete || isAuthProcessing}>
             {isAuthProcessing ? '로그인 확인 중' : '카카오 로그인'}
           </button>
         )}
       </div>
+
+      <p className="sfc-edit-record-note">
+        카카오 로그인 후 저장하면 편집한 사람, 저장 시각, 바뀐 항목, 변경 전/후 내용이 편집 기록에 남습니다.
+      </p>
 
       <section className="sfc-hero" aria-labelledby="sfc-title">
         <p className="sfc-kicker">{content.kicker}</p>

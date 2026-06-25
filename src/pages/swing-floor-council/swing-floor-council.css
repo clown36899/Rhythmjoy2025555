@@ -118,10 +118,33 @@
   padding: 0 10px;
 }
 
+.sfc-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .sfc-admin-bar .sfc-kakao-button {
   border-color: #181600;
   background: #fee500;
   color: #181600;
+}
+
+.sfc-admin-bar .sfc-logout-button {
+  border-color: rgba(25, 25, 25, 0.42);
+  background: #ffffff;
+  color: #4b463d;
+}
+
+.sfc-edit-record-note {
+  width: min(100%, 780px);
+  margin: -4px auto 18px;
+  color: #5b554b;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+  word-break: keep-all;
 }
 
 .sfc-status {
@@ -690,6 +713,25 @@
 @media (max-width: 520px) {
   .sfc-page {
     padding: 28px 16px 76px;
+  }
+
+  .sfc-admin-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sfc-admin-bar span,
+  .sfc-admin-actions,
+  .sfc-admin-bar button {
+    width: 100%;
+  }
+
+  .sfc-admin-actions {
+    justify-content: stretch;
+  }
+
+  .sfc-edit-record-note {
+    margin-top: -2px;
   }
 
   .sfc-hero {
