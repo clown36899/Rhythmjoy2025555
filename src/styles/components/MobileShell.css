@@ -413,6 +413,17 @@
   background: var(--shell-page-bg, #1c1c1d);
 }
 
+.swing-floor-council-shell {
+  --shell-page-bg: #f7f3ea;
+}
+
+.swing-floor-council-shell.layout-compact .shell-main-content,
+.swing-floor-council-shell.layout-wide .shell-main-content {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background: #f7f3ea;
+}
+
 
 
 /* Events Page Header */

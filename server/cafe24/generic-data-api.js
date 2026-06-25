@@ -205,6 +205,11 @@ const adminOnlyMutationTables = new Set([
   'webzine_posts',
 ]);
 
+const swingFloorCouncilAppSettingKeys = new Set([
+  'swing_floor_council_page_content',
+  'swing_floor_council_page_edit_history',
+]);
+
 const loginRequiredMutationTables = new Set([
   'board_comment_dislikes',
   'board_comment_likes',
@@ -309,7 +314,7 @@ function isOwnBoardUserRow(user, row) {
 }
 
 function getUserProvider(user) {
-  return user?.user_metadata?.provider || user?.app_metadata?.provider || 'email';
+  return String(user?.provider || user?.user_metadata?.provider || user?.app_metadata?.provider || 'email').toLowerCase();
 }
 
 function rowOwnerMatches(user, row = {}) {
@@ -351,6 +356,23 @@ function valuesContainAdminProtectedFields(table, values = []) {
   const protectedFields = adminProtectedMutationFieldsByTable[table];
   if (!protectedFields?.size) return false;
   return values.some((row) => Object.keys(row || {}).some((key) => protectedFields.has(key)));
+}
+
+function isSwingFloorCouncilAppSettingsMutation(table, action, body = {}) {
+  if (table !== 'app_settings') return false;
+  if (!['insert', 'update', 'upsert'].includes(action)) return false;
+
+  const values = getBodyValues(body);
+  return values.length > 0 && values.every((row) => (
+    row?.key && swingFloorCouncilAppSettingKeys.has(String(row.key))
+  ));
+}
+
+async function requireSwingFloorCouncilSettingsAccess(req) {
+  const user = await getCurrentUser(req);
+  if (!user) throw httpError('카카오 로그인이 필요합니다.', 401);
+  if (user.is_admin || getUserProvider(user) === 'kakao') return user;
+  throw httpError('카카오 로그인 사용자만 수정할 수 있습니다.', 403);
 }
 
 function stripPrivateFields(row = {}) {
@@ -538,6 +560,11 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
 
   if (table === 'user_home_menu_settings' && action === 'query') {
     await requireLoggedInMutationUser(req);
+  }
+
+  if (isSwingFloorCouncilAppSettingsMutation(table, action, body)) {
+    await requireSwingFloorCouncilSettingsAccess(req);
+    return;
   }
 
   if (adminOnlyGenericTables.has(table) || (isMutation && adminOnlyMutationTables.has(table))) {

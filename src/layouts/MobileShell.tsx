@@ -426,9 +426,9 @@ export const MobileShell: React.FC = () => {
   }, [translateButtonLabel]);
 
   return (
-    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''} ${isSwingFloorCouncilPage ? 'swing-floor-council-shell' : ''}`}>
       {/* Global Fixed Header */}
-      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && (
+      {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && !isSwingFloorCouncilPage && (
         <header className="shell-header global-header-fixed">
           <div className="header-content-inner">
             {/* Left/Center Content based on Route */}
@@ -747,7 +747,7 @@ export const MobileShell: React.FC = () => {
 
       {!isFullscreen && !isAdminV2Ingestor && !isSwingFloorCouncilPage && <HomeV2MenuPanel />}
 
-      {!isAdminV2Ingestor && (
+      {!isAdminV2Ingestor && !isSwingFloorCouncilPage && (
         <SideDrawer
           pageAction={pageAction}
           onPageActionClick={handlePageAction}

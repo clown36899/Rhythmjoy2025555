@@ -1,11 +1,13 @@
-import { useEffect, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cafe24 } from '../../lib/cafe24Client';
 
 import './swing-floor-council.css';
 
 const CONTENT_SETTING_KEY = 'swing_floor_council_page_content';
+const CONTENT_HISTORY_SETTING_KEY = 'swing_floor_council_page_edit_history';
 const CONTENT_SCHEMA_VERSION = 2;
+const MAX_EDIT_HISTORY_ENTRIES = 80;
 
 interface VoteStep {
   value: string;
@@ -50,6 +52,23 @@ interface CouncilContent {
   smallPrintBody: string;
 }
 
+interface CouncilEditChange {
+  field: string;
+  label: string;
+  before: string;
+  after: string;
+}
+
+interface CouncilEditHistoryEntry {
+  id: string;
+  editedAt: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  provider: string;
+  changes: CouncilEditChange[];
+}
+
 type CouncilListKey =
   | 'accountingRules'
   | 'bylawRules'
@@ -68,6 +87,74 @@ const COUNCIL_LIST_KEYS: CouncilListKey[] = [
   'simpleRules',
   'firstSteps',
 ];
+
+const HISTORY_COMPARE_KEYS: Array<keyof CouncilContent> = [
+  'kicker',
+  'title',
+  'lead',
+  'leadStrong',
+  'whyTitle',
+  'whyBody',
+  'bylawTitle',
+  'bylawRules',
+  'bylawBody',
+  'voteTitle',
+  'voteSteps',
+  'voteBody',
+  'voteDetailBody',
+  'accountingTitle',
+  'accountingBody',
+  'accountingRules',
+  'moneyTitle',
+  'moneyOptions',
+  'moneyBody',
+  'spendExamplesTitle',
+  'spendTargets',
+  'spendDecisionBody',
+  'rulesTitle',
+  'simpleRules',
+  'startTitle',
+  'firstSteps',
+  'joinTitle',
+  'joinBody1',
+  'joinBody2',
+  'smallPrintTitle',
+  'smallPrintBody',
+];
+
+const CONTENT_FIELD_LABELS: Partial<Record<keyof CouncilContent, string>> = {
+  kicker: '작은 라벨',
+  title: '맨 위 큰 제목',
+  lead: '맨 위 설명',
+  leadStrong: '강조 문장',
+  whyTitle: '01 섹션 제목',
+  whyBody: '01 내용',
+  bylawTitle: '02 섹션 제목',
+  bylawRules: '02 고정 조항 목록',
+  bylawBody: '02 고정 조항 설명',
+  voteTitle: '03 섹션 제목',
+  voteSteps: '03 투표 단계',
+  voteBody: '03 설명',
+  voteDetailBody: '03 투표 방식 보충 설명',
+  accountingTitle: '04 섹션 제목',
+  accountingBody: '04 내용',
+  accountingRules: '04 목록',
+  moneyTitle: '05 섹션 제목',
+  moneyOptions: '05 금액 선택지',
+  moneyBody: '05 설명',
+  spendExamplesTitle: '05 예시 목록 제목',
+  spendTargets: '05 사용처 예시 목록',
+  spendDecisionBody: '05 사용처 결정 방식 설명',
+  rulesTitle: '06 섹션 제목',
+  simpleRules: '06 목록',
+  startTitle: '07 섹션 제목',
+  firstSteps: '07 목록',
+  joinTitle: '08 섹션 제목',
+  joinBody1: '08 내용 1',
+  joinBody2: '08 내용 2',
+  smallPrintTitle: '하단 제목',
+  smallPrintBody: '하단 내용',
+};
 
 const DEFAULT_CONTENT: CouncilContent = {
   contentVersion: CONTENT_SCHEMA_VERSION,
@@ -230,7 +317,84 @@ const mergeContent = (value: unknown): CouncilContent => {
   };
 };
 
+const editHistoryFromValue = (value: unknown): CouncilEditHistoryEntry[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      const source = item && typeof item === 'object' ? item as Partial<CouncilEditHistoryEntry> : {};
+      const changes = Array.isArray(source.changes)
+        ? source.changes
+          .map((change) => {
+            const nextChange = change && typeof change === 'object' ? change as Partial<CouncilEditChange> : {};
+            return {
+              field: String(nextChange.field || ''),
+              label: String(nextChange.label || ''),
+              before: String(nextChange.before || ''),
+              after: String(nextChange.after || ''),
+            };
+          })
+          .filter((change) => change.field && change.label)
+        : [];
+
+      return {
+        id: String(source.id || ''),
+        editedAt: String(source.editedAt || ''),
+        userId: String(source.userId || ''),
+        userName: String(source.userName || ''),
+        userEmail: String(source.userEmail || ''),
+        provider: String(source.provider || ''),
+        changes,
+      };
+    })
+    .filter((entry) => entry.id && entry.editedAt && entry.changes.length)
+    .slice(0, MAX_EDIT_HISTORY_ENTRIES);
+};
+
 const listToText = (items: string[]) => items.join('\n');
+
+const voteStepsToText = (steps: VoteStep[]) => (
+  steps.map((step) => `${step.value} - ${step.label}`).join('\n')
+);
+
+const valueToHistoryText = (value: CouncilContent[keyof CouncilContent]) => {
+  if (Array.isArray(value)) {
+    if (value.every((item) => item && typeof item === 'object' && 'value' in item && 'label' in item)) {
+      return voteStepsToText(value as VoteStep[]);
+    }
+    return value.map((item) => String(item)).join('\n');
+  }
+
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return String(value ?? '');
+};
+
+const buildEditChanges = (before: CouncilContent, after: CouncilContent): CouncilEditChange[] => (
+  HISTORY_COMPARE_KEYS
+    .map((key) => {
+      const previous = valueToHistoryText(before[key]);
+      const next = valueToHistoryText(after[key]);
+      if (previous === next) return null;
+
+      return {
+        field: key,
+        label: CONTENT_FIELD_LABELS[key] || key,
+        before: previous,
+        after: next,
+      };
+    })
+    .filter((change): change is CouncilEditChange => Boolean(change))
+);
+
+const formatEditHistoryDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(date);
+};
 
 const contentToListTextDraft = (value: CouncilContent): Record<CouncilListKey, string> => ({
   accountingRules: listToText(value.accountingRules),
@@ -267,20 +431,31 @@ const stopEditorKeyboardPropagation = (event: KeyboardEvent) => {
 };
 
 export default function SwingFloorCouncilPage() {
-  const { isAdmin, isAuthCheckComplete } = useAuth();
-  const [copyLabel, setCopyLabel] = useState('링크 복사');
+  const { user, userProfile, isAuthCheckComplete, isAuthProcessing, signInWithKakao } = useAuth();
   const [content, setContent] = useState<CouncilContent>(DEFAULT_CONTENT);
   const [draft, setDraft] = useState<CouncilContent>(DEFAULT_CONTENT);
   const [draftListText, setDraftListText] = useState<Record<CouncilListKey, string>>(() => (
     contentToListTextDraft(DEFAULT_CONTENT)
   ));
+  const [editHistory, setEditHistory] = useState<CouncilEditHistoryEntry[]>([]);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const userProvider = String(
+    user?.app_metadata?.provider ||
+    user?.user_metadata?.provider ||
+    user?.provider ||
+    '',
+  ).toLowerCase();
+  const isKakaoUser = Boolean(user && userProvider === 'kakao');
+  const editorName = useMemo(() => (
+    userProfile?.nickname ||
+    String(user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || '이름 없음')
+  ), [user, userProfile]);
 
   useEffect(() => {
-    document.title = '스윙 플로어 협의체 발기인 모집 | 댄스빌보드';
+    document.title = '스윙 플로어 협의체 발기인 모집';
   }, []);
 
   useEffect(() => {
@@ -289,19 +464,31 @@ export default function SwingFloorCouncilPage() {
     const loadContent = async () => {
       setIsLoadingContent(true);
       try {
-        const { data, error } = await cafe24
-          .from('app_settings')
-          .select('value')
-          .eq('key', CONTENT_SETTING_KEY)
-          .maybeSingle();
+        const [
+          { data, error },
+          { data: historyData, error: historyError },
+        ] = await Promise.all([
+          cafe24
+            .from('app_settings')
+            .select('value')
+            .eq('key', CONTENT_SETTING_KEY)
+            .maybeSingle(),
+          cafe24
+            .from('app_settings')
+            .select('value')
+            .eq('key', CONTENT_HISTORY_SETTING_KEY)
+            .maybeSingle(),
+        ]);
 
         if (!active) return;
         if (error) throw error;
+        if (historyError) throw historyError;
 
         const nextContent = mergeContent(data?.value);
         setContent(nextContent);
         setDraft(nextContent);
         setDraftListText(contentToListTextDraft(nextContent));
+        setEditHistory(editHistoryFromValue(historyData?.value));
       } catch (error) {
         console.error('[SwingFloorCouncilPage] content load failed:', error);
         if (active) setStatusMessage('저장된 문안을 불러오지 못해 기본 문안을 표시 중입니다.');
@@ -316,18 +503,14 @@ export default function SwingFloorCouncilPage() {
     };
   }, []);
 
-  const handleCopyLink = async () => {
-    const url = window.location.href;
-
+  const handleKakaoLogin = async () => {
+    setStatusMessage('');
     try {
-      await navigator.clipboard.writeText(url);
-      setCopyLabel('복사됨');
-    } catch {
-      window.prompt('이 링크를 복사해주세요.', url);
-      setCopyLabel('복사 안내');
+      await signInWithKakao();
+    } catch (error) {
+      console.error('[SwingFloorCouncilPage] kakao login failed:', error);
+      setStatusMessage('카카오 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.');
     }
-
-    window.setTimeout(() => setCopyLabel('링크 복사'), 1800);
   };
 
   const updateDraft = <K extends keyof CouncilContent>(key: K, value: CouncilContent[K]) => {
@@ -349,6 +532,11 @@ export default function SwingFloorCouncilPage() {
   };
 
   const handleStartEdit = () => {
+    if (!isKakaoUser) {
+      setStatusMessage('편집 기록을 남기기 위해 카카오 로그인 후 수정할 수 있습니다.');
+      return;
+    }
+
     setDraft(content);
     setDraftListText(contentToListTextDraft(content));
     setStatusMessage('');
@@ -369,8 +557,8 @@ export default function SwingFloorCouncilPage() {
   };
 
   const handleSave = async () => {
-    if (!isAdmin) {
-      setStatusMessage('관리자만 저장할 수 있습니다.');
+    if (!isKakaoUser || !user) {
+      setStatusMessage('편집 기록을 남기기 위해 카카오 로그인 후 저장할 수 있습니다.');
       return;
     }
 
@@ -378,23 +566,49 @@ export default function SwingFloorCouncilPage() {
     setStatusMessage('');
     try {
       const normalized = mergeContent(contentWithListTextDraft(draft, draftListText));
+      const changes = buildEditChanges(content, normalized);
+
+      if (!changes.length) {
+        setStatusMessage('변경된 내용이 없습니다.');
+        setIsSaving(false);
+        return;
+      }
+
+      const historyEntry: CouncilEditHistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+        editedAt: new Date().toISOString(),
+        userId: String(user.id || ''),
+        userName: editorName,
+        userEmail: String(user.email || ''),
+        provider: userProvider || 'kakao',
+        changes,
+      };
+      const nextEditHistory = [historyEntry, ...editHistory].slice(0, MAX_EDIT_HISTORY_ENTRIES);
       const { error } = await cafe24
         .from('app_settings')
-        .upsert({
-          key: CONTENT_SETTING_KEY,
-          value: normalized,
-          description: 'Swing floor council founder page content',
-        }, { onConflict: 'key' });
+        .upsert([
+          {
+            key: CONTENT_SETTING_KEY,
+            value: normalized,
+            description: 'Swing floor council founder page content',
+          },
+          {
+            key: CONTENT_HISTORY_SETTING_KEY,
+            value: nextEditHistory,
+            description: 'Swing floor council founder page edit history',
+          },
+        ], { onConflict: 'key' });
 
       if (error) throw error;
       setContent(normalized);
       setDraft(normalized);
       setDraftListText(contentToListTextDraft(normalized));
+      setEditHistory(nextEditHistory);
       setIsEditing(false);
-      setStatusMessage('저장되었습니다. 공개 페이지에 바로 반영됐습니다.');
+      setStatusMessage(`저장되었습니다. 변경 ${changes.length}건이 편집 기록에 남았습니다.`);
     } catch (error) {
       console.error('[SwingFloorCouncilPage] content save failed:', error);
-      setStatusMessage('저장에 실패했습니다. 관리자 로그인 상태를 확인해주세요.');
+      setStatusMessage('저장에 실패했습니다. 카카오 로그인 상태를 확인해주세요.');
     } finally {
       setIsSaving(false);
     }
@@ -402,10 +616,16 @@ export default function SwingFloorCouncilPage() {
 
   return (
     <main className="sfc-page">
-      {isAuthCheckComplete && isAdmin && (
-        <div className="sfc-admin-bar" aria-label="관리자 편집">
-          <span>{isLoadingContent ? '문안 확인 중' : '관리자 편집'}</span>
-          {isEditing ? (
+      <div className="sfc-admin-bar" aria-label="문안 편집">
+        <span>
+          {isLoadingContent
+            ? '문안 확인 중'
+            : isKakaoUser
+              ? `카카오 로그인: ${editorName}`
+              : '편집하려면 카카오 로그인이 필요합니다'}
+        </span>
+        {isAuthCheckComplete && isKakaoUser ? (
+          isEditing ? (
             <>
               <button type="button" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? '저장 중' : '저장'}
@@ -418,25 +638,22 @@ export default function SwingFloorCouncilPage() {
             <button type="button" onClick={handleStartEdit}>
               내용 편집
             </button>
-          )}
-        </div>
-      )}
+          )
+        ) : (
+          <button type="button" className="sfc-kakao-button" onClick={handleKakaoLogin} disabled={!isAuthCheckComplete || isAuthProcessing}>
+            {isAuthProcessing ? '로그인 확인 중' : '카카오 로그인'}
+          </button>
+        )}
+      </div>
 
       <section className="sfc-hero" aria-labelledby="sfc-title">
         <p className="sfc-kicker">{content.kicker}</p>
         <h1 id="sfc-title">{content.title}</h1>
         <p className="sfc-lead">{content.lead}</p>
         <p className="sfc-lead sfc-lead-strong">{content.leadStrong}</p>
-
-        <div className="sfc-actions" aria-label="공유">
-          <button type="button" className="sfc-primary-button" onClick={handleCopyLink}>
-            <i className="ri-link" aria-hidden="true" />
-            {copyLabel}
-          </button>
-        </div>
       </section>
 
-      {statusMessage && (isAdmin || isEditing) && (
+      {statusMessage && (
         <p className="sfc-status" role="status">
           {statusMessage}
         </p>
@@ -455,6 +672,39 @@ export default function SwingFloorCouncilPage() {
               기본 초안으로
             </button>
           </div>
+
+          <details className="sfc-edit-history">
+            <summary>최근 편집 기록 {editHistory.length ? `${editHistory.length}건` : '없음'}</summary>
+            {editHistory.length ? (
+              <ol>
+                {editHistory.slice(0, 10).map((entry) => (
+                  <li key={entry.id}>
+                    <strong>{formatEditHistoryDate(entry.editedAt)}</strong>
+                    <span>{entry.userName || entry.userEmail || '이름 없음'}</span>
+                    <em>{entry.changes.map((change) => change.label).join(', ')}</em>
+                    <details className="sfc-edit-history-detail">
+                      <summary>변경 내용 보기</summary>
+                      {entry.changes.map((change) => (
+                        <div key={`${entry.id}-${change.field}`} className="sfc-edit-history-change">
+                          <b>{change.label}</b>
+                          <div>
+                            <small>변경 전</small>
+                            <pre>{change.before || '(빈 내용)'}</pre>
+                          </div>
+                          <div>
+                            <small>변경 후</small>
+                            <pre>{change.after || '(빈 내용)'}</pre>
+                          </div>
+                        </div>
+                      ))}
+                    </details>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p>아직 저장된 편집 기록이 없습니다.</p>
+            )}
+          </details>
 
           <label>
             작은 라벨
