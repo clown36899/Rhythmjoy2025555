@@ -6,8 +6,11 @@ const GOOGLE_OAUTH_NONCE_COOKIE = 'swingenjoy_google_oauth_nonce';
 const SESSION_DAYS = Number(process.env.SESSION_DAYS || 30);
 const SESSION_USER_CACHE_MS = Number(process.env.SESSION_USER_CACHE_MS || 30000);
 const ADMIN_ROWS_CACHE_MS = Number(process.env.ADMIN_ROWS_CACHE_MS || 30000);
+const GOOGLE_CALLBACK_CACHE_MS = Number(process.env.GOOGLE_CALLBACK_CACHE_MS || 10 * 60 * 1000);
 const sessionUserCache = new Map();
 const sessionUserLoads = new Map();
+const googleCallbackCache = new Map();
+const googleCallbackLoads = new Map();
 let boardAdminRowsCache = null;
 
 function parseCookies(req) {
@@ -113,6 +116,55 @@ function parseJson(value, fallback = {}) {
   } catch {
     return fallback;
   }
+}
+
+function addQueryParam(url, key, value) {
+  const safeUrl = normalizeReturnUrl(url);
+  const [pathWithSearch, hash = ''] = safeUrl.split('#');
+  const [pathname, search = ''] = pathWithSearch.split('?');
+  const params = new URLSearchParams(search);
+  params.set(key, value);
+  const nextSearch = params.toString();
+  return `${pathname}${nextSearch ? `?${nextSearch}` : ''}${hash ? `#${hash}` : ''}`;
+}
+
+function googleCallbackCacheKey(state, code) {
+  if (!state?.nonce || typeof code !== 'string' || !code) return null;
+  const codeHash = crypto.createHash('sha256').update(code).digest('base64url');
+  return `${state.nonce}:${codeHash}`;
+}
+
+function getCachedGoogleCallback(key) {
+  if (!key) return null;
+  const cached = googleCallbackCache.get(key);
+  if (!cached || cached.expiresAt <= Date.now()) {
+    googleCallbackCache.delete(key);
+    return null;
+  }
+  return cached.result;
+}
+
+function setCachedGoogleCallback(key, result) {
+  if (!key || !result?.sessionId) return;
+  const now = Date.now();
+  for (const [cacheKey, cached] of googleCallbackCache) {
+    if (!cached || cached.expiresAt <= now) googleCallbackCache.delete(cacheKey);
+  }
+  googleCallbackCache.set(key, {
+    result,
+    expiresAt: now + Math.max(1000, GOOGLE_CALLBACK_CACHE_MS),
+  });
+}
+
+function redirectGoogleLoginSuccess(req, res, result) {
+  clearGoogleNonceCookie(req, res);
+  setSessionCookie(req, res, result.sessionId, result.expiresAt);
+  res.redirect(result.returnUrl);
+}
+
+function redirectGoogleLoginFailure(req, res, returnUrl, reason = 'google') {
+  clearGoogleNonceCookie(req, res);
+  res.redirect(addQueryParam(returnUrl, 'auth_error', reason));
 }
 
 function normalizeEmail(value) {
@@ -535,10 +587,25 @@ async function fetchGoogleToken(code, redirectUri) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params,
   });
-  const payload = await response.json();
+  const payloadText = await response.text();
+  let payload = {};
+  try {
+    payload = payloadText ? JSON.parse(payloadText) : {};
+  } catch {
+    payload = {};
+  }
 
   if (!response.ok) {
-    throw new Error(`Google token exchange failed: ${payload.error_description || payload.error || response.status}`);
+    const error = new Error(`Google token exchange failed: ${payload.error_description || payload.error || response.statusText || response.status}`);
+    error.statusCode = 502;
+    error.googleOAuth = {
+      status: response.status,
+      statusText: response.statusText,
+      error: payload.error || null,
+      errorDescription: payload.error_description || null,
+      responseSnippet: payload.error || payload.error_description ? null : payloadText.slice(0, 180),
+    };
+    throw error;
   }
 
   return payload.access_token;
@@ -783,6 +850,7 @@ export async function googleLoginStart(req, res) {
 }
 
 export async function googleLoginCallback(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
   const state = decodeGoogleState(req.query?.state);
   const returnUrl = normalizeReturnUrl(state?.returnUrl);
   const cookies = parseCookies(req);
@@ -791,42 +859,77 @@ export async function googleLoginCallback(req, res) {
 
   try {
     if (req.query?.error) {
-      clearGoogleNonceCookie(req, res);
-      res.redirect(returnUrl);
+      redirectGoogleLoginFailure(req, res, returnUrl, 'google');
       return;
     }
 
     if (!state?.nonce || (!signedStateValid && (!expectedNonce || state.nonce !== expectedNonce))) {
-      clearGoogleNonceCookie(req, res);
-      res.status(400).type('text/plain').send('Invalid Google login state.');
+      redirectGoogleLoginFailure(req, res, returnUrl, 'google_state');
       return;
     }
 
     if (!state.ts || Date.now() - Number(state.ts) > 10 * 60 * 1000) {
-      clearGoogleNonceCookie(req, res);
-      res.status(400).type('text/plain').send('Google login request expired.');
+      redirectGoogleLoginFailure(req, res, returnUrl, 'google_expired');
       return;
     }
 
     const code = req.query?.code;
     if (typeof code !== 'string' || !code) {
-      clearGoogleNonceCookie(req, res);
-      res.status(400).type('text/plain').send('Google authorization code is required.');
+      redirectGoogleLoginFailure(req, res, returnUrl, 'google');
       return;
     }
 
-    const accessToken = await fetchGoogleToken(code, getGoogleRedirectUri(req));
-    const profile = await fetchGoogleProfile(accessToken);
-    const userRow = await upsertUser(profile);
-    await syncBoardUserProfile(getMysqlPool(), userRow).catch(() => {});
-    const { sessionId, expiresAt } = await createSession(userRow.id);
+    const cacheKey = googleCallbackCacheKey(state, code);
+    const cachedResult = getCachedGoogleCallback(cacheKey);
+    if (cachedResult) {
+      redirectGoogleLoginSuccess(req, res, cachedResult);
+      return;
+    }
 
-    clearGoogleNonceCookie(req, res);
-    setSessionCookie(req, res, sessionId, expiresAt);
-    res.redirect(returnUrl);
+    let load = googleCallbackLoads.get(cacheKey);
+    if (!load) {
+      load = (async () => {
+        const accessToken = await fetchGoogleToken(code, getGoogleRedirectUri(req));
+        const profile = await fetchGoogleProfile(accessToken);
+        const userRow = await upsertUser(profile);
+        await syncBoardUserProfile(getMysqlPool(), userRow).catch(() => {});
+        const { sessionId, expiresAt } = await createSession(userRow.id);
+        return {
+          sessionId,
+          expiresAt,
+          returnUrl,
+          userId: userRow.id,
+        };
+      })();
+      googleCallbackLoads.set(cacheKey, load);
+    }
+
+    const result = await load;
+    setCachedGoogleCallback(cacheKey, result);
+    if (googleCallbackLoads.get(cacheKey) === load) googleCallbackLoads.delete(cacheKey);
+    redirectGoogleLoginSuccess(req, res, result);
   } catch (error) {
-    clearGoogleNonceCookie(req, res);
-    throw error;
+    const code = req.query?.code;
+    const cacheKey = googleCallbackCacheKey(state, typeof code === 'string' ? code : '');
+    const cachedResult = getCachedGoogleCallback(cacheKey);
+    if (cachedResult) {
+      redirectGoogleLoginSuccess(req, res, cachedResult);
+      return;
+    }
+
+    if (cacheKey && googleCallbackLoads.has(cacheKey)) {
+      googleCallbackLoads.delete(cacheKey);
+    }
+
+    console.warn('[Google OAuth] callback failed', {
+      message: error?.message || String(error),
+      oauth: error?.googleOAuth || null,
+      hasSignedState: signedStateValid,
+      hasNonceCookie: Boolean(expectedNonce),
+      hasCode: typeof req.query?.code === 'string' && Boolean(req.query.code),
+      returnUrl,
+    });
+    redirectGoogleLoginFailure(req, res, returnUrl, 'google');
   }
 }
 
