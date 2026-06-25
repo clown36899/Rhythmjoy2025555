@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cafe24 } from '../../lib/cafe24Client';
 
@@ -55,6 +55,16 @@ type CouncilListKey =
   | 'spendTargets'
   | 'simpleRules'
   | 'firstSteps';
+
+const COUNCIL_LIST_KEYS: CouncilListKey[] = [
+  'accountingRules',
+  'bylawRules',
+  'noTouchRules',
+  'moneyOptions',
+  'spendTargets',
+  'simpleRules',
+  'firstSteps',
+];
 
 const DEFAULT_CONTENT: CouncilContent = {
   contentVersion: CONTENT_SCHEMA_VERSION,
@@ -206,6 +216,16 @@ const mergeContent = (value: unknown): CouncilContent => {
 
 const listToText = (items: string[]) => items.join('\n');
 
+const contentToListTextDraft = (value: CouncilContent): Record<CouncilListKey, string> => ({
+  accountingRules: listToText(value.accountingRules),
+  bylawRules: listToText(value.bylawRules),
+  noTouchRules: listToText(value.noTouchRules),
+  moneyOptions: listToText(value.moneyOptions),
+  spendTargets: listToText(value.spendTargets),
+  simpleRules: listToText(value.simpleRules),
+  firstSteps: listToText(value.firstSteps),
+});
+
 const textToList = (value: string) => (
   value
     .split('\n')
@@ -213,11 +233,31 @@ const textToList = (value: string) => (
     .filter(Boolean)
 );
 
+const contentWithListTextDraft = (
+  value: CouncilContent,
+  listTextDraft: Record<CouncilListKey, string>,
+): CouncilContent => {
+  const nextContent = { ...value };
+
+  COUNCIL_LIST_KEYS.forEach((key) => {
+    nextContent[key] = textToList(listTextDraft[key]) as CouncilContent[typeof key];
+  });
+
+  return nextContent;
+};
+
+const stopEditorKeyboardPropagation = (event: KeyboardEvent) => {
+  event.stopPropagation();
+};
+
 export default function SwingFloorCouncilPage() {
   const { isAdmin, isAuthCheckComplete } = useAuth();
   const [copyLabel, setCopyLabel] = useState('링크 복사');
   const [content, setContent] = useState<CouncilContent>(DEFAULT_CONTENT);
   const [draft, setDraft] = useState<CouncilContent>(DEFAULT_CONTENT);
+  const [draftListText, setDraftListText] = useState<Record<CouncilListKey, string>>(() => (
+    contentToListTextDraft(DEFAULT_CONTENT)
+  ));
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -245,6 +285,7 @@ export default function SwingFloorCouncilPage() {
         const nextContent = mergeContent(data?.value);
         setContent(nextContent);
         setDraft(nextContent);
+        setDraftListText(contentToListTextDraft(nextContent));
       } catch (error) {
         console.error('[SwingFloorCouncilPage] content load failed:', error);
         if (active) setStatusMessage('저장된 문안을 불러오지 못해 기본 문안을 표시 중입니다.');
@@ -278,6 +319,7 @@ export default function SwingFloorCouncilPage() {
   };
 
   const updateDraftList = (key: CouncilListKey, value: string) => {
+    setDraftListText((prev) => ({ ...prev, [key]: value }));
     updateDraft(key, textToList(value));
   };
 
@@ -292,12 +334,14 @@ export default function SwingFloorCouncilPage() {
 
   const handleStartEdit = () => {
     setDraft(content);
+    setDraftListText(contentToListTextDraft(content));
     setStatusMessage('');
     setIsEditing(true);
   };
 
   const handleCancelEdit = () => {
     setDraft(content);
+    setDraftListText(contentToListTextDraft(content));
     setIsEditing(false);
     setStatusMessage('');
   };
@@ -305,6 +349,7 @@ export default function SwingFloorCouncilPage() {
   const handleResetDraft = () => {
     if (!window.confirm('현재 편집 중인 내용을 기본 초안으로 되돌릴까요? 저장 전까지 공개 페이지에는 반영되지 않습니다.')) return;
     setDraft(DEFAULT_CONTENT);
+    setDraftListText(contentToListTextDraft(DEFAULT_CONTENT));
   };
 
   const handleSave = async () => {
@@ -316,7 +361,7 @@ export default function SwingFloorCouncilPage() {
     setIsSaving(true);
     setStatusMessage('');
     try {
-      const normalized = mergeContent(draft);
+      const normalized = mergeContent(contentWithListTextDraft(draft, draftListText));
       const { error } = await cafe24
         .from('app_settings')
         .upsert({
@@ -328,6 +373,7 @@ export default function SwingFloorCouncilPage() {
       if (error) throw error;
       setContent(normalized);
       setDraft(normalized);
+      setDraftListText(contentToListTextDraft(normalized));
       setIsEditing(false);
       setStatusMessage('저장되었습니다. 공개 페이지에 바로 반영됐습니다.');
     } catch (error) {
@@ -381,7 +427,12 @@ export default function SwingFloorCouncilPage() {
       )}
 
       {isEditing && (
-        <section className="sfc-editor" aria-label="문안 편집">
+        <section
+          className="sfc-editor"
+          aria-label="문안 편집"
+          onKeyDown={stopEditorKeyboardPropagation}
+          onKeyUp={stopEditorKeyboardPropagation}
+        >
           <div className="sfc-editor-head">
             <h2>문안 편집</h2>
             <button type="button" onClick={handleResetDraft} disabled={isSaving}>
@@ -428,7 +479,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               02 목록
-              <textarea rows={8} value={listToText(draft.bylawRules)} onChange={(event) => updateDraftList('bylawRules', event.target.value)} />
+              <textarea rows={8} value={draftListText.bylawRules} onChange={(event) => updateDraftList('bylawRules', event.target.value)} />
             </label>
           </div>
 
@@ -468,7 +519,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               04 목록
-              <textarea rows={6} value={listToText(draft.accountingRules)} onChange={(event) => updateDraftList('accountingRules', event.target.value)} />
+              <textarea rows={6} value={draftListText.accountingRules} onChange={(event) => updateDraftList('accountingRules', event.target.value)} />
             </label>
           </div>
 
@@ -479,7 +530,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               05 목록
-              <textarea rows={5} value={listToText(draft.noTouchRules)} onChange={(event) => updateDraftList('noTouchRules', event.target.value)} />
+              <textarea rows={5} value={draftListText.noTouchRules} onChange={(event) => updateDraftList('noTouchRules', event.target.value)} />
             </label>
             <label>
               05 아래 문장
@@ -494,7 +545,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               06 금액 선택지
-              <textarea rows={3} value={listToText(draft.moneyOptions)} onChange={(event) => updateDraftList('moneyOptions', event.target.value)} />
+              <textarea rows={3} value={draftListText.moneyOptions} onChange={(event) => updateDraftList('moneyOptions', event.target.value)} />
             </label>
             <label>
               06 설명
@@ -502,7 +553,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               06 사용처 목록
-              <textarea rows={6} value={listToText(draft.spendTargets)} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
+              <textarea rows={6} value={draftListText.spendTargets} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
             </label>
           </div>
 
@@ -513,7 +564,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               07 목록
-              <textarea rows={5} value={listToText(draft.simpleRules)} onChange={(event) => updateDraftList('simpleRules', event.target.value)} />
+              <textarea rows={5} value={draftListText.simpleRules} onChange={(event) => updateDraftList('simpleRules', event.target.value)} />
             </label>
           </div>
 
@@ -524,7 +575,7 @@ export default function SwingFloorCouncilPage() {
             </label>
             <label>
               08 목록
-              <textarea rows={4} value={listToText(draft.firstSteps)} onChange={(event) => updateDraftList('firstSteps', event.target.value)} />
+              <textarea rows={4} value={draftListText.firstSteps} onChange={(event) => updateDraftList('firstSteps', event.target.value)} />
             </label>
           </div>
 
