@@ -182,6 +182,7 @@ const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineLi
 const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
 const LinksPage = lazy(() => import('./pages/links/Page'));
 const PlacesPage = lazy(() => import('./pages/places/page'));
+const SwingFloorCouncilPage = lazy(() => import('./pages/swing-floor-council/page'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
@@ -330,6 +331,7 @@ const router = createBrowserRouter([
       { path: "/admin/ui/dance-expansion-guide", element: <Suspense fallback={null}><DanceExpansionGuidePage /></Suspense> },
       { path: "/links", element: <MenuVisibilityGate itemId="forum-links"><LinksPage /></MenuVisibilityGate> },
       { path: "/places", element: <MenuVisibilityGate itemId="places"><PlacesPage /></MenuVisibilityGate> },
+      { path: "/swing-floor-council", element: <SwingFloorCouncilPage /> },
 
       // Webzine Routes
       { path: "/webzine/:id", element: <WebzineViewer /> },

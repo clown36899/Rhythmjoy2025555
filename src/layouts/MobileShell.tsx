@@ -66,6 +66,7 @@ export const MobileShell: React.FC = () => {
   const isPlacesPage = currentPath === '/places';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
+  const isSwingFloorCouncilPage = currentPath === '/swing-floor-council';
 
   const handleCalendarHeaderDisplayMode = useCallback((mode: CalendarHeaderDisplayMode) => {
     setCalendarHeaderDisplayMode(mode);
@@ -744,7 +745,7 @@ export const MobileShell: React.FC = () => {
         <Outlet context={{ category, isFullscreen }} />
       </div>
 
-      {!isFullscreen && !isAdminV2Ingestor && <HomeV2MenuPanel />}
+      {!isFullscreen && !isAdminV2Ingestor && !isSwingFloorCouncilPage && <HomeV2MenuPanel />}
 
       {!isAdminV2Ingestor && (
         <SideDrawer
