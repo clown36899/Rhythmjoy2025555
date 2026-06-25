@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createCafe24FunctionHandler } from './cafe24-function-adapter.js';
+import { elapsedMs, nowMs, perfLog, perfShouldLog, summarizeApiRequest } from './perf-log.js';
 import {
   createCafe24Event,
   deleteCafe24Event,
@@ -77,6 +78,37 @@ app.use((_req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   res.setHeader('X-DNS-Prefetch-Control', 'on');
   res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://xn--9m1bu8iv0ao6ao5fsta.com");
+  next();
+});
+
+app.use((req, res, next) => {
+  if (!String(req.path || '').startsWith('/api/')) {
+    next();
+    return;
+  }
+
+  const startedAt = nowMs();
+  res.on('finish', () => {
+    const pathName = req.path || req.originalUrl || '';
+    const ms = elapsedMs(startedAt);
+    const always =
+      pathName === '/api/auth/me' ||
+      pathName === '/api/analytics/session' ||
+      pathName.startsWith('/api/auth/google/') ||
+      pathName.startsWith('/api/cafe24-rpc/get_user_interactions') ||
+      pathName.startsWith('/api/cafe24-rpc/increment_item_views') ||
+      pathName.startsWith('/api/cafe24-data/board_');
+
+    if (!perfShouldLog(ms, always)) return;
+
+    perfLog('http', {
+      method: req.method,
+      path: pathName,
+      status: res.statusCode,
+      ms,
+      ...summarizeApiRequest(req),
+    }, ms >= 1000 || res.statusCode >= 500 ? 'warn' : 'log');
+  });
   next();
 });
 

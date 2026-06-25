@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { cafe24 } from '../lib/cafe24Client';
+import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
 
 interface BoardCategory {
     id: number;
@@ -184,14 +185,28 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchInteractions = useCallback(async (userId: string) => {
+        const startedAt = perfNow();
+        perfInfo('board.interactions.start', {
+            hasUserId: Boolean(userId),
+        });
         try {
             const { data: interactionData, error: interactionError } = await cafe24.rpc('get_user_interactions', {
                 p_user_id: userId
             });
             if (interactionError) throw interactionError;
             setInteractions(interactionData);
+            perfInfo('board.interactions.done', {
+                ms: perfMs(startedAt),
+                postLikes: interactionData?.post_likes?.length || 0,
+                postFavorites: interactionData?.post_favorites?.length || 0,
+                eventFavorites: interactionData?.event_favorites?.length || 0,
+            });
         } catch (err) {
             console.error('[BoardDataContext] Interactions Error:', err);
+            perfInfo('board.interactions.error', {
+                ms: perfMs(startedAt),
+                error: err instanceof Error ? err.message : String(err),
+            });
             setInteractions({
                 post_likes: [], post_dislikes: [], post_favorites: [],
                 anonymous_post_likes: [], anonymous_post_dislikes: [],

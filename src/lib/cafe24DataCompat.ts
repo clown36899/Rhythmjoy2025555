@@ -1,3 +1,5 @@
+import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
+
 type Filter = {
   field: string;
   op: string;
@@ -110,6 +112,15 @@ async function postJson(url: string, body: unknown) {
   const canRetry = isReadOnlyDataRequest(url, body);
   const attempts = canRetry ? 3 : 1;
   let lastResult: any = null;
+  const startedAt = perfNow();
+  const traceMeta = {
+    url,
+    action: (body as { action?: string } | null)?.action || null,
+    table: (body as { table?: string } | null)?.table || null,
+    rpc: url.includes('/api/cafe24-rpc/') ? decodeURIComponent(url.split('/api/cafe24-rpc/').pop() || '') : null,
+    canRetry,
+  };
+  perfInfo('cafe24.post.start', traceMeta);
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
@@ -127,6 +138,13 @@ async function postJson(url: string, body: unknown) {
         continue;
       }
 
+      perfInfo('cafe24.post.done', {
+        ...traceMeta,
+        attempt: attempt + 1,
+        status: result?.status,
+        hasError: Boolean(result?.error),
+        ms: perfMs(startedAt),
+      });
       return result;
     } catch (error) {
       lastResult = networkErrorResult(url, error);
@@ -134,10 +152,23 @@ async function postJson(url: string, body: unknown) {
         await sleep(attempt === 0 ? 250 : 800);
         continue;
       }
+      perfInfo('cafe24.post.error', {
+        ...traceMeta,
+        attempt: attempt + 1,
+        ms: perfMs(startedAt),
+        error: error instanceof Error ? error.message : String(error),
+      });
       return lastResult;
     }
   }
 
+  perfInfo('cafe24.post.done', {
+    ...traceMeta,
+    attempt: attempts,
+    status: lastResult?.status,
+    hasError: Boolean(lastResult?.error),
+    ms: perfMs(startedAt),
+  });
   return lastResult;
 }
 

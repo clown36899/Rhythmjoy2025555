@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import type { BoardPost } from './useBoardPosts';
 import { useViewTracking } from '../../../hooks/useViewTracking';
+import { perfInfo, perfMs, perfNow } from '../../../utils/perfTrace';
 
 interface UseBoardDetailProps {
     postId: string | undefined;
@@ -32,6 +33,13 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         loadRequestRef.current = requestId;
         const isLatestRequest = () => loadRequestRef.current === requestId;
         const requestKey = getBoardDetailRequestKey(targetPostId, category);
+        const startedAt = perfNow();
+        perfInfo('board.detail.start', {
+            postId: targetPostId,
+            category,
+            requestKey,
+            isAdmin: Boolean(isAdmin),
+        }, Boolean(isAdmin));
 
         try {
             setLoading(true);
@@ -85,18 +93,39 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
                 .select(selectColumns)
                 .eq('id', targetPostId)
                 .maybeSingle();
+            perfInfo('board.detail.query.done', {
+                postId: targetPostId,
+                category,
+                requestKey,
+                isAdmin: Boolean(isAdmin),
+                ms: perfMs(startedAt),
+                found: Boolean(data),
+                hasError: Boolean(error),
+            }, Boolean(isAdmin));
 
             if (!isLatestRequest()) return;
             if (error) throw error;
             if (!data) {
                 setPost(null);
                 setLoadedRequestKey(requestKey);
+                perfInfo('board.detail.not-found', {
+                    postId: targetPostId,
+                    category,
+                    requestKey,
+                    ms: perfMs(startedAt),
+                }, Boolean(isAdmin));
                 return;
             }
 
             if (data.is_hidden && !isAdmin) {
                 setPost(null);
                 setLoadedRequestKey(requestKey);
+                perfInfo('board.detail.hidden-for-user', {
+                    postId: targetPostId,
+                    category,
+                    requestKey,
+                    ms: perfMs(startedAt),
+                }, Boolean(isAdmin));
                 return;
             }
 
@@ -115,6 +144,13 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
 
             setPost(transformedPost as BoardPost);
             setLoadedRequestKey(requestKey);
+            perfInfo('board.detail.done', {
+                postId: targetPostId,
+                category: transformedPost.category,
+                requestKey,
+                isAdmin: Boolean(isAdmin),
+                ms: perfMs(startedAt),
+            }, Boolean(isAdmin));
 
             window.setTimeout(() => {
                 if (!isLatestRequest()) return;
@@ -126,6 +162,14 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         } catch (error) {
             if (!isLatestRequest()) return;
             console.error('게시글 로딩 실패:', error);
+            perfInfo('board.detail.error', {
+                postId: targetPostId,
+                category,
+                requestKey,
+                isAdmin: Boolean(isAdmin),
+                ms: perfMs(startedAt),
+                error: error instanceof Error ? error.message : String(error),
+            }, Boolean(isAdmin));
             setError(error instanceof Error ? error.message : '게시글 로딩 실패');
             setPost(null);
             setLoadedRequestKey(requestKey);

@@ -22,6 +22,7 @@ import {
   isAnalyticsExcludedIpRow,
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
+import { createPerfTrace } from './perf-log.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -2106,7 +2107,11 @@ function loadUserInteractionRows(table, userId) {
 }
 
 async function getUserInteractions(userId) {
+  const trace = createPerfTrace('user-interactions', {
+    hasUserId: Boolean(userId),
+  }, { thresholdMs: 50 });
   if (!userId) {
+    trace.end({ skipped: true, reason: 'missing_user' });
     return {
       post_likes: [],
       post_dislikes: [],
@@ -2126,7 +2131,10 @@ async function getUserInteractions(userId) {
 
   const cacheKey = String(userId);
   const cached = getCachedValue(userInteractionsCache, cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    trace.end({ cached: true });
+    return cached;
+  }
 
   const [
     postLikes,
@@ -2157,6 +2165,21 @@ async function getUserInteractions(userId) {
     loadUserInteractionRows('practice_room_favorites', userId),
     loadUserInteractionRows('shop_favorites', userId),
   ]);
+  trace.mark('load-rows', {
+    postLikes: postLikes.length,
+    postDislikes: postDislikes.length,
+    postFavorites: postFavorites.length,
+    anonymousPostLikes: anonymousPostLikes.length,
+    anonymousPostDislikes: anonymousPostDislikes.length,
+    commentLikes: commentLikes.length,
+    commentDislikes: commentDislikes.length,
+    anonymousCommentLikes: anonymousCommentLikes.length,
+    anonymousCommentDislikes: anonymousCommentDislikes.length,
+    eventFavorites: eventFavorites.length,
+    socialGroupFavorites: socialGroupFavorites.length,
+    practiceRoomFavorites: practiceRoomFavorites.length,
+    shopFavorites: shopFavorites.length,
+  });
 
   const result = {
     post_likes: interactionIds(postLikes, userId, 'post_id', false),
@@ -2174,6 +2197,12 @@ async function getUserInteractions(userId) {
     shop_favorites: interactionIds(shopFavorites, userId, 'shop_id', false),
   };
   setCachedValue(userInteractionsCache, cacheKey, result);
+  trace.end({
+    cached: false,
+    postLikes: result.post_likes.length,
+    postFavorites: result.post_favorites.length,
+    eventFavorites: result.event_favorites.length,
+  });
   return result;
 }
 
@@ -2671,36 +2700,64 @@ async function incrementWebzineView(args = {}) {
 
 export async function queryRecords(req, res) {
   const table = req.params.table;
-  await requireGenericAccess(req, table, 'query', req.body || {});
   const body = req.body || {};
-  const user = queryNeedsCurrentUser(table, body.select || '') ? await getCurrentUser(req) : null;
-  const rows = await loadRowsForQuery(table, body);
-  const visibleRows = table === 'sns_media_playlists'
-    ? await filterSnsMediaPlaylistsForViewer(rows, user)
-    : filterRowsForViewer(table, rows, user);
-  let data = applyFilters(visibleRows, body.filters || [], body.orFilters || []);
-  const count = data.length;
-  data = applyOrders(data, body.orders || []);
-  data = applyRange(data, body.range, body.limit);
-  data = await hydrateRows(table, data, body.select || '', user);
-  if (table === 'events') {
-    data = sanitizeEventsForViewer(await attachEventAuthors(data), user);
-  } else {
-    data = sanitizeRowsForViewer(table, data, user);
-  }
-  data = projectRowsBySelect(table, data, body.select || '');
+  const trace = createPerfTrace('generic-query', {
+    table,
+    action: 'query',
+    selectSize: typeof body.select === 'string' ? body.select.length : 0,
+    filterCount: Array.isArray(body.filters) ? body.filters.length : 0,
+    hasSessionCookie: String(req.headers.cookie || '').includes('swingenjoy_session='),
+  }, { always: table.startsWith('board_'), thresholdMs: 100 });
 
-  if (body.head) {
-    res.json(responsePayload({ data: null, count }));
-    return;
-  }
+  try {
+    await requireGenericAccess(req, table, 'query', body);
+    trace.mark('access-ok');
+    const user = queryNeedsCurrentUser(table, body.select || '') ? await getCurrentUser(req) : null;
+    trace.mark('current-user', {
+      needsUser: queryNeedsCurrentUser(table, body.select || ''),
+      hasUser: Boolean(user?.id),
+      isAdmin: Boolean(user?.is_admin),
+    });
+    const rows = await loadRowsForQuery(table, body);
+    trace.mark('load-rows', { rows: rows.length });
+    const visibleRows = table === 'sns_media_playlists'
+      ? await filterSnsMediaPlaylistsForViewer(rows, user)
+      : filterRowsForViewer(table, rows, user);
+    trace.mark('filter-visible', { visibleRows: visibleRows.length });
+    let data = applyFilters(visibleRows, body.filters || [], body.orFilters || []);
+    const count = data.length;
+    trace.mark('apply-filters', { count });
+    data = applyOrders(data, body.orders || []);
+    data = applyRange(data, body.range, body.limit);
+    trace.mark('order-range', { returnedBeforeHydrate: data.length });
+    data = await hydrateRows(table, data, body.select || '', user);
+    trace.mark('hydrate', { rows: data.length });
+    if (table === 'events') {
+      data = sanitizeEventsForViewer(await attachEventAuthors(data), user);
+    } else {
+      data = sanitizeRowsForViewer(table, data, user);
+    }
+    data = projectRowsBySelect(table, data, body.select || '');
+    trace.mark('sanitize-project', { rows: data.length });
 
-  if (body.single || body.maybeSingle) {
-    res.json(responsePayload({ data: data[0] || null, count }));
-    return;
-  }
+    if (body.head) {
+      trace.end({ count, returned: 0, head: true });
+      res.json(responsePayload({ data: null, count }));
+      return;
+    }
 
-  res.json(responsePayload({ data, count }));
+    if (body.single || body.maybeSingle) {
+      trace.end({ count, returned: data[0] ? 1 : 0, single: Boolean(body.single), maybeSingle: Boolean(body.maybeSingle) });
+      res.json(responsePayload({ data: data[0] || null, count }));
+      return;
+    }
+
+    trace.end({ count, returned: data.length });
+    res.json(responsePayload({ data, count }));
+  } catch (error) {
+    trace.error(error);
+    throw error;
+  }
 }
 
 export async function insertRecords(req, res) {
@@ -2832,12 +2889,28 @@ export async function callRpc(req, res) {
   }
 
   if (name === 'get_user_interactions') {
+    const trace = createPerfTrace('rpc-get-user-interactions', {
+      hasSessionCookie: String(req.headers.cookie || '').includes('swingenjoy_session='),
+      hasRequestedUserId: Boolean(args.p_user_id || args.user_id),
+    }, { always: true });
     const currentUser = await loadUser();
+    trace.mark('load-user', {
+      hasUser: Boolean(currentUser?.id),
+      isAdmin: Boolean(currentUser?.is_admin),
+    });
     const requestedUserId = args.p_user_id || args.user_id || currentUser?.id;
     if (requestedUserId && !currentUser?.is_admin && !userMatchesId(currentUser, requestedUserId)) {
+      trace.end({ rejected: true, reason: 'forbidden' });
       throw httpError('조회 권한이 없습니다.', 403);
     }
-    res.json(responsePayload({ data: await getUserInteractions(requestedUserId) }));
+    const data = await getUserInteractions(requestedUserId);
+    trace.end({
+      rejected: false,
+      hasData: Boolean(data),
+      postLikes: data?.post_likes?.length || 0,
+      postFavorites: data?.post_favorites?.length || 0,
+    });
+    res.json(responsePayload({ data }));
     return;
   }
 
@@ -2974,7 +3047,15 @@ export async function callRpc(req, res) {
   }
 
   if (name === 'increment_item_views') {
-    res.json(responsePayload({ data: await incrementItemViews(args, { req, user }) }));
+    const trace = createPerfTrace('rpc-increment-item-views', {
+      itemType: args.p_item_type || args.item_type || null,
+      hasUser: Boolean(user?.id),
+      isAdmin: Boolean(user?.is_admin),
+      payloadIsAdmin: asAnalyticsBool(args.p_is_admin ?? args.is_admin),
+    }, { always: true });
+    const data = await incrementItemViews(args, { req, user });
+    trace.end({ incremented: Boolean(data) });
+    res.json(responsePayload({ data }));
     return;
   }
 

@@ -9,6 +9,7 @@ import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/a
 import { isPWAMode } from '../lib/pwaDetect';
 import { getAuthPkceVerifierKey, removeLegacyAuthStorageKeys } from '../lib/authStorageKeys';
 import { ANALYTICS_ADMIN_SHIELD_KEY } from '../utils/analyticsGuards';
+import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
 
 const CAFE24_AUTH_ENABLED =
   import.meta.env.VITE_CAFE24_AUTH_BACKEND !== 'disabled';
@@ -573,8 +574,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const validateSession = useCallback(async () => {
     if (CAFE24_AUTH_ENABLED) {
+      const startedAt = perfNow();
+      perfInfo('auth.me.manual.start');
       const response = await fetch('/api/auth/me', { credentials: 'same-origin' });
       const data = await response.json();
+      perfInfo('auth.me.manual.done', {
+        ms: perfMs(startedAt),
+        status: response.status,
+        hasUser: Boolean(data.user),
+        isAdmin: Boolean(data.isAdmin),
+        provider: data.user?.app_metadata?.provider || null,
+      }, Boolean(data.isAdmin));
       const nextUser = data.user || null;
       setUser(nextUser);
       setSession(null);
@@ -607,8 +617,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let safetyTimeoutId: NodeJS.Timeout | null = null;
 
     if (CAFE24_AUTH_ENABLED) {
+      const startedAt = perfNow();
+      perfInfo('auth.me.initial.start');
       fetch('/api/auth/me', { credentials: 'same-origin' })
-        .then((response) => response.json())
+        .then(async (response) => {
+          const data = await response.json();
+          perfInfo('auth.me.initial.done', {
+            ms: perfMs(startedAt),
+            status: response.status,
+            hasUser: Boolean(data.user),
+            isAdmin: Boolean(data.isAdmin),
+            provider: data.user?.app_metadata?.provider || null,
+          }, Boolean(data.isAdmin));
+          return data;
+        })
         .then((data) => {
           if (!isMounted) return;
           const nextUser = data.user || null;
@@ -630,8 +652,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionStorage.removeItem('google_login_in_progress');
           sessionStorage.removeItem('google_login_start_time');
         })
-        .catch(() => {
+        .catch((error) => {
           if (!isMounted) return;
+          perfInfo('auth.me.initial.error', {
+            ms: perfMs(startedAt),
+            error: error instanceof Error ? error.message : String(error),
+          });
           setUser(null);
           setSession(null);
           setIsAdmin(false);

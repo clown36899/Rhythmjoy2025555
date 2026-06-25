@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import type { StandardBoardPost, AnonymousBoardPost } from '../../../types/board';
+import { perfInfo, perfMs, perfNow } from '../../../utils/perfTrace';
 
 export type BoardPost = StandardBoardPost | AnonymousBoardPost;
 import type { BoardCategory } from '../components/BoardTabBar';
@@ -22,6 +23,15 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
     const loadPosts = useCallback(async () => {
         if (!isAdminChecked) return;
+
+        const startedAt = perfNow();
+        perfInfo('board.posts.start', {
+            category,
+            currentPage,
+            postsPerPage,
+            isRealAdmin,
+            prefixId,
+        }, isRealAdmin);
 
         try {
             setLoading(true);
@@ -77,6 +87,13 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             const to = from + postsPerPage - 1;
 
             const { data, error, count } = await query.range(from, to);
+            perfInfo('board.posts.query.done', {
+                category,
+                isRealAdmin,
+                ms: perfMs(startedAt),
+                rows: Array.isArray(data) ? data.length : 0,
+                count: count || 0,
+            }, isRealAdmin);
 
             if (error) throw error;
             setTotalCount(count || 0);
@@ -113,8 +130,21 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             });
 
             setPosts(normalizedPosts as BoardPost[]);
+            perfInfo('board.posts.done', {
+                category,
+                isRealAdmin,
+                ms: perfMs(startedAt),
+                rows: normalizedPosts.length,
+                totalCount: count || 0,
+            }, isRealAdmin);
         } catch (err) {
             console.error('게시글 로딩 실패:', err);
+            perfInfo('board.posts.error', {
+                category,
+                isRealAdmin,
+                ms: perfMs(startedAt),
+                error: err instanceof Error ? err.message : String(err),
+            }, isRealAdmin);
             setError(err);
             setPosts([]);
             setTotalCount(0);

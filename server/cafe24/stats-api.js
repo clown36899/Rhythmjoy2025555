@@ -11,6 +11,7 @@ import {
   isAnalyticsExcludedIpRow,
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
+import { createPerfTrace } from './perf-log.js';
 
 const EVENT_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
@@ -92,12 +93,18 @@ async function getAnalyticsAdminIdentityCache() {
   const now = Date.now();
   if (analyticsAdminIdentityCache.expiresAt > now) return analyticsAdminIdentityCache;
 
+  const trace = createPerfTrace('analytics-admin-cache', { phase: 'rebuild' }, { thresholdMs: 100 });
   const pool = getMysqlPool();
   const [admins, userResult, boardUsers] = await Promise.all([
     loadCafe24TableRows('board_admins').catch(() => []),
     pool.execute('SELECT id, email, is_admin FROM users').then(([rows]) => rows).catch(() => []),
     loadCafe24TableRows('board_users').catch(() => []),
   ]);
+  trace.mark('load-admin-sources', {
+    boardAdmins: admins.length,
+    users: Array.isArray(userResult) ? userResult.length : 0,
+    boardUsers: boardUsers.length,
+  });
   const users = Array.isArray(userResult) ? userResult : [];
   const userIds = new Set();
   const emails = new Set(configuredAdminEmails());
@@ -124,6 +131,10 @@ async function getAnalyticsAdminIdentityCache() {
     loadCafe24TableRows('session_logs').catch(() => []),
     loadCafe24TableRows('site_analytics_logs').catch(() => []),
   ]);
+  trace.mark('load-analytics-rows', {
+    sessions: sessions.length,
+    logs: logs.length,
+  });
   const { sessionIds, fingerprints, networkDeviceIds } = buildAnalyticsAdminDeviceIds([...sessions, ...logs], userIds);
 
   analyticsAdminIdentityCache = {
@@ -134,6 +145,13 @@ async function getAnalyticsAdminIdentityCache() {
     fingerprints,
     networkDeviceIds,
   };
+  trace.end({
+    adminUserIds: userIds.size,
+    adminEmails: emails.size,
+    adminSessionIds: sessionIds.size,
+    adminFingerprints: fingerprints.size,
+    adminNetworkDeviceIds: networkDeviceIds.size,
+  });
   return analyticsAdminIdentityCache;
 }
 
@@ -572,10 +590,22 @@ async function linkAnalyticsRowsToIdentity({
 }) {
   if ((!userId && !isAdmin) || (!sessionId && !fingerprint && !networkDeviceId)) return { updated: 0 };
 
+  const trace = createPerfTrace('analytics-link-identity', {
+    hasUserId: Boolean(userId),
+    isAdmin: Boolean(isAdmin),
+    hasSessionId: Boolean(sessionId),
+    hasFingerprint: Boolean(fingerprint),
+    hasNetworkDeviceId: Boolean(networkDeviceId),
+    reason,
+  }, { thresholdMs: 100 });
   const [sessions, logs] = await Promise.all([
     loadCafe24TableRows('session_logs').catch(() => []),
     loadCafe24TableRows('site_analytics_logs').catch(() => []),
   ]);
+  trace.mark('load-rows', {
+    sessions: sessions.length,
+    logs: logs.length,
+  });
   const now = new Date().toISOString();
   const targets = [
     ...sessions.map((row) => ({ table: 'session_logs', row })),
@@ -598,8 +628,16 @@ async function linkAnalyticsRowsToIdentity({
     await saveCafe24TableRow(table, nextRow, table === 'session_logs' ? ['session_id'] : []);
     updated += 1;
   }
+  trace.mark('scan-and-save', {
+    scanned: targets.length,
+    updated,
+  });
 
   if (isAdmin && updated > 0) invalidateAnalyticsAdminIdentityCache();
+  trace.end({
+    scanned: targets.length,
+    updated,
+  });
   return { updated };
 }
 
@@ -818,9 +856,18 @@ export async function eventStats(_req, res) {
 }
 
 export async function recordAnalytics(req, res) {
+  const trace = createPerfTrace('analytics-record', {
+    action: asString(req.body?.action) || asString(req.body?.event_type || req.body?.type) || null,
+    payloadIsAdmin: asBool(req.body?.is_admin, false),
+    hasCookie: String(req.headers.cookie || '').includes(`${SESSION_COOKIE}=`),
+  }, { always: true });
   const pool = getMysqlPool();
   const requestIp = requestClientIp(req);
   const currentUser = await getAnalyticsRequestUser(req, pool).catch(() => null);
+  trace.mark('resolve-current-user', {
+    hasUser: Boolean(currentUser?.id),
+    userIsAdmin: asBool(currentUser?.is_admin, false),
+  });
   const trustedUserId = currentUser?.id ? String(currentUser.id) : null;
   const requestSessionId = asString(req.body?.session_id || req.body?.sessionId);
   const requestFingerprint = asString(req.body?.fingerprint);
@@ -833,6 +880,11 @@ export async function recordAnalytics(req, res) {
   let trustedIsAdmin = asBool(currentUser?.is_admin, false);
   if (!trustedIsAdmin) {
     const adminIdentities = await getAnalyticsAdminIdentityCache();
+    trace.mark('admin-identity-cache', {
+      sessionIds: adminIdentities.sessionIds.size,
+      fingerprints: adminIdentities.fingerprints.size,
+      networkDeviceIds: adminIdentities.networkDeviceIds.size,
+    });
     trustedIsAdmin = Boolean(
       (requestSessionId && adminIdentities.sessionIds.has(requestSessionId)) ||
       (requestFingerprint && adminIdentities.fingerprints.has(requestFingerprint)) ||
@@ -857,6 +909,10 @@ export async function recordAnalytics(req, res) {
       networkDeviceId: requestNetworkDeviceId,
       reason: trustedIsAdmin ? 'request_admin_identity' : 'request_authenticated_identity',
     });
+    trace.mark('link-request-identity', {
+      trustedUserId: Boolean(trustedUserId),
+      trustedIsAdmin,
+    });
   }
 
   if (trustedIsAdmin) {
@@ -866,6 +922,8 @@ export async function recordAnalytics(req, res) {
       analytics_exclusion_reason: 'trusted_admin_identity',
     }, req);
     invalidateAnalyticsAdminIdentityCache();
+    trace.mark('save-admin-compat');
+    trace.end({ skipped: true, reason: 'admin_identity' });
     res.json({ ok: true, skipped: true, reason: 'admin_identity' });
     return;
   }
@@ -877,6 +935,7 @@ export async function recordAnalytics(req, res) {
     isAnalyticsExcludedIpRow(body) ||
     isInternalAnalyticsPayload(body)
   ) {
+    trace.end({ skipped: true, reason: 'excluded_or_internal' });
     res.json({ ok: true, skipped: true });
     return;
   }
@@ -899,6 +958,7 @@ export async function recordAnalytics(req, res) {
 
   await saveCafe24AnalyticsCompat(body, req);
 
+  trace.end({ skipped: false });
   res.json({ ok: true });
 }
 

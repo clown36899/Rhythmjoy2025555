@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { initializeFingerprint, isInternalAnalyticsRoute, isKioskAnalyticsContext, trackEvent, initializeAnalyticsSession } from '../utils/analyticsEngine';
 import type { AnalyticsLog } from '../utils/analyticsEngine';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
+import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
 
 /**
  * 전역 사이트 분석 프로바이더
@@ -31,7 +32,28 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // 1. 비로그인 유저 식별자 초기화 및 세션 시작 기록 (순수 로그인 집계용)
         initializeFingerprint();
-        initializeAnalyticsSession(user || undefined, isAdmin);
+        const analyticsStartedAt = perfNow();
+        perfInfo('analytics.session.start', {
+            route: location.pathname,
+            isAdmin,
+            hasUser: Boolean(user?.id),
+        }, isAdmin);
+        initializeAnalyticsSession(user || undefined, isAdmin)
+            .then(() => {
+                perfInfo('analytics.session.done', {
+                    route: location.pathname,
+                    isAdmin,
+                    ms: perfMs(analyticsStartedAt),
+                }, isAdmin);
+            })
+            .catch((error) => {
+                perfInfo('analytics.session.error', {
+                    route: location.pathname,
+                    isAdmin,
+                    ms: perfMs(analyticsStartedAt),
+                    error: error instanceof Error ? error.message : String(error),
+                }, isAdmin);
+            });
 
         const pageKey = `${location.pathname}${location.search}`;
         if (lastTrackedPageRef.current !== pageKey) {
