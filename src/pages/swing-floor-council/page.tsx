@@ -482,12 +482,12 @@ export default function SwingFloorCouncilPage() {
               <input value={draft.bylawTitle} onChange={(event) => updateDraft('bylawTitle', event.target.value)} />
             </label>
             <label>
-              02 내용
-              <textarea rows={4} value={draft.bylawBody} onChange={(event) => updateDraft('bylawBody', event.target.value)} />
+              02 고정 조항 목록
+              <textarea rows={8} value={draftListText.bylawRules} onChange={(event) => updateDraftList('bylawRules', event.target.value)} />
             </label>
             <label>
-              02 목록
-              <textarea rows={8} value={draftListText.bylawRules} onChange={(event) => updateDraftList('bylawRules', event.target.value)} />
+              02 고정 조항 설명
+              <textarea rows={4} value={draft.bylawBody} onChange={(event) => updateDraft('bylawBody', event.target.value)} />
             </label>
           </div>
 
@@ -637,15 +637,15 @@ export default function SwingFloorCouncilPage() {
       <section className="sfc-section sfc-emphasis" aria-labelledby="sfc-bylaw">
         <span className="sfc-section-number">02</span>
         <h2 id="sfc-bylaw">{content.bylawTitle}</h2>
-        <p>{content.bylawBody}</p>
-        <ul className="sfc-check-list">
-          {content.bylawRules.map((item) => (
-            <li key={item}>
-              <i className="ri-pushpin-line" aria-hidden="true" />
+        <ol className="sfc-bylaw-list">
+          {content.bylawRules.map((item, index) => (
+            <li key={`${index}-${item}`}>
+              <b aria-hidden="true">{String(index + 1).padStart(2, '0')}</b>
               <span>{item}</span>
             </li>
           ))}
-        </ul>
+        </ol>
+        <p className="sfc-bylaw-explain">{content.bylawBody}</p>
       </section>
 
       <section className="sfc-section sfc-vote" aria-labelledby="sfc-vote">

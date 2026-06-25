@@ -321,7 +321,8 @@
 
 .sfc-check-list,
 .sfc-dot-list,
-.sfc-number-list {
+.sfc-number-list,
+.sfc-bylaw-list {
   list-style: none;
   margin: 18px 0 0;
   padding: 0;
@@ -352,6 +353,45 @@
 
 .sfc-check-list-positive i {
   color: #0f766e;
+}
+
+.sfc-bylaw-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sfc-bylaw-list li {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+  align-items: start;
+  color: #2d2a24;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.sfc-bylaw-list b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-height: 32px;
+  border: 2px solid #191919;
+  border-radius: 8px;
+  background: #ffcf33;
+  color: #191919;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.sfc-bylaw-explain {
+  margin-top: 20px !important;
+  padding-top: 18px;
+  border-top: 1px solid rgba(25, 25, 25, 0.16);
+  color: #4b463d !important;
+  font-size: 16px !important;
 }
 
 .sfc-note {
