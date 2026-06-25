@@ -17,6 +17,8 @@ const EVENT_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
   : 'events';
 const SESSION_COOKIE = 'swingenjoy_session';
+const ANALYTICS_INLINE_IDENTITY_LINKING = process.env.ANALYTICS_INLINE_IDENTITY_LINKING === 'true';
+const ANALYTICS_ADMIN_DEVICE_MATCHING = process.env.ANALYTICS_ADMIN_DEVICE_MATCHING === 'true';
 
 function parseCookies(req) {
   const cookie = req.headers.cookie || '';
@@ -244,7 +246,19 @@ async function getAnalyticsRequestUser(req, pool) {
   if (!user) return null;
 
   const userId = String(user.id);
+  if (asBool(user.is_admin, false)) {
+    return { id: userId, is_admin: true };
+  }
+
   const email = normalizeEmail(user.email);
+  if (email && configuredAdminEmails().includes(email)) {
+    return { id: userId, is_admin: true };
+  }
+
+  if (!ANALYTICS_ADMIN_DEVICE_MATCHING) {
+    return { id: userId, is_admin: false };
+  }
+
   const adminIdentities = await getAnalyticsAdminIdentityCache();
   const isAdmin = asBool(user.is_admin, false)
     || adminIdentities.userIds.has(userId)
@@ -682,7 +696,7 @@ async function saveSessionStart(body, req) {
   };
 
   await saveCafe24TableRow('session_logs', row, ['session_id']);
-  if (row.user_id || row.is_admin) {
+  if (ANALYTICS_INLINE_IDENTITY_LINKING && (row.user_id || row.is_admin)) {
     await linkAnalyticsRowsToIdentity({
       userId: row.user_id,
       isAdmin: asBool(row.is_admin, false),
@@ -730,7 +744,7 @@ async function saveSessionEnd(body, req) {
   };
 
   await saveCafe24TableRow('session_logs', row, ['session_id']);
-  if (row.user_id || row.is_admin) {
+  if (ANALYTICS_INLINE_IDENTITY_LINKING && (row.user_id || row.is_admin)) {
     await linkAnalyticsRowsToIdentity({
       userId: row.user_id,
       isAdmin: asBool(row.is_admin, false),
@@ -778,7 +792,7 @@ async function saveAnalyticsEvent(body, req) {
   };
 
   await saveCafe24TableRow('site_analytics_logs', row);
-  if (row.user_id || row.is_admin) {
+  if (ANALYTICS_INLINE_IDENTITY_LINKING && (row.user_id || row.is_admin)) {
     await linkAnalyticsRowsToIdentity({
       userId: row.user_id,
       isAdmin: asBool(row.is_admin, false),
@@ -869,6 +883,17 @@ export async function recordAnalytics(req, res) {
     userIsAdmin: asBool(currentUser?.is_admin, false),
   });
   const trustedUserId = currentUser?.id ? String(currentUser.id) : null;
+  const payloadClaimsAdmin = asBool(req.body?.is_admin, false);
+  if (asBool(currentUser?.is_admin, false) || payloadClaimsAdmin) {
+    trace.mark('admin-fast-skip', {
+      currentUserIsAdmin: asBool(currentUser?.is_admin, false),
+      payloadClaimsAdmin,
+    });
+    trace.end({ skipped: true, reason: 'admin_identity_fast' });
+    res.json({ ok: true, skipped: true, reason: 'admin_identity' });
+    return;
+  }
+
   const requestSessionId = asString(req.body?.session_id || req.body?.sessionId);
   const requestFingerprint = asString(req.body?.fingerprint);
   const requestNetworkDeviceId = analyticsGuestNetworkIdentity({
@@ -878,7 +903,7 @@ export async function recordAnalytics(req, res) {
     user_agent: requestUserAgent(req, req.body || {}),
   });
   let trustedIsAdmin = asBool(currentUser?.is_admin, false);
-  if (!trustedIsAdmin) {
+  if (!trustedIsAdmin && ANALYTICS_ADMIN_DEVICE_MATCHING) {
     const adminIdentities = await getAnalyticsAdminIdentityCache();
     trace.mark('admin-identity-cache', {
       sessionIds: adminIdentities.sessionIds.size,
@@ -900,7 +925,7 @@ export async function recordAnalytics(req, res) {
     ip_hash: req.body?.ip_hash || hashIp(requestIp),
   };
 
-  if (trustedUserId || trustedIsAdmin) {
+  if (ANALYTICS_INLINE_IDENTITY_LINKING && (trustedUserId || trustedIsAdmin)) {
     await linkAnalyticsRowsToIdentity({
       userId: trustedUserId,
       isAdmin: trustedIsAdmin,
@@ -910,6 +935,12 @@ export async function recordAnalytics(req, res) {
       reason: trustedIsAdmin ? 'request_admin_identity' : 'request_authenticated_identity',
     });
     trace.mark('link-request-identity', {
+      trustedUserId: Boolean(trustedUserId),
+      trustedIsAdmin,
+    });
+  } else {
+    trace.mark('skip-inline-link', {
+      enabled: ANALYTICS_INLINE_IDENTITY_LINKING,
       trustedUserId: Boolean(trustedUserId),
       trustedIsAdmin,
     });
