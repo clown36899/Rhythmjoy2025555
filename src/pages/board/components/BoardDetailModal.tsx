@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardDetail } from '../hooks/useBoardDetail';
-import UniversalPostEditor from './UniversalPostEditor';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
-import CommentSection from './CommentSection';
 import { type UserData } from './UserRegistrationModal';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import '../board.css';
 import '../detail/detail.css';
 import './BoardDetailModal.css';
-import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
+
+const CommentSection = lazy(() => import('./CommentSection'));
+const UniversalPostEditor = lazy(() => import('./UniversalPostEditor'));
 
 interface BoardDetailModalProps {
     postId: string;
@@ -286,20 +286,24 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
                         </div>
 
                         {/* Comment Section */}
-                        <CommentSection postId={post.id} category={(post as any).category || 'free'} />
+                        <Suspense fallback={null}>
+                            <CommentSection postId={post.id} category={(post as any).category || 'free'} />
+                        </Suspense>
                     </div>
                 )}
 
                 {/* Post Editor Modal for Editing */}
                 {showEditorModal && post && (
-                    <UniversalPostEditor
-                        isOpen={showEditorModal}
-                        onClose={() => setShowEditorModal(false)}
-                        onPostCreated={handlePostUpdated}
-                        post={post}
-                        userNickname={userData?.nickname || post.author_nickname || "익명"}
-                        category={(post as any).category || 'free'}
-                    />
+                    <Suspense fallback={null}>
+                        <UniversalPostEditor
+                            isOpen={showEditorModal}
+                            onClose={() => setShowEditorModal(false)}
+                            onPostCreated={handlePostUpdated}
+                            post={post}
+                            userNickname={userData?.nickname || post.author_nickname || "익명"}
+                            category={(post as any).category || 'free'}
+                        />
+                    </Suspense>
                 )}
             </div>
         </div>

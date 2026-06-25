@@ -21,7 +21,8 @@ import './board.css';
 const BoardManagementModal = lazy(() => import('./components/BoardManagementModal'));
 const UniversalPostEditor = lazy(() => import('./components/UniversalPostEditor'));
 const AnonymousWriteModal = lazy(() => import('./components/AnonymousWriteModal'));
-const BoardDetailModal = lazy(() => import('./components/BoardDetailModal'));
+const loadBoardDetailModal = () => import('./components/BoardDetailModal');
+const BoardDetailModal = lazy(loadBoardDetailModal);
 const HistoryTimelinePage = lazy(() => import('../history/HistoryTimelinePage'));
 const AnonymousPostList = lazy(() => import('./components/AnonymousPostList'));
 const DevLog = lazy(() => import('./components/DevLog'));
@@ -288,6 +289,22 @@ export default function BoardMainContainer() {
     };
 
     const shouldShowFreeWriteButton = category === 'free' && !selectedPostId;
+    useEffect(() => {
+        if (selectedPostId || loading || category === 'history' || category === 'dev-log') return;
+
+        let cancelled = false;
+        const preloadDetailModal = () => {
+            if (!cancelled) loadBoardDetailModal();
+        };
+
+        const timerId = window.setTimeout(preloadDetailModal, 120);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timerId);
+        };
+    }, [category, loading, selectedPostId]);
+
     const freeBoardWriteButton = shouldShowFreeWriteButton ? (
         <button
             type="button"
