@@ -166,6 +166,14 @@
   letter-spacing: 0;
 }
 
+.sfc-editor h3 {
+  margin: 0;
+  color: #191919;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
 .sfc-editor label {
   display: grid;
   gap: 6px;
@@ -297,6 +305,7 @@
   color: #3f3b34;
   font-size: 17px;
   font-weight: 620;
+  white-space: pre-line;
   word-break: keep-all;
 }
 
@@ -350,6 +359,25 @@
   padding-top: 16px;
   border-top: 1px solid rgba(25, 25, 25, 0.16);
   font-size: 15px !important;
+}
+
+.sfc-sub-copy {
+  margin-top: 16px !important;
+  color: #4b463d !important;
+  font-size: 16px !important;
+}
+
+.sfc-inline-title {
+  display: inline-flex;
+  margin: 22px 0 0;
+  padding: 5px 9px;
+  border: 1px solid rgba(25, 25, 25, 0.32);
+  border-radius: 7px;
+  background: #ffffff;
+  color: #191919;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: 0;
 }
 
 .sfc-money-row {

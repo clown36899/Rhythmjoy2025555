@@ -23,6 +23,7 @@ interface CouncilContent {
   voteTitle: string;
   voteSteps: VoteStep[];
   voteBody: string;
+  voteDetailBody: string;
   accountingTitle: string;
   accountingBody: string;
   accountingRules: string[];
@@ -35,7 +36,9 @@ interface CouncilContent {
   moneyTitle: string;
   moneyOptions: string[];
   moneyBody: string;
+  spendExamplesTitle: string;
   spendTargets: string[];
+  spendDecisionBody: string;
   rulesTitle: string;
   simpleRules: string[];
   startTitle: string;
@@ -81,6 +84,7 @@ const DEFAULT_CONTENT: CouncilContent = {
     { value: '1개', label: '2차 투표로 실행합니다' },
   ],
   voteBody: '지원 항목, 지출, 운영 방식, 투표 기간, 운영 담당자 교체까지 모두 회원 전체 투표로 정합니다. 아이디어를 받고, 1차 투표로 줄이고, 2차 투표로 실행할 일을 정합니다. 단, 아래 고정 조항은 투표로도 바꾸지 않습니다.',
+  voteDetailBody: '단순 토론만으로는 모두의 의견을 모으기 어렵다는 경험에서 이 방식을 사용하려고 합니다. 2차에 걸친 투표와 투표 기간의 길이 조절로, 모두의 의견이 충분히 반영되는 흐름을 만들려고 합니다.',
   accountingTitle: '회계는 모두가 실시간으로 봅니다',
   accountingBody: '회계사가 따로 숨어서 장부를 들고 있는 방식이 아닙니다. 협의체 명의의 공용 통장을 만들고, 입금과 지출 내역을 참여자가 언제든 확인할 수 있게 공개 장부로 연결합니다. 회계 담당자는 돈을 보관하고 송금할 뿐, 안건을 만들거나 지출 목적을 결정하지 않습니다.',
   accountingRules: [
@@ -114,7 +118,8 @@ const DEFAULT_CONTENT: CouncilContent = {
   notNote: '이 원칙은 처음부터 고정합니다. 이 부분은 운영 의견이 아니라 협의체의 고정 조항이며, 투표로도 바꾸지 않습니다.',
   moneyTitle: '돈은 이렇게 모으고 씁니다',
   moneyOptions: ['월 3만 원', '월 5만 원', '월 10만 원'],
-  moneyBody: '금액은 각자 가능한 만큼 선택합니다. 많이 낸 사람이 더 큰 권한을 갖지는 않습니다. 아래 항목은 가능한 사용처 예시일 뿐이며, 확정된 사업이 아닙니다. 실제 지출은 매번 제안과 투표로 결정합니다.',
+  moneyBody: '금액은 각자 가능한 만큼 선택합니다. 많이 낸 사람이 더 큰 권한을 갖지는 않습니다.',
+  spendExamplesTitle: '아래는 정해진 사용처가 아니라 예시입니다',
   spendTargets: [
     '스윙바와 플로어 대관비 지원',
     '처음 오는 사람을 위한 무료 체험 행사',
@@ -124,6 +129,7 @@ const DEFAULT_CONTENT: CouncilContent = {
     '홍보 콘텐츠 제작',
     '없어질 위기의 공간 긴급 지원',
   ],
+  spendDecisionBody: '위 항목은 확정된 사업이 아닙니다. 스윙바와 플로어 대관비 지원, 무료 체험 행사, 행정 업무 위탁 지원 같은 다양한 아이디어를 모아 투표로 정합니다. 비용 집행일 수도 있고, 인원 지원일 수도 있습니다. 여러분의 아이디어를 모으고 투표로 결정한 뒤 집행합니다.',
   rulesTitle: '운영진은 회장이 아니라 집행팀입니다',
   simpleRules: [
     '운영진은 회원 투표로 정한 일을 처리하는 집행 담당이다.',
@@ -445,11 +451,11 @@ export default function SwingFloorCouncilPage() {
             <input value={draft.kicker} onChange={(event) => updateDraft('kicker', event.target.value)} />
           </label>
           <label>
-            첫 제목
+            맨 위 큰 제목
             <textarea rows={2} value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} />
           </label>
           <label>
-            첫 설명
+            맨 위 설명
             <textarea rows={3} value={draft.lead} onChange={(event) => updateDraft('lead', event.target.value)} />
           </label>
           <label>
@@ -458,8 +464,9 @@ export default function SwingFloorCouncilPage() {
           </label>
 
           <div className="sfc-editor-grid">
+            <h3>01 섹션</h3>
             <label>
-              01 제목
+              01 섹션 제목
               <input value={draft.whyTitle} onChange={(event) => updateDraft('whyTitle', event.target.value)} />
             </label>
             <label>
@@ -469,8 +476,9 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>02 섹션</h3>
             <label>
-              02 제목
+              02 섹션 제목
               <input value={draft.bylawTitle} onChange={(event) => updateDraft('bylawTitle', event.target.value)} />
             </label>
             <label>
@@ -484,8 +492,9 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>03 섹션</h3>
             <label>
-              03 제목
+              03 섹션 제목
               <input value={draft.voteTitle} onChange={(event) => updateDraft('voteTitle', event.target.value)} />
             </label>
             <div className="sfc-editor-vote">
@@ -506,11 +515,16 @@ export default function SwingFloorCouncilPage() {
               03 설명
               <textarea rows={3} value={draft.voteBody} onChange={(event) => updateDraft('voteBody', event.target.value)} />
             </label>
+            <label>
+              03 투표 방식 보충 설명
+              <textarea rows={4} value={draft.voteDetailBody} onChange={(event) => updateDraft('voteDetailBody', event.target.value)} />
+            </label>
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>04 섹션</h3>
             <label>
-              04 제목
+              04 섹션 제목
               <input value={draft.accountingTitle} onChange={(event) => updateDraft('accountingTitle', event.target.value)} />
             </label>
             <label>
@@ -524,8 +538,9 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>05 섹션</h3>
             <label>
-              05 제목
+              05 섹션 제목
               <input value={draft.notTitle} onChange={(event) => updateDraft('notTitle', event.target.value)} />
             </label>
             <label>
@@ -539,8 +554,9 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>06 섹션</h3>
             <label>
-              06 제목
+              06 섹션 제목
               <input value={draft.moneyTitle} onChange={(event) => updateDraft('moneyTitle', event.target.value)} />
             </label>
             <label>
@@ -552,14 +568,23 @@ export default function SwingFloorCouncilPage() {
               <textarea rows={3} value={draft.moneyBody} onChange={(event) => updateDraft('moneyBody', event.target.value)} />
             </label>
             <label>
-              06 사용처 목록
+              06 예시 목록 제목
+              <input value={draft.spendExamplesTitle} onChange={(event) => updateDraft('spendExamplesTitle', event.target.value)} />
+            </label>
+            <label>
+              06 사용처 예시 목록
               <textarea rows={6} value={draftListText.spendTargets} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
+            </label>
+            <label>
+              06 사용처 결정 방식 설명
+              <textarea rows={5} value={draft.spendDecisionBody} onChange={(event) => updateDraft('spendDecisionBody', event.target.value)} />
             </label>
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>07 섹션</h3>
             <label>
-              07 제목
+              07 섹션 제목
               <input value={draft.rulesTitle} onChange={(event) => updateDraft('rulesTitle', event.target.value)} />
             </label>
             <label>
@@ -569,8 +594,9 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>08 섹션</h3>
             <label>
-              08 제목
+              08 섹션 제목
               <input value={draft.startTitle} onChange={(event) => updateDraft('startTitle', event.target.value)} />
             </label>
             <label>
@@ -580,8 +606,9 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>09 섹션</h3>
             <label>
-              09 제목
+              09 섹션 제목
               <input value={draft.joinTitle} onChange={(event) => updateDraft('joinTitle', event.target.value)} />
             </label>
             <label>
@@ -595,6 +622,7 @@ export default function SwingFloorCouncilPage() {
           </div>
 
           <div className="sfc-editor-grid">
+            <h3>하단 확인사항</h3>
             <label>
               하단 제목
               <input value={draft.smallPrintTitle} onChange={(event) => updateDraft('smallPrintTitle', event.target.value)} />
@@ -653,6 +681,9 @@ export default function SwingFloorCouncilPage() {
           ))}
         </div>
         <p>{content.voteBody}</p>
+        {content.voteDetailBody && (
+          <p className="sfc-sub-copy">{content.voteDetailBody}</p>
+        )}
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-accounting">
@@ -692,11 +723,17 @@ export default function SwingFloorCouncilPage() {
           ))}
         </div>
         <p>{content.moneyBody}</p>
+        {content.spendExamplesTitle && (
+          <h3 className="sfc-inline-title">{content.spendExamplesTitle}</h3>
+        )}
         <ul className="sfc-dot-list">
           {content.spendTargets.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
+        {content.spendDecisionBody && (
+          <p className="sfc-sub-copy">{content.spendDecisionBody}</p>
+        )}
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-rules">
