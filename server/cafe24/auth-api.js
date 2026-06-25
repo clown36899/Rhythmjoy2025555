@@ -4,6 +4,9 @@ import { getMysqlPool } from './mysql-pool.js';
 const SESSION_COOKIE = 'swingenjoy_session';
 const GOOGLE_OAUTH_NONCE_COOKIE = 'swingenjoy_google_oauth_nonce';
 const SESSION_DAYS = Number(process.env.SESSION_DAYS || 30);
+const SESSION_USER_CACHE_MS = Number(process.env.SESSION_USER_CACHE_MS || 30000);
+const sessionUserCache = new Map();
+const sessionUserLoads = new Map();
 
 function parseCookies(req) {
   const cookie = req.headers.cookie || '';
@@ -18,6 +21,26 @@ function parseCookies(req) {
         return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
       }),
   );
+}
+
+function getCachedSessionUser(sessionId) {
+  const cached = sessionUserCache.get(sessionId);
+  if (!cached || cached.expiresAt <= Date.now()) {
+    sessionUserCache.delete(sessionId);
+    return null;
+  }
+  return cached.user;
+}
+
+function setCachedSessionUser(sessionId, user) {
+  if (!user) {
+    sessionUserCache.delete(sessionId);
+    return;
+  }
+  sessionUserCache.set(sessionId, {
+    user,
+    expiresAt: Date.now() + Math.max(1000, SESSION_USER_CACHE_MS),
+  });
 }
 
 function appendSetCookie(res, cookieValue) {
@@ -94,12 +117,17 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function escapeLikePattern(value) {
+  return String(value || '').replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
 async function loadLegacyBoardUserIdentity(pool, row) {
   const email = normalizeEmail(row?.email);
   if (!email) return { legacy_user_ids: [] };
 
   const [records] = await pool.execute(
-    "SELECT data_json FROM generic_records WHERE table_name = 'board_users'",
+    "SELECT data_json FROM generic_records WHERE table_name = 'board_users' AND data_json LIKE ? ESCAPE '\\\\' LIMIT 20",
+    [`%${escapeLikePattern(email)}%`],
   );
 
   const matches = records
@@ -471,20 +499,42 @@ export async function getCurrentUser(req) {
   const sessionId = parseCookies(req)[SESSION_COOKIE];
   if (!sessionId) return null;
 
-  const pool = getMysqlPool();
-  const [rows] = await pool.execute(
-    `SELECT u.*
-       FROM sessions s
-       JOIN users u ON u.id = s.user_id
-      WHERE s.id = ? AND s.expires_at > NOW()
-      LIMIT 1`,
-    [sessionId],
-  );
+  const cachedUser = getCachedSessionUser(sessionId);
+  if (cachedUser) return cachedUser;
 
-  if (!rows[0]) return null;
+  if (sessionUserLoads.has(sessionId)) {
+    return sessionUserLoads.get(sessionId);
+  }
 
-  await pool.execute('UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [sessionId]);
-  return attachAdminFlag(pool, rows[0]);
+  const loadUser = (async () => {
+    const pool = getMysqlPool();
+    const [rows] = await pool.execute(
+      `SELECT u.*
+         FROM sessions s
+         JOIN users u ON u.id = s.user_id
+        WHERE s.id = ? AND s.expires_at > NOW()
+        LIMIT 1`,
+      [sessionId],
+    );
+
+    if (!rows[0]) {
+      setCachedSessionUser(sessionId, null);
+      return null;
+    }
+
+    pool.execute('UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?', [sessionId]).catch(() => {});
+    const user = await attachAdminFlag(pool, rows[0]);
+    setCachedSessionUser(sessionId, user);
+    return user;
+  })();
+
+  sessionUserLoads.set(sessionId, loadUser);
+
+  try {
+    return await loadUser;
+  } finally {
+    sessionUserLoads.delete(sessionId);
+  }
 }
 
 export async function requireAdmin(req) {

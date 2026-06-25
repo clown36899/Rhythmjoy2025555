@@ -25,6 +25,11 @@ import {
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const GENERIC_ROWS_CACHE_MS = Number(process.env.GENERIC_ROWS_CACHE_MS || 30000);
+const cacheableRowsTables = new Set(['board_prefixes', 'board_banned_words']);
+const cacheableRecordTables = new Set(['board_users']);
+const rowsCache = new Map();
+const recordRowsCache = new Map();
 
 function pad2(value) {
   return String(value).padStart(2, '0');
@@ -39,6 +44,29 @@ function assertTableName(table) {
     const error = new Error('Invalid table name');
     error.statusCode = 400;
     throw error;
+  }
+}
+
+function getCachedValue(cache, key) {
+  const cached = cache.get(key);
+  if (!cached || cached.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+  return cached.value;
+}
+
+function setCachedValue(cache, key, value) {
+  cache.set(key, {
+    value,
+    expiresAt: Date.now() + Math.max(1000, GENERIC_ROWS_CACHE_MS),
+  });
+}
+
+function invalidateGenericRowsCache(table) {
+  rowsCache.delete(table);
+  for (const key of recordRowsCache.keys()) {
+    if (key.startsWith(`${table}:`)) recordRowsCache.delete(key);
   }
 }
 
@@ -574,6 +602,10 @@ function stripQuotes(value) {
   return value;
 }
 
+function escapeLikePattern(value) {
+  return String(value || '').replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
 function likeToRegExp(pattern) {
   const escaped = String(pattern)
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
@@ -794,6 +826,11 @@ function getSingleRecordLookupValue(body = {}) {
 
 async function loadRows(table) {
   assertTableName(table);
+  if (cacheableRowsTables.has(table)) {
+    const cached = getCachedValue(rowsCache, table);
+    if (cached) return cached;
+  }
+
   const pool = getMysqlPool();
 
   if (table === 'events') {
@@ -805,23 +842,56 @@ async function loadRows(table) {
     'SELECT data_json FROM generic_records WHERE table_name = ?',
     [table],
   );
-  return rows.map((row) => parseJson(row.data_json, {}));
+  const parsedRows = rows.map((row) => parseJson(row.data_json, {}));
+  if (cacheableRowsTables.has(table)) setCachedValue(rowsCache, table, parsedRows);
+  return parsedRows;
 }
 
 async function loadRowsByRecordId(table, recordId) {
   assertTableName(table);
   if (recordId === undefined || recordId === null || recordId === '') return [];
+  const cacheKey = `${table}:${String(recordId)}`;
+  if (cacheableRecordTables.has(table)) {
+    const cached = getCachedValue(recordRowsCache, cacheKey);
+    if (cached) return cached;
+  }
 
   const pool = getMysqlPool();
   const [rows] = await pool.execute(
     'SELECT data_json FROM generic_records WHERE table_name = ? AND record_id = ? LIMIT 1',
     [table, String(recordId)],
   );
-  return rows.map((row) => parseJson(row.data_json, {}));
+  const parsedRows = rows.map((row) => parseJson(row.data_json, {}));
+  if (cacheableRecordTables.has(table)) setCachedValue(recordRowsCache, cacheKey, parsedRows);
+  return parsedRows;
+}
+
+async function loadRowsByJsonField(table, field, value, limit = 20) {
+  assertTableName(table);
+  if (
+    !field ||
+    field.includes('.') ||
+    field.includes('->>') ||
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) return [];
+
+  const pool = getMysqlPool();
+  const [rows] = await pool.execute(
+    `SELECT data_json FROM generic_records
+      WHERE table_name = ? AND data_json LIKE ? ESCAPE '\\\\'
+      LIMIT ${Math.max(1, Math.min(100, Number(limit) || 20))}`,
+    [table, `%${escapeLikePattern(value)}%`],
+  );
+  return rows
+    .map((row) => parseJson(row.data_json, {}))
+    .filter((row) => String(getValue(row, field)) === String(value));
 }
 
 async function saveGenericRow(table, row, conflictKeys = []) {
   assertTableName(table);
+  invalidateGenericRowsCache(table);
   const { row: nextRow, recordId } = ensureId(row, conflictKeys, table);
   const now = new Date().toISOString();
   if (!nextRow.created_at) nextRow.created_at = now;
@@ -938,6 +1008,7 @@ async function saveRow(table, row, conflictKeys = []) {
 async function deleteRows(table, rows) {
   assertTableName(table);
   if (!rows.length) return;
+  invalidateGenericRowsCache(table);
   const pool = getMysqlPool();
 
   if (table === 'events') {
@@ -966,6 +1037,9 @@ async function findRelated(table, field, value) {
     const directRows = await loadRowsByRecordId(table, value);
     const directRow = directRows.find((row) => String(getValue(row, field)) === String(value));
     if (directRow) return directRow;
+
+    const fieldRows = await loadRowsByJsonField(table, field, value);
+    if (fieldRows[0]) return fieldRows[0];
   }
 
   const rows = await loadRows(table);
@@ -1001,15 +1075,24 @@ async function hydrateRows(table, rows, select = '', user = null) {
   const wantsLinkedDocument = select.includes('linked_document');
   const wantsLinkedPlaylist = select.includes('linked_playlist');
   const wantsLinkedCategory = select.includes('linked_category');
-  const boardPrefixes = table === 'board_posts' && wantsPrefix ? await loadRows('board_prefixes') : null;
+  const boardPrefixesPromise = table === 'board_posts' && wantsPrefix
+    ? loadRows('board_prefixes')
+    : Promise.resolve(null);
   const featuredItems = table === 'shops' && wantsFeaturedItems ? await loadRows('featured_items') : [];
   const socialGroupFavorites = table === 'social_groups' && wantsSocialGroupFavorites ? await loadRows('social_group_favorites') : [];
 
   const nextRows = [];
   for (const row of rows) {
     const next = { ...row };
+    const boardUserPromise = wantsBoardUser && row.user_id
+      ? findRelated('board_users', 'user_id', row.user_id)
+      : Promise.resolve(undefined);
+    const prefixPromise = table === 'board_posts' && wantsPrefix
+      ? boardPrefixesPromise.then((boardPrefixes) => findBoardPrefix(row, boardPrefixes))
+      : Promise.resolve(undefined);
+
     if (wantsBoardUser && row.user_id) {
-      next.board_users = await findRelated('board_users', 'user_id', row.user_id);
+      next.board_users = await boardUserPromise;
     }
     if (wantsVenue && row.venue_id) {
       next.venues = await findRelated('venues', 'id', row.venue_id);
@@ -1021,7 +1104,7 @@ async function hydrateRows(table, rows, select = '', user = null) {
       next.board_posts = await findRelated('board_posts', 'id', row.post_id);
     }
     if (table === 'board_posts' && wantsPrefix) {
-      next.prefix = await findBoardPrefix(row, boardPrefixes);
+      next.prefix = await prefixPromise;
     }
     if (table === 'shops' && wantsFeaturedItems) {
       next.featured_items = sortRows(featuredItems.filter((item) => String(item.shop_id) === String(row.id)));
@@ -1070,6 +1153,14 @@ async function resolveMutationTargets(table, filters, orFilters) {
 
 function responsePayload({ data, error = null, count = null, status = 200 }) {
   return { data, error, count, status, statusText: error ? 'Error' : 'OK' };
+}
+
+function queryNeedsCurrentUser(table, select = '') {
+  if (table === 'events') return true;
+  if (table === 'board_users') return true;
+  if (table === 'sns_media_playlists' || table === 'sns_media_items' || table === 'site_links') return true;
+  if (String(select || '').includes('social_group_favorites')) return true;
+  return false;
 }
 
 function httpError(message, statusCode) {
@@ -2386,7 +2477,7 @@ export async function queryRecords(req, res) {
   const table = req.params.table;
   await requireGenericAccess(req, table, 'query', req.body || {});
   const body = req.body || {};
-  const user = await getCurrentUser(req);
+  const user = queryNeedsCurrentUser(table, body.select || '') ? await getCurrentUser(req) : null;
   const singleRecordId = table === 'events' ? null : getSingleRecordLookupValue(body);
   const rows = singleRecordId === null
     ? await loadRows(table)
