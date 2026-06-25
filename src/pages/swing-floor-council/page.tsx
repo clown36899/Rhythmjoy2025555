@@ -541,15 +541,27 @@ export default function SwingFloorCouncilPage() {
             <h3>05 섹션</h3>
             <label>
               05 섹션 제목
-              <input value={draft.notTitle} onChange={(event) => updateDraft('notTitle', event.target.value)} />
+              <input value={draft.moneyTitle} onChange={(event) => updateDraft('moneyTitle', event.target.value)} />
             </label>
             <label>
-              05 목록
-              <textarea rows={5} value={draftListText.noTouchRules} onChange={(event) => updateDraftList('noTouchRules', event.target.value)} />
+              05 금액 선택지
+              <textarea rows={3} value={draftListText.moneyOptions} onChange={(event) => updateDraftList('moneyOptions', event.target.value)} />
             </label>
             <label>
-              05 아래 문장
-              <textarea rows={3} value={draft.notNote} onChange={(event) => updateDraft('notNote', event.target.value)} />
+              05 설명
+              <textarea rows={3} value={draft.moneyBody} onChange={(event) => updateDraft('moneyBody', event.target.value)} />
+            </label>
+            <label>
+              05 예시 목록 제목
+              <input value={draft.spendExamplesTitle} onChange={(event) => updateDraft('spendExamplesTitle', event.target.value)} />
+            </label>
+            <label>
+              05 사용처 예시 목록
+              <textarea rows={6} value={draftListText.spendTargets} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
+            </label>
+            <label>
+              05 사용처 결정 방식 설명
+              <textarea rows={5} value={draft.spendDecisionBody} onChange={(event) => updateDraft('spendDecisionBody', event.target.value)} />
             </label>
           </div>
 
@@ -557,27 +569,11 @@ export default function SwingFloorCouncilPage() {
             <h3>06 섹션</h3>
             <label>
               06 섹션 제목
-              <input value={draft.moneyTitle} onChange={(event) => updateDraft('moneyTitle', event.target.value)} />
+              <input value={draft.rulesTitle} onChange={(event) => updateDraft('rulesTitle', event.target.value)} />
             </label>
             <label>
-              06 금액 선택지
-              <textarea rows={3} value={draftListText.moneyOptions} onChange={(event) => updateDraftList('moneyOptions', event.target.value)} />
-            </label>
-            <label>
-              06 설명
-              <textarea rows={3} value={draft.moneyBody} onChange={(event) => updateDraft('moneyBody', event.target.value)} />
-            </label>
-            <label>
-              06 예시 목록 제목
-              <input value={draft.spendExamplesTitle} onChange={(event) => updateDraft('spendExamplesTitle', event.target.value)} />
-            </label>
-            <label>
-              06 사용처 예시 목록
-              <textarea rows={6} value={draftListText.spendTargets} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
-            </label>
-            <label>
-              06 사용처 결정 방식 설명
-              <textarea rows={5} value={draft.spendDecisionBody} onChange={(event) => updateDraft('spendDecisionBody', event.target.value)} />
+              06 목록
+              <textarea rows={5} value={draftListText.simpleRules} onChange={(event) => updateDraftList('simpleRules', event.target.value)} />
             </label>
           </div>
 
@@ -585,11 +581,11 @@ export default function SwingFloorCouncilPage() {
             <h3>07 섹션</h3>
             <label>
               07 섹션 제목
-              <input value={draft.rulesTitle} onChange={(event) => updateDraft('rulesTitle', event.target.value)} />
+              <input value={draft.startTitle} onChange={(event) => updateDraft('startTitle', event.target.value)} />
             </label>
             <label>
               07 목록
-              <textarea rows={5} value={draftListText.simpleRules} onChange={(event) => updateDraftList('simpleRules', event.target.value)} />
+              <textarea rows={4} value={draftListText.firstSteps} onChange={(event) => updateDraftList('firstSteps', event.target.value)} />
             </label>
           </div>
 
@@ -597,26 +593,14 @@ export default function SwingFloorCouncilPage() {
             <h3>08 섹션</h3>
             <label>
               08 섹션 제목
-              <input value={draft.startTitle} onChange={(event) => updateDraft('startTitle', event.target.value)} />
-            </label>
-            <label>
-              08 목록
-              <textarea rows={4} value={draftListText.firstSteps} onChange={(event) => updateDraftList('firstSteps', event.target.value)} />
-            </label>
-          </div>
-
-          <div className="sfc-editor-grid">
-            <h3>09 섹션</h3>
-            <label>
-              09 섹션 제목
               <input value={draft.joinTitle} onChange={(event) => updateDraft('joinTitle', event.target.value)} />
             </label>
             <label>
-              09 내용 1
+              08 내용 1
               <textarea rows={3} value={draft.joinBody1} onChange={(event) => updateDraft('joinBody1', event.target.value)} />
             </label>
             <label>
-              09 내용 2
+              08 내용 2
               <textarea rows={3} value={draft.joinBody2} onChange={(event) => updateDraft('joinBody2', event.target.value)} />
             </label>
           </div>
@@ -700,22 +684,8 @@ export default function SwingFloorCouncilPage() {
         </ul>
       </section>
 
-      <section className="sfc-section" aria-labelledby="sfc-not">
-        <span className="sfc-section-number">05</span>
-        <h2 id="sfc-not">{content.notTitle}</h2>
-        <ul className="sfc-check-list">
-          {content.noTouchRules.map((item) => (
-            <li key={item}>
-              <i className="ri-close-circle-line" aria-hidden="true" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="sfc-note">{content.notNote}</p>
-      </section>
-
       <section className="sfc-section" aria-labelledby="sfc-money">
-        <span className="sfc-section-number">06</span>
+        <span className="sfc-section-number">05</span>
         <h2 id="sfc-money">{content.moneyTitle}</h2>
         <div className="sfc-money-row" aria-label="월 후원금">
           {content.moneyOptions.map((item) => (
@@ -737,7 +707,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-rules">
-        <span className="sfc-section-number">07</span>
+        <span className="sfc-section-number">06</span>
         <h2 id="sfc-rules">{content.rulesTitle}</h2>
         <ul className="sfc-check-list sfc-check-list-positive">
           {content.simpleRules.map((item) => (
@@ -750,7 +720,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section sfc-roadmap" aria-labelledby="sfc-start">
-        <span className="sfc-section-number">08</span>
+        <span className="sfc-section-number">07</span>
         <h2 id="sfc-start">{content.startTitle}</h2>
         <ol className="sfc-number-list">
           {content.firstSteps.map((item) => (
@@ -760,7 +730,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section id="join" className="sfc-section sfc-join" aria-labelledby="sfc-join">
-        <span className="sfc-section-number">09</span>
+        <span className="sfc-section-number">08</span>
         <h2 id="sfc-join">{content.joinTitle}</h2>
         <p>{content.joinBody1}</p>
         <p>{content.joinBody2}</p>
