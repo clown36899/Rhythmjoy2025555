@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardStaticData } from '../../contexts/BoardDataContext';
@@ -6,13 +7,13 @@ import { useSetPageAction } from '../../contexts/PageActionContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import StandardPostList from './components/StandardPostList';
+import BoardDetailModal from './components/BoardDetailModal';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
 import { useModal } from '../../hooks/useModal';
 import type { BoardEditorPreset } from './components/UniversalPostEditor';
 // import BoardManagementModal from './components/BoardManagementModal';
 // import UniversalPostEditor from './components/UniversalPostEditor';
 // import AnonymousWriteModal from './components/AnonymousWriteModal';
-// import BoardDetailModal from './components/BoardDetailModal';
 // import HistoryTimelinePage from '../history/HistoryTimelinePage';
 import LocalLoading from '../../components/LocalLoading';
 import './board.css';
@@ -21,8 +22,6 @@ import './board.css';
 const BoardManagementModal = lazy(() => import('./components/BoardManagementModal'));
 const UniversalPostEditor = lazy(() => import('./components/UniversalPostEditor'));
 const AnonymousWriteModal = lazy(() => import('./components/AnonymousWriteModal'));
-const loadBoardDetailModal = () => import('./components/BoardDetailModal');
-const BoardDetailModal = lazy(loadBoardDetailModal);
 const HistoryTimelinePage = lazy(() => import('../history/HistoryTimelinePage'));
 const AnonymousPostList = lazy(() => import('./components/AnonymousPostList'));
 const DevLog = lazy(() => import('./components/DevLog'));
@@ -46,9 +45,15 @@ export default function BoardMainContainer() {
 
     // State
     const category = (searchParams.get('category') as BoardCategory) || 'free';
-    const selectedPostId = searchParams.get('postId');
+    const urlPostId = searchParams.get('postId');
+    const [activePostId, setActivePostId] = useState<string | null>(urlPostId);
+    const selectedPostId = activePostId;
     const [postsPerPage] = useState(10);
     const [selectedPrefixId, setSelectedPrefixId] = useState<number | null>(null);
+
+    useEffect(() => {
+        setActivePostId(urlPostId);
+    }, [urlPostId]);
 
     // Ensure category is always in URL to prevent back navigation issues
     useEffect(() => {
@@ -126,6 +131,9 @@ export default function BoardMainContainer() {
 
     // Handle Post Click - Open Modal
     const handlePostClick = (postId: string) => {
+        flushSync(() => {
+            setActivePostId(postId);
+        });
         const params = new URLSearchParams(searchParams);
         params.set('postId', postId);
         setSearchParams(params);
@@ -133,6 +141,7 @@ export default function BoardMainContainer() {
 
     // Handle Modal Close
     const handleCloseModal = () => {
+        setActivePostId(null);
         const params = new URLSearchParams(searchParams);
         params.delete('postId');
         setSearchParams(params);
@@ -289,22 +298,6 @@ export default function BoardMainContainer() {
     };
 
     const shouldShowFreeWriteButton = category === 'free' && !selectedPostId;
-    useEffect(() => {
-        if (selectedPostId || loading || category === 'history' || category === 'dev-log') return;
-
-        let cancelled = false;
-        const preloadDetailModal = () => {
-            if (!cancelled) loadBoardDetailModal();
-        };
-
-        const timerId = window.setTimeout(preloadDetailModal, 120);
-
-        return () => {
-            cancelled = true;
-            window.clearTimeout(timerId);
-        };
-    }, [category, loading, selectedPostId]);
-
     const freeBoardWriteButton = shouldShowFreeWriteButton ? (
         <button
             type="button"
@@ -517,14 +510,12 @@ export default function BoardMainContainer() {
             {/* Board Detail Modal */}
             {
                 selectedPostId && (
-                    <Suspense fallback={null}>
-                        <BoardDetailModal
-                            postId={selectedPostId}
-                            category={category}
-                            isOpen={true}
-                            onClose={handleCloseModal}
-                        />
-                    </Suspense>
+                    <BoardDetailModal
+                        postId={selectedPostId}
+                        category={category}
+                        isOpen={true}
+                        onClose={handleCloseModal}
+                    />
                 )
             }
         </div >

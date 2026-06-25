@@ -824,6 +824,29 @@ function getSingleRecordLookupValue(body = {}) {
   return idFilter.value;
 }
 
+function isSimpleJsonField(field) {
+  return typeof field === 'string' && /^[a-z0-9_]+$/i.test(field);
+}
+
+function getNarrowEqFilter(body = {}) {
+  if (Array.isArray(body.orFilters) && body.orFilters.length > 0) return null;
+
+  const filters = Array.isArray(body.filters) ? body.filters : [];
+  return filters.find((filter) => (
+    filter?.op === 'eq' &&
+    isSimpleJsonField(filter.field) &&
+    filter.value !== undefined &&
+    filter.value !== null &&
+    filter.value !== ''
+  )) || null;
+}
+
+function normalizedRowLimit(limit, fallback = 20, max = 20000) {
+  const numeric = Number(limit);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(1, Math.min(max, Math.floor(numeric)));
+}
+
 async function loadRows(table) {
   assertTableName(table);
   if (cacheableRowsTables.has(table)) {
@@ -869,24 +892,82 @@ async function loadRowsByRecordId(table, recordId) {
 async function loadRowsByJsonField(table, field, value, limit = 20) {
   assertTableName(table);
   if (
-    !field ||
-    field.includes('.') ||
-    field.includes('->>') ||
+    !isSimpleJsonField(field) ||
     value === undefined ||
     value === null ||
     value === ''
   ) return [];
 
   const pool = getMysqlPool();
-  const [rows] = await pool.execute(
-    `SELECT data_json FROM generic_records
-      WHERE table_name = ? AND data_json LIKE ? ESCAPE '\\\\'
-      LIMIT ${Math.max(1, Math.min(100, Number(limit) || 20))}`,
-    [table, `%${escapeLikePattern(value)}%`],
-  );
+  const rowLimit = normalizedRowLimit(limit);
+  let rows;
+  try {
+    [rows] = await pool.execute(
+      `SELECT data_json FROM generic_records
+        WHERE table_name = ?
+          AND JSON_UNQUOTE(JSON_EXTRACT(data_json, ?)) = ?
+        LIMIT ${rowLimit}`,
+      [table, `$.${field}`, String(value)],
+    );
+  } catch {
+    [rows] = await pool.execute(
+      `SELECT data_json FROM generic_records
+        WHERE table_name = ? AND data_json LIKE ? ESCAPE '\\\\'
+        LIMIT ${rowLimit}`,
+      [table, `%${escapeLikePattern(value)}%`],
+    );
+  }
   return rows
     .map((row) => parseJson(row.data_json, {}))
     .filter((row) => String(getValue(row, field)) === String(value));
+}
+
+async function loadRowsByActor(table, userId, limit = 20000) {
+  assertTableName(table);
+  if (!userId) return [];
+
+  const actorId = String(userId);
+  const actorWithPrefix = `user:${actorId}`;
+  const pool = getMysqlPool();
+  const rowLimit = normalizedRowLimit(limit, 20000);
+  let rows;
+  try {
+    [rows] = await pool.execute(
+      `SELECT data_json FROM generic_records
+        WHERE table_name = ?
+          AND (
+            JSON_UNQUOTE(JSON_EXTRACT(data_json, '$.user_id')) = ?
+            OR JSON_UNQUOTE(JSON_EXTRACT(data_json, '$.fingerprint')) = ?
+            OR JSON_UNQUOTE(JSON_EXTRACT(data_json, '$.session_id')) = ?
+            OR JSON_UNQUOTE(JSON_EXTRACT(data_json, '$.viewer_key')) = ?
+            OR JSON_UNQUOTE(JSON_EXTRACT(data_json, '$.viewer_key')) = ?
+          )
+        LIMIT ${rowLimit}`,
+      [table, actorId, actorId, actorId, actorId, actorWithPrefix],
+    );
+  } catch {
+    [rows] = await pool.execute(
+      `SELECT data_json FROM generic_records
+        WHERE table_name = ? AND data_json LIKE ? ESCAPE '\\\\'
+        LIMIT ${rowLimit}`,
+      [table, `%${escapeLikePattern(actorId)}%`],
+    );
+  }
+
+  return rows
+    .map((row) => parseJson(row.data_json, {}))
+    .filter((row) => actorMatches(row, userId));
+}
+
+async function loadRowsForQuery(table, body = {}) {
+  const singleRecordId = table === 'events' ? null : getSingleRecordLookupValue(body);
+  if (singleRecordId !== null) return loadRowsByRecordId(table, singleRecordId);
+
+  const narrowFilter = table === 'events' ? null : getNarrowEqFilter(body);
+  if (narrowFilter?.field === 'id') return loadRowsByRecordId(table, narrowFilter.value);
+  if (narrowFilter) return loadRowsByJsonField(table, narrowFilter.field, narrowFilter.value, 20000);
+
+  return loadRows(table);
 }
 
 async function saveGenericRow(table, row, conflictKeys = []) {
@@ -1147,7 +1228,7 @@ function resolveConflictKeys(options = {}) {
 }
 
 async function resolveMutationTargets(table, filters, orFilters) {
-  const rows = await loadRows(table);
+  const rows = await loadRowsForQuery(table, { filters, orFilters });
   return applyFilters(rows, filters, orFilters);
 }
 
@@ -1949,19 +2030,19 @@ async function getUserInteractions(userId) {
     practiceRoomFavorites,
     shopFavorites,
   ] = await Promise.all([
-    loadRows('board_post_likes'),
-    loadRows('board_post_dislikes'),
-    loadRows('board_post_favorites'),
-    loadRows('board_anonymous_likes'),
-    loadRows('board_anonymous_dislikes'),
-    loadRows('board_comment_likes'),
-    loadRows('board_comment_dislikes'),
-    loadRows('board_anonymous_comment_likes'),
-    loadRows('board_anonymous_comment_dislikes'),
-    loadRows('event_favorites'),
-    loadRows('social_group_favorites'),
-    loadRows('practice_room_favorites'),
-    loadRows('shop_favorites'),
+    loadRowsByActor('board_post_likes', userId),
+    loadRowsByActor('board_post_dislikes', userId),
+    loadRowsByActor('board_post_favorites', userId),
+    loadRowsByActor('board_anonymous_likes', userId),
+    loadRowsByActor('board_anonymous_dislikes', userId),
+    loadRowsByActor('board_comment_likes', userId),
+    loadRowsByActor('board_comment_dislikes', userId),
+    loadRowsByActor('board_anonymous_comment_likes', userId),
+    loadRowsByActor('board_anonymous_comment_dislikes', userId),
+    loadRowsByActor('event_favorites', userId),
+    loadRowsByActor('social_group_favorites', userId),
+    loadRowsByActor('practice_room_favorites', userId),
+    loadRowsByActor('shop_favorites', userId),
   ]);
 
   return {
@@ -2478,10 +2559,7 @@ export async function queryRecords(req, res) {
   await requireGenericAccess(req, table, 'query', req.body || {});
   const body = req.body || {};
   const user = queryNeedsCurrentUser(table, body.select || '') ? await getCurrentUser(req) : null;
-  const singleRecordId = table === 'events' ? null : getSingleRecordLookupValue(body);
-  const rows = singleRecordId === null
-    ? await loadRows(table)
-    : await loadRowsByRecordId(table, singleRecordId);
+  const rows = await loadRowsForQuery(table, body);
   const visibleRows = table === 'sns_media_playlists'
     ? await filterSnsMediaPlaylistsForViewer(rows, user)
     : filterRowsForViewer(table, rows, user);
