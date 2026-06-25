@@ -5,6 +5,7 @@ import { cafe24 } from '../../lib/cafe24Client';
 import './swing-floor-council.css';
 
 const CONTENT_SETTING_KEY = 'swing_floor_council_page_content';
+const CONTENT_SCHEMA_VERSION = 2;
 
 interface VoteStep {
   value: string;
@@ -12,12 +13,22 @@ interface VoteStep {
 }
 
 interface CouncilContent {
+  contentVersion: number;
   kicker: string;
   title: string;
   lead: string;
   leadStrong: string;
   whyTitle: string;
   whyBody: string;
+  voteTitle: string;
+  voteSteps: VoteStep[];
+  voteBody: string;
+  accountingTitle: string;
+  accountingBody: string;
+  accountingRules: string[];
+  bylawTitle: string;
+  bylawBody: string;
+  bylawRules: string[];
   notTitle: string;
   noTouchRules: string[];
   notNote: string;
@@ -25,9 +36,6 @@ interface CouncilContent {
   moneyOptions: string[];
   moneyBody: string;
   spendTargets: string[];
-  voteTitle: string;
-  voteSteps: VoteStep[];
-  voteBody: string;
   rulesTitle: string;
   simpleRules: string[];
   startTitle: string;
@@ -39,60 +47,117 @@ interface CouncilContent {
   smallPrintBody: string;
 }
 
+type CouncilListKey =
+  | 'accountingRules'
+  | 'bylawRules'
+  | 'noTouchRules'
+  | 'moneyOptions'
+  | 'spendTargets'
+  | 'simpleRules'
+  | 'firstSteps';
+
 const DEFAULT_CONTENT: CouncilContent = {
+  contentVersion: CONTENT_SCHEMA_VERSION,
   kicker: '발기인 모집 초안',
   title: '스윙을 오래 추려면, 같이 쓸 플로어가 필요합니다.',
   lead: '한국 스윙씬은 점점 작아지고 있습니다. 새로 들어오는 사람은 줄고, 함께 모일 수 있는 스윙바와 플로어도 늘 불안합니다.',
   leadStrong: '그래서 누군가를 대표하는 단체가 아니라, 필요한 일을 같이 정하고 같이 돕는 협의체를 만들려고 합니다.',
   whyTitle: '왜 모이나요?',
-  whyBody: '혼자서는 공간을 지키기 어렵고, 한 팀만으로는 신규 유입을 만들기 어렵습니다. 하지만 여러 사람이 조금씩 모으면 대관비, 홍보비, 체험 행사, 운영 인력 지원을 시작할 수 있습니다.',
-  notTitle: '이 협의체가 하지 않는 일',
-  noTouchRules: [
-    '자격증을 만들거나 관리하지 않는다.',
-    '대회 심사와 심사위원 선정에 관여하지 않는다.',
-    '강사, 바, 동호회, 지역의 위아래를 정하지 않는다.',
-    '누가 정통인지 판정하지 않는다.',
-  ],
-  notNote: '이 원칙은 처음부터 고정합니다. 협의체가 권위기관처럼 보이면 오래 갈 수 없습니다.',
-  moneyTitle: '돈은 이렇게 모으고 씁니다',
-  moneyOptions: ['월 3만 원', '월 5만 원', '월 10만 원'],
-  moneyBody: '금액은 각자 가능한 만큼 선택합니다. 많이 낸 사람이 더 큰 권한을 갖지는 않습니다. 모든 회원은 똑같이 1표입니다.',
-  spendTargets: [
-    '스윙바와 플로어 대관비 지원',
-    '처음 오는 사람을 위한 무료 체험 행사',
-    '지역 교류 소셜과 합동 파티',
-    '강사, DJ, 운영자 워크숍',
-    '홍보 콘텐츠 제작',
-    '없어질 위기의 공간 긴급 지원',
-  ],
-  voteTitle: '무엇을 할지는 투표로 정합니다',
+  whyBody: '혼자서는 공간을 지키기 어렵고, 한 팀만으로는 신규 유입을 만들기 어렵습니다. 하지만 여러 사람이 조금씩 모이면 대관비, 홍보비, 체험 행사, 운영 인력 지원을 시작할 수 있습니다.',
+  voteTitle: '모든 결정은 투표로 정합니다',
   voteSteps: [
     { value: '100개', label: '아이디어를 받습니다' },
     { value: '30개', label: '1차 투표로 줄입니다' },
     { value: '1개', label: '2차 투표로 실행합니다' },
   ],
-  voteBody: '선정된 일은 예산, 담당자, 기간을 공개하고 진행합니다. 말로만 끝나는 회의가 아니라 실제 플로어와 신규 유입에 도움이 되는 일부터 합니다.',
-  rulesTitle: '운영은 단순하게 합니다',
+  voteBody: '지원 항목, 지출, 운영 방식, 투표 기간, 운영 담당자 교체까지 모두 회원 전체 투표로 정합니다. 아이디어를 받고, 1차 투표로 줄이고, 2차 투표로 실행할 일을 정합니다. 단, 아래 고정 조항은 투표로도 바꾸지 않습니다.',
+  accountingTitle: '회계는 모두가 실시간으로 봅니다',
+  accountingBody: '회계사가 따로 숨어서 장부를 들고 있는 방식이 아닙니다. 협의체 명의의 공용 통장을 만들고, 입금과 지출 내역을 참여자가 언제든 확인할 수 있게 공개 장부로 연결합니다. 회계 담당자는 돈을 보관하고 송금할 뿐, 안건을 만들거나 지출 목적을 결정하지 않습니다.',
+  accountingRules: [
+    '모든 회비와 후원금은 공용 통장 한 곳으로만 받는다.',
+    '통장 거래 내역과 공개 장부는 참여자가 상시 확인할 수 있게 공개한다.',
+    '개인정보와 보안상 필요한 부분만 최소한으로 가리고 날짜, 금액, 사용처, 증빙은 공개한다.',
+    '회계 담당자는 계좌 관리와 송금만 맡고, 안건 입안과 지출 결정에는 관여하지 않는다.',
+    '안건을 만들고 결정하는 권한은 회원 전체에게 있으며, 회계 권한과 완전히 분리한다.',
+    '지출은 투표로 정한 안건 안에서만 집행한다.',
+  ],
+  bylawTitle: '절대 바꾸지 않는 고정 조항',
+  bylawBody: '지금 단계에서는 회칙으로, 나중에 협동조합이나 법인이 되면 정관으로 고정합니다. 아래 조항은 협의체의 존재 이유이므로 개정 대상에서 제외합니다. 이 조항들을 제외한 운영 방식은 회원 투표로 바꿀 수 있습니다.',
+  bylawRules: [
+    '협의체는 자격증, 등급 인증, 강사 인증을 만들거나 관리하지 않는다.',
+    '협의체는 대회 심사, 심사 기준, 심사위원 선정에 관여하지 않는다.',
+    '협의체는 회장을 만들지 않는다. 대표 권한을 한 사람에게 모으지 않는다.',
+    '회계는 공용 통장과 공개 장부로 상시 확인 가능하게 운영한다.',
+    '안건 입안과 회계 보관, 회계 집행 권한은 완전히 분리한다.',
+    '안건은 회원 전체가 제안하고 투표로 결정하며, 운영진은 결정된 일만 집행한다.',
+    '위 고정 조항은 투표로도 바꾸지 않는다.',
+  ],
+  notTitle: '이 협의체가 하지 않는 일',
+  noTouchRules: [
+    '자격증을 만들거나 관리하지 않는다.',
+    '대회 심사와 심사위원 선정에 관여하지 않는다.',
+    '회장을 만들지 않는다.',
+    '안건 입안과 회계 집행 권한을 섞지 않는다.',
+    '강사, 바, 동호회, 지역의 위아래를 정하지 않는다.',
+    '누가 정통인지 판정하지 않는다.',
+  ],
+  notNote: '이 원칙은 처음부터 고정합니다. 이 부분은 운영 의견이 아니라 협의체의 고정 조항이며, 투표로도 바꾸지 않습니다.',
+  moneyTitle: '돈은 이렇게 모으고 씁니다',
+  moneyOptions: ['월 3만 원', '월 5만 원', '월 10만 원'],
+  moneyBody: '금액은 각자 가능한 만큼 선택합니다. 많이 낸 사람이 더 큰 권한을 갖지는 않습니다. 아래 항목은 가능한 사용처 예시일 뿐이며, 확정된 사업이 아닙니다. 실제 지출은 매번 제안과 투표로 결정합니다.',
+  spendTargets: [
+    '스윙바와 플로어 대관비 지원',
+    '처음 오는 사람을 위한 무료 체험 행사',
+    '지역 교류 소셜과 합동 파티',
+    '강사, DJ, 운영자 워크숍',
+    '예술인 등록, 지원사업 신청 등 행정 업무 위탁 지원',
+    '홍보 콘텐츠 제작',
+    '없어질 위기의 공간 긴급 지원',
+  ],
+  rulesTitle: '운영진은 회장이 아니라 집행팀입니다',
   simpleRules: [
-    '회장은 두지 않는다.',
-    '운영팀은 권력자가 아니라 실무자다.',
-    '돈을 관리하는 사람과 돈을 쓰자고 제안하는 사람을 나눈다.',
-    '큰 지출은 혼자 결정하지 못하게 한다.',
-    '후원금을 더 많이 내도 표는 1표다.',
+    '운영진은 회원 투표로 정한 일을 처리하는 집행 담당이다.',
+    '운영진은 임기를 두고, 회원 투표로 언제든 교체할 수 있다.',
+    '안건을 만들고 결정하는 권한은 회원 전체에게 있다.',
+    '운영진은 통과된 안건만 집행한다.',
+    '투표 기간, 운영 방식, 담당자 수는 회원 투표로 바꿀 수 있다.',
+    '단, 고정 조항은 변경 대상이 아니다.',
   ],
   startTitle: '처음 3개월은 이렇게 시작합니다',
   firstSteps: [
     '발기인 30명을 먼저 모은다.',
     '월 3만 원, 5만 원, 10만 원 중 자율 후원으로 시작한다.',
+    '회장 없이 임기 있는 운영 담당자와 회계 담당자를 따로 뽑는다.',
+    '공용 통장과 공개 장부를 먼저 만든다.',
+    '첫 투표로 투표 기간, 운영 담당, 지원 우선순위를 정한다.',
     '첫 돈은 신규 유입과 플로어 유지에만 쓴다.',
-    '모든 지출은 공개 장부에 남긴다.',
   ],
   joinTitle: '발기인은 이런 사람을 찾습니다',
   joinBody1: '스윙댄스를 계속 추고 싶은 사람, 새로 오는 사람을 반기고 싶은 사람, 플로어와 공간을 같이 지키고 싶은 사람이면 됩니다.',
   joinBody2: '특정 팀을 대표하지 않아도 됩니다. 강사가 아니어도 됩니다. 오래 춘 사람이 아니어도 됩니다. “같이 해보자”는 마음이 있으면 충분합니다.',
   smallPrintTitle: '작은 확인사항',
-  smallPrintBody: '지금 단계는 정식 법인 문서가 아니라 발기인 모집용 초안입니다. 사람이 모이고 실제 운영이 시작되면, 협동조합이나 비영리단체 전환은 따로 검토합니다.',
+  smallPrintBody: '지금 단계는 정식 법인 문서가 아니라 발기인 모집용 초안입니다. 사람이 모이면 회칙 또는 정관 초안을 만들고, 고정 조항을 먼저 넣은 뒤 조직 형태를 검토합니다. 고정 조항을 제외한 나머지는 회원 투표로 바꿀 수 있습니다.',
 };
+
+const LOCKED_DEFAULT_KEYS: Array<keyof CouncilContent> = [
+  'voteTitle',
+  'voteBody',
+  'accountingTitle',
+  'accountingBody',
+  'accountingRules',
+  'bylawTitle',
+  'bylawBody',
+  'bylawRules',
+  'notTitle',
+  'noTouchRules',
+  'notNote',
+  'moneyBody',
+  'spendTargets',
+  'rulesTitle',
+  'simpleRules',
+  'firstSteps',
+  'smallPrintBody',
+];
 
 const listFromValue = (value: unknown, fallback: string[]) => {
   if (!Array.isArray(value)) return fallback;
@@ -113,16 +178,29 @@ const voteStepsFromValue = (value: unknown) => {
 
 const mergeContent = (value: unknown): CouncilContent => {
   const source = value && typeof value === 'object' ? value as Partial<CouncilContent> : {};
-
-  return {
+  const isLegacyContent = Number(source.contentVersion || 0) < CONTENT_SCHEMA_VERSION;
+  const merged: CouncilContent = {
     ...DEFAULT_CONTENT,
     ...source,
-    noTouchRules: listFromValue(source.noTouchRules, DEFAULT_CONTENT.noTouchRules),
-    moneyOptions: listFromValue(source.moneyOptions, DEFAULT_CONTENT.moneyOptions),
-    spendTargets: listFromValue(source.spendTargets, DEFAULT_CONTENT.spendTargets),
-    voteSteps: voteStepsFromValue(source.voteSteps),
-    simpleRules: listFromValue(source.simpleRules, DEFAULT_CONTENT.simpleRules),
-    firstSteps: listFromValue(source.firstSteps, DEFAULT_CONTENT.firstSteps),
+    contentVersion: CONTENT_SCHEMA_VERSION,
+  };
+
+  if (isLegacyContent) {
+    LOCKED_DEFAULT_KEYS.forEach((key) => {
+      (merged[key] as CouncilContent[typeof key]) = DEFAULT_CONTENT[key];
+    });
+  }
+
+  return {
+    ...merged,
+    accountingRules: listFromValue(merged.accountingRules, DEFAULT_CONTENT.accountingRules),
+    bylawRules: listFromValue(merged.bylawRules, DEFAULT_CONTENT.bylawRules),
+    noTouchRules: listFromValue(merged.noTouchRules, DEFAULT_CONTENT.noTouchRules),
+    moneyOptions: listFromValue(merged.moneyOptions, DEFAULT_CONTENT.moneyOptions),
+    spendTargets: listFromValue(merged.spendTargets, DEFAULT_CONTENT.spendTargets),
+    voteSteps: voteStepsFromValue(merged.voteSteps),
+    simpleRules: listFromValue(merged.simpleRules, DEFAULT_CONTENT.simpleRules),
+    firstSteps: listFromValue(merged.firstSteps, DEFAULT_CONTENT.firstSteps),
   };
 };
 
@@ -199,7 +277,7 @@ export default function SwingFloorCouncilPage() {
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateDraftList = (key: keyof Pick<CouncilContent, 'noTouchRules' | 'moneyOptions' | 'spendTargets' | 'simpleRules' | 'firstSteps'>, value: string) => {
+  const updateDraftList = (key: CouncilListKey, value: string) => {
     updateDraft(key, textToList(value));
   };
 
@@ -342,40 +420,21 @@ export default function SwingFloorCouncilPage() {
           <div className="sfc-editor-grid">
             <label>
               02 제목
-              <input value={draft.notTitle} onChange={(event) => updateDraft('notTitle', event.target.value)} />
+              <input value={draft.bylawTitle} onChange={(event) => updateDraft('bylawTitle', event.target.value)} />
+            </label>
+            <label>
+              02 내용
+              <textarea rows={4} value={draft.bylawBody} onChange={(event) => updateDraft('bylawBody', event.target.value)} />
             </label>
             <label>
               02 목록
-              <textarea rows={5} value={listToText(draft.noTouchRules)} onChange={(event) => updateDraftList('noTouchRules', event.target.value)} />
-            </label>
-            <label>
-              02 아래 문장
-              <textarea rows={3} value={draft.notNote} onChange={(event) => updateDraft('notNote', event.target.value)} />
+              <textarea rows={8} value={listToText(draft.bylawRules)} onChange={(event) => updateDraftList('bylawRules', event.target.value)} />
             </label>
           </div>
 
           <div className="sfc-editor-grid">
             <label>
               03 제목
-              <input value={draft.moneyTitle} onChange={(event) => updateDraft('moneyTitle', event.target.value)} />
-            </label>
-            <label>
-              03 금액 선택지
-              <textarea rows={3} value={listToText(draft.moneyOptions)} onChange={(event) => updateDraftList('moneyOptions', event.target.value)} />
-            </label>
-            <label>
-              03 설명
-              <textarea rows={3} value={draft.moneyBody} onChange={(event) => updateDraft('moneyBody', event.target.value)} />
-            </label>
-            <label>
-              03 사용처 목록
-              <textarea rows={6} value={listToText(draft.spendTargets)} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
-            </label>
-          </div>
-
-          <div className="sfc-editor-grid">
-            <label>
-              04 제목
               <input value={draft.voteTitle} onChange={(event) => updateDraft('voteTitle', event.target.value)} />
             </label>
             <div className="sfc-editor-vote">
@@ -393,44 +452,93 @@ export default function SwingFloorCouncilPage() {
               ))}
             </div>
             <label>
-              04 설명
+              03 설명
               <textarea rows={3} value={draft.voteBody} onChange={(event) => updateDraft('voteBody', event.target.value)} />
             </label>
           </div>
 
           <div className="sfc-editor-grid">
             <label>
+              04 제목
+              <input value={draft.accountingTitle} onChange={(event) => updateDraft('accountingTitle', event.target.value)} />
+            </label>
+            <label>
+              04 내용
+              <textarea rows={4} value={draft.accountingBody} onChange={(event) => updateDraft('accountingBody', event.target.value)} />
+            </label>
+            <label>
+              04 목록
+              <textarea rows={6} value={listToText(draft.accountingRules)} onChange={(event) => updateDraftList('accountingRules', event.target.value)} />
+            </label>
+          </div>
+
+          <div className="sfc-editor-grid">
+            <label>
               05 제목
-              <input value={draft.rulesTitle} onChange={(event) => updateDraft('rulesTitle', event.target.value)} />
+              <input value={draft.notTitle} onChange={(event) => updateDraft('notTitle', event.target.value)} />
             </label>
             <label>
               05 목록
-              <textarea rows={5} value={listToText(draft.simpleRules)} onChange={(event) => updateDraftList('simpleRules', event.target.value)} />
+              <textarea rows={5} value={listToText(draft.noTouchRules)} onChange={(event) => updateDraftList('noTouchRules', event.target.value)} />
+            </label>
+            <label>
+              05 아래 문장
+              <textarea rows={3} value={draft.notNote} onChange={(event) => updateDraft('notNote', event.target.value)} />
             </label>
           </div>
 
           <div className="sfc-editor-grid">
             <label>
               06 제목
-              <input value={draft.startTitle} onChange={(event) => updateDraft('startTitle', event.target.value)} />
+              <input value={draft.moneyTitle} onChange={(event) => updateDraft('moneyTitle', event.target.value)} />
             </label>
             <label>
-              06 목록
-              <textarea rows={4} value={listToText(draft.firstSteps)} onChange={(event) => updateDraftList('firstSteps', event.target.value)} />
+              06 금액 선택지
+              <textarea rows={3} value={listToText(draft.moneyOptions)} onChange={(event) => updateDraftList('moneyOptions', event.target.value)} />
+            </label>
+            <label>
+              06 설명
+              <textarea rows={3} value={draft.moneyBody} onChange={(event) => updateDraft('moneyBody', event.target.value)} />
+            </label>
+            <label>
+              06 사용처 목록
+              <textarea rows={6} value={listToText(draft.spendTargets)} onChange={(event) => updateDraftList('spendTargets', event.target.value)} />
             </label>
           </div>
 
           <div className="sfc-editor-grid">
             <label>
               07 제목
+              <input value={draft.rulesTitle} onChange={(event) => updateDraft('rulesTitle', event.target.value)} />
+            </label>
+            <label>
+              07 목록
+              <textarea rows={5} value={listToText(draft.simpleRules)} onChange={(event) => updateDraftList('simpleRules', event.target.value)} />
+            </label>
+          </div>
+
+          <div className="sfc-editor-grid">
+            <label>
+              08 제목
+              <input value={draft.startTitle} onChange={(event) => updateDraft('startTitle', event.target.value)} />
+            </label>
+            <label>
+              08 목록
+              <textarea rows={4} value={listToText(draft.firstSteps)} onChange={(event) => updateDraftList('firstSteps', event.target.value)} />
+            </label>
+          </div>
+
+          <div className="sfc-editor-grid">
+            <label>
+              09 제목
               <input value={draft.joinTitle} onChange={(event) => updateDraft('joinTitle', event.target.value)} />
             </label>
             <label>
-              07 내용 1
+              09 내용 1
               <textarea rows={3} value={draft.joinBody1} onChange={(event) => updateDraft('joinBody1', event.target.value)} />
             </label>
             <label>
-              07 내용 2
+              09 내용 2
               <textarea rows={3} value={draft.joinBody2} onChange={(event) => updateDraft('joinBody2', event.target.value)} />
             </label>
           </div>
@@ -463,38 +571,22 @@ export default function SwingFloorCouncilPage() {
         <p>{content.whyBody}</p>
       </section>
 
-      <section className="sfc-section sfc-emphasis" aria-labelledby="sfc-not">
+      <section className="sfc-section sfc-emphasis" aria-labelledby="sfc-bylaw">
         <span className="sfc-section-number">02</span>
-        <h2 id="sfc-not">{content.notTitle}</h2>
+        <h2 id="sfc-bylaw">{content.bylawTitle}</h2>
+        <p>{content.bylawBody}</p>
         <ul className="sfc-check-list">
-          {content.noTouchRules.map((item) => (
+          {content.bylawRules.map((item) => (
             <li key={item}>
-              <i className="ri-close-circle-line" aria-hidden="true" />
+              <i className="ri-pushpin-line" aria-hidden="true" />
               <span>{item}</span>
             </li>
-          ))}
-        </ul>
-        <p className="sfc-note">{content.notNote}</p>
-      </section>
-
-      <section className="sfc-section" aria-labelledby="sfc-money">
-        <span className="sfc-section-number">03</span>
-        <h2 id="sfc-money">{content.moneyTitle}</h2>
-        <div className="sfc-money-row" aria-label="월 후원금">
-          {content.moneyOptions.map((item) => (
-            <strong key={item}>{item}</strong>
-          ))}
-        </div>
-        <p>{content.moneyBody}</p>
-        <ul className="sfc-dot-list">
-          {content.spendTargets.map((item) => (
-            <li key={item}>{item}</li>
           ))}
         </ul>
       </section>
 
       <section className="sfc-section sfc-vote" aria-labelledby="sfc-vote">
-        <span className="sfc-section-number">04</span>
+        <span className="sfc-section-number">03</span>
         <h2 id="sfc-vote">{content.voteTitle}</h2>
         <div className="sfc-steps" aria-label="투표 순서">
           {content.voteSteps.map((step, index) => (
@@ -512,8 +604,52 @@ export default function SwingFloorCouncilPage() {
         <p>{content.voteBody}</p>
       </section>
 
-      <section className="sfc-section" aria-labelledby="sfc-rules">
+      <section className="sfc-section" aria-labelledby="sfc-accounting">
+        <span className="sfc-section-number">04</span>
+        <h2 id="sfc-accounting">{content.accountingTitle}</h2>
+        <p>{content.accountingBody}</p>
+        <ul className="sfc-check-list sfc-check-list-positive">
+          {content.accountingRules.map((item) => (
+            <li key={item}>
+              <i className="ri-checkbox-circle-line" aria-hidden="true" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="sfc-section" aria-labelledby="sfc-not">
         <span className="sfc-section-number">05</span>
+        <h2 id="sfc-not">{content.notTitle}</h2>
+        <ul className="sfc-check-list">
+          {content.noTouchRules.map((item) => (
+            <li key={item}>
+              <i className="ri-close-circle-line" aria-hidden="true" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="sfc-note">{content.notNote}</p>
+      </section>
+
+      <section className="sfc-section" aria-labelledby="sfc-money">
+        <span className="sfc-section-number">06</span>
+        <h2 id="sfc-money">{content.moneyTitle}</h2>
+        <div className="sfc-money-row" aria-label="월 후원금">
+          {content.moneyOptions.map((item) => (
+            <strong key={item}>{item}</strong>
+          ))}
+        </div>
+        <p>{content.moneyBody}</p>
+        <ul className="sfc-dot-list">
+          {content.spendTargets.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="sfc-section" aria-labelledby="sfc-rules">
+        <span className="sfc-section-number">07</span>
         <h2 id="sfc-rules">{content.rulesTitle}</h2>
         <ul className="sfc-check-list sfc-check-list-positive">
           {content.simpleRules.map((item) => (
@@ -526,7 +662,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section sfc-roadmap" aria-labelledby="sfc-start">
-        <span className="sfc-section-number">06</span>
+        <span className="sfc-section-number">08</span>
         <h2 id="sfc-start">{content.startTitle}</h2>
         <ol className="sfc-number-list">
           {content.firstSteps.map((item) => (
@@ -536,7 +672,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section id="join" className="sfc-section sfc-join" aria-labelledby="sfc-join">
-        <span className="sfc-section-number">07</span>
+        <span className="sfc-section-number">09</span>
         <h2 id="sfc-join">{content.joinTitle}</h2>
         <p>{content.joinBody1}</p>
         <p>{content.joinBody2}</p>
