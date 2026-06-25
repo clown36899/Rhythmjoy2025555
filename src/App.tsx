@@ -12,8 +12,7 @@ import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import { InAppBrowserGuard } from './components/InAppBrowserGuard';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
-import { getPushSubscription, saveSubscriptionToDataStore, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
-import { isPWAMode, getMobilePlatform } from './lib/pwaDetect';
+import { saveSubscriptionToDataStore, subscribeToPush } from './lib/pushNotifications';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import DeploymentAutoRefresh from './components/DeploymentAutoRefresh';
 import { AppNoticeToast } from './components/common/AppNoticeToast';
@@ -92,7 +91,7 @@ function AppContent() {
     };
   }, [location.pathname]);
 
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
   const [pwaModalInitialPrefs, setPwaModalInitialPrefs] = useState<{
     pref_events: boolean; pref_class: boolean; pref_clubs: boolean;
@@ -160,92 +159,12 @@ function AppContent() {
     }
   }, [openModal, updateModalProps]);
 
-  // [PWA Auto-Subscribe] 로그인 후 & 앱 최초 실행 시(PWA) 알림 권한 처리
-  useEffect(() => {
-    const initPwaPush = async () => {
-      if (!user) return;
-
-      // [Update] PWA 알림 구독은 모든 유저에게 제공
-      // const isAdmin = user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true;
-      // if (!isAdmin) {
-      //   return;
-      // }
-
-      // 이미 '안 보기'를 선택했는지 확인
-      const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true';
-      const isStandalone = isPWAMode();
-      const platform = getMobilePlatform();
-
-      // [Strategy] 
-      // Android: 브라우저에서도 알림 가능 -> PWA 아니어도 진행
-      // iOS: PWA(Standalone)일 때만 알림 가능 -> Standalone 체크 필수
-      const canPushOnThisPlatform = platform === 'android' || isStandalone;
-
-      pwaDebug('[App] PWA Check:', { isDismissed, isStandalone, platform, canPushOnThisPlatform });
-
-      if (isDismissed) return;
-
-      if (canPushOnThisPlatform) {
-        try {
-          const existingSub = await getPushSubscription();
-          pwaDebug('[App] Existing Sub:', existingSub);
-
-          if (existingSub) {
-            // [Check DB] 브라우저엔 있어도 DB에 없으면(삭제됨) 모달 띄워야 함
-            const dbPrefs = await getPushPreferences();
-
-            if (dbPrefs) {
-              // [Silent Sync] 이미 구독 중이고 DB에도 데이터가 있음 -> 최신 상태로 갱신
-              pwaDebug('[App] Existing subscription matches DB. Syncing...');
-              await saveSubscriptionToDataStore(existingSub, {
-                pref_events: dbPrefs.pref_events,
-                pref_class: dbPrefs.pref_class,
-                pref_clubs: dbPrefs.pref_clubs,
-                pref_filter_tags: dbPrefs.pref_filter_tags,
-                pref_filter_class_genres: dbPrefs.pref_filter_class_genres
-              }).catch(err => console.warn('[App] Silent sync failed:', err));
-            } else {
-              // [Zombie Sub] 브라우저엔 있는데 DB엔 없음 -> 모달 띄워서 재등록 유도
-              // 이전에 알림을 사용한 사용자이므로 기본값을 전체 ON으로 설정
-              pwaDebug('[App] Zombie subscription detected (Browser=Yes, DB=No). Showing Modal...');
-              setPwaModalInitialPrefs({
-                pref_events: true, pref_class: true, pref_clubs: true,
-                pref_filter_tags: null, pref_filter_class_genres: null
-              });
-              setShowPwaModal(true);
-            }
-          } else {
-            // 브라우저 구독 없음 (최초 설치 or 재설치)
-            // 사용자가 명시적으로 끈 경우에는 모달 띄우지 않음
-            const isExplicitlyDisabled = localStorage.getItem('push_explicitly_disabled') === 'true';
-            if (isExplicitlyDisabled) {
-              pwaDebug('[App] Push explicitly disabled by user. Skipping modal.');
-              return;
-            }
-
-            // 이전에 권한이 있었다면(재설치 등) → all-ON으로 프리필하여 모달 표시
-            // 최초 설치라면 → null(전체 OFF)로 모달 표시
-            const hadPermission = Notification.permission === 'granted';
-            pwaDebug('[App] No subscription. Showing modal. hadPermission:', hadPermission);
-            setPwaModalInitialPrefs(hadPermission ? {
-              pref_events: true, pref_class: true, pref_clubs: true,
-              pref_filter_tags: null, pref_filter_class_genres: null
-            } : null);
-            setShowPwaModal(true);
-          }
-        } catch (err: any) {
-          console.error('[App] PWA Init Error:', err);
-        }
-      }
-    };
-
-    initPwaPush();
-  }, [user]);
-
+  // PWA 알림 권한은 앱 부팅/로그인 중 자동으로 띄우지 않고, 사용자가 알림 설정을 열 때만 처리한다.
   // [Admin Test] 관리자용 테스트 트리거
   useEffect(() => {
     (window as any).adminTestPwaModal = () => {
       pwaDebug('[Admin] Forcing PWA Modal...');
+      setPwaModalInitialPrefs(null);
       setShowPwaModal(true);
     };
   }, []);

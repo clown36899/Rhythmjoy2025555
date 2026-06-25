@@ -427,6 +427,33 @@ function decodeGoogleState(state) {
   }
 }
 
+function getGoogleStateSecret() {
+  return process.env.GOOGLE_OAUTH_STATE_SECRET
+    || process.env.SESSION_SECRET
+    || getGoogleClientSecret();
+}
+
+function signGoogleStatePayload(payload) {
+  const secret = getGoogleStateSecret();
+  if (!secret) return '';
+
+  return crypto
+    .createHmac('sha256', secret)
+    .update(`${payload?.nonce || ''}\n${payload?.returnUrl || ''}\n${payload?.ts || ''}`)
+    .digest('base64url');
+}
+
+function hasValidGoogleStateSignature(payload) {
+  if (!payload?.sig || typeof payload.sig !== 'string') return false;
+
+  const expected = signGoogleStatePayload(payload);
+  if (!expected) return false;
+
+  const actualBuffer = Buffer.from(payload.sig);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
 async function fetchKakaoToken(code, redirectUri) {
   const restApiKey = process.env.VITE_KAKAO_REST_API_KEY;
   if (!restApiKey) {
@@ -731,10 +758,14 @@ export async function googleLoginStart(req, res) {
 
   const returnUrl = normalizeReturnUrl(req.query?.returnUrl);
   const nonce = crypto.randomBytes(24).toString('base64url');
-  const state = encodeGoogleState({
+  const statePayload = {
     nonce,
     returnUrl,
     ts: Date.now(),
+  };
+  const state = encodeGoogleState({
+    ...statePayload,
+    sig: signGoogleStatePayload(statePayload),
   });
   const redirectUri = getGoogleRedirectUri(req);
   const params = new URLSearchParams({
@@ -756,25 +787,30 @@ export async function googleLoginCallback(req, res) {
   const returnUrl = normalizeReturnUrl(state?.returnUrl);
   const cookies = parseCookies(req);
   const expectedNonce = cookies[GOOGLE_OAUTH_NONCE_COOKIE];
+  const signedStateValid = hasValidGoogleStateSignature(state);
 
   try {
     if (req.query?.error) {
+      clearGoogleNonceCookie(req, res);
       res.redirect(returnUrl);
       return;
     }
 
-    if (!state?.nonce || !expectedNonce || state.nonce !== expectedNonce) {
+    if (!state?.nonce || (!signedStateValid && (!expectedNonce || state.nonce !== expectedNonce))) {
+      clearGoogleNonceCookie(req, res);
       res.status(400).type('text/plain').send('Invalid Google login state.');
       return;
     }
 
     if (!state.ts || Date.now() - Number(state.ts) > 10 * 60 * 1000) {
+      clearGoogleNonceCookie(req, res);
       res.status(400).type('text/plain').send('Google login request expired.');
       return;
     }
 
     const code = req.query?.code;
     if (typeof code !== 'string' || !code) {
+      clearGoogleNonceCookie(req, res);
       res.status(400).type('text/plain').send('Google authorization code is required.');
       return;
     }

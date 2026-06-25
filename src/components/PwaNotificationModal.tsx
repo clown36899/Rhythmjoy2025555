@@ -61,8 +61,6 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
 
     if (!isOpen) return null;
 
-    console.log('[PwaModal] Rendering... zIndex max');
-
     const togglePref = (key: 'pref_events' | 'pref_class' | 'pref_clubs') => {
         setPrefs(prev => {
             const nextVal = !prev[key];
