@@ -181,6 +181,16 @@ const listFromValue = (value: unknown, fallback: string[]) => {
   return list.length ? list : fallback;
 };
 
+const stripManualNumberPrefix = (value: string) => (
+  value.replace(/^\s*\d{1,2}\s*(?:[.)]|번|:|-)\s*/, '').trim()
+);
+
+const bylawListFromValue = (value: unknown) => (
+  listFromValue(value, DEFAULT_CONTENT.bylawRules)
+    .map(stripManualNumberPrefix)
+    .filter(Boolean)
+);
+
 const voteStepsFromValue = (value: unknown) => {
   if (!Array.isArray(value)) return DEFAULT_CONTENT.voteSteps;
   const list = value
@@ -210,7 +220,7 @@ const mergeContent = (value: unknown): CouncilContent => {
   return {
     ...merged,
     accountingRules: listFromValue(merged.accountingRules, DEFAULT_CONTENT.accountingRules),
-    bylawRules: listFromValue(merged.bylawRules, DEFAULT_CONTENT.bylawRules),
+    bylawRules: bylawListFromValue(merged.bylawRules),
     noTouchRules: listFromValue(merged.noTouchRules, DEFAULT_CONTENT.noTouchRules),
     moneyOptions: listFromValue(merged.moneyOptions, DEFAULT_CONTENT.moneyOptions),
     spendTargets: listFromValue(merged.spendTargets, DEFAULT_CONTENT.spendTargets),

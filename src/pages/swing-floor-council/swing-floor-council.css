@@ -362,8 +362,8 @@
 
 .sfc-bylaw-list li {
   display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 12px;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
   align-items: start;
   color: #2d2a24;
   font-size: 16px;
@@ -375,15 +375,13 @@
 .sfc-bylaw-list b {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 42px;
-  min-height: 32px;
-  border: 2px solid #191919;
-  border-radius: 8px;
-  background: #ffcf33;
-  color: #191919;
+  justify-content: flex-start;
+  width: 30px;
+  min-height: 24px;
+  color: #5b554b;
   font-size: 14px;
   font-weight: 950;
+  line-height: 1.5;
 }
 
 .sfc-bylaw-explain {
