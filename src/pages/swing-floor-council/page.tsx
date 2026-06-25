@@ -744,10 +744,6 @@ export default function SwingFloorCouncilPage() {
         <h2 id="sfc-join">{content.joinTitle}</h2>
         <p>{content.joinBody1}</p>
         <p>{content.joinBody2}</p>
-        <button type="button" className="sfc-primary-button sfc-bottom-button" onClick={handleCopyLink}>
-          <i className="ri-share-line" aria-hidden="true" />
-          주변에 공유하기
-        </button>
       </section>
 
       <section className="sfc-small-print" aria-label="확인사항">
