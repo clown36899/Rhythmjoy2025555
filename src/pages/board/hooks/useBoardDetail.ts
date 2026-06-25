@@ -23,8 +23,9 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
     const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
     const loadRequestRef = useRef(0);
 
-    // View tracking Hook
     const { incrementView } = useViewTracking(postId || '', 'board_post');
+    const incrementViewRef = useRef(incrementView);
+    incrementViewRef.current = incrementView;
 
     const loadPost = useCallback(async (targetPostId: string) => {
         const requestId = loadRequestRef.current + 1;
@@ -115,10 +116,13 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             setPost(transformedPost as BoardPost);
             setLoadedRequestKey(requestKey);
 
-            incrementView().then(wasIncremented => {
-                if (!isLatestRequest() || !wasIncremented) return;
-                setPost(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : null);
-            });
+            window.setTimeout(() => {
+                if (!isLatestRequest()) return;
+                incrementViewRef.current().then(wasIncremented => {
+                    if (!isLatestRequest() || !wasIncremented) return;
+                    setPost(prev => prev ? { ...prev, views: (prev.views || 0) + 1 } : null);
+                });
+            }, 0);
         } catch (error) {
             if (!isLatestRequest()) return;
             console.error('게시글 로딩 실패:', error);
@@ -128,7 +132,11 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         } finally {
             if (isLatestRequest()) setLoading(false);
         }
-    }, [category, incrementView, isAdmin]);
+    }, [category, isAdmin]);
+
+    const refreshPost = useCallback(() => {
+        if (postId) loadPost(postId);
+    }, [loadPost, postId]);
 
     useEffect(() => {
         if (!postId) {
@@ -143,7 +151,6 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         loadPost(postId);
     }, [loadPost, postId]);
 
-    // Realtime Subscription for updates
     useEffect(() => {
         if (!post?.id || !post?.category) return;
 
@@ -165,7 +172,6 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
                     if (payload.eventType === 'UPDATE' && payload.new) {
                         const newPost = payload.new as any;
 
-                        // Handle Soft Delete
                         if (newPost.is_hidden && !isAdmin) {
                             alert('삭제된 게시글입니다.');
                             onPostDeleted?.();
@@ -187,9 +193,6 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             cafe24.removeChannel(channel);
         };
     }, [post?.id, post?.category, isAdmin, onPostDeleted]);
-
-    // NOTE: View tracking is now handled by useViewTracking Hook
-    // See src/hooks/useViewTracking.ts for implementation
 
     const handleDelete = async () => {
         if (!post) return;
@@ -234,10 +237,6 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
             console.error('숨김 처리 실패:', error);
             alert('오류가 발생했습니다.');
         }
-    };
-
-    const refreshPost = () => {
-        if (postId) loadPost(postId);
     };
 
     const currentRequestKey = getBoardDetailRequestKey(postId, category);

@@ -781,6 +781,17 @@ function applyRange(rows, range, limit) {
   return rows;
 }
 
+function getSingleRecordLookupValue(body = {}) {
+  if (!body.single && !body.maybeSingle) return null;
+  if (Array.isArray(body.orFilters) && body.orFilters.length > 0) return null;
+
+  const filters = Array.isArray(body.filters) ? body.filters : [];
+  const idFilter = filters.find((filter) => filter?.field === 'id' && filter?.op === 'eq');
+  if (!idFilter) return null;
+
+  return idFilter.value;
+}
+
 async function loadRows(table) {
   assertTableName(table);
   const pool = getMysqlPool();
@@ -793,6 +804,18 @@ async function loadRows(table) {
   const [rows] = await pool.execute(
     'SELECT data_json FROM generic_records WHERE table_name = ?',
     [table],
+  );
+  return rows.map((row) => parseJson(row.data_json, {}));
+}
+
+async function loadRowsByRecordId(table, recordId) {
+  assertTableName(table);
+  if (recordId === undefined || recordId === null || recordId === '') return [];
+
+  const pool = getMysqlPool();
+  const [rows] = await pool.execute(
+    'SELECT data_json FROM generic_records WHERE table_name = ? AND record_id = ? LIMIT 1',
+    [table, String(recordId)],
   );
   return rows.map((row) => parseJson(row.data_json, {}));
 }
@@ -933,6 +956,18 @@ async function deleteRows(table, rows) {
 }
 
 async function findRelated(table, field, value) {
+  if (
+    table !== 'events' &&
+    ['id', 'code', 'key', 'token', 'endpoint', 'user_id'].includes(field) &&
+    value !== undefined &&
+    value !== null &&
+    value !== ''
+  ) {
+    const directRows = await loadRowsByRecordId(table, value);
+    const directRow = directRows.find((row) => String(getValue(row, field)) === String(value));
+    if (directRow) return directRow;
+  }
+
   const rows = await loadRows(table);
   return rows.find((row) => String(getValue(row, field)) === String(value)) || null;
 }
@@ -1921,7 +1956,12 @@ async function incrementItemViews(args = {}, context = {}) {
 
   if (!itemId || !itemType || !viewerKey || !targetTable) return false;
 
-  const existing = (await loadRows('item_views')).find((row) => (
+  const existingRecordId = getRecordId({
+    viewer_key: viewerKey,
+    item_type: itemType,
+    item_id: itemId,
+  }, [], 'item_views');
+  const existing = (await loadRowsByRecordId('item_views', existingRecordId)).find((row) => (
     String(row.item_id) === String(itemId) &&
     String(row.item_type) === String(itemType) &&
     String(row.viewer_key) === String(viewerKey)
@@ -1945,7 +1985,7 @@ async function incrementItemViews(args = {}, context = {}) {
     created_at: now,
   });
 
-  const rows = await loadRows(targetTable);
+  const rows = await loadRowsByRecordId(targetTable, itemId);
   const target = rows.find((row) => String(row.id) === String(itemId));
   if (target) {
     await saveRow(targetTable, {
@@ -2347,7 +2387,10 @@ export async function queryRecords(req, res) {
   await requireGenericAccess(req, table, 'query', req.body || {});
   const body = req.body || {};
   const user = await getCurrentUser(req);
-  const rows = await loadRows(table);
+  const singleRecordId = table === 'events' ? null : getSingleRecordLookupValue(body);
+  const rows = singleRecordId === null
+    ? await loadRows(table)
+    : await loadRowsByRecordId(table, singleRecordId);
   const visibleRows = table === 'sns_media_playlists'
     ? await filterSnsMediaPlaylistsForViewer(rows, user)
     : filterRowsForViewer(table, rows, user);
