@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardDetail } from '../hooks/useBoardDetail';
+import type { BoardPost } from '../hooks/useBoardPosts';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { type UserData } from './UserRegistrationModal';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
@@ -15,13 +16,15 @@ const UniversalPostEditor = lazy(() => import('./UniversalPostEditor'));
 interface BoardDetailModalProps {
     postId: string;
     category?: string;
+    initialPost?: BoardPost | null;
     isOpen: boolean;
     onClose: () => void;
 }
 
-export default function BoardDetailModal({ postId, category, isOpen, onClose }: BoardDetailModalProps) {
+export default function BoardDetailModal({ postId, category, initialPost, isOpen, onClose }: BoardDetailModalProps) {
     const { user, isAdmin, userProfile } = useAuth();
     const [showEditorModal, setShowEditorModal] = useState(false);
+    const [showComments, setShowComments] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
 
     const {
@@ -35,9 +38,24 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
     } = useBoardDetail({
         postId,
         category,
+        initialPost,
         onPostDeleted: onClose,
         isAdmin
     });
+
+    useEffect(() => {
+        if (!post?.id) {
+            setShowComments(false);
+            return;
+        }
+
+        setShowComments(false);
+        const timerId = window.setTimeout(() => {
+            setShowComments(true);
+        }, 80);
+
+        return () => window.clearTimeout(timerId);
+    }, [post?.id]);
 
     useEffect(() => {
         const loadUserData = async () => {
@@ -286,9 +304,11 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
                         </div>
 
                         {/* Comment Section */}
-                        <Suspense fallback={null}>
-                            <CommentSection postId={post.id} category={(post as any).category || 'free'} />
-                        </Suspense>
+                        {showComments && (
+                            <Suspense fallback={null}>
+                                <CommentSection postId={post.id} category={(post as any).category || 'free'} />
+                            </Suspense>
+                        )}
                     </div>
                 )}
 

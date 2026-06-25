@@ -6,6 +6,7 @@ import { useViewTracking } from '../../../hooks/useViewTracking';
 interface UseBoardDetailProps {
     postId: string | undefined;
     category?: string;
+    initialPost?: BoardPost | null;
     onPostDeleted?: () => void;
     isAdmin?: boolean;
 }
@@ -15,13 +16,18 @@ const getBoardDetailRequestKey = (postId: string | number | undefined, category?
     return `${category || 'free'}:${String(postId)}`;
 };
 
-export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: UseBoardDetailProps) {
-    const [post, setPost] = useState<BoardPost | null>(null);
-    const [loading, setLoading] = useState(() => Boolean(postId));
+export function useBoardDetail({ postId, category, initialPost, onPostDeleted, isAdmin }: UseBoardDetailProps) {
+    const initialRequestKey = initialPost && postId && String(initialPost.id) === String(postId)
+        ? getBoardDetailRequestKey(postId, category || (initialPost as any).category)
+        : null;
+    const [post, setPost] = useState<BoardPost | null>(() => initialRequestKey ? initialPost : null);
+    const [loading, setLoading] = useState(() => Boolean(postId && !initialRequestKey));
     const [updating, setUpdating] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
+    const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(() => initialRequestKey);
     const loadRequestRef = useRef(0);
+    const initialPostRef = useRef<BoardPost | null | undefined>(initialPost);
+    initialPostRef.current = initialPost;
 
     const { incrementView } = useViewTracking(postId || '', 'board_post');
     const incrementViewRef = useRef(incrementView);
@@ -36,7 +42,11 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         try {
             setLoading(true);
             setError(null);
-            setPost(prev => prev && String(prev.id) === String(targetPostId) ? prev : null);
+            const optimisticPost = initialPostRef.current && String(initialPostRef.current.id) === String(targetPostId)
+                ? initialPostRef.current
+                : null;
+            setPost(prev => prev && String(prev.id) === String(targetPostId) ? prev : optimisticPost);
+            if (optimisticPost) setLoadedRequestKey(requestKey);
 
             const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
             const selectColumns = category === 'anonymous'
