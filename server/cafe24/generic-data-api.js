@@ -36,6 +36,7 @@ const boardStaticTables = [
   'venues',
   'shops',
   'app_settings',
+  'home_menu_layout_defaults',
 ];
 const boardStaticTableSet = new Set(boardStaticTables);
 const boardStaticDataCacheKey = '__rpc:get_board_static_data';
@@ -184,6 +185,7 @@ const adminOnlyMutationTables = new Set([
   'global_notices',
   'history_edges',
   'history_nodes',
+  'home_menu_layout_defaults',
   'invitations',
   'invitation_logs',
   'learning_categories',
@@ -226,6 +228,7 @@ const loginRequiredMutationTables = new Set([
   'social_places',
   'social_schedules',
   'user_push_subscriptions',
+  'user_home_menu_settings',
   'venue_edit_logs',
   'venues',
 ]);
@@ -252,6 +255,7 @@ const ownerScopedMutationTables = new Set([
   'social_places',
   'social_schedules',
   'user_push_subscriptions',
+  'user_home_menu_settings',
   'venue_edit_logs',
   'venues',
 ]);
@@ -407,6 +411,9 @@ function filterRowsForViewer(table, rows = [], user) {
       (user && rowOwnerMatches(user, row))
     ));
   }
+  if (table === 'user_home_menu_settings' && !user?.is_admin) {
+    return rows.filter((row) => user && rowOwnerMatches(user, row));
+  }
   return rows;
 }
 
@@ -527,6 +534,10 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
 
   if (table === 'board_users') {
     await requireBoardUserMutationAccess(req, action, body);
+  }
+
+  if (table === 'user_home_menu_settings' && action === 'query') {
+    await requireLoggedInMutationUser(req);
   }
 
   if (adminOnlyGenericTables.has(table) || (isMutation && adminOnlyMutationTables.has(table))) {
@@ -1046,6 +1057,9 @@ async function loadRowsForQuery(table, body = {}) {
 
   const narrowFilter = table === 'events' ? null : getNarrowEqFilter(body);
   if (narrowFilter?.field === 'id') return loadRowsByRecordId(table, narrowFilter.value);
+  if (table === 'user_home_menu_settings' && narrowFilter?.field === 'user_id') {
+    return loadRowsByRecordId(table, narrowFilter.value);
+  }
   const compositeKeys = compositeKeysByTable[table] || [];
   if (narrowFilter && compositeKeys[0] === narrowFilter.field) {
     return loadRowsByRecordIdPrefix(table, `${String(narrowFilter.value)}:`, 20000);
@@ -1330,6 +1344,7 @@ function responsePayload({ data, error = null, count = null, status = 200 }) {
 function queryNeedsCurrentUser(table, select = '') {
   if (table === 'events') return true;
   if (table === 'board_users') return true;
+  if (table === 'user_home_menu_settings') return true;
   if (table === 'sns_media_playlists' || table === 'sns_media_items' || table === 'site_links') return true;
   if (String(select || '').includes('social_group_favorites')) return true;
   return false;

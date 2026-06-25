@@ -5,6 +5,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
 import {
+    loadDefaultHomeMenuLayoutSettings,
+    loadUserHomeMenuLayoutSettings,
+    saveHomeMenuLayoutSettings,
+    type HomeMenuLayoutSettings,
+} from "../../../hooks/useHomeMenuLayoutSettings";
+import {
     isTempoToolItemHidden,
     useTempoToolVisibilitySettings,
 } from "../../../hooks/useTempoToolVisibilitySettings";
@@ -39,8 +45,6 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "guide", label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
 ];
 
-const PINNED_MENU_STORAGE_KEY = "home_v2_pinned_menu_ids";
-const MENU_ORDER_STORAGE_KEY = "home_v2_menu_order_ids";
 const PINNED_MENU_LIMIT = 5;
 const DEFAULT_PINNED_MENU_IDS: string[] = ["tempo-tool"];
 const HIDEABLE_MENU_ITEM_IDS = new Set(
@@ -213,29 +217,9 @@ const sanitizePinnedMenuIds = (
     return cleanIds.length > 0 ? cleanIds : [...fallbackIds];
 };
 
-const getInitialPinnedMenuIds = () => {
-    if (typeof window === "undefined") return [...DEFAULT_PINNED_MENU_IDS];
+const getInitialPinnedMenuIds = () => [...DEFAULT_PINNED_MENU_IDS];
 
-    try {
-        const rawValue = window.localStorage.getItem(PINNED_MENU_STORAGE_KEY);
-        if (!rawValue) return [...DEFAULT_PINNED_MENU_IDS];
-        return sanitizePinnedMenuIds(JSON.parse(rawValue));
-    } catch {
-        return [...DEFAULT_PINNED_MENU_IDS];
-    }
-};
-
-const getInitialMenuOrderIds = () => {
-    if (typeof window === "undefined") return sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
-
-    try {
-        const rawValue = window.localStorage.getItem(MENU_ORDER_STORAGE_KEY);
-        if (!rawValue) return sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
-        return sanitizeMenuOrderIds(JSON.parse(rawValue));
-    } catch {
-        return sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
-    }
-};
+const getInitialMenuOrderIds = () => sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
 
 export const HomeV2MenuPanel: React.FC = () => {
     const navigate = useNavigate();
@@ -259,6 +243,8 @@ export const HomeV2MenuPanel: React.FC = () => {
     const [editUnpinnedMenuIds, setEditUnpinnedMenuIds] = useState<string[]>([]);
     const [pinnedDragOverlay, setPinnedDragOverlay] = useState<PinnedDragOverlay | null>(null);
     const [isSavingTempoToolVisibility, setIsSavingTempoToolVisibility] = useState(false);
+    const [isLoadingMenuLayout, setIsLoadingMenuLayout] = useState(false);
+    const [isSavingMenuLayout, setIsSavingMenuLayout] = useState(false);
     const [isMediaPlayerEngaged, setIsMediaPlayerEngaged] = useState(false);
     const panelPointerGestureStartRef = useRef<GestureStart | null>(null);
     const panelTouchGestureStartRef = useRef<GestureStart | null>(null);
@@ -507,6 +493,85 @@ export const HomeV2MenuPanel: React.FC = () => {
         if (item.to) handleNavigate(item.to);
     };
 
+    const normalizeVisibleHomeMenuLayout = useCallback((settings?: HomeMenuLayoutSettings | null): HomeMenuLayoutSettings => {
+        const fallbackPinnedIds = sanitizePinnedMenuIds(
+            visibleDefaultPinnedMenuIds,
+            visibleHomeMenuItems,
+            visibleDefaultPinnedMenuIds,
+        );
+        const fallbackMenuOrderIds = sanitizeMenuOrderIds(
+            [...fallbackPinnedIds, ...getDefaultUnpinnedMenuIds(fallbackPinnedIds, visibleHomeMenuItems)],
+            visibleHomeMenuItems,
+        );
+        const source = settings || {
+            pinnedMenuIds: fallbackPinnedIds,
+            menuOrderIds: fallbackMenuOrderIds,
+        };
+        const cleanPinnedIds = sanitizePinnedMenuIds(
+            source.pinnedMenuIds,
+            visibleHomeMenuItems,
+            fallbackPinnedIds,
+        );
+        const cleanMenuOrderIds = sanitizeMenuOrderIds(
+            source.menuOrderIds.length > 0 ? source.menuOrderIds : fallbackMenuOrderIds,
+            visibleHomeMenuItems,
+        );
+        const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(
+            cleanMenuOrderIds,
+            cleanPinnedIds,
+            visibleHomeMenuItems,
+        );
+
+        return {
+            pinnedMenuIds: cleanPinnedIds,
+            menuOrderIds: sanitizeMenuOrderIds([...cleanPinnedIds, ...cleanUnpinnedIds], visibleHomeMenuItems),
+        };
+    }, [visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+
+    const applyHomeMenuLayout = useCallback((settings?: HomeMenuLayoutSettings | null) => {
+        const normalizedSettings = normalizeVisibleHomeMenuLayout(settings);
+        const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(
+            normalizedSettings.menuOrderIds,
+            normalizedSettings.pinnedMenuIds,
+            visibleHomeMenuItems,
+        );
+
+        pinnedMenuIdsRef.current = normalizedSettings.pinnedMenuIds;
+        menuOrderIdsRef.current = normalizedSettings.menuOrderIds;
+        editPinnedMenuIdsRef.current = normalizedSettings.pinnedMenuIds;
+        editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
+
+        setPinnedMenuIds(normalizedSettings.pinnedMenuIds);
+        setMenuOrderIds(normalizedSettings.menuOrderIds);
+        setEditPinnedMenuIds(normalizedSettings.pinnedMenuIds);
+        setEditUnpinnedMenuIds(cleanUnpinnedIds);
+        return normalizedSettings;
+    }, [normalizeVisibleHomeMenuLayout, visibleHomeMenuItems]);
+
+    const persistMenuLayout = useCallback(async (settings: HomeMenuLayoutSettings) => {
+        if (!user?.id) return;
+
+        const normalizedSettings = normalizeVisibleHomeMenuLayout(settings);
+        setIsSavingMenuLayout(true);
+        try {
+            await saveHomeMenuLayoutSettings(normalizedSettings, {
+                userId: user.id,
+                isAdmin,
+            });
+        } catch (error) {
+            console.error("[HomeV2MenuPanel] Failed to save home menu layout:", error);
+            alert("메뉴 설정 저장에 실패했습니다.");
+        } finally {
+            setIsSavingMenuLayout(false);
+        }
+    }, [isAdmin, normalizeVisibleHomeMenuLayout, user?.id]);
+
+    const openMenuSettingsLogin = useCallback(() => {
+        openModal("login", {
+            message: "바텀 메뉴 설정은 로그인 후 이용 가능합니다.",
+        });
+    }, [openModal]);
+
     const resetPinnedDrag = useCallback(() => {
         pinnedDragStartRef.current = null;
         lastDragTargetIdRef.current = null;
@@ -542,16 +607,35 @@ export const HomeV2MenuPanel: React.FC = () => {
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
         setIsEditMode(false);
         resetPinnedDrag();
-    }, [editPinnedMenuIds, editUnpinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+        void persistMenuLayout({
+            pinnedMenuIds: cleanPinnedIds,
+            menuOrderIds: nextMenuOrderIds,
+        });
+    }, [editPinnedMenuIds, editUnpinnedMenuIds, persistMenuLayout, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const toggleEditMode = useCallback(() => {
+        if (isLoadingMenuLayout || isSavingMenuLayout) return;
+
         if (isEditMode) {
             finishEditMode();
             return;
         }
 
+        if (!user?.id) {
+            openMenuSettingsLogin();
+            return;
+        }
+
         startEditMode();
-    }, [finishEditMode, isEditMode, startEditMode]);
+    }, [
+        finishEditMode,
+        isEditMode,
+        isLoadingMenuLayout,
+        isSavingMenuLayout,
+        openMenuSettingsLogin,
+        startEditMode,
+        user?.id,
+    ]);
 
     const resetPinnedMenu = useCallback(() => {
         const cleanPinnedIds = [...visibleDefaultPinnedMenuIds];
@@ -564,7 +648,11 @@ export const HomeV2MenuPanel: React.FC = () => {
         setMenuOrderIds(nextMenuOrderIds);
         setEditPinnedMenuIds(cleanPinnedIds);
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
-    }, [visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+        void persistMenuLayout({
+            pinnedMenuIds: cleanPinnedIds,
+            menuOrderIds: nextMenuOrderIds,
+        });
+    }, [persistMenuLayout, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const toggleMenuItemVisibility = useCallback(async (itemId: string) => {
         if (!isAdmin || isSavingTempoToolVisibility) return;
@@ -593,8 +681,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         isAdmin,
         isSavingTempoToolVisibility,
         saveTempoToolVisibilitySettings,
-        tempoToolVisibilitySettings.hidden,
-        tempoToolVisibilitySettings.hiddenItemIds,
+        tempoToolVisibilitySettings,
     ]);
 
     const getMenuItemStatus = useCallback((item: HomeMenuItem) => {
@@ -1032,20 +1119,50 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [editUnpinnedMenuIds]);
 
     useEffect(() => {
-        try {
-            window.localStorage.setItem(PINNED_MENU_STORAGE_KEY, JSON.stringify(pinnedMenuIds));
-        } catch {
-            // Storage can be blocked in private or restricted browser modes.
-        }
-    }, [pinnedMenuIds]);
+        if (isTempoToolVisibilityLoading) return undefined;
 
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(MENU_ORDER_STORAGE_KEY, JSON.stringify(menuOrderIds));
-        } catch {
-            // Storage can be blocked in private or restricted browser modes.
-        }
-    }, [menuOrderIds]);
+        let isCancelled = false;
+
+        const loadMenuLayout = async () => {
+            setIsLoadingMenuLayout(true);
+
+            try {
+                let settings: HomeMenuLayoutSettings | null = null;
+
+                if (user?.id) {
+                    try {
+                        settings = await loadUserHomeMenuLayoutSettings(user.id);
+                    } catch (error) {
+                        console.warn("[HomeV2MenuPanel] Failed to load user menu layout:", error);
+                    }
+                }
+
+                if (!settings) {
+                    settings = await loadDefaultHomeMenuLayoutSettings();
+                }
+
+                if (isCancelled) return;
+                applyHomeMenuLayout(settings);
+                setIsEditMode(false);
+                resetPinnedDrag();
+            } catch (error) {
+                console.warn("[HomeV2MenuPanel] Failed to load default menu layout:", error);
+                if (!isCancelled) {
+                    applyHomeMenuLayout(null);
+                    setIsEditMode(false);
+                    resetPinnedDrag();
+                }
+            } finally {
+                if (!isCancelled) setIsLoadingMenuLayout(false);
+            }
+        };
+
+        void loadMenuLayout();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [applyHomeMenuLayout, isTempoToolVisibilityLoading, resetPinnedDrag, user?.id]);
 
     useEffect(() => {
         const handleMediaPlayerBottomNav = (event: Event) => {
@@ -1286,6 +1403,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                             aria-pressed={isEditMode}
                             aria-label={isEditMode ? "메뉴 편집 완료" : "메뉴 편집"}
                             title={isEditMode ? "메뉴 편집 완료" : "메뉴 편집"}
+                            disabled={isLoadingMenuLayout || isSavingMenuLayout}
                         >
                             <i className={isEditMode ? "ri-check-line" : "ri-pencil-line"} aria-hidden="true" />
                         </button>
@@ -1300,6 +1418,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                 }}
                                 aria-label="고정 메뉴 리셋"
                                 title="고정 메뉴 리셋"
+                                disabled={isSavingMenuLayout}
                             >
                                 <i className="ri-restart-line" aria-hidden="true" />
                                 <span>리셋</span>
