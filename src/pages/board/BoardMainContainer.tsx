@@ -6,13 +6,13 @@ import { useSetPageAction } from '../../contexts/PageActionContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import StandardPostList from './components/StandardPostList';
-import BoardDetailModal from './components/BoardDetailModal';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
 import { useModal } from '../../hooks/useModal';
 import type { BoardEditorPreset } from './components/UniversalPostEditor';
 // import BoardManagementModal from './components/BoardManagementModal';
 // import UniversalPostEditor from './components/UniversalPostEditor';
 // import AnonymousWriteModal from './components/AnonymousWriteModal';
+// import BoardDetailModal from './components/BoardDetailModal';
 // import HistoryTimelinePage from '../history/HistoryTimelinePage';
 import LocalLoading from '../../components/LocalLoading';
 import './board.css';
@@ -21,6 +21,8 @@ import './board.css';
 const BoardManagementModal = lazy(() => import('./components/BoardManagementModal'));
 const UniversalPostEditor = lazy(() => import('./components/UniversalPostEditor'));
 const AnonymousWriteModal = lazy(() => import('./components/AnonymousWriteModal'));
+const loadBoardDetailModal = () => import('./components/BoardDetailModal');
+const BoardDetailModal = lazy(loadBoardDetailModal);
 const HistoryTimelinePage = lazy(() => import('../history/HistoryTimelinePage'));
 const AnonymousPostList = lazy(() => import('./components/AnonymousPostList'));
 const DevLog = lazy(() => import('./components/DevLog'));
@@ -89,10 +91,6 @@ export default function BoardMainContainer() {
         isRealAdmin,
         prefixId: selectedPrefixId
     });
-    const selectedPostSnapshot = useMemo(() => {
-        if (!selectedPostId) return null;
-        return currentPosts.find(post => String(post.id) === selectedPostId) || null;
-    }, [currentPosts, selectedPostId]);
 
     // Prefixes come from static board metadata. Posts are server-paginated, so
     // deriving filters from the current page would hide valid filters.
@@ -291,6 +289,22 @@ export default function BoardMainContainer() {
     };
 
     const shouldShowFreeWriteButton = category === 'free' && !selectedPostId;
+    useEffect(() => {
+        if (selectedPostId || loading || category === 'history' || category === 'dev-log') return;
+
+        let cancelled = false;
+        const preloadDetailModal = () => {
+            if (!cancelled) loadBoardDetailModal();
+        };
+
+        const timerId = window.setTimeout(preloadDetailModal, 120);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timerId);
+        };
+    }, [category, loading, selectedPostId]);
+
     const freeBoardWriteButton = shouldShowFreeWriteButton ? (
         <button
             type="button"
@@ -507,7 +521,6 @@ export default function BoardMainContainer() {
                         <BoardDetailModal
                             postId={selectedPostId}
                             category={category}
-                            initialPost={selectedPostSnapshot}
                             isOpen={true}
                             onClose={handleCloseModal}
                         />
