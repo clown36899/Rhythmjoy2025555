@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createCafe24FunctionHandler } from './cafe24-function-adapter.js';
 import { elapsedMs, nowMs, perfLog, perfShouldLog, summarizeApiRequest } from './perf-log.js';
 import {
@@ -59,6 +59,23 @@ const rawBody = express.raw({
   type: '*/*',
   limit: process.env.CAFE24_BODY_LIMIT || '50mb',
 });
+
+function isSwingFloorCouncilRoute(reqPath = '') {
+  return reqPath === '/swing-floor-council' || reqPath === '/swing-floor-council/';
+}
+
+function stripSocialPreviewMetadata(html = '') {
+  return html
+    .replace(/<meta\s+[^>]*(?:property|name)=["'](?:og:[^"']+|twitter:[^"']+)["'][^>]*>\s*/gi, '')
+    .replace(/<meta\s+[^>]*name=["']description["'][^>]*>\s*/gi, '')
+    .replace(/<meta\s+[^>]*name=["']apple-mobile-web-app-title["'][^>]*>\s*/gi, '')
+    .replace(/<link\s+[^>]*rel=["']manifest["'][^>]*>\s*/gi, '')
+    .replace(/<title>[\s\S]*?<\/title>/i, '<title></title>')
+    .replace(
+      '</head>',
+      '<meta name="robots" content="noindex,nofollow,noarchive,noimageindex" />\n</head>',
+    );
+}
 const urlencodedBody = express.urlencoded({
   extended: false,
   limit: process.env.CAFE24_SHARE_TARGET_BODY_LIMIT || '128kb',
@@ -373,6 +390,13 @@ app.use((req, res, next) => {
   const indexFile = path.join(distDir, 'index.html');
   if (!existsSync(indexFile)) {
     res.status(500).send('Cafe24 dist/index.html not found. Run npm run build:cafe24 first.');
+    return;
+  }
+
+  if (isSwingFloorCouncilRoute(req.path)) {
+    const html = readFileSync(indexFile, 'utf8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.type('html').send(stripSocialPreviewMetadata(html));
     return;
   }
 
