@@ -64,17 +64,33 @@ function isSwingFloorCouncilRoute(reqPath = '') {
   return reqPath === '/swing-floor-council' || reqPath === '/swing-floor-council/';
 }
 
-function stripSocialPreviewMetadata(html = '') {
+function buildSwingFloorCouncilPreviewHtml(html = '') {
+  const shareImageUrl = 'https://swingenjoy.com/swing-floor-council-share-card.png?v=20260626-1';
+  const title = '스윙 플로어 협의체 발기인 모집';
+  const description = '스윙 플로어를 지키기 위한 협의체 발기인 모집 초안입니다.';
+  const metadata = `
+  <title>${title}</title>
+  <meta name="description" content="${description}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://swingenjoy.com/swing-floor-council" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:image" content="${shareImageUrl}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:title" content="${title}" />
+  <meta property="twitter:description" content="${description}" />
+  <meta property="twitter:image" content="${shareImageUrl}" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />`;
+
   return html
     .replace(/<meta\s+[^>]*(?:property|name)=["'](?:og:[^"']+|twitter:[^"']+)["'][^>]*>\s*/gi, '')
     .replace(/<meta\s+[^>]*name=["']description["'][^>]*>\s*/gi, '')
     .replace(/<meta\s+[^>]*name=["']apple-mobile-web-app-title["'][^>]*>\s*/gi, '')
     .replace(/<link\s+[^>]*rel=["']manifest["'][^>]*>\s*/gi, '')
-    .replace(/<title>[\s\S]*?<\/title>/i, '<title></title>')
-    .replace(
-      '</head>',
-      '<meta name="robots" content="noindex,nofollow,noarchive,noimageindex" />\n</head>',
-    );
+    .replace(/<title>[\s\S]*?<\/title>/i, '')
+    .replace('</head>', `${metadata}\n</head>`);
 }
 const urlencodedBody = express.urlencoded({
   extended: false,
@@ -396,7 +412,7 @@ app.use((req, res, next) => {
   if (isSwingFloorCouncilRoute(req.path)) {
     const html = readFileSync(indexFile, 'utf8');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.type('html').send(stripSocialPreviewMetadata(html));
+    res.type('html').send(buildSwingFloorCouncilPreviewHtml(html));
     return;
   }
 
