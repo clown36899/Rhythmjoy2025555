@@ -1,6 +1,12 @@
 import crypto from 'node:crypto';
 import { requireAdmin } from './auth-api.js';
 import { getMysqlPool } from './mysql-pool.js';
+import {
+  collapseDateExpansionRows,
+  dateExpansionSkipReason,
+  shouldSkipDateExpansionCandidate,
+  sortDateExpansionInputs,
+} from './ingestion-date-expansion.js';
 
 const candidateStatuses = new Set(['new', 'needs_review', 'duplicate', 'excluded', 'registered', 'archived']);
 const automationTerminalStatuses = new Set(['duplicate', 'excluded', 'registered', 'archived']);
@@ -245,6 +251,16 @@ async function loadExistingCandidate(pool, id) {
   return rows[0] || null;
 }
 
+async function loadDateExpansionCandidateRows(pool, candidate) {
+  const [rows] = await pool.execute(
+    `SELECT * FROM ingestion_candidates
+     WHERE source_url_hash = ?
+       AND status <> 'archived'`,
+    [candidate.source_url_hash],
+  );
+  return rows;
+}
+
 async function writeStateLog(pool, { candidateId, fromStatus, toStatus, actorType, actorId = null, reason = null, details = null }) {
   await pool.execute(
     `INSERT INTO ingestion_candidate_state_log
@@ -422,6 +438,23 @@ async function listCandidates(req, res) {
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const countParams = [...params];
+  if (status === 'new') {
+    const [allRows] = await pool.execute(
+      `SELECT * FROM ingestion_candidates ${whereSql}
+       ORDER BY created_at DESC, id DESC`,
+      countParams,
+    );
+    const collapsedRows = collapseDateExpansionRows(allRows);
+    const dataRows = collapsedRows.slice((page - 1) * pageSize, page * pageSize);
+    res.json({
+      data: dataRows.map(rowToCandidate),
+      total: collapsedRows.length,
+      page,
+      pageSize,
+    });
+    return;
+  }
+
   const [countRows] = await pool.execute(
     `SELECT COUNT(*) AS total FROM ingestion_candidates ${whereSql}`,
     countParams,
@@ -452,12 +485,21 @@ async function postCandidates(req, res) {
   const saved = [];
   const skipped = [];
 
-  for (const value of values) {
-    const candidate = normalizeCandidateInput(value);
+  const candidates = sortDateExpansionInputs(values.map((value) => normalizeCandidateInput(value)));
+  for (const candidate of candidates) {
     if (!candidate.source_url || !candidate.event_date || !candidate.title) {
       skipped.push({
         id: candidate.id,
         reason: candidate.needs_review_reason || 'missing required candidate fields',
+      });
+      continue;
+    }
+    const dateExpansionRows = await loadDateExpansionCandidateRows(pool, candidate);
+    const dateExpansion = shouldSkipDateExpansionCandidate(candidate, dateExpansionRows);
+    if (dateExpansion.skip) {
+      skipped.push({
+        id: candidate.id,
+        reason: dateExpansionSkipReason(dateExpansion.primary),
       });
       continue;
     }

@@ -53,6 +53,7 @@ const SESSION_STORAGE_KEYS = {
     PAGE_VIEWS: 'analytics_session_page_views',
     LAST_PAGE: 'analytics_session_last_page',
 };
+const ANALYTICS_FINGERPRINT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365 * 2;
 
 const shouldAllowAnalyticsTransport = () => SITE_ANALYTICS_CONFIG.ENABLED
     && !isLocalAnalyticsHost()
@@ -65,6 +66,65 @@ const shouldTrackAnalytics = () => shouldAllowAnalyticsTransport()
 
 const shouldSendAdminIdentity = (isAdmin?: boolean) => shouldAllowAnalyticsTransport()
     && Boolean(isAdmin);
+
+const createAnalyticsFingerprint = () =>
+    'fp_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+const readStoredFingerprint = (): string | null => {
+    try {
+        return localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
+    } catch {
+        return null;
+    }
+};
+
+const writeStoredFingerprint = (value: string) => {
+    try {
+        localStorage.setItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT, value);
+    } catch {
+        // Storage can be blocked in private or embedded contexts.
+    }
+};
+
+const readFingerprintCookie = (): string | null => {
+    try {
+        const key = `${SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT}=`;
+        const match = document.cookie
+            .split(';')
+            .map(part => part.trim())
+            .find(part => part.startsWith(key));
+        return match ? decodeURIComponent(match.slice(key.length)) : null;
+    } catch {
+        return null;
+    }
+};
+
+const writeFingerprintCookie = (value: string) => {
+    try {
+        document.cookie = `${SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT}=${encodeURIComponent(value)}; Path=/; Max-Age=${ANALYTICS_FINGERPRINT_MAX_AGE_SECONDS}; SameSite=Lax`;
+    } catch {
+        // Ignore cookie failures; localStorage still gives a per-context identity.
+    }
+};
+
+const getAnalyticsFingerprint = (): string => {
+    const cookieFingerprint = readFingerprintCookie();
+    if (cookieFingerprint) {
+        if (readStoredFingerprint() !== cookieFingerprint) writeStoredFingerprint(cookieFingerprint);
+        return cookieFingerprint;
+    }
+
+    const storedFingerprint = readStoredFingerprint();
+    if (storedFingerprint) {
+        writeFingerprintCookie(storedFingerprint);
+        return storedFingerprint;
+    }
+
+    const nextFingerprint = createAnalyticsFingerprint();
+    writeStoredFingerprint(nextFingerprint);
+    writeFingerprintCookie(nextFingerprint);
+    return nextFingerprint;
+};
 
 const readStoredNumber = (key: string): number | null => {
     try {
@@ -265,7 +325,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
     const currentSessionId = getOrCreateSessionId();
     const utm = parseUTMParams();
     const referrer = document.referrer;
-    const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
+    const fingerprint = getAnalyticsFingerprint();
     const { displayMode } = detectPWAMode();
 
     // 입력받은 유저가 없으면 현재 Cafe24 세션에서 확인
@@ -316,7 +376,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
     trackPageViewForCurrentSession();
     const utm = parseUTMParams();
     const referrer = document.referrer;
-    const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
+    const fingerprint = getAnalyticsFingerprint();
     const { isPWA, displayMode } = detectPWAMode();
 
     if (!sessionStartTime) {
@@ -381,7 +441,7 @@ const finalizeSession = async (endTime = Date.now()) => {
     const payload = {
         action: 'end',
         session_id: sessionId,
-        fingerprint: localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT),
+        fingerprint: getAnalyticsFingerprint(),
         user_agent: navigator.userAgent,
         platform: navigator.platform,
         exit_page: window.location.pathname,
@@ -481,7 +541,7 @@ export const trackEvent = (log: AnalyticsLog) => {
     const logData = {
         ...log,
         user_agent: navigator.userAgent,
-        fingerprint: localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT),
+        fingerprint: getAnalyticsFingerprint(),
         // [PHASE 15-17] Advanced tracking
         session_id: currentSessionId,
         sequence_number: sessionSequence,
@@ -533,9 +593,5 @@ export const trackEvent = (log: AnalyticsLog) => {
  * 비로그인 유저를 위한 고유 핑거프린트 생성 (최초 1회)
  */
 export const initializeFingerprint = () => {
-    const key = SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT;
-    if (!localStorage.getItem(key)) {
-        const fp = 'fp_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-        localStorage.setItem(key, fp);
-    }
+    getAnalyticsFingerprint();
 };

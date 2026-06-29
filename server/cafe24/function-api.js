@@ -9,6 +9,12 @@ import {
 } from './generic-data-api.js';
 import { canManageEvent, userMatchesId } from './event-security.js';
 import { removeEventUploads as removeEventUploadFiles } from './upload-cleanup.js';
+import {
+  collapseDateExpansionRows,
+  dateExpansionSkipReason,
+  shouldSkipDateExpansionCandidate,
+  sortDateExpansionInputs,
+} from './ingestion-date-expansion.js';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -473,7 +479,7 @@ async function ingestScrapedItems(values) {
   const saved = [];
   const skipped = [];
 
-  for (const value of values) {
+  for (const value of sortDateExpansionInputs(values)) {
     const row = await prepareScrapedItem(value);
     const existingSameId = scrapedRows.find((item) => String(item?.id || '') === String(row.id));
 
@@ -493,6 +499,23 @@ async function ingestScrapedItems(values) {
       skipped.push({
         id: row.id,
         reason,
+      });
+      continue;
+    }
+
+    const dateExpansion = shouldSkipDateExpansionCandidate(row, scrapedRows);
+    if (dateExpansion.skip) {
+      skipped.push({
+        id: row.id,
+        reason: dateExpansionSkipReason(dateExpansion.primary),
+        duplicate: dateExpansion.primary ? {
+          target: 'scraped_events',
+          existingId: dateExpansion.primary.id || null,
+          existingTitle: rowTitle(dateExpansion.primary) || null,
+          existingDate: scrapedRowDate(dateExpansion.primary) || null,
+          existingSourceUrl: rowSourceUrl(dateExpansion.primary, 'scraped_events') || null,
+          reason: dateExpansionSkipReason(dateExpansion.primary),
+        } : null,
       });
       continue;
     }
@@ -544,7 +567,9 @@ export async function cafe24ScrapedEvents(req, res) {
   if (req.method === 'GET') {
     if (!isLocalDevelopmentRequest(req)) await requireAdmin(req);
     const allRows = await loadCafe24TableRows('scraped_events');
-    const filtered = sortDescCreatedAt(filterScrapedRows(allRows, req));
+    const tab = String(req.query.tab || '').toLowerCase();
+    const rawFiltered = filterScrapedRows(allRows, req);
+    const filtered = sortDescCreatedAt(tab === 'new' || !tab ? collapseDateExpansionRows(rawFiltered) : rawFiltered);
     const page = Math.max(1, Number(req.query.page || 1));
     const pageSize = Math.min(Math.max(Number(req.query.pageSize || req.query.limit || 100), 1), 500);
     const data = filtered.slice((page - 1) * pageSize, page * pageSize);

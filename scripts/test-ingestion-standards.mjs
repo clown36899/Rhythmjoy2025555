@@ -10,6 +10,12 @@ import {
   validateCandidate,
 } from './ingestion/candidate-utils.mjs';
 import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
+import {
+  collapseDateExpansionRows,
+  dateExpansionSkipReason,
+  shouldSkipDateExpansionCandidate,
+  sortDateExpansionInputs,
+} from '../server/cafe24/ingestion-date-expansion.js';
 
 const TODAY = '2026-05-23';
 
@@ -53,6 +59,36 @@ assert.deepEqual(
   ['first'],
   'multi-date social schedule items must keep only the first event date',
 );
+const multiDateRows = [
+  {
+    id: 'later-3',
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156900',
+    structured_data: { title: '들라/칼오의 재즈업 시즌2 (7-8월 월요일 @경성홀)', date: '2026-08-03' },
+  },
+  {
+    id: 'first',
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156900',
+    structured_data: { title: '들라/칼오의 재즈업 시즌2 (7-8월 월요일 @경성홀)', date: '2026-07-06' },
+  },
+  {
+    id: 'later-1',
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156900',
+    structured_data: { title: '들라/칼오의 재즈업 시즌2 (7-8월 월요일 @경성홀)', date: '2026-07-13' },
+  },
+];
+assert.deepEqual(
+  sortDateExpansionInputs(multiDateRows).map((row) => row.id),
+  ['first', 'later-1', 'later-3'],
+  'same source/title multi-date candidates must be processed earliest date first',
+);
+assert.deepEqual(
+  collapseDateExpansionRows(multiDateRows).map((row) => row.id),
+  ['first'],
+  'candidate list must show only the first date for one source/title multi-date post',
+);
+const dateExpansionDecision = shouldSkipDateExpansionCandidate(multiDateRows[2], [multiDateRows[1]]);
+assert.equal(dateExpansionDecision.skip, true, 'later date from the same source/title must be skipped at save time');
+assert.match(dateExpansionSkipReason(dateExpansionDecision.primary), /2026-07-06/, 'skip reason should point to the kept first date');
 
 const preparedSwing = prepareCandidate(baseCandidate(), { today: TODAY });
 assert.equal(preparedSwing.validation.ok, true);

@@ -729,16 +729,73 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 }
             });
 
-            const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
+            const resolveVisitorUserId = (row: any) => {
                 const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
                 const sessionId = row.session_id ? String(row.session_id) : '';
-                if (row.user_id) return `user:${String(row.user_id)}`;
+                if (row.user_id) return String(row.user_id);
                 const sessionUserId = getSingleIdentity(sessionIdToUser, sessionId);
-                if (sessionUserId) return `user:${sessionUserId}`;
+                if (sessionUserId) return sessionUserId;
                 const fingerprintUserId = getSingleIdentity(fingerprintToUser, fingerprint);
-                if (fingerprintUserId) return `user:${fingerprintUserId}`;
-                if (fingerprint) return `guest:${fingerprint}`;
+                if (fingerprintUserId) return fingerprintUserId;
+                return null;
+            };
+
+            const guestPwaBridge = (() => {
+                const networkStats = new Map<string, {
+                    fingerprints: Set<string>;
+                    hasMissingFingerprint: boolean;
+                    hasPwa: boolean;
+                    hasWeb: boolean;
+                }>();
+
+                [...sessionData, ...validData].forEach((row: any) => {
+                    if (resolveVisitorUserId(row)) return;
+                    const networkId = getGuestNetworkIdentity(row);
+                    if (!networkId) return;
+
+                    const current = networkStats.get(networkId) || {
+                        fingerprints: new Set<string>(),
+                        hasMissingFingerprint: false,
+                        hasPwa: false,
+                        hasWeb: false,
+                    };
+
+                    if (row.fingerprint) current.fingerprints.add(String(row.fingerprint));
+                    else current.hasMissingFingerprint = true;
+                    if (asAnalyticsBool(row.is_pwa)) current.hasPwa = true;
+                    else current.hasWeb = true;
+                    networkStats.set(networkId, current);
+                });
+
+                const networks = new Set<string>();
+                const fingerprints = new Map<string, string>();
+
+                networkStats.forEach((stat, networkId) => {
+                    const hasSplitIdentity = stat.fingerprints.size >= 2 || (stat.fingerprints.size >= 1 && stat.hasMissingFingerprint);
+                    if (!hasSplitIdentity || !stat.hasPwa || !stat.hasWeb) return;
+
+                    networks.add(networkId);
+                    stat.fingerprints.forEach((fingerprint) => fingerprints.set(fingerprint, networkId));
+                });
+
+                return { networks, fingerprints };
+            })();
+
+            const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
+                const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
+                const userId = resolveVisitorUserId(row);
+                if (userId) return `user:${userId}`;
                 const guestNetworkIdentity = getGuestNetworkIdentity(row);
+                if (
+                    guestNetworkIdentity &&
+                    (
+                        guestPwaBridge.networks.has(guestNetworkIdentity) ||
+                        (fingerprint && guestPwaBridge.fingerprints.get(fingerprint) === guestNetworkIdentity)
+                    )
+                ) {
+                    return `guest:${guestNetworkIdentity}`;
+                }
+                if (fingerprint) return `guest:${fingerprint}`;
                 if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
                 return 'guest:unknown';
@@ -854,7 +911,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 else current.guest = true;
                 fingerprintTypeMap.set(row.fingerprint, current);
             });
-            const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length;
+            const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length + guestPwaBridge.networks.size;
 
             const sessionLoggedInVisits = logicalSessions.filter((s: any) => getVisitorKey(s, s.session_id).startsWith('user:')).length;
             const sessionAnonVisits = logicalSessions.filter((s: any) => !getVisitorKey(s, s.session_id).startsWith('user:')).length;
@@ -1548,7 +1605,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     unique_total: displayLoggedInVisits + displayAnonVisits,
                     unique_logged_in: displayLoggedInVisits,
                     unique_guest: displayAnonVisits,
-                    session_total: rpcVisitorSummary?.included_session_total ?? logicalSessions.length,
+                    session_total: logicalSessions.length,
                     session_logged_in: sessionLoggedInVisits,
                     session_guest: sessionAnonVisits,
                     raw_session_total: rpcVisitorSummary?.raw_session_total ?? sessionData.length,
@@ -2269,7 +2326,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
 
                                     <div className="summary-exclusion-note">
-                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. 고유 방문자는 회원 ID와 기기 fingerprint를 합쳐 중복 제거하며, 기간 내 로그인으로 식별된 같은 기기는 회원 방문자로 합산됩니다. 세션은 같은 방문자의 30분 이내 조각을 병합하고 체류시간은 30분 상한으로 보정합니다.
+                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. 고유 방문자는 회원 ID와 기기 fingerprint를 기준으로 중복 제거하며, PWA/브라우저 전환으로 fingerprint가 갈라진 게스트는 같은 네트워크·기기 흔적이 확인될 때 하나로 합산합니다. 세션은 같은 방문자의 30분 이내 조각을 병합하고 체류시간은 30분 상한으로 보정합니다.
                                     </div>
                                 </div>
                             )}

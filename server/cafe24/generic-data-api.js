@@ -1684,9 +1684,66 @@ function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix =
   return true;
 }
 
-function analyticsIdentifier(row, fallback = '', identity = null) {
+function buildAnalyticsGuestPwaBridge(rows = [], identity = null) {
+  const networkStats = new Map();
+
+  for (const row of rows) {
+    if (identity?.userId(row) || analyticsUserId(row)) continue;
+
+    const networkDeviceId = analyticsGuestNetworkIdentity(row);
+    if (!networkDeviceId) continue;
+
+    const current = networkStats.get(networkDeviceId) || {
+      fingerprints: new Set(),
+      hasMissingFingerprint: false,
+      hasPwa: false,
+      hasWeb: false,
+    };
+    if (row?.fingerprint) current.fingerprints.add(String(row.fingerprint));
+    else current.hasMissingFingerprint = true;
+    if (asAnalyticsBool(row?.is_pwa)) current.hasPwa = true;
+    else current.hasWeb = true;
+    networkStats.set(networkDeviceId, current);
+  }
+
+  const bridgedFingerprints = new Map();
+  const bridgedNetworks = new Set();
+
+  for (const [networkDeviceId, stat] of networkStats) {
+    const hasSplitIdentity = stat.fingerprints.size >= 2 || (stat.fingerprints.size >= 1 && stat.hasMissingFingerprint);
+    if (!hasSplitIdentity || !stat.hasPwa || !stat.hasWeb) continue;
+    bridgedNetworks.add(networkDeviceId);
+    for (const fingerprint of stat.fingerprints) {
+      bridgedFingerprints.set(fingerprint, networkDeviceId);
+    }
+  }
+
+  return {
+    size: bridgedNetworks.size,
+    key(row = {}) {
+      if (identity?.userId(row) || analyticsUserId(row)) return null;
+
+      const networkDeviceId = analyticsGuestNetworkIdentity(row);
+      if (!networkDeviceId) return null;
+
+      const fingerprint = row?.fingerprint ? String(row.fingerprint) : null;
+      if (
+        bridgedNetworks.has(networkDeviceId) ||
+        (fingerprint && bridgedFingerprints.get(fingerprint) === networkDeviceId)
+      ) {
+        return `guest:${networkDeviceId}`;
+      }
+
+      return null;
+    },
+  };
+}
+
+function analyticsIdentifier(row, fallback = '', identity = null, guestPwaBridge = null) {
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (userId) return `user:${userId}`;
+  const bridgedGuestKey = guestPwaBridge?.key(row);
+  if (bridgedGuestKey) return bridgedGuestKey;
   if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
   const guestNetworkIdentity = analyticsGuestNetworkIdentity(row);
   if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
@@ -1745,10 +1802,14 @@ async function getAnalyticsSummaryV2(args = {}) {
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
   const sessionRows = rawSessionRows
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
+  const guestPwaBridge = buildAnalyticsGuestPwaBridge([
+    ...activityRows.map((item) => item.row),
+    ...sessionRows.map((item) => item.row),
+  ], identity);
 
   const dedupedByBucket = new Map();
   for (const item of activityRows) {
-    const identifier = analyticsIdentifier(item.row, item.index, identity);
+    const identifier = analyticsIdentifier(item.row, item.index, identity, guestPwaBridge);
     const bucket = Math.floor(item.ms / (6 * 60 * 60 * 1000));
     const key = `${identifier}:${bucket}`;
     const existing = dedupedByBucket.get(key);
@@ -1759,7 +1820,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const visitorIdentityMap = new Map();
   const addVisitorIdentity = (item, timeValue) => {
     if (!timeValue) return;
-    const key = analyticsIdentifier(item.row, item.index, identity);
+    const key = analyticsIdentifier(item.row, item.index, identity, guestPwaBridge);
     const time = new Date(timeValue).getTime();
     if (!Number.isFinite(time)) return;
     const current = visitorIdentityMap.get(key) || {
@@ -1779,7 +1840,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const getAnalyticsPage = (row = {}) => row.page_url || row.entry_page || row.exit_page || row.route || null;
   const getAnalyticsReferrer = (row = {}) => row.referrer || null;
   const addGuestRow = (item, timeValue, kind) => {
-    const key = analyticsIdentifier(item.row, item.index, identity);
+    const key = analyticsIdentifier(item.row, item.index, identity, guestPwaBridge);
     if (identity.userId(item.row)) return;
     const time = new Date(timeValue || item.row.created_at || item.row.session_start).getTime();
     if (!Number.isFinite(time)) return;
@@ -1961,6 +2022,7 @@ async function getAnalyticsSummaryV2(args = {}) {
       raw_session_total: rawSessionRows.length,
       included_activity_total: activityRows.length,
       included_session_total: sessionRows.length,
+      stitched_guest_devices: guestPwaBridge.size,
     },
     user_list: userList,
     guest_list: guestList,
