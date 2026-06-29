@@ -50,6 +50,35 @@ interface EventListProps {
   onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
+const getMainAdDatePart = (value?: string | null) => String(value || '').slice(0, 10);
+
+const isMainAdSocialEvent = (event: Event) => {
+  const category = String(event.category || '').toLowerCase();
+  const activityType = String((event as Event & { activity_type?: string | null }).activity_type || '').toLowerCase();
+  const genre = String(event.genre || '').toLowerCase();
+
+  return (
+    category === 'social' ||
+    activityType === 'social' ||
+    genre.includes('소셜') ||
+    genre.includes('social')
+  );
+};
+
+const isMainAdEventToday = (event: Event, todayStr: string) => {
+  if (event.event_dates?.some((date) => getMainAdDatePart(date) === todayStr)) return true;
+
+  const startDate = getMainAdDatePart(event.start_date || event.date);
+  const endDate = getMainAdDatePart(event.end_date || event.date || event.start_date);
+  if (startDate && endDate) return startDate <= todayStr && todayStr <= endDate;
+
+  return startDate === todayStr || endDate === todayStr;
+};
+
+const passesMainAdSocialTodayRule = (event: Event, todayStr: string) => (
+  !isMainAdSocialEvent(event) || isMainAdEventToday(event, todayStr)
+);
+
 const EventList: React.FC<EventListProps> = ({
   currentMonth,
   selectedDate,
@@ -116,6 +145,7 @@ const EventList: React.FC<EventListProps> = ({
       // 미래/오늘 일정만 포함
       const eventEndDate = event.end_date || event.date || "";
       if (eventEndDate < todayStr) return false;
+      if (!passesMainAdSocialTodayRule(event, todayStr)) return false;
 
       return true;
     };
@@ -162,6 +192,7 @@ const EventList: React.FC<EventListProps> = ({
 
     return events
       .filter((event) => {
+        if (!passesMainAdSocialTodayRule(event, todayStr)) return false;
         if (event.event_dates?.some((date) => date >= todayStr)) return true;
         const endDate = event.end_date || event.date || event.start_date || "";
         return Boolean(endDate) && endDate >= todayStr;
