@@ -4,7 +4,6 @@ import path from 'node:path';
 import dotenv from 'dotenv';
 import {
   loadCafe24TableRows,
-  saveCafe24TableRow,
 } from '../server/cafe24/generic-data-api.js';
 import { getMysqlPool } from '../server/cafe24/mysql-pool.js';
 import { analyticsGuestNetworkIdentity } from '../server/cafe24/analytics-purity.js';
@@ -16,6 +15,21 @@ const args = process.argv.slice(2);
 const repair = args.includes('--repair');
 const json = args.includes('--json');
 let mysqlPool = null;
+
+function getPool() {
+  if (!mysqlPool) mysqlPool = getMysqlPool();
+  return mysqlPool;
+}
+
+function parseJson(value, fallback = {}) {
+  if (!value) return fallback;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
 
 function optionValue(name, fallback = null) {
   const index = args.indexOf(name);
@@ -136,24 +150,50 @@ function isAdminDeviceRow(row, deviceIds) {
 }
 
 async function loadSqlUsers() {
-  mysqlPool = getMysqlPool();
-  const [rows] = await mysqlPool.execute('SELECT id, email, is_admin FROM users');
+  const [rows] = await getPool().execute('SELECT id, email, is_admin FROM users');
   return rows;
 }
 
+async function loadGenericRowsWithRecordIds(table) {
+  const [records] = await getPool().execute(
+    'SELECT record_id, data_json FROM generic_records WHERE table_name = ?',
+    [table],
+  );
+  return records.map((record) => ({
+    recordId: String(record.record_id),
+    row: parseJson(record.data_json, {}),
+  }));
+}
+
+async function updateGenericRowByRecordId(table, recordId, row) {
+  const updatedAt = row.updated_at ? new Date(row.updated_at) : new Date();
+  const [result] = await getPool().execute(
+    `UPDATE generic_records
+        SET data_json = ?,
+            updated_at = ?,
+            imported_at = CURRENT_TIMESTAMP
+      WHERE table_name = ?
+        AND record_id = ?`,
+    [JSON.stringify(row), updatedAt, table, recordId],
+  );
+  if (!result.affectedRows) {
+    throw new Error(`Failed to update ${table}:${recordId}`);
+  }
+}
+
 async function main() {
-  const [admins, users, boardUsers, sessionLogs, analyticsLogs] = await Promise.all([
+  const [admins, users, boardUsers, sessionLogRecords, analyticsLogRecords] = await Promise.all([
     loadCafe24TableRows('board_admins'),
     loadSqlUsers(),
     loadCafe24TableRows('board_users').catch(() => []),
-    loadCafe24TableRows('session_logs'),
-    loadCafe24TableRows('site_analytics_logs'),
+    loadGenericRowsWithRecordIds('session_logs'),
+    loadGenericRowsWithRecordIds('site_analytics_logs'),
   ]);
 
   const identity = buildAdminIdentity({ admins, users, boardUsers });
   const rows = [
-    ...sessionLogs.map((row) => ({ table: 'session_logs', row })),
-    ...analyticsLogs.map((row) => ({ table: 'site_analytics_logs', row })),
+    ...sessionLogRecords.map(({ recordId, row }) => ({ table: 'session_logs', recordId, row })),
+    ...analyticsLogRecords.map(({ recordId, row }) => ({ table: 'site_analytics_logs', recordId, row })),
   ];
   const deviceIds = buildAdminDeviceClosure(rows, identity.userIds);
   const targets = rows.filter(({ row }) => (
@@ -175,8 +215,8 @@ async function main() {
     adminSessions: deviceIds.sessionIds.size,
     adminFingerprints: deviceIds.fingerprints.size,
     adminNetworkDevices: deviceIds.networkDeviceIds.size,
-    sessionLogsTotal: sessionLogs.length,
-    analyticsLogsTotal: analyticsLogs.length,
+    sessionLogsTotal: sessionLogRecords.length,
+    analyticsLogsTotal: analyticsLogRecords.length,
     targetsTotal: targets.length,
     targetsByTable: {
       session_logs: count(targets, (item) => item.table === 'session_logs'),
@@ -202,7 +242,7 @@ async function main() {
     result.backupFile = backupFile;
 
     const repairedAt = new Date().toISOString();
-    for (const { table, row } of targets) {
+    for (const { table, recordId, row } of targets) {
       const nextRow = {
         ...row,
         is_admin: true,
@@ -210,7 +250,7 @@ async function main() {
         analytics_exclusion_reason: row.analytics_exclusion_reason || 'audit_admin_device_repair',
         updated_at: repairedAt,
       };
-      await saveCafe24TableRow(table, nextRow, table === 'session_logs' ? ['session_id'] : []);
+      await updateGenericRowByRecordId(table, recordId, nextRow);
       result.repaired += 1;
     }
   }

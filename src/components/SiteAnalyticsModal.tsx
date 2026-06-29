@@ -737,9 +737,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (sessionUserId) return `user:${sessionUserId}`;
                 const fingerprintUserId = getSingleIdentity(fingerprintToUser, fingerprint);
                 if (fingerprintUserId) return `user:${fingerprintUserId}`;
+                if (fingerprint) return `guest:${fingerprint}`;
                 const guestNetworkIdentity = getGuestNetworkIdentity(row);
                 if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
-                if (fingerprint) return `guest:${fingerprint}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
                 return 'guest:unknown';
             };

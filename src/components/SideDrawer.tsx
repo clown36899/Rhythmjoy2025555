@@ -391,14 +391,12 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     };
 
     const openPostStats = (initialTab: 'my' | 'scene' | 'monthly' = 'my') => {
-        if (user) {
-            statsModal.open({
-                initialTab,
-                userId: user.id
-            });
-        } else {
-            onLoginClick();
-        }
+        const resolvedInitialTab = user ? initialTab : (initialTab === 'my' ? 'scene' : initialTab);
+
+        statsModal.open({
+            initialTab: resolvedInitialTab,
+            userId: user?.id
+        });
         onClose();
     };
 

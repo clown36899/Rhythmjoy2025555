@@ -1687,9 +1687,9 @@ function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix =
 function analyticsIdentifier(row, fallback = '', identity = null) {
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (userId) return `user:${userId}`;
+  if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
   const guestNetworkIdentity = analyticsGuestNetworkIdentity(row);
   if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
-  if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
   if (row?.session_id) return `session:${String(row.session_id)}`;
   return `unknown:${fallback || 'visitor'}`;
 }
@@ -1735,10 +1735,11 @@ async function getAnalyticsSummaryV2(args = {}) {
     ...rawActivityRows.map((item) => item.row),
     ...rawSessionRows.map((item) => item.row),
   ], canonicalizeUserId);
-  const adminDeviceIds = buildAnalyticsAdminDeviceIds([
-    ...rawActivityRows.map((item) => item.row),
-    ...rawSessionRows.map((item) => item.row),
-  ], identity, adminUserIds);
+
+  // Admin devices may have their direct admin marker outside the selected report range.
+  const allAnalyticsRows = [...logs, ...sessions];
+  const globalAdminIdentity = buildAnalyticsIdentityResolver(allAnalyticsRows, canonicalizeUserId);
+  const adminDeviceIds = buildAnalyticsAdminDeviceIds(allAnalyticsRows, globalAdminIdentity, adminUserIds);
 
   const activityRows = rawActivityRows
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));

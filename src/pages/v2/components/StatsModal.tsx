@@ -31,6 +31,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
+    const hasUserStats = Boolean(userId);
 
 
 
@@ -52,11 +53,12 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
 
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(initialTab);
+            setActiveTab(!hasUserStats && initialTab === 'my' ? 'scene' : initialTab);
         }
-    }, [isOpen, initialTab]);
+    }, [isOpen, initialTab, hasUserStats]);
 
     const handleTabChange = (tab: 'my' | 'scene' | 'monthly') => {
+        if (tab === 'my' && !hasUserStats) return;
         if (tab === activeTab) return;
         setActiveTab(tab);
     };
@@ -78,6 +80,11 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
 
     const fetchStatsData = async () => {
         if (!userId) {
+            setEvents([]);
+            setPosts([]);
+            setFavoriteEvents([]);
+            setFavoritePosts([]);
+            setUserProfile(null);
             setLoading(false);
             return;
         }
@@ -146,7 +153,9 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         <h2
                             ref={(el) => { tabRefs.current['my'] = el; }}
                             onClick={() => handleTabChange('my')}
-                            className={`tab-item ${activeTab === 'my' ? 'active' : ''}`}
+                            className={`tab-item ${activeTab === 'my' ? 'active' : ''} ${!hasUserStats ? 'disabled' : ''}`}
+                            aria-disabled={!hasUserStats}
+                            title={!hasUserStats ? '로그인 후 이용 가능' : undefined}
                         >
                             내 활동
                         </h2>

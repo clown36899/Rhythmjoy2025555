@@ -182,8 +182,8 @@ export default function HomePageV2() {
     useEffect(() => {
         let active = true;
         const modalType = searchParams.get("modal");
-        if (modalType === "stats" && user) {
-            openModal('stats', { userId: user.id, initialTab: 'scene' });
+        if (modalType === "stats") {
+            openModal('stats', { userId: user?.id, initialTab: 'scene' });
             const newParams = new URLSearchParams(searchParams);
             newParams.delete("modal");
             if (active) {

@@ -31,6 +31,11 @@ const GENRE_COLORS: { [key: string]: string } = {
 };
 
 const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)' };
+const TYPE_SEGMENTS: Array<{ name: StatItem['type']; color: string }> = [
+    { name: '강습', color: COLORS.classes },
+    { name: '행사', color: COLORS.events },
+    { name: '동호회 이벤트+소셜', color: COLORS.socials }
+];
 
 export default function SwingSceneStats({ onInsertItem, section }: SwingSceneStatsProps) {
     const { stats, loading, refreshing, manualRefresh } = useSwingSceneStats();
@@ -200,12 +205,23 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     const currentMonthly = stats.monthly;
 
     const maxMonthly = Math.max(...currentMonthly.map(m => m.total), 1);
-    const maxDay = Math.max(...currentWeekly.map(d => d.count), 1);
+    const getDayCount = (dayStats: DayStats) => (
+        typeof dayStats.count === 'number' ? dayStats.count : 0
+    );
+    const getTypeCount = (dayStats: DayStats, type: StatItem['type']) => (
+        (Array.isArray(dayStats.typeBreakdown) ? dayStats.typeBreakdown : [])
+            .find(tb => tb.name === type)?.count || 0
+    );
+    const getGenreCount = (dayStats: DayStats, genre: string) => (
+        (Array.isArray(dayStats.genreBreakdown) ? dayStats.genreBreakdown : [])
+            .find(gb => gb.name === genre)?.count || 0
+    );
+    const maxDay = Math.max(...currentWeekly.map(getDayCount), 1);
 
     const getTypePeak = (type: string) => {
         const sorted = [...currentWeekly].sort((a, b) => {
-            const countA = a.typeBreakdown.find(tb => tb.name === type)?.count || 0;
-            const countB = b.typeBreakdown.find(tb => tb.name === type)?.count || 0;
+            const countA = getTypeCount(a, type as StatItem['type']);
+            const countB = getTypeCount(b, type as StatItem['type']);
             return countB - countA;
         });
         return sorted[0]?.day || '-';
@@ -213,8 +229,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
 
     const getGenrePeak = (genre: string) => {
         const sorted = [...currentWeekly].sort((a, b) => {
-            const countA = a.genreBreakdown.find(gb => gb.name === genre)?.count || 0;
-            const countB = b.genreBreakdown.find(gb => gb.name === genre)?.count || 0;
+            const countA = getGenreCount(a, genre);
+            const countB = getGenreCount(b, genre);
             return countB - countA;
         });
         return sorted[0]?.day || '-';
@@ -568,33 +584,21 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         data-analytics-title={`요일별 유형 상세: ${d.day}`}
                                         data-analytics-section="stats_modal_weekly"
                                     >
-                                        {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
+                                        {getDayCount(d) > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{getDayCount(d)}</span>}
                                         <div className="stacked-bar">
-                                            {/* Correct order (Bottom to Top): 0:Classes, 1:Events, 2:Socials */}
-                                            <div className="bar-segment" style={{
-                                                height: `${(d.typeBreakdown[0].count / maxDay) * 100}%`,
-                                                minHeight: d.typeBreakdown[0].count > 0 ? '1px' : '0',
-                                                background: COLORS.classes,
-                                                position: 'relative'
-                                            }}>
-                                                {d.typeBreakdown[0].count > 5 && <span className="segment-val">{d.typeBreakdown[0].count}</span>}
-                                            </div>
-                                            <div className="bar-segment" style={{
-                                                height: `${(d.typeBreakdown[1].count / maxDay) * 100}%`,
-                                                minHeight: d.typeBreakdown[1].count > 0 ? '1px' : '0',
-                                                background: COLORS.events,
-                                                position: 'relative'
-                                            }}>
-                                                {d.typeBreakdown[1].count > 5 && <span className="segment-val">{d.typeBreakdown[1].count}</span>}
-                                            </div>
-                                            <div className="bar-segment" style={{
-                                                height: `${(d.typeBreakdown[2].count / maxDay) * 100}%`,
-                                                minHeight: d.typeBreakdown[2].count > 0 ? '1px' : '0',
-                                                background: COLORS.socials,
-                                                position: 'relative'
-                                            }}>
-                                                {d.typeBreakdown[2].count > 5 && <span className="segment-val">{d.typeBreakdown[2].count}</span>}
-                                            </div>
+                                            {TYPE_SEGMENTS.map((segment) => {
+                                                const count = getTypeCount(d, segment.name);
+                                                return (
+                                                    <div key={segment.name} className="bar-segment" style={{
+                                                        height: `${(count / maxDay) * 100}%`,
+                                                        minHeight: count > 0 ? '1px' : '0',
+                                                        background: segment.color,
+                                                        position: 'relative'
+                                                    }}>
+                                                        {count > 5 && <span className="segment-val">{count}</span>}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                         <span className="axis-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)', fontWeight: inspectTypeDay === d.day ? 700 : 600 }}>{d.day}</span>
                                     </div>
@@ -643,13 +647,13 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         data-analytics-title={`요일별 장르 상세: ${d.day}`}
                                         data-analytics-section="stats_modal_weekly"
                                     >
-                                        {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
+                                        {getDayCount(d) > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{getDayCount(d)}</span>}
                                         <div className="stacked-bar">
-                                            {d.genreBreakdown.map((gb, idx) => (
+                                            {(Array.isArray(d.genreBreakdown) ? d.genreBreakdown : []).map((gb, idx) => (
                                                 <div key={idx} className="bar-segment"
                                                     style={{
-                                                        height: `${(gb.count / maxDay) * 100}%`,
-                                                        minHeight: gb.count > 0 ? '1px' : '0',
+                                                        height: `${((gb.count || 0) / maxDay) * 100}%`,
+                                                        minHeight: (gb.count || 0) > 0 ? '1px' : '0',
                                                         width: '100%',
                                                         background: getGenreColor(gb.name)
                                                     }}></div>
@@ -661,7 +665,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                             </div>
 
                             <div className="legend-grid three-cols">
-                                {stats.topGenresList.map((g, i) => (
+                                {(stats.topGenresList || []).map((g, i) => (
                                     <div key={i} className="legend-item">
                                         <span className="legend-dot" style={{ background: getGenreColor(g) }}></span>
                                         <span>{g}</span>
@@ -669,9 +673,11 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 ))}
                             </div>
 
-                            <div className="chart-desc">
-                                <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 핫합니다.</p>
-                            </div>
+                            {(stats.topGenresList || [])[0] && (
+                                <div className="chart-desc">
+                                    <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 핫합니다.</p>
+                                </div>
+                            )}
 
                             {inspectGenreDay && (
                                 <DataInspectorModal day={inspectGenreDay} items={getGenreItems(inspectGenreDay)} sortBy="genre" onClose={() => setInspectGenreDay(null)} />
