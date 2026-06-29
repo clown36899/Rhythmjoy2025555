@@ -720,6 +720,18 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (!network) return null;
                 return `${String(network)}:${getGuestDeviceIdentity(row)}`;
             };
+            const getGuestBridgeNetworkIdentity = (row: any) => {
+                const network = getClientIp(row) || row.ip_hash || null;
+                if (!network) return null;
+                return `${String(network)}:${getGuestDeviceIdentity(row)}`;
+            };
+            const getGuestBridgeDateKey = (row: any) => {
+                const value = row.session_start || row.created_at || row.timestamp || row.date;
+                if (!value) return null;
+                const date = new Date(value);
+                if (!Number.isFinite(date.getTime())) return null;
+                return getKRDateString(date);
+            };
             [...sessionData, ...validData].forEach((row: any) => {
                 if (row.session_id && row.user_id) {
                     addIdentity(sessionIdToUser, row.session_id, String(row.user_id));
@@ -740,61 +752,62 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return null;
             };
 
-            const guestPwaBridge = (() => {
+            const guestNetworkBridge = (() => {
                 const networkStats = new Map<string, {
+                    networkId: string;
+                    dateKey: string;
                     fingerprints: Set<string>;
                     hasMissingFingerprint: boolean;
-                    hasPwa: boolean;
-                    hasWeb: boolean;
                 }>();
+                const getBucketKey = (networkId: string, dateKey: string) => `${networkId}::${dateKey}`;
 
                 [...sessionData, ...validData].forEach((row: any) => {
                     if (resolveVisitorUserId(row)) return;
-                    const networkId = getGuestNetworkIdentity(row);
-                    if (!networkId) return;
+                    const networkId = getGuestBridgeNetworkIdentity(row);
+                    const dateKey = getGuestBridgeDateKey(row);
+                    if (!networkId || !dateKey) return;
 
-                    const current = networkStats.get(networkId) || {
+                    const bucketKey = getBucketKey(networkId, dateKey);
+                    const current = networkStats.get(bucketKey) || {
+                        networkId,
+                        dateKey,
                         fingerprints: new Set<string>(),
                         hasMissingFingerprint: false,
-                        hasPwa: false,
-                        hasWeb: false,
                     };
 
                     if (row.fingerprint) current.fingerprints.add(String(row.fingerprint));
                     else current.hasMissingFingerprint = true;
-                    if (asAnalyticsBool(row.is_pwa)) current.hasPwa = true;
-                    else current.hasWeb = true;
-                    networkStats.set(networkId, current);
+                    networkStats.set(bucketKey, current);
                 });
 
-                const networks = new Set<string>();
-                const fingerprints = new Map<string, string>();
+                const buckets = new Map<string, { networkId: string; dateKey: string }>();
 
-                networkStats.forEach((stat, networkId) => {
+                networkStats.forEach((stat, bucketKey) => {
                     const hasSplitIdentity = stat.fingerprints.size >= 2 || (stat.fingerprints.size >= 1 && stat.hasMissingFingerprint);
-                    if (!hasSplitIdentity || !stat.hasPwa || !stat.hasWeb) return;
+                    if (!hasSplitIdentity) return;
 
-                    networks.add(networkId);
-                    stat.fingerprints.forEach((fingerprint) => fingerprints.set(fingerprint, networkId));
+                    buckets.set(bucketKey, {
+                        networkId: stat.networkId,
+                        dateKey: stat.dateKey,
+                    });
                 });
 
-                return { networks, fingerprints };
+                return { buckets, getBucketKey };
             })();
 
             const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
-                const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
                 const userId = resolveVisitorUserId(row);
                 if (userId) return `user:${userId}`;
                 const guestNetworkIdentity = getGuestNetworkIdentity(row);
-                if (
-                    guestNetworkIdentity &&
-                    (
-                        guestPwaBridge.networks.has(guestNetworkIdentity) ||
-                        (fingerprint && guestPwaBridge.fingerprints.get(fingerprint) === guestNetworkIdentity)
-                    )
-                ) {
-                    return `guest:${guestNetworkIdentity}`;
+                const guestBridgeNetworkIdentity = getGuestBridgeNetworkIdentity(row);
+                const guestBridgeDateKey = getGuestBridgeDateKey(row);
+                if (guestBridgeNetworkIdentity && guestBridgeDateKey) {
+                    const bridgeBucketKey = guestNetworkBridge.getBucketKey(guestBridgeNetworkIdentity, guestBridgeDateKey);
+                    if (guestNetworkBridge.buckets.has(bridgeBucketKey)) {
+                        return `guest:${guestBridgeNetworkIdentity}:${guestBridgeDateKey}`;
+                    }
                 }
+                const fingerprint = row.fingerprint ? String(row.fingerprint) : '';
                 if (fingerprint) return `guest:${fingerprint}`;
                 if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
                 if (fallbackId) return `guest_session:${String(fallbackId)}`;
@@ -911,7 +924,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 else current.guest = true;
                 fingerprintTypeMap.set(row.fingerprint, current);
             });
-            const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length + guestPwaBridge.networks.size;
+            const stitchedGuestDevices = Array.from(fingerprintTypeMap.values()).filter(v => v.user && v.guest).length + guestNetworkBridge.buckets.size;
 
             const sessionLoggedInVisits = logicalSessions.filter((s: any) => getVisitorKey(s, s.session_id).startsWith('user:')).length;
             const sessionAnonVisits = logicalSessions.filter((s: any) => !getVisitorKey(s, s.session_id).startsWith('user:')).length;
@@ -2326,7 +2339,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
 
                                     <div className="summary-exclusion-note">
-                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. 고유 방문자는 회원 ID와 기기 fingerprint를 기준으로 중복 제거하며, PWA/브라우저 전환으로 fingerprint가 갈라진 게스트는 같은 네트워크·기기 흔적이 확인될 때 하나로 합산합니다. 세션은 같은 방문자의 30분 이내 조각을 병합하고 체류시간은 30분 상한으로 보정합니다.
+                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. 고유 방문자는 회원 ID를 우선 적용하고, Guest는 같은 날짜의 IP hash/IP와 기기군이 같으면 fingerprint가 갈라져도 하나로 합산합니다. 세션은 같은 방문자의 30분 이내 조각을 병합하고 체류시간은 30분 상한으로 보정합니다.
                                     </div>
                                 </div>
                             )}

@@ -12,6 +12,7 @@ import {
 import { removeEventUploads } from './upload-cleanup.js';
 import {
   analyticsClientIp,
+  analyticsGuestDeviceIdentity,
   analyticsGuestNetworkIdentity,
   analyticsKstHour,
   analyticsKstWeekday,
@@ -1441,6 +1442,22 @@ function analyticsMs(value) {
   return Number.isFinite(ms) ? ms : null;
 }
 
+function analyticsIdentityTime(row = {}) {
+  return row.session_start || row.created_at || row.timestamp || row.date || null;
+}
+
+function analyticsKstDateKeyFromRow(row = {}) {
+  const ms = analyticsMs(analyticsIdentityTime(row));
+  if (ms === null) return null;
+  return new Date(ms + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function analyticsGuestBridgeNetworkIdentity(row = {}) {
+  const network = analyticsClientIp(row) || row.ip_hash || null;
+  if (!network) return null;
+  return `${String(network)}:${analyticsGuestDeviceIdentity(row)}`;
+}
+
 function analyticsUserId(row) {
   if (!row?.user_id) return null;
   return String(row.user_id);
@@ -1684,65 +1701,58 @@ function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix =
   return true;
 }
 
-function buildAnalyticsGuestPwaBridge(rows = [], identity = null) {
+function buildAnalyticsGuestNetworkBridge(rows = [], identity = null) {
   const networkStats = new Map();
+  const bucketKey = (networkDeviceId, dateKey) => `${networkDeviceId}::${dateKey}`;
 
   for (const row of rows) {
     if (identity?.userId(row) || analyticsUserId(row)) continue;
 
-    const networkDeviceId = analyticsGuestNetworkIdentity(row);
-    if (!networkDeviceId) continue;
+    const networkDeviceId = analyticsGuestBridgeNetworkIdentity(row);
+    const dateKey = analyticsKstDateKeyFromRow(row);
+    if (!networkDeviceId || !dateKey) continue;
 
-    const current = networkStats.get(networkDeviceId) || {
+    const key = bucketKey(networkDeviceId, dateKey);
+    const current = networkStats.get(key) || {
+      networkDeviceId,
+      dateKey,
       fingerprints: new Set(),
       hasMissingFingerprint: false,
-      hasPwa: false,
-      hasWeb: false,
     };
     if (row?.fingerprint) current.fingerprints.add(String(row.fingerprint));
     else current.hasMissingFingerprint = true;
-    if (asAnalyticsBool(row?.is_pwa)) current.hasPwa = true;
-    else current.hasWeb = true;
-    networkStats.set(networkDeviceId, current);
+    networkStats.set(key, current);
   }
 
-  const bridgedFingerprints = new Map();
-  const bridgedNetworks = new Set();
+  const bridgedBuckets = new Map();
 
-  for (const [networkDeviceId, stat] of networkStats) {
+  for (const [key, stat] of networkStats) {
     const hasSplitIdentity = stat.fingerprints.size >= 2 || (stat.fingerprints.size >= 1 && stat.hasMissingFingerprint);
-    if (!hasSplitIdentity || !stat.hasPwa || !stat.hasWeb) continue;
-    bridgedNetworks.add(networkDeviceId);
-    for (const fingerprint of stat.fingerprints) {
-      bridgedFingerprints.set(fingerprint, networkDeviceId);
-    }
+    if (!hasSplitIdentity) continue;
+    bridgedBuckets.set(key, stat);
   }
 
   return {
-    size: bridgedNetworks.size,
+    size: bridgedBuckets.size,
     key(row = {}) {
       if (identity?.userId(row) || analyticsUserId(row)) return null;
 
-      const networkDeviceId = analyticsGuestNetworkIdentity(row);
-      if (!networkDeviceId) return null;
+      const networkDeviceId = analyticsGuestBridgeNetworkIdentity(row);
+      const dateKey = analyticsKstDateKeyFromRow(row);
+      if (!networkDeviceId || !dateKey) return null;
 
-      const fingerprint = row?.fingerprint ? String(row.fingerprint) : null;
-      if (
-        bridgedNetworks.has(networkDeviceId) ||
-        (fingerprint && bridgedFingerprints.get(fingerprint) === networkDeviceId)
-      ) {
-        return `guest:${networkDeviceId}`;
-      }
+      const key = bucketKey(networkDeviceId, dateKey);
+      if (bridgedBuckets.has(key)) return `guest:${networkDeviceId}:${dateKey}`;
 
       return null;
     },
   };
 }
 
-function analyticsIdentifier(row, fallback = '', identity = null, guestPwaBridge = null) {
+function analyticsIdentifier(row, fallback = '', identity = null, guestNetworkBridge = null) {
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (userId) return `user:${userId}`;
-  const bridgedGuestKey = guestPwaBridge?.key(row);
+  const bridgedGuestKey = guestNetworkBridge?.key(row);
   if (bridgedGuestKey) return bridgedGuestKey;
   if (row?.fingerprint) return `fingerprint:${String(row.fingerprint)}`;
   const guestNetworkIdentity = analyticsGuestNetworkIdentity(row);
@@ -1802,14 +1812,14 @@ async function getAnalyticsSummaryV2(args = {}) {
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
   const sessionRows = rawSessionRows
     .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
-  const guestPwaBridge = buildAnalyticsGuestPwaBridge([
+  const guestNetworkBridge = buildAnalyticsGuestNetworkBridge([
     ...activityRows.map((item) => item.row),
     ...sessionRows.map((item) => item.row),
   ], identity);
 
   const dedupedByBucket = new Map();
   for (const item of activityRows) {
-    const identifier = analyticsIdentifier(item.row, item.index, identity, guestPwaBridge);
+    const identifier = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
     const bucket = Math.floor(item.ms / (6 * 60 * 60 * 1000));
     const key = `${identifier}:${bucket}`;
     const existing = dedupedByBucket.get(key);
@@ -1820,7 +1830,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const visitorIdentityMap = new Map();
   const addVisitorIdentity = (item, timeValue) => {
     if (!timeValue) return;
-    const key = analyticsIdentifier(item.row, item.index, identity, guestPwaBridge);
+    const key = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
     const time = new Date(timeValue).getTime();
     if (!Number.isFinite(time)) return;
     const current = visitorIdentityMap.get(key) || {
@@ -1840,7 +1850,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const getAnalyticsPage = (row = {}) => row.page_url || row.entry_page || row.exit_page || row.route || null;
   const getAnalyticsReferrer = (row = {}) => row.referrer || null;
   const addGuestRow = (item, timeValue, kind) => {
-    const key = analyticsIdentifier(item.row, item.index, identity, guestPwaBridge);
+    const key = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
     if (identity.userId(item.row)) return;
     const time = new Date(timeValue || item.row.created_at || item.row.session_start).getTime();
     if (!Number.isFinite(time)) return;
@@ -2022,7 +2032,7 @@ async function getAnalyticsSummaryV2(args = {}) {
       raw_session_total: rawSessionRows.length,
       included_activity_total: activityRows.length,
       included_session_total: sessionRows.length,
-      stitched_guest_devices: guestPwaBridge.size,
+      stitched_guest_devices: guestNetworkBridge.size,
     },
     user_list: userList,
     guest_list: guestList,
