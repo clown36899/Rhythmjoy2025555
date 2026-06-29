@@ -85,7 +85,7 @@ interface ForumToolSample {
 const nebSettings = {
   sortBy: '등록일 기준',
   timeWindowHours: 72,
-  maxItems: 7,
+  maxItems: 15,
   useFallback: true,
   includeGenres: ['워크샵', '파티', '대회', '라이브밴드', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '소셜', '기타'],
 };

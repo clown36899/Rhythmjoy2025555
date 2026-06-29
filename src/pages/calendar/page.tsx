@@ -703,16 +703,14 @@ export default function CalendarPage() {
             let maxDayHeight = minCellHeight;
             for (let d = 0; d < 7; d++) {
                 const dayOffset = (w * 7) + d - firstDay;
-                if (dayOffset >= 0 && dayOffset < daysInMonth) {
-                    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayOffset + 1);
-                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                    const eventCount = eventsByDate[dateStr] || 0;
-                    const dayHeight = Math.max(
-                        minCellHeight,
-                        dayHeaderHeight + eventCount * eventChipHeight + Math.max(0, eventCount - 1) * eventGap + 12
-                    );
-                    if (dayHeight > maxDayHeight) maxDayHeight = dayHeight;
-                }
+                const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayOffset + 1);
+                const dateStr = getCalendarLocalDateString(date);
+                const eventCount = eventsByDate[dateStr] || 0;
+                const dayHeight = Math.max(
+                    minCellHeight,
+                    dayHeaderHeight + eventCount * eventChipHeight + Math.max(0, eventCount - 1) * eventGap + 12
+                );
+                if (dayHeight > maxDayHeight) maxDayHeight = dayHeight;
             }
 
             if (isSameMonth && w < todayWeekIndex) {

@@ -3,6 +3,7 @@ import {
   buildCafe24Payload,
   hasBadPosterUrl,
   isCollectableDateTime,
+  keepFirstEventDateOnly,
   makeDeterministicId,
   prepareCandidate,
   textSimilarity,
@@ -37,6 +38,20 @@ assert.equal(
   makeDeterministicId('https://cafe.naver.com/f-e/cafes/10342583/articles/155957?boardtype=L&menuid=13&referrerAllArticles=false', '2026-06-27'),
   makeDeterministicId('https://cafe.naver.com/f-e/cafes/10342583/articles/155957?boardtype=L&menuid=264&referrerAllArticles=false', '2026-06-27'),
   'naver cafe article IDs ignore menu/list query noise',
+);
+assert.deepEqual(
+  keepFirstEventDateOnly(['2026-07-20', '2026-07-06', '2026-07-13']),
+  ['2026-07-06'],
+  'multi-date ingestion candidates must keep only the first event date',
+);
+assert.deepEqual(
+  keepFirstEventDateOnly([
+    { date: '2026-07-20', title: 'third' },
+    { date: '2026-07-06', title: 'first' },
+    { date: '2026-07-13', title: 'second' },
+  ], (item) => item.date).map((item) => item.title),
+  ['first'],
+  'multi-date social schedule items must keep only the first event date',
 );
 
 const preparedSwing = prepareCandidate(baseCandidate(), { today: TODAY });

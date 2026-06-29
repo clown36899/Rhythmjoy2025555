@@ -123,7 +123,7 @@ const CalendarCell = memo(({
     <div
       data-date={dateString}
       id={isToday ? 'calendar-today-cell' : undefined}
-      onClick={(e) => !isOutsideMonth && onDateClick(day, e)}
+      onClick={(e) => onDateClick(day, e)}
       className={`calendar-cell-fullscreen ${isToday ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''} ${isOutsideMonth ? 'is-outside-month' : ''}`}
       style={{ '--cell-min-height': `${cellHeight}px` } as any}
     >
@@ -685,13 +685,13 @@ export default memo(function FullEventCalendar({
     return days.map((day, index) => {
       const isLastRow = index >= days.length - 7;
       const isOutsideMonth = day.getMonth() !== monthDate.getMonth();
-      const dayEvents = isOutsideMonth ? [] : getEventsForDate(day);
+      const dayEvents = getEventsForDate(day);
 
       return (
         <CalendarCell
           key={day.toISOString()}
           day={day}
-          isToday={!isOutsideMonth && isToday(day)}
+          isToday={isToday(day)}
           isLastRow={isLastRow}
           isOutsideMonth={isOutsideMonth}
           cellHeight={cellHeight}

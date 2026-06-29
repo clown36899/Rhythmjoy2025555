@@ -1831,11 +1831,19 @@
 
 .calendar-page-container .calendar-cell-fullscreen.is-outside-month {
   visibility: visible;
-  pointer-events: none;
 }
 
 .calendar-page-container .calendar-cell-fullscreen.is-outside-month>* {
-  visibility: hidden;
+  visibility: visible;
+}
+
+.calendar-page-container .calendar-cell-fullscreen.is-outside-month .calendar-date-number-fullscreen,
+.calendar-page-container .calendar-cell-fullscreen.is-outside-month .calendar-day-count {
+  opacity: 0.62;
+}
+
+.calendar-page-container .calendar-cell-fullscreen.is-outside-month .calendar-fullscreen-event-card {
+  opacity: 0.72;
 }
 
 .calendar-page-container .calendar-cell-fullscreen-header {

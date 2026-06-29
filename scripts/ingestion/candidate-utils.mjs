@@ -260,6 +260,13 @@ export function makeDeterministicId(sourceUrl, date, suffix = '') {
   return crypto.createHash('md5').update(raw).digest('hex').slice(0, 16);
 }
 
+export function keepFirstEventDateOnly(values = [], dateSelector = (value) => value) {
+  return [...(Array.isArray(values) ? values : [])]
+    .filter((value) => String(dateSelector(value) || '').slice(0, 10))
+    .sort((a, b) => String(dateSelector(a) || '').slice(0, 10).localeCompare(String(dateSelector(b) || '').slice(0, 10)))
+    .slice(0, 1);
+}
+
 export function normalizeText(value = '') {
   return String(value || '')
     .normalize('NFKC')

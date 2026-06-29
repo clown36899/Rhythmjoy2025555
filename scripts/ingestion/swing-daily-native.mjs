@@ -5,6 +5,7 @@ import {
   buildCafe24Payload,
   getBlockedKeywordReason,
   isCollectableDateTime,
+  keepFirstEventDateOnly,
   normalizeSourceUrl,
   prepareCandidate,
   todayISO,
@@ -308,9 +309,7 @@ function looksLikeBroadScheduleNotice(title = '', text = '') {
 function selectCandidateDates({ title, cleanText, activity }) {
   const titleDates = extractDates(title);
   const sourceDates = titleDates.length ? titleDates : extractDates(cleanText);
-  if (activity === 'class' || activity === 'recruit') return sourceDates.slice(0, 1);
-  if (titleDates.length) return sourceDates.slice(0, 2);
-  return sourceDates.slice(0, 8);
+  return keepFirstEventDateOnly(sourceDates);
 }
 
 function socialDayTitle(day = '') {
@@ -1216,7 +1215,9 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
     return [];
   }
 
-  const socialScheduleItems = activity === 'social' ? extractSocialScheduleItems(cleanText, source) : [];
+  const socialScheduleItems = activity === 'social'
+    ? keepFirstEventDateOnly(extractSocialScheduleItems(cleanText, source), (item) => item.date)
+    : [];
   if (socialScheduleItems.length) {
     const candidates = [];
     const imageDataByUrl = new Map();
