@@ -776,6 +776,10 @@
   --icon-rgb: 82, 218, 199;
 }
 
+.home-v2-menu-icon--menu-hub {
+  --icon-rgb: 185, 180, 255;
+}
+
 .home-v2-menu-icon--stats {
   --icon-rgb: 148, 144, 255;
 }
