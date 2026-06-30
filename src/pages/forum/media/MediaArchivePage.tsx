@@ -54,6 +54,7 @@ const LINDY_COLLECTION_DEFAULT_NO_ENDORSEMENT = 'Lindy Collection의 공식 제�
 const LINDY_COLLECTION_DEFAULT_RIGHTS_NOTE = '링크된 원본 영상은 각 게시자와 플랫폼의 권리 조건을 따릅니다.';
 const MEDIA_DESCRIPTION_EXPAND_MIN_LENGTH = 80;
 const MEDIA_PLAYER_BOTTOM_NAV_EVENT = 'swingenjoy:media-player-bottom-nav';
+const MEDIA_PLAYER_QUERY_PARAM = 'play';
 const MEDIA_PLAYER_CONTROL_ENGAGED_MS = 2600;
 const PLAYLIST_COVER_STORAGE_PREFIX = 'sns-media-playlists';
 const TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -66,6 +67,10 @@ type MediaSearchSuggestion = {
 type MediaPlaybackProps = {
   playingItemId: string;
   onPlayItem: (itemId: string) => void;
+};
+
+type MediaArchivePlayerLocationState = {
+  mediaArchivePlayer?: boolean;
 };
 
 type TrashClearFields = {
@@ -2895,6 +2900,69 @@ const MediaMiniCard: React.FC<{
   );
 };
 
+const MediaStandalonePlayerPage: React.FC<{
+  item: SnsMediaItem;
+  onBack: () => void;
+  canManage?: boolean;
+  onEdit?: (item: SnsMediaItem) => void;
+}> = ({ item, onBack, canManage = false, onEdit }) => {
+  const metaText = [
+    item.author_name,
+    item.dance_genre,
+    item.collection_name,
+    platformLabel(item.platform),
+  ].filter(Boolean).join(' · ');
+  const originalUrl = item.normalized_url || item.url;
+  const showCustomYouTubePlayer = item.platform === 'youtube' && Boolean(item.embed_url);
+
+  return (
+    <main className="media-archive-player-page" onDragStartCapture={preventMediaArchiveDrag}>
+      <button
+        type="button"
+        className="media-player-back-button"
+        draggable={false}
+        onDragStart={preventMediaArchiveDrag}
+        onClick={onBack}
+        aria-label="아카이브로 돌아가기"
+      >
+        <i className="ri-arrow-left-line" />
+        <span>돌아가기</span>
+      </button>
+      <section className="media-standalone-player-shell" aria-label={item.title || '영상 재생'}>
+        {showCustomYouTubePlayer ? (
+          <YouTubeCustomPlayer item={item} />
+        ) : (
+          <div className="media-standalone-embed-wrap">
+            <MediaEmbed item={item} autoplay />
+          </div>
+        )}
+        <div className="media-standalone-player-meta">
+          <div className="media-standalone-player-copy">
+            <h1>{item.title || '제목 없음'}</h1>
+            {metaText && <p>{metaText}</p>}
+          </div>
+          <div className="media-standalone-player-actions">
+            {item.platform !== 'youtube' && originalUrl && (
+              <a href={originalUrl} target="_blank" rel="noreferrer" draggable={false} onDragStart={preventMediaArchiveDrag}>
+                <i className="ri-external-link-line" />
+                원본
+              </a>
+            )}
+            {canManage && onEdit && (
+              <button type="button" draggable={false} onDragStart={preventMediaArchiveDrag} onClick={() => onEdit(item)}>
+                <i className="ri-edit-2-line" />
+                수정
+              </button>
+            )}
+          </div>
+        </div>
+        <TranslatedDescription value={item} className="media-standalone-description" />
+        <LicenseAttributionNotice value={item} compact />
+      </section>
+    </main>
+  );
+};
+
 const ArchivePlacementPreview: React.FC<{ item: SnsMediaItem }> = ({ item }) => {
   const chips = [
     item.dance_genre ? { key: 'genre', icon: 'ri-disc-line', label: item.dance_genre } : null,
@@ -2969,6 +3037,24 @@ function replaceMediaArchiveHistoryView(view: MediaArchiveHistoryView | null) {
     delete nextState[MEDIA_ARCHIVE_HISTORY_VIEW_KEY];
   }
   window.history.replaceState(nextState, '', window.location.href);
+}
+
+function getMediaPlayerQueryId(search: string) {
+  return compactText(new URLSearchParams(search).get(MEDIA_PLAYER_QUERY_PARAM));
+}
+
+function setMediaPlayerQueryId(search: string, itemId: string) {
+  const params = new URLSearchParams(search);
+  params.set(MEDIA_PLAYER_QUERY_PARAM, itemId);
+  const nextSearch = params.toString();
+  return nextSearch ? `?${nextSearch}` : '';
+}
+
+function clearMediaPlayerQueryId(search: string) {
+  const params = new URLSearchParams(search);
+  params.delete(MEDIA_PLAYER_QUERY_PARAM);
+  const nextSearch = params.toString();
+  return nextSearch ? `?${nextSearch}` : '';
 }
 
 function getPlaylistChildren(parentId: string, playlists: SnsMediaPlaylist[]) {
@@ -4432,6 +4518,12 @@ const MediaArchivePage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [playingItemId, setPlayingItemId] = useState('');
+  const playerItemId = getMediaPlayerQueryId(location.search);
+  const playerLocationState = location.state as MediaArchivePlayerLocationState | null;
+  const playerOpenedFromArchive = Boolean(playerLocationState?.mediaArchivePlayer);
+  const [standalonePlayerItem, setStandalonePlayerItem] = useState<SnsMediaItem | null>(null);
+  const [standalonePlayerLoading, setStandalonePlayerLoading] = useState(Boolean(playerItemId));
+  const [standalonePlayerError, setStandalonePlayerError] = useState('');
   const [showAddChoice, setShowAddChoice] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showPlaylistForm, setShowPlaylistForm] = useState(false);
@@ -4455,7 +4547,9 @@ const MediaArchivePage: React.FC = () => {
   const [trashItems, setTrashItems] = useState<SnsMediaItem[]>([]);
   const [trashPlaylists, setTrashPlaylists] = useState<SnsMediaPlaylist[]>([]);
   const [trashLoading, setTrashLoading] = useState(false);
-  const [archiveInitialView, setArchiveInitialView] = useState<MediaArchiveHistoryView | null>(null);
+  const [archiveInitialView, setArchiveInitialView] = useState<MediaArchiveHistoryView | null>(() => (
+    typeof window === 'undefined' ? null : getMediaArchiveHistoryView(window.history.state)
+  ));
   const [archiveViewVersion, setArchiveViewVersion] = useState(0);
   const [pendingArchiveFocusView, setPendingArchiveFocusView] = useState<MediaArchiveHistoryView | null | undefined>(undefined);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -4464,6 +4558,8 @@ const MediaArchivePage: React.FC = () => {
   const metadataFetchKeyRef = useRef('');
   const playlistMetadataFetchKeyRef = useRef('');
   const restoredDraftRef = useRef(false);
+  const previousPlayerItemIdRef = useRef(playerItemId);
+  const playerReturnViewRef = useRef<MediaArchiveHistoryView | null>(null);
   const [activePlaylistContext, setActivePlaylistContext] = useState<MediaPlaylistContext | null>(() => readMediaPlaylistContext());
   const activePlaylistContextRef = useRef<MediaPlaylistContext | null>(activePlaylistContext);
 
@@ -4471,6 +4567,25 @@ const MediaArchivePage: React.FC = () => {
     document.documentElement.classList.add('media-archive-page-active');
     return () => document.documentElement.classList.remove('media-archive-page-active');
   }, []);
+
+  useEffect(() => {
+    if (!playerItemId) {
+      document.documentElement.classList.remove('media-archive-player-active');
+      return undefined;
+    }
+
+    document.documentElement.classList.add('media-archive-player-active');
+    return () => document.documentElement.classList.remove('media-archive-player-active');
+  }, [playerItemId]);
+
+  useEffect(() => {
+    const previousPlayerItemId = previousPlayerItemIdRef.current;
+    previousPlayerItemIdRef.current = playerItemId;
+    if (!previousPlayerItemId || playerItemId || typeof window === 'undefined') return;
+
+    setArchiveInitialView(getMediaArchiveHistoryView(window.history.state) || playerReturnViewRef.current);
+    setArchiveViewVersion((version) => version + 1);
+  }, [playerItemId]);
 
   const canCreate = Boolean(user);
   useEffect(() => {
@@ -4539,9 +4654,44 @@ const MediaArchivePage: React.FC = () => {
     [items, playlists, query, suggestionItems],
   );
   const showSearchSuggestions = searchFocused && Boolean(compactText(query)) && searchSuggestions.length > 0;
+  const activeStandalonePlayerItem = useMemo(() => {
+    if (!playerItemId) return null;
+    return items.find((item) => item.id === playerItemId)
+      || suggestionItems.find((item) => item.id === playerItemId)
+      || standalonePlayerItem;
+  }, [items, playerItemId, standalonePlayerItem, suggestionItems]);
   const handlePlayItem = useCallback((itemId: string) => {
-    setPlayingItemId(itemId);
-  }, []);
+    if (!itemId) {
+      setPlayingItemId('');
+      return;
+    }
+
+    setPlayingItemId('');
+    if (typeof window !== 'undefined') {
+      playerReturnViewRef.current = getMediaArchiveHistoryView(window.history.state);
+    }
+    navigate({
+      pathname: '/forum/media',
+      search: setMediaPlayerQueryId(location.search, itemId),
+      hash: location.hash,
+    }, {
+      state: { mediaArchivePlayer: true } satisfies MediaArchivePlayerLocationState,
+    });
+  }, [location.hash, location.search, navigate]);
+
+  const handleCloseStandalonePlayer = useCallback(() => {
+    setPlayingItemId('');
+    if (playerOpenedFromArchive && typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate({
+      pathname: '/forum/media',
+      search: clearMediaPlayerQueryId(location.search),
+      hash: location.hash,
+    }, { replace: true });
+  }, [location.hash, location.search, navigate, playerOpenedFromArchive]);
 
   const availableGenres = useMemo(() => {
     const fromItems = items.map((item) => item.dance_genre).filter(Boolean) as string[];
@@ -4855,6 +5005,57 @@ const MediaArchivePage: React.FC = () => {
   useEffect(() => {
     fetchSuggestionItems();
   }, [fetchSuggestionItems]);
+
+  useEffect(() => {
+    if (!playerItemId) {
+      setStandalonePlayerItem(null);
+      setStandalonePlayerError('');
+      setStandalonePlayerLoading(false);
+      return undefined;
+    }
+
+    const localItem = items.find((item) => item.id === playerItemId)
+      || suggestionItems.find((item) => item.id === playerItemId);
+    if (localItem) {
+      setStandalonePlayerItem(localItem);
+      setStandalonePlayerError('');
+      setStandalonePlayerLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setStandalonePlayerItem(null);
+    setStandalonePlayerError('');
+    setStandalonePlayerLoading(true);
+
+    (async () => {
+      try {
+        const { data, error } = await cafe24
+          .from('sns_media_items')
+          .select('*')
+          .eq('id', playerItemId)
+          .is('deleted_at', null)
+          .maybeSingle();
+        if (error) throw error;
+        if (cancelled) return;
+        if (data) {
+          setStandalonePlayerItem(data as SnsMediaItem);
+        } else {
+          setStandalonePlayerError('재생할 영상을 찾을 수 없습니다.');
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error('[MediaArchive] player item fetch failed:', error);
+        setStandalonePlayerError('영상을 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        if (!cancelled) setStandalonePlayerLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items, playerItemId, suggestionItems]);
 
   useEffect(() => {
     if (showTrash) void fetchTrash();
@@ -6079,13 +6280,21 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const renderArchiveView = () => {
+    const currentHistoryView = typeof window === 'undefined' || playerItemId
+      ? null
+      : getMediaArchiveHistoryView(window.history.state);
+    const initialArchiveView = archiveInitialView || currentHistoryView || playerReturnViewRef.current;
+    const archiveViewKey = initialArchiveView
+      ? `${archiveViewVersion}:${getMediaArchiveHistoryViewKey(initialArchiveView)}`
+      : `${archiveViewVersion}:root`;
+
     return (
       <CollectionArchiveView
-        key={archiveViewVersion}
+        key={archiveViewKey}
         items={items}
         playlists={playlists}
         searchQuery={activeSearchQuery}
-        initialView={archiveInitialView}
+        initialView={initialArchiveView}
         onInitialViewApplied={clearArchiveInitialView}
         canOrganize={Boolean(isAdmin)}
         canManageItem={canManageItem}
@@ -6101,6 +6310,47 @@ const MediaArchivePage: React.FC = () => {
       />
     );
   };
+
+  if (playerItemId) {
+    if (activeStandalonePlayerItem) {
+      return (
+        <MediaStandalonePlayerPage
+          item={activeStandalonePlayerItem}
+          onBack={handleCloseStandalonePlayer}
+          canManage={canManageItem(activeStandalonePlayerItem)}
+          onEdit={(item) => {
+            navigate({
+              pathname: '/forum/media',
+              search: clearMediaPlayerQueryId(location.search),
+              hash: location.hash,
+            }, { replace: true });
+            handleEditItem(item);
+          }}
+        />
+      );
+    }
+
+    return (
+      <main className="media-archive-player-page" onDragStartCapture={preventMediaArchiveDrag}>
+        <button
+          type="button"
+          className="media-player-back-button"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={handleCloseStandalonePlayer}
+          aria-label="아카이브로 돌아가기"
+        >
+          <i className="ri-arrow-left-line" />
+          <span>돌아가기</span>
+        </button>
+        <div className="media-player-state">
+          <i className={standalonePlayerLoading ? 'ri-loader-4-line ri-spin' : 'ri-error-warning-line'} />
+          <strong>{standalonePlayerLoading ? '로딩 중...' : '영상을 열 수 없습니다'}</strong>
+          {standalonePlayerError && <span>{standalonePlayerError}</span>}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="media-archive-page" onDragStartCapture={preventMediaArchiveDrag}>
