@@ -421,8 +421,34 @@ function isTruthy(value) {
   return String(value || '').toLowerCase() === 'true' || String(value || '') === '1';
 }
 
-function filterRowsForViewer(table, rows = [], user) {
-  if ((table === 'site_links' || table === 'sns_media_items') && !user?.is_admin) {
+function isDeletedGenericRow(row = {}) {
+  return row.deleted_at !== undefined && row.deleted_at !== null && String(row.deleted_at || '').trim() !== '';
+}
+
+function queryRequestsDeletedRows(body = {}) {
+  const filters = Array.isArray(body?.filters) ? body.filters : [];
+  return filters.some((filter) => (
+    filter?.field === 'deleted_at' &&
+    (filter.op === 'not.is' || filter.op === 'not.eq' || filter.op === 'neq') &&
+    (filter.value === null || filter.value === 'null' || filter.value === undefined)
+  ));
+}
+
+function filterRowsForViewer(table, rows = [], user, body = {}) {
+  if (table === 'sns_media_items') {
+    const wantsDeletedRows = queryRequestsDeletedRows(body);
+    const scopedRows = rows.filter((row) => (wantsDeletedRows ? isDeletedGenericRow(row) : !isDeletedGenericRow(row)));
+    if (wantsDeletedRows) {
+      return user?.is_admin ? scopedRows : scopedRows.filter((row) => user && rowOwnerMatches(user, row));
+    }
+    if (user?.is_admin) return scopedRows;
+    return scopedRows.filter((row) => (
+      isTruthy(row.is_approved) ||
+      (user && rowOwnerMatches(user, row))
+    ));
+  }
+
+  if (table === 'site_links' && !user?.is_admin) {
     return rows.filter((row) => (
       isTruthy(row.is_approved) ||
       (user && rowOwnerMatches(user, row))
@@ -472,12 +498,19 @@ function collectVisibleSnsMediaPlaylistIds(playlists = [], items = [], user) {
   return visibleIds;
 }
 
-async function filterSnsMediaPlaylistsForViewer(rows = [], user) {
-  if (user?.is_admin) return rows;
+async function filterSnsMediaPlaylistsForViewer(rows = [], user, body = {}) {
+  const wantsDeletedRows = queryRequestsDeletedRows(body);
+  const scopedRows = rows.filter((row) => (wantsDeletedRows ? isDeletedGenericRow(row) : !isDeletedGenericRow(row)));
 
-  const items = await loadRows('sns_media_items');
-  const visibleIds = collectVisibleSnsMediaPlaylistIds(rows, items, user);
-  return rows.filter((row) => visibleIds.has(String(row.id || '')));
+  if (wantsDeletedRows) {
+    return user?.is_admin ? scopedRows : scopedRows.filter((row) => user && rowOwnerMatches(user, row));
+  }
+
+  if (user?.is_admin) return scopedRows;
+
+  const items = (await loadRows('sns_media_items')).filter((row) => !isDeletedGenericRow(row));
+  const visibleIds = collectVisibleSnsMediaPlaylistIds(scopedRows, items, user);
+  return scopedRows.filter((row) => visibleIds.has(String(row.id || '')));
 }
 
 async function requireLoggedInMutationUser(req) {
@@ -2836,8 +2869,8 @@ export async function queryRecords(req, res) {
     const rows = await loadRowsForQuery(table, body);
     trace.mark('load-rows', { rows: rows.length });
     const visibleRows = table === 'sns_media_playlists'
-      ? await filterSnsMediaPlaylistsForViewer(rows, user)
-      : filterRowsForViewer(table, rows, user);
+      ? await filterSnsMediaPlaylistsForViewer(rows, user, body)
+      : filterRowsForViewer(table, rows, user, body);
     trace.mark('filter-visible', { visibleRows: visibleRows.length });
     let data = applyFilters(visibleRows, body.filters || [], body.orFilters || []);
     const count = data.length;

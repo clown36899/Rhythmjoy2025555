@@ -941,6 +941,143 @@ html.media-archive-page-active .shell-main-content {
   color: var(--text-secondary);
 }
 
+.media-edit-actions .media-danger-button {
+  margin-right: auto;
+  border-color: color-mix(in srgb, #ef4444 48%, var(--border-secondary));
+  background: color-mix(in srgb, #ef4444 10%, var(--bg-surface-1));
+  color: #fca5a5;
+}
+
+.media-edit-actions .media-danger-button:active {
+  transform: translateY(1px) scale(0.985);
+  border-color: #f87171;
+  background: color-mix(in srgb, #ef4444 18%, var(--bg-surface-1));
+  color: #fecaca;
+}
+
+.media-trash-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.media-edit-header span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.media-trash-toolbar,
+.media-trash-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.media-trash-toolbar {
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.media-trash-list,
+.media-trash-section {
+  display: grid;
+  gap: 10px;
+}
+
+.media-trash-section h3 {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.media-trash-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-surface-2) 72%, transparent);
+}
+
+.media-trash-row > i {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-deep);
+  color: var(--text-secondary);
+}
+
+.media-trash-row.is-expired {
+  opacity: 0.72;
+}
+
+.media-trash-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.media-trash-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-trash-copy small {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.media-trash-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.media-trash-actions button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 999px;
+  background: var(--bg-surface-1);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.media-trash-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.media-trash-actions .danger {
+  border-color: color-mix(in srgb, #ef4444 42%, var(--border-secondary));
+  color: #fca5a5;
+}
+
+@media (max-width: 560px) {
+  .media-trash-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .media-trash-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
 .media-submit-panel--composer .media-save-button {
   width: 100%;
   margin-top: 12px;
@@ -1737,6 +1874,17 @@ html.media-archive-page-active .shell-main-content {
   border-color: var(--media-accent-border);
   background: var(--media-accent-soft);
   color: var(--text-primary);
+}
+
+.media-mini-delete-button {
+  border-color: color-mix(in srgb, #ef4444 42%, var(--border-secondary));
+  color: #fca5a5;
+}
+
+.media-mini-delete-button:active {
+  border-color: #f87171;
+  background: color-mix(in srgb, #ef4444 16%, var(--bg-surface-2));
+  color: #fecaca;
 }
 
 .media-mini-drag-handle {

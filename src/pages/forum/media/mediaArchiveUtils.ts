@@ -43,6 +43,10 @@ export interface SnsMediaItem {
   approved_at?: string | null;
   approved_by?: string | null;
   published_at?: string | null;
+  deleted_at?: string | null;
+  delete_expires_at?: string | null;
+  deleted_by?: string | null;
+  deleted_branch_root_id?: string | null;
   search_text?: string;
 }
 
@@ -78,6 +82,12 @@ export interface SnsMediaPlaylist {
   created_by_name?: string | null;
   created_at?: string;
   updated_at?: string;
+  deleted_at?: string | null;
+  delete_expires_at?: string | null;
+  deleted_by?: string | null;
+  deleted_branch_root_id?: string | null;
+  deleted_branch_item_count?: number | null;
+  deleted_branch_playlist_count?: number | null;
   search_text?: string;
 }
 

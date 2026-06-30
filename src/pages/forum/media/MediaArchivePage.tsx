@@ -37,25 +37,6 @@ declare global {
         process?: () => void;
       };
     };
-    YT?: {
-      Player: new (
-        element: HTMLIFrameElement,
-        options: {
-          events?: {
-            onReady?: (event: { target: YouTubePlayerInstance }) => void;
-            onStateChange?: (event: { data: number; target: YouTubePlayerInstance }) => void;
-            onPlaybackRateChange?: (event: { data: number; target: YouTubePlayerInstance }) => void;
-          };
-        },
-      ) => YouTubePlayerInstance;
-      PlayerState?: {
-        ENDED: number;
-        PLAYING: number;
-        PAUSED: number;
-        BUFFERING: number;
-      };
-    };
-    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
@@ -74,6 +55,8 @@ const LINDY_COLLECTION_DEFAULT_RIGHTS_NOTE = '링크된 원본 영상은 각 게
 const MEDIA_DESCRIPTION_EXPAND_MIN_LENGTH = 80;
 const MEDIA_PLAYER_BOTTOM_NAV_EVENT = 'swingenjoy:media-player-bottom-nav';
 const MEDIA_PLAYER_CONTROL_ENGAGED_MS = 2600;
+const PLAYLIST_COVER_STORAGE_PREFIX = 'sns-media-playlists';
+const TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 type MediaSearchSuggestion = {
   value: string;
   label: string;
@@ -83,6 +66,19 @@ type MediaSearchSuggestion = {
 type MediaPlaybackProps = {
   playingItemId: string;
   onPlayItem: (itemId: string) => void;
+};
+
+type TrashClearFields = {
+  deleted_at: null;
+  delete_expires_at: null;
+  deleted_by: null;
+  deleted_branch_root_id: null;
+  updated_at: string;
+};
+
+type PlaylistTrashClearFields = TrashClearFields & {
+  deleted_branch_item_count: null;
+  deleted_branch_playlist_count: null;
 };
 
 const getDisplayName = (user: ReturnType<typeof useAuth>['user'], fallback?: string | null): string => {
@@ -289,6 +285,15 @@ function readMediaPlaylistContext(): MediaPlaylistContext | null {
       // Ignore storage cleanup failures.
     }
     return null;
+  }
+}
+
+function clearMediaPlaylistContext() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(MEDIA_PLAYLIST_CONTEXT_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
   }
 }
 
@@ -911,6 +916,70 @@ function createMediaArchiveId() {
 
 function createMediaPlaylistId() {
   return createArchiveEntityId('playlist');
+}
+
+function getPlaylistCoverStorageFolderPath(playlistId?: string | null) {
+  const id = compactText(playlistId);
+  if (!id || !/^[a-zA-Z0-9._-]+$/.test(id)) return '';
+  return `${PLAYLIST_COVER_STORAGE_PREFIX}/${id}`;
+}
+
+function isPlaylistOwnedCoverUrl(value: string | null | undefined, playlistId: string) {
+  const folderPath = getPlaylistCoverStorageFolderPath(playlistId);
+  const url = compactText(value).split('?')[0];
+  return Boolean(folderPath && url.startsWith(`/uploads/images/${folderPath}/`));
+}
+
+async function removePlaylistCoverFolders(playlistIds: string[]) {
+  const paths = Array.from(new Set(
+    playlistIds
+      .map(getPlaylistCoverStorageFolderPath)
+      .filter(Boolean),
+  ));
+  if (!paths.length) return;
+  const { error } = await cafe24.storage.from('images').remove(paths);
+  if (error) throw error;
+}
+
+function createTrashExpiry(deletedAtIso: string) {
+  const deletedAt = new Date(deletedAtIso).getTime();
+  const baseTime = Number.isFinite(deletedAt) ? deletedAt : Date.now();
+  return new Date(baseTime + TRASH_RETENTION_MS).toISOString();
+}
+
+function formatTrashDate(value?: string | null) {
+  if (!value) return '날짜 없음';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+function isTrashExpired(value?: string | null) {
+  if (!value) return false;
+  const expiresAt = new Date(value).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
+function getTrashClearFields(now = new Date().toISOString()): TrashClearFields {
+  return {
+    deleted_at: null,
+    delete_expires_at: null,
+    deleted_by: null,
+    deleted_branch_root_id: null,
+    updated_at: now,
+  };
+}
+
+function getPlaylistTrashClearFields(now = new Date().toISOString()): PlaylistTrashClearFields {
+  return {
+    ...getTrashClearFields(now),
+    deleted_branch_item_count: null,
+    deleted_branch_playlist_count: null,
+  };
+}
+
+function getTrashLabel(value: SnsMediaItem | SnsMediaPlaylist) {
+  return truncateText('title' in value ? value.title : value.name, 80) || value.id;
 }
 
 function formFromMediaItem(item: SnsMediaItem): MediaArchiveForm {
@@ -2591,8 +2660,9 @@ const MediaItemEditPanel: React.FC<{
   availableGenres: string[];
   onChange: (form: MediaArchiveForm) => void;
   onClose: () => void;
+  onDelete: (item: SnsMediaItem) => void;
   onSubmit: (event: React.FormEvent) => void;
-}> = ({ item, form, playlists, availableGenres, onChange, onClose, onSubmit }) => {
+}> = ({ item, form, playlists, availableGenres, onChange, onClose, onDelete, onSubmit }) => {
   const updateForm = (patch: Partial<MediaArchiveForm>) => onChange({ ...form, ...patch });
 
   return (
@@ -2671,6 +2741,10 @@ const MediaItemEditPanel: React.FC<{
         </div>
 
         <div className="media-edit-actions">
+          <button type="button" className="media-danger-button media-edit-delete-button" onClick={() => onDelete(item)}>
+            <i className="ri-delete-bin-line" />
+            삭제
+          </button>
           <button type="button" onClick={onClose}>취소</button>
           <button type="submit" className="media-save-button">
             <i className="ri-save-3-line" />
@@ -2689,6 +2763,7 @@ const MediaMiniCard: React.FC<{
   isDragging?: boolean;
   isOrganizing?: boolean;
   onEdit?: (item: SnsMediaItem) => void;
+  onDelete?: (item: SnsMediaItem) => void;
   onMovePointerDown?: (event: React.PointerEvent<HTMLElement>, item: SnsMediaItem) => void;
 } & MediaPlaybackProps> = ({
   item,
@@ -2697,6 +2772,7 @@ const MediaMiniCard: React.FC<{
   isDragging = false,
   isOrganizing = false,
   onEdit,
+  onDelete,
   onMovePointerDown,
   playingItemId,
   onPlayItem,
@@ -2709,6 +2785,7 @@ const MediaMiniCard: React.FC<{
     platformLabel(item.platform),
   ].filter(Boolean).join(' · ');
   const canEdit = canManage && Boolean(onEdit);
+  const canDelete = canManage && Boolean(onDelete);
 
   if (expanded) {
     return (
@@ -2746,6 +2823,18 @@ const MediaMiniCard: React.FC<{
               >
                 <i className="ri-edit-2-line" />
                 수정
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                className="media-mini-edit-button media-mini-delete-button"
+                draggable={false}
+                onDragStart={preventMediaArchiveDrag}
+                onClick={() => onDelete?.(item)}
+              >
+                <i className="ri-delete-bin-line" />
+                삭제
               </button>
             )}
           </span>
@@ -2813,6 +2902,19 @@ const MediaMiniCard: React.FC<{
         >
           <i className="ri-edit-2-line" />
           수정
+        </button>
+      )}
+      {canDelete && (
+        <button
+          type="button"
+          className="media-mini-edit-button media-mini-delete-button"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={() => onDelete?.(item)}
+          aria-label={`${item.title || '제목 없음'} 삭제`}
+        >
+          <i className="ri-delete-bin-line" />
+          삭제
         </button>
       )}
       {canDragMove && (
@@ -3005,6 +3107,7 @@ const CollectionArchiveView: React.FC<{
   canMoveItem: (item: SnsMediaItem) => boolean;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditItem: (item: SnsMediaItem) => void;
+  onDeleteItem: (item: SnsMediaItem) => void;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
   onMoveItem: (item: SnsMediaItem, playlistId: string) => Promise<boolean>;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
@@ -3018,6 +3121,7 @@ const CollectionArchiveView: React.FC<{
   canMoveItem,
   canManagePlaylist,
   onEditItem,
+  onDeleteItem,
   onEditPlaylist,
   onMoveItem,
   onMovePlaylist,
@@ -3950,7 +4054,14 @@ const CollectionArchiveView: React.FC<{
 
     return (
       <article key={item.id} className="media-search-result-card">
-        <MediaMiniCard item={item} playingItemId={playingItemId} onPlayItem={onPlayItem} />
+        <MediaMiniCard
+          item={item}
+          canManage={canManageItem(item)}
+          onEdit={onEditItem}
+          onDelete={onDeleteItem}
+          playingItemId={playingItemId}
+          onPlayItem={onPlayItem}
+        />
         <button
           type="button"
           className="media-result-location-button"
@@ -4107,6 +4218,7 @@ const CollectionArchiveView: React.FC<{
                   isDragging={draggedItemId === item.id}
                   isOrganizing={isOrganizing}
                   onEdit={onEditItem}
+                  onDelete={onDeleteItem}
                   onMovePointerDown={handleItemPointerDown}
                   playingItemId={playingItemId}
                   onPlayItem={onPlayItem}
@@ -4143,6 +4255,7 @@ const CollectionArchiveView: React.FC<{
               item={item}
               canManage={canManageItem(item)}
               onEdit={onEditItem}
+              onDelete={onDeleteItem}
               playingItemId={playingItemId}
               onPlayItem={onPlayItem}
             />
@@ -4185,6 +4298,125 @@ const CollectionArchiveView: React.FC<{
   );
 };
 
+const MediaTrashModal: React.FC<{
+  items: SnsMediaItem[];
+  playlists: SnsMediaPlaylist[];
+  loading: boolean;
+  onClose: () => void;
+  onRefresh: () => void;
+  onRestoreItem: (item: SnsMediaItem) => void;
+  onPermanentDeleteItem: (item: SnsMediaItem) => void;
+  onRestorePlaylist: (playlist: SnsMediaPlaylist) => void;
+  onPermanentDeletePlaylist: (playlist: SnsMediaPlaylist) => void;
+}> = ({
+  items,
+  playlists,
+  loading,
+  onClose,
+  onRefresh,
+  onRestoreItem,
+  onPermanentDeleteItem,
+  onRestorePlaylist,
+  onPermanentDeletePlaylist,
+}) => {
+  const totalCount = items.length + playlists.length;
+
+  return (
+    <MediaModalFrame label="SNS 아카이브 휴지통" onClose={onClose}>
+      <section className="media-trash-panel media-modal-panel">
+        <header className="media-edit-header">
+          <div>
+            <p className="media-eyebrow">Trash</p>
+            <h2>휴지통</h2>
+            <span>삭제 후 7일 안에 복구할 수 있습니다.</span>
+          </div>
+          <button type="button" className="media-icon-button" onClick={onClose} aria-label="휴지통 닫기">
+            <i className="ri-close-line" />
+          </button>
+        </header>
+
+        <div className="media-trash-toolbar">
+          <span>{loading ? '불러오는 중...' : `${totalCount}개 항목`}</span>
+          <button type="button" className="media-ghost-button" onClick={onRefresh} disabled={loading}>
+            <i className="ri-refresh-line" />
+            새로고침
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="media-state">휴지통을 불러오는 중...</div>
+        ) : totalCount === 0 ? (
+          <div className="media-state media-state--empty">
+            <i className="ri-delete-bin-6-line" />
+            <strong>휴지통이 비었습니다</strong>
+            <span>삭제한 카드와 재생목록은 7일 동안 여기에 표시됩니다.</span>
+          </div>
+        ) : (
+          <div className="media-trash-list">
+            {!!playlists.length && (
+              <section className="media-trash-section">
+                <h3>재생목록</h3>
+                {playlists.map((playlist) => {
+                  const expired = isTrashExpired(playlist.delete_expires_at);
+                  return (
+                    <article key={playlist.id} className={`media-trash-row ${expired ? 'is-expired' : ''}`}>
+                      <i className="ri-folder-3-line" />
+                      <span className="media-trash-copy">
+                        <strong>{playlist.name || '이름 없음'}</strong>
+                        <small>
+                          카드 {playlist.deleted_branch_item_count ?? 0}개 · 하위 포함 {Math.max(Number(playlist.deleted_branch_playlist_count || 1) - 1, 0)}개 · 만료 {formatTrashDate(playlist.delete_expires_at)}
+                        </small>
+                      </span>
+                      <span className="media-trash-actions">
+                        <button type="button" onClick={() => onRestorePlaylist(playlist)} disabled={expired}>
+                          <i className="ri-arrow-go-back-line" />
+                          복구
+                        </button>
+                        <button type="button" className="danger" onClick={() => onPermanentDeletePlaylist(playlist)}>
+                          <i className="ri-delete-bin-line" />
+                          영구 삭제
+                        </button>
+                      </span>
+                    </article>
+                  );
+                })}
+              </section>
+            )}
+
+            {!!items.length && (
+              <section className="media-trash-section">
+                <h3>카드</h3>
+                {items.map((item) => {
+                  const expired = isTrashExpired(item.delete_expires_at);
+                  return (
+                    <article key={item.id} className={`media-trash-row ${expired ? 'is-expired' : ''}`}>
+                      <i className={item.platform === 'youtube' ? 'ri-youtube-line' : item.platform === 'instagram' ? 'ri-instagram-line' : 'ri-links-line'} />
+                      <span className="media-trash-copy">
+                        <strong>{item.title || '제목 없음'}</strong>
+                        <small>{platformLabel(item.platform)} · 만료 {formatTrashDate(item.delete_expires_at)}</small>
+                      </span>
+                      <span className="media-trash-actions">
+                        <button type="button" onClick={() => onRestoreItem(item)} disabled={expired}>
+                          <i className="ri-arrow-go-back-line" />
+                          복구
+                        </button>
+                        <button type="button" className="danger" onClick={() => onPermanentDeleteItem(item)}>
+                          <i className="ri-delete-bin-line" />
+                          영구 삭제
+                        </button>
+                      </span>
+                    </article>
+                  );
+                })}
+              </section>
+            )}
+          </div>
+        )}
+      </section>
+    </MediaModalFrame>
+  );
+};
+
 const MediaArchivePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -4203,6 +4435,7 @@ const MediaArchivePage: React.FC = () => {
   const [showAddChoice, setShowAddChoice] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showPlaylistForm, setShowPlaylistForm] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [highlightedSearchSuggestionIndex, setHighlightedSearchSuggestionIndex] = useState(-1);
   const [form, setForm] = useState(emptyForm);
@@ -4219,6 +4452,9 @@ const MediaArchivePage: React.FC = () => {
   const [playlistCoverTempSrc, setPlaylistCoverTempSrc] = useState<string | null>(null);
   const [isPlaylistCoverCropOpen, setIsPlaylistCoverCropOpen] = useState(false);
   const [playlistCoverLoadFailed, setPlaylistCoverLoadFailed] = useState(false);
+  const [trashItems, setTrashItems] = useState<SnsMediaItem[]>([]);
+  const [trashPlaylists, setTrashPlaylists] = useState<SnsMediaPlaylist[]>([]);
+  const [trashLoading, setTrashLoading] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const playlistCoverFileInputRef = useRef<HTMLInputElement | null>(null);
   const clipperImportKeyRef = useRef('');
@@ -4410,6 +4646,7 @@ const MediaArchivePage: React.FC = () => {
       let request = cafe24
         .from('sns_media_items')
         .select('*', { count: 'exact' })
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .range(nextPage * PAGE_SIZE, nextPage * PAGE_SIZE + PAGE_SIZE - 1);
 
@@ -4438,6 +4675,7 @@ const MediaArchivePage: React.FC = () => {
       const { data, error } = await cafe24
         .from('sns_media_playlists')
         .select('*')
+        .is('deleted_at', null)
         .order('updated_at', { ascending: false });
       if (error) throw error;
       setPlaylists((data || []) as SnsMediaPlaylist[]);
@@ -4454,6 +4692,7 @@ const MediaArchivePage: React.FC = () => {
       const { data, error } = await cafe24
         .from('sns_media_items')
         .select('*')
+        .is('deleted_at', null)
         .order('updated_at', { ascending: false })
         .range(0, 199);
       if (error) throw error;
@@ -4463,6 +4702,97 @@ const MediaArchivePage: React.FC = () => {
       setSuggestionItems([]);
     }
   }, []);
+
+  const fetchTrash = useCallback(async () => {
+    if (!user) {
+      setTrashItems([]);
+      setTrashPlaylists([]);
+      return;
+    }
+
+    setTrashLoading(true);
+    try {
+      const [playlistResult, itemResult] = await Promise.all([
+        cafe24
+          .from('sns_media_playlists')
+          .select('*')
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false }),
+        cafe24
+          .from('sns_media_items')
+          .select('*')
+          .not('deleted_at', 'is', null)
+          .order('deleted_at', { ascending: false }),
+      ]);
+      if (playlistResult.error) throw playlistResult.error;
+      if (itemResult.error) throw itemResult.error;
+
+      const deletedPlaylists = (playlistResult.data || []) as SnsMediaPlaylist[];
+      const deletedItems = (itemResult.data || []) as SnsMediaItem[];
+      const rootPlaylists = deletedPlaylists.filter((playlist) => {
+        const rootId = compactText(playlist.deleted_branch_root_id);
+        return !rootId || rootId === playlist.id;
+      });
+      const expiredRootPlaylists = rootPlaylists.filter((playlist) => isTrashExpired(playlist.delete_expires_at));
+      const expiredRootIds = new Set(expiredRootPlaylists.map((playlist) => playlist.id));
+      const directItems = deletedItems.filter((item) => !compactText(item.deleted_branch_root_id));
+      const expiredDirectItems = directItems.filter((item) => isTrashExpired(item.delete_expires_at));
+
+      if (expiredRootPlaylists.length || expiredDirectItems.length) {
+        for (const playlist of expiredRootPlaylists) {
+          const rootId = playlist.id;
+          const playlistIds = deletedPlaylists
+            .filter((entry) => compactText(entry.deleted_branch_root_id) === rootId || entry.id === rootId)
+            .map((entry) => entry.id);
+          const itemIds = deletedItems
+            .filter((entry) => compactText(entry.deleted_branch_root_id) === rootId)
+            .map((entry) => entry.id);
+
+          if (itemIds.length) {
+            const itemDeleteResult = await cafe24
+              .from('sns_media_items')
+              .delete()
+              .in('id', itemIds)
+              .not('deleted_at', 'is', null);
+            if (itemDeleteResult.error) throw itemDeleteResult.error;
+          }
+          if (playlistIds.length) {
+            const playlistDeleteResult = await cafe24
+              .from('sns_media_playlists')
+              .delete()
+              .in('id', playlistIds)
+              .not('deleted_at', 'is', null);
+            if (playlistDeleteResult.error) throw playlistDeleteResult.error;
+            try {
+              await removePlaylistCoverFolders(playlistIds);
+            } catch (error) {
+              console.warn('[MediaArchive] expired playlist cover cleanup failed:', error);
+            }
+          }
+        }
+
+        const expiredItemIds = expiredDirectItems.map((item) => item.id);
+        if (expiredItemIds.length) {
+          const itemDeleteResult = await cafe24
+            .from('sns_media_items')
+            .delete()
+            .in('id', expiredItemIds)
+            .not('deleted_at', 'is', null);
+          if (itemDeleteResult.error) throw itemDeleteResult.error;
+        }
+      }
+
+      setTrashPlaylists(rootPlaylists.filter((playlist) => !expiredRootIds.has(playlist.id)));
+      const expiredDirectItemIds = new Set(expiredDirectItems.map((item) => item.id));
+      setTrashItems(directItems.filter((item) => !expiredDirectItemIds.has(item.id)));
+    } catch (error) {
+      console.error('[MediaArchive] trash fetch failed:', error);
+      setTrashItems([]);
+      setTrashPlaylists([]);
+    } finally {
+      setTrashLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchItems(0, false);
@@ -4483,6 +4813,10 @@ const MediaArchivePage: React.FC = () => {
   useEffect(() => {
     fetchSuggestionItems();
   }, [fetchSuggestionItems]);
+
+  useEffect(() => {
+    if (showTrash) void fetchTrash();
+  }, [fetchTrash, showTrash]);
 
   useEffect(() => {
     setPlayingItemId('');
@@ -4731,6 +5065,7 @@ const MediaArchivePage: React.FC = () => {
 
   const openMediaForm = () => {
     setShowAddChoice(false);
+    setShowTrash(false);
     setShowPlaylistForm(false);
     resetPlaylistForm();
     resetForm(applyCurrentPlaylistToForm(emptyForm));
@@ -4759,6 +5094,7 @@ const MediaArchivePage: React.FC = () => {
 
   const openPlaylistForm = () => {
     setShowAddChoice(false);
+    setShowTrash(false);
     if (showForm) closeMediaForm();
     setShowPlaylistForm(true);
   };
@@ -4766,6 +5102,7 @@ const MediaArchivePage: React.FC = () => {
   const openAddChoice = () => {
     if (showForm) closeMediaForm();
     if (showPlaylistForm) closePlaylistForm();
+    setShowTrash(false);
     setEditingItem(null);
     setEditForm(emptyForm);
     setShowAddChoice(true);
@@ -4773,6 +5110,19 @@ const MediaArchivePage: React.FC = () => {
 
   const closeAddChoice = () => {
     setShowAddChoice(false);
+  };
+
+  const openTrash = async () => {
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+    if (showForm) closeMediaForm();
+    if (showPlaylistForm) closePlaylistForm();
+    setShowAddChoice(false);
+    setEditingItem(null);
+    setEditForm(emptyForm);
+    setShowTrash(true);
   };
 
   const readPlaylistCoverFile = (file: File) => {
@@ -4822,7 +5172,9 @@ const MediaArchivePage: React.FC = () => {
 
     const uploadedUrls = await Promise.all(variants.map(async ([name, uploadFile]) => {
       const extension = uploadFile.name.split('.').pop() || 'webp';
-      const path = `sns-media-playlists/${playlistId}/cover-${name}.${extension}`;
+      const folderPath = getPlaylistCoverStorageFolderPath(playlistId);
+      if (!folderPath) throw new Error('Invalid playlist cover storage path');
+      const path = `${folderPath}/cover-${name}.${extension}`;
       const { error } = await cafe24.storage
         .from('images')
         .upload(path, uploadFile, { upsert: true, contentType: uploadFile.type });
@@ -4860,6 +5212,11 @@ const MediaArchivePage: React.FC = () => {
       return null;
     }
 
+    if (existing && !canManagePlaylist(existing)) {
+      alert('이 재생목록을 수정할 권한이 없습니다.');
+      return null;
+    }
+
     const name = compactText(sourceForm.name);
     if (!name) {
       alert('재생목록 이름을 입력해주세요.');
@@ -4877,6 +5234,12 @@ const MediaArchivePage: React.FC = () => {
     const coverUrl = coverFile
       ? await uploadPlaylistCoverFile(playlistId, coverFile)
       : safeImageUrl(sourceForm.coverUrl) || null;
+    const shouldRemoveExistingCoverFolder = Boolean(
+      existing &&
+      !coverFile &&
+      isPlaylistOwnedCoverUrl(existing.cover_url, existing.id) &&
+      !isPlaylistOwnedCoverUrl(coverUrl, existing.id),
+    );
     const payload: Partial<SnsMediaPlaylist> = {
       id: playlistId,
       name,
@@ -4902,6 +5265,14 @@ const MediaArchivePage: React.FC = () => {
       : await cafe24.from('sns_media_playlists').insert(payload);
 
     if (result.error) throw result.error;
+
+    if (shouldRemoveExistingCoverFolder && existing) {
+      try {
+        await removePlaylistCoverFolders([existing.id]);
+      } catch (error) {
+        console.warn('[MediaArchive] playlist cover cleanup failed:', error);
+      }
+    }
 
     if (existing) {
       const relabelResult = await cafe24
@@ -4938,6 +5309,10 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleEditPlaylist = (playlist: SnsMediaPlaylist) => {
+    if (!canManagePlaylist(playlist)) {
+      alert('이 재생목록을 수정할 권한이 없습니다.');
+      return;
+    }
     setShowAddChoice(false);
     setShowForm(false);
     setEditingPlaylist(playlist);
@@ -5091,6 +5466,10 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleEditItem = (item: SnsMediaItem) => {
+    if (!canManageItem(item)) {
+      alert('이 카드를 수정할 권한이 없습니다.');
+      return;
+    }
     setShowAddChoice(false);
     setShowForm(false);
     setShowPlaylistForm(false);
@@ -5102,6 +5481,11 @@ const MediaArchivePage: React.FC = () => {
   const handleItemEditSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingItem || !user) return;
+
+    if (!canManageItem(editingItem)) {
+      alert('이 카드를 수정할 권한이 없습니다.');
+      return;
+    }
 
     const media = parseMediaUrl(editForm.url);
     if (!media) {
@@ -5243,14 +5627,359 @@ const MediaArchivePage: React.FC = () => {
   };
 
   const handleDelete = async (item: SnsMediaItem) => {
-    if (!confirm('이 영상을 아카이브에서 삭제할까요?')) return;
-    const { error } = await cafe24.from('sns_media_items').delete().eq('id', item.id);
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+
+    if (!canManageItem(item)) {
+      alert('이 카드를 삭제할 권한이 없습니다.');
+      return;
+    }
+
+    const title = truncateText(item.title, 80) || item.id;
+    if (!confirm(`"${title}" 카드를 휴지통으로 이동할까요?\n\n삭제 대상 ID: ${item.id}\n7일 안에 휴지통에서 복구할 수 있습니다.`)) return;
+
+    const deletedAt = new Date().toISOString();
+    const { error } = await cafe24
+      .from('sns_media_items')
+      .update({
+        deleted_at: deletedAt,
+        delete_expires_at: createTrashExpiry(deletedAt),
+        deleted_by: user.id,
+        deleted_branch_root_id: null,
+        updated_at: deletedAt,
+      })
+      .eq('id', item.id)
+      .is('deleted_at', null);
     if (error) {
       alert('삭제 중 오류가 발생했습니다.');
       return;
     }
-    fetchItems(0, false);
-    fetchSuggestionItems();
+
+    setItems((prev) => prev.filter((entry) => entry.id !== item.id));
+    setSuggestionItems((prev) => prev.filter((entry) => entry.id !== item.id));
+    if (playingItemId === item.id) setPlayingItemId('');
+    if (editingItem?.id === item.id) {
+      setEditingItem(null);
+      setEditForm(emptyForm);
+    }
+
+    await fetchPlaylists();
+    await fetchItems(0, false);
+    await fetchSuggestionItems();
+    if (showTrash) await fetchTrash();
+  };
+
+  const handleDeletePlaylist = async (playlist: SnsMediaPlaylist) => {
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+
+    if (!canManagePlaylist(playlist)) {
+      alert('이 재생목록을 삭제할 권한이 없습니다.');
+      return;
+    }
+
+    try {
+      const latestPlaylistsResult = await cafe24
+        .from('sns_media_playlists')
+        .select('*')
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false });
+      if (latestPlaylistsResult.error) throw latestPlaylistsResult.error;
+
+      const latestPlaylists = (latestPlaylistsResult.data || []) as SnsMediaPlaylist[];
+      const latestPlaylist = latestPlaylists.find((entry) => entry.id === playlist.id);
+      if (!latestPlaylist) {
+        alert('삭제할 재생목록을 찾을 수 없습니다. 목록을 새로고침합니다.');
+        await fetchPlaylists();
+        return;
+      }
+
+      const branchIds = Array.from(getPlaylistBranchIds(latestPlaylist.id, latestPlaylists));
+      const branchIdSet = new Set(branchIds);
+      const branchPlaylists = latestPlaylists.filter((entry) => branchIdSet.has(entry.id));
+      const unmanagedPlaylists = branchPlaylists.filter((entry) => !canManagePlaylist(entry));
+      if (unmanagedPlaylists.length) {
+        alert('권한이 없는 하위 재생목록이 포함되어 있어 삭제할 수 없습니다.');
+        return;
+      }
+
+      const branchItemsResult = await cafe24
+        .from('sns_media_items')
+        .select('*')
+        .in('playlist_id', branchIds)
+        .is('deleted_at', null);
+      if (branchItemsResult.error) throw branchItemsResult.error;
+      const branchItems = (branchItemsResult.data || []) as SnsMediaItem[];
+      const unmanagedItems = isAdmin ? [] : branchItems.filter((entry) => !canManageItem(entry));
+      if (unmanagedItems.length) {
+        alert('다른 사용자가 등록한 카드가 포함되어 있어 삭제할 수 없습니다.');
+        return;
+      }
+
+      const childCount = Math.max(branchPlaylists.length - 1, 0);
+      const title = truncateText(latestPlaylist.name, 80) || latestPlaylist.id;
+      const confirmation = [
+        `"${title}" 재생목록을 휴지통으로 이동할까요?`,
+        '',
+        `삭제 대상 ID: ${latestPlaylist.id}`,
+        `하위 재생목록: ${childCount}개`,
+        `포함 카드: ${branchItems.length}개`,
+        '7일 안에 휴지통에서 전체 복구할 수 있습니다.',
+      ].join('\n');
+      if (!confirm(confirmation)) return;
+
+      const deletedAt = new Date().toISOString();
+      const deleteExpiresAt = createTrashExpiry(deletedAt);
+      const itemTrashResult = await cafe24
+        .from('sns_media_items')
+        .update({
+          deleted_at: deletedAt,
+          delete_expires_at: deleteExpiresAt,
+          deleted_by: user.id,
+          deleted_branch_root_id: latestPlaylist.id,
+          updated_at: deletedAt,
+        })
+        .in('playlist_id', branchIds)
+        .is('deleted_at', null);
+      if (itemTrashResult.error) throw itemTrashResult.error;
+
+      const playlistTrashResult = await cafe24
+        .from('sns_media_playlists')
+        .update({
+          deleted_at: deletedAt,
+          delete_expires_at: deleteExpiresAt,
+          deleted_by: user.id,
+          deleted_branch_root_id: latestPlaylist.id,
+          deleted_branch_item_count: branchItems.length,
+          deleted_branch_playlist_count: branchPlaylists.length,
+          updated_at: deletedAt,
+        })
+        .in('id', branchIds)
+        .is('deleted_at', null);
+      if (playlistTrashResult.error) throw playlistTrashResult.error;
+
+      setPlaylists((prev) => prev.filter((entry) => !branchIdSet.has(entry.id)));
+      setItems((prev) => prev.filter((entry) => !entry.playlist_id || !branchIdSet.has(entry.playlist_id)));
+      setSuggestionItems((prev) => prev.filter((entry) => !entry.playlist_id || !branchIdSet.has(entry.playlist_id)));
+      if (editingPlaylist && branchIdSet.has(editingPlaylist.id)) {
+        setShowPlaylistForm(false);
+        resetPlaylistForm();
+      }
+      if (editingItem?.playlist_id && branchIdSet.has(editingItem.playlist_id)) {
+        setEditingItem(null);
+        setEditForm(emptyForm);
+      }
+      if (playingItemId && branchItems.some((entry) => entry.id === playingItemId)) {
+        setPlayingItemId('');
+      }
+      if (activePlaylistContextRef.current?.playlistId && branchIdSet.has(activePlaylistContextRef.current.playlistId)) {
+        clearMediaPlaylistContext();
+        activePlaylistContextRef.current = null;
+        setActivePlaylistContext(null);
+      }
+
+      await fetchPlaylists();
+      await fetchItems(0, false);
+      await fetchSuggestionItems();
+      if (showTrash) await fetchTrash();
+    } catch (error) {
+      console.error('[MediaArchive] playlist delete failed:', error);
+      alert('재생목록 삭제 중 오류가 발생했습니다.');
+      await fetchPlaylists();
+      await fetchItems(0, false);
+      await fetchSuggestionItems();
+      if (showTrash) await fetchTrash();
+    }
+  };
+
+  const refreshArchiveAfterTrashChange = async () => {
+    await fetchPlaylists();
+    await fetchItems(0, false);
+    await fetchSuggestionItems();
+    await fetchTrash();
+  };
+
+  const loadDeletedPlaylistBranch = async (playlist: SnsMediaPlaylist) => {
+    const rootId = compactText(playlist.deleted_branch_root_id) || playlist.id;
+    const [playlistResult, itemResult] = await Promise.all([
+      cafe24
+        .from('sns_media_playlists')
+        .select('*')
+        .not('deleted_at', 'is', null)
+        .eq('deleted_branch_root_id', rootId),
+      cafe24
+        .from('sns_media_items')
+        .select('*')
+        .not('deleted_at', 'is', null)
+        .eq('deleted_branch_root_id', rootId),
+    ]);
+    if (playlistResult.error) throw playlistResult.error;
+    if (itemResult.error) throw itemResult.error;
+    return {
+      rootId,
+      playlists: (playlistResult.data || []) as SnsMediaPlaylist[],
+      items: (itemResult.data || []) as SnsMediaItem[],
+    };
+  };
+
+  const handleRestoreItem = async (item: SnsMediaItem) => {
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+    if (!canManageItem(item)) {
+      alert('이 카드를 복구할 권한이 없습니다.');
+      return;
+    }
+    if (isTrashExpired(item.delete_expires_at)) {
+      alert('복구 가능 기간이 지나 영구 삭제만 가능합니다.');
+      return;
+    }
+
+    const { error } = await cafe24
+      .from('sns_media_items')
+      .update(getTrashClearFields())
+      .eq('id', item.id)
+      .not('deleted_at', 'is', null);
+    if (error) {
+      alert('복구 중 오류가 발생했습니다.');
+      return;
+    }
+    await refreshArchiveAfterTrashChange();
+  };
+
+  const handlePermanentDeleteItem = async (item: SnsMediaItem) => {
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+    if (!canManageItem(item)) {
+      alert('이 카드를 영구 삭제할 권한이 없습니다.');
+      return;
+    }
+    if (!confirm(`"${getTrashLabel(item)}" 카드를 영구 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+    const { error } = await cafe24
+      .from('sns_media_items')
+      .delete()
+      .eq('id', item.id)
+      .not('deleted_at', 'is', null);
+    if (error) {
+      alert('영구 삭제 중 오류가 발생했습니다.');
+      return;
+    }
+    await refreshArchiveAfterTrashChange();
+  };
+
+  const handleRestorePlaylist = async (playlist: SnsMediaPlaylist) => {
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+    if (!canManagePlaylist(playlist)) {
+      alert('이 재생목록을 복구할 권한이 없습니다.');
+      return;
+    }
+    if (isTrashExpired(playlist.delete_expires_at)) {
+      alert('복구 가능 기간이 지나 영구 삭제만 가능합니다.');
+      return;
+    }
+
+    try {
+      const branch = await loadDeletedPlaylistBranch(playlist);
+      const branchPlaylists = branch.playlists.length ? branch.playlists : [playlist];
+      if (branchPlaylists.some((entry) => !canManagePlaylist(entry))) {
+        alert('권한이 없는 하위 재생목록이 포함되어 있어 복구할 수 없습니다.');
+        return;
+      }
+      if (!isAdmin && branch.items.some((entry) => !canManageItem(entry))) {
+        alert('다른 사용자가 등록한 카드가 포함되어 있어 복구할 수 없습니다.');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const playlistIds = branchPlaylists.map((entry) => entry.id);
+      const itemIds = branch.items.map((entry) => entry.id);
+      const playlistResult = await cafe24
+        .from('sns_media_playlists')
+        .update(getPlaylistTrashClearFields(now))
+        .in('id', playlistIds)
+        .not('deleted_at', 'is', null);
+      if (playlistResult.error) throw playlistResult.error;
+
+      if (itemIds.length) {
+        const itemResult = await cafe24
+          .from('sns_media_items')
+          .update(getTrashClearFields(now))
+          .in('id', itemIds)
+          .not('deleted_at', 'is', null);
+        if (itemResult.error) throw itemResult.error;
+      }
+
+      await refreshArchiveAfterTrashChange();
+    } catch (error) {
+      console.error('[MediaArchive] playlist restore failed:', error);
+      alert('재생목록 복구 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handlePermanentDeletePlaylist = async (playlist: SnsMediaPlaylist) => {
+    if (!user) {
+      await signInWithKakao();
+      return;
+    }
+    if (!canManagePlaylist(playlist)) {
+      alert('이 재생목록을 영구 삭제할 권한이 없습니다.');
+      return;
+    }
+    if (!confirm(`"${getTrashLabel(playlist)}" 재생목록을 영구 삭제할까요?\n\n하위 재생목록과 포함 카드, 업로드 커버 폴더가 함께 삭제되며 되돌릴 수 없습니다.`)) return;
+
+    try {
+      const branch = await loadDeletedPlaylistBranch(playlist);
+      const branchPlaylists = branch.playlists.length ? branch.playlists : [playlist];
+      if (branchPlaylists.some((entry) => !canManagePlaylist(entry))) {
+        alert('권한이 없는 하위 재생목록이 포함되어 있어 영구 삭제할 수 없습니다.');
+        return;
+      }
+      if (!isAdmin && branch.items.some((entry) => !canManageItem(entry))) {
+        alert('다른 사용자가 등록한 카드가 포함되어 있어 영구 삭제할 수 없습니다.');
+        return;
+      }
+
+      const itemIds = branch.items.map((entry) => entry.id);
+      const playlistIds = branchPlaylists.map((entry) => entry.id);
+      if (itemIds.length) {
+        const itemResult = await cafe24
+          .from('sns_media_items')
+          .delete()
+          .in('id', itemIds)
+          .not('deleted_at', 'is', null);
+        if (itemResult.error) throw itemResult.error;
+      }
+
+      const playlistResult = await cafe24
+        .from('sns_media_playlists')
+        .delete()
+        .in('id', playlistIds)
+        .not('deleted_at', 'is', null);
+      if (playlistResult.error) throw playlistResult.error;
+
+      try {
+        await removePlaylistCoverFolders(playlistIds);
+      } catch (error) {
+        console.warn('[MediaArchive] playlist cover cleanup failed:', error);
+        alert('영구 삭제는 완료됐지만 일부 커버 파일 정리에 실패했습니다.');
+      }
+
+      await refreshArchiveAfterTrashChange();
+    } catch (error) {
+      console.error('[MediaArchive] playlist permanent delete failed:', error);
+      alert('재생목록 영구 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const selectSearchSuggestion = (suggestion: MediaSearchSuggestion) => {
@@ -5306,6 +6035,7 @@ const MediaArchivePage: React.FC = () => {
         canMoveItem={canMoveItem}
         canManagePlaylist={canManagePlaylist}
         onEditItem={handleEditItem}
+        onDeleteItem={handleDelete}
         onEditPlaylist={handleEditPlaylist}
         onMoveItem={handleMoveItem}
         onMovePlaylist={handleMovePlaylist}
@@ -5328,6 +6058,10 @@ const MediaArchivePage: React.FC = () => {
           <p>유튜브, 인스타그램 Reels와 게시물을 모아 검색합니다.</p>
         </div>
         <div className="media-header-actions">
+          <button className="media-add-button media-add-button--secondary" type="button" onClick={() => void openTrash()}>
+            <i className="ri-delete-bin-6-line" />
+            <span>휴지통</span>
+          </button>
           <button className="media-add-button" type="button" onClick={openAddChoice}>
             <i className="ri-add-line" />
             <span>추가</span>
@@ -5340,6 +6074,20 @@ const MediaArchivePage: React.FC = () => {
           onClose={closeAddChoice}
           onSelectMedia={openMediaForm}
           onSelectPlaylist={openPlaylistForm}
+        />
+      )}
+
+      {showTrash && (
+        <MediaTrashModal
+          items={trashItems}
+          playlists={trashPlaylists}
+          loading={trashLoading}
+          onClose={() => setShowTrash(false)}
+          onRefresh={() => void fetchTrash()}
+          onRestoreItem={(item) => void handleRestoreItem(item)}
+          onPermanentDeleteItem={(item) => void handlePermanentDeleteItem(item)}
+          onRestorePlaylist={(playlist) => void handleRestorePlaylist(playlist)}
+          onPermanentDeletePlaylist={(playlist) => void handlePermanentDeletePlaylist(playlist)}
         />
       )}
 
@@ -5534,6 +6282,16 @@ const MediaArchivePage: React.FC = () => {
               </label>
             </div>
             <div className="media-edit-actions">
+              {editingPlaylist && canManagePlaylist(editingPlaylist) && (
+                <button
+                  type="button"
+                  className="media-danger-button media-edit-delete-button"
+                  onClick={() => void handleDeletePlaylist(editingPlaylist)}
+                >
+                  <i className="ri-delete-bin-line" />
+                  재생목록 삭제
+                </button>
+              )}
               <button type="button" onClick={closePlaylistForm}>취소</button>
               <button type="submit" className="media-save-button">
                 <i className="ri-save-3-line" />
@@ -5686,6 +6444,7 @@ const MediaArchivePage: React.FC = () => {
             setEditingItem(null);
             setEditForm(emptyForm);
           }}
+          onDelete={handleDelete}
           onSubmit={handleItemEditSubmit}
         />
       )}
