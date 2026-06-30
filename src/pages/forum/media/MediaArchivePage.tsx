@@ -1202,6 +1202,9 @@ const YouTubeCustomPlayer: React.FC<{
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
   const bottomNavEventIdRef = useRef(`media-player-${Math.random().toString(36).slice(2)}`);
   const controlEngagedTimerRef = useRef<number | null>(null);
+  const scrubSessionRef = useRef(false);
+  const scrubCommitTimerRef = useRef<number | null>(null);
+  const scrubTargetTimeRef = useRef(0);
   const jogSessionRef = useRef<{
     startX: number;
     startTime: number;
@@ -1228,13 +1231,16 @@ const YouTubeCustomPlayer: React.FC<{
   const [loadedFraction, setLoadedFraction] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [availablePlaybackRates, setAvailablePlaybackRates] = useState<number[]>(YOUTUBE_SPEED_OPTIONS);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubTime, setScrubTime] = useState(0);
   const [isJogging, setIsJogging] = useState(false);
   const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
   const [isControlEngaged, setIsControlEngaged] = useState(false);
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
   const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
   const safeDuration = duration > 0 ? duration : 0;
-  const seekValue = safeDuration > 0 ? Math.min(currentTime, safeDuration) : 0;
+  const displayedTime = isScrubbing ? scrubTime : currentTime;
+  const seekValue = safeDuration > 0 ? Math.min(displayedTime, safeDuration) : 0;
   const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (seekValue / safeDuration) * 100)) : 0;
   const loadedPercent = Math.min(100, Math.max(0, loadedFraction * 100));
   const timelineStyle = {
@@ -1265,6 +1271,12 @@ const YouTubeCustomPlayer: React.FC<{
     }, durationMs);
   }, []);
 
+  const clearScrubCommitTimer = useCallback(() => {
+    if (scrubCommitTimerRef.current === null) return;
+    window.clearTimeout(scrubCommitTimerRef.current);
+    scrubCommitTimerRef.current = null;
+  }, []);
+
   useEffect(() => {
     const element = shellRef.current;
     if (!element || typeof IntersectionObserver === 'undefined') {
@@ -1292,8 +1304,9 @@ const YouTubeCustomPlayer: React.FC<{
     if (controlEngagedTimerRef.current !== null) {
       window.clearTimeout(controlEngagedTimerRef.current);
     }
+    clearScrubCommitTimer();
     emitBottomNavEngagement(false);
-  }, [emitBottomNavEngagement]);
+  }, [clearScrubCommitTimer, emitBottomNavEngagement]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1305,6 +1318,9 @@ const YouTubeCustomPlayer: React.FC<{
     setPlaybackRate(1);
     setAvailablePlaybackRates(YOUTUBE_SPEED_OPTIONS);
     setIsPaused(true);
+    scrubSessionRef.current = false;
+    setIsScrubbing(false);
+    setScrubTime(0);
     setIsJogging(false);
     setJogOffsetSeconds(0);
     if (jogSessionRef.current?.rafId) {
@@ -1316,6 +1332,7 @@ const YouTubeCustomPlayer: React.FC<{
     if (jogSessionRef.current?.paintTimerId) {
       window.clearTimeout(jogSessionRef.current.paintTimerId);
     }
+    clearScrubCommitTimer();
     jogSessionRef.current = null;
 
     loadYouTubeIframeApi()
@@ -1387,7 +1404,7 @@ const YouTubeCustomPlayer: React.FC<{
         // YouTube iframe cleanup can throw if the iframe has already navigated.
       }
     };
-  }, [item.id, embedUrl]);
+  }, [clearScrubCommitTimer, item.id, embedUrl]);
 
   useEffect(() => {
     if (!ready) return undefined;
@@ -1395,7 +1412,7 @@ const YouTubeCustomPlayer: React.FC<{
       const player = playerRef.current;
       if (!player) return;
       const isJogActive = Boolean(jogSessionRef.current);
-      if (!isJogActive) {
+      if (!isJogActive && !scrubSessionRef.current) {
         setNumberIfMeaningfullyChanged(
           setCurrentTime,
           player.getCurrentTime?.() || 0,
@@ -1538,8 +1555,70 @@ const YouTubeCustomPlayer: React.FC<{
     seekToTime(baseTime + deltaSeconds);
   };
 
-  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
-    seekToTime(Number(event.target.value));
+  const clampSeekTime = useCallback((time: number) => {
+    if (!Number.isFinite(time)) return 0;
+    const upperBound = safeDuration || Number.POSITIVE_INFINITY;
+    return Math.max(0, Math.min(upperBound, time));
+  }, [safeDuration]);
+
+  const previewSeek = useCallback((time: number) => {
+    if (!ready || !safeDuration) return;
+    markControlsEngaged(4000);
+    const nextTime = clampSeekTime(time);
+    scrubSessionRef.current = true;
+    scrubTargetTimeRef.current = nextTime;
+    setIsScrubbing(true);
+    setScrubTime(nextTime);
+  }, [clampSeekTime, markControlsEngaged, ready, safeDuration]);
+
+  const commitSeek = useCallback((time: number) => {
+    if (!ready || !safeDuration) return;
+    clearScrubCommitTimer();
+    const nextTime = clampSeekTime(time);
+    scrubSessionRef.current = false;
+    scrubTargetTimeRef.current = nextTime;
+    setIsScrubbing(false);
+    setScrubTime(nextTime);
+    setCurrentTime(nextTime);
+    markControlsEngaged(4000);
+    try {
+      playerRef.current?.seekTo?.(nextTime, true);
+    } catch {
+      // The iframe may ignore a seek while YouTube is switching buffer state.
+    }
+  }, [clampSeekTime, clearScrubCommitTimer, markControlsEngaged, ready, safeDuration]);
+
+  const scheduleSeekCommit = useCallback((time: number) => {
+    clearScrubCommitTimer();
+    scrubCommitTimerRef.current = window.setTimeout(() => {
+      scrubCommitTimerRef.current = null;
+      commitSeek(time);
+    }, 180);
+  }, [clearScrubCommitTimer, commitSeek]);
+
+  const handleSeekPreview = (event: React.FormEvent<HTMLInputElement> | React.ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.currentTarget.value);
+    previewSeek(nextTime);
+    scheduleSeekCommit(nextTime);
+  };
+
+  const handleSeekCommit = () => {
+    if (!scrubSessionRef.current) return;
+    commitSeek(scrubTargetTimeRef.current);
+  };
+
+  const handleSeekKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!ready || !safeDuration) return;
+    const keySeeks = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'];
+    if (!keySeeks.includes(event.key)) return;
+    const nextTime = Number(event.currentTarget.value);
+    previewSeek(nextTime);
+    scheduleSeekCommit(nextTime);
+  };
+
+  const handleSeekKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!scrubSessionRef.current) return;
+    commitSeek(Number(event.currentTarget.value));
   };
 
   const beginJog = useCallback((
@@ -1779,7 +1858,7 @@ const YouTubeCustomPlayer: React.FC<{
         onKeyDownCapture={() => markControlsEngaged()}
       >
         <div className="media-custom-timeline-row">
-          <div className="media-custom-timeline" style={timelineStyle}>
+          <div className={`media-custom-timeline ${isScrubbing ? 'is-scrubbing' : ''}`} style={timelineStyle}>
             <input
               className="media-custom-seek"
               type="range"
@@ -1790,7 +1869,15 @@ const YouTubeCustomPlayer: React.FC<{
               disabled={!ready || !safeDuration}
               draggable={false}
               onDragStart={preventMediaArchiveDrag}
-              onChange={handleSeek}
+              onPointerUp={handleSeekCommit}
+              onPointerCancel={handleSeekCommit}
+              onMouseUp={handleSeekCommit}
+              onTouchEnd={handleSeekCommit}
+              onBlur={handleSeekCommit}
+              onInput={handleSeekPreview}
+              onChange={handleSeekPreview}
+              onKeyDown={handleSeekKeyDown}
+              onKeyUp={handleSeekKeyUp}
               aria-label="재생 위치"
             />
           </div>
@@ -1822,8 +1909,8 @@ const YouTubeCustomPlayer: React.FC<{
                 </button>
               ))}
             </div>
-            <span className="media-custom-time-group" aria-label={`현재 ${formatMediaTime(currentTime)}, 전체 ${formatMediaTime(safeDuration)}`}>
-              <span>{formatMediaTime(currentTime)}</span>
+            <span className="media-custom-time-group" aria-label={`현재 ${formatMediaTime(displayedTime)}, 전체 ${formatMediaTime(safeDuration)}`}>
+              <span>{formatMediaTime(displayedTime)}</span>
               <span>/</span>
               <span>{formatMediaTime(safeDuration)}</span>
             </span>
