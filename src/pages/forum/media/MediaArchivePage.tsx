@@ -2959,6 +2959,18 @@ function pushMediaArchiveHistoryView(view: MediaArchiveHistoryView) {
   window.history.pushState(nextState, '', window.location.href);
 }
 
+function replaceMediaArchiveHistoryView(view: MediaArchiveHistoryView | null) {
+  if (typeof window === 'undefined') return;
+  const currentState = window.history.state;
+  const nextState = currentState && typeof currentState === 'object' ? { ...currentState } : {};
+  if (view) {
+    nextState[MEDIA_ARCHIVE_HISTORY_VIEW_KEY] = view;
+  } else {
+    delete nextState[MEDIA_ARCHIVE_HISTORY_VIEW_KEY];
+  }
+  window.history.replaceState(nextState, '', window.location.href);
+}
+
 function getPlaylistChildren(parentId: string, playlists: SnsMediaPlaylist[]) {
   const playlistIds = new Set(playlists.map((playlist) => playlist.id));
   return sortPlaylistsByName(playlists.filter((playlist) => {
@@ -3051,6 +3063,11 @@ function getItemLegacyGroupKey(item: SnsMediaItem) {
   return `collection:${compactText(item.collection_name) || '컬렉션 미지정'}`;
 }
 
+function getMediaItemArchiveView(item: SnsMediaItem): MediaArchiveHistoryView {
+  const playlistId = compactText(item.playlist_id);
+  return playlistId ? { kind: 'playlist', id: playlistId } : { kind: 'legacy', id: getItemLegacyGroupKey(item) };
+}
+
 type MediaPointerDragSource =
   | { kind: 'playlist'; playlist: SnsMediaPlaylist }
   | { kind: 'item'; item: SnsMediaItem };
@@ -3068,6 +3085,8 @@ const CollectionArchiveView: React.FC<{
   items: SnsMediaItem[];
   playlists: SnsMediaPlaylist[];
   searchQuery: string;
+  initialView?: MediaArchiveHistoryView | null;
+  onInitialViewApplied?: () => void;
   canOrganize: boolean;
   canManageItem: (item: SnsMediaItem) => boolean;
   canMoveItem: (item: SnsMediaItem) => boolean;
@@ -3081,6 +3100,8 @@ const CollectionArchiveView: React.FC<{
   items,
   playlists,
   searchQuery,
+  initialView = null,
+  onInitialViewApplied,
   canOrganize,
   canManageItem,
   canMoveItem,
@@ -3093,9 +3114,9 @@ const CollectionArchiveView: React.FC<{
   playingItemId,
   onPlayItem,
 }) => {
-  const [activePlaylistId, setActivePlaylistId] = useState('');
-  const [activeLegacyKey, setActiveLegacyKey] = useState('');
-  const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>('neutral');
+  const [activePlaylistId, setActivePlaylistId] = useState(() => initialView?.kind === 'playlist' ? initialView.id : '');
+  const [activeLegacyKey, setActiveLegacyKey] = useState(() => initialView?.kind === 'legacy' ? initialView.id : '');
+  const [navigationDirection, setNavigationDirection] = useState<MediaArchiveNavigationDirection>(() => initialView ? 'forward' : 'neutral');
   const [pressedRowKey, setPressedRowKey] = useState('');
   const [isOrganizing, setIsOrganizing] = useState(false);
   const [draggedPlaylistId, setDraggedPlaylistId] = useState('');
@@ -3106,6 +3127,8 @@ const CollectionArchiveView: React.FC<{
   const pressTimerRef = useRef<number | null>(null);
   const dragClickSuppressTimerRef = useRef<number | null>(null);
   const suppressPlaylistOpenRef = useRef(false);
+  const searchQueryInitializedRef = useRef(false);
+  const appliedInitialViewRef = useRef('');
   const folderPathAnchorRef = useRef<HTMLDivElement | null>(null);
   const folderPathRef = useRef<HTMLElement | null>(null);
   const pointerDragRef = useRef<MediaPointerDragSession | null>(null);
@@ -3238,6 +3261,10 @@ const CollectionArchiveView: React.FC<{
   }, [activePlaylist]);
 
   useEffect(() => {
+    if (!searchQueryInitializedRef.current) {
+      searchQueryInitializedRef.current = true;
+      return;
+    }
     setNavigationDirection('neutral');
     setActivePlaylistId('');
     setActiveLegacyKey('');
@@ -3377,6 +3404,18 @@ const CollectionArchiveView: React.FC<{
     pushArchiveView(view);
     applyArchiveView(view, 'forward');
   };
+
+  useEffect(() => {
+    if (!initialView) return;
+    const viewKey = getMediaArchiveHistoryViewKey(initialView);
+    if (appliedInitialViewRef.current === viewKey) return;
+    appliedInitialViewRef.current = viewKey;
+    archiveHistoryStackRef.current = initialView.kind === 'playlist'
+      ? getPlaylistHistoryLineage(initialView.id, playlists).map(getMediaArchiveHistoryViewKey)
+      : [viewKey];
+    applyArchiveView(initialView, 'forward');
+    onInitialViewApplied?.();
+  }, [initialView, onInitialViewApplied, playlists]);
 
   const getLegacyGroupDisplayTitle = (group: LegacyArchiveGroup) => (
     group.title === '컬렉션 미지정' ? '미분류' : group.title
@@ -4416,6 +4455,9 @@ const MediaArchivePage: React.FC = () => {
   const [trashItems, setTrashItems] = useState<SnsMediaItem[]>([]);
   const [trashPlaylists, setTrashPlaylists] = useState<SnsMediaPlaylist[]>([]);
   const [trashLoading, setTrashLoading] = useState(false);
+  const [archiveInitialView, setArchiveInitialView] = useState<MediaArchiveHistoryView | null>(null);
+  const [archiveViewVersion, setArchiveViewVersion] = useState(0);
+  const [pendingArchiveFocusView, setPendingArchiveFocusView] = useState<MediaArchiveHistoryView | null | undefined>(undefined);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const playlistCoverFileInputRef = useRef<HTMLInputElement | null>(null);
   const clipperImportKeyRef = useRef('');
@@ -4466,6 +4508,30 @@ const MediaArchivePage: React.FC = () => {
     activePlaylistContextRef.current = context;
     setActivePlaylistContext(context);
     saveMediaPlaylistContext(playlist);
+  }, []);
+
+  const focusArchiveLocation = useCallback((view: MediaArchiveHistoryView | null) => {
+    setQuery('');
+    setSubmittedQuery('');
+    setSearchFocused(false);
+    setHighlightedSearchSuggestionIndex(-1);
+    setArchiveInitialView(view);
+    setArchiveViewVersion((version) => version + 1);
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        replaceMediaArchiveHistoryView(view);
+        window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }, []);
+
+  const clearArchiveInitialView = useCallback(() => {
+    setArchiveInitialView(null);
+  }, []);
+
+  const queueArchiveLocationFocus = useCallback((view: MediaArchiveHistoryView | null) => {
+    setPendingArchiveFocusView(view);
   }, []);
 
   const searchSuggestions = useMemo(
@@ -4599,11 +4665,12 @@ const MediaArchivePage: React.FC = () => {
     [activeSearchQuery, items, playlists],
   );
 
-  const fetchItems = useCallback(async (nextPage = 0, append = false) => {
+  const fetchItems = useCallback(async (nextPage = 0, append = false, queryOverride?: string) => {
     if (append) setLoadingMore(true);
     else setLoading(true);
 
     try {
+      const effectiveQuery = queryOverride ?? submittedQuery;
       let request = cafe24
         .from('sns_media_items')
         .select('*', { count: 'exact' })
@@ -4611,7 +4678,7 @@ const MediaArchivePage: React.FC = () => {
         .order('created_at', { ascending: false })
         .range(nextPage * PAGE_SIZE, nextPage * PAGE_SIZE + PAGE_SIZE - 1);
 
-      const orFilter = buildOrFilter(submittedQuery);
+      const orFilter = buildOrFilter(effectiveQuery);
       if (orFilter) request = request.or(orFilter);
 
       const { data, error } = await request;
@@ -4663,6 +4730,20 @@ const MediaArchivePage: React.FC = () => {
       setSuggestionItems([]);
     }
   }, []);
+
+  useEffect(() => {
+    if (pendingArchiveFocusView === undefined) return;
+    if (
+      pendingArchiveFocusView?.kind === 'playlist' &&
+      !playlists.some((playlist) => playlist.id === pendingArchiveFocusView.id)
+    ) {
+      return;
+    }
+
+    const nextView = pendingArchiveFocusView;
+    setPendingArchiveFocusView(undefined);
+    focusArchiveLocation(nextView);
+  }, [focusArchiveLocation, pendingArchiveFocusView, playlists]);
 
   const fetchTrash = useCallback(async () => {
     if (!user) {
@@ -5033,8 +5114,8 @@ const MediaArchivePage: React.FC = () => {
     setShowForm(true);
   };
 
-  const resetPlaylistForm = () => {
-    setPlaylistForm(emptyPlaylistForm);
+  const resetPlaylistForm = (nextForm: MediaPlaylistForm = emptyPlaylistForm) => {
+    setPlaylistForm(nextForm);
     setEditingPlaylist(null);
     setPlaylistMetadataLoading(false);
     setPlaylistMetadataError('');
@@ -5057,6 +5138,10 @@ const MediaArchivePage: React.FC = () => {
     setShowAddChoice(false);
     setShowTrash(false);
     if (showForm) closeMediaForm();
+    resetPlaylistForm({
+      ...emptyPlaylistForm,
+      parentId: compactText(activePlaylistContextRef.current?.playlistId),
+    });
     setShowPlaylistForm(true);
   };
 
@@ -5256,13 +5341,18 @@ const MediaArchivePage: React.FC = () => {
   const handlePlaylistSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
+      const wasEditingPlaylist = Boolean(editingPlaylist);
       const saved = await savePlaylistFromForm(playlistForm, editingPlaylist, playlistCoverFile);
       if (!saved) return;
+      const parentId = getPlaylistParentId(saved);
       setShowPlaylistForm(false);
       resetPlaylistForm();
       await fetchPlaylists();
-      await fetchItems(0, false);
+      await fetchItems(0, false, wasEditingPlaylist ? undefined : '');
       await fetchSuggestionItems();
+      if (!wasEditingPlaylist) {
+        queueArchiveLocationFocus(parentId ? { kind: 'playlist', id: parentId } : null);
+      }
     } catch (error) {
       console.error('[MediaArchive] playlist save failed:', error);
       alert('재생목록 저장 중 오류가 발생했습니다.');
@@ -5551,6 +5641,8 @@ const MediaArchivePage: React.FC = () => {
       } as Partial<SnsMediaItem>;
 
       payload.search_text = buildSearchText(payload).slice(0, 2000);
+      const savedItem = payload as SnsMediaItem;
+      const destinationView = getMediaItemArchiveView(savedItem);
 
       if (isAdmin) {
         payload.is_approved = true;
@@ -5565,8 +5657,9 @@ const MediaArchivePage: React.FC = () => {
       resetForm();
       setShowForm(false);
       await fetchPlaylists();
-      await fetchItems(0, false);
+      await fetchItems(0, false, '');
       await fetchSuggestionItems();
+      queueArchiveLocationFocus(destinationView);
     } catch (error) {
       console.error('[MediaArchive] save failed:', error);
       alert('저장 중 오류가 발생했습니다.');
@@ -5988,9 +6081,12 @@ const MediaArchivePage: React.FC = () => {
   const renderArchiveView = () => {
     return (
       <CollectionArchiveView
+        key={archiveViewVersion}
         items={items}
         playlists={playlists}
         searchQuery={activeSearchQuery}
+        initialView={archiveInitialView}
+        onInitialViewApplied={clearArchiveInitialView}
         canOrganize={Boolean(isAdmin)}
         canManageItem={canManageItem}
         canMoveItem={canMoveItem}
