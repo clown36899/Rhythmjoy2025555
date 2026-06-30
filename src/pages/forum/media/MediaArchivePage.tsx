@@ -2146,8 +2146,7 @@ const MediaCard: React.FC<{
   canManage: boolean;
   onEdit: (item: SnsMediaItem) => void;
   onApprove: (item: SnsMediaItem) => void;
-  onDelete: (item: SnsMediaItem) => void;
-} & MediaPlaybackProps> = ({ item, canManage, onEdit, onApprove, onDelete, playingItemId, onPlayItem }) => {
+} & MediaPlaybackProps> = ({ item, canManage, onEdit, onApprove, playingItemId, onPlayItem }) => {
   const expanded = playingItemId === item.id;
   const dateLabel = item.published_at || item.created_at;
   const originalUrl = item.normalized_url || item.url;
@@ -2222,11 +2221,6 @@ const MediaCard: React.FC<{
           <button type="button" onClick={() => onApprove(item)}>
             <i className="ri-check-line" />
             승인
-          </button>
-        )}
-        {canManage && (
-          <button type="button" className="danger" onClick={() => onDelete(item)}>
-            <i className="ri-delete-bin-line" />
           </button>
         )}
       </div>
@@ -2763,7 +2757,6 @@ const MediaMiniCard: React.FC<{
   isDragging?: boolean;
   isOrganizing?: boolean;
   onEdit?: (item: SnsMediaItem) => void;
-  onDelete?: (item: SnsMediaItem) => void;
   onMovePointerDown?: (event: React.PointerEvent<HTMLElement>, item: SnsMediaItem) => void;
 } & MediaPlaybackProps> = ({
   item,
@@ -2772,7 +2765,6 @@ const MediaMiniCard: React.FC<{
   isDragging = false,
   isOrganizing = false,
   onEdit,
-  onDelete,
   onMovePointerDown,
   playingItemId,
   onPlayItem,
@@ -2785,7 +2777,6 @@ const MediaMiniCard: React.FC<{
     platformLabel(item.platform),
   ].filter(Boolean).join(' · ');
   const canEdit = canManage && Boolean(onEdit);
-  const canDelete = canManage && Boolean(onDelete);
 
   if (expanded) {
     return (
@@ -2823,18 +2814,6 @@ const MediaMiniCard: React.FC<{
               >
                 <i className="ri-edit-2-line" />
                 수정
-              </button>
-            )}
-            {canDelete && (
-              <button
-                type="button"
-                className="media-mini-edit-button media-mini-delete-button"
-                draggable={false}
-                onDragStart={preventMediaArchiveDrag}
-                onClick={() => onDelete?.(item)}
-              >
-                <i className="ri-delete-bin-line" />
-                삭제
               </button>
             )}
           </span>
@@ -2902,19 +2881,6 @@ const MediaMiniCard: React.FC<{
         >
           <i className="ri-edit-2-line" />
           수정
-        </button>
-      )}
-      {canDelete && (
-        <button
-          type="button"
-          className="media-mini-edit-button media-mini-delete-button"
-          draggable={false}
-          onDragStart={preventMediaArchiveDrag}
-          onClick={() => onDelete?.(item)}
-          aria-label={`${item.title || '제목 없음'} 삭제`}
-        >
-          <i className="ri-delete-bin-line" />
-          삭제
         </button>
       )}
       {canDragMove && (
@@ -3107,7 +3073,6 @@ const CollectionArchiveView: React.FC<{
   canMoveItem: (item: SnsMediaItem) => boolean;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
   onEditItem: (item: SnsMediaItem) => void;
-  onDeleteItem: (item: SnsMediaItem) => void;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
   onMoveItem: (item: SnsMediaItem, playlistId: string) => Promise<boolean>;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
@@ -3121,7 +3086,6 @@ const CollectionArchiveView: React.FC<{
   canMoveItem,
   canManagePlaylist,
   onEditItem,
-  onDeleteItem,
   onEditPlaylist,
   onMoveItem,
   onMovePlaylist,
@@ -4058,7 +4022,6 @@ const CollectionArchiveView: React.FC<{
           item={item}
           canManage={canManageItem(item)}
           onEdit={onEditItem}
-          onDelete={onDeleteItem}
           playingItemId={playingItemId}
           onPlayItem={onPlayItem}
         />
@@ -4218,7 +4181,6 @@ const CollectionArchiveView: React.FC<{
                   isDragging={draggedItemId === item.id}
                   isOrganizing={isOrganizing}
                   onEdit={onEditItem}
-                  onDelete={onDeleteItem}
                   onMovePointerDown={handleItemPointerDown}
                   playingItemId={playingItemId}
                   onPlayItem={onPlayItem}
@@ -4255,7 +4217,6 @@ const CollectionArchiveView: React.FC<{
               item={item}
               canManage={canManageItem(item)}
               onEdit={onEditItem}
-              onDelete={onDeleteItem}
               playingItemId={playingItemId}
               onPlayItem={onPlayItem}
             />
@@ -6035,7 +5996,6 @@ const MediaArchivePage: React.FC = () => {
         canMoveItem={canMoveItem}
         canManagePlaylist={canManagePlaylist}
         onEditItem={handleEditItem}
-        onDeleteItem={handleDelete}
         onEditPlaylist={handleEditPlaylist}
         onMoveItem={handleMoveItem}
         onMovePlaylist={handleMovePlaylist}

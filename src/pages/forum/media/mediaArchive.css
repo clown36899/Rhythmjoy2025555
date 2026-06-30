@@ -1876,17 +1876,6 @@ html.media-archive-page-active .shell-main-content {
   color: var(--text-primary);
 }
 
-.media-mini-delete-button {
-  border-color: color-mix(in srgb, #ef4444 42%, var(--border-secondary));
-  color: #fca5a5;
-}
-
-.media-mini-delete-button:active {
-  border-color: #f87171;
-  background: color-mix(in srgb, #ef4444 16%, var(--bg-surface-2));
-  color: #fecaca;
-}
-
 .media-mini-drag-handle {
   width: 34px;
   min-width: 34px;
