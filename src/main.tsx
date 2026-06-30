@@ -159,6 +159,7 @@ const HistoryTimelinePage = lazy(() => import('./pages/history/HistoryTimelinePa
 const KakaoCallbackPage = lazy(() => import('./pages/auth/kakao-callback/page'));
 const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
 const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
+const HomeMenuHubTestPage = lazy(() => import('./pages/test/HomeMenuHubTestPage'));
 const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
 const LocalDbTestPage = lazy(() => import('./pages/test/LocalDbTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
@@ -345,8 +346,16 @@ const router = createBrowserRouter([
         element: <MainV2TestPage />,
       },
       {
+        path: "test/home-menu-hub",
+        element: <HomeMenuHubTestPage />,
+      },
+      {
         path: "main-v2-test",
         element: <MainV2TestPage />,
+      },
+      {
+        path: "home-menu-hub-test",
+        element: <HomeMenuHubTestPage />,
       },
       {
         path: "test/survey",

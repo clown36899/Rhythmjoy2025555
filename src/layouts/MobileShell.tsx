@@ -67,6 +67,7 @@ export const MobileShell: React.FC = () => {
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
   const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
   const isSwingFloorCouncilPage = currentPath === '/swing-floor-council';
+  const isHomeMenuHubTestPage = currentPath === '/test/home-menu-hub' || currentPath === '/home-menu-hub-test';
 
   const handleCalendarHeaderDisplayMode = useCallback((mode: CalendarHeaderDisplayMode) => {
     setCalendarHeaderDisplayMode(mode);
@@ -426,7 +427,7 @@ export const MobileShell: React.FC = () => {
   }, [translateButtonLabel]);
 
   return (
-    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''} ${isSwingFloorCouncilPage ? 'swing-floor-council-shell' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''} ${isSwingFloorCouncilPage ? 'swing-floor-council-shell' : ''} ${isHomeMenuHubTestPage ? 'home-menu-hub-test-shell' : ''}`}>
       {/* Global Fixed Header */}
       {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && !isSwingFloorCouncilPage && (
         <header className="shell-header global-header-fixed">
@@ -745,7 +746,7 @@ export const MobileShell: React.FC = () => {
         <Outlet context={{ category, isFullscreen }} />
       </div>
 
-      {!isFullscreen && !isAdminV2Ingestor && !isSwingFloorCouncilPage && <HomeV2MenuPanel />}
+      {!isFullscreen && !isAdminV2Ingestor && !isSwingFloorCouncilPage && !isHomeMenuHubTestPage && <HomeV2MenuPanel />}
 
       {!isAdminV2Ingestor && !isSwingFloorCouncilPage && (
         <SideDrawer

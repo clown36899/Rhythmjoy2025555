@@ -424,6 +424,14 @@
   background: #f7f3ea;
 }
 
+.home-menu-hub-test-shell.layout-compact .shell-main-content,
+.home-menu-hub-test-shell.layout-wide .shell-main-content {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 
 
 /* Events Page Header */
