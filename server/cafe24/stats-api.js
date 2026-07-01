@@ -877,6 +877,8 @@ export async function recordAnalytics(req, res) {
   }, { always: true });
   const pool = getMysqlPool();
   const requestIp = requestClientIp(req);
+  const trustedClientIp = requestIp || asString(req.body?.client_ip);
+  const trustedIpHash = hashIp(trustedClientIp) || asString(req.body?.ip_hash);
   const currentUser = await getAnalyticsRequestUser(req, pool).catch(() => null);
   trace.mark('resolve-current-user', {
     hasUser: Boolean(currentUser?.id),
@@ -898,8 +900,8 @@ export async function recordAnalytics(req, res) {
   const requestFingerprint = asString(req.body?.fingerprint);
   const requestNetworkDeviceId = analyticsGuestNetworkIdentity({
     ...req.body,
-    client_ip: req.body?.client_ip || requestIp,
-    ip_hash: req.body?.ip_hash || hashIp(requestIp),
+    client_ip: trustedClientIp,
+    ip_hash: trustedIpHash,
     user_agent: requestUserAgent(req, req.body || {}),
   });
   let trustedIsAdmin = asBool(currentUser?.is_admin, false);
@@ -921,8 +923,8 @@ export async function recordAnalytics(req, res) {
     user_id: trustedUserId,
     userId: trustedUserId,
     is_admin: trustedIsAdmin,
-    client_ip: req.body?.client_ip || requestIp,
-    ip_hash: req.body?.ip_hash || hashIp(requestIp),
+    client_ip: trustedClientIp,
+    ip_hash: trustedIpHash,
   };
 
   if (ANALYTICS_INLINE_IDENTITY_LINKING && (trustedUserId || trustedIsAdmin)) {

@@ -1,14 +1,82 @@
 import crypto from 'node:crypto';
 
-export const ANALYTICS_BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|curl|wget|python-requests|gptbot|chatgpt|oai-searchbot|openai|claude|anthropic|perplexity|bytespider|ccbot|googleother|google-extended|cohere|mistralai|amazonbot|applebot-extended/i;
+export const ANALYTICS_BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|selenium|webdriver|curl|wget|python-requests|gptbot|chatgpt|oai-searchbot|openai|claude|anthropic|perplexity|bytespider|ccbot|googleother|google-extended|cohere|mistralai|amazonbot|applebot-extended/i;
 export const ANALYTICS_KIOSK_ROUTE_PATTERN = /^\/(?:kiosk|키오스크)(?:\/|$)/i;
 export const ANALYTICS_INTERNAL_ROUTE_PATTERN = /^\/(?:admin|test|main-v2-test|debug|__|api|kiosk|키오스크)(?:\/|$)/i;
+export const ANALYTICS_DEFAULT_DATACENTER_IP_RULES = Object.freeze([
+  '3.0.0.0/8',
+  '13.0.0.0/8',
+  '18.0.0.0/8',
+  '34.0.0.0/8',
+  '35.0.0.0/8',
+  '44.192.0.0/10',
+  '52.0.0.0/8',
+  '54.0.0.0/8',
+  '74.125.0.0/16',
+  '103.4.248.0/22',
+  '103.196.8.0/22',
+  '104.168.0.0/17',
+  '162.43.224.0/19',
+]);
 
 function splitConfiguredValues(value = '') {
   return String(value || '')
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+export function normalizeAnalyticsIp(value = '') {
+  return String(value || '')
+    .replace(/^::ffff:/, '')
+    .replace(/^\[/, '')
+    .replace(/\]$/, '')
+    .trim();
+}
+
+function ipv4ToNumber(value = '') {
+  const ip = normalizeAnalyticsIp(value);
+  const parts = ip.split('.').map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return null;
+  }
+  return parts.reduce((acc, part) => ((acc << 8) + part) >>> 0, 0);
+}
+
+export function analyticsIpMatchesRule(ipValue = '', ruleValue = '') {
+  const ip = normalizeAnalyticsIp(ipValue);
+  const rule = normalizeAnalyticsIp(ruleValue);
+  if (!ip || !rule) return false;
+
+  if (rule.includes('/')) {
+    const [baseIp, prefixValue] = rule.split('/');
+    const ipNumber = ipv4ToNumber(ip);
+    const baseNumber = ipv4ToNumber(baseIp);
+    const prefix = Number(prefixValue);
+    if (
+      ipNumber === null ||
+      baseNumber === null ||
+      !Number.isInteger(prefix) ||
+      prefix < 0 ||
+      prefix > 32
+    ) {
+      return false;
+    }
+    const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+    return (ipNumber & mask) === (baseNumber & mask);
+  }
+
+  if (rule.endsWith('.*')) {
+    return ip.startsWith(rule.slice(0, -1));
+  }
+
+  return ip === rule;
+}
+
+export function analyticsIpMatchesAnyRule(ipValue = '', rules = []) {
+  const ip = normalizeAnalyticsIp(ipValue);
+  if (!ip) return false;
+  return rules.some((rule) => analyticsIpMatchesRule(ip, rule));
 }
 
 export function analyticsRowPath(row = {}) {
@@ -50,6 +118,8 @@ export function analyticsConfiguredExcludedIps() {
   return new Set([
     ...splitConfiguredValues(process.env.ANALYTICS_EXCLUDED_IPS),
     ...splitConfiguredValues(process.env.ANALYTICS_KIOSK_IPS),
+    ...splitConfiguredValues(process.env.ANALYTICS_EXCLUDED_IP_RANGES),
+    ...splitConfiguredValues(process.env.ANALYTICS_KIOSK_IP_RANGES),
   ]);
 }
 
@@ -59,25 +129,25 @@ export function isAnalyticsExcludedIpRow(row = {}) {
   const clientIp = analyticsClientIp(row);
   const rowIpHash = row.ip_hash || row.ipHash || null;
 
-  if (clientIp && configuredIps.has(String(clientIp).replace(/^::ffff:/, '').trim())) return true;
+  if (clientIp && analyticsIpMatchesAnyRule(clientIp, Array.from(configuredIps))) return true;
   if (rowIpHash && configuredHashes.has(String(rowIpHash))) return true;
 
   const computedHash = analyticsIpHash(clientIp);
   return Boolean(computedHash && configuredHashes.has(computedHash));
 }
 
-export function isAnalyticsDatacenterIp(value = '') {
-  const ip = String(value || '').replace(/^::ffff:/, '').trim();
-  const parts = ip.split('.').map((part) => Number(part));
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return false;
-  }
-  const [a, b] = parts;
+export function analyticsConfiguredDatacenterIps() {
+  return new Set([
+    ...ANALYTICS_DEFAULT_DATACENTER_IP_RULES,
+    ...splitConfiguredValues(process.env.ANALYTICS_DATACENTER_IPS),
+    ...splitConfiguredValues(process.env.ANALYTICS_DATACENTER_IP_RANGES),
+    ...splitConfiguredValues(process.env.ANALYTICS_BOT_IPS),
+    ...splitConfiguredValues(process.env.ANALYTICS_BOT_IP_RANGES),
+  ]);
+}
 
-  // Public cloud/DC ranges that should not count as real visitor traffic.
-  if (a === 44 && b >= 192) return true; // AWS EC2
-  if ([3, 13, 18, 34, 35, 52, 54].includes(a)) return true; // AWS/GCP/Azure common public cloud ranges
-  return false;
+export function isAnalyticsDatacenterIp(value = '') {
+  return analyticsIpMatchesAnyRule(value, Array.from(analyticsConfiguredDatacenterIps()));
 }
 
 export function isAnalyticsDatacenterRow(row = {}) {

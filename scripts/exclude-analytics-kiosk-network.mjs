@@ -9,7 +9,10 @@ import {
 import {
   analyticsClientIp,
   analyticsConfiguredExcludedIpHashes,
+  analyticsConfiguredExcludedIps,
   analyticsIpHash,
+  analyticsIpMatchesAnyRule,
+  isAnalyticsDatacenterRow,
 } from '../server/cafe24/analytics-purity.js';
 import { getMysqlPool } from '../server/cafe24/mysql-pool.js';
 
@@ -19,6 +22,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 const args = process.argv.slice(2);
 const apply = args.includes('--apply');
 const json = args.includes('--json');
+const includeDatacenter = args.includes('--datacenter');
 let mysqlPool = null;
 
 function optionValue(name, fallback = null) {
@@ -63,15 +67,36 @@ function targetHashes() {
   return hashes;
 }
 
+function targetIpRules() {
+  const rules = new Set(analyticsConfiguredExcludedIps());
+  const explicitIp = optionValue('--ip');
+  const explicitRange = optionValue('--ip-range') || optionValue('--cidr');
+
+  if (explicitIp) rules.add(explicitIp);
+  if (explicitRange) rules.add(explicitRange);
+
+  return rules;
+}
+
 function rowIpHash(row = {}) {
   return normalizeHash(row.ip_hash || row.ipHash) || analyticsIpHash(analyticsClientIp(row));
+}
+
+function rowMatchesTargets(row = {}, hashes = new Set(), ipRules = new Set()) {
+  const hash = rowIpHash(row);
+  const clientIp = analyticsClientIp(row);
+  return Boolean(
+    (hash && hashes.has(hash)) ||
+    (clientIp && analyticsIpMatchesAnyRule(clientIp, Array.from(ipRules))) ||
+    (includeDatacenter && isAnalyticsDatacenterRow(row))
+  );
 }
 
 function nextExcludedRow(row, now) {
   return {
     ...row,
     analytics_excluded: true,
-    analytics_exclusion_reason: 'matched_kiosk_network_ip',
+    analytics_exclusion_reason: includeDatacenter ? 'matched_datacenter_or_bot_network' : 'matched_excluded_network_ip',
     updated_at: now,
   };
 }
@@ -86,8 +111,9 @@ function rowChanged(before, after) {
 async function main() {
   const days = Number(optionValue('--days', '0'));
   const hashes = targetHashes();
-  if (hashes.size === 0) {
-    throw new Error('No target IP hashes configured. Pass --ip, --ip-hash, ANALYTICS_EXCLUDED_IP_HASHES, or ANALYTICS_KIOSK_IP_HASHES.');
+  const ipRules = targetIpRules();
+  if (hashes.size === 0 && ipRules.size === 0 && !includeDatacenter) {
+    throw new Error('No target IP rules configured. Pass --ip, --ip-hash, --ip-range, --datacenter, ANALYTICS_EXCLUDED_IPS, ANALYTICS_EXCLUDED_IP_RANGES, ANALYTICS_KIOSK_IPS, or ANALYTICS_KIOSK_IP_RANGES.');
   }
 
   const [sessions, logs, itemViews] = await Promise.all([
@@ -106,7 +132,7 @@ async function main() {
   for (const item of rows) {
     if (!rowInWindow(item.row, days)) continue;
     const hash = rowIpHash(item.row);
-    if (!hash || !hashes.has(hash)) continue;
+    if (!rowMatchesTargets(item.row, hashes, ipRules)) continue;
     if (asBool(item.row.analytics_excluded, false)) continue;
 
     const nextRow = nextExcludedRow(item.row, now);
@@ -122,6 +148,8 @@ async function main() {
     apply,
     days: Number.isFinite(days) && days > 0 ? days : null,
     targetHashCount: hashes.size,
+    targetIpRuleCount: ipRules.size,
+    includeDatacenter,
     sessionLogsTotal: sessions.length,
     analyticsLogsTotal: logs.length,
     itemViewsTotal: itemViews.length,
@@ -152,6 +180,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
   } else {
     console.log(`[analytics-kiosk-network] days: ${result.days ?? 'all'}, apply: ${result.apply}`);
+    console.log(`[analytics-kiosk-network] hashes: ${result.targetHashCount}, ipRules: ${result.targetIpRuleCount}, datacenter: ${result.includeDatacenter}`);
     console.log(`[analytics-kiosk-network] targets: ${result.targetsTotal} ${JSON.stringify(result.targetsByTable)}`);
     if (result.backupFile) console.log(`[analytics-kiosk-network] backup: ${result.backupFile}`);
     if (apply) console.log(`[analytics-kiosk-network] applied: ${result.applied}`);

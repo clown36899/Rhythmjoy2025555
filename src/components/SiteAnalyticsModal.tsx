@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { cafe24 } from '../lib/cafe24Client';
 import { isInternalAnalyticsRoute, isLikelyBotTraffic } from '../utils/analyticsEngine';
+import { isAnalyticsDatacenterIp } from '../utils/analyticsGuards';
 import './SiteAnalyticsModal.css';
 
 // [PHASE 18] 타입명 한글화
@@ -533,13 +534,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 if (!network) return null;
                 return `${String(network)}:${getFilterGuestDeviceIdentity(row)}`;
             };
-            const isDatacenterIp = (value: unknown) => {
-                const parts = String(value || '').replace(/^::ffff:/, '').trim().split('.').map(Number);
-                if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
-                const [a, b] = parts;
-                return (a === 44 && b >= 192) || [3, 13, 18, 34, 35, 52, 54].includes(a);
-            };
-            const isDatacenterAnalyticsRow = (row: any) => isDatacenterIp(getFilterClientIp(row));
+            const isDatacenterAnalyticsRow = (row: any) => isAnalyticsDatacenterIp(getFilterClientIp(row));
 
             const botSessionIds = new Set<string>();
             const botFingerprints = new Set<string>();
