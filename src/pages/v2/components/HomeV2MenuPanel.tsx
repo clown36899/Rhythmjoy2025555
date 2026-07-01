@@ -27,7 +27,6 @@ type HomeMenuItem = {
     to?: string;
     action?: string;
     status?: string;
-    adminOnly?: boolean;
 };
 
 const HOME_MENU_ITEMS: HomeMenuItem[] = [
@@ -44,7 +43,7 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "tempo-tool", label: "BPM 측정기/메트로놈", shortLabel: "BPM/메트로놈", icon: "ri-speed-up-line", theme: "tempo", to: "/tempo-tool" },
     { id: "shopping", label: "쇼핑", icon: "ri-shopping-bag-3-line", theme: "shopping", to: "/shopping" },
     { id: "guide", label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
-    { id: "home-menu-hub-test", label: "메뉴 허브", icon: "ri-layout-grid-line", theme: "menu-hub", to: "/test/home-menu-hub", adminOnly: true },
+    { id: "home-menu-hub-test", label: "메뉴 허브", icon: "ri-layout-grid-line", theme: "menu-hub", to: "/test/home-menu-hub" },
 ];
 
 const PINNED_MENU_LIMIT = 5;
@@ -54,11 +53,6 @@ const HIDEABLE_MENU_ITEM_IDS = new Set(
         .filter((item) => item.id !== "home")
         .map((item) => item.id),
 );
-
-const isLocalPreviewHost = () => {
-    if (typeof window === "undefined") return false;
-    return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-};
 
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
@@ -268,7 +262,6 @@ export const HomeV2MenuPanel: React.FC = () => {
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
     const visibleHomeMenuItems = useMemo(() => {
         return HOME_MENU_ITEMS.filter((item) => {
-            if (item.adminOnly && !isAdmin && !isLocalPreviewHost()) return false;
             if (isAdmin) return true;
             if (isTempoToolVisibilityLoading && HIDEABLE_MENU_ITEM_IDS.has(item.id)) return false;
             return !isTempoToolItemHidden(tempoToolVisibilitySettings, item.id);

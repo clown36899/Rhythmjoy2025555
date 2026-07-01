@@ -1,6 +1,5 @@
 import { useMemo, type CSSProperties } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { useEventsQuery } from '../../hooks/queries/useEventsQuery';
 import { getCardThumbnail, getEventDisplayImage } from '../../utils/getEventThumbnail';
 import { getDayName, getLocalDateString, type Event } from '../v2/utils/eventListUtils';
@@ -58,11 +57,6 @@ const FALLBACK_LESSON_CARDS: PreviewCard[] = [
     image: '/default-thumbnails/default_medium.webp',
   },
 ];
-
-const isLocalPreviewHost = () => {
-  if (typeof window === 'undefined') return false;
-  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-};
 
 const getPrimaryDate = (event: Event) => {
   const today = getLocalDateString();
@@ -132,13 +126,7 @@ function LessonStack({ cards }: { cards: PreviewCard[] }) {
 
 export default function HomeMenuHubTestPage() {
   const navigate = useNavigate();
-  const { isAdmin, isAuthCheckComplete } = useAuth();
   const { data: events = [] } = useEventsQuery();
-  const isLocalPreview = isLocalPreviewHost();
-
-  if (!isLocalPreview && isAuthCheckComplete && !isAdmin) {
-    return <Navigate to="/" replace />;
-  }
 
   const eventBuckets = useMemo(() => {
     const upcoming = events
