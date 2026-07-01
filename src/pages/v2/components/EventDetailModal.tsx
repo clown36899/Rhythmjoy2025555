@@ -25,6 +25,7 @@ import LocalLoading from '../../../components/LocalLoading';
 import EventEditBottomSheet from './EventEditBottomSheet';
 import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
 import { addClientLog } from '../../../utils/clientLogBuffer';
+import { getActivityTypeForCategory } from '../../events/eventsInfoCategory';
 
 registerLocale("ko", ko);
 
@@ -682,7 +683,10 @@ export default function EventDetailModal({
       } else {
         updates.genre = value;
       }
-      updates.category = category as any;
+      if (category) {
+        updates.category = category as any;
+        updates.activity_type = getActivityTypeForCategory(category);
+      }
     }
     if (activeEditField === 'description') updates.description = value;
     if (activeEditField === 'time') updates.time = value;

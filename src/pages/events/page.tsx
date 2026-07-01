@@ -22,6 +22,7 @@ import { showComingSoonNotice } from '../../utils/appNotice';
 import { getLocalDateString, seededRandom } from '../v2/utils/eventListUtils';
 import { useEventActions } from '../v2/hooks/useEventActions';
 import type { Event } from '../v2/utils/eventListUtils';
+import { getEventsInfoCategory, type EventsInfoCategory } from './eventsInfoCategory';
 import './events.css';
 
 const EventRegistrationModal = lazy(() => import('../../components/EventRegistrationModal'));
@@ -51,7 +52,6 @@ type EventsInfoSectionProps = {
   onToggleFavorite: (eventId: number | string, event?: MouseEvent) => void;
 };
 
-type EventsInfoCategory = EventsInfoSectionKey;
 type EventsInfoSortOrder = 'random' | 'date';
 type EventsInfoActivityFilter = 'all' | EventsInfoSectionKey;
 
@@ -113,30 +113,6 @@ const getEventDanceTags = (event: Event) => {
   );
   const inferredTags = hasExplicitTaxonomy ? getEventTaxonomy(event).tags : [];
   return Array.from(new Set([...(Array.isArray(metadataTags) ? metadataTags : []), ...inferredTags].filter(Boolean)));
-};
-
-const getEventsInfoCategory = (event: Event): EventsInfoCategory => {
-  if (
-    event.category === 'club' ||
-    event.category === 'club_lesson' ||
-    event.category === 'club_regular'
-  ) {
-    return 'club';
-  }
-
-  if (event.category === 'social') {
-    return 'social';
-  }
-
-  const explicit = (event as Event & { activity_type?: string | null }).activity_type;
-  if (explicit === 'social') return 'social';
-  if (explicit === 'class' || explicit === 'event') return explicit;
-
-  if (event.category === 'class') return 'class';
-  if (event.category === 'regular') return 'class';
-  if (event.category === 'event' || event.category === 'party') return 'event';
-
-  return 'event';
 };
 
 const shouldShowClass = (event: Event) => {

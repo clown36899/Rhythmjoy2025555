@@ -118,11 +118,32 @@ function toIntOrNull(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function normalizeCategoryValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function activityTypeForCategory(category) {
+  const normalized = normalizeCategoryValue(category);
+  if (normalized === 'social') return 'social';
+  if (
+    normalized === 'class' ||
+    normalized === 'regular' ||
+    normalized === 'club' ||
+    normalized === 'club_lesson' ||
+    normalized === 'club_regular'
+  ) {
+    return 'class';
+  }
+  return 'event';
+}
+
 function normalizeEventPayload(input, existing = null, user = null) {
   const source = {
     ...(existing || {}),
     ...(input || {}),
   };
+  const hasInputCategory = Object.prototype.hasOwnProperty.call(input || {}, 'category');
+  const hasInputActivityType = Object.prototype.hasOwnProperty.call(input || {}, 'activity_type');
 
   const now = new Date().toISOString();
   const id = String(source.id || crypto.randomUUID());
@@ -138,6 +159,12 @@ function normalizeEventPayload(input, existing = null, user = null) {
   const startDate = toDateOrNull(source.start_date || source.date);
   const endDate = toDateOrNull(source.end_date || source.start_date || source.date);
   const eventDates = Array.isArray(source.event_dates) ? source.event_dates.filter(Boolean) : [];
+  const category = source.category || 'event';
+  const activityType = hasInputActivityType
+    ? (source.activity_type || activityTypeForCategory(category))
+    : hasInputCategory
+      ? activityTypeForCategory(category)
+      : (source.activity_type || activityTypeForCategory(category));
 
   const event = {
     ...source,
@@ -150,10 +177,10 @@ function normalizeEventPayload(input, existing = null, user = null) {
     time: source.time || '',
     location: source.location || '',
     location_link: source.location_link || '',
-    category: source.category || 'event',
+    category,
     genre: source.genre || null,
     dance_scope: source.dance_scope || 'swing',
-    activity_type: source.activity_type || source.category || 'event',
+    activity_type: activityType,
     image: source.image || source.image_url || source.image_full || source.image_medium || source.image_thumbnail || '',
     image_thumbnail: source.image_thumbnail || '',
     image_medium: source.image_medium || '',

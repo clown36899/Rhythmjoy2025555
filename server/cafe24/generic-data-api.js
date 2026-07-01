@@ -1417,6 +1417,35 @@ function httpError(message, statusCode) {
   return error;
 }
 
+function normalizeCategoryValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function activityTypeForEventCategory(category) {
+  const normalized = normalizeCategoryValue(category);
+  if (normalized === 'social') return 'social';
+  if (
+    normalized === 'class' ||
+    normalized === 'regular' ||
+    normalized === 'club' ||
+    normalized === 'club_lesson' ||
+    normalized === 'club_regular'
+  ) {
+    return 'class';
+  }
+  return 'event';
+}
+
+function normalizeEventActivityType(next, source = next) {
+  if (
+    Object.prototype.hasOwnProperty.call(source || {}, 'category') &&
+    !Object.prototype.hasOwnProperty.call(source || {}, 'activity_type')
+  ) {
+    next.activity_type = activityTypeForEventCategory(next.category);
+  }
+  return next;
+}
+
 async function requireEventWriter(req) {
   const user = await getCurrentUser(req);
   if (!user) throw httpError('로그인이 필요합니다.', 401);
@@ -1429,7 +1458,7 @@ function normalizeEventInsertValues(values, user) {
     next.user_id = user.is_admin ? (next.user_id || user.id) : user.id;
     delete next.password;
     delete next.board_users;
-    return next;
+    return normalizeEventActivityType(next, row);
   });
 }
 
@@ -1440,7 +1469,7 @@ function normalizeEventUpdateValues(values, user) {
   }
   delete next.password;
   delete next.board_users;
-  return next;
+  return normalizeEventActivityType(next, values);
 }
 
 function normalizeEventUpsertValue(value, existing, user) {
@@ -1453,7 +1482,7 @@ function normalizeEventUpsertValue(value, existing, user) {
     : (existing?.user_id || user.id);
   delete next.password;
   delete next.board_users;
-  return next;
+  return normalizeEventActivityType(next, value);
 }
 
 async function eventMutationResponseData(table, data, user, select = '') {
