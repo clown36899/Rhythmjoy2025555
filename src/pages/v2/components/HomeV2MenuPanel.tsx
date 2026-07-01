@@ -12,12 +12,17 @@ import {
     saveHomeMenuLayoutSettings,
     type HomeMenuLayoutSettings,
 } from "../../../hooks/useHomeMenuLayoutSettings";
+import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
 import {
     isTempoToolItemHidden,
     useTempoToolVisibilitySettings,
 } from "../../../hooks/useTempoToolVisibilitySettings";
 import { trackActivitySuccess } from "../../../utils/analyticsEvents";
+import { getCardThumbnail, getEventDisplayImage } from "../../../utils/getEventThumbnail";
+import { getLocalDateString, type Event } from "../utils/eventListUtils";
 import "./HomeV2MenuPanel.css";
+
+type HomeMenuIconVariant = "lesson-stack";
 
 type HomeMenuItem = {
     id: string;
@@ -26,15 +31,21 @@ type HomeMenuItem = {
     icon: string;
     auxIcon?: string;
     theme: string;
+    iconVariant?: HomeMenuIconVariant;
     to?: string;
     action?: string;
     status?: string;
 };
 
+type LessonPreviewCard = {
+    id: string;
+    image: string;
+};
+
 const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "home", label: "홈", icon: "ri-home-5-line", theme: "home", to: "/" },
     { id: "calendar", label: "캘린더", icon: "ri-calendar-event-line", theme: "calendar", to: "/calendar?view=calendar&scrollToToday=true" },
-    { id: "events", label: "강습&행사", icon: "ri-ticket-2-line", auxIcon: "ri-book-open-line", theme: "events", to: "/events" },
+    { id: "events", label: "강습&행사", icon: "ri-book-open-line", theme: "events", iconVariant: "lesson-stack", to: "/events" },
     { id: "board", label: "자유게시판", icon: "ri-chat-3-line", theme: "board", to: "/board" },
     { id: "places", label: "map", icon: "ri-map-pin-2-line", theme: "places", to: "/places" },
     { id: "forum-media", label: "SNS 아카이브", icon: "ri-movie-2-line", theme: "media", to: "/forum/media" },
@@ -45,11 +56,24 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "tempo-tool", label: "BPM 측정기/메트로놈", shortLabel: "BPM/메트로놈", icon: "ri-speed-up-line", theme: "tempo", to: "/tempo-tool" },
     { id: "shopping", label: "쇼핑", icon: "ri-shopping-bag-3-line", theme: "shopping", to: "/shopping" },
     { id: "guide", label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
-    { id: "home-menu-hub-test", label: "메뉴 허브", icon: "ri-layout-grid-line", theme: "menu-hub", to: "/test/home-menu-hub" },
 ];
 
 const PINNED_MENU_LIMIT = 5;
 const DEFAULT_PINNED_MENU_IDS: string[] = ["tempo-tool"];
+const FALLBACK_LESSON_CARDS: LessonPreviewCard[] = [
+    {
+        id: "fallback-lesson-1",
+        image: "/icons/guest_class_icon_v4.png",
+    },
+    {
+        id: "fallback-lesson-2",
+        image: "/icons/guest_class_icon_v3.jpg",
+    },
+    {
+        id: "fallback-lesson-3",
+        image: "/default-thumbnails/default_medium.webp",
+    },
+];
 const HIDEABLE_MENU_ITEM_IDS = new Set(
     HOME_MENU_ITEMS
         .filter((item) => item.id !== "home")
@@ -65,6 +89,62 @@ const SYNTHETIC_CLICK_SUPPRESS_MS = 700;
 const MENU_ACTION_ANIMATION_MS = 130;
 const SYSTEM_GESTURE_EDGE_GUARD_PX = 80;
 const MEDIA_PLAYER_BOTTOM_NAV_EVENT = "swingenjoy:media-player-bottom-nav";
+
+const getEventPrimaryDate = (event: Event) => {
+    const today = getLocalDateString();
+    const eventDates = Array.isArray(event.event_dates) ? [...event.event_dates].sort() : [];
+    const nextEventDate = eventDates.find((date) => date >= today);
+    return nextEventDate || event.start_date || event.date || event.end_date || "";
+};
+
+const isUpcomingEvent = (event: Event) => {
+    const today = getLocalDateString();
+    const endDate = event.end_date || event.start_date || event.date;
+    if (!endDate) return true;
+    return endDate >= today;
+};
+
+const getEventSearchText = (event: Event) => [
+    event.category,
+    event.activity_type,
+    event.genre,
+    event.title,
+    event.description,
+].filter(Boolean).join(" ").toLowerCase();
+
+const isLessonEvent = (event: Event) => {
+    const category = String(event.category || "").toLowerCase();
+    const activityType = String(event.activity_type || "").toLowerCase();
+    const text = getEventSearchText(event);
+
+    return (
+        category === "class" ||
+        category === "regular" ||
+        category === "club_lesson" ||
+        category === "club_regular" ||
+        activityType === "class" ||
+        text.includes("강습") ||
+        text.includes("워크샵") ||
+        text.includes("workshop")
+    );
+};
+
+const toLessonPreviewCard = (event: Event, index: number): LessonPreviewCard => ({
+    id: String(event.id || `lesson-${index}`),
+    image: getEventDisplayImage(event, FALLBACK_LESSON_CARDS[index % FALLBACK_LESSON_CARDS.length].image),
+});
+
+function HomeV2MenuLessonStack({ cards }: { cards: LessonPreviewCard[] }) {
+    return (
+        <div className="home-v2-menu-lesson-stack" aria-hidden="true">
+            {cards.slice(0, 3).map((card, index) => (
+                <figure className={`home-v2-menu-lesson-card home-v2-menu-lesson-card--${index + 1}`} key={card.id}>
+                    <img src={card.image} alt="" draggable={false} />
+                </figure>
+            ))}
+        </div>
+    );
+}
 
 type MediaPlayerBottomNavEventDetail = {
     id?: string;
@@ -235,6 +315,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         isLoading: isTempoToolVisibilityLoading,
         saveSettings: saveTempoToolVisibilitySettings,
     } = useTempoToolVisibilitySettings();
+    const { data: menuEvents = [] } = useEventsQuery();
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
@@ -246,7 +327,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const [editUnpinnedMenuIds, setEditUnpinnedMenuIds] = useState<string[]>([]);
     const [pinnedDragOverlay, setPinnedDragOverlay] = useState<PinnedDragOverlay | null>(null);
     const [isSavingTempoToolVisibility, setIsSavingTempoToolVisibility] = useState(false);
-    const [isLoadingMenuLayout, setIsLoadingMenuLayout] = useState(false);
+    const [isLoadingMenuLayout, setIsLoadingMenuLayout] = useState(true);
     const [isSavingMenuLayout, setIsSavingMenuLayout] = useState(false);
     const [isMediaPlayerEngaged, setIsMediaPlayerEngaged] = useState(false);
     const panelPointerGestureStartRef = useRef<GestureStart | null>(null);
@@ -263,6 +344,19 @@ export const HomeV2MenuPanel: React.FC = () => {
     const suppressSyntheticClickUntilRef = useRef(0);
     const menuActionTimerRef = useRef<number | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
+    const lessonCards = useMemo(() => {
+        const liveCards = menuEvents
+            .filter(isUpcomingEvent)
+            .sort((a, b) => getEventPrimaryDate(a).localeCompare(getEventPrimaryDate(b)))
+            .filter(isLessonEvent)
+            .filter((event) => Boolean(getCardThumbnail(event)))
+            .slice(0, 3)
+            .map(toLessonPreviewCard);
+
+        return liveCards.length >= 3
+            ? liveCards
+            : [...liveCards, ...FALLBACK_LESSON_CARDS].slice(0, 3);
+    }, [menuEvents]);
     const visibleHomeMenuItems = useMemo(() => {
         return HOME_MENU_ITEMS.filter((item) => {
             if (isAdmin) return true;
@@ -338,10 +432,11 @@ export const HomeV2MenuPanel: React.FC = () => {
 
         return [...pinnedCells, ...unpinnedCells];
     }, [editPinnedMenuIds, editUnpinnedMenuIds, isEditMode, menuItemById, orderedMenuItems, pinnedMenuIds]);
-
+    const isMenuLayoutReady = !isTempoToolVisibilityLoading && !isLoadingMenuLayout;
     const openMenu = useCallback(() => {
+        if (!isMenuLayoutReady) return;
         setIsExpanded(true);
-    }, []);
+    }, [isMenuLayoutReady]);
 
     const closeMenu = useCallback(() => {
         setIsExpanded(false);
@@ -670,7 +765,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [editPinnedMenuIds, editUnpinnedMenuIds, normalizeVisibleHomeMenuLayout, persistMenuLayout, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const toggleEditMode = useCallback(() => {
-        if (isLoadingMenuLayout || isSavingMenuLayout) return;
+        if (!isMenuLayoutReady || isSavingMenuLayout) return;
 
         if (isEditMode) {
             finishEditMode();
@@ -686,7 +781,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [
         finishEditMode,
         isEditMode,
-        isLoadingMenuLayout,
+        isMenuLayoutReady,
         isSavingMenuLayout,
         openMenuSettingsLogin,
         startEditMode,
@@ -768,6 +863,27 @@ export const HomeV2MenuPanel: React.FC = () => {
     const getMenuItemStatusClassName = useCallback((item: HomeMenuItem) => (
         `home-v2-menu-status-badge ${isTempoToolItemHidden(tempoToolVisibilitySettings, item.id) ? "is-hidden" : ""}`.trim()
     ), [tempoToolVisibilitySettings]);
+
+    const renderExpandedMenuIcon = useCallback((item: HomeMenuItem, itemStatus?: string | null) => {
+        const iconClassName = `home-v2-menu-icon home-v2-menu-icon--${item.theme} ${item.iconVariant ? `home-v2-menu-icon--${item.iconVariant}` : ""}`.trim();
+
+        if (item.iconVariant === "lesson-stack") {
+            return (
+                <span className={iconClassName} aria-hidden="true">
+                    <HomeV2MenuLessonStack cards={lessonCards} />
+                    {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
+                </span>
+            );
+        }
+
+        return (
+            <span className={iconClassName} aria-hidden="true">
+                <i className={item.icon} />
+                {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
+                {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
+            </span>
+        );
+    }, [getMenuItemStatusClassName, lessonCards]);
 
     const getMenuItemVisibilityLabel = useCallback((item: HomeMenuItem, hidden: boolean) => (
         hidden ? `${item.label} 공개` : `${item.label} 숨김`
@@ -1223,6 +1339,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                 if (isCancelled) return;
                 applyHomeMenuLayout(resolvePreferredHomeMenuLayout(defaultSettings, userSettings));
                 setIsEditMode(false);
+                setIsExpanded(false);
                 editBaselineLayoutRef.current = null;
                 resetPinnedDrag();
             } catch (error) {
@@ -1230,6 +1347,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                 if (!isCancelled) {
                     applyHomeMenuLayout(null);
                     setIsEditMode(false);
+                    setIsExpanded(false);
                     editBaselineLayoutRef.current = null;
                     resetPinnedDrag();
                 }
@@ -1379,7 +1497,7 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     return (
         <section
-            className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} ${isMediaPlayerEngaged ? "is-media-player-engaged" : ""} is-compact`}
+            className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} ${isMediaPlayerEngaged ? "is-media-player-engaged" : ""} ${!isMenuLayoutReady ? "is-loading-layout" : ""} is-compact`}
             aria-label={t("mainMenu")}
             translate="no"
             onPointerDown={handlePanelPointerDown}
@@ -1392,7 +1510,7 @@ export const HomeV2MenuPanel: React.FC = () => {
             onTouchCancel={resetPanelTouchGesture}
         >
             <div className={`home-v2-menu-compact-row ${quickMenuItems.length === 0 ? "has-no-quick-items" : ""}`}>
-                {quickMenuItems.length > 0 && (
+                {isMenuLayoutReady && quickMenuItems.length > 0 && (
                     <div
                         className="home-v2-menu-quickbar"
                         style={{ "--quick-count": String(quickMenuItems.length) } as React.CSSProperties}
@@ -1456,21 +1574,23 @@ export const HomeV2MenuPanel: React.FC = () => {
                     </div>
                 )}
 
-                <button
-                    type="button"
-                    className="home-v2-menu-toggle"
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        if (isExpanded && isEditMode) {
-                            finishEditMode();
-                        }
-                        setIsExpanded((next) => !next);
-                    }}
-                    aria-expanded={isExpanded}
-                >
-                    <strong>MENU</strong>
-                    <i className={isExpanded ? "ri-arrow-down-s-line" : "ri-equalizer-line"} aria-hidden="true" />
-                </button>
+                {isMenuLayoutReady && (
+                    <button
+                        type="button"
+                        className="home-v2-menu-toggle"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            if (isExpanded && isEditMode) {
+                                finishEditMode();
+                            }
+                            setIsExpanded((next) => !next);
+                        }}
+                        aria-expanded={isExpanded}
+                    >
+                        <strong>MENU</strong>
+                        <i className={isExpanded ? "ri-arrow-down-s-line" : "ri-equalizer-line"} aria-hidden="true" />
+                    </button>
+                )}
 
                 {isExpanded && (
                     <>
@@ -1597,11 +1717,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                             runMenuActionWithFeedback(itemKey, () => handleMenuItemClick(item));
                                         }}
                                     >
-                                        <span className={`home-v2-menu-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
-                                            <i className={item.icon} />
-                                            {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
-                                            {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
-                                        </span>
+                                        {renderExpandedMenuIcon(item, itemStatus)}
                                         <span className={`home-v2-menu-label ${item.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
                                             {item.id === "tempo-tool" ? (
                                                 <>
@@ -1679,11 +1795,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                         }}
                         aria-hidden="true"
                     >
-                        <span className={`home-v2-menu-icon home-v2-menu-icon--${overlayItem.theme}`}>
-                            <i className={overlayItem.icon} />
-                            {overlayItem.auxIcon && <i className={`home-v2-menu-icon-aux ${overlayItem.auxIcon}`} />}
-                            {overlayItemStatus && <span className={getMenuItemStatusClassName(overlayItem)}>{overlayItemStatus}</span>}
-                        </span>
+                        {renderExpandedMenuIcon(overlayItem, overlayItemStatus)}
                         <span className={`home-v2-menu-label ${overlayItem.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
                             {overlayItem.id === "tempo-tool" ? (
                                 <>

@@ -2,6 +2,10 @@
   --home-v2-menu-bottom-gap: 0px;
   --home-v2-menu-expanded-padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   --home-v2-menu-compact-padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  --home-v2-menu-sheet-bg: #1c1c1d;
+  --home-v2-menu-card-bg: #202022;
+  --home-v2-menu-card-hover-bg: #242426;
+  --home-v2-menu-card-border: rgba(255, 255, 255, 0.09);
   position: fixed;
   right: auto;
   bottom: var(--home-v2-menu-bottom-gap);
@@ -31,10 +35,26 @@
   will-change: min-height, transform;
 }
 
+.home-v2-menu-panel,
+.home-v2-menu-panel *,
+.home-v2-menu-panel *::before,
+.home-v2-menu-panel *::after {
+  box-sizing: border-box;
+}
+
 .home-v2-menu-panel.is-media-player-engaged.is-compact:not(.is-expanded) {
   opacity: 0;
   pointer-events: none;
   transform: translateX(-50%) translateY(calc(100% + 14px));
+}
+
+.home-v2-menu-panel.is-loading-layout {
+  pointer-events: none;
+}
+
+.home-v2-menu-panel.is-loading-layout .home-v2-menu-compact-row,
+.home-v2-menu-panel.is-loading-layout .home-v2-menu-expanded {
+  opacity: 0;
 }
 
 .home-v2-menu-toggle {
@@ -296,17 +316,24 @@
 }
 
 .home-v2-menu-panel.is-expanded {
+  top: calc(54px + env(safe-area-inset-top, 0px));
+  bottom: 0;
   min-height: 0;
-  padding-bottom: var(--home-v2-menu-expanded-padding-bottom);
-  border-radius: 28px 28px 0 0;
+  max-height: none;
+  padding: 0 12px var(--home-v2-menu-expanded-padding-bottom);
+  border-radius: 24px 24px 0 0;
+  background: var(--home-v2-menu-sheet-bg);
   box-shadow:
     0 -18px 48px rgba(0, 0, 0, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  overflow-y: auto;
+  overflow: hidden;
   touch-action: pan-y;
 }
 
 .home-v2-menu-panel.is-expanded .home-v2-menu-compact-row {
+  top: 10px;
+  right: 12px;
+  left: 12px;
   justify-content: center;
 }
 
@@ -315,11 +342,14 @@
 }
 
 .home-v2-menu-panel.is-expanded .home-v2-menu-toggle {
-  flex-basis: 116px;
-  min-width: 116px;
+  flex-basis: 104px;
+  min-width: 104px;
   height: 46px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--home-v2-menu-card-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
 .home-v2-menu-panel.is-expanded .home-v2-menu-toggle strong {
@@ -372,9 +402,12 @@
 }
 
 .home-v2-menu-expanded {
-  display: grid;
-  gap: 12px;
-  margin-top: 78px;
+  display: flex;
+  height: calc(100% - 68px);
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 62px;
   animation: homeV2MenuRise 220ms cubic-bezier(0.22, 0.88, 0.25, 1) both;
 }
 
@@ -392,22 +425,31 @@
 
 .home-v2-menu-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px 6px;
-  padding: 0 1px;
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(96px, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .home-v2-menu-item {
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 66px;
-  gap: 4px;
+  min-height: 0;
+  height: 100%;
+  gap: 0;
   align-content: center;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--home-v2-menu-card-border);
   border-radius: 8px;
-  background: transparent;
+  background: var(--home-v2-menu-card-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 10px 24px rgba(0, 0, 0, 0.18);
   color: #f8fafc;
   overflow: hidden;
   place-items: stretch;
@@ -424,12 +466,16 @@
   position: relative;
   z-index: 1;
   display: grid;
+  grid-template-rows: auto auto;
   width: 100%;
   min-width: 0;
-  min-height: 66px;
-  gap: 4px;
+  min-height: 0;
+  height: 100%;
+  gap: 12px;
   align-content: center;
-  padding: 14px 2px 7px;
+  align-items: center;
+  justify-items: center;
+  padding: 12px 6px 11px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -456,15 +502,15 @@
 }
 
 .home-v2-menu-item:focus-visible {
-  background: rgba(var(--icon-rgb, 120, 150, 255), 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: var(--home-v2-menu-card-hover-bg);
   transform: translateY(-1px);
 }
 
 .home-v2-menu-item:active,
 .home-v2-menu-item.is-pressed {
-  background: rgba(var(--icon-rgb, 120, 150, 255), 0.12);
-  box-shadow: none;
-  transform: scale(0.97);
+  background: var(--home-v2-menu-card-hover-bg);
+  transform: scale(0.985);
 }
 
 .home-v2-menu-item:active .home-v2-menu-icon,
@@ -491,7 +537,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   .home-v2-menu-item:hover {
-    background: rgba(var(--icon-rgb, 120, 150, 255), 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    background: var(--home-v2-menu-card-hover-bg);
     transform: translateY(-1px);
   }
 
@@ -501,11 +548,11 @@
 }
 
 .home-v2-menu-item.is-active {
-  background: transparent;
+  background: var(--home-v2-menu-card-bg);
 }
 
 .home-v2-menu-item.is-editable {
-  background: transparent;
+  background: var(--home-v2-menu-card-bg);
   cursor: grab;
   touch-action: none;
   -webkit-touch-callout: none;
@@ -598,9 +645,11 @@
 .home-v2-menu-edit-slot {
   display: grid;
   min-width: 0;
-  min-height: 66px;
+  min-height: 0;
+  height: 100%;
   border: 1px dashed rgba(255, 255, 255, 0.18);
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
   color: rgba(255, 255, 255, 0.28);
   place-items: center;
   transition:
@@ -677,8 +726,8 @@
   --icon-fg: rgb(var(--icon-rgb));
   position: relative;
   display: grid;
-  width: 31px;
-  height: 30px;
+  width: 48px;
+  height: 48px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -698,7 +747,7 @@
   position: relative;
   z-index: 1;
   color: var(--icon-fg);
-  font-size: 24px;
+  font-size: 34px;
   font-weight: 400;
   line-height: 1;
   filter: none;
@@ -718,6 +767,59 @@
   font-size: 13px;
   line-height: 1;
   place-items: center;
+}
+
+.home-v2-menu-icon--lesson-stack {
+  width: 86px;
+  height: 64px;
+  color: var(--icon-fg);
+}
+
+.home-v2-menu-lesson-stack {
+  position: relative;
+  width: 86px;
+  height: 64px;
+}
+
+.home-v2-menu-lesson-card {
+  position: absolute;
+  width: 40px;
+  height: 56px;
+  margin: 0;
+  overflow: hidden;
+  border: 2px solid #2f2f32;
+  border-radius: 8px;
+  background: #111113;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+}
+
+.home-v2-menu-lesson-card--1 {
+  bottom: 3px;
+  left: 4px;
+  transform: rotate(-7deg);
+}
+
+.home-v2-menu-lesson-card--2 {
+  bottom: 7px;
+  left: 24px;
+  z-index: 2;
+}
+
+.home-v2-menu-lesson-card--3 {
+  right: 4px;
+  bottom: 3px;
+  transform: rotate(7deg);
+}
+
+.home-v2-menu-lesson-card img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 .home-v2-menu-icon--home {
@@ -789,8 +891,8 @@
   z-index: 1;
   max-width: 100%;
   overflow: hidden;
-  font-size: 10.5px;
-  line-height: 1.1;
+  font-size: clamp(14px, 3.8vw, 16px);
+  line-height: 1.12;
   font-weight: 900;
   letter-spacing: 0;
   text-overflow: ellipsis;
@@ -802,8 +904,8 @@
   display: grid;
   gap: 1px;
   overflow: visible;
-  font-size: 8.8px;
-  line-height: 1.05;
+  font-size: clamp(12px, 3.2vw, 14px);
+  line-height: 1.08;
   text-overflow: clip;
   white-space: normal;
 }
@@ -817,6 +919,7 @@
 }
 
 .home-v2-menu-register {
+  flex: 0 0 58px;
   position: relative;
   display: flex;
   width: 100%;
@@ -927,19 +1030,52 @@
   }
 
   .home-v2-menu-panel.is-expanded {
-    max-height: min(64svh, 460px);
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    max-height: none;
   }
 
   .home-v2-menu-expanded {
-    margin-top: 72px;
+    height: calc(100% - 72px);
+    margin-top: 66px;
   }
 
   .home-v2-menu-panel.is-compact .home-v2-menu-expanded {
-    margin-top: 72px;
+    margin-top: 66px;
   }
 
   .home-v2-menu-grid {
-    gap: 8px 10px;
+    grid-auto-rows: minmax(132px, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    max-height: 560px;
+  }
+
+  .home-v2-menu-item-main {
+    padding: 18px 10px 16px;
+  }
+
+  .home-v2-menu-icon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .home-v2-menu-icon i {
+    font-size: 40px;
+  }
+
+  .home-v2-menu-icon--lesson-stack,
+  .home-v2-menu-lesson-stack {
+    width: 102px;
+    height: 76px;
+  }
+
+  .home-v2-menu-lesson-card {
+    width: 48px;
+    height: 66px;
+  }
+
+  .home-v2-menu-lesson-card--2 {
+    left: 28px;
   }
 }
 
@@ -964,7 +1100,7 @@
   }
 
   .home-v2-menu-expanded {
-    margin-top: 76px;
+    margin-top: 62px;
   }
 
   .home-v2-menu-panel.is-compact {
@@ -981,7 +1117,7 @@
   }
 
   .home-v2-menu-panel.is-compact .home-v2-menu-expanded {
-    margin-top: 76px;
+    margin-top: 62px;
   }
 
   .home-v2-menu-quickbar {
@@ -1001,23 +1137,38 @@
   }
 
   .home-v2-menu-item {
-    min-height: 64px;
+    min-height: 0;
     border-radius: 8px;
   }
 
   .home-v2-menu-icon {
-    width: 30px;
-    height: 30px;
+    width: 48px;
+    height: 48px;
   }
 
   .home-v2-menu-icon i {
-    font-size: 23px;
+    font-size: 34px;
   }
 }
 
 @media (max-width: 360px) {
   .home-v2-menu-quick-item>span:last-child {
     font-size: 9px;
+  }
+
+  .home-v2-menu-icon--lesson-stack,
+  .home-v2-menu-lesson-stack {
+    width: 76px;
+    height: 56px;
+  }
+
+  .home-v2-menu-lesson-card {
+    width: 36px;
+    height: 50px;
+  }
+
+  .home-v2-menu-lesson-card--2 {
+    left: 21px;
   }
 }
 
