@@ -5,8 +5,13 @@
   --neb-bottom-menu-reserve: calc(78px + env(safe-area-inset-bottom, 0px));
   --neb-banner-ui-reserve: 154px;
   --neb-slider-target-height: clamp(320px, 76vw, 540px);
+  --neb-indicator-size: clamp(14px, 5.2vw, 28px);
+  --neb-indicator-gap: clamp(2px, 1.1vw, 8px);
+  --neb-indicator-padding-x: clamp(6px, 3vw, 54px);
   min-width: 0;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -480,13 +485,16 @@
 .NEB-indicators {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   justify-content: center;
-  gap: 8px;
+  gap: var(--neb-indicator-gap);
   min-height: 40px;
   margin: 0 0 8px;
-  padding: 0 clamp(28px, 8vw, 54px);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--neb-indicator-padding-x);
 }
 
 .NEB-lowerDeck {
@@ -666,8 +674,8 @@
 .NEB-indicator {
   position: relative;
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: var(--neb-indicator-size);
+  height: var(--neb-indicator-size);
   box-sizing: border-box;
   border-radius: 999px;
   overflow: hidden;
@@ -802,8 +810,7 @@
     }
 
     .NEB-indicator {
-        width: 26px;
-        height: 26px;
+        border-width: 1px;
     }
 
     .NEB-authorBadge {
