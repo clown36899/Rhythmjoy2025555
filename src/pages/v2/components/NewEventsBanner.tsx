@@ -20,7 +20,6 @@ const socialAdImageKindCache = new Map<string, SocialAdImageAnalysis>();
 const EDGE_TONE_BLACK_LUMINANCE_THRESHOLD = 96;
 const EDGE_TONE_BLACK_CHROMA_THRESHOLD = 52;
 const EDGE_TONE_BLACK_SAMPLE_RATIO = 0.48;
-const ONE_DAY_RECRUIT_ICON_SRC = '/icons/v2/oneday-recruit.svg';
 const SOCIAL_POSTER_SCORE_THRESHOLD = 0.9;
 
 const UNKNOWN_SOCIAL_IMAGE_ANALYSIS: SocialAdImageAnalysis = {
@@ -935,7 +934,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         }}
                         aria-label="스윙 원데이 모집 보기"
                     >
-                        <img src={ONE_DAY_RECRUIT_ICON_SRC} alt="" aria-hidden="true" />
+                        <span className="NEB-oneDayRecruitTicket" aria-hidden="true">
+                            <span className="NEB-oneDayRecruitStub">OPEN</span>
+                            <span className="NEB-oneDayRecruitBody">
+                                <span className="NEB-oneDayRecruitKicker">SWING CLASS</span>
+                                <span className="NEB-oneDayRecruitTitle">원데이 모집</span>
+                                <span className="NEB-oneDayRecruitMeta">바로가기</span>
+                            </span>
+                        </span>
                     </button>
 
                     <div className="NEB-activeSummaryCluster">

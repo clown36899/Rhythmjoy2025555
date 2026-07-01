@@ -1073,7 +1073,7 @@ html[data-theme="light"] :is(
 }
 
 html[data-theme="light"] :is(
-  .NEB-oneDayRecruitBtn img,
+  .NEB-oneDayRecruitTicket,
   .place-marker,
   .event-map-marker,
   .kakao-map-marker

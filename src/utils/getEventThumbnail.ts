@@ -14,6 +14,7 @@ const DEFAULT_THUMBNAILS = {
   thumbnail: `${DEFAULT_THUMBNAIL_BASE}/default_thumbnail.webp`,
   medium: `${DEFAULT_THUMBNAIL_BASE}/default_medium.webp`,
 };
+const LOCAL_UPLOADS_FALLBACK_ORIGIN = 'https://swingenjoy.com';
 
 export interface ImageObject {
   url?: string;
@@ -29,8 +30,22 @@ const LIGHTWEIGHT_CARD_FIELDS: ImageField[] = ['image_thumbnail', 'image_medium'
 const LIGHTWEIGHT_THUMBNAIL_FIELDS: ImageField[] = ['image_micro', 'image_thumbnail', 'image_medium'];
 const DISPLAY_IMAGE_FIELDS: ImageField[] = ['image_medium', 'image_thumbnail', 'image_micro', 'image', 'image_full', 'image_url'];
 
+function shouldUseRemoteUploadsFallback(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+}
+
+function resolveLocalUploadsFallback(normalized: string): string {
+  if (normalized.startsWith('/uploads/') && shouldUseRemoteUploadsFallback()) {
+    return `${LOCAL_UPLOADS_FALLBACK_ORIGIN}${normalized}`;
+  }
+  return normalized;
+}
+
 function normalizeImageUrl(value: string | undefined | null): string {
-  return String(value || '').trim();
+  const normalized = String(value || '').trim();
+  return resolveLocalUploadsFallback(normalized);
 }
 
 function getImageFieldValue(event: EventThumbnailData, field: ImageField): string | undefined {
@@ -68,7 +83,7 @@ export function getEventDisplayImage(
   event: EventThumbnailData | null | undefined,
   fallback?: string,
 ): string {
-  if (!event) return fallback || DEFAULT_THUMBNAILS.thumbnail;
+  if (!event) return normalizeImageUrl(fallback || DEFAULT_THUMBNAILS.thumbnail);
 
   for (const field of DISPLAY_IMAGE_FIELDS) {
     const candidate = field === 'image_micro'
@@ -77,7 +92,7 @@ export function getEventDisplayImage(
     if (candidate) return candidate;
   }
 
-  return fallback || DEFAULT_THUMBNAILS.thumbnail;
+  return normalizeImageUrl(fallback || DEFAULT_THUMBNAILS.thumbnail);
 }
 
 /**
@@ -92,7 +107,7 @@ export function getOptimizedImageUrl(url: string | ImageObject | undefined | nul
   if (!actualUrl || typeof actualUrl !== 'string') return undefined;
 
   // 이미 변환 파라미터가 있거나 data URL인 경우 패스
-  if (actualUrl.includes('?') || actualUrl.startsWith('data:')) return actualUrl;
+  if (actualUrl.includes('?') || actualUrl.startsWith('data:')) return resolveLocalUploadsFallback(actualUrl);
 
   // 레거시 Storage URL은 서버 데이터 이관 과정에서 /uploads로 치환합니다.
   if (actualUrl.includes('/storage/v1/object/public/')) {
@@ -100,7 +115,7 @@ export function getOptimizedImageUrl(url: string | ImageObject | undefined | nul
     return actualUrl;
   }
 
-  return actualUrl;
+  return resolveLocalUploadsFallback(actualUrl);
 }
 
 /**
@@ -127,12 +142,12 @@ export function getEventThumbnail(
 ): string {
   if (!event) {
     // 이벤트가 없으면 thumbnail 크기 반환
-    return DEFAULT_THUMBNAILS.thumbnail;
+    return normalizeImageUrl(DEFAULT_THUMBNAILS.thumbnail);
   }
 
   const lightweightImage = getLightweightEventImage(event);
   if (lightweightImage) return lightweightImage;
 
   // 기본 썸네일 - thumbnail 크기 사용
-  return DEFAULT_THUMBNAILS.thumbnail;
+  return normalizeImageUrl(DEFAULT_THUMBNAILS.thumbnail);
 }

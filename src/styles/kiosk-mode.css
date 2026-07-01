@@ -143,13 +143,13 @@ html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryMeta {
 
 html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
   left: 9vw !important;
-  width: 152px !important;
-  height: 166px !important;
+  width: 174px !important;
+  height: 70px !important;
 }
 
-html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn img {
-  width: 152px !important;
-  height: 166px !important;
+html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitTicket {
+  width: 174px !important;
+  height: 70px !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {

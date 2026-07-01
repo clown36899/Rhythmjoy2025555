@@ -518,73 +518,194 @@
   align-items: center;
   justify-content: center;
   position: absolute;
-  left: max(8px, calc(var(--neb-summary-left, 7%) - clamp(118px, 16vw, 144px)));
+  left: clamp(7px, 2.4vw, 14px);
   top: 0;
   z-index: 8;
-  width: clamp(96px, 15.5vw, 130px);
-  aspect-ratio: 512 / 560;
+  width: clamp(82px, 24vw, 96px);
+  height: clamp(50px, 13vw, 58px);
   padding: 0;
   border: 0;
   background: transparent;
+  color: #181410;
   cursor: pointer;
   transform: translateY(0);
   transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.16s ease;
   overflow: visible;
   isolation: isolate;
+  font-family: Pretendard, Inter, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .NEB-oneDayRecruitBtn::before {
   content: "";
   position: absolute;
-  top: 49%;
-  left: 50%;
-  width: 70%;
-  aspect-ratio: 1;
+  left: 9%;
+  right: 9%;
+  bottom: -5px;
+  height: 10px;
   z-index: -1;
-  border-radius: 999px;
-  background: rgba(92, 141, 246, 0.18);
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.78);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.42);
+  filter: blur(5px);
+  opacity: 0.7;
+  transform: scaleX(0.96);
   transition: opacity 0.16s ease, transform 0.16s ease;
   pointer-events: none;
 }
 
-.NEB-oneDayRecruitBtn img {
+.NEB-oneDayRecruitTicket {
   position: relative;
   z-index: 1;
-  display: block;
+  display: grid;
+  grid-template-columns: 19px minmax(0, 1fr);
+  align-items: stretch;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 9px 12px rgba(0, 0, 0, 0.24));
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 2px solid #9c2930;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 42%),
+    #f1d7a8;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 250, 232, 0.72),
+    inset 0 -3px 0 rgba(83, 39, 20, 0.14);
+  filter: drop-shadow(0 8px 11px rgba(0, 0, 0, 0.32));
   pointer-events: none;
   transform: translateY(0) scale(1);
   transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.16s ease;
 }
 
+.NEB-oneDayRecruitTicket::before,
+.NEB-oneDayRecruitTicket::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.NEB-oneDayRecruitTicket::before {
+  inset: 5px;
+  z-index: 1;
+  border: 1px solid rgba(156, 41, 48, 0.74);
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(0deg, rgba(38, 26, 17, 0.06) 0 1px, transparent 1px 5px);
+  opacity: 0.86;
+}
+
+.NEB-oneDayRecruitTicket::after {
+  top: 7px;
+  bottom: 7px;
+  left: 19px;
+  width: 1px;
+  z-index: 1;
+  background-image: linear-gradient(to bottom, rgba(156, 41, 48, 0.82) 0 4px, transparent 4px 8px);
+  background-size: 1px 8px;
+  opacity: 0.9;
+}
+
+.NEB-oneDayRecruitStub,
+.NEB-oneDayRecruitBody,
+.NEB-oneDayRecruitKicker,
+.NEB-oneDayRecruitTitle,
+.NEB-oneDayRecruitMeta {
+  position: relative;
+  z-index: 2;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.NEB-oneDayRecruitStub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding-top: 1px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 44%),
+    #27383d;
+  color: #f8e8c6;
+  font-size: 9px;
+  font-weight: 950;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.36);
+}
+
+.NEB-oneDayRecruitBody {
+  display: grid;
+  grid-template-rows: 9px minmax(0, 1fr) 10px;
+  align-items: center;
+  justify-items: start;
+  min-width: 0;
+  padding: 6px 6px 5px 7px;
+  color: #181410;
+}
+
+.NEB-oneDayRecruitKicker {
+  justify-self: start;
+  color: #9c2930;
+  font-size: 6px;
+  font-weight: 950;
+}
+
+.NEB-oneDayRecruitTitle {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  color: #171410;
+  font-size: clamp(14px, 4vw, 17px);
+  font-weight: 950;
+  line-height: 0.94;
+  white-space: normal;
+  word-break: keep-all;
+  text-shadow:
+    0 1px 0 rgba(255, 250, 232, 0.9),
+    0 2px 0 rgba(156, 41, 48, 0.16);
+}
+
+.NEB-oneDayRecruitMeta {
+  justify-self: end;
+  padding: 2px 4px;
+  border-radius: 999px;
+  background: #9c2930;
+  color: #fff2d1;
+  font-size: 7px;
+  font-weight: 950;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.26);
+}
+
 .NEB-oneDayRecruitBtn:active,
 .NEB-oneDayRecruitBtn.is-pressed {
-  transform: translateY(5px) scale(0.95);
-  filter: brightness(1.08);
+  transform: translateY(4px) rotate(-0.8deg) scale(0.97);
+  filter: brightness(1.04);
 }
 
 .NEB-oneDayRecruitBtn:active::before,
 .NEB-oneDayRecruitBtn.is-pressed::before {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(0.98);
+  opacity: 0.54;
+  transform: scaleX(0.76);
 }
 
-.NEB-oneDayRecruitBtn:active img,
-.NEB-oneDayRecruitBtn.is-pressed img {
+.NEB-oneDayRecruitBtn:active .NEB-oneDayRecruitTicket,
+.NEB-oneDayRecruitBtn.is-pressed .NEB-oneDayRecruitTicket {
   transform: translateY(2px) scale(0.94);
-  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.34));
+  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.38));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .NEB-oneDayRecruitBtn,
   .NEB-oneDayRecruitBtn::before,
-  .NEB-oneDayRecruitBtn img {
+  .NEB-oneDayRecruitTicket {
     transition: none;
   }
 }
@@ -727,9 +848,39 @@
 
 @media (min-width: 761px) {
   .NEB-oneDayRecruitBtn {
-    left: max(24px, calc(var(--neb-summary-left, 30%) - clamp(250px, 22vw, 330px)));
+    left: clamp(18px, 3vw, 34px);
     top: 4px;
-    width: clamp(128px, 11vw, 168px);
+    width: clamp(118px, 10vw, 142px);
+    height: clamp(56px, 5vw, 66px);
+  }
+
+  .NEB-oneDayRecruitTicket {
+    grid-template-columns: 25px minmax(0, 1fr);
+  }
+
+  .NEB-oneDayRecruitTicket::after {
+    left: 25px;
+  }
+
+  .NEB-oneDayRecruitStub {
+    font-size: 9px;
+  }
+
+  .NEB-oneDayRecruitBody {
+    grid-template-rows: 11px minmax(0, 1fr) 11px;
+    padding: 7px 8px 6px 9px;
+  }
+
+  .NEB-oneDayRecruitKicker {
+    font-size: 7px;
+  }
+
+  .NEB-oneDayRecruitTitle {
+    font-size: 18px;
+  }
+
+  .NEB-oneDayRecruitMeta {
+    font-size: 8px;
   }
 }
 
@@ -750,12 +901,18 @@
 }
 
 @media (min-width: 860px) {
+  .NEB-lowerDeck {
+    display: block;
+    padding: 0;
+  }
+
   .NEB-oneDayRecruitBtn {
     position: fixed;
     top: auto;
     bottom: calc(116px + env(safe-area-inset-bottom, 0px));
     left: max(24px, calc(50vw - 325px - clamp(180px, 16vw, 310px)));
-    width: clamp(118px, 10vw, 142px);
+    width: clamp(150px, 10.5vw, 172px);
+    height: clamp(60px, 4.8vw, 70px);
   }
 }
 
@@ -831,8 +988,40 @@
     }
 
     .NEB-oneDayRecruitBtn {
-        left: max(6px, calc(var(--neb-summary-left, 7%) - 110px));
-        width: 98px;
+        left: 7px;
+        top: 0;
+        width: 84px;
+        height: 50px;
+    }
+
+    .NEB-oneDayRecruitTicket {
+        grid-template-columns: 18px minmax(0, 1fr);
+    }
+
+    .NEB-oneDayRecruitTicket::after {
+        left: 18px;
+    }
+
+    .NEB-oneDayRecruitStub {
+        font-size: 7px;
+    }
+
+    .NEB-oneDayRecruitBody {
+        grid-template-rows: 8px minmax(0, 1fr) 9px;
+        padding: 6px 5px 5px 6px;
+    }
+
+    .NEB-oneDayRecruitKicker {
+        font-size: 5px;
+    }
+
+    .NEB-oneDayRecruitTitle {
+        font-size: 13px;
+    }
+
+    .NEB-oneDayRecruitMeta {
+        padding: 2px 4px;
+        font-size: 6px;
     }
 
     .NEB-activeSummary {
