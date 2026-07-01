@@ -25,6 +25,25 @@ export const normalizeHomeMenuLayoutSettings = (
   menuOrderIds: uniqueStringArray(value?.menuOrderIds),
 });
 
+export const hasHomeMenuLayoutSettingsValue = (
+  value?: Partial<HomeMenuLayoutSettings> | null,
+) => {
+  const normalized = normalizeHomeMenuLayoutSettings(value);
+  return normalized.pinnedMenuIds.length > 0 || normalized.menuOrderIds.length > 0;
+};
+
+export const areHomeMenuLayoutSettingsEqual = (
+  left?: Partial<HomeMenuLayoutSettings> | null,
+  right?: Partial<HomeMenuLayoutSettings> | null,
+) => {
+  const normalizedLeft = normalizeHomeMenuLayoutSettings(left);
+  const normalizedRight = normalizeHomeMenuLayoutSettings(right);
+  return (
+    normalizedLeft.pinnedMenuIds.join('|') === normalizedRight.pinnedMenuIds.join('|') &&
+    normalizedLeft.menuOrderIds.join('|') === normalizedRight.menuOrderIds.join('|')
+  );
+};
+
 const getRowValue = (row: unknown, key: string) => (
   row && typeof row === 'object'
     ? (row as Record<string, unknown>)[key]
@@ -37,10 +56,12 @@ const rowToHomeMenuLayoutSettings = (row: unknown): HomeMenuLayoutSettings | nul
 
   if (!Array.isArray(pinnedValue) && !Array.isArray(orderValue)) return null;
 
-  return normalizeHomeMenuLayoutSettings({
+  const normalizedSettings = normalizeHomeMenuLayoutSettings({
     pinnedMenuIds: pinnedValue,
     menuOrderIds: orderValue,
   });
+
+  return hasHomeMenuLayoutSettingsValue(normalizedSettings) ? normalizedSettings : null;
 };
 
 export async function loadDefaultHomeMenuLayoutSettings() {
@@ -65,6 +86,25 @@ export async function loadUserHomeMenuLayoutSettings(userId: string) {
   return rowToHomeMenuLayoutSettings(data);
 }
 
+export async function deleteUserHomeMenuLayoutSettings(userId: string) {
+  const { error } = await cafe24
+    .from(USER_HOME_MENU_SETTINGS_TABLE)
+    .delete()
+    .eq('user_id', userId);
+
+  if (error) throw error;
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(HOME_MENU_LAYOUT_CHANGE_EVENT, {
+      detail: {
+        userId,
+        deleted: true,
+        settings: null,
+      },
+    }));
+  }
+}
+
 export async function saveHomeMenuLayoutSettings(
   settings: HomeMenuLayoutSettings,
   options: { userId: string; isAdmin?: boolean },
@@ -79,6 +119,7 @@ export async function saveHomeMenuLayoutSettings(
         user_id: options.userId,
         pinned_menu_ids: normalizedSettings.pinnedMenuIds,
         menu_order_ids: normalizedSettings.menuOrderIds,
+        customized_at: now,
         updated_at: now,
       },
       { onConflict: 'user_id' },

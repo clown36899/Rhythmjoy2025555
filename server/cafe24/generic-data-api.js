@@ -1021,6 +1021,45 @@ async function loadRowsByRecordId(table, recordId) {
   return parsedRows;
 }
 
+function rowHasHomeMenuLayoutSettings(row = {}) {
+  return (
+    Array.isArray(row.pinned_menu_ids) ||
+    Array.isArray(row.menu_order_ids) ||
+    Array.isArray(row.pinnedMenuIds) ||
+    Array.isArray(row.menuOrderIds)
+  );
+}
+
+function homeMenuLayoutTimestamp(row = {}) {
+  const timestamp = row.updated_at || row.customized_at || row.created_at || '';
+  const ms = timestamp ? new Date(timestamp).getTime() : 0;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+async function loadAdminHomeMenuLayoutDefaultRows() {
+  const settingsRows = (await loadRows('user_home_menu_settings'))
+    .filter(rowHasHomeMenuLayoutSettings);
+
+  if (!settingsRows.length) return [];
+
+  const pool = getMysqlPool();
+  const [adminRows] = await pool.execute('SELECT id FROM users WHERE is_admin = 1');
+  const adminIds = new Set(adminRows.map((row) => String(row.id || '')).filter(Boolean));
+  const newestAdminSettings = settingsRows
+    .filter((row) => adminIds.has(String(row.user_id || '')))
+    .sort((left, right) => homeMenuLayoutTimestamp(right) - homeMenuLayoutTimestamp(left))[0];
+
+  if (!newestAdminSettings) return [];
+
+  return [{
+    id: 'default',
+    source_user_id: newestAdminSettings.user_id || null,
+    pinned_menu_ids: newestAdminSettings.pinned_menu_ids ?? newestAdminSettings.pinnedMenuIds ?? [],
+    menu_order_ids: newestAdminSettings.menu_order_ids ?? newestAdminSettings.menuOrderIds ?? [],
+    updated_at: newestAdminSettings.updated_at || newestAdminSettings.customized_at || newestAdminSettings.created_at || null,
+  }];
+}
+
 async function loadRowsByRecordIdPrefix(table, recordIdPrefix, limit = 20000) {
   assertTableName(table);
   if (recordIdPrefix === undefined || recordIdPrefix === null || recordIdPrefix === '') return [];
@@ -1114,9 +1153,17 @@ async function loadRowsByActor(table, userId, limit = 20000) {
 
 async function loadRowsForQuery(table, body = {}) {
   const singleRecordId = table === 'events' ? null : getSingleRecordLookupValue(body);
+  if (table === 'home_menu_layout_defaults' && String(singleRecordId || '') === 'default') {
+    const rows = await loadRowsByRecordId(table, singleRecordId);
+    return rows.length ? rows : loadAdminHomeMenuLayoutDefaultRows();
+  }
   if (singleRecordId !== null) return loadRowsByRecordId(table, singleRecordId);
 
   const narrowFilter = table === 'events' ? null : getNarrowEqFilter(body);
+  if (table === 'home_menu_layout_defaults' && narrowFilter?.field === 'id' && String(narrowFilter.value) === 'default') {
+    const rows = await loadRowsByRecordId(table, narrowFilter.value);
+    return rows.length ? rows : loadAdminHomeMenuLayoutDefaultRows();
+  }
   if (narrowFilter?.field === 'id') return loadRowsByRecordId(table, narrowFilter.value);
   if (table === 'user_home_menu_settings' && narrowFilter?.field === 'user_id') {
     return loadRowsByRecordId(table, narrowFilter.value);

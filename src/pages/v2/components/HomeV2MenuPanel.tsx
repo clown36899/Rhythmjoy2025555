@@ -5,6 +5,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
 import {
+    areHomeMenuLayoutSettingsEqual,
+    deleteUserHomeMenuLayoutSettings,
     loadDefaultHomeMenuLayoutSettings,
     loadUserHomeMenuLayoutSettings,
     saveHomeMenuLayoutSettings,
@@ -257,6 +259,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const menuOrderIdsRef = useRef(menuOrderIds);
     const editPinnedMenuIdsRef = useRef(editPinnedMenuIds);
     const editUnpinnedMenuIdsRef = useRef(editUnpinnedMenuIds);
+    const editBaselineLayoutRef = useRef<HomeMenuLayoutSettings | null>(null);
     const suppressSyntheticClickUntilRef = useRef(0);
     const menuActionTimerRef = useRef<number | null>(null);
     const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
@@ -549,12 +552,53 @@ export const HomeV2MenuPanel: React.FC = () => {
         return normalizedSettings;
     }, [normalizeVisibleHomeMenuLayout, visibleHomeMenuItems]);
 
+    const resolvePreferredHomeMenuLayout = useCallback((
+        defaultSettings: HomeMenuLayoutSettings | null,
+        userSettings: HomeMenuLayoutSettings | null,
+    ) => {
+        if (!userSettings) return defaultSettings;
+
+        const normalizedUserSettings = normalizeVisibleHomeMenuLayout(userSettings);
+        const localFallbackSettings = normalizeVisibleHomeMenuLayout(null);
+        const normalizedDefaultSettings = defaultSettings
+            ? normalizeVisibleHomeMenuLayout(defaultSettings)
+            : null;
+
+        const matchesLocalFallback = areHomeMenuLayoutSettingsEqual(normalizedUserSettings, localFallbackSettings);
+        const matchesAdminDefault = normalizedDefaultSettings
+            ? areHomeMenuLayoutSettingsEqual(normalizedUserSettings, normalizedDefaultSettings)
+            : false;
+
+        return matchesLocalFallback || matchesAdminDefault
+            ? defaultSettings
+            : userSettings;
+    }, [normalizeVisibleHomeMenuLayout]);
+
     const persistMenuLayout = useCallback(async (settings: HomeMenuLayoutSettings) => {
         if (!user?.id) return;
 
         const normalizedSettings = normalizeVisibleHomeMenuLayout(settings);
         setIsSavingMenuLayout(true);
         try {
+            if (!isAdmin) {
+                let defaultSettings: HomeMenuLayoutSettings | null = null;
+
+                try {
+                    defaultSettings = await loadDefaultHomeMenuLayoutSettings();
+                } catch (error) {
+                    console.warn("[HomeV2MenuPanel] Failed to load default menu layout before save:", error);
+                }
+
+                const defaultComparisonSettings = defaultSettings
+                    ? normalizeVisibleHomeMenuLayout(defaultSettings)
+                    : normalizeVisibleHomeMenuLayout(null);
+
+                if (areHomeMenuLayoutSettingsEqual(normalizedSettings, defaultComparisonSettings)) {
+                    await deleteUserHomeMenuLayoutSettings(user.id);
+                    return;
+                }
+            }
+
             await saveHomeMenuLayoutSettings(normalizedSettings, {
                 userId: user.id,
                 isAdmin,
@@ -585,6 +629,11 @@ export const HomeV2MenuPanel: React.FC = () => {
         const cleanPinnedIds = sanitizePinnedMenuIds(pinnedMenuIds, visibleHomeMenuItems, visibleDefaultPinnedMenuIds);
         const cleanMenuOrderIds = sanitizeMenuOrderIds(menuOrderIds, visibleHomeMenuItems);
         const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(cleanMenuOrderIds, cleanPinnedIds, visibleHomeMenuItems);
+        const baselineSettings = normalizeVisibleHomeMenuLayout({
+            pinnedMenuIds: cleanPinnedIds,
+            menuOrderIds: cleanMenuOrderIds,
+        });
+        editBaselineLayoutRef.current = baselineSettings;
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
         menuOrderIdsRef.current = cleanMenuOrderIds;
@@ -593,12 +642,16 @@ export const HomeV2MenuPanel: React.FC = () => {
         setMenuOrderIds(cleanMenuOrderIds);
         setIsEditMode(true);
         resetPinnedDrag();
-    }, [menuOrderIds, pinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+    }, [menuOrderIds, normalizeVisibleHomeMenuLayout, pinnedMenuIds, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const finishEditMode = useCallback(() => {
         const cleanPinnedIds = sanitizePinnedMenuIds(editPinnedMenuIds, visibleHomeMenuItems, visibleDefaultPinnedMenuIds);
         const cleanUnpinnedIds = sanitizeUnpinnedMenuIds(editUnpinnedMenuIds, cleanPinnedIds, visibleHomeMenuItems);
         const nextMenuOrderIds = sanitizeMenuOrderIds([...cleanPinnedIds, ...cleanUnpinnedIds], visibleHomeMenuItems);
+        const nextSettings = normalizeVisibleHomeMenuLayout({
+            pinnedMenuIds: cleanPinnedIds,
+            menuOrderIds: nextMenuOrderIds,
+        });
         editPinnedMenuIdsRef.current = cleanPinnedIds;
         editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
         menuOrderIdsRef.current = nextMenuOrderIds;
@@ -608,11 +661,13 @@ export const HomeV2MenuPanel: React.FC = () => {
         setEditUnpinnedMenuIds(cleanUnpinnedIds);
         setIsEditMode(false);
         resetPinnedDrag();
-        void persistMenuLayout({
-            pinnedMenuIds: cleanPinnedIds,
-            menuOrderIds: nextMenuOrderIds,
-        });
-    }, [editPinnedMenuIds, editUnpinnedMenuIds, persistMenuLayout, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+        const baselineSettings = editBaselineLayoutRef.current;
+        editBaselineLayoutRef.current = null;
+
+        if (!baselineSettings || !areHomeMenuLayoutSettingsEqual(nextSettings, baselineSettings)) {
+            void persistMenuLayout(nextSettings);
+        }
+    }, [editPinnedMenuIds, editUnpinnedMenuIds, normalizeVisibleHomeMenuLayout, persistMenuLayout, resetPinnedDrag, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
 
     const toggleEditMode = useCallback(() => {
         if (isLoadingMenuLayout || isSavingMenuLayout) return;
@@ -639,21 +694,41 @@ export const HomeV2MenuPanel: React.FC = () => {
     ]);
 
     const resetPinnedMenu = useCallback(() => {
-        const cleanPinnedIds = [...visibleDefaultPinnedMenuIds];
-        const cleanUnpinnedIds = getDefaultUnpinnedMenuIds(cleanPinnedIds, visibleHomeMenuItems);
-        const nextMenuOrderIds = sanitizeMenuOrderIds([...cleanPinnedIds, ...cleanUnpinnedIds], visibleHomeMenuItems);
-        editPinnedMenuIdsRef.current = cleanPinnedIds;
-        editUnpinnedMenuIdsRef.current = cleanUnpinnedIds;
-        menuOrderIdsRef.current = nextMenuOrderIds;
-        setPinnedMenuIds(cleanPinnedIds);
-        setMenuOrderIds(nextMenuOrderIds);
-        setEditPinnedMenuIds(cleanPinnedIds);
-        setEditUnpinnedMenuIds(cleanUnpinnedIds);
-        void persistMenuLayout({
-            pinnedMenuIds: cleanPinnedIds,
-            menuOrderIds: nextMenuOrderIds,
-        });
-    }, [persistMenuLayout, visibleDefaultPinnedMenuIds, visibleHomeMenuItems]);
+        if (!user?.id || isSavingMenuLayout) return;
+
+        const resetToAdminDefault = async () => {
+            setIsSavingMenuLayout(true);
+
+            try {
+                let defaultSettings: HomeMenuLayoutSettings | null = null;
+
+                try {
+                    defaultSettings = await loadDefaultHomeMenuLayoutSettings();
+                } catch (error) {
+                    console.warn("[HomeV2MenuPanel] Failed to load default menu layout during reset:", error);
+                }
+
+                const normalizedSettings = applyHomeMenuLayout(defaultSettings);
+                editBaselineLayoutRef.current = normalizedSettings;
+
+                if (isAdmin) {
+                    await saveHomeMenuLayoutSettings(normalizedSettings, {
+                        userId: user.id,
+                        isAdmin: true,
+                    });
+                } else {
+                    await deleteUserHomeMenuLayoutSettings(user.id);
+                }
+            } catch (error) {
+                console.error("[HomeV2MenuPanel] Failed to reset home menu layout:", error);
+                alert("메뉴 설정 리셋에 실패했습니다.");
+            } finally {
+                setIsSavingMenuLayout(false);
+            }
+        };
+
+        void resetToAdminDefault();
+    }, [applyHomeMenuLayout, isAdmin, isSavingMenuLayout, user?.id]);
 
     const toggleMenuItemVisibility = useCallback(async (itemId: string) => {
         if (!isAdmin || isSavingTempoToolVisibility) return;
@@ -1128,29 +1203,34 @@ export const HomeV2MenuPanel: React.FC = () => {
             setIsLoadingMenuLayout(true);
 
             try {
-                let settings: HomeMenuLayoutSettings | null = null;
+                let defaultSettings: HomeMenuLayoutSettings | null = null;
+                let userSettings: HomeMenuLayoutSettings | null = null;
+
+                try {
+                    defaultSettings = await loadDefaultHomeMenuLayoutSettings();
+                } catch (error) {
+                    console.warn("[HomeV2MenuPanel] Failed to load default menu layout:", error);
+                }
 
                 if (user?.id) {
                     try {
-                        settings = await loadUserHomeMenuLayoutSettings(user.id);
+                        userSettings = await loadUserHomeMenuLayoutSettings(user.id);
                     } catch (error) {
                         console.warn("[HomeV2MenuPanel] Failed to load user menu layout:", error);
                     }
                 }
 
-                if (!settings) {
-                    settings = await loadDefaultHomeMenuLayoutSettings();
-                }
-
                 if (isCancelled) return;
-                applyHomeMenuLayout(settings);
+                applyHomeMenuLayout(resolvePreferredHomeMenuLayout(defaultSettings, userSettings));
                 setIsEditMode(false);
+                editBaselineLayoutRef.current = null;
                 resetPinnedDrag();
             } catch (error) {
-                console.warn("[HomeV2MenuPanel] Failed to load default menu layout:", error);
+                console.warn("[HomeV2MenuPanel] Failed to load menu layout:", error);
                 if (!isCancelled) {
                     applyHomeMenuLayout(null);
                     setIsEditMode(false);
+                    editBaselineLayoutRef.current = null;
                     resetPinnedDrag();
                 }
             } finally {
@@ -1163,7 +1243,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         return () => {
             isCancelled = true;
         };
-    }, [applyHomeMenuLayout, isTempoToolVisibilityLoading, resetPinnedDrag, user?.id]);
+    }, [applyHomeMenuLayout, isTempoToolVisibilityLoading, resetPinnedDrag, resolvePreferredHomeMenuLayout, user?.id]);
 
     useEffect(() => {
         const handleMediaPlayerBottomNav = (event: Event) => {
