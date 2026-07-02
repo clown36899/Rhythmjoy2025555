@@ -69,6 +69,79 @@ interface CouncilEditHistoryEntry {
   changes: CouncilEditChange[];
 }
 
+const STAKEHOLDER_ROWS = [
+  {
+    icon: 'ri-user-smile-line',
+    target: '처음 오는 사람',
+    demand: '입문 정보, 첫 방문 동선, 부담 없는 체험',
+    benefit: '무료 체험, 안내 콘텐츠, 첫 소셜 환영 운영',
+    idea: '첫 방문 동행, 30분 맛보기 클래스',
+  },
+  {
+    icon: 'ri-refresh-line',
+    target: '기존 댄서와 복귀자',
+    demand: '다시 시작할 계기, 관계 부담 완화, 연습 루틴',
+    benefit: '복귀자 소셜, 파트너 매칭, 연습 모임 연결',
+    idea: '웰컴백 데이, 쉬운 곡 중심 소셜',
+  },
+  {
+    icon: 'ri-home-heart-line',
+    target: '스윙바와 플로어',
+    demand: '대관 안정성, 평일과 비수기 운영 보완, 공간 홍보',
+    benefit: '대관비 지원, 긴급 공간 지원, 공간별 일정 홍보',
+    idea: '위기 공간 긴급 투표, 공동 대관 캘린더',
+  },
+  {
+    icon: 'ri-presentation-line',
+    target: '강사와 교육팀',
+    demand: '신규반 모집, 커리큘럼 정리, 행정 부담 완화',
+    benefit: '모집 홍보, 워크숍, 지원사업과 예술인 등록 행정 위탁',
+    idea: '입문반 공동 홍보, 강사 워크숍',
+  },
+  {
+    icon: 'ri-music-2-line',
+    target: 'DJ, 밴드, 공연팀',
+    demand: '출연 기회, 음향 장비, 섭외비 부담 완화',
+    benefit: '합동 파티 연결, 장비 대여, 출연료 일부 지원',
+    idea: '초청 DJ 데이, 라이브 밴드 공동 섭외',
+  },
+  {
+    icon: 'ri-service-line',
+    target: '운영자와 스태프',
+    demand: '접수, 정산, 안내, 현장 운영 인력',
+    benefit: '스태프 풀, 운영 매뉴얼, 인력비 또는 인원 지원',
+    idea: '행사별 운영 인력 모집표',
+  },
+  {
+    icon: 'ri-team-line',
+    target: '동호회와 지역 커뮤니티',
+    demand: '지역 교류, 공동 홍보, 운영자 피로 감소',
+    benefit: '합동 소셜, 지역 교류 행사, 공용 홍보물과 신청서 템플릿',
+    idea: '지역 순회 소셜, 공동 포스터 제작',
+  },
+  {
+    icon: 'ri-calendar-event-line',
+    target: '행사, 대회, 워크숍 운영자',
+    demand: '참가자 모집, 장소와 스태프, 예산 리스크 완화',
+    benefit: '홍보 채널, 스태프 풀, 투표로 정한 비용 또는 인원 지원',
+    idea: '작은 워크숍 지원금, 참가 신청 폼 공유',
+  },
+  {
+    icon: 'ri-megaphone-line',
+    target: '홍보와 기록 콘텐츠',
+    demand: '씬 전체 노출, 신규 유입 콘텐츠, 기록 보존',
+    benefit: '촬영, 디자인, 카피 제작 지원과 공용 아카이브',
+    idea: '월간 소셜 영상, 초보 안내 카드뉴스',
+  },
+  {
+    icon: 'ri-file-list-3-line',
+    target: '행정과 지원사업',
+    demand: '예술인 등록, 지원사업 신청, 정산 서류',
+    benefit: '행정 업무 위탁, 서류 템플릿, 증빙 정리 지원',
+    idea: '지원사업 캘린더, 정산 서류 체크리스트',
+  },
+];
+
 type CouncilListKey =
   | 'accountingRules'
   | 'bylawRules'
@@ -956,6 +1029,47 @@ export default function SwingFloorCouncilPage() {
         {content.voteDetailBody && (
           <p className="sfc-sub-copy">{content.voteDetailBody}</p>
         )}
+      </section>
+
+      <section className="sfc-section sfc-stakeholders" aria-labelledby="sfc-stakeholders">
+        <span className="sfc-section-label">수요와 혜택 예시</span>
+        <h2 id="sfc-stakeholders">누가 무엇을 필요로 하나요?</h2>
+        <p className="sfc-stakeholder-intro">
+          아래 내용은 손그림 회의안을 바탕으로 정리한 예시입니다. 실제 지원은 회원 제안과 투표로 결정합니다.
+        </p>
+        <div className="sfc-mindmap-orbit" aria-label="예상 수요와 제공 혜택 예시">
+          <div className="sfc-mindmap-rays" aria-hidden="true">
+            {STAKEHOLDER_ROWS.map((row) => (
+              <span key={`${row.target}-ray`} />
+            ))}
+          </div>
+          <div className="sfc-stakeholder-core">
+            <span>협의체</span>
+            <strong>모으고<br />투표하고<br />집행</strong>
+          </div>
+          {STAKEHOLDER_ROWS.map((row) => (
+            <article className="sfc-stakeholder-card" key={row.target}>
+              <div className="sfc-stakeholder-title">
+                <i className={row.icon} aria-hidden="true" />
+                <h3>{row.target}</h3>
+              </div>
+              <dl>
+                <div>
+                  <dt>예상 수요</dt>
+                  <dd>{row.demand}</dd>
+                </div>
+                <div>
+                  <dt>제공 혜택</dt>
+                  <dd>{row.benefit}</dd>
+                </div>
+                <div>
+                  <dt>아이디어</dt>
+                  <dd>{row.idea}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-accounting">
