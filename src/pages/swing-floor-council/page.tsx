@@ -142,6 +142,45 @@ const STAKEHOLDER_ROWS = [
   },
 ];
 
+const PROPOSAL_SECTIONS = [
+  {
+    kicker: '시장현황(배경)',
+    title: '한국 스윙씬의 현황',
+    body: '스윙댄스가 사라진 것은 아니지만, 씬을 유지하는 기반은 점점 약해지고 있습니다.',
+    items: [
+      '새로 들어오는 사람이 줄어 입문반과 소셜의 순환이 약해지고 있습니다.',
+      '커플댄스와 동호회 문화 자체가 예전보다 작아지고 있습니다.',
+      '스윙바와 플로어는 유지비와 임대료 부담을 계속 안고 있습니다.',
+      '바가 사라지면 그 공간을 중심으로 모이던 동호회와 커뮤니티도 함께 약해집니다.',
+      '젊은 인구 유입이 부족해 장기적으로 씬의 세대 교체가 어렵습니다.',
+    ],
+  },
+  {
+    kicker: '시장현황 분석(문제점 도출)',
+    title: '지금 문제는 개인 한 명이나 한 팀의 문제가 아닙니다',
+    body: '강사, 바, 동호회, 운영자가 따로 버티는 방식만으로는 구조적인 감소를 막기 어렵습니다.',
+    items: [
+      '신규 유입이 줄면 강습, 소셜, 파티, 대관이 모두 함께 줄어듭니다.',
+      '공간 유지가 어려워지면 춤출 장소가 줄고, 장소가 줄면 사람도 더 빨리 빠집니다.',
+      '각 팀이 따로 홍보하면 힘이 분산되고 씬 전체의 노출이 약해집니다.',
+      '행정, 지원사업, 예술인 등록 같은 일은 필요하지만 개인이 감당하기 어렵습니다.',
+      '서로 다른 이해관계가 있어도 공동으로 지켜야 할 최소 기반은 필요합니다.',
+    ],
+  },
+  {
+    kicker: '대응방안(문제 해결을 위한 방법)',
+    title: '협의체로 필요한 지원을 모읍니다',
+    body: '누군가를 대표하거나 위에 서는 조직이 아니라, 투표로 필요한 일을 정하고 실행하는 최소한의 협의체를 제안합니다.',
+    items: [
+      '발기인을 모아 공용 의사결정 구조를 먼저 만듭니다.',
+      '공용 통장과 공개 장부로 돈의 흐름을 상시 확인할 수 있게 합니다.',
+      '지원 항목은 회원 제안과 투표로 정하고, 운영진은 결정된 일만 집행합니다.',
+      '스윙바, 강사, DJ, 동호회, 행사 운영자를 경쟁 대상이 아니라 지원 대상으로 봅니다.',
+      '자격증, 심사, 회장 권한 같은 논쟁 지점은 고정 조항으로 처음부터 제외합니다.',
+    ],
+  },
+];
+
 type CouncilListKey =
   | 'accountingRules'
   | 'bylawRules'
@@ -989,9 +1028,27 @@ export default function SwingFloorCouncilPage() {
         </section>
       )}
 
+      {PROPOSAL_SECTIONS.map((section, index) => (
+        <section className="sfc-section sfc-proposal-section" aria-labelledby={`sfc-proposal-${index}`} key={section.kicker}>
+          <span className="sfc-section-number">{String(index + 1).padStart(2, '0')}</span>
+          <span className="sfc-section-label">{section.kicker}</span>
+          <h2 id={`sfc-proposal-${index}`}>{section.title}</h2>
+          <p>{section.body}</p>
+          <ul className="sfc-proposal-list">
+            {section.items.map((item, itemIndex) => (
+              <li key={item}>
+                <b aria-hidden="true">{String(itemIndex + 1).padStart(2, '0')}</b>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+
       <section className="sfc-section sfc-plain" aria-labelledby="sfc-why">
-        <span className="sfc-section-number">01</span>
-        <h2 id="sfc-why">{content.whyTitle}</h2>
+        <span className="sfc-section-number">04</span>
+        <span className="sfc-section-label">{content.whyTitle}</span>
+        <h2 id="sfc-why">프로젝트 설명</h2>
         <p>{content.whyBody}</p>
       </section>
 
@@ -1037,7 +1094,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section sfc-emphasis" aria-labelledby="sfc-bylaw">
-        <span className="sfc-section-number">02</span>
+        <span className="sfc-section-number">05</span>
         <h2 id="sfc-bylaw">{content.bylawTitle}</h2>
         <ol className="sfc-bylaw-list">
           {content.bylawRules.map((item, index) => (
@@ -1051,7 +1108,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section sfc-vote" aria-labelledby="sfc-vote">
-        <span className="sfc-section-number">03</span>
+        <span className="sfc-section-number">06</span>
         <h2 id="sfc-vote">{content.voteTitle}</h2>
         <div className="sfc-steps" aria-label="투표 순서">
           {content.voteSteps.map((step, index) => (
@@ -1073,7 +1130,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-accounting">
-        <span className="sfc-section-number">04</span>
+        <span className="sfc-section-number">07</span>
         <h2 id="sfc-accounting">{content.accountingTitle}</h2>
         <p>{content.accountingBody}</p>
         <ul className="sfc-check-list sfc-check-list-positive">
@@ -1087,7 +1144,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-money">
-        <span className="sfc-section-number">05</span>
+        <span className="sfc-section-number">08</span>
         <h2 id="sfc-money">{content.moneyTitle}</h2>
         <div className="sfc-money-row" aria-label="월 후원금">
           {content.moneyOptions.map((item) => (
@@ -1109,7 +1166,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-rules">
-        <span className="sfc-section-number">06</span>
+        <span className="sfc-section-number">09</span>
         <h2 id="sfc-rules">{content.rulesTitle}</h2>
         <ul className="sfc-check-list sfc-check-list-positive">
           {content.simpleRules.map((item) => (
@@ -1122,7 +1179,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section className="sfc-section sfc-roadmap" aria-labelledby="sfc-start">
-        <span className="sfc-section-number">07</span>
+        <span className="sfc-section-number">10</span>
         <h2 id="sfc-start">{content.startTitle}</h2>
         <ol className="sfc-number-list">
           {content.firstSteps.map((item) => (
@@ -1132,7 +1189,7 @@ export default function SwingFloorCouncilPage() {
       </section>
 
       <section id="join" className="sfc-section sfc-join" aria-labelledby="sfc-join">
-        <span className="sfc-section-number">08</span>
+        <span className="sfc-section-number">11</span>
         <h2 id="sfc-join">{content.joinTitle}</h2>
         <p>{content.joinBody1}</p>
         <p>{content.joinBody2}</p>

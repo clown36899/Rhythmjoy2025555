@@ -452,10 +452,56 @@
 .sfc-check-list,
 .sfc-dot-list,
 .sfc-number-list,
-.sfc-bylaw-list {
+.sfc-bylaw-list,
+.sfc-proposal-list {
   list-style: none;
   margin: 18px 0 0;
   padding: 0;
+}
+
+.sfc-proposal-section {
+  padding-top: 42px;
+}
+
+.sfc-proposal-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sfc-proposal-list li {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+  align-items: start;
+  min-height: 54px;
+  border: 2px solid rgba(25, 25, 25, 0.92);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 3px 3px 0 rgba(25, 25, 25, 0.16);
+  padding: 12px;
+}
+
+.sfc-proposal-list b {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #191919;
+  border-radius: 50%;
+  background: #ffcf33;
+  color: #191919;
+  font-size: 13px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.sfc-proposal-list span {
+  color: #2d2a24;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: keep-all;
 }
 
 .sfc-check-list {
@@ -1165,6 +1211,22 @@
 
   .sfc-section {
     padding: 30px 0;
+  }
+
+  .sfc-proposal-list li {
+    grid-template-columns: 36px 1fr;
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .sfc-proposal-list b {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .sfc-proposal-list span {
+    font-size: 15px;
   }
 
   .sfc-emphasis {
