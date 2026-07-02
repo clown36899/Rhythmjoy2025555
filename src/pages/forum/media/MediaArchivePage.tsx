@@ -27,6 +27,9 @@ type YouTubePlayerInstance = {
   getPlayerState?: () => number;
   getAvailablePlaybackRates?: () => number[];
   setPlaybackRate?: (rate: number) => void;
+  mute?: () => void;
+  unMute?: () => void;
+  isMuted?: () => boolean;
   destroy?: () => void;
 };
 
@@ -1155,11 +1158,13 @@ const MEDIA_JOG_TOUCH_MIN_SEEK_STEP_SECONDS = 0.35;
 const MEDIA_JOG_POINTER_BUFFERING_MIN_SEEK_STEP_SECONDS = 0.28;
 const MEDIA_JOG_TOUCH_BUFFERING_MIN_SEEK_STEP_SECONDS = 0.55;
 const MEDIA_JOG_BUFFERING_COOLDOWN_MS = 700;
+const MEDIA_JOG_PAUSE_GUARD_MS = 1200;
 const MEDIA_JOG_SECONDS_PER_PIXEL = 0.035;
 const MEDIA_JOG_MAX_OFFSET_SECONDS = 12;
 const MEDIA_PLAYER_TIME_UPDATE_EPSILON_SECONDS = 0.05;
 const MEDIA_PLAYER_DURATION_UPDATE_EPSILON_SECONDS = 0.25;
 const MEDIA_PLAYER_LOADED_UPDATE_EPSILON = 0.003;
+const MEDIA_PLAYER_SEEK_SETTLE_EPSILON_SECONDS = 0.45;
 const MEDIA_QUICK_SKIP_SECONDS = [-1, 1];
 const MEDIA_DETAIL_SKIP_SECONDS = [-10, -5, 5, 10];
 type MediaJogEventSource = 'pointer' | 'touch';
@@ -1205,12 +1210,14 @@ const YouTubeCustomPlayer: React.FC<{
   const scrubSessionRef = useRef(false);
   const scrubCommitTimerRef = useRef<number | null>(null);
   const scrubTargetTimeRef = useRef(0);
+  const pendingSeekTargetRef = useRef<number | null>(null);
+  const jogPauseGuardUntilRef = useRef(0);
   const jogSessionRef = useRef<{
     startX: number;
     startTime: number;
     lastTime: number;
     pendingOffset: number;
-    wasPaused: boolean;
+    wasMuted: boolean;
     previousPlaybackRate: number;
     inputMode: MediaJogInputMode;
     eventSource: MediaJogEventSource;
@@ -1233,13 +1240,14 @@ const YouTubeCustomPlayer: React.FC<{
   const [availablePlaybackRates, setAvailablePlaybackRates] = useState<number[]>(YOUTUBE_SPEED_OPTIONS);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubTime, setScrubTime] = useState(0);
+  const [pendingSeekTime, setPendingSeekTime] = useState<number | null>(null);
   const [isJogging, setIsJogging] = useState(false);
   const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
   const [isControlEngaged, setIsControlEngaged] = useState(false);
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
   const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
   const safeDuration = duration > 0 ? duration : 0;
-  const displayedTime = isScrubbing ? scrubTime : currentTime;
+  const displayedTime = isScrubbing ? scrubTime : pendingSeekTime ?? currentTime;
   const seekValue = safeDuration > 0 ? Math.min(displayedTime, safeDuration) : 0;
   const progressPercent = safeDuration > 0 ? Math.min(100, Math.max(0, (seekValue / safeDuration) * 100)) : 0;
   const loadedPercent = Math.min(100, Math.max(0, loadedFraction * 100));
@@ -1275,6 +1283,20 @@ const YouTubeCustomPlayer: React.FC<{
     if (scrubCommitTimerRef.current === null) return;
     window.clearTimeout(scrubCommitTimerRef.current);
     scrubCommitTimerRef.current = null;
+  }, []);
+
+  const setPendingSeekDisplay = useCallback((time: number) => {
+    if (!Number.isFinite(time)) return;
+    pendingSeekTargetRef.current = time;
+    setPendingSeekTime(time);
+  }, []);
+
+  const clearPendingSeekDisplay = useCallback((nextTime?: number) => {
+    pendingSeekTargetRef.current = null;
+    setPendingSeekTime(null);
+    if (typeof nextTime === 'number' && Number.isFinite(nextTime)) {
+      setCurrentTime(nextTime);
+    }
   }, []);
 
   useEffect(() => {
@@ -1319,6 +1341,9 @@ const YouTubeCustomPlayer: React.FC<{
     setAvailablePlaybackRates(YOUTUBE_SPEED_OPTIONS);
     setIsPaused(true);
     scrubSessionRef.current = false;
+    pendingSeekTargetRef.current = null;
+    setPendingSeekTime(null);
+    jogPauseGuardUntilRef.current = 0;
     setIsScrubbing(false);
     setScrubTime(0);
     setIsJogging(false);
@@ -1355,6 +1380,16 @@ const YouTubeCustomPlayer: React.FC<{
             },
             onStateChange: (event) => {
               if (event.data === (window.YT?.PlayerState?.PLAYING ?? YOUTUBE_STATE_PLAYING)) {
+                if (jogSessionRef.current || Date.now() < jogPauseGuardUntilRef.current) {
+                  try {
+                    event.target.mute?.();
+                    event.target.pauseVideo?.();
+                  } catch {
+                    // YouTube can reject transient commands while the iframe is changing state.
+                  }
+                  setIsPaused(true);
+                  return;
+                }
                 setIsPaused(false);
               }
               if (
@@ -1413,11 +1448,24 @@ const YouTubeCustomPlayer: React.FC<{
       if (!player) return;
       const isJogActive = Boolean(jogSessionRef.current);
       if (!isJogActive && !scrubSessionRef.current) {
-        setNumberIfMeaningfullyChanged(
-          setCurrentTime,
-          player.getCurrentTime?.() || 0,
-          MEDIA_PLAYER_TIME_UPDATE_EPSILON_SECONDS,
-        );
+        const nextCurrentTime = player.getCurrentTime?.() || 0;
+        const pendingSeekTarget = pendingSeekTargetRef.current;
+        if (pendingSeekTarget !== null) {
+          const nextPlayerState = player.getPlayerState?.();
+          const isPlaying = nextPlayerState === (window.YT?.PlayerState?.PLAYING ?? YOUTUBE_STATE_PLAYING);
+          const hasSettled =
+            Math.abs(nextCurrentTime - pendingSeekTarget) <= MEDIA_PLAYER_SEEK_SETTLE_EPSILON_SECONDS ||
+            (isPlaying && nextCurrentTime > pendingSeekTarget + MEDIA_PLAYER_SEEK_SETTLE_EPSILON_SECONDS);
+          if (hasSettled) {
+            clearPendingSeekDisplay(nextCurrentTime);
+          }
+        } else {
+          setNumberIfMeaningfullyChanged(
+            setCurrentTime,
+            nextCurrentTime,
+            MEDIA_PLAYER_TIME_UPDATE_EPSILON_SECONDS,
+          );
+        }
       }
       setNumberIfMeaningfullyChanged(
         setDuration,
@@ -1439,7 +1487,7 @@ const YouTubeCustomPlayer: React.FC<{
     }, 500);
 
     return () => window.clearInterval(intervalId);
-  }, [ready]);
+  }, [clearPendingSeekDisplay, ready]);
 
   const clearJogPaintTimer = (session: NonNullable<typeof jogSessionRef.current>) => {
     if (!session.paintTimerId) return;
@@ -1451,12 +1499,13 @@ const YouTubeCustomPlayer: React.FC<{
     const player = playerRef.current;
     if (!player) return;
     clearJogPaintTimer(session);
+    jogPauseGuardUntilRef.current = Date.now() + MEDIA_JOG_PAUSE_GUARD_MS;
     try {
+      player.mute?.();
       player.playVideo?.();
     } catch {
       // Some embedded videos may reject programmatic playback until YouTube has fully initialized.
     }
-    if (!session.wasPaused) return;
     session.paintTimerId = window.setTimeout(() => {
       if (jogSessionRef.current !== session) return;
       try {
@@ -1464,6 +1513,7 @@ const YouTubeCustomPlayer: React.FC<{
       } catch {
         // Keep the jog session alive even if the iframe ignores the pause request.
       }
+      setIsPaused(true);
       session.paintTimerId = null;
     }, MEDIA_JOG_PAINT_DELAY_MS);
   }, []);
@@ -1544,14 +1594,19 @@ const YouTubeCustomPlayer: React.FC<{
     const upperBound = safeDuration || Number.POSITIVE_INFINITY;
     const nextTime = Math.max(0, Math.min(upperBound, time));
     setCurrentTime(nextTime);
-    playerRef.current?.seekTo?.(nextTime, true);
+    setPendingSeekDisplay(nextTime);
+    try {
+      playerRef.current?.seekTo?.(nextTime, true);
+    } catch {
+      // Keep the UI on the requested time even if YouTube needs to load first.
+    }
   };
 
   const skipBy = (deltaSeconds: number) => {
     const player = playerRef.current;
     if (!player) return;
     markControlsEngaged();
-    const baseTime = player.getCurrentTime?.() ?? currentTime;
+    const baseTime = pendingSeekTargetRef.current ?? player.getCurrentTime?.() ?? currentTime;
     seekToTime(baseTime + deltaSeconds);
   };
 
@@ -1580,13 +1635,14 @@ const YouTubeCustomPlayer: React.FC<{
     setIsScrubbing(false);
     setScrubTime(nextTime);
     setCurrentTime(nextTime);
+    setPendingSeekDisplay(nextTime);
     markControlsEngaged(4000);
     try {
       playerRef.current?.seekTo?.(nextTime, true);
     } catch {
       // The iframe may ignore a seek while YouTube is switching buffer state.
     }
-  }, [clampSeekTime, clearScrubCommitTimer, markControlsEngaged, ready, safeDuration]);
+  }, [clampSeekTime, clearScrubCommitTimer, markControlsEngaged, ready, safeDuration, setPendingSeekDisplay]);
 
   const scheduleSeekCommit = useCallback((time: number) => {
     clearScrubCommitTimer();
@@ -1631,26 +1687,27 @@ const YouTubeCustomPlayer: React.FC<{
     const player = playerRef.current;
     if (!ready || !player) return false;
     markControlsEngaged();
-    const startTime = player.getCurrentTime?.() ?? currentTime;
+    const startTime = pendingSeekTargetRef.current ?? player.getCurrentTime?.() ?? currentTime;
+    clearPendingSeekDisplay(startTime);
     const playerState = player.getPlayerState?.();
-    const wasPaused =
-      playerState === undefined
-        ? isPaused
-        : playerState !== (window.YT?.PlayerState?.PLAYING ?? YOUTUBE_STATE_PLAYING);
+    const wasMuted = Boolean(player.isMuted?.());
     const previousPlaybackRate = player.getPlaybackRate?.() || playbackRate || 1;
     const nextPlaybackRates = normalizeYouTubePlaybackRates(player.getAvailablePlaybackRates?.());
     setAvailablePlaybackRates((previousRates) => (
       arePlaybackRatesEqual(previousRates, nextPlaybackRates) ? previousRates : nextPlaybackRates
     ));
+    jogPauseGuardUntilRef.current = Date.now() + MEDIA_JOG_PAUSE_GUARD_MS;
+    try {
+      player.mute?.();
+      player.pauseVideo?.();
+      setIsPaused(true);
+    } catch {
+      // Jog preview must remain silent and paused even if an embed command is ignored.
+    }
     try {
       player.setPlaybackRate?.(getSlowestJogPlaybackRate(nextPlaybackRates));
     } catch {
       // Not every YouTube embed accepts every playback rate.
-    }
-    try {
-      player.playVideo?.();
-    } catch {
-      // The iframe can still reject playback if YouTube is not ready for commands.
     }
     if (jogSessionRef.current?.rafId) {
       window.cancelAnimationFrame(jogSessionRef.current.rafId);
@@ -1666,7 +1723,7 @@ const YouTubeCustomPlayer: React.FC<{
       startTime,
       lastTime: startTime,
       pendingOffset: 0,
-      wasPaused,
+      wasMuted,
       previousPlaybackRate,
       inputMode,
       eventSource,
@@ -1686,7 +1743,7 @@ const YouTubeCustomPlayer: React.FC<{
     setIsJogging(true);
     setJogOffsetSeconds(0);
     return true;
-  }, [currentTime, isPaused, markControlsEngaged, paintJogFrame, playbackRate, ready]);
+  }, [clearPendingSeekDisplay, currentTime, markControlsEngaged, paintJogFrame, playbackRate, ready]);
 
   const updateJogToClientX = useCallback((clientX: number) => {
     const session = jogSessionRef.current;
@@ -1719,8 +1776,15 @@ const YouTubeCustomPlayer: React.FC<{
     }
     setJogOffsetSeconds(session.pendingOffset);
     setCurrentTime(session.lastTime);
+    setPendingSeekDisplay(session.lastTime);
     clearJogPaintTimer(session);
-    issueJogSeek(session, session.lastTime, true);
+    jogPauseGuardUntilRef.current = Date.now() + MEDIA_JOG_PAUSE_GUARD_MS;
+    try {
+      playerRef.current?.seekTo?.(session.lastTime, true);
+      playerRef.current?.pauseVideo?.();
+    } catch {
+      // Keep the visual target stable while YouTube catches up to the final jog position.
+    }
     try {
       playerRef.current?.setPlaybackRate?.(session.previousPlaybackRate);
       setPlaybackRate(session.previousPlaybackRate);
@@ -1734,16 +1798,18 @@ const YouTubeCustomPlayer: React.FC<{
         // Pointer capture may already be released by the browser.
       }
     }
-    if (!session.wasPaused) {
-      playerRef.current?.playVideo?.();
-      setIsPaused(false);
-    } else {
-      setIsPaused(true);
+    if (!session.wasMuted) {
+      try {
+        playerRef.current?.unMute?.();
+      } catch {
+        // Muting is best-effort; playback is already forced to paused.
+      }
     }
+    setIsPaused(true);
     jogSessionRef.current = null;
     setIsJogging(false);
     setJogOffsetSeconds(0);
-  }, [issueJogSeek, playbackRate]);
+  }, [playbackRate, setPendingSeekDisplay]);
 
   useEffect(() => {
     if (!isJogging) return undefined;
