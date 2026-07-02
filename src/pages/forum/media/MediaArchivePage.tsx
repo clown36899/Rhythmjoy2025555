@@ -1245,6 +1245,7 @@ const YouTubeCustomPlayer: React.FC<{
   const [jogOffsetSeconds, setJogOffsetSeconds] = useState(0);
   const [isControlEngaged, setIsControlEngaged] = useState(false);
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const embedUrl = getYouTubeEmbedUrl(item.embed_url, { autoplay: true, minimalControls: true });
   const safeDuration = duration > 0 ? duration : 0;
   const displayedTime = isScrubbing ? scrubTime : pendingSeekTime ?? currentTime;
@@ -1315,6 +1316,18 @@ const YouTubeCustomPlayer: React.FC<{
 
     observer.observe(element);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === shellRef.current);
+    };
+
+    syncFullscreenState();
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
 
   useEffect(() => {
@@ -1901,7 +1914,16 @@ const YouTubeCustomPlayer: React.FC<{
 
   const handleFullscreen = () => {
     markControlsEngaged();
-    shellRef.current?.requestFullscreen?.();
+    if (typeof document === 'undefined') return;
+
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => undefined);
+      return;
+    }
+
+    const target = shellRef.current;
+    if (!target?.requestFullscreen) return;
+    void target.requestFullscreen().catch(() => undefined);
   };
 
   return (
@@ -2036,13 +2058,14 @@ const YouTubeCustomPlayer: React.FC<{
           </label>
           <button
             type="button"
-            className="media-custom-action-button"
+            className={`media-custom-action-button ${isFullscreen ? 'is-fullscreen-exit' : ''}`}
             draggable={false}
             onDragStart={preventMediaArchiveDrag}
             onClick={handleFullscreen}
+            aria-label={isFullscreen ? '전체화면 나가기' : '전체화면'}
           >
-            <i className="ri-fullscreen-line" />
-            전체
+            <i className={isFullscreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'} />
+            {isFullscreen ? '돌아가기' : '전체'}
           </button>
         </div>
       </div>
