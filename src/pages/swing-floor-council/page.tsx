@@ -995,42 +995,6 @@ export default function SwingFloorCouncilPage() {
         <p>{content.whyBody}</p>
       </section>
 
-      <section className="sfc-section sfc-emphasis" aria-labelledby="sfc-bylaw">
-        <span className="sfc-section-number">02</span>
-        <h2 id="sfc-bylaw">{content.bylawTitle}</h2>
-        <ol className="sfc-bylaw-list">
-          {content.bylawRules.map((item, index) => (
-            <li key={`${index}-${item}`}>
-              <b aria-hidden="true">{String(index + 1).padStart(2, '0')}</b>
-              <span>{item}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="sfc-bylaw-explain">{content.bylawBody}</p>
-      </section>
-
-      <section className="sfc-section sfc-vote" aria-labelledby="sfc-vote">
-        <span className="sfc-section-number">03</span>
-        <h2 id="sfc-vote">{content.voteTitle}</h2>
-        <div className="sfc-steps" aria-label="투표 순서">
-          {content.voteSteps.map((step, index) => (
-            <div className="sfc-step-wrap" key={`${step.value}-${step.label}`}>
-              <div>
-                <b>{step.value}</b>
-                <span>{step.label}</span>
-              </div>
-              {index < content.voteSteps.length - 1 && (
-                <i className="ri-arrow-right-line" aria-hidden="true" />
-              )}
-            </div>
-          ))}
-        </div>
-        <p>{content.voteBody}</p>
-        {content.voteDetailBody && (
-          <p className="sfc-sub-copy">{content.voteDetailBody}</p>
-        )}
-      </section>
-
       <section className="sfc-section sfc-stakeholders" aria-labelledby="sfc-stakeholders">
         <span className="sfc-section-label">수요와 혜택 예시</span>
         <h2 id="sfc-stakeholders">누가 무엇을 필요로 하나요?</h2>
@@ -1070,6 +1034,42 @@ export default function SwingFloorCouncilPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="sfc-section sfc-emphasis" aria-labelledby="sfc-bylaw">
+        <span className="sfc-section-number">02</span>
+        <h2 id="sfc-bylaw">{content.bylawTitle}</h2>
+        <ol className="sfc-bylaw-list">
+          {content.bylawRules.map((item, index) => (
+            <li key={`${index}-${item}`}>
+              <b aria-hidden="true">{String(index + 1).padStart(2, '0')}</b>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="sfc-bylaw-explain">{content.bylawBody}</p>
+      </section>
+
+      <section className="sfc-section sfc-vote" aria-labelledby="sfc-vote">
+        <span className="sfc-section-number">03</span>
+        <h2 id="sfc-vote">{content.voteTitle}</h2>
+        <div className="sfc-steps" aria-label="투표 순서">
+          {content.voteSteps.map((step, index) => (
+            <div className="sfc-step-wrap" key={`${step.value}-${step.label}`}>
+              <div>
+                <b>{step.value}</b>
+                <span>{step.label}</span>
+              </div>
+              {index < content.voteSteps.length - 1 && (
+                <i className="ri-arrow-right-line" aria-hidden="true" />
+              )}
+            </div>
+          ))}
+        </div>
+        <p>{content.voteBody}</p>
+        {content.voteDetailBody && (
+          <p className="sfc-sub-copy">{content.voteDetailBody}</p>
+        )}
       </section>
 
       <section className="sfc-section" aria-labelledby="sfc-accounting">
