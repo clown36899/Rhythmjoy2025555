@@ -923,6 +923,7 @@ html.media-archive-player-active .bottom-nav-container {
 .media-standalone-player-actions {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
 }
 
@@ -945,8 +946,12 @@ html.media-archive-player-active .bottom-nav-container {
   appearance: none;
 }
 
+.media-standalone-body-button {
+  display: none !important;
+}
+
 .media-standalone-description,
-.media-archive-player-page .media-license-notice {
+.media-standalone-player-shell > .media-license-notice {
   max-width: 920px;
   width: min(920px, 100%);
   justify-self: center;
@@ -955,6 +960,53 @@ html.media-archive-player-active .bottom-nav-container {
 .media-standalone-description {
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.82rem;
+}
+
+.media-standalone-body-panel.media-modal-panel {
+  width: min(720px, calc(100vw - 28px));
+  padding: 14px;
+  background: color-mix(in srgb, #0b1020 92%, var(--bg-surface-1));
+  color: #fff;
+}
+
+.media-standalone-body-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, #fff 12%, transparent);
+}
+
+.media-standalone-body-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.02rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.media-standalone-body-content {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.media-body-modal-description {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
+  line-height: 1.58;
+}
+
+.media-body-modal-description .media-translated-description-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.media-standalone-body-panel .media-license-notice {
+  display: grid;
+  width: 100%;
+  margin: 0;
 }
 
 .media-player-state {
@@ -1011,17 +1063,28 @@ html.media-archive-player-active .bottom-nav-container {
   }
 
   .media-standalone-player-meta {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
     gap: 7px;
   }
 
   .media-standalone-player-actions {
-    justify-content: flex-start;
+    align-self: start;
+    justify-content: flex-end;
+  }
+
+  .media-standalone-player-actions button,
+  .media-standalone-player-actions a {
+    min-height: 34px;
+    padding: 0 9px;
+  }
+
+  .media-standalone-body-button {
+    display: inline-flex !important;
   }
 
   .media-standalone-description,
-  .media-archive-player-page .media-license-notice {
+  .media-standalone-player-shell > .media-license-notice {
     display: none;
   }
 }
@@ -1049,7 +1112,7 @@ html.media-archive-player-active .bottom-nav-container {
 
   .media-standalone-player-meta,
   .media-standalone-description,
-  .media-archive-player-page .media-license-notice {
+  .media-standalone-player-shell > .media-license-notice {
     display: none;
   }
 }

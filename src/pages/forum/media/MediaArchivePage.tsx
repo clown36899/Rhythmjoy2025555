@@ -2140,6 +2140,14 @@ function normalizeDescriptionText(value?: string | null) {
   return compactText(value).toLowerCase();
 }
 
+function hasDescriptionText(value: TranslatableDescription) {
+  return Boolean(
+    compactText(cleanImportedMediaDescription(value.description_translated)) ||
+    compactText(cleanImportedMediaDescription(value.description)) ||
+    compactText(cleanImportedMediaDescription(value.description_original))
+  );
+}
+
 const TranslatedDescription: React.FC<{
   value: TranslatableDescription;
   className: string;
@@ -2225,6 +2233,18 @@ function isLindyCollectionEntry(value: TranslatableDescription) {
     text.includes('lindycollection') ||
     text.includes('lindycollection.com')
   );
+}
+
+function hasLicenseAttribution(value: TranslatableDescription) {
+  return Boolean(
+    compactText(value.license_name) ||
+    compactText(value.license_url) ||
+    isLindyCollectionEntry(value)
+  );
+}
+
+function hasStandaloneBodyContent(value: TranslatableDescription) {
+  return hasDescriptionText(value) || hasLicenseAttribution(value);
 }
 
 function getLindyCollectionSourceUrl(value: TranslatableDescription) {
@@ -3082,6 +3102,7 @@ const MediaStandalonePlayerPage: React.FC<{
   canManage?: boolean;
   onEdit?: (item: SnsMediaItem) => void;
 }> = ({ item, onBack, canManage = false, onEdit }) => {
+  const [isBodyModalOpen, setIsBodyModalOpen] = useState(false);
   const metaText = [
     item.author_name,
     item.dance_genre,
@@ -3090,6 +3111,7 @@ const MediaStandalonePlayerPage: React.FC<{
   ].filter(Boolean).join(' · ');
   const originalUrl = item.normalized_url || item.url;
   const showCustomYouTubePlayer = item.platform === 'youtube' && Boolean(item.embed_url);
+  const hasBodyContent = hasStandaloneBodyContent(item);
 
   return (
     <main className="media-archive-player-page" onDragStartCapture={preventMediaArchiveDrag}>
@@ -3124,6 +3146,18 @@ const MediaStandalonePlayerPage: React.FC<{
                 원본
               </a>
             )}
+            {hasBodyContent && (
+              <button
+                type="button"
+                className="media-standalone-body-button"
+                draggable={false}
+                onDragStart={preventMediaArchiveDrag}
+                onClick={() => setIsBodyModalOpen(true)}
+              >
+                <i className="ri-file-text-line" />
+                본문
+              </button>
+            )}
             {canManage && onEdit && (
               <button type="button" draggable={false} onDragStart={preventMediaArchiveDrag} onClick={() => onEdit(item)}>
                 <i className="ri-edit-2-line" />
@@ -3135,6 +3169,30 @@ const MediaStandalonePlayerPage: React.FC<{
         <TranslatedDescription value={item} className="media-standalone-description" />
         <LicenseAttributionNotice value={item} compact />
       </section>
+      {isBodyModalOpen && (
+        <MediaModalFrame label="본문" onClose={() => setIsBodyModalOpen(false)}>
+          <section className="media-standalone-body-panel media-modal-panel">
+            <header className="media-standalone-body-header">
+              <div>
+                <p className="media-eyebrow">Body</p>
+                <h2>{item.title || '본문'}</h2>
+              </div>
+              <button
+                type="button"
+                className="media-icon-button"
+                onClick={() => setIsBodyModalOpen(false)}
+                aria-label="본문 닫기"
+              >
+                <i className="ri-close-line" />
+              </button>
+            </header>
+            <div className="media-standalone-body-content">
+              <TranslatedDescription value={item} className="media-body-modal-description" allowExpand={false} />
+              <LicenseAttributionNotice value={item} compact />
+            </div>
+          </section>
+        </MediaModalFrame>
+      )}
     </main>
   );
 };
