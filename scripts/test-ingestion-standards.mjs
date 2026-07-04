@@ -13,6 +13,8 @@ import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getColl
 import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
+  dateExpansionKey,
+  normalizeDateExpansionUrl,
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from '../server/cafe24/ingestion-date-expansion.js';
@@ -57,7 +59,7 @@ assert.deepEqual(
     { date: '2026-07-13', title: 'second' },
   ], (item) => item.date).map((item) => item.title),
   ['first'],
-  'multi-date social schedule items must keep only the first event date',
+  'multi-date class/event candidates must keep only the first event date',
 );
 const multiDateRows = [
   {
@@ -89,12 +91,64 @@ assert.deepEqual(
 const dateExpansionDecision = shouldSkipDateExpansionCandidate(multiDateRows[2], [multiDateRows[1]]);
 assert.equal(dateExpansionDecision.skip, true, 'later date from the same source/title must be skipped at save time');
 assert.match(dateExpansionSkipReason(dateExpansionDecision.primary), /2026-07-06/, 'skip reason should point to the kept first date');
+assert.equal(
+  normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=13&referrerAllArticles=false'),
+  normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=264&referrerAllArticles=false'),
+  'date expansion dedupe must ignore naver cafe article menu/list query noise',
+);
+assert.equal(
+  dateExpansionKey({
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156900?menuid=13',
+    structured_data: { title: '들라/칼오의 재즈업 시즌2 (7-8월 월요일 @경성홀)', date: '2026-07-06' },
+  }),
+  dateExpansionKey({
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156900?menuid=264',
+    structured_data: { title: '들라/칼오의 재즈업 시즌2 (7-8월 월요일 @경성홀)', date: '2026-07-13' },
+  }),
+  'same naver article and title must share one date expansion key regardless of menu id',
+);
+const multiSocialRows = [
+  {
+    id: 'social-1',
+    source_url: 'https://www.instagram.com/kyungsunghall/p/KYUNG0704/',
+    structured_data: { title: '경성홀 토요 소셜', date: '2026-07-04', event_type: '소셜', activity_type: 'social' },
+  },
+  {
+    id: 'social-2',
+    source_url: 'https://www.instagram.com/kyungsunghall/p/KYUNG0704/',
+    structured_data: { title: '경성홀 토요 소셜', date: '2026-07-05', event_type: '소셜', activity_type: 'social' },
+  },
+];
+assert.equal(dateExpansionKey(multiSocialRows[0]), '', 'social candidates must not use first-date date expansion keying');
+assert.deepEqual(
+  collapseDateExpansionRows(multiSocialRows).map((row) => row.id),
+  ['social-1', 'social-2'],
+  'multi-date social candidates must remain separate',
+);
+assert.equal(
+  shouldSkipDateExpansionCandidate(multiSocialRows[1], [multiSocialRows[0]]).skip,
+  false,
+  'later social dates from the same source/title must not be skipped by date expansion',
+);
 
 const preparedSwing = prepareCandidate(baseCandidate(), { today: TODAY });
 assert.equal(preparedSwing.validation.ok, true);
 assert.equal(preparedSwing.candidate.id, makeDeterministicId(baseCandidate().source_url, '2026-06-05'));
 assert.equal(preparedSwing.candidate.structured_data.dance_scope, 'swing');
 assert.equal(preparedSwing.candidate.structured_data.activity_type, 'social');
+const sameDateSocialA = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/KYUNG0704/',
+  id_suffix: '경성홀 토요 소셜|DJ Alpha|0',
+  extracted_text: '경성홀 2026.07.04 토요 소셜 DJ Alpha 20:00',
+  structured_data: { title: '경성홀 토요 소셜 DJ Alpha', date: '2026-07-04', event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'] },
+}), { today: TODAY });
+const sameDateSocialB = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/KYUNG0704/',
+  id_suffix: '경성홀 토요 소셜|DJ Beta|1',
+  extracted_text: '경성홀 2026.07.04 토요 소셜 DJ Beta 22:00',
+  structured_data: { title: '경성홀 토요 소셜 DJ Beta', date: '2026-07-04', event_type: '소셜', activity_type: 'social', djs: ['DJ Beta'] },
+}), { today: TODAY });
+assert.notEqual(sameDateSocialA.candidate.id, sameDateSocialB.candidate.id, 'same-day social items from one post must have distinct deterministic IDs');
 
 const oneDayClass = prepareCandidate(baseCandidate({
   source_url: 'https://litt.ly/swingkids',

@@ -44,7 +44,7 @@ type LessonPreviewCard = {
 
 const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "home", label: "홈", icon: "ri-home-5-line", theme: "home", to: "/" },
-    { id: "calendar", label: "캘린더", icon: "ri-calendar-event-line", theme: "calendar", to: "/calendar?view=calendar&scrollToToday=true" },
+    { id: "calendar", label: "댄스이벤트\n캘린더", icon: "ri-calendar-event-line", theme: "calendar", to: "/calendar?view=calendar&scrollToToday=true" },
     { id: "events", label: "강습&행사", icon: "ri-book-open-line", theme: "events", iconVariant: "lesson-stack", to: "/events" },
     { id: "board", label: "자유게시판", icon: "ri-chat-3-line", theme: "board", to: "/board" },
     { id: "places", label: "map", icon: "ri-map-pin-2-line", theme: "places", to: "/places" },
@@ -1560,7 +1560,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                                         {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
                                     </span>
-                                    <span className={`home-v2-menu-quick-label ${item.id === "tempo-tool" ? "home-v2-menu-quick-label--tempo" : ""}`}>
+                                    <span className={`home-v2-menu-quick-label ${item.id === "tempo-tool" ? "home-v2-menu-quick-label--tempo" : ""} ${item.id === "calendar" ? "home-v2-menu-quick-label--calendar" : ""}`}>
                                         {item.id === "tempo-tool" ? (
                                             <>
                                                 <span>BPM</span>
@@ -1718,7 +1718,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         }}
                                     >
                                         {renderExpandedMenuIcon(item, itemStatus)}
-                                        <span className={`home-v2-menu-label ${item.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""}`}>
+                                        <span className={`home-v2-menu-label ${item.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""} ${item.id === "calendar" ? "home-v2-menu-label--calendar" : ""}`}>
                                             {item.id === "tempo-tool" ? (
                                                 <>
                                                     <span>BPM 측정기</span>

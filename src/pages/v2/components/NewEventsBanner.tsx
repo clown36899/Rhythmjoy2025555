@@ -6,6 +6,7 @@ import type { Event } from '../utils/eventListUtils';
 import { formatEventDate } from '../../../utils/dateUtils';
 import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
 import './NewEventsBanner.css';
+import type { SocialSchedule } from '../../social/types';
 
 type EdgeTone = 'dark' | 'light';
 type SocialAdImageKind = 'photo' | 'poster' | 'unknown';
@@ -17,10 +18,14 @@ interface SocialAdImageAnalysis {
 
 const edgeToneCache = new Map<string, EdgeTone>();
 const socialAdImageKindCache = new Map<string, SocialAdImageAnalysis>();
+const imageAspectRatioCache = new Map<string, number>();
 const EDGE_TONE_BLACK_LUMINANCE_THRESHOLD = 96;
 const EDGE_TONE_BLACK_CHROMA_THRESHOLD = 52;
 const EDGE_TONE_BLACK_SAMPLE_RATIO = 0.48;
 const SOCIAL_POSTER_SCORE_THRESHOLD = 0.9;
+const DEFAULT_POSTER_ASPECT_RATIO = 415 / 539;
+const MIN_AD_ASPECT_RATIO = 0.42;
+const MAX_AD_ASPECT_RATIO = 1.45;
 
 const UNKNOWN_SOCIAL_IMAGE_ANALYSIS: SocialAdImageAnalysis = {
     kind: 'unknown',
@@ -56,6 +61,17 @@ const getMainAdPreviewImage = (
     event.image ||
     event.image_full ||
     getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+
+const DEFAULT_NEB_TODAY_SCHEDULES = 3;
+
+const getNebSchedulePlaceLabel = (schedule: SocialSchedule) => (
+    schedule.location || schedule.place_name || schedule.address || ''
+);
+
+const getTodayMonthDayLabel = () => {
+    const today = new Date();
+    return `${today.getMonth() + 1}월 ${today.getDate()}일`;
+};
 
 const isSocialAdEvent = (event: Event) => {
     const category = String(event.category || '').toLowerCase();
@@ -322,6 +338,7 @@ interface NewEventsBannerProps {
     defaultThumbnailEvent: string;
     currentIndex?: number;
     onCurrentIndexChange?: (index: number) => void;
+    todaySchedules?: SocialSchedule[];
 }
 
 export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
@@ -331,6 +348,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     defaultThumbnailEvent,
     currentIndex: controlledCurrentIndex,
     onCurrentIndexChange,
+    todaySchedules = [],
 }) => {
     const { openModal } = useModalContext();
     const navigate = useNavigate();
@@ -344,13 +362,26 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         : internalCurrentIndex;
     const [isPaused, setIsPaused] = useState(false);
     const [showInfoModal, setShowInfoModal] = useState(false);
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const [layoutVars, setLayoutVars] = useState<React.CSSProperties>({});
+    const [layoutStats, setLayoutStats] = useState({
+        sliderHeight: 245,
+        containerWidth: 390,
+        activeLeft: 168,
+        stackStep: 22,
+        frontStackExtra: 10,
+    });
+    const [todayItemLimit, setTodayItemLimit] = useState(DEFAULT_NEB_TODAY_SCHEDULES);
 
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);
     const [isManualPaused, setIsManualPaused] = useState(false);
+    const [slideMotion, setSlideMotion] = useState<'forward' | 'rewind' | null>(null);
     const [isOneDayRecruitPressed, setIsOneDayRecruitPressed] = useState(false);
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const slideMotionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const oneDayRecruitPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const todayScheduleListRef = React.useRef<HTMLDivElement | null>(null);
     const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
     const pendingSocialImageKindUrlsRef = React.useRef<Set<string>>(new Set());
     const dragStateRef = React.useRef({
@@ -362,16 +393,91 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     });
     const [edgeToneByUrl, setEdgeToneByUrl] = useState<Record<string, EdgeTone>>({});
     const [socialImageAnalysisByUrl, setSocialImageAnalysisByUrl] = useState<Record<string, SocialAdImageAnalysis>>({});
+    const [imageAspectRatioByUrl, setImageAspectRatioByUrl] = useState<Record<string, number>>({});
+    const [todayScrollbarMetrics, setTodayScrollbarMetrics] = useState({
+        thumbHeight: 100,
+        thumbTop: 0,
+        scrollable: false,
+    });
 
     useEffect(() => {
         return () => {
             if (manualPauseTimeoutRef.current) {
                 clearTimeout(manualPauseTimeoutRef.current);
             }
+            if (slideMotionTimeoutRef.current) {
+                clearTimeout(slideMotionTimeoutRef.current);
+            }
             if (oneDayRecruitPressTimeoutRef.current) {
                 clearTimeout(oneDayRecruitPressTimeoutRef.current);
             }
         };
+    }, []);
+
+    useEffect(() => {
+        const listElement = todayScheduleListRef.current;
+        if (!listElement) return undefined;
+
+        let frameId = 0;
+        const updateScrollbarMetrics = () => {
+            if (frameId) window.cancelAnimationFrame(frameId);
+
+            frameId = window.requestAnimationFrame(() => {
+                const scrollHeight = listElement.scrollHeight;
+                const clientHeight = listElement.clientHeight;
+                const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+                const scrollable = maxScrollTop > 1;
+                const nextThumbHeight = scrollable
+                    ? Math.max(18, Math.min(100, (clientHeight / Math.max(scrollHeight, 1)) * 100))
+                    : 100;
+                const nextThumbTop = scrollable
+                    ? Math.min(100 - nextThumbHeight, (listElement.scrollTop / maxScrollTop) * (100 - nextThumbHeight))
+                    : 0;
+
+                setTodayScrollbarMetrics((prev) => {
+                    if (
+                        prev.scrollable === scrollable &&
+                        Math.abs(prev.thumbHeight - nextThumbHeight) < 0.5 &&
+                        Math.abs(prev.thumbTop - nextThumbTop) < 0.5
+                    ) {
+                        return prev;
+                    }
+
+                    return {
+                        thumbHeight: nextThumbHeight,
+                        thumbTop: nextThumbTop,
+                        scrollable,
+                    };
+                });
+            });
+        };
+
+        updateScrollbarMetrics();
+        listElement.addEventListener('scroll', updateScrollbarMetrics, { passive: true });
+        window.addEventListener('resize', updateScrollbarMetrics);
+
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(updateScrollbarMetrics)
+            : null;
+        resizeObserver?.observe(listElement);
+
+        return () => {
+            if (frameId) window.cancelAnimationFrame(frameId);
+            listElement.removeEventListener('scroll', updateScrollbarMetrics);
+            window.removeEventListener('resize', updateScrollbarMetrics);
+            resizeObserver?.disconnect();
+        };
+    }, [todaySchedules.length]);
+
+    const markSlideMotion = useCallback((motion: 'forward' | 'rewind') => {
+        setSlideMotion(motion);
+        if (slideMotionTimeoutRef.current) {
+            clearTimeout(slideMotionTimeoutRef.current);
+        }
+        slideMotionTimeoutRef.current = setTimeout(() => {
+            setSlideMotion(null);
+            slideMotionTimeoutRef.current = null;
+        }, 760);
     }, []);
 
     // 수동 조작 시 8초간 자동 슬라이드 중지 로직
@@ -428,11 +534,11 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
         if (isLeftSwipe) {
             triggerManualPause();
-            goToNext();
+            goToPrevious();
             suppressNextClick();
         } else if (isRightSwipe) {
             triggerManualPause();
-            goToPrevious();
+            goToNext();
             suppressNextClick();
         }
 
@@ -445,11 +551,12 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         if (events.length <= 1 || isPaused || isManualPaused) return;
 
         const interval = setInterval(() => {
-            setCurrentIndex((prev) => (prev + 1) % events.length);
+            markSlideMotion('forward');
+            setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
         }, 8000);
 
         return () => clearInterval(interval);
-    }, [events.length, isPaused, isManualPaused, setCurrentIndex]);
+    }, [events.length, isPaused, isManualPaused, markSlideMotion, setCurrentIndex]);
 
     const goToSlide = useCallback((index: number) => {
         triggerManualPause();
@@ -457,12 +564,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     }, [setCurrentIndex, triggerManualPause]);
 
     const goToPrevious = useCallback(() => {
-        setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
-    }, [events.length, setCurrentIndex]);
+        markSlideMotion('rewind');
+        setCurrentIndex((prev) => (prev + 1) % events.length);
+    }, [events.length, markSlideMotion, setCurrentIndex]);
 
     const goToNext = useCallback(() => {
-        setCurrentIndex((prev) => (prev + 1) % events.length);
-    }, [events.length, setCurrentIndex]);
+        markSlideMotion('forward');
+        setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
+    }, [events.length, markSlideMotion, setCurrentIndex]);
 
     const ensureImageEdgeTone = useCallback((imageUrl: string) => {
         if (!imageUrl) return;
@@ -535,6 +644,24 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 pendingSocialImageKindUrlsRef.current.delete(imageUrl);
             });
     }, []);
+
+    const rememberImageAspectRatio = useCallback((imageUrl: string, image: HTMLImageElement) => {
+        if (!imageUrl || !image.naturalWidth || !image.naturalHeight) return;
+
+        const ratio = Math.min(
+            MAX_AD_ASPECT_RATIO,
+            Math.max(MIN_AD_ASPECT_RATIO, image.naturalWidth / image.naturalHeight),
+        );
+        const previousRatio = imageAspectRatioCache.get(imageUrl);
+        if (previousRatio && Math.abs(previousRatio - ratio) < 0.001) return;
+
+        imageAspectRatioCache.set(imageUrl, ratio);
+        setImageAspectRatioByUrl((prev) => {
+            if (prev[imageUrl] && Math.abs(prev[imageUrl] - ratio) < 0.001) return prev;
+            return { ...prev, [imageUrl]: ratio };
+        });
+    }, []);
+
     const openOneDayRecruitment = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         setIsOneDayRecruitPressed(true);
@@ -587,11 +714,11 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
         if (isLeftSwipe) {
             triggerManualPause();
-            goToNext();
+            goToPrevious();
             suppressNextClick();
         } else if (isRightSwipe) {
             triggerManualPause();
-            goToPrevious();
+            goToNext();
             suppressNextClick();
         } else if (dragState.moved) {
             suppressNextClick();
@@ -611,9 +738,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     if (!currentEvent) return null;
 
     const hasMultipleEvents = events.length > 1;
+    const visibleTodaySchedules = todaySchedules;
+    const todayMonthDayLabel = getTodayMonthDayLabel();
     const activeCardAlignmentStyle = {
-        '--neb-summary-left': hasMultipleEvents ? '30%' : '7%',
-        '--neb-summary-width': hasMultipleEvents ? '64%' : '86%',
+        '--neb-summary-left': hasMultipleEvents
+            ? 'var(--neb-active-left, 30%)'
+            : 'var(--neb-single-left, var(--neb-active-left, 7%))',
+        '--neb-summary-width': 'var(--neb-card-width, 64%)',
     } as React.CSSProperties;
     const bannerImages = useMemo(
         () => events.map((event) => getMainAdImage(event, defaultThumbnailClass, defaultThumbnailEvent)),
@@ -624,6 +755,30 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         [events, defaultThumbnailClass, defaultThumbnailEvent]
     );
     const currentBannerImage = bannerImages[currentIndex];
+    const getImageAspectRatio = (imageUrl: string) => (
+        imageAspectRatioByUrl[imageUrl] ||
+        imageAspectRatioCache.get(imageUrl) ||
+        DEFAULT_POSTER_ASPECT_RATIO
+    );
+    const currentImageAspectRatio = getImageAspectRatio(currentBannerImage);
+    const getSlideWidthPx = (imageUrl: string) => {
+        const ratio = getImageAspectRatio(imageUrl);
+        const containerWidth = layoutStats.containerWidth || 390;
+        const rawWidth = Math.round(layoutStats.sliderHeight * ratio);
+        const maxWidth = Math.max(116, Math.floor(containerWidth * 0.78));
+        return Math.min(Math.max(92, rawWidth), maxWidth);
+    };
+
+    const getSlideWidthPxForLayout = (imageUrl: string, sliderHeight: number, containerWidth: number) => {
+        const ratio = getImageAspectRatio(imageUrl);
+        const rawWidth = Math.round(sliderHeight * ratio);
+        const maxWidth = Math.max(116, Math.floor(containerWidth * 0.78));
+        return Math.min(Math.max(92, rawWidth), maxWidth);
+    };
+
+    const getSlideWidth = (imageUrl: string) => {
+        return `${getSlideWidthPx(imageUrl)}px`;
+    };
 
     useEffect(() => {
         if (!currentBannerImage || typeof document === 'undefined') return undefined;
@@ -640,6 +795,167 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         };
     }, [currentBannerImage]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        let frameId = 0;
+        const updateDynamicLayout = () => {
+            if (frameId) window.cancelAnimationFrame(frameId);
+
+            frameId = window.requestAnimationFrame(() => {
+                const container = containerRef.current;
+                if (!container) return;
+
+                const viewport = window.visualViewport;
+                const viewportWidth = viewport?.width || window.innerWidth || 390;
+                const viewportHeight = viewport?.height || window.innerHeight || 720;
+                const containerRect = container.getBoundingClientRect();
+                const headerRect = container.querySelector<HTMLElement>('.NEB-header')?.getBoundingClientRect();
+                const indicatorRect = container.querySelector<HTMLElement>('.NEB-indicators')?.getBoundingClientRect();
+                const navRect = document.querySelector<HTMLElement>('.home-v2-menu-panel')?.getBoundingClientRect();
+                const navTop = navRect && navRect.height > 0 && navRect.top > 0 && navRect.top < viewportHeight
+                    ? navRect.top
+                    : viewportHeight - 86;
+                const mediaBottom = Math.max(
+                    headerRect ? headerRect.bottom - containerRect.top : 0,
+                    indicatorRect ? indicatorRect.bottom - containerRect.top : 0,
+                    94,
+                );
+
+                const isMobileSurface = viewportWidth <= 760;
+                const nextTodayItemLimit = !isMobileSurface
+                    ? 4
+                    : viewportHeight < 740
+                        ? 2
+                        : viewportWidth < 430
+                            ? 3
+                            : 3;
+                const todayRows = Math.min(todaySchedules.length, nextTodayItemLimit);
+                const lowerReserve = todaySchedules.length > 0
+                    ? 86 + (todayRows * 30) + (viewportWidth < 430 ? 18 : 28)
+                    : 96;
+                const availableHeight = Math.floor(
+                    navTop - containerRect.top - mediaBottom - lowerReserve - 14,
+                );
+                const widthBasedHeight = Math.floor(
+                    Math.min(360, Math.max(220, viewportWidth * (viewportWidth < 430 ? 0.62 : 0.54))),
+                );
+                const sliderHeight = Math.max(210, Math.min(widthBasedHeight, availableHeight));
+                const containerWidth = containerRect.width || viewportWidth;
+                const activeCardWidth = getSlideWidthPxForLayout(currentBannerImage, sliderHeight, containerWidth);
+                const previewCount = hasMultipleEvents ? Math.max(events.length - 1, 0) : 0;
+                const previewWidths = Array.from({ length: previewCount }, (_, previewIndex) => {
+                    const distance = previewIndex + 1;
+                    const eventIndex = (currentIndex - distance + events.length) % events.length;
+                    const previewImage = getMainAdPreviewImage(events[eventIndex], defaultThumbnailClass, defaultThumbnailEvent);
+                    return getSlideWidthPxForLayout(previewImage, sliderHeight, containerWidth);
+                });
+                const frontStackExtra = Math.floor(
+                    Math.max(3, Math.min(12, containerWidth * (previewCount > 9 ? 0.014 : 0.025))),
+                );
+                const calculateStackMetrics = (baseGap: number) => {
+                    let frontLeft = 0;
+                    let frontRight = activeCardWidth;
+                    let stackLeft = 0;
+                    let stackRight = activeCardWidth;
+
+                    previewWidths.forEach((width, index) => {
+                        const gap = baseGap + (index < 2 ? frontStackExtra : 0);
+                        const left = frontLeft - gap;
+                        const rawRight = left + width;
+                        const visibleRight = Math.min(rawRight, frontRight);
+
+                        stackLeft = Math.min(stackLeft, left);
+                        stackRight = Math.max(stackRight, visibleRight);
+                        frontLeft = left;
+                        frontRight = visibleRight;
+                    });
+
+                    return {
+                        stackLeft,
+                        stackRight,
+                        span: stackRight - stackLeft,
+                    };
+                };
+                const targetEdgeMargin = Math.floor(Math.max(10, Math.min(22, containerWidth * 0.035)));
+                const targetSpan = Math.max(activeCardWidth, containerWidth - (targetEdgeMargin * 2));
+                let minGap = previewCount > 9 ? 2 : 6;
+                let maxGap = previewCount > 9 ? 22 : 30;
+
+                for (let iteration = 0; iteration < 14; iteration += 1) {
+                    const candidateGap = (minGap + maxGap) / 2;
+                    if (calculateStackMetrics(candidateGap).span <= targetSpan) {
+                        minGap = candidateGap;
+                    } else {
+                        maxGap = candidateGap;
+                    }
+                }
+
+                const stackStep = Math.floor(minGap);
+                const stackMetrics = calculateStackMetrics(stackStep);
+                const edgeMargin = Math.max(0, Math.floor((containerWidth - stackMetrics.span) / 2));
+                const activeLeft = Math.max(0, Math.round(edgeMargin - stackMetrics.stackLeft));
+
+                setTodayItemLimit(nextTodayItemLimit);
+                setLayoutStats((prev) => (
+                    prev.sliderHeight === sliderHeight &&
+                    prev.containerWidth === Math.round(containerWidth) &&
+                    prev.activeLeft === Math.max(10, activeLeft) &&
+                    prev.stackStep === stackStep &&
+                    prev.frontStackExtra === frontStackExtra
+                        ? prev
+                        : {
+                            sliderHeight,
+                            containerWidth: Math.round(containerWidth),
+                            activeLeft: Math.max(10, activeLeft),
+                            stackStep,
+                            frontStackExtra,
+                        }
+                ));
+                setLayoutVars({
+                    '--neb-dynamic-slider-height': `${sliderHeight}px`,
+                    '--neb-card-width': `${activeCardWidth}px`,
+                    '--neb-active-left': `${Math.max(10, activeLeft)}px`,
+                    '--neb-single-left': `${Math.max(10, Math.floor((containerWidth - activeCardWidth) / 2))}px`,
+                    '--neb-stack-step': `${stackStep}px`,
+                    '--neb-stack-front-extra': `${frontStackExtra}px`,
+                } as React.CSSProperties);
+            });
+        };
+
+        const viewportTarget = window.visualViewport;
+
+        updateDynamicLayout();
+        window.addEventListener('resize', updateDynamicLayout);
+        if (viewportTarget && typeof viewportTarget.addEventListener === 'function') {
+            viewportTarget.addEventListener('resize', updateDynamicLayout);
+        }
+
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(updateDynamicLayout)
+            : null;
+        if (containerRef.current) resizeObserver?.observe(containerRef.current);
+
+        return () => {
+            if (frameId) window.cancelAnimationFrame(frameId);
+            window.removeEventListener('resize', updateDynamicLayout);
+            if (viewportTarget && typeof viewportTarget.removeEventListener === 'function') {
+                viewportTarget.removeEventListener('resize', updateDynamicLayout);
+            }
+            resizeObserver?.disconnect();
+        };
+    }, [
+        todaySchedules.length,
+        currentIndex,
+        currentImageAspectRatio,
+        currentBannerImage,
+        defaultThumbnailClass,
+        defaultThumbnailEvent,
+        events,
+        hasMultipleEvents,
+        imageAspectRatioByUrl,
+    ]);
+
     const getDateLabel = (event: Event) => {
         if (event.event_dates && event.event_dates.length > 0) {
             return formatEventDate(event.event_dates[0]);
@@ -654,13 +970,43 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const getTimeLabel = (event: Event) => event.time?.trim() || '';
     const getSocialImageAnalysis = (imageUrl: string) =>
         getSocialImageUrlHint(imageUrl) || socialImageAnalysisByUrl[imageUrl] || UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
-    const getSlidePlacement = (index: number) => {
+    const getPreviewStackMetrics = (distance: number) => {
+        let frontLeft = layoutStats.activeLeft;
+        let frontRight = layoutStats.activeLeft + getSlideWidthPx(currentBannerImage);
+        let previewLeft = layoutStats.activeLeft;
+        let clipRight = 0;
+
+        for (let step = 1; step <= distance; step += 1) {
+            const previewIndex = (currentIndex - step + events.length) % events.length;
+            const previewEvent = events[previewIndex];
+            const previewImageUrl = getMainAdPreviewImage(previewEvent, defaultThumbnailClass, defaultThumbnailEvent);
+            const previewWidth = getSlideWidthPx(previewImageUrl);
+            const gap = layoutStats.stackStep + (step <= 2 ? layoutStats.frontStackExtra : 0);
+            const rawLeft = frontLeft - gap;
+            const rawRight = rawLeft + previewWidth;
+            const visibleRight = Math.min(rawRight, frontRight);
+
+            previewLeft = rawLeft;
+            clipRight = Math.max(0, Math.ceil(rawRight - visibleRight));
+            frontLeft = previewLeft;
+            frontRight = visibleRight;
+        }
+
+        return {
+            left: Math.round(previewLeft),
+            clipRight,
+        };
+    };
+
+    const getSlidePlacement = (index: number, imageUrl = bannerImages[index] || '') => {
+        const slideWidth = getSlideWidth(imageUrl);
+
         if (!hasMultipleEvents) {
             return {
                 className: 'is-active',
                 style: {
-                    '--neb-left': '7%',
-                    '--neb-width': '86%',
+                    '--neb-left': 'var(--neb-single-left, 7%)',
+                    '--neb-width': slideWidth,
                     '--neb-transform': 'scale(1)',
                     zIndex: 5,
                     opacity: 1,
@@ -673,25 +1019,29 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
         if (index === currentIndex) {
             return {
-                className: 'is-active',
+                className: slideMotion === 'rewind' ? 'is-active is-rewind-enter' : 'is-active',
                 style: {
-                    '--neb-left': '30%',
-                    '--neb-width': '64%',
+                    '--neb-left': 'var(--neb-active-left, 30%)',
+                    '--neb-width': slideWidth,
+                    '--neb-clip-right': '0px',
                     '--neb-transform': 'scale(1)',
-                    zIndex: 6,
+                    zIndex: 30,
                     opacity: 1,
                 } as React.CSSProperties,
             };
         }
 
-        if (previousDistance >= 1 && previousDistance <= 3) {
+        if (previousDistance >= 1 && previousDistance <= events.length - 1) {
+            const previewMetrics = getPreviewStackMetrics(previousDistance);
+
             return {
                 className: `is-preview is-preview-${previousDistance}`,
                 style: {
-                    '--neb-left': `${19 - previousDistance * 4}%`,
-                    '--neb-width': '64%',
+                    '--neb-left': `${previewMetrics.left}px`,
+                    '--neb-width': slideWidth,
+                    '--neb-clip-right': `${previewMetrics.clipRight}px`,
                     '--neb-transform': 'scale(1)',
-                    zIndex: 6 - previousDistance,
+                    zIndex: 30 - previousDistance,
                     opacity: 1,
                 } as React.CSSProperties,
             };
@@ -702,7 +1052,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 className: 'is-hidden',
                 style: {
                     '--neb-left': '112%',
-                    '--neb-width': '64%',
+                    '--neb-width': slideWidth,
                     '--neb-transform': 'scale(0.94)',
                     zIndex: 0,
                     opacity: 0,
@@ -715,7 +1065,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
             className: 'is-hidden',
             style: {
                 '--neb-left': '100%',
-                '--neb-width': '64%',
+                '--neb-width': slideWidth,
                 '--neb-transform': 'scale(0.9)',
                 zIndex: 0,
                 opacity: 0,
@@ -748,7 +1098,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     return (
         <>
             <div
+                ref={containerRef}
                 className="NEB-container"
+                style={layoutVars}
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => {
                     setIsPaused(false);
@@ -815,6 +1167,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                         alt=""
                                         loading="lazy"
                                         decoding="async"
+                                        draggable={false}
                                     />
                                 </button>
                             );
@@ -829,7 +1182,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             const eventThumbnail = isActiveSlide
                                 ? getBannerImage(event, index)
                                 : getMainAdPreviewImage(event, defaultThumbnailClass, defaultThumbnailEvent);
-                            const placement = getSlidePlacement(index);
+                            const placement = getSlidePlacement(index, eventThumbnail);
                             const imageLoading = isActiveSlide ? 'eager' : 'lazy';
                             const imageFetchPriority = isActiveSlide ? 'high' : 'low';
                             const edgeTone = edgeToneByUrl[eventThumbnail];
@@ -858,7 +1211,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             loading={imageLoading}
                                             decoding="async"
                                             fetchPriority={imageFetchPriority}
-                                            onLoad={() => {
+                                            draggable={false}
+                                            onLoad={(loadEvent) => {
+                                                rememberImageAspectRatio(eventThumbnail, loadEvent.currentTarget);
                                                 ensureImageEdgeTone(eventThumbnail);
                                                 ensureSocialAdImageKind(eventThumbnail, event);
                                             }}
@@ -875,6 +1230,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                     loading={isActiveSlide ? 'eager' : 'lazy'}
                                                     decoding="async"
                                                     referrerPolicy="no-referrer"
+                                                    draggable={false}
                                                 />
                                             </span>
                                         )}
@@ -886,6 +1242,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                     alt=""
                                                     loading={imageLoading}
                                                     decoding="async"
+                                                    draggable={false}
                                                     />
                                                 </span>
                                                 <span className="NEB-socialPhotoCopy">
@@ -961,6 +1318,54 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             </span>
                         </button>
                     </div>
+
+                    {visibleTodaySchedules.length > 0 && (
+                        <aside className="NEB-todaySchedulePanel" aria-label="오늘 일정">
+                            <div className="NEB-todayScheduleHeader">
+                                <span>오늘일정</span>
+                                <span className="NEB-todayScheduleHeaderMeta">
+                                    <time dateTime={new Date().toISOString().slice(0, 10)}>{todayMonthDayLabel}</time>
+                                    <em>{todaySchedules.length}</em>
+                                </span>
+                            </div>
+                            <div className="NEB-todayScheduleScrollFrame">
+                                <div ref={todayScheduleListRef} className="NEB-todayScheduleList">
+                                    {visibleTodaySchedules.map((schedule, index) => {
+                                        const place = getNebSchedulePlaceLabel(schedule);
+
+                                        return (
+                                            <button
+                                                key={schedule.id}
+                                                type="button"
+                                                className="NEB-todayScheduleItem"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    openEventDetail(schedule as unknown as Event);
+                                                }}
+                                            >
+                                                <i aria-hidden="true">{index + 1}</i>
+                                                <span>
+                                                    <strong>{schedule.title}</strong>
+                                                    {place && <small>장소 : {place}</small>}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div
+                                    className={`NEB-todayScheduleScrollbar ${todayScrollbarMetrics.scrollable ? 'is-scrollable' : 'is-static'}`}
+                                    aria-hidden="true"
+                                >
+                                    <span
+                                        style={{
+                                            height: `${todayScrollbarMetrics.thumbHeight}%`,
+                                            top: `${todayScrollbarMetrics.thumbTop}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </aside>
+                    )}
                 </div>
             </div >
 

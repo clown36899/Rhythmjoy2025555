@@ -52,11 +52,15 @@
     font-size: 0.75rem;
     /* Fixed 12px */
     font-weight: 500;
-    line-height: 1.25;
+    line-height: 1.08;
+    min-height: 1.62rem;
     transition: color 0.2s ease;
     word-break: keep-all;
     text-align: center;
     white-space: pre-wrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* State: Inactive */

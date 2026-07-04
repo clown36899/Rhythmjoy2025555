@@ -20,7 +20,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-red-500',
     },
     {
-        label: '전체달력',
+        label: '댄스이벤트\n캘린더',
         labelEn: 'Calendar',
         path: '/calendar',
         icon: 'ri-calendar-event-line',

@@ -12,6 +12,7 @@ import { removeEventUploads as removeEventUploadFiles } from './upload-cleanup.j
 import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
+  normalizeDateExpansionUrl,
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
@@ -335,15 +336,7 @@ function rowSourceUrl(row, target = 'scraped_events') {
 }
 
 function normalizeDuplicateUrl(value) {
-  try {
-    const parsed = new URL(String(value || '').trim());
-    parsed.hash = '';
-    ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'igsh', 'igshid'].forEach((key) => parsed.searchParams.delete(key));
-    if (parsed.pathname !== '/') parsed.pathname = parsed.pathname.replace(/\/+$/, '');
-    return parsed.toString();
-  } catch {
-    return String(value || '').trim();
-  }
+  return normalizeDateExpansionUrl(value);
 }
 
 function normalizeDuplicateText(value) {

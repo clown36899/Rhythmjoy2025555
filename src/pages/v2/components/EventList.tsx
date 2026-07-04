@@ -16,6 +16,7 @@ import { useBoardStaticData } from "../../../contexts/BoardDataContext";
 import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
 import { useHomeSectionVisibility } from "./EventList/hooks/useHomeSectionVisibility";
 import { clampNebMaxItems, useNebFilterSettings } from "./EventList/hooks/useNebFilterSettings";
+import type { SocialSchedule } from "../../social/types";
 
 // Styles
 import "../../../styles/domains/events.css";
@@ -78,6 +79,68 @@ const isMainAdEventToday = (event: Event, todayStr: string) => {
 const passesMainAdSocialTodayRule = (event: Event, todayStr: string) => (
   !isMainAdSocialEvent(event) || isMainAdEventToday(event, todayStr)
 );
+
+const isEventShownOnCalendarDate = (event: Event, dateString: string) => {
+  if (event.event_dates && event.event_dates.length > 0) {
+    const category = String(event.category || '').toLowerCase();
+    const isClass = category === 'class' || category === 'regular';
+
+    if (isClass) {
+      const firstDate = [...event.event_dates].sort()[0];
+      return getMainAdDatePart(firstDate) === dateString;
+    }
+
+    return event.event_dates.some((date) => getMainAdDatePart(date) === dateString);
+  }
+
+  const startDate = getMainAdDatePart(event.start_date || event.date);
+  const endDate = getMainAdDatePart(event.end_date || event.date || event.start_date);
+
+  return Boolean(startDate && endDate && startDate <= dateString && dateString <= endDate);
+};
+
+const eventToScheduleItem = (event: Event): SocialSchedule => ({
+  id: event.id,
+  group_id: event.group_id || -1,
+  title: event.title,
+  date: event.date || event.start_date,
+  start_date: event.start_date,
+  end_date: event.end_date,
+  event_dates: event.event_dates,
+  start_time: event.time,
+  time: event.time,
+  place_name: event.location || event.place_name,
+  location: event.location,
+  image: event.image,
+  image_url: event.image,
+  image_medium: event.image_medium,
+  image_thumbnail: event.image_thumbnail,
+  image_full: event.image_full,
+  user_id: event.user_id || '',
+  created_at: event.created_at || '',
+  updated_at: event.updated_at || '',
+  description: event.description,
+  board_users: event.board_users,
+  category: event.category,
+  genre: event.genre || undefined,
+  scope: event.scope || undefined,
+} as SocialSchedule);
+
+const sortScheduleItems = (a: SocialSchedule, b: SocialSchedule) => {
+  const isGlobalA = a.scope === 'overseas';
+  const isGlobalB = b.scope === 'overseas';
+  if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
+
+  const dateA = a.date || a.start_date || '';
+  const dateB = b.date || b.start_date || '';
+  if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+  const timeA = a.start_time || a.time || '';
+  const timeB = b.start_time || b.time || '';
+  if (timeA !== timeB) return timeA.localeCompare(timeB);
+
+  return a.title.localeCompare(b.title, 'ko');
+};
 
 const EventList: React.FC<EventListProps> = ({
   currentMonth,
@@ -411,6 +474,14 @@ const EventList: React.FC<EventListProps> = ({
       ) : (
         <EventPreviewSection
           isSocialSchedulesLoading={loading}
+          todayCalendarSchedules={(() => {
+            const todayStr = getLocalDateString();
+
+            return events
+              .filter(e => isEventShownOnCalendarDate(e, todayStr))
+              .map(eventToScheduleItem)
+              .sort(sortScheduleItems);
+          })()}
           todaySocialSchedules={(() => {
             const todayStr = getLocalDateString();
 
@@ -418,49 +489,21 @@ const EventList: React.FC<EventListProps> = ({
             // Condition: (category='social') OR (category='event' AND !group_id)
             const todaySocials = events
               .filter(e => {
-                const eDate = e.date || "";
-                if (eDate < todayStr || (e.start_date || eDate) > todayStr) return false; // Date Filtering
+                if (!isEventShownOnCalendarDate(e, todayStr)) return false;
 
                 if (e.category === 'social') return true;
                 if (e.category === 'event') return true;
                 return false;
               })
               .map(e => ({
-                id: e.id, // ✅ ID 접두어 제거 (모두 events 테이블 ID 사용)
-                group_id: e.group_id || -1,
-                title: e.title,
-                date: e.date,
-                start_time: e.time,
-                place_name: e.location,
-                image: e.image,
-                image_url: e.image,
-                image_medium: e.image_medium,
-                image_thumbnail: e.image_thumbnail,
-                image_full: e.image_full,
-                user_id: e.user_id,
-                created_at: e.created_at,
-                updated_at: '',
-                description: e.description,
-                board_users: e.board_users,
+                ...eventToScheduleItem(e),
                 is_mapped_event: true,
-                scope: e.scope,
-                category: e.category // Pass category if needed
-              } as any));
+              } as SocialSchedule & { is_mapped_event: boolean }));
 
             // No need to fetch from old socialSchedules anymore
 
             // 🎯 Sort: Domestic First, Global Last
-            todaySocials.sort((a, b) => {
-              const isGlobalA = a.scope === 'overseas';
-              const isGlobalB = b.scope === 'overseas';
-              if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
-
-              // Same scope: Sort by Time (start_time)
-              // If start_time is missing, fallback to empty string (top)
-              const timeA = a.start_time || '';
-              const timeB = b.start_time || '';
-              return timeA.localeCompare(timeB);
-            });
+            todaySocials.sort(sortScheduleItems);
 
             return todaySocials;
           })()}

@@ -5,6 +5,15 @@ function dateOnly(value) {
 export function normalizeDateExpansionUrl(value = '') {
   try {
     const parsed = new URL(String(value || '').trim());
+    const naverArticleMatch = parsed.hostname === 'cafe.naver.com'
+      ? parsed.pathname.match(/\/cafes\/(\d+)\/articles\/(\d+)/)
+      : null;
+    if (naverArticleMatch) {
+      parsed.pathname = `/f-e/cafes/${naverArticleMatch[1]}/articles/${naverArticleMatch[2]}`;
+      parsed.search = '';
+      parsed.hash = '';
+      return parsed.toString();
+    }
     parsed.hash = '';
     ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'igsh', 'igshid'].forEach((key) => {
       parsed.searchParams.delete(key);
@@ -33,11 +42,31 @@ export function dateExpansionRowTitle(row = {}) {
   return String(row.title || row.structured_data?.title || '').trim();
 }
 
+export function dateExpansionRowActivityType(row = {}) {
+  const structuredData = row.structured_data || row.raw?.structured_data || {};
+  const explicit = String(row.activity_type || structuredData.activity_type || '').toLowerCase();
+  if (explicit) return explicit;
+
+  const eventType = String(row.event_type || structuredData.event_type || '').toLowerCase();
+  if (/소셜|social/.test(eventType)) return 'social';
+  if (/강습|수업|레슨|클래스|워크샵|워크숍|class|lesson|workshop/.test(eventType)) return 'class';
+  if (/행사|event|파티|party/.test(eventType)) return 'event';
+
+  const title = dateExpansionRowTitle(row);
+  if (
+    /소셜|social|(?<![A-Za-z0-9가-힣])DJ|디제이/i.test(title)
+    && !/강습|수업|레슨|클래스|워크샵|워크숍|class|lesson|workshop/i.test(title)
+  ) return 'social';
+  return '';
+}
+
 export function dateExpansionRowSourceUrl(row = {}) {
   return normalizeDateExpansionUrl(row.normalized_source_url || row.source_url || row.link1 || '');
 }
 
 export function dateExpansionKey(row = {}) {
+  if (dateExpansionRowActivityType(row) === 'social') return '';
+
   const sourceUrl = dateExpansionRowSourceUrl(row);
   const title = normalizeDateExpansionText(dateExpansionRowTitle(row));
   if (!sourceUrl || title.length < 6) return '';
@@ -107,5 +136,5 @@ export function collapseDateExpansionRows(rows = []) {
 
 export function dateExpansionSkipReason(primary = {}) {
   const primaryDate = dateExpansionRowDate(primary) || '첫 날짜';
-  return `같은 원본/제목의 다중 날짜 후보는 첫 날짜만 수집: ${primaryDate}`;
+  return `같은 원본/제목의 다중 날짜 강습/행사 후보는 첫 날짜만 수집: ${primaryDate}`;
 }

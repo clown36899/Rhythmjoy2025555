@@ -56,22 +56,23 @@ html.kiosk-link-router-active.v2-home-mode .NEB-indicators {
 html.kiosk-link-router-active.v2-home-mode .NEB-slider,
 html.kiosk-link-router-active.v2-home-mode .NEB-track {
   width: 100vw !important;
-  height: 710px !important;
-  min-height: 710px !important;
-  overflow: hidden !important;
+  height: var(--neb-dynamic-slider-height, min(710px, 58vh)) !important;
+  min-height: 0 !important;
+  overflow: visible !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-slide {
-  width: min(65vw, 620px) !important;
-  height: auto !important;
+  width: var(--neb-card-width, min(65vw, 620px)) !important;
+  height: 100% !important;
   min-height: 0 !important;
-  aspect-ratio: 415 / 539 !important;
+  aspect-ratio: auto !important;
   top: 0 !important;
+  left: var(--neb-left, 0) !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-active {
-  left: 238px !important;
-  transform: none !important;
+  left: var(--neb-left, var(--neb-active-left, 238px)) !important;
+  transform: var(--neb-transform, none) !important;
   z-index: 30 !important;
 }
 
@@ -84,24 +85,24 @@ html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-3 {
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-1 {
-  left: 100px !important;
+  left: var(--neb-left, 100px) !important;
   top: 0 !important;
-  transform: none !important;
-  z-index: 20 !important;
+  transform: var(--neb-transform, none) !important;
+  z-index: 29 !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-2 {
-  left: 54px !important;
+  left: var(--neb-left, 54px) !important;
   top: 0 !important;
-  transform: none !important;
-  z-index: 15 !important;
+  transform: var(--neb-transform, none) !important;
+  z-index: 28 !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-3 {
-  left: 8px !important;
+  left: var(--neb-left, 8px) !important;
   top: 0 !important;
-  transform: none !important;
-  z-index: 10 !important;
+  transform: var(--neb-transform, none) !important;
+  z-index: 27 !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-imageWrapper,
@@ -121,8 +122,8 @@ html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
-  width: min(65vw, 620px) !important;
-  margin-left: 238px !important;
+  width: var(--neb-summary-width, var(--neb-card-width, min(65vw, 620px))) !important;
+  margin-left: var(--neb-summary-left, var(--neb-active-left, 238px)) !important;
   margin-right: 0 !important;
 }
 
@@ -336,5 +337,86 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
     justify-items: center;
     text-align: center;
     margin: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  html.kiosk-link-router-active.v2-home-mode .NEB-header {
+    width: 100% !important;
+    min-height: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-indicators {
+    width: 100% !important;
+    margin: 0 0 6px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+  html.kiosk-link-router-active.v2-home-mode .NEB-track {
+    width: 100% !important;
+    height: var(--neb-dynamic-slider-height, 260px) !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide {
+    width: var(--neb-width, 64%) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    aspect-ratio: auto !important;
+    top: 0 !important;
+    left: var(--neb-left, 0) !important;
+    transform: var(--neb-transform, scale(0.94)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-active {
+    left: var(--neb-left, 30%) !important;
+    transform: var(--neb-transform, scale(1)) !important;
+    z-index: 30 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-1,
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-2,
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-preview-3 {
+    left: var(--neb-left, 0) !important;
+    top: 0 !important;
+    transform: var(--neb-transform, scale(1)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
+    width: 100% !important;
+    margin-top: 8px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary strong {
+    font-size: clamp(14px, 3.7vw, 18px) !important;
+    line-height: 1.08 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryMeta {
+    font-size: 11px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+    left: auto !important;
+    width: clamp(84px, 24vw, 102px) !important;
+    height: clamp(50px, 13vw, 58px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitTicket {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  #kiosk-carousel-controls {
+    display: none !important;
   }
 }

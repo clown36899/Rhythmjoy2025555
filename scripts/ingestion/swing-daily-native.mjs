@@ -309,6 +309,7 @@ function looksLikeBroadScheduleNotice(title = '', text = '') {
 function selectCandidateDates({ title, cleanText, activity }) {
   const titleDates = extractDates(title);
   const sourceDates = titleDates.length ? titleDates : extractDates(cleanText);
+  if (activity === 'social') return sourceDates;
   return keepFirstEventDateOnly(sourceDates);
 }
 
@@ -455,15 +456,20 @@ function sortInstagramShortcodesNewestFirst(values = []) {
 function estimatedInstagramSourceBudgetMs(postCount = 1) {
   const safePostCount = Math.max(1, Number(postCount) || 1);
   const profileBudgetMs = instagramSourceDelayMs + sourceTimeoutMs + instagramProfileWaitMs + 3_000;
+  return profileBudgetMs + estimatedInstagramPostScanBudgetMs(safePostCount);
+}
+
+function estimatedInstagramPostScanBudgetMs(postCount = 1) {
+  const safePostCount = Math.max(1, Number(postCount) || 1);
   const perPostBudgetMs = instagramPostDelayMs + postTimeoutMs + postRequestTimeoutMs + imageFetchTimeoutMs + 2_000;
-  return profileBudgetMs + (safePostCount * perPostBudgetMs) + runDeadlineGuardMs();
+  return (safePostCount * perPostBudgetMs) + runDeadlineGuardMs();
 }
 
 function resolveInstagramPostLimit(linkCount = postLimit) {
   const maxPosts = Math.max(1, Math.min(postLimit, instagramSourcePostLimit, Number(linkCount) || 0));
   if (!runBudgetMs) return maxPosts;
   for (let count = maxPosts; count >= 1; count -= 1) {
-    if (runRemainingMs() >= estimatedInstagramSourceBudgetMs(count)) return count;
+    if (runRemainingMs() >= estimatedInstagramPostScanBudgetMs(count)) return count;
   }
   return 0;
 }
@@ -636,11 +642,48 @@ function extractSocialScheduleItems(text = '', source) {
     });
   }
   const seen = new Set(items.map((item) => `${item.date}:${item.djs.join(',')}`));
+  for (const item of extractDatedDjSocialItems(raw, source)) {
+    const key = `${item.date}:${item.djs.join(',')}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(item);
+  }
   for (const item of extractHappyHallWeeklySocialItems(raw, source)) {
     const key = `${item.date}:${item.djs.join(',')}`;
     if (seen.has(key)) continue;
     seen.add(key);
     items.push(item);
+  }
+  return items;
+}
+
+function extractDatedDjSocialItems(raw = '', source) {
+  if (!/(?<![A-Za-z0-9가-힣])DJ|디제이/i.test(raw)) return [];
+  const items = [];
+  const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
+  for (const match of raw.matchAll(pattern)) {
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    const date = isoDate(getYearForMonth(month), month, day);
+    if (date < today) continue;
+
+    const segment = compactText(match[4] || '');
+    if (!/(?<![A-Za-z0-9가-힣])DJ|디제이/i.test(segment)) continue;
+    const djs = inferDjs(segment);
+    if (!djs.length) continue;
+    if (!isCollectableDateTime(date, `${match[0]}\n${segment}`)) continue;
+
+    const dayLabel = match[3] || dayLabelFromISO(date);
+    const titleDay = socialDayTitle(dayLabel);
+    items.push({
+      date,
+      day: dayLabel,
+      title: `${source.name} ${titleDay || ''} 소셜`.replace(/\s+/g, ' ').trim(),
+      djs,
+      times: inferTimes(segment),
+      fee: inferFee(segment),
+    });
   }
   return items;
 }
@@ -1216,10 +1259,15 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   }
 
   const socialScheduleItems = activity === 'social'
-    ? keepFirstEventDateOnly(extractSocialScheduleItems(cleanText, source), (item) => item.date)
+    ? extractSocialScheduleItems(cleanText, source).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
     : [];
   if (socialScheduleItems.length) {
     const candidates = [];
+    const socialDateCounts = socialScheduleItems.reduce((counts, item) => {
+      const date = String(item.date || '').slice(0, 10);
+      counts.set(date, (counts.get(date) || 0) + 1);
+      return counts;
+    }, new Map());
     const imageDataByUrl = new Map();
     const getImageData = async (imageUrl) => {
       if (!imageDataByUrl.has(imageUrl)) {
@@ -1231,14 +1279,22 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
     for (const [index, item] of socialScheduleItems.entries()) {
       const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
       const imageData = await getImageData(candidatePosterUrl);
+      const hasSameDateSiblings = (socialDateCounts.get(String(item.date || '').slice(0, 10)) || 0) > 1;
+      const socialDetailSuffix = hasSameDateSiblings
+        ? [item.title, item.djs.join(','), item.times.join(','), index].filter(Boolean).join('|')
+        : '';
+      const socialTitle = hasSameDateSiblings && item.djs.length
+        ? `${item.title} DJ ${item.djs.join(', ')}`
+        : item.title;
       const raw = {
         keyword: source.name,
         source_url: sourceUrl,
+        ...(socialDetailSuffix ? { id_suffix: socialDetailSuffix } : {}),
         poster_url: candidatePosterUrl,
         ...(imageData ? { imageData } : {}),
         extracted_text: cleanText.slice(0, 6000),
         structured_data: {
-          title: item.title,
+          title: socialTitle,
           date: item.date,
           ...(item.day ? { day: item.day } : {}),
           event_type: eventType,

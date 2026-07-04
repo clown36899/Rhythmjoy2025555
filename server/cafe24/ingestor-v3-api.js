@@ -4,6 +4,7 @@ import { getMysqlPool } from './mysql-pool.js';
 import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
+  normalizeDateExpansionUrl,
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
@@ -54,19 +55,7 @@ function mysqlDateTime(value) {
 }
 
 function normalizeUrl(value = '') {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  try {
-    const parsed = new URL(raw);
-    parsed.hash = '';
-    ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'igsh', 'igshid'].forEach((key) => {
-      parsed.searchParams.delete(key);
-    });
-    if (parsed.pathname !== '/') parsed.pathname = parsed.pathname.replace(/\/+$/, '');
-    return parsed.toString();
-  } catch {
-    return raw;
-  }
+  return normalizeDateExpansionUrl(value);
 }
 
 function sha256(value = '') {
@@ -254,9 +243,9 @@ async function loadExistingCandidate(pool, id) {
 async function loadDateExpansionCandidateRows(pool, candidate) {
   const [rows] = await pool.execute(
     `SELECT * FROM ingestion_candidates
-     WHERE source_url_hash = ?
+     WHERE (source_url_hash = ? OR title = ?)
        AND status <> 'archived'`,
-    [candidate.source_url_hash],
+    [candidate.source_url_hash, candidate.title],
   );
   return rows;
 }

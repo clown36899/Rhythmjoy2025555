@@ -365,6 +365,166 @@
     font-size: 18px;
 }
 
+.home-neb-today-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 9px;
+    min-width: 0;
+    min-height: 0;
+    max-height: 270px;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--border-glass, rgba(255, 255, 255, 0.11)) 90%, transparent);
+    border-radius: 14px;
+    background:
+        linear-gradient(145deg, rgba(75, 222, 182, 0.12), transparent 42%),
+        rgba(0, 0, 0, 0.22);
+    overflow: hidden;
+}
+
+.home-neb-today-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.home-neb-today-head span {
+    color: var(--text-primary, #f6f7f9);
+    font-size: 14px;
+    font-weight: 950;
+    letter-spacing: 0;
+}
+
+.home-neb-today-head strong {
+    display: grid;
+    place-items: center;
+    min-width: 26px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: rgba(75, 222, 182, 0.16);
+    color: #a7f3d0;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.home-neb-today-head-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.home-neb-today-head-meta time {
+    color: var(--text-tertiary, #a8b0bd);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.home-neb-today-list {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    min-height: 0;
+    max-height: 218px;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-tertiary, #a8b0bd) 44%, transparent) color-mix(in srgb, var(--text-tertiary, #a8b0bd) 12%, transparent);
+}
+
+.home-neb-today-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.home-neb-today-list::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-tertiary, #a8b0bd) 12%, transparent);
+}
+
+.home-neb-today-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-tertiary, #a8b0bd) 44%, transparent);
+}
+
+.home-neb-today-item {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.055);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.home-neb-today-item:hover {
+    background: rgba(255, 255, 255, 0.085);
+}
+
+.home-neb-today-item i {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: color-mix(in srgb, #4bdeb6 18%, transparent);
+    color: #a7f3d0;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 950;
+    line-height: 1;
+}
+
+.home-neb-today-item span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.home-neb-today-item strong,
+.home-neb-today-item small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-neb-today-item strong {
+    color: var(--text-primary, #f6f7f9);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.home-neb-today-item small {
+    color: var(--text-tertiary, #a8b0bd);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.home-neb-today-more {
+    justify-self: end;
+    color: var(--text-tertiary, #a8b0bd);
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.home-neb-standard-layout img {
+    -webkit-user-drag: none;
+    user-drag: none;
+}
+
 .home-neb-admin-scope-strip {
     display: flex;
     gap: 5px;

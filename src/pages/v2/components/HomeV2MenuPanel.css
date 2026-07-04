@@ -249,6 +249,17 @@
   white-space: normal !important;
 }
 
+.home-v2-menu-quick-label--calendar {
+  display: grid !important;
+  align-content: center;
+  gap: 1px;
+  overflow: visible !important;
+  font-size: 9.5px !important;
+  line-height: 1.05 !important;
+  text-overflow: clip !important;
+  white-space: pre-line !important;
+}
+
 .home-v2-menu-quick-label--tempo span {
   display: block;
   min-width: 0;
@@ -908,6 +919,17 @@
   line-height: 1.08;
   text-overflow: clip;
   white-space: normal;
+}
+
+.home-v2-menu-label--calendar {
+  display: grid;
+  gap: 1px;
+  overflow: visible;
+  font-size: clamp(12px, 3.2vw, 14px);
+  line-height: 1.08;
+  text-align: center;
+  text-overflow: clip;
+  white-space: pre-line;
 }
 
 .home-v2-menu-label--tempo span {

@@ -29,6 +29,7 @@ import { requestGoogleTranslateRefresh } from "../../../../../utils/googleTransl
 
 interface EventPreviewSectionProps {
     isSocialSchedulesLoading: boolean;
+    todayCalendarSchedules: SocialSchedule[];
     todaySocialSchedules: SocialSchedule[];
     thisWeekSocialSchedules: SocialSchedule[];
     refreshSocialSchedules: () => Promise<void>;
@@ -58,6 +59,7 @@ interface EventPreviewSectionProps {
 interface HomeNewEventsDesktopSplitProps {
     events: Event[];
     fallbackEvents: Event[];
+    todaySchedules: SocialSchedule[];
     onEventClick: (event: Event) => void;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
@@ -144,9 +146,60 @@ const getHomeAdPlaceLabel = (event?: Event) => {
     return event.location || event.place_name || "장소 미정";
 };
 
+const getSchedulePlaceLabel = (schedule: SocialSchedule) => (
+    schedule.location || schedule.place_name || schedule.address || ""
+);
+
+const getTodayMonthDayLabel = () => {
+    const today = new Date();
+    return `${today.getMonth() + 1}월 ${today.getDate()}일`;
+};
+
+const HomeTodaySchedulePanel: React.FC<{
+    schedules: SocialSchedule[];
+    onEventClick: (event: Event) => void;
+}> = ({ schedules, onEventClick }) => {
+    if (schedules.length === 0) return null;
+
+    const todayMonthDayLabel = getTodayMonthDayLabel();
+
+    return (
+        <section className="home-neb-today-panel" aria-label="오늘 일정">
+            <div className="home-neb-today-head">
+                <span>오늘일정</span>
+                <span className="home-neb-today-head-meta">
+                    <time dateTime={new Date().toISOString().slice(0, 10)}>{todayMonthDayLabel}</time>
+                    <strong>{schedules.length}</strong>
+                </span>
+            </div>
+            <div className="home-neb-today-list">
+                {schedules.map((schedule, index) => {
+                    const place = getSchedulePlaceLabel(schedule);
+
+                    return (
+                        <button
+                            key={schedule.id}
+                            type="button"
+                            className="home-neb-today-item"
+                            onClick={() => onEventClick(schedule as unknown as Event)}
+                        >
+                            <i aria-hidden="true">{index + 1}</i>
+                            <span>
+                                <strong>{schedule.title}</strong>
+                                {place && <small>장소 : {place}</small>}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+        </section>
+    );
+};
+
 const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     events,
     fallbackEvents,
+    todaySchedules,
     onEventClick,
     defaultThumbnailClass,
     defaultThumbnailEvent,
@@ -268,6 +321,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         currentIndex={safeActiveIndex}
                         onCurrentIndexChange={setActiveIndex}
+                        todaySchedules={todaySchedules}
                     />
                 </div>
 
@@ -289,6 +343,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                                     alt=""
                                     loading="eager"
                                     decoding="async"
+                                    draggable={false}
                                 />
                             )}
                         </span>
@@ -329,6 +384,11 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                             ))}
                         </div>
                     )}
+
+                    <HomeTodaySchedulePanel
+                        schedules={todaySchedules}
+                        onEventClick={onEventClick}
+                    />
                 </aside>
             </div>
             {isAdmin && isFallbackMixed && (
@@ -341,6 +401,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
 };
 
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
+    todayCalendarSchedules,
     todaySocialSchedules,
     thisWeekSocialSchedules,
     refreshSocialSchedules,
@@ -375,6 +436,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
                     fallbackEvents={homeAdCandidateEvents}
+                    todaySchedules={todayCalendarSchedules}
                     onEventClick={onEventClick}
                     defaultThumbnailClass={defaultThumbnailClass}
                     defaultThumbnailEvent={defaultThumbnailEvent}

@@ -1248,6 +1248,9 @@ html[data-theme="light"] .home-neb-standard-layout :is(
   .home-neb-feature-summary,
   .home-neb-feature-thumb,
   .home-neb-next-item,
+  .home-neb-today-panel,
+  .home-neb-today-item,
+  .NEB-todaySchedulePanel,
   .home-neb-admin-scope-strip button
 ) {
   border-color: #050505 !important;
@@ -1258,7 +1261,10 @@ html[data-theme="light"] .home-neb-standard-layout :is(
 
 html[data-theme="light"] .home-neb-standard-layout :is(
   .home-neb-feature-summary,
-  .home-neb-next-item
+  .home-neb-next-item,
+  .home-neb-today-panel,
+  .home-neb-today-item,
+  .NEB-todaySchedulePanel
 ) {
   border-width: 1px !important;
   border-style: solid !important;
