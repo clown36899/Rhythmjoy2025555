@@ -189,6 +189,166 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   font-size: inherit !important;
 }
 
+@media (min-width: 1024px) {
+  html.kiosk-link-router-active.v2-home-mode .shell-header.global-header-fixed {
+    height: 104px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-content-inner {
+    height: 104px !important;
+    padding-left: 40px !important;
+    padding-right: 40px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-left-content,
+  html.kiosk-link-router-active.v2-home-mode .header-events-content {
+    height: 84px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-logo-container,
+  html.kiosk-link-router-active.v2-home-mode .header-right-buttons {
+    transform: scale(1.08) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-container,
+  html.kiosk-link-router-active.v2-home-mode .home-main {
+    padding-top: 18px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout {
+    width: min(calc(100vw - 104px), 1320px) !important;
+    max-width: 1320px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px) !important;
+    gap: 24px !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-hero-pane,
+  html.kiosk-link-router-active.v2-home-mode .NEB-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel {
+    display: grid !important;
+    max-height: calc(100dvh - 270px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-header {
+    width: 100% !important;
+    min-height: 38px !important;
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-indicators {
+    width: 100% !important;
+    min-height: 40px !important;
+    margin: 0 0 16px !important;
+    padding: 0 4px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+  html.kiosk-link-router-active.v2-home-mode .NEB-track {
+    width: 100% !important;
+    height: var(--neb-dynamic-slider-height, min(520px, 48vh)) !important;
+    min-height: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide {
+    width: var(--neb-width, var(--neb-card-width, min(44vw, 460px))) !important;
+    height: 100% !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
+    display: grid !important;
+    grid-template-columns: 164px minmax(0, 1fr) !important;
+    gap: 18px !important;
+    width: 100% !important;
+    min-height: 92px !important;
+    margin-top: 16px !important;
+    padding: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary {
+    width: 100% !important;
+    justify-items: start !important;
+    text-align: left !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary strong {
+    font-size: clamp(22px, 2.1vw, 30px) !important;
+    line-height: 1.08 !important;
+    text-align: left !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryMeta {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: 158px !important;
+    height: 66px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitTicket {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {
+    width: min(760px, calc(100vw - 144px)) !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+    left: 50% !important;
+    bottom: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    transform: translateX(-50%) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 84px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-toggle {
+    height: 58px !important;
+    font-size: inherit !important;
+  }
+
+  #kiosk-carousel-controls button {
+    width: 58px;
+    height: 72px;
+    font-size: 44px;
+  }
+}
+
 #kiosk-carousel-controls {
   position: fixed;
   inset: 0;
@@ -419,4 +579,359 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   #kiosk-carousel-controls {
     display: none !important;
   }
+}
+
+@media (min-width: 640px) {
+  html.kiosk-link-router-active.v2-home-mode body,
+  html.kiosk-link-router-active.v2-home-mode #root,
+  html.kiosk-link-router-active.v2-home-mode .v2-home-shell {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .v2-home-shell {
+    width: 100vw !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .shell-header.global-header-fixed {
+    height: 92px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-content-inner {
+    height: 92px !important;
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-left-content,
+  html.kiosk-link-router-active.v2-home-mode .header-events-content {
+    height: 72px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-logo-container,
+  html.kiosk-link-router-active.v2-home-mode .header-right-buttons {
+    transform: scale(1) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-container,
+  html.kiosk-link-router-active.v2-home-mode .home-main {
+    padding-top: 12px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout {
+    width: min(calc(100vw - 24px), 1180px) !important;
+    max-width: 1180px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-bottom: 118px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(218px, 34vw) !important;
+    gap: 12px !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid.home-neb-desktop-grid--single {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-hero-pane,
+  html.kiosk-link-router-active.v2-home-mode .NEB-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-header {
+    width: 100% !important;
+    min-height: 34px !important;
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-indicators {
+    width: 100% !important;
+    min-height: 34px !important;
+    margin: 0 0 12px !important;
+    padding: 0 2px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+  html.kiosk-link-router-active.v2-home-mode .NEB-track {
+    width: 100% !important;
+    height: var(--neb-dynamic-slider-height, min(460px, 44vh)) !important;
+    min-height: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide {
+    width: var(--neb-width, var(--neb-card-width, min(54vw, 360px))) !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: var(--neb-left, 0) !important;
+    transform: var(--neb-transform, scale(1)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slide.is-active {
+    left: var(--neb-left, var(--neb-active-left, 30%)) !important;
+    transform: var(--neb-transform, scale(1)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
+    display: grid !important;
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-height: 80px !important;
+    margin-top: 12px !important;
+    padding: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: 108px !important;
+    height: 56px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitTicket {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary {
+    width: 100% !important;
+    justify-items: start !important;
+    gap: 6px !important;
+    text-align: left !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary strong {
+    font-size: clamp(17px, 2.8vw, 24px) !important;
+    line-height: 1.08 !important;
+    text-align: left !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryMeta {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    font-size: 12px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-todaySchedulePanel {
+    display: none !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel {
+    display: grid !important;
+    gap: 10px !important;
+    max-height: calc(100dvh - 228px) !important;
+    min-height: 0 !important;
+    padding: 12px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel.home-neb-side-panel--today-only {
+    margin-top: 44px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-feature-summary {
+    grid-template-columns: 70px minmax(0, 1fr) !important;
+    gap: 9px !important;
+    padding: 8px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-feature-copy strong {
+    font-size: clamp(14px, 2.1vw, 18px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-feature-copy small {
+    font-size: 11px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-next-list {
+    display: none !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-today-panel {
+    max-height: min(520px, calc(100dvh - 220px)) !important;
+    padding: 10px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-today-list {
+    max-height: min(460px, calc(100dvh - 292px)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {
+    width: min(720px, calc(100vw - 40px)) !important;
+    height: 108px !important;
+    min-height: 108px !important;
+    max-height: 108px !important;
+    left: 50% !important;
+    bottom: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    transform: translateX(-50%) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 76px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-toggle {
+    height: 58px !important;
+    font-size: inherit !important;
+  }
+}
+
+@media (min-width: 900px) {
+  html.kiosk-link-router-active.v2-home-mode .shell-header.global-header-fixed {
+    height: 104px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-content-inner {
+    height: 104px !important;
+    padding-left: 40px !important;
+    padding-right: 40px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-left-content,
+  html.kiosk-link-router-active.v2-home-mode .header-events-content {
+    height: 84px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .header-logo-container,
+  html.kiosk-link-router-active.v2-home-mode .header-right-buttons {
+    transform: scale(1.08) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-container,
+  html.kiosk-link-router-active.v2-home-mode .home-main {
+    padding-top: 18px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout {
+    width: min(calc(100vw - 72px), 1320px) !important;
+    max-width: 1320px !important;
+    padding-bottom: 124px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px) !important;
+    gap: 24px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid.home-neb-desktop-grid--single {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-header {
+    min-height: 38px !important;
+    margin-bottom: 12px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-indicators {
+    min-height: 40px !important;
+    margin-bottom: 16px !important;
+    padding: 0 4px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+  html.kiosk-link-router-active.v2-home-mode .NEB-track {
+    height: var(--neb-dynamic-slider-height, min(520px, 48vh)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
+    grid-template-columns: 164px minmax(0, 1fr) !important;
+    gap: 18px !important;
+    min-height: 92px !important;
+    margin-top: 16px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+    width: 158px !important;
+    height: 66px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary {
+    gap: 8px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary strong {
+    font-size: clamp(22px, 2.1vw, 30px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel {
+    gap: 12px !important;
+    max-height: calc(100dvh - 320px) !important;
+    padding: 16px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel.home-neb-side-panel--today-only {
+    margin-top: 50px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-feature-summary {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    padding: 10px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-feature-copy strong {
+    font-size: clamp(18px, 1.45vw, 23px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-feature-copy small {
+    font-size: 13px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-next-list {
+    display: grid !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-today-panel {
+    max-height: min(560px, calc(100dvh - 230px)) !important;
+    padding: 12px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-today-list {
+    max-height: min(500px, calc(100dvh - 306px)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {
+    width: min(760px, calc(100vw - 144px)) !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 899px) {
+  #kiosk-carousel-controls {
+    display: none !important;
+  }
+}
+
+html.kiosk-link-router-active.v2-home-mode #kiosk-carousel-controls {
+  display: none !important;
 }

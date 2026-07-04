@@ -133,6 +133,10 @@
     align-items: start;
 }
 
+.home-neb-desktop-grid--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .home-neb-hero-pane {
     min-width: 0;
     overflow: hidden;
@@ -166,6 +170,22 @@
     background:
         linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 42%),
         color-mix(in srgb, var(--bg-surface-2, #20232a) 92%, #000 8%);
+}
+
+.home-neb-side-panel--today-only {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.home-neb-side-panel--today-only .home-neb-today-panel {
+    max-height: min(520px, calc(100dvh - 220px));
+}
+
+.home-neb-side-panel--today-only .home-neb-today-list {
+    max-height: min(460px, calc(100dvh - 292px));
 }
 
 .home-neb-side-head {

@@ -822,7 +822,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     94,
                 );
 
-                const isMobileSurface = viewportWidth <= 760;
+                const isMobileSurface = viewportWidth < 640;
+                const isDesktopSplitSurface = viewportWidth >= 640;
                 const nextTodayItemLimit = !isMobileSurface
                     ? 4
                     : viewportHeight < 740
@@ -831,14 +832,18 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             ? 3
                             : 3;
                 const todayRows = Math.min(todaySchedules.length, nextTodayItemLimit);
-                const lowerReserve = todaySchedules.length > 0
+                const lowerReserve = isDesktopSplitSurface
+                    ? 118
+                    : todaySchedules.length > 0
                     ? 86 + (todayRows * 30) + (viewportWidth < 430 ? 18 : 28)
                     : 96;
                 const availableHeight = Math.floor(
                     navTop - containerRect.top - mediaBottom - lowerReserve - 14,
                 );
                 const widthBasedHeight = Math.floor(
-                    Math.min(360, Math.max(220, viewportWidth * (viewportWidth < 430 ? 0.62 : 0.54))),
+                    isDesktopSplitSurface
+                        ? Math.min(520, Math.max(330, (containerRect.width || viewportWidth) * 0.54))
+                        : Math.min(360, Math.max(220, viewportWidth * (viewportWidth < 430 ? 0.62 : 0.54))),
                 );
                 const sliderHeight = Math.max(210, Math.min(widthBasedHeight, availableHeight));
                 const containerWidth = containerRect.width || viewportWidth;

@@ -12,8 +12,6 @@ import { DEFAULT_HOME_SECTION_VISIBILITY } from "../hooks/useHomeSectionVisibili
 
 import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
-import { getCardThumbnail } from "../../../../../utils/getEventThumbnail";
-import { formatEventDate } from "../../../../../utils/dateUtils";
 import {
     calendarDanceScopeOptions,
     getDanceScopeLabel,
@@ -24,7 +22,6 @@ import {
 } from "../../../../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
-import { requestGoogleTranslateRefresh } from "../../../../../utils/googleTranslateRefresh";
 
 
 interface EventPreviewSectionProps {
@@ -127,23 +124,6 @@ const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
     }
 
     return filtered;
-};
-
-const getHomeAdDateLabel = (event?: Event) => {
-    if (!event) return "날짜 미정";
-    if (event.event_dates && event.event_dates.length > 0) {
-        return formatEventDate(event.event_dates[0]) + (event.event_dates.length > 1 ? " ..." : "");
-    }
-    const startDate = event.start_date || event.date;
-    const endDate = event.end_date || event.date;
-    if (!startDate) return "날짜 미정";
-    if (endDate && endDate !== startDate) return `${formatEventDate(startDate)}~${formatEventDate(endDate)}`;
-    return formatEventDate(startDate);
-};
-
-const getHomeAdPlaceLabel = (event?: Event) => {
-    if (!event) return "장소 미정";
-    return event.location || event.place_name || "장소 미정";
 };
 
 const getSchedulePlaceLabel = (schedule: SocialSchedule) => (
@@ -269,16 +249,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         setActiveIndex(0);
     }, [displayEventKey, preferredScope, displayEvents.length]);
     const safeActiveIndex = displayEvents.length > 0 ? activeIndex % displayEvents.length : 0;
-    const featuredEvent = displayEvents[safeActiveIndex] || displayEvents[0];
-    const nextEvents = displayEvents
-        .filter((event) => event.id !== featuredEvent?.id)
-        .slice(0, 4);
     const shouldShowScopeStrip = visibleDanceScopeOptions.length > 1;
-
-    useEffect(() => {
-        if (!featuredEvent) return;
-        requestGoogleTranslateRefresh();
-    }, [featuredEvent]);
 
     useEffect(() => {
         if (!shouldShowScopeStrip || typeof document === "undefined") return;
@@ -312,7 +283,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         <section className="home-neb-standard-layout" aria-label="신규 이벤트 광고">
             {shouldShowScopeStrip && renderScopeStrip("inline")}
             {shouldShowScopeStrip && headerScopeTarget && createPortal(renderScopeStrip("header"), headerScopeTarget)}
-            <div className="home-neb-desktop-grid">
+            <div className={`home-neb-desktop-grid ${todaySchedules.length > 0 ? "" : "home-neb-desktop-grid--single"}`}>
                 <div className="home-neb-hero-pane">
                     <NewEventsBanner
                         events={displayEvents}
@@ -325,71 +296,14 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                     />
                 </div>
 
-                <aside className="home-neb-side-panel" aria-label="신규 이벤트 요약">
-                    <div className="home-neb-side-head">
-                        <span>{getDanceScopeLabel(getHomeAdEventScope(featuredEvent))}</span>
-                        <strong>지금 노출 중</strong>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="home-neb-feature-summary"
-                        onClick={() => featuredEvent && onEventClick(featuredEvent)}
-                    >
-                        <span className="home-neb-feature-thumb">
-                            {featuredEvent && (
-                                <img
-                                    src={getCardThumbnail(featuredEvent) || defaultThumbnailEvent}
-                                    alt=""
-                                    loading="eager"
-                                    decoding="async"
-                                    draggable={false}
-                                />
-                            )}
-                        </span>
-                        <span className="home-neb-feature-copy">
-                            <em>{featuredEvent?.category === "class" ? "강습" : "행사"}</em>
-                            <strong>{featuredEvent?.title}</strong>
-                            <small>
-                                <i className="ri-map-pin-line" />
-                                {getHomeAdPlaceLabel(featuredEvent)}
-                            </small>
-                            <small>
-                                <i className="ri-calendar-line" />
-                                {getHomeAdDateLabel(featuredEvent)}
-                            </small>
-                        </span>
-                    </button>
-
-                    {nextEvents.length > 0 && (
-                        <div className="home-neb-next-list">
-                            <div className="home-neb-next-title">
-                                <strong>다음 후보</strong>
-                                <span>{displayEvents.length}개 중 일부</span>
-                            </div>
-                            {nextEvents.map((event, index) => (
-                                <button
-                                    key={event.id}
-                                    type="button"
-                                    className="home-neb-next-item"
-                                    onClick={() => setActiveIndex(displayEvents.findIndex((item) => item.id === event.id))}
-                                >
-                                    <em>{index + 1}</em>
-                                    <span>
-                                        <strong>{event.title}</strong>
-                                        <small>{getHomeAdDateLabel(event)} · {getHomeAdPlaceLabel(event)}</small>
-                                    </span>
-                                    <i className="ri-arrow-right-s-line" />
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    <HomeTodaySchedulePanel
-                        schedules={todaySchedules}
-                        onEventClick={onEventClick}
-                    />
-                </aside>
+                {todaySchedules.length > 0 && (
+                    <aside className="home-neb-side-panel home-neb-side-panel--today-only" aria-label="오늘 일정">
+                        <HomeTodaySchedulePanel
+                            schedules={todaySchedules}
+                            onEventClick={onEventClick}
+                        />
+                    </aside>
+                )}
             </div>
             {isAdmin && isFallbackMixed && (
                 <p className="home-neb-admin-scope-note">

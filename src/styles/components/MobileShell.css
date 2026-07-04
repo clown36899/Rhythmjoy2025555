@@ -1801,6 +1801,162 @@ html.v2-home-mode #root {
   display: none;
 }
 
+@media (min-width: 1024px) {
+  .v2-home-shell .shell-main-content {
+    padding-top: calc(96px + env(safe-area-inset-top)) !important;
+  }
+
+  .v2-home-shell .home-container,
+  .v2-home-shell .home-main,
+  .v2-home-shell .home-content-scroll,
+  .v2-home-shell .ELS-section {
+    overflow: visible !important;
+  }
+
+  .v2-home-shell .home-neb-standard-layout {
+    width: min(calc(100vw - 104px), 1320px) !important;
+    max-width: 1320px !important;
+    margin: 0 auto !important;
+    padding-bottom: 124px;
+  }
+
+  .v2-home-shell .home-neb-desktop-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+    gap: 24px;
+    align-items: start;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: var(--shell-page-bg, #1c1c1d);
+  }
+
+  .v2-home-shell .home-neb-hero-pane {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .v2-home-shell .home-neb-side-panel {
+    display: grid !important;
+    gap: 12px;
+    max-height: calc(100dvh - 270px);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .v2-home-shell .home-neb-admin-scope-note {
+    display: block;
+  }
+
+  .v2-home-shell .home-neb-standard-layout .NEB-container {
+    --neb-fixed-top-reserve: 108px;
+    --neb-bottom-menu-reserve: calc(104px + env(safe-area-inset-bottom, 0px));
+    --neb-banner-ui-reserve: 162px;
+    --neb-slider-target-height: clamp(340px, 48dvh, 520px);
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .v2-home-shell .NEB-header,
+  .v2-home-shell .NEB-indicators,
+  .v2-home-shell .NEB-slider,
+  .v2-home-shell .NEB-track,
+  .v2-home-shell .NEB-lowerDeck {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .v2-home-shell .NEB-header {
+    margin: 0 0 12px !important;
+    padding: 0 !important;
+  }
+
+  .v2-home-shell .NEB-indicators {
+    margin: 0 0 16px !important;
+    padding: 0 4px !important;
+    justify-content: center;
+  }
+
+  .v2-home-shell .NEB-lowerDeck {
+    display: grid !important;
+    grid-template-columns: 164px minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+    min-height: 92px;
+    margin-top: 16px !important;
+    padding: 0 !important;
+  }
+
+  .v2-home-shell .NEB-oneDayRecruitBtn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    align-self: start;
+    justify-self: start;
+    width: 158px !important;
+    height: 66px !important;
+  }
+
+  .v2-home-shell .NEB-oneDayRecruitTicket {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .v2-home-shell .NEB-activeSummaryCluster {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .v2-home-shell .NEB-activeSummary {
+    justify-items: start !important;
+    gap: 8px;
+    padding-top: 2px;
+    text-align: left !important;
+  }
+
+  .v2-home-shell .NEB-activeSummary strong {
+    font-size: clamp(22px, 2.1vw, 30px);
+    line-height: 1.08;
+    text-align: left;
+  }
+
+  .v2-home-shell .NEB-activeSummaryMeta {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .v2-home-shell .NEB-todaySchedulePanel {
+    display: none !important;
+  }
+
+  .v2-home-shell .home-v2-menu-panel {
+    width: min(760px, calc(100vw - 144px)) !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+    padding-right: 18px;
+    padding-left: 18px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .v2-home-shell .home-v2-menu-panel.is-expanded {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 84px) !important;
+  }
+
+  .v2-home-shell .home-v2-menu-compact-row {
+    top: 8px;
+    right: 18px;
+    left: 18px;
+  }
+}
+
 .v2-home-shell .header-events-content {
   gap: 12px;
 }
@@ -2041,4 +2197,336 @@ html.v2-home-mode #root {
 
 .shell-global-back-btn:hover {
   opacity: 0.7;
+}
+
+@media (min-width: 640px) {
+  html.v2-home-mode body,
+  html.v2-home-mode #root,
+  html.v2-home-mode .v2-home-shell {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .v2-home-shell {
+    width: 100vw !important;
+  }
+
+  .v2-home-shell .shell-main-content {
+    padding-top: calc(82px + env(safe-area-inset-top)) !important;
+  }
+
+  .v2-home-shell .home-container,
+  .v2-home-shell .home-main,
+  .v2-home-shell .home-content-scroll,
+  .v2-home-shell .ELS-section {
+    overflow: visible !important;
+  }
+
+  .v2-home-shell .home-neb-standard-layout {
+    width: min(calc(100vw - 24px), 1180px) !important;
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+    padding-bottom: 118px;
+  }
+
+  .v2-home-shell .home-neb-desktop-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(218px, 34vw);
+    gap: 12px;
+    align-items: start;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .v2-home-shell .home-neb-desktop-grid.home-neb-desktop-grid--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .v2-home-shell .home-neb-hero-pane,
+  .v2-home-shell .home-neb-standard-layout .NEB-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+  }
+
+  .v2-home-shell .home-neb-standard-layout .NEB-container {
+    --neb-fixed-top-reserve: 92px;
+    --neb-bottom-menu-reserve: calc(108px + env(safe-area-inset-bottom, 0px));
+    --neb-banner-ui-reserve: 150px;
+    --neb-slider-target-height: clamp(300px, 44dvh, 460px);
+  }
+
+  .v2-home-shell .NEB-header,
+  .v2-home-shell .NEB-indicators,
+  .v2-home-shell .NEB-slider,
+  .v2-home-shell .NEB-track,
+  .v2-home-shell .NEB-lowerDeck {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .v2-home-shell .NEB-header {
+    min-height: 34px !important;
+    margin: 0 0 10px !important;
+    padding: 0 !important;
+  }
+
+  .v2-home-shell .NEB-indicators {
+    min-height: 34px !important;
+    margin: 0 0 12px !important;
+    padding: 0 2px !important;
+  }
+
+  .v2-home-shell .NEB-lowerDeck {
+    display: grid !important;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    min-height: 80px;
+    margin-top: 12px !important;
+    padding: 0 !important;
+  }
+
+  .v2-home-shell .NEB-oneDayRecruitBtn {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: 108px !important;
+    height: 56px !important;
+  }
+
+  .v2-home-shell .NEB-oneDayRecruitTicket {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .v2-home-shell .NEB-activeSummaryCluster {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .v2-home-shell .NEB-activeSummary {
+    justify-items: start !important;
+    gap: 6px;
+    text-align: left !important;
+  }
+
+  .v2-home-shell .NEB-activeSummary strong {
+    font-size: clamp(17px, 2.8vw, 24px) !important;
+    line-height: 1.08;
+    text-align: left;
+  }
+
+  .v2-home-shell .NEB-activeSummaryMeta {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .v2-home-shell .NEB-todaySchedulePanel {
+    display: none !important;
+  }
+
+  .v2-home-shell .home-neb-side-panel {
+    display: grid !important;
+    align-content: start;
+    gap: 10px;
+    max-height: calc(100dvh - 228px);
+    min-height: 0;
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .v2-home-shell .home-neb-side-panel.home-neb-side-panel--today-only {
+    margin-top: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .v2-home-shell .home-neb-side-head span {
+    min-height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .v2-home-shell .home-neb-side-head strong {
+    font-size: 12px;
+  }
+
+  .v2-home-shell .home-neb-feature-summary {
+    grid-template-columns: 70px minmax(0, 1fr);
+    gap: 9px;
+    padding: 8px;
+  }
+
+  .v2-home-shell .home-neb-feature-thumb {
+    border-radius: 8px;
+  }
+
+  .v2-home-shell .home-neb-feature-copy {
+    gap: 5px;
+  }
+
+  .v2-home-shell .home-neb-feature-copy em {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .v2-home-shell .home-neb-feature-copy strong {
+    font-size: clamp(14px, 2.1vw, 18px);
+  }
+
+  .v2-home-shell .home-neb-feature-copy small {
+    font-size: 11px;
+  }
+
+  .v2-home-shell .home-neb-next-list {
+    display: none;
+  }
+
+  .v2-home-shell .home-neb-today-panel {
+    max-height: min(520px, calc(100dvh - 220px));
+    padding: 10px;
+  }
+
+  .v2-home-shell .home-neb-today-list {
+    max-height: min(460px, calc(100dvh - 292px));
+  }
+
+  .v2-home-shell .home-v2-menu-panel {
+    width: min(720px, calc(100vw - 40px)) !important;
+    height: 108px !important;
+    min-height: 108px !important;
+    max-height: 108px !important;
+    padding-right: 18px;
+    padding-left: 18px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .v2-home-shell .home-v2-menu-panel.is-expanded {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 76px) !important;
+  }
+}
+
+@media (min-width: 900px) {
+  .v2-home-shell .shell-main-content {
+    padding-top: calc(96px + env(safe-area-inset-top)) !important;
+  }
+
+  .v2-home-shell .home-neb-standard-layout {
+    width: min(calc(100vw - 72px), 1320px) !important;
+    max-width: 1320px !important;
+    padding-bottom: 124px;
+  }
+
+  .v2-home-shell .home-neb-desktop-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    gap: 24px;
+  }
+
+  .v2-home-shell .home-neb-desktop-grid.home-neb-desktop-grid--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .v2-home-shell .home-neb-standard-layout .NEB-container {
+    --neb-fixed-top-reserve: 108px;
+    --neb-bottom-menu-reserve: calc(104px + env(safe-area-inset-bottom, 0px));
+    --neb-banner-ui-reserve: 162px;
+    --neb-slider-target-height: clamp(340px, 48dvh, 520px);
+  }
+
+  .v2-home-shell .NEB-header {
+    min-height: 38px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .v2-home-shell .NEB-indicators {
+    min-height: 40px !important;
+    margin-bottom: 16px !important;
+    padding: 0 4px !important;
+  }
+
+  .v2-home-shell .NEB-lowerDeck {
+    grid-template-columns: 164px minmax(0, 1fr);
+    gap: 18px;
+    min-height: 92px;
+    margin-top: 16px !important;
+  }
+
+  .v2-home-shell .NEB-oneDayRecruitBtn {
+    width: 158px !important;
+    height: 66px !important;
+  }
+
+  .v2-home-shell .NEB-activeSummary {
+    gap: 8px;
+    padding-top: 2px;
+  }
+
+  .v2-home-shell .NEB-activeSummary strong {
+    font-size: clamp(22px, 2.1vw, 30px) !important;
+  }
+
+  .v2-home-shell .home-neb-side-panel {
+    gap: 12px;
+    max-height: calc(100dvh - 320px);
+    padding: 16px;
+  }
+
+  .v2-home-shell .home-neb-side-panel.home-neb-side-panel--today-only {
+    margin-top: 50px;
+  }
+
+  .v2-home-shell .home-neb-feature-summary {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .v2-home-shell .home-neb-feature-copy {
+    gap: 7px;
+  }
+
+  .v2-home-shell .home-neb-feature-copy em {
+    padding: 3px 7px;
+    font-size: 12px;
+  }
+
+  .v2-home-shell .home-neb-feature-copy strong {
+    font-size: clamp(18px, 1.45vw, 23px);
+  }
+
+  .v2-home-shell .home-neb-feature-copy small {
+    font-size: 13px;
+  }
+
+  .v2-home-shell .home-neb-next-list {
+    display: grid;
+  }
+
+  .v2-home-shell .home-neb-today-panel {
+    max-height: min(560px, calc(100dvh - 230px));
+    padding: 12px;
+  }
+
+  .v2-home-shell .home-neb-today-list {
+    max-height: min(500px, calc(100dvh - 306px));
+  }
+
+  .v2-home-shell .home-v2-menu-panel {
+    width: min(760px, calc(100vw - 144px)) !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+  }
 }
