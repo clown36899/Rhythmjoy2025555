@@ -6,6 +6,12 @@ import "../../../styles/components/EventCalendar.css";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 import { mergeEventIntoArray, removeEventFromArray } from "../../../utils/eventMutationSync";
+import {
+  getCalendarDateKey,
+  getCalendarEventDateKeys,
+  getCalendarTodayDateKey,
+  isEventShownOnCalendarDate,
+} from "../../../utils/calendarEventVisibility";
 
 const V2_EVENT_CALENDAR_DEBUG = import.meta.env.VITE_V2_EVENT_CALENDAR_DEBUG === 'true';
 const debugV2EventCalendar = (...args: unknown[]) => {
@@ -122,9 +128,9 @@ export default memo(function EventCalendar({
 
     // 현재 달에 표시되는 모든 이벤트 수집
     const currentMonthEvents = filteredEvents.filter(event => {
-      // event_dates 배열 체크
-      if (event.event_dates && event.event_dates.length > 0) {
-        return event.event_dates.some(dateStr => dateStr.startsWith(monthStr));
+      const eventDateKeys = getCalendarEventDateKeys(event);
+      if (eventDateKeys.length > 0) {
+        return eventDateKeys.some(dateStr => dateStr.startsWith(monthStr));
       }
 
       // start_date/end_date 체크
@@ -298,45 +304,20 @@ export default memo(function EventCalendar({
   };
 
   const getEventsForDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateString = `${year}-${month}-${day}`;
+    const dateString = getCalendarDateKey(date);
+    if (!dateString) return [];
+    const day = dateString.slice(-2);
 
     // 디버깅용 로그 (1일, 3일 등 특정 날짜에 대해서만 출력)
     if (day === "01" || day === "03") {
       // console.log(`[Calendar] getEventsForDate ${dateString}: checking ${filteredEvents.length} events`);
     }
 
-    return filteredEvents.filter((event) => {
-      // 특정 날짜 모드: event_dates 배열이 있으면 우선 사용
-      if (event.event_dates && event.event_dates.length > 0) {
-        // 강습(class)은 개별 선택된 날짜 중 첫 번째 날짜에만 표시
-        const isClass = event.category && (event.category.toLowerCase() === 'class' || event.category === 'regular');
-
-        if (isClass) {
-          // event_dates 배열을 정렬하여 첫 번째(가장 이른) 날짜만 사용
-          const sortedDates = [...event.event_dates].sort();
-          const firstDate = sortedDates[0];
-          return dateString === firstDate;
-        }
-        // 행사(event) 등 나머지는 등록된 모든 날짜 표시
-        return event.event_dates.some((d: string) => d.startsWith(dateString));
-      }
-
-      // 연속 기간 모드: 기존 로직
-      const startDate = (event.start_date || event.date || "").substring(0, 10);
-      const endDate = (event.end_date || event.date || "").substring(0, 10);
-
-      return (
-        startDate && endDate && dateString >= startDate && dateString <= endDate
-      );
-    });
+    return filteredEvents.filter((event) => isEventShownOnCalendarDate(event, dateString));
   };
 
   const isToday = (date: Date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+    return getCalendarDateKey(date) === getCalendarTodayDateKey();
   };
 
   // 월 단위로 멀티데이 이벤트의 레인과 색상 할당
@@ -491,26 +472,10 @@ export default memo(function EventCalendar({
     } else {
       debugV2EventCalendar('[Calendar] Selecting new date.');
       // 새로운 날짜 선택 - 이벤트 유무 확인
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const dateString = `${year}-${month}-${day}`;
+      const dateString = getCalendarDateKey(date);
+      if (!dateString) return;
 
-      const hasEvents = events.some((event) => {
-        // event_dates 배열로 정의된 이벤트 체크
-        if (event.event_dates && event.event_dates.length > 0) {
-          return event.event_dates.includes(dateString);
-        }
-        // start_date/end_date 범위로 정의된 이벤트 체크
-        const startDate = event.start_date || event.date;
-        const endDate = event.end_date || event.date;
-        return (
-          startDate &&
-          endDate &&
-          dateString >= startDate &&
-          dateString <= endDate
-        );
-      });
+      const hasEvents = events.some((event) => isEventShownOnCalendarDate(event, dateString));
 
       // 이벤트 유무 정보와 함께 날짜 전달
       onDateSelect(date, hasEvents);

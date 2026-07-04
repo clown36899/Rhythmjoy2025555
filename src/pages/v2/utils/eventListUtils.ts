@@ -1,4 +1,5 @@
 import type { Event as BaseEvent } from "../../../lib/cafe24Client";
+import { getCalendarKstDateKey } from "../../../utils/calendarEventVisibility";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 
 export { parseVideoUrl, isValidVideoUrl };
@@ -47,13 +48,7 @@ export const DEFAULT_GENRE_WEIGHTS: GenreWeightSettings = {
 
 // 한국 시간(KST) 기준 날짜 문자열 반환 (YYYY-MM-DD) - 절대적인 KST 기준
 export const getLocalDateString = (date: Date = new Date()) => {
-    // UTC 시간에 9시간을 더해 한국 날짜 객체를 모방
-    const kstOffset = 9 * 60 * 60 * 1000;
-    const kstDate = new Date(date.getTime() + kstOffset);
-    const y = kstDate.getUTCFullYear();
-    const m = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(kstDate.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return getCalendarKstDateKey(date);
 };
 
 // DatePicker용 날짜 포맷 (YYYY-MM-DD)

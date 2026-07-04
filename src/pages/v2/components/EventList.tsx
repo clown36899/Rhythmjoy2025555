@@ -17,6 +17,7 @@ import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
 import { useHomeSectionVisibility } from "./EventList/hooks/useHomeSectionVisibility";
 import { clampNebMaxItems, useNebFilterSettings } from "./EventList/hooks/useNebFilterSettings";
 import type { SocialSchedule } from "../../social/types";
+import { getCalendarTodayDateKey, isEventShownOnCalendarDate } from "../../../utils/calendarEventVisibility";
 
 // Styles
 import "../../../styles/domains/events.css";
@@ -79,25 +80,6 @@ const isMainAdEventToday = (event: Event, todayStr: string) => {
 const passesMainAdSocialTodayRule = (event: Event, todayStr: string) => (
   !isMainAdSocialEvent(event) || isMainAdEventToday(event, todayStr)
 );
-
-const isEventShownOnCalendarDate = (event: Event, dateString: string) => {
-  if (event.event_dates && event.event_dates.length > 0) {
-    const category = String(event.category || '').toLowerCase();
-    const isClass = category === 'class' || category === 'regular';
-
-    if (isClass) {
-      const firstDate = [...event.event_dates].sort()[0];
-      return getMainAdDatePart(firstDate) === dateString;
-    }
-
-    return event.event_dates.some((date) => getMainAdDatePart(date) === dateString);
-  }
-
-  const startDate = getMainAdDatePart(event.start_date || event.date);
-  const endDate = getMainAdDatePart(event.end_date || event.date || event.start_date);
-
-  return Boolean(startDate && endDate && startDate <= dateString && dateString <= endDate);
-};
 
 const eventToScheduleItem = (event: Event): SocialSchedule => ({
   id: event.id,
@@ -196,7 +178,7 @@ const EventList: React.FC<EventListProps> = ({
 
     const now = new Date();
     const windowAgo = new Date(now.getTime() - time_window_hours * 60 * 60 * 1000);
-    const todayStr = getLocalDateString();
+    const todayStr = getCalendarTodayDateKey();
 
     const isEligible = (event: Event) => {
       // 장르 필터: 이벤트의 장르 중 하나라도 포함 장르 목록에 있으면 통과
@@ -251,7 +233,7 @@ const EventList: React.FC<EventListProps> = ({
   }, [events, nebFilterSettings]);
 
   const homeAdCandidateEvents = useMemo(() => {
-    const todayStr = getLocalDateString();
+    const todayStr = getCalendarTodayDateKey();
 
     return events
       .filter((event) => {
@@ -303,7 +285,7 @@ const EventList: React.FC<EventListProps> = ({
   }, [events]);
 
   const allGenresStructured = useMemo(() => {
-    const today = getLocalDateString();
+    const today = getCalendarTodayDateKey();
 
     const classGenres = new Set<string>();
     const clubGenres = new Set<string>();
@@ -412,8 +394,8 @@ const EventList: React.FC<EventListProps> = ({
             p.set('favTab', tab);
             setSearchParams(p);
           }}
-          futureFavorites={events.filter(e => favoriteEventIds.has(Number(e.id)) && (e.end_date || e.date || "") >= getLocalDateString())}
-          pastFavorites={events.filter(e => favoriteEventIds.has(Number(e.id)) && (e.end_date || e.date || "") < getLocalDateString())}
+          futureFavorites={events.filter(e => favoriteEventIds.has(Number(e.id)) && (e.end_date || e.date || "") >= getCalendarTodayDateKey())}
+          pastFavorites={events.filter(e => favoriteEventIds.has(Number(e.id)) && (e.end_date || e.date || "") < getCalendarTodayDateKey())}
           favoritedBoardPosts={[]}
           favoriteSocialGroups={[]}
           favoritePracticeRooms={[]}
@@ -440,8 +422,8 @@ const EventList: React.FC<EventListProps> = ({
       ) : view === 'my-events' ? (
         <MyEventsView
           myEvents={{
-            future: events.filter(e => e.user_id === user?.id && (e.end_date || e.date || "") >= getLocalDateString()),
-            past: events.filter(e => e.user_id === user?.id && (e.end_date || e.date || "") < getLocalDateString()),
+            future: events.filter(e => e.user_id === user?.id && (e.end_date || e.date || "") >= getCalendarTodayDateKey()),
+            past: events.filter(e => e.user_id === user?.id && (e.end_date || e.date || "") < getCalendarTodayDateKey()),
             all: events.filter(e => e.user_id === user?.id)
           }}
           onEventClick={(e) => onEventClick?.(e)}
@@ -460,7 +442,7 @@ const EventList: React.FC<EventListProps> = ({
         <EventHorizontalListView
           events={view?.startsWith('viewAll')
             ? sortEvents(
-              events.filter(e => e.category === (view === 'viewAll-events' ? 'event' : 'class') && (e.end_date || e.date || "") >= getLocalDateString()),
+              events.filter(e => e.category === (view === 'viewAll-events' ? 'event' : 'class') && (e.end_date || e.date || "") >= getCalendarTodayDateKey()),
               'random',
               false,
               null,
@@ -475,7 +457,7 @@ const EventList: React.FC<EventListProps> = ({
         <EventPreviewSection
           isSocialSchedulesLoading={loading}
           todayCalendarSchedules={(() => {
-            const todayStr = getLocalDateString();
+            const todayStr = getCalendarTodayDateKey();
 
             return events
               .filter(e => isEventShownOnCalendarDate(e, todayStr))
@@ -483,7 +465,7 @@ const EventList: React.FC<EventListProps> = ({
               .sort(sortScheduleItems);
           })()}
           todaySocialSchedules={(() => {
-            const todayStr = getLocalDateString();
+            const todayStr = getCalendarTodayDateKey();
 
             // A. All Socials from 'events' table
             // Condition: (category='social') OR (category='event' AND !group_id)
@@ -508,7 +490,7 @@ const EventList: React.FC<EventListProps> = ({
             return todaySocials;
           })()}
           thisWeekSocialSchedules={(() => {
-            const todayStr = getLocalDateString();
+            const todayStr = getCalendarTodayDateKey();
             const kstDay = getKSTDay();
             const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
 

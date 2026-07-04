@@ -6,6 +6,11 @@ import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import DateEventsModal from "./DateEventsModal";
 import type { DanceScope } from "../../../utils/danceTaxonomy";
 import { getLightweightEventImage } from "../../../utils/getEventThumbnail";
+import {
+  getCalendarDateKey,
+  getCalendarEventDateKeys,
+  getCalendarTodayDateKey,
+} from "../../../utils/calendarEventVisibility";
 import "../styles/FullEventCalendar.css";
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
@@ -23,23 +28,8 @@ const getSafeRect = (element: Element | null | undefined) => {
   }
 };
 
-const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-const toLocalDateString = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-const getDateKey = (value: any) => {
-  if (!value) return null;
-  if (typeof value === 'string' && DATE_ONLY_RE.test(value.slice(0, 10)) && !value.includes('T')) {
-    return value.slice(0, 10);
-  }
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return toLocalDateString(date);
-};
-
 const parseDateKey = (value: any) => {
-  const key = getDateKey(value);
+  const key = getCalendarDateKey(value);
   if (!key) return null;
   const [year, month, day] = key.split('-').map(Number);
   return new Date(year, month - 1, day);
@@ -114,10 +104,7 @@ const CalendarCell = memo(({
     }
   }, []);
 
-  const year = day.getFullYear();
-  const month = String(day.getMonth() + 1).padStart(2, "0");
-  const dayNum = String(day.getDate()).padStart(2, "0");
-  const dateString = `${year}-${month}-${dayNum}`;
+  const dateString = getCalendarDateKey(day) || "";
 
   return (
     <div
@@ -548,15 +535,7 @@ export default memo(function FullEventCalendar({
     filteredEvents.forEach(event => {
       // 1. 특정 날짜들 (event_dates) 기반 인덱싱
       if (event.event_dates && event.event_dates.length > 0) {
-        const sortedDates = event.event_dates.map(getDateKey).filter(Boolean).sort();
-        const isClass = event.category && ['class', 'regular', 'club'].includes(event.category.toLowerCase());
-
-        event.event_dates.forEach(d => {
-          const dateStr = getDateKey(d);
-          if (!dateStr) return;
-          // 강습은 첫 번째 날짜에만 표시하도록 원본 로직 유지
-          if (isClass && dateStr !== sortedDates[0]) return;
-
+        getCalendarEventDateKeys(event).forEach(dateStr => {
           if (!map[dateStr]) map[dateStr] = [];
           map[dateStr].push(event);
         });
@@ -575,9 +554,11 @@ export default memo(function FullEventCalendar({
           // 안전을 위해 최대 365일 제한
           let limit = 0;
           while (curr <= end && limit < 365) {
-            const dateStr = toLocalDateString(curr);
-            if (!map[dateStr]) map[dateStr] = [];
-            map[dateStr].push(event);
+            const dateStr = getCalendarDateKey(curr);
+            if (dateStr) {
+              if (!map[dateStr]) map[dateStr] = [];
+              map[dateStr].push(event);
+            }
             curr.setDate(curr.getDate() + 1);
             limit++;
           }
@@ -604,16 +585,13 @@ export default memo(function FullEventCalendar({
   }, [filteredEvents]);
 
   const getEventsForDate = useCallback((date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateString = `${year}-${month}-${day}`;
+    const dateString = getCalendarDateKey(date);
+    if (!dateString) return [];
     return eventsByDate[dateString] || [];
   }, [eventsByDate]);
 
   const isToday = (date: Date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+    return getCalendarDateKey(date) === getCalendarTodayDateKey();
   };
 
   const handleFullscreenDateClick = (date: Date, clickEvent?: React.MouseEvent) => {
