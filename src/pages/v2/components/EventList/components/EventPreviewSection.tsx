@@ -25,6 +25,7 @@ import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
 import {
     getTodaySchedulePlaceLabel,
     getTodaySchedulePrimaryText,
+    getTodayScheduleWeekdayLabel,
     shouldShowTodaySchedulePlaceLine,
 } from "../utils/todayScheduleDisplay";
 
@@ -143,14 +144,14 @@ const HomeTodaySchedulePanel: React.FC<{
     if (schedules.length === 0) return null;
 
     const todayMonthDayLabel = getTodayMonthDayLabel();
+    const todayWeekdayLabel = getTodayScheduleWeekdayLabel();
 
     return (
         <section className="home-neb-today-panel" aria-label="오늘 일정">
             <div className="home-neb-today-head">
-                <span>오늘일정</span>
+                <span className="home-neb-today-title">오늘일정{todayWeekdayLabel}</span>
                 <span className="home-neb-today-head-meta">
                     <time dateTime={new Date().toISOString().slice(0, 10)}>{todayMonthDayLabel}</time>
-                    <strong>{schedules.length}</strong>
                 </span>
             </div>
             <div className="home-neb-today-list">

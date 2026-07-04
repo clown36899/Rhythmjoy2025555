@@ -1,5 +1,11 @@
 import type { SocialSchedule } from "../../../../social/types";
 
+const KOREAN_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+export const getTodayScheduleWeekdayLabel = (date: Date = new Date()): string => (
+  `(${KOREAN_WEEKDAYS[date.getDay()]})`
+);
+
 export const getTodaySchedulePlaceLabel = (schedule: SocialSchedule) => (
   schedule.location || schedule.place_name || schedule.address || ""
 );

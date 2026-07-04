@@ -10,6 +10,7 @@ import type { SocialSchedule } from '../../social/types';
 import {
     getTodaySchedulePlaceLabel,
     getTodaySchedulePrimaryText,
+    getTodayScheduleWeekdayLabel,
     shouldShowTodaySchedulePlaceLine,
 } from './EventList/utils/todayScheduleDisplay';
 
@@ -741,6 +742,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const hasMultipleEvents = events.length > 1;
     const visibleTodaySchedules = todaySchedules;
     const todayMonthDayLabel = getTodayMonthDayLabel();
+    const todayWeekdayLabel = getTodayScheduleWeekdayLabel();
     const activeCardAlignmentStyle = {
         '--neb-summary-left': hasMultipleEvents
             ? 'var(--neb-active-left, 30%)'
@@ -1328,10 +1330,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     {visibleTodaySchedules.length > 0 && (
                         <aside className="NEB-todaySchedulePanel" aria-label="오늘 일정">
                             <div className="NEB-todayScheduleHeader">
-                                <span>오늘일정</span>
+                                <span className="NEB-todayScheduleTitle">오늘일정{todayWeekdayLabel}</span>
                                 <span className="NEB-todayScheduleHeaderMeta">
                                     <time dateTime={new Date().toISOString().slice(0, 10)}>{todayMonthDayLabel}</time>
-                                    <em>{todaySchedules.length}</em>
                                 </span>
                             </div>
                             <div className="NEB-todayScheduleScrollFrame">

@@ -415,6 +415,10 @@
     letter-spacing: 0;
 }
 
+.home-neb-today-title {
+    margin-left: 36px;
+}
+
 .home-neb-today-head strong {
     display: grid;
     place-items: center;
@@ -500,8 +504,8 @@
     width: 22px;
     height: 22px;
     border-radius: 999px;
-    background: color-mix(in srgb, #4bdeb6 18%, transparent);
-    color: #a7f3d0;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(248, 250, 252, 0.58);
     font-size: 11px;
     font-style: normal;
     font-weight: 950;
