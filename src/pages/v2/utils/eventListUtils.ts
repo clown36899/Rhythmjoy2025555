@@ -19,6 +19,7 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
     link_name3?: string | null;
     password?: string | null;
     show_title_on_billboard?: boolean | null;
+    main_ad_image_kind?: 'photo' | 'poster' | 'auto' | string | null;
     storage_path?: string | null;
     genre?: string | null;
     event_dates?: string[];

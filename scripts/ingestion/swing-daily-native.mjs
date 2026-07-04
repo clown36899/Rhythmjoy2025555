@@ -306,9 +306,21 @@ function looksLikeBroadScheduleNotice(title = '', text = '') {
   return /(?:\d{4}\s*년도\s*)?\d+\s*학기\s*정규\s*수업.*확정|정규\s*수업\s*시간표|전체\s*강습\s*일정|강습\s*전체\s*일정|공지사항.*정규\s*수업|공지사항.*정규수업/i.test(value);
 }
 
+function hasExplicitEventDateMention(text = '') {
+  const raw = compactText(text);
+  return /20\d{2}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}/.test(raw)
+    || /\d{1,2}\s*월\s*\d{1,2}/.test(raw)
+    || /(?<!\d)\d{1,2}\s*[./]\s*\d{1,2}(?!\d)/.test(raw);
+}
+
 function selectCandidateDates({ title, cleanText, activity }) {
   const titleDates = extractDates(title);
-  const sourceDates = titleDates.length ? titleDates : extractDates(cleanText);
+  if (titleDates.length) {
+    if (activity === 'social') return titleDates;
+    return keepFirstEventDateOnly(titleDates);
+  }
+  if (hasExplicitEventDateMention(title)) return [];
+  const sourceDates = extractDates(cleanText);
   if (activity === 'social') return sourceDates;
   return keepFirstEventDateOnly(sourceDates);
 }

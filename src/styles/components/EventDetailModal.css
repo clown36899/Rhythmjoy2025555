@@ -471,6 +471,29 @@
     gap: var(--spacing-2);
 }
 
+.EDM-mainAdKindGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+.EDM-mainAdKindLabel {
+    font-weight: 700;
+}
+
+.EDM-mainAdKindValue {
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    line-height: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-2);
+}
+
 .EDM-genreText {
     font-size: 0.875rem;
     margin: 0;
@@ -1249,6 +1272,23 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-4);
+}
+
+.EDM-mainAdKindEditContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.EDM-mainAdKindToggle .EDM-categoryToggleBtn {
+    min-height: 40px;
+}
+
+.EDM-mainAdKindSummary {
+    color: var(--text-tertiary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: center;
 }
 
 .EDM-categoryToggle {

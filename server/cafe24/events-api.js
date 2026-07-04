@@ -122,6 +122,11 @@ function normalizeCategoryValue(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeMainAdImageKind(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'photo' || normalized === 'poster' ? normalized : null;
+}
+
 function activityTypeForCategory(category) {
   const normalized = normalizeCategoryValue(category);
   if (normalized === 'social') return 'social';
@@ -195,6 +200,7 @@ function normalizeEventPayload(input, existing = null, user = null) {
       : (user?.id || source.user_id || null),
     organizer: source.organizer || user?.nickname || source.organizer_name || 'Swing Enjoy',
     organizer_name: source.organizer_name || user?.nickname || '',
+    main_ad_image_kind: normalizeMainAdImageKind(source.main_ad_image_kind),
     created_at: source.created_at || now,
     updated_at: now,
   };

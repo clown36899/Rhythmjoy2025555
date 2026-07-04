@@ -48,6 +48,7 @@ interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'ev
   location?: string | null;
   location_link?: string | null;
   category?: string | null;
+  main_ad_image_kind?: 'photo' | 'poster' | 'auto' | string | null;
 }
 
 import { getGenreColorClass } from '../../../constants/genreColors';
@@ -107,6 +108,43 @@ function summarizeUpdatesForLog(updates: Record<string, unknown>) {
     hasImageUpdate: ['image', 'image_micro', 'image_thumbnail', 'image_medium', 'image_full', 'storage_path']
       .some((key) => key in updates),
   };
+}
+
+function normalizeMainAdImageKind(value: unknown) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'photo' || normalized === 'poster' ? normalized : null;
+}
+
+function getMainAdImageKindLabel(value: unknown) {
+  const normalized = normalizeMainAdImageKind(value);
+  if (normalized === 'photo') return '사진';
+  if (normalized === 'poster') return '포스터';
+  return '자동';
+}
+
+function isSocialMainAdEvent(event: Event | null | undefined) {
+  if (!event) return false;
+  const id = String(event.id || '');
+  const category = String(event.category || '').toLowerCase();
+  const activityType = String((event as Event & { activity_type?: string | null }).activity_type || '').toLowerCase();
+  const genre = String(event.genre || '').toLowerCase();
+
+  return (
+    id.startsWith('social-') ||
+    category === 'social' ||
+    activityType === 'social' ||
+    genre.includes('소셜') ||
+    genre.includes('social')
+  );
+}
+
+function hasMainAdImage(event: Event | null | undefined) {
+  return Boolean(
+    event?.image ||
+    event?.image_thumbnail ||
+    event?.image_medium ||
+    event?.image_full
+  );
 }
 
 export default function EventDetailModal({
@@ -690,6 +728,9 @@ export default function EventDetailModal({
     }
     if (activeEditField === 'description') updates.description = value;
     if (activeEditField === 'time') updates.time = value;
+    if (activeEditField === 'mainAdImageKind') {
+      updates.main_ad_image_kind = normalizeMainAdImageKind(value);
+    }
     if (activeEditField === 'date') {
       const dates = value.split(',').filter(Boolean).sort();
       if (dates.length > 1) {
@@ -742,7 +783,7 @@ export default function EventDetailModal({
     const fieldsToCheck = [
       'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
-      'date', 'start_date', 'end_date', 'event_dates', 'time'
+      'date', 'start_date', 'end_date', 'event_dates', 'time', 'main_ad_image_kind'
     ];
 
     if (EVENT_DETAIL_DEBUG) console.debug('[hasChanges] Checking for changes...');
@@ -1372,6 +1413,25 @@ export default function EventDetailModal({
                       </div>
                     );
                   })()}
+
+                  {isSelectionMode && isSocialMainAdEvent(selectedEvent) && hasMainAdImage(selectedEvent) && (
+                    <div className="EDM-mainAdKindGroup">
+                      <span className="EDM-mainAdKindLabel">메인광고 판정</span>
+                      <strong className="EDM-mainAdKindValue">
+                        {getMainAdImageKindLabel((selectedEvent as any).main_ad_image_kind)}
+                      </strong>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveEditField('mainAdImageKind');
+                        }}
+                        className="EDM-editTrigger"
+                        title="메인광고 판정 수정"
+                      >
+                        <i className="ri-pencil-line"></i>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 세부 정보 */}

@@ -58,6 +58,7 @@ export interface Event {
   updated_at?: string;
   user_id?: string | null;
   show_title_on_billboard?: boolean | null; // 👈 이 줄을 추가해주세요
+  main_ad_image_kind?: 'photo' | 'poster' | 'auto' | string | null;
   venue_id?: string | null;
   venue_name?: string | null;
   venue_custom_link?: string | null;

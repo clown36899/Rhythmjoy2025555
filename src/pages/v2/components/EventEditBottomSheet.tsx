@@ -49,6 +49,7 @@ const EventEditBottomSheet = React.memo(({
             }
         }
         if (activeField === 'description') setEditValue(initialValue.description || '');
+        if (activeField === 'mainAdImageKind') setEditValue(initialValue.main_ad_image_kind || 'auto');
         if (activeField === 'date') {
             const dates = initialValue.event_dates || [];
             if (dates.length > 0) {
@@ -99,6 +100,7 @@ const EventEditBottomSheet = React.memo(({
                     {activeField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
                     {activeField === 'links' && <><i className="ri-link"></i>링크 수정</>}
                     {activeField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
+                    {activeField === 'mainAdImageKind' && <><i className="ri-image-line"></i>메인광고 판정</>}
                 </h3>
 
                 <div className="EDM-bottomSheetBody">
@@ -179,6 +181,32 @@ const EventEditBottomSheet = React.memo(({
                                     value={editValue}
                                     onChange={(e) => setEditValue(e.target.value)}
                                 />
+                            </div>
+                        ) : activeField === 'mainAdImageKind' ? (
+                            <div className="EDM-mainAdKindEditContainer">
+                                <div className="EDM-categoryToggle EDM-mainAdKindToggle">
+                                    <button
+                                        onClick={() => setEditValue('auto')}
+                                        className={`EDM-categoryToggleBtn ${editValue === 'auto' ? 'is-active' : ''}`}
+                                    >
+                                        자동
+                                    </button>
+                                    <button
+                                        onClick={() => setEditValue('photo')}
+                                        className={`EDM-categoryToggleBtn ${editValue === 'photo' ? 'is-active' : ''}`}
+                                    >
+                                        사진
+                                    </button>
+                                    <button
+                                        onClick={() => setEditValue('poster')}
+                                        className={`EDM-categoryToggleBtn ${editValue === 'poster' ? 'is-active' : ''}`}
+                                    >
+                                        포스터
+                                    </button>
+                                </div>
+                                <div className="EDM-mainAdKindSummary">
+                                    {editValue === 'poster' ? '원본 디자인 유지' : editValue === 'photo' ? '제목 오버레이 표시' : '포스터 확실할 때만 원본 유지'}
+                                </div>
                             </div>
                         ) : activeField === 'genre' ? (
                             <div className="EDM-genreEditContainer">
@@ -269,6 +297,8 @@ const EventEditBottomSheet = React.memo(({
                                 onSave(linkEditValues, editCategory);
                             } else if (activeField === 'genre') {
                                 onSave({ genre: editValue, scope: editScope }, editCategory);
+                            } else if (activeField === 'mainAdImageKind') {
+                                onSave(editValue === 'auto' ? null : editValue, editCategory);
                             } else {
                                 onSave(editValue, editCategory);
                             }

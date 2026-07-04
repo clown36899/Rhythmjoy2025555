@@ -1468,6 +1468,11 @@ function normalizeCategoryValue(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeMainAdImageKind(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'photo' || normalized === 'poster' ? normalized : null;
+}
+
 function activityTypeForEventCategory(category) {
   const normalized = normalizeCategoryValue(category);
   if (normalized === 'social') return 'social';
@@ -1503,6 +1508,9 @@ function normalizeEventInsertValues(values, user) {
   return values.map((row) => {
     const next = { ...(row || {}) };
     next.user_id = user.is_admin ? (next.user_id || user.id) : user.id;
+    if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
+      next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
+    }
     delete next.password;
     delete next.board_users;
     return normalizeEventActivityType(next, row);
@@ -1513,6 +1521,9 @@ function normalizeEventUpdateValues(values, user) {
   const next = { ...(values || {}) };
   if (!user.is_admin) {
     delete next.user_id;
+  }
+  if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
+    next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
   }
   delete next.password;
   delete next.board_users;
@@ -1527,6 +1538,9 @@ function normalizeEventUpsertValue(value, existing, user) {
   next.user_id = user.is_admin
     ? (next.user_id || user.id)
     : (existing?.user_id || user.id);
+  if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
+    next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
+  }
   delete next.password;
   delete next.board_users;
   return normalizeEventActivityType(next, value);

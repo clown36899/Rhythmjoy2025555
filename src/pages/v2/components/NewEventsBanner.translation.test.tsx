@@ -1,7 +1,7 @@
 import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ModalProvider } from '../../../contexts/ModalContext';
 import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
 import type { Event } from '../utils/eventListUtils';
@@ -29,8 +29,15 @@ const events = [
 ] as Event[];
 
 describe('NewEventsBanner translation refresh', () => {
+    let randomSpy: ReturnType<typeof vi.spyOn>;
+
     beforeEach(() => {
         vi.mocked(requestGoogleTranslateRefresh).mockClear();
+        randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    });
+
+    afterEach(() => {
+        randomSpy.mockRestore();
     });
 
     it('requests Google Translate refresh when the active ad changes', async () => {

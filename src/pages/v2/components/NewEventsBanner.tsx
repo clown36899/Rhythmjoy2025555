@@ -38,6 +38,11 @@ const UNKNOWN_SOCIAL_IMAGE_ANALYSIS: SocialAdImageAnalysis = {
     confidence: 0,
 };
 
+const PHOTO_SOCIAL_IMAGE_ANALYSIS: SocialAdImageAnalysis = {
+    kind: 'photo',
+    confidence: 0.5,
+};
+
 const getMainAdImage = (
     event: Event,
     defaultThumbnailClass?: string,
@@ -111,16 +116,14 @@ const getSocialImageUrlHint = (imageUrl: string): SocialAdImageAnalysis | null =
     return null;
 };
 
-const getSocialPhotoFallbackAnalysis = (imageUrl: string, event: Event): SocialAdImageAnalysis | null => {
-    const normalizedUrl = imageUrl.toLowerCase();
+const getManualSocialAdImageAnalysis = (event: Event): SocialAdImageAnalysis | null => {
+    const manualKind = String((event as Event & { main_ad_image_kind?: string | null }).main_ad_image_kind || '')
+        .trim()
+        .toLowerCase();
 
-    if (!hasCustomEventImage(event) || !isSocialAdEvent(event)) return null;
-    if (getSocialImageUrlHint(imageUrl)?.kind === 'poster') return null;
-    if (normalizedUrl.includes('/ingestor-events/') || normalizedUrl.includes('ingestor-events%2f')) {
-        return { kind: 'photo', confidence: 0.55 };
-    }
-
-    return null;
+    return manualKind === 'photo' || manualKind === 'poster'
+        ? { kind: manualKind, confidence: 1 }
+        : null;
 };
 
 const detectSocialAdImageKind = (imageUrl: string): Promise<SocialAdImageAnalysis> => (
@@ -243,7 +246,16 @@ const detectSocialAdImageKind = (imageUrl: string): Promise<SocialAdImageAnalysi
                         topTwelveColorRatio > 0.42 ||
                         highSaturationRatio > 0.28
                     );
-                const isPoster = posterScore >= SOCIAL_POSTER_SCORE_THRESHOLD || hasPosterLayoutCue || hasTextPosterCue;
+                const isPoster =
+                    posterScore >= SOCIAL_POSTER_SCORE_THRESHOLD ||
+                    hasPosterLayoutCue ||
+                    hasTextPosterCue ||
+                    (
+                        textLikeCellRatio > 0.055 &&
+                        edgeDensity > 0.07 &&
+                        topTwelveColorRatio > 0.5 &&
+                        uniqueColorRatio < 0.22
+                    );
                 const confidence = Math.min(
                     0.98,
                     0.52 + Math.abs(posterScore - SOCIAL_POSTER_SCORE_THRESHOLD) * 1.12,
@@ -622,6 +634,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
     const ensureSocialAdImageKind = useCallback((imageUrl: string, event: Event) => {
         if (!imageUrl || !hasCustomEventImage(event) || !isSocialAdEvent(event)) return;
+        if (getManualSocialAdImageAnalysis(event)) return;
 
         const cachedAnalysis = socialAdImageKindCache.get(imageUrl);
         if (cachedAnalysis) {
@@ -651,12 +664,11 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 ));
             })
             .catch(() => {
-                const fallbackAnalysis = getSocialPhotoFallbackAnalysis(imageUrl, event) || UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
-                socialAdImageKindCache.set(imageUrl, fallbackAnalysis);
+                socialAdImageKindCache.set(imageUrl, PHOTO_SOCIAL_IMAGE_ANALYSIS);
                 setSocialImageAnalysisByUrl((prev) => (
-                    prev[imageUrl] === fallbackAnalysis
+                    prev[imageUrl] === PHOTO_SOCIAL_IMAGE_ANALYSIS
                         ? prev
-                        : { ...prev, [imageUrl]: fallbackAnalysis }
+                        : { ...prev, [imageUrl]: PHOTO_SOCIAL_IMAGE_ANALYSIS }
                 ));
             })
             .finally(() => {
@@ -1007,9 +1019,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const getPlaceLabel = (event: Event) => event.location || event.place_name || "장소 미정";
     const getTimeLabel = (event: Event) => event.time?.trim() || '';
     const getSocialImageAnalysis = (imageUrl: string, event: Event) =>
+        getManualSocialAdImageAnalysis(event) ||
         getSocialImageUrlHint(imageUrl) ||
         socialImageAnalysisByUrl[imageUrl] ||
-        getSocialPhotoFallbackAnalysis(imageUrl, event) ||
         UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
     const getPreviewStackMetrics = (distance: number) => {
         let frontLeft = layoutStats.activeLeft;
