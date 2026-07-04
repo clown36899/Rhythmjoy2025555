@@ -22,6 +22,11 @@ import {
 } from "../../../../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
+import {
+    getTodaySchedulePlaceLabel,
+    getTodaySchedulePrimaryText,
+    shouldShowTodaySchedulePlaceLine,
+} from "../utils/todayScheduleDisplay";
 
 
 interface EventPreviewSectionProps {
@@ -126,10 +131,6 @@ const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
     return filtered;
 };
 
-const getSchedulePlaceLabel = (schedule: SocialSchedule) => (
-    schedule.location || schedule.place_name || schedule.address || ""
-);
-
 const getTodayMonthDayLabel = () => {
     const today = new Date();
     return `${today.getMonth() + 1}월 ${today.getDate()}일`;
@@ -154,7 +155,9 @@ const HomeTodaySchedulePanel: React.FC<{
             </div>
             <div className="home-neb-today-list">
                 {schedules.map((schedule, index) => {
-                    const place = getSchedulePlaceLabel(schedule);
+                    const place = getTodaySchedulePlaceLabel(schedule);
+                    const primaryText = getTodaySchedulePrimaryText(schedule);
+                    const showPlaceLine = shouldShowTodaySchedulePlaceLine(schedule);
 
                     return (
                         <button
@@ -165,8 +168,8 @@ const HomeTodaySchedulePanel: React.FC<{
                         >
                             <i aria-hidden="true">{index + 1}</i>
                             <span>
-                                <strong>{schedule.title}</strong>
-                                {place && <small>장소 : {place}</small>}
+                                <strong>{primaryText}</strong>
+                                {showPlaceLine && <small>장소 : {place}</small>}
                             </span>
                         </button>
                     );

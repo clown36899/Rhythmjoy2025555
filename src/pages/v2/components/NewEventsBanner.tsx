@@ -7,6 +7,11 @@ import { formatEventDate } from '../../../utils/dateUtils';
 import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
 import './NewEventsBanner.css';
 import type { SocialSchedule } from '../../social/types';
+import {
+    getTodaySchedulePlaceLabel,
+    getTodaySchedulePrimaryText,
+    shouldShowTodaySchedulePlaceLine,
+} from './EventList/utils/todayScheduleDisplay';
 
 type EdgeTone = 'dark' | 'light';
 type SocialAdImageKind = 'photo' | 'poster' | 'unknown';
@@ -63,10 +68,6 @@ const getMainAdPreviewImage = (
     getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
 
 const DEFAULT_NEB_TODAY_SCHEDULES = 3;
-
-const getNebSchedulePlaceLabel = (schedule: SocialSchedule) => (
-    schedule.location || schedule.place_name || schedule.address || ''
-);
 
 const getTodayMonthDayLabel = () => {
     const today = new Date();
@@ -1336,7 +1337,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             <div className="NEB-todayScheduleScrollFrame">
                                 <div ref={todayScheduleListRef} className="NEB-todayScheduleList">
                                     {visibleTodaySchedules.map((schedule, index) => {
-                                        const place = getNebSchedulePlaceLabel(schedule);
+                                        const place = getTodaySchedulePlaceLabel(schedule);
+                                        const primaryText = getTodaySchedulePrimaryText(schedule);
+                                        const showPlaceLine = shouldShowTodaySchedulePlaceLine(schedule);
 
                                         return (
                                             <button
@@ -1350,8 +1353,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             >
                                                 <i aria-hidden="true">{index + 1}</i>
                                                 <span>
-                                                    <strong>{schedule.title}</strong>
-                                                    {place && <small>장소 : {place}</small>}
+                                                    <strong>{primaryText}</strong>
+                                                    {showPlaceLine && <small>장소 : {place}</small>}
                                                 </span>
                                             </button>
                                         );
