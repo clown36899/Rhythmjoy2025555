@@ -630,7 +630,7 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(218px, 34vw) !important;
     gap: 12px !important;
-    align-items: start !important;
+    align-items: stretch !important;
     width: 100% !important;
     max-width: 100% !important;
   }
@@ -663,7 +663,7 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   html.kiosk-link-router-active.v2-home-mode .NEB-slider,
   html.kiosk-link-router-active.v2-home-mode .NEB-track {
     width: 100% !important;
-    height: var(--neb-dynamic-slider-height, min(460px, 44vh)) !important;
+    height: var(--neb-dynamic-slider-height, clamp(340px, calc(100dvh - 320px), 720px)) !important;
     min-height: 0 !important;
   }
 
@@ -773,12 +773,12 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-today-panel {
-    max-height: min(520px, calc(100dvh - 220px)) !important;
+    max-height: calc(100dvh - 244px) !important;
     padding: 10px !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-today-list {
-    max-height: min(460px, calc(100dvh - 292px)) !important;
+    max-height: calc(100dvh - 314px) !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {
@@ -833,12 +833,13 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout {
     width: min(calc(100vw - 72px), 1320px) !important;
     max-width: 1320px !important;
-    padding-bottom: 124px !important;
+    padding-bottom: 116px !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid {
     grid-template-columns: minmax(0, 1fr) minmax(300px, 360px) !important;
     gap: 24px !important;
+    align-items: stretch !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid.home-neb-desktop-grid--single {
@@ -858,7 +859,7 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
 
   html.kiosk-link-router-active.v2-home-mode .NEB-slider,
   html.kiosk-link-router-active.v2-home-mode .NEB-track {
-    height: var(--neb-dynamic-slider-height, min(520px, 48vh)) !important;
+    height: var(--neb-dynamic-slider-height, clamp(440px, calc(100dvh - 340px), 820px)) !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
@@ -883,7 +884,7 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel {
     gap: 12px !important;
-    max-height: calc(100dvh - 320px) !important;
+    max-height: calc(100dvh - 276px) !important;
     padding: 16px !important;
   }
 
@@ -910,12 +911,12 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-today-panel {
-    max-height: min(560px, calc(100dvh - 230px)) !important;
+    max-height: calc(100dvh - 276px) !important;
     padding: 12px !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-neb-today-list {
-    max-height: min(500px, calc(100dvh - 306px)) !important;
+    max-height: calc(100dvh - 348px) !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel {
@@ -923,6 +924,43 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
     height: 104px !important;
     min-height: 104px !important;
     max-height: 104px !important;
+  }
+}
+
+@media (min-width: 640px) {
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel.home-neb-side-panel--today-only {
+    align-content: stretch !important;
+    align-items: stretch !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel.home-neb-side-panel--today-only .home-neb-today-panel {
+    height: 100% !important;
+    max-height: none !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel.home-neb-side-panel--today-only .home-neb-today-list {
+    height: 100% !important;
+    max-height: none !important;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 899px) and (orientation: portrait) {
+  html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout {
+    padding-top: clamp(54px, 7dvh, 96px) !important;
+    padding-bottom: 116px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+  html.kiosk-link-router-active.v2-home-mode .NEB-track {
+    height: var(--neb-dynamic-slider-height, clamp(440px, 48dvh, 660px)) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel {
+    max-height: calc(100dvh - 322px) !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel.home-neb-side-panel--today-only {
+    margin-top: 44px !important;
   }
 }
 

@@ -829,6 +829,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 const viewport = window.visualViewport;
                 const viewportWidth = viewport?.width || window.innerWidth || 390;
                 const viewportHeight = viewport?.height || window.innerHeight || 720;
+                const isKioskSurface = document.documentElement.classList.contains('kiosk-link-router-active') ||
+                    Boolean(document.body?.classList.contains('kiosk-link-router-active'));
                 const containerRect = container.getBoundingClientRect();
                 const headerRect = container.querySelector<HTMLElement>('.NEB-header')?.getBoundingClientRect();
                 const indicatorRect = container.querySelector<HTMLElement>('.NEB-indicators')?.getBoundingClientRect();
@@ -844,6 +846,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
                 const isMobileSurface = viewportWidth < 640;
                 const isDesktopSplitSurface = viewportWidth >= 640;
+                const isKioskPortraitSplitSurface = isKioskSurface &&
+                    isDesktopSplitSurface &&
+                    viewportWidth < 900 &&
+                    viewportHeight > viewportWidth;
                 const nextTodayItemLimit = !isMobileSurface
                     ? 4
                     : viewportHeight < 740
@@ -852,21 +858,28 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             ? 3
                             : 3;
                 const todayRows = Math.min(todaySchedules.length, nextTodayItemLimit);
+                const desktopLowerReserve = isKioskSurface
+                    ? viewportWidth >= 900 ? 108 : 96
+                    : 118;
                 const lowerReserve = isDesktopSplitSurface
-                    ? 118
+                    ? desktopLowerReserve
                     : todaySchedules.length > 0
                     ? 86 + (todayRows * 30) + (viewportWidth < 430 ? 18 : 28)
                     : 96;
                 const availableHeight = Math.floor(
                     navTop - containerRect.top - mediaBottom - lowerReserve - 14,
                 );
+                const containerWidth = containerRect.width || viewportWidth;
                 const widthBasedHeight = Math.floor(
                     isDesktopSplitSurface
-                        ? Math.min(520, Math.max(330, (containerRect.width || viewportWidth) * 0.54))
+                        ? isKioskSurface
+                            ? isKioskPortraitSplitSurface
+                                ? Math.min(660, Math.max(440, availableHeight * 0.72))
+                                : Math.min(820, Math.max(340, availableHeight))
+                            : Math.min(520, Math.max(330, containerWidth * 0.54))
                         : Math.min(360, Math.max(220, viewportWidth * (viewportWidth < 430 ? 0.62 : 0.54))),
                 );
                 const sliderHeight = Math.max(210, Math.min(widthBasedHeight, availableHeight));
-                const containerWidth = containerRect.width || viewportWidth;
                 const activeCardWidth = getSlideWidthPxForLayout(currentBannerImage, sliderHeight, containerWidth);
                 const previewCount = hasMultipleEvents ? Math.max(events.length - 1, 0) : 0;
                 const previewWidths = Array.from({ length: previewCount }, (_, previewIndex) => {
