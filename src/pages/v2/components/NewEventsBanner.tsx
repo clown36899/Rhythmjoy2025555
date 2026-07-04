@@ -111,6 +111,18 @@ const getSocialImageUrlHint = (imageUrl: string): SocialAdImageAnalysis | null =
     return null;
 };
 
+const getSocialPhotoFallbackAnalysis = (imageUrl: string, event: Event): SocialAdImageAnalysis | null => {
+    const normalizedUrl = imageUrl.toLowerCase();
+
+    if (!hasCustomEventImage(event) || !isSocialAdEvent(event)) return null;
+    if (getSocialImageUrlHint(imageUrl)?.kind === 'poster') return null;
+    if (normalizedUrl.includes('/ingestor-events/') || normalizedUrl.includes('ingestor-events%2f')) {
+        return { kind: 'photo', confidence: 0.55 };
+    }
+
+    return null;
+};
+
 const detectSocialAdImageKind = (imageUrl: string): Promise<SocialAdImageAnalysis> => (
     new Promise((resolve, reject) => {
         if (typeof document === 'undefined') {
@@ -226,7 +238,11 @@ const detectSocialAdImageKind = (imageUrl: string): Promise<SocialAdImageAnalysi
                     textLikeCellRatio > 0.07;
                 const hasTextPosterCue =
                     textLikeCellRatio > 0.1 &&
-                    edgeDensity > 0.055;
+                    edgeDensity > 0.055 &&
+                    (
+                        topTwelveColorRatio > 0.42 ||
+                        highSaturationRatio > 0.28
+                    );
                 const isPoster = posterScore >= SOCIAL_POSTER_SCORE_THRESHOLD || hasPosterLayoutCue || hasTextPosterCue;
                 const confidence = Math.min(
                     0.98,
@@ -635,11 +651,12 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 ));
             })
             .catch(() => {
-                socialAdImageKindCache.set(imageUrl, UNKNOWN_SOCIAL_IMAGE_ANALYSIS);
+                const fallbackAnalysis = getSocialPhotoFallbackAnalysis(imageUrl, event) || UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
+                socialAdImageKindCache.set(imageUrl, fallbackAnalysis);
                 setSocialImageAnalysisByUrl((prev) => (
-                    prev[imageUrl] === UNKNOWN_SOCIAL_IMAGE_ANALYSIS
+                    prev[imageUrl] === fallbackAnalysis
                         ? prev
-                        : { ...prev, [imageUrl]: UNKNOWN_SOCIAL_IMAGE_ANALYSIS }
+                        : { ...prev, [imageUrl]: fallbackAnalysis }
                 ));
             })
             .finally(() => {
@@ -976,8 +993,11 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     };
     const getPlaceLabel = (event: Event) => event.location || event.place_name || "장소 미정";
     const getTimeLabel = (event: Event) => event.time?.trim() || '';
-    const getSocialImageAnalysis = (imageUrl: string) =>
-        getSocialImageUrlHint(imageUrl) || socialImageAnalysisByUrl[imageUrl] || UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
+    const getSocialImageAnalysis = (imageUrl: string, event: Event) =>
+        getSocialImageUrlHint(imageUrl) ||
+        socialImageAnalysisByUrl[imageUrl] ||
+        getSocialPhotoFallbackAnalysis(imageUrl, event) ||
+        UNKNOWN_SOCIAL_IMAGE_ANALYSIS;
     const getPreviewStackMetrics = (distance: number) => {
         let frontLeft = layoutStats.activeLeft;
         let frontRight = layoutStats.activeLeft + getSlideWidthPx(currentBannerImage);
@@ -1195,7 +1215,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             const imageFetchPriority = isActiveSlide ? 'high' : 'low';
                             const edgeTone = edgeToneByUrl[eventThumbnail];
                             const edgeToneClass = isActiveSlide && edgeTone === 'dark' ? 'is-dark-edge' : '';
-                            const socialImageAnalysis = getSocialImageAnalysis(eventThumbnail);
+                            const socialImageAnalysis = getSocialImageAnalysis(eventThumbnail, event);
                             const isSocialPhotoAd =
                                 hasCustomEventImage(event) &&
                                 isSocialAdEvent(event) &&

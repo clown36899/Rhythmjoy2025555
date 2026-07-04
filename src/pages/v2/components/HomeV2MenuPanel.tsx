@@ -82,12 +82,10 @@ const HIDEABLE_MENU_ITEM_IDS = new Set(
 
 const SWIPE_MIN_DISTANCE = 48;
 const SWIPE_MAX_DURATION_MS = 800;
-const HOME_SCREEN_GESTURE_START_RATIO = 0.5;
 const TAP_MAX_DISTANCE = 24;
 const TAP_MAX_DURATION_MS = 700;
 const SYNTHETIC_CLICK_SUPPRESS_MS = 700;
 const MENU_ACTION_ANIMATION_MS = 130;
-const SYSTEM_GESTURE_EDGE_GUARD_PX = 80;
 const MEDIA_PLAYER_BOTTOM_NAV_EVENT = "swingenjoy:media-player-bottom-nav";
 
 const getEventPrimaryDate = (event: Event) => {
@@ -343,7 +341,6 @@ export const HomeV2MenuPanel: React.FC = () => {
     const editBaselineLayoutRef = useRef<HomeMenuLayoutSettings | null>(null);
     const suppressSyntheticClickUntilRef = useRef(0);
     const menuActionTimerRef = useRef<number | null>(null);
-    const isHomeRoute = location.pathname === "/" || location.pathname === "/v2";
     const lessonCards = useMemo(() => {
         const liveCards = menuEvents
             .filter(isUpcomingEvent)
@@ -521,10 +518,6 @@ export const HomeV2MenuPanel: React.FC = () => {
         suppressSyntheticClickUntilRef.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS;
         onTap();
         return true;
-    }, []);
-
-    const isSystemGestureEdgeStart = useCallback((clientY: number) => {
-        return clientY >= window.innerHeight - SYSTEM_GESTURE_EDGE_GUARD_PX;
     }, []);
 
     const isSwipeUp = useCallback((start: GestureStart, x: number, y: number) => {
@@ -1391,123 +1384,19 @@ export const HomeV2MenuPanel: React.FC = () => {
         setIsMediaPlayerEngaged(false);
     }, [location.pathname]);
 
-    useEffect(() => {
-        if (!isHomeRoute || isExpanded || modalStack.length > 0) return undefined;
-
-        let screenPointerGestureStart: GestureStart | null = null;
-        let screenTouchGestureStart: GestureStart | null = null;
-
-        const resetScreenPointerGesture = () => {
-            screenPointerGestureStart = null;
-        };
-
-        const resetScreenTouchGesture = () => {
-            screenTouchGestureStart = null;
-        };
-
-        const applyScreenGesture = (start: GestureStart, x: number, y: number) => {
-            if (isModalGestureBlocked()) return false;
-            if (!isSwipeUp(start, x, y)) return false;
-            openMenu();
-            return true;
-        };
-
-        const handlePointerStart = (event: PointerEvent) => {
-            if (event.pointerType === "mouse" || isModalGestureBlocked()) return;
-            if (event.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
-            if (isSystemGestureEdgeStart(event.clientY)) return;
-
-            screenPointerGestureStart = {
-                x: event.clientX,
-                y: event.clientY,
-                time: Date.now(),
-                scrollTop: 0,
-            };
-        };
-
-        const handleTouchStart = (event: TouchEvent) => {
-            if (isModalGestureBlocked()) return;
-            if (event.touches.length !== 1) return;
-            const touch = event.touches[0];
-            if (touch.clientY < window.innerHeight * HOME_SCREEN_GESTURE_START_RATIO) return;
-            if (isSystemGestureEdgeStart(touch.clientY)) return;
-
-            screenTouchGestureStart = {
-                x: touch.clientX,
-                y: touch.clientY,
-                time: Date.now(),
-                scrollTop: 0,
-            };
-        };
-
-        const handlePointerMove = (event: PointerEvent) => {
-            if (!screenPointerGestureStart || event.pointerType === "mouse") return;
-
-            if (applyScreenGesture(screenPointerGestureStart, event.clientX, event.clientY)) {
-                resetScreenPointerGesture();
-            }
-        };
-
-        const handleTouchMove = (event: TouchEvent) => {
-            if (!screenTouchGestureStart || event.touches.length !== 1) return;
-            const touch = event.touches[0];
-
-            if (applyScreenGesture(screenTouchGestureStart, touch.clientX, touch.clientY)) {
-                resetScreenTouchGesture();
-            }
-        };
-
-        const handlePointerEnd = (event: PointerEvent) => {
-            if (!screenPointerGestureStart || event.pointerType === "mouse") return;
-            const start = screenPointerGestureStart;
-            resetScreenPointerGesture();
-
-            applyScreenGesture(start, event.clientX, event.clientY);
-        };
-
-        const handleTouchEnd = (event: TouchEvent) => {
-            if (!screenTouchGestureStart || event.changedTouches.length === 0) return;
-            const touch = event.changedTouches[0];
-            const start = screenTouchGestureStart;
-            resetScreenTouchGesture();
-
-            applyScreenGesture(start, touch.clientX, touch.clientY);
-        };
-
-        window.addEventListener("pointerdown", handlePointerStart);
-        window.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointerup", handlePointerEnd);
-        window.addEventListener("pointercancel", resetScreenPointerGesture);
-        window.addEventListener("touchstart", handleTouchStart, { passive: true });
-        window.addEventListener("touchmove", handleTouchMove, { passive: true });
-        window.addEventListener("touchend", handleTouchEnd, { passive: true });
-        window.addEventListener("touchcancel", resetScreenTouchGesture, { passive: true });
-
-        return () => {
-            window.removeEventListener("pointerdown", handlePointerStart);
-            window.removeEventListener("pointermove", handlePointerMove);
-            window.removeEventListener("pointerup", handlePointerEnd);
-            window.removeEventListener("pointercancel", resetScreenPointerGesture);
-            window.removeEventListener("touchstart", handleTouchStart);
-            window.removeEventListener("touchmove", handleTouchMove);
-            window.removeEventListener("touchend", handleTouchEnd);
-            window.removeEventListener("touchcancel", resetScreenTouchGesture);
-        };
-    }, [isExpanded, isHomeRoute, isModalGestureBlocked, isSwipeUp, isSystemGestureEdgeStart, modalStack.length, openMenu]);
-
     return (
         <section
             className={`home-v2-menu-panel ${isExpanded ? "is-expanded" : ""} ${isMediaPlayerEngaged ? "is-media-player-engaged" : ""} ${!isMenuLayoutReady ? "is-loading-layout" : ""} is-compact`}
             aria-label={t("mainMenu")}
             translate="no"
-            onPointerDown={handlePanelPointerDown}
-            onPointerMove={handlePanelPointerMove}
-            onPointerUp={handlePanelPointerUp}
-            onPointerCancel={handlePanelPointerCancel}
-            onTouchStart={handlePanelTouchStart}
-            onTouchMove={handlePanelTouchMove}
-            onTouchEnd={handlePanelTouchEnd}
-            onTouchCancel={resetPanelTouchGesture}
+            onPointerDownCapture={handlePanelPointerDown}
+            onPointerMoveCapture={handlePanelPointerMove}
+            onPointerUpCapture={handlePanelPointerUp}
+            onPointerCancelCapture={handlePanelPointerCancel}
+            onTouchStartCapture={handlePanelTouchStart}
+            onTouchMoveCapture={handlePanelTouchMove}
+            onTouchEndCapture={handlePanelTouchEnd}
+            onTouchCancelCapture={resetPanelTouchGesture}
         >
             <div className={`home-v2-menu-compact-row ${quickMenuItems.length === 0 ? "has-no-quick-items" : ""}`}>
                 {isMenuLayoutReady && quickMenuItems.length > 0 && (
