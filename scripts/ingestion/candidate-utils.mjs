@@ -113,6 +113,13 @@ const tagRules = [
   ['popup', [/팝업/i, /pop-up/i, /special\s*class/i]],
 ];
 
+export const siteGenresByCategory = {
+  social: ['소셜', '졸공'],
+  event: ['워크샵', '파티', '대회', '라이브밴드', '기타'],
+  class: ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'],
+  club: ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'],
+};
+
 const blockedKeywordRules = [
   ['엠티/MT', /엠\s*티|(?:^|[^A-Za-z])m\.?\s*t(?:[^A-Za-z]|$)/i],
 ];
@@ -486,6 +493,131 @@ function inferTags(text, activity, existingTags = []) {
   return [...tags];
 }
 
+function normalizeSiteCategory(value = '') {
+  const category = String(value || '').trim().toLowerCase();
+  if (category === 'regular') return 'class';
+  if (category === 'club') return 'club';
+  if (category === 'class' || category === 'lesson') return 'class';
+  if (category === 'social' || category === 'group') return 'social';
+  if (category === 'event' || category === 'party') return 'event';
+  return '';
+}
+
+function siteCategoryFromCandidate(candidate, taxonomy) {
+  const sd = candidate.structured_data || {};
+  const explicit = normalizeSiteCategory(sd.category || candidate.category);
+  if (explicit) return explicit;
+
+  const eventType = String(sd.event_type || candidate.event_type || '').trim();
+  if (/소셜/i.test(eventType)) return 'social';
+  if (/강습|수업|클래스/i.test(eventType)) return 'class';
+  if (/동호회|크루|팀/i.test(eventType)) return 'club';
+  if (/행사|파티|대회|공연/i.test(eventType)) return 'event';
+
+  const text = textOf(candidate);
+  if (/졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text)) return 'social';
+  if (taxonomy.activity_type === 'social') return 'social';
+  if (taxonomy.activity_type === 'class') return 'class';
+  if (taxonomy.activity_type === 'recruit') {
+    return /팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)
+      ? 'class'
+      : 'event';
+  }
+  return 'event';
+}
+
+function normalizeSiteGenreValue(value = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const compact = raw.replace(/\s+/g, '').toLowerCase();
+  if (/졸공|졸업공연|졸업파티|graduation/.test(compact)) return '졸공';
+  if (/소셜|social|밀롱가|프랙티카/.test(compact)) return '소셜';
+  if (/정규강습|정규수업|정규반/.test(compact)) return '정규강습';
+  if (/린디합|lindyhop/.test(compact)) return '린디합';
+  if (/솔로재즈|solojazz/.test(compact)) return '솔로재즈';
+  if (/발보아|balboa/.test(compact)) return '발보아';
+  if (/블루스|blues?/.test(compact)) return '블루스';
+  if (/팀원모집|팀모집|크루모집|멤버모집|teamrecruit|crewrecruit/.test(compact)) return '팀원모집';
+  if (/워크샵|워크숍|workshop/.test(compact)) return '워크샵';
+  if (/라이브밴드|라이브|liveband/.test(compact)) return '라이브밴드';
+  if (/대회|배틀|competition|battle|cup|finals/.test(compact)) return '대회';
+  if (/파티|party|night/.test(compact)) return '파티';
+  if (/기타|other|etc/.test(compact)) return '기타';
+  return raw;
+}
+
+function pickSiteGenreFromValues(values = [], category) {
+  const allowed = siteGenresByCategory[category] || siteGenresByCategory.event;
+  for (const value of values) {
+    const parts = String(value || '').split(/[,/·ㆍ|]+/).map((part) => part.trim()).filter(Boolean);
+    for (const part of parts) {
+      const normalized = normalizeSiteGenreValue(part);
+      if (allowed.includes(normalized)) return normalized;
+    }
+  }
+  return '';
+}
+
+function inferSiteGenre(candidate, category) {
+  const sd = candidate.structured_data || {};
+  const explicit = pickSiteGenreFromValues([
+    sd.genre,
+    sd.subgenre,
+    sd.dance_genre_label,
+    sd.dance_genre,
+    candidate.genre,
+  ], category);
+  if (explicit) return explicit;
+
+  const text = textOf(candidate);
+  if (category === 'social') {
+    return /졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text) ? '졸공' : '소셜';
+  }
+
+  if (category === 'class' || category === 'club') {
+    if (/팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)) return '팀원모집';
+    if (category === 'club' && /정규\s*(?:강습|수업|반)|regular\s*(?:class|lesson)/i.test(text)) return '정규강습';
+    if (/린디\s*합|lindy\s*hop/i.test(text)) return '린디합';
+    if (/솔로\s*재즈|solo\s*jazz/i.test(text)) return '솔로재즈';
+    if (/발보아|balboa/i.test(text)) return '발보아';
+    if (/블루스|blues?/i.test(text)) return '블루스';
+    return '기타';
+  }
+
+  if (/대회|배틀|competition|battle|cup|finals/i.test(text)) return '대회';
+  if (/라이브\s*밴드|live\s*band/i.test(text)) return '라이브밴드';
+  if (/파티|party|night/i.test(text)) return '파티';
+  if (/워크샵|워크숍|특강|workshop/i.test(text)) return '워크샵';
+  return '기타';
+}
+
+function getSiteEventFields(candidate, taxonomy) {
+  const category = siteCategoryFromCandidate(candidate, taxonomy);
+  const genre = inferSiteGenre(candidate, category);
+  return {
+    category,
+    genre,
+    dance_scope: taxonomy.dance_scope,
+    activity_type: taxonomy.activity_type,
+  };
+}
+
+function stripVirtualTaxonomyFields(structuredData = {}) {
+  const {
+    activity_label,
+    genre_family,
+    genre_family_label,
+    dance_genre,
+    dance_genre_label,
+    dance_scope_label,
+    taxonomy_confidence,
+    tags,
+    tag_labels,
+    ...siteStructuredData
+  } = structuredData || {};
+  return siteStructuredData;
+}
+
 export function inferCandidateTaxonomy(candidate) {
   const source = findSourceByUrl(candidate.source_url);
   const sd = candidate.structured_data || {};
@@ -594,9 +726,10 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
 export function prepareCandidate(rawCandidate, config = {}) {
   const normalizedSourceUrl = normalizeSourceUrl(rawCandidate.source_url);
   const taxonomy = inferCandidateTaxonomy({ ...rawCandidate, source_url: normalizedSourceUrl });
+  const siteEventFields = getSiteEventFields({ ...rawCandidate, source_url: normalizedSourceUrl }, taxonomy);
   const structuredData = normalizeCandidateVenueStructuredData({
-    ...(rawCandidate.structured_data || {}),
-    ...taxonomy,
+    ...stripVirtualTaxonomyFields(rawCandidate.structured_data || {}),
+    ...siteEventFields,
   });
   const date = String(structuredData.date || '').slice(0, 10);
   const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, date, rawCandidate.id_suffix || '');

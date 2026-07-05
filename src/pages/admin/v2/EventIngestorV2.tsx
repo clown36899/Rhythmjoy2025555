@@ -7,9 +7,6 @@ import { fetchCafe24Events } from '../../../lib/cafe24EventsApi';
 import {
   detectIngestorActivity,
   getIngestorActivityLabel,
-  getIngestorGenreMeta,
-  getIngestorTagLabel,
-  getIngestorTags,
   mapIngestorEvent,
   titleLooksDuplicate,
   toMapSafeVenueName,
@@ -30,6 +27,8 @@ interface ScrapedEvent {
     day?: string;
     title: string;
     status: string;
+    category?: 'social' | 'event' | 'class' | 'club' | null;
+    genre?: string | null;
     djs?: string[];
     times?: string[];
     location?: string;
@@ -310,8 +309,6 @@ const EventIngestorV2: React.FC = () => {
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
   const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집'>('전체');
-  const [familyFilter, setFamilyFilter] = useState<'all' | 'partner' | 'street' | 'art' | 'commercial' | 'unknown'>('all');
-  const [tagFilter, setTagFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [tabCounts, setTabCounts] = useState<{ new: number; collected: number; duplicate: number }>({ new: 0, collected: 0, duplicate: 0 });
@@ -386,8 +383,6 @@ const EventIngestorV2: React.FC = () => {
 
   const resetSecondaryFilters = () => {
     setActivityFilter('전체');
-    setFamilyFilter('all');
-    setTagFilter('all');
   };
 
   const buildScrapedEventsUrl = (page: number, tab: TabKey, scope: ScopeFilter, pageSize?: number) => {
@@ -622,8 +617,7 @@ const EventIngestorV2: React.FC = () => {
   const scopeLocalCounts = useMemo(() => {
     const counts = new Map<ScopeFilter, number>();
     scrapedEvents.forEach((event) => {
-      const meta = getIngestorGenreMeta(event);
-      const scope = (event.structured_data?.dance_scope || meta.scope || 'swing') as ScopeFilter;
+      const scope = (event.structured_data?.dance_scope || 'swing') as ScopeFilter;
       if (scope !== 'all' && SCOPE_FILTER_OPTIONS.some((option) => option.key === scope)) {
         counts.set(scope, (counts.get(scope) || 0) + 1);
       }
@@ -631,59 +625,14 @@ const EventIngestorV2: React.FC = () => {
     return counts;
   }, [scrapedEvents]);
 
-  const familyOptions = useMemo(() => {
-    const counts = new Map<string, { label: string; count: number }>();
-    scrapedEvents.forEach((event) => {
-      const meta = getIngestorGenreMeta(event);
-      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
-      if (scopeFilter !== 'all' && scope !== scopeFilter) return;
-      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
-      counts.set(meta.family, { label: meta.familyLabel, count: (counts.get(meta.family)?.count || 0) + 1 });
-    });
-    const order = ['partner', 'street', 'art', 'commercial', 'unknown'];
-    return order
-      .filter((key) => counts.has(key))
-      .map((key) => ({ key, ...(counts.get(key) as { label: string; count: number }) }));
-  }, [activityFilter, scopeFilter, scrapedEvents]);
-
-  const tagOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    scrapedEvents.forEach((event) => {
-      const meta = getIngestorGenreMeta(event);
-      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
-      if (scopeFilter !== 'all' && scope !== scopeFilter) return;
-      if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return;
-      if (familyFilter !== 'all' && meta.family !== familyFilter) return;
-      getIngestorTags(event).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1));
-    });
-    return Array.from(counts.entries())
-      .map(([key, count]) => ({ key, label: getIngestorTagLabel(key), count }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'));
-  }, [activityFilter, familyFilter, scopeFilter, scrapedEvents]);
-
-  useEffect(() => {
-    if (familyFilter !== 'all' && !familyOptions.some((option) => option.key === familyFilter)) {
-      setFamilyFilter('all');
-    }
-  }, [familyFilter, familyOptions]);
-
-  useEffect(() => {
-    if (tagFilter !== 'all' && !tagOptions.some((option) => option.key === tagFilter)) {
-      setTagFilter('all');
-    }
-  }, [tagFilter, tagOptions]);
-
   const filteredEvents = useMemo(() => {
     return scrapedEvents.filter((event) => {
-      const meta = getIngestorGenreMeta(event);
-      const scope = event.structured_data?.dance_scope || meta.scope || 'swing';
+      const scope = event.structured_data?.dance_scope || 'swing';
       if (scopeFilter !== 'all' && scope !== scopeFilter) return false;
       if (activityFilter !== '전체' && getIngestorActivityLabel(event) !== activityFilter) return false;
-      if (familyFilter !== 'all' && meta.family !== familyFilter) return false;
-      if (tagFilter !== 'all' && !getIngestorTags(event).includes(tagFilter)) return false;
       return true;
     });
-  }, [activityFilter, familyFilter, scopeFilter, scrapedEvents, tagFilter]);
+  }, [activityFilter, scopeFilter, scrapedEvents]);
 
   const visibleFilteredEvents = filteredEvents;
 
@@ -1024,7 +973,6 @@ const EventIngestorV2: React.FC = () => {
         link_name1: event.keyword || '',
         genre: mapped.genre,
         dance_scope: mapped.dance_scope,
-        dance_genre: mapped.dance_genre,
         activity_type: mapped.activity_type,
         dance_tags: mapped.dance_tags,
         group_id: mapped.group_id,
@@ -1192,53 +1140,12 @@ const EventIngestorV2: React.FC = () => {
               <button
                 key={t}
                 className={`type-filter-btn ${activityFilter === t ? 'active' : ''} type-${t === '전체' ? 'all' : t === '소셜' ? 'social' : t === '강습' ? 'lesson' : t === '모집' ? 'recruit' : 'party'}`}
-                onClick={() => { setActivityFilter(t); setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
+                onClick={() => { setActivityFilter(t); setSelectedIds(new Set()); }}
               >
                 {t}
               </button>
             ))}
           </div>
-
-          {familyOptions.length > 0 && (
-            <div className="family-filter-group" aria-label="장르 계열 필터">
-              <button
-                className={`family-filter-btn ${familyFilter === 'all' ? 'active' : ''}`}
-                onClick={() => { setFamilyFilter('all'); setTagFilter('all'); setSelectedIds(new Set()); }}
-              >
-                전체 계열
-              </button>
-              {familyOptions.map(option => (
-                <button
-                  key={option.key}
-                  className={`family-filter-btn ${familyFilter === option.key ? 'active' : ''}`}
-                  onClick={() => { setFamilyFilter(option.key as typeof familyFilter); setTagFilter('all'); setSelectedIds(new Set()); }}
-                >
-                  {option.label} <span>{option.count}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {tagOptions.length > 0 && (
-            <div className="tag-filter-group" aria-label="수집된 세부 태그 필터">
-              <span>세부 태그</span>
-              <button
-                className={`tag-filter-btn ${tagFilter === 'all' ? 'active' : ''}`}
-                onClick={() => { setTagFilter('all'); setSelectedIds(new Set()); }}
-              >
-                전체
-              </button>
-              {tagOptions.map(option => (
-                <button
-                  key={option.key}
-                  className={`tag-filter-btn ${tagFilter === option.key ? 'active' : ''}`}
-                  onClick={() => { setTagFilter(option.key); setSelectedIds(new Set()); }}
-                >
-                  {option.label} <em>{option.count}</em>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </header>
 
@@ -1633,8 +1540,8 @@ const EventIngestorV2: React.FC = () => {
               {visibleFilteredEvents.map((event) => {
                 const activity = detectIngestorActivity(event);
                 const activityLabel = getIngestorActivityLabel(event);
-                const genreMeta = getIngestorGenreMeta(event);
-                const rowTags = getIngestorTags(event);
+                const mappedPreview = mapIngestorEvent(event, venues);
+                const siteGenre = event.structured_data.genre || mappedPreview.genre;
                 const posterUrl = resolveProductionAssetUrl(event.poster_url);
 
                 return (
@@ -1664,11 +1571,7 @@ const EventIngestorV2: React.FC = () => {
                     </div>
                     <div className="row-title">{event.structured_data.title}</div>
                     <div className="row-taxonomy">
-                      <span>{genreMeta.familyLabel}</span>
-                      <span>{genreMeta.genreLabel}</span>
-                      {rowTags.slice(0, 4).map((tag) => (
-                        <em key={tag}>{getIngestorTagLabel(tag)}</em>
-                      ))}
+                      <span>{siteGenre}</span>
                     </div>
                     {activeTab === 'duplicate' && event.structured_data._duplicate && (
                       <div className="duplicate-match-card">

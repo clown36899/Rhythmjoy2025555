@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import VenueSelectModal from '../../../v2/components/VenueSelectModal';
 import { cafe24 as prodClient } from '../../../../lib/cafe24Client';
-import { ensureRecruitmentTags, getRecruitmentKindLabel, type RecruitmentKind } from '../../../../utils/danceTaxonomy';
+import { ensureRecruitmentTags, type DanceActivity, type RecruitmentKind } from '../../../../utils/danceTaxonomy';
 import { detectEventType, getIngestorRecruitmentKind, mapIngestorEvent, titleLooksDuplicate, toMapSafeVenueName, type MappedIngestorEvent, type VenueRecord } from '../utils/ingestorMapping';
 import './EventEditModal.css';
 
@@ -22,7 +22,7 @@ function normalizeEditableCategory(value: string): EditableCategory {
 
 function eventTypeFromCategory(category: EditableCategory) {
     if (category === 'social') return '소셜';
-    if (category === 'class') return '강습';
+    if (category === 'class' || category === 'club') return '강습';
     return '파티/행사';
 }
 
@@ -78,7 +78,13 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
 
     const handleCategoryChange = (category: string) => {
         const normalizedCategory = normalizeEditableCategory(category);
-        const genre = category === 'social' ? '소셜' : category === 'class' ? '강습' : '파티';
+        const genre = normalizedCategory === 'social'
+            ? '소셜'
+            : normalizedCategory === 'club'
+                ? '정규강습'
+                : normalizedCategory === 'class'
+                    ? '기타'
+                    : '파티';
         setFormData((prev: any) => ({
             ...prev,
             category: normalizedCategory,
@@ -90,12 +96,11 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
 
     const handleRecruitmentKindChange = (value: string) => {
         const recruitmentKind = value as RecruitmentKind | '';
-        const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
         setFormData((prev: any) => ({
             ...prev,
             recruitment_kind: recruitmentKind,
-            category: recruitmentKind ? 'event' : prev.category,
-            genre: recruitmentLabel || (prev.category === 'social' ? '소셜' : prev.category === 'class' ? '강습' : '파티'),
+            category: recruitmentKind ? 'class' : prev.category,
+            genre: recruitmentKind ? '기타' : prev.genre,
             group_id: recruitmentKind ? null : prev.group_id,
         }));
     };
@@ -163,11 +168,10 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                         times: formData.time ? [formData.time] : event.structured_data?.times,
                     },
                 }, venues);
-            const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
             const mapped = {
                 ...baseMapped,
-                category: recruitmentKind ? 'event' : selectedCategory === 'club' ? 'event' : selectedCategory,
-                genre: recruitmentLabel || formData.genre || baseMapped.genre,
+                category: selectedCategory,
+                genre: formData.genre || baseMapped.genre,
                 activity_type: selectedActivity,
                 dance_tags: ensureRecruitmentTags(baseMapped.dance_tags, recruitmentKind),
                 group_id: recruitmentKind ? null : (selectedCategory === 'social' ? 2 : null),
@@ -198,7 +202,6 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                     link_name1: event.keyword || '',
                     genre: mapped.genre,
                     dance_scope: mapped.dance_scope,
-                    dance_genre: mapped.dance_genre,
                     activity_type: mapped.activity_type,
                     dance_tags: mapped.dance_tags,
                     group_id: mapped.group_id,
@@ -218,8 +221,6 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 djs: formData.djs,
                 activity_type: mapped.activity_type,
                 genre: mapped.genre,
-                subgenre: mapped.genre,
-                tags: mapped.dance_tags,
                 times: formData.time ? [formData.time] : event.structured_data?.times,
             };
 

@@ -292,6 +292,22 @@ function sortDescCreatedAt(rows) {
   return [...rows].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 }
 
+function stripVirtualCandidateTaxonomy(structuredData = {}) {
+  const {
+    activity_label,
+    genre_family,
+    genre_family_label,
+    dance_genre,
+    dance_genre_label,
+    dance_scope_label,
+    taxonomy_confidence,
+    tags,
+    tag_labels,
+    ...siteStructuredData
+  } = structuredData || {};
+  return siteStructuredData;
+}
+
 function filterScrapedRows(rows, req) {
   const tab = String(req.query.tab || '').toLowerCase();
   const type = String(req.query.type || '').toLowerCase();
@@ -433,6 +449,7 @@ function findOperationalDuplicateForScrapedItem(candidate, eventRows = []) {
 
 async function prepareScrapedItem(item) {
   const row = { ...(item || {}) };
+  row.structured_data = stripVirtualCandidateTaxonomy(row.structured_data || {});
   row.id = String(row.id || crypto.randomUUID());
   row.created_at = row.created_at || new Date().toISOString();
   row.updated_at = new Date().toISOString();
@@ -685,7 +702,6 @@ function structuredDataFromEventData(eventData = {}) {
     'category',
     'genre',
     'dance_scope',
-    'dance_genre',
     'start_date',
     'end_date',
   ];
@@ -699,9 +715,6 @@ function structuredDataFromEventData(eventData = {}) {
   }
   const activityType = activityFromEventData(eventData);
   if (activityType) patch.activity_type = activityType;
-  if (Object.prototype.hasOwnProperty.call(eventData, 'dance_tags')) patch.tags = eventData.dance_tags;
-  if (Object.prototype.hasOwnProperty.call(eventData, 'subgenre')) patch.subgenre = eventData.subgenre;
-  else if (Object.prototype.hasOwnProperty.call(eventData, 'genre')) patch.subgenre = eventData.genre;
   if (Object.prototype.hasOwnProperty.call(eventData, 'time')) patch.times = eventData.time ? [eventData.time] : [];
   return patch;
 }
@@ -760,11 +773,11 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     };
   }
 
-  const mergedStructuredData = {
+  const mergedStructuredData = stripVirtualCandidateTaxonomy({
     ...(scrapedEvent.structured_data || {}),
     ...structuredDataFromEventData(eventData),
     ...(body.scrapedStructuredData || {}),
-  };
+  });
   const scrapedEventPatch = {
     ...scrapedEventPatchFromEventData(eventData),
     ...pickScrapedEventPatch(body.scrapedEventPatch || {}),

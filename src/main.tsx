@@ -170,7 +170,6 @@ const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
 const TempoToolPage = lazy(() => import('./pages/tempo-tool/TempoToolPage'));
 const KioskEntryRoute = lazy(() => import('./pages/kiosk/KioskEntryRoute'));
-const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
 const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
 const AdminUiSamplesPage = lazy(() => import('./pages/admin/ui/AdminUiSamplesPage'));
 const Cafe24EventsAdminPage = lazy(() => import('./pages/admin/Cafe24EventsAdminPage'));
@@ -322,7 +321,7 @@ const router = createBrowserRouter([
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
       { path: "/admin/notification-preview", element: <Suspense fallback={null}><NotificationPreviewPage /></Suspense> },
       { path: "/admin/cafe24-events", element: <Suspense fallback={null}><Cafe24EventsAdminPage /></Suspense> },
-      { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
+      { path: "/admin/ingestor", element: <Navigate to="/admin/v2/ingestor" replace /> },
       { path: "/admin/v2/ingestor", element: <Suspense fallback={null}><EventIngestorV2Page /></Suspense> },
       { path: "/admin/ui", element: <Suspense fallback={null}><AdminUiSamplesPage /></Suspense> },
       { path: "/admin/ui/samples", element: <Suspense fallback={null}><AdminUiSamplesPage /></Suspense> },

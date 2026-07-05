@@ -38,6 +38,25 @@ function baseCandidate(overrides = {}) {
   };
 }
 
+function assertNoVirtualGenreFields(structuredData) {
+  [
+    'activity_label',
+    'genre_family',
+    'genre_family_label',
+    'dance_genre',
+    'dance_genre_label',
+    'dance_scope_label',
+    'taxonomy_confidence',
+    'tags',
+  ].forEach((key) => {
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(structuredData || {}, key),
+      false,
+      `candidate payload must not persist virtual taxonomy field: ${key}`,
+    );
+  });
+}
+
 const id1 = makeDeterministicId('https://example.com/post?utm_source=x#top', '2026-06-01');
 const id2 = makeDeterministicId('https://example.com/post', '2026-06-01');
 assert.equal(id1, id2, 'utm/hash normalized deterministic ID');
@@ -134,8 +153,37 @@ assert.equal(
 const preparedSwing = prepareCandidate(baseCandidate(), { today: TODAY });
 assert.equal(preparedSwing.validation.ok, true);
 assert.equal(preparedSwing.candidate.id, makeDeterministicId(baseCandidate().source_url, '2026-06-05'));
+assertNoVirtualGenreFields(preparedSwing.candidate.structured_data);
+assert.equal(preparedSwing.candidate.structured_data.category, 'social');
+assert.equal(preparedSwing.candidate.structured_data.genre, '소셜');
 assert.equal(preparedSwing.candidate.structured_data.dance_scope, 'swing');
 assert.equal(preparedSwing.candidate.structured_data.activity_type, 'social');
+const normalizedLegacySocialGenre = prepareCandidate(baseCandidate({
+  structured_data: {
+    title: '스윙타임 금요 소셜',
+    date: '2026-06-05',
+    location: '스윙타임',
+    event_type: '소셜',
+    activity_type: 'social',
+    genre: 'DJ,소셜',
+    djs: ['DJ Alpha'],
+  },
+}), { today: TODAY });
+assert.equal(normalizedLegacySocialGenre.candidate.structured_data.genre, '소셜', 'legacy DJ/social genre must normalize to the site social genre');
+assertNoVirtualGenreFields(normalizedLegacySocialGenre.candidate.structured_data);
+const normalizedLegacyClassGenre = prepareCandidate(baseCandidate({
+  extracted_text: '스윙 입문 강습 시작일 6월 5일 금요일 20:00.',
+  structured_data: {
+    title: '스윙 입문 강습',
+    date: '2026-06-05',
+    event_type: '강습',
+    activity_type: 'class',
+    genre: '강습,워크숍',
+  },
+}), { today: TODAY });
+assert.equal(normalizedLegacyClassGenre.candidate.structured_data.category, 'class');
+assert.equal(normalizedLegacyClassGenre.candidate.structured_data.genre, '기타', 'legacy class/workshop genre must normalize to the site class genre set');
+assertNoVirtualGenreFields(normalizedLegacyClassGenre.candidate.structured_data);
 const sameDateSocialA = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/kyungsunghall/p/KYUNG0704/',
   id_suffix: '경성홀 토요 소셜|DJ Alpha|0',
@@ -161,11 +209,14 @@ const oneDayClass = prepareCandidate(baseCandidate({
   },
 }), { today: TODAY });
 assert.equal(oneDayClass.validation.ok, true, 'dated swing one-day classes should be accepted');
+assertNoVirtualGenreFields(oneDayClass.candidate.structured_data);
 assert.equal(oneDayClass.candidate.structured_data.activity_type, 'class');
 assert.equal(oneDayClass.candidate.structured_data.dance_scope, 'swing');
-assert.ok(oneDayClass.candidate.structured_data.tags.includes('oneday'), 'one-day class should keep oneday tag');
-assert.ok(oneDayClass.candidate.structured_data.tags.includes('workshop'), 'one-day class should also stay discoverable as workshop/class special');
-assert.ok(oneDayClass.candidate.structured_data.tags.includes('open_class'), 'trial one-day class should map to open_class');
+assert.equal(oneDayClass.candidate.structured_data.category, 'class');
+assert.equal(oneDayClass.candidate.structured_data.genre, '기타');
+assert.ok(oneDayClass.validation.taxonomy.tags.includes('oneday'), 'one-day class should keep oneday tag internally for validation');
+assert.ok(oneDayClass.validation.taxonomy.tags.includes('workshop'), 'one-day class should also stay discoverable internally as workshop/class special');
+assert.ok(oneDayClass.validation.taxonomy.tags.includes('open_class'), 'trial one-day class should map internally to open_class');
 
 assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://litt.ly/swingfriends',
@@ -192,6 +243,8 @@ const salsa = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(salsa.validation.ok, true);
 assert.equal(salsa.candidate.structured_data.dance_scope, 'salsa');
+assert.equal(salsa.candidate.structured_data.genre, '소셜');
+assertNoVirtualGenreFields(salsa.candidate.structured_data);
 
 const bachata = prepareCandidate(baseCandidate({
   source_url: 'https://bsbachata.com/events/2026-bachata',
@@ -200,6 +253,8 @@ const bachata = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(bachata.validation.ok, true);
 assert.equal(bachata.candidate.structured_data.dance_scope, 'bachata');
+assert.equal(bachata.candidate.structured_data.genre, '소셜');
+assertNoVirtualGenreFields(bachata.candidate.structured_data);
 
 const street = prepareCandidate(baseCandidate({
   source_url: 'https://www.dancecode.kr/dance/view/259',
@@ -209,7 +264,10 @@ const street = prepareCandidate(baseCandidate({
 assert.equal(street.validation.ok, true);
 assert.equal(street.candidate.structured_data.dance_scope, 'street');
 assert.equal(street.candidate.structured_data.activity_type, 'recruit');
-assert.ok(street.candidate.structured_data.tags.includes('participant'));
+assert.equal(street.candidate.structured_data.category, 'event');
+assert.equal(street.candidate.structured_data.genre, '대회');
+assertNoVirtualGenreFields(street.candidate.structured_data);
+assert.ok(street.validation.taxonomy.tags.includes('participant'));
 
 const streetOfficialEvent = prepareCandidate(baseCandidate({
   source_url: 'https://www.dancecode.kr/dance/view/270',
@@ -228,6 +286,8 @@ const streetOfficialEvent = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(streetOfficialEvent.validation.ok, true, 'verified DanceCode detail page can be saved as an expanded street event');
 assert.equal(streetOfficialEvent.candidate.structured_data.activity_type, 'event');
+assert.equal(streetOfficialEvent.candidate.structured_data.genre, '대회');
+assertNoVirtualGenreFields(streetOfficialEvent.candidate.structured_data);
 
 const tango = buildCafe24Payload(baseCandidate({
   source_url: 'https://tangotocup.com/competition/65',
@@ -235,6 +295,8 @@ const tango = buildCafe24Payload(baseCandidate({
   structured_data: { title: 'TangotoWorld CUP Seoul Preliminary', date: '2026-07-11', location: 'Freestyle Tango Studio', event_type: '행사' },
 }), { today: TODAY });
 assert.equal(tango.structured_data.dance_scope, 'tango');
+assert.equal(tango.structured_data.genre, '대회');
+assertNoVirtualGenreFields(tango.structured_data);
 assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://tangocalendar.kr/events/milonga-test',
   extracted_text: '서울 탱고 밀롱가 DJ Una 2026.06.21',

@@ -24,6 +24,7 @@ import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
 import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../utils/appNotice";
+import { getCalendarLayoutMetrics } from "./utils/calendarLayoutMetrics";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -63,6 +64,19 @@ const getSafeRect = (element: Element | null | undefined) => {
 
 const getCalendarEventVenue = (event: any) =>
     event.venue_name || event.place_name || event.location || event.address || '';
+
+const isCalendarMetricsSocialEvent = (event: any) => {
+    const category = String(event?.category || '').toLowerCase();
+    const activityType = String(event?.activity_type || '').toLowerCase();
+    const genre = String(event?.genre || '').toLowerCase();
+    return category === 'social'
+        || activityType === 'social'
+        || genre.includes('소셜')
+        || genre.includes('졸공')
+        || genre.includes('social')
+        || Boolean(event?.group_id)
+        || String(event?.id || '').startsWith('social-');
+};
 
 const getCalendarEventDateStrings = (event: any) => {
     const dates = new Set<string>();
@@ -643,10 +657,14 @@ export default function CalendarPage() {
             }
         }
 
-        const eventsByDate: Record<string, number> = {};
+        const layoutMetrics = getCalendarLayoutMetrics(vw);
+        const eventsByDate: Record<string, number[]> = {};
 
-        const addToDate = (map: Record<string, number>, dateStr: string) => {
-            map[dateStr] = (map[dateStr] || 0) + 1;
+        const addToDate = (map: Record<string, number[]>, dateStr: string, event: any) => {
+            const eventHeight = isCalendarMetricsSocialEvent(event)
+                ? layoutMetrics.socialCardHeight
+                : layoutMetrics.eventChipHeight;
+            map[dateStr] = [...(map[dateStr] || []), eventHeight];
         };
 
         const getLocalStr = (d: any) => {
@@ -662,7 +680,7 @@ export default function CalendarPage() {
                     const dateStr = getLocalStr(d);
                     if (!dateStr) return;
                     if (isClass && dateStr !== getLocalStr(sortedDates[0])) return;
-                    addToDate(eventsByDate, dateStr);
+                    addToDate(eventsByDate, dateStr, event);
                 });
             } else {
                 const startStr = event.start_date || event.date || event.schedule_date;
@@ -675,24 +693,23 @@ export default function CalendarPage() {
                     let limit = 0;
                     while (curr <= endDate && limit < 365) {
                         const dateStr = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
-                        addToDate(eventsByDate, dateStr);
+                        addToDate(eventsByDate, dateStr, event);
                         curr.setDate(curr.getDate() + 1);
                         limit++;
                     }
                 } else {
                     const dateStr = getLocalStr(startStr);
-                    if (dateStr) addToDate(eventsByDate, dateStr);
+                    if (dateStr) addToDate(eventsByDate, dateStr, event);
                 }
             }
         });
 
         let sumPrecedingHeight = 0;
         let cumulativePageHeight = 0;
-        const rowGap = vw <= 430 ? 4 : 5;
-        const minCellHeight = vw <= 430 ? 30 : 112;
-        const dayHeaderHeight = vw <= 430 ? 18 : 28;
-        const eventChipHeight = vw <= 430 ? 64 : 68;
-        const eventGap = vw <= 430 ? 3 : 4;
+        const rowGap = layoutMetrics.rowGap;
+        const minCellHeight = layoutMetrics.minCellHeight;
+        const dayHeaderHeight = layoutMetrics.dayHeaderHeight;
+        const eventGap = layoutMetrics.eventGap;
         const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
             currentMonth.getMonth() === today.getMonth();
         const todayWeekIndex = Math.floor((today.getDate() + firstDay - 1) / 7);
@@ -705,10 +722,11 @@ export default function CalendarPage() {
                 const dayOffset = (w * 7) + d - firstDay;
                 const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayOffset + 1);
                 const dateStr = getCalendarLocalDateString(date);
-                const eventCount = eventsByDate[dateStr] || 0;
+                const eventHeights = eventsByDate[dateStr] || [];
+                const eventStackHeight = eventHeights.reduce((sum, height) => sum + height, 0);
                 const dayHeight = Math.max(
                     minCellHeight,
-                    dayHeaderHeight + eventCount * eventChipHeight + Math.max(0, eventCount - 1) * eventGap + 12
+                    dayHeaderHeight + eventStackHeight + Math.max(0, eventHeights.length - 1) * eventGap + 12
                 );
                 if (dayHeight > maxDayHeight) maxDayHeight = dayHeight;
             }
@@ -732,7 +750,7 @@ export default function CalendarPage() {
             targetY: finalScrollTargetY,
             totalHeight: cumulativePageHeight + containerPaddingTop + lastRowExtraPadding,
             isSameMonth,
-            debugTitleHeight: eventChipHeight
+            debugTitleHeight: layoutMetrics.eventChipHeight
         };
     }, [currentMonth, calendarData, tabFilter, danceScope]);
 

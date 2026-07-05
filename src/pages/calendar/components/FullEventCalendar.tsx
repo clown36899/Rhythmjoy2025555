@@ -11,6 +11,12 @@ import {
   getCalendarEventDateKeys,
   getCalendarTodayDateKey,
 } from "../../../utils/calendarEventVisibility";
+import {
+  CALENDAR_SOCIAL_MIN_FONT_SIZE,
+  CALENDAR_SPAN_TITLE_FONT_SIZE,
+  getCalendarLayoutCssVars,
+  getCalendarLayoutMetrics,
+} from "../utils/calendarLayoutMetrics";
 import "../styles/FullEventCalendar.css";
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
@@ -104,9 +110,6 @@ const splitConsecutiveDateRuns = (dateKeys: string[]) => {
 const normalizeCalendarGroupPart = (value?: string | null) => (
   value?.trim().replace(/\s+/g, " ").toLowerCase() || ""
 );
-
-const CALENDAR_SPAN_TITLE_FONT_SIZE = 10;
-const CALENDAR_SOCIAL_MIN_FONT_SIZE = 4.8;
 
 const isCalendarSocialEvent = (event: AppEvent) => {
   const category = normalizeCalendarGroupPart(event.category);
@@ -441,20 +444,9 @@ const CalendarCell = memo(({
                       )}
                     </div>
                     <div className={`calendar-fullscreen-title-container ${isLessonEvent ? 'is-lesson' : ''}`}>
-                      {isLessonEvent ? (
-                        <>
-                          <div className="calendar-fullscreen-title">{event.title}</div>
-                          {locationText && (
-                            <div className="calendar-fullscreen-place">{locationText}</div>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {locationText && (
-                            <div className="calendar-fullscreen-place">{locationText}</div>
-                          )}
-                          <div className="calendar-fullscreen-title">{event.title}</div>
-                        </>
+                      <div className="calendar-fullscreen-title">{event.title}</div>
+                      {locationText && (
+                        <div className="calendar-fullscreen-place">{locationText}</div>
                       )}
                     </div>
                   </>
@@ -550,6 +542,9 @@ export default memo(function FullEventCalendar({
   // Use external props if provided, otherwise use internal state
   const effectiveDragOffset = dragOffset !== undefined ? dragOffset : internalDragOffset;
   const effectiveIsAnimating = isAnimating !== undefined ? isAnimating : internalIsAnimating;
+  const viewportWidth = typeof document !== "undefined" ? document.documentElement.clientWidth : 390;
+  const layoutMetrics = getCalendarLayoutMetrics(viewportWidth);
+  const layoutCssVars = getCalendarLayoutCssVars(viewportWidth);
 
   // Dynamic Height State
   const containerRef = useRef<HTMLDivElement>(null);
@@ -570,10 +565,8 @@ export default memo(function FullEventCalendar({
   // 달력 셀 높이 계산 함수
   // 이전 로직: 화면 높이에 맞춰서 늘림 -> 문제: 이벤트가 적어도 강제로 늘어남
   // 수정 로직: 최소 높이만 보장하고 컨텐츠에 맞게 늘어나도록 함 (30px은 기본 헤더/날짜 높이)
-  const getCellHeight = (monthDate: Date) => {
-    // [Fix] Page.tsx의 수학적 스크롤 계산과 100% 일치하도록 보정
-    // 이벤트가 없으면 불필요하게 늘리지 않고 최소 높이(56px)만 유지
-    return 56;
+  const getCellHeight = (_monthDate: Date) => {
+    return layoutMetrics.minCellHeight;
   };
 
   // 카테고리에 따라 이벤트 필터링 (기존 로직 유지)
@@ -1187,7 +1180,7 @@ export default memo(function FullEventCalendar({
 
   return (
     <>
-      <div data-calendar className="calendar-main-container">
+      <div data-calendar className="calendar-main-container" style={layoutCssVars as React.CSSProperties}>
         {viewMode === "year" ? (
           <div className="calendar-flex-1 calendar-overflow-y-auto">{renderYearView()}</div>
         ) : (

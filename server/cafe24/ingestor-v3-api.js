@@ -71,6 +71,22 @@ function normalizeText(value = '') {
     .replace(/[^\p{L}\p{N}가-힣]/gu, '');
 }
 
+function stripVirtualCandidateTaxonomy(structuredData = {}) {
+  const {
+    activity_label,
+    genre_family,
+    genre_family_label,
+    dance_genre,
+    dance_genre_label,
+    dance_scope_label,
+    taxonomy_confidence,
+    tags,
+    tag_labels,
+    ...siteStructuredData
+  } = structuredData || {};
+  return siteStructuredData;
+}
+
 function textSimilarity(a = '', b = '') {
   const left = normalizeText(a);
   const right = normalizeText(b);
@@ -158,7 +174,14 @@ function buildCandidateId(sourceUrl, eventDateValue, suffix = '') {
 }
 
 function normalizeCandidateInput(input = {}) {
-  const sd = input.structured_data || {};
+  const sd = stripVirtualCandidateTaxonomy(input.structured_data || {});
+  const rawInput = {
+    ...input,
+    structured_data: sd,
+  };
+  delete rawInput.genre_family;
+  delete rawInput.dance_genre;
+  delete rawInput.tags;
   const sourceUrl = String(input.source_url || '').trim();
   const normalizedSourceUrl = normalizeUrl(sourceUrl);
   const eventDateValue = dateOnly(sd.date || input.event_date || input.date);
@@ -194,9 +217,9 @@ function normalizeCandidateInput(input = {}) {
     extracted_text: input.extracted_text || '',
     activity_type: sd.activity_type || input.activity_type || null,
     dance_scope: sd.dance_scope || input.dance_scope || null,
-    genre_family: sd.genre_family || input.genre_family || null,
-    dance_genre: sd.dance_genre || input.dance_genre || null,
-    tags_json: stringifyJson(sd.tags || input.tags || []),
+    genre_family: null,
+    dance_genre: null,
+    tags_json: stringifyJson([]),
     confidence_score: Number.isFinite(confidenceScore) ? Math.max(0, Math.min(100, confidenceScore)) : 0,
     classification_reason: input.classification_reason || sd.classification_reason || null,
     needs_review_reason: input.needs_review_reason || (validationErrors.length ? validationErrors.join('; ') : null),
@@ -209,7 +232,7 @@ function normalizeCandidateInput(input = {}) {
     terminal_reason: input.terminal_reason || null,
     reviewed_by: input.reviewed_by || null,
     reviewed_at: mysqlDateTime(input.reviewed_at),
-    raw_json: stringifyJson(input),
+    raw_json: stringifyJson(rawInput),
     created_at: mysqlDateTime(input.created_at || now),
     updated_at: mysqlDateTime(now),
   };

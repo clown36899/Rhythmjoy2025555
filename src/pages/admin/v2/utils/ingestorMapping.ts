@@ -7,7 +7,6 @@ import {
   getDanceActivityLabel,
   getDanceFamilyLabel,
   getDanceGenreLabel,
-  getRecruitmentKindLabel,
   getDanceScopeLabel,
   getDanceTagLabel,
   inferDanceTaxonomy,
@@ -31,10 +30,9 @@ export interface VenueRecord extends VenueLike {
 }
 
 export interface MappedIngestorEvent {
-  category: 'social' | 'event' | 'class';
+  category: 'social' | 'event' | 'class' | 'club';
   genre: string;
   dance_scope: DanceScope;
-  dance_genre: string;
   activity_type: DanceActivity;
   dance_tags: string[];
   group_id: number | null;
@@ -52,6 +50,8 @@ interface ScrapedLike {
   extracted_text?: string;
   structured_data?: {
     title?: string;
+    category?: string | null;
+    genre?: string | null;
     event_type?: EventType | null;
     dance_scope?: DanceScope | null;
     activity_type?: DanceActivity | null;
@@ -68,6 +68,13 @@ interface ScrapedLike {
     times?: string[];
   };
 }
+
+const SITE_GENRES_BY_CATEGORY = {
+  social: ['소셜', '졸공'],
+  event: ['워크샵', '파티', '대회', '라이브밴드', '기타'],
+  class: ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'],
+  club: ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'],
+} as const;
 
 const SOURCE_VENUE_ALIASES: Array<[RegExp, string]> = [
   [/instagram\.com\/happyhall2004/i, '해피홀'],
@@ -206,10 +213,96 @@ export function matchVenue(event: ScrapedLike, venues: VenueRecord[]): VenueReco
   }, venues) as VenueRecord | null;
 }
 
-function buildOperatingGenre(activity: DanceActivity, recruitmentKind: RecruitmentKind | null): string {
-  const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
-  if (recruitmentLabel) return recruitmentLabel;
-  return getDanceActivityLabel(activity);
+function normalizeSiteCategory(value?: string | null): MappedIngestorEvent['category'] | '' {
+  const category = String(value || '').trim().toLowerCase();
+  if (category === 'regular') return 'class';
+  if (category === 'club') return 'club';
+  if (category === 'class' || category === 'lesson') return 'class';
+  if (category === 'social' || category === 'group') return 'social';
+  if (category === 'event' || category === 'party') return 'event';
+  return '';
+}
+
+function getIngestorSiteCategory(event: ScrapedLike, activity: DanceActivity): MappedIngestorEvent['category'] {
+  const sd = event.structured_data || {};
+  const explicit = normalizeSiteCategory(sd.category);
+  if (explicit) return explicit;
+
+  const eventType = String(sd.event_type || '').trim();
+  if (/소셜/i.test(eventType)) return 'social';
+  if (/강습|수업|클래스/i.test(eventType)) return 'class';
+  if (/동호회|크루|팀/i.test(eventType)) return 'club';
+  if (/행사|파티|대회|공연/i.test(eventType)) return 'event';
+
+  const text = getRecruitmentSearchText(event);
+  if (/졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text)) return 'social';
+  if (activity === 'social') return 'social';
+  if (activity === 'class') return 'class';
+  if (activity === 'recruit') {
+    return /팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)
+      ? 'class'
+      : 'event';
+  }
+  return 'event';
+}
+
+function normalizeSiteGenreValue(value?: string | null): string {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const compact = raw.replace(/\s+/g, '').toLowerCase();
+  if (/졸공|졸업공연|졸업파티|graduation/.test(compact)) return '졸공';
+  if (/소셜|social|밀롱가|프랙티카/.test(compact)) return '소셜';
+  if (/정규강습|정규수업|정규반/.test(compact)) return '정규강습';
+  if (/린디합|lindyhop/.test(compact)) return '린디합';
+  if (/솔로재즈|solojazz/.test(compact)) return '솔로재즈';
+  if (/발보아|balboa/.test(compact)) return '발보아';
+  if (/블루스|blues?/.test(compact)) return '블루스';
+  if (/팀원모집|팀모집|크루모집|멤버모집|teamrecruit|crewrecruit/.test(compact)) return '팀원모집';
+  if (/워크샵|워크숍|workshop/.test(compact)) return '워크샵';
+  if (/라이브밴드|라이브|liveband/.test(compact)) return '라이브밴드';
+  if (/대회|배틀|competition|battle|cup|finals/.test(compact)) return '대회';
+  if (/파티|party|night/.test(compact)) return '파티';
+  if (/기타|other|etc/.test(compact)) return '기타';
+  return raw;
+}
+
+function pickAllowedSiteGenre(values: Array<string | null | undefined>, category: MappedIngestorEvent['category']): string {
+  const allowed = SITE_GENRES_BY_CATEGORY[category];
+  for (const value of values) {
+    const parts = String(value || '').split(/[,/·ㆍ|]+/).map((part) => part.trim()).filter(Boolean);
+    for (const part of parts) {
+      const normalized = normalizeSiteGenreValue(part);
+      if ((allowed as readonly string[]).includes(normalized)) return normalized;
+    }
+  }
+  return '';
+}
+
+function buildSiteGenre(event: ScrapedLike, category: MappedIngestorEvent['category']): string {
+  const sd = event.structured_data || {};
+  const explicit = pickAllowedSiteGenre([sd.genre, sd.subgenre, sd.dance_genre_label, sd.dance_genre], category);
+  if (explicit) return explicit;
+
+  const text = getRecruitmentSearchText(event);
+  if (category === 'social') {
+    return /졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text) ? '졸공' : '소셜';
+  }
+
+  if (category === 'class' || category === 'club') {
+    if (/팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)) return '팀원모집';
+    if (category === 'club' && /정규\s*(?:강습|수업|반)|regular\s*(?:class|lesson)/i.test(text)) return '정규강습';
+    if (/린디\s*합|lindy\s*hop/i.test(text)) return '린디합';
+    if (/솔로\s*재즈|solo\s*jazz/i.test(text)) return '솔로재즈';
+    if (/발보아|balboa/i.test(text)) return '발보아';
+    if (/블루스|blues?/i.test(text)) return '블루스';
+    return '기타';
+  }
+
+  if (/대회|배틀|competition|battle|cup|finals/i.test(text)) return '대회';
+  if (/라이브\s*밴드|live\s*band/i.test(text)) return '라이브밴드';
+  if (/파티|party|night/i.test(text)) return '파티';
+  if (/워크샵|워크숍|특강|workshop/i.test(text)) return '워크샵';
+  return '기타';
 }
 
 export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): MappedIngestorEvent {
@@ -219,11 +312,8 @@ export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): Map
   const matchedVenue = matchVenue(event, venues);
   const sd = event.structured_data || {};
 
-  const category = activity === 'class' ? 'class' : activity === 'social' ? 'social' : 'event';
-  const genre = buildOperatingGenre(activity, recruitmentKind);
-  const danceGenre = recruitmentKind && resolveRecruitmentKind(sd.dance_genre)
-    ? taxonomy.dance_scope
-    : (sd.dance_genre || taxonomy.dance_genre);
+  const category = getIngestorSiteCategory(event, activity);
+  const genre = buildSiteGenre(event, category);
   const location = toMapSafeVenueName(matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '');
   const address = matchedVenue?.address || sd.address || '';
   const locationLink = sd.location_link || getVenueMapUrl(matchedVenue);
@@ -232,7 +322,6 @@ export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): Map
     category,
     genre,
     dance_scope: taxonomy.dance_scope,
-    dance_genre: danceGenre,
     activity_type: activity,
     dance_tags: getIngestorTags(event),
     group_id: category === 'social' ? 2 : null,
