@@ -104,14 +104,46 @@ const eventToScheduleItem = (event: Event): SocialSchedule => ({
   description: event.description,
   board_users: event.board_users,
   category: event.category,
+  activity_type: event.activity_type,
   genre: event.genre || undefined,
   scope: event.scope || undefined,
-} as SocialSchedule);
+} as SocialSchedule & { activity_type?: string | null });
+
+const getHomeTodayScheduleTypePriority = (schedule: SocialSchedule) => {
+  const typedSchedule = schedule as SocialSchedule & { activity_type?: string | null };
+  const category = String(schedule.category || schedule.v2_category || '').toLowerCase();
+  const activityType = String(typedSchedule.activity_type || '').toLowerCase();
+  const genre = String(schedule.genre || schedule.v2_genre || '').toLowerCase();
+
+  if (
+    category === 'social' ||
+    activityType === 'social' ||
+    genre.includes('소셜') ||
+    genre.includes('social')
+  ) {
+    return 0;
+  }
+
+  if (
+    category === 'class' ||
+    category === 'club' ||
+    category === 'regular' ||
+    activityType === 'class'
+  ) {
+    return 2;
+  }
+
+  return 1;
+};
 
 const sortScheduleItems = (a: SocialSchedule, b: SocialSchedule) => {
   const isGlobalA = a.scope === 'overseas';
   const isGlobalB = b.scope === 'overseas';
   if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
+
+  const typePriorityA = getHomeTodayScheduleTypePriority(a);
+  const typePriorityB = getHomeTodayScheduleTypePriority(b);
+  if (typePriorityA !== typePriorityB) return typePriorityA - typePriorityB;
 
   const dateA = a.date || a.start_date || '';
   const dateB = b.date || b.start_date || '';
