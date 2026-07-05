@@ -35,6 +35,138 @@ const parseDateKey = (value: any) => {
   return new Date(year, month - 1, day);
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type CalendarSpanItem = {
+  key: string;
+  representativeEvent: AppEvent;
+  eventIds: Array<number | string>;
+  title: string;
+  category: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+};
+
+type CalendarSpanBuildResult = {
+  spanItems: CalendarSpanItem[];
+  hiddenEventDateKeys: Set<string>;
+};
+
+const getDateKeyFromValue = (value?: string | Date | null) => getCalendarDateKey(value || null) || "";
+
+const eventDatePairKey = (eventId: number | string, dateKey: string) => `${eventId}|${dateKey}`;
+
+const dateKeyToUtcTime = (dateKey: string) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  if (!year || !month || !day) return NaN;
+  return Date.UTC(year, month - 1, day);
+};
+
+const diffDateDays = (startDate: string, endDate: string) => {
+  const startTime = dateKeyToUtcTime(startDate);
+  const endTime = dateKeyToUtcTime(endDate);
+  if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return 0;
+  return Math.round((endTime - startTime) / DAY_MS);
+};
+
+const addDateDays = (dateKey: string, days: number) => {
+  const time = dateKeyToUtcTime(dateKey);
+  if (!Number.isFinite(time)) return "";
+  return getCalendarDateKey(new Date(time + days * DAY_MS)) || "";
+};
+
+const getDateKeysInRange = (startDate: string, endDate: string) => {
+  const length = Math.max(1, diffDateDays(startDate, endDate) + 1);
+  return Array.from({ length }, (_, index) => addDateDays(startDate, index)).filter(Boolean);
+};
+
+const splitConsecutiveDateRuns = (dateKeys: string[]) => {
+  const uniqueDates = Array.from(new Set(dateKeys.filter(Boolean))).sort();
+  const runs: string[][] = [];
+  let currentRun: string[] = [];
+
+  uniqueDates.forEach((dateKey) => {
+    const previousDate = currentRun[currentRun.length - 1];
+    if (!previousDate || diffDateDays(previousDate, dateKey) === 1) {
+      currentRun.push(dateKey);
+      return;
+    }
+
+    runs.push(currentRun);
+    currentRun = [dateKey];
+  });
+
+  if (currentRun.length > 0) runs.push(currentRun);
+  return runs;
+};
+
+const normalizeCalendarGroupPart = (value?: string | null) => (
+  value?.trim().replace(/\s+/g, " ").toLowerCase() || ""
+);
+
+const isCalendarSocialEvent = (event: AppEvent) => {
+  const category = normalizeCalendarGroupPart(event.category);
+  const activityType = normalizeCalendarGroupPart(event.activity_type);
+  const genre = normalizeCalendarGroupPart(event.genre);
+
+  return (
+    category === "social" ||
+    activityType === "social" ||
+    genre.includes("소셜") ||
+    genre.includes("social") ||
+    Boolean((event as any).group_id) ||
+    String(event.id).startsWith("social-")
+  );
+};
+
+const isCalendarEventSeriesGroupable = (event: AppEvent) => (
+  normalizeCalendarGroupPart(event.category) === "event" && !isCalendarSocialEvent(event)
+);
+
+const getCalendarSeriesKey = (event: AppEvent) => {
+  if (!isCalendarEventSeriesGroupable(event)) return "";
+
+  const title = normalizeCalendarGroupPart(event.title);
+  if (!title) return "";
+
+  const place = normalizeCalendarGroupPart(event.location || event.venue_name || event.place_name);
+  const image = normalizeCalendarGroupPart(
+    event.image || event.image_thumbnail || event.image_medium || event.image_full || event.storage_path,
+  );
+  const organizer = normalizeCalendarGroupPart(event.organizer_name || event.organizer);
+
+  return [title, place, image || organizer].join("|");
+};
+
+const compareCalendarSpanItems = (a: CalendarSpanItem, b: CalendarSpanItem) => {
+  const startDateCompare = a.startDate.localeCompare(b.startDate);
+  if (startDateCompare !== 0) return startDateCompare;
+
+  const durationCompare = b.durationDays - a.durationDays;
+  if (durationCompare !== 0) return durationCompare;
+
+  const titleCompare = a.title.localeCompare(b.title, "ko");
+  if (titleCompare !== 0) return titleCompare;
+
+  return a.key.localeCompare(b.key);
+};
+
+const isDateInCalendarSpan = (span: CalendarSpanItem, dateKey: string) => (
+  span.startDate <= dateKey && dateKey <= span.endDate
+);
+
+const getCalendarEventToneClass = (event: AppEvent) => {
+  const category = String(event.category || '').toLowerCase();
+  return category === 'class' || category === 'regular'
+    ? 'calendar-event-tone-blue'
+    : category === 'social'
+      ? 'calendar-event-tone-green'
+      : category === 'club'
+        ? 'calendar-event-tone-violet'
+        : 'calendar-event-tone-amber';
+};
+
 interface FullEventCalendarProps {
   currentMonth: Date;
   selectedDate: Date | null;
@@ -70,7 +202,11 @@ const CalendarCell = memo(({
   isLastRow,
   isOutsideMonth,
   cellHeight,
+  gridColumn,
+  gridRow,
   events,
+  hiddenEventDateKeys,
+  reservedSpanLanes,
   highlightedEventId,
   onDateClick,
   onDateNumberClick,
@@ -82,7 +218,11 @@ const CalendarCell = memo(({
   isLastRow: boolean;
   isOutsideMonth: boolean;
   cellHeight: number;
+  gridColumn: number;
+  gridRow: number;
   events: AppEvent[];
+  hiddenEventDateKeys: Set<string>;
+  reservedSpanLanes: number;
   highlightedEventId: number | string | null;
   onDateClick: (date: Date, e?: React.MouseEvent) => void;
   onDateNumberClick: (e: React.MouseEvent, date: Date) => void;
@@ -105,6 +245,7 @@ const CalendarCell = memo(({
   }, []);
 
   const dateString = getCalendarDateKey(day) || "";
+  const visibleEvents = events.filter((event) => !hiddenEventDateKeys.has(eventDatePairKey(event.id, dateString)));
 
   return (
     <div
@@ -112,7 +253,11 @@ const CalendarCell = memo(({
       id={isToday ? 'calendar-today-cell' : undefined}
       onClick={(e) => onDateClick(day, e)}
       className={`calendar-cell-fullscreen ${isToday ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''} ${isOutsideMonth ? 'is-outside-month' : ''}`}
-      style={{ '--cell-min-height': `${cellHeight}px` } as any}
+      style={{
+        '--cell-min-height': `${cellHeight}px`,
+        gridColumn,
+        gridRow,
+      } as any}
     >
       <div className="calendar-cell-fullscreen-header">
         <span
@@ -144,10 +289,15 @@ const CalendarCell = memo(({
         )}
       </div>
 
-      <div className="calendar-cell-fullscreen-body">
+      <div
+        className="calendar-cell-fullscreen-body"
+        style={{
+          paddingTop: reservedSpanLanes > 0 ? `${reservedSpanLanes * 20 + 8}px` : undefined,
+        }}
+      >
         {shouldRenderEvents ? (
           <>
-          {events.map((event) => {
+          {visibleEvents.map((event) => {
             const thumbnailUrl = getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium'])
               || event.image
               || event.image_full;
@@ -155,14 +305,7 @@ const CalendarCell = memo(({
               || thumbnailUrl;
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = event.venue_name || event.place_name || event.location || '';
-            const category = String(event.category || '').toLowerCase();
-            const toneClass = category === 'class' || category === 'regular'
-              ? 'calendar-event-tone-blue'
-              : category === 'social'
-                ? 'calendar-event-tone-green'
-                : category === 'club'
-                  ? 'calendar-event-tone-violet'
-                  : 'calendar-event-tone-amber';
+            const toneClass = getCalendarEventToneClass(event);
 
             const eStart = (event.start_date || event.date || '').substring(0, 10);
             const eEnd = (event.end_date || event.date || '').substring(0, 10);
@@ -224,7 +367,7 @@ const CalendarCell = memo(({
         ) : (
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
           /* Keep social/event skeleton thumbnails aligned with the 16:9 card media ratio. */
-          events.map((event) => {
+          visibleEvents.map((event) => {
             const isSocialSkeleton = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             return (
               <div
@@ -377,6 +520,132 @@ export default memo(function FullEventCalendar({
 
     return combined as AppEvent[];
   }, [categoryFilteredEvents, socialSchedules, tabFilter, events]);
+
+  const { spanItems: calendarSpanItems, hiddenEventDateKeys } = useMemo<CalendarSpanBuildResult>(() => {
+    const spanItems: CalendarSpanItem[] = [];
+    const hiddenDateKeys = new Set<string>();
+    const singleDayEventsBySeries = new Map<string, Array<{ dateKey: string; event: AppEvent }>>();
+
+    filteredEvents.forEach((event) => {
+      const eventDateKeys = getCalendarEventDateKeys(event);
+
+      if (event.event_dates && eventDateKeys.length > 0) {
+        if (!isCalendarEventSeriesGroupable(event)) return;
+
+        splitConsecutiveDateRuns(eventDateKeys).forEach((dateRun) => {
+          if (dateRun.length < 2) return;
+
+          const startDate = dateRun[0];
+          const endDate = dateRun[dateRun.length - 1];
+
+          spanItems.push({
+            key: `event-dates:${event.id}:${startDate}:${endDate}`,
+            representativeEvent: event,
+            eventIds: [event.id],
+            title: event.title || "",
+            category: event.category,
+            startDate,
+            endDate,
+            durationDays: dateRun.length,
+          });
+
+          dateRun.forEach((dateKey) => {
+            hiddenDateKeys.add(eventDatePairKey(event.id, dateKey));
+          });
+        });
+        return;
+      }
+
+      const startDate = getDateKeyFromValue(event.start_date || event.date);
+      const endDate = getDateKeyFromValue(event.end_date || event.date || event.start_date);
+      if (!startDate || !endDate || startDate !== endDate) return;
+
+      const seriesKey = getCalendarSeriesKey(event);
+      if (!seriesKey) return;
+
+      const seriesEvents = singleDayEventsBySeries.get(seriesKey) || [];
+      seriesEvents.push({ dateKey: startDate, event });
+      singleDayEventsBySeries.set(seriesKey, seriesEvents);
+    });
+
+    singleDayEventsBySeries.forEach((seriesEvents, seriesKey) => {
+      const eventByDate = new Map<string, AppEvent>();
+
+      seriesEvents
+        .sort((a, b) => {
+          const dateCompare = a.dateKey.localeCompare(b.dateKey);
+          if (dateCompare !== 0) return dateCompare;
+          return String(a.event.id).localeCompare(String(b.event.id));
+        })
+        .forEach(({ dateKey, event }) => {
+          if (!eventByDate.has(dateKey)) eventByDate.set(dateKey, event);
+        });
+
+      splitConsecutiveDateRuns(Array.from(eventByDate.keys())).forEach((dateRun) => {
+        if (dateRun.length < 2) return;
+
+        const runEvents = dateRun
+          .map((dateKey) => eventByDate.get(dateKey))
+          .filter((event): event is AppEvent => Boolean(event));
+        const representativeEvent = runEvents[0];
+        if (!representativeEvent) return;
+
+        const startDate = dateRun[0];
+        const endDate = dateRun[dateRun.length - 1];
+
+        spanItems.push({
+          key: `series:${seriesKey}:${startDate}:${endDate}`,
+          representativeEvent,
+          eventIds: runEvents.map((event) => event.id),
+          title: representativeEvent.title || "",
+          category: representativeEvent.category,
+          startDate,
+          endDate,
+          durationDays: dateRun.length,
+        });
+
+        runEvents.forEach((event, index) => {
+          hiddenDateKeys.add(eventDatePairKey(event.id, dateRun[index]));
+        });
+      });
+    });
+
+    return {
+      spanItems: spanItems.sort(compareCalendarSpanItems),
+      hiddenEventDateKeys: hiddenDateKeys,
+    };
+  }, [filteredEvents]);
+
+  const calendarSpanLaneMap = useMemo(() => {
+    const map = new Map<string, { lane: number; toneClass: string }>();
+    const lanes: Array<{ endDate: string; spanKey: string }> = [];
+
+    calendarSpanItems.forEach((span) => {
+      let assignedLane = -1;
+
+      for (let i = 0; i < Math.min(lanes.length, 3); i++) {
+        if (lanes[i].endDate < span.startDate) {
+          assignedLane = i;
+          lanes[i] = { endDate: span.endDate, spanKey: span.key };
+          break;
+        }
+      }
+
+      if (assignedLane === -1 && lanes.length < 3) {
+        assignedLane = lanes.length;
+        lanes.push({ endDate: span.endDate, spanKey: span.key });
+      }
+
+      if (assignedLane === -1) return;
+
+      map.set(span.key, {
+        lane: assignedLane,
+        toneClass: getCalendarEventToneClass(span.representativeEvent),
+      });
+    });
+
+    return map;
+  }, [calendarSpanItems]);
 
   // 현재 월/뷰모드 변경 시 이벤트 발생
   useEffect(() => {
@@ -656,6 +925,75 @@ export default memo(function FullEventCalendar({
     }
   };
 
+  const renderCalendarSpanOverlay = (days: Date[]) => {
+    const weekCount = Math.ceil(days.length / 7);
+    const titleSegments: Array<{
+      spanKey: string;
+      title: string;
+      lane: number;
+      weekRow: number;
+      startCol: number;
+      span: number;
+      toneClass: string;
+    }> = [];
+
+    for (let weekRow = 0; weekRow < weekCount; weekRow++) {
+      const weekStartIndex = weekRow * 7;
+      const weekDays = days.slice(weekStartIndex, weekStartIndex + 7);
+      const weekStartDate = getCalendarDateKey(weekDays[0]);
+      const weekEndDate = getCalendarDateKey(weekDays[weekDays.length - 1]);
+      if (!weekStartDate || !weekEndDate) continue;
+
+      calendarSpanItems
+        .filter((span) => span.endDate >= weekStartDate && span.startDate <= weekEndDate)
+        .sort((a, b) => {
+          const laneA = calendarSpanLaneMap.get(a.key)?.lane ?? 99;
+          const laneB = calendarSpanLaneMap.get(b.key)?.lane ?? 99;
+          if (laneA !== laneB) return laneA - laneB;
+          return compareCalendarSpanItems(a, b);
+        })
+        .forEach((span) => {
+          const laneInfo = calendarSpanLaneMap.get(span.key);
+          if (!laneInfo || laneInfo.lane >= 3) return;
+
+          const segmentStartDate = span.startDate > weekStartDate ? span.startDate : weekStartDate;
+          const segmentEndDate = span.endDate < weekEndDate ? span.endDate : weekEndDate;
+          const startCol = diffDateDays(weekStartDate, segmentStartDate);
+          const segmentSpan = Math.max(1, diffDateDays(segmentStartDate, segmentEndDate) + 1);
+
+          titleSegments.push({
+            spanKey: span.key,
+            title: span.title,
+            lane: laneInfo.lane,
+            weekRow,
+            startCol,
+            span: segmentSpan,
+            toneClass: laneInfo.toneClass,
+          });
+        });
+    }
+
+    if (titleSegments.length === 0) return null;
+
+    return (
+      <div className="calendar-overlay-container">
+        {titleSegments.map((segment) => (
+          <div
+            key={`${segment.spanKey}-${segment.weekRow}`}
+            className={`calendar-overlay-item ${segment.weekRow === 0 ? 'calendar-overlay-first-week' : ''} ${segment.toneClass}`}
+            style={{
+              gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
+              gridRow: segment.weekRow + 1,
+              '--lane-offset': `${segment.lane * 20}px`,
+            } as React.CSSProperties}
+          >
+            <span className="calendar-overlay-title">{segment.title}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // 전체화면 모드 그리드 렌더링
   const renderFullscreenGrid = (days: Date[], monthDate: Date) => {
     const cellHeight = getCellHeight(monthDate);
@@ -664,6 +1002,12 @@ export default memo(function FullEventCalendar({
       const isLastRow = index >= days.length - 7;
       const isOutsideMonth = day.getMonth() !== monthDate.getMonth();
       const dayEvents = getEventsForDate(day);
+      const dateString = getCalendarDateKey(day) || "";
+      const spanLanesForDate = calendarSpanItems
+        .filter((span) => isDateInCalendarSpan(span, dateString))
+        .map((span) => calendarSpanLaneMap.get(span.key)?.lane)
+        .filter((lane): lane is number => typeof lane === "number" && lane < 3);
+      const reservedSpanLanes = spanLanesForDate.length > 0 ? Math.max(...spanLanesForDate) + 1 : 0;
 
       return (
         <CalendarCell
@@ -673,7 +1017,11 @@ export default memo(function FullEventCalendar({
           isLastRow={isLastRow}
           isOutsideMonth={isOutsideMonth}
           cellHeight={cellHeight}
+          gridColumn={(index % 7) + 1}
+          gridRow={Math.floor(index / 7) + 1}
           events={dayEvents}
+          hiddenEventDateKeys={hiddenEventDateKeys}
+          reservedSpanLanes={reservedSpanLanes}
           highlightedEventId={highlightedEventId}
           onDateClick={handleFullscreenDateClick}
           onDateNumberClick={handleDateNumberClick}
@@ -761,6 +1109,7 @@ export default memo(function FullEventCalendar({
                           } as any}
                         >
                           {renderFullscreenGrid(days, month)}
+                          {renderCalendarSpanOverlay(days)}
                         </div>
                       </>
                     )}
