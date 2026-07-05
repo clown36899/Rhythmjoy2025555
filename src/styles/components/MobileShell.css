@@ -2530,3 +2530,30 @@ html.v2-home-mode #root {
     max-height: 104px !important;
   }
 }
+
+@media (min-width: 761px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-header,
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-indicators,
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-lowerDeck {
+    width: min(100%, var(--neb-stage-width, 100%)) !important;
+    max-width: min(100%, var(--neb-stage-width, 100%)) !important;
+    margin-left: var(--neb-stage-left, 0px) !important;
+    margin-right: auto !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-header {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-indicators {
+    justify-content: center !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-lowerDeck {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+}

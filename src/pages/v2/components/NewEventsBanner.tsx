@@ -945,6 +945,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 const stackMetrics = calculateStackMetrics(stackStep);
                 const edgeMargin = Math.max(0, Math.floor((containerWidth - stackMetrics.span) / 2));
                 const activeLeft = Math.max(0, Math.round(edgeMargin - stackMetrics.stackLeft));
+                const stageLeft = Math.max(0, Math.round(activeLeft + stackMetrics.stackLeft));
+                const minStageWidth = isDesktopSplitSurface
+                    ? Math.min(containerWidth, viewportWidth >= 900 ? 640 : 520)
+                    : stackMetrics.span;
+                const stageWidth = Math.round(Math.min(
+                    Math.max(activeCardWidth, containerWidth - stageLeft),
+                    Math.max(stackMetrics.span, minStageWidth),
+                ));
 
                 setTodayItemLimit(nextTodayItemLimit);
                 setLayoutStats((prev) => (
@@ -967,6 +975,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     '--neb-card-width': `${activeCardWidth}px`,
                     '--neb-active-left': `${Math.max(10, activeLeft)}px`,
                     '--neb-single-left': `${Math.max(10, Math.floor((containerWidth - activeCardWidth) / 2))}px`,
+                    '--neb-stage-left': `${stageLeft}px`,
+                    '--neb-stage-width': `${stageWidth}px`,
                     '--neb-stack-step': `${stackStep}px`,
                     '--neb-stack-front-extra': `${frontStackExtra}px`,
                 } as React.CSSProperties);
