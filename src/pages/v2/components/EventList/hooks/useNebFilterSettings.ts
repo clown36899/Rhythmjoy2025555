@@ -9,7 +9,7 @@ export interface NebFilterSettings {
     include_genres: string[];
 }
 
-export const NEB_MAX_ITEMS = 15;
+export const NEB_MAX_ITEMS = 10;
 
 // 이벤트 등록 폼에서 선택 가능한 전체 장르 목록
 export const ALL_NEB_GENRES = [
