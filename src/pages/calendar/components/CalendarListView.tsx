@@ -49,7 +49,7 @@ function getEventListDate(e: AppEvent): string {
 
 function getCategoryLabel(e: AppEvent): { label: string; cls: string } {
     const cat = e.category || "";
-    if (cat === "social") return { label: "소셜", cls: "list-badge--social" };
+    if (cat === "social") return { label: String(e.genre || "").includes("졸공") ? "졸공" : "소셜", cls: "list-badge--social" };
     if (cat === "class") return { label: "강습", cls: "list-badge--class" };
     if (cat === "club") return { label: "동호회", cls: "list-badge--club" };
     return { label: "행사", cls: "list-badge--event" };

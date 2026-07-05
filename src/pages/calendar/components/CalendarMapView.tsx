@@ -295,9 +295,10 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
     const handlePrevMonth = () => handleMonthMove(-1);
     const handleNextMonth = () => handleMonthMove(1);
 
-    const getCategoryLabel = (category?: string) => {
+    const getCategoryLabel = (event: AppEvent) => {
+        const category = event.category;
         const cat = category?.toLowerCase();
-        if (cat === 'social') return '소셜';
+        if (cat === 'social') return String(event.genre || '').includes('졸공') ? '졸공' : '소셜';
         if (cat === 'class' || cat === 'regular') return '강습';
         if (cat === 'club') return '동호회';
         return '이벤트';
@@ -465,7 +466,7 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
                                     className="cmv-event-badge"
                                     style={{ background: `${getCategoryColor(ev.category)}20`, color: getCategoryColor(ev.category) }}
                                 >
-                                    {getCategoryLabel(ev.category)}
+                                    {getCategoryLabel(ev)}
                                 </span>
                                 <div className="cmv-event-title">{ev.title}</div>
                                 <div className="cmv-event-loc">

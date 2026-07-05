@@ -2085,9 +2085,9 @@
 .calendar-page-container .calendar-fullscreen-event-card.calendar-social-text-card {
   display: block;
   position: relative;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
   overflow: visible;
   padding: 1px 2px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2130,7 +2130,7 @@
   min-height: 0;
   align-items: center;
   color: var(--cal-sample-text, #f6f7f9);
-  font-size: var(--calendar-social-place-font-size, 13px);
+  font-size: var(--calendar-social-place-font-size, 10px);
   font-weight: 950;
   line-height: 0.9;
   overflow: hidden;
@@ -2147,7 +2147,7 @@
   min-height: 0;
   align-items: center;
   color: var(--cal-sample-text, #f6f7f9);
-  font-size: var(--calendar-social-dj-font-size, 13px);
+  font-size: var(--calendar-social-dj-font-size, 10px);
   font-weight: 950;
   line-height: 0.9;
   overflow: hidden;
@@ -2250,9 +2250,9 @@
   }
 
   .calendar-page-container .calendar-fullscreen-event-card.calendar-social-text-card {
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
+    height: 22px;
+    min-height: 22px;
+    max-height: 22px;
     overflow: visible;
     padding: 1px 2px;
     border-radius: 6px;
@@ -2272,11 +2272,11 @@
   }
 
   .calendar-page-container .calendar-social-place {
-    font-size: var(--calendar-social-place-font-size, 12px);
+    font-size: var(--calendar-social-place-font-size, 10px);
   }
 
   .calendar-page-container .calendar-social-dj {
-    font-size: var(--calendar-social-dj-font-size, 12px);
+    font-size: var(--calendar-social-dj-font-size, 10px);
   }
 
   .calendar-page-container .calendar-fullscreen-image-container,

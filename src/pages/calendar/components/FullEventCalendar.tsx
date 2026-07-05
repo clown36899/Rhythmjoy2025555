@@ -105,6 +105,9 @@ const normalizeCalendarGroupPart = (value?: string | null) => (
   value?.trim().replace(/\s+/g, " ").toLowerCase() || ""
 );
 
+const CALENDAR_SPAN_TITLE_FONT_SIZE = 10;
+const CALENDAR_SOCIAL_MIN_FONT_SIZE = 4.8;
+
 const isCalendarSocialEvent = (event: AppEvent) => {
   const category = normalizeCalendarGroupPart(event.category);
   const activityType = normalizeCalendarGroupPart(event.activity_type);
@@ -114,6 +117,7 @@ const isCalendarSocialEvent = (event: AppEvent) => {
     category === "social" ||
     activityType === "social" ||
     genre.includes("소셜") ||
+    genre.includes("졸공") ||
     genre.includes("social") ||
     Boolean((event as any).group_id) ||
     String(event.id).startsWith("social-")
@@ -199,6 +203,11 @@ const getCalendarSocialDjText = (event: AppEvent) => {
   return name || "";
 };
 
+const getCalendarSocialBadgeLabel = (event: AppEvent) => {
+  const genre = cleanCalendarDisplayText(event.genre);
+  return genre.includes("졸공") ? "졸공" : "소셜";
+};
+
 const estimateCalendarSocialTextUnits = (value: string) => (
   Array.from(cleanCalendarDisplayText(value)).reduce((sum, char) => {
     if (/\s/.test(char)) return sum + 0.32;
@@ -218,8 +227,8 @@ const getCalendarSocialFitFontSize = (value: string, maxSize: number, minSize: n
 };
 
 const getCalendarSocialTextStyle = (locationText: string, djText: string) => ({
-  '--calendar-social-place-font-size': `${getCalendarSocialFitFontSize(locationText, 15, 4.8).toFixed(2)}px`,
-  '--calendar-social-dj-font-size': `${getCalendarSocialFitFontSize(djText, 15, 4.8).toFixed(2)}px`,
+  '--calendar-social-place-font-size': `${getCalendarSocialFitFontSize(locationText, CALENDAR_SPAN_TITLE_FONT_SIZE, CALENDAR_SOCIAL_MIN_FONT_SIZE).toFixed(2)}px`,
+  '--calendar-social-dj-font-size': `${getCalendarSocialFitFontSize(djText, CALENDAR_SPAN_TITLE_FONT_SIZE, CALENDAR_SOCIAL_MIN_FONT_SIZE).toFixed(2)}px`,
 } as React.CSSProperties);
 
 interface FullEventCalendarProps {
@@ -358,11 +367,12 @@ const CalendarCell = memo(({
               || event.image_full;
             const desktopThumbnailUrl = getLightweightEventImage(event, ['image_thumbnail', 'image_medium', 'image_micro'])
               || thumbnailUrl;
-            const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
+            const isSocialEvent = isCalendarSocialEvent(event);
             const locationText = event.venue_name || event.place_name || event.location || '';
             const toneClass = getCalendarEventToneClass(event);
             const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
             const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
+            const socialBadgeLabel = isSocialEvent ? getCalendarSocialBadgeLabel(event) : "";
             const socialTextStyle = isSocialEvent
               ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
               : undefined;
@@ -386,7 +396,7 @@ const CalendarCell = memo(({
               >
                 {isSocialEvent ? (
                   <>
-                    <span className="calendar-social-badge" aria-hidden="true">소셜</span>
+                    <span className="calendar-social-badge" aria-hidden="true">{socialBadgeLabel}</span>
                     <div
                       className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
                       style={socialTextStyle}

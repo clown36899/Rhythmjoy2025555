@@ -74,7 +74,7 @@ const EventEditBottomSheet = React.memo(({
 
     const uniqueGenres = useMemo(() => {
         if (editCategory === 'social') {
-            return ['소셜'];
+            return ['소셜', '졸공'];
         }
         if (editCategory === 'club') {
             return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];

@@ -583,7 +583,6 @@ export const MobileShell: React.FC = () => {
                           <span>{calendarView.year}년</span>
                           <em>{calendarView.month + 1}월</em>
                         </strong>
-                        <small>월 선택</small>
                       </button>
 
                       <button

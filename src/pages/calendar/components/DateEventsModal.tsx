@@ -99,9 +99,10 @@ export default function DateEventsModal({
         return 'cat-bg-default';
     };
 
-    const getCategoryName = (category?: string) => {
+    const getCategoryName = (event: AppEvent) => {
+        const category = event.category;
         const cat = category?.toLowerCase();
-        if (cat === 'social') return '소셜';
+        if (cat === 'social') return String(event.genre || '').includes('졸공') ? '졸공' : '소셜';
         if (cat === 'party') return '파티';
         if (cat === 'regular') return '정모';
         if (cat === 'club') return '동호회';
@@ -141,7 +142,7 @@ export default function DateEventsModal({
                             {sortedEvents.map(event => {
                                 const imageUrl = event.image_thumbnail || event.image_micro || event.image_medium || event.image || event.image_full;
                                 const categoryClass = getCategoryColor(event.category);
-                                const categoryName = getCategoryName(event.category);
+                                const categoryName = getCategoryName(event);
                                 const timeStr = formatTime(event.start_date || event.date);
 
                                 return (
