@@ -167,6 +167,61 @@ const getCalendarEventToneClass = (event: AppEvent) => {
         : 'calendar-event-tone-amber';
 };
 
+const cleanCalendarDisplayText = (value?: string | null) => (
+  value?.trim().replace(/\s+/g, " ") || ""
+);
+
+const getCalendarSocialDjText = (event: AppEvent) => {
+  const rawDjs = (event as any).structured_data?.djs
+    ?? (event as any).djs
+    ?? (event as any).dj_names
+    ?? (event as any).dj_name;
+
+  const djs = Array.isArray(rawDjs)
+    ? rawDjs
+    : typeof rawDjs === "string"
+      ? rawDjs.split(/[,/·ㆍ&]+/)
+      : [];
+  const cleanDjs = djs
+    .map((dj) => cleanCalendarDisplayText(String(dj)).replace(/^DJ\s*/i, ""))
+    .filter(Boolean);
+
+  if (cleanDjs.length > 0) return cleanDjs.join(", ");
+
+  const title = cleanCalendarDisplayText(event.title);
+  const match = title.match(/(?:^|[\s|·ㆍ•([{-])DJ\s*([^|•)\]}{}\n\r]+?)(?=\s*(?:[|•)\]}{}]|소셜|공지|$))/i)
+    || title.match(/DJ\s*([^|•)\]}{}\n\r]+?)(?=\s*(?:[|•)\]}{}]|소셜|공지|$))/i)
+    || title.match(/디제이\s*([^|•)\]}{}\n\r]+?)(?=\s*(?:[|•)\]}{}]|소셜|공지|$))/i);
+  const name = cleanCalendarDisplayText(match?.[1])
+    .replace(/^DJ\s*/i, "")
+    .replace(/\s*(월요|화요|수요|목요|금요|토요|일요)\s*$/g, "");
+
+  return name || "";
+};
+
+const estimateCalendarSocialTextUnits = (value: string) => (
+  Array.from(cleanCalendarDisplayText(value)).reduce((sum, char) => {
+    if (/\s/.test(char)) return sum + 0.32;
+    if (/[A-Za-z0-9]/.test(char)) return sum + 0.56;
+    if (/[()[\]{}.,:;|/\\\-_'"]/u.test(char)) return sum + 0.38;
+    return sum + 1;
+  }, 0)
+);
+
+const getCalendarSocialFitFontSize = (value: string, maxSize: number, minSize: number) => {
+  const units = estimateCalendarSocialTextUnits(value);
+  if (units <= 0) return maxSize;
+
+  const targetWidth = 48;
+  const fittedSize = targetWidth / units;
+  return Math.max(minSize, Math.min(maxSize, fittedSize));
+};
+
+const getCalendarSocialTextStyle = (locationText: string, djText: string) => ({
+  '--calendar-social-place-font-size': `${getCalendarSocialFitFontSize(locationText, 15, 4.8).toFixed(2)}px`,
+  '--calendar-social-dj-font-size': `${getCalendarSocialFitFontSize(djText, 15, 4.8).toFixed(2)}px`,
+} as React.CSSProperties);
+
 interface FullEventCalendarProps {
   currentMonth: Date;
   selectedDate: Date | null;
@@ -306,6 +361,11 @@ const CalendarCell = memo(({
             const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = event.venue_name || event.place_name || event.location || '';
             const toneClass = getCalendarEventToneClass(event);
+            const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
+            const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
+            const socialTextStyle = isSocialEvent
+              ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
+              : undefined;
 
             const eStart = (event.start_date || event.date || '').substring(0, 10);
             const eEnd = (event.end_date || event.date || '').substring(0, 10);
@@ -316,7 +376,7 @@ const CalendarCell = memo(({
             return (
               <div
                 key={event.id}
-                className={`calendar-fullscreen-event-card ${toneClass} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
+                className={`calendar-fullscreen-event-card ${toneClass} ${isSocialEvent ? 'calendar-social-text-card' : ''} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
                 data-event-id={event.id}
                 role="button"
                 onClick={(e) => {
@@ -324,42 +384,59 @@ const CalendarCell = memo(({
                   onEventClick(event, day, events);
                 }}
               >
-                <div className="calendar-fullscreen-card-inner">
-                  {thumbnailUrl ? (
-                    <div className={`calendar-fullscreen-image-container ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                      <picture>
-                        {desktopThumbnailUrl && (
-                          <source media="(min-width: 1024px)" srcSet={desktopThumbnailUrl} />
-                        )}
-                        <img
-                          src={thumbnailUrl}
-                          alt=""
-                          className="calendar-fullscreen-image"
-                          loading="lazy"
-                          decoding="async"
-                          draggable={false}
-                        />
-                      </picture>
-                      {locationText && (
-                        <span className="calendar-fullscreen-location-overlay">
-                          {locationText}
-                        </span>
+                {isSocialEvent ? (
+                  <>
+                    <span className="calendar-social-badge" aria-hidden="true">소셜</span>
+                    <div
+                      className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
+                      style={socialTextStyle}
+                    >
+                      <div className="calendar-social-place">{locationText || "장소 미정"}</div>
+                      <div className="calendar-social-dj">
+                        {socialDjDisplayText}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="calendar-fullscreen-card-inner">
+                      {thumbnailUrl ? (
+                        <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                          <picture>
+                            {desktopThumbnailUrl && (
+                              <source media="(min-width: 1024px)" srcSet={desktopThumbnailUrl} />
+                            )}
+                            <img
+                              src={thumbnailUrl}
+                              alt=""
+                              className="calendar-fullscreen-image"
+                              loading="lazy"
+                              decoding="async"
+                              draggable={false}
+                            />
+                          </picture>
+                          {locationText && (
+                            <span className="calendar-fullscreen-location-overlay">
+                              {locationText}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={`calendar-fullscreen-placeholder ${toneClass} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                          <span className="calendar-placeholder-text">
+                            {event.title.charAt(0)}
+                          </span>
+                        </div>
                       )}
                     </div>
-                  ) : (
-                    <div className={`calendar-fullscreen-placeholder ${toneClass} ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                      <span className="calendar-placeholder-text">
-                        {event.title.charAt(0)}
-                      </span>
+                    <div className="calendar-fullscreen-title-container">
+                      {locationText && (
+                        <div className="calendar-fullscreen-place">{locationText}</div>
+                      )}
+                      <div className="calendar-fullscreen-title">{event.title}</div>
                     </div>
-                  )}
-                </div>
-                <div className="calendar-fullscreen-title-container">
-                  {locationText && (
-                    <div className="calendar-fullscreen-place">{locationText}</div>
-                  )}
-                  <div className="calendar-fullscreen-title">{event.title}</div>
-                </div>
+                  </>
+                )}
               </div>
             );
           })}
@@ -372,15 +449,21 @@ const CalendarCell = memo(({
             return (
               <div
                 key={`skeleton-${event.id}`}
-                className="calendar-fullscreen-event-card skeleton"
+                className={`calendar-fullscreen-event-card skeleton ${isSocialSkeleton ? 'calendar-social-text-card' : ''}`}
                 style={{ opacity: 0 }} /* 공간만 차지하도록 */
               >
-                <div className="calendar-fullscreen-card-inner">
-                  <div className={`calendar-fullscreen-image-container${isSocialSkeleton ? ' is-social' : ''}`} />
-                </div>
-                <div className="calendar-fullscreen-title-container">
-                  <div className="calendar-fullscreen-title">&nbsp;</div>
-                </div>
+                {isSocialSkeleton ? (
+                  <div className="calendar-social-text-card-body" />
+                ) : (
+                  <>
+                    <div className="calendar-fullscreen-card-inner">
+                      <div className="calendar-fullscreen-image-container" />
+                    </div>
+                    <div className="calendar-fullscreen-title-container">
+                      <div className="calendar-fullscreen-title">&nbsp;</div>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })
@@ -935,6 +1018,8 @@ export default memo(function FullEventCalendar({
       startCol: number;
       span: number;
       toneClass: string;
+      representativeEvent: AppEvent;
+      dateKey: string;
     }> = [];
 
     for (let weekRow = 0; weekRow < weekCount; weekRow++) {
@@ -969,6 +1054,8 @@ export default memo(function FullEventCalendar({
             startCol,
             span: segmentSpan,
             toneClass: laneInfo.toneClass,
+            representativeEvent: span.representativeEvent,
+            dateKey: segmentStartDate,
           });
         });
     }
@@ -986,6 +1073,20 @@ export default memo(function FullEventCalendar({
               gridRow: segment.weekRow + 1,
               '--lane-offset': `${segment.lane * 20}px`,
             } as React.CSSProperties}
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              const segmentDate = parseDateKey(segment.dateKey) || parseDateKey(segment.representativeEvent.start_date || segment.representativeEvent.date) || new Date();
+              onEventClick(segment.representativeEvent, segmentDate, getEventsForDate(segmentDate));
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              e.stopPropagation();
+              const segmentDate = parseDateKey(segment.dateKey) || parseDateKey(segment.representativeEvent.start_date || segment.representativeEvent.date) || new Date();
+              onEventClick(segment.representativeEvent, segmentDate, getEventsForDate(segmentDate));
+            }}
           >
             <span className="calendar-overlay-title">{segment.title}</span>
           </div>
