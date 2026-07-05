@@ -370,6 +370,7 @@ const CalendarCell = memo(({
             const isSocialEvent = isCalendarSocialEvent(event);
             const locationText = event.venue_name || event.place_name || event.location || '';
             const toneClass = getCalendarEventToneClass(event);
+            const isLessonEvent = ['class', 'regular'].includes(String(event.category || '').toLowerCase());
             const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
             const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
             const socialBadgeLabel = isSocialEvent ? getCalendarSocialBadgeLabel(event) : "";
@@ -439,11 +440,22 @@ const CalendarCell = memo(({
                         </div>
                       )}
                     </div>
-                    <div className="calendar-fullscreen-title-container">
-                      {locationText && (
-                        <div className="calendar-fullscreen-place">{locationText}</div>
+                    <div className={`calendar-fullscreen-title-container ${isLessonEvent ? 'is-lesson' : ''}`}>
+                      {isLessonEvent ? (
+                        <>
+                          <div className="calendar-fullscreen-title">{event.title}</div>
+                          {locationText && (
+                            <div className="calendar-fullscreen-place">{locationText}</div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {locationText && (
+                            <div className="calendar-fullscreen-place">{locationText}</div>
+                          )}
+                          <div className="calendar-fullscreen-title">{event.title}</div>
+                        </>
                       )}
-                      <div className="calendar-fullscreen-title">{event.title}</div>
                     </div>
                   </>
                 )}
