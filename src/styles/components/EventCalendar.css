@@ -104,6 +104,7 @@
 
 /* Individual Cell Styling for Card Look */
 .EventCalendar .ECAL-cell-fullscreen {
+    position: relative;
     background-color: var(--bg-modal);
     border-bottom: 1px solid var(--border-glass);
     border-right: 1px solid var(--border-glass);
@@ -151,6 +152,19 @@
     border-bottom-right-radius: 8px;
     border-right: 1px solid var(--border-glass);
     /* Right border */
+}
+
+.EventCalendar .ECAL-cell-fullscreen:not(:nth-child(7n+1))::before,
+.EventCalendar .ECAL-cell-base:not(:nth-child(7n+1))::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 4;
+    width: 1px;
+    background: var(--calendar-vertical-border);
+    pointer-events: none;
 }
 
 /* Remove default background from base if strictly enforcing card look */
