@@ -24,6 +24,7 @@ html {
     --cal-sample-lower-active-bg: rgba(216, 160, 45, 0.13);
     --cal-sample-lower-active-border: rgba(216, 160, 45, 0.46);
     --cal-sample-lower-active-text: #f2cf82;
+    --cal-month-column-line: rgba(255, 255, 255, 0.16);
     min-height: auto;
     display: flex;
     flex-direction: column;
@@ -257,9 +258,27 @@ html {
     padding: 10px 12px 7px;
     border-bottom: 1px solid var(--cal-sample-border);
     background: var(--cal-sample-panel);
+    overflow: hidden;
+}
+
+.calendar-sticky-weekdays::after {
+    content: "";
+    position: absolute;
+    inset: 0 12px;
+    z-index: 2;
+    pointer-events: none;
+    background:
+        linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 14.285714% 0 / 1px 100% no-repeat,
+        linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 28.571429% 0 / 1px 100% no-repeat,
+        linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 42.857143% 0 / 1px 100% no-repeat,
+        linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 57.142857% 0 / 1px 100% no-repeat,
+        linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 71.428571% 0 / 1px 100% no-repeat,
+        linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 85.714286% 0 / 1px 100% no-repeat;
 }
 
 .calendar-sticky-weekday-item {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     min-width: 0;
     height: 20px;
@@ -629,6 +648,10 @@ html {
         min-height: 27px;
         padding: 4px 3px 3px;
         background: var(--cal-sample-bg);
+    }
+
+    .calendar-sticky-weekdays::after {
+        inset: 0 3px;
     }
 
     .calendar-sticky-weekday-item {

@@ -1822,11 +1822,27 @@
 }
 
 .calendar-page-container .calendar-grid-container {
+  --calendar-grid-line-inset-x: 12px;
   column-gap: 5px;
   row-gap: 3px;
   padding: 12px;
   border-radius: 0;
   background: transparent;
+}
+
+.calendar-page-container .calendar-grid-container::after {
+  content: "";
+  position: absolute;
+  inset: 0 var(--calendar-grid-line-inset-x) 0 var(--calendar-grid-line-inset-x);
+  z-index: 70;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 14.285714% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 28.571429% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 42.857143% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 57.142857% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 71.428571% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--cal-month-column-line), var(--cal-month-column-line)) 85.714286% 0 / 1px 100% no-repeat;
 }
 
 .calendar-page-container .calendar-grid-container>.calendar-cell-fullscreen:nth-child(n+8) {
@@ -2192,6 +2208,7 @@
   }
 
   .calendar-page-container .calendar-grid-container {
+    --calendar-grid-line-inset-x: 3px;
     column-gap: 1px;
     row-gap: 3px;
     padding: 3px 3px 8px;
