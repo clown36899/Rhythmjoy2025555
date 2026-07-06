@@ -341,13 +341,13 @@ const CalendarCell = memo(({
           <span className="calendar-date-digit">{day.getDate()}</span>
           <span className="weekday-wrapper">
             <span className="translated-part">
-              {isToday ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
+              {t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
             </span>
             <span className="fixed-part ko" translate="no">
-              {(() => { const days = ['일', '월', '화', '수', '목', '금', '토']; return isToday ? '오늘' : days[day.getDay()]; })()}
+              {(() => { const days = ['일', '월', '화', '수', '목', '금', '토']; return days[day.getDay()]; })()}
             </span>
             <span className="fixed-part en" translate="no">
-              {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return isToday ? 'Today' : days[day.getDay()]; })()}
+              {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return days[day.getDay()]; })()}
             </span>
           </span>
         </span>

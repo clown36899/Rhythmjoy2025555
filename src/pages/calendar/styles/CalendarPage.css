@@ -25,6 +25,7 @@ html {
     --cal-sample-lower-active-border: rgba(216, 160, 45, 0.46);
     --cal-sample-lower-active-text: #f2cf82;
     --cal-month-column-line: rgba(255, 255, 255, 0.16);
+    --cal-week-alt-bg: rgba(0, 0, 0, 0.08);
     min-height: auto;
     display: flex;
     flex-direction: column;
