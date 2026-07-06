@@ -2,7 +2,7 @@
 
 .NEB-container {
   --neb-fixed-top-reserve: 86px;
-  --neb-bottom-menu-reserve: calc(78px + env(safe-area-inset-bottom, 0px));
+  --neb-bottom-menu-reserve: calc(78px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
   --neb-banner-ui-reserve: 154px;
   --neb-slider-target-height: clamp(320px, 76vw, 540px);
   --neb-indicator-size: clamp(14px, 5.2vw, 28px);
@@ -94,14 +94,14 @@
       180px,
       min(
         var(--neb-slider-target-height),
-        calc(100vh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+        calc(var(--app-visual-viewport-height, 100vh) - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
       )
     ));
   height: var(--neb-dynamic-slider-height, max(
       180px,
       min(
         var(--neb-slider-target-height),
-        calc(100dvh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+        calc(var(--app-visual-viewport-height, 100dvh) - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
       )
     ));
   min-height: 0;
@@ -884,7 +884,7 @@
 
 @media (min-width: 761px) and (max-width: 859px) and (max-height: 860px) {
   .v2-home-shell .home-neb-standard-layout .NEB-container.NEB-container {
-    --neb-bottom-menu-reserve: calc(140px + env(safe-area-inset-bottom, 0px));
+    --neb-bottom-menu-reserve: calc(140px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
     --neb-banner-ui-reserve: 196px;
     --neb-slider-target-height: clamp(280px, 58dvh, 420px);
   }
@@ -892,7 +892,7 @@
 
 @media (min-width: 761px) and (max-width: 859px) and (max-height: 720px) {
   .v2-home-shell .home-neb-standard-layout .NEB-container.NEB-container {
-    --neb-bottom-menu-reserve: calc(150px + env(safe-area-inset-bottom, 0px));
+    --neb-bottom-menu-reserve: calc(150px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
     --neb-banner-ui-reserve: 206px;
     --neb-slider-target-height: clamp(230px, 52dvh, 360px);
   }
@@ -907,7 +907,7 @@
   .NEB-oneDayRecruitBtn {
     position: fixed;
     top: auto;
-    bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(116px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
     left: max(24px, calc(50vw - 325px - clamp(180px, 16vw, 310px)));
     width: clamp(150px, 10.5vw, 172px);
     height: clamp(60px, 4.8vw, 70px);
@@ -917,7 +917,7 @@
 @media (max-width: 640px) {
     .NEB-container {
         --neb-fixed-top-reserve: 82px;
-        --neb-bottom-menu-reserve: calc(76px + env(safe-area-inset-bottom, 0px));
+        --neb-bottom-menu-reserve: calc(76px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
         --neb-banner-ui-reserve: 148px;
         --neb-slider-target-height: clamp(300px, 78vw, 480px);
     }
@@ -925,7 +925,7 @@
 
 @media (min-width: 520px) and (max-height: 860px) {
     .NEB-container {
-        --neb-bottom-menu-reserve: calc(116px + env(safe-area-inset-bottom, 0px));
+        --neb-bottom-menu-reserve: calc(116px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
         --neb-banner-ui-reserve: 172px;
         --neb-slider-target-height: clamp(260px, 64dvh, 430px);
     }
@@ -938,7 +938,7 @@
 
 @media (min-width: 520px) and (max-height: 720px) {
     .NEB-container {
-        --neb-bottom-menu-reserve: calc(124px + env(safe-area-inset-bottom, 0px));
+        --neb-bottom-menu-reserve: calc(124px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
         --neb-banner-ui-reserve: 180px;
         --neb-slider-target-height: clamp(230px, 58dvh, 390px);
     }
@@ -1047,7 +1047,7 @@
           170px,
           min(
             var(--neb-slider-target-height),
-            calc(100dvh - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
+            calc(var(--app-visual-viewport-height, 100dvh) - var(--neb-fixed-top-reserve) - var(--neb-bottom-menu-reserve) - var(--neb-banner-ui-reserve))
           )
         ));
       min-height: 0;
@@ -1143,7 +1143,7 @@
     gap: 6px;
     min-width: 0;
     min-height: 0;
-    max-height: 152px;
+    max-height: var(--neb-today-panel-max-height, 152px);
     padding: 8px 9px;
     border: 1px solid rgba(123, 255, 213, 0.18);
     border-radius: 12px;
@@ -1209,7 +1209,7 @@
     position: relative;
     min-width: 0;
     min-height: 0;
-    max-height: 105px;
+    max-height: var(--neb-today-list-max-height, 105px);
     padding-right: 9px;
   }
 
@@ -1218,7 +1218,7 @@
     gap: 2px;
     min-width: 0;
     min-height: 0;
-    max-height: 105px;
+    max-height: var(--neb-today-list-max-height, 105px);
     overflow-y: scroll;
     overscroll-behavior: contain;
     padding-right: 0;

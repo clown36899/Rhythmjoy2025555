@@ -1,7 +1,7 @@
 .home-v2-menu-panel {
   --home-v2-menu-bottom-gap: 0px;
-  --home-v2-menu-expanded-padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
-  --home-v2-menu-compact-padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  --home-v2-menu-expanded-padding-bottom: calc(22px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  --home-v2-menu-compact-padding-bottom: calc(8px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
   --home-v2-menu-sheet-bg: #1c1c1d;
   --home-v2-menu-card-bg: #202022;
   --home-v2-menu-card-hover-bg: #242426;
@@ -327,7 +327,7 @@
 }
 
 .home-v2-menu-panel.is-expanded {
-  top: calc(54px + env(safe-area-inset-top, 0px));
+  top: calc(54px + var(--app-safe-top, env(safe-area-inset-top, 0px)));
   bottom: 0;
   min-height: 0;
   max-height: none;
@@ -1052,7 +1052,7 @@
   }
 
   .home-v2-menu-panel.is-expanded {
-    top: calc(64px + env(safe-area-inset-top, 0px));
+    top: calc(64px + var(--app-safe-top, env(safe-area-inset-top, 0px)));
     max-height: none;
   }
 
@@ -1197,8 +1197,8 @@
 @media (hover: none) and (pointer: coarse) {
   .home-v2-menu-panel {
     --home-v2-menu-bottom-gap: 0px;
-    --home-v2-menu-expanded-padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-    --home-v2-menu-compact-padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    --home-v2-menu-expanded-padding-bottom: calc(18px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
+    --home-v2-menu-compact-padding-bottom: calc(8px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
     border-radius: 24px 24px 0 0;
   }
 

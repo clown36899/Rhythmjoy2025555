@@ -1,11 +1,16 @@
 import { initClientLogBuffer } from './utils/clientLogBuffer';
 import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 import { isKioskModeEnabled } from './lib/kioskMode';
+import { installViewportCssVars } from './utils/viewportMetrics';
 
 const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 const IS_KIOSK_BOOT = isKioskModeEnabled();
 const IS_LOCAL_RUNTIME = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
+const cleanupViewportCssVars = installViewportCssVars();
+if (import.meta.hot) {
+  import.meta.hot.dispose(cleanupViewportCssVars);
+}
 if (BOOT_DEBUG) {
     console.debug('%c[Main] JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
 }

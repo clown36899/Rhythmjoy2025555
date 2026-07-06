@@ -3,6 +3,23 @@
 
   /* ===== 1. PRIMITIVES (Color Palette) ===== */
   :root {
+    /* Viewport and safe-area system */
+    --app-safe-top: env(safe-area-inset-top, 0px);
+    --app-safe-right: env(safe-area-inset-right, 0px);
+    --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --app-safe-left: env(safe-area-inset-left, 0px);
+    --app-visual-viewport-width: 100vw;
+    --app-visual-viewport-height: 100svh;
+    --app-visual-viewport-top: 0px;
+    --app-visual-viewport-left: 0px;
+    --app-visual-viewport-bottom: 100svh;
+    --app-visual-viewport-right: 100vw;
+    --app-shell-header-height: 62px;
+    --app-shell-header-offset: calc(var(--app-shell-header-height) + var(--app-safe-top));
+    --app-shell-bottom-reserve: calc(140px + var(--app-safe-bottom));
+    --app-home-menu-compact-height: 104px;
+    --app-home-menu-expanded-max-height: calc(var(--app-visual-viewport-height) - 84px);
+
     /* 액센트 색상 */
     --color-blue-200: #bfdbfe;
     --color-blue-300: #93c5fd;

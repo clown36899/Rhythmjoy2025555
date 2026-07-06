@@ -5,6 +5,7 @@ import { useModalContext } from '../../../contexts/ModalContext';
 import type { Event } from '../utils/eventListUtils';
 import { formatEventDate } from '../../../utils/dateUtils';
 import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
+import { getVisualViewportMetrics } from '../../../utils/viewportMetrics';
 import './NewEventsBanner.css';
 import type { SocialSchedule } from '../../social/types';
 import {
@@ -838,18 +839,24 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 const container = containerRef.current;
                 if (!container) return;
 
-                const viewport = window.visualViewport;
-                const viewportWidth = viewport?.width || window.innerWidth || 390;
-                const viewportHeight = viewport?.height || window.innerHeight || 720;
+                const viewportMetrics = getVisualViewportMetrics();
+                const viewportWidth = viewportMetrics.width;
+                const viewportHeight = viewportMetrics.height;
+                const viewportTop = viewportMetrics.offsetTop;
+                const viewportBottom = viewportMetrics.bottom;
                 const isKioskSurface = document.documentElement.classList.contains('kiosk-link-router-active') ||
                     Boolean(document.body?.classList.contains('kiosk-link-router-active'));
                 const containerRect = container.getBoundingClientRect();
                 const headerRect = container.querySelector<HTMLElement>('.NEB-header')?.getBoundingClientRect();
                 const indicatorRect = container.querySelector<HTMLElement>('.NEB-indicators')?.getBoundingClientRect();
                 const navRect = document.querySelector<HTMLElement>('.home-v2-menu-panel')?.getBoundingClientRect();
-                const navTop = navRect && navRect.height > 0 && navRect.top > 0 && navRect.top < viewportHeight
+                const navTop = navRect &&
+                    navRect.height > 0 &&
+                    navRect.bottom > viewportTop &&
+                    navRect.top > 0 &&
+                    navRect.top < viewportBottom
                     ? navRect.top
-                    : viewportHeight - 86;
+                    : viewportBottom - 86;
                 const mediaBottom = Math.max(
                     headerRect ? headerRect.bottom - containerRect.top : 0,
                     indicatorRect ? indicatorRect.bottom - containerRect.top : 0,
@@ -892,6 +899,26 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         : Math.min(360, Math.max(220, viewportWidth * (viewportWidth < 430 ? 0.62 : 0.54))),
                 );
                 const sliderHeight = Math.max(210, Math.min(widthBasedHeight, availableHeight));
+                const sliderRect = container.querySelector<HTMLElement>('.NEB-slider')?.getBoundingClientRect();
+                const todayPanelRect = container.querySelector<HTMLElement>('.NEB-todaySchedulePanel')?.getBoundingClientRect();
+                const projectedTodayPanelTop = todayPanelRect
+                    ? todayPanelRect.top + (sliderHeight - (sliderRect?.height || sliderHeight))
+                    : containerRect.top + mediaBottom + sliderHeight + 72;
+                const mobileTodayPanelAvailableHeight = Math.floor(navTop - projectedTodayPanelTop - 10);
+                const mobileTodayPanelMaxHeight = !isMobileSurface || todaySchedules.length === 0
+                    ? 152
+                    : Math.round(Math.max(
+                        viewportHeight < 700 ? 118 : 136,
+                        Math.min(
+                            340,
+                            viewportHeight * 0.42,
+                            mobileTodayPanelAvailableHeight,
+                        ),
+                    ));
+                const mobileTodayListMaxHeight = Math.max(
+                    viewportHeight < 700 ? 74 : 90,
+                    mobileTodayPanelMaxHeight - 47,
+                );
                 const activeCardWidth = getSlideWidthPxForLayout(currentBannerImage, sliderHeight, containerWidth);
                 const previewCount = hasMultipleEvents ? Math.max(events.length - 1, 0) : 0;
                 const previewWidths = Array.from({ length: previewCount }, (_, previewIndex) => {
@@ -977,6 +1004,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                     '--neb-single-left': `${Math.max(10, Math.floor((containerWidth - activeCardWidth) / 2))}px`,
                     '--neb-stage-left': `${stageLeft}px`,
                     '--neb-stage-width': `${stageWidth}px`,
+                    '--neb-today-panel-max-height': `${mobileTodayPanelMaxHeight}px`,
+                    '--neb-today-list-max-height': `${mobileTodayListMaxHeight}px`,
                     '--neb-stack-step': `${stackStep}px`,
                     '--neb-stack-front-extra': `${frontStackExtra}px`,
                 } as React.CSSProperties);
@@ -987,20 +1016,28 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
         updateDynamicLayout();
         window.addEventListener('resize', updateDynamicLayout);
+        window.addEventListener('orientationchange', updateDynamicLayout);
+        window.addEventListener('scroll', updateDynamicLayout, { passive: true });
         if (viewportTarget && typeof viewportTarget.addEventListener === 'function') {
             viewportTarget.addEventListener('resize', updateDynamicLayout);
+            viewportTarget.addEventListener('scroll', updateDynamicLayout);
         }
 
         const resizeObserver = typeof ResizeObserver !== 'undefined'
             ? new ResizeObserver(updateDynamicLayout)
             : null;
         if (containerRef.current) resizeObserver?.observe(containerRef.current);
+        const navElement = document.querySelector<HTMLElement>('.home-v2-menu-panel');
+        if (navElement) resizeObserver?.observe(navElement);
 
         return () => {
             if (frameId) window.cancelAnimationFrame(frameId);
             window.removeEventListener('resize', updateDynamicLayout);
+            window.removeEventListener('orientationchange', updateDynamicLayout);
+            window.removeEventListener('scroll', updateDynamicLayout);
             if (viewportTarget && typeof viewportTarget.removeEventListener === 'function') {
                 viewportTarget.removeEventListener('resize', updateDynamicLayout);
+                viewportTarget.removeEventListener('scroll', updateDynamicLayout);
             }
             resizeObserver?.disconnect();
         };

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getVisualViewportMetrics } from '../../../utils/viewportMetrics';
 
 interface UseCalendarGestureProps {
   headerHeight: number;
@@ -68,10 +69,7 @@ export function useCalendarGesture({
   const calculateFullscreenHeight = useCallback(() => {
     if (typeof window === 'undefined') return 600;
 
-    // Use visualViewport for more accurate height (handles mobile address bar)
-    const actualViewportHeight = window.visualViewport
-      ? window.visualViewport.height
-      : viewportHeight;
+    const actualViewportHeight = getVisualViewportMetrics().height || viewportHeight;
 
     // 1. Bottom Nav Height
     const bottomNavSelector = '.shell-bottom-nav';
