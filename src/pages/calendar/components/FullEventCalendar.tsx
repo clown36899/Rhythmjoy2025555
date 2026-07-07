@@ -480,7 +480,9 @@ const CalendarCell = memo(({
       <div
         className="calendar-cell-fullscreen-body"
         style={{
-          paddingTop: reservedSpanLanes > 0 ? `${reservedSpanLanes * 20 + 8}px` : undefined,
+          paddingTop: reservedSpanLanes > 0
+            ? `calc(${reservedSpanLanes * 20}px + var(--calendar-span-body-clearance, 8px))`
+            : undefined,
         }}
       >
         {shouldRenderEvents ? (

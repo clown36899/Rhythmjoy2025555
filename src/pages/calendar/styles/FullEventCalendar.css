@@ -1958,6 +1958,10 @@
     display: inline-flex !important;
     pointer-events: auto;
   }
+
+  .calendar-page-container .calendar-cell-fullscreen-body {
+    --calendar-span-body-clearance: 26px;
+  }
 }
 
 .calendar-page-container .weekday-wrapper {
