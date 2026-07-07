@@ -197,11 +197,6 @@ const getCalendarSocialDjText = (event: AppEvent) => {
   return name || "";
 };
 
-const getCalendarSocialBadgeLabel = (event: AppEvent) => {
-  const genre = cleanCalendarDisplayText(event.genre);
-  return genre.includes("졸공") ? "졸공" : "소셜";
-};
-
 const estimateCalendarSocialTextUnits = (value: string) => (
   Array.from(cleanCalendarDisplayText(value)).reduce((sum, char) => {
     if (/\s/.test(char)) return sum + 0.32;
@@ -319,7 +314,6 @@ const CalendarCell = memo(({
     const isLessonEvent = isCalendarClassLikeCategory(event.category);
     const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
     const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
-    const socialBadgeLabel = isSocialEvent ? getCalendarSocialBadgeLabel(event) : "";
     const socialTextStyle = isSocialEvent
       ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
       : undefined;
@@ -343,7 +337,6 @@ const CalendarCell = memo(({
       >
         {isSocialEvent ? (
           <>
-            <span className="calendar-social-badge" aria-hidden="true">{socialBadgeLabel}</span>
             <div
               className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
               style={socialTextStyle}

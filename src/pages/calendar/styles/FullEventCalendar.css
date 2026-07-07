@@ -2182,25 +2182,6 @@
   background: var(--cal-sample-event-bg, rgba(255, 255, 255, 0.06));
 }
 
-.calendar-page-container .calendar-social-badge {
-  position: absolute;
-  top: -5px;
-  right: -4px;
-  z-index: 2;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  padding: 1px 4px;
-  background: rgba(31, 34, 42, 0.96);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.28);
-  color: var(--cal-sample-text, #f6f7f9);
-  font-size: 8px;
-  font-weight: 900;
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-}
-
 .calendar-page-container .calendar-social-text-card-body {
   display: grid;
   grid-template-rows: repeat(2, minmax(0, 1fr));
@@ -2366,13 +2347,6 @@
     padding: var(--calendar-social-card-padding-y, 3px) 2px;
     border-radius: 6px;
     background: var(--cal-sample-event-bg, rgba(255, 255, 255, 0.06));
-  }
-
-  .calendar-page-container .calendar-social-badge {
-    top: -5px;
-    right: -4px;
-    padding: 1px 3px;
-    font-size: 7px;
   }
 
   .calendar-page-container .calendar-social-text-card-body {
