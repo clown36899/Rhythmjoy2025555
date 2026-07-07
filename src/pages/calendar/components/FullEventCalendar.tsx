@@ -304,6 +304,143 @@ const CalendarCell = memo(({
 
   const dateString = getCalendarDateKey(day) || "";
   const visibleEvents = events.filter((event) => !hiddenEventDateKeys.has(eventDatePairKey(event.id, dateString)));
+  const socialEvents = visibleEvents.filter(isCalendarSocialEvent);
+  const nonSocialEvents = visibleEvents.filter((event) => !isCalendarSocialEvent(event));
+
+  const renderEventCard = (event: AppEvent) => {
+    const thumbnailUrl = getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium'])
+      || event.image
+      || event.image_full;
+    const desktopThumbnailUrl = getLightweightEventImage(event, ['image_thumbnail', 'image_medium', 'image_micro'])
+      || thumbnailUrl;
+    const isSocialEvent = isCalendarSocialEvent(event);
+    const locationText = event.venue_name || event.place_name || event.location || '';
+    const toneClass = getCalendarEventToneClass(event);
+    const isLessonEvent = isCalendarClassLikeCategory(event.category);
+    const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
+    const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
+    const socialBadgeLabel = isSocialEvent ? getCalendarSocialBadgeLabel(event) : "";
+    const socialTextStyle = isSocialEvent
+      ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
+      : undefined;
+
+    const eStart = (event.start_date || event.date || '').substring(0, 10);
+    const eEnd = (event.end_date || event.date || '').substring(0, 10);
+
+    const isContinueLeft = eStart < dateString;
+    const isContinueRight = eEnd > dateString;
+
+    return (
+      <div
+        key={event.id}
+        className={`calendar-fullscreen-event-card ${toneClass} ${isSocialEvent ? 'calendar-social-text-card' : ''} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
+        data-event-id={event.id}
+        role="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEventClick(event, day, events);
+        }}
+      >
+        {isSocialEvent ? (
+          <>
+            <span className="calendar-social-badge" aria-hidden="true">{socialBadgeLabel}</span>
+            <div
+              className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
+              style={socialTextStyle}
+            >
+              <div className="calendar-social-place">{locationText || "장소 미정"}</div>
+              <div className="calendar-social-dj">
+                {socialDjDisplayText}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="calendar-fullscreen-card-inner">
+              {thumbnailUrl ? (
+                <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                  <picture>
+                    {desktopThumbnailUrl && (
+                      <source media="(min-width: 1024px)" srcSet={desktopThumbnailUrl} />
+                    )}
+                    <img
+                      src={thumbnailUrl}
+                      alt=""
+                      className="calendar-fullscreen-image"
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </picture>
+                  {locationText && (
+                    <span className="calendar-fullscreen-location-overlay">
+                      {locationText}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className={`calendar-fullscreen-placeholder ${toneClass} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                  <span className="calendar-placeholder-text">
+                    {event.title.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className={`calendar-fullscreen-title-container ${isLessonEvent ? 'is-lesson' : ''}`}>
+              <div className="calendar-fullscreen-title">{event.title}</div>
+              {locationText && (
+                <div className="calendar-fullscreen-place">{locationText}</div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderEventSkeleton = (event: AppEvent) => {
+    const isSocialSkeleton = isCalendarSocialEvent(event);
+    return (
+      <div
+        key={`skeleton-${event.id}`}
+        className={`calendar-fullscreen-event-card skeleton ${isSocialSkeleton ? 'calendar-social-text-card' : ''}`}
+        style={{ opacity: 0 }} /* 공간만 차지하도록 */
+      >
+        {isSocialSkeleton ? (
+          <div className="calendar-social-text-card-body" />
+        ) : (
+          <>
+            <div className="calendar-fullscreen-card-inner">
+              <div className="calendar-fullscreen-image-container" />
+            </div>
+            <div className="calendar-fullscreen-title-container">
+              <div className="calendar-fullscreen-title">&nbsp;</div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderSocialSection = (items: AppEvent[], isSkeleton = false) => {
+    if (items.length === 0) return null;
+
+    return (
+      <div
+        className={`calendar-social-section ${isSkeleton ? 'skeleton' : ''}`}
+        style={isSkeleton ? { opacity: 0 } : undefined}
+        aria-label="소셜 일정"
+      >
+        <div className="calendar-social-section-header" aria-hidden="true">
+          <span>소셜</span>
+          {items.length > 1 && <span className="calendar-social-section-count">{items.length}</span>}
+        </div>
+        <div className="calendar-social-section-list">
+          {items.map(isSkeleton ? renderEventSkeleton : renderEventCard)}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -355,123 +492,16 @@ const CalendarCell = memo(({
       >
         {shouldRenderEvents ? (
           <>
-          {visibleEvents.map((event) => {
-            const thumbnailUrl = getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium'])
-              || event.image
-              || event.image_full;
-            const desktopThumbnailUrl = getLightweightEventImage(event, ['image_thumbnail', 'image_medium', 'image_micro'])
-              || thumbnailUrl;
-            const isSocialEvent = isCalendarSocialEvent(event);
-            const locationText = event.venue_name || event.place_name || event.location || '';
-            const toneClass = getCalendarEventToneClass(event);
-            const isLessonEvent = isCalendarClassLikeCategory(event.category);
-            const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
-            const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
-            const socialBadgeLabel = isSocialEvent ? getCalendarSocialBadgeLabel(event) : "";
-            const socialTextStyle = isSocialEvent
-              ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
-              : undefined;
-
-            const eStart = (event.start_date || event.date || '').substring(0, 10);
-            const eEnd = (event.end_date || event.date || '').substring(0, 10);
-
-            const isContinueLeft = eStart < dateString;
-            const isContinueRight = eEnd > dateString;
-
-            return (
-              <div
-                key={event.id}
-                className={`calendar-fullscreen-event-card ${toneClass} ${isSocialEvent ? 'calendar-social-text-card' : ''} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
-                data-event-id={event.id}
-                role="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEventClick(event, day, events);
-                }}
-              >
-                {isSocialEvent ? (
-                  <>
-                    <span className="calendar-social-badge" aria-hidden="true">{socialBadgeLabel}</span>
-                    <div
-                      className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
-                      style={socialTextStyle}
-                    >
-                      <div className="calendar-social-place">{locationText || "장소 미정"}</div>
-                      <div className="calendar-social-dj">
-                        {socialDjDisplayText}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="calendar-fullscreen-card-inner">
-                      {thumbnailUrl ? (
-                        <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                          <picture>
-                            {desktopThumbnailUrl && (
-                              <source media="(min-width: 1024px)" srcSet={desktopThumbnailUrl} />
-                            )}
-                            <img
-                              src={thumbnailUrl}
-                              alt=""
-                              className="calendar-fullscreen-image"
-                              loading="lazy"
-                              decoding="async"
-                              draggable={false}
-                            />
-                          </picture>
-                          {locationText && (
-                            <span className="calendar-fullscreen-location-overlay">
-                              {locationText}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className={`calendar-fullscreen-placeholder ${toneClass} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                          <span className="calendar-placeholder-text">
-                            {event.title.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`calendar-fullscreen-title-container ${isLessonEvent ? 'is-lesson' : ''}`}>
-                      <div className="calendar-fullscreen-title">{event.title}</div>
-                      {locationText && (
-                        <div className="calendar-fullscreen-place">{locationText}</div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
+            {renderSocialSection(socialEvents)}
+            {nonSocialEvents.map(renderEventCard)}
           </>
         ) : (
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
           /* Keep social/event skeleton thumbnails aligned with the 16:9 card media ratio. */
-          visibleEvents.map((event) => {
-            const isSocialSkeleton = isCalendarSocialEvent(event);
-            return (
-              <div
-                key={`skeleton-${event.id}`}
-                className={`calendar-fullscreen-event-card skeleton ${isSocialSkeleton ? 'calendar-social-text-card' : ''}`}
-                style={{ opacity: 0 }} /* 공간만 차지하도록 */
-              >
-                {isSocialSkeleton ? (
-                  <div className="calendar-social-text-card-body" />
-                ) : (
-                  <>
-                    <div className="calendar-fullscreen-card-inner">
-                      <div className="calendar-fullscreen-image-container" />
-                    </div>
-                    <div className="calendar-fullscreen-title-container">
-                      <div className="calendar-fullscreen-title">&nbsp;</div>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })
+          <>
+            {renderSocialSection(socialEvents, true)}
+            {nonSocialEvents.map(renderEventSkeleton)}
+          </>
         )}
       </div>
     </div>

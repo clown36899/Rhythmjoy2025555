@@ -1987,6 +1987,59 @@
   padding: 0;
 }
 
+.calendar-page-container .calendar-social-section {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  margin: 2px 1px 3px;
+  padding: 9px 3px 4px;
+  border: 1px solid rgba(77, 216, 158, 0.45);
+  border-radius: 7px;
+  background: rgba(54, 186, 132, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(14, 18, 24, 0.36);
+}
+
+.calendar-page-container .calendar-social-section-header {
+  position: absolute;
+  top: -7px;
+  left: 5px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 13px;
+  padding: 0 5px;
+  border: 1px solid rgba(77, 216, 158, 0.5);
+  border-radius: 999px;
+  background: #171b20;
+  color: #8df3c5;
+  font-size: 7px;
+  font-weight: 950;
+  line-height: 13px;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.calendar-page-container .calendar-social-section-count {
+  color: rgba(246, 247, 249, 0.8);
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.calendar-page-container .calendar-social-section-list {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.calendar-page-container .calendar-social-section .calendar-fullscreen-event-card.calendar-social-text-card {
+  margin: 0;
+  border-color: rgba(77, 216, 158, 0.2);
+  background: rgba(23, 29, 34, 0.86);
+}
+
 .calendar-page-container .calendar-fullscreen-event-card {
   --calendar-event-title-height: var(--calendar-event-card-text-height, 34px);
   display: grid;
@@ -2273,6 +2326,26 @@
 
   .calendar-page-container .calendar-cell-fullscreen-body {
     gap: 3px;
+  }
+
+  .calendar-page-container .calendar-social-section {
+    gap: 2px;
+    margin: 2px 0 3px;
+    padding: 8px 2px 3px;
+    border-radius: 6px;
+  }
+
+  .calendar-page-container .calendar-social-section-header {
+    top: -6px;
+    left: 4px;
+    height: 12px;
+    padding: 0 4px;
+    font-size: 7px;
+    line-height: 12px;
+  }
+
+  .calendar-page-container .calendar-social-section-list {
+    gap: 2px;
   }
 
   .calendar-page-container .calendar-fullscreen-event-card {
