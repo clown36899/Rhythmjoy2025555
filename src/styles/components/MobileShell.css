@@ -2557,3 +2557,34 @@ html.v2-home-mode #root {
     padding-left: 0 !important;
   }
 }
+
+@media (min-width: 1024px) {
+  .v2-home-shell .home-neb-desktop-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(420px, clamp(420px, 24.7vw, 470px)) !important;
+  }
+
+  .v2-home-shell .home-neb-side-panel.home-neb-side-panel--today-only {
+    margin-top: 106px !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-lowerDeck {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    grid-template-columns:
+      minmax(0, calc(var(--neb-active-left, 360px) - 200px))
+      164px
+      minmax(0, var(--neb-card-width, 360px)) !important;
+    gap: 18px !important;
+  }
+
+  .v2-home-shell .NEB-oneDayRecruitBtn {
+    grid-column: 2;
+  }
+
+  .v2-home-shell .NEB-activeSummaryCluster {
+    grid-column: 3;
+    width: var(--neb-card-width, 360px) !important;
+    max-width: var(--neb-card-width, 360px) !important;
+  }
+}
