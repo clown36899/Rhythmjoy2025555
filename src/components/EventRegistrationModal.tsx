@@ -131,6 +131,14 @@ function getManualPushBatch(category: string, actorUserId?: string | null) {
   }
 }
 
+function normalizeRegistrationCategory(value?: string | null) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function groupIdForRegistrationCategory(category: string | null | undefined, currentGroupId: unknown) {
+  return normalizeRegistrationCategory(category) === 'social' ? (currentGroupId as any) ?? null : null;
+}
+
 function summarizeRegistrationPayload(eventData: Partial<AppEvent>) {
   return {
     title: eventData.title,
@@ -368,7 +376,7 @@ export default memo(function EventRegistrationModal({
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
         setDanceScope(normalizeVisibleDanceScope(inferDanceScopeForEvent(editEventData as any), canUseExpandedDanceScopes));
 
-        setGroupId((editEventData as any).group_id || null);
+        setGroupId(groupIdForRegistrationCategory(editEventData.category, (editEventData as any).group_id));
 
 
         // Password removed - using RLS
@@ -840,7 +848,7 @@ export default memo(function EventRegistrationModal({
             venue_id: (venueId && String(venueId).trim() !== '') ? venueId : null,
             venue_name: (venueId && String(venueId).trim() !== '') ? venueName : location,
             venue_custom_link: (venueId && String(venueId).trim() !== '') ? null : venueCustomLink,
-            group_id: groupId,
+            group_id: groupIdForRegistrationCategory(effectiveCategory, groupId),
           };
 
           if (EVENT_REGISTRATION_DEBUG) {
@@ -1147,7 +1155,10 @@ export default memo(function EventRegistrationModal({
       case 'location': setLocation(value); break;
       case 'location_link': setLocationLink(value); break;
       case 'description': setDescription(value); break;
-      case 'category': setCategory(value); break;
+      case 'category':
+        setCategory(value);
+        setGroupId(groupIdForRegistrationCategory(value, groupId));
+        break;
       case 'genre':
         if (EVENT_REGISTRATION_DEBUG) {
           console.debug(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);

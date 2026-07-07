@@ -43,6 +43,7 @@ export interface SnsMediaItem {
   approved_at?: string | null;
   approved_by?: string | null;
   published_at?: string | null;
+  views?: number | null;
   deleted_at?: string | null;
   delete_expires_at?: string | null;
   deleted_by?: string | null;

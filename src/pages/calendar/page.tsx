@@ -25,6 +25,7 @@ import { useModalActions } from "../../contexts/ModalContext";
 import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../utils/appNotice";
 import { getCalendarLayoutMetrics } from "./utils/calendarLayoutMetrics";
+import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from "./utils/calendarEventKind";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -66,16 +67,7 @@ const getCalendarEventVenue = (event: any) =>
     event.venue_name || event.place_name || event.location || event.address || '';
 
 const isCalendarMetricsSocialEvent = (event: any) => {
-    const category = String(event?.category || '').toLowerCase();
-    const activityType = String(event?.activity_type || '').toLowerCase();
-    const genre = String(event?.genre || '').toLowerCase();
-    return category === 'social'
-        || activityType === 'social'
-        || genre.includes('소셜')
-        || genre.includes('졸공')
-        || genre.includes('social')
-        || Boolean(event?.group_id)
-        || String(event?.id || '').startsWith('social-');
+    return isCalendarSocialLikeEvent(event || {});
 };
 
 const getCalendarEventDateStrings = (event: any) => {
@@ -1064,8 +1056,8 @@ export default function CalendarPage() {
                         })();
 
                     if (data) {
-                        const isSocial = !!data.group_id || data.category === 'social';
-                        const isLesson = ['class', 'regular', 'club'].includes(data.category);
+                        const isSocial = isCalendarSocialLikeEvent(data);
+                        const isLesson = isCalendarClassLikeCategory(data.category);
 
                         if (isSocial) {
                             setTabFilter('social-events');
@@ -1527,7 +1519,7 @@ export default function CalendarPage() {
                         currentUserId={user?.id}
                         onDelete={(event: any) => eventModal.handleDeleteEvent(event.id)}
                         onEdit={(event: any) => {
-                            const isSocial = String(event.id).startsWith('social-') || !!(event as any).group_id || (event.category === 'social');
+                            const isSocial = isCalendarSocialLikeEvent(event);
                             if (isSocial) {
                                 handleSocialEdit(event);
                             } else {

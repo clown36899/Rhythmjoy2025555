@@ -115,6 +115,52 @@ function normalizeMainAdImageKind(value: unknown) {
   return normalized === 'photo' || normalized === 'poster' ? normalized : null;
 }
 
+function normalizeEventDetailKindPart(value?: string | null) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isEventDetailClassLikeCategory(category?: string | null) {
+  const normalized = normalizeEventDetailKindPart(category);
+  return (
+    normalized === 'class' ||
+    normalized === 'regular' ||
+    normalized === 'club' ||
+    normalized === 'club_lesson' ||
+    normalized === 'club_regular'
+  );
+}
+
+function isEventDetailSocialLikeEvent(event: Partial<Event> | null | undefined) {
+  if (!event) return false;
+  const category = normalizeEventDetailKindPart(event.category);
+  const activityType = normalizeEventDetailKindPart((event as Event & { activity_type?: string | null }).activity_type);
+  const genre = normalizeEventDetailKindPart(event.genre);
+
+  if (isEventDetailClassLikeCategory(category)) return false;
+  if (category === 'social') return true;
+  if (activityType === 'class') return false;
+  if (activityType === 'social') return true;
+
+  return (
+    String(event.id || '').startsWith('social-') ||
+    genre.includes('소셜') ||
+    genre.includes('social') ||
+    Boolean((event as Event & { group_id?: string | number | null }).group_id)
+  );
+}
+
+function groupIdForEventCategory(category: string | null | undefined, currentGroupId: unknown) {
+  return normalizeEventDetailKindPart(category) === 'social' ? (currentGroupId as any) ?? null : null;
+}
+
+function activityTypeForEventDetailCategory(category: string | null | undefined, currentActivityType: unknown) {
+  const categoryActivityType = getActivityTypeForCategory(category);
+  if (categoryActivityType !== 'social' && normalizeEventDetailKindPart(currentActivityType as string | null) === 'recruit') {
+    return 'recruit';
+  }
+  return categoryActivityType;
+}
+
 function getMainAdImageKindLabel(value: unknown) {
   const normalized = normalizeMainAdImageKind(value);
   if (normalized === 'photo') return '사진';
@@ -123,19 +169,7 @@ function getMainAdImageKindLabel(value: unknown) {
 }
 
 function isSocialMainAdEvent(event: Event | null | undefined) {
-  if (!event) return false;
-  const id = String(event.id || '');
-  const category = String(event.category || '').toLowerCase();
-  const activityType = String((event as Event & { activity_type?: string | null }).activity_type || '').toLowerCase();
-  const genre = String(event.genre || '').toLowerCase();
-
-  return (
-    id.startsWith('social-') ||
-    category === 'social' ||
-    activityType === 'social' ||
-    genre.includes('소셜') ||
-    genre.includes('social')
-  );
+  return isEventDetailSocialLikeEvent(event);
 }
 
 function hasMainAdImage(event: Event | null | undefined) {
@@ -591,8 +625,8 @@ export default function EventDetailModal({
           }
           if (data) {
             const fullEvent = { ...event, ...(data as any) } as Event;
-            // 만약 group_id가 있다면 기존 UI 호환성을 위해 social- 접두어 유지
-            if (data.group_id) {
+            // social 일정만 기존 UI 호환성을 위해 social- 접두어를 유지한다.
+            if (isEventDetailSocialLikeEvent(data as Event)) {
               (fullEvent as any).id = `social-${data.id}`;
             }
             setDraftEvent(fullEvent);
@@ -723,7 +757,8 @@ export default function EventDetailModal({
       }
       if (category) {
         updates.category = category as any;
-        updates.activity_type = getActivityTypeForCategory(category);
+        updates.activity_type = activityTypeForEventDetailCategory(category, draftEvent.activity_type);
+        updates.group_id = groupIdForEventCategory(category, draftEvent.group_id);
       }
     }
     if (activeEditField === 'description') updates.description = value;
@@ -781,7 +816,7 @@ export default function EventDetailModal({
 
     // 필드 변경 확인
     const fieldsToCheck = [
-      'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
+      'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category', 'activity_type', 'group_id',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
       'date', 'start_date', 'end_date', 'event_dates', 'time', 'main_ad_image_kind'
     ];
@@ -822,6 +857,8 @@ export default function EventDetailModal({
         title: draftEvent.title,
         genre: draftEvent.genre,
         category: draftEvent.category,
+        activity_type: activityTypeForEventDetailCategory(draftEvent.category, draftEvent.activity_type),
+        group_id: groupIdForEventCategory(draftEvent.category, draftEvent.group_id),
         date: draftEvent.date,
         time: draftEvent.time, // [FIX] time 필드 포함
         location: draftEvent.location,
@@ -1376,8 +1413,7 @@ export default function EventDetailModal({
 
                   {/* 장르 표시 */}
                   {(() => {
-                    const isSocial = String(selectedEvent.id).startsWith('social-') ||
-                      ['social', 'club_lesson', 'club_regular'].includes(selectedEvent.category || '');
+                    const isSocial = isEventDetailSocialLikeEvent(selectedEvent);
 
                     let displayGenre = selectedEvent.genre || (isSocial ? '소셜' : null);
                     if (displayGenre === 'Social') displayGenre = '소셜';

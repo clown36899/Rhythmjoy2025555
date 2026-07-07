@@ -162,6 +162,7 @@ const adminOnlyGenericTables = new Set([
   'client_reload_diagnostics',
   'invitations',
   'invitation_logs',
+  'item_views',
   'notification_queue',
   'pwa_installs',
   'scraped_events',
@@ -408,6 +409,7 @@ function sanitizeBoardUserForViewer(row = {}, user) {
 function sanitizeRowForViewer(table, row = {}, user) {
   let next = stripPrivateFields(row || {});
   if (table === 'board_users') next = sanitizeBoardUserForViewer(next, user);
+  if (table === 'sns_media_items' && !user?.is_admin) delete next.views;
   if (next.board_users) next.board_users = sanitizeBoardUserForViewer(next.board_users, user);
   return next;
 }
@@ -1488,12 +1490,38 @@ function activityTypeForEventCategory(category) {
   return 'event';
 }
 
+function isClassLikeEventCategory(category) {
+  const normalized = normalizeCategoryValue(category);
+  return (
+    normalized === 'class' ||
+    normalized === 'regular' ||
+    normalized === 'club' ||
+    normalized === 'club_lesson' ||
+    normalized === 'club_regular'
+  );
+}
+
+function groupIdForEventKind(category, activityType, groupId) {
+  const normalizedCategory = normalizeCategoryValue(category);
+  const normalizedActivityType = normalizeCategoryValue(activityType);
+  if (isClassLikeEventCategory(normalizedCategory)) return null;
+  if (normalizedCategory === 'social') return toIntOrNull(groupId);
+  return normalizedActivityType === 'social' ? toIntOrNull(groupId) : null;
+}
+
 function normalizeEventActivityType(next, source = next) {
   if (
     Object.prototype.hasOwnProperty.call(source || {}, 'category') &&
     !Object.prototype.hasOwnProperty.call(source || {}, 'activity_type')
   ) {
     next.activity_type = activityTypeForEventCategory(next.category);
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(source || {}, 'category') ||
+    Object.prototype.hasOwnProperty.call(source || {}, 'activity_type') ||
+    Object.prototype.hasOwnProperty.call(source || {}, 'group_id')
+  ) {
+    next.group_id = groupIdForEventKind(next.category, next.activity_type, next.group_id);
   }
   return next;
 }
@@ -2448,6 +2476,7 @@ function viewTargetTable(itemType) {
   if (itemType === 'board_post') return 'board_posts';
   if (itemType === 'event') return 'events';
   if (itemType === 'schedule' || itemType === 'social_schedule') return 'social_schedules';
+  if (itemType === 'sns_media_item') return 'sns_media_items';
   return null;
 }
 

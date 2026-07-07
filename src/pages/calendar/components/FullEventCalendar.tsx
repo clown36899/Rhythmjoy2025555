@@ -17,6 +17,11 @@ import {
   getCalendarLayoutCssVars,
   getCalendarLayoutMetrics,
 } from "../utils/calendarLayoutMetrics";
+import {
+  isCalendarClassLikeCategory,
+  isCalendarSocialLikeEvent,
+  normalizeCalendarEventKindPart,
+} from "../utils/calendarEventKind";
 import "../styles/FullEventCalendar.css";
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
@@ -107,24 +112,10 @@ const splitConsecutiveDateRuns = (dateKeys: string[]) => {
   return runs;
 };
 
-const normalizeCalendarGroupPart = (value?: string | null) => (
-  value?.trim().replace(/\s+/g, " ").toLowerCase() || ""
-);
+const normalizeCalendarGroupPart = normalizeCalendarEventKindPart;
 
 const isCalendarSocialEvent = (event: AppEvent) => {
-  const category = normalizeCalendarGroupPart(event.category);
-  const activityType = normalizeCalendarGroupPart(event.activity_type);
-  const genre = normalizeCalendarGroupPart(event.genre);
-
-  return (
-    category === "social" ||
-    activityType === "social" ||
-    genre.includes("소셜") ||
-    genre.includes("졸공") ||
-    genre.includes("social") ||
-    Boolean((event as any).group_id) ||
-    String(event.id).startsWith("social-")
-  );
+  return isCalendarSocialLikeEvent(event as any);
 };
 
 const isCalendarEventSeriesGroupable = (event: AppEvent) => (
@@ -165,7 +156,7 @@ const isDateInCalendarSpan = (span: CalendarSpanItem, dateKey: string) => (
 
 const getCalendarEventToneClass = (event: AppEvent) => {
   const category = String(event.category || '').toLowerCase();
-  return category === 'class' || category === 'regular'
+  return isCalendarClassLikeCategory(category)
     ? 'calendar-event-tone-blue'
     : category === 'social'
       ? 'calendar-event-tone-green'
@@ -373,7 +364,7 @@ const CalendarCell = memo(({
             const isSocialEvent = isCalendarSocialEvent(event);
             const locationText = event.venue_name || event.place_name || event.location || '';
             const toneClass = getCalendarEventToneClass(event);
-            const isLessonEvent = ['class', 'regular'].includes(String(event.category || '').toLowerCase());
+            const isLessonEvent = isCalendarClassLikeCategory(event.category);
             const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
             const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
             const socialBadgeLabel = isSocialEvent ? getCalendarSocialBadgeLabel(event) : "";
@@ -459,7 +450,7 @@ const CalendarCell = memo(({
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
           /* Keep social/event skeleton thumbnails aligned with the 16:9 card media ratio. */
           visibleEvents.map((event) => {
-            const isSocialSkeleton = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
+            const isSocialSkeleton = isCalendarSocialEvent(event);
             return (
               <div
                 key={`skeleton-${event.id}`}

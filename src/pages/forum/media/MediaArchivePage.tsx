@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
+import { incrementTrackedView } from '../../../hooks/useViewTracking';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { createResizedImages } from '../../../utils/imageResize';
 import {
@@ -88,6 +89,34 @@ type PlaylistTrashClearFields = TrashClearFields & {
   deleted_branch_item_count: null;
   deleted_branch_playlist_count: null;
 };
+
+interface SnsMediaItemView {
+  id: string;
+  item_id: string;
+  item_type: string;
+  viewer_key?: string | null;
+  user_id?: string | null;
+  fingerprint?: string | null;
+  user_agent?: string | null;
+  platform?: string | null;
+  client_ip?: string | null;
+  ip_hash?: string | null;
+  created_at?: string | null;
+}
+
+interface SnsMediaViewerProfile {
+  user_id: string;
+  nickname?: string | null;
+  email?: string | null;
+  profile_image?: string | null;
+  provider?: string | null;
+}
+
+interface SnsMediaClickStatsState {
+  item: SnsMediaItem;
+  rows: SnsMediaItemView[];
+  profilesByUserId: Map<string, SnsMediaViewerProfile>;
+}
 
 const getDisplayName = (user: ReturnType<typeof useAuth>['user'], fallback?: string | null): string => {
   const metadataName = user?.user_metadata?.name;
@@ -429,6 +458,42 @@ function truncateText(value?: string | null, maxLength = 64) {
   const text = compactText(value);
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+function formatMediaStatsDateTime(value?: string | null) {
+  if (!value) return '시간 없음';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '시간 없음';
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function shortViewerToken(value?: string | null) {
+  const token = compactText(value);
+  if (!token) return '';
+  return token.length <= 12 ? token : `${token.slice(0, 8)}…${token.slice(-4)}`;
+}
+
+function getSnsMediaViewerLabel(row: SnsMediaItemView, profile?: SnsMediaViewerProfile) {
+  if (profile) return compactText(profile.nickname) || compactText(profile.email) || '회원';
+  if (row.user_id) return `회원 ${shortViewerToken(row.user_id)}`;
+  if (row.fingerprint) return `비로그인 ${shortViewerToken(row.fingerprint)}`;
+  return '알 수 없음';
+}
+
+function getSnsMediaViewerDetail(row: SnsMediaItemView, profile?: SnsMediaViewerProfile) {
+  const details = [
+    profile?.email,
+    profile?.provider,
+    row.user_id ? `ID ${shortViewerToken(row.user_id)}` : '',
+    !row.user_id && row.fingerprint ? `FP ${shortViewerToken(row.fingerprint)}` : '',
+    row.platform,
+  ].map((item) => compactText(item)).filter(Boolean);
+  return details.join(' · ');
 }
 
 function createArchiveEntityId(prefix: string) {
@@ -2955,17 +3020,21 @@ const MediaMiniCard: React.FC<{
   item: SnsMediaItem;
   canManage?: boolean;
   canMove?: boolean;
+  showAdminStats?: boolean;
   isDragging?: boolean;
   isOrganizing?: boolean;
   onEdit?: (item: SnsMediaItem) => void;
+  onOpenStats?: (item: SnsMediaItem) => void;
   onMovePointerDown?: (event: React.PointerEvent<HTMLElement>, item: SnsMediaItem) => void;
 } & MediaPlaybackProps> = ({
   item,
   canManage = false,
   canMove = false,
+  showAdminStats = false,
   isDragging = false,
   isOrganizing = false,
   onEdit,
+  onOpenStats,
   onMovePointerDown,
   playingItemId,
   onPlayItem,
@@ -3025,17 +3094,14 @@ const MediaMiniCard: React.FC<{
   }
 
   const handlePlay = () => {
-    if (item.platform === 'instagram' || item.platform === 'other') {
-      window.open(item.normalized_url || item.url, '_blank', 'noopener,noreferrer');
-      return;
-    }
     onPlayItem(item.id);
   };
   const canDragMove = isOrganizing && canMove && Boolean(onMovePointerDown);
+  const views = Number(item.views || 0);
 
   return (
     <article
-      className={`media-mini-card ${canEdit ? 'media-mini-card--editable' : ''} ${canDragMove ? 'media-mini-card--organizable' : ''} ${isDragging ? 'is-dragging' : ''}`}
+      className={`media-mini-card ${canEdit ? 'media-mini-card--editable' : ''} ${showAdminStats ? 'media-mini-card--stats' : ''} ${canDragMove ? 'media-mini-card--organizable' : ''} ${isDragging ? 'is-dragging' : ''}`}
       draggable={false}
       data-media-drag-allowed={canDragMove ? 'true' : undefined}
       onPointerDown={(event) => {
@@ -3082,6 +3148,23 @@ const MediaMiniCard: React.FC<{
         >
           <i className="ri-edit-2-line" />
           수정
+        </button>
+      )}
+      {showAdminStats && (
+        <button
+          type="button"
+          className="media-mini-stats-button"
+          draggable={false}
+          onDragStart={preventMediaArchiveDrag}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onOpenStats?.(item);
+          }}
+          aria-label={`${item.title || 'SNS 카드'} 클릭 통계 보기`}
+        >
+          <i className="ri-eye-line" />
+          {views.toLocaleString()}회
         </button>
       )}
       {canDragMove && (
@@ -3411,8 +3494,10 @@ const CollectionArchiveView: React.FC<{
   canManageItem: (item: SnsMediaItem) => boolean;
   canMoveItem: (item: SnsMediaItem) => boolean;
   canManagePlaylist: (playlist: SnsMediaPlaylist) => boolean;
+  showAdminStats: boolean;
   onEditItem: (item: SnsMediaItem) => void;
   onEditPlaylist: (playlist: SnsMediaPlaylist) => void;
+  onOpenItemStats: (item: SnsMediaItem) => void;
   onMoveItem: (item: SnsMediaItem, playlistId: string) => Promise<boolean>;
   onMovePlaylist: (playlist: SnsMediaPlaylist, parentId: string) => Promise<boolean>;
   onActivePlaylistChange?: (playlist: SnsMediaPlaylist | null) => void;
@@ -3426,8 +3511,10 @@ const CollectionArchiveView: React.FC<{
   canManageItem,
   canMoveItem,
   canManagePlaylist,
+  showAdminStats,
   onEditItem,
   onEditPlaylist,
+  onOpenItemStats,
   onMoveItem,
   onMovePlaylist,
   onActivePlaylistChange,
@@ -4380,7 +4467,9 @@ const CollectionArchiveView: React.FC<{
         <MediaMiniCard
           item={item}
           canManage={canManageItem(item)}
+          showAdminStats={showAdminStats}
           onEdit={onEditItem}
+          onOpenStats={onOpenItemStats}
           playingItemId={playingItemId}
           onPlayItem={onPlayItem}
         />
@@ -4537,9 +4626,11 @@ const CollectionArchiveView: React.FC<{
                   item={item}
                   canManage={canManageItem(item)}
                   canMove={canMoveItem(item)}
+                  showAdminStats={showAdminStats}
                   isDragging={draggedItemId === item.id}
                   isOrganizing={isOrganizing}
                   onEdit={onEditItem}
+                  onOpenStats={onOpenItemStats}
                   onMovePointerDown={handleItemPointerDown}
                   playingItemId={playingItemId}
                   onPlayItem={onPlayItem}
@@ -4575,7 +4666,9 @@ const CollectionArchiveView: React.FC<{
               key={item.id}
               item={item}
               canManage={canManageItem(item)}
+              showAdminStats={showAdminStats}
               onEdit={onEditItem}
+              onOpenStats={onOpenItemStats}
               playingItemId={playingItemId}
               onPlayItem={onPlayItem}
             />
@@ -4615,6 +4708,95 @@ const CollectionArchiveView: React.FC<{
       </div>
       {renderDragPreview()}
     </section>
+  );
+};
+
+const MediaItemStatsModal: React.FC<{
+  state: SnsMediaClickStatsState | null;
+  loading: boolean;
+  error: string;
+  onClose: () => void;
+  onRefresh: () => void;
+}> = ({ state, loading, error, onClose, onRefresh }) => {
+  const item = state?.item;
+  const rows = state?.rows || [];
+  const profileMap = state?.profilesByUserId || new Map<string, SnsMediaViewerProfile>();
+  const savedViewCount = Number(item?.views || 0);
+  const displayViewCount = Math.max(savedViewCount, rows.length);
+
+  return (
+    <MediaModalFrame label="SNS 클릭 통계" onClose={onClose}>
+      <section className="media-stats-panel media-modal-panel">
+        <header className="media-edit-header">
+          <div>
+            <p className="media-eyebrow">Admin Stats</p>
+            <h2>{item?.title || 'SNS 클릭 통계'}</h2>
+            <span>관리자에게만 표시됩니다.</span>
+          </div>
+          <button type="button" className="media-icon-button" onClick={onClose} aria-label="통계 닫기">
+            <i className="ri-close-line" />
+          </button>
+        </header>
+
+        {item && (
+          <div className="media-stats-summary">
+            <MediaThumbnailImage
+              src={item.thumbnail_url}
+              loading="lazy"
+              fallbackIcon={getPlatformFallbackIcon(item.platform)}
+              fallbackClassName="media-stats-thumb-fallback"
+            />
+            <div>
+              <strong>{displayViewCount.toLocaleString()}회</strong>
+              <span>중복 제거 조회수 · 클릭자 {rows.length.toLocaleString()}명</span>
+            </div>
+            <button type="button" className="media-ghost-button" onClick={onRefresh} disabled={loading}>
+              <i className={loading ? 'ri-loader-4-line ri-spin' : 'ri-refresh-line'} />
+              새로고침
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="media-stats-error">
+            <i className="ri-error-warning-line" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="media-state">클릭 기록을 불러오는 중...</div>
+        ) : rows.length === 0 ? (
+          <div className="media-state media-state--empty">
+            <i className="ri-eye-off-line" />
+            <strong>아직 기록된 클릭이 없습니다</strong>
+            <span>관리자와 내부/봇 트래픽은 통계에서 제외됩니다.</span>
+          </div>
+        ) : (
+          <div className="media-stats-list">
+            {rows.map((row) => {
+              const profile = row.user_id ? profileMap.get(String(row.user_id)) : undefined;
+              return (
+                <article key={row.id || `${row.viewer_key}:${row.created_at}`} className="media-stats-row">
+                  <span className="media-stats-avatar">
+                    {profile?.profile_image ? (
+                      <img src={profile.profile_image} alt="" draggable={false} onDragStart={preventMediaArchiveDrag} />
+                    ) : (
+                      <i className={row.user_id ? 'ri-user-smile-line' : 'ri-fingerprint-line'} />
+                    )}
+                  </span>
+                  <span className="media-stats-copy">
+                    <strong>{getSnsMediaViewerLabel(row, profile)}</strong>
+                    <small>{getSnsMediaViewerDetail(row, profile) || '상세 정보 없음'}</small>
+                  </span>
+                  <time dateTime={row.created_at || undefined}>{formatMediaStatsDateTime(row.created_at)}</time>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </MediaModalFrame>
   );
 };
 
@@ -4781,6 +4963,9 @@ const MediaArchivePage: React.FC = () => {
   const [trashItems, setTrashItems] = useState<SnsMediaItem[]>([]);
   const [trashPlaylists, setTrashPlaylists] = useState<SnsMediaPlaylist[]>([]);
   const [trashLoading, setTrashLoading] = useState(false);
+  const [statsState, setStatsState] = useState<SnsMediaClickStatsState | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState('');
   const [archiveInitialView, setArchiveInitialView] = useState<MediaArchiveHistoryView | null>(() => (
     typeof window === 'undefined' ? null : getMediaArchiveHistoryView(window.history.state)
   ));
@@ -4793,6 +4978,7 @@ const MediaArchivePage: React.FC = () => {
   const playlistMetadataFetchKeyRef = useRef('');
   const restoredDraftRef = useRef(false);
   const previousPlayerItemIdRef = useRef(playerItemId);
+  const trackedStandalonePlayerIdsRef = useRef(new Set<string>());
   const playerReturnViewRef = useRef<MediaArchiveHistoryView | null>(null);
   const [activePlaylistContext, setActivePlaylistContext] = useState<MediaPlaylistContext | null>(() => readMediaPlaylistContext());
   const activePlaylistContextRef = useRef<MediaPlaylistContext | null>(activePlaylistContext);
@@ -4894,9 +5080,40 @@ const MediaArchivePage: React.FC = () => {
       || suggestionItems.find((item) => item.id === playerItemId)
       || standalonePlayerItem;
   }, [items, playerItemId, standalonePlayerItem, suggestionItems]);
+
+  const incrementItemViewInState = useCallback((itemId: string) => {
+    const bump = (entry: SnsMediaItem) => (
+      entry.id === itemId ? { ...entry, views: Number(entry.views || 0) + 1 } : entry
+    );
+    setItems((prev) => prev.map(bump));
+    setSuggestionItems((prev) => prev.map(bump));
+    setStandalonePlayerItem((prev) => (prev?.id === itemId ? bump(prev) : prev));
+    setStatsState((prev) => (
+      prev?.item.id === itemId ? { ...prev, item: bump(prev.item) } : prev
+    ));
+  }, []);
+
+  const recordSnsMediaClick = useCallback(async (itemId: string) => {
+    const wasIncremented = await incrementTrackedView(itemId, 'sns_media_item');
+    if (wasIncremented) incrementItemViewInState(itemId);
+    return wasIncremented;
+  }, [incrementItemViewInState]);
+
   const handlePlayItem = useCallback((itemId: string) => {
     if (!itemId) {
       setPlayingItemId('');
+      return;
+    }
+
+    const item = items.find((entry) => entry.id === itemId)
+      || suggestionItems.find((entry) => entry.id === itemId)
+      || standalonePlayerItem;
+    trackedStandalonePlayerIdsRef.current.add(itemId);
+    void recordSnsMediaClick(itemId);
+
+    if (item && (item.platform === 'instagram' || item.platform === 'other')) {
+      const externalUrl = safeExternalUrl(item.normalized_url || item.url);
+      if (externalUrl) window.open(externalUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -4911,7 +5128,7 @@ const MediaArchivePage: React.FC = () => {
     }, {
       state: { mediaArchivePlayer: true } satisfies MediaArchivePlayerLocationState,
     });
-  }, [location.hash, location.search, navigate]);
+  }, [items, location.hash, location.search, navigate, recordSnsMediaClick, standalonePlayerItem, suggestionItems]);
 
   const handleCloseStandalonePlayer = useCallback(() => {
     setPlayingItemId('');
@@ -5220,6 +5437,61 @@ const MediaArchivePage: React.FC = () => {
     }
   }, [user]);
 
+  const loadItemStats = useCallback(async (item: SnsMediaItem) => {
+    if (!isAdmin) return;
+
+    setStatsLoading(true);
+    setStatsError('');
+    setStatsState((prev) => ({
+      item,
+      rows: prev?.item.id === item.id ? prev.rows : [],
+      profilesByUserId: prev?.item.id === item.id ? prev.profilesByUserId : new Map(),
+    }));
+
+    try {
+      const { data: viewRows, error: viewError } = await cafe24
+        .from('item_views')
+        .select('*')
+        .eq('item_id', item.id)
+        .eq('item_type', 'sns_media_item')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (viewError) throw viewError;
+
+      const rows = ((viewRows || []) as SnsMediaItemView[])
+        .filter((row) => String(row.item_id) === String(item.id));
+      const userIds = Array.from(new Set(
+        rows.map((row) => compactText(row.user_id)).filter(Boolean)
+      ));
+      const profilesByUserId = new Map<string, SnsMediaViewerProfile>();
+
+      if (userIds.length) {
+        const { data: profiles, error: profileError } = await cafe24
+          .from('board_users')
+          .select('user_id,nickname,email,profile_image,provider')
+          .in('user_id', userIds);
+        if (profileError) throw profileError;
+
+        ((profiles || []) as SnsMediaViewerProfile[]).forEach((profile) => {
+          const userId = compactText(profile.user_id);
+          if (userId) profilesByUserId.set(userId, profile);
+        });
+      }
+
+      setStatsState({ item, rows, profilesByUserId });
+    } catch (error) {
+      console.error('[MediaArchive] item stats fetch failed:', error);
+      setStatsError('클릭 기록을 불러오지 못했습니다.');
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [isAdmin]);
+
+  const openItemStats = useCallback((item: SnsMediaItem) => {
+    if (!isAdmin) return;
+    void loadItemStats(item);
+  }, [isAdmin, loadItemStats]);
+
   useEffect(() => {
     fetchItems(0, false);
   }, [fetchItems]);
@@ -5290,6 +5562,13 @@ const MediaArchivePage: React.FC = () => {
       cancelled = true;
     };
   }, [items, playerItemId, suggestionItems]);
+
+  useEffect(() => {
+    const itemId = activeStandalonePlayerItem?.id;
+    if (!itemId || trackedStandalonePlayerIdsRef.current.has(itemId)) return;
+    trackedStandalonePlayerIdsRef.current.add(itemId);
+    void recordSnsMediaClick(itemId);
+  }, [activeStandalonePlayerItem?.id, recordSnsMediaClick]);
 
   useEffect(() => {
     if (showTrash) void fetchTrash();
@@ -6534,8 +6813,10 @@ const MediaArchivePage: React.FC = () => {
         canManageItem={canManageItem}
         canMoveItem={canMoveItem}
         canManagePlaylist={canManagePlaylist}
+        showAdminStats={Boolean(isAdmin)}
         onEditItem={handleEditItem}
         onEditPlaylist={handleEditPlaylist}
+        onOpenItemStats={openItemStats}
         onMoveItem={handleMoveItem}
         onMovePlaylist={handleMovePlaylist}
         onActivePlaylistChange={handleActivePlaylistChange}
@@ -6628,6 +6909,19 @@ const MediaArchivePage: React.FC = () => {
           onPermanentDeleteItem={(item) => void handlePermanentDeleteItem(item)}
           onRestorePlaylist={(playlist) => void handleRestorePlaylist(playlist)}
           onPermanentDeletePlaylist={(playlist) => void handlePermanentDeletePlaylist(playlist)}
+        />
+      )}
+
+      {isAdmin && statsState && (
+        <MediaItemStatsModal
+          state={statsState}
+          loading={statsLoading}
+          error={statsError}
+          onClose={() => {
+            setStatsState(null);
+            setStatsError('');
+          }}
+          onRefresh={() => void loadItemStats(statsState.item)}
         />
       )}
 

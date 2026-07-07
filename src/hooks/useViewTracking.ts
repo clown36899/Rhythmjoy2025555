@@ -40,7 +40,61 @@ const shouldSkipViewTracking = () => (
  * 지원하는 콘텐츠 타입
  * 새로운 타입 추가 시 여기에 추가하고 RPC 함수의 CASE 문도 업데이트
  */
-export type ItemType = 'board_post' | 'event' | 'schedule';
+export type ItemType = 'board_post' | 'event' | 'schedule' | 'sns_media_item';
+
+export async function incrementTrackedView(
+    itemId: string | number,
+    itemType: ItemType
+): Promise<boolean> {
+    if (!itemId || shouldSkipViewTracking()) return false;
+
+    try {
+        // 1. 사용자 인증 상태 확인
+        const { data: { user } } = await cafe24.auth.getUser();
+
+        // 2. 비로그인 시 fingerprint 생성/로드
+        let fingerprint = null;
+        if (!user) {
+            fingerprint = getOrCreateViewFingerprint();
+            debugViewTracking('[ViewTracking] Fingerprint:', fingerprint.substring(0, 12) + '...');
+        }
+
+        const normalizedItemId = typeof itemId === 'number'
+            ? itemId
+            : /^\d+$/.test(String(itemId))
+                ? Number(itemId)
+                : itemId;
+
+        // 3. RPC 호출
+        const { data: wasIncremented, error } = await cafe24.rpc('increment_item_views', {
+            p_item_id: normalizedItemId,
+            p_item_type: itemType,
+            p_user_id: user?.id || null,
+            p_fingerprint: fingerprint || null,
+            p_user_agent: navigator.userAgent,
+            p_platform: navigator.platform,
+            p_page_url: window.location.pathname,
+            p_route: window.location.pathname,
+            p_is_admin: isAdminAnalyticsShielded()
+        });
+
+        if (error) {
+            console.error('[ViewTracking] RPC Error:', error);
+            return false;
+        }
+
+        if (wasIncremented) {
+            debugViewTracking(`[ViewTracking] New view counted for ${itemType} #${itemId}`);
+        } else {
+            debugViewTracking(`[ViewTracking] Already viewed ${itemType} #${itemId}`);
+        }
+
+        return wasIncremented || false;
+    } catch (error) {
+        console.error('[ViewTracking] Exception:', error);
+        return false;
+    }
+}
 
 /**
  * 범용 조회수 추적 Hook
@@ -75,49 +129,11 @@ export function useViewTracking(
         setIsLoading(true);
 
         try {
-            // 1. 사용자 인증 상태 확인
-            const { data: { user } } = await cafe24.auth.getUser();
-
-            // 2. 비로그인 시 fingerprint 생성/로드
-            let fingerprint = null;
-            if (!user) {
-                fingerprint = getOrCreateViewFingerprint();
-                debugViewTracking('[ViewTracking] Fingerprint:', fingerprint.substring(0, 12) + '...');
-            }
-
-            const normalizedItemId = typeof itemId === 'number'
-                ? itemId
-                : /^\d+$/.test(String(itemId))
-                    ? Number(itemId)
-                    : itemId;
-
-            // 3. RPC 호출
-            const { data: wasIncremented, error } = await cafe24.rpc('increment_item_views', {
-                p_item_id: normalizedItemId,
-                p_item_type: itemType,
-                p_user_id: user?.id || null,
-                p_fingerprint: fingerprint || null,
-                p_user_agent: navigator.userAgent,
-                p_platform: navigator.platform,
-                p_page_url: window.location.pathname,
-                p_route: window.location.pathname,
-                p_is_admin: isAdminAnalyticsShielded()
-            });
-
-            if (error) {
-                console.error('[ViewTracking] RPC Error:', error);
-                return false;
-            }
-
-            // 4. 상태 업데이트
+            const wasIncremented = await incrementTrackedView(itemId, itemType);
             if (wasIncremented) {
                 setIsViewed(true);
-                debugViewTracking(`[ViewTracking] New view counted for ${itemType} #${itemId}`);
-            } else {
-                debugViewTracking(`[ViewTracking] Already viewed ${itemType} #${itemId}`);
             }
-
-            return wasIncremented || false;
+            return wasIncremented;
         } catch (error) {
             console.error('[ViewTracking] Exception:', error);
             return false;

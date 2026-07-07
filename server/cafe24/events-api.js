@@ -142,6 +142,25 @@ function activityTypeForCategory(category) {
   return 'event';
 }
 
+function isClassLikeCategory(category) {
+  const normalized = normalizeCategoryValue(category);
+  return (
+    normalized === 'class' ||
+    normalized === 'regular' ||
+    normalized === 'club' ||
+    normalized === 'club_lesson' ||
+    normalized === 'club_regular'
+  );
+}
+
+function groupIdForEventKind(category, activityType, groupId) {
+  const normalizedCategory = normalizeCategoryValue(category);
+  const normalizedActivityType = normalizeCategoryValue(activityType);
+  if (isClassLikeCategory(normalizedCategory)) return null;
+  if (normalizedCategory === 'social') return toIntOrNull(groupId);
+  return normalizedActivityType === 'social' ? toIntOrNull(groupId) : null;
+}
+
 function normalizeEventPayload(input, existing = null, user = null) {
   const source = {
     ...(existing || {}),
@@ -192,7 +211,7 @@ function normalizeEventPayload(input, existing = null, user = null) {
     description: source.description || '',
     link1: source.link1 || '',
     link_name1: source.link_name1 || '',
-    group_id: toIntOrNull(source.group_id),
+    group_id: groupIdForEventKind(category, activityType, source.group_id),
     venue_name: source.venue_name || source.place_name || '',
     address: source.address || '',
     user_id: user?.is_admin
