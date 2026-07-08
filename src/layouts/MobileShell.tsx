@@ -10,7 +10,6 @@ import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
-import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
@@ -781,11 +780,6 @@ export const MobileShell: React.FC = () => {
           }}
         />
       )}
-
-      <NotificationSettingsModal
-        isOpen={notificationSettingsModal.isOpen}
-        onClose={notificationSettingsModal.close}
-      />
 
       {/* Global Playlist Player */}
       {activeResource && (
