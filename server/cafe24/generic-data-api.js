@@ -2583,6 +2583,9 @@ async function incrementItemViews(args = {}, context = {}) {
 
 async function handlePushSubscription(args = {}, user = null) {
   if (!user?.id) {
+    console.warn('[PushSaveServer] rejected missing user', {
+      hasEndpoint: Boolean(args.p_endpoint || args.endpoint),
+    });
     const error = new Error('로그인이 필요합니다.');
     error.statusCode = 401;
     throw error;
@@ -2590,6 +2593,9 @@ async function handlePushSubscription(args = {}, user = null) {
 
   const endpoint = args.p_endpoint || args.endpoint;
   if (!endpoint) {
+    console.warn('[PushSaveServer] rejected missing endpoint', {
+      userId: user.id,
+    });
     const error = new Error('endpoint is required');
     error.statusCode = 400;
     throw error;
@@ -2597,22 +2603,64 @@ async function handlePushSubscription(args = {}, user = null) {
 
   const now = new Date().toISOString();
   const existing = (await loadRows('user_push_subscriptions')).find((row) => String(row.endpoint) === String(endpoint));
+  const subscriptionPayload = args.p_subscription || args.subscription || null;
+  const storedPrefs = subscriptionPayload && typeof subscriptionPayload === 'object' && subscriptionPayload.preferences
+    ? subscriptionPayload.preferences
+    : {};
+  const finalPrefs = {
+    pref_events: args.p_pref_events ?? storedPrefs.pref_events ?? true,
+    pref_class: args.p_pref_class ?? storedPrefs.pref_class ?? true,
+    pref_clubs: args.p_pref_clubs ?? storedPrefs.pref_clubs ?? true,
+    pref_filter_tags: args.p_pref_filter_tags ?? storedPrefs.pref_filter_tags ?? null,
+    pref_filter_class_genres: args.p_pref_filter_class_genres ?? storedPrefs.pref_filter_class_genres ?? null,
+    pref_digest_time: args.p_pref_digest_time ?? storedPrefs.pref_digest_time ?? '08:30',
+    pref_digest_days: args.p_pref_digest_days ?? storedPrefs.pref_digest_days ?? [0, 1, 2, 3, 4, 5, 6],
+    pref_digest_timezone: args.p_pref_digest_timezone ?? storedPrefs.pref_digest_timezone ?? 'Asia/Seoul',
+    pref_only_with_events: args.p_pref_only_with_events ?? storedPrefs.pref_only_with_events ?? true,
+  };
+
+  console.info('[PushSaveServer] upsert start', {
+    userId: user.id,
+    isExisting: Boolean(existing),
+    endpointHost: (() => {
+      try { return new URL(String(endpoint)).host; } catch { return 'unknown'; }
+    })(),
+    endpointLength: String(endpoint).length,
+    prefs: {
+      pref_events: finalPrefs.pref_events,
+      pref_class: finalPrefs.pref_class,
+      pref_clubs: finalPrefs.pref_clubs,
+      pref_digest_time: finalPrefs.pref_digest_time,
+      pref_digest_days: finalPrefs.pref_digest_days,
+      pref_only_with_events: finalPrefs.pref_only_with_events,
+    },
+  });
+
   await saveRow('user_push_subscriptions', {
     ...(existing || {}),
     id: existing?.id || crypto.randomUUID(),
     endpoint,
-    subscription: args.p_subscription || args.subscription || null,
+    subscription: subscriptionPayload,
     user_id: user.id,
     user_agent: args.p_user_agent || args.user_agent || null,
     is_admin: Boolean(args.p_is_admin ?? args.is_admin ?? user.is_admin),
-    pref_events: args.p_pref_events ?? true,
-    pref_class: args.p_pref_class ?? true,
-    pref_clubs: args.p_pref_clubs ?? true,
-    pref_filter_tags: args.p_pref_filter_tags ?? null,
-    pref_filter_class_genres: args.p_pref_filter_class_genres ?? null,
+    pref_events: finalPrefs.pref_events,
+    pref_class: finalPrefs.pref_class,
+    pref_clubs: finalPrefs.pref_clubs,
+    pref_filter_tags: finalPrefs.pref_filter_tags,
+    pref_filter_class_genres: finalPrefs.pref_filter_class_genres,
+    pref_digest_time: finalPrefs.pref_digest_time,
+    pref_digest_days: finalPrefs.pref_digest_days,
+    pref_digest_timezone: finalPrefs.pref_digest_timezone,
+    pref_only_with_events: finalPrefs.pref_only_with_events,
     created_at: existing?.created_at || now,
     updated_at: now,
   }, ['endpoint']);
+
+  console.info('[PushSaveServer] upsert success', {
+    userId: user.id,
+    endpointLength: String(endpoint).length,
+  });
 
   return true;
 }

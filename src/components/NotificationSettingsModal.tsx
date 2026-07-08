@@ -256,6 +256,21 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setStatusMessage(null);
         try {
             const prefsToSave = normalizeModalPrefs(pushPrefs);
+            console.info('[NotificationSettingsModal] save start', {
+                pushEnabled: isPushEnabled,
+                originalPushEnabled,
+                permission: getNotificationPermission(),
+                support: getPushSupportStatus(),
+                prefs: {
+                    pref_events: prefsToSave.pref_events,
+                    pref_class: prefsToSave.pref_class,
+                    pref_clubs: prefsToSave.pref_clubs,
+                    pref_digest_time: prefsToSave.pref_digest_time,
+                    pref_digest_days: prefsToSave.pref_digest_days,
+                    pref_only_with_events: prefsToSave.pref_only_with_events,
+                },
+            });
+
             if (JSON.stringify(prefsToSave) !== JSON.stringify(pushPrefs)) {
                 setPushPrefs(prefsToSave);
             }
@@ -311,7 +326,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     }
                     // 명시적 비활성화 플래그 해제 (사용자가 다시 켰으므로 자동 재구독 허용)
                     localStorage.removeItem('push_explicitly_disabled');
-                    await saveSubscriptionToDataStore(sub, prefsToSave);
+                    const saved = await saveSubscriptionToDataStore(sub, prefsToSave);
+                    if (!saved) {
+                        console.warn('[NotificationSettingsModal] save returned false');
+                        setStatusMessage({ type: 'error', text: '알림 설정을 서버에 저장하지 못했습니다.' });
+                        return;
+                    }
                     shouldUpdateExistingPreferences = false;
                 } else {
                     await unsubscribeFromPush();
@@ -322,9 +342,16 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             if (shouldUpdateExistingPreferences) {
                 const updated = await updatePushPreferences(prefsToSave);
                 if (!updated) {
-                    throw new Error('Failed to update push preferences');
+                    console.warn('[NotificationSettingsModal] update existing preferences failed');
+                    setStatusMessage({
+                        type: 'error',
+                        text: '기존 알림 구독을 찾지 못해 설정을 저장하지 못했습니다. 알림을 껐다가 다시 켜주세요.',
+                    });
+                    return;
                 }
             }
+
+            console.info('[NotificationSettingsModal] save success');
 
             // [Sync] 사이드바 등 다른 컴포넌트에 알림 상태 변경 알림
             window.dispatchEvent(new CustomEvent('pushStatusChanged', {
@@ -335,7 +362,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             onClose();
         } catch (error) {
             console.error('Save failed:', error);
-            setStatusMessage({ type: 'error', text: '저장 중 오류가 발생했습니다. 다시 시도해주세요.' });
+            setStatusMessage({
+                type: 'error',
+                text: error instanceof Error && error.message
+                    ? error.message
+                    : '저장 중 오류가 발생했습니다. 다시 시도해주세요.',
+            });
         } finally {
             setIsSaving(false);
         }

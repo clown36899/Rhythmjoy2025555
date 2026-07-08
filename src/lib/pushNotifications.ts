@@ -15,6 +15,18 @@ const pushDebug = (...args: unknown[]) => {
     if (PUSH_DEBUG) console.debug(...args);
 };
 
+const pushInfo = (step: string, meta: Record<string, unknown> = {}) => {
+    console.info(`[PushSave] ${step}`, meta);
+};
+
+const pushWarn = (step: string, meta: Record<string, unknown> = {}) => {
+    console.warn(`[PushSave] ${step}`, meta);
+};
+
+const pushError = (step: string, meta: Record<string, unknown> = {}) => {
+    console.error(`[PushSave] ${step}`, meta);
+};
+
 /**
  * Service Worker 등록 상태 확인
  */
@@ -234,6 +246,45 @@ const withPushPreferences = (subscriptionPayload: any, prefs: Partial<PushPrefer
     preferences: normalizePushPreferences(prefs),
 });
 
+const getEndpointMeta = (endpoint?: string | null) => {
+    if (!endpoint) return { hasEndpoint: false };
+    try {
+        const url = new URL(endpoint);
+        return {
+            hasEndpoint: true,
+            endpointHost: url.host,
+            endpointLength: endpoint.length,
+        };
+    } catch {
+        return {
+            hasEndpoint: true,
+            endpointHost: 'unknown',
+            endpointLength: endpoint.length,
+        };
+    }
+};
+
+const getPushPrefsLogMeta = (prefs: PushPreferences) => ({
+    pref_events: prefs.pref_events,
+    pref_class: prefs.pref_class,
+    pref_clubs: prefs.pref_clubs,
+    pref_digest_time: prefs.pref_digest_time,
+    pref_digest_days: prefs.pref_digest_days,
+    pref_digest_timezone: prefs.pref_digest_timezone,
+    pref_only_with_events: prefs.pref_only_with_events,
+});
+
+const normalizeComparablePrefs = (prefs: PushPreferences) => ({
+    ...prefs,
+    pref_filter_tags: prefs.pref_filter_tags || null,
+    pref_filter_class_genres: prefs.pref_filter_class_genres || null,
+    pref_digest_days: [...(prefs.pref_digest_days || [])].sort((a, b) => a - b),
+});
+
+const preferencesEqual = (left: PushPreferences, right: PushPreferences) => (
+    JSON.stringify(normalizeComparablePrefs(left)) === JSON.stringify(normalizeComparablePrefs(right))
+);
+
 export const getPushSubscription = async (): Promise<PushSubscription | null> => {
     if (!isPushSupported()) return null;
     const registration = await navigator.serviceWorker.getRegistration();
@@ -266,14 +317,23 @@ export const verifySubscriptionOwnership = async (): Promise<boolean> => {
 };
 
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
-    if (!isPushSupported()) return null;
+    const support = getPushSupportStatus();
+    if (!support.supported) {
+        pushWarn('subscribe unsupported', support);
+        return null;
+    }
 
     try {
+        pushInfo('subscribe start', {
+            permission: getNotificationPermission(),
+            support,
+        });
         const registration = await navigator.serviceWorker.ready;
 
         // 1. Check existing
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) {
+            pushInfo('subscribe existing', getEndpointMeta(existingSub.endpoint));
             return existingSub;
         }
 
@@ -286,20 +346,35 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
             applicationServerKey: convertedVapidKey as any
         });
 
+        pushInfo('subscribe created', getEndpointMeta(subscription.endpoint));
         return subscription;
 
     } catch (error: any) {
-        console.error('[Push] Subscribe failed:', error?.name, error?.message);
+        pushError('subscribe failed', {
+            name: error?.name,
+            message: error?.message,
+            permission: getNotificationPermission(),
+        });
         return null;
     }
 };
 
 export const saveSubscriptionToDataStore = async (subscription: PushSubscription, prefs?: Partial<PushPreferences>) => {
-    const { data: { user } } = await cafe24.auth.getUser();
-    if (!user) return; // Must be logged in
+    const { data: { user }, error: userError } = await cafe24.auth.getUser();
+    if (userError || !user) {
+        pushError('auth missing before save', {
+            hasUser: Boolean(user),
+            error: userError?.message || null,
+        });
+        throw new Error('로그인 세션을 확인하지 못해 알림 설정을 저장하지 못했습니다. 다시 로그인 후 시도해주세요.');
+    }
 
     // Get Endpoint (Unique Device ID)
     const endpoint = subscription.endpoint;
+    if (!endpoint) {
+        pushError('missing endpoint before save');
+        throw new Error('브라우저 푸시 구독 endpoint가 없어 저장하지 못했습니다.');
+    }
 
     // 새 구독 저장 전, 같은 유저 + 같은 기기의 이전(죽은) 구독만 정리
     // 다른 기기(iOS vs Android vs Mac 등)의 구독은 유지
@@ -308,7 +383,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
         const currentUA = navigator.userAgent;
         const { data: oldSubs } = await cafe24
             .from('user_push_subscriptions')
-            .select('id, endpoint, user_agent, updated_at, subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
+            .select('id, endpoint, user_agent, updated_at, subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres, pref_digest_time, pref_digest_days, pref_digest_timezone, pref_only_with_events')
             .eq('user_id', user.id)
             .neq('endpoint', endpoint);
 
@@ -348,6 +423,11 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
 
     // 우선순위: 명시적 prefs > 이전 기기 설정(재설치 복원) > 기본값
     const finalPrefs = normalizePushPreferences(prefs || savedDevicePrefs || DEFAULT_PUSH_PREFERENCES);
+    pushInfo('save start', {
+        hasUser: true,
+        ...getEndpointMeta(endpoint),
+        prefs: getPushPrefsLogMeta(finalPrefs),
+    });
 
     // Check if user is admin
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
@@ -359,7 +439,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
     pushDebug('[Push] Saving subscription. Is Admin?', isAdmin);
 
     // Use RPC to safely upsert based on endpoint
-    const { error } = await cafe24.rpc('handle_push_subscription', {
+    const { data: rpcData, error, status } = await cafe24.rpc('handle_push_subscription', {
         p_endpoint: endpoint,
         p_subscription: withPushPreferences(serializePushSubscription(subscription), finalPrefs),
         p_user_agent: navigator.userAgent,
@@ -368,12 +448,57 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
         p_pref_class: finalPrefs.pref_class, // Match DB parameter name
         p_pref_clubs: finalPrefs.pref_clubs,
         p_pref_filter_tags: finalPrefs.pref_filter_tags,
-        p_pref_filter_class_genres: finalPrefs.pref_filter_class_genres
+        p_pref_filter_class_genres: finalPrefs.pref_filter_class_genres,
+        p_pref_digest_time: finalPrefs.pref_digest_time,
+        p_pref_digest_days: finalPrefs.pref_digest_days,
+        p_pref_digest_timezone: finalPrefs.pref_digest_timezone,
+        p_pref_only_with_events: finalPrefs.pref_only_with_events,
     });
 
     if (error) {
-        console.error("Failed to save subscription to data store:", error);
-        throw error;
+        pushError('rpc failed', {
+            status,
+            message: error?.message,
+            ...getEndpointMeta(endpoint),
+        });
+        throw new Error(`알림 설정 저장 API가 실패했습니다: ${error.message || 'unknown error'}`);
+    }
+
+    pushInfo('rpc success', {
+        status,
+        rpcData,
+        ...getEndpointMeta(endpoint),
+    });
+
+    const { data: savedRow, error: verifyError, status: verifyStatus } = await cafe24
+        .from('user_push_subscriptions')
+        .select('subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres, pref_digest_time, pref_digest_days, pref_digest_timezone, pref_only_with_events')
+        .eq('user_id', user.id)
+        .eq('endpoint', endpoint)
+        .maybeSingle();
+
+    if (verifyError) {
+        pushError('verify query failed', {
+            status: verifyStatus,
+            message: verifyError?.message,
+            ...getEndpointMeta(endpoint),
+        });
+        throw new Error(`알림 설정 저장 확인에 실패했습니다: ${verifyError.message || 'unknown error'}`);
+    }
+
+    if (!savedRow) {
+        pushError('verify missing row', getEndpointMeta(endpoint));
+        throw new Error('알림 설정 저장 후 서버에서 구독 정보를 찾지 못했습니다.');
+    }
+
+    const savedPrefs = normalizePushPreferences(savedRow, getStoredPushPreferences(savedRow.subscription));
+    if (!preferencesEqual(savedPrefs, finalPrefs)) {
+        pushError('verify preference mismatch', {
+            expected: getPushPrefsLogMeta(finalPrefs),
+            saved: getPushPrefsLogMeta(savedPrefs),
+            ...getEndpointMeta(endpoint),
+        });
+        throw new Error('알림 설정이 서버에 저장됐지만 설정값 확인에 실패했습니다.');
     }
 
     // [BRIDGE] 알림 신청 시 PWA 설치 로그가 없으면 즉시 생성 (데이터 일관성 확보)
@@ -384,22 +509,40 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
         console.warn('[Push] Failed to link PWA install log:', e);
     }
 
-    pushDebug('[Push] Subscription saved to data store');
+    pushInfo('save verified', {
+        ...getEndpointMeta(endpoint),
+        prefs: getPushPrefsLogMeta(savedPrefs),
+    });
     return true;
 }
 
 export const updatePushPreferences = async (prefs: PushPreferences) => {
-    const { data: { user } } = await cafe24.auth.getUser();
-    if (!user) return false;
+    const { data: { user }, error: userError } = await cafe24.auth.getUser();
+    if (userError || !user) {
+        pushWarn('update skipped auth missing', {
+            hasUser: Boolean(user),
+            error: userError?.message || null,
+        });
+        return false;
+    }
 
     const sub = await getPushSubscription();
-    if (!sub || !sub.endpoint) return false;
+    if (!sub || !sub.endpoint) {
+        pushWarn('update skipped subscription missing', {
+            permission: getNotificationPermission(),
+            support: getPushSupportStatus(),
+        });
+        return false;
+    }
 
     try {
         await saveSubscriptionToDataStore(sub, prefs);
         return true;
     } catch (error) {
-        console.error('[Push] Failed to update preferences:', error);
+        pushError('update failed', {
+            message: error instanceof Error ? error.message : String(error),
+            ...getEndpointMeta(sub.endpoint),
+        });
         return false;
     }
 }
@@ -419,7 +562,7 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
 
         const { data, error } = await cafe24
             .from('user_push_subscriptions')
-            .select('subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
+            .select('subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres, pref_digest_time, pref_digest_days, pref_digest_timezone, pref_only_with_events')
             .eq('user_id', user.id)
             .eq('endpoint', sub.endpoint)
             .maybeSingle();
