@@ -34,14 +34,57 @@ export async function checkServiceWorkerRegistration(): Promise<ServiceWorkerReg
     }
 }
 
+export type PushSupportReason =
+    | 'supported'
+    | 'browser-unavailable'
+    | 'insecure-context'
+    | 'notification-unavailable'
+    | 'service-worker-unavailable'
+    | 'push-manager-unavailable';
+
+export interface PushSupportStatus {
+    supported: boolean;
+    reason: PushSupportReason;
+}
+
+export function getPushSupportStatus(): PushSupportStatus {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+        return { supported: false, reason: 'browser-unavailable' };
+    }
+
+    if (!window.isSecureContext) {
+        return { supported: false, reason: 'insecure-context' };
+    }
+
+    if (!('Notification' in window)) {
+        return { supported: false, reason: 'notification-unavailable' };
+    }
+
+    if (!('serviceWorker' in navigator)) {
+        return { supported: false, reason: 'service-worker-unavailable' };
+    }
+
+    if (!('PushManager' in window)) {
+        return { supported: false, reason: 'push-manager-unavailable' };
+    }
+
+    return { supported: true, reason: 'supported' };
+}
+
 export function isPushSupported(): boolean {
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window;
-    pushDebug('[Push] Support check:', { supported, sw: 'serviceWorker' in navigator, pm: 'PushManager' in window });
-    return supported;
+    const status = getPushSupportStatus();
+    pushDebug('[Push] Support check:', {
+        ...status,
+        secure: typeof window !== 'undefined' ? window.isSecureContext : false,
+        notification: typeof window !== 'undefined' && 'Notification' in window,
+        sw: typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
+        pm: typeof window !== 'undefined' && 'PushManager' in window,
+    });
+    return status.supported;
 }
 
 export async function checkNotificationPermission(): Promise<NotificationPermission> {
-    const permission = Notification.permission;
+    const permission = getNotificationPermission();
     pushDebug('[Push] Current permission:', permission);
     return permission;
 }

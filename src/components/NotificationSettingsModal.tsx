@@ -11,8 +11,9 @@ import {
     requestNotificationPermission,
     DEFAULT_PUSH_PREFERENCES,
     PUSH_DIGEST_TIME_OPTIONS,
+    getPushSupportStatus,
 } from '../lib/pushNotifications';
-import type { PushPreferences } from '../lib/pushNotifications';
+import type { PushPreferences, PushSupportStatus } from '../lib/pushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 import { isPWAMode, getMobilePlatform } from '../lib/pwaDetect';
 import '../styles/domains/settings.css';
@@ -66,6 +67,41 @@ const normalizeModalPrefs = (prefs?: Partial<PushPreferences> | null): PushPrefe
     return normalized;
 };
 
+type MobilePlatform = ReturnType<typeof getMobilePlatform>;
+
+const getPermissionBlockedMessage = (platform: MobilePlatform) => {
+    if (platform === 'android') {
+        return 'Chrome 주소창 왼쪽 사이트 설정에서 알림을 허용하고, Android 설정 > 앱 > Chrome > 알림도 켜주세요.';
+    }
+
+    if (platform === 'ios') {
+        return 'iOS 설정 > 알림에서 이 앱의 알림을 허용한 뒤 다시 확인해주세요.';
+    }
+
+    return '브라우저 주소창의 사이트 설정에서 알림을 허용한 뒤 다시 확인해주세요.';
+};
+
+const getPushSupportMessage = (status: PushSupportStatus, platform: MobilePlatform) => {
+    if (status.supported) return '';
+
+    if (platform === 'ios') {
+        return '아이폰은 Safari 브라우저 탭에서 푸시 알림을 받을 수 없습니다. 홈 화면에 추가한 앱에서 설정해주세요.';
+    }
+
+    switch (status.reason) {
+        case 'insecure-context':
+            return 'HTTPS 접속에서만 브라우저 푸시 알림을 사용할 수 있습니다.';
+        case 'notification-unavailable':
+            return '이 브라우저는 알림 권한 API를 제공하지 않습니다.';
+        case 'service-worker-unavailable':
+            return '이 브라우저는 서비스워커를 지원하지 않아 푸시 알림을 사용할 수 없습니다.';
+        case 'push-manager-unavailable':
+            return '이 브라우저는 웹 푸시 구독을 지원하지 않습니다. Android Chrome 최신 버전에서 다시 시도해주세요.';
+        default:
+            return '현재 브라우저 환경에서는 푸시 알림을 사용할 수 없습니다.';
+    }
+};
+
 export default function NotificationSettingsModal({ isOpen, onClose }: NotificationSettingsModalProps) {
     const { user } = useAuth();
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
@@ -73,6 +109,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(() => getNotificationPermission());
+    const [pushSupportStatus, setPushSupportStatus] = useState<PushSupportStatus>(() => getPushSupportStatus());
 
     const platform = getMobilePlatform();
 
@@ -82,11 +119,19 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+    const refreshPushEnvironment = () => {
+        const support = getPushSupportStatus();
+        const permission = getNotificationPermission();
+        setPushSupportStatus(support);
+        setPermissionStatus(permission);
+        return { support, permission };
+    };
+
     useEffect(() => {
         if (!isOpen) return;
 
         setStatusMessage(null);
-        setPermissionStatus(getNotificationPermission());
+        refreshPushEnvironment();
 
         const checkPWA = () => {
             const pwa = isPWAMode();
@@ -94,7 +139,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             return pwa;
         };
 
-        const pwa = checkPWA();
+        checkPWA();
         loadSettings();
     }, [isOpen]);
 
@@ -162,12 +207,19 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             return;
         }
 
-        const currentPermission = getNotificationPermission();
-        setPermissionStatus(currentPermission);
-        if (currentPermission === 'denied') {
+        const { support, permission } = refreshPushEnvironment();
+        if (!support.supported) {
             setStatusMessage({
                 type: 'error',
-                text: '브라우저에서 알림이 차단되어 있습니다. 주소창 설정에서 알림을 허용한 뒤 다시 켜주세요.',
+                text: getPushSupportMessage(support, platform),
+            });
+            return;
+        }
+
+        if (permission === 'denied') {
+            setStatusMessage({
+                type: 'error',
+                text: getPermissionBlockedMessage(platform),
             });
             return;
         }
@@ -199,6 +251,22 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setPushPrefs(prev => ({ ...prev, pref_only_with_events: !prev.pref_only_with_events }));
     };
 
+    const handleRefreshPermission = () => {
+        const { support, permission } = refreshPushEnvironment();
+
+        if (!support.supported) {
+            setStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) });
+            return;
+        }
+
+        if (permission === 'denied') {
+            setStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) });
+            return;
+        }
+
+        setStatusMessage({ type: 'success', text: '권한 상태를 다시 확인했습니다. 알림을 켠 뒤 저장해주세요.' });
+    };
+
     const handleSaveChanges = async () => {
         setIsSaving(true);
         setStatusMessage(null);
@@ -221,10 +289,15 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             let shouldUpdateExistingPreferences = isPushEnabled;
             if (isPushEnabled !== originalPushEnabled) {
                 if (isPushEnabled) {
-                    const currentPermission = getNotificationPermission();
-                    setPermissionStatus(currentPermission);
+                    const { support, permission: currentPermission } = refreshPushEnvironment();
+                    if (!support.supported) {
+                        setStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) });
+                        setIsPushEnabled(false);
+                        return;
+                    }
+
                     if (currentPermission === 'denied') {
-                        setStatusMessage({ type: 'error', text: '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용 후 다시 시도해주세요.' });
+                        setStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) });
                         setIsPushEnabled(false);
                         return;
                     }
@@ -233,7 +306,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         const permission = await requestNotificationPermission();
                         setPermissionStatus(permission);
                         if (permission !== 'granted') {
-                            setStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다.' });
+                            setStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다. 권한을 허용해야 요약 알림을 받을 수 있습니다.' });
                             setIsPushEnabled(false);
                             return;
                         }
@@ -241,7 +314,14 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                     const sub = await subscribeToPush();
                     if (!sub) {
-                        setStatusMessage({ type: 'error', text: '알림 권한이 차단되었거나 오류가 발생했습니다.' });
+                        const latestPermission = getNotificationPermission();
+                        setPermissionStatus(latestPermission);
+                        setStatusMessage({
+                            type: 'error',
+                            text: latestPermission === 'denied'
+                                ? getPermissionBlockedMessage(platform)
+                                : '브라우저가 푸시 구독을 거부했습니다. Chrome 사이트 설정과 휴대폰의 Chrome 알림 권한을 확인해주세요.',
+                        });
                         setIsPushEnabled(false);
                         return;
                     }
@@ -288,10 +368,19 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const hasUnsavedChanges = (isPushEnabled !== originalPushEnabled) ||
         (isPushEnabled && JSON.stringify(pushPrefs) !== JSON.stringify(originalPrefs));
     const isPermissionBlocked = permissionStatus === 'denied';
-    const saveButtonDisabled = !hasUnsavedChanges || isSaving || (isPushEnabled && isPermissionBlocked);
+    const isPushUnavailable = !pushSupportStatus.supported;
+    const showEnvironmentPanel = isPermissionBlocked || isPushUnavailable;
+    const saveBlockedLabel = isPushEnabled && isPushUnavailable
+        ? '브라우저 미지원'
+        : isPushEnabled && isPermissionBlocked
+            ? '권한 차단됨'
+            : null;
+    const saveButtonDisabled = !hasUnsavedChanges || isSaving || (isPushEnabled && (isPermissionBlocked || isPushUnavailable));
     const saveButtonLabel = isSaving
         ? '저장 중...'
-        : isPermissionBlocked && !isPushEnabled
+        : saveBlockedLabel
+            ? saveBlockedLabel
+            : isPermissionBlocked && !isPushEnabled
             ? '권한 차단됨'
             : hasUnsavedChanges
                 ? '설정 저장'
@@ -370,6 +459,25 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                     <div className="NSM-switchThumb" />
                                 </button>
                             </section>
+
+                            {showEnvironmentPanel && (
+                                <section className="NSM-permissionPanel">
+                                    <div className="NSM-permissionIcon" aria-hidden="true">
+                                        <i className={isPushUnavailable ? 'ri-compass-3-line' : 'ri-notification-off-line'}></i>
+                                    </div>
+                                    <div className="NSM-permissionCopy">
+                                        <strong>{isPushUnavailable ? '브라우저 푸시 미지원' : '브라우저 알림 권한 차단됨'}</strong>
+                                        <small>
+                                            {isPushUnavailable
+                                                ? getPushSupportMessage(pushSupportStatus, platform)
+                                                : getPermissionBlockedMessage(platform)}
+                                        </small>
+                                    </div>
+                                    <button type="button" className="NSM-permissionRefreshBtn" onClick={handleRefreshPermission}>
+                                        다시 확인
+                                    </button>
+                                </section>
+                            )}
 
                             {isPushEnabled && (
                                 <>
