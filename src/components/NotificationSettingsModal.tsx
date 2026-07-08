@@ -251,22 +251,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setPushPrefs(prev => ({ ...prev, pref_only_with_events: !prev.pref_only_with_events }));
     };
 
-    const handleRefreshPermission = () => {
-        const { support, permission } = refreshPushEnvironment();
-
-        if (!support.supported) {
-            setStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) });
-            return;
-        }
-
-        if (permission === 'denied') {
-            setStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) });
-            return;
-        }
-
-        setStatusMessage({ type: 'success', text: '권한 상태를 다시 확인했습니다. 알림을 켠 뒤 저장해주세요.' });
-    };
-
     const handleSaveChanges = async () => {
         setIsSaving(true);
         setStatusMessage(null);
@@ -473,9 +457,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                                 : getPermissionBlockedMessage(platform)}
                                         </small>
                                     </div>
-                                    <button type="button" className="NSM-permissionRefreshBtn" onClick={handleRefreshPermission}>
-                                        다시 확인
-                                    </button>
                                 </section>
                             )}
 
