@@ -1171,6 +1171,7 @@ export default function EventDetailModal({
     String(selectedEvent.user_id) === String(eventViewerUserId)
   );
   const canEditSelectedEvent = Boolean(isAdminMode || isActualAdmin || isSelectedEventOwner);
+  const canViewAdminEventFields = Boolean(isAdminMode || isActualAdmin);
 
   return (
     <>
@@ -1778,7 +1779,7 @@ export default function EventDetailModal({
                     })()}
 
 
-                  {canEditSelectedEvent &&
+                  {canViewAdminEventFields &&
                     (selectedEvent.organizer_name ||
                       selectedEvent.organizer_phone) && (
                       <div className="EDM-adminSection">

@@ -4,9 +4,12 @@ const NEVER_EXPOSE_EVENT_FIELDS = [
   'password',
 ];
 
-const PRIVATE_EVENT_FIELDS = [
+const ADMIN_ONLY_EVENT_FIELDS = [
   'organizer_name',
   'organizer_phone',
+];
+
+const MANAGER_EVENT_FIELDS = [
   'user_id',
   'board_users',
 ];
@@ -37,9 +40,15 @@ export function sanitizeEventForViewer(event, user = null) {
     delete next[field];
   }
 
+  if (!user?.is_admin) {
+    for (const field of ADMIN_ONLY_EVENT_FIELDS) {
+      delete next[field];
+    }
+  }
+
   if (canManageEvent(user, event)) return next;
 
-  for (const field of PRIVATE_EVENT_FIELDS) {
+  for (const field of MANAGER_EVENT_FIELDS) {
     delete next[field];
   }
   return next;

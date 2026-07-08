@@ -161,6 +161,16 @@ function groupIdForEventKind(category, activityType, groupId) {
   return normalizedActivityType === 'social' ? toIntOrNull(groupId) : null;
 }
 
+function metadataValue(source, existing, key, fallback = null) {
+  if (existing && Object.prototype.hasOwnProperty.call(existing, key)) {
+    return existing[key];
+  }
+  if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+    return source[key];
+  }
+  return fallback;
+}
+
 function normalizeEventPayload(input, existing = null, user = null) {
   const source = {
     ...(existing || {}),
@@ -214,13 +224,22 @@ function normalizeEventPayload(input, existing = null, user = null) {
     group_id: groupIdForEventKind(category, activityType, source.group_id),
     venue_name: source.venue_name || source.place_name || '',
     address: source.address || '',
-    user_id: user?.is_admin
-      ? (source.user_id || user?.id || null)
-      : (user?.id || source.user_id || null),
+    user_id: existing
+      ? metadataValue(source, existing, 'user_id', null)
+      : user?.is_admin
+        ? (source.user_id || user?.id || null)
+        : (user?.id || source.user_id || null),
     organizer: source.organizer || user?.nickname || source.organizer_name || 'Swing Enjoy',
-    organizer_name: source.organizer_name || user?.nickname || '',
+    organizer_name: existing
+      ? metadataValue(source, existing, 'organizer_name', '')
+      : (source.organizer_name || ''),
+    organizer_phone: existing
+      ? metadataValue(source, existing, 'organizer_phone', null)
+      : (source.organizer_phone || null),
     main_ad_image_kind: normalizeMainAdImageKind(source.main_ad_image_kind),
-    created_at: source.created_at || now,
+    created_at: existing
+      ? metadataValue(source, existing, 'created_at', now)
+      : (source.created_at || now),
     updated_at: now,
   };
 

@@ -197,9 +197,14 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * [Updated] Push Preferences Interface
  */
 export interface PushPreferences {
+    pref_today_digest: boolean;
+    pref_new_event_alerts: boolean;
     pref_events: boolean;
     pref_class: boolean; // "Classes" (강습)
     pref_clubs: boolean;   // "Club Lessons" (동호회 강습)
+    pref_new_event_social: boolean;
+    pref_new_event_class: boolean;
+    pref_new_event_clubs: boolean;
     pref_filter_tags: string[] | null; // For Events
     pref_filter_class_genres: string[] | null; // For Classes
     pref_digest_time: string;
@@ -216,9 +221,14 @@ export const PUSH_DIGEST_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) =>
 });
 
 export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
+    pref_today_digest: true,
+    pref_new_event_alerts: false,
     pref_events: true,
     pref_class: true,
     pref_clubs: true,
+    pref_new_event_social: true,
+    pref_new_event_class: true,
+    pref_new_event_clubs: true,
     pref_filter_tags: null,
     pref_filter_class_genres: null,
     pref_digest_time: '08:30',
@@ -264,9 +274,14 @@ const getStoredPushPreferences = (subscriptionPayload: any): Partial<PushPrefere
 const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences> = {}): PushPreferences => {
     const normalized: PushPreferences = {
         ...DEFAULT_PUSH_PREFERENCES,
+        pref_today_digest: stored.pref_today_digest ?? row.pref_today_digest ?? DEFAULT_PUSH_PREFERENCES.pref_today_digest,
+        pref_new_event_alerts: stored.pref_new_event_alerts ?? row.pref_new_event_alerts ?? DEFAULT_PUSH_PREFERENCES.pref_new_event_alerts,
         pref_events: row.pref_events ?? stored.pref_events ?? DEFAULT_PUSH_PREFERENCES.pref_events,
         pref_class: row.pref_class ?? stored.pref_class ?? DEFAULT_PUSH_PREFERENCES.pref_class,
         pref_clubs: row.pref_clubs ?? stored.pref_clubs ?? DEFAULT_PUSH_PREFERENCES.pref_clubs,
+        pref_new_event_social: stored.pref_new_event_social ?? row.pref_new_event_social ?? DEFAULT_PUSH_PREFERENCES.pref_new_event_social,
+        pref_new_event_class: stored.pref_new_event_class ?? row.pref_new_event_class ?? DEFAULT_PUSH_PREFERENCES.pref_new_event_class,
+        pref_new_event_clubs: stored.pref_new_event_clubs ?? row.pref_new_event_clubs ?? DEFAULT_PUSH_PREFERENCES.pref_new_event_clubs,
         pref_filter_tags: row.pref_filter_tags ?? stored.pref_filter_tags ?? DEFAULT_PUSH_PREFERENCES.pref_filter_tags,
         pref_filter_class_genres: row.pref_filter_class_genres ?? stored.pref_filter_class_genres ?? DEFAULT_PUSH_PREFERENCES.pref_filter_class_genres,
         pref_digest_time: normalizeDigestTime(stored.pref_digest_time ?? row.pref_digest_time),
@@ -277,6 +292,14 @@ const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences
 
     if (!normalized.pref_events && !normalized.pref_class && !normalized.pref_clubs) {
         normalized.pref_events = true;
+    }
+
+    if (!normalized.pref_new_event_social && !normalized.pref_new_event_class && !normalized.pref_new_event_clubs) {
+        normalized.pref_new_event_social = true;
+    }
+
+    if (!normalized.pref_today_digest && !normalized.pref_new_event_alerts) {
+        normalized.pref_today_digest = true;
     }
 
     return normalized;
@@ -315,9 +338,14 @@ const getEndpointMeta = (endpoint?: string | null) => {
 };
 
 const getPushPrefsLogMeta = (prefs: PushPreferences) => ({
+    pref_today_digest: prefs.pref_today_digest,
+    pref_new_event_alerts: prefs.pref_new_event_alerts,
     pref_events: prefs.pref_events,
     pref_class: prefs.pref_class,
     pref_clubs: prefs.pref_clubs,
+    pref_new_event_social: prefs.pref_new_event_social,
+    pref_new_event_class: prefs.pref_new_event_class,
+    pref_new_event_clubs: prefs.pref_new_event_clubs,
     pref_digest_time: prefs.pref_digest_time,
     pref_digest_days: prefs.pref_digest_days,
     pref_digest_timezone: prefs.pref_digest_timezone,

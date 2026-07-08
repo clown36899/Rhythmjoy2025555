@@ -1545,16 +1545,42 @@ function normalizeEventInsertValues(values, user) {
   });
 }
 
+const EVENT_UPDATE_PROTECTED_FIELDS = [
+  'id',
+  'user_id',
+  'created_at',
+  'organizer_name',
+  'organizer_phone',
+  'board_users',
+  'password',
+];
+
+function removeProtectedEventUpdateFields(next) {
+  for (const field of EVENT_UPDATE_PROTECTED_FIELDS) {
+    delete next[field];
+  }
+  return next;
+}
+
+function preserveExistingEventMetadata(next, existing) {
+  if (!existing) return next;
+  for (const field of EVENT_UPDATE_PROTECTED_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(existing, field)) {
+      next[field] = existing[field];
+    } else {
+      delete next[field];
+    }
+  }
+  return next;
+}
+
 function normalizeEventUpdateValues(values, user) {
   const next = { ...(values || {}) };
-  if (!user.is_admin) {
-    delete next.user_id;
-  }
+  removeProtectedEventUpdateFields(next);
+  next.updated_at = new Date().toISOString();
   if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
     next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
   }
-  delete next.password;
-  delete next.board_users;
   return normalizeEventActivityType(next, values);
 }
 
@@ -1563,9 +1589,14 @@ function normalizeEventUpsertValue(value, existing, user) {
     ...(existing || {}),
     ...(value || {}),
   };
-  next.user_id = user.is_admin
-    ? (next.user_id || user.id)
-    : (existing?.user_id || user.id);
+  if (existing) {
+    preserveExistingEventMetadata(next, existing);
+    next.updated_at = new Date().toISOString();
+  } else {
+    next.user_id = user.is_admin
+      ? (next.user_id || user.id)
+      : user.id;
+  }
   if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
     next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
   }
@@ -2608,9 +2639,14 @@ async function handlePushSubscription(args = {}, user = null) {
     ? subscriptionPayload.preferences
     : {};
   const finalPrefs = {
+    pref_today_digest: storedPrefs.pref_today_digest ?? true,
+    pref_new_event_alerts: storedPrefs.pref_new_event_alerts ?? false,
     pref_events: args.p_pref_events ?? storedPrefs.pref_events ?? true,
     pref_class: args.p_pref_class ?? storedPrefs.pref_class ?? true,
     pref_clubs: args.p_pref_clubs ?? storedPrefs.pref_clubs ?? true,
+    pref_new_event_social: storedPrefs.pref_new_event_social ?? true,
+    pref_new_event_class: storedPrefs.pref_new_event_class ?? true,
+    pref_new_event_clubs: storedPrefs.pref_new_event_clubs ?? true,
     pref_filter_tags: args.p_pref_filter_tags ?? storedPrefs.pref_filter_tags ?? null,
     pref_filter_class_genres: args.p_pref_filter_class_genres ?? storedPrefs.pref_filter_class_genres ?? null,
     pref_digest_time: args.p_pref_digest_time ?? storedPrefs.pref_digest_time ?? '08:30',
@@ -2627,9 +2663,14 @@ async function handlePushSubscription(args = {}, user = null) {
     })(),
     endpointLength: String(endpoint).length,
     prefs: {
+      pref_today_digest: finalPrefs.pref_today_digest,
+      pref_new_event_alerts: finalPrefs.pref_new_event_alerts,
       pref_events: finalPrefs.pref_events,
       pref_class: finalPrefs.pref_class,
       pref_clubs: finalPrefs.pref_clubs,
+      pref_new_event_social: finalPrefs.pref_new_event_social,
+      pref_new_event_class: finalPrefs.pref_new_event_class,
+      pref_new_event_clubs: finalPrefs.pref_new_event_clubs,
       pref_digest_time: finalPrefs.pref_digest_time,
       pref_digest_days: finalPrefs.pref_digest_days,
       pref_only_with_events: finalPrefs.pref_only_with_events,
@@ -2644,9 +2685,14 @@ async function handlePushSubscription(args = {}, user = null) {
     user_id: user.id,
     user_agent: args.p_user_agent || args.user_agent || null,
     is_admin: Boolean(args.p_is_admin ?? args.is_admin ?? user.is_admin),
+    pref_today_digest: finalPrefs.pref_today_digest,
+    pref_new_event_alerts: finalPrefs.pref_new_event_alerts,
     pref_events: finalPrefs.pref_events,
     pref_class: finalPrefs.pref_class,
     pref_clubs: finalPrefs.pref_clubs,
+    pref_new_event_social: finalPrefs.pref_new_event_social,
+    pref_new_event_class: finalPrefs.pref_new_event_class,
+    pref_new_event_clubs: finalPrefs.pref_new_event_clubs,
     pref_filter_tags: finalPrefs.pref_filter_tags,
     pref_filter_class_genres: finalPrefs.pref_filter_class_genres,
     pref_digest_time: finalPrefs.pref_digest_time,
@@ -3488,5 +3534,7 @@ export {
   applyFilters as applyCafe24Filters,
   deleteRows as deleteCafe24TableRows,
   loadRows as loadCafe24TableRows,
+  normalizeEventUpdateValues,
+  normalizeEventUpsertValue,
   saveRow as saveCafe24TableRow,
 };

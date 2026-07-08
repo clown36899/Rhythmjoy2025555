@@ -755,7 +755,7 @@ export default memo(function EventRegistrationModal({
           });
           const danceTags = recruitmentKind ? ensureRecruitmentTags(taxonomy.tags, recruitmentKind) : taxonomy.tags;
 
-          const eventData = {
+          const eventData: Partial<AppEvent> & Record<string, any> = {
             title,
             date: effectiveStartDate,
             start_date: effectiveStartDate,
@@ -783,15 +783,17 @@ export default memo(function EventRegistrationModal({
             storage_path: imageStoragePath,
             video_url: videoUrl,
             organizer: '익명', // Default value since input is removed
-            organizer_name: isAdmin ? '관리자' : null,
-            created_at: new Date().toISOString(),
-            user_id: user?.id || null, // 작성자 ID 저장
             show_title_on_billboard: true, // 기본값 true로 설정
             venue_id: (venueId && String(venueId).trim() !== '') ? venueId : null,
             venue_name: (venueId && String(venueId).trim() !== '') ? venueName : location,
             venue_custom_link: (venueId && String(venueId).trim() !== '') ? null : venueCustomLink,
             group_id: groupIdForRegistrationCategory(effectiveCategory, groupId),
           };
+
+          if (!editEventData) {
+            eventData.created_at = new Date().toISOString();
+            eventData.user_id = user?.id || null; // 작성자 ID 저장
+          }
 
           if (EVENT_REGISTRATION_DEBUG) {
             console.debug("📝 [EventRegistrationModal] Payload summary:", {
@@ -1013,7 +1015,6 @@ export default memo(function EventRegistrationModal({
     link1: link1,
     link_name1: linkName1,
     video_url: videoUrl,
-    organizer_name: isAdmin ? '관리자' : undefined,
     time: '00:00',
     price: '무료',
     capacity: 0,
