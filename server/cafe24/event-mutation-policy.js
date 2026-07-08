@@ -1,4 +1,4 @@
-const EVENT_UPDATE_PROTECTED_FIELDS = [
+export const EVENT_UPDATE_PROTECTED_FIELDS = Object.freeze([
   'id',
   'user_id',
   'created_at',
@@ -6,7 +6,7 @@ const EVENT_UPDATE_PROTECTED_FIELDS = [
   'organizer_phone',
   'board_users',
   'password',
-];
+]);
 
 export function stripProtectedEventUpdateFields(values = {}, now = new Date().toISOString()) {
   const next = { ...(values || {}) };
