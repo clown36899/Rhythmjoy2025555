@@ -1498,7 +1498,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
   cursor: pointer;
 }
 
@@ -1518,6 +1520,8 @@
   gap: min(0.8vw, 6px);
   flex-wrap: nowrap;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .header-logo-title {
@@ -1528,6 +1532,8 @@
   flex-shrink: 1;
   overflow: hidden;
   color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-logo-tag {
@@ -2069,26 +2075,38 @@ html.v2-home-mode #root {
   }
 
   .v2-home-shell .header-content-inner {
-    gap: 8px;
-    padding: 0 22px;
+    gap: 6px;
+    padding: 0 10px;
+  }
+
+  .v2-home-shell .header-events-content,
+  .v2-home-shell .header-logo-container {
+    gap: 7px;
   }
 
   .v2-home-shell .header-logo {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 
   .v2-home-shell .header-logo-title {
-    font-size: 18px;
+    font-size: 17px;
+    max-width: 96px;
   }
 
-  .v2-home-shell .header-logo-domain,
   .v2-home-shell .header-logo-tag {
-    font-size: 11px;
+    display: none;
+  }
+
+  .v2-home-shell .header-logo-domain {
+    max-width: 96px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    overflow: hidden;
   }
 
   .v2-home-shell .header-right-buttons {
-    gap: 8px;
+    gap: 6px;
   }
 
   .v2-home-shell .header-theme-btn {
@@ -2099,9 +2117,15 @@ html.v2-home-mode #root {
 
   .v2-home-shell .header-search-btn,
   .v2-home-shell .header-translate-btn {
-    width: 38px;
-    height: 38px;
-    min-height: 38px;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+  }
+
+  .v2-home-shell .header-notification-btn,
+  .v2-home-shell .header-user-btn {
+    width: 34px;
+    height: 34px;
   }
 }
 

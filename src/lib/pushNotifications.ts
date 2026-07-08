@@ -97,7 +97,91 @@ export interface PushPreferences {
     pref_clubs: boolean;   // "Club Lessons" (동호회 강습)
     pref_filter_tags: string[] | null; // For Events
     pref_filter_class_genres: string[] | null; // For Classes
+    pref_digest_time: string;
+    pref_digest_days: number[];
+    pref_digest_timezone: string;
+    pref_only_with_events: boolean;
 }
+
+export const PUSH_DIGEST_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+    const totalMinutes = index * 30;
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+});
+
+export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
+    pref_events: true,
+    pref_class: true,
+    pref_clubs: true,
+    pref_filter_tags: null,
+    pref_filter_class_genres: null,
+    pref_digest_time: '08:30',
+    pref_digest_days: [0, 1, 2, 3, 4, 5, 6],
+    pref_digest_timezone: 'Asia/Seoul',
+    pref_only_with_events: true,
+};
+
+const normalizeDigestTime = (value: unknown) => {
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (PUSH_DIGEST_TIME_OPTIONS.includes(raw)) return raw;
+
+    const match = raw.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!match) return DEFAULT_PUSH_PREFERENCES.pref_digest_time;
+
+    const hour = match[1];
+    const minute = Number(match[2]);
+    return `${hour}:${minute < 30 ? '00' : '30'}`;
+};
+
+const normalizeDigestDays = (value: unknown) => {
+    if (!Array.isArray(value)) return DEFAULT_PUSH_PREFERENCES.pref_digest_days;
+    const uniqueDays = Array.from(new Set(
+        value
+            .map((day) => Number(day))
+            .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+    ));
+    return uniqueDays.length > 0 ? uniqueDays.sort((a, b) => a - b) : DEFAULT_PUSH_PREFERENCES.pref_digest_days;
+};
+
+const normalizeDigestTimezone = (value: unknown) => {
+    const raw = typeof value === 'string' ? value.trim() : '';
+    return raw || DEFAULT_PUSH_PREFERENCES.pref_digest_timezone;
+};
+
+const getStoredPushPreferences = (subscriptionPayload: any): Partial<PushPreferences> => {
+    if (!subscriptionPayload || typeof subscriptionPayload !== 'object') return {};
+    const preferences = subscriptionPayload.preferences;
+    if (!preferences || typeof preferences !== 'object') return {};
+    return preferences;
+};
+
+const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences> = {}): PushPreferences => ({
+    ...DEFAULT_PUSH_PREFERENCES,
+    pref_events: row.pref_events ?? stored.pref_events ?? DEFAULT_PUSH_PREFERENCES.pref_events,
+    pref_class: row.pref_class ?? stored.pref_class ?? DEFAULT_PUSH_PREFERENCES.pref_class,
+    pref_clubs: row.pref_clubs ?? stored.pref_clubs ?? DEFAULT_PUSH_PREFERENCES.pref_clubs,
+    pref_filter_tags: row.pref_filter_tags ?? stored.pref_filter_tags ?? DEFAULT_PUSH_PREFERENCES.pref_filter_tags,
+    pref_filter_class_genres: row.pref_filter_class_genres ?? stored.pref_filter_class_genres ?? DEFAULT_PUSH_PREFERENCES.pref_filter_class_genres,
+    pref_digest_time: normalizeDigestTime(stored.pref_digest_time ?? row.pref_digest_time),
+    pref_digest_days: normalizeDigestDays(stored.pref_digest_days ?? row.pref_digest_days),
+    pref_digest_timezone: normalizeDigestTimezone(stored.pref_digest_timezone ?? row.pref_digest_timezone),
+    pref_only_with_events: stored.pref_only_with_events ?? row.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
+});
+
+const serializePushSubscription = (subscription: PushSubscription) => {
+    const json = typeof subscription.toJSON === 'function' ? subscription.toJSON() : {};
+    return {
+        ...json,
+        endpoint: subscription.endpoint,
+        expirationTime: subscription.expirationTime ?? (json as any).expirationTime ?? null,
+    };
+};
+
+const withPushPreferences = (subscriptionPayload: any, prefs: Partial<PushPreferences>) => ({
+    ...(subscriptionPayload && typeof subscriptionPayload === 'object' ? subscriptionPayload : {}),
+    preferences: normalizePushPreferences(prefs),
+});
 
 export const getPushSubscription = async (): Promise<PushSubscription | null> => {
     if (!isPushSupported()) return null;
@@ -159,7 +243,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     }
 };
 
-export const saveSubscriptionToDataStore = async (subscription: PushSubscription, prefs?: PushPreferences) => {
+export const saveSubscriptionToDataStore = async (subscription: PushSubscription, prefs?: Partial<PushPreferences>) => {
     const { data: { user } } = await cafe24.auth.getUser();
     if (!user) return; // Must be logged in
 
@@ -173,7 +257,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
         const currentUA = navigator.userAgent;
         const { data: oldSubs } = await cafe24
             .from('user_push_subscriptions')
-            .select('id, endpoint, user_agent, updated_at, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
+            .select('id, endpoint, user_agent, updated_at, subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
             .neq('endpoint', endpoint);
 
@@ -195,13 +279,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
                     const mostRecent = sameDeviceSubs.sort((a, b) =>
                         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
                     )[0];
-                    savedDevicePrefs = {
-                        pref_events: mostRecent.pref_events ?? true,
-                        pref_class: mostRecent.pref_class ?? true,
-                        pref_clubs: mostRecent.pref_clubs ?? true,
-                        pref_filter_tags: mostRecent.pref_filter_tags ?? null,
-                        pref_filter_class_genres: mostRecent.pref_filter_class_genres ?? null,
-                    };
+                    savedDevicePrefs = normalizePushPreferences(mostRecent, getStoredPushPreferences(mostRecent.subscription));
                     pushDebug(`[Push] Restoring previous preferences for device (${currentDevice})`);
                 }
 
@@ -217,17 +295,8 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
         console.warn('[Push] Old subscription cleanup failed (non-critical):', e);
     }
 
-    // Prepare Payload
-    const defaultPrefs: PushPreferences = {
-        pref_events: true,
-        pref_class: true,
-        pref_clubs: true,
-        pref_filter_tags: null,
-        pref_filter_class_genres: null
-    };
-
     // 우선순위: 명시적 prefs > 이전 기기 설정(재설치 복원) > 기본값
-    const finalPrefs = prefs || savedDevicePrefs || defaultPrefs;
+    const finalPrefs = normalizePushPreferences(prefs || savedDevicePrefs || DEFAULT_PUSH_PREFERENCES);
 
     // Check if user is admin
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
@@ -241,7 +310,7 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
     // Use RPC to safely upsert based on endpoint
     const { error } = await cafe24.rpc('handle_push_subscription', {
         p_endpoint: endpoint,
-        p_subscription: subscription,
+        p_subscription: withPushPreferences(serializePushSubscription(subscription), finalPrefs),
         p_user_agent: navigator.userAgent,
         p_is_admin: isAdmin,
         p_pref_events: finalPrefs.pref_events,
@@ -275,14 +344,33 @@ export const updatePushPreferences = async (prefs: PushPreferences) => {
     const sub = await getPushSubscription();
     if (!sub || !sub.endpoint) return false;
 
+    const { data, error: readError } = await cafe24
+        .from('user_push_subscriptions')
+        .select('subscription')
+        .eq('user_id', user.id)
+        .eq('endpoint', sub.endpoint)
+        .maybeSingle();
+
+    if (readError) {
+        console.error('[Push] Failed to read subscription before preference update:', readError);
+        return false;
+    }
+
+    const finalPrefs = normalizePushPreferences(prefs);
+    const nextSubscriptionPayload = withPushPreferences(
+        data?.subscription || serializePushSubscription(sub),
+        finalPrefs
+    );
+
     const { error } = await cafe24
         .from('user_push_subscriptions')
         .update({
-            pref_events: prefs.pref_events,
-            pref_class: prefs.pref_class,
-            pref_clubs: prefs.pref_clubs,
-            pref_filter_tags: prefs.pref_filter_tags,
-            pref_filter_class_genres: prefs.pref_filter_class_genres,
+            subscription: nextSubscriptionPayload,
+            pref_events: finalPrefs.pref_events,
+            pref_class: finalPrefs.pref_class,
+            pref_clubs: finalPrefs.pref_clubs,
+            pref_filter_tags: finalPrefs.pref_filter_tags,
+            pref_filter_class_genres: finalPrefs.pref_filter_class_genres,
             updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id)
@@ -311,31 +399,21 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
 
         const { data, error } = await cafe24
             .from('user_push_subscriptions')
-            .select('pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
+            .select('subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
             .eq('endpoint', sub.endpoint)
             .maybeSingle();
 
         if (error) {
             if (error.code === 'PGRST116') return {
-                pref_events: true,
-                pref_class: true,
-                pref_clubs: true,
-                pref_filter_tags: null,
-                pref_filter_class_genres: null
+                ...DEFAULT_PUSH_PREFERENCES,
             };
             throw error;
         }
 
         if (!data) return null;
 
-        return {
-            pref_events: data.pref_events,
-            pref_class: data.pref_class,
-            pref_clubs: data.pref_clubs,
-            pref_filter_tags: data.pref_filter_tags,
-            pref_filter_class_genres: data.pref_filter_class_genres
-        };
+        return normalizePushPreferences(data, getStoredPushPreferences(data.subscription));
     } catch (error) {
         console.error('[Push] Failed to fetch preferences:', error);
         return null;

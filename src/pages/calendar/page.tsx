@@ -63,6 +63,46 @@ const getSafeRect = (element: Element | null | undefined) => {
     }
 };
 
+const shouldUseDesktopCalendarContentAnchor = () => (
+    typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(min-width: 721px) and (hover: hover) and (pointer: fine)').matches
+);
+
+const getCalendarContentAnchorGap = () => shouldUseDesktopCalendarContentAnchor() ? 8 : 0;
+
+const doRectsIntersect = (a: DOMRect, b: DOMRect) => (
+    a.bottom > b.top
+    && b.bottom > a.top
+    && a.right > b.left
+    && b.right > a.left
+);
+
+const getCalendarCellScrollAnchorRect = (cell: Element | null | undefined) => {
+    const cellRect = getSafeRect(cell);
+    if (!cell || !cellRect) return null;
+
+    if (shouldUseDesktopCalendarContentAnchor()) {
+        const candidateRects: DOMRect[] = [];
+
+        document.querySelectorAll('.calendar-overlay-item').forEach((overlay) => {
+            const overlayRect = getSafeRect(overlay);
+            if (overlayRect && doRectsIntersect(overlayRect, cellRect)) {
+                candidateRects.push(overlayRect);
+            }
+        });
+
+        const firstContentRect = getSafeRect(cell.querySelector('.calendar-social-section, .calendar-fullscreen-event-card'));
+        if (firstContentRect) candidateRects.push(firstContentRect);
+
+        if (candidateRects.length > 0) {
+            return candidateRects.sort((a, b) => a.top - b.top)[0];
+        }
+    }
+
+    return getSafeRect(cell.querySelector('.calendar-cell-fullscreen-body')) ?? cellRect;
+};
+
 const getCalendarEventVenue = (event: any) =>
     event.venue_name || event.place_name || event.location || event.address || '';
 
@@ -522,8 +562,8 @@ export default function CalendarPage() {
                 )
                 .filter((entry): entry is { cell: HTMLElement; rect: DOMRect } => !!entry)
                 .map(({ cell, rect }) => {
-                    const anchorRect = getSafeRect(cell.querySelector('.calendar-cell-fullscreen-body')) ?? rect;
-                    const targetY = Math.round(anchorRect.top + window.scrollY - stickyBottom - 1);
+                    const anchorRect = getCalendarCellScrollAnchorRect(cell) ?? rect;
+                    const targetY = Math.round(anchorRect.top + window.scrollY - stickyBottom - getCalendarContentAnchorGap() - 1);
                     return targetY;
                 })
                 .filter((targetY) => {
@@ -765,6 +805,7 @@ export default function CalendarPage() {
         const computeTarget = () => {
             const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
             const todayEl = document.querySelector('.calendar-cell-fullscreen.is-today');
+            const stickyWeekdaysEl = document.querySelector('.calendar-sticky-weekdays');
             const navHeaderEl = document.querySelector('.calendar-live-sticky-controls')
                 || document.querySelector('.shell-header.global-header-fixed');
             const gridRect = getSafeRect(gridEl);
@@ -772,17 +813,17 @@ export default function CalendarPage() {
             if (!gridRect) return null;
             if (!todayEl && retryCount < maxRetries) return null;
 
+            const stickyWeekdaysRect = getSafeRect(stickyWeekdaysEl);
             const navRect = getSafeRect(navHeaderEl);
-            const headerBottom = navRect ? navRect.bottom : 0;
+            const headerBottom = stickyWeekdaysRect?.bottom ?? navRect?.bottom ?? 0;
             const gridAbsoluteTop = gridRect.top + window.scrollY;
 
             if (todayEl) {
                 const todayRect = getSafeRect(todayEl);
                 if (todayRect) {
-                    const todayBodyRect = getSafeRect(todayEl.querySelector('.calendar-cell-fullscreen-body'));
-                    const targetRect = todayBodyRect || todayRect;
+                    const targetRect = getCalendarCellScrollAnchorRect(todayEl) || todayRect;
                     const finalY = (targetRect.top + window.scrollY) - gridAbsoluteTop;
-                    return Math.max(0, gridAbsoluteTop + finalY - headerBottom);
+                    return Math.max(0, gridAbsoluteTop + finalY - headerBottom - getCalendarContentAnchorGap());
                 }
                 if (retryCount < maxRetries) return null;
             }
