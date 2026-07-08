@@ -23,6 +23,8 @@ interface NotificationSettingsModalProps {
     onClose: () => void;
 }
 
+type StatusMessage = { type: 'success' | 'error'; text: string };
+
 const DEFAULT_EVENT_TAGS = ['워크샵', '파티', '대회', '기타'];
 const DEFAULT_CLASS_GENRES = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
 const QUICK_DIGEST_TIMES = ['07:00', '07:30', '08:00', '08:30', '09:00', '09:30'];
@@ -68,6 +70,43 @@ const normalizeModalPrefs = (prefs?: Partial<PushPreferences> | null): PushPrefe
 };
 
 type MobilePlatform = ReturnType<typeof getMobilePlatform>;
+
+const getDisplayMode = () => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'unknown';
+    if (window.matchMedia('(display-mode: standalone)').matches) return 'standalone';
+    if (window.matchMedia('(display-mode: fullscreen)').matches) return 'fullscreen';
+    if (window.matchMedia('(display-mode: minimal-ui)').matches) return 'minimal-ui';
+    if (window.matchMedia('(display-mode: browser)').matches) return 'browser';
+    return 'unknown';
+};
+
+const getRuntimeLogMeta = (platform: MobilePlatform, pwa?: boolean) => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+        return {
+            platform,
+            pwa: false,
+            displayMode: 'server',
+            permission: 'denied',
+            support: { supported: false, reason: 'browser-unavailable' },
+        };
+    }
+
+    return {
+        platform,
+        pwa: pwa ?? isPWAMode(),
+        displayMode: getDisplayMode(),
+        permission: getNotificationPermission(),
+        support: getPushSupportStatus(),
+        secureContext: window.isSecureContext,
+        notificationApi: 'Notification' in window,
+        serviceWorkerApi: 'serviceWorker' in navigator,
+        serviceWorkerController: Boolean(navigator.serviceWorker?.controller),
+        pushManagerApi: 'PushManager' in window,
+        visibility: document.visibilityState,
+        focused: document.hasFocus(),
+        online: navigator.onLine,
+    };
+};
 
 const getPermissionBlockedMessage = (platform: MobilePlatform) => {
     if (platform === 'android') {
@@ -117,25 +156,52 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
     const [originalPrefs, setOriginalPrefs] = useState<any>(null);
     const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
-    const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null);
 
-    const refreshPushEnvironment = () => {
+    const setLoggedStatusMessage = (message: StatusMessage | null, meta: Record<string, unknown> = {}) => {
+        if (message?.type === 'error') {
+            console.warn('[NotificationSettingsModal] status error', {
+                text: message.text,
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
+                ...meta,
+            });
+        } else if (message?.type === 'success') {
+            console.info('[NotificationSettingsModal] status success', {
+                text: message.text,
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
+                ...meta,
+            });
+        }
+        setStatusMessage(message);
+    };
+
+    const refreshPushEnvironment = (source = 'manual') => {
         const support = getPushSupportStatus();
         const permission = getNotificationPermission();
         setPushSupportStatus(support);
         setPermissionStatus(permission);
+        console.info('[NotificationSettingsModal] environment refresh', {
+            source,
+            ...getRuntimeLogMeta(platform, isRunningInPWA),
+            permission,
+            support,
+        });
         return { support, permission };
     };
 
     useEffect(() => {
         if (!isOpen) return;
 
-        setStatusMessage(null);
-        refreshPushEnvironment();
+        setLoggedStatusMessage(null);
+        refreshPushEnvironment('open');
 
         const checkPWA = () => {
             const pwa = isPWAMode();
             setIsRunningInPWA(pwa);
+            console.info('[NotificationSettingsModal] open', {
+                hasUser: Boolean(user),
+                ...getRuntimeLogMeta(platform, pwa),
+            });
             return pwa;
         };
 
@@ -144,14 +210,27 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     }, [isOpen]);
 
     const loadSettings = async () => {
-        if (!user) return;
+        if (!user) {
+            console.warn('[NotificationSettingsModal] load skipped no user', getRuntimeLogMeta(platform, isRunningInPWA));
+            return;
+        }
         setIsPushLoading(true);
         try {
+            console.info('[NotificationSettingsModal] load start', {
+                hasUser: true,
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
+            });
             const browserSub = await getPushSubscription();
             let isVerified = false;
             if (browserSub) {
                 isVerified = await verifySubscriptionOwnership();
             }
+
+            console.info('[NotificationSettingsModal] load subscription result', {
+                hasBrowserSubscription: Boolean(browserSub),
+                isVerified,
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
+            });
 
             setIsPushEnabled(isVerified);
             setOriginalPushEnabled(isVerified);
@@ -172,6 +251,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             console.error('[NotificationSettingsModal] Load error:', error);
         } finally {
             setIsPushLoading(false);
+            console.info('[NotificationSettingsModal] load end', getRuntimeLogMeta(platform, isRunningInPWA));
         }
     };
 
@@ -179,12 +259,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setPushPrefs(prev => {
             const nextVal = !prev[type];
             if (!nextVal && getEnabledChannelCount(prev) <= 1) {
-                setStatusMessage({ type: 'error', text: '요약에 포함할 일정을 하나 이상 선택해야 합니다.' });
+                setLoggedStatusMessage({ type: 'error', text: '요약에 포함할 일정을 하나 이상 선택해야 합니다.' }, { step: 'channel-toggle', type });
                 return prev;
             }
 
             const updates: any = { [type]: nextVal };
-            setStatusMessage(null);
+            setLoggedStatusMessage(null);
             if (nextVal) {
                 if (type === 'pref_events' && (!prev.pref_filter_tags || prev.pref_filter_tags.length === 0)) {
                     updates.pref_filter_tags = ['워크샵', '파티', '대회', '기타'];
@@ -198,34 +278,48 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     };
 
     const handlePushEnabledToggle = () => {
-        if (isSaving || isPushLoading) return;
-
-        setStatusMessage(null);
-
-        if (isPushEnabled) {
-            setIsPushEnabled(false);
+        if (isSaving || isPushLoading) {
+            console.info('[NotificationSettingsModal] toggle ignored busy', {
+                isSaving,
+                isPushLoading,
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
+            });
             return;
         }
 
-        const { support, permission } = refreshPushEnvironment();
+        setLoggedStatusMessage(null);
+        console.info('[NotificationSettingsModal] toggle click', {
+            fromEnabled: isPushEnabled,
+            originalPushEnabled,
+            ...getRuntimeLogMeta(platform, isRunningInPWA),
+        });
+
+        if (isPushEnabled) {
+            setIsPushEnabled(false);
+            console.info('[NotificationSettingsModal] toggle off staged', getRuntimeLogMeta(platform, isRunningInPWA));
+            return;
+        }
+
+        const { support, permission } = refreshPushEnvironment('toggle');
         if (!support.supported) {
-            setStatusMessage({
+            setLoggedStatusMessage({
                 type: 'error',
                 text: getPushSupportMessage(support, platform),
-            });
+            }, { step: 'toggle-unsupported' });
             return;
         }
 
         if (permission === 'denied') {
-            setStatusMessage({
+            setLoggedStatusMessage({
                 type: 'error',
                 text: getPermissionBlockedMessage(platform),
-            });
+            }, { step: 'toggle-denied' });
             return;
         }
 
         setPushPrefs(prev => normalizeModalPrefs(prev));
         setIsPushEnabled(true);
+        console.info('[NotificationSettingsModal] toggle on staged', getRuntimeLogMeta(platform, isRunningInPWA));
     };
 
     const handleDigestDayToggle = (day: number) => {
@@ -235,32 +329,37 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 ? current.filter(value => value !== day)
                 : [...current, day].sort((a, b) => a - b);
 
-            if (nextDays.length === 0) return prev;
-            setStatusMessage(null);
+            if (nextDays.length === 0) {
+                console.warn('[NotificationSettingsModal] weekday toggle blocked empty', {
+                    day,
+                    ...getRuntimeLogMeta(platform, isRunningInPWA),
+                });
+                return prev;
+            }
+            setLoggedStatusMessage(null);
             return { ...prev, pref_digest_days: nextDays };
         });
     };
 
     const handleTimeChange = (time: string) => {
-        setStatusMessage(null);
+        setLoggedStatusMessage(null);
         setPushPrefs(prev => ({ ...prev, pref_digest_time: normalizeModalDigestTime(time) }));
     };
 
     const handleOnlyWithEventsToggle = () => {
-        setStatusMessage(null);
+        setLoggedStatusMessage(null);
         setPushPrefs(prev => ({ ...prev, pref_only_with_events: !prev.pref_only_with_events }));
     };
 
     const handleSaveChanges = async () => {
         setIsSaving(true);
-        setStatusMessage(null);
+        setLoggedStatusMessage(null);
         try {
             const prefsToSave = normalizeModalPrefs(pushPrefs);
             console.info('[NotificationSettingsModal] save start', {
                 pushEnabled: isPushEnabled,
                 originalPushEnabled,
-                permission: getNotificationPermission(),
-                support: getPushSupportStatus(),
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
                 prefs: {
                     pref_events: prefsToSave.pref_events,
                     pref_class: prefsToSave.pref_class,
@@ -276,77 +375,100 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             }
 
             if (isPushEnabled && getEnabledChannelCount(prefsToSave) === 0) {
-                setStatusMessage({ type: 'error', text: '요약에 포함할 일정을 하나 이상 선택해주세요.' });
+                setLoggedStatusMessage({ type: 'error', text: '요약에 포함할 일정을 하나 이상 선택해주세요.' }, { step: 'save-no-channel' });
                 return;
             }
 
             if (isPushEnabled && (!prefsToSave.pref_digest_days || prefsToSave.pref_digest_days.length === 0)) {
-                setStatusMessage({ type: 'error', text: '알림 받을 요일을 하나 이상 선택해주세요.' });
+                setLoggedStatusMessage({ type: 'error', text: '알림 받을 요일을 하나 이상 선택해주세요.' }, { step: 'save-no-weekday' });
                 return;
             }
 
             let shouldUpdateExistingPreferences = isPushEnabled;
             if (isPushEnabled !== originalPushEnabled) {
                 if (isPushEnabled) {
-                    const { support, permission: currentPermission } = refreshPushEnvironment();
+                    console.info('[NotificationSettingsModal] save new subscription flow', getRuntimeLogMeta(platform, isRunningInPWA));
+                    const { support, permission: currentPermission } = refreshPushEnvironment('save-before-permission');
                     if (!support.supported) {
-                        setStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) });
+                        setLoggedStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) }, { step: 'save-unsupported' });
                         setIsPushEnabled(false);
                         return;
                     }
 
                     if (currentPermission === 'denied') {
-                        setStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) });
+                        setLoggedStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) }, { step: 'save-denied-before-request' });
                         setIsPushEnabled(false);
                         return;
                     }
 
                     if (currentPermission === 'default') {
+                        console.info('[NotificationSettingsModal] permission request before save', getRuntimeLogMeta(platform, isRunningInPWA));
                         const permission = await requestNotificationPermission();
                         setPermissionStatus(permission);
+                        console.info('[NotificationSettingsModal] permission request after save', {
+                            result: permission,
+                            ...getRuntimeLogMeta(platform, isRunningInPWA),
+                        });
                         if (permission !== 'granted') {
-                            setStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다. 권한을 허용해야 요약 알림을 받을 수 있습니다.' });
+                            setLoggedStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다. 권한을 허용해야 요약 알림을 받을 수 있습니다.' }, {
+                                step: 'save-permission-not-granted',
+                                result: permission,
+                            });
                             setIsPushEnabled(false);
                             return;
                         }
                     }
 
+                    console.info('[NotificationSettingsModal] subscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
                     const sub = await subscribeToPush();
+                    console.info('[NotificationSettingsModal] subscribe after save', {
+                        hasSubscription: Boolean(sub),
+                        ...getRuntimeLogMeta(platform, isRunningInPWA),
+                    });
                     if (!sub) {
                         const latestPermission = getNotificationPermission();
                         setPermissionStatus(latestPermission);
-                        setStatusMessage({
+                        setLoggedStatusMessage({
                             type: 'error',
                             text: latestPermission === 'denied'
                                 ? getPermissionBlockedMessage(platform)
                                 : '브라우저가 푸시 구독을 거부했습니다. Chrome 사이트 설정과 휴대폰의 Chrome 알림 권한을 확인해주세요.',
-                        });
+                        }, { step: 'save-subscribe-missing', latestPermission });
                         setIsPushEnabled(false);
                         return;
                     }
                     // 명시적 비활성화 플래그 해제 (사용자가 다시 켰으므로 자동 재구독 허용)
                     localStorage.removeItem('push_explicitly_disabled');
+                    console.info('[NotificationSettingsModal] datastore save before', getRuntimeLogMeta(platform, isRunningInPWA));
                     const saved = await saveSubscriptionToDataStore(sub, prefsToSave);
                     if (!saved) {
                         console.warn('[NotificationSettingsModal] save returned false');
-                        setStatusMessage({ type: 'error', text: '알림 설정을 서버에 저장하지 못했습니다.' });
+                        setLoggedStatusMessage({ type: 'error', text: '알림 설정을 서버에 저장하지 못했습니다.' }, { step: 'save-datastore-false' });
                         return;
                     }
+                    console.info('[NotificationSettingsModal] datastore save after', getRuntimeLogMeta(platform, isRunningInPWA));
                     shouldUpdateExistingPreferences = false;
                 } else {
+                    console.info('[NotificationSettingsModal] unsubscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
                     await unsubscribeFromPush();
+                    console.info('[NotificationSettingsModal] unsubscribe after save', getRuntimeLogMeta(platform, isRunningInPWA));
                     shouldUpdateExistingPreferences = false;
                 }
             }
 
             if (shouldUpdateExistingPreferences) {
+                console.info('[NotificationSettingsModal] update existing before', getRuntimeLogMeta(platform, isRunningInPWA));
                 const updated = await updatePushPreferences(prefsToSave);
+                console.info('[NotificationSettingsModal] update existing after', {
+                    updated,
+                    ...getRuntimeLogMeta(platform, isRunningInPWA),
+                });
                 if (!updated) {
                     console.warn('[NotificationSettingsModal] update existing preferences failed');
-                    setStatusMessage({
+                    setLoggedStatusMessage({
                         type: 'error',
                         text: '기존 알림 구독을 찾지 못해 설정을 저장하지 못했습니다. 알림을 껐다가 다시 켜주세요.',
-                    });
+                    }, { step: 'save-update-existing-false' });
                     return;
                 }
             }
@@ -362,14 +484,15 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             onClose();
         } catch (error) {
             console.error('Save failed:', error);
-            setStatusMessage({
+            setLoggedStatusMessage({
                 type: 'error',
                 text: error instanceof Error && error.message
                     ? error.message
                     : '저장 중 오류가 발생했습니다. 다시 시도해주세요.',
-            });
+            }, { step: 'save-catch' });
         } finally {
             setIsSaving(false);
+            console.info('[NotificationSettingsModal] save end', getRuntimeLogMeta(platform, isRunningInPWA));
         }
     };
 

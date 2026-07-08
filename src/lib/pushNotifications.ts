@@ -105,6 +105,9 @@ export async function checkNotificationPermission(): Promise<NotificationPermiss
  * 푸시 알림 권한 상태 확인
  */
 export function getNotificationPermission(): NotificationPermission {
+    if (typeof window === 'undefined') {
+        return 'denied';
+    }
     if (!('Notification' in window)) {
         return 'denied';
     }
@@ -115,14 +118,29 @@ export function getNotificationPermission(): NotificationPermission {
  * 푸시 알림 권한 요청
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-    pushDebug('[Push] Requesting permission...');
+    pushInfo('permission request start', {
+        before: getNotificationPermission(),
+        support: getPushSupportStatus(),
+    });
     if (!('Notification' in window)) {
-        console.warn('[Push] Notifications not supported in this browser');
+        pushWarn('permission request unsupported', getPushSupportStatus());
         return 'denied';
     }
-    const permission = await Notification.requestPermission();
-    pushDebug('[Push] Permission result:', permission);
-    return permission;
+    try {
+        const permission = await Notification.requestPermission();
+        pushInfo('permission request result', {
+            result: permission,
+            after: getNotificationPermission(),
+        });
+        return permission;
+    } catch (error) {
+        pushError('permission request failed', {
+            name: error instanceof Error ? error.name : undefined,
+            message: error instanceof Error ? error.message : String(error),
+            after: getNotificationPermission(),
+        });
+        return getNotificationPermission();
+    }
 }
 
 /**
