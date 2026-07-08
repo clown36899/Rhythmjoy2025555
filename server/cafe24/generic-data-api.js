@@ -9,6 +9,10 @@ import {
   sanitizeEventsForViewer,
   userMatchesId,
 } from './event-security.js';
+import {
+  preserveProtectedEventMetadata,
+  stripProtectedEventUpdateFields,
+} from './event-mutation-policy.js';
 import { removeEventUploads } from './upload-cleanup.js';
 import {
   analyticsClientIp,
@@ -1545,39 +1549,8 @@ function normalizeEventInsertValues(values, user) {
   });
 }
 
-const EVENT_UPDATE_PROTECTED_FIELDS = [
-  'id',
-  'user_id',
-  'created_at',
-  'organizer_name',
-  'organizer_phone',
-  'board_users',
-  'password',
-];
-
-function removeProtectedEventUpdateFields(next) {
-  for (const field of EVENT_UPDATE_PROTECTED_FIELDS) {
-    delete next[field];
-  }
-  return next;
-}
-
-function preserveExistingEventMetadata(next, existing) {
-  if (!existing) return next;
-  for (const field of EVENT_UPDATE_PROTECTED_FIELDS) {
-    if (Object.prototype.hasOwnProperty.call(existing, field)) {
-      next[field] = existing[field];
-    } else {
-      delete next[field];
-    }
-  }
-  return next;
-}
-
-function normalizeEventUpdateValues(values, user) {
-  const next = { ...(values || {}) };
-  removeProtectedEventUpdateFields(next);
-  next.updated_at = new Date().toISOString();
+function normalizeEventUpdateValues(values) {
+  const next = stripProtectedEventUpdateFields(values);
   if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
     next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
   }
@@ -1585,12 +1558,12 @@ function normalizeEventUpdateValues(values, user) {
 }
 
 function normalizeEventUpsertValue(value, existing, user) {
-  const next = {
+  let next = {
     ...(existing || {}),
     ...(value || {}),
   };
   if (existing) {
-    preserveExistingEventMetadata(next, existing);
+    next = preserveProtectedEventMetadata(next, existing);
     next.updated_at = new Date().toISOString();
   } else {
     next.user_id = user.is_admin
