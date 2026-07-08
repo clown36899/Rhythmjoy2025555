@@ -114,13 +114,39 @@ export function getNotificationPermission(): NotificationPermission {
     return Notification.permission;
 }
 
+const getPermissionRuntimeLogMeta = () => ({
+    permission: getNotificationPermission(),
+    support: getPushSupportStatus(),
+    secureContext: typeof window !== 'undefined' ? window.isSecureContext : false,
+    visibility: typeof document !== 'undefined' ? document.visibilityState : 'unknown',
+    focused: typeof document !== 'undefined' ? document.hasFocus() : false,
+    online: typeof navigator !== 'undefined' ? navigator.onLine : false,
+    userActivation: typeof navigator !== 'undefined' && navigator.userActivation
+        ? {
+            isActive: navigator.userActivation.isActive,
+            hasBeenActive: navigator.userActivation.hasBeenActive,
+        }
+        : null,
+});
+
+const queryNotificationPermissionState = async () => {
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return 'unavailable';
+
+    try {
+        const result = await (navigator.permissions.query as any)({ name: 'notifications' });
+        return result?.state || 'unknown';
+    } catch (error) {
+        return error instanceof Error ? `${error.name}: ${error.message}` : 'query-failed';
+    }
+};
+
 /**
  * 푸시 알림 권한 요청
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
     pushInfo('permission request start', {
         before: getNotificationPermission(),
-        support: getPushSupportStatus(),
+        ...getPermissionRuntimeLogMeta(),
     });
     if (!('Notification' in window)) {
         pushWarn('permission request unsupported', getPushSupportStatus());
@@ -128,16 +154,22 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     }
     try {
         const permission = await Notification.requestPermission();
+        const permissionApiState = await queryNotificationPermissionState();
         pushInfo('permission request result', {
             result: permission,
             after: getNotificationPermission(),
+            permissionApiState,
+            ...getPermissionRuntimeLogMeta(),
         });
         return permission;
     } catch (error) {
+        const permissionApiState = await queryNotificationPermissionState();
         pushError('permission request failed', {
             name: error instanceof Error ? error.name : undefined,
             message: error instanceof Error ? error.message : String(error),
             after: getNotificationPermission(),
+            permissionApiState,
+            ...getPermissionRuntimeLogMeta(),
         });
         return getNotificationPermission();
     }
@@ -342,9 +374,20 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     }
 
     try {
+        const permission = getNotificationPermission();
+        if (permission !== 'granted') {
+            pushWarn('subscribe blocked permission not granted', {
+                permission,
+                support,
+                ...getPermissionRuntimeLogMeta(),
+            });
+            return null;
+        }
+
         pushInfo('subscribe start', {
-            permission: getNotificationPermission(),
+            permission,
             support,
+            ...getPermissionRuntimeLogMeta(),
         });
         const registration = await navigator.serviceWorker.ready;
 

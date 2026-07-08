@@ -105,6 +105,12 @@ const getRuntimeLogMeta = (platform: MobilePlatform, pwa?: boolean) => {
         visibility: document.visibilityState,
         focused: document.hasFocus(),
         online: navigator.onLine,
+        userActivation: navigator.userActivation
+            ? {
+                isActive: navigator.userActivation.isActive,
+                hasBeenActive: navigator.userActivation.hasBeenActive,
+            }
+            : null,
     };
 };
 
@@ -147,6 +153,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isRequestingPermission, setIsRequestingPermission] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(() => getNotificationPermission());
     const [pushSupportStatus, setPushSupportStatus] = useState<PushSupportStatus>(() => getPushSupportStatus());
 
@@ -277,11 +284,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         });
     };
 
-    const handlePushEnabledToggle = () => {
-        if (isSaving || isPushLoading) {
+    const handlePushEnabledToggle = async () => {
+        if (isSaving || isPushLoading || isRequestingPermission) {
             console.info('[NotificationSettingsModal] toggle ignored busy', {
                 isSaving,
                 isPushLoading,
+                isRequestingPermission,
                 ...getRuntimeLogMeta(platform, isRunningInPWA),
             });
             return;
@@ -300,26 +308,78 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             return;
         }
 
-        const { support, permission } = refreshPushEnvironment('toggle');
-        if (!support.supported) {
-            setLoggedStatusMessage({
-                type: 'error',
-                text: getPushSupportMessage(support, platform),
-            }, { step: 'toggle-unsupported' });
-            return;
-        }
+        setIsRequestingPermission(true);
+        try {
+            const { support, permission } = refreshPushEnvironment('toggle');
+            if (!support.supported) {
+                setLoggedStatusMessage({
+                    type: 'error',
+                    text: getPushSupportMessage(support, platform),
+                }, { step: 'toggle-unsupported' });
+                return;
+            }
 
-        if (permission === 'denied') {
-            setLoggedStatusMessage({
-                type: 'error',
-                text: getPermissionBlockedMessage(platform),
-            }, { step: 'toggle-denied' });
-            return;
-        }
+            if (permission === 'denied') {
+                setLoggedStatusMessage({
+                    type: 'error',
+                    text: getPermissionBlockedMessage(platform),
+                }, { step: 'toggle-denied' });
+                return;
+            }
 
-        setPushPrefs(prev => normalizeModalPrefs(prev));
-        setIsPushEnabled(true);
-        console.info('[NotificationSettingsModal] toggle on staged', getRuntimeLogMeta(platform, isRunningInPWA));
+            if (permission === 'default') {
+                console.info('[NotificationSettingsModal] permission request before toggle enable', getRuntimeLogMeta(platform, isRunningInPWA));
+                const requestedPermission = await requestNotificationPermission();
+                const latestPermission = getNotificationPermission();
+                setPermissionStatus(latestPermission);
+                refreshPushEnvironment('toggle-after-permission');
+                console.info('[NotificationSettingsModal] permission request after toggle enable', {
+                    requestedPermission,
+                    latestPermission,
+                    ...getRuntimeLogMeta(platform, isRunningInPWA),
+                });
+
+                if (requestedPermission !== 'granted' && latestPermission !== 'granted') {
+                    setLoggedStatusMessage({
+                        type: 'error',
+                        text: '알림 권한이 허용되지 않았습니다. 브라우저 권한 창에서 허용을 누른 뒤 다시 켜주세요.',
+                    }, {
+                        step: 'toggle-permission-not-granted',
+                        requestedPermission,
+                        latestPermission,
+                    });
+                    return;
+                }
+            }
+
+            console.info('[NotificationSettingsModal] subscribe before toggle enable', getRuntimeLogMeta(platform, isRunningInPWA));
+            const sub = await subscribeToPush();
+            console.info('[NotificationSettingsModal] subscribe after toggle enable', {
+                hasSubscription: Boolean(sub),
+                ...getRuntimeLogMeta(platform, isRunningInPWA),
+            });
+
+            if (!sub) {
+                const latestPermission = getNotificationPermission();
+                setPermissionStatus(latestPermission);
+                setLoggedStatusMessage({
+                    type: 'error',
+                    text: latestPermission === 'denied'
+                        ? getPermissionBlockedMessage(platform)
+                        : '브라우저 푸시 구독 생성에 실패했습니다. Chrome 사이트 알림 권한을 확인한 뒤 다시 켜주세요.',
+                }, {
+                    step: 'toggle-subscribe-missing',
+                    latestPermission,
+                });
+                return;
+            }
+
+            setPushPrefs(prev => normalizeModalPrefs(prev));
+            setIsPushEnabled(true);
+            console.info('[NotificationSettingsModal] toggle on staged', getRuntimeLogMeta(platform, isRunningInPWA));
+        } finally {
+            setIsRequestingPermission(false);
+        }
     };
 
     const handleDigestDayToggle = (day: number) => {
@@ -402,29 +462,28 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     }
 
                     if (currentPermission === 'default') {
-                        console.info('[NotificationSettingsModal] permission request before save', getRuntimeLogMeta(platform, isRunningInPWA));
-                        const permission = await requestNotificationPermission();
-                        setPermissionStatus(permission);
-                        console.info('[NotificationSettingsModal] permission request after save', {
-                            result: permission,
-                            ...getRuntimeLogMeta(platform, isRunningInPWA),
+                        console.warn('[NotificationSettingsModal] save blocked permission still default', getRuntimeLogMeta(platform, isRunningInPWA));
+                        setLoggedStatusMessage({ type: 'error', text: '알림 권한이 아직 허용되지 않았습니다. 알림 스위치를 다시 켜서 권한을 먼저 허용해주세요.' }, {
+                            step: 'save-permission-default',
                         });
-                        if (permission !== 'granted') {
-                            setLoggedStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다. 권한을 허용해야 요약 알림을 받을 수 있습니다.' }, {
-                                step: 'save-permission-not-granted',
-                                result: permission,
-                            });
-                            setIsPushEnabled(false);
-                            return;
-                        }
+                        setIsPushEnabled(false);
+                        return;
                     }
 
-                    console.info('[NotificationSettingsModal] subscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
-                    const sub = await subscribeToPush();
-                    console.info('[NotificationSettingsModal] subscribe after save', {
+                    console.info('[NotificationSettingsModal] existing subscription lookup before save', getRuntimeLogMeta(platform, isRunningInPWA));
+                    let sub = await getPushSubscription();
+                    console.info('[NotificationSettingsModal] existing subscription lookup after save', {
                         hasSubscription: Boolean(sub),
                         ...getRuntimeLogMeta(platform, isRunningInPWA),
                     });
+                    if (!sub) {
+                        console.warn('[NotificationSettingsModal] subscription missing at save, attempting repair', getRuntimeLogMeta(platform, isRunningInPWA));
+                        sub = await subscribeToPush();
+                        console.info('[NotificationSettingsModal] subscription repair after save', {
+                            hasSubscription: Boolean(sub),
+                            ...getRuntimeLogMeta(platform, isRunningInPWA),
+                        });
+                    }
                     if (!sub) {
                         const latestPermission = getNotificationPermission();
                         setPermissionStatus(latestPermission);
@@ -514,13 +573,17 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         : isPushEnabled && isPermissionBlocked
             ? '권한 차단됨'
             : null;
-    const saveButtonDisabled = !hasUnsavedChanges || isSaving || (isPushEnabled && (isPermissionBlocked || isPushUnavailable));
+    const saveButtonDisabled = !hasUnsavedChanges || isSaving || isRequestingPermission || (isPushEnabled && (isPermissionBlocked || isPushUnavailable));
     const saveButtonLabel = isSaving
         ? '저장 중...'
+        : isRequestingPermission
+        ? '권한 확인 중...'
         : saveBlockedLabel
             ? saveBlockedLabel
             : isPermissionBlocked && !isPushEnabled
             ? '권한 차단됨'
+            : statusMessage?.type === 'error' && !hasUnsavedChanges
+                ? '확인 필요'
             : hasUnsavedChanges
                 ? '설정 저장'
                 : '저장됨';
@@ -590,12 +653,16 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                 </div>
                                 <button
                                     type="button"
-                                    className={`NSM-switch ${isPushEnabled ? 'is-active' : ''}`}
+                                    className={`NSM-switch ${isPushEnabled ? 'is-active' : ''} ${isRequestingPermission ? 'is-loading' : ''}`}
                                     onClick={handlePushEnabledToggle}
+                                    disabled={isSaving || isPushLoading || isRequestingPermission}
                                     aria-pressed={isPushEnabled}
                                     aria-label="오늘 일정 요약 알림"
                                 >
                                     <div className="NSM-switchThumb" />
+                                    {isRequestingPermission && (
+                                        <i className="ri-loader-4-line NSM-switchSpinner" aria-hidden="true"></i>
+                                    )}
                                 </button>
                             </section>
 
