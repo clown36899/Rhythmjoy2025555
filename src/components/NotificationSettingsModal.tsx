@@ -41,22 +41,30 @@ const normalizeModalDigestTime = (time?: string | null) => (
         : DEFAULT_PUSH_PREFERENCES.pref_digest_time
 );
 
-const normalizeModalPrefs = (prefs?: Partial<PushPreferences> | null): PushPreferences => ({
-    ...DEFAULT_PUSH_PREFERENCES,
-    ...(prefs || {}),
-    pref_filter_tags: prefs?.pref_filter_tags || DEFAULT_EVENT_TAGS,
-    pref_filter_class_genres: prefs?.pref_filter_class_genres || DEFAULT_CLASS_GENRES,
-    pref_digest_time: normalizeModalDigestTime(prefs?.pref_digest_time),
-    pref_digest_days: Array.isArray(prefs?.pref_digest_days) && prefs.pref_digest_days.length > 0
-        ? prefs.pref_digest_days
-        : DEFAULT_PUSH_PREFERENCES.pref_digest_days,
-    pref_digest_timezone: prefs?.pref_digest_timezone || DEFAULT_PUSH_PREFERENCES.pref_digest_timezone,
-    pref_only_with_events: prefs?.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
-});
-
 const getEnabledChannelCount = (prefs: PushPreferences) => (
     [prefs.pref_events, prefs.pref_class, prefs.pref_clubs].filter(Boolean).length
 );
+
+const normalizeModalPrefs = (prefs?: Partial<PushPreferences> | null): PushPreferences => {
+    const normalized: PushPreferences = {
+        ...DEFAULT_PUSH_PREFERENCES,
+        ...(prefs || {}),
+        pref_filter_tags: prefs?.pref_filter_tags || DEFAULT_EVENT_TAGS,
+        pref_filter_class_genres: prefs?.pref_filter_class_genres || DEFAULT_CLASS_GENRES,
+        pref_digest_time: normalizeModalDigestTime(prefs?.pref_digest_time),
+        pref_digest_days: Array.isArray(prefs?.pref_digest_days) && prefs.pref_digest_days.length > 0
+            ? prefs.pref_digest_days
+            : DEFAULT_PUSH_PREFERENCES.pref_digest_days,
+        pref_digest_timezone: prefs?.pref_digest_timezone || DEFAULT_PUSH_PREFERENCES.pref_digest_timezone,
+        pref_only_with_events: prefs?.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
+    };
+
+    if (getEnabledChannelCount(normalized) === 0) {
+        normalized.pref_events = true;
+    }
+
+    return normalized;
+};
 
 export default function NotificationSettingsModal({ isOpen, onClose }: NotificationSettingsModalProps) {
     const { user } = useAuth();
@@ -64,6 +72,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(() => getNotificationPermission());
 
     const platform = getMobilePlatform();
 
@@ -77,6 +86,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         if (!isOpen) return;
 
         setStatusMessage(null);
+        setPermissionStatus(getNotificationPermission());
 
         const checkPWA = () => {
             const pwa = isPWAMode();
@@ -123,7 +133,13 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const handlePreferenceToggle = (type: 'pref_events' | 'pref_class' | 'pref_clubs') => {
         setPushPrefs(prev => {
             const nextVal = !prev[type];
+            if (!nextVal && getEnabledChannelCount(prev) <= 1) {
+                setStatusMessage({ type: 'error', text: '요약에 포함할 일정을 하나 이상 선택해야 합니다.' });
+                return prev;
+            }
+
             const updates: any = { [type]: nextVal };
+            setStatusMessage(null);
             if (nextVal) {
                 if (type === 'pref_events' && (!prev.pref_filter_tags || prev.pref_filter_tags.length === 0)) {
                     updates.pref_filter_tags = ['워크샵', '파티', '대회', '기타'];
@@ -136,6 +152,30 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         });
     };
 
+    const handlePushEnabledToggle = () => {
+        if (isSaving || isPushLoading) return;
+
+        setStatusMessage(null);
+
+        if (isPushEnabled) {
+            setIsPushEnabled(false);
+            return;
+        }
+
+        const currentPermission = getNotificationPermission();
+        setPermissionStatus(currentPermission);
+        if (currentPermission === 'denied') {
+            setStatusMessage({
+                type: 'error',
+                text: '브라우저에서 알림이 차단되어 있습니다. 주소창 설정에서 알림을 허용한 뒤 다시 켜주세요.',
+            });
+            return;
+        }
+
+        setPushPrefs(prev => normalizeModalPrefs(prev));
+        setIsPushEnabled(true);
+    };
+
     const handleDigestDayToggle = (day: number) => {
         setPushPrefs(prev => {
             const current = prev.pref_digest_days || DEFAULT_PUSH_PREFERENCES.pref_digest_days;
@@ -144,15 +184,18 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 : [...current, day].sort((a, b) => a - b);
 
             if (nextDays.length === 0) return prev;
+            setStatusMessage(null);
             return { ...prev, pref_digest_days: nextDays };
         });
     };
 
     const handleTimeChange = (time: string) => {
+        setStatusMessage(null);
         setPushPrefs(prev => ({ ...prev, pref_digest_time: normalizeModalDigestTime(time) }));
     };
 
     const handleOnlyWithEventsToggle = () => {
+        setStatusMessage(null);
         setPushPrefs(prev => ({ ...prev, pref_only_with_events: !prev.pref_only_with_events }));
     };
 
@@ -160,19 +203,26 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setIsSaving(true);
         setStatusMessage(null);
         try {
-            if (isPushEnabled && getEnabledChannelCount(pushPrefs) === 0) {
+            const prefsToSave = normalizeModalPrefs(pushPrefs);
+            if (JSON.stringify(prefsToSave) !== JSON.stringify(pushPrefs)) {
+                setPushPrefs(prefsToSave);
+            }
+
+            if (isPushEnabled && getEnabledChannelCount(prefsToSave) === 0) {
                 setStatusMessage({ type: 'error', text: '요약에 포함할 일정을 하나 이상 선택해주세요.' });
                 return;
             }
 
-            if (isPushEnabled && (!pushPrefs.pref_digest_days || pushPrefs.pref_digest_days.length === 0)) {
+            if (isPushEnabled && (!prefsToSave.pref_digest_days || prefsToSave.pref_digest_days.length === 0)) {
                 setStatusMessage({ type: 'error', text: '알림 받을 요일을 하나 이상 선택해주세요.' });
                 return;
             }
 
+            let shouldUpdateExistingPreferences = isPushEnabled;
             if (isPushEnabled !== originalPushEnabled) {
                 if (isPushEnabled) {
                     const currentPermission = getNotificationPermission();
+                    setPermissionStatus(currentPermission);
                     if (currentPermission === 'denied') {
                         setStatusMessage({ type: 'error', text: '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용 후 다시 시도해주세요.' });
                         setIsPushEnabled(false);
@@ -181,6 +231,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                     if (currentPermission === 'default') {
                         const permission = await requestNotificationPermission();
+                        setPermissionStatus(permission);
                         if (permission !== 'granted') {
                             setStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다.' });
                             setIsPushEnabled(false);
@@ -196,14 +247,16 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     }
                     // 명시적 비활성화 플래그 해제 (사용자가 다시 켰으므로 자동 재구독 허용)
                     localStorage.removeItem('push_explicitly_disabled');
-                    await saveSubscriptionToDataStore(sub, pushPrefs);
+                    await saveSubscriptionToDataStore(sub, prefsToSave);
+                    shouldUpdateExistingPreferences = false;
                 } else {
                     await unsubscribeFromPush();
+                    shouldUpdateExistingPreferences = false;
                 }
             }
 
-            if (isPushEnabled) {
-                const updated = await updatePushPreferences(pushPrefs);
+            if (shouldUpdateExistingPreferences) {
+                const updated = await updatePushPreferences(prefsToSave);
                 if (!updated) {
                     throw new Error('Failed to update push preferences');
                 }
@@ -234,6 +287,15 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         : '알림 꺼짐';
     const hasUnsavedChanges = (isPushEnabled !== originalPushEnabled) ||
         (isPushEnabled && JSON.stringify(pushPrefs) !== JSON.stringify(originalPrefs));
+    const isPermissionBlocked = permissionStatus === 'denied';
+    const saveButtonDisabled = !hasUnsavedChanges || isSaving || (isPushEnabled && isPermissionBlocked);
+    const saveButtonLabel = isSaving
+        ? '저장 중...'
+        : isPermissionBlocked && !isPushEnabled
+            ? '권한 차단됨'
+            : hasUnsavedChanges
+                ? '설정 저장'
+                : '저장됨';
 
     if (!isOpen) return null;
 
@@ -301,7 +363,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                 <button
                                     type="button"
                                     className={`NSM-switch ${isPushEnabled ? 'is-active' : ''}`}
-                                    onClick={() => setIsPushEnabled(!isPushEnabled)}
+                                    onClick={handlePushEnabledToggle}
                                     aria-pressed={isPushEnabled}
                                     aria-label="오늘 일정 요약 알림"
                                 >
@@ -397,8 +459,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                         <div className="NSM-channelList">
                                             <button
                                                 type="button"
-                                                className={`NSM-channelCard ${pushPrefs.pref_events ? 'is-active' : ''}`}
+                                                className={`NSM-channelCard ${pushPrefs.pref_events ? 'is-active' : ''} ${pushPrefs.pref_events && enabledChannelCount === 1 ? 'is-locked' : ''}`}
                                                 onClick={() => handlePreferenceToggle('pref_events')}
+                                                aria-disabled={pushPrefs.pref_events && enabledChannelCount === 1}
                                             >
                                                 <i className="ri-calendar-event-line"></i>
                                                 <span>
@@ -410,8 +473,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                                             <button
                                                 type="button"
-                                                className={`NSM-channelCard ${pushPrefs.pref_class ? 'is-active' : ''}`}
+                                                className={`NSM-channelCard ${pushPrefs.pref_class ? 'is-active' : ''} ${pushPrefs.pref_class && enabledChannelCount === 1 ? 'is-locked' : ''}`}
                                                 onClick={() => handlePreferenceToggle('pref_class')}
+                                                aria-disabled={pushPrefs.pref_class && enabledChannelCount === 1}
                                             >
                                                 <i className="ri-graduation-cap-line"></i>
                                                 <span>
@@ -423,8 +487,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                                             <button
                                                 type="button"
-                                                className={`NSM-channelCard ${pushPrefs.pref_clubs ? 'is-active' : ''}`}
+                                                className={`NSM-channelCard ${pushPrefs.pref_clubs ? 'is-active' : ''} ${pushPrefs.pref_clubs && enabledChannelCount === 1 ? 'is-locked' : ''}`}
                                                 onClick={() => handlePreferenceToggle('pref_clubs')}
+                                                aria-disabled={pushPrefs.pref_clubs && enabledChannelCount === 1}
                                             >
                                                 <i className="ri-team-line"></i>
                                                 <span>
@@ -455,10 +520,10 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 <div className="NSM-footer">
                     <button
                         className={`NSM-saveBtn ${hasUnsavedChanges ? 'is-ready' : ''}`}
-                        disabled={!hasUnsavedChanges || isSaving}
+                        disabled={saveButtonDisabled}
                         onClick={handleSaveChanges}
                     >
-                        {isSaving ? '저장 중...' : hasUnsavedChanges ? '설정 저장' : '저장됨'}
+                        {saveButtonLabel}
                     </button>
                 </div>
             </div>

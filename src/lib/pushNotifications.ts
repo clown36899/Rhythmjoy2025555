@@ -156,18 +156,26 @@ const getStoredPushPreferences = (subscriptionPayload: any): Partial<PushPrefere
     return preferences;
 };
 
-const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences> = {}): PushPreferences => ({
-    ...DEFAULT_PUSH_PREFERENCES,
-    pref_events: row.pref_events ?? stored.pref_events ?? DEFAULT_PUSH_PREFERENCES.pref_events,
-    pref_class: row.pref_class ?? stored.pref_class ?? DEFAULT_PUSH_PREFERENCES.pref_class,
-    pref_clubs: row.pref_clubs ?? stored.pref_clubs ?? DEFAULT_PUSH_PREFERENCES.pref_clubs,
-    pref_filter_tags: row.pref_filter_tags ?? stored.pref_filter_tags ?? DEFAULT_PUSH_PREFERENCES.pref_filter_tags,
-    pref_filter_class_genres: row.pref_filter_class_genres ?? stored.pref_filter_class_genres ?? DEFAULT_PUSH_PREFERENCES.pref_filter_class_genres,
-    pref_digest_time: normalizeDigestTime(stored.pref_digest_time ?? row.pref_digest_time),
-    pref_digest_days: normalizeDigestDays(stored.pref_digest_days ?? row.pref_digest_days),
-    pref_digest_timezone: normalizeDigestTimezone(stored.pref_digest_timezone ?? row.pref_digest_timezone),
-    pref_only_with_events: stored.pref_only_with_events ?? row.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
-});
+const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences> = {}): PushPreferences => {
+    const normalized: PushPreferences = {
+        ...DEFAULT_PUSH_PREFERENCES,
+        pref_events: row.pref_events ?? stored.pref_events ?? DEFAULT_PUSH_PREFERENCES.pref_events,
+        pref_class: row.pref_class ?? stored.pref_class ?? DEFAULT_PUSH_PREFERENCES.pref_class,
+        pref_clubs: row.pref_clubs ?? stored.pref_clubs ?? DEFAULT_PUSH_PREFERENCES.pref_clubs,
+        pref_filter_tags: row.pref_filter_tags ?? stored.pref_filter_tags ?? DEFAULT_PUSH_PREFERENCES.pref_filter_tags,
+        pref_filter_class_genres: row.pref_filter_class_genres ?? stored.pref_filter_class_genres ?? DEFAULT_PUSH_PREFERENCES.pref_filter_class_genres,
+        pref_digest_time: normalizeDigestTime(stored.pref_digest_time ?? row.pref_digest_time),
+        pref_digest_days: normalizeDigestDays(stored.pref_digest_days ?? row.pref_digest_days),
+        pref_digest_timezone: normalizeDigestTimezone(stored.pref_digest_timezone ?? row.pref_digest_timezone),
+        pref_only_with_events: stored.pref_only_with_events ?? row.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
+    };
+
+    if (!normalized.pref_events && !normalized.pref_class && !normalized.pref_clubs) {
+        normalized.pref_events = true;
+    }
+
+    return normalized;
+};
 
 const serializePushSubscription = (subscription: PushSubscription) => {
     const json = typeof subscription.toJSON === 'function' ? subscription.toJSON() : {};
@@ -344,44 +352,13 @@ export const updatePushPreferences = async (prefs: PushPreferences) => {
     const sub = await getPushSubscription();
     if (!sub || !sub.endpoint) return false;
 
-    const { data, error: readError } = await cafe24
-        .from('user_push_subscriptions')
-        .select('subscription')
-        .eq('user_id', user.id)
-        .eq('endpoint', sub.endpoint)
-        .maybeSingle();
-
-    if (readError) {
-        console.error('[Push] Failed to read subscription before preference update:', readError);
-        return false;
-    }
-
-    const finalPrefs = normalizePushPreferences(prefs);
-    const nextSubscriptionPayload = withPushPreferences(
-        data?.subscription || serializePushSubscription(sub),
-        finalPrefs
-    );
-
-    const { error } = await cafe24
-        .from('user_push_subscriptions')
-        .update({
-            subscription: nextSubscriptionPayload,
-            pref_events: finalPrefs.pref_events,
-            pref_class: finalPrefs.pref_class,
-            pref_clubs: finalPrefs.pref_clubs,
-            pref_filter_tags: finalPrefs.pref_filter_tags,
-            pref_filter_class_genres: finalPrefs.pref_filter_class_genres,
-            updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id)
-        .eq('endpoint', sub.endpoint);
-
-    if (error) {
+    try {
+        await saveSubscriptionToDataStore(sub, prefs);
+        return true;
+    } catch (error) {
         console.error('[Push] Failed to update preferences:', error);
         return false;
     }
-
-    return true;
 }
 
 /**

@@ -23,21 +23,27 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
     // Initial Defaults
     const defaultTags = ['파티', '워크샵', '대회', '기타'];
     const defaultGenres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+    const getEnabledPrefCount = (nextPrefs: PushPreferences) => (
+        [nextPrefs.pref_events, nextPrefs.pref_class, nextPrefs.pref_clubs].filter(Boolean).length
+    );
+    const normalizeRequiredPrefs = (nextPrefs: PushPreferences): PushPreferences => (
+        getEnabledPrefCount(nextPrefs) > 0 ? nextPrefs : { ...nextPrefs, pref_events: true }
+    );
 
     // Initialize state from props or defaults
     const [prefs, setPrefs] = useState<PushPreferences>(() => {
         if (initialPrefs) {
-            return {
+            return normalizeRequiredPrefs({
                 pref_events: initialPrefs.pref_events,
                 pref_class: initialPrefs.pref_class,
                 pref_clubs: initialPrefs.pref_clubs,
                 // DB의 null은 '전체 선택'을 의미하므로 UI에서는 풀 리스트로 보여줌
                 pref_filter_tags: initialPrefs.pref_filter_tags || defaultTags,
                 pref_filter_class_genres: initialPrefs.pref_filter_class_genres || defaultGenres
-            };
+            });
         }
         return {
-            pref_events: false,
+            pref_events: true,
             pref_class: false,
             pref_clubs: false,
             pref_filter_tags: defaultTags,
@@ -49,13 +55,13 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
     // However, usually component remounts or we can use useEffect
     React.useEffect(() => {
         if (isOpen && initialPrefs) {
-            setPrefs({
+            setPrefs(normalizeRequiredPrefs({
                 pref_events: initialPrefs.pref_events,
                 pref_class: initialPrefs.pref_class,
                 pref_clubs: initialPrefs.pref_clubs,
                 pref_filter_tags: initialPrefs.pref_filter_tags || defaultTags,
                 pref_filter_class_genres: initialPrefs.pref_filter_class_genres || defaultGenres
-            });
+            }));
         }
     }, [isOpen, initialPrefs]);
 
@@ -64,6 +70,10 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
     const togglePref = (key: 'pref_events' | 'pref_class' | 'pref_clubs') => {
         setPrefs(prev => {
             const nextVal = !prev[key];
+            if (!nextVal && getEnabledPrefCount(prev) <= 1) {
+                return prev;
+            }
+
             const updates: any = { [key]: nextVal };
 
             // [Change] 꺼져있던 카테고리를 켤 때, 태그가 하나도 없으면 '전체 선택'으로 초기화
@@ -91,6 +101,7 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
 
             // [Change] 만약 모든 태그가 해제되면 카테고리 자체를 OFF
             if (nextTags.length === 0) {
+                if (getEnabledPrefCount(prev) <= 1) return prev;
                 return { ...prev, pref_filter_tags: nextTags, pref_events: false };
             }
             return { ...prev, pref_filter_tags: nextTags };
@@ -109,6 +120,7 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
 
             // [Change] 만약 모든 장르가 해제되면 카테고리 자체를 OFF
             if (nextGenres.length === 0) {
+                if (getEnabledPrefCount(prev) <= 1) return prev;
                 return { ...prev, pref_filter_class_genres: nextGenres, pref_class: false };
             }
             return { ...prev, pref_filter_class_genres: nextGenres };
@@ -116,6 +128,8 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
     };
 
     const handleConfirm = () => {
+        if (getEnabledPrefCount(prefs) === 0) return;
+
         // null implies "ALL" if that's the convention, OR just pass the array.
         // The implementation_plan suggests arrays for filters.
         onConfirm({
@@ -281,16 +295,17 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
                     </button>
                     <button
                         onClick={handleConfirm}
+                        disabled={getEnabledPrefCount(prefs) === 0}
                         style={{
                             flex: 1,
                             padding: '14px',
                             border: 'none',
                             borderRadius: '12px',
-                            backgroundColor: '#2563eb',
+                            backgroundColor: getEnabledPrefCount(prefs) === 0 ? '#9ca3af' : '#2563eb',
                             color: 'white',
                             fontSize: '15px',
                             fontWeight: 600,
-                            cursor: 'pointer',
+                            cursor: getEnabledPrefCount(prefs) === 0 ? 'not-allowed' : 'pointer',
                             boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
                         }}
                     >

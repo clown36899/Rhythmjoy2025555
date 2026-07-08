@@ -578,6 +578,10 @@
     background: var(--nsm-active-bg);
 }
 
+.NotificationSettingsModal .NSM-channelCard.is-locked {
+    cursor: default;
+}
+
 .NotificationSettingsModal .NSM-channelCard > i {
     display: inline-flex;
     width: 30px;
