@@ -6,12 +6,12 @@ import {
     unsubscribeFromPush,
     getPushPreferences,
     updatePushPreferences,
-    verifySubscriptionOwnership
+    verifySubscriptionOwnership,
+    getNotificationPermission,
+    requestNotificationPermission,
 } from '../lib/pushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 import { isPWAMode, getMobilePlatform } from '../lib/pwaDetect';
-import { PWAInstallGuideModal } from './PWAInstallGuideModal';
-import { useInstallPrompt } from '../contexts/InstallPromptContext';
 import '../styles/domains/settings.css';
 
 interface NotificationSettingsModalProps {
@@ -25,11 +25,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
-    const { promptEvent } = useInstallPrompt();
 
     const platform = getMobilePlatform();
-    const isIOS = platform === 'ios';
 
     const [pushPrefs, setPushPrefs] = useState<{
         pref_events: boolean,
@@ -118,6 +115,22 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         try {
             if (isPushEnabled !== originalPushEnabled) {
                 if (isPushEnabled) {
+                    const currentPermission = getNotificationPermission();
+                    if (currentPermission === 'denied') {
+                        setStatusMessage({ type: 'error', text: '브라우저에서 알림이 차단되어 있습니다. 브라우저 설정에서 허용 후 다시 시도해주세요.' });
+                        setIsPushEnabled(false);
+                        return;
+                    }
+
+                    if (currentPermission === 'default') {
+                        const permission = await requestNotificationPermission();
+                        if (permission !== 'granted') {
+                            setStatusMessage({ type: 'error', text: '알림 권한이 허용되지 않았습니다.' });
+                            setIsPushEnabled(false);
+                            return;
+                        }
+                    }
+
                     const sub = await subscribeToPush();
                     if (!sub) {
                         setStatusMessage({ type: 'error', text: '알림 권한이 차단되었거나 오류가 발생했습니다.' });
@@ -172,7 +185,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                             <i className="ri-loader-4-line NSM-spinner"></i>
                             <span>설정 불러오는 중...</span>
                         </div>
-                    ) : (!isRunningInPWA && platform !== 'android') ? (
+                    ) : (!isRunningInPWA && platform === 'ios') ? (
                         <div className="NSM-pwaTip">
                             <div className="NSM-pwaHeader">
                                 <div className="NSM-appIconPreview">
@@ -211,8 +224,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                             <span className="NSM-sectionLabel">기본 설정</span>
                             <div className="NSM-masterRow">
                                 <div className="NSM-labelGroup">
-                                    <span className="NSM-labelTitle">푸시 알림 사용</span>
-                                    <span className="NSM-labelDesc">전체 알림을 켜거나 끕니다.</span>
+                                    <span className="NSM-labelTitle">오늘 아침 일정 요약</span>
+                                    <span className="NSM-labelDesc">오늘 일정이 있을 때만 아침에 한 번 알립니다.</span>
                                 </div>
                                 <div
                                     className={`NSM-switch ${isPushEnabled ? 'is-active' : ''}`}
@@ -224,71 +237,50 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                             {isPushEnabled && (
                                 <div className="NSM-details">
-                                    <span className="NSM-sectionLabel">카테고리별 알림</span>
+                                    <span className="NSM-sectionLabel">요약에 포함할 일정</span>
 
                                     {/* Events */}
                                     <div className="NSM-card">
                                         <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_events')}>
-                                            <span className="NSM-cardTitle">행사 소식</span>
+                                            <div className="NSM-cardLabelGroup">
+                                                <span className="NSM-cardTitle">행사/소셜 일정</span>
+                                                <span className="NSM-cardDesc">파티, 워크샵, 대회 등</span>
+                                            </div>
                                             <div className={`NSM-switch is-active-sm ${pushPrefs.pref_events ? 'is-active' : ''}`}>
                                                 <div className="NSM-switchThumb" />
                                             </div>
                                         </div>
-                                        {pushPrefs.pref_events && (
-                                            <div className="NSM-tagGrid">
-                                                {['워크샵', '파티', '대회', '기타'].map(tag => (
-                                                    <button
-                                                        key={tag}
-                                                        className={`NSM-chip ${(!pushPrefs.pref_filter_tags || pushPrefs.pref_filter_tags.includes(tag)) ? 'is-active' : ''}`}
-                                                        onClick={() => setPushPrefs(prev => {
-                                                            const tags = prev.pref_filter_tags || ['워크샵', '파티', '대회', '기타'];
-                                                            const nextTags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
-                                                            return { ...prev, pref_filter_tags: nextTags, pref_events: nextTags.length > 0 };
-                                                        })}
-                                                    >
-                                                        {tag}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Classes */}
                                     <div className="NSM-card">
                                         <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_class')}>
-                                            <span className="NSM-cardTitle">강습 및 워크샵</span>
+                                            <div className="NSM-cardLabelGroup">
+                                                <span className="NSM-cardTitle">강습/워크샵</span>
+                                                <span className="NSM-cardDesc">린디합, 솔로재즈, 발보아 등</span>
+                                            </div>
                                             <div className={`NSM-switch is-active-sm ${pushPrefs.pref_class ? 'is-active' : ''}`}>
                                                 <div className="NSM-switchThumb" />
                                             </div>
                                         </div>
-                                        {pushPrefs.pref_class && (
-                                            <div className="NSM-tagGrid">
-                                                {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(genre => (
-                                                    <button
-                                                        key={genre}
-                                                        className={`NSM-chip ${(!pushPrefs.pref_filter_class_genres || pushPrefs.pref_filter_class_genres.includes(genre)) ? 'is-active' : ''}`}
-                                                        onClick={() => setPushPrefs(prev => {
-                                                            const genres = prev.pref_filter_class_genres || ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-                                                            const nextGenres = genres.includes(genre) ? genres.filter(g => g !== genre) : [...genres, genre];
-                                                            return { ...prev, pref_filter_class_genres: nextGenres, pref_class: nextGenres.length > 0 };
-                                                        })}
-                                                    >
-                                                        {genre}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Clubs */}
                                     <div className="NSM-card">
                                         <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_clubs')}>
-                                            <span className="NSM-cardTitle">동호회 소식</span>
+                                            <div className="NSM-cardLabelGroup">
+                                                <span className="NSM-cardTitle">동호회 일정</span>
+                                                <span className="NSM-cardDesc">동호회 강습과 모임 일정</span>
+                                            </div>
                                             <div className={`NSM-switch is-active-sm ${pushPrefs.pref_clubs ? 'is-active' : ''}`}>
                                                 <div className="NSM-switchThumb" />
                                             </div>
                                         </div>
                                     </div>
+
+                                    <p className="NSM-helperNote">
+                                        새 일정 등록 즉시 알림은 보내지 않고, 하루 한 번 요약만 보냅니다.
+                                    </p>
                                 </div>
                             )}
                         </>
@@ -311,10 +303,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         {isSaving ? '저장 중...' : '변경사항 저장'}
                     </button>
                 </div>
-                <PWAInstallGuideModal
-                    isOpen={isPWAInstallModalOpen}
-                    onClose={() => setIsPWAInstallModalOpen(false)}
-                />
             </div>
         </div>
     );

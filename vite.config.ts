@@ -49,6 +49,18 @@ function buildVersionPlugin(): Plugin {
   };
 }
 
+function pwaManifestRootPlugin(): Plugin {
+  return {
+    name: 'pwa-manifest-root',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      return html
+        .replace(/(<link\s+rel="manifest"\s+id="manifest-placeholder"\s+href=")\.\/manifest\.json(")/, '$1/manifest.json$2')
+        .replace(/(<link\s+rel="manifest"\s+id="manifest-placeholder"\s+href=")manifest\.json(")/, '$1/manifest.json$2');
+    },
+  };
+}
+
 // package.json에서 버전 읽기
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
 const APP_VERSION = pkg.version;
@@ -71,6 +83,7 @@ export default defineConfig({
   plugins: [
     react(),
     buildVersionPlugin(),
+    pwaManifestRootPlugin(),
     AutoImport({
       imports: [
         {

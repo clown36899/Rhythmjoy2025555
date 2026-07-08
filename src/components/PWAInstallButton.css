@@ -1,0 +1,77 @@
+.PWAInstallButton {
+    border: 0;
+    font: inherit;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.PWAInstallButton:not(:disabled) {
+    cursor: pointer;
+}
+
+.PWAInstallButton:disabled {
+    cursor: wait;
+    opacity: 0.68;
+}
+
+.PWAInstallButton--compact {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(15, 23, 42, 0.72);
+    color: #f8fafc;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+}
+
+.PWAInstallButton--compact:hover {
+    background: rgba(30, 41, 59, 0.9);
+}
+
+.PWAInstallButton--compact i {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.PWAInstallButton--dashboard {
+    width: 100%;
+    min-height: 84px;
+    text-align: center;
+}
+
+.SideDrawer .PWAInstallButton--dashboard.has-native-prompt i:first-child {
+    color: var(--color-blue-400, #60a5fa);
+}
+
+.SideDrawer .PWAInstallButton--dashboard.is-installed i:first-child {
+    color: var(--color-green-400, #4ade80);
+}
+
+.PWAInstallButton-compactLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.PWAInstallButton-spin {
+    animation: PWAInstallButtonSpin 0.8s linear infinite;
+}
+
+@keyframes PWAInstallButtonSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

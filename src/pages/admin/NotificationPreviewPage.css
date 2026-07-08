@@ -58,6 +58,69 @@
   color: #e5e7eb;
 }
 
+.admin-notification-preview-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.admin-notification-preview-summary span {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-notification-preview-summary strong {
+  color: #f8fafc;
+  font-size: 18px;
+}
+
+.admin-notification-preview-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.admin-notification-preview-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-notification-preview-row span {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-notification-preview-row strong {
+  min-width: 0;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-notification-preview-row em {
+  grid-column: 2;
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-notification-preview-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.5;

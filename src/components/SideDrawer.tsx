@@ -4,7 +4,7 @@ import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
 import { cafe24 } from '../lib/cafe24Client';
 import { useEffect, useRef, useState } from 'react';
-import { PWAInstallGuideModal } from './PWAInstallGuideModal';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
     getPushSubscription,
     verifySubscriptionOwnership
@@ -190,7 +190,6 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const profileEditModal = useModal('profileEdit');
     const statsModal = useModal('stats');
     const newEventsListModal = useModal('newEventsList');
-    const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
 
     const metadataProfileImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.user_metadata?.profile_image || null;
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -586,16 +585,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                         <div className="SD-pwaSection">
                             <div className="SD-sectionTitle">APP DASHBOARD</div>
                             <div className="SD-pwaContainer">
-                                {/* <div
-                                    className="SD-menuItem SD-pwaGuideEntry"
-                                    onClick={() => setIsPWAInstallModalOpen(true)}
-                                >
-                                    <i className="ri-download-cloud-2-line"></i>
-                                    <div className="SD-menuLabelWithStatus">
-                                        <span>앱 설치 안내</span>
-                                        <i className="ri-arrow-right-s-line SD-smallArrow"></i>
-                                    </div>
-                                </div> */}
+                                <PWAInstallButton variant="dashboard" />
                                 <div
                                     className="SD-menuItem SD-notificationEntry"
                                     onClick={() => {
@@ -930,6 +920,16 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                             <i className="ri-database-2-line"></i>
                                             <span>이벤트 인제스터</span>
                                         </div>
+                                        <div className="SD-submenuItem"
+                                            onClick={() => handleNavigation('/admin/notification-preview')}
+                                            data-analytics-id="admin_daily_notification_preview"
+                                            data-analytics-type="nav_item"
+                                            data-analytics-title="오늘 알림 미리보기"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
+                                            <i className="ri-notification-badge-line"></i>
+                                            <span>오늘 알림 미리보기</span>
+                                        </div>
                                         <div className="SD-submenuItem" onClick={() => {
                                             const newValue = !showDevTools;
                                             setShowDevTools(newValue);
@@ -1073,11 +1073,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                      <div className="SD-version">v{__APP_VERSION__}</div>
                  </div>
              </div>
-             <PWAInstallGuideModal
-                 isOpen={isPWAInstallModalOpen}
-                 onClose={() => setIsPWAInstallModalOpen(false)}
-             />
-         </div>,
-         document.body
-     );
+        </div>,
+        document.body
+    );
  }

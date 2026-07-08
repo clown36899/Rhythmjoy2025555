@@ -6,6 +6,7 @@ import { installViewportCssVars } from './utils/viewportMetrics';
 const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 const IS_KIOSK_BOOT = isKioskModeEnabled();
 const IS_LOCAL_RUNTIME = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+const ENABLE_LOCAL_PWA_TEST = import.meta.env.VITE_PWA_LOCAL_TEST === 'true';
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
 const cleanupViewportCssVars = installViewportCssVars();
 if (import.meta.hot) {
@@ -18,7 +19,7 @@ if (BOOT_DEBUG) {
 
 // [vite-plugin-pwa] SW 등록 — 빌보드 키오스크 페이지에서는 SW 격리
 // 빌보드는 데이터/배포 실시간 동기화를 위해 SW 캐시를 사용하지 않음
-if ((import.meta.env.DEV || IS_LOCAL_RUNTIME) && 'serviceWorker' in navigator) {
+if ((import.meta.env.DEV || IS_LOCAL_RUNTIME) && !ENABLE_LOCAL_PWA_TEST && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations()
     .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
     .catch(() => { });
@@ -30,7 +31,7 @@ if ((import.meta.env.DEV || IS_LOCAL_RUNTIME) && 'serviceWorker' in navigator) {
   }
 }
 
-if (import.meta.env.PROD && !IS_LOCAL_RUNTIME && !window.location.pathname.includes('/billboard/') && !IS_KIOSK_BOOT) {
+if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !window.location.pathname.includes('/billboard/') && !IS_KIOSK_BOOT) {
   import('virtual:pwa-register').then(({ registerSW }) => {
     registerSW({
       immediate: true,

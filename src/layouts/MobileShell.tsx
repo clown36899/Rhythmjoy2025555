@@ -393,6 +393,15 @@ export const MobileShell: React.FC = () => {
     pageAction.onClick();
   };
 
+  const handleNotificationSettingsClick = useCallback(() => {
+    if (!user) {
+      openLoginOrKioskGuide('알림 설정은 로그인 후 사용할 수 있습니다.');
+      return;
+    }
+
+    notificationSettingsModal.open();
+  }, [notificationSettingsModal, openLoginOrKioskGuide, user]);
+
   const isEnglishTranslationActive = i18n.language?.startsWith('en') || hasBrowserTranslation;
   const translateButtonClassName = [
     'header-translate-btn',
@@ -683,6 +692,19 @@ export const MobileShell: React.FC = () => {
                   <span className="divider">/</span>
                   <span className="en-char">A</span>
                 </div>
+              </button>
+
+              <button
+                className="header-notification-btn"
+                onClick={handleNotificationSettingsClick}
+                title="알림 설정"
+                aria-label="알림 설정"
+                data-analytics-id="header_notification_settings"
+                data-analytics-type="action"
+                data-analytics-title="알림 설정"
+                data-analytics-section="header"
+              >
+                <i className="ri-notification-3-line"></i>
               </button>
 
               <button

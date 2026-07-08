@@ -294,6 +294,26 @@
     color: var(--nsm-text);
 }
 
+.NotificationSettingsModal .NSM-cardLabelGroup {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.NotificationSettingsModal .NSM-cardDesc {
+    color: var(--nsm-text-muted);
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.NotificationSettingsModal .NSM-helperNote {
+    margin: 16px 2px 0;
+    color: var(--nsm-text-muted);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
 .NotificationSettingsModal .NSM-tagGrid {
     display: flex;
     flex-wrap: wrap;

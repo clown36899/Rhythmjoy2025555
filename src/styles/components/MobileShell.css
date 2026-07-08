@@ -499,7 +499,8 @@
 
 /* 작은 화면에서 헤더 크기 무제한 축소 (삭제 - 기본 vw 단위가 무제한 축소 담당) */
 
-.header-search-btn {
+.header-search-btn,
+.header-notification-btn {
   width: 34px;
   height: 34px;
   border: 1px solid var(--border-subtle);
@@ -513,8 +514,18 @@
   justify-content: center;
 }
 
-.header-search-btn i {
+.header-search-btn i,
+.header-notification-btn i {
   font-size: 1.2rem;
+}
+
+.header-notification-btn {
+  position: relative;
+}
+
+.header-notification-btn:hover,
+.header-search-btn:hover {
+  opacity: 0.78;
 }
 
 .header-translate-btn {

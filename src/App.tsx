@@ -124,17 +124,14 @@ function AppContent() {
       // 2. [Proper Fix] 상태 업데이트를 로직 초기에 수행
       // 모달 오픈이나 다른 비동기 작업 중 발생하는 재진입(focus 등) 시
       // 이미 업데이트된 Count를 참조하게 하여 무한 루프를 원천 차단함
-      const previousCount = lastUnreadCountRef.current;
       lastUnreadCountRef.current = currentCount;
 
-      // 3. 자동 오픈 조건 정밀화
-      const isNewArrival = currentCount > previousCount;
+      // 3. 사용자를 방해하지 않도록 자동 오픈은 하지 않고, 강제 진입/이미 열린 상태만 처리
       const currentStack = modalStackRef.current;
-      const isOtherModalOpen = currentStack.filter(id => id !== 'notificationHistory').length > 0;
       // 모달이 이미 열려있으면 알림을 읽어도 목록 갱신 (읽은 항목 즉시 제거)
       const isModalAlreadyOpen = currentStack.includes('notificationHistory');
 
-      if (forceOpen || (isNewArrival && !isOtherModalOpen) || isModalAlreadyOpen) {
+      if (forceOpen || isModalAlreadyOpen) {
         if (currentCount > 0 || forceOpen || isModalAlreadyOpen) {
           const notifProps = {
             notifications: unread,

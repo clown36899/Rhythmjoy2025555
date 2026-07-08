@@ -386,6 +386,7 @@ app.use(express.static(distDir, {
 
     if (filePath.endsWith('manifest.json')) {
       res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
+      res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
     }
   },
 }));

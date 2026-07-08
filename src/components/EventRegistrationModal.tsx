@@ -20,7 +20,7 @@ import type { Event as AppEvent } from "../lib/cafe24Client";
 import { useModalHistory } from "../hooks/useModalHistory";
 import { useLoading } from "../contexts/LoadingContext";
 import { retryOperation } from "../utils/asyncUtils";
-import { parseDateSafe, formatDateForInput, getLocalDateString } from "../pages/v2/utils/eventListUtils";
+import { parseDateSafe, formatDateForInput } from "../pages/v2/utils/eventListUtils";
 import {
   buildDanceGenreOptions,
   ensureRecruitmentTags,
@@ -72,64 +72,6 @@ interface EventRegistrationModalProps {
 }
 
 const EVENT_REGISTRATION_DEBUG = import.meta.env.VITE_EVENT_REGISTRATION_DEBUG === 'true';
-const PUSH_BATCH_WINDOW_MS = 10 * 60 * 1000;
-const PUSH_BATCH_STORAGE_PREFIX = 'swingenjoy:push-batch';
-
-function getPushCategoryForEvent(event: Pick<AppEvent, 'category'>) {
-  if (event.category === 'club') return 'club';
-  if (event.category === 'class' || event.category === 'regular') return 'class';
-  return 'event';
-}
-
-function getPushCategoryLabel(category: string) {
-  if (category === 'class') return '강습';
-  if (category === 'club') return '동호회';
-  return '행사';
-}
-
-function getBestPushImage(event: Partial<AppEvent>) {
-  return event.image_thumbnail || event.image_medium || event.image || event.image_full || event.image_micro || null;
-}
-
-function getManualPushBatch(category: string, actorUserId?: string | null) {
-  const now = Date.now();
-  const safeActorId = actorUserId || 'anonymous';
-  const storageKey = `${PUSH_BATCH_STORAGE_PREFIX}:${safeActorId}:${category}`;
-  const createBatch = () => {
-    const scheduledAtMs = now + PUSH_BATCH_WINDOW_MS;
-    return {
-      batchKey: `manual:${safeActorId}:${category}:${now}`,
-      scheduledAtMs,
-      expiresAtMs: scheduledAtMs,
-    };
-  };
-
-  try {
-    const stored = window.localStorage.getItem(storageKey);
-    if (stored) {
-      const parsed = JSON.parse(stored) as { batchKey?: string; scheduledAtMs?: number; expiresAtMs?: number };
-      if (parsed.batchKey && parsed.scheduledAtMs && parsed.expiresAtMs && parsed.expiresAtMs > now) {
-        return {
-          batchKey: parsed.batchKey,
-          scheduledAt: new Date(parsed.scheduledAtMs).toISOString(),
-        };
-      }
-    }
-
-    const next = createBatch();
-    window.localStorage.setItem(storageKey, JSON.stringify(next));
-    return {
-      batchKey: next.batchKey,
-      scheduledAt: new Date(next.scheduledAtMs).toISOString(),
-    };
-  } catch {
-    const fallback = createBatch();
-    return {
-      batchKey: fallback.batchKey,
-      scheduledAt: new Date(fallback.scheduledAtMs).toISOString(),
-    };
-  }
-}
 
 function normalizeRegistrationCategory(value?: string | null) {
   return String(value || '').trim().toLowerCase();
@@ -954,73 +896,6 @@ export default memo(function EventRegistrationModal({
               window.dispatchEvent(new CustomEvent("eventCreated", {
                 detail: { event: createdEvent }
               }));
-
-              // Manual registrations are batched per user/category so multiple rapid inserts ring once.
-              const pushCategory = getPushCategoryForEvent(createdEvent);
-              const pushCategoryLabel = getPushCategoryLabel(pushCategory);
-              const { batchKey, scheduledAt } = getManualPushBatch(pushCategory, user?.id);
-
-              const pushTitle = createdEvent.title;
-              const weekDay = createdEvent.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(createdEvent.date).getDay()] : '';
-              const pushBody = `${createdEvent.date || ''} ${weekDay} | ${createdEvent.location || '장소 미정'}`;
-
-              // [Strict Rule] Only notify for NEW registration and TODAY/FUTURE events
-              const today = getLocalDateString();
-              const eventDateStr = createdEvent.start_date || createdEvent.date;
-              const isPastEvent = eventDateStr && eventDateStr < today;
-
-              if (isPastEvent) {
-                if (EVENT_REGISTRATION_DEBUG) {
-                  console.debug("[Push] Skipping notification for past event:", {
-                    title: pushTitle,
-                    date: eventDateStr,
-                    today: today
-                  });
-                }
-              } else {
-                if (EVENT_REGISTRATION_DEBUG) {
-                  console.debug("[Push] Queuing delayed notification...", {
-                    title: pushTitle,
-                    category: pushCategory,
-                    batchKey,
-                    scheduledAt: scheduledAt,
-                    today: today
-                  });
-                }
-
-                cafe24.from('notification_queue').insert({
-                  event_id: createdEvent.id,
-                  title: pushTitle,
-                  body: pushBody,
-                  category: pushCategory,
-                  payload: {
-                    url: `${window.location.origin}/calendar?id=${createdEvent.id}`,
-                    userId: 'ALL',
-                    queueSource: 'manual_event_registration',
-                    actorUserId: user?.id || null,
-                    batchKey,
-                    batchWindowMinutes: 10,
-                    eventId: createdEvent.id,
-                    category: pushCategory,
-                    categoryLabel: pushCategoryLabel,
-                    genre: createdEvent.genre,
-                    image: getBestPushImage(createdEvent),
-                    content: createdEvent.description,
-                    title: createdEvent.title,
-                    date: createdEvent.start_date || createdEvent.date,
-                    location: createdEvent.location,
-                    adminOnly: import.meta.env.VITE_PUSH_ADMIN_ONLY === 'true'
-                  },
-                  scheduled_at: scheduledAt,
-                  status: 'pending'
-                }).then(({ error }) => {
-                  if (error) {
-                    console.error('[Push] Queue insert failed:', error);
-                  } else if (EVENT_REGISTRATION_DEBUG) {
-                    console.debug('[Push] Notification queued successfully.');
-                  }
-                });
-              }
 
               // Analytics: Log Create
               logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);
