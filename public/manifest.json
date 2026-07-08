@@ -5,9 +5,9 @@
   "lang": "ko-KR",
   "categories": ["social", "events", "entertainment", "education"],
   "id": "/",
-  "start_url": "/forum/media?utm_source=pwa",
+  "start_url": "/?utm_source=pwa",
   "display": "standalone",
-  "scope": "/forum/media",
+  "scope": "/",
   "background_color": "#000000",
   "theme_color": "#000000",
   "share_target": {
