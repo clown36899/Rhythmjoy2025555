@@ -24,7 +24,7 @@ interface NotificationSettingsModalProps {
 }
 
 type StatusMessage = { type: 'success' | 'error'; text: string };
-type NotificationMode = 'today' | 'new';
+type NotificationDetailPanel = 'today' | 'new';
 
 const DEFAULT_EVENT_TAGS = ['워크샵', '파티', '대회', '기타'];
 const DEFAULT_CLASS_GENRES = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
@@ -204,7 +204,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const platform = getMobilePlatform();
 
     const [pushPrefs, setPushPrefs] = useState<PushPreferences>(() => normalizeModalPrefs(DEFAULT_PUSH_PREFERENCES));
-    const [activeMode, setActiveMode] = useState<NotificationMode>('today');
+    const [detailPanel, setDetailPanel] = useState<NotificationDetailPanel | null>(null);
 
     const [originalPrefs, setOriginalPrefs] = useState<any>(null);
     const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
@@ -245,7 +245,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         if (!isOpen) return;
 
         setLoggedStatusMessage(null);
-        setActiveMode('today');
+        setDetailPanel(null);
         refreshPushEnvironment('open');
 
         const checkPWA = () => {
@@ -341,20 +341,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         });
     };
 
-    const handleNotificationRouteToggle = (type: 'pref_today_digest' | 'pref_new_event_alerts') => {
-        setActiveMode(type === 'pref_today_digest' ? 'today' : 'new');
-        setPushPrefs(prev => {
-            const nextVal = !prev[type];
-            if (!nextVal && getEnabledNotificationRouteCount(prev) <= 1) {
-                setLoggedStatusMessage({ type: 'error', text: '받을 알림 종류를 하나 이상 선택해야 합니다.' }, { step: 'route-toggle', type });
-                return prev;
-            }
-
-            setLoggedStatusMessage(null);
-            return { ...prev, [type]: nextVal };
-        });
-    };
-
     const handleNewEventPreferenceToggle = (
         type: 'pref_new_event_social' | 'pref_new_event_class' | 'pref_new_event_clubs'
     ) => {
@@ -370,7 +356,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         });
     };
 
-    const handlePushEnabledToggle = async () => {
+    const enablePushNotificationsFromUserAction = async () => {
         if (isSaving || isPushLoading || isRequestingPermission) {
             console.info('[NotificationSettingsModal] toggle ignored busy', {
                 isSaving,
@@ -378,21 +364,11 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 isRequestingPermission,
                 ...getRuntimeLogMeta(platform, isRunningInPWA),
             });
-            return;
+            return false;
         }
 
         setLoggedStatusMessage(null);
-        console.info('[NotificationSettingsModal] toggle click', {
-            fromEnabled: isPushEnabled,
-            originalPushEnabled,
-            ...getRuntimeLogMeta(platform, isRunningInPWA),
-        });
-
-        if (isPushEnabled) {
-            setIsPushEnabled(false);
-            console.info('[NotificationSettingsModal] toggle off staged', getRuntimeLogMeta(platform, isRunningInPWA));
-            return;
-        }
+        console.info('[NotificationSettingsModal] enable from alert toggle', getRuntimeLogMeta(platform, isRunningInPWA));
 
         setIsRequestingPermission(true);
         try {
@@ -402,7 +378,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     type: 'error',
                     text: getPushSupportMessage(support, platform),
                 }, { step: 'toggle-unsupported' });
-                return;
+                return false;
             }
 
             if (permission === 'denied') {
@@ -410,7 +386,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     type: 'error',
                     text: getPermissionBlockedMessage(platform),
                 }, { step: 'toggle-denied' });
-                return;
+                return false;
             }
 
             if (permission === 'default') {
@@ -434,16 +410,43 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         requestedPermission,
                         latestPermission,
                     });
-                    return;
+                    return false;
                 }
             }
 
             setPushPrefs(prev => normalizeModalPrefs(prev));
             setIsPushEnabled(true);
             console.info('[NotificationSettingsModal] toggle on staged without subscription save', getRuntimeLogMeta(platform, isRunningInPWA));
+            return true;
         } finally {
             setIsRequestingPermission(false);
         }
+    };
+
+    const handleAlertActivationToggle = async (type: 'pref_today_digest' | 'pref_new_event_alerts') => {
+        if (isSaving || isPushLoading || isRequestingPermission) return;
+
+        const isCurrentlyActive = isPushEnabled && Boolean(pushPrefs[type]);
+        if (isCurrentlyActive) {
+            const routeCount = getEnabledNotificationRouteCount(pushPrefs);
+            setLoggedStatusMessage(null);
+            setPushPrefs(prev => ({ ...prev, [type]: false }));
+            if (type === 'pref_today_digest' && detailPanel === 'today') setDetailPanel(null);
+            if (type === 'pref_new_event_alerts' && detailPanel === 'new') setDetailPanel(null);
+            if (routeCount <= 1) {
+                setIsPushEnabled(false);
+                console.info('[NotificationSettingsModal] all alert routes disabled, push staged off', getRuntimeLogMeta(platform, isRunningInPWA));
+            }
+            return;
+        }
+
+        if (!isPushEnabled) {
+            const enabled = await enablePushNotificationsFromUserAction();
+            if (!enabled) return;
+        }
+
+        setLoggedStatusMessage(null);
+        setPushPrefs(prev => normalizeModalPrefs({ ...prev, [type]: true }));
     };
 
     const handleDigestDayToggle = (day: number) => {
@@ -479,7 +482,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setIsSaving(true);
         setLoggedStatusMessage(null);
         try {
-            const prefsToSave = normalizeModalPrefs(pushPrefs);
+            const prefsToSave = isPushEnabled ? normalizeModalPrefs(pushPrefs) : { ...pushPrefs };
             console.info('[NotificationSettingsModal] save start', {
                 pushEnabled: isPushEnabled,
                 originalPushEnabled,
@@ -499,7 +502,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 },
             });
 
-            if (JSON.stringify(prefsToSave) !== JSON.stringify(pushPrefs)) {
+            if (isPushEnabled && JSON.stringify(prefsToSave) !== JSON.stringify(pushPrefs)) {
                 setPushPrefs(prefsToSave);
             }
 
@@ -636,20 +639,20 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
     const enabledChannelCount = getEnabledChannelCount(pushPrefs);
     const newEventChannelCount = getNewEventChannelCount(pushPrefs);
-    const enabledRouteCount = getEnabledNotificationRouteCount(pushPrefs);
+    const isTodayAlertActive = isPushEnabled && pushPrefs.pref_today_digest;
+    const isNewEventAlertActive = isPushEnabled && pushPrefs.pref_new_event_alerts;
     const selectedDayLabels = DIGEST_WEEKDAYS
         .filter(day => pushPrefs.pref_digest_days?.includes(day.value))
         .map(day => day.label)
         .join(' ');
-    const todayDeliverySummary = pushPrefs.pref_today_digest
+    const todayDeliverySummary = isTodayAlertActive
         ? `${selectedDayLabels || '선택 없음'} ${pushPrefs.pref_digest_time}`
         : '꺼짐';
-    const newEventSummary = pushPrefs.pref_new_event_alerts
+    const newEventSummary = isNewEventAlertActive
         ? `${newEventChannelCount}/3 대상`
         : '꺼짐';
-    const deliverySummary = isPushEnabled
-        ? `${enabledRouteCount}/2 종류 켜짐 · 오늘 ${todayDeliverySummary} · 새 등록 ${newEventSummary}`
-        : '알림 꺼짐';
+    const todayRouteLabel = isTodayAlertActive ? '켜짐' : '꺼짐';
+    const newEventRouteLabel = isNewEventAlertActive ? '켜짐' : '꺼짐';
     const hasUnsavedChanges = (isPushEnabled !== originalPushEnabled) ||
         (isPushEnabled && JSON.stringify(pushPrefs) !== JSON.stringify(originalPrefs));
     const isPermissionBlocked = permissionStatus === 'denied';
@@ -683,10 +686,14 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         <div className="NotificationSettingsModal NSM-overlay" onClick={onClose}>
             <div className="NSM-container" onClick={e => e.stopPropagation()}>
                 <div className="NSM-header">
-                    <h2 className="NSM-title"><i className="ri-notification-3-fill"></i> 알림 설정</h2>
-                    <button className="NSM-closeBtn" onClick={onClose} aria-label="닫기">
-                        <i className="ri-close-line"></i>
-                    </button>
+                    <div className="NSM-titleBlock">
+                        <h2 className="NSM-title"><i className="ri-notification-3-fill"></i> 알림 설정</h2>
+                    </div>
+                    <div className="NSM-headerControls">
+                        <button className="NSM-closeBtn" onClick={onClose} aria-label="닫기">
+                            <i className="ri-close-line"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div className="NSM-body">
@@ -764,40 +771,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         </div>
                     ) : (
                         <div className="NSM-settingsStack">
-                            <section className="NSM-introPanel">
-                                <div className="NSM-introIcon" aria-hidden="true">
-                                    <i className="ri-sun-foggy-line"></i>
-                                </div>
-                                <div className="NSM-introCopy">
-                                    <strong>오늘 무슨 일정이 있는지 아침에 받아보는 알림입니다.</strong>
-                                    <small>필요하면 새 일정이 등록됐을 때 받는 알림도 따로 켤 수 있습니다. 두 알림은 서로 독립적으로 설정합니다.</small>
-                                </div>
-                            </section>
-
-                            <section className={`NSM-summaryPanel ${isPushEnabled ? 'is-active' : ''}`}>
-                                <div className="NSM-summaryIcon" aria-hidden="true">
-                                    <i className={isPushEnabled ? 'ri-notification-3-fill' : 'ri-notification-off-line'}></i>
-                                </div>
-                                <div className="NSM-summaryCopy">
-                                    <span className="NSM-summaryEyebrow">브라우저 알림</span>
-                                    <strong>선택한 알림 받기</strong>
-                                    <small>{deliverySummary}</small>
-                                </div>
-                                <button
-                                    type="button"
-                                    className={`NSM-switch ${isPushEnabled ? 'is-active' : ''} ${isRequestingPermission ? 'is-loading' : ''}`}
-                                    onClick={handlePushEnabledToggle}
-                                    disabled={isSaving || isPushLoading || isRequestingPermission}
-                                    aria-pressed={isPushEnabled}
-                                    aria-label="브라우저 알림 사용"
-                                >
-                                    <div className="NSM-switchThumb" />
-                                    {isRequestingPermission && (
-                                        <i className="ri-loader-4-line NSM-switchSpinner" aria-hidden="true"></i>
-                                    )}
-                                </button>
-                            </section>
-
                             {showEnvironmentPanel && (
                                 <section className="NSM-permissionPanel">
                                     <div className="NSM-permissionIcon" aria-hidden="true">
@@ -814,280 +787,79 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                 </section>
                             )}
 
-                            {isPushEnabled && (
-                                <>
-                                    <section className="NSM-modeCards" aria-label="알림 종류 선택">
-                                        <button
-                                            type="button"
-                                            className={`NSM-modeCard ${activeMode === 'today' ? 'is-active' : ''} ${pushPrefs.pref_today_digest ? 'is-enabled' : ''}`}
-                                            onClick={() => setActiveMode('today')}
-                                        >
-                                            <i className="ri-calendar-check-line" aria-hidden="true"></i>
-                                            <span>
-                                                <strong>오늘 일정 알림</strong>
-                                                <small>{todayDeliverySummary}</small>
-                                            </span>
-                                            <em>{pushPrefs.pref_today_digest ? 'ON' : 'OFF'}</em>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            className={`NSM-modeCard ${activeMode === 'new' ? 'is-active' : ''} ${pushPrefs.pref_new_event_alerts ? 'is-enabled' : ''}`}
-                                            onClick={() => setActiveMode('new')}
-                                        >
-                                            <i className="ri-notification-badge-line" aria-hidden="true"></i>
-                                            <span>
-                                                <strong>새 등록 알림</strong>
-                                                <small>{newEventSummary}</small>
-                                            </span>
-                                            <em>{pushPrefs.pref_new_event_alerts ? 'ON' : 'OFF'}</em>
-                                        </button>
-                                    </section>
-
-                                    {activeMode === 'today' ? (
-                                        <div className="NSM-detailPanel">
-                                            <section className="NSM-section">
-                                                <div className="NSM-sectionHead">
-                                                    <span className="NSM-sectionLabel">오늘 일정 알림</span>
-                                                    <span className="NSM-sectionMeta">아침 요약</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className={`NSM-settingLine ${pushPrefs.pref_today_digest ? 'is-active' : ''}`}
-                                                    onClick={() => handleNotificationRouteToggle('pref_today_digest')}
-                                                >
-                                                    <i className="ri-sun-line"></i>
-                                                    <span>
-                                                        <strong>오늘 일정 요약 받기</strong>
-                                                        <small>오늘 무슨 일정이 있는지 설정한 시간에 한 번 받습니다.</small>
-                                                    </span>
-                                                    <span className={`NSM-checkPill ${pushPrefs.pref_today_digest ? 'is-active' : ''}`}>
-                                                        {pushPrefs.pref_today_digest ? 'ON' : 'OFF'}
-                                                    </span>
-                                                </button>
-                                            </section>
-
-                                            {pushPrefs.pref_today_digest && (
-                                                <>
-                                                    <section className="NSM-section">
-                                                        <div className="NSM-sectionHead">
-                                                            <span className="NSM-sectionLabel">받는 시간</span>
-                                                            <span className="NSM-sectionMeta">30분 단위</span>
-                                                        </div>
-                                                        <div className="NSM-timeRow">
-                                                            <label className="NSM-timeInputWrap">
-                                                                <span>발송 시간</span>
-                                                                <select
-                                                                    value={pushPrefs.pref_digest_time}
-                                                                    onChange={(event) => handleTimeChange(event.target.value)}
-                                                                >
-                                                                    {PUSH_DIGEST_TIME_OPTIONS.map(time => (
-                                                                        <option key={time} value={time}>
-                                                                            {time}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                            </label>
-                                                            <div className="NSM-quickTimes" aria-label="빠른 시간 선택">
-                                                                {QUICK_DIGEST_TIMES.map(time => (
-                                                                    <button
-                                                                        key={time}
-                                                                        type="button"
-                                                                        className={pushPrefs.pref_digest_time === time ? 'is-active' : ''}
-                                                                        onClick={() => handleTimeChange(time)}
-                                                                    >
-                                                                        {time}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </section>
-
-                                                    <section className="NSM-section">
-                                                        <div className="NSM-sectionHead">
-                                                            <span className="NSM-sectionLabel">받는 요일</span>
-                                                            <span className="NSM-sectionMeta">최소 1일</span>
-                                                        </div>
-                                                        <div className="NSM-weekdayGrid" aria-label="알림 받을 요일">
-                                                            {DIGEST_WEEKDAYS.map(day => {
-                                                                const active = pushPrefs.pref_digest_days?.includes(day.value);
-                                                                return (
-                                                                    <button
-                                                                        key={day.value}
-                                                                        type="button"
-                                                                        className={active ? 'is-active' : ''}
-                                                                        onClick={() => handleDigestDayToggle(day.value)}
-                                                                    >
-                                                                        {day.label}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </section>
-
-                                                    <section className="NSM-section">
-                                                        <div className="NSM-sectionHead">
-                                                            <span className="NSM-sectionLabel">발송 조건</span>
-                                                            <span className="NSM-sectionMeta">불필요한 알림 줄이기</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            className={`NSM-settingLine ${pushPrefs.pref_only_with_events ? 'is-active' : ''}`}
-                                                            onClick={handleOnlyWithEventsToggle}
-                                                        >
-                                                            <i className="ri-calendar-check-line"></i>
-                                                            <span>
-                                                                <strong>일정이 있을 때만 보내기</strong>
-                                                                <small>오늘 일정이 없으면 조용히 넘어갑니다.</small>
-                                                            </span>
-                                                            <span className={`NSM-checkPill ${pushPrefs.pref_only_with_events ? 'is-active' : ''}`}>
-                                                                {pushPrefs.pref_only_with_events ? 'ON' : 'OFF'}
-                                                            </span>
-                                                        </button>
-                                                    </section>
-
-                                                    <section className="NSM-section">
-                                                        <div className="NSM-sectionHead">
-                                                            <span className="NSM-sectionLabel">요약에 포함할 일정</span>
-                                                            <span className="NSM-sectionMeta">{enabledChannelCount}/3 선택</span>
-                                                        </div>
-
-                                                        <div className="NSM-channelList">
-                                                            <button
-                                                                type="button"
-                                                                className={`NSM-channelCard ${pushPrefs.pref_events ? 'is-active' : ''} ${pushPrefs.pref_events && enabledChannelCount === 1 ? 'is-locked' : ''}`}
-                                                                onClick={() => handlePreferenceToggle('pref_events')}
-                                                                aria-disabled={pushPrefs.pref_events && enabledChannelCount === 1}
-                                                            >
-                                                                <i className="ri-calendar-event-line"></i>
-                                                                <span>
-                                                                    <strong>행사/소셜</strong>
-                                                                    <small>파티, 워크샵, 대회</small>
-                                                                </span>
-                                                                <em>{pushPrefs.pref_events ? '포함' : '제외'}</em>
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                className={`NSM-channelCard ${pushPrefs.pref_class ? 'is-active' : ''} ${pushPrefs.pref_class && enabledChannelCount === 1 ? 'is-locked' : ''}`}
-                                                                onClick={() => handlePreferenceToggle('pref_class')}
-                                                                aria-disabled={pushPrefs.pref_class && enabledChannelCount === 1}
-                                                            >
-                                                                <i className="ri-graduation-cap-line"></i>
-                                                                <span>
-                                                                    <strong>강습/워크샵</strong>
-                                                                    <small>린디합, 솔로재즈, 발보아</small>
-                                                                </span>
-                                                                <em>{pushPrefs.pref_class ? '포함' : '제외'}</em>
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                className={`NSM-channelCard ${pushPrefs.pref_clubs ? 'is-active' : ''} ${pushPrefs.pref_clubs && enabledChannelCount === 1 ? 'is-locked' : ''}`}
-                                                                onClick={() => handlePreferenceToggle('pref_clubs')}
-                                                                aria-disabled={pushPrefs.pref_clubs && enabledChannelCount === 1}
-                                                            >
-                                                                <i className="ri-team-line"></i>
-                                                                <span>
-                                                                    <strong>동호회</strong>
-                                                                    <small>동호회 강습과 모임</small>
-                                                                </span>
-                                                                <em>{pushPrefs.pref_clubs ? '포함' : '제외'}</em>
-                                                            </button>
-                                                        </div>
-                                                    </section>
-                                                </>
+                            <section className={`NSM-alertMenu ${isTodayAlertActive ? 'is-enabled' : ''}`}>
+                                <div className="NSM-alertMenuHead">
+                                    <i className="ri-calendar-check-line" aria-hidden="true"></i>
+                                    <span>
+                                        <strong>오늘 일정 요약</strong>
+                                        <small>아침에 오늘 일정만 모아서 받기</small>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className={`NSM-cardSwitch ${isTodayAlertActive ? 'is-active' : ''}`}
+                                        onClick={() => handleAlertActivationToggle('pref_today_digest')}
+                                        disabled={isSaving || isPushLoading || isRequestingPermission}
+                                        aria-pressed={isTodayAlertActive}
+                                    >
+                                        <span>{todayRouteLabel}</span>
+                                        <span className={`NSM-switch ${isTodayAlertActive ? 'is-active' : ''} ${isRequestingPermission ? 'is-loading' : ''}`} aria-hidden="true">
+                                            <span className="NSM-switchThumb" />
+                                            {isRequestingPermission && (
+                                                <i className="ri-loader-4-line NSM-switchSpinner"></i>
                                             )}
-                                        </div>
-                                    ) : (
-                                        <div className="NSM-detailPanel">
-                                            <section className="NSM-section">
-                                                <div className="NSM-sectionHead">
-                                                    <span className="NSM-sectionLabel">새 등록 알림</span>
-                                                    <span className="NSM-sectionMeta">즉시 알림</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className={`NSM-settingLine ${pushPrefs.pref_new_event_alerts ? 'is-active' : ''}`}
-                                                    onClick={() => handleNotificationRouteToggle('pref_new_event_alerts')}
-                                                >
-                                                    <i className="ri-notification-badge-line"></i>
-                                                    <span>
-                                                        <strong>새 일정 등록 알림 받기</strong>
-                                                        <small>사이트에 새 일정이 등록되면 별도로 알려줍니다.</small>
-                                                    </span>
-                                                    <span className={`NSM-checkPill ${pushPrefs.pref_new_event_alerts ? 'is-active' : ''}`}>
-                                                        {pushPrefs.pref_new_event_alerts ? 'ON' : 'OFF'}
-                                                    </span>
-                                                </button>
-                                            </section>
+                                        </span>
+                                    </button>
+                                </div>
 
-                                            {pushPrefs.pref_new_event_alerts && (
-                                                <section className="NSM-section">
-                                                    <div className="NSM-sectionHead">
-                                                        <span className="NSM-sectionLabel">새 등록 대상</span>
-                                                        <span className="NSM-sectionMeta">{newEventChannelCount}/3 선택</span>
-                                                    </div>
+                                {isTodayAlertActive && (
+                                    <button
+                                        type="button"
+                                        className="NSM-detailOpenBtn"
+                                        onClick={() => setDetailPanel('today')}
+                                    >
+                                        <i className="ri-equalizer-line" aria-hidden="true"></i>
+                                        <span>세부설정</span>
+                                        <small>{todayDeliverySummary}</small>
+                                    </button>
+                                )}
+                            </section>
 
-                                                    <div className="NSM-channelList">
-                                                        <button
-                                                            type="button"
-                                                            className={`NSM-channelCard ${pushPrefs.pref_new_event_social ? 'is-active' : ''} ${pushPrefs.pref_new_event_social && newEventChannelCount === 1 ? 'is-locked' : ''}`}
-                                                            onClick={() => handleNewEventPreferenceToggle('pref_new_event_social')}
-                                                            aria-disabled={pushPrefs.pref_new_event_social && newEventChannelCount === 1}
-                                                        >
-                                                            <i className="ri-calendar-event-line"></i>
-                                                            <span>
-                                                                <strong>행사/소셜</strong>
-                                                                <small>새 파티, 워크샵, 대회</small>
-                                                            </span>
-                                                            <em>{pushPrefs.pref_new_event_social ? '포함' : '제외'}</em>
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className={`NSM-channelCard ${pushPrefs.pref_new_event_class ? 'is-active' : ''} ${pushPrefs.pref_new_event_class && newEventChannelCount === 1 ? 'is-locked' : ''}`}
-                                                            onClick={() => handleNewEventPreferenceToggle('pref_new_event_class')}
-                                                            aria-disabled={pushPrefs.pref_new_event_class && newEventChannelCount === 1}
-                                                        >
-                                                            <i className="ri-graduation-cap-line"></i>
-                                                            <span>
-                                                                <strong>강습/워크샵</strong>
-                                                                <small>새 정규 강습과 특강</small>
-                                                            </span>
-                                                            <em>{pushPrefs.pref_new_event_class ? '포함' : '제외'}</em>
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className={`NSM-channelCard ${pushPrefs.pref_new_event_clubs ? 'is-active' : ''} ${pushPrefs.pref_new_event_clubs && newEventChannelCount === 1 ? 'is-locked' : ''}`}
-                                                            onClick={() => handleNewEventPreferenceToggle('pref_new_event_clubs')}
-                                                            aria-disabled={pushPrefs.pref_new_event_clubs && newEventChannelCount === 1}
-                                                        >
-                                                            <i className="ri-team-line"></i>
-                                                            <span>
-                                                                <strong>동호회</strong>
-                                                                <small>새 동호회 강습과 모임</small>
-                                                            </span>
-                                                            <em>{pushPrefs.pref_new_event_clubs ? '포함' : '제외'}</em>
-                                                        </button>
-                                                    </div>
-                                                </section>
+                            <section className={`NSM-alertMenu ${isNewEventAlertActive ? 'is-enabled' : ''}`}>
+                                <div className="NSM-alertMenuHead">
+                                    <i className="ri-notification-badge-line" aria-hidden="true"></i>
+                                    <span>
+                                        <strong>새 등록 알림</strong>
+                                        <small>누가 새 일정을 올리면 받기</small>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className={`NSM-cardSwitch ${isNewEventAlertActive ? 'is-active' : ''}`}
+                                        onClick={() => handleAlertActivationToggle('pref_new_event_alerts')}
+                                        disabled={isSaving || isPushLoading || isRequestingPermission}
+                                        aria-pressed={isNewEventAlertActive}
+                                    >
+                                        <span>{newEventRouteLabel}</span>
+                                        <span className={`NSM-switch ${isNewEventAlertActive ? 'is-active' : ''} ${isRequestingPermission ? 'is-loading' : ''}`} aria-hidden="true">
+                                            <span className="NSM-switchThumb" />
+                                            {isRequestingPermission && (
+                                                <i className="ri-loader-4-line NSM-switchSpinner"></i>
                                             )}
+                                        </span>
+                                    </button>
+                                </div>
 
-                                            <p className="NSM-helperNote">
-                                                새 등록 알림은 오늘 일정 요약과 별개입니다. 너무 많은 알림이 싫으면 이 알림은 꺼두고 오늘 일정 알림만 사용하면 됩니다.
-                                            </p>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
-                            {!isPushEnabled && (
-                                <p className="NSM-helperNote">
-                                    알림을 켠 뒤 아래 저장 버튼을 눌러야 브라우저 구독과 설정이 저장됩니다.
-                                </p>
-                            )}
+                                {isNewEventAlertActive && (
+                                    <button
+                                        type="button"
+                                        className="NSM-detailOpenBtn"
+                                        onClick={() => setDetailPanel('new')}
+                                    >
+                                        <i className="ri-equalizer-line" aria-hidden="true"></i>
+                                        <span>세부설정</span>
+                                        <small>{newEventSummary}</small>
+                                    </button>
+                                )}
+                            </section>
                         </div>
                     )}
                 </div>
@@ -1101,6 +873,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                 {showSaveControls && (
                     <div className="NSM-footer">
+                        <p className="NSM-footerHint">변경 후 저장 버튼을 눌러야 적용됩니다.</p>
                         <button
                             className={`NSM-saveBtn ${hasUnsavedChanges ? 'is-ready' : ''}`}
                             disabled={saveButtonDisabled}
@@ -1111,6 +884,214 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     </div>
                 )}
             </div>
+
+            {detailPanel && (
+                <div
+                    className="NSM-detailModalOverlay"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setDetailPanel(null);
+                    }}
+                >
+                    <div className="NSM-detailModal" onClick={event => event.stopPropagation()}>
+                        <div className="NSM-detailModalHeader">
+                            <h3>{detailPanel === 'today' ? '오늘 일정 요약 설정' : '새 등록 알림 설정'}</h3>
+                            <button type="button" onClick={() => setDetailPanel(null)} aria-label="세부설정 닫기">
+                                <i className="ri-close-line"></i>
+                            </button>
+                        </div>
+
+                        <div className="NSM-detailModalBody">
+                            {detailPanel === 'today' ? (
+                                <>
+                                    <section className="NSM-section">
+                                        <div className="NSM-sectionHead">
+                                            <span className="NSM-sectionLabel">받는 시간</span>
+                                            <span className="NSM-sectionMeta">30분 단위</span>
+                                        </div>
+                                        <div className="NSM-timeRow">
+                                            <label className="NSM-timeInputWrap">
+                                                <span>발송 시간</span>
+                                                <select
+                                                    value={pushPrefs.pref_digest_time}
+                                                    onChange={(event) => handleTimeChange(event.target.value)}
+                                                >
+                                                    {PUSH_DIGEST_TIME_OPTIONS.map(time => (
+                                                        <option key={time} value={time}>
+                                                            {time}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <div className="NSM-quickTimes" aria-label="빠른 시간 선택">
+                                                {QUICK_DIGEST_TIMES.map(time => (
+                                                    <button
+                                                        key={time}
+                                                        type="button"
+                                                        className={pushPrefs.pref_digest_time === time ? 'is-active' : ''}
+                                                        onClick={() => handleTimeChange(time)}
+                                                    >
+                                                        {time}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section className="NSM-section">
+                                        <div className="NSM-sectionHead">
+                                            <span className="NSM-sectionLabel">받는 요일</span>
+                                            <span className="NSM-sectionMeta">최소 1일</span>
+                                        </div>
+                                        <div className="NSM-weekdayGrid" aria-label="알림 받을 요일">
+                                            {DIGEST_WEEKDAYS.map(day => {
+                                                const active = pushPrefs.pref_digest_days?.includes(day.value);
+                                                return (
+                                                    <button
+                                                        key={day.value}
+                                                        type="button"
+                                                        className={active ? 'is-active' : ''}
+                                                        onClick={() => handleDigestDayToggle(day.value)}
+                                                    >
+                                                        {day.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
+
+                                    <section className="NSM-section">
+                                        <div className="NSM-sectionHead">
+                                            <span className="NSM-sectionLabel">발송 조건</span>
+                                            <span className="NSM-sectionMeta">일정 없으면 생략</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`NSM-settingLine ${pushPrefs.pref_only_with_events ? 'is-active' : ''}`}
+                                            onClick={handleOnlyWithEventsToggle}
+                                        >
+                                            <i className="ri-calendar-check-line"></i>
+                                            <span>
+                                                <strong>일정이 있을 때만 보내기</strong>
+                                                <small>오늘 일정이 없으면 알림을 보내지 않습니다.</small>
+                                            </span>
+                                            <span className={`NSM-checkPill ${pushPrefs.pref_only_with_events ? 'is-active' : ''}`}>
+                                                {pushPrefs.pref_only_with_events ? '사용' : '해제'}
+                                            </span>
+                                        </button>
+                                    </section>
+
+                                    <section className="NSM-section">
+                                        <div className="NSM-sectionHead">
+                                            <span className="NSM-sectionLabel">포함할 일정</span>
+                                            <span className="NSM-sectionMeta">{enabledChannelCount}/3 선택</span>
+                                        </div>
+
+                                        <div className="NSM-channelList">
+                                            <button
+                                                type="button"
+                                                className={`NSM-channelCard ${pushPrefs.pref_events ? 'is-active' : ''} ${pushPrefs.pref_events && enabledChannelCount === 1 ? 'is-locked' : ''}`}
+                                                onClick={() => handlePreferenceToggle('pref_events')}
+                                                aria-disabled={pushPrefs.pref_events && enabledChannelCount === 1}
+                                            >
+                                                <i className="ri-calendar-event-line"></i>
+                                                <span>
+                                                    <strong>행사/소셜</strong>
+                                                    <small>파티, 워크샵, 대회</small>
+                                                </span>
+                                                <em>{pushPrefs.pref_events ? '포함' : '제외'}</em>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className={`NSM-channelCard ${pushPrefs.pref_class ? 'is-active' : ''} ${pushPrefs.pref_class && enabledChannelCount === 1 ? 'is-locked' : ''}`}
+                                                onClick={() => handlePreferenceToggle('pref_class')}
+                                                aria-disabled={pushPrefs.pref_class && enabledChannelCount === 1}
+                                            >
+                                                <i className="ri-graduation-cap-line"></i>
+                                                <span>
+                                                    <strong>강습/워크샵</strong>
+                                                    <small>정규 강습과 특강</small>
+                                                </span>
+                                                <em>{pushPrefs.pref_class ? '포함' : '제외'}</em>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className={`NSM-channelCard ${pushPrefs.pref_clubs ? 'is-active' : ''} ${pushPrefs.pref_clubs && enabledChannelCount === 1 ? 'is-locked' : ''}`}
+                                                onClick={() => handlePreferenceToggle('pref_clubs')}
+                                                aria-disabled={pushPrefs.pref_clubs && enabledChannelCount === 1}
+                                            >
+                                                <i className="ri-team-line"></i>
+                                                <span>
+                                                    <strong>동호회</strong>
+                                                    <small>동호회 강습과 모임</small>
+                                                </span>
+                                                <em>{pushPrefs.pref_clubs ? '포함' : '제외'}</em>
+                                            </button>
+                                        </div>
+                                    </section>
+                                </>
+                            ) : (
+                                <section className="NSM-section">
+                                    <div className="NSM-sectionHead">
+                                        <span className="NSM-sectionLabel">새 등록 알림 대상</span>
+                                        <span className="NSM-sectionMeta">{newEventChannelCount}/3 선택</span>
+                                    </div>
+
+                                    <div className="NSM-channelList">
+                                        <button
+                                            type="button"
+                                            className={`NSM-channelCard ${pushPrefs.pref_new_event_social ? 'is-active' : ''} ${pushPrefs.pref_new_event_social && newEventChannelCount === 1 ? 'is-locked' : ''}`}
+                                            onClick={() => handleNewEventPreferenceToggle('pref_new_event_social')}
+                                            aria-disabled={pushPrefs.pref_new_event_social && newEventChannelCount === 1}
+                                        >
+                                            <i className="ri-calendar-event-line"></i>
+                                            <span>
+                                                <strong>행사/소셜</strong>
+                                                <small>새 파티, 워크샵, 대회</small>
+                                            </span>
+                                            <em>{pushPrefs.pref_new_event_social ? '포함' : '제외'}</em>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className={`NSM-channelCard ${pushPrefs.pref_new_event_class ? 'is-active' : ''} ${pushPrefs.pref_new_event_class && newEventChannelCount === 1 ? 'is-locked' : ''}`}
+                                            onClick={() => handleNewEventPreferenceToggle('pref_new_event_class')}
+                                            aria-disabled={pushPrefs.pref_new_event_class && newEventChannelCount === 1}
+                                        >
+                                            <i className="ri-graduation-cap-line"></i>
+                                            <span>
+                                                <strong>강습/워크샵</strong>
+                                                <small>새 정규 강습과 특강</small>
+                                            </span>
+                                            <em>{pushPrefs.pref_new_event_class ? '포함' : '제외'}</em>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className={`NSM-channelCard ${pushPrefs.pref_new_event_clubs ? 'is-active' : ''} ${pushPrefs.pref_new_event_clubs && newEventChannelCount === 1 ? 'is-locked' : ''}`}
+                                            onClick={() => handleNewEventPreferenceToggle('pref_new_event_clubs')}
+                                            aria-disabled={pushPrefs.pref_new_event_clubs && newEventChannelCount === 1}
+                                        >
+                                            <i className="ri-team-line"></i>
+                                            <span>
+                                                <strong>동호회</strong>
+                                                <small>새 동호회 강습과 모임</small>
+                                            </span>
+                                            <em>{pushPrefs.pref_new_event_clubs ? '포함' : '제외'}</em>
+                                        </button>
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+
+                        <div className="NSM-detailModalFooter">
+                            <button type="button" onClick={() => setDetailPanel(null)}>완료</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

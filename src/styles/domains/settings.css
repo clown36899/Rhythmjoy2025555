@@ -54,8 +54,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 14px;
     background: var(--bg-surface-translucent);
     border-bottom: 1px solid var(--nsm-border);
+}
+
+.NotificationSettingsModal .NSM-titleBlock {
+    min-width: 0;
 }
 
 .NotificationSettingsModal .NSM-title {
@@ -66,7 +71,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
 }
 
 .NotificationSettingsModal .NSM-title i {
@@ -86,6 +91,13 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.NotificationSettingsModal .NSM-headerControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
 }
 
 .NotificationSettingsModal button {
@@ -351,6 +363,204 @@
 .NotificationSettingsModal .NSM-settingsStack {
     display: grid;
     gap: 14px;
+}
+
+.NotificationSettingsModal .NSM-alertMenu {
+    display: grid;
+    gap: 12px;
+    border: 1px solid var(--nsm-border);
+    border-radius: 14px;
+    background: var(--nsm-item-bg);
+    padding: 14px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.NotificationSettingsModal .NSM-alertMenu.is-enabled {
+    border-color: var(--nsm-active-border);
+    background: linear-gradient(135deg, rgba(79, 131, 255, 0.14), rgba(255, 255, 255, 0.035));
+}
+
+.NotificationSettingsModal .NSM-alertMenuHead {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+}
+
+.NotificationSettingsModal .NSM-alertMenuHead > i {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(79, 131, 255, 0.13);
+    color: var(--nsm-accent);
+    font-size: 1.2rem;
+}
+
+.NotificationSettingsModal .NSM-alertMenu.is-enabled .NSM-alertMenuHead > i {
+    background: rgba(59, 194, 139, 0.14);
+    color: #64d6a4;
+}
+
+.NotificationSettingsModal .NSM-alertMenuHead > span {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.NotificationSettingsModal .NSM-alertMenuHead strong {
+    color: var(--nsm-text);
+    font-size: 1.02rem;
+    font-weight: 950;
+    line-height: 1.2;
+}
+
+.NotificationSettingsModal .NSM-alertMenuHead small {
+    color: var(--nsm-text-muted);
+    font-size: 0.8rem;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.NotificationSettingsModal .NSM-cardSwitch {
+    display: inline-grid;
+    grid-template-columns: auto 56px;
+    align-items: center;
+    gap: 8px;
+    min-width: 104px;
+    border: 0;
+    background: transparent;
+    color: var(--nsm-text-muted);
+    padding: 0;
+    cursor: pointer;
+}
+
+.NotificationSettingsModal .NSM-cardSwitch > span:first-child {
+    font-size: 0.78rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.NotificationSettingsModal .NSM-cardSwitch.is-active > span:first-child {
+    color: #64d6a4;
+}
+
+.NotificationSettingsModal .NSM-cardSwitch:disabled {
+    cursor: wait;
+    opacity: 0.72;
+}
+
+.NotificationSettingsModal .NSM-detailOpenBtn {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 1px solid var(--nsm-soft-border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--nsm-text);
+    padding: 10px 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.NotificationSettingsModal .NSM-detailOpenBtn i {
+    color: var(--nsm-accent);
+    font-size: 1rem;
+}
+
+.NotificationSettingsModal .NSM-detailOpenBtn span {
+    min-width: 0;
+    font-size: 0.9rem;
+    font-weight: 900;
+}
+
+.NotificationSettingsModal .NSM-detailOpenBtn small {
+    color: var(--nsm-text-muted);
+    font-size: 0.76rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.NotificationSettingsModal .NSM-detailModalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-modal-base) + 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.NotificationSettingsModal .NSM-detailModal {
+    width: min(500px, 100%);
+    max-height: min(84dvh, 680px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--nsm-border);
+    border-radius: 16px;
+    background: var(--nsm-container-bg);
+    box-shadow: var(--nsm-glass-shadow);
+}
+
+.NotificationSettingsModal .NSM-detailModalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--nsm-border);
+    background: var(--bg-surface-translucent);
+}
+
+.NotificationSettingsModal .NSM-detailModalHeader h3 {
+    margin: 0;
+    color: var(--nsm-text);
+    font-size: 1.02rem;
+    font-weight: 950;
+    line-height: 1.25;
+}
+
+.NotificationSettingsModal .NSM-detailModalHeader button {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--bg-surface-3);
+    color: var(--nsm-text);
+    cursor: pointer;
+}
+
+.NotificationSettingsModal .NSM-detailModalBody {
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px;
+    overflow-y: auto;
+}
+
+.NotificationSettingsModal .NSM-detailModalFooter {
+    padding: 14px 18px;
+    border-top: 1px solid var(--nsm-border);
+    background: var(--bg-surface-glass);
+}
+
+.NotificationSettingsModal .NSM-detailModalFooter button {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    background: var(--nsm-primary);
+    color: #fff;
+    padding: 13px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    cursor: pointer;
 }
 
 .NotificationSettingsModal .NSM-pwaTip--warning {
@@ -894,15 +1104,25 @@
 }
 
 .NotificationSettingsModal .NSM-footer {
-    padding: 28px;
+    display: grid;
+    gap: 10px;
+    padding: 18px 20px;
     border-top: 1px solid var(--nsm-border);
     background: var(--bg-surface-glass);
 }
 
+.NotificationSettingsModal .NSM-footerHint {
+    margin: 0;
+    color: var(--nsm-text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+}
+
 .NotificationSettingsModal .NSM-saveBtn {
     width: 100%;
-    padding: 18px;
-    border-radius: 18px;
+    padding: 15px;
+    border-radius: 14px;
     border: none;
     background: var(--bg-surface-3);
     color: var(--nsm-text-muted);
@@ -988,6 +1208,88 @@
     .NotificationSettingsModal .NSM-body {
         padding: 14px 16px 16px;
         max-height: calc(92dvh - 130px);
+    }
+
+    .NotificationSettingsModal .NSM-alertMenu {
+        padding: 12px;
+        border-radius: 13px;
+    }
+
+    .NotificationSettingsModal .NSM-alertMenuHead {
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+
+    .NotificationSettingsModal .NSM-alertMenuHead > i {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        font-size: 1.1rem;
+    }
+
+    .NotificationSettingsModal .NSM-alertMenuHead strong {
+        font-size: 0.96rem;
+    }
+
+    .NotificationSettingsModal .NSM-alertMenuHead small {
+        font-size: 0.76rem;
+    }
+
+    .NotificationSettingsModal .NSM-cardSwitch {
+        grid-template-columns: auto 50px;
+        gap: 7px;
+        min-width: 92px;
+    }
+
+    .NotificationSettingsModal .NSM-cardSwitch > span:first-child {
+        font-size: 0.72rem;
+    }
+
+    .NotificationSettingsModal .NSM-cardSwitch .NSM-switch {
+        width: 50px;
+        height: 28px;
+        flex-basis: 50px;
+    }
+
+    .NotificationSettingsModal .NSM-cardSwitch .NSM-switchThumb {
+        width: 20px;
+        height: 20px;
+    }
+
+    .NotificationSettingsModal .NSM-cardSwitch .NSM-switch.is-active .NSM-switchThumb {
+        transform: translateX(22px);
+    }
+
+    .NotificationSettingsModal .NSM-detailOpenBtn {
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        padding: 10px;
+    }
+
+    .NotificationSettingsModal .NSM-detailOpenBtn small {
+        font-size: 0.72rem;
+    }
+
+    .NotificationSettingsModal .NSM-detailModalOverlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .NotificationSettingsModal .NSM-detailModal {
+        width: 100%;
+        max-height: 88dvh;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .NotificationSettingsModal .NSM-detailModalHeader {
+        padding: 14px 16px;
+    }
+
+    .NotificationSettingsModal .NSM-detailModalBody {
+        padding: 14px 16px;
+    }
+
+    .NotificationSettingsModal .NSM-detailModalFooter {
+        padding: 14px 16px max(14px, env(safe-area-inset-bottom));
     }
 
     .NotificationSettingsModal .NSM-introPanel {
