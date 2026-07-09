@@ -9,7 +9,7 @@ import {
     getPushSubscription,
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
-import { SITE_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
+import { HAMBURGER_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { isLegacyIOS } from '../lib/pwaDetect';
 import type { PageAction } from '../contexts/PageActionContext';
@@ -947,7 +947,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                     )}
  
                      {/* 완전 동적 메뉴 렌더링 */}
-                     {SITE_MENU_SECTIONS.map((section, sectionIdx) => (
+                     {HAMBURGER_MENU_SECTIONS.map((section, sectionIdx) => (
                          <div key={`section-${sectionIdx}`}>
                              <div className="SD-sectionTitle">{section.title}</div>
                              {section.items.map((item, itemIdx) => {
