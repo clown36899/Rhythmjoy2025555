@@ -10,6 +10,7 @@ import {
 const DEFAULT_PUBLIC_VAPID_KEY = 'BGI9DEEYcY0HtnDAA6Ae7HJb7bEh5XGSkV3dH7QYzpA5fjyDoVMuwTGQoPa0mcSrIRMyycYStDaaa1nqtwt9Ih0';
 const DEFAULT_DAILY_DIGEST_TIME = '08:30';
 const STALE_PUSH_STATUS_CODES = new Set([404, 410]);
+const PUSH_SEND_TIMEOUT_MS = Math.max(1000, Number(process.env.PUSH_SEND_TIMEOUT_MS || 8000));
 
 function httpError(message, statusCode = 500) {
   const error = new Error(message);
@@ -208,7 +209,10 @@ async function sendPushToRows(rows, payload, source = 'manual') {
     }
 
     try {
-      await webpush.sendNotification(subscription, payload);
+      await webpush.sendNotification(subscription, payload, {
+        TTL: 3600,
+        timeout: PUSH_SEND_TIMEOUT_MS,
+      });
       results.push({
         id: row.id,
         userId: row.user_id,
