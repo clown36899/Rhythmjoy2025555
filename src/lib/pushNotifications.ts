@@ -9,7 +9,8 @@ import { cafe24 } from './cafe24Client';
 
 // 테스트용 공개 VAPID 키 (실제 사용 시 환경 변수로 관리)
 // 실제 키를 생성하려면: npx web-push generate-vapid-keys
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BIngahG6SewkoWiBA5hrItBYVvawKxqvUwazI5uKrph7YJA1tKtzdxpc94Vc8Mz5PtXLifBKmcXzmsgoNTEzSsc';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BGI9DEEYcY0HtnDAA6Ae7HJb7bEh5XGSkV3dH7QYzpA5fjyDoVMuwTGQoPa0mcSrIRMyycYStDaaa1nqtwt9Ih0';
+const VAPID_PUBLIC_KEY_STORAGE_KEY = 'swingenjoy_push_vapid_public_key';
 const PUSH_DEBUG = import.meta.env.VITE_PUSH_DEBUG === 'true';
 const pushDebug = (...args: unknown[]) => {
     if (PUSH_DEBUG) console.debug(...args);
@@ -422,13 +423,28 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
         // 1. Check existing
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) {
-            pushInfo('subscribe existing', getEndpointMeta(existingSub.endpoint));
-            return existingSub;
+            const storedVapidPublicKey = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
+            if (storedVapidPublicKey !== VAPID_PUBLIC_KEY) {
+                pushWarn('subscribe existing key mismatch, recreating subscription', {
+                    hasStoredKey: Boolean(storedVapidPublicKey),
+                    ...getEndpointMeta(existingSub.endpoint),
+                });
+                await existingSub.unsubscribe();
+            } else {
+                pushInfo('subscribe existing', getEndpointMeta(existingSub.endpoint));
+                return existingSub;
+            }
+        }
+
+        const currentSub = await registration.pushManager.getSubscription();
+        if (currentSub) {
+            pushInfo('subscribe existing', getEndpointMeta(currentSub.endpoint));
+            localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, VAPID_PUBLIC_KEY);
+            return currentSub;
         }
 
         // 2. Subscribe (VAPID)
-        const vapidPublicKey = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BIngahG6SewkoWiBA5hrItBYVvawKxqvUwazI5uKrph7YJA1tKtzdxpc94Vc8Mz5PtXLifBKmcXzmsgoNTEzSsc';
-        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
 
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -436,6 +452,7 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
         });
 
         pushInfo('subscribe created', getEndpointMeta(subscription.endpoint));
+        localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, VAPID_PUBLIC_KEY);
         return subscription;
 
     } catch (error: any) {

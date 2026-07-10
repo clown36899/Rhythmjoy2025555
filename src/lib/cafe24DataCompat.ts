@@ -443,6 +443,11 @@ export function createCafe24DataCompat() {
     rpc(name: string, args: Record<string, unknown> = {}) {
       return postJson(`/api/cafe24-rpc/${encodeURIComponent(name)}`, { args });
     },
+    functions: {
+      invoke(name: string, options: { body?: Record<string, unknown> } = {}) {
+        return postJson(`/api/${encodeURIComponent(name)}`, options.body || {});
+      },
+    },
     storage: {
       from(bucket: string) {
         return createStorageBucket(bucket);

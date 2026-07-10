@@ -1,6 +1,7 @@
 import { getMysqlPool } from './mysql-pool.js';
 import { getCurrentUser, requireAdmin } from './auth-api.js';
 import { removeEventUploads } from './upload-cleanup.js';
+import { saveCafe24TableRow } from './generic-data-api.js';
 import {
   attachEventAuthors,
   canManageEvent,
@@ -50,6 +51,43 @@ function normalizeArray(value) {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') return parseJson(value, []);
   return [];
+}
+
+async function enqueueAdminNewEventNotification(event) {
+  const category = String(event.category || event.activity_type || 'event').toLowerCase();
+  const label = category === 'class' || category === 'regular'
+    ? '강습'
+    : category === 'club'
+      ? '동호회'
+      : category === 'social'
+        ? '소셜'
+        : '행사';
+  const dateText = normalizeDate(event.start_date || event.date) || '';
+  const place = event.venue_name || event.location || event.place_name || '장소 미정';
+
+  try {
+    await saveCafe24TableRow('notification_queue', {
+      id: crypto.randomUUID(),
+      title: `새 ${label} 등록`,
+      body: `${event.title || '새 일정'}${dateText ? ` · ${dateText}` : ''} · ${place}`,
+      category,
+      payload: {
+        url: `/calendar?id=${event.id}`,
+        eventId: String(event.id),
+        image: event.image_thumbnail || event.image_medium || event.image || event.image_full || null,
+        adminOnly: true,
+        queueSource: 'event_create_admin_only',
+      },
+      scheduled_at: new Date().toISOString(),
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    }, ['id']);
+  } catch (error) {
+    console.warn('[PushQueue] failed to enqueue admin new event notification', {
+      eventId: event.id,
+      message: error?.message || String(error),
+    });
+  }
 }
 
 function isInRange(event, start, end) {
@@ -442,6 +480,7 @@ export async function createCafe24Event(req, res) {
 
   const event = normalizeEventPayload(req.body, null, user);
   await saveEvent(event);
+  await enqueueAdminNewEventNotification(event);
   res.status(201).json({ ok: true, event: sanitizeEventForViewer((await attachEventAuthors([event]))[0], user) });
 }
 

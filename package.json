@@ -17,6 +17,7 @@
     "start:cafe24": "node server/cafe24/start.js",
     "audit:cafe24": "node scripts/audit-cafe24-only.mjs",
     "cron:cafe24:stats": "node scripts/run-cafe24-cron-refresh-stats.mjs",
+    "cron:cafe24:notifications": "node scripts/run-cafe24-cron-notifications.mjs",
     "test": "vitest",
     "test:ingestion": "node scripts/test-ingestion-standards.mjs",
     "test:ui": "vitest --ui",
@@ -67,7 +68,8 @@
     "react-youtube": "^10.1.0",
     "reactflow": "^11.11.4",
     "sqlite": "^5.1.1",
-    "sqlite3": "^6.0.1"
+    "sqlite3": "^6.0.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

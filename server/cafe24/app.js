@@ -20,6 +20,13 @@ import {
 import { uploadEventImage } from './uploads-api.js';
 import { eventStats, recordAnalytics, siteStats } from './stats-api.js';
 import {
+  dailyDigestCron,
+  notificationQueueCron,
+  processNotificationQueue,
+  sendDailyDigestToAdmins,
+  sendPushNotification,
+} from './push-api.js';
+import {
   cafe24IngestorV3Candidates,
   cafe24IngestorV3RegisterBlocked,
   cafe24IngestorV3ReviewCandidate,
@@ -255,6 +262,11 @@ app.post('/api/analytics/session', jsonBody, jsonRoute(recordAnalytics));
 app.post('/api/diagnostics/reload', jsonBody, jsonRoute(recordClientReloadDiagnostic));
 app.get('/api/diagnostics/reloads', jsonRoute(listClientReloadDiagnostics));
 app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnostics));
+app.post('/api/send-push-notification', jsonBody, jsonRoute(sendPushNotification));
+app.post('/api/admin/push/send-daily-digest-test', jsonBody, jsonRoute(sendDailyDigestToAdmins));
+app.post('/api/admin/push/process-notification-queue', jsonBody, jsonRoute(processNotificationQueue));
+app.all('/api/__cron/daily-digest', jsonBody, jsonRoute(dailyDigestCron));
+app.all('/api/__cron/notification-queue', jsonBody, jsonRoute(notificationQueueCron));
 
 app.all('/api/scraped-events', jsonBody, jsonRoute(cafe24ScrapedEvents));
 app.post('/api/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));

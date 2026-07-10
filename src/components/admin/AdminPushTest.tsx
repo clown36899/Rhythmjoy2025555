@@ -27,7 +27,7 @@ export const AdminPushTest: React.FC = () => {
     const [mySubscriptions, setMySubscriptions] = useState<SubscriptionInfo[]>([]);
     const [subsLoading, setSubsLoading] = useState(false);
     const [fetchingLatest, setFetchingLatest] = useState(false);
-    const [forceError, setForceError] = useState(false); // [New] 고의 에러 유발 옵션
+    const [forceError] = useState(false); // [New] 고의 에러 유발 옵션
 
     // [New] 실제 데이터에서 불러오기 함수
     const fetchLatestData = async (type: 'class' | 'event') => {
@@ -163,9 +163,6 @@ export const AdminPushTest: React.FC = () => {
         return 'Unknown';
     };
 
-    const CLOWN_GMAIL_ID = '91b04b25-7449-4d64-8fc2-4e328b2659ab'; // clown313joy@gmail.com
-    const CLOWN_NAVER_ID = 'b3c11164-3039-42f1-ae53-f0fb1952f969'; // clown313@naver.com (Main Admin)
-
     const handleSendTest = async (targetType: 'me' | 'clown') => {
         setLoading(true);
         setResult(null);
@@ -176,7 +173,7 @@ export const AdminPushTest: React.FC = () => {
             const targetIds = targetType === 'me' ? [user?.id] : [CLOWN_GMAIL_ID, CLOWN_NAVER_ID];
             
             console.log('[AdminPushTest] 🎯 Final Target IDs (Strict):', targetIds);
-            console.log('[AdminPushTest] Sending push via Edge Function...', { targetType, targetIds });
+            console.log('[AdminPushTest] Sending push via Cafe24 server...', { targetType, targetIds });
 
             const results = await Promise.all(targetIds.map(async (tid) => {
                 if (!tid) return null;
@@ -267,6 +264,47 @@ export const AdminPushTest: React.FC = () => {
             setResult(`✅ 큐 등록 성공! (대상: ${targetIds.length}명) 10초 뒤 발송됩니다.`);
         } catch (err: any) {
             setResult(`❌ 큐 등록 실패: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const postAdminPushAction = async (url: string, body?: Record<string, unknown>) => {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(body || {}),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.message || payload?.error || `HTTP ${response.status}`);
+        }
+        return payload;
+    };
+
+    const handleSendDailyDigestTest = async () => {
+        setLoading(true);
+        setResult(null);
+        try {
+            const payload = await postAdminPushAction('/api/admin/push/send-daily-digest-test');
+            const summary = payload?.summary || {};
+            setResult(`오늘 일정 요약 테스트 완료: 대상 ${summary.targets || 0}, 발송 ${summary.sent || 0}, 스킵 ${summary.skipped || 0}`);
+        } catch (err: any) {
+            setResult(`❌ 오늘 일정 요약 실패: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleProcessQueueNow = async () => {
+        setLoading(true);
+        setResult(null);
+        try {
+            const payload = await postAdminPushAction('/api/admin/push/process-notification-queue');
+            setResult(`큐 처리 완료: 처리 ${payload?.processed || 0}건`);
+        } catch (err: any) {
+            setResult(`❌ 큐 처리 실패: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -501,6 +539,57 @@ export const AdminPushTest: React.FC = () => {
                         }}
                     >
                         🤡 즉시 발송 (clown)
+                    </button>
+                    <button
+                        onClick={handleSendDailyDigestTest}
+                        disabled={loading}
+                        style={{
+                            padding: '14px',
+                            background: '#0f766e',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            width: '100%'
+                        }}
+                    >
+                        오늘 일정 요약 즉시 발송
+                    </button>
+                    <button
+                        onClick={() => handleSendDelayedQueueTest('clown')}
+                        disabled={loading}
+                        style={{
+                            padding: '12px',
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            width: '100%'
+                        }}
+                    >
+                        큐 테스트 등록 (10초 뒤)
+                    </button>
+                    <button
+                        onClick={handleProcessQueueNow}
+                        disabled={loading}
+                        style={{
+                            padding: '12px',
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            width: '100%'
+                        }}
+                    >
+                        대기 큐 지금 처리
                     </button>
                 </div>
 

@@ -191,7 +191,7 @@ const detectLegacyAndroidPwaScope = (platform: MobilePlatform, isPwa: boolean) =
 };
 
 export default function NotificationSettingsModal({ isOpen, onClose }: NotificationSettingsModalProps) {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
@@ -243,6 +243,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
     useEffect(() => {
         if (!isOpen) return;
+        if (!isAdmin) return;
 
         setLoggedStatusMessage(null);
         setDetailPanel(null);
@@ -271,9 +272,13 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         }
 
         loadSettings();
-    }, [isOpen]);
+    }, [isOpen, isAdmin]);
 
     const loadSettings = async () => {
+        if (!isAdmin) {
+            console.warn('[NotificationSettingsModal] load skipped non-admin', getRuntimeLogMeta(platform, isRunningInPWA));
+            return;
+        }
         if (!user) {
             console.warn('[NotificationSettingsModal] load skipped no user', getRuntimeLogMeta(platform, isRunningInPWA));
             return;
@@ -479,6 +484,10 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     };
 
     const handleSaveChanges = async () => {
+        if (!isAdmin) {
+            setLoggedStatusMessage({ type: 'error', text: '알림 기능은 관리자 테스트 중입니다.' }, { step: 'save-non-admin' });
+            return;
+        }
         setIsSaving(true);
         setLoggedStatusMessage(null);
         try {
@@ -681,6 +690,36 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const showSaveControls = !isPushLoading && !showInstallGuideOnly;
 
     if (!isOpen) return null;
+
+    if (!isAdmin) {
+        return (
+            <div className="NotificationSettingsModal NSM-overlay" onClick={onClose}>
+                <div className="NSM-container" onClick={e => e.stopPropagation()}>
+                    <div className="NSM-header">
+                        <div className="NSM-titleBlock">
+                            <h2 className="NSM-title"><i className="ri-notification-3-fill"></i> 알림 설정</h2>
+                        </div>
+                        <div className="NSM-headerControls">
+                            <button className="NSM-closeBtn" onClick={onClose} aria-label="닫기">
+                                <i className="ri-close-line"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="NSM-body">
+                        <section className="NSM-permissionPanel">
+                            <div className="NSM-permissionIcon" aria-hidden="true">
+                                <i className="ri-shield-user-line"></i>
+                            </div>
+                            <div className="NSM-permissionCopy">
+                                <strong>관리자 테스트 중</strong>
+                                <small>알림 발송 안정화가 끝날 때까지 관리자 계정에서만 설정하고 받을 수 있습니다.</small>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="NotificationSettingsModal NSM-overlay" onClick={onClose}>

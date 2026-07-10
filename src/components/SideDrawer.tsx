@@ -154,7 +154,10 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
 
     const checkStatus = async () => {
-        if (!user) return;
+        if (!user || !isAdmin) {
+            setIsPushEnabled(false);
+            return;
+        }
         try {
             const sub = await getPushSubscription();
             if (sub) {
@@ -170,7 +173,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
 
     useEffect(() => {
         checkStatus();
-    }, [user]);
+    }, [user, isAdmin]);
 
     // Modals
     const boardManagementModal = useModal('boardManagement');
@@ -586,28 +589,30 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                             <div className="SD-sectionTitle">APP DASHBOARD</div>
                             <div className="SD-pwaContainer">
                                 <PWAInstallButton variant="dashboard" />
-                                <div
-                                    className="SD-menuItem SD-notificationEntry"
-                                    onClick={() => {
-                                        if (user) {
-                                            notificationSettingsModal.open();
-                                        } else {
-                                            onLoginClick();
-                                        }
-                                    }}
-                                    data-analytics-id="notification_settings"
-                                    data-analytics-type="action"
-                                    data-analytics-title="알림 설정"
-                                    data-analytics-section="side_drawer"
-                                >
-                                    <i className="ri-notification-3-fill"></i>
-                                    <div className="SD-menuLabelWithStatus">
-                                        <span>알림 설정</span>
-                                        <span className={`SD-statusDot ${isPushEnabled ? 'is-active' : ''}`}>
-                                            {isPushEnabled ? 'ON' : 'OFF'}
-                                        </span>
+                                {isAdmin && (
+                                    <div
+                                        className="SD-menuItem SD-notificationEntry"
+                                        onClick={() => {
+                                            if (user) {
+                                                notificationSettingsModal.open();
+                                            } else {
+                                                onLoginClick();
+                                            }
+                                        }}
+                                        data-analytics-id="notification_settings"
+                                        data-analytics-type="action"
+                                        data-analytics-title="알림 설정"
+                                        data-analytics-section="side_drawer"
+                                    >
+                                        <i className="ri-notification-3-fill"></i>
+                                        <div className="SD-menuLabelWithStatus">
+                                            <span>알림 설정</span>
+                                            <span className={`SD-statusDot ${isPushEnabled ? 'is-active' : ''}`}>
+                                                {isPushEnabled ? 'ON' : 'OFF'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 <div
                                     className="SD-menuItem SD-themeEntry"

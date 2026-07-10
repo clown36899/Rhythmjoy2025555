@@ -2595,6 +2595,16 @@ async function handlePushSubscription(args = {}, user = null) {
     throw error;
   }
 
+  if (!user.is_admin) {
+    console.warn('[PushSaveServer] rejected non-admin user', {
+      userId: user.id,
+      hasEndpoint: Boolean(args.p_endpoint || args.endpoint),
+    });
+    const error = new Error('알림 기능은 관리자 테스트 중입니다. 일반 사용자에게는 아직 제공되지 않습니다.');
+    error.statusCode = 403;
+    throw error;
+  }
+
   const endpoint = args.p_endpoint || args.endpoint;
   if (!endpoint) {
     console.warn('[PushSaveServer] rejected missing endpoint', {
@@ -2657,7 +2667,7 @@ async function handlePushSubscription(args = {}, user = null) {
     subscription: subscriptionPayload,
     user_id: user.id,
     user_agent: args.p_user_agent || args.user_agent || null,
-    is_admin: Boolean(args.p_is_admin ?? args.is_admin ?? user.is_admin),
+    is_admin: true,
     pref_today_digest: finalPrefs.pref_today_digest,
     pref_new_event_alerts: finalPrefs.pref_new_event_alerts,
     pref_events: finalPrefs.pref_events,
