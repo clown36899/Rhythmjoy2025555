@@ -5,7 +5,6 @@ import {
     saveSubscriptionToDataStore,
     unsubscribeFromPush,
     getPushPreferences,
-    updatePushPreferences,
     verifySubscriptionOwnership,
     getNotificationPermission,
     requestNotificationPermission,
@@ -535,92 +534,64 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 return;
             }
 
-            let shouldUpdateExistingPreferences = isPushEnabled;
-            if (isPushEnabled !== originalPushEnabled) {
-                if (isPushEnabled) {
-                    console.info('[NotificationSettingsModal] save new subscription flow', getRuntimeLogMeta(platform, isRunningInPWA));
-                    const { support, permission: currentPermission } = refreshPushEnvironment('save-before-permission');
-                    if (!support.supported) {
-                        setLoggedStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) }, { step: 'save-unsupported' });
-                        setIsPushEnabled(false);
-                        return;
-                    }
-
-                    if (currentPermission === 'denied') {
-                        setLoggedStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) }, { step: 'save-denied-before-request' });
-                        setIsPushEnabled(false);
-                        return;
-                    }
-
-                    if (currentPermission === 'default') {
-                        console.warn('[NotificationSettingsModal] save blocked permission still default', getRuntimeLogMeta(platform, isRunningInPWA));
-                        setLoggedStatusMessage({ type: 'error', text: '알림 권한이 아직 허용되지 않았습니다. 알림 스위치를 다시 켜서 권한을 먼저 허용해주세요.' }, {
-                            step: 'save-permission-default',
-                        });
-                        setIsPushEnabled(false);
-                        return;
-                    }
-
-                    console.info('[NotificationSettingsModal] existing subscription lookup before save', getRuntimeLogMeta(platform, isRunningInPWA));
-                    let sub = await getPushSubscription();
-                    console.info('[NotificationSettingsModal] existing subscription lookup after save', {
-                        hasSubscription: Boolean(sub),
-                        ...getRuntimeLogMeta(platform, isRunningInPWA),
-                    });
-                    if (!sub) {
-                        console.warn('[NotificationSettingsModal] subscription missing at save, attempting repair', getRuntimeLogMeta(platform, isRunningInPWA));
-                        sub = await subscribeToPush();
-                        console.info('[NotificationSettingsModal] subscription repair after save', {
-                            hasSubscription: Boolean(sub),
-                            ...getRuntimeLogMeta(platform, isRunningInPWA),
-                        });
-                    }
-                    if (!sub) {
-                        const latestPermission = getNotificationPermission();
-                        setPermissionStatus(latestPermission);
-                        setLoggedStatusMessage({
-                            type: 'error',
-                            text: latestPermission === 'denied'
-                                ? getPermissionBlockedMessage(platform)
-                                : '브라우저가 푸시 구독을 거부했습니다. Chrome 사이트 설정과 휴대폰의 Chrome 알림 권한을 확인해주세요.',
-                        }, { step: 'save-subscribe-missing', latestPermission });
-                        setIsPushEnabled(false);
-                        return;
-                    }
-                    // 명시적 비활성화 플래그 해제 (사용자가 다시 켰으므로 자동 재구독 허용)
-                    localStorage.removeItem('push_explicitly_disabled');
-                    console.info('[NotificationSettingsModal] datastore save before', getRuntimeLogMeta(platform, isRunningInPWA));
-                    const saved = await saveSubscriptionToDataStore(sub, prefsToSave);
-                    if (!saved) {
-                        console.warn('[NotificationSettingsModal] save returned false');
-                        setLoggedStatusMessage({ type: 'error', text: '알림 설정을 서버에 저장하지 못했습니다.' }, { step: 'save-datastore-false' });
-                        return;
-                    }
-                    console.info('[NotificationSettingsModal] datastore save after', getRuntimeLogMeta(platform, isRunningInPWA));
-                    shouldUpdateExistingPreferences = false;
-                } else {
-                    console.info('[NotificationSettingsModal] unsubscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
-                    await unsubscribeFromPush();
-                    console.info('[NotificationSettingsModal] unsubscribe after save', getRuntimeLogMeta(platform, isRunningInPWA));
-                    shouldUpdateExistingPreferences = false;
-                }
-            }
-
-            if (shouldUpdateExistingPreferences) {
-                console.info('[NotificationSettingsModal] update existing before', getRuntimeLogMeta(platform, isRunningInPWA));
-                const updated = await updatePushPreferences(prefsToSave);
-                console.info('[NotificationSettingsModal] update existing after', {
-                    updated,
+            if (isPushEnabled) {
+                console.info('[NotificationSettingsModal] save subscription upsert flow', {
+                    originalPushEnabled,
                     ...getRuntimeLogMeta(platform, isRunningInPWA),
                 });
-                if (!updated) {
-                    console.warn('[NotificationSettingsModal] update existing preferences failed');
-                    setLoggedStatusMessage({
-                        type: 'error',
-                        text: '기존 알림 구독을 찾지 못해 설정을 저장하지 못했습니다. 알림을 껐다가 다시 켜주세요.',
-                    }, { step: 'save-update-existing-false' });
+                const { support, permission: currentPermission } = refreshPushEnvironment('save-before-permission');
+                if (!support.supported) {
+                    setLoggedStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) }, { step: 'save-unsupported' });
+                    setIsPushEnabled(false);
                     return;
                 }
+
+                if (currentPermission === 'denied') {
+                    setLoggedStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) }, { step: 'save-denied-before-request' });
+                    setIsPushEnabled(false);
+                    return;
+                }
+
+                if (currentPermission === 'default') {
+                    console.warn('[NotificationSettingsModal] save blocked permission still default', getRuntimeLogMeta(platform, isRunningInPWA));
+                    setLoggedStatusMessage({ type: 'error', text: '알림 권한이 아직 허용되지 않았습니다. 알림 스위치를 다시 켜서 권한을 먼저 허용해주세요.' }, {
+                        step: 'save-permission-default',
+                    });
+                    setIsPushEnabled(false);
+                    return;
+                }
+
+                console.info('[NotificationSettingsModal] subscription upsert before save', getRuntimeLogMeta(platform, isRunningInPWA));
+                const sub = await subscribeToPush();
+                console.info('[NotificationSettingsModal] subscription upsert after save', {
+                    hasSubscription: Boolean(sub),
+                    ...getRuntimeLogMeta(platform, isRunningInPWA),
+                });
+                if (!sub) {
+                    const latestPermission = getNotificationPermission();
+                    setPermissionStatus(latestPermission);
+                    setLoggedStatusMessage({
+                        type: 'error',
+                        text: latestPermission === 'denied'
+                            ? getPermissionBlockedMessage(platform)
+                            : '브라우저가 푸시 구독을 거부했습니다. Chrome 사이트 설정과 휴대폰의 Chrome 알림 권한을 확인해주세요.',
+                    }, { step: 'save-subscribe-missing', latestPermission });
+                    setIsPushEnabled(false);
+                    return;
+                }
+                localStorage.removeItem('push_explicitly_disabled');
+                console.info('[NotificationSettingsModal] datastore save before', getRuntimeLogMeta(platform, isRunningInPWA));
+                const saved = await saveSubscriptionToDataStore(sub, prefsToSave);
+                if (!saved) {
+                    console.warn('[NotificationSettingsModal] save returned false');
+                    setLoggedStatusMessage({ type: 'error', text: '알림 설정을 서버에 저장하지 못했습니다.' }, { step: 'save-datastore-false' });
+                    return;
+                }
+                console.info('[NotificationSettingsModal] datastore save after', getRuntimeLogMeta(platform, isRunningInPWA));
+            } else if (isPushEnabled !== originalPushEnabled) {
+                console.info('[NotificationSettingsModal] unsubscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
+                await unsubscribeFromPush();
+                console.info('[NotificationSettingsModal] unsubscribe after save', getRuntimeLogMeta(platform, isRunningInPWA));
             }
 
             console.info('[NotificationSettingsModal] save success');
