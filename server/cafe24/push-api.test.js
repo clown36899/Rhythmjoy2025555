@@ -112,6 +112,27 @@ describe('Cafe24 push delivery admin targeting', () => {
     }));
   });
 
+  it('deletes stale subscriptions when FCM reports expired or VAPID mismatch', async () => {
+    const expired = subscription('admin-expired', 'admin-a', true);
+    const mismatched = subscription('admin-mismatch', 'admin-b', true);
+    mocks.loadCafe24TableRows.mockResolvedValue([expired, mismatched]);
+    mocks.sendNotification
+      .mockRejectedValueOnce({ statusCode: 410, body: 'push subscription has unsubscribed or expired.' })
+      .mockRejectedValueOnce({
+        statusCode: 403,
+        body: 'the VAPID credentials in the authorization header do not correspond to the credentials used to create the subscriptions.',
+      });
+
+    const { sendPushNotification } = await import('./push-api.js');
+    const res = jsonResponse();
+    await sendPushNotification({ body: { title: '테스트' } }, res);
+
+    expect(mocks.deleteCafe24TableRows).toHaveBeenCalledWith('user_push_subscriptions', [expired, mismatched]);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      summary: expect.objectContaining({ targets: 2, success: 0, failure: 2, staleDeleted: 2 }),
+    }));
+  });
+
   it('processes queued new-event notifications only for admins with that route enabled', async () => {
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {

@@ -11,6 +11,7 @@ const DEFAULT_PUBLIC_VAPID_KEY = 'BGI9DEEYcY0HtnDAA6Ae7HJb7bEh5XGSkV3dH7QYzpA5fj
 const DEFAULT_DAILY_DIGEST_TIME = '08:30';
 const STALE_PUSH_STATUS_CODES = new Set([404, 410]);
 const PUSH_SEND_TIMEOUT_MS = Math.max(1000, Number(process.env.PUSH_SEND_TIMEOUT_MS || 8000));
+const VAPID_MISMATCH_RE = /vapid credentials.*do not correspond/i;
 
 function httpError(message, statusCode = 500) {
   const error = new Error(message);
@@ -152,6 +153,11 @@ function endpointMeta(endpoint = '') {
   }
 }
 
+function isStalePushError(statusCode, message) {
+  if (STALE_PUSH_STATUS_CODES.has(statusCode)) return true;
+  return statusCode === 403 && VAPID_MISMATCH_RE.test(String(message || ''));
+}
+
 function getVapidConfig() {
   const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_PUBLIC_VAPID_KEY || DEFAULT_PUBLIC_VAPID_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY || process.env.WEB_PUSH_PRIVATE_KEY || '';
@@ -221,13 +227,14 @@ async function sendPushToRows(rows, payload, source = 'manual') {
       });
     } catch (error) {
       const statusCode = Number(error?.statusCode || error?.status || 0);
-      if (STALE_PUSH_STATUS_CODES.has(statusCode)) staleRows.push(row);
+      const message = error?.body || error?.message || String(error);
+      if (isStalePushError(statusCode, message)) staleRows.push(row);
       results.push({
         id: row.id,
         userId: row.user_id,
         status: 'failed',
         statusCode,
-        message: error?.body || error?.message || String(error),
+        message,
         ...endpointMeta(subscription.endpoint),
       });
     }
