@@ -53,7 +53,7 @@ function normalizeArray(value) {
   return [];
 }
 
-async function enqueueAdminNewEventNotification(event) {
+async function enqueueNewEventNotification(event) {
   const category = String(event.category || event.activity_type || 'event').toLowerCase();
   const label = category === 'class' || category === 'regular'
     ? '강습'
@@ -75,15 +75,14 @@ async function enqueueAdminNewEventNotification(event) {
         url: `/calendar?id=${event.id}`,
         eventId: String(event.id),
         image: event.image_thumbnail || event.image_medium || event.image || event.image_full || null,
-        adminOnly: true,
-        queueSource: 'event_create_admin_only',
+        queueSource: 'event_create',
       },
       scheduled_at: new Date().toISOString(),
       status: 'pending',
       created_at: new Date().toISOString(),
     }, ['id']);
   } catch (error) {
-    console.warn('[PushQueue] failed to enqueue admin new event notification', {
+    console.warn('[PushQueue] failed to enqueue new event notification', {
       eventId: event.id,
       message: error?.message || String(error),
     });
@@ -480,7 +479,7 @@ export async function createCafe24Event(req, res) {
 
   const event = normalizeEventPayload(req.body, null, user);
   await saveEvent(event);
-  await enqueueAdminNewEventNotification(event);
+  await enqueueNewEventNotification(event);
   res.status(201).json({ ok: true, event: sanitizeEventForViewer((await attachEventAuthors([event]))[0], user) });
 }
 

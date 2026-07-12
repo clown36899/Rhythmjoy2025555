@@ -19,6 +19,11 @@ import { AppNoticeToast } from './components/common/AppNoticeToast';
 import KioskModeController from './components/KioskModeController';
 
 import { notificationStore } from './lib/notificationStore';
+import {
+  getSiteNotifications,
+  markSiteNotificationsRead,
+  SITE_NOTIFICATION_INBOX_EVENT,
+} from './lib/siteNotificationInbox';
 import { useModalActions, useModalState } from './contexts/ModalContext';
 import { CALENDAR_EVENTS_QUERY_VERSION, getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
 import LocalLoading from './components/LocalLoading';
@@ -91,7 +96,6 @@ function AppContent() {
     };
   }, [location.pathname]);
 
-  const { isAdmin } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
   const [pwaModalInitialPrefs, setPwaModalInitialPrefs] = useState<{
     pref_events: boolean; pref_class: boolean; pref_clubs: boolean;
@@ -135,8 +139,15 @@ function AppContent() {
         if (currentCount > 0 || forceOpen || isModalAlreadyOpen) {
           const notifProps = {
             notifications: unread,
-            onRefresh: () => loadUnreadNotifications(false)
+            siteNotifications: getSiteNotifications(),
+            onRefresh: () => loadUnreadNotifications(false),
+            onOpenNotificationSettings: () => openModal('notificationSettings'),
           };
+          if (forceOpen) {
+            await notificationStore.markAllAsRead();
+            markSiteNotificationsRead();
+            window.dispatchEvent(new CustomEvent(SITE_NOTIFICATION_INBOX_EVENT));
+          }
           // [Bug Fix] notificationHistory 위에 다른 모달(eventDetail 등)이 올라와 있을 때
           // openModal을 호출하면 notificationHistory가 스택 최상위로 이동해 eventDetail을 가림.
           // 이 경우 props만 업데이트하고 스택 순서는 유지 (백그라운드 갱신).

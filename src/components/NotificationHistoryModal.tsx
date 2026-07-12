@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationStore } from '../lib/notificationStore';
 import type { NotificationRecord } from '../lib/notificationStore';
+import type { SiteNotificationItem } from '../lib/siteNotificationInbox';
 import { useModalActions } from '../contexts/ModalContext';
 import { cafe24 } from '../lib/cafe24Client';
 import "../styles/components/NotificationHistoryModal.css";
@@ -11,6 +12,8 @@ interface NotificationHistoryModalProps {
     onClose: () => void;
     notifications: NotificationRecord[];
     onRefresh: () => void;
+    siteNotifications?: SiteNotificationItem[];
+    onOpenNotificationSettings?: () => void;
 }
 
 interface NotificationDisplayItem {
@@ -85,7 +88,9 @@ export default function NotificationHistoryModal({
     isOpen,
     onClose,
     notifications,
-    onRefresh
+    onRefresh,
+    siteNotifications = [],
+    onOpenNotificationSettings,
 }: NotificationHistoryModalProps) {
     const navigate = useNavigate();
     const { openModal } = useModalActions();
@@ -159,6 +164,15 @@ export default function NotificationHistoryModal({
     }, [displayItems, eventPreviews, isOpen]);
 
     if (!isOpen) return null;
+
+    const totalDisplayCount = displayItems.length + siteNotifications.length;
+
+    const handleSiteNotificationClick = (item: SiteNotificationItem) => {
+        if (item.action === 'open-notification-settings') {
+            onClose();
+            onOpenNotificationSettings?.();
+        }
+    };
 
     const openEventFromItem = async (item: NotificationDisplayItem) => {
         if (!item.eventId) return false;
@@ -242,7 +256,6 @@ export default function NotificationHistoryModal({
     const handleClose = () => {
         onRefresh();
         onClose();
-        window.dispatchEvent(new CustomEvent('goToToday'));
     };
 
     const handleMarkAllRead = async () => {
@@ -262,7 +275,7 @@ export default function NotificationHistoryModal({
                     <div>
                         <p className="nhm-eyebrow">Notification</p>
                         <h3 className="nhm-title">
-                            새로운 알림 {displayItems.length > 0 && `(${displayItems.length})`}
+                            알림함 {totalDisplayCount > 0 && `(${totalDisplayCount})`}
                         </h3>
                     </div>
                     <button onClick={handleClose} className="nhm-close-btn" aria-label="알림 닫기">
@@ -271,13 +284,48 @@ export default function NotificationHistoryModal({
                 </div>
 
                 <div className="nhm-body">
-                    {displayItems.length === 0 ? (
+                    {totalDisplayCount === 0 ? (
                         <div className="nhm-empty">
                             <i className="ri-notification-3-line nhm-empty-icon"></i>
                             새로운 알림이 없습니다.
                         </div>
                     ) : (
                         <div className="nhm-list">
+                            {siteNotifications.length > 0 && (
+                                <section className="nhm-section">
+                                    <div className="nhm-section-title">사이트 공지</div>
+                                    <div className="nhm-site-list">
+                                        {siteNotifications.map((item) => (
+                                            <button
+                                                type="button"
+                                                key={item.id}
+                                                onClick={() => handleSiteNotificationClick(item)}
+                                                className="nhm-site-card"
+                                            >
+                                                <span className="nhm-site-icon" aria-hidden="true">
+                                                    <i className={item.icon}></i>
+                                                </span>
+                                                <span className="nhm-site-content">
+                                                    <strong>{item.title}</strong>
+                                                    <small>{item.body}</small>
+                                                    <span>{item.detail}</span>
+                                                    {item.actionLabel && (
+                                                        <em>
+                                                            {item.actionLabel}
+                                                            <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+                                                        </em>
+                                                    )}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+
+                            {displayItems.length > 0 && (
+                                <div className="nhm-section-title">수신 알림</div>
+                            )}
+
                             {displayItems.map((item) => {
                                 const preview = item.eventId ? eventPreviews[item.eventId] : undefined;
                                 const title = preview?.title || item.title;
@@ -315,7 +363,7 @@ export default function NotificationHistoryModal({
                     )}
                 </div>
 
-                {notifications.length > 0 && (
+                {totalDisplayCount > 0 && (
                     <div className="nhm-footer">
                         <button
                             onClick={handleMarkAllRead}

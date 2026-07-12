@@ -172,14 +172,28 @@ function getVapidConfig() {
 }
 
 async function loadAdminSubscriptions() {
-  const rows = await loadCafe24TableRows('user_push_subscriptions');
+  const rows = await loadPushSubscriptions();
   const pool = getMysqlPool();
   const [adminUsers] = await pool.execute('SELECT id FROM users WHERE is_admin = 1');
   const adminUserIds = new Set(adminUsers.map((row) => String(row.id)));
   return rows.filter((row) => asBool(row.is_admin) || adminUserIds.has(String(row.user_id || '')));
 }
 
-function buildPayload({ title, body, url = '/', image = null, tag = 'swingenjoy-admin-test', data = {} }) {
+async function loadPushSubscriptions() {
+  return await loadCafe24TableRows('user_push_subscriptions');
+}
+
+function buildPayload({ title, body, url = '/', image = null, tag = 'swingenjoy-notification', adminOnly = false, data = {} }) {
+  const payloadData = {
+    url,
+    ...data,
+  };
+  if (adminOnly || data.adminOnly === true) {
+    payloadData.adminOnly = true;
+  } else {
+    delete payloadData.adminOnly;
+  }
+
   return JSON.stringify({
     title: title || '댄스빌보드 알림',
     body: body || '',
@@ -188,11 +202,7 @@ function buildPayload({ title, body, url = '/', image = null, tag = 'swingenjoy-
     image: image || undefined,
     tag,
     renotify: true,
-    data: {
-      url,
-      adminOnly: true,
-      ...data,
-    },
+    data: payloadData,
   });
 }
 
@@ -285,6 +295,7 @@ export async function sendPushNotification(req, res) {
     url: body.url || '/',
     image: body.image,
     tag: body.tag || 'swingenjoy-admin-test',
+    adminOnly: true,
     data: {
       category: body.category || null,
       genre: body.genre || null,
@@ -319,7 +330,7 @@ function buildDailyDigestPayload(events, dateKey) {
     tag: `daily-schedule-${dateKey}`,
     data: {
       kind: 'daily_schedule_morning',
-      queueSource: 'daily_schedule_morning_admin_test',
+      queueSource: 'daily_schedule_morning',
       date: dateKey,
       count: sorted.length,
       items: sorted.slice(0, 8).map((event, index) => ({
@@ -375,13 +386,14 @@ export async function sendDailyDigestToAdmins(req, res) {
   });
 }
 
-async function processDueNotificationQueue(source = 'notification_queue_admin_only') {
+async function processDueNotificationQueue(source = 'notification_queue') {
   const now = new Date().toISOString();
   const queueRows = (await loadCafe24TableRows('notification_queue'))
     .filter((row) => String(row.status || 'pending') === 'pending')
     .filter((row) => !row.scheduled_at || String(row.scheduled_at) <= now)
     .slice(0, 20);
 
+  const allRows = await loadPushSubscriptions();
   const adminRows = await loadAdminSubscriptions();
   const processed = [];
 
@@ -392,9 +404,10 @@ async function processDueNotificationQueue(source = 'notification_queue_admin_on
       category: queueRow.category || payloadData?.category,
       activity_type: queueRow.category || payloadData?.category,
     };
+    const baseRows = payloadData?.adminOnly === true ? adminRows : allRows;
     const targetRows = (requestedUserId
-      ? adminRows.filter((row) => String(row.user_id || '') === requestedUserId)
-      : adminRows
+      ? baseRows.filter((row) => String(row.user_id || '') === requestedUserId)
+      : baseRows
     ).filter((row) => {
       const prefs = getStoredPreferences(row);
       return asBool(prefs.pref_new_event_alerts) && eventMatchesNewEventPrefs(eventLike, prefs);
@@ -458,7 +471,7 @@ export async function processNotificationQueue(req, res) {
   const processed = await processDueNotificationQueue('notification_queue_admin_button');
   res.json({
     status: 'ok',
-    adminOnly: true,
+    adminOnly: false,
     processed: processed.length,
     items: processed,
   });
@@ -469,7 +482,7 @@ export async function dailyDigestCron(req, res) {
 
   const now = kstDateParts();
   const allEvents = await loadCafe24TableRows('events');
-  const adminRows = (await loadAdminSubscriptions()).filter((row) => {
+  const targetRows = (await loadPushSubscriptions()).filter((row) => {
     const prefs = getStoredPreferences(row);
     return asBool(prefs.pref_today_digest)
       && prefs.pref_digest_time === now.timeKey
@@ -478,32 +491,32 @@ export async function dailyDigestCron(req, res) {
   });
 
   const sentRows = [];
-  for (const row of adminRows) {
+  for (const row of targetRows) {
     const prefs = getStoredPreferences(row);
     const events = allEvents
       .filter((event) => eventOccursOnDate(event, now.dateKey))
       .filter((event) => eventMatchesDigestPrefs(event, prefs));
     if (events.length === 0 && asBool(prefs.pref_only_with_events)) continue;
     const payload = buildDailyDigestPayload(events, now.dateKey);
-    sentRows.push(await sendPushToRows([row], payload, 'daily_schedule_morning_cron_admin_only'));
+    sentRows.push(await sendPushToRows([row], payload, 'daily_schedule_morning_cron'));
   }
 
   res.json({
     status: 'ok',
-    adminOnly: true,
+    adminOnly: false,
     date: now.dateKey,
     time: now.timeKey,
-    targets: adminRows.length,
+    targets: targetRows.length,
     sent: sentRows.reduce((sum, item) => sum + item.summary.success, 0),
   });
 }
 
 export async function notificationQueueCron(req, res) {
   assertCronAccess(req);
-  const processed = await processDueNotificationQueue('notification_queue_cron_admin_only');
+  const processed = await processDueNotificationQueue('notification_queue_cron');
   res.json({
     status: 'ok',
-    adminOnly: true,
+    adminOnly: false,
     processed: processed.length,
     items: processed,
   });

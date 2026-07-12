@@ -523,6 +523,32 @@
   position: relative;
 }
 
+.header-notification-btn.has-unread {
+  border-color: rgba(96, 165, 250, 0.72);
+  color: #fff;
+}
+
+.header-notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  min-width: 17px;
+  height: 17px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--shell-page-bg, #1c1c1d);
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
 .header-notification-btn:hover,
 .header-search-btn:hover {
   opacity: 0.78;
@@ -2015,6 +2041,7 @@ html.v2-home-mode #root {
 }
 
 .v2-home-shell .header-search-btn,
+.v2-home-shell .header-notification-btn,
 .v2-home-shell .header-translate-btn {
   background: #030305;
   border-color: rgba(255, 255, 255, 0.28);

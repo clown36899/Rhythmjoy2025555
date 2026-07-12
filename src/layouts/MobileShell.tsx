@@ -7,12 +7,18 @@ import SideDrawer from '../components/SideDrawer';
 import { useTranslation } from 'react-i18next';
 import { logUserInteraction } from '../lib/analytics';
 import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
-import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
+import { notificationStore } from '../lib/notificationStore';
+import {
+  getSiteNotifications,
+  getUnreadSiteNotifications,
+  markSiteNotificationsRead,
+  SITE_NOTIFICATION_INBOX_EVENT,
+} from '../lib/siteNotificationInbox';
 import '../styles/components/MobileShell.css';
 
 type CalendarHeaderDisplayMode = 'calendar' | 'list' | 'map';
@@ -43,12 +49,14 @@ export const MobileShell: React.FC = () => {
   const globalSearchModal = useModal('globalSearch');
 
   const notificationSettingsModal = useModal('notificationSettings');
+  const notificationHistoryModal = useModal('notificationHistory');
   const { isGlobalLoading, globalLoadingMessage } = useLoading();
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   const [calendarHeaderDisplayMode, setCalendarHeaderDisplayMode] = useState<CalendarHeaderDisplayMode>(() => getCalendarHeaderDisplayMode(location.search));
   const [isTranslationPending, setIsTranslationPending] = useState(false);
   const [translationErrorMessage, setTranslationErrorMessage] = useState('');
   const [hasBrowserTranslation, setHasBrowserTranslation] = useState(false);
+  const [notificationBadgeCount, setNotificationBadgeCount] = useState(0);
   const isTranslationPendingRef = useRef(false);
   const didAutoApplyInitialTranslationRef = useRef(false);
   const translateButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -401,6 +409,67 @@ export const MobileShell: React.FC = () => {
     notificationSettingsModal.open();
   }, [notificationSettingsModal, openLoginOrKioskGuide, user]);
 
+  const refreshNotificationBadgeCount = useCallback(async () => {
+    try {
+      const unreadPushNotifications = await notificationStore.getUnread();
+      setNotificationBadgeCount(unreadPushNotifications.length + getUnreadSiteNotifications().length);
+    } catch (error) {
+      console.warn('[MobileShell] Failed to refresh notification badge:', error);
+      setNotificationBadgeCount(getUnreadSiteNotifications().length);
+    }
+  }, []);
+
+  useEffect(() => {
+    const refreshSoon = () => {
+      window.setTimeout(() => {
+        void refreshNotificationBadgeCount();
+      }, 120);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshSoon();
+    };
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PUSH_DEBUG') refreshSoon();
+    };
+
+    void refreshNotificationBadgeCount();
+    window.addEventListener(SITE_NOTIFICATION_INBOX_EVENT, refreshSoon);
+    window.addEventListener('focus', refreshSoon);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
+    return () => {
+      window.removeEventListener(SITE_NOTIFICATION_INBOX_EVENT, refreshSoon);
+      window.removeEventListener('focus', refreshSoon);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, [refreshNotificationBadgeCount]);
+
+  const handleNotificationInboxClick = useCallback(async () => {
+    let unreadPushNotifications: Awaited<ReturnType<typeof notificationStore.getUnread>> = [];
+    try {
+      unreadPushNotifications = await notificationStore.getUnread();
+    } catch (error) {
+      console.warn('[MobileShell] Failed to load notification inbox:', error);
+    }
+
+    notificationHistoryModal.open({
+      notifications: unreadPushNotifications,
+      siteNotifications: getSiteNotifications(),
+      onRefresh: refreshNotificationBadgeCount,
+      onOpenNotificationSettings: handleNotificationSettingsClick,
+    });
+
+    if (unreadPushNotifications.length > 0) {
+      await notificationStore.markAllAsRead();
+    }
+    if (getUnreadSiteNotifications().length > 0) {
+      markSiteNotificationsRead();
+    }
+    setNotificationBadgeCount(0);
+  }, [handleNotificationSettingsClick, notificationHistoryModal, refreshNotificationBadgeCount]);
+
   const isEnglishTranslationActive = i18n.language?.startsWith('en') || hasBrowserTranslation;
   const translateButtonClassName = [
     'header-translate-btn',
@@ -694,16 +763,21 @@ export const MobileShell: React.FC = () => {
               </button>
 
               <button
-                className="header-notification-btn"
-                onClick={handleNotificationSettingsClick}
-                title="알림 설정"
-                aria-label="알림 설정"
-                data-analytics-id="header_notification_settings"
+                className={`header-notification-btn ${notificationBadgeCount > 0 ? 'has-unread' : ''}`}
+                onClick={handleNotificationInboxClick}
+                title="알림함"
+                aria-label={`알림함${notificationBadgeCount > 0 ? `, 새 알림 ${notificationBadgeCount}개` : ''}`}
+                data-analytics-id="header_notification_inbox"
                 data-analytics-type="action"
-                data-analytics-title="알림 설정"
+                data-analytics-title="알림함"
                 data-analytics-section="header"
               >
                 <i className="ri-notification-3-line"></i>
+                {notificationBadgeCount > 0 && (
+                  <span className="header-notification-badge" aria-hidden="true">
+                    {notificationBadgeCount > 99 ? '99+' : notificationBadgeCount}
+                  </span>
+                )}
               </button>
 
               <button
@@ -800,7 +874,6 @@ export const MobileShell: React.FC = () => {
         message={isAuthProcessing ? (isLoggingOut ? "로그아웃 중..." : "로그인 중...") : globalLoadingMessage}
         onCancel={isAuthProcessing ? cancelAuth : undefined}
       />
-      <GlobalNoticePopup />
     </div >
   );
 };

@@ -58,7 +58,7 @@ const jsonResponse = () => {
   return res;
 };
 
-describe('Cafe24 push delivery admin targeting', () => {
+describe('Cafe24 push delivery targeting', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
@@ -133,7 +133,7 @@ describe('Cafe24 push delivery admin targeting', () => {
     }));
   });
 
-  it('processes queued new-event notifications only for admins with that route enabled', async () => {
+  it('processes queued new-event notifications for subscribers with that route enabled', async () => {
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
         return [
@@ -160,15 +160,19 @@ describe('Cafe24 push delivery admin targeting', () => {
     const res = jsonResponse();
     await processNotificationQueue({ body: {} }, res);
 
-    expect(mocks.sendNotification).toHaveBeenCalledTimes(1);
-    expect(mocks.sendNotification.mock.calls[0][0].endpoint).toBe('https://fcm.googleapis.com/fcm/send/admin-enabled');
+    expect(mocks.sendNotification).toHaveBeenCalledTimes(2);
+    const sentEndpoints = mocks.sendNotification.mock.calls.map(([sub]) => sub.endpoint);
+    expect(sentEndpoints).toEqual([
+      'https://fcm.googleapis.com/fcm/send/admin-enabled',
+      'https://fcm.googleapis.com/fcm/send/user-enabled',
+    ]);
     expect(mocks.saveCafe24TableRow).toHaveBeenCalledWith(
       'notification_queue',
       expect.objectContaining({ id: 'queue-1', status: 'sent' }),
       ['id'],
     );
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      adminOnly: true,
+      adminOnly: false,
       processed: 1,
     }));
   });
