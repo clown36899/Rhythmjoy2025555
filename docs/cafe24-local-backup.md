@@ -37,6 +37,24 @@ Cafe24 운영 서버를 이 Mac으로 내려받는 로컬 백업 절차입니다
 bash /Users/inteyeo/Rhythmjoy2025555-5/scripts/backup-cafe24-to-local.sh
 ```
 
+## 정상성 점검
+
+최신 백업의 DB 덤프와 체크섬은 다음처럼 확인한다.
+
+```bash
+latest="$(find ~/RhythmjoyBackups/swingenjoy-cafe24 -mindepth 1 -maxdepth 1 -type d -name '20??????-??????' | sort | tail -1)"
+gzip -t "$latest/swingenjoy_app.sql.gz"
+(cd "$latest" && shasum -a 256 -c SHA256SUMS)
+```
+
+확인해야 할 최소 조건:
+
+- `swingenjoy_app.sql.gz`가 존재하고 `gzip -t`가 성공해야 한다.
+- `SHA256SUMS` 검증이 성공해야 한다.
+- `manifest.txt`의 `service_mariadb=active`, `service_swingenjoy=active`가 정상이어야 한다.
+- `mysql-table-sizes.tsv`에 주요 테이블(`events`, `generic_records`, `users` 등)이 보여야 한다.
+- `secrets/`는 로컬에만 보관하고 Git에 넣지 않는다.
+
 ## 자동 실행
 
 macOS LaunchAgent 파일:

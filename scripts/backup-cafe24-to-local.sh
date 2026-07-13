@@ -29,6 +29,26 @@ iso_now() {
   date '+%Y-%m-%dT%H:%M:%S%z'
 }
 
+write_local_checksums() {
+  local checksum_dir="$1"
+  (
+    cd "${checksum_dir}"
+    if command -v sha256sum >/dev/null 2>&1; then
+      find . -type f ! -name SHA256SUMS ! -name SHA256SUMS.tmp -print0 \
+        | sort -z \
+        | xargs -0 sha256sum > SHA256SUMS.tmp
+    elif command -v shasum >/dev/null 2>&1; then
+      find . -type f ! -name SHA256SUMS ! -name SHA256SUMS.tmp -print0 \
+        | sort -z \
+        | xargs -0 shasum -a 256 > SHA256SUMS.tmp
+    else
+      echo "Missing sha256sum or shasum for local checksum generation." >&2
+      exit 2
+    fi
+    mv SHA256SUMS.tmp SHA256SUMS
+  )
+}
+
 case "${KEEP_LOCAL_BACKUPS}" in
   ''|*[!0-9]*)
     echo "CAFE24_LOCAL_BACKUP_KEEP must be a non-negative integer." >&2
@@ -373,6 +393,8 @@ fi
   echo "local_dir=${local_dir}"
   echo "remote_tmp=${remote_tmp}"
 } >> "${local_dir}/manifest.txt"
+
+write_local_checksums "${local_dir}"
 
 if [[ "${KEEP_LOCAL_BACKUPS}" -gt 0 ]]; then
   find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d -name '20??????-??????' \
