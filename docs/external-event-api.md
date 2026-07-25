@@ -150,7 +150,7 @@ Content-Type: application/json
 분류에 따른 이미지·주소 규칙은 다음과 같습니다.
 
 - `event`, `class`, `club`: 이미지가 반드시 필요합니다.
-- `social`: 이미지를 생략할 수 있습니다. 이미지를 생략하면 상세 화면에 카카오맵을 표시할 수 있도록, 주소 확인 API에서 선택한 정확한 `address`를 반드시 보내야 합니다.
+- `social`: 이미지를 생략할 수 있습니다. 이때 `address`를 보내면 서버가 카카오맵 표준 주소로 자동 변환해 저장합니다.
 
 ## 5. 이미지 등록 방식
 
@@ -254,15 +254,15 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 
 ## 6. 이미지 없는 소셜과 주소 확인
 
-이미지가 없는 `social` 일정은 상세 화면에 카카오맵을 표시하므로 정확한 도로명주소 또는 지번주소가 필요합니다. 장소명, 건물명, 역 이름만 보내면 등록할 수 없습니다.
+이미지가 없는 `social` 일정은 상세 화면에 카카오맵을 표시하므로 `address`가 필요합니다. 파트너가 보낸 주소는 일정 등록 시 Dance Billboard 서버가 카카오 주소 검색을 자동 실행하고, 첫 번째 표준 도로명주소 또는 지번주소로 변환해 저장합니다. 검색 결과가 없을 때만 일정을 저장하지 않고 `422 address_not_found`를 반환합니다.
 
-파트너 등록 화면에는 다음 주소 확인 절차를 구현해 주세요.
+따라서 기본 자동 연동은 다음처럼 처리하시면 됩니다.
 
-1. 사용자가 주소를 입력합니다.
-2. 파트너 서버가 아래 주소 확인 API를 호출합니다.
-3. 반환된 후보를 사용자에게 보여 줍니다.
-4. 사용자가 올바른 후보를 선택합니다.
-5. 선택한 후보의 `address` 값을 일정 등록 요청에 사용합니다.
+1. 파트너 서버가 사용자가 입력한 주소를 일정 요청의 `address`에 넣습니다.
+2. Dance Billboard 서버가 카카오맵 주소로 자동 변환합니다.
+3. 변환된 주소가 일정에 저장되고 상세 화면의 카카오맵에 사용됩니다.
+
+파트너 등록 화면에서 저장될 주소를 미리 표시하고 싶을 때만 아래 주소 확인 API를 사용해 주세요. 응답의 `normalized_address`를 그대로 사용하면 별도의 후보 선택 화면 없이 자동 처리할 수 있습니다.
 
 ```http
 GET https://swingenjoy.com/api/external/v1/addresses/validate?query={주소}
@@ -283,6 +283,7 @@ curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
 {
   "ok": true,
   "query": "서울 강남구 테헤란로 123",
+  "normalized_address": "서울 강남구 테헤란로 123",
   "candidates": [
     {
       "address": "서울 강남구 테헤란로 123",
@@ -297,7 +298,7 @@ curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
 }
 ```
 
-후보가 없으면 `422 address_not_found`를 반환합니다. 이미지 없는 소셜 등록 시에도 서버가 주소를 다시 확인하므로, 확인 API를 거치지 않은 잘못된 주소는 최종 등록 단계에서 거절됩니다.
+후보가 없으면 `422 address_not_found`를 반환합니다. `candidates`는 여러 결과를 직접 보여줘야 할 때만 사용하세요.
 
 ```json
 {
@@ -327,7 +328,7 @@ curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
 | `source_url` | 필수 | 파트너 사이트의 공개 HTTPS 일정 상세 주소 |
 | `time` | 선택 | 표시용 시간, 최대 120자 |
 | `location` | 선택 | 장소명, 최대 255자 |
-| `address` | 조건부 | 이미지 없는 소셜에서 필수이며 주소 확인 API 결과를 사용 |
+| `address` | 조건부 | 이미지 없는 소셜에서 필수이며 서버가 카카오맵 표준 주소로 자동 변환 |
 | `location_link` | 선택 | 공개 HTTPS 지도 또는 장소 링크 |
 | `description` | 선택 | 일정 설명, 최대 20,000자 |
 | `link_name1` | 선택 | 상세 링크 표시명, 기본값은 `자세히 보기` |

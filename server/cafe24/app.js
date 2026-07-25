@@ -18,6 +18,7 @@ import {
   listExternalAdminAuditLogs,
   listExternalPartners,
   listExternalPartnerRequests,
+  normalizeExternalAddressForMember,
   requestExternalPartnerAccess,
   listExternalRequestLogs,
   rotateExternalPartnerKey,
@@ -285,6 +286,7 @@ app.put('/api/external/v1/events/:externalId', externalEventJsonBody, jsonRoute(
 app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent));
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
 app.get('/api/external/v1/addresses/validate', jsonRoute(validateExternalAddress));
+app.get('/api/external/address-tool', jsonRoute(normalizeExternalAddressForMember));
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
 app.get('/api/admin/external-partner-requests', jsonRoute(listExternalPartnerRequests));
 app.post('/api/external/partner-requests', jsonBody, jsonRoute(requestExternalPartnerAccess));

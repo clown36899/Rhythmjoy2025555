@@ -94,6 +94,14 @@ export default function ExternalEventApiGuidePage() {
   const [shareResult, setShareResult] = useState('');
   const [application, setApplication] = useState({ partner_name: '', contact: '', note: '' });
   const [applicationResult, setApplicationResult] = useState('');
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressCandidates, setAddressCandidates] = useState<Array<{
+    address: string;
+    road_address: string | null;
+    jibun_address: string | null;
+    building_name: string | null;
+  }>>([]);
+  const [addressResult, setAddressResult] = useState('');
 
   const shareGuide = async () => {
     const shareData = {
@@ -131,6 +139,22 @@ export default function ExternalEventApiGuidePage() {
       setApplication({ partner_name: '', contact: '', note: '' });
     } catch (error) {
       setApplicationResult(error instanceof Error ? error.message : '신청하지 못했습니다.');
+    }
+  };
+
+  const normalizeAddress = async () => {
+    setAddressResult('카카오맵에서 확인 중...');
+    setAddressCandidates([]);
+    try {
+      const response = await fetch(`/api/external/address-tool?query=${encodeURIComponent(addressQuery)}`, {
+        credentials: 'include',
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || '주소를 변환하지 못했습니다.');
+      setAddressCandidates(body.candidates || []);
+      setAddressResult(`자동 저장 주소: ${body.normalized_address}`);
+    } catch (error) {
+      setAddressResult(error instanceof Error ? error.message : '주소를 변환하지 못했습니다.');
     }
   };
 
@@ -331,18 +355,50 @@ export default function ExternalEventApiGuidePage() {
 
           <section id="address" className="EAG-section">
             <span className="EAG-sectionNo">06</span>
-            <h2>카카오맵 주소 확인</h2>
-            <p className="EAG-lead">이미지 없는 social 일정은 사용자가 직접 입력한 문장을 그대로 보내지 말고 주소 후보를 먼저 확인하세요.</p>
+            <h2>카카오맵 주소 자동 변환</h2>
+            <p className="EAG-lead">이미지 없는 <code>social</code> 일정의 <code>address</code>는 등록할 때 서버가 카카오맵에서 자동 검색하고 첫 번째 표준 도로명·지번 주소로 변환해 저장합니다.</p>
             <div className="EAG-endpoint">
               <span className="EAG-method EAG-methodGet">GET</span>
               <code>/addresses/validate?query=서울특별시+강남구+테헤란로+123</code>
             </div>
+            <div className="EAG-addressTool">
+              <div>
+                <span className="EAG-kicker">주소 변환기</span>
+                <h3>실제로 저장될 카카오맵 주소를 확인하세요</h3>
+              </div>
+              {!user ? (
+                <button type="button" className="EAG-primaryLink" onClick={signInWithKakao}>로그인하고 주소 변환</button>
+              ) : (
+                <>
+                  <div className="EAG-addressSearch">
+                    <input value={addressQuery} onChange={(event) => setAddressQuery(event.target.value)} onKeyDown={(event) => {
+                      if (event.key === 'Enter' && addressQuery.trim()) normalizeAddress();
+                    }} placeholder="예: 서울특별시 강남구 테헤란로 123" aria-label="변환할 주소" />
+                    <button type="button" className="EAG-primaryLink" disabled={!addressQuery.trim()} onClick={normalizeAddress}>카카오맵 주소로 변환</button>
+                  </div>
+                  {addressResult && <p className="EAG-addressResult" role="status">{addressResult}</p>}
+                  {addressCandidates.length > 0 && (
+                    <div className="EAG-addressCandidates">
+                      {addressCandidates.map((candidate, index) => (
+                        <div key={`${candidate.address}-${index}`}>
+                          <b>{index === 0 ? '자동 저장' : `후보 ${index + 1}`}</b>
+                          <strong>{candidate.address}</strong>
+                          {candidate.building_name && <span>{candidate.building_name}</span>}
+                          <button type="button" onClick={() => navigator.clipboard.writeText(candidate.address)}>주소 복사</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
             <ol className="EAG-numberList">
-              <li>파트너 등록 화면에서 사용자가 주소를 입력합니다.</li>
-              <li>파트너 서버가 주소 확인 API를 호출합니다.</li>
-              <li>사용자가 반환된 도로명주소 또는 지번주소 후보를 선택합니다.</li>
-              <li>선택된 정확한 <code>address</code>를 일정 등록 요청에 넣습니다.</li>
+              <li>파트너 서버는 사용자가 입력한 주소를 일정 요청의 <code>address</code>에 넣습니다.</li>
+              <li>Dance Billboard 서버가 등록 시 카카오 주소 검색을 자동 실행합니다.</li>
+              <li>검색된 첫 번째 표준 주소를 일정에 저장하고 상세 화면의 카카오맵에 사용합니다.</li>
+              <li>검색 결과가 없으면 일정을 저장하지 않고 <code>422 address_not_found</code>를 반환합니다.</li>
             </ol>
+            <p className="EAG-footnote">파트너 등록 화면에서 후보를 미리 보여주고 싶다면 주소 확인 API 응답의 <code>normalized_address</code>를 바로 사용하세요. 후보 전체가 필요한 경우에만 <code>candidates</code>를 표시하면 됩니다.</p>
           </section>
 
           <section id="fields" className="EAG-section">

@@ -322,13 +322,16 @@ components:
         longitude: { type: [string, 'null'] }
     AddressValidationResponse:
       type: object
-      required: [ok, query, candidates]
+      required: [ok, query, normalized_address, candidates]
       properties:
         ok:
           type: boolean
           const: true
         query:
           type: string
+        normalized_address:
+          type: string
+          description: 일정에 자동 저장할 첫 번째 카카오맵 표준 주소
         candidates:
           type: array
           minItems: 1

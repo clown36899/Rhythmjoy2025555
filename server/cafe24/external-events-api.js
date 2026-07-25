@@ -67,6 +67,7 @@ const ALLOWED_EXTERNAL_EVENT_FIELDS = new Set([
   'image_url',
   'venue_name',
 ]);
+const addressToolRequests = new Map();
 
 function apiError(message, statusCode = 400, code = 'invalid_request') {
   const error = new Error(message);
@@ -517,6 +518,22 @@ async function requireVerifiedKakaoAddress(value) {
   return candidates[0];
 }
 
+function enforceAddressToolRateLimit(userId, requestIp) {
+  const now = Date.now();
+  const key = `${userId}:${requestIp || 'unknown'}`;
+  const recent = (addressToolRequests.get(key) || []).filter((timestamp) => now - timestamp < 60_000);
+  if (recent.length >= 20) {
+    throw apiError('주소 변환은 분당 20회까지 사용할 수 있습니다.', 429, 'rate_limit_exceeded');
+  }
+  recent.push(now);
+  addressToolRequests.set(key, recent);
+  if (addressToolRequests.size > 2_000) {
+    for (const [entryKey, timestamps] of addressToolRequests) {
+      if (!timestamps.some((timestamp) => now - timestamp < 60_000)) addressToolRequests.delete(entryKey);
+    }
+  }
+}
+
 export async function normalizeExternalImage(buffer) {
   if (!Buffer.isBuffer(buffer) || !buffer.length) {
     throw apiError('이미지 파일 본문이 필요합니다.');
@@ -828,7 +845,25 @@ export async function validateExternalAddress(req, res) {
     result: 'address_validated',
     requestIp: req.ip,
   });
-  res.json({ ok: true, query, candidates });
+  res.json({ ok: true, query, normalized_address: candidates[0].address, candidates });
+}
+
+export async function normalizeExternalAddressForMember(req, res) {
+  const user = await getCurrentUser(req);
+  if (!user) throw apiError('로그인 후 주소 변환기를 사용해 주세요.', 401, 'login_required');
+  enforceAddressToolRateLimit(String(user.id), req.ip);
+  const query = cleanString(req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
+  const candidates = await searchKakaoAddress(query);
+  if (!candidates.length) {
+    throw apiError('카카오맵에서 확인되는 주소가 없습니다.', 422, 'address_not_found');
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    ok: true,
+    query,
+    normalized_address: candidates[0].address,
+    candidates,
+  });
 }
 
 export async function createExternalEvent(req, res) {
