@@ -307,6 +307,7 @@ export default function ExternalEventApiGuidePage() {
   const [applicationResult, setApplicationResult] = useState('');
   const [serverExampleId, setServerExampleId] = useState<(typeof serverExamples)[number]['id']>('node');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSectionOpen, setIsSectionOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const [myPartners, setMyPartners] = useState<Array<{
@@ -369,18 +370,21 @@ export default function ExternalEventApiGuidePage() {
   }, [user?.email]);
 
   useEffect(() => {
-    if (!isSearchOpen) return;
+    if (!isSearchOpen && !isSectionOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsSearchOpen(false);
+      if (event.key === 'Escape') {
+        setIsSearchOpen(false);
+        setIsSectionOpen(false);
+      }
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', closeOnEscape);
     };
-  }, [isSearchOpen]);
+  }, [isSearchOpen, isSectionOpen]);
 
   useEffect(() => {
     setActiveSearchIndex(-1);
@@ -414,6 +418,7 @@ export default function ExternalEventApiGuidePage() {
 
   const moveToGuideSection = (id: string) => {
     setIsSearchOpen(false);
+    setIsSectionOpen(false);
     setSearchQuery('');
     window.history.replaceState(null, '', `/external-event-api#${id}`);
     window.requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -496,12 +501,16 @@ export default function ExternalEventApiGuidePage() {
         <div className="EAG-topbarActions">
           <button type="button" className="EAG-searchButton" onClick={() => setIsSearchOpen(true)}>
             <i className="ri-search-line" aria-hidden="true" />
-            문서 검색
+            검색
+          </button>
+          <button type="button" className="EAG-sectionButton" onClick={() => setIsSectionOpen(true)}>
+            <i className="ri-list-check-2" aria-hidden="true" />
+            섹션
           </button>
           {isAdmin && (
             <button type="button" onClick={() => partnerManagementModal.open()}>
               <i className="ri-settings-3-line" aria-hidden="true" />
-              파트너 관리
+              <span className="EAG-wideLabel">파트너 관리</span><span className="EAG-shortLabel">관리</span>
             </button>
           )}
           {isAdmin && (
@@ -999,6 +1008,31 @@ export default function ExternalEventApiGuidePage() {
                 {searchResults.length > 1 ? ' 결과 목록을 위아래로 스크롤할 수 있습니다.' : ' 검색 결과 영역'}
               </small>
             </div>
+          </section>
+        </div>
+      )}
+      {isSectionOpen && (
+        <div className="EAG-searchBackdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setIsSectionOpen(false);
+        }}>
+          <section className="EAG-sectionDialog" role="dialog" aria-modal="true" aria-labelledby="external-api-section-title">
+            <div className="EAG-searchHeader">
+              <div>
+                <span className="EAG-kicker">GUIDE SECTIONS</span>
+                <h2 id="external-api-section-title">API 안내 섹션</h2>
+              </div>
+              <button type="button" className="EAG-searchClose" aria-label="섹션 닫기" onClick={() => setIsSectionOpen(false)}>×</button>
+            </div>
+            <p className="EAG-sectionDialogLead">확인할 섹션의 이름을 선택하세요.</p>
+            <nav className="EAG-sectionList" aria-label="API 안내 섹션 목록">
+              {guideSearchItems.map((item, index) => (
+                <button key={item.id} type="button" onClick={() => moveToGuideSection(item.id)}>
+                  <b>{String(index + 1).padStart(2, '0')}</b>
+                  <span><strong>{item.title}</strong><small>{item.summary}</small></span>
+                  <i className="ri-arrow-right-line" aria-hidden="true" />
+                </button>
+              ))}
+            </nav>
           </section>
         </div>
       )}
