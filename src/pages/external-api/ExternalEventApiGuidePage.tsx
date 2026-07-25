@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../hooks/useModal';
@@ -136,6 +136,17 @@ const normalizeGuideSearchText = (value: string) => (
     .toLocaleLowerCase('ko-KR')
     .replace(/[\s\-_/·.,()[\]{}]+/g, '')
 );
+
+const getGuideSearchTokens = (value: string) => {
+  const normalized = value.normalize('NFKC').toLocaleLowerCase('ko-KR');
+  const separated = normalized
+    .replace(/([가-힣ㄱ-ㅎㅏ-ㅣ])([a-z0-9])/g, '$1 $2')
+    .replace(/([a-z0-9])([가-힣ㄱ-ㅎㅏ-ㅣ])/g, '$1 $2');
+  return separated
+    .split(/[\s\-_/·.,()[\]{}]+/)
+    .map(normalizeGuideSearchText)
+    .filter(Boolean);
+};
 
 const addressApiExample = `<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script>
@@ -297,6 +308,7 @@ export default function ExternalEventApiGuidePage() {
   const [serverExampleId, setServerExampleId] = useState<(typeof serverExamples)[number]['id']>('node');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const [myPartners, setMyPartners] = useState<Array<{
     id: string; name: string; environment: 'test' | 'live'; per_minute_limit: number; daily_limit: number;
   }>>([]);
@@ -309,9 +321,13 @@ export default function ExternalEventApiGuidePage() {
     && contactPhoneDigits.length >= 9
     && contactPhoneDigits.length <= 15;
   const normalizedSearchQuery = normalizeGuideSearchText(searchQuery);
+  const searchTokens = getGuideSearchTokens(searchQuery);
   const searchResults = guideSearchItems.filter((item) => (
-    !normalizedSearchQuery
-    || normalizeGuideSearchText(`${item.title} ${item.summary} ${item.keywords}`).includes(normalizedSearchQuery)
+    !normalizedSearchQuery || (() => {
+      const searchableText = normalizeGuideSearchText(`${item.title} ${item.summary} ${item.keywords}`);
+      return searchableText.includes(normalizedSearchQuery)
+        || (searchTokens.length > 1 && searchTokens.every((token) => searchableText.includes(token)));
+    })()
   ));
 
   useEffect(() => {
@@ -365,6 +381,36 @@ export default function ExternalEventApiGuidePage() {
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [isSearchOpen]);
+
+  useEffect(() => {
+    setActiveSearchIndex(-1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (activeSearchIndex < 0) return;
+    document.getElementById(`external-api-search-option-${activeSearchIndex}`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [activeSearchIndex]);
+
+  const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (!searchResults.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveSearchIndex((current) => (current + 1) % searchResults.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveSearchIndex((current) => (current <= 0 ? searchResults.length - 1 : current - 1));
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      setActiveSearchIndex(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      setActiveSearchIndex(searchResults.length - 1);
+    } else if (event.key === 'Enter' && activeSearchIndex >= 0) {
+      event.preventDefault();
+      moveToGuideSection(searchResults[activeSearchIndex].id);
+    }
+  };
 
   const moveToGuideSection = (id: string) => {
     setIsSearchOpen(false);
@@ -911,23 +957,44 @@ export default function ExternalEventApiGuidePage() {
               <input
                 autoFocus
                 type="search"
+                role="combobox"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="예: 이미지 업로드, 장르, 수정, Node.js"
                 aria-controls="external-api-search-results"
+                aria-expanded="true"
+                aria-autocomplete="list"
+                aria-activedescendant={activeSearchIndex >= 0 ? `external-api-search-option-${activeSearchIndex}` : undefined}
               />
             </label>
             <p className="EAG-searchHint">입력하는 즉시 이 페이지의 제목과 핵심 키워드를 찾아드립니다.</p>
-            <div id="external-api-search-results" className="EAG-searchResults" role="listbox" aria-label="검색 자동완성 결과">
-              {searchResults.map((item) => (
-                <button key={item.id} type="button" role="option" aria-selected="false" onClick={() => moveToGuideSection(item.id)}>
-                  <span><strong>{item.title}</strong><small>{item.summary}</small></span>
-                  <i className="ri-arrow-right-line" aria-hidden="true" />
-                </button>
-              ))}
-              {searchResults.length === 0 && (
-                <p className="EAG-searchEmpty">일치하는 항목이 없습니다. 날짜, 이미지, 장르, 수정처럼 짧은 단어로 다시 검색해 주세요.</p>
-              )}
+            <div className="EAG-searchResultsPanel">
+              <div className="EAG-searchResultsHeader" aria-live="polite" aria-atomic="true">
+                <span><i className="ri-list-check-2" aria-hidden="true" /> 검색 결과</span>
+                <strong>{searchResults.length}개</strong>
+              </div>
+              <div id="external-api-search-results" className="EAG-searchResults" role="listbox" aria-label="검색 자동완성 결과">
+                {searchResults.map((item, index) => (
+                  <div
+                    id={`external-api-search-option-${index}`}
+                    key={item.id}
+                    role="option"
+                    aria-selected={activeSearchIndex === index}
+                    className={activeSearchIndex === index ? 'is-active' : ''}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => moveToGuideSection(item.id)}
+                  >
+                    <b className="EAG-searchResultNo">{String(index + 1).padStart(2, '0')}</b>
+                    <span><strong>{item.title}</strong><small>{item.summary}</small></span>
+                    <i className="ri-arrow-right-line" aria-hidden="true" />
+                  </div>
+                ))}
+                {searchResults.length === 0 && (
+                  <p className="EAG-searchEmpty">일치하는 항목이 없습니다. 날짜, 이미지, 장르, 수정처럼 짧은 단어로 다시 검색해 주세요.</p>
+                )}
+              </div>
+              {searchResults.length > 3 && <small className="EAG-searchScrollHint"><i className="ri-arrow-down-s-line" aria-hidden="true" /> 결과 목록을 위아래로 스크롤할 수 있습니다.</small>}
             </div>
           </section>
         </div>
