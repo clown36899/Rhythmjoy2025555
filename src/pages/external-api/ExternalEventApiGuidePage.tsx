@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../hooks/useModal';
@@ -37,7 +37,7 @@ const curlExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events
 
 const addressApiExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
 
-async function normalizeDanceBillboardAddress(rawAddress) {
+async function findDanceBillboardAddresses(rawAddress) {
   const url = new URL(
     "https://swingenjoy.com/api/external/v1/addresses/validate"
   );
@@ -50,13 +50,14 @@ async function normalizeDanceBillboardAddress(rawAddress) {
   if (!response.ok) {
     throw new Error(result.message || "주소를 확인하지 못했습니다.");
   }
-  return result.normalized_address;
+  return result.candidates;
 }
 
-// 일정 등록 전에 표준 주소를 받아 address에 넣습니다.
-const address = await normalizeDanceBillboardAddress(
+// 등록 화면에서 후보를 보여주고 사용자가 고른 candidate.address만 저장합니다.
+const candidates = await findDanceBillboardAddresses(
   "서울 강남구 테헤란로 123"
-);`;
+);
+const address = candidates[selectedIndex].address;`;
 
 const updateEventExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
 const externalId = "partner-event-20260801-1"; // 등록 때 사용한 값
@@ -169,8 +170,10 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
 }
 
 export default function ExternalEventApiGuidePage() {
-  const { isAdmin, user, signInWithKakao } = useAuth();
+  const { isAdmin, user, userProfile, isAuthCheckComplete, signInWithKakao } = useAuth();
+  const loginPromptOpened = useRef(false);
   const partnerManagementModal = useModal('externalApiPartnerManagement');
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [shareResult, setShareResult] = useState('');
   const [application, setApplication] = useState({ partner_name: '', contact: '', note: '' });
   const [applicationResult, setApplicationResult] = useState('');
@@ -182,6 +185,38 @@ export default function ExternalEventApiGuidePage() {
     building_name: string | null;
   }>>([]);
   const [addressResult, setAddressResult] = useState('');
+  const [myPartners, setMyPartners] = useState<Array<{
+    id: string; name: string; environment: 'test' | 'live'; per_minute_limit: number; daily_limit: number;
+  }>>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState('');
+  const [limitResult, setLimitResult] = useState('');
+
+  useEffect(() => {
+    if (user || loginPromptOpened.current) return;
+    const open = () => {
+      if (loginPromptOpened.current) return;
+      loginPromptOpened.current = true;
+      setIsLoginOpen(true);
+    };
+    if (isAuthCheckComplete) {
+      open();
+      return;
+    }
+    const timer = window.setTimeout(open, 1200);
+    return () => window.clearTimeout(timer);
+  }, [isAuthCheckComplete, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch('/api/external/my-partners', { credentials: 'include' })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.message || '파트너 정보를 불러오지 못했습니다.');
+        setMyPartners(body.partners || []);
+        setSelectedPartnerId((current) => current || body.partners?.find((partner: { environment: string }) => partner.environment === 'test')?.id || '');
+      })
+      .catch((error) => setLimitResult(error instanceof Error ? error.message : '파트너 정보를 불러오지 못했습니다.'));
+  }, [user]);
 
   const shareGuide = async () => {
     const shareData = {
@@ -232,9 +267,32 @@ export default function ExternalEventApiGuidePage() {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || '주소를 변환하지 못했습니다.');
       setAddressCandidates(body.candidates || []);
-      setAddressResult(`자동 저장 주소: ${body.normalized_address}`);
+      setAddressResult('검색 결과에서 실제 장소와 일치하는 주소를 선택해 복사해 주세요.');
     } catch (error) {
       setAddressResult(error instanceof Error ? error.message : '주소를 변환하지 못했습니다.');
+    }
+  };
+
+  const requestAutomaticTestLimit = async () => {
+    if (!selectedPartnerId) return;
+    setLimitResult('자동 승인 처리 중...');
+    try {
+      const response = await fetch(`/api/external/my-partners/${encodeURIComponent(selectedPartnerId)}/auto-test-limit`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || '한도를 변경하지 못했습니다.');
+      setLimitResult(`즉시 승인되었습니다. 분당 ${body.per_minute_limit}회 · 24시간 ${body.daily_limit}회`);
+      setMyPartners((partners) => partners.map((partner) => (
+        partner.id === selectedPartnerId
+          ? { ...partner, per_minute_limit: body.per_minute_limit, daily_limit: body.daily_limit }
+          : partner
+      )));
+    } catch (error) {
+      setLimitResult(error instanceof Error ? error.message : '한도를 변경하지 못했습니다.');
     }
   };
 
@@ -318,9 +376,21 @@ export default function ExternalEventApiGuidePage() {
                 <p>처음에는 실제 일정에 노출되지 않는 테스트 키가 발급됩니다. 테스트가 끝나면 관리자가 운영 모드로 전환합니다.</p>
               </div>
               {!user ? (
-                <button type="button" className="EAG-primaryLink" onClick={signInWithKakao}>로그인하고 신청하기</button>
+                <div className="EAG-loginRequired">
+                  <p><strong>로그인한 본인 계정으로만 신청할 수 있습니다.</strong> 승인된 API Key와 등록 일정은 이 계정에 연결됩니다.</p>
+                  <p>표시 예시: <code>홍길동 · user@example.com</code></p>
+                  <button type="button" className="EAG-primaryLink" onClick={() => setIsLoginOpen(true)}>로그인하고 신청하기</button>
+                </div>
               ) : (
                 <div className="EAG-applicationForm">
+                  <label className="is-wide EAG-accountField">연결될 본인 로그인 계정
+                    <input
+                      value={`${userProfile?.nickname || user.email?.split('@')[0] || '회원'} · ${user.email || user.id}`}
+                      readOnly
+                      aria-readonly="true"
+                    />
+                    <small>현재 로그인한 계정으로 고정되며 수정할 수 없습니다. 승인된 API Key와 등록 일정의 소유 계정이 됩니다.</small>
+                  </label>
                   <label>파트너 또는 사이트 이름<input value={application.partner_name} onChange={(event) => setApplication({ ...application, partner_name: event.target.value })} /></label>
                   <label>기술 담당자 연락처<input value={application.contact} onChange={(event) => setApplication({ ...application, contact: event.target.value })} placeholder="이메일 또는 전화번호" /></label>
                   <label className="is-wide">전달 사항<textarea value={application.note} onChange={(event) => setApplication({ ...application, note: event.target.value })} placeholder="연동 사이트 주소 등 필요한 내용만 적어 주세요." /></label>
@@ -458,7 +528,7 @@ export default function ExternalEventApiGuidePage() {
             </div>
             <ol className="EAG-numberList">
               <li>파트너 키와 분당·24시간 요청 한도를 확인합니다.</li>
-              <li><code>upload</code>는 먼저 업로드된 내부 파일을 확인하고, <code>url</code>은 등록 시 원본 URL을 최대 8MB까지 내려받습니다.</li>
+              <li><code>upload</code>와 <code>url</code> 모두 최대 32MB 원본을 받습니다. 변환이 끝나면 원본 파일은 보관하지 않고 WebP 4종만 저장합니다.</li>
               <li>확장자만 믿지 않고 실제 파일을 해석해 AVIF·JPEG·PNG·WebP인지, 손상·애니메이션·과도한 픽셀 수가 없는지 검사합니다.</li>
               <li>화면 용도에 맞춰 폭 100·300·650·1300px의 WebP 이미지 4종을 자동 생성합니다.</li>
               <li>생성된 파일을 Dance Billboard 저장소에 보관하고 일정에는 외부 URL 대신 내부 이미지 주소를 연결합니다.</li>
@@ -471,13 +541,13 @@ export default function ExternalEventApiGuidePage() {
                 <p>원본 사이트가 이미지를 삭제하거나 URL을 변경해도 이미 저장된 Dance Billboard 이미지는 유지됩니다. 단, 최초 등록 순간에는 URL이 공개 상태여야 합니다.</p>
               </div>
             </div>
-            <p className="EAG-footnote">Base64 문자열을 일정 JSON 안에 넣는 방식은 지원하지 않습니다. 내부망·로컬 주소, 사설 IP로 연결되는 도메인, 인증이 필요한 URL, 실행 가능한 파일과 8MB 초과 파일은 차단합니다.</p>
+            <p className="EAG-footnote">Base64 문자열을 일정 JSON 안에 넣는 방식은 지원하지 않습니다. 내부망·로컬 주소, 사설 IP로 연결되는 도메인, 인증이 필요한 URL, 실행 가능한 파일과 32MB 초과 파일은 차단합니다. 압축 해제 후 4천만 픽셀을 넘는 이미지도 서버 보호를 위해 거절합니다.</p>
           </section>
 
           <section id="address" className="EAG-section">
             <span className="EAG-sectionNo">06</span>
             <h2>카카오맵 주소 자동 변환</h2>
-            <p className="EAG-lead">이미지 없는 <code>social</code> 일정의 <code>address</code>는 등록할 때 서버가 카카오맵에서 자동 검색하고 첫 번째 표준 도로명·지번 주소로 변환해 저장합니다.</p>
+            <p className="EAG-lead">이미지 없는 <code>social</code> 일정은 주소 확인 API의 후보를 보여주고, 사용자가 실제 장소와 일치하는 주소를 선택해야 합니다. 서버는 선택하지 않은 첫 검색 결과를 임의로 저장하지 않습니다.</p>
             <div className="EAG-endpoint">
               <span className="EAG-method EAG-methodGet">GET</span>
               <code>/addresses/validate?query=서울특별시+강남구+테헤란로+123</code>
@@ -485,8 +555,8 @@ export default function ExternalEventApiGuidePage() {
             <CodeBlock label="파트너 서버 JavaScript · 주소 확인 API" code={addressApiExample} />
             <div className="EAG-addressTool">
               <div>
-                <span className="EAG-kicker">주소 변환기</span>
-                <h3>실제로 저장될 카카오맵 주소를 확인하세요</h3>
+                <span className="EAG-kicker">주소 검색 API 체험</span>
+                <h3>실제 장소와 일치하는 카카오맵 주소를 선택하세요</h3>
               </div>
               {!user ? (
                 <button type="button" className="EAG-primaryLink" onClick={signInWithKakao}>로그인하고 주소 변환</button>
@@ -496,14 +566,14 @@ export default function ExternalEventApiGuidePage() {
                     <input value={addressQuery} onChange={(event) => setAddressQuery(event.target.value)} onKeyDown={(event) => {
                       if (event.key === 'Enter' && addressQuery.trim()) normalizeAddress();
                     }} placeholder="예: 서울특별시 강남구 테헤란로 123" aria-label="변환할 주소" />
-                    <button type="button" className="EAG-primaryLink" disabled={!addressQuery.trim()} onClick={normalizeAddress}>카카오맵 주소로 변환</button>
+                    <button type="button" className="EAG-primaryLink" disabled={!addressQuery.trim()} onClick={normalizeAddress}>주소 후보 검색</button>
                   </div>
                   {addressResult && <p className="EAG-addressResult" role="status">{addressResult}</p>}
                   {addressCandidates.length > 0 && (
                     <div className="EAG-addressCandidates">
                       {addressCandidates.map((candidate, index) => (
                         <div key={`${candidate.address}-${index}`}>
-                          <b>{index === 0 ? '자동 저장' : `후보 ${index + 1}`}</b>
+                          <b>후보 {index + 1}</b>
                           <strong>{candidate.address}</strong>
                           {candidate.building_name && <span>{candidate.building_name}</span>}
                           <button type="button" onClick={() => navigator.clipboard.writeText(candidate.address)}>주소 복사</button>
@@ -515,12 +585,12 @@ export default function ExternalEventApiGuidePage() {
               )}
             </div>
             <ol className="EAG-numberList">
-              <li>파트너 서버는 사용자가 입력한 주소를 일정 요청의 <code>address</code>에 넣습니다.</li>
-              <li>Dance Billboard 서버가 등록 시 카카오 주소 검색을 자동 실행합니다.</li>
-              <li>검색된 첫 번째 표준 주소를 일정에 저장하고 상세 화면의 카카오맵에 사용합니다.</li>
-              <li>검색 결과가 없으면 일정을 저장하지 않고 <code>422 address_not_found</code>를 반환합니다.</li>
+              <li>파트너 서버가 주소 확인 API를 호출하고 받은 <code>candidates</code>를 등록 화면에 표시합니다.</li>
+              <li>사용자가 실제 장소와 일치하는 후보 하나를 선택합니다.</li>
+              <li>선택한 <code>candidate.address</code>를 일정 요청의 <code>address</code>에 넣습니다.</li>
+              <li>서버는 정확히 일치하는 카카오 표준 주소만 저장하며, 임의의 첫 결과를 대신 저장하지 않습니다.</li>
             </ol>
-            <p className="EAG-footnote">파트너 등록 화면에서 후보를 미리 보여주고 싶다면 주소 확인 API 응답의 <code>normalized_address</code>를 바로 사용하세요. 후보 전체가 필요한 경우에만 <code>candidates</code>를 표시하면 됩니다.</p>
+            <p className="EAG-footnote">API Key는 브라우저에 넣지 마세요. 파트너 브라우저 → 파트너 서버 → Dance Billboard 주소 API 순서로 호출하고, 파트너 서버가 후보 목록만 브라우저에 전달해야 합니다.</p>
           </section>
 
           <section id="fields" className="EAG-section">
@@ -564,8 +634,22 @@ export default function ExternalEventApiGuidePage() {
             <div className="EAG-callout">
               <i className="ri-customer-service-2-line" aria-hidden="true" />
               <div>
-                <strong>개발 테스트 중 한도가 부족하면 요청해 주세요.</strong>
-                <p><a href="tel:01048017180">010-4801-7180</a>으로 파트너명, API Key 앞부분, 필요한 사유를 보내 주시면 확인 후 테스트 한도를 늘리거나 누적 사용량을 초기화해 드립니다. API Key 전체 원문은 보내지 마세요. 운영 도배나 비정상 호출에는 적용되지 않습니다.</p>
+                <strong>개발 테스트 한도는 로그인 후 즉시 상향할 수 있습니다.</strong>
+                <p>본인 계정에 연결된 활성 테스트 파트너만 분당 60회·24시간 3,000회까지 자동 승인됩니다. 파트너별 24시간에 한 번만 가능하며 운영 키에는 적용되지 않습니다.</p>
+                {user ? (
+                  <div className="EAG-limitRequest">
+                    <select value={selectedPartnerId} onChange={(event) => setSelectedPartnerId(event.target.value)} aria-label="테스트 한도를 늘릴 파트너">
+                      <option value="">테스트 파트너 선택</option>
+                      {myPartners.filter((partner) => partner.environment === 'test').map((partner) => (
+                        <option key={partner.id} value={partner.id}>{partner.name} · 현재 {partner.per_minute_limit}/{partner.daily_limit}회</option>
+                      ))}
+                    </select>
+                    <button type="button" className="EAG-primaryLink" disabled={!selectedPartnerId} onClick={requestAutomaticTestLimit}>테스트 한도 즉시 상향</button>
+                  </div>
+                ) : (
+                  <button type="button" className="EAG-primaryLink" onClick={() => setIsLoginOpen(true)}>로그인하고 한도 요청</button>
+                )}
+                {limitResult && <p role="status">{limitResult}</p>}
               </div>
             </div>
             <div className="EAG-tableWrap">
@@ -580,11 +664,22 @@ export default function ExternalEventApiGuidePage() {
 
           <footer className="EAG-footer">
             <strong>연동 준비가 되셨나요?</strong>
-            <p>API Key 발급은 Dance Billboard 관리자에게 요청해 주세요.</p>
-            <Link to="/">Dance Billboard 홈으로</Link>
+            <p>위 안내에 맞춰 로그인 계정으로 연동을 신청해 주세요.</p>
+            <a href="#quick-start">연동 신청 폼으로 이동</a>
           </footer>
         </article>
       </div>
+      {isLoginOpen && !user && (
+        <div className="EAG-loginBackdrop" role="dialog" aria-modal="true" aria-labelledby="external-api-login-title">
+          <div className="EAG-loginDialog">
+            <button type="button" className="EAG-loginClose" aria-label="닫기" onClick={() => setIsLoginOpen(false)}>×</button>
+            <span className="EAG-kicker">Dance Billboard 로그인</span>
+            <h2 id="external-api-login-title">로그인 후 연동을 신청해 주세요</h2>
+            <p>API 신청 계정과 발급되는 파트너 키가 연결됩니다. 안내 문서는 닫은 뒤 계속 확인할 수 있습니다.</p>
+            <button type="button" className="EAG-kakaoLogin" onClick={signInWithKakao}>카카오로 로그인</button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

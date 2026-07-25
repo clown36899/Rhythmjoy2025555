@@ -503,6 +503,14 @@ export function normalizeKakaoAddressDocuments(documents) {
   }).filter((candidate) => candidate.address);
 }
 
+export function selectExactKakaoAddress(candidates, query) {
+  return (Array.isArray(candidates) ? candidates : []).find((candidate) => (
+    [candidate.address, candidate.road_address, candidate.jibun_address]
+      .filter(Boolean)
+      .includes(query)
+  )) || null;
+}
+
 async function searchKakaoAddress(query) {
   const restApiKey = String(process.env.VITE_KAKAO_REST_API_KEY || '').trim();
   if (!restApiKey) {
@@ -534,14 +542,15 @@ async function searchKakaoAddress(query) {
 async function requireVerifiedKakaoAddress(value) {
   const query = cleanString(value, MAX_TEXT_FIELD_LENGTH, 'address', { required: true });
   const candidates = await searchKakaoAddress(query);
-  if (!candidates.length) {
+  const exact = selectExactKakaoAddress(candidates, query);
+  if (!exact) {
     throw apiError(
-      '카카오맵에서 확인되지 않는 주소입니다. 주소 확인 API에서 선택한 정확한 도로명주소 또는 지번주소를 보내주세요.',
+      '선택한 카카오맵 표준 주소와 정확히 일치하지 않습니다. 주소 확인 API의 candidates에서 사용자가 선택한 address를 보내주세요.',
       422,
       'address_not_found',
     );
   }
-  return candidates[0];
+  return { ...exact, address: query };
 }
 
 function enforceAddressToolRateLimit(userId, requestIp) {
@@ -604,10 +613,12 @@ export async function normalizeExternalImage(buffer) {
 }
 
 export async function createImageVariants(buffer) {
+  // Decode and inspect before conversion. Generating variants sequentially keeps
+  // peak memory predictable when several large partner uploads arrive together.
   await normalizeExternalImage(buffer);
-  const entries = await Promise.all(Object.entries(IMAGE_VARIANTS).map(async ([name, options]) => [
-    name,
-    await sharp(buffer, {
+  const entries = [];
+  for (const [name, options] of Object.entries(IMAGE_VARIANTS)) {
+    const data = await sharp(buffer, {
       animated: false,
       failOn: 'warning',
       limitInputPixels: 40_000_000,
@@ -615,8 +626,13 @@ export async function createImageVariants(buffer) {
       .rotate()
       .resize({ width: options.width, withoutEnlargement: true })
       .webp({ quality: options.quality })
-      .toBuffer(),
-  ]));
+      .toBuffer();
+    const output = await sharp(data, { failOn: 'warning' }).metadata();
+    if (output.format !== 'webp' || !output.width || !output.height) {
+      throw apiError('변환된 이미지 파일을 검증하지 못했습니다.');
+    }
+    entries.push([name, data]);
+  }
   return Object.fromEntries(entries);
 }
 
@@ -747,7 +763,7 @@ async function materializeEventImage(normalized, partner) {
   if (source.image_mode === 'upload') {
     fields = uploadedVariantFields(normalized.event.image);
   } else {
-    const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 8 * 1024 * 1024);
+    const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 32 * 1024 * 1024);
     const buffer = await downloadExternalImage(normalized.event.image, maxBytes);
     fields = await storeImageVariants(buffer, partner);
   }
@@ -784,7 +800,7 @@ export async function uploadExternalEventImage(req, res) {
       'unsupported_media_type',
     );
   }
-  const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 8 * 1024 * 1024);
+  const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 32 * 1024 * 1024);
   if (!Buffer.isBuffer(req.body) || !req.body.length || req.body.length > maxBytes) {
     throw apiError(`이미지 파일은 ${Math.floor(maxBytes / 1024 / 1024)}MB 이하여야 합니다.`, 413, 'payload_too_large');
   }
@@ -887,7 +903,7 @@ export async function validateExternalAddress(req, res) {
     result: 'address_validated',
     requestIp: req.ip,
   });
-  res.json({ ok: true, query, normalized_address: candidates[0].address, candidates });
+  res.json({ ok: true, query, selection_required: true, candidates });
 }
 
 export async function normalizeExternalAddressForMember(req, res) {
@@ -903,7 +919,7 @@ export async function normalizeExternalAddressForMember(req, res) {
   res.json({
     ok: true,
     query,
-    normalized_address: candidates[0].address,
+    selection_required: true,
     candidates,
   });
 }
@@ -931,7 +947,7 @@ export async function createExternalEvent(req, res) {
         normalized.event.address = verifiedAddress.address;
       }
       if (normalized.event.external_source?.image_mode === 'url') {
-        const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 8 * 1024 * 1024);
+        const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 32 * 1024 * 1024);
         const buffer = await downloadExternalImage(normalized.event.image, maxBytes);
         await createImageVariants(buffer);
       } else if (normalized.event.external_source?.image_mode === 'upload') {
@@ -1237,6 +1253,76 @@ export async function requestExternalPartnerAccess(req, res) {
     [id, String(user.id), partnerName, contact, note || null],
   );
   res.status(201).json({ ok: true, request_id: id, status: 'pending' });
+}
+
+export async function listMyExternalPartners(req, res) {
+  const user = await getCurrentUser(req);
+  if (!user) throw apiError('로그인 후 확인해 주세요.', 401, 'login_required');
+  const pool = getMysqlPool();
+  const [partners] = await pool.execute(
+    `SELECT id, name, environment, per_minute_limit, daily_limit
+       FROM external_api_partners
+      WHERE owner_user_id = ? AND is_active = 1
+      ORDER BY created_at DESC`,
+    [String(user.id)],
+  );
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, partners });
+}
+
+export async function autoIncreaseExternalTestLimit(req, res) {
+  requireSameOrigin(req);
+  const user = await getCurrentUser(req);
+  if (!user) throw apiError('로그인 후 요청해 주세요.', 401, 'login_required');
+  const partnerId = cleanString(req.params?.partnerId, 64, 'partner_id', { required: true });
+  const pool = getMysqlPool();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [rows] = await connection.execute(
+      `SELECT id, name, environment, per_minute_limit, daily_limit
+         FROM external_api_partners
+        WHERE id = ? AND owner_user_id = ? AND is_active = 1
+        LIMIT 1 FOR UPDATE`,
+      [partnerId, String(user.id)],
+    );
+    const partner = rows[0];
+    if (!partner) throw apiError('본인 계정에 연결된 활성 파트너를 찾을 수 없습니다.', 404, 'not_found');
+    if (partner.environment !== 'test') {
+      throw apiError('자동 상향은 테스트 모드에서만 가능합니다.', 403, 'live_limit_requires_admin');
+    }
+    const [recent] = await connection.execute(
+      `SELECT id FROM external_api_request_logs
+        WHERE partner_id = ? AND result = 'test_limit_auto_increased'
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        LIMIT 1`,
+      [partnerId],
+    );
+    if (recent[0]) {
+      throw apiError('자동 상향은 파트너별 24시간에 한 번만 가능합니다.', 429, 'limit_request_cooldown');
+    }
+    const perMinuteLimit = Math.max(Number(partner.per_minute_limit), 60);
+    const dailyLimit = Math.max(Number(partner.daily_limit), 3000);
+    await connection.execute(
+      `UPDATE external_api_partners
+          SET per_minute_limit = ?, daily_limit = ?, updated_at = NOW()
+        WHERE id = ?`,
+      [perMinuteLimit, dailyLimit, partnerId],
+    );
+    await connection.execute(
+      `INSERT INTO external_api_request_logs
+         (partner_id, status_code, result, request_ip, created_at)
+       VALUES (?, 200, 'test_limit_auto_increased', ?, NOW())`,
+      [partnerId, req.ip || null],
+    );
+    await connection.commit();
+    res.json({ ok: true, partner_id: partnerId, per_minute_limit: perMinuteLimit, daily_limit: dailyLimit });
+  } catch (error) {
+    await connection.rollback().catch(() => {});
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function listExternalPartnerRequests(req, res) {

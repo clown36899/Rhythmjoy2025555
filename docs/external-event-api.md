@@ -12,6 +12,8 @@
 - 연결할 Dance Billboard 회원 계정(댄스빌보드 로그인 아이디)
 - 기술 담당자 연락처
 
+공유 링크에 비로그인 상태로 접속하면 Dance Billboard 로그인창이 먼저 열립니다. 연동 신청은 로그인한 사용자만 할 수 있으며, 신청 폼에는 현재 본인 계정이 `닉네임 · 로그인 아이디` 형식으로 표시되고 수정할 수 없습니다. 예: `홍길동 · user@example.com`. 승인된 API Key와 이 키로 등록한 일정은 표시된 계정에 연결됩니다.
+
 테스트 키로 보낸 요청은 형식과 허용 장르를 검사하지만 실제 일정에는 등록되지 않습니다. 연동 확인이 끝나면 관리자가 운영 모드로 전환하며, 그 이후 요청부터 실제 일정에 반영됩니다.
 
 발급받은 키는 다음과 같은 형태입니다.
@@ -52,7 +54,7 @@ API Key마다 요청 횟수 한도가 적용됩니다. 테스트 단계 권장�
 
 한 파트너의 과도한 요청은 해당 API Key만 제한하며 다른 파트너 키에는 영향을 주지 않습니다. 반복 오등록이나 비정상 사용이 확인되면 관리자가 해당 키를 즉시 중지할 수 있습니다.
 
-개발 테스트 중 정상적인 반복 검증 때문에 한도가 부족한 경우에는 `010-4801-7180`으로 요청해 주세요. **파트너명, API Key 앞부분, 한도 증액 또는 초기화가 필요한 사유**를 보내 주시면 확인 후 테스트 한도를 늘리거나 누적 사용량을 초기화해 드립니다. 보안을 위해 API Key 전체 원문은 보내지 마세요. 운영 도배나 비정상 호출에는 적용되지 않습니다.
+개발 테스트 중 한도가 부족하면 안내 페이지에 로그인한 뒤 본인 계정에 연결된 테스트 파트너를 선택하고 **테스트 한도 즉시 상향**을 누르세요. 별도 관리자 승인 없이 분당 60회·24시간 3,000회로 자동 상향됩니다. 파트너별 24시간에 한 번만 사용할 수 있고 운영 모드 키에는 적용되지 않습니다.
 
 ## 2. 기본 요청 주소
 
@@ -197,7 +199,7 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
   --data-binary '@poster.jpg'
 ```
 
-업로드가 완료되면 서버가 자동으로 실제 이미지인지 검사하고 다음 4종 WebP 파일을 생성합니다.
+업로드가 완료되면 서버가 자동으로 실제 이미지인지 검사하고 다음 4종 WebP 파일을 생성합니다. 처리 순서는 수신 중 용량 제한 → 실제 형식·손상·픽셀 수 검사 → 4종 순차 변환 → 각 변환 결과 재검사입니다. 따라서 이미지로 위장한 파일과 깨진 파일은 저장 전에 거부되며, 큰 이미지 여러 장이 동시에 들어와도 순간 메모리 사용량이 급격히 커지지 않도록 처리합니다.
 
 | 응답 필드 | 용도 | 최대 폭 |
 |---|---|---:|
@@ -263,7 +265,7 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 - 로그인이 필요한 이미지 주소
 - 잠시 후 만료되는 서명 URL
 - 사설망·로컬 서버 주소
-- 8MB를 초과하는 파일
+- 32MB를 초과하는 파일
 - 지나치게 많은 리디렉션을 사용하는 주소
 - 확장자가 `.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`가 아닌 주소
 
@@ -285,15 +287,17 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 
 ## 6. 이미지 없는 소셜과 주소 확인
 
-이미지가 없는 `social` 일정은 상세 화면에 카카오맵을 표시하므로 `address`가 필요합니다. 파트너가 보낸 주소는 일정 등록 시 Dance Billboard 서버가 카카오 주소 검색을 자동 실행하고, 첫 번째 표준 도로명주소 또는 지번주소로 변환해 저장합니다. 검색 결과가 없을 때만 일정을 저장하지 않고 `422 address_not_found`를 반환합니다.
+이미지가 없는 `social` 일정은 상세 화면에 카카오맵을 표시하므로 `address`가 필요합니다. 검색 첫 결과를 자동 저장하면 다른 장소가 선택될 수 있으므로, Dance Billboard는 첫 결과를 임의로 저장하지 않습니다.
 
 따라서 기본 자동 연동은 다음처럼 처리하시면 됩니다.
 
-1. 파트너 서버가 사용자가 입력한 주소를 일정 요청의 `address`에 넣습니다.
-2. Dance Billboard 서버가 카카오맵 주소로 자동 변환합니다.
-3. 변환된 주소가 일정에 저장되고 상세 화면의 카카오맵에 사용됩니다.
+1. 파트너 서버가 사용자의 검색어로 아래 주소 확인 API를 호출합니다.
+2. API가 반환한 `candidates`를 파트너 등록 화면에 표시합니다.
+3. 사용자가 실제 장소와 일치하는 후보 하나를 선택합니다.
+4. 선택한 `candidate.address`를 일정 등록 요청의 `address`에 넣습니다.
+5. 등록 서버는 카카오 후보와 정확히 일치하는 주소인지 다시 검사한 뒤 저장합니다.
 
-파트너 등록 화면에서 저장될 주소를 미리 표시하고 싶을 때만 아래 주소 확인 API를 사용해 주세요. 응답의 `normalized_address`를 그대로 사용하면 별도의 후보 선택 화면 없이 자동 처리할 수 있습니다.
+주소 확인 API는 파트너 서버에서 호출하는 개발용 API입니다. API Key가 노출되므로 브라우저 JavaScript에서 Dance Billboard API를 직접 호출하지 마세요. 파트너 브라우저가 파트너 서버에 검색어를 보내고, 파트너 서버가 아래 API를 호출한 뒤 후보 목록만 브라우저에 전달해 주세요.
 
 ```http
 GET https://swingenjoy.com/api/external/v1/addresses/validate?query={주소}
@@ -313,7 +317,7 @@ curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
 ```js
 const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
 
-async function normalizeDanceBillboardAddress(rawAddress) {
+async function findDanceBillboardAddresses(rawAddress) {
   const url = new URL('https://swingenjoy.com/api/external/v1/addresses/validate');
   url.searchParams.set('query', rawAddress);
   const response = await fetch(url, {
@@ -321,8 +325,12 @@ async function normalizeDanceBillboardAddress(rawAddress) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.message || '주소 확인 실패');
-  return result.normalized_address;
+  return result.candidates;
 }
+
+// candidates를 등록 화면에 표시한 뒤 사용자가 고른 값만 사용합니다.
+const candidates = await findDanceBillboardAddresses('서울 강남구 테헤란로 123');
+const address = candidates[selectedIndex].address;
 ```
 
 응답 예시는 다음과 같습니다.
@@ -331,7 +339,7 @@ async function normalizeDanceBillboardAddress(rawAddress) {
 {
   "ok": true,
   "query": "서울 강남구 테헤란로 123",
-  "normalized_address": "서울 강남구 테헤란로 123",
+  "selection_required": true,
   "candidates": [
     {
       "address": "서울 강남구 테헤란로 123",
@@ -490,7 +498,7 @@ if (!response.ok) throw new Error(result.message || '일정 삭제 실패');
 | `400` | `invalid_request` | 필수값, 날짜, 분류 또는 URL이 잘못되었습니다. | 값을 수정한 후 다시 요청해 주세요. |
 | `401` | `invalid_api_key` | 키가 잘못되었거나 중지되었습니다. | 자동 반복하지 말고 키를 확인해 주세요. |
 | `404` | `not_found` | 해당 키가 소유한 일정을 찾을 수 없습니다. | `external_id`와 사용한 키를 확인해 주세요. |
-| `413` | `payload_too_large` | JSON 256KB 또는 이미지 8MB를 초과했습니다. | 본문 또는 이미지를 줄여 주세요. |
+| `413` | `payload_too_large` | JSON 256KB 또는 이미지 32MB를 초과했습니다. | 본문 또는 이미지를 줄여 주세요. |
 | `415` | `unsupported_media_type` | 지원하지 않는 이미지 형식입니다. | JPEG, PNG, WebP, AVIF를 사용해 주세요. |
 | `422` | `address_not_found` | 카카오맵에서 주소를 확인할 수 없습니다. | 주소 확인 API에서 후보를 다시 선택해 주세요. |
 | `429` | `rate_limit_exceeded` | 파트너 호출 한도를 초과했습니다. | 잠시 기다린 후 재시도해 주세요. |

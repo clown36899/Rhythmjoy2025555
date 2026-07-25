@@ -3,6 +3,7 @@ import {
   normalizeExternalEventPayload,
   normalizeExternalImage,
   normalizeKakaoAddressDocuments,
+  selectExactKakaoAddress,
   normalizeExternalUrl,
   parseExternalApiKey,
   createImageVariants,
@@ -438,6 +439,15 @@ describe('external event API validation', () => {
       widths[name] = metadata.width;
     }
     expect(widths).toEqual({ micro: 100, thumbnail: 300, medium: 650, full: 1300 });
+  });
+
+  it('requires the exact Kakao candidate selected by the user instead of taking the first result', () => {
+    const candidates = [
+      { address: '서울 동작구 남부순환로 2077', road_address: '서울 동작구 남부순환로 2077', jibun_address: '서울 동작구 사당동 1044-37' },
+      { address: '서울 동작구 남부순환로 2089', road_address: '서울 동작구 남부순환로 2089', jibun_address: '서울 동작구 사당동 1044-1' },
+    ];
+    expect(selectExactKakaoAddress(candidates, '서울 동작구 남부순환로 2089')).toBe(candidates[1]);
+    expect(selectExactKakaoAddress(candidates, '동작구 남부순환로')).toBeNull();
   });
 
   it('rejects non-image upload bodies', async () => {

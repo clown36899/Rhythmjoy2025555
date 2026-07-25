@@ -14,9 +14,11 @@ import {
 import {
   createExternalEvent,
   createExternalPartner,
+  autoIncreaseExternalTestLimit,
   deleteExternalEvent,
   listExternalAdminAuditLogs,
   listExternalPartners,
+  listMyExternalPartners,
   listExternalPartnerRequests,
   normalizeExternalAddressForMember,
   requestExternalPartnerAccess,
@@ -151,7 +153,7 @@ const jsonBody = express.json({
 const externalEventJsonBody = express.json({ limit: '256kb' });
 const externalImageBody = express.raw({
   type: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
-  limit: process.env.EXTERNAL_IMAGE_MAX_BYTES || '8mb',
+  limit: process.env.EXTERNAL_IMAGE_MAX_BYTES || '32mb',
 });
 const cafe24FunctionHandler = createCafe24FunctionHandler();
 
@@ -290,6 +292,8 @@ app.get('/api/external/address-tool', jsonRoute(normalizeExternalAddressForMembe
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
 app.get('/api/admin/external-partner-requests', jsonRoute(listExternalPartnerRequests));
 app.post('/api/external/partner-requests', jsonBody, jsonRoute(requestExternalPartnerAccess));
+app.get('/api/external/my-partners', jsonRoute(listMyExternalPartners));
+app.post('/api/external/my-partners/:partnerId/auto-test-limit', jsonBody, jsonRoute(autoIncreaseExternalTestLimit));
 app.post('/api/admin/external-partners', jsonBody, jsonRoute(createExternalPartner));
 app.patch('/api/admin/external-partners/:partnerId', jsonBody, jsonRoute(updateExternalPartnerStatus));
 app.post('/api/admin/external-partners/:partnerId/rotate-key', jsonBody, jsonRoute(rotateExternalPartnerKey));
@@ -303,7 +307,7 @@ app.use('/api/external/v1', (error, req, res, next) => {
       error: 'External Event API Error',
       code: 'payload_too_large',
       message: isImageUpload
-        ? '이미지 파일은 8MB를 초과할 수 없습니다.'
+        ? '이미지 파일은 32MB를 초과할 수 없습니다.'
         : '일정 JSON 본문은 256KB를 초과할 수 없습니다.',
     });
     return;
