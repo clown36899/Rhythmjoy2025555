@@ -130,6 +130,13 @@ const guideSearchItems = [
   { id: 'limits', title: '요청 한도와 오류 대응', summary: '테스트·운영 한도, 429와 오류 코드', keywords: 'rate limit 도배 테스트 상향 400 401 403 404 409 422 429' },
 ] as const;
 
+const normalizeGuideSearchText = (value: string) => (
+  value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ko-KR')
+    .replace(/[\s\-_/·.,()[\]{}]+/g, '')
+);
+
 const addressApiExample = `<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script>
 function selectRoadAddress() {
@@ -301,10 +308,10 @@ export default function ExternalEventApiGuidePage() {
   const contactPhoneIsValid = /^\+?[0-9()\-\s]{8,24}$/.test(application.contact_phone.trim())
     && contactPhoneDigits.length >= 9
     && contactPhoneDigits.length <= 15;
-  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase('ko-KR');
+  const normalizedSearchQuery = normalizeGuideSearchText(searchQuery);
   const searchResults = guideSearchItems.filter((item) => (
     !normalizedSearchQuery
-    || `${item.title} ${item.summary} ${item.keywords}`.toLocaleLowerCase('ko-KR').includes(normalizedSearchQuery)
+    || normalizeGuideSearchText(`${item.title} ${item.summary} ${item.keywords}`).includes(normalizedSearchQuery)
   ));
 
   useEffect(() => {
