@@ -438,7 +438,11 @@ async function downloadExternalImage(urlValue, maxBytes) {
     let addressIndex = 0;
     const dispatcher = new Agent({
       connect: {
-        lookup: (_hostname, _options, callback) => {
+        lookup: (_hostname, options, callback) => {
+          if (options?.all) {
+            callback(null, addresses.map(({ address, family }) => ({ address, family })));
+            return;
+          }
           const selected = addresses[addressIndex % addresses.length];
           addressIndex += 1;
           callback(null, selected.address, selected.family);
