@@ -326,6 +326,7 @@ app.use('/api/external/v1', (error, req, res, next) => {
 app.get('/api/auth/me', jsonRoute(me));
 app.get('/api/auth/providers', jsonRoute(authProviders));
 app.post('/api/auth/dev-login', jsonBody, jsonRoute(devLogin));
+app.get('/api/auth/dev-login', jsonRoute(devLogin));
 app.post('/api/auth/logout', jsonRoute(logout));
 app.post('/api/kakao-login', jsonBody, jsonRoute(kakaoLogin));
 app.post('/api/auth/kakao', jsonBody, jsonRoute(kakaoLogin));

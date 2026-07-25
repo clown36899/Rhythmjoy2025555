@@ -789,10 +789,17 @@ export async function devLogin(req, res) {
     return;
   }
 
-  const userId = String(req.body?.userId || 'local-admin-user').trim();
+  const userId = String(req.body?.userId || req.query?.userId || 'local-admin-user').trim();
   const pool = getMysqlPool();
   const [rows] = await pool.execute('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
-  const userRow = await attachAdminFlag(pool, rows[0]);
+  let selectedUser = rows[0];
+  if (!selectedUser && userId === 'local-admin-user') {
+    const [adminRows] = await pool.execute(
+      'SELECT * FROM users WHERE is_admin = 1 ORDER BY created_at LIMIT 1',
+    );
+    [selectedUser] = adminRows;
+  }
+  const userRow = await attachAdminFlag(pool, selectedUser);
 
   if (!userRow) {
     res.status(404).json({ error: 'Local dev user not found' });

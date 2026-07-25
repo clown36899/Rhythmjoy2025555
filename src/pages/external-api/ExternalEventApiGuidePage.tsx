@@ -671,7 +671,7 @@ export default function ExternalEventApiGuidePage() {
           <footer className="EAG-footer">
             <strong>연동 준비가 되셨나요?</strong>
             <p>위 안내에 맞춰 로그인 계정으로 연동을 신청해 주세요.</p>
-            <a href="#quick-start">연동 신청 폼으로 이동</a>
+            <a href="/external-event-api#quick-start">연동 신청 폼으로 이동</a>
           </footer>
         </article>
       </div>

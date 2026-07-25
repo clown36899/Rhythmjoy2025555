@@ -42,7 +42,7 @@ remote_env="$(
     [ -f '${APP_DIR}/.env' ] && . '${APP_DIR}/.env'
     [ -f '${APP_DIR}/.env.local' ] && . '${APP_DIR}/.env.local'
     set +a
-    for key in MYSQL_HOST MYSQL_PORT MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD MYSQL_EVENTS_TABLE; do
+    for key in MYSQL_HOST MYSQL_PORT MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD MYSQL_EVENTS_TABLE VITE_KAKAO_REST_API_KEY; do
       if [ \"\${!key+x}\" = x ]; then
         printf '%s=%q\n' \"\$key\" \"\${!key}\"
       fi

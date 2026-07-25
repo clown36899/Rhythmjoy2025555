@@ -152,7 +152,11 @@ function requireSameOrigin(req) {
   } catch {
     throw apiError('관리자 변경 요청의 Origin이 올바르지 않습니다.', 403, 'invalid_origin');
   }
-  if (originUrl.host !== host || !['http:', 'https:'].includes(originUrl.protocol)) {
+  const requestHostname = host.replace(/^\[|\](:\d+)?$/g, '').split(':')[0];
+  const localDevOrigin = process.env.NODE_ENV !== 'production'
+    && ['localhost', '127.0.0.1', '::1'].includes(originUrl.hostname)
+    && ['localhost', '127.0.0.1', '::1'].includes(requestHostname);
+  if ((!localDevOrigin && originUrl.host !== host) || !['http:', 'https:'].includes(originUrl.protocol)) {
     throw apiError('다른 사이트에서 보낸 관리자 변경 요청은 허용되지 않습니다.', 403, 'invalid_origin');
   }
 }
