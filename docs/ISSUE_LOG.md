@@ -232,6 +232,7 @@
   - 명시적인 무료 금액/무료 행사/정기권 판매만 혜택 대상으로 표시하고 부정 표현은 제외했다.
   - 운영 OS 호환 이미지 디코더에서 공급자 권고 취약 디코더 3종을 명시적으로 차단하고, SSRF 차단에 IPv4-mapped IPv6, 예약·문서·멀티캐스트 대역을 포함했다.
   - 운영 E2E에서 발견한 Undici의 `lookup({ all: true })` 계약 불일치를 수정해, DNS 검증을 통과한 공인 IP 목록만 배열 형식으로 연결 계층에 전달한다.
+  - ModSecurity의 PUT/DELETE 정책 예외를 전체 서버가 아닌 `/api/external/v1/events/{external_id}` 경로에만 적용하고 애플리케이션의 키·소유권 검사를 유지한다.
 - 검증:
   - 전체 단위 테스트 60개 및 외부 API 테스트 18개 통과
   - 수집 기준 테스트, TypeScript, ESLint, OpenAPI YAML 파싱 및 프로덕션 빌드 통과
