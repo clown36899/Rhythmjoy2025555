@@ -87,6 +87,15 @@ Content-Type: application/json
 
 브라우저에서 직접 호출하는 CORS 방식은 제공하지 않습니다. 파트너 서버에서 Dance Billboard 서버로 요청해 주세요.
 
+공개 안내 페이지의 **사용 중인 서버 환경의 등록 예시**에서 Node.js, PHP, Python, Java 코드를 선택해 복사할 수 있습니다. 이 코드는 각각의 서버 문법으로 같은 HTTP 요청을 작성한 예시입니다. 파트너 사이트가 React, Vue 또는 일반 HTML로 만들어졌더라도 API Key를 프론트엔드에 넣지 말고, 해당 사이트의 서버나 서버리스 함수에서 호출해야 합니다.
+
+- Node.js: Node.js 18 이상 내장 `fetch`
+- PHP: PHP cURL 확장
+- Python: `requests` 패키지
+- Java: Java 17 이상 `HttpClient`
+
+예시에 사용된 비밀변수 이름은 파트너 환경에 맞게 바꿀 수 있습니다. 요청 주소, 인증 헤더, HTTP 메서드와 JSON 형식은 바꾸면 안 됩니다.
+
 ### 등록 예시의 값은 어떻게 바꾸나요?
 
 요청 주소, `POST` 메서드, 인증 헤더, `Content-Type`과 JSON 필드명은 그대로 사용하세요. 예시의 필드값은 실제 파트너 일정에 맞게 바꿀 수 있습니다.

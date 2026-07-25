@@ -35,6 +35,101 @@ const curlExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events
   -H 'Content-Type: application/json' \\
   --data '${singleEventExample.replace(/\n/g, '\n  ')}'`;
 
+const nodeExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+
+const response = await fetch("https://swingenjoy.com/api/external/v1/events", {
+  method: "POST",
+  headers: {
+    Authorization: \`Bearer \${API_KEY}\`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(${singleEventExample})
+});
+
+const result = await response.json();
+if (!response.ok) throw new Error(result.message || "일정 등록 실패");`;
+
+const phpExample = `<?php
+$apiKey = getenv('DANCE_BILLBOARD_API_KEY');
+$payload = [
+  'external_id' => 'partner-event-20260801-1',
+  'title' => '토요일 린디합 강습',
+  'event_dates' => ['2026-08-01'],
+  'category' => 'class',
+  'genre' => '린디합',
+  'source_url' => 'https://partner.example.com/events/1',
+  'image_mode' => 'url',
+  'image_url' => 'https://partner.example.com/images/1.webp'
+];
+
+$curl = curl_init('https://swingenjoy.com/api/external/v1/events');
+curl_setopt_array($curl, [
+  CURLOPT_POST => true,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_HTTPHEADER => [
+    'Authorization: Bearer ' . $apiKey,
+    'Content-Type: application/json'
+  ],
+  CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE)
+]);
+$body = curl_exec($curl);
+$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+curl_close($curl);
+if ($status < 200 || $status >= 300) throw new Exception($body);`;
+
+const pythonExample = `import os
+import requests
+
+api_key = os.environ["DANCE_BILLBOARD_API_KEY"]
+payload = ${singleEventExample.replace(/\btrue\b/g, 'True').replace(/\bfalse\b/g, 'False').replace(/\bnull\b/g, 'None')}
+
+response = requests.post(
+    "https://swingenjoy.com/api/external/v1/events",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json=payload,
+    timeout=30,
+)
+response.raise_for_status()
+result = response.json()`;
+
+const javaExample = `// Java 17 이상
+String apiKey = System.getenv("DANCE_BILLBOARD_API_KEY");
+String json = """
+${singleEventExample.replace(/^/gm, '  ')}
+""";
+
+HttpRequest request = HttpRequest.newBuilder()
+    .uri(URI.create("https://swingenjoy.com/api/external/v1/events"))
+    .header("Authorization", "Bearer " + apiKey)
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString(json))
+    .build();
+
+HttpResponse<String> response = HttpClient.newHttpClient()
+    .send(request, HttpResponse.BodyHandlers.ofString());
+if (response.statusCode() < 200 || response.statusCode() >= 300) {
+  throw new IllegalStateException(response.body());
+}`;
+
+const serverExamples = [
+  { id: 'node', label: 'Node.js', note: 'Node.js 18 이상 또는 서버리스 함수', code: nodeExample },
+  { id: 'php', label: 'PHP', note: 'PHP cURL 확장 사용', code: phpExample },
+  { id: 'python', label: 'Python', note: 'requests 패키지 사용', code: pythonExample },
+  { id: 'java', label: 'Java', note: 'Java 17 이상 HttpClient 사용', code: javaExample },
+] as const;
+
+const guideSearchItems = [
+  { id: 'quick-start', title: '연동 신청과 API Key', summary: '로그인, 신청, 승인, 인증, 보안', keywords: '파트너 신청 계정 이메일 전화번호 키 발급 bearer secret env' },
+  { id: 'request-example', title: '일정 등록 요청과 서버 코드', summary: 'cURL, Node.js, PHP, Python, Java 등록 예시', keywords: 'post json fetch curl requests httpclient 서버리스 코드 예제' },
+  { id: 'dates', title: '날짜 입력', summary: '단일 일정, 개별 날짜 여러 개, 연속 기간 미지원', keywords: 'event_dates start_date end_date 단일 개별 일정 날짜 배열' },
+  { id: 'categories', title: '최상위 분류와 하위 장르', summary: 'category와 genre 허용 조합 및 중복 규칙', keywords: 'social event class club 소셜 행사 강습 동호회 워크샵 파티 린디합 장르 분류' },
+  { id: 'images', title: '이미지 등록', summary: '직접 업로드, 공개 URL, WebP 4종 변환', keywords: 'image upload url avif jpeg png webp 32mb 포스터 수정 삭제' },
+  { id: 'address', title: '카카오맵 주소 확인', summary: '도로명주소, 다음 우편번호, 지도 호환 안내', keywords: 'address postal_code daum kakao naver google map 장소 주소 검색' },
+  { id: 'fields', title: '요청 필드 정리', summary: '필수값, 선택값, 데이터 형식', keywords: 'external_id title source_url time location description field 필드' },
+  { id: 'sync', title: '일정 수정과 삭제', summary: 'PUT, DELETE, external_id와 이미지 교체', keywords: 'crud update delete 동기화 자동 반영 소유권 같은 키' },
+  { id: 'limits', title: '요청 한도와 오류 대응', summary: '테스트·운영 한도, 429와 오류 코드', keywords: 'rate limit 도배 테스트 상향 400 401 403 404 409 422 429' },
+] as const;
+
 const addressApiExample = `<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script>
 function selectRoadAddress() {
@@ -192,6 +287,9 @@ export default function ExternalEventApiGuidePage() {
   });
   const [useLoginEmail, setUseLoginEmail] = useState(false);
   const [applicationResult, setApplicationResult] = useState('');
+  const [serverExampleId, setServerExampleId] = useState<(typeof serverExamples)[number]['id']>('node');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [myPartners, setMyPartners] = useState<Array<{
     id: string; name: string; environment: 'test' | 'live'; per_minute_limit: number; daily_limit: number;
   }>>([]);
@@ -203,6 +301,11 @@ export default function ExternalEventApiGuidePage() {
   const contactPhoneIsValid = /^\+?[0-9()\-\s]{8,24}$/.test(application.contact_phone.trim())
     && contactPhoneDigits.length >= 9
     && contactPhoneDigits.length <= 15;
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase('ko-KR');
+  const searchResults = guideSearchItems.filter((item) => (
+    !normalizedSearchQuery
+    || `${item.title} ${item.summary} ${item.keywords}`.toLocaleLowerCase('ko-KR').includes(normalizedSearchQuery)
+  ));
 
   useEffect(() => {
     if (user || loginPromptOpened.current) return;
@@ -241,6 +344,22 @@ export default function ExternalEventApiGuidePage() {
     setUseLoginEmail(true);
     setApplication((current) => ({ ...current, contact_email: loginEmail }));
   }, [user?.email]);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsSearchOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isSearchOpen]);
+
+  const moveToGuideSection = (id: string) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    window.history.replaceState(null, '', `/external-event-api#${id}`);
+    window.requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   const shareGuide = async () => {
     const shareData = {
@@ -317,6 +436,10 @@ export default function ExternalEventApiGuidePage() {
           <span>Dance Billboard</span>
         </Link>
         <div className="EAG-topbarActions">
+          <button type="button" className="EAG-searchButton" onClick={() => setIsSearchOpen(true)}>
+            <i className="ri-search-line" aria-hidden="true" />
+            문서 검색
+          </button>
           {isAdmin && (
             <button type="button" onClick={() => partnerManagementModal.open()}>
               <i className="ri-settings-3-line" aria-hidden="true" />
@@ -474,6 +597,28 @@ export default function ExternalEventApiGuidePage() {
               </div>
             </div>
             <CodeBlock label="cURL · 단일 일정 등록" code={curlExample} />
+            <h3 className="EAG-subheading">사용 중인 서버 환경의 등록 예시</h3>
+            <p>아래 코드는 파트너의 <b>서버</b>에 넣는 예시입니다. 프론트엔드가 React·Vue·일반 HTML이어도 API Key를 브라우저에 넣지 말고, 해당 사이트의 서버 또는 서버리스 함수에서 호출하세요.</p>
+            <div className="EAG-codeTabs" role="tablist" aria-label="서버 환경별 일정 등록 코드">
+              {serverExamples.map((example) => (
+                <button
+                  key={example.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={serverExampleId === example.id}
+                  className={serverExampleId === example.id ? 'is-active' : ''}
+                  onClick={() => setServerExampleId(example.id)}
+                >
+                  {example.label}
+                </button>
+              ))}
+            </div>
+            {serverExamples.filter((example) => example.id === serverExampleId).map((example) => (
+              <div key={example.id} role="tabpanel">
+                <p className="EAG-footnote">{example.note} 예시입니다. 비밀변수 이름은 파트너 환경에 맞게 바꿀 수 있습니다.</p>
+                <CodeBlock label={`${example.label} 서버 · 단일 일정 등록`} code={example.code} />
+              </div>
+            ))}
             <div className="EAG-endpoint">
               <span className="EAG-method">POST</span>
               <code>/events</code>
@@ -737,6 +882,44 @@ export default function ExternalEventApiGuidePage() {
           </footer>
         </article>
       </div>
+      {isSearchOpen && (
+        <div className="EAG-searchBackdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setIsSearchOpen(false);
+        }}>
+          <section className="EAG-searchDialog" role="dialog" aria-modal="true" aria-labelledby="external-api-search-title">
+            <div className="EAG-searchHeader">
+              <div>
+                <span className="EAG-kicker">GUIDE SEARCH</span>
+                <h2 id="external-api-search-title">API 안내에서 찾기</h2>
+              </div>
+              <button type="button" className="EAG-searchClose" aria-label="검색 닫기" onClick={() => setIsSearchOpen(false)}>×</button>
+            </div>
+            <label className="EAG-searchInput">
+              <i className="ri-search-line" aria-hidden="true" />
+              <input
+                autoFocus
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="예: 이미지 업로드, 장르, 수정, Node.js"
+                aria-controls="external-api-search-results"
+              />
+            </label>
+            <p className="EAG-searchHint">입력하는 즉시 이 페이지의 제목과 핵심 키워드를 찾아드립니다.</p>
+            <div id="external-api-search-results" className="EAG-searchResults" role="listbox" aria-label="검색 자동완성 결과">
+              {searchResults.map((item) => (
+                <button key={item.id} type="button" role="option" aria-selected="false" onClick={() => moveToGuideSection(item.id)}>
+                  <span><strong>{item.title}</strong><small>{item.summary}</small></span>
+                  <i className="ri-arrow-right-line" aria-hidden="true" />
+                </button>
+              ))}
+              {searchResults.length === 0 && (
+                <p className="EAG-searchEmpty">일치하는 항목이 없습니다. 날짜, 이미지, 장르, 수정처럼 짧은 단어로 다시 검색해 주세요.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
       {isLoginOpen && !user && (
         <div className="EAG-loginBackdrop" role="dialog" aria-modal="true" aria-labelledby="external-api-login-title">
           <div className="EAG-loginDialog">
