@@ -14,6 +14,12 @@ import {
 import { sanitizeEventForViewer } from './event-security.js';
 import { requireAdmin } from './auth-api.js';
 
+// sharp/libvips security advisory GHSA-f88m-g3jw-g9cj workaround.
+// These decoders are not accepted by the API and are blocked before any image is processed.
+sharp.block({
+  operation: ['VipsForeignLoadNsgif', 'VipsForeignLoadTiff', 'VipsForeignLoadVips'],
+});
+
 export const SITE_GENRES_BY_CATEGORY = Object.freeze({
   social: Object.freeze(['소셜', '졸공']),
   event: Object.freeze(['워크샵', '파티', '대회', '라이브밴드', '기타']),
