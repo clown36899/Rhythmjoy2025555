@@ -6,6 +6,7 @@ import {
 
 describe('Cafe24 generic event metadata writes', () => {
   const admin = { id: 'admin-user-id', is_admin: true };
+  const regularUser = { id: 'regular-user-id', is_admin: false };
 
   it('strips protected metadata from event updates even for admins', () => {
     const updates = normalizeEventUpdateValues({
@@ -30,6 +31,26 @@ describe('Cafe24 generic event metadata writes', () => {
     expect(updates).not.toHaveProperty('organizer_phone');
     expect(updates).not.toHaveProperty('board_users');
     expect(updates).not.toHaveProperty('password');
+    expect(updates).not.toHaveProperty('activity_type');
+  });
+
+  it('keeps sale activity admin-only on event writes', () => {
+    const adminInsert = normalizeEventUpsertValue({
+      id: 'sale-event-id',
+      title: '정기권 판매 이벤트',
+      category: 'event',
+      activity_type: 'sale',
+    }, null, admin);
+
+    const userInsert = normalizeEventUpsertValue({
+      id: 'sale-event-id',
+      title: '정기권 판매 이벤트',
+      category: 'event',
+      activity_type: 'sale',
+    }, null, regularUser);
+
+    expect(adminInsert.activity_type).toBe('sale');
+    expect(userInsert.activity_type).toBe('event');
   });
 
   it('preserves existing metadata when an upsert updates an event', () => {

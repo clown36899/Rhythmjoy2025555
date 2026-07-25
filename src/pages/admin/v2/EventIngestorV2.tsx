@@ -38,8 +38,8 @@ interface ScrapedEvent {
     location_link?: string | null;
     fee?: string;
     note?: string;
-    event_type?: '소셜' | '파티/행사' | '강습' | null;
-    activity_type?: 'class' | 'social' | 'event' | 'recruit' | null;
+    event_type?: '소셜' | '파티/행사' | '강습' | '판매이벤트' | null;
+    activity_type?: 'class' | 'social' | 'event' | 'recruit' | 'sale' | null;
     activity_label?: string;
     dance_scope?: 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown' | null;
     dance_scope_label?: string;
@@ -308,7 +308,7 @@ const EventIngestorV2: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
-  const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집'>('전체');
+  const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집' | '판매이벤트'>('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [tabCounts, setTabCounts] = useState<{ new: number; collected: number; duplicate: number }>({ new: 0, collected: 0, duplicate: 0 });
@@ -1136,10 +1136,10 @@ const EventIngestorV2: React.FC = () => {
           </div>
 
           <div className="type-filter-group" aria-label="활동 분류 필터">
-            {(['전체', '강습', '소셜', '행사', '모집'] as const).map(t => (
+            {(['전체', '강습', '소셜', '행사', '모집', '판매이벤트'] as const).map(t => (
               <button
                 key={t}
-                className={`type-filter-btn ${activityFilter === t ? 'active' : ''} type-${t === '전체' ? 'all' : t === '소셜' ? 'social' : t === '강습' ? 'lesson' : t === '모집' ? 'recruit' : 'party'}`}
+                className={`type-filter-btn ${activityFilter === t ? 'active' : ''} type-${t === '전체' ? 'all' : t === '소셜' ? 'social' : t === '강습' ? 'lesson' : t === '모집' ? 'recruit' : t === '판매이벤트' ? 'sale' : 'party'}`}
                 onClick={() => { setActivityFilter(t); setSelectedIds(new Set()); }}
               >
                 {t}

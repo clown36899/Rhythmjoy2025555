@@ -20,7 +20,7 @@ import {
   type VenueLike,
 } from '../../../../utils/venueNormalization';
 
-type EventType = '소셜' | '파티/행사' | '강습';
+type EventType = '소셜' | '파티/행사' | '강습' | '판매이벤트';
 
 export interface VenueRecord extends VenueLike {
   id: string;
@@ -99,6 +99,7 @@ const SOURCE_VENUE_ALIASES: Array<[RegExp, string]> = [
 
 export function detectEventType(event: ScrapedLike): EventType {
   const activity = detectIngestorActivity(event);
+  if (activity === 'sale') return '판매이벤트';
   if (activity === 'class') return '강습';
   if (activity === 'social') return '소셜';
   if (activity === 'recruit') return '파티/행사';
@@ -138,7 +139,7 @@ export function detectIngestorActivity(event: ScrapedLike): DanceActivity {
   if (recruitmentKind) return 'recruit';
 
   const explicit = event.structured_data?.activity_type;
-  if (explicit && ['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
+  if (explicit && ['class', 'social', 'event', 'recruit', 'sale'].includes(explicit)) return explicit;
   return inferDanceTaxonomy(event).activity_type;
 }
 
@@ -238,6 +239,7 @@ function getIngestorSiteCategory(event: ScrapedLike, activity: DanceActivity): M
   if (/졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text)) return 'social';
   if (activity === 'social') return 'social';
   if (activity === 'class') return 'class';
+  if (activity === 'sale') return 'event';
   if (activity === 'recruit') {
     return /팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)
       ? 'class'

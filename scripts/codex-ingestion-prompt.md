@@ -35,10 +35,10 @@ Hard constraints:
 - Store enough source detail for `/admin/v2/ingestor` to show the candidate, source URL, poster, extracted text, and structured data.
 - BAT SWING (`https://batswing.co.kr/`, `https://www.instagram.com/batswing2003/`) is excluded from collection. Do not access it, retry it, or report it as a transient failure.
 - For every candidate, fill dynamic taxonomy fields when possible:
-  - `structured_data.activity_type`: `class`, `social`, `event`, or `recruit`
+  - `structured_data.activity_type`: `class`, `social`, `event`, `recruit`, or `sale`
   - `structured_data.genre_family`: `partner` or `street` for saved candidates. `unknown`, `art`, and `commercial` may be detected only to exclude or re-check them.
   - `structured_data.dance_genre`: e.g. `swing`, `lindyhop`, `wcs`, `salsa`, `tango`, `bachata`, `hiphop`, `waacking`, `popping`, `locking`, `house`, `breaking`, `krump`
-  - `structured_data.tags`: only tags actually visible in the source text, such as `audition`, `team_recruit`, `participant`, `choreo`, `workshop`, `battle`, `dj`, `performance`
+  - `structured_data.tags`: only tags actually visible in the source text, such as `audition`, `team_recruit`, `participant`, `choreo`, `workshop`, `battle`, `dj`, `performance`, `sale_event`, `season_pass`, `free_event`
 - Classify auditions, team/crew recruitment, and participant recruitment as `activity_type: "recruit"`, not as a generic event.
 - Exclude modern dance, classical/traditional dance, ballet, K-pop, coverdance, heels, and other art/commercial performance candidates from saved ingestion output.
 - Expanded-genre scene research is a separate job: it should map reliable source routes, community structure, class/social/recruit patterns, and image availability before any source is promoted to verified ingestion.

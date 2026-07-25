@@ -1,0 +1,265 @@
+openapi: 3.1.0
+info:
+  title: Swing Enjoy External Event Registration API
+  version: 1.0.0
+  description: 외부 파트너가 Swing Enjoy에 일정을 단방향 등록하는 서버 간 API
+servers:
+  - url: https://swingenjoy.com
+paths:
+  /api/external/v1/events:
+    post:
+      summary: 외부 일정 등록
+      operationId: createExternalEvent
+      security:
+        - partnerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalEventRequest'
+      responses:
+        '201':
+          description: 최초 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '200':
+          description: 같은 external_id로 이미 등록된 일정
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DuplicateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/external/v1/images:
+    post:
+      summary: 외부 일정 이미지 업로드
+      operationId: uploadExternalEventImage
+      security:
+        - partnerApiKey: []
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              contentMediaType: image/jpeg
+              contentEncoding: binary
+          image/png:
+            schema:
+              type: string
+              contentMediaType: image/png
+              contentEncoding: binary
+          image/webp:
+            schema:
+              type: string
+              contentMediaType: image/webp
+              contentEncoding: binary
+          image/avif:
+            schema:
+              type: string
+              contentMediaType: image/avif
+              contentEncoding: binary
+      responses:
+        '201':
+          description: 이미지 검사·변환·저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+components:
+  securitySchemes:
+    partnerApiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: SwingEnjoyPartnerKey
+  schemas:
+    ExternalEventRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - external_id
+        - title
+        - source_url
+        - event_dates
+      allOf:
+        - if:
+            properties:
+              category:
+                enum: [event, class, club]
+            required: [category]
+          then:
+            required: [image_mode, image_url]
+        - if:
+            properties:
+              category:
+                const: social
+            required: [category]
+          then:
+            oneOf:
+              - required: [image_mode, image_url]
+              - required: [address]
+                not:
+                  anyOf:
+                    - required: [image_mode]
+                    - required: [image_url]
+      properties:
+        external_id:
+          type: string
+          maxLength: 160
+        title:
+          type: string
+          maxLength: 255
+        event_dates:
+          type: array
+          minItems: 1
+          maxItems: 366
+          uniqueItems: true
+          items:
+            type: string
+            format: date
+          description: 실제 노출할 날짜. 단일 일정은 1개, 개별 날짜 일정은 여러 개를 전송.
+        time:
+          type: string
+          maxLength: 120
+        location:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 255
+          description: 이미지 없는 social 일정에서는 상세 카카오맵 표시를 위해 필수
+        location_link:
+          type: string
+          format: uri
+          pattern: '^https://'
+        description:
+          type: string
+          maxLength: 20000
+        category:
+          type: string
+          enum: [social, event, class, club]
+          description: 파트너 기본값이 설정된 경우 생략 가능
+        genre:
+          type: string
+          enum: [소셜, 졸공, 워크샵, 파티, 대회, 라이브밴드, 기타, 린디합, 솔로재즈, 발보아, 블루스, 팀원모집, 정규강습]
+          description: 선택한 category에 허용된 값만 사용하며, 파트너 기본값이 설정된 경우 생략 가능
+        source_url:
+          type: string
+          format: uri
+          pattern: '^https://'
+        link_name1:
+          type: string
+          maxLength: 120
+        image_url:
+          type: string
+          format: uri
+          pattern: '^https://.*\\.(avif|jpg|jpeg|png|webp)([?#].*)?$'
+        image_mode:
+          type: string
+          enum: [upload, url]
+          description: upload은 이미지 업로드 API 반환 URL, url은 외부 공개 이미지 URL
+        venue_name:
+          type: string
+          maxLength: 255
+    SuccessResponse:
+      type: object
+      required: [ok, duplicate, event_id, event]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        duplicate:
+          type: boolean
+          const: false
+        event_id:
+          type: string
+        event:
+          type: object
+    DuplicateResponse:
+      type: object
+      required: [ok, duplicate, event_id]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        duplicate:
+          type: boolean
+          const: true
+        event_id:
+          type: string
+    ImageUploadResponse:
+      type: object
+      required: [ok, image_url, content_type, bytes]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        image_url:
+          type: string
+          format: uri
+        content_type:
+          type: string
+          const: image/webp
+        bytes:
+          type: integer
+          minimum: 1
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    BadRequest:
+      description: 요청값 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: API Key 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    PayloadTooLarge:
+      description: 요청 본문 크기 초과
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnsupportedMediaType:
+      description: 지원하지 않는 이미지 Content-Type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: 호출량 제한 초과
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -32,6 +32,8 @@
         <string>2</string>
         <key>INGESTION_NATIVE_RUN_BUDGET_MS</key>
         <string>1200000</string>
+        <key>INGESTION_NATIVE_INSTAGRAM_POST_LIMIT</key>
+        <string>1</string>
     </dict>
 </dict>
 </plist>

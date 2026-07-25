@@ -157,6 +157,7 @@ const BillboardCatalogPage = lazy(() => import('./pages/billboard/preview/Catalo
 const CalendarPage = lazy(() => import('./pages/calendar/page'));
 const EventsInfoPage = lazy(() => import('./pages/events/page'));
 const OneDayRecruitPage = lazy(() => import('./pages/recruits/OneDayRecruitPage'));
+const BenefitEventsPage = lazy(() => import('./pages/benefit-events/BenefitEventsPage'));
 const MyActivitiesPage = lazy(() => import('./pages/user/MyActivitiesPage'));
 const ArchiveLayout = lazy(() => import('./layouts/ArchiveLayout'));
 const LearningPage = lazy(() => import('./pages/learning/Page'));
@@ -306,6 +307,7 @@ const router = createBrowserRouter([
       { path: "/calendar", element: <MenuVisibilityGate itemId="calendar"><CalendarPage /></MenuVisibilityGate> },
       { path: "/events", element: <MenuVisibilityGate itemId="events"><EventsInfoPage /></MenuVisibilityGate> },
       { path: "/oneday-recruits", element: <OneDayRecruitPage /> },
+      { path: "/benefit-events", element: <BenefitEventsPage /> },
       { path: "/social", element: <SocialPage /> },
       { path: "/social/calendar", element: <SocialCalendarPage /> },
       { path: "/social/clubs", element: <SocialClubsPage /> },

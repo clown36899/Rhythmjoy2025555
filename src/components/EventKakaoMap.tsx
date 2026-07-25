@@ -16,6 +16,16 @@ interface EventKakaoMapProps {
     className?: string;
 }
 
+function escapeMarkerHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    })[char] || char);
+}
+
 export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerClick, onSearchFail, className = '' }: EventKakaoMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -81,12 +91,14 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
                     };
                 }
 
+                const safePlaceName = placeName ? escapeMarkerHtml(placeName) : '';
+                const safeImageUrl = imageUrl ? escapeMarkerHtml(imageUrl) : '';
                 markerContainer.innerHTML = `
                   <div class="EKM-marker-wrapper">
-                    ${placeName ? `<div class="EKM-marker-label"><span>${placeName}</span><i class="ri-arrow-right-s-line"></i></div>` : ''}
+                    ${safePlaceName ? `<div class="EKM-marker-label"><span>${safePlaceName}</span><i class="ri-arrow-right-s-line"></i></div>` : ''}
                     <div class="EKM-marker-icon">
                       <div class="EKM-marker">
-                        ${imageUrl ? `<img src="${imageUrl}" alt="Marker" />` : `<i class="ri-map-pin-fill" style="font-size: 24px; color: #fff;"></i>`}
+                        ${safeImageUrl ? `<img src="${safeImageUrl}" alt="Marker" />` : `<i class="ri-map-pin-fill" style="font-size: 24px; color: #fff;"></i>`}
                       </div>
                       <div class="EKM-marker-tail"></div>
                     </div>

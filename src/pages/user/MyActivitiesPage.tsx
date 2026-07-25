@@ -13,23 +13,77 @@ import EventDetailModal from '../v2/components/EventDetailModal';
 import EventRegistrationModal from '../../components/EventRegistrationModal';
 import { getEventMutation, mergeEventIntoArray, removeEventFromArray, sameEventId } from '../../utils/eventMutationSync';
 
-// Social Components
-import SocialGroupModal from '../social/components/SocialGroupModal';
-// import SocialDetailModal from '../social/components/SocialDetailModal'; // Removed: combined into EventDetailModal
-import GroupCalendarModal from '../social/components/GroupCalendarModal';
-import type { SocialGroup } from '../social/types';
-
 import '../../pages/board/board.css'; // Reuse board styles
 // import '../v2/styles/EventListSections.css'; // Reuse event list styles
 import '../../styles/domains/events.css';
 import '../../styles/components/MobileShell.css'; // Import MobileShell styles
 import './styles/MyActivitiesPage.css'; // New dedicated styles
 import './styles/RegisteredEvents.css'; // New managed events styles
-import '../social/components/GroupDirectory.css'; // Reuse group styles
 import MyImpactCard from './components/MyImpactCard';
 
 
-type TabType = 'events' | 'classes' | 'groups' | 'posts' | 'stats';
+type TabType = 'events' | 'classes' | 'socials' | 'recruits' | 'posts' | 'stats';
+
+const ACTIVITY_TABS = new Set<TabType>(['events', 'classes', 'socials', 'recruits', 'posts', 'stats']);
+
+const normalizeEventKind = (value?: string | null) => String(value || '').trim().toLowerCase();
+
+const getActivitySearchText = (event: Cafe24Event) => [
+    event.category,
+    event.activity_type,
+    event.genre,
+    event.title,
+    event.description,
+].filter(Boolean).join(' ').toLowerCase();
+
+const isRecruitActivity = (event: Cafe24Event) => {
+    const activityType = normalizeEventKind(event.activity_type);
+    const text = getActivitySearchText(event);
+
+    return (
+        activityType === 'recruit' ||
+        text.includes('원데이모집') ||
+        text.includes('원데이 모집') ||
+        text.includes('일반인모집') ||
+        text.includes('일반인 모집')
+    );
+};
+
+const isSocialActivity = (event: Cafe24Event) => {
+    const category = normalizeEventKind(event.category);
+    const activityType = normalizeEventKind(event.activity_type);
+    const genre = normalizeEventKind(event.genre);
+
+    return (
+        category === 'social' ||
+        activityType === 'social' ||
+        genre.includes('소셜') ||
+        genre.includes('social')
+    );
+};
+
+const isClassActivity = (event: Cafe24Event) => {
+    const category = normalizeEventKind(event.category);
+    const activityType = normalizeEventKind(event.activity_type);
+    const text = getActivitySearchText(event);
+
+    return (
+        category === 'class' ||
+        category === 'regular' ||
+        category === 'club' ||
+        category === 'club_lesson' ||
+        category === 'club_regular' ||
+        activityType === 'class' ||
+        text.includes('강습') ||
+        text.includes('워크샵') ||
+        text.includes('workshop')
+    );
+};
+
+const resolveActivityTab = (tab: string | null): TabType => {
+    if (tab === 'groups') return 'socials';
+    return ACTIVITY_TABS.has(tab as TabType) ? (tab as TabType) : 'events';
+};
 
 export default function MyActivitiesPage() {
     const { user, isAdmin } = useAuth();
@@ -37,12 +91,10 @@ export default function MyActivitiesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // URL param 'tab' controls the view
-    const currentTab = (searchParams.get('tab') as TabType) || 'events';
+    const currentTab = resolveActivityTab(searchParams.get('tab'));
 
     const [events, setEvents] = useState<Cafe24Event[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
-    const [socialGroups, setSocialGroups] = useState<any[]>([]);
-    const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
     const [favoriteEvents, setFavoriteEvents] = useState<Cafe24Event[]>([]);
     const [favoritePosts, setFavoritePosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
@@ -59,9 +111,6 @@ export default function MyActivitiesPage() {
     const [selectedSchedule, setSelectedSchedule] = useState<any | null>(null);
     const [isEventEditModalOpen, setIsEventEditModalOpen] = useState(false); // New modal state for social events
     const [eventToEditSocial, setEventToEditSocial] = useState<any | null>(null);
-    const [isGroupEditModalOpen, setIsGroupEditModalOpen] = useState(false);
-    const [groupToEdit, setGroupToEdit] = useState<any | null>(null);
-    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     useEffect(() => {
         if (!user) {
@@ -84,8 +133,6 @@ export default function MyActivitiesPage() {
 
             setEvents(prev => mergeEventIntoArray(prev, detail, { insertIfMissing: shouldInsert })
                 .filter(item => !item.user_id || String(item.user_id) === String(user.id)));
-            setSocialSchedules(prev => mergeEventIntoArray(prev, detail, { insertIfMissing: shouldInsert })
-                .filter(item => item.group_id !== null && item.group_id !== undefined));
             setFavoriteEvents(prev => mergeEventIntoArray(prev, detail));
             setSelectedEvent(prev => prev && sameEventId(prev.id, targetId) ? ({ ...prev, ...event } as Cafe24Event) : prev);
         };
@@ -93,7 +140,6 @@ export default function MyActivitiesPage() {
         const handleEventDeleted = (nativeEvent: globalThis.Event) => {
             const detail = (nativeEvent as CustomEvent).detail;
             setEvents(prev => removeEventFromArray(prev, detail));
-            setSocialSchedules(prev => removeEventFromArray(prev, detail));
             setFavoriteEvents(prev => removeEventFromArray(prev, detail));
             const { id } = getEventMutation(detail);
             setSelectedEvent(prev => prev && id && sameEventId(prev.id, id) ? null : prev);
@@ -115,10 +161,9 @@ export default function MyActivitiesPage() {
         setLoading(true);
         try {
             // Parallel Fetch - each handled individually to prevent total failure
-            const [eventsRes, postsRes, groupsRes, userRes, favRes, favPostsRes] = await Promise.all([
+            const [eventsRes, postsRes, userRes, favRes, favPostsRes] = await Promise.all([
                 cafe24.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                 cafe24.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
-                cafe24.from('social_groups').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                 cafe24.from('board_users').select('profile_image').eq('user_id', user.id).maybeSingle(),
                 cafe24.from('event_favorites').select('events(*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
                 cafe24.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
@@ -130,9 +175,6 @@ export default function MyActivitiesPage() {
             } else {
                 const allEvents = (eventsRes.data || []) as unknown as Cafe24Event[];
                 setEvents(allEvents);
-
-                const socialItems = allEvents.filter(e => e.group_id !== null && e.group_id !== undefined);
-                setSocialSchedules(socialItems);
             }
 
             if (favRes.data) {
@@ -147,13 +189,6 @@ export default function MyActivitiesPage() {
                     comment_count: post.comment_count || 0,
                     likes: post.likes || 0
                 })) as StandardBoardPost[]);
-            }
-
-            // 3. Social Groups
-            if (groupsRes.error) {
-                console.error('[MyActivities] ❌ Groups fetch error:', groupsRes.error);
-            } else {
-                setSocialGroups(groupsRes.data || []);
             }
 
             // 4. Board Posts
@@ -178,12 +213,59 @@ export default function MyActivitiesPage() {
         }
     };
 
-    const filteredEvents = useMemo(() => {
-        // Exclude social group events from the main events/classes tabs for cleaner UI
-        // or keep them if they are genuine events. User feedback usually prefers separation.
-        const nonSocial = events.filter(e => e.group_id === null || e.group_id === undefined);
-        return nonSocial.filter(e => currentTab === 'events' ? e.category !== 'class' : e.category === 'class');
-    }, [events, currentTab]);
+    const activityBuckets = useMemo(() => {
+        const recruits = events.filter(isRecruitActivity);
+        const socials = events.filter(event => !isRecruitActivity(event) && isSocialActivity(event));
+        const classes = events.filter(event => !isRecruitActivity(event) && !isSocialActivity(event) && isClassActivity(event));
+        const regularEvents = events.filter(event => (
+            !isRecruitActivity(event) &&
+            !isSocialActivity(event) &&
+            !isClassActivity(event)
+        ));
+
+        return { regularEvents, classes, socials, recruits };
+    }, [events]);
+
+    const currentEventList = useMemo(() => {
+        if (currentTab === 'classes') return activityBuckets.classes;
+        if (currentTab === 'recruits') return activityBuckets.recruits;
+        return activityBuckets.regularEvents;
+    }, [activityBuckets, currentTab]);
+
+    const socialSchedules = activityBuckets.socials;
+
+    const currentEventTabMeta = useMemo(() => {
+        if (currentTab === 'classes') {
+            return {
+                title: '등록한 강습',
+                empty: '등록한 강습이 없습니다.',
+                icon: 'ri-book-open-fill',
+                emptyIcon: 'ri-book-open-line',
+                containerClass: 'managed-classes-container',
+                gridClass: 'managed-classes-grid',
+            };
+        }
+
+        if (currentTab === 'recruits') {
+            return {
+                title: '원데이 모집',
+                empty: '등록한 원데이 모집이 없습니다.',
+                icon: 'ri-links-fill',
+                emptyIcon: 'ri-links-line',
+                containerClass: 'managed-events-container',
+                gridClass: 'managed-events-grid',
+            };
+        }
+
+        return {
+            title: '등록한 행사',
+            empty: '등록한 행사가 없습니다.',
+            icon: 'ri-calendar-event-fill',
+            emptyIcon: 'ri-calendar-event-line',
+            containerClass: 'managed-events-container',
+            gridClass: 'managed-events-grid',
+        };
+    }, [currentTab]);
 
     const handleTabChange = (tab: TabType) => {
         setSearchParams({ tab });
@@ -200,12 +282,6 @@ export default function MyActivitiesPage() {
         setEventToEdit(event);
         setIsEditModalOpen(true);
         setSelectedEvent(null);
-    };
-
-    // Social Handlers
-    const handleEditGroup = (group: SocialGroup) => {
-        setGroupToEdit(group);
-        setIsGroupEditModalOpen(true);
     };
 
     const handleScheduleClick = (schedule: any) => {
@@ -230,6 +306,7 @@ export default function MyActivitiesPage() {
             if (error) throw error;
 
             setSelectedEvent(null);
+            setSelectedSchedule(null);
             fetchData(); // Refresh list
         } catch (error) {
             console.error('Error deleting event:', error);
@@ -241,7 +318,7 @@ export default function MyActivitiesPage() {
         <div className="shell-container my-activities-container">
             <div className="my-activities-content evt-ongoing-section evt-preview-section my-activities-view-container">
 
-                {/* Tabs restored and expanded as per user request */}
+                {/* Activity filters */}
                 <div className="activity-tabs-container">
                     <button
                         className={`activity-tab-btn ${currentTab === 'events' ? 'active' : ''}`}
@@ -256,10 +333,16 @@ export default function MyActivitiesPage() {
                         등록한 강습
                     </button>
                     <button
-                        className={`activity-tab-btn tab-groups ${currentTab === 'groups' ? 'active' : ''}`}
-                        onClick={() => handleTabChange('groups')}
+                        className={`activity-tab-btn ${currentTab === 'socials' ? 'active' : ''}`}
+                        onClick={() => handleTabChange('socials')}
                     >
-                        등록한 단체
+                        등록한 소셜
+                    </button>
+                    <button
+                        className={`activity-tab-btn ${currentTab === 'recruits' ? 'active' : ''}`}
+                        onClick={() => handleTabChange('recruits')}
+                    >
+                        원데이 모집
                     </button>
                     <button
                         className={`activity-tab-btn ${currentTab === 'posts' ? 'active' : ''}`}
@@ -298,28 +381,28 @@ export default function MyActivitiesPage() {
                             </div>
                         )}
 
-                        {(currentTab === 'events' || currentTab === 'classes') && (
+                        {(currentTab === 'events' || currentTab === 'classes' || currentTab === 'recruits') && (
                             <div className="activity-tab-content">
                                 <section className="activity-section activity-section-compact">
                                     <div className="activity-section-header">
-                                        <i className={`section-icon icon-events ${currentTab === 'events' ? "ri-calendar-event-fill" : "ri-book-open-fill"}`}></i>
-                                        <span>{currentTab === 'events' ? '등록한 행사' : '등록한 강습'}</span>
+                                        <i className={`section-icon icon-events ${currentEventTabMeta.icon}`}></i>
+                                        <span>{currentEventTabMeta.title}</span>
                                     </div>
 
                                     {(() => {
-                                        if (filteredEvents.length === 0) {
+                                        if (currentEventList.length === 0) {
                                             return (
                                                 <div className="activity-empty-state">
-                                                    <i className={`activity-empty-icon ${currentTab === 'events' ? "ri-calendar-event-line" : "ri-book-open-line"}`}></i>
-                                                    <p>{currentTab === 'events' ? '등록한 행사가 없습니다.' : '등록한 강습이 없습니다.'}</p>
+                                                    <i className={`activity-empty-icon ${currentEventTabMeta.emptyIcon}`}></i>
+                                                    <p>{currentEventTabMeta.empty}</p>
                                                 </div>
                                             );
                                         }
 
                                         return (
-                                            <div className={currentTab === 'events' ? "managed-events-container" : "managed-classes-container"}>
-                                                <div className={currentTab === 'events' ? "managed-events-grid" : "managed-classes-grid"}>
-                                                    {filteredEvents.map(event => (
+                                            <div className={currentEventTabMeta.containerClass}>
+                                                <div className={currentEventTabMeta.gridClass}>
+                                                    {currentEventList.map(event => (
                                                         <EventCard
                                                             key={event.id}
                                                             event={event as any}
@@ -337,86 +420,58 @@ export default function MyActivitiesPage() {
                             </div>
                         )}
 
-                        {currentTab === 'groups' && (
-                            <div className="activity-tab-content managed-groups-tab">
-                                {/* 1. My Groups (Top) */}
-                                <section className="activity-section activity-section-compact activity-stats-group">
+                        {currentTab === 'socials' && (
+                            <div className="activity-tab-content managed-socials-tab">
+                                <section className="activity-section activity-section-compact">
                                     <div className="activity-section-header">
-                                        <i className="ri-team-fill section-icon icon-groups"></i>
-                                        <span>내 단체</span>
-                                    </div>
-
-                                    {socialGroups.length === 0 ? (
-                                        <div className="activity-empty-state">
-                                            <p>관리 중인 단체가 없습니다.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="managed-groups-grid">
-                                            {socialGroups.map(group => (
-                                                <div key={group.id} className="group-wide-card" onClick={() => { setGroupToEdit(group); setIsCalendarOpen(true); }}>
-                                                    <div className="group-wide-image">
-                                                        {group.image_url ? (
-                                                            <img src={group.image_url} alt={group.name} />
-                                                        ) : (
-                                                            <div className="group-placeholder"><i className="ri-team-line"></i></div>
-                                                        )}
-                                                    </div>
-                                                    <div className="group-wide-info">
-                                                        <div className="group-wide-header">
-                                                            <h3 className="group-wide-name">{group.name}</h3>
-                                                            <div className="group-type-tag">{group.type === 'club' ? '동호회' : group.type === 'bar' ? '스윙바' : '기타'}</div>
-                                                        </div>
-                                                        <div className="group-wide-footer">
-                                                            <button className="admin-edit-btn" onClick={(e) => { e.stopPropagation(); handleEditGroup(group); }}>
-                                                                <i className="ri-edit-line"></i> 정보 수정
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </section>
-
-                                {/* 2. My Schedules (Bottom) */}
-                                <section className="activity-section">
-                                    <div className="activity-section-header">
-                                        <i className="ri-calendar-check-fill section-icon icon-schedules"></i>
-                                        <span>내가 등록한 일정</span>
+                                        <i className="ri-music-2-fill section-icon icon-schedules"></i>
+                                        <span>등록한 소셜</span>
                                     </div>
 
                                     {socialSchedules.length === 0 ? (
                                         <div className="activity-empty-state">
-                                            <p>등록한 일정이 없습니다.</p>
+                                            <i className="ri-music-2-line activity-empty-icon"></i>
+                                            <p>등록한 소셜 일정이 없습니다.</p>
                                         </div>
                                     ) : (
                                         <div className="managed-schedules-list">
                                             <div className="managed-events-grid">
-                                                {socialSchedules.map(schedule => (
-                                                    <div
-                                                        key={schedule.id}
-                                                        className="evt-card-v2-single"
-                                                        onClick={() => handleScheduleClick(schedule)}
-                                                    >
-                                                        <div className="evt-card-img-wrapper">
-                                                            <img
-                                                                src={schedule.image_thumbnail || schedule.image_url}
-                                                                alt={schedule.title}
-                                                                className="evt-card-img"
-                                                            />
-                                                        </div>
-                                                        <div className="evt-card-info">
-                                                            <div className="evt-card-title">{schedule.title}</div>
-                                                            <div className="evt-card-meta">
-                                                                <i className="ri-map-pin-line"></i>
-                                                                {schedule.place_name || '장소 정보 없음'}
+                                                {socialSchedules.map(schedule => {
+                                                    const imageSrc = schedule.image_thumbnail || schedule.image_medium || schedule.image_url || schedule.image;
+
+                                                    return (
+                                                        <div
+                                                            key={schedule.id}
+                                                            className="evt-card-v2-single"
+                                                            onClick={() => handleScheduleClick(schedule)}
+                                                        >
+                                                            <div className="evt-card-img-wrapper">
+                                                                {imageSrc ? (
+                                                                    <img
+                                                                        src={imageSrc}
+                                                                        alt={schedule.title}
+                                                                        className="evt-card-img"
+                                                                        draggable={false}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="evt-card-img-placeholder">
+                                                                        <i className="ri-music-2-line"></i>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="evt-card-date">
-                                                                {schedule.date || '날짜 정보 없음'}
+                                                            <div className="evt-card-info">
+                                                                <div className="evt-card-title">{schedule.title}</div>
+                                                                <div className="evt-card-meta">
+                                                                    <i className="ri-map-pin-line"></i>
+                                                                    {schedule.place_name || schedule.location || '장소 정보 없음'}
+                                                                </div>
+                                                                <div className="evt-card-date">
+                                                                    {schedule.date || schedule.start_date || '날짜 정보 없음'}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
@@ -533,27 +588,6 @@ export default function MyActivitiesPage() {
                 />
             )}
 
-            {isGroupEditModalOpen && groupToEdit && (
-                <SocialGroupModal
-                    isOpen={isGroupEditModalOpen}
-                    onClose={() => {
-                        setIsGroupEditModalOpen(false);
-                        setGroupToEdit(null);
-                    }}
-                    onSuccess={() => fetchData()}
-                    editGroup={groupToEdit}
-                />
-            )}
-
-            {isCalendarOpen && groupToEdit && (
-                <GroupCalendarModal
-                    isOpen={isCalendarOpen}
-                    onClose={() => setIsCalendarOpen(false)}
-                    group={groupToEdit}
-                    onScheduleClick={handleScheduleClick}
-                    allSchedules={socialSchedules}
-                />
-            )}
         </div>
     );
 }

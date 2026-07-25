@@ -18,6 +18,7 @@
     "audit:cafe24": "node scripts/audit-cafe24-only.mjs",
     "cron:cafe24:stats": "node scripts/run-cafe24-cron-refresh-stats.mjs",
     "cron:cafe24:notifications": "node scripts/run-cafe24-cron-notifications.mjs",
+    "external-api:create-partner": "node scripts/create-external-api-partner.mjs",
     "test": "vitest",
     "test:ingestion": "node scripts/test-ingestion-standards.mjs",
     "test:ui": "vitest --ui",

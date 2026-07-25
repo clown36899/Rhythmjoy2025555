@@ -293,6 +293,16 @@ export default function Cafe24EventsAdminPage() {
               <input value={form.genre} onChange={(event) => updateField('genre', event.target.value)} />
             </label>
             <label>
+              활동 타입
+              <select value={form.activity_type} onChange={(event) => updateField('activity_type', event.target.value)}>
+                <option value="event">행사</option>
+                <option value="class">강습</option>
+                <option value="social">소셜</option>
+                <option value="recruit">모집</option>
+                <option value="sale">판매이벤트</option>
+              </select>
+            </label>
+            <label>
               날짜
               <input type="date" value={form.date} onChange={(event) => updateField('date', event.target.value)} />
             </label>

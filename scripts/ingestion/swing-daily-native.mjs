@@ -79,6 +79,13 @@ class RunBudgetReachedError extends Error {
   }
 }
 
+class NetworkUnavailableError extends Error {
+  constructor(message = 'network unavailable') {
+    super(message);
+    this.name = 'NetworkUnavailableError';
+  }
+}
+
 const sourceTypeWeight = new Map([
   ['littly', 0],
   ['naver_cafe', 1],
@@ -356,6 +363,20 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function settleWithin(promise, timeoutMs = 2_000) {
+  let timer;
+  try {
+    await Promise.race([
+      Promise.resolve(promise).catch(() => {}),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 0, readBody = (response) => response.text()) {
   const controller = new AbortController();
   const timer = timeoutMs > 0
@@ -411,6 +432,18 @@ function recordDeadlineReached(sources, startIndex) {
   result.remainingSources = remaining;
   result.issues.push(`run budget reached; remaining sources ${remaining.length}`);
   log(`run budget reached; remaining=${remaining.length}; remaining_ms=${runRemainingMs()}`);
+}
+
+function recordNetworkUnavailable(sources, startIndex, reason = 'network unavailable') {
+  if (result.remainingSources.length) return;
+  const remaining = sources.slice(startIndex).map((source) => source.id);
+  result.remainingSources = remaining;
+  result.issues.push(`${reason}; remaining sources ${remaining.length}`);
+  log(`${reason}; remaining=${remaining.length}; remaining_ms=${runRemainingMs()}`);
+}
+
+function isNetworkUnavailableMessage(message = '') {
+  return /ERR_INTERNET_DISCONNECTED|ERR_NETWORK_CHANGED|ERR_PROXY_CONNECTION_FAILED|ERR_TUNNEL_CONNECTION_FAILED/i.test(String(message || ''));
 }
 
 function sourceOrderWeight(source) {
@@ -1461,6 +1494,9 @@ async function withBoundedStep(label, fn, timeoutMs) {
     } else {
       recordAccessFailure(label, message);
     }
+    if (isNetworkUnavailableMessage(message)) {
+      throw new NetworkUnavailableError('network unavailable');
+    }
     return [];
   } finally {
     clearTimeout(timer);
@@ -1506,6 +1542,7 @@ async function collectSource(page, source) {
       await throttleInstagram(`post ${source.id}`, instagramPostDelayMs);
       const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
       candidates.push(...postCandidates);
+      if (hasAccessFailure(`${source.id}:post`)) break;
     }
     return candidates;
   }
@@ -1519,8 +1556,10 @@ async function collectSource(page, source) {
     }
     const candidates = [];
     for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
+      ensureRunBudgetOrThrow(`naver article ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       const postCandidates = await withBoundedStep(`${source.id}:article`, () => scrapeNaverArticle(page, link, source), postTimeoutMs + 8000);
       candidates.push(...postCandidates);
+      if (hasAccessFailure(`${source.id}:article`)) break;
     }
     return candidates;
   }
@@ -1534,8 +1573,10 @@ async function collectSource(page, source) {
     }
     const candidates = [];
     for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
+      ensureRunBudgetOrThrow(`daum article ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       const postCandidates = await withBoundedStep(`${source.id}:article`, () => scrapeDaumArticle(page, link, source), postTimeoutMs + 8000);
       candidates.push(...postCandidates);
+      if (hasAccessFailure(`${source.id}:article`)) break;
     }
     return candidates;
   }
@@ -1549,8 +1590,10 @@ async function collectSource(page, source) {
     }
     const candidates = [];
     for (const card of cards.slice(0, resolveSourceScanLimit(source, cards.length))) {
+      ensureRunBudgetOrThrow(`littly card ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       const cardCandidates = await withBoundedStep(`${source.id}:card`, () => scrapeLittlyCard(page, card, source), postTimeoutMs + 5000);
       candidates.push(...cardCandidates);
+      if (hasAccessFailure(`${source.id}:card`)) break;
     }
     return candidates;
   }
@@ -1616,10 +1659,6 @@ async function main() {
   log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
-  const page = await context.newPage();
-  await page.setViewportSize({ width: 1600, height: 1200 }).catch(() => {});
-  page.setDefaultTimeout(12000);
-  page.setDefaultNavigationTimeout(18000);
 
   try {
     const seenRunKeys = new Set();
@@ -1638,6 +1677,10 @@ async function main() {
       }
 
       log(`source ${source.id} ${source.type} ${source.url}`);
+      const page = await context.newPage();
+      await page.setViewportSize({ width: 1600, height: 1200 }).catch(() => {});
+      page.setDefaultTimeout(12000);
+      page.setDefaultNavigationTimeout(18000);
       try {
         const candidates = await collectSource(page, source);
         const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
@@ -1663,13 +1706,19 @@ async function main() {
           recordDeadlineReached(sources, sourceIndex);
           break;
         }
+        if (error instanceof NetworkUnavailableError) {
+          recordNetworkUnavailable(sources, sourceIndex, error.message);
+          break;
+        }
         throw error;
+      } finally {
+        await settleWithin(page.close(), 2_000);
       }
 
       if (result.deadlineReached) break;
     }
   } finally {
-    await browserSession.close();
+    await settleWithin(browserSession.close(), 2_000);
   }
 
   printSummary();

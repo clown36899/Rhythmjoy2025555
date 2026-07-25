@@ -218,6 +218,21 @@ assert.ok(oneDayClass.validation.taxonomy.tags.includes('oneday'), 'one-day clas
 assert.ok(oneDayClass.validation.taxonomy.tags.includes('workshop'), 'one-day class should also stay discoverable internally as workshop/class special');
 assert.ok(oneDayClass.validation.taxonomy.tags.includes('open_class'), 'trial one-day class should map internally to open_class');
 
+const seasonPassSale = prepareCandidate(baseCandidate({
+  extracted_text: '스윙타임 6월 정기권 판매 이벤트 2026.06.15부터 사용 가능. 초보도 환영합니다.',
+  structured_data: {
+    title: '스윙타임 6월 정기권 판매 이벤트',
+    date: '2026-06-15',
+    location: '스윙타임',
+    event_type: '판매이벤트',
+  },
+}), { today: TODAY });
+assert.equal(seasonPassSale.validation.ok, true, 'season pass sale event should be accepted when dated and image-backed');
+assert.equal(seasonPassSale.candidate.structured_data.activity_type, 'sale');
+assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
+assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
+assert.ok(seasonPassSale.validation.taxonomy.tags.includes('season_pass'), 'season pass sale should keep season_pass tag internally');
+
 assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://litt.ly/swingfriends',
   extracted_text: '스윙프렌즈 매주 금, 토, 일 원데이 클래스를 진행합니다. 신청 날짜는 추후 공지됩니다.',
@@ -432,6 +447,7 @@ assert.equal(getAutomationSourceList('swing-daily').some((source) => source.type
 assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigakR0I/')?.id, 'happyhall2004', 'instagram source matching should respect account path');
 assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
 assert.ok(dynamicSearchQueries.swing.some((query) => /원데이|체험|오픈\s*클래스/.test(query)), 'swing dynamic search should include one-day/trial class discovery');
+assert.ok(dynamicSearchQueries.swing.some((query) => /정기권|무료|판매\s*이벤트/.test(query)), 'swing dynamic search should include sale/free/season-pass discovery');
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');
 assert.equal(getAutomationSourceList('swing-daily').some((source) => /batswing/i.test(source.id + source.url)), false, 'daily automation must not include BAT SWING url or handle');
 assert.ok(getCollectionSources('street').length >= 5, 'street sources should be expanded');

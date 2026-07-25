@@ -84,6 +84,114 @@
   - `scripts/restore-cafe24-from-local.sh`
 - 관련 커밋: pending
 
+## 2026-07-16 수집 후보 중복 재등록 방지 보강
+
+- 상태: 해결
+- 범위: Cafe24 `scraped_events` 수집 저장 API
+- 증상: 같은 수집 후보가 반복 실행 때마다 다시 신규처럼 저장되거나, 제목이 `강습 안내`처럼 일반적인 후보가 운영 이벤트와 중복 매칭되지 않을 수 있었다.
+- 원인:
+  - 같은 후보 ID가 이미 존재해도 `collected`, `duplicate`, `excluded` 같은 terminal 상태가 아니면 다시 upsert했다.
+  - 운영 이벤트 중복 비교가 같은 원본 URL/날짜 또는 높은 제목 유사도에 치우쳐 있어, 같은 출처/날짜/장소의 일반 제목 후보를 놓칠 수 있었다.
+- 조치:
+  - 같은 ID의 검토 대기 후보가 이미 있으면 다시 저장하지 않고 스킵하도록 했다.
+  - 일반 제목 후보는 같은 출처 정체성, 날짜, 장소, 활동 유형이 같으면 운영 이벤트 중복으로 판단하도록 보강했다.
+- 검증:
+  - `node scripts/test-ingestion-standards.mjs`
+  - `node --check server/cafe24/function-api.js`
+  - `bash -n /Users/inteyeo/scripts/run-ingestion.sh`
+  - `bash -n scripts/run-ingestion.sh`
+  - `npx vitest run server/cafe24/generic-data-api.event-metadata.test.js server/cafe24/push-api.test.js`
+- 재발 방지:
+  - 제목이 일반적인 Instagram/카페 후보는 원본 URL만 보지 말고 출처 계정/카페, 날짜, 장소, 활동 유형을 함께 본다.
+- 관련 파일:
+  - `server/cafe24/function-api.js`
+  - `docs/ISSUE_LOG.md`
+- 관련 커밋: pending
+
+## 2026-07-18 09시 priority2 수집 예산 초과
+
+- 상태: 해결
+- 범위: `swing-daily` 09:00 priority2 LaunchAgent 및 native 수집 wrapper
+- 증상: 2026-07-18 09:00 실행이 native collector와 Telegram summary는 정상 출력했지만 20분 예산에 도달해 priority2 소스 14개를 확인하지 못했다.
+- 원인:
+  - priority2 자동수집 소스가 20개까지 늘어난 상태에서 Instagram 안전 대기와 소스당 2개 포스트 스캔이 같이 적용되어 09:00 실행 창을 초과했다.
+- 조치:
+  - 09:00 priority2 LaunchAgent에 `INGESTION_NATIVE_INSTAGRAM_POST_LIMIT=1`을 설정해 모든 priority2 계정을 얕게 순회하도록 조정했다.
+  - 설치된 LaunchAgent를 같은 값으로 갱신하고 reload했다.
+  - wrapper meta에 `native_instagram_post_limit`을 기록하도록 했다.
+- 검증:
+  - `bash -n /Users/inteyeo/scripts/run-ingestion.sh`
+  - `bash -n scripts/run-ingestion.sh`
+  - `plutil -lint scripts/com.rhythmjoy.codex-ingestion-priority2.plist /Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.codex-ingestion-priority2.plist`
+  - `node scripts/test-ingestion-standards.mjs`
+  - `TELEGRAM_DRY_RUN=1 INGESTION_NATIVE_DRY_RUN=1 INGESTION_SKIP_CLEANUP=1 INGESTION_NATIVE_SOURCE_PRIORITY=2 INGESTION_NATIVE_SOURCE_IDS=gangnam_westies INGESTION_NATIVE_INSTAGRAM_POST_LIMIT=1 INGESTION_NATIVE_RUN_BUDGET_MS=300000 TIMEOUT_SECONDS=360 /bin/bash /Users/inteyeo/scripts/run-ingestion.sh`
+- 재발 방지:
+  - priority2 소스 수가 더 늘면 LaunchAgent 분할 또는 별도 source priority 재배치를 검토한다.
+- 관련 파일:
+  - `scripts/com.rhythmjoy.codex-ingestion-priority2.plist`
+  - `/Users/inteyeo/Library/LaunchAgents/com.rhythmjoy.codex-ingestion-priority2.plist`
+  - `/Users/inteyeo/scripts/run-ingestion.sh`
+  - `docs/ISSUE_LOG.md`
+- 관련 커밋: pending
+
+## 2026-07-21 09시 priority2 네트워크 단절 조기 중단
+
+- 상태: 해결
+- 범위: `swing-daily` 09:00 priority2 native 수집
+- 증상: 2026-07-21 09:03 실행이 native collector와 Telegram summary는 출력했지만 `ERR_INTERNET_DISCONNECTED`가 반복된 뒤 20분 예산에 도달해 14개 소스를 남겼다.
+- 원인:
+  - Playwright의 전체 네트워크 단절 오류를 일반 소스 접근불가와 동일하게 처리해, 네트워크가 복구되지 않는 상태에서도 다음 소스로 계속 이동했다.
+- 조치:
+  - native 수집기가 `ERR_INTERNET_DISCONNECTED`, 네트워크 변경, 프록시/터널 연결 실패를 네트워크 장애로 분류하도록 했다.
+  - 해당 장애가 발생하면 현재 소스를 포함한 남은 소스를 summary에 기록하고 조기 종료하도록 했다.
+- 검증:
+  - `bash -n /Users/inteyeo/scripts/run-ingestion.sh`
+  - `bash -n scripts/run-ingestion.sh`
+  - `node scripts/test-ingestion-standards.mjs`
+  - `TELEGRAM_DRY_RUN=1 INGESTION_NATIVE_DRY_RUN=1 INGESTION_SKIP_CLEANUP=1 INGESTION_NATIVE_SOURCE_IDS=swingfamily-lessons INGESTION_NATIVE_RUN_BUDGET_MS=120000 TIMEOUT_SECONDS=180 /bin/bash /Users/inteyeo/scripts/run-ingestion.sh`
+- 재발 방지:
+  - 전체 네트워크 장애는 소스별 실패가 아니라 실행 환경 장애로 보고 예산 소모 전에 다음 자동 실행으로 넘긴다.
+- 관련 파일:
+  - `scripts/ingestion/swing-daily-native.mjs`
+  - `docs/ISSUE_LOG.md`
+- 관련 커밋: pending
+
+## 2026-07-24 아침 수집 CDP 상태 확인 장기 대기
+
+- 상태: 해결
+- 범위: `swing-daily` 08:00/09:00 native 수집 wrapper
+- 증상: 두 실행 모두 native collector와 summary는 출력했지만, collector 시작 전에 각각 약 14분과 16분을 소진해 20분 수집 예산에 도달했고 대부분의 소스를 확인하지 못했다.
+- 원인: 기존 Chrome의 CDP 포트가 연결은 수락하지만 `/json/version`에 응답하지 않는 상태에서 wrapper의 `curl` 상태 확인에 연결/전체 시간 제한이 없었다.
+- 조치: CDP 상태 확인에 2초 연결 제한과 3초 전체 제한을 추가해 응답 없는 Chrome 때문에 collector 시작이 장시간 지연되지 않도록 했다.
+- 검증:
+  - `bash -n /Users/inteyeo/scripts/run-ingestion.sh`
+  - `bash -n scripts/run-ingestion.sh`
+  - `node scripts/test-ingestion-standards.mjs`
+  - `TELEGRAM_DRY_RUN=1 INGESTION_NATIVE_DRY_RUN=1` 단일 소스 단축 실행
+- 재발 방지: 외부 프로세스 상태를 확인하는 wrapper 네트워크 호출은 항상 명시적인 짧은 시간 제한을 둔다.
+- 관련 파일:
+  - `/Users/inteyeo/scripts/run-ingestion.sh`
+  - `docs/ISSUE_LOG.md`
+- 관련 커밋: pending
+
+## 2026-07-25 native 소스 timeout 후 페이지 정리 장기 대기
+
+- 상태: 해결
+- 범위: `swing-daily` 08:00/09:00 native collector
+- 증상: 두 실행 모두 native collector와 summary는 출력했지만, timeout 처리된 소스의 페이지 정리에서 장시간 대기해 20분 예산에 도달했고 각각 18개와 17개 소스를 확인하지 못했다.
+- 원인: `withBoundedStep()`의 `Promise.race`가 timeout을 반환한 뒤에도 Playwright 작업은 남아 있었고, 소스별 `page.close()`와 최종 브라우저 연결 종료가 그 미완료 작업을 제한 없이 기다렸다.
+- 조치: timeout 뒤의 페이지 및 브라우저 연결 정리를 각각 최대 2초만 기다리도록 제한했다.
+- 검증:
+  - `bash -n /Users/inteyeo/scripts/run-ingestion.sh`
+  - `bash -n scripts/run-ingestion.sh`
+  - `node scripts/test-ingestion-standards.mjs`
+  - `TELEGRAM_DRY_RUN=1 INGESTION_NATIVE_DRY_RUN=1` 단일 소스 단축 실행
+- 재발 방지: 수집 작업의 timeout뿐 아니라 timeout 이후 Playwright 자원 정리에도 별도 상한을 둔다.
+- 관련 파일:
+  - `scripts/ingestion/swing-daily-native.mjs`
+  - `docs/ISSUE_LOG.md`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md

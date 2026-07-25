@@ -10,6 +10,7 @@ const activityLabels = {
   social: '소셜',
   event: '행사',
   recruit: '모집',
+  sale: '판매이벤트',
 };
 
 const familyLabels = {
@@ -111,6 +112,9 @@ const tagRules = [
   ['open_class', [/오픈\s*클래스/i, /open\s*class/i, /체험\s*(?:클래스|강습|수업)/i, /처음이라면/i]],
   ['session', [/세션/i, /session/i]],
   ['popup', [/팝업/i, /pop-up/i, /special\s*class/i]],
+  ['sale_event', [/판매\s*이벤트/i, /이벤트\s*판매/i, /특가/i, /할인/i, /\bsale\b/i, /\bpromotion\b/i]],
+  ['season_pass', [/정기권/i, /시즌권/i, /월정액/i, /멤버십/i, /membership/i, /\bpass\b/i]],
+  ['free_event', [/무료\s*(?:이벤트|행사|파티|강습|클래스|수업|체험)/i, /\bfree\b/i]],
 ];
 
 export const siteGenresByCategory = {
@@ -462,7 +466,8 @@ function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
 }
 
 function inferActivity(text, explicit) {
-  if (['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
+  if (['class', 'social', 'event', 'recruit', 'sale'].includes(explicit)) return explicit;
+  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) return 'sale';
   if (/(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i.test(text)) return 'recruit';
   if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원\s*데이|원데이|오픈\s*클래스|체험\s*(?:클래스|강습|수업)|일일\s*(?:클래스|강습|수업)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|배워)|입문|초급|중급|class|lesson|workshop|one\s*day|oneday|open\s*class/i.test(text)) return 'class';
   if (/소셜|social|프랙티카|practica|밀롱가|milonga|\bdj\b/i.test(text)) return 'social';
@@ -518,6 +523,7 @@ function siteCategoryFromCandidate(candidate, taxonomy) {
   if (/졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text)) return 'social';
   if (taxonomy.activity_type === 'social') return 'social';
   if (taxonomy.activity_type === 'class') return 'class';
+  if (taxonomy.activity_type === 'sale') return 'event';
   if (taxonomy.activity_type === 'recruit') {
     return /팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)
       ? 'class'

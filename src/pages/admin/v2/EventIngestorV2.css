@@ -858,6 +858,7 @@ thead input[type="checkbox"]:checked::after {
 .type-filter-btn.type-party.active { color: #f472b6; border-color: #f472b6; background: rgba(244,114,182,0.1); }
 .type-filter-btn.type-lesson.active { color: #60a5fa; border-color: #60a5fa; background: rgba(96,165,250,0.1); }
 .type-filter-btn.type-recruit.active { color: #fbbf24; border-color: #fbbf24; background: rgba(251,191,36,0.1); }
+.type-filter-btn.type-sale.active { color: #fb7185; border-color: #fb7185; background: rgba(251,113,133,0.12); }
 
 .family-filter-group,
 .tag-filter-group {
@@ -924,6 +925,7 @@ thead input[type="checkbox"]:checked::after {
 .type-badge-class   { background: rgba(96,165,250,0.15); color: #60a5fa; }
 .type-badge-event   { background: rgba(244,114,182,0.15); color: #f472b6; }
 .type-badge-recruit { background: rgba(251,191,36,0.16); color: #fbbf24; }
+.type-badge-sale    { background: rgba(251,113,133,0.16); color: #fb7185; }
 
 .row-taxonomy {
   display: flex;

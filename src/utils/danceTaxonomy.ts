@@ -1,4 +1,4 @@
-export type DanceActivity = 'class' | 'social' | 'event' | 'recruit';
+export type DanceActivity = 'class' | 'social' | 'event' | 'recruit' | 'sale';
 export type DanceGenreFamily = 'partner' | 'street' | 'art' | 'commercial' | 'unknown';
 export type DanceScope = 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown';
 export type RecruitmentKind = 'oneday_recruit' | 'public_recruit';
@@ -64,6 +64,7 @@ const activityLabels: Record<DanceActivity, string> = {
   social: '소셜',
   event: '행사',
   recruit: '모집',
+  sale: '판매이벤트',
 };
 
 const familyLabels: Record<DanceGenreFamily, string> = {
@@ -241,6 +242,9 @@ const tagRules: Array<{ key: string; label: string; patterns: RegExp[] }> = [
   { key: 'popup', label: '팝업', patterns: [/팝업/i, /pop-up/i, /스페셜\s*클래스/i, /special\s*class/i] },
   { key: 'crew', label: '크루', patterns: [/크루/i, /\bcrew\b/i] },
   { key: 'academy_regular', label: '정규수업', patterns: [/정규\s*(시간표|클래스|강습|반|수업)|월정액|매일\s*운영|정기\s*강습/i] },
+  { key: 'sale_event', label: '판매이벤트', patterns: [/판매\s*이벤트/i, /이벤트\s*판매/i, /특가/i, /할인/i, /\bsale\b/i, /\bpromotion\b/i] },
+  { key: 'season_pass', label: '정기권', patterns: [/정기권/i, /시즌권/i, /월정액/i, /멤버십/i, /membership/i, /\bpass\b/i] },
+  { key: 'free_event', label: '무료', patterns: [/무료\s*(이벤트|행사|파티|강습|클래스|수업|체험)/i, /\bfree\b/i] },
 ];
 
 function textOf(input: DanceTaxonomyInput): string {
@@ -468,12 +472,13 @@ export function resolveDanceGenreInput(
 
 function inferActivity(input: DanceTaxonomyInput, text: string): DanceActivity {
   const explicit = input.structured_data?.activity_type;
-  if (explicit && ['class', 'social', 'event', 'recruit'].includes(explicit)) return explicit;
+  if (explicit && ['class', 'social', 'event', 'recruit', 'sale'].includes(explicit)) return explicit;
 
   if (resolveRecruitmentKind(text)) return 'recruit';
 
   const eventType = input.structured_data?.event_type || '';
   const recruitStrong = /(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i;
+  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) return 'sale';
   if (recruitStrong.test(text)) return 'recruit';
   if (/강습|수업|레슨|클래스|워크샵|특강|원데이|오픈\s*클래스|입문|초급|중급|class|lesson|workshop/i.test(text) || eventType === '강습') return 'class';
   if (/소셜|social|프랙티카|practica|밀롱가|milonga|\bdj\b/i.test(text) || eventType === '소셜') return 'social';

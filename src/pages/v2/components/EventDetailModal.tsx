@@ -14,6 +14,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useModalActions } from '../../../contexts/ModalContext';
 const VenueSelectModal = React.lazy(() => import('./VenueSelectModal'));
 import ImageCropModal from '../../../components/ImageCropModal';
+import EventKakaoMap from '../../../components/EventKakaoMap';
 import { createResizedImages } from '../../../utils/imageResize';
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
@@ -1225,7 +1226,19 @@ export default function EventDetailModal({
               {(() => {
                 // Progressive Loading: thumbnail priority logic handled by state
                 const hasImage = !!(thumbnailSrc || highResSrc);
-                const showImageArea = hasImage;
+                const hasCustomImage = Boolean(
+                  selectedEvent.image ||
+                  selectedEvent.image_micro ||
+                  selectedEvent.image_thumbnail ||
+                  selectedEvent.image_medium ||
+                  selectedEvent.image_full
+                );
+                const showSocialKakaoMap = (
+                  isEventDetailSocialLikeEvent(selectedEvent) &&
+                  !hasCustomImage &&
+                  Boolean(selectedEvent.address?.trim())
+                );
+                const showImageArea = hasImage || showSocialKakaoMap;
                 const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
 
                 // Transform style (shared)
@@ -1237,7 +1250,27 @@ export default function EventDetailModal({
                   <div
                     className={`EDM-imageArea ${showImageArea ? "has-image" : "has-pattern"}`}
                   >
-                    {showImageArea ? (
+                    {showSocialKakaoMap ? (
+                      <div className="EDM-imageWrapper">
+                        <EventKakaoMap
+                          address={selectedEvent.address!.trim()}
+                          placeName={selectedEvent.venue_name || selectedEvent.location || '소셜 장소'}
+                          onMarkerClick={() => {
+                            const venueId = selectedEvent.venue_id;
+                            if (venueId) {
+                              if (onOpenVenueDetail) {
+                                onOpenVenueDetail(String(venueId));
+                              } else {
+                                openModal('venueDetail', { venueId: String(venueId) });
+                              }
+                              return;
+                            }
+                            const mapUrl = selectedEvent.location_link || (selectedEvent as any).venue_custom_link;
+                            if (mapUrl) window.open(mapUrl, '_blank', 'noopener,noreferrer');
+                          }}
+                        />
+                      </div>
+                    ) : showImageArea ? (
                       <>
                         {/* Background Blur Layer (Desktop highlight) */}
                         {(thumbnailSrc || highResSrc) && (

@@ -5,6 +5,13 @@ export interface MenuItem {
     desc: string;
     path: string;
     type: 'home' | 'social' | 'calendar' | 'practice' | 'shopping' | 'board' | 'library' | 'personal' | 'default';
+    children?: MenuChildItem[];
+}
+
+export interface MenuChildItem {
+    icon: string;
+    title: string;
+    path: string;
 }
 
 export interface MenuSection {
@@ -18,7 +25,21 @@ export const SITE_MENU_SECTIONS: MenuSection[] = [
         title: "내 공간 (Personal)",
         items: [
             { icon: 'ri-heart-3-fill', title: '내 즐겨찾기', desc: '내가 찜한 행사/게시글 모아보기', path: '/?view=favorites', type: 'personal' },
-            { icon: 'ri-history-line', title: '내 활동', desc: '내가 등록한 콘텐츠 관리', path: '/my-activities', type: 'personal' },
+            {
+                icon: 'ri-history-line',
+                title: '내 활동',
+                desc: '내가 등록한 콘텐츠 관리',
+                path: '/my-activities',
+                type: 'personal',
+                children: [
+                    { icon: 'ri-calendar-event-line', title: '등록한 행사', path: '/my-activities?tab=events' },
+                    { icon: 'ri-book-open-line', title: '등록한 강습', path: '/my-activities?tab=classes' },
+                    { icon: 'ri-music-2-line', title: '등록한 소셜', path: '/my-activities?tab=socials' },
+                    { icon: 'ri-links-line', title: '원데이 모집', path: '/my-activities?tab=recruits' },
+                    { icon: 'ri-chat-3-line', title: '내가 쓴 글', path: '/my-activities?tab=posts' },
+                    { icon: 'ri-bar-chart-2-line', title: '통계', path: '/my-activities?tab=stats' },
+                ],
+            },
         ]
     },
     {
@@ -49,4 +70,10 @@ export const MENU_LABELS_EN: Record<string, string> = {
     '안내': 'Guide',
     '내 즐겨찾기': 'Favorites',
     '내 활동': 'My Activities',
+    '등록한 행사': 'Events',
+    '등록한 강습': 'Classes',
+    '등록한 소셜': 'Socials',
+    '원데이 모집': 'Recruit Links',
+    '내가 쓴 글': 'Posts',
+    '통계': 'Stats',
 };

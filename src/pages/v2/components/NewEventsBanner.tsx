@@ -705,6 +705,11 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         }, 180);
     }, [navigate]);
 
+    const openBenefitEvents = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        navigate('/benefit-events');
+    }, [navigate]);
+
     const openEventDetail = useCallback((event: Event) => {
         if (dragStateRef.current.suppressClick) return;
         onEventClick(event);
@@ -1398,6 +1403,21 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 <span className="NEB-oneDayRecruitTitle">원데이 모집</span>
                                 <span className="NEB-oneDayRecruitMeta">바로가기</span>
                             </span>
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="NEB-benefitEventsBtn"
+                        onClick={openBenefitEvents}
+                        aria-label="정기권 무료 이벤트 보기"
+                    >
+                        <span className="NEB-benefitEventsIcon" aria-hidden="true">
+                            <i className="ri-coupon-3-line" />
+                        </span>
+                        <span className="NEB-benefitEventsText">
+                            <strong>혜택 이벤트</strong>
+                            <small>무료·정기권</small>
                         </span>
                     </button>
 

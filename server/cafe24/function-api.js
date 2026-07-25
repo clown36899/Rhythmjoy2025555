@@ -347,6 +347,19 @@ function rowLocation(row) {
   return String(row?.structured_data?.venue_name || row?.structured_data?.location || row?.venue_name || row?.location || '').trim();
 }
 
+function rowActivityType(row) {
+  const value = String(row?.structured_data?.activity_type || row?.activity_type || '').trim().toLowerCase();
+  if (['class', 'social', 'event', 'recruit', 'sale'].includes(value)) return value;
+  const category = String(row?.structured_data?.category || row?.category || '').trim().toLowerCase();
+  if (category === 'class' || category === 'club') return 'class';
+  if (category === 'social') return 'social';
+  if (category === 'event') return 'event';
+  const eventType = String(row?.structured_data?.event_type || row?.event_type || '').trim();
+  if (/강습|수업|레슨|클래스|class|lesson/i.test(eventType)) return 'class';
+  if (/소셜|social/i.test(eventType)) return 'social';
+  return '';
+}
+
 function rowSourceUrl(row, target = 'scraped_events') {
   return String(target === 'events' ? row?.link1 : row?.source_url || '').trim();
 }
@@ -398,6 +411,35 @@ function sameVenue(left, right) {
   return duplicateTextSimilarity(a, b) >= 0.7;
 }
 
+function sourceIdentity(value = '') {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (host === 'instagram.com' && parts[0]) return `${host}/${parts[0].toLowerCase()}`;
+    const naverCafe = parsed.pathname.match(/\/cafes\/(\d+)\//);
+    if (host === 'cafe.naver.com' && naverCafe) return `${host}/cafes/${naverCafe[1]}`;
+    return host;
+  } catch {
+    return '';
+  }
+}
+
+function sameSourceIdentity(left, right) {
+  const a = sourceIdentity(left);
+  const b = sourceIdentity(right);
+  return Boolean(a && b && a === b);
+}
+
+function looksLikeGenericIngestionTitle(value = '') {
+  const normalized = normalizeDuplicateText(value);
+  if (!normalized) return true;
+  if (normalized.length <= 6 && /강습|소셜|행사|파티|안내/.test(normalized)) return true;
+  if (/^(?:[가-힣a-z0-9]+)?(?:강습|소셜|행사|파티|이벤트)?안내$/.test(normalized)) return true;
+  if (/^(?:💜|💙|❤️|🧡|💛|💚|🩵|💖|✨)?강습안내(?:💜|💙|❤️|🧡|💛|💚|🩵|💖|✨)?$/.test(normalized)) return true;
+  return false;
+}
+
 function duplicateDescriptor(target, row, reason) {
   return {
     target,
@@ -429,6 +471,16 @@ function duplicateMatch(row, candidate, target) {
   const titleScore = duplicateTextSimilarity(rowTitle(row), rowTitle(candidate));
   if (titleScore >= 0.88 && sameVenue(rowLocation(row), rowLocation(candidate))) {
     return duplicateDescriptor(target, row, '같은 날짜, 유사 제목, 같은 장소');
+  }
+
+  if (
+    sameVenue(rowLocation(row), rowLocation(candidate))
+    && sameSourceIdentity(existingSource, candidateSource)
+    && rowActivityType(row)
+    && rowActivityType(row) === rowActivityType(candidate)
+    && (looksLikeGenericIngestionTitle(rowTitle(row)) || looksLikeGenericIngestionTitle(rowTitle(candidate)))
+  ) {
+    return duplicateDescriptor(target, row, '같은 출처, 날짜, 장소의 일반 제목 후보');
   }
 
   const normalizedTitle = normalizeDuplicateText(rowTitle(candidate));
@@ -509,6 +561,14 @@ async function ingestScrapedItems(values) {
       skipped.push({
         id: row.id,
         reason,
+      });
+      continue;
+    }
+
+    if (existingSameId) {
+      skipped.push({
+        id: row.id,
+        reason: '이미 등록된 검토 대기 후보',
       });
       continue;
     }
@@ -669,6 +729,7 @@ function normalizedEventCategory(eventData = {}) {
 
 function activityFromEventData(eventData = {}) {
   const existing = String(eventData.activity_type || '').toLowerCase();
+  if (existing === 'sale') return 'sale';
   if (existing === 'recruit') return 'recruit';
   const category = normalizedEventCategory(eventData);
   if (category === 'social') return 'social';
@@ -684,6 +745,7 @@ function eventTypeFromEventData(eventData = {}) {
   const category = normalizedEventCategory(eventData);
   const activity = activityFromEventData(eventData);
   const genre = String(eventData.genre || '');
+  if (activity === 'sale' || genre.includes('판매')) return '판매이벤트';
   if (category === 'social' || activity === 'social' || genre.includes('소셜')) return '소셜';
   if (category === 'class' || activity === 'class' || genre.includes('강습')) return '강습';
   return '파티/행사';

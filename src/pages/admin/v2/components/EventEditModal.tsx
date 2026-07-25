@@ -26,11 +26,16 @@ function eventTypeFromCategory(category: EditableCategory) {
     return '파티/행사';
 }
 
-function activityFromCategory(category: EditableCategory, recruitmentKind: RecruitmentKind | null): DanceActivity {
+function activityFromCategory(category: EditableCategory, recruitmentKind: RecruitmentKind | null, isSaleEvent = false): DanceActivity {
+    if (isSaleEvent) return 'sale';
     if (recruitmentKind) return 'recruit';
     if (category === 'social') return 'social';
     if (category === 'class') return 'class';
     return 'event';
+}
+
+function eventTypeFromActivity(category: EditableCategory, activity: DanceActivity) {
+    return activity === 'sale' ? '판매이벤트' : eventTypeFromCategory(category);
 }
 
 const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event, venues = [], onSuccess }) => {
@@ -57,6 +62,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 category: mapped.category,
                 genre: mapped.genre,
                 recruitment_kind: recruitmentKind || '',
+                is_sale_event: mapped.activity_type === 'sale' || event.structured_data?.activity_type === 'sale',
                 time: mapped.time,
                 group_id: mapped.group_id,
                 venue_name: mapped.venue_name,
@@ -90,7 +96,20 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
             category: normalizedCategory,
             genre,
             recruitment_kind: '',
+            is_sale_event: false,
             group_id: normalizedCategory === 'social' ? 2 : null,
+        }));
+    };
+
+    const handleSaleEventChange = (value: string) => {
+        const isSaleEvent = value === 'sale';
+        setFormData((prev: any) => ({
+            ...prev,
+            is_sale_event: isSaleEvent,
+            category: isSaleEvent ? 'event' : prev.category,
+            genre: isSaleEvent ? (prev.genre || '기타') : prev.genre,
+            recruitment_kind: isSaleEvent ? '' : prev.recruitment_kind,
+            group_id: isSaleEvent ? null : prev.group_id,
         }));
     };
 
@@ -99,6 +118,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
         setFormData((prev: any) => ({
             ...prev,
             recruitment_kind: recruitmentKind,
+            is_sale_event: recruitmentKind ? false : prev.is_sale_event,
             category: recruitmentKind ? 'class' : prev.category,
             genre: recruitmentKind ? '기타' : prev.genre,
             group_id: recruitmentKind ? null : prev.group_id,
@@ -151,9 +171,11 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 ? `DJ ${formData.djs.join(', ')} | ${formData.title}`
                 : formData.title;
             const selectedCategory = normalizeEditableCategory(formData.category);
-            const recruitmentKind = (formData.recruitment_kind || getIngestorRecruitmentKind(event)) as RecruitmentKind | null;
-            const selectedActivity = activityFromCategory(selectedCategory, recruitmentKind);
-            const selectedEventType = eventTypeFromCategory(selectedCategory);
+            const recruitmentKind = formData.is_sale_event
+                ? null
+                : (formData.recruitment_kind || getIngestorRecruitmentKind(event)) as RecruitmentKind | null;
+            const selectedActivity = activityFromCategory(selectedCategory, recruitmentKind, Boolean(formData.is_sale_event));
+            const selectedEventType = eventTypeFromActivity(selectedCategory, selectedActivity);
             const baseMapped = mapIngestorEvent({
                     ...event,
                     structured_data: {
@@ -173,8 +195,10 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 category: selectedCategory,
                 genre: formData.genre || baseMapped.genre,
                 activity_type: selectedActivity,
-                dance_tags: ensureRecruitmentTags(baseMapped.dance_tags, recruitmentKind),
-                group_id: recruitmentKind ? null : (selectedCategory === 'social' ? 2 : null),
+                dance_tags: selectedActivity === 'sale'
+                    ? Array.from(new Set([...baseMapped.dance_tags, 'sale_event']))
+                    : ensureRecruitmentTags(baseMapped.dance_tags, recruitmentKind),
+                group_id: recruitmentKind || selectedActivity === 'sale' ? null : (selectedCategory === 'social' ? 2 : null),
             };
             const duplicate = await findRegisteredDuplicate(formattedTitle, mapped);
 
@@ -294,6 +318,15 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                                         <option value="event">파티/행사</option>
                                         <option value="class">강습</option>
                                         <option value="club">동호회</option>
+                                    </select>
+                                    <select
+                                        name="is_sale_event"
+                                        value={formData.is_sale_event ? 'sale' : ''}
+                                        onChange={(e) => handleSaleEventChange(e.target.value)}
+                                        className="category-select"
+                                    >
+                                        <option value="">일반 이벤트</option>
+                                        <option value="sale">판매이벤트</option>
                                     </select>
                                     <input type="text" name="genre" value={formData.genre || ''} onChange={handleChange} placeholder="장르" />
                                     <select

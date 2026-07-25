@@ -11,6 +11,7 @@ import {
   listCafe24Events,
   updateCafe24Event,
 } from './events-api.js';
+import { createExternalEvent, uploadExternalEventImage } from './external-events-api.js';
 import { authProviders, devLogin, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
 import {
   listClientReloadDiagnostics,
@@ -105,6 +106,11 @@ const urlencodedBody = express.urlencoded({
 });
 const jsonBody = express.json({
   limit: process.env.CAFE24_BODY_LIMIT || '50mb',
+});
+const externalEventJsonBody = express.json({ limit: '256kb' });
+const externalImageBody = express.raw({
+  type: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+  limit: process.env.EXTERNAL_IMAGE_MAX_BYTES || '8mb',
 });
 const cafe24FunctionHandler = createCafe24FunctionHandler();
 
@@ -219,6 +225,7 @@ function jsonRoute(handler) {
       }
       res.status(statusCode).json({
         error: 'Cafe24 API Error',
+        code: statusCode < 500 ? error?.code : undefined,
         message: error?.message || 'Unknown Cafe24 API error',
       });
     }
@@ -233,6 +240,30 @@ app.post('/api/events/:id/delete', jsonBody, jsonRoute(deleteCafe24Event));
 app.put('/api/events/:id', jsonBody, jsonRoute(updateCafe24Event));
 app.patch('/api/events/:id', jsonBody, jsonRoute(updateCafe24Event));
 app.delete('/api/events/:id', jsonRoute(deleteCafe24Event));
+app.post('/api/external/v1/events', externalEventJsonBody, jsonRoute(createExternalEvent));
+app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
+app.use('/api/external/v1', (error, req, res, next) => {
+  if (error?.type === 'entity.too.large') {
+    const isImageUpload = req.path === '/images' || req.originalUrl?.startsWith('/api/external/v1/images');
+    res.status(413).json({
+      error: 'External Event API Error',
+      code: 'payload_too_large',
+      message: isImageUpload
+        ? '이미지 파일은 8MB를 초과할 수 없습니다.'
+        : '일정 JSON 본문은 256KB를 초과할 수 없습니다.',
+    });
+    return;
+  }
+  if (error instanceof SyntaxError && error?.status === 400) {
+    res.status(400).json({
+      error: 'External Event API Error',
+      code: 'invalid_json',
+      message: '올바른 JSON 본문이 필요합니다.',
+    });
+    return;
+  }
+  next(error);
+});
 
 app.get('/api/auth/me', jsonRoute(me));
 app.get('/api/auth/providers', jsonRoute(authProviders));

@@ -95,6 +95,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const { theme, toggleTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
+    const [isActivitiesExpanded, setIsActivitiesExpanded] = useState(true);
     const [isAdminExpanded, setIsAdminExpanded] = useState(true);
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
     const hasLoadedBoardCategoriesRef = useRef(false);
@@ -367,6 +368,19 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
 
         if (path === '/v2') return pathname === '/v2' || pathname === '/';
         if (path === '/?view=favorites') return (pathname === '/' || pathname === '/v2') && params.get('view') === 'favorites';
+        if (path.includes('?')) {
+            const [targetPath, targetSearch] = path.split('?');
+            if (pathname !== targetPath) return false;
+
+            const targetParams = new URLSearchParams(targetSearch);
+            for (const [key, value] of targetParams.entries()) {
+                const currentValue = params.get(key);
+                if (key === 'tab' && value === 'socials' && currentValue === 'groups') continue;
+                if (currentValue !== value) return false;
+            }
+
+            return true;
+        }
         if (path === '/board') return pathname.startsWith('/board') && !params.get('category');
         if (path.startsWith('/board?category=')) {
             return pathname.startsWith('/board') && params.get('category') === path.split('category=')[1];
@@ -1023,6 +1037,54 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                                              <span className="fixed-part en" translate="no">Dev Log</span>
                                                          </span>
                                                      </div>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     );
+                                 }
+
+                                 if (item.children?.length) {
+                                     const isExpanded = item.path === '/my-activities' ? isActivitiesExpanded : true;
+                                     const toggleExpanded = () => {
+                                         if (item.path === '/my-activities') {
+                                             setIsActivitiesExpanded(prev => !prev);
+                                         }
+                                     };
+
+                                     return (
+                                         <div key={`${sectionIdx}-${itemIdx}`}>
+                                             <div className={menuItemClass(item.path, 'SD-isExpandable')} onClick={toggleExpanded}>
+                                                 <i className={item.icon}></i>
+                                                 <div className="SD-menuCopy">
+                                                     <span className="manual-label-wrapper">
+                                                         <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                         <span className="fixed-part ko" translate="no">{item.title}</span>
+                                                         <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                     </span>
+                                                     <small>{item.desc}</small>
+                                                 </div>
+                                                 <i className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
+                                             </div>
+                                             {isExpanded && (
+                                                 <div className="SD-submenu">
+                                                     {item.children.map((child) => (
+                                                         <div
+                                                             key={child.path}
+                                                             className={`SD-submenuItem ${isPathActive(child.path) ? 'is-active' : ''}`}
+                                                             onClick={() => handleNavigation(child.path)}
+                                                             data-analytics-id={`nav_${child.path.replace(/[^a-zA-Z0-9]+/g, '_')}`}
+                                                             data-analytics-type="nav_item"
+                                                             data-analytics-title={`메뉴: ${child.title}`}
+                                                             data-analytics-section="side_drawer_dynamic"
+                                                         >
+                                                             <i className={child.icon}></i>
+                                                             <span className="manual-label-wrapper">
+                                                                 <span className="translated-part">{MENU_LABELS_EN[child.title] || child.title}</span>
+                                                                 <span className="fixed-part ko" translate="no">{child.title}</span>
+                                                                 <span className="fixed-part en" translate="no">{MENU_LABELS_EN[child.title] || child.title}</span>
+                                                             </span>
+                                                         </div>
+                                                     ))}
                                                  </div>
                                              )}
                                          </div>

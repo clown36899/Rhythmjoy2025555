@@ -53,7 +53,7 @@ function normalizeArray(value) {
   return [];
 }
 
-async function enqueueNewEventNotification(event) {
+export async function enqueueNewEventNotification(event) {
   const category = String(event.category || event.activity_type || 'event').toLowerCase();
   const label = category === 'class' || category === 'regular'
     ? '강습'
@@ -182,6 +182,18 @@ function activityTypeForCategory(category) {
   return 'event';
 }
 
+function canUseSaleActivity(user) {
+  return Boolean(user?.is_admin);
+}
+
+function normalizeActivityTypeForUser(activityType, category, user) {
+  const normalized = normalizeCategoryValue(activityType);
+  if (normalized === 'sale') {
+    return canUseSaleActivity(user) ? 'sale' : activityTypeForCategory(category);
+  }
+  return activityType || activityTypeForCategory(category);
+}
+
 function isClassLikeCategory(category) {
   const normalized = normalizeCategoryValue(category);
   return (
@@ -201,7 +213,7 @@ function groupIdForEventKind(category, activityType, groupId) {
   return normalizedActivityType === 'social' ? toIntOrNull(groupId) : null;
 }
 
-function normalizeEventPayload(input, existing = null, user = null) {
+export function normalizeEventPayload(input, existing = null, user = null) {
   const source = {
     ...(existing || {}),
     ...(input || {}),
@@ -229,6 +241,7 @@ function normalizeEventPayload(input, existing = null, user = null) {
     : hasInputCategory
       ? activityTypeForCategory(category)
       : (source.activity_type || activityTypeForCategory(category));
+  const safeActivityType = normalizeActivityTypeForUser(activityType, category, user);
 
   const event = {
     ...source,
@@ -244,14 +257,14 @@ function normalizeEventPayload(input, existing = null, user = null) {
     category,
     genre: source.genre || null,
     dance_scope: source.dance_scope || 'swing',
-    activity_type: activityType,
+    activity_type: safeActivityType,
     image: source.image || source.image_url || source.image_full || source.image_medium || source.image_thumbnail || '',
     image_thumbnail: source.image_thumbnail || '',
     image_medium: source.image_medium || '',
     description: source.description || '',
     link1: source.link1 || '',
     link_name1: source.link_name1 || '',
-    group_id: groupIdForEventKind(category, activityType, source.group_id),
+    group_id: groupIdForEventKind(category, safeActivityType, source.group_id),
     venue_name: source.venue_name || source.place_name || '',
     address: source.address || '',
     user_id: existing
@@ -303,9 +316,8 @@ async function requireEventOwnerOrAdmin(req, event) {
   throw error;
 }
 
-async function saveEvent(event) {
-  const pool = getMysqlPool();
-  await pool.execute(
+export async function saveEvent(event, executor = getMysqlPool()) {
+  await executor.execute(
     `INSERT INTO ${tableName} (
        id, title, date_value, start_date, end_date, event_dates_json, time_text,
        location, location_link, category, genre, dance_scope, activity_type,

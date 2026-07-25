@@ -1494,6 +1494,14 @@ function activityTypeForEventCategory(category) {
   return 'event';
 }
 
+function normalizeEventActivityTypeForUser(activityType, category, user) {
+  const normalized = normalizeCategoryValue(activityType);
+  if (normalized === 'sale') {
+    return user?.is_admin ? 'sale' : activityTypeForEventCategory(category);
+  }
+  return activityType || activityTypeForEventCategory(category);
+}
+
 function isClassLikeEventCategory(category) {
   const normalized = normalizeCategoryValue(category);
   return (
@@ -1513,16 +1521,21 @@ function groupIdForEventKind(category, activityType, groupId) {
   return normalizedActivityType === 'social' ? toIntOrNull(groupId) : null;
 }
 
-function normalizeEventActivityType(next, source = next) {
+function normalizeEventActivityType(next, source = next, user = null, options = {}) {
+  const hasCategoryInput = Object.prototype.hasOwnProperty.call(source || {}, 'category');
+  const hasActivityInput = Object.prototype.hasOwnProperty.call(source || {}, 'activity_type');
   if (
-    Object.prototype.hasOwnProperty.call(source || {}, 'category') &&
-    !Object.prototype.hasOwnProperty.call(source || {}, 'activity_type')
+    hasCategoryInput &&
+    !hasActivityInput
   ) {
     next.activity_type = activityTypeForEventCategory(next.category);
   }
+  if (hasCategoryInput || hasActivityInput || options.forceDefault || next.activity_type) {
+    next.activity_type = normalizeEventActivityTypeForUser(next.activity_type, next.category, user);
+  }
   if (
-    Object.prototype.hasOwnProperty.call(source || {}, 'category') ||
-    Object.prototype.hasOwnProperty.call(source || {}, 'activity_type') ||
+    hasCategoryInput ||
+    hasActivityInput ||
     Object.prototype.hasOwnProperty.call(source || {}, 'group_id')
   ) {
     next.group_id = groupIdForEventKind(next.category, next.activity_type, next.group_id);
@@ -1545,16 +1558,16 @@ function normalizeEventInsertValues(values, user) {
     }
     delete next.password;
     delete next.board_users;
-    return normalizeEventActivityType(next, row);
+    return normalizeEventActivityType(next, row, user, { forceDefault: true });
   });
 }
 
-function normalizeEventUpdateValues(values) {
+function normalizeEventUpdateValues(values, user = null) {
   const next = stripProtectedEventUpdateFields(values);
   if (Object.prototype.hasOwnProperty.call(next, 'main_ad_image_kind')) {
     next.main_ad_image_kind = normalizeMainAdImageKind(next.main_ad_image_kind);
   }
-  return normalizeEventActivityType(next, values);
+  return normalizeEventActivityType(next, values, user);
 }
 
 function normalizeEventUpsertValue(value, existing, user) {
@@ -1575,7 +1588,7 @@ function normalizeEventUpsertValue(value, existing, user) {
   }
   delete next.password;
   delete next.board_users;
-  return normalizeEventActivityType(next, value);
+  return normalizeEventActivityType(next, value, user, { forceDefault: true });
 }
 
 async function eventMutationResponseData(table, data, user, select = '') {
