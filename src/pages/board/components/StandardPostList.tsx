@@ -69,11 +69,28 @@ export default function StandardPostList({
     const getPrefixTone = (post: StandardBoardPost) => {
         const label = getPrefixLabel(post);
         if (post.is_notice) return 'slate';
-        if (label.includes('질문') || label.includes('건의')) return 'blue';
+        if (label.includes('건의') || label.includes('신청')) return 'amber';
+        if (label.includes('질문')) return 'blue';
         if (label.includes('후기')) return 'violet';
         if (label.includes('정보')) return 'cyan';
         return 'green';
     };
+
+    const isNewPost = (post: StandardBoardPost) => {
+        const createdAt = new Date(post.created_at).getTime();
+        if (!Number.isFinite(createdAt)) return false;
+        const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+        return Date.now() - createdAt < fourteenDays;
+    };
+
+    const isSuggestionPost = (post: StandardBoardPost) => {
+        const label = getPrefixLabel(post);
+        return label.includes('건의') || label.includes('신청');
+    };
+
+    const renderNewBadge = (post: StandardBoardPost) => (
+        isNewPost(post) ? <span className="free-board-new-badge" aria-label="등록 후 2주 이내의 새 글">NEW</span> : null
+    );
 
     const formatDate = (value: string) => new Date(value).toLocaleDateString('ko-KR', {
         year: 'numeric',
@@ -138,8 +155,7 @@ export default function StandardPostList({
         <article
             key={`desktop-${post.id}`}
             onClick={() => onPostClick(post)}
-            className={`free-board-row ${post.is_notice ? 'is-notice' : ''}`}
-            style={{ opacity: (isAdmin && post.is_hidden) ? 0.6 : 1 }}
+            className={`free-board-row ${post.is_notice ? 'is-notice' : ''} ${isSuggestionPost(post) ? 'is-suggestion' : ''} ${isAdmin && post.is_hidden ? 'is-hidden' : ''}`}
         >
             <div className="free-board-row-accent" />
             <div className="free-board-prefix-cell">
@@ -153,6 +169,7 @@ export default function StandardPostList({
                         </span>
                     )}
                     <h3>{post.title}</h3>
+                    {renderNewBadge(post)}
                 </div>
                 <div className="free-board-meta">
                     <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
@@ -175,15 +192,20 @@ export default function StandardPostList({
         <article
             key={`mobile-${post.id}`}
             onClick={() => onPostClick(post)}
-            className={`free-board-mobile-row ${post.is_notice ? 'is-notice' : ''}`}
-            style={{ opacity: (isAdmin && post.is_hidden) ? 0.6 : 1 }}
+            className={`free-board-mobile-row ${post.is_notice ? 'is-notice' : ''} ${isSuggestionPost(post) ? 'is-suggestion' : ''} ${isAdmin && post.is_hidden ? 'is-hidden' : ''}`}
         >
             <div className="free-board-mobile-main">
                 <div className="free-board-mobile-title-line">
                     {renderFreePrefix(post)}
                     <h3>{post.title}</h3>
+                    {renderNewBadge(post)}
                 </div>
                 <div className="free-board-mobile-meta">
+                    {isAdmin && post.is_hidden && (
+                        <span className="board-hidden-badge">
+                            <i className="ri-eye-off-line"></i> 관리자만 표시
+                        </span>
+                    )}
                     <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
                     <span>{formatDate(post.created_at)}</span>
                     <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>

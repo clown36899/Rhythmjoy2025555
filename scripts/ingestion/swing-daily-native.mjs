@@ -11,6 +11,7 @@ import {
   todayISO,
 } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
+import { benefitSearchMatches, extractInstagramPostUrls } from './benefit-search-utils.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -87,6 +88,7 @@ class NetworkUnavailableError extends Error {
 }
 
 const sourceTypeWeight = new Map([
+  ['benefit_search', -1],
   ['littly', 0],
   ['naver_cafe', 1],
   ['daum_cafe', 2],
@@ -592,6 +594,9 @@ function extractDates(text = '') {
 
 function inferActivity(text = '') {
   if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
+  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) {
+    return { activity: 'sale', eventType: '판매이벤트' };
+  }
   if (/소셜|social|(?<![A-Za-z0-9가-힣])DJ|디제이|파티|party/i.test(text)) return { activity: 'social', eventType: '소셜' };
   if (graduationEventPattern.test(text)) return { activity: 'event', eventType: '행사' };
   if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원\s*데이|원데이|오픈\s*클래스|체험\s*(?:클래스|강습|수업)|일일\s*(?:클래스|강습|수업)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|배워)|입문|초급|중급|class|lesson|workshop|one\s*day|oneday|open\s*class/i.test(text)) {
@@ -952,6 +957,29 @@ async function collectInstagramLinks(page, source) {
   }
 
   throw new Error('instagram post list unavailable');
+}
+
+async function collectBenefitSearchLinks(page, source) {
+  const searchUrl = source.url || `https://www.google.com/search?q=${encodeURIComponent(source.query || '')}`;
+  await safeGoto(page, searchUrl, Math.min(sourceTimeoutMs, 20_000));
+  const state = await page.evaluate(() => ({
+    hrefs: [...document.querySelectorAll('a[href]')].map((anchor) => anchor.getAttribute('href') || anchor.href || ''),
+    bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 2500),
+    url: window.location.href,
+  }));
+  let links = extractInstagramPostUrls(state.hrefs, state.url);
+
+  if (!links.length && /unusual traffic|captcha|자동화된 쿼리|동의하기/i.test(state.bodyText)) {
+    const fallbackUrl = `https://www.bing.com/search?q=${encodeURIComponent(source.query || '')}`;
+    await safeGoto(page, fallbackUrl, Math.min(sourceTimeoutMs, 20_000));
+    const fallback = await page.evaluate(() => ({
+      hrefs: [...document.querySelectorAll('a[href]')].map((anchor) => anchor.getAttribute('href') || anchor.href || ''),
+      url: window.location.href,
+    }));
+    links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
+  }
+
+  return links.slice(0, Math.max(1, postLimit));
 }
 
 async function collectInstagramLinksViaImginn(page, source) {
@@ -1428,7 +1456,7 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
 }
 
 async function postCandidate(candidate) {
-  if (dryRun) {
+  if (dryRun || profile === 'expanded-research') {
     result.inserted += 1;
     result.candidates.push(`${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
     return;
@@ -1513,6 +1541,25 @@ function hasNoContent(label) {
 
 async function collectSource(page, source) {
   ensureRunBudgetOrThrow(`source ${source.id}`, runDeadlineGuardMs());
+
+  if (source.type === 'benefit_search') {
+    const links = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs);
+    if (!links.length) {
+      if (!hasAccessFailure(source.id)) recordNoContent(source, 'no verified Instagram post results');
+      return [];
+    }
+    const candidates = [];
+    for (const url of links.slice(0, Math.max(1, Math.min(postLimit, 2)))) {
+      ensureRunBudgetOrThrow(`benefit search post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
+      await throttleInstagram(`benefit post ${source.id}`, instagramPostDelayMs);
+      const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
+      const matched = postCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
+      result.skipped += postCandidates.length - matched.length;
+      candidates.push(...matched);
+      if (hasAccessFailure(`${source.id}:post`)) break;
+    }
+    return candidates;
+  }
 
   if (source.type === 'instagram') {
     ensureRunBudgetOrThrow(`instagram source ${source.id}`, estimatedInstagramSourceBudgetMs(1));
@@ -1642,12 +1689,12 @@ async function openBrowserContext() {
 }
 
 async function main() {
-  if (profile !== 'swing-daily') {
-    throw new Error(`native collector supports swing-daily only: ${profile}`);
+  if (!['swing-daily', 'expanded-research', 'expanded-ingestion'].includes(profile)) {
+    throw new Error(`unsupported native collector profile: ${profile}`);
   }
 
-  const sources = getAutomationSourceList('swing-daily')
-    .filter((source) => source.saveEnabled && source.scope === 'swing')
+  const sources = getAutomationSourceList(profile)
+    .filter((source) => profile === 'expanded-research' || source.saveEnabled)
     .filter((source) => sourcePriorities.length === 0 || sourcePriorities.includes(Number(source.priority)))
     .filter((source) => sourceIds.length === 0 || sourceIds.includes(source.id))
     .sort((a, b) => sourceOrderWeight(a) - sourceOrderWeight(b)

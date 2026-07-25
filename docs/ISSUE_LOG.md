@@ -582,6 +582,28 @@
   - `src/components/SideDrawer.tsx`
   - `src/styles/domains/overlays.css`
 
+## 2026-07-26 자유게시판 신규·건의·숨김 글 식별 개선
+
+- 상태: 해결
+- 범위: 자유게시판 목록과 전역 하단 포럼 메뉴
+- 증상:
+  - 최근 등록 글, 건의사항, 관리자에게만 보이는 숨김 글의 시각적 구분이 약했다.
+  - 다른 페이지에 있을 때 자유게시판에 새 글이 등록돼도 하단 메뉴에서 알 수 없었다.
+- 조치:
+  - 등록 후 14일 동안 데스크톱·모바일 목록 제목 옆에 `NEW`를 표시한다.
+  - 건의/신청 말머리를 주황 계열로 분리하고 행 왼쪽 강조선을 추가했다.
+  - 숨김 글은 기존 일반 사용자 DB 필터를 유지하고, 관리자 목록에서는 패턴 배경과 `관리자만 표시` 배지로 구분한다.
+  - 마지막 자유게시판 확인 시각 이후 공개 글 수를 하단 포럼 메뉴의 숫자 배지로 표시하며, 실시간 신규 등록도 반영한다.
+- 검증:
+  - `npx tsc --noEmit`
+  - `npm run build:only`
+- 관련 파일:
+  - `src/pages/board/components/StandardPostList.tsx`
+  - `src/pages/board/board.css`
+  - `src/hooks/useFreeBoardUnreadCount.ts`
+  - `src/layouts/BottomNavigation.tsx`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md

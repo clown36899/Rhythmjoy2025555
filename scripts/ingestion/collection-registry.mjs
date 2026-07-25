@@ -78,6 +78,8 @@ const source = ({
   promotionPolicy = discoveryOnly ? 'external_hub_only' : 'verified_original_required',
   runOrder = null,
   notes = '',
+  query = '',
+  benefitKind = '',
 }) => ({
   id,
   name,
@@ -96,9 +98,37 @@ const source = ({
   promotionPolicy,
   runOrder,
   notes,
+  query,
+  benefitKind,
 });
 
 export const collectionSources = [
+  source({ id: 'benefit-search-free-class', name: '무료 강습 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: 'https://www.google.com/search?q=site%3Ainstagram.com+%EC%8A%A4%EC%9C%99%EB%8C%84%EC%8A%A4+%EB%AC%B4%EB%A3%8C+%EA%B0%95%EC%8A%B5', query: 'site:instagram.com 스윙댄스 무료 강습', benefitKind: 'free_event', priority: 2, runOrder: 0, notes: '검색 결과는 발견용으로만 사용하고 실제 Instagram 게시물 본문·날짜·원본 이미지를 다시 확인한다.' }),
+  source({ id: 'benefit-search-free-event', name: '무료 이벤트 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: 'https://www.google.com/search?q=site%3Ainstagram.com+%EB%A6%B0%EB%94%94%ED%95%A9+%EB%AC%B4%EB%A3%8C+%EC%9D%B4%EB%B2%A4%ED%8A%B8', query: 'site:instagram.com 린디합 무료 이벤트', benefitKind: 'free_event', priority: 2, runOrder: 0, notes: '검색 결과는 발견용으로만 사용하고 실제 Instagram 게시물 본문·날짜·원본 이미지를 다시 확인한다.' }),
+  source({ id: 'benefit-search-season-pass', name: '정기권 판매 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: 'https://www.google.com/search?q=site%3Ainstagram.com+%EC%8A%A4%EC%9C%99%EB%8C%84%EC%8A%A4+%EC%A0%95%EA%B8%B0%EA%B6%8C+%ED%8C%90%EB%A7%A4', query: 'site:instagram.com 스윙댄스 정기권 판매', benefitKind: 'season_pass', priority: 2, runOrder: 0, notes: '검색 결과는 발견용으로만 사용하고 실제 Instagram 게시물 본문·날짜·원본 이미지를 다시 확인한다.' }),
+  source({ id: 'benefit-search-sale-event', name: '판매 이벤트 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: 'https://www.google.com/search?q=site%3Ainstagram.com+%EC%8A%A4%EC%9C%99%EB%8C%84%EC%8A%A4+%ED%8C%90%EB%A7%A4+%EC%9D%B4%EB%B2%A4%ED%8A%B8', query: 'site:instagram.com 스윙댄스 판매 이벤트', benefitKind: 'sale_event', priority: 2, runOrder: 0, notes: '검색 결과는 발견용으로만 사용하고 실제 Instagram 게시물 본문·날짜·원본 이미지를 다시 확인한다.' }),
+  ...[
+    ['salsa-free', '살사 무료 이벤트 검색', 'salsa', 'salsa', 'site:instagram.com 서울 살사 무료 클래스 OR 무료 입장', 'free_event'],
+    ['salsa-pass', '살사 정기권 검색', 'salsa', 'salsa', 'site:instagram.com 서울 살사 정기권 OR 멤버십 판매', 'season_pass'],
+    ['bachata-free', '바차타 무료 이벤트 검색', 'bachata', 'bachata', 'site:instagram.com 서울 바차타 무료 클래스 OR 무료 워크샵', 'free_event'],
+    ['bachata-pass', '바차타 정기권 검색', 'bachata', 'bachata', 'site:instagram.com 서울 바차타 정기권 OR 멤버십 판매', 'season_pass'],
+    ['tango-free', '탱고 무료 이벤트 검색', 'tango', 'tango', 'site:instagram.com 서울 탱고 무료 입장 OR 무료 프랙티카', 'free_event'],
+    ['tango-pass', '탱고 정기권 검색', 'tango', 'tango', 'site:instagram.com 서울 탱고 정기권 OR 밀롱가 패스 판매', 'season_pass'],
+    ['street-free', '스트릿 무료 이벤트 검색', 'street', 'street', 'site:instagram.com 서울 스트릿댄스 무료 클래스 OR 무료 배틀 관람', 'free_event'],
+    ['street-pass', '스트릿 정기권 검색', 'street', 'street', 'site:instagram.com 서울 스트릿댄스 정기권 OR 수강권 판매', 'season_pass'],
+  ].map(([id, name, scope, genre, query, benefitKind]) => source({
+    id: `benefit-search-${id}`,
+    name,
+    scope,
+    genre,
+    type: 'benefit_search',
+    url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+    query,
+    benefitKind,
+    priority: 2,
+    runOrder: 0,
+    notes: '확장 장르 혜택 검색. 원본 게시물의 장르·미래 날짜·원본 이미지·명시적 무료/정기권 표현을 모두 재검증한다.',
+  })),
   source({ id: 'happyhall2004', name: '해피홀', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/happyhall2004/', priority: 1, runOrder: -1.0 }),
   source({ id: 'neo_swing', name: '네오스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/neo_swing/', priority: 1, notes: '네오스윙 Linktree에서 공식 채널로 확인. Daum 카페 공지는 이미지 없는 글이 많아 포스터가 있는 Instagram 원본을 우선 확인' }),
   source({ id: 'swingtimebar', name: '스윙타임', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingtimebar/', priority: 1 }),
@@ -242,11 +272,15 @@ export const dynamicSearchQueries = {
   salsa: [
     'site:instagram.com 서울 살사 소셜 DJ',
     'site:instagram.com 홍대 살사 바차타 소셜',
+    'site:instagram.com 서울 살사 무료 클래스 무료 입장',
+    'site:instagram.com 서울 살사 정기권 멤버십 판매',
     '살사 클래스 모집 서울 2026',
   ],
   bachata: [
     'site:instagram.com 서울 바차타 소셜',
     'site:instagram.com 바차타 클래스 서울',
+    'site:instagram.com 서울 바차타 무료 클래스 무료 워크샵',
+    'site:instagram.com 서울 바차타 정기권 멤버십 판매',
     '바차타 소셜 서울 2026',
   ],
   tango: [
@@ -254,12 +288,16 @@ export const dynamicSearchQueries = {
     '탱고NOW 밀롱가 서울',
     'site:instagram.com 서울 탱고 밀롱가 DJ',
     'site:instagram.com 탱고 프랙티카 서울',
+    'site:instagram.com 서울 탱고 무료 입장 무료 프랙티카',
+    'site:instagram.com 서울 탱고 정기권 밀롱가 패스 판매',
     '탱고 밀롱가 서울 2026',
   ],
   street: [
     'site:instagram.com 서울 힙합 워크샵',
     'site:instagram.com 왁킹 팝핑 락킹 워크샵 서울',
     'site:instagram.com 브레이킹 배틀 참가자 모집',
+    'site:instagram.com 서울 스트릿댄스 무료 클래스 무료 배틀 관람',
+    'site:instagram.com 서울 스트릿댄스 정기권 수강권 판매',
     '스트릿댄스 배틀 서울 2026',
   ],
 };
@@ -339,5 +377,7 @@ export function getAutomationSourceList(profile = 'swing-daily') {
     automationProfile: selected.id,
     saveEnabled: (item.scope === 'swing' || selected.saveExpandedCandidates) && !item.discoveryOnly,
     notes: item.notes,
+    query: item.query,
+    benefitKind: item.benefitKind,
   }));
 }

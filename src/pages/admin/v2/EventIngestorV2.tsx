@@ -49,6 +49,8 @@ interface ScrapedEvent {
     dance_genre_label?: string;
     tags?: string[];
     tag_labels?: string[];
+    benefit_eligible?: boolean;
+    benefit_kind?: 'free_event' | 'season_pass' | null;
     _duplicate?: {
       reason?: string;
       existingId?: string;
@@ -976,6 +978,8 @@ const EventIngestorV2: React.FC = () => {
         activity_type: mapped.activity_type,
         dance_tags: mapped.dance_tags,
         group_id: mapped.group_id,
+        benefit_eligible: sd.benefit_eligible === true,
+        benefit_kind: sd.benefit_eligible === true ? sd.benefit_kind || null : null,
       } as any;
 
     const duplicate = await findRegisteredDuplicate(event, formattedTitle, mapped);

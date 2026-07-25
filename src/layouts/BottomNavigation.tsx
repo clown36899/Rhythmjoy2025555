@@ -17,6 +17,7 @@ import {
     isTempoToolItemHidden,
     useTempoToolVisibilitySettings,
 } from '../hooks/useTempoToolVisibilitySettings';
+import { useFreeBoardUnreadCount } from '../hooks/useFreeBoardUnreadCount';
 
 interface BottomNavigationProps {
     pageAction?: {
@@ -64,6 +65,7 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
         isLoading: isMenuVisibilityLoading,
     } = useTempoToolVisibilitySettings();
     const currentPath = location.pathname;
+    const freeBoardUnreadCount = useFreeBoardUnreadCount();
 
 
     // Prefetch other pages for instant navigation
@@ -180,6 +182,11 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                             {item.badge && (
                                 <span className="bottom-nav-badge">
                                     {item.badge}
+                                </span>
+                            )}
+                            {item.path === '/forum' && freeBoardUnreadCount > 0 && (
+                                <span className="bottom-nav-badge" aria-label={`자유게시판 새 글 ${freeBoardUnreadCount}개`}>
+                                    {freeBoardUnreadCount > 99 ? '99+' : freeBoardUnreadCount}
                                 </span>
                             )}
                         </button>

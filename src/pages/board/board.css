@@ -910,6 +910,12 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   border-color: rgba(91, 141, 239, 0.38);
 }
 
+.free-board-prefix--amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd58a;
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
 .free-board-prefix--violet {
   background: rgba(154, 123, 239, 0.14);
   color: #c7b8ff;
@@ -954,6 +960,44 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   -webkit-line-clamp: 2;
   line-clamp: 2;
   min-width: 0;
+}
+
+.free-board-new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 32px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+}
+
+.free-board-row.is-suggestion {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), transparent 34%), var(--free-board-row);
+}
+
+.free-board-row.is-suggestion .free-board-row-accent {
+  background: #f59e0b;
+}
+
+.free-board-row.is-hidden,
+.free-board-mobile-row.is-hidden {
+  opacity: 0.62;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(148, 163, 184, 0.035) 8px,
+    rgba(148, 163, 184, 0.035) 16px
+  );
 }
 
 .free-board-meta {
@@ -1128,13 +1172,18 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
     box-shadow: inset 3px 0 0 var(--free-board-blue);
   }
 
+  .free-board-mobile-row.is-suggestion {
+    box-shadow: inset 3px 0 0 #f59e0b;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.09), transparent 52%), var(--free-board-row);
+  }
+
   .free-board-mobile-main {
     min-width: 0;
   }
 
   .free-board-mobile-title-line {
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr) auto;
     align-items: start;
     gap: 8px;
     min-width: 0;
@@ -1170,6 +1219,13 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .free-board-mobile-meta .board-hidden-badge {
+    flex-shrink: 0;
+    color: #d8dee9 !important;
+    background: rgba(100, 116, 139, 0.35) !important;
+    font-size: 10px !important;
   }
 
   .free-board-mobile-meta span:last-child {

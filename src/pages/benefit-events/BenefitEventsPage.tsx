@@ -60,9 +60,9 @@ function getKindLabel(event: AppEvent) {
   const tags = Array.isArray(event.dance_tags) ? event.dance_tags.map(String) : [];
   const text = getEventText(event);
 
-  if (activityType === 'sale' || tags.includes('sale_event') || /판매\s*이벤트|이벤트\s*판매|\bsale\b/i.test(text)) return '판매이벤트';
   if (tags.includes('season_pass') || /정기권|시즌권|월정액|멤버십|membership|\bpass\b/i.test(text)) return '정기권';
   if (tags.includes('free_event') || /무료|free/i.test(text)) return '무료';
+  if (activityType === 'sale' || tags.includes('sale_event') || /판매\s*이벤트|이벤트\s*판매|\bsale\b/i.test(text)) return '판매이벤트';
   return '혜택';
 }
 

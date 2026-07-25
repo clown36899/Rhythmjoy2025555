@@ -873,6 +873,10 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   const finalPayload = {
     ...eventData,
     ...imageFields,
+    benefit_eligible: mergedStructuredData.benefit_eligible === true,
+    benefit_kind: mergedStructuredData.benefit_eligible === true
+      ? mergedStructuredData.benefit_kind || null
+      : null,
     id: eventData.id || crypto.randomUUID(),
     date,
     start_date: String(eventData.start_date || date).slice(0, 10),

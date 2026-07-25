@@ -11,6 +11,7 @@ import {
   validateCandidate,
 } from './ingestion/candidate-utils.mjs';
 import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
+import { benefitSearchMatches, extractInstagramPostUrls, normalizeInstagramPostUrl } from './ingestion/benefit-search-utils.mjs';
 import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
@@ -34,6 +35,33 @@ assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '7월 정기권 판매 오픈',
   structured_data: { title: '7월 정기권' },
 }), 'season_pass', 'explicit season-pass sales should be benefit eligible');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '무료 라인강습은 없습니다. 8월 정기권 판매 오픈',
+  structured_data: { title: '8월 정기권 판매' },
+}), 'season_pass', 'a negated free-class phrase must not hide a separately confirmed season-pass sale');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '무료 주차 가능, 입장료 20,000원',
+  structured_data: { title: '토요 살사 소셜' },
+}), null, 'free parking must not classify a paid event as free');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '첫 방문 무료 체험 클래스, 2026년 8월 2일',
+  structured_data: { title: '바차타 입문 체험' },
+}), 'free_event', 'explicit free trial classes should classify across approved dance scopes');
+
+assert.equal(
+  normalizeInstagramPostUrl('/url?q=https%3A%2F%2Fwww.instagram.com%2Fp%2FABC_123%2F%3Figsh%3Dfoo', 'https://www.google.com/search?q=test'),
+  'https://www.instagram.com/p/ABC_123/',
+  'Google redirect URLs should normalize to canonical Instagram posts',
+);
+assert.deepEqual(
+  extractInstagramPostUrls([
+    'https://www.instagram.com/reel/XYZ-789/?utm_source=search',
+    'https://www.instagram.com/reel/XYZ-789/',
+    'https://www.instagram.com/example/',
+  ]),
+  ['https://www.instagram.com/reel/XYZ-789/'],
+  'benefit discovery should dedupe posts and reject profiles',
+);
 
 function baseCandidate(overrides = {}) {
   return {
@@ -243,6 +271,10 @@ const seasonPassSale = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(seasonPassSale.validation.ok, true, 'season pass sale event should be accepted when dated and image-backed');
 assert.equal(seasonPassSale.candidate.structured_data.activity_type, 'sale');
+assert.equal(seasonPassSale.candidate.structured_data.benefit_eligible, true);
+assert.equal(seasonPassSale.candidate.structured_data.benefit_kind, 'season_pass');
+assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'season_pass'), true);
+assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'free_event'), false);
 assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('season_pass'), 'season pass sale should keep season_pass tag internally');
@@ -462,6 +494,19 @@ assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigak
 assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
 assert.ok(dynamicSearchQueries.swing.some((query) => /원데이|체험|오픈\s*클래스/.test(query)), 'swing dynamic search should include one-day/trial class discovery');
 assert.ok(dynamicSearchQueries.swing.some((query) => /정기권|무료|판매\s*이벤트/.test(query)), 'swing dynamic search should include sale/free/season-pass discovery');
+for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
+  assert.ok(dynamicSearchQueries[scope].some((query) => /무료/.test(query)), `${scope} dynamic search should include free-event discovery`);
+  assert.ok(dynamicSearchQueries[scope].some((query) => /정기권|멤버십|패스|수강권/.test(query)), `${scope} dynamic search should include pass-sale discovery`);
+  assert.ok(
+    getAutomationSourceList('expanded-research').some((source) => source.type === 'benefit_search' && source.scope === scope),
+    `${scope} expanded research should include a staged benefit search`,
+  );
+}
+assert.equal(
+  getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search').length,
+  4,
+  'daily swing automation should run the four dedicated benefit searches without expanded genres',
+);
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');
 assert.equal(getAutomationSourceList('swing-daily').some((source) => /batswing/i.test(source.id + source.url)), false, 'daily automation must not include BAT SWING url or handle');
 assert.ok(getCollectionSources('street').length >= 5, 'street sources should be expanded');
