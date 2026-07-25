@@ -13,6 +13,21 @@ PREPARE add_allowed_classifications_stmt FROM @add_allowed_classifications;
 EXECUTE add_allowed_classifications_stmt;
 DEALLOCATE PREPARE add_allowed_classifications_stmt;
 
+SET @add_allowed_category = (
+  SELECT IF(
+    COUNT(*) = 0,
+    'ALTER TABLE external_api_partners ADD COLUMN allowed_category VARCHAR(32) NULL AFTER default_genre',
+    'SELECT 1'
+  )
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'external_api_partners'
+    AND COLUMN_NAME = 'allowed_category'
+);
+PREPARE add_allowed_category_stmt FROM @add_allowed_category;
+EXECUTE add_allowed_category_stmt;
+DEALLOCATE PREPARE add_allowed_category_stmt;
+
 SET @add_environment = (
   SELECT IF(
     COUNT(*) = 0,

@@ -325,17 +325,29 @@ export default function ExternalEventApiGuidePage() {
               </table>
             </div>
             <CodeBlock label="예시 · 워크샵" code={'{\n  "category": "event",\n  "genre": "워크샵"\n}'} />
+            <div className="EAG-tableWrap">
+              <table>
+                <thead><tr><th>최상위 분류</th><th>한 일정의 하위 장르 선택</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>행사</strong> <code>event</code></td><td><strong>복수 선택 가능</strong> · 쉼표로 구분합니다. 단, <code>파티 + 대회</code>는 동시 선택 불가, <code>기타</code>는 단독만 가능합니다.</td></tr>
+                  <tr><td><strong>소셜</strong> <code>social</code></td><td><strong>1개만 선택</strong></td></tr>
+                  <tr><td><strong>강습</strong> <code>class</code></td><td><strong>1개만 선택</strong></td></tr>
+                  <tr><td><strong>동호회</strong> <code>club</code></td><td><strong>1개만 선택</strong></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <CodeBlock label="행사 복수 장르 예시" code={'{\n  "category": "event",\n  "genre": "워크샵,라이브밴드"\n}'} />
             <div className="EAG-warning EAG-categoryRule">
-              <strong>같은 장르 이름이 보여도 최상위 분류까지 함께 확인하세요.</strong>
-              <p>실제 사이트는 <code>genre</code> 이름만 비교하지 않고 <code>category + genre</code> 조합으로 구분합니다.</p>
+              <strong>사이트와 같은 선택 규칙을 사용합니다.</strong>
+              <p>관리자가 연동을 승인할 때 최상위 분류는 반드시 1개만 선택합니다. 하위 장르는 그 분류 안에서 여러 개를 허용할 수 있습니다.</p>
               <ul>
-                <li><b>중복 이름 허용:</b> <code>린디합</code>·<code>솔로재즈</code>·<code>발보아</code>·<code>블루스</code>·<code>팀원모집</code>은 <code>class</code>와 <code>club</code>에 각각 존재할 수 있습니다.</li>
-                <li><b>중복 이름 허용:</b> <code>기타</code>는 <code>event</code>·<code>class</code>·<code>club</code>에 각각 존재할 수 있습니다.</li>
-                <li><b>허용하지 않음:</b> 표에 없는 교차 조합은 거절됩니다. 예: <code>social + 린디합</code>, <code>event + 정규강습</code>, <code>class + 파티</code>.</li>
-                <li><b>같은 조합 반복:</b> 관리자 권한에서 동일한 조합을 여러 번 선택해도 한 번만 저장됩니다.</li>
+                <li><b>최상위 분류:</b> <code>social</code>, <code>event</code>, <code>class</code>, <code>club</code> 중 1개만 허용됩니다.</li>
+                <li><b>관리자 권한 설정:</b> 선택한 최상위 분류 안에서 파트너가 사용할 수 있는 하위 장르를 여러 개 체크할 수 있습니다.</li>
+                <li><b>하위 장르 미선택:</b> 선택한 최상위 분류 안의 모든 하위 장르를 허용합니다.</li>
+                <li><b>다른 최상위 분류:</b> 같은 이름의 장르가 있어도 이 API Key로는 사용할 수 없습니다.</li>
               </ul>
             </div>
-            <p>일정 요청 한 건에는 <code>category</code> 1개와 그에 맞는 <code>genre</code> 1개를 보내세요. 관리자가 여러 조합을 허용할 수 있지만, 요청에서 사용할 수 있는 것은 그중 한 조합입니다. 임의의 분류나 장르는 추가할 수 없습니다.</p>
+            <p>관리자 화면의 복수 체크는 파트너가 <b>여러 일정에서 사용할 수 있는 장르 범위</b>입니다. 한 일정에 장르를 동시에 넣을 수 있는지는 바로 위 표의 규칙을 따릅니다. 임의의 분류나 장르는 추가할 수 없습니다.</p>
             <div className="EAG-ruleCards">
               <div><strong>event · class · club</strong><p>이미지가 반드시 필요합니다.</p></div>
               <div><strong>social</strong><p>이미지를 생략할 수 있습니다. 이때 확인된 정확한 주소가 반드시 필요합니다.</p></div>
@@ -346,6 +358,10 @@ export default function ExternalEventApiGuidePage() {
             <span className="EAG-sectionNo">05</span>
             <h2>이미지 등록 방식</h2>
             <p className="EAG-lead">두 방식의 차이는 <b>원본 이미지 파일을 누가 Dance Billboard 서버로 전달하느냐</b>입니다. 어느 방식을 사용해도 최종 결과는 동일하게 Dance Billboard 내부 이미지로 저장됩니다.</p>
+            <div className="EAG-warning">
+              <strong>이미지 파일은 분리 저장하고, 일정은 계속 연결됩니다.</strong>
+              <p>연결 고리는 발급받은 API Key의 파트너 계정과 <code>external_id</code>입니다. 같은 값으로 수정하면 새 이미지로 교체하고 이전 이미지를 정리하며, 삭제하면 일정과 연결 이미지도 함께 삭제합니다.</p>
+            </div>
             <div className="EAG-choiceGrid">
               <div>
                 <span className="EAG-choiceIcon"><i className="ri-upload-cloud-2-line" /></span>

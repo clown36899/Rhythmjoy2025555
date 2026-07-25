@@ -116,6 +116,14 @@ export function normalizeAllowedClassifications(value) {
   return unique.length ? unique : null;
 }
 
+function normalizeAllowedCategory(value, { required = true } = {}) {
+  const category = cleanString(value, 32, 'allowed_category', { required });
+  if (category && !SITE_GENRES_BY_CATEGORY[category]) {
+    throw apiError(`allowed_category는 ${Object.keys(SITE_GENRES_BY_CATEGORY).join(', ')} 중 하나여야 합니다.`);
+  }
+  return category || null;
+}
+
 function parseAllowedClassifications(value) {
   if (!value) return null;
   try {
@@ -331,19 +339,37 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
   const externalId = cleanString(input.external_id, MAX_EXTERNAL_ID_LENGTH, 'external_id', { required: true });
   const title = cleanString(input.title, MAX_TITLE_LENGTH, 'title', { required: true });
   const category = cleanString(input.category || partner.default_category, 32, 'category', { required: true });
-  const genre = cleanString(input.genre || partner.default_genre, 64, 'genre', { required: true });
+  const genreInput = cleanString(input.genre || partner.default_genre, 64, 'genre', { required: true });
   const allowedGenres = SITE_GENRES_BY_CATEGORY[category];
 
   if (!allowedGenres) {
     throw apiError(`category는 ${Object.keys(SITE_GENRES_BY_CATEGORY).join(', ')} 중 하나여야 합니다.`);
   }
-  if (!allowedGenres.includes(genre)) {
+  const requestedGenres = Array.from(new Set(
+    genreInput.split(',').map((value) => value.trim()).filter(Boolean),
+  ));
+  if (!requestedGenres.length || requestedGenres.some((value) => !allowedGenres.includes(value))) {
     throw apiError(`${category}에서 사용할 수 있는 genre는 ${allowedGenres.join(', ')}입니다.`);
   }
+  if (category !== 'event' && requestedGenres.length > 1) {
+    throw apiError('소셜, 강습, 동호회 일정은 genre를 1개만 선택할 수 있습니다.');
+  }
+  if (category === 'event' && requestedGenres.includes('기타') && requestedGenres.length > 1) {
+    throw apiError('행사 장르 기타는 다른 장르와 동시에 선택할 수 없습니다.');
+  }
+  if (category === 'event' && requestedGenres.includes('파티') && requestedGenres.includes('대회')) {
+    throw apiError('행사 장르 파티와 대회는 동시에 선택할 수 없습니다.');
+  }
+  const genre = requestedGenres.join(',');
   const allowedClassifications = parseAllowedClassifications(partner.allowed_classifications);
+  if (partner.allowed_category && category !== partner.allowed_category) {
+    throw apiError('이 API Key에 허용되지 않은 최상위 분류입니다.', 403, 'classification_not_allowed');
+  }
   if (
     allowedClassifications
-    && !allowedClassifications.some((item) => item.category === category && item.genre === genre)
+    && requestedGenres.some((requestedGenre) => !allowedClassifications.some(
+      (item) => item.category === category && item.genre === requestedGenre,
+    ))
   ) {
     throw apiError('이 API Key에 허용되지 않은 분류와 장르입니다.', 403, 'classification_not_allowed');
   }
@@ -419,7 +445,7 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
       genre,
       scope: 'domestic',
       dance_scope: 'swing',
-      dance_genre: GENRE_TO_DANCE_GENRE[genre] || 'swing',
+      dance_genre: GENRE_TO_DANCE_GENRE[requestedGenres[0]] || 'swing',
       activity_type: activityType,
       link1: sourceUrl,
       link_name1: sourceUrl ? cleanString(input.link_name1 || '자세히 보기', 120, 'link_name1') : '',
@@ -447,7 +473,7 @@ async function authenticatePartner(req, pool) {
   const parsed = parseExternalApiKey(req.get('authorization'));
   const [rows] = await pool.execute(
     `SELECT id, name, key_hash, is_active, default_category, default_genre,
-            allowed_classifications, environment,
+            allowed_category, allowed_classifications, environment,
             owner_user_id, per_minute_limit, daily_limit
        FROM external_api_partners
       WHERE key_prefix = ?
@@ -727,6 +753,22 @@ async function materializeEventImage(normalized, partner) {
   }
   Object.assign(normalized.event, fields);
   return normalized;
+}
+
+async function removeStoredEventImages(event, partner) {
+  const partnerFolder = crypto.createHash('sha256').update(String(partner.id)).digest('hex').slice(0, 16);
+  const uploadRoot = path.resolve(process.cwd(), process.env.CAFE24_UPLOADS_DIR || 'uploads');
+  const partnerRoot = path.resolve(uploadRoot, 'external-events', partnerFolder);
+  const imagePaths = ['image', 'image_micro', 'image_thumbnail', 'image_medium', 'image_full']
+    .map((field) => String(event?.[field] || ''))
+    .filter((value) => value.startsWith('/uploads/external-events/'));
+  const directories = new Set();
+  for (const imagePath of imagePaths) {
+    const relative = imagePath.slice('/uploads/'.length).split('/').filter(Boolean);
+    const directory = path.dirname(path.resolve(uploadRoot, ...relative));
+    if (directory.startsWith(`${partnerRoot}${path.sep}`)) directories.add(directory);
+  }
+  await Promise.all(Array.from(directories).map((directory) => fs.rm(directory, { recursive: true, force: true })));
 }
 
 export async function uploadExternalEventImage(req, res) {
@@ -1089,6 +1131,13 @@ export async function updateExternalEvent(req, res) {
   } finally {
     connection.release();
   }
+  const previousImage = String(owned.existing.image_full || owned.existing.image || '');
+  const nextImage = String(event.image_full || event.image || '');
+  if (previousImage && previousImage !== nextImage) {
+    await removeStoredEventImages(owned.existing, partner).catch((error) => {
+      console.warn('[external-events] failed to remove replaced image', error?.message || error);
+    });
+  }
   await recordRequest(pool, {
     partnerId: partner.id,
     externalId,
@@ -1131,6 +1180,9 @@ export async function deleteExternalEvent(req, res) {
   } finally {
     connection.release();
   }
+  await removeStoredEventImages(owned.existing, partner).catch((error) => {
+    console.warn('[external-events] failed to remove deleted event image', error?.message || error);
+  });
   await recordRequest(pool, {
     partnerId: partner.id,
     externalId,
@@ -1148,7 +1200,7 @@ export async function listExternalPartners(req, res) {
   const pool = getMysqlPool();
   const [partners] = await pool.execute(
     `SELECT p.id, p.name, p.key_prefix, p.is_active, p.default_category, p.default_genre,
-            p.allowed_classifications, p.environment,
+            p.allowed_category, p.allowed_classifications, p.environment,
             p.owner_user_id, p.per_minute_limit, p.daily_limit, p.created_at, p.updated_at,
             u.email AS owner_email, u.nickname AS owner_nickname,
             COUNT(DISTINCT e.event_id) AS event_count,
@@ -1229,6 +1281,10 @@ export async function createExternalPartner(req, res) {
     req.body?.default_genre,
   );
   const allowedClassifications = normalizeAllowedClassifications(req.body?.allowed_classifications);
+  const allowedCategory = normalizeAllowedCategory(req.body?.allowed_category);
+  if (allowedClassifications?.some((item) => item.category !== allowedCategory)) {
+    throw apiError('하위 장르는 선택한 최상위 분류 안에서만 허용할 수 있습니다.');
+  }
   const environment = normalizePartnerEnvironment(req.body?.environment);
   const perMinuteLimit = normalizePositiveInteger(req.body?.per_minute_limit, 'per_minute_limit', environment === 'test' ? 30 : 10);
   const dailyLimit = normalizePositiveInteger(req.body?.daily_limit, 'daily_limit', environment === 'test' ? 1000 : 200);
@@ -1241,8 +1297,8 @@ export async function createExternalPartner(req, res) {
     await connection.execute(
       `INSERT INTO external_api_partners
          (id, name, key_prefix, key_hash, is_active, default_category, default_genre,
-          allowed_classifications, environment, owner_user_id, per_minute_limit, daily_limit)
-       VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
+          allowed_category, allowed_classifications, environment, owner_user_id, per_minute_limit, daily_limit)
+       VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         partnerId,
         name,
@@ -1250,6 +1306,7 @@ export async function createExternalPartner(req, res) {
         issued.keyHash,
         classification.category,
         classification.genre,
+        allowedCategory,
         allowedClassifications ? JSON.stringify(allowedClassifications) : null,
         environment,
         String(owner.id),
@@ -1262,6 +1319,7 @@ export async function createExternalPartner(req, res) {
       default_category: classification.category,
       default_genre: classification.genre,
       allowed_classifications: allowedClassifications,
+      allowed_category: allowedCategory,
       environment,
       per_minute_limit: perMinuteLimit,
       daily_limit: dailyLimit,
@@ -1296,7 +1354,7 @@ export async function updateExternalPartnerStatus(req, res) {
   const partnerId = cleanString(req.params.partnerId, 64, 'partner_id', { required: true });
   const pool = getMysqlPool();
   const [existingRows] = await pool.execute(
-    `SELECT id, name, is_active, default_category, default_genre, allowed_classifications,
+    `SELECT id, name, is_active, default_category, default_genre, allowed_category, allowed_classifications,
             environment, owner_user_id,
             per_minute_limit, daily_limit
        FROM external_api_partners WHERE id = ? LIMIT 1`,
@@ -1320,6 +1378,12 @@ export async function updateExternalPartnerStatus(req, res) {
   const allowedClassifications = req.body?.allowed_classifications === undefined
     ? parseAllowedClassifications(existing.allowed_classifications)
     : normalizeAllowedClassifications(req.body.allowed_classifications);
+  const allowedCategory = req.body?.allowed_category === undefined
+    ? normalizeAllowedCategory(existing.allowed_category, { required: false })
+    : normalizeAllowedCategory(req.body.allowed_category);
+  if (allowedClassifications?.some((item) => item.category !== allowedCategory)) {
+    throw apiError('하위 장르는 선택한 최상위 분류 안에서만 허용할 수 있습니다.');
+  }
   const environment = normalizePartnerEnvironment(req.body?.environment, existing.environment || 'test');
   const next = {
     name: req.body?.name === undefined
@@ -1330,6 +1394,7 @@ export async function updateExternalPartnerStatus(req, res) {
     category: classification.category,
     genre: classification.genre,
     allowedClassifications,
+    allowedCategory,
     environment,
     perMinuteLimit: normalizePositiveInteger(
       req.body?.per_minute_limit,
@@ -1349,7 +1414,7 @@ export async function updateExternalPartnerStatus(req, res) {
     await connection.execute(
       `UPDATE external_api_partners
           SET name = ?, is_active = ?, default_category = ?, default_genre = ?,
-              allowed_classifications = ?, environment = ?,
+              allowed_category = ?, allowed_classifications = ?, environment = ?,
               owner_user_id = ?, per_minute_limit = ?, daily_limit = ?, updated_at = NOW()
         WHERE id = ?`,
       [
@@ -1357,6 +1422,7 @@ export async function updateExternalPartnerStatus(req, res) {
         next.isActive ? 1 : 0,
         next.category,
         next.genre,
+        next.allowedCategory,
         next.allowedClassifications ? JSON.stringify(next.allowedClassifications) : null,
         next.environment,
         next.ownerUserId,

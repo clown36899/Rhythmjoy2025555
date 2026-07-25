@@ -10,6 +10,7 @@ type Partner = {
   is_active: number | boolean;
   default_category: string | null;
   default_genre: string | null;
+  allowed_category: string | null;
   allowed_classifications: Array<{ category: string; genre: string }> | string | null;
   environment: 'test' | 'live';
   owner_user_id: string;
@@ -63,6 +64,7 @@ type PartnerRequest = {
 
 type PartnerDraft = {
   owner_user_id: string;
+  allowed_category: string;
   allowed_classifications: Array<{ category: string; genre: string }>;
   environment: 'test' | 'live';
   per_minute_limit: number;
@@ -141,6 +143,7 @@ export default function ExternalApiPartnerManagementModal({
     application_id: '',
     name: '',
     owner_user_id: '',
+    allowed_category: '',
     allowed_classifications: [] as Array<{ category: string; genre: string }>,
     environment: 'test' as 'test' | 'live',
     per_minute_limit: 30,
@@ -164,6 +167,7 @@ export default function ExternalApiPartnerManagementModal({
         partner.id,
         {
           owner_user_id: partner.owner_user_id || '',
+          allowed_category: partner.allowed_category || partner.default_category || '',
           allowed_classifications: parseAllowed(partner.allowed_classifications),
           environment: partner.environment || 'test',
           per_minute_limit: Number(partner.per_minute_limit || 10),
@@ -193,8 +197,8 @@ export default function ExternalApiPartnerManagementModal({
   if (!isOpen) return null;
 
   const createPartner = async () => {
-    if (!form.name.trim() || !form.owner_user_id) {
-      setError('파트너 이름과 연결 회원을 선택해 주세요.');
+    if (!form.name.trim() || !form.owner_user_id || !form.allowed_category) {
+      setError('파트너 이름, 연결 회원, 최상위 분류를 선택해 주세요.');
       return;
     }
     setSaving(true);
@@ -213,6 +217,7 @@ export default function ExternalApiPartnerManagementModal({
         application_id: '',
         name: '',
         owner_user_id: '',
+        allowed_category: '',
         allowed_classifications: [],
         environment: 'test',
         per_minute_limit: 30,
@@ -262,8 +267,8 @@ export default function ExternalApiPartnerManagementModal({
 
   const savePartner = async (partner: Partner) => {
     const draft = drafts[partner.id];
-    if (!draft?.owner_user_id) {
-      setError('연결 회원을 선택해 주세요.');
+    if (!draft?.owner_user_id || !draft.allowed_category) {
+      setError('연결 회원과 최상위 분류를 선택해 주세요.');
       return;
     }
     setSaving(true);
@@ -328,6 +333,8 @@ export default function ExternalApiPartnerManagementModal({
                           application_id: request.id,
                           name: request.partner_name,
                           owner_user_id: request.requester_user_id,
+                          allowed_category: '',
+                          allowed_classifications: [],
                           environment: 'test',
                           per_minute_limit: 30,
                           daily_limit: 1000,
@@ -361,25 +368,35 @@ export default function ExternalApiPartnerManagementModal({
                     <label>24시간 API 요청 한도<input type="number" min="1" value={form.daily_limit} onChange={(event) => setForm({ ...form, daily_limit: Number(event.target.value) })} /></label>
                   </div>
                   <fieldset className="EAPM-permissions">
-                    <legend>등록을 허용할 장르 <small>복수 선택 가능</small></legend>
-                    <p>선택하지 않으면 사이트의 모든 조합을 허용합니다. 같은 장르 이름도 최상위 분류가 다르면 별도 권한입니다. 예: class/린디합과 club/린디합.</p>
-                    {Object.entries(GENRES).map(([category, genres]) => (
-                      <div className="EAPM-permissionRow" key={category}>
-                        <strong>{CATEGORY_LABELS[category]} <code>{category}</code></strong>
+                    <legend>분류 권한 설정</legend>
+                    <p><strong>최상위 분류는 반드시 1개만</strong> 선택합니다. 아래 복수 체크는 파트너가 여러 일정에서 사용할 수 있는 장르 범위입니다. 한 일정에서는 행사만 복수 장르가 가능하며, 나머지는 1개만 가능합니다.</p>
+                    <label className="EAPM-categorySelect">최상위 분류 <small>필수 · 1개만 선택</small>
+                      <select value={form.allowed_category} onChange={(event) => setForm({
+                        ...form,
+                        allowed_category: event.target.value,
+                        allowed_classifications: [],
+                      })}>
+                        <option value="">최상위 분류 선택</option>
+                        {Object.keys(GENRES).map((category) => <option key={category} value={category}>{CATEGORY_LABELS[category]} · {category}</option>)}
+                      </select>
+                    </label>
+                    {form.allowed_category && (
+                      <div className="EAPM-permissionRow">
+                        <strong>{CATEGORY_LABELS[form.allowed_category]} 하위 장르</strong>
                         <div>
-                          {genres.map((genre) => {
-                            const checked = form.allowed_classifications.some((item) => item.category === category && item.genre === genre);
+                          {GENRES[form.allowed_category].map((genre) => {
+                            const checked = form.allowed_classifications.some((item) => item.genre === genre);
                             return <label key={genre} className={checked ? 'is-selected' : ''}>
                               <input type="checkbox" checked={checked} onChange={() => setForm({
                                 ...form,
-                                allowed_classifications: toggleClassification(form.allowed_classifications, category, genre),
+                                allowed_classifications: toggleClassification(form.allowed_classifications, form.allowed_category, genre),
                               })} />
                               {genre}
                             </label>;
                           })}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </fieldset>
                   <p className="EAPM-hint"><strong>권장 절차:</strong> 테스트 키 발급 → 상대방 서버 연동 확인 → 요청 기록 검토 → 운영으로 전환해 주세요. 키 원문은 발급 직후 한 번만 표시됩니다.</p>
                   <button type="button" className="EAPM-primary" disabled={saving} onClick={createPartner}>{saving ? '처리 중...' : 'API Key 발급'}</button>
@@ -397,9 +414,10 @@ export default function ExternalApiPartnerManagementModal({
                           <b className={`EAPM-mode ${partner.environment === 'live' ? 'is-live' : ''}`}>
                             {partner.environment === 'live' ? '운영' : '테스트'}
                           </b>
-                          {' · '}허용 장르 {parseAllowed(partner.allowed_classifications).length
+                          {' · '}허용 분류 {CATEGORY_LABELS[partner.allowed_category || partner.default_category || ''] || '미설정'}
+                          {' / '}{parseAllowed(partner.allowed_classifications).length
                             ? `${parseAllowed(partner.allowed_classifications).length}개 선택`
-                            : '전체'}
+                            : '하위 전체'}
                           {' · '}한도 {partner.per_minute_limit}/분, {partner.daily_limit}/24시간
                         </small>
                       </div>
@@ -428,26 +446,43 @@ export default function ExternalApiPartnerManagementModal({
                             [partner.id]: { ...drafts[partner.id], daily_limit: Number(event.target.value) },
                           })} /></label>
                           <fieldset className="EAPM-permissions EAPM-cardPermissions">
-                            <legend>허용 장르 <small>미선택 시 전체 허용</small></legend>
-                            <p>같은 이름이라도 최상위 분류별로 따로 선택합니다.</p>
-                            {Object.entries(GENRES).map(([category, genres]) => (
-                              <div className="EAPM-permissionRow" key={category}>
-                                <strong>{CATEGORY_LABELS[category]}</strong>
-                                <div>{genres.map((genre) => {
-                                  const checked = drafts[partner.id].allowed_classifications.some((item) => item.category === category && item.genre === genre);
+                            <legend>분류 권한 설정</legend>
+                            <p>최상위 분류는 1개만 선택합니다. 아래 복수 체크는 여러 일정에서 사용할 수 있는 장르 범위이며, 미선택 시 해당 분류의 하위 장르 전체를 허용합니다.</p>
+                            <label className="EAPM-categorySelect">최상위 분류 <small>필수 · 1개만 선택</small>
+                              <select value={drafts[partner.id].allowed_category} onChange={(event) => setDrafts({
+                                ...drafts,
+                                [partner.id]: {
+                                  ...drafts[partner.id],
+                                  allowed_category: event.target.value,
+                                  allowed_classifications: [],
+                                },
+                              })}>
+                                <option value="">최상위 분류 선택</option>
+                                {Object.keys(GENRES).map((category) => <option key={category} value={category}>{CATEGORY_LABELS[category]} · {category}</option>)}
+                              </select>
+                            </label>
+                            {drafts[partner.id].allowed_category && (
+                              <div className="EAPM-permissionRow">
+                                <strong>{CATEGORY_LABELS[drafts[partner.id].allowed_category]} 하위 장르</strong>
+                                <div>{GENRES[drafts[partner.id].allowed_category].map((genre) => {
+                                  const checked = drafts[partner.id].allowed_classifications.some((item) => item.genre === genre);
                                   return <label key={genre} className={checked ? 'is-selected' : ''}>
                                     <input type="checkbox" checked={checked} onChange={() => setDrafts({
                                       ...drafts,
                                       [partner.id]: {
                                         ...drafts[partner.id],
-                                        allowed_classifications: toggleClassification(drafts[partner.id].allowed_classifications, category, genre),
+                                        allowed_classifications: toggleClassification(
+                                          drafts[partner.id].allowed_classifications,
+                                          drafts[partner.id].allowed_category,
+                                          genre,
+                                        ),
                                       },
                                     })} />
                                     {genre}
                                   </label>;
                                 })}</div>
                               </div>
-                            ))}
+                            )}
                           </fieldset>
                         </div>
                       )}

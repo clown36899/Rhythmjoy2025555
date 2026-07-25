@@ -59,6 +59,67 @@ describe('external event API validation', () => {
     })).toThrow('이 API Key에 허용되지 않은 분류와 장르입니다.');
   });
 
+  it('matches the site rule: only event allows multiple genres', () => {
+    const normalized = normalizeExternalEventPayload({
+      external_id: 'partner-event-multiple-genres',
+      title: '라이브 워크샵',
+      event_dates: ['2026-08-01'],
+      category: 'event',
+      genre: '워크샵,라이브밴드',
+      source_url: 'https://partner.example.com/events/multiple',
+      image_mode: 'url',
+      image_url: 'https://partner.example.com/images/multiple.webp',
+    }, {
+      ...partner,
+      allowed_category: 'event',
+      allowed_classifications: JSON.stringify([
+        { category: 'event', genre: '워크샵' },
+        { category: 'event', genre: '라이브밴드' },
+      ]),
+    });
+    expect(normalized.event.genre).toBe('워크샵,라이브밴드');
+
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'partner-class-multiple-genres',
+      title: '복수 강습',
+      event_dates: ['2026-08-01'],
+      category: 'class',
+      genre: '린디합,솔로재즈',
+    }, partner)).toThrow('소셜, 강습, 동호회 일정은 genre를 1개만');
+  });
+
+  it('matches the site event exclusions for party, competition, and other', () => {
+    const eventPartner = { ...partner, allowed_category: 'event' };
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'partner-event-party-competition',
+      title: '잘못된 행사 조합',
+      event_dates: ['2026-08-01'],
+      category: 'event',
+      genre: '파티,대회',
+    }, eventPartner)).toThrow('파티와 대회는 동시에');
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'partner-event-other-mixed',
+      title: '잘못된 기타 조합',
+      event_dates: ['2026-08-01'],
+      category: 'event',
+      genre: '워크샵,기타',
+    }, eventPartner)).toThrow('기타는 다른 장르와 동시에');
+  });
+
+  it('restricts every requested event genre to the partner allowlist', () => {
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'partner-event-partially-disallowed',
+      title: '부분 미허용 행사',
+      event_dates: ['2026-08-01'],
+      category: 'event',
+      genre: '워크샵,라이브밴드',
+    }, {
+      ...partner,
+      allowed_category: 'event',
+      allowed_classifications: JSON.stringify([{ category: 'event', genre: '워크샵' }]),
+    })).toThrow('이 API Key에 허용되지 않은 분류와 장르입니다.');
+  });
+
   it('applies partner defaults and maps them to the existing event metadata', () => {
     const normalized = normalizeExternalEventPayload({
       external_id: 'partner-event-1',

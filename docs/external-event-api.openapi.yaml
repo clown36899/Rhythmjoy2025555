@@ -237,8 +237,8 @@ components:
           description: 파트너 기본값이 설정된 경우 생략 가능
         genre:
           type: string
-          enum: [소셜, 졸공, 워크샵, 파티, 대회, 라이브밴드, 기타, 린디합, 솔로재즈, 발보아, 블루스, 팀원모집, 정규강습]
-          description: 선택한 category에 허용된 값만 사용하며, 파트너 기본값이 설정된 경우 생략 가능
+          maxLength: 64
+          description: 선택한 category에 허용된 값만 사용합니다. event만 쉼표로 구분한 복수 장르를 허용하며 파티+대회는 동시 사용 불가, 기타는 단독만 가능합니다. social/class/club은 1개만 사용합니다.
         source_url:
           type: string
           format: uri
