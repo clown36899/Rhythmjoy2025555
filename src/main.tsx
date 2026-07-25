@@ -190,6 +190,7 @@ const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
 const LinksPage = lazy(() => import('./pages/links/Page'));
 const PlacesPage = lazy(() => import('./pages/places/page'));
 const SwingFloorCouncilPage = lazy(() => import('./pages/swing-floor-council/page'));
+const ExternalEventApiGuidePage = lazy(() => import('./pages/external-api/ExternalEventApiGuidePage'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
@@ -279,6 +280,23 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/external-event-api",
+    element: (
+      <Suspense fallback={<BillboardFallback />}>
+        <ThemeProvider>
+          <AuthProvider>
+            <ModalProvider>
+              <GlobalErrorBoundary>
+                <ExternalEventApiGuidePage />
+                <ModalRegistry />
+              </GlobalErrorBoundary>
+            </ModalProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </Suspense>
+    ),
+  },
+  {
     path: "/",
     element: (
       <ThemeProvider>
@@ -340,7 +358,6 @@ const router = createBrowserRouter([
       { path: "/links", element: <MenuVisibilityGate itemId="forum-links"><LinksPage /></MenuVisibilityGate> },
       { path: "/places", element: <MenuVisibilityGate itemId="places"><PlacesPage /></MenuVisibilityGate> },
       { path: "/swing-floor-council", element: <SwingFloorCouncilPage /> },
-
       // Webzine Routes
       { path: "/webzine/:id", element: <WebzineViewer /> },
       { path: "/admin/webzine", element: <AdminWebzineList /> },

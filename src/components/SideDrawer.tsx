@@ -194,7 +194,6 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const profileEditModal = useModal('profileEdit');
     const statsModal = useModal('stats');
     const newEventsListModal = useModal('newEventsList');
-    const externalApiPartnerModal = useModal('externalApiPartnerManagement');
 
     const metadataProfileImage = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || user?.user_metadata?.profile_image || null;
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -898,14 +897,14 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                             <span>초대 관리</span>
                                         </div>
                                         <div className="SD-submenuItem"
-                                            onClick={() => externalApiPartnerModal.open()}
+                                            onClick={() => handleNavigation('/external-event-api')}
                                             data-analytics-id="admin_external_api_partners"
                                             data-analytics-type="action"
-                                            data-analytics-title="외부 API 파트너 관리"
+                                            data-analytics-title="API 연동"
                                             data-analytics-section="side_drawer_admin"
                                         >
                                             <i className="ri-key-2-line"></i>
-                                            <span>외부 API 파트너</span>
+                                            <span>API 연동</span>
                                         </div>
                                     </div>
 

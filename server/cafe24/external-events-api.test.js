@@ -11,6 +11,7 @@ import {
   SITE_GENRES_BY_CATEGORY,
   createPartnerApiKey,
   normalizePartnerClassification,
+  normalizeAllowedClassifications,
 } from './external-events-api.js';
 import sharp from 'sharp';
 
@@ -29,6 +30,33 @@ describe('external event API validation', () => {
       class: ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'],
       club: ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'],
     });
+  });
+
+  it('allows multiple approved genres and treats an empty selection as all genres', () => {
+    expect(normalizeAllowedClassifications([])).toBeNull();
+    expect(normalizeAllowedClassifications([
+      { category: 'social', genre: '소셜' },
+      { category: 'event', genre: '파티' },
+      { category: 'event', genre: '파티' },
+    ])).toEqual([
+      { category: 'social', genre: '소셜' },
+      { category: 'event', genre: '파티' },
+    ]);
+  });
+
+  it('rejects a valid site genre when it is outside the partner allowlist', () => {
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'partner-event-disallowed',
+      title: '허용되지 않은 파티',
+      event_dates: ['2026-08-01'],
+      category: 'event',
+      genre: '파티',
+      image_mode: 'url',
+      image_url: 'https://partner.example.com/images/party.webp',
+    }, {
+      ...partner,
+      allowed_classifications: JSON.stringify([{ category: 'class', genre: '린디합' }]),
+    })).toThrow('이 API Key에 허용되지 않은 분류와 장르입니다.');
   });
 
   it('applies partner defaults and maps them to the existing event metadata', () => {

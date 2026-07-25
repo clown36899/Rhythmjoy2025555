@@ -12,7 +12,7 @@ import {
   saveEvent,
 } from './events-api.js';
 import { sanitizeEventForViewer } from './event-security.js';
-import { requireAdmin } from './auth-api.js';
+import { getCurrentUser, requireAdmin } from './auth-api.js';
 
 // sharp/libvips security advisory GHSA-f88m-g3jw-g9cj workaround.
 // These decoders are not accepted by the API and are blocked before any image is processed.
@@ -95,6 +95,42 @@ export function normalizePartnerClassification(categoryValue, genreValue) {
     throw apiError('사이트에서 사용하는 올바른 최상위·하위 분류 조합을 선택해 주세요.');
   }
   return { category: category || null, genre: genre || null };
+}
+
+export function normalizeAllowedClassifications(value) {
+  if (value === undefined || value === null || (Array.isArray(value) && value.length === 0)) return null;
+  if (!Array.isArray(value)) {
+    throw apiError('허용 장르는 배열이어야 합니다.');
+  }
+  const unique = [];
+  for (const item of value) {
+    const category = cleanString(item?.category, 32, 'allowed_classifications.category', { required: true });
+    const genre = cleanString(item?.genre, 64, 'allowed_classifications.genre', { required: true });
+    if (!SITE_GENRES_BY_CATEGORY[category]?.includes(genre)) {
+      throw apiError('사이트에서 사용하는 올바른 허용 장르만 선택해 주세요.');
+    }
+    const key = `${category}:${genre}`;
+    if (!unique.some((entry) => `${entry.category}:${entry.genre}` === key)) unique.push({ category, genre });
+  }
+  return unique.length ? unique : null;
+}
+
+function parseAllowedClassifications(value) {
+  if (!value) return null;
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    return Array.isArray(parsed) && parsed.length ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizePartnerEnvironment(value, fallback = 'test') {
+  const environment = cleanString(value === undefined ? fallback : value, 16, 'environment', { required: true });
+  if (!['test', 'live'].includes(environment)) {
+    throw apiError('environment는 test 또는 live여야 합니다.');
+  }
+  return environment;
 }
 
 function requireSameOrigin(req) {
@@ -303,6 +339,13 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
   if (!allowedGenres.includes(genre)) {
     throw apiError(`${category}에서 사용할 수 있는 genre는 ${allowedGenres.join(', ')}입니다.`);
   }
+  const allowedClassifications = parseAllowedClassifications(partner.allowed_classifications);
+  if (
+    allowedClassifications
+    && !allowedClassifications.some((item) => item.category === category && item.genre === genre)
+  ) {
+    throw apiError('이 API Key에 허용되지 않은 분류와 장르입니다.', 403, 'classification_not_allowed');
+  }
 
   if (input.event_dates !== undefined && !Array.isArray(input.event_dates)) {
     throw apiError('event_dates 값은 날짜 배열이어야 합니다.');
@@ -403,6 +446,7 @@ async function authenticatePartner(req, pool) {
   const parsed = parseExternalApiKey(req.get('authorization'));
   const [rows] = await pool.execute(
     `SELECT id, name, key_hash, is_active, default_category, default_genre,
+            allowed_classifications, environment,
             owner_user_id, per_minute_limit, daily_limit
        FROM external_api_partners
       WHERE key_prefix = ?
@@ -804,6 +848,39 @@ export async function createExternalEvent(req, res) {
     });
     await enforceRateLimit(pool, partner);
     normalized = normalizeExternalEventPayload(req.body, partner);
+    if (partner.environment === 'test') {
+      if (!normalized.event.image && normalized.event.category === 'social') {
+        const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
+        normalized.event.address = verifiedAddress.address;
+      }
+      if (normalized.event.external_source?.image_mode === 'url') {
+        const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 8 * 1024 * 1024);
+        const buffer = await downloadExternalImage(normalized.event.image, maxBytes);
+        await createImageVariants(buffer);
+      } else if (normalized.event.external_source?.image_mode === 'upload') {
+        uploadedVariantFields(normalized.event.image);
+      }
+      await recordRequest(pool, {
+        partnerId: partner.id,
+        externalId: normalized.externalId,
+        statusCode: 200,
+        result: 'test_validated',
+        requestIp: req.ip,
+      });
+      res.status(200).json({
+        ok: true,
+        test_mode: true,
+        persisted: false,
+        message: '요청 형식을 확인했습니다. 테스트 모드이므로 실제 일정에는 등록하지 않았습니다.',
+        normalized: {
+          external_id: normalized.externalId,
+          category: normalized.event.category,
+          genre: normalized.event.genre,
+          event_dates: normalized.event.event_dates,
+        },
+      });
+      return;
+    }
 
     const [existingRows] = await pool.execute(
       `SELECT event_id
@@ -939,8 +1016,15 @@ export async function updateExternalEvent(req, res) {
   if (req.body?.external_id !== undefined && String(req.body.external_id) !== externalId) {
     throw apiError('URL의 external_id와 본문의 external_id가 일치해야 합니다.');
   }
-  const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
   const normalized = normalizeExternalEventPayload({ ...req.body, external_id: externalId }, partner);
+  if (partner.environment === 'test') {
+    await recordRequest(pool, {
+      partnerId: partner.id, externalId, statusCode: 200, result: 'test_validated', requestIp: req.ip,
+    });
+    res.status(200).json({ ok: true, test_mode: true, persisted: false });
+    return;
+  }
+  const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
   if (!normalized.event.image && normalized.event.category === 'social') {
     const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
     normalized.event.address = verifiedAddress.address;
@@ -989,6 +1073,13 @@ export async function deleteExternalEvent(req, res) {
     partnerId: partner.id, externalId, statusCode: 202, result: 'attempt', requestIp: req.ip, strict: true,
   });
   await enforceRateLimit(pool, partner);
+  if (partner.environment === 'test') {
+    await recordRequest(pool, {
+      partnerId: partner.id, externalId, statusCode: 200, result: 'test_validated', requestIp: req.ip,
+    });
+    res.status(200).json({ ok: true, test_mode: true, persisted: false });
+    return;
+  }
   const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
   const connection = await pool.getConnection();
   try {
@@ -1022,6 +1113,7 @@ export async function listExternalPartners(req, res) {
   const pool = getMysqlPool();
   const [partners] = await pool.execute(
     `SELECT p.id, p.name, p.key_prefix, p.is_active, p.default_category, p.default_genre,
+            p.allowed_classifications, p.environment,
             p.owner_user_id, p.per_minute_limit, p.daily_limit, p.created_at, p.updated_at,
             u.email AS owner_email, u.nickname AS owner_nickname,
             COUNT(DISTINCT e.event_id) AS event_count,
@@ -1034,6 +1126,44 @@ export async function listExternalPartners(req, res) {
       ORDER BY p.created_at DESC`,
   );
   res.json({ ok: true, partners });
+}
+
+export async function requestExternalPartnerAccess(req, res) {
+  requireSameOrigin(req);
+  const user = await getCurrentUser(req);
+  if (!user) throw apiError('로그인 후 연동을 신청해 주세요.', 401, 'login_required');
+  const partnerName = cleanString(req.body?.partner_name, 120, 'partner_name', { required: true });
+  const contact = cleanString(req.body?.contact, 255, 'contact', { required: true });
+  const note = cleanString(req.body?.note, 2000, 'note');
+  const pool = getMysqlPool();
+  const [pending] = await pool.execute(
+    `SELECT id FROM external_api_partner_requests
+      WHERE requester_user_id = ? AND status = 'pending' LIMIT 1`,
+    [String(user.id)],
+  );
+  if (pending[0]) throw apiError('이미 검토 중인 연동 신청이 있습니다.', 409, 'request_already_pending');
+  const id = crypto.randomUUID();
+  await pool.execute(
+    `INSERT INTO external_api_partner_requests
+       (id, requester_user_id, partner_name, contact, note, status)
+     VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [id, String(user.id), partnerName, contact, note || null],
+  );
+  res.status(201).json({ ok: true, request_id: id, status: 'pending' });
+}
+
+export async function listExternalPartnerRequests(req, res) {
+  await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
+  const pool = getMysqlPool();
+  const [requests] = await pool.execute(
+    `SELECT r.*, u.email AS requester_email, u.nickname AS requester_nickname
+       FROM external_api_partner_requests r
+       LEFT JOIN users u ON u.id = r.requester_user_id
+      ORDER BY (r.status = 'pending') DESC, r.created_at DESC
+      LIMIT 100`,
+  );
+  res.json({ ok: true, requests });
 }
 
 export async function searchExternalPartnerUsers(req, res) {
@@ -1063,9 +1193,12 @@ export async function createExternalPartner(req, res) {
     req.body?.default_category,
     req.body?.default_genre,
   );
-  const perMinuteLimit = normalizePositiveInteger(req.body?.per_minute_limit, 'per_minute_limit', 10);
-  const dailyLimit = normalizePositiveInteger(req.body?.daily_limit, 'daily_limit', 200);
+  const allowedClassifications = normalizeAllowedClassifications(req.body?.allowed_classifications);
+  const environment = normalizePartnerEnvironment(req.body?.environment);
+  const perMinuteLimit = normalizePositiveInteger(req.body?.per_minute_limit, 'per_minute_limit', environment === 'test' ? 30 : 10);
+  const dailyLimit = normalizePositiveInteger(req.body?.daily_limit, 'daily_limit', environment === 'test' ? 1000 : 200);
   const partnerId = crypto.randomUUID();
+  const applicationId = cleanString(req.body?.application_id, 64, 'application_id');
   const issued = createPartnerApiKey();
   const connection = await pool.getConnection();
   try {
@@ -1073,8 +1206,8 @@ export async function createExternalPartner(req, res) {
     await connection.execute(
       `INSERT INTO external_api_partners
          (id, name, key_prefix, key_hash, is_active, default_category, default_genre,
-          owner_user_id, per_minute_limit, daily_limit)
-       VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+          allowed_classifications, environment, owner_user_id, per_minute_limit, daily_limit)
+       VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
       [
         partnerId,
         name,
@@ -1082,6 +1215,8 @@ export async function createExternalPartner(req, res) {
         issued.keyHash,
         classification.category,
         classification.genre,
+        allowedClassifications ? JSON.stringify(allowedClassifications) : null,
+        environment,
         String(owner.id),
         perMinuteLimit,
         dailyLimit,
@@ -1091,9 +1226,20 @@ export async function createExternalPartner(req, res) {
       owner_user_id: String(owner.id),
       default_category: classification.category,
       default_genre: classification.genre,
+      allowed_classifications: allowedClassifications,
+      environment,
       per_minute_limit: perMinuteLimit,
       daily_limit: dailyLimit,
     }, req.ip);
+    if (applicationId) {
+      const [result] = await connection.execute(
+        `UPDATE external_api_partner_requests
+            SET status = 'approved', approved_partner_id = ?, reviewed_at = NOW()
+          WHERE id = ? AND requester_user_id = ? AND status = 'pending'`,
+        [partnerId, applicationId, String(owner.id)],
+      );
+      if (!result.affectedRows) throw apiError('승인할 연동 신청을 찾을 수 없습니다.', 404, 'request_not_found');
+    }
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -1115,7 +1261,8 @@ export async function updateExternalPartnerStatus(req, res) {
   const partnerId = cleanString(req.params.partnerId, 64, 'partner_id', { required: true });
   const pool = getMysqlPool();
   const [existingRows] = await pool.execute(
-    `SELECT id, name, is_active, default_category, default_genre, owner_user_id,
+    `SELECT id, name, is_active, default_category, default_genre, allowed_classifications,
+            environment, owner_user_id,
             per_minute_limit, daily_limit
        FROM external_api_partners WHERE id = ? LIMIT 1`,
     [partnerId],
@@ -1135,6 +1282,10 @@ export async function updateExternalPartnerStatus(req, res) {
     req.body?.default_category === undefined ? existing.default_category : req.body.default_category,
     req.body?.default_genre === undefined ? existing.default_genre : req.body.default_genre,
   );
+  const allowedClassifications = req.body?.allowed_classifications === undefined
+    ? parseAllowedClassifications(existing.allowed_classifications)
+    : normalizeAllowedClassifications(req.body.allowed_classifications);
+  const environment = normalizePartnerEnvironment(req.body?.environment, existing.environment || 'test');
   const next = {
     name: req.body?.name === undefined
       ? String(existing.name)
@@ -1143,6 +1294,8 @@ export async function updateExternalPartnerStatus(req, res) {
     ownerUserId: nextOwnerId,
     category: classification.category,
     genre: classification.genre,
+    allowedClassifications,
+    environment,
     perMinuteLimit: normalizePositiveInteger(
       req.body?.per_minute_limit,
       'per_minute_limit',
@@ -1161,6 +1314,7 @@ export async function updateExternalPartnerStatus(req, res) {
     await connection.execute(
       `UPDATE external_api_partners
           SET name = ?, is_active = ?, default_category = ?, default_genre = ?,
+              allowed_classifications = ?, environment = ?,
               owner_user_id = ?, per_minute_limit = ?, daily_limit = ?, updated_at = NOW()
         WHERE id = ?`,
       [
@@ -1168,6 +1322,8 @@ export async function updateExternalPartnerStatus(req, res) {
         next.isActive ? 1 : 0,
         next.category,
         next.genre,
+        next.allowedClassifications ? JSON.stringify(next.allowedClassifications) : null,
+        next.environment,
         next.ownerUserId,
         next.perMinuteLimit,
         next.dailyLimit,

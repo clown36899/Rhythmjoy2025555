@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS external_api_partners (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   default_category VARCHAR(32) NULL,
   default_genre VARCHAR(64) NULL,
+  allowed_classifications JSON NULL,
+  environment VARCHAR(16) NOT NULL DEFAULT 'test',
   owner_user_id VARCHAR(64) NULL,
   per_minute_limit INT UNSIGNED NOT NULL DEFAULT 10,
   daily_limit INT UNSIGNED NOT NULL DEFAULT 200,
@@ -109,6 +111,19 @@ CREATE TABLE IF NOT EXISTS external_api_partners (
   updated_at DATETIME NULL,
   UNIQUE KEY external_api_partners_key_prefix_unique (key_prefix),
   UNIQUE KEY external_api_partners_key_hash_unique (key_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS external_api_partner_requests (
+  id VARCHAR(64) NOT NULL PRIMARY KEY,
+  requester_user_id VARCHAR(64) NOT NULL,
+  partner_name VARCHAR(120) NOT NULL,
+  contact VARCHAR(255) NOT NULL,
+  note TEXT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'pending',
+  approved_partner_id VARCHAR(64) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at DATETIME NULL,
+  KEY external_api_partner_requests_status_idx (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS external_partner_events (

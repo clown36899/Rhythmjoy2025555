@@ -17,6 +17,8 @@ import {
   deleteExternalEvent,
   listExternalAdminAuditLogs,
   listExternalPartners,
+  listExternalPartnerRequests,
+  requestExternalPartnerAccess,
   listExternalRequestLogs,
   rotateExternalPartnerKey,
   searchExternalPartnerUsers,
@@ -110,6 +112,31 @@ function buildSwingFloorCouncilPreviewHtml(html = '') {
     .replace(/<meta\s+[^>]*name=["']description["'][^>]*>\s*/gi, '')
     .replace(/<meta\s+[^>]*name=["']apple-mobile-web-app-title["'][^>]*>\s*/gi, '')
     .replace(/<link\s+[^>]*rel=["']manifest["'][^>]*>\s*/gi, '')
+    .replace(/<title>[\s\S]*?<\/title>/i, '')
+    .replace('</head>', `${metadata}\n</head>`);
+}
+
+function isExternalEventApiGuideRoute(reqPath = '') {
+  return reqPath === '/external-event-api' || reqPath === '/external-event-api/';
+}
+
+function buildExternalEventApiGuideHtml(html = '') {
+  const title = 'Dance Billboard 외부 일정 연동 API';
+  const description = '외부 사이트에서 일정을 안전하게 등록·수정·삭제하는 API 연동 매뉴얼입니다.';
+  const metadata = `
+  <title>${title}</title>
+  <meta name="description" content="${description}" />
+  <link rel="canonical" href="https://swingenjoy.com/external-event-api" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://swingenjoy.com/external-event-api" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:image" content="https://swingenjoy.com/kakao-share-card.png" />
+  <meta property="twitter:card" content="summary_large_image" />`;
+  return html
+    .replace(/<meta\s+[^>]*(?:property|name)=["'](?:og:[^"']+|twitter:[^"']+)["'][^>]*>\s*/gi, '')
+    .replace(/<meta\s+[^>]*name=["']description["'][^>]*>\s*/gi, '')
+    .replace(/<link\s+[^>]*rel=["']canonical["'][^>]*>\s*/gi, '')
     .replace(/<title>[\s\S]*?<\/title>/i, '')
     .replace('</head>', `${metadata}\n</head>`);
 }
@@ -259,6 +286,8 @@ app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent)
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
 app.get('/api/external/v1/addresses/validate', jsonRoute(validateExternalAddress));
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
+app.get('/api/admin/external-partner-requests', jsonRoute(listExternalPartnerRequests));
+app.post('/api/external/partner-requests', jsonBody, jsonRoute(requestExternalPartnerAccess));
 app.post('/api/admin/external-partners', jsonBody, jsonRoute(createExternalPartner));
 app.patch('/api/admin/external-partners/:partnerId', jsonBody, jsonRoute(updateExternalPartnerStatus));
 app.post('/api/admin/external-partners/:partnerId/rotate-key', jsonBody, jsonRoute(rotateExternalPartnerKey));
@@ -480,6 +509,12 @@ app.use((req, res, next) => {
     const html = readFileSync(indexFile, 'utf8');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.type('html').send(buildSwingFloorCouncilPreviewHtml(html));
+    return;
+  }
+  if (isExternalEventApiGuideRoute(req.path)) {
+    const html = readFileSync(indexFile, 'utf8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.type('html').send(buildExternalEventApiGuideHtml(html));
     return;
   }
 

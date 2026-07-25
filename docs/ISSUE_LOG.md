@@ -288,6 +288,26 @@
   - `docs/external-event-api-operations.md`
 - 관련 커밋: pending
 
+## 2026-07-26 외부 API 승인·테스트 운영 절차 및 공개 안내 페이지
+
+- 상태: 해결
+- 범위: 파트너 신청, 관리자 승인, 장르 권한, 테스트 격리, 공개 매뉴얼
+- 증상: 관리자가 키를 바로 발급하는 구조라 신청 승인 절차가 없었고, 단일 기본 장르와 실운영 직접 등록 방식은 파트너 개발 테스트와 복수 장르 권한을 안전하게 처리하기 어려웠다.
+- 조치:
+  - 로그인한 파트너가 공개 안내 페이지에서 연동을 신청하고 관리자가 승인 설정을 불러오는 흐름을 추가했다.
+  - 장르 권한을 복수 선택으로 변경하고 미선택 시 전체 허용으로 정의했다.
+  - 신규 키를 테스트 모드로 발급해 실제 일정은 변경하지 않고 검증 결과와 로그만 남기며, 검토 후 운영 모드로 전환하도록 했다.
+  - 관리자 화면 탭을 `승인·파트너`, `기록`으로 단순화하고 공개 페이지 공유 버튼과 공유 메타데이터를 추가했다.
+- 검증:
+  - TypeScript, ESLint, 서버 문법, 외부 API 단위 테스트 23개, 프로덕션 빌드
+  - 데스크톱·모바일 헤드리스 렌더링 및 가로 넘침·런타임 오류 검사
+- 관련 파일:
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `src/components/ExternalApiPartnerManagementModal.tsx`
+  - `server/cafe24/external-events-api.js`
+  - `server/cafe24/migrations/2026-07-26-external-api-permissions-and-environment.sql`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md
