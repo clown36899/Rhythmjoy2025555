@@ -11,7 +11,7 @@ import {
   todayISO,
 } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
-import { benefitSearchMatches, extractInstagramPostUrls } from './benefit-search-utils.mjs';
+import { benefitSearchMatches, extractInstagramPostUrls, extractInstagramProfileUrls } from './benefit-search-utils.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -968,8 +968,9 @@ async function collectBenefitSearchLinks(page, source) {
     url: window.location.href,
   }));
   let links = extractInstagramPostUrls(state.hrefs, state.url);
+  let profiles = extractInstagramProfileUrls(state.hrefs, state.url);
 
-  if (!links.length && /unusual traffic|captcha|자동화된 쿼리|동의하기/i.test(state.bodyText)) {
+  if (!links.length && /unusual traffic|abnormal traffic|비정상적인\s*트래픽|captcha|자동화된\s*쿼리|로봇이\s*아니|동의하기/i.test(state.bodyText)) {
     const fallbackUrl = `https://www.bing.com/search?q=${encodeURIComponent(source.query || '')}`;
     await safeGoto(page, fallbackUrl, Math.min(sourceTimeoutMs, 20_000));
     const fallback = await page.evaluate(() => ({
@@ -977,9 +978,24 @@ async function collectBenefitSearchLinks(page, source) {
       url: window.location.href,
     }));
     links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
+    profiles = extractInstagramProfileUrls(fallback.hrefs, fallback.url);
   }
 
-  return links.slice(0, Math.max(1, postLimit));
+  if (!links.length && !profiles.length) {
+    const naverUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(source.query || '')}`;
+    await safeGoto(page, naverUrl, Math.min(sourceTimeoutMs, 20_000));
+    const fallback = await page.evaluate(() => ({
+      hrefs: [...document.querySelectorAll('a[href]')].map((anchor) => anchor.getAttribute('href') || anchor.href || ''),
+      url: window.location.href,
+    }));
+    links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
+    profiles = extractInstagramProfileUrls(fallback.hrefs, fallback.url);
+  }
+
+  return {
+    postUrls: links.slice(0, Math.max(1, postLimit)),
+    profileUrls: profiles.slice(0, 3),
+  };
 }
 
 async function collectInstagramLinksViaImginn(page, source) {
@@ -1543,7 +1559,25 @@ async function collectSource(page, source) {
   ensureRunBudgetOrThrow(`source ${source.id}`, runDeadlineGuardMs());
 
   if (source.type === 'benefit_search') {
-    const links = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs);
+    const targets = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs)
+      || { postUrls: [], profileUrls: [] };
+    const postUrls = [...targets.postUrls];
+    for (const [profileIndex, profileUrl] of targets.profileUrls.entries()) {
+      const discoveredSource = {
+        ...source,
+        id: `${source.id}:profile-${profileIndex + 1}`,
+        name: profileUrl.split('/').filter(Boolean).at(-1) || source.name,
+        type: 'instagram',
+        url: profileUrl,
+      };
+      const discoveredPosts = await withBoundedStep(
+        discoveredSource.id,
+        () => collectInstagramLinks(page, discoveredSource),
+        sourceTimeoutMs,
+      );
+      postUrls.push(...discoveredPosts);
+    }
+    const links = unique(postUrls);
     if (!links.length) {
       if (!hasAccessFailure(source.id)) recordNoContent(source, 'no verified Instagram post results');
       return [];
