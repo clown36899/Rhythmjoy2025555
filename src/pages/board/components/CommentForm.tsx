@@ -154,6 +154,22 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
 
                 if (error) throw error;
                 resultComment = data ? data[0] : null;
+
+                if (resultComment?.id && category !== 'anonymous') {
+                    fetch('/api/board/comment-notification', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ commentId: resultComment.id }),
+                    }).then(async (response) => {
+                        if (!response.ok) {
+                            const detail = await response.text().catch(() => '');
+                            console.warn('[BoardCommentNotification] 알림 요청 실패:', response.status, detail);
+                        }
+                    }).catch((notificationError) => {
+                        console.warn('[BoardCommentNotification] 알림 요청 실패:', notificationError);
+                    });
+                }
             }
 
             setContent('');

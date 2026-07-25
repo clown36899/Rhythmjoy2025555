@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { requireAdmin } from './auth-api.js';
+import { getCurrentUser, requireAdmin } from './auth-api.js';
 import { getMysqlPool } from './mysql-pool.js';
 import {
   deleteCafe24TableRows,
@@ -309,6 +309,63 @@ export async function sendPushNotification(req, res) {
     ...result,
     adminOnly: true,
     requestedUserId: requestedUserId || null,
+  });
+}
+
+export async function sendBoardCommentNotification(req, res) {
+  const user = await getCurrentUser(req);
+  if (!user?.id) throw httpError('로그인이 필요합니다.', 401);
+
+  const commentId = String(req.body?.commentId || '').trim();
+  if (!commentId) throw httpError('commentId is required', 400);
+
+  const [comments, posts] = await Promise.all([
+    loadCafe24TableRows('board_comments'),
+    loadCafe24TableRows('board_posts'),
+  ]);
+  const comment = comments.find((row) => String(row.id) === commentId);
+  if (!comment) throw httpError('댓글을 찾을 수 없습니다.', 404);
+  if (String(comment.user_id || '') !== String(user.id)) {
+    throw httpError('댓글 알림을 보낼 권한이 없습니다.', 403);
+  }
+
+  const post = posts.find((row) => String(row.id) === String(comment.post_id));
+  if (!post?.user_id) {
+    res.json({ status: 'skipped', reason: 'post_author_missing' });
+    return;
+  }
+
+  const authorUserId = String(post.user_id);
+  if (authorUserId === String(user.id)) {
+    res.json({ status: 'skipped', reason: 'self_comment' });
+    return;
+  }
+
+  const subscriptions = await loadPushSubscriptions();
+  const targetRows = subscriptions.filter((row) => String(row.user_id || '') === authorUserId);
+  if (targetRows.length === 0) {
+    res.json({ status: 'skipped', reason: 'author_not_subscribed' });
+    return;
+  }
+
+  const title = String(post.title || '자유게시판 글');
+  const commenter = String(comment.author_name || user.nickname || user.name || '회원');
+  const payload = buildPayload({
+    title: '내 글에 새 댓글이 달렸습니다',
+    body: `${commenter}님이 “${title}” 글에 댓글을 남겼습니다.`,
+    url: `/board/free/detail/${encodeURIComponent(String(post.id))}`,
+    tag: `board-comment-${commentId}`,
+    data: {
+      kind: 'board_comment',
+      postId: String(post.id),
+      commentId,
+    },
+  });
+
+  const result = await sendPushToRows(targetRows, payload, 'board_comment');
+  res.json({
+    ...result,
+    recipientUserId: authorUserId,
   });
 }
 

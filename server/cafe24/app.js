@@ -40,6 +40,7 @@ import {
   dailyDigestCron,
   notificationQueueCron,
   processNotificationQueue,
+  sendBoardCommentNotification,
   sendDailyDigestToAdmins,
   sendPushNotification,
 } from './push-api.js';
@@ -349,6 +350,7 @@ app.post('/api/diagnostics/reload', jsonBody, jsonRoute(recordClientReloadDiagno
 app.get('/api/diagnostics/reloads', jsonRoute(listClientReloadDiagnostics));
 app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnostics));
 app.post('/api/send-push-notification', jsonBody, jsonRoute(sendPushNotification));
+app.post('/api/board/comment-notification', jsonBody, jsonRoute(sendBoardCommentNotification));
 app.post('/api/admin/push/send-daily-digest-test', jsonBody, jsonRoute(sendDailyDigestToAdmins));
 app.post('/api/admin/push/process-notification-queue', jsonBody, jsonRoute(processNotificationQueue));
 app.all('/api/__cron/daily-digest', jsonBody, jsonRoute(dailyDigestCron));

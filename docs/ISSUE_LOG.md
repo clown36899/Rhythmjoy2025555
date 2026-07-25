@@ -22,6 +22,25 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-07-26 자유게시판 댓글 알림 누락 개선
+
+- 상태: 완료
+- 범위: 자유게시판 댓글 등록, 웹 푸시, 오른쪽 위 알림함
+- 배경: 자유게시판 글에 댓글이 등록되어도 글 작성자가 알 수 없었고, 사이트 알림함에도 댓글 활동이 남지 않았다.
+- 원인: 댓글은 `board_comments`에 직접 등록되지만 글 작성자를 대상으로 푸시를 만드는 후속 처리가 없었다.
+- 해결:
+  - 새 댓글 등록 성공 후 인증된 댓글 ID로 서버 알림 API를 호출한다.
+  - 서버가 현재 로그인 사용자, 댓글 작성자, 원글 작성자를 다시 검증한다.
+  - 본인 댓글은 제외하고, 기존 웹 푸시 구독이 있는 원글 작성자의 기기에만 발송한다.
+  - 수신된 댓글 푸시는 기존 서비스 워커의 알림 기록 저장소에 보관되어 오른쪽 위 알림함에 표시된다.
+- 검증: 댓글 작성자 대상 제한, 원글 작성자 구독 대상 제한, 본인 댓글 제외 테스트 6건 통과 및 프로덕션 빌드 완료.
+- 관련 파일:
+  - `src/pages/board/components/CommentForm.tsx`
+  - `server/cafe24/app.js`
+  - `server/cafe24/push-api.js`
+  - `server/cafe24/push-api.test.js`
+- 관련 커밋: pending
+
 ## 2026-07-14 기록 체계 도입
 
 - 상태: 완료

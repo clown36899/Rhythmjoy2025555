@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
+  getCurrentUser: vi.fn(),
   loadCafe24TableRows: vi.fn(),
   saveCafe24TableRow: vi.fn(),
   deleteCafe24TableRows: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./auth-api.js', () => ({
+  getCurrentUser: mocks.getCurrentUser,
   requireAdmin: mocks.requireAdmin,
 }));
 
@@ -65,6 +67,7 @@ describe('Cafe24 push delivery targeting', () => {
     process.env.VAPID_PRIVATE_KEY = 'test-private-key';
     process.env.VAPID_PUBLIC_KEY = 'test-public-key';
     mocks.requireAdmin.mockResolvedValue({ id: 'admin-user', is_admin: true });
+    mocks.getCurrentUser.mockResolvedValue({ id: 'commenter-a', nickname: '댓글러' });
     mocks.saveCafe24TableRow.mockResolvedValue({});
     mocks.deleteCafe24TableRows.mockResolvedValue(undefined);
     mocks.sendNotification.mockResolvedValue({});
@@ -175,5 +178,59 @@ describe('Cafe24 push delivery targeting', () => {
       adminOnly: false,
       processed: 1,
     }));
+  });
+
+  it('sends a new-comment notification only to the subscribed post author', async () => {
+    mocks.loadCafe24TableRows.mockImplementation(async (table) => {
+      if (table === 'board_comments') {
+        return [{ id: 'comment-1', post_id: 'post-1', user_id: 'commenter-a', author_name: '댓글러' }];
+      }
+      if (table === 'board_posts') {
+        return [{ id: 'post-1', user_id: 'author-a', title: '테스트 글' }];
+      }
+      if (table === 'user_push_subscriptions') {
+        return [
+          subscription('author-device', 'author-a', false),
+          subscription('other-device', 'other-a', false),
+        ];
+      }
+      return [];
+    });
+
+    const { sendBoardCommentNotification } = await import('./push-api.js');
+    const res = jsonResponse();
+    await sendBoardCommentNotification({ body: { commentId: 'comment-1' } }, res);
+
+    expect(mocks.sendNotification).toHaveBeenCalledTimes(1);
+    expect(mocks.sendNotification.mock.calls[0][0].endpoint)
+      .toBe('https://fcm.googleapis.com/fcm/send/author-device');
+    expect(JSON.parse(mocks.sendNotification.mock.calls[0][1])).toEqual(expect.objectContaining({
+      title: '내 글에 새 댓글이 달렸습니다',
+      tag: 'board-comment-comment-1',
+      data: expect.objectContaining({
+        kind: 'board_comment',
+        postId: 'post-1',
+        commentId: 'comment-1',
+      }),
+    }));
+  });
+
+  it('does not notify for a self-comment or an unsubscribed author', async () => {
+    mocks.loadCafe24TableRows.mockImplementation(async (table) => {
+      if (table === 'board_comments') {
+        return [{ id: 'comment-1', post_id: 'post-1', user_id: 'commenter-a' }];
+      }
+      if (table === 'board_posts') {
+        return [{ id: 'post-1', user_id: 'commenter-a', title: '내 글' }];
+      }
+      return [];
+    });
+
+    const { sendBoardCommentNotification } = await import('./push-api.js');
+    const res = jsonResponse();
+    await sendBoardCommentNotification({ body: { commentId: 'comment-1' } }, res);
+
+    expect(mocks.sendNotification).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ status: 'skipped', reason: 'self_comment' });
   });
 });
