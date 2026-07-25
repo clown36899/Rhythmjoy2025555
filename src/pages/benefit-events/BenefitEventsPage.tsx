@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
@@ -86,6 +86,7 @@ export default function BenefitEventsPage() {
   const today = getLocalDateString();
   const firstCurrentRef = useRef<HTMLLIElement | null>(null);
   const didAutoScrollRef = useRef(false);
+  const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['benefit-events', BENEFIT_EVENT_QUERY_VERSION],
@@ -149,6 +150,15 @@ export default function BenefitEventsPage() {
                 key={event.id}
                 ref={isCurrentAnchor ? firstCurrentRef : undefined}
                 className={`benefit-event-item ${isPast ? 'is-past' : 'is-current-or-future'}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedEvent(event)}
+                onKeyDown={(keyboardEvent) => {
+                  if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                    keyboardEvent.preventDefault();
+                    setSelectedEvent(event);
+                  }
+                }}
               >
                 <div className="benefit-event-date">
                   <time dateTime={displayDate || undefined}>{formatDateLabel(displayDate)}</time>
@@ -179,8 +189,13 @@ export default function BenefitEventsPage() {
                   </p>
                   {event.description && <small>{event.description}</small>}
                   {event.link1 && (
-                    <a href={event.link1} target="_blank" rel="noreferrer">
-                      상세 링크
+                    <a
+                      href={event.link1}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(mouseEvent) => mouseEvent.stopPropagation()}
+                    >
+                      원본 링크
                       <i className="ri-external-link-line" aria-hidden="true" />
                     </a>
                   )}
@@ -192,6 +207,54 @@ export default function BenefitEventsPage() {
             <li className="benefit-events-empty">표시할 혜택 이벤트가 없습니다.</li>
           )}
         </ol>
+      )}
+
+      {selectedEvent && (
+        <div
+          className="benefit-event-modal-backdrop"
+          role="presentation"
+          onMouseDown={(mouseEvent) => {
+            if (mouseEvent.target === mouseEvent.currentTarget) setSelectedEvent(null);
+          }}
+        >
+          <section
+            className="benefit-event-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="benefit-event-modal-title"
+          >
+            <button
+              type="button"
+              className="benefit-event-modal-close"
+              onClick={() => setSelectedEvent(null)}
+              aria-label="상세창 닫기"
+            >
+              <i className="ri-close-line" aria-hidden="true" />
+            </button>
+            <div className="benefit-event-kicker">
+              <span>{getKindLabel(selectedEvent)}</span>
+              {selectedEvent.time && <em>{selectedEvent.time}</em>}
+            </div>
+            <h2 id="benefit-event-modal-title">{selectedEvent.title}</h2>
+            <dl>
+              <div>
+                <dt>일정</dt>
+                <dd>{formatDateLabel(getDisplayDate(selectedEvent, today))}</dd>
+              </div>
+              <div>
+                <dt>장소</dt>
+                <dd>{getPlaceLabel(selectedEvent)}</dd>
+              </div>
+            </dl>
+            <p>{selectedEvent.description || '등록된 상세 설명이 없습니다.'}</p>
+            {selectedEvent.link1 && (
+              <a href={selectedEvent.link1} target="_blank" rel="noreferrer">
+                원본 링크
+                <i className="ri-external-link-line" aria-hidden="true" />
+              </a>
+            )}
+          </section>
+        </div>
       )}
     </main>
   );

@@ -120,6 +120,7 @@
   border-radius: 8px;
   background: #202227;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
 }
 
 .benefit-event-item.is-past {
@@ -260,6 +261,105 @@
   border-radius: 999px;
   color: #bae6fd;
   font-size: 12px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.benefit-event-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 7, 10, 0.78);
+  backdrop-filter: blur(6px);
+}
+
+.benefit-event-modal {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  width: min(100%, 560px);
+  max-height: min(78dvh, 720px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: #202227;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.benefit-event-modal h2,
+.benefit-event-modal p,
+.benefit-event-modal dl,
+.benefit-event-modal dd {
+  margin: 0;
+}
+
+.benefit-event-modal h2 {
+  padding-right: 38px;
+  font-size: clamp(20px, 5vw, 28px);
+  line-height: 1.25;
+}
+
+.benefit-event-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  font-size: 22px;
+}
+
+.benefit-event-modal dl {
+  display: grid;
+  gap: 8px;
+}
+
+.benefit-event-modal dl > div {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.benefit-event-modal dt {
+  color: rgba(226, 232, 240, 0.56);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.benefit-event-modal dd {
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.benefit-event-modal p {
+  overflow-wrap: anywhere;
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.benefit-event-modal > a {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(125, 211, 252, 0.36);
+  border-radius: 999px;
+  color: #bae6fd;
+  font-size: 13px;
   font-weight: 950;
   text-decoration: none;
 }
