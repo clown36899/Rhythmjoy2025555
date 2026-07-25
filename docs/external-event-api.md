@@ -306,6 +306,23 @@ curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
   --data-urlencode 'query=서울 강남구 테헤란로 123'
 ```
 
+파트너 서버 JavaScript에서는 다음처럼 사용할 수 있습니다.
+
+```js
+const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+
+async function normalizeDanceBillboardAddress(rawAddress) {
+  const url = new URL('https://swingenjoy.com/api/external/v1/addresses/validate');
+  url.searchParams.set('query', rawAddress);
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${API_KEY}` },
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || '주소 확인 실패');
+  return result.normalized_address;
+}
+```
+
 응답 예시는 다음과 같습니다.
 
 ```json
@@ -381,11 +398,54 @@ Content-Type: application/json
 
 수정 요청에는 사용할 이미지를 `upload` 또는 `url` 방식으로 다시 보내 주세요. 서버는 새 이미지 4종을 만든 뒤 일정 연결을 교체하고 이전 저장 이미지를 정리합니다.
 
+```js
+const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+const externalId = 'partner-event-20260801-1';
+const event = {
+  external_id: externalId,
+  title: '토요일 린디합 강습 (시간 변경)',
+  event_dates: ['2026-08-01'],
+  time: '19:30',
+  category: 'class',
+  genre: '린디합',
+  source_url: 'https://partner.example.com/events/1',
+  image_mode: 'url',
+  image_url: 'https://partner.example.com/images/1-updated.webp',
+};
+const response = await fetch(
+  `https://swingenjoy.com/api/external/v1/events/${encodeURIComponent(externalId)}`,
+  {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(event),
+  },
+);
+const result = await response.json();
+if (!response.ok) throw new Error(result.message || '일정 수정 실패');
+```
+
 삭제는 다음과 같이 요청합니다.
 
 ```http
 DELETE https://swingenjoy.com/api/external/v1/events/{external_id}
 Authorization: Bearer {등록할_때_사용한_동일한_API_KEY}
+```
+
+```js
+const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+const externalId = 'partner-event-20260801-1';
+const response = await fetch(
+  `https://swingenjoy.com/api/external/v1/events/${encodeURIComponent(externalId)}`,
+  {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${API_KEY}` },
+  },
+);
+const result = await response.json();
+if (!response.ok) throw new Error(result.message || '일정 삭제 실패');
 ```
 
 삭제가 성공하면 Dance Billboard의 일정과 그 일정에 연결된 내부 저장 이미지도 함께 삭제됩니다. 다른 파트너의 키로는 일정을 수정하거나 삭제할 수 없습니다. 권한이 없는 일정은 존재 여부도 노출하지 않도록 `404`를 반환합니다.

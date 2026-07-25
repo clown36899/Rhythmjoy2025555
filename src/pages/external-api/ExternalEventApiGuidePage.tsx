@@ -35,6 +35,71 @@ const curlExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events
   -H 'Content-Type: application/json' \\
   --data '${singleEventExample.replace(/\n/g, '\n  ')}'`;
 
+const addressApiExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+
+async function normalizeDanceBillboardAddress(rawAddress) {
+  const url = new URL(
+    "https://swingenjoy.com/api/external/v1/addresses/validate"
+  );
+  url.searchParams.set("query", rawAddress);
+
+  const response = await fetch(url, {
+    headers: { Authorization: \`Bearer \${API_KEY}\` }
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || "주소를 확인하지 못했습니다.");
+  }
+  return result.normalized_address;
+}
+
+// 일정 등록 전에 표준 주소를 받아 address에 넣습니다.
+const address = await normalizeDanceBillboardAddress(
+  "서울 강남구 테헤란로 123"
+);`;
+
+const updateEventExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+const externalId = "partner-event-20260801-1"; // 등록 때 사용한 값
+
+const event = {
+  external_id: externalId,
+  title: "토요일 린디합 강습 (시간 변경)",
+  event_dates: ["2026-08-01"],
+  time: "19:30",
+  category: "class",
+  genre: "린디합",
+  source_url: "https://partner.example.com/events/1",
+  image_mode: "url",
+  image_url: "https://partner.example.com/images/1-updated.webp"
+};
+
+const response = await fetch(
+  \`https://swingenjoy.com/api/external/v1/events/\${encodeURIComponent(externalId)}\`,
+  {
+    method: "PUT",
+    headers: {
+      Authorization: \`Bearer \${API_KEY}\`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(event)
+  }
+);
+const result = await response.json();
+if (!response.ok) throw new Error(result.message || "일정 수정 실패");`;
+
+const deleteEventExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+const externalId = "partner-event-20260801-1"; // 등록 때 사용한 값
+
+const response = await fetch(
+  \`https://swingenjoy.com/api/external/v1/events/\${encodeURIComponent(externalId)}\`,
+  {
+    method: "DELETE",
+    headers: { Authorization: \`Bearer \${API_KEY}\` }
+  }
+);
+const result = await response.json();
+if (!response.ok) throw new Error(result.message || "일정 삭제 실패");`;
+
 const imageUploadExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/images' \\
   -H 'Authorization: Bearer 발급받은_API_KEY' \\
   -H 'Content-Type: image/jpeg' \\
@@ -417,6 +482,7 @@ export default function ExternalEventApiGuidePage() {
               <span className="EAG-method EAG-methodGet">GET</span>
               <code>/addresses/validate?query=서울특별시+강남구+테헤란로+123</code>
             </div>
+            <CodeBlock label="파트너 서버 JavaScript · 주소 확인 API" code={addressApiExample} />
             <div className="EAG-addressTool">
               <div>
                 <span className="EAG-kicker">주소 변환기</span>
@@ -478,7 +544,11 @@ export default function ExternalEventApiGuidePage() {
               <div><span className="EAG-method EAG-methodPut">PUT</span><code>{'/events/{external_id}'}</code><p>같은 키로 등록한 일정 전체 수정</p></div>
               <div><span className="EAG-method EAG-methodDelete">DELETE</span><code>{'/events/{external_id}'}</code><p>같은 키로 등록한 일정 삭제</p></div>
             </div>
-            <p><code>external_id</code>는 파트너 시스템 안에서 바뀌지 않는 고유값이어야 합니다. 다른 파트너 키로 등록한 일정은 수정하거나 삭제할 수 없습니다.</p>
+            <p><code>external_id</code>는 파트너 시스템 안에서 바뀌지 않는 고유값이어야 합니다. 수정은 일부 필드만 보내는 방식이 아니라 현재 일정 전체를 다시 보내는 방식입니다.</p>
+            <CodeBlock label="파트너 서버 JavaScript · 일정 전체 수정" code={updateEventExample} />
+            <p>새 이미지를 보내면 WebP 4종을 다시 만들고 일정 이미지를 교체한 뒤 이전 파일을 정리합니다.</p>
+            <CodeBlock label="파트너 서버 JavaScript · 일정 삭제" code={deleteEventExample} />
+            <p>삭제가 성공하면 Dance Billboard의 일정과 연결 이미지도 함께 삭제됩니다. 다른 파트너 키로 등록한 일정은 수정하거나 삭제할 수 없습니다.</p>
           </section>
 
           <section id="limits" className="EAG-section">
