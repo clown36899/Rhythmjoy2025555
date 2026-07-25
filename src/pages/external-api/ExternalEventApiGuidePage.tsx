@@ -135,6 +135,17 @@ const fieldRows = [
   ['image_mode / image_url', '조건부', 'social 이외의 분류에서 필수'],
 ];
 
+const requestValueRows = [
+  ['external_id', '자유롭게 정함', '최대 160자. 파트너 시스템의 일정 ID를 사용하세요. 등록 후에는 같은 일정의 수정·삭제에 동일한 값을 계속 사용합니다.'],
+  ['title', '자유로운 문자열', '실제 일정 제목으로 바꿉니다. 최대 255자입니다.'],
+  ['event_dates', '정해진 날짜 형식', 'YYYY-MM-DD 배열입니다. 단일 일정은 1개, 개별 날짜 일정은 선택한 날짜를 여러 개 넣습니다.'],
+  ['category / genre', '허용 코드만 가능', '관리자가 승인한 최상위 분류와 이 페이지의 장르표에 있는 값만 사용합니다.'],
+  ['source_url', '공개 HTTPS URL', '상대 사이트의 실제 일정 상세 페이지 주소로 바꿉니다.'],
+  ['time / location', '자유로운 문자열', '표시할 시간과 장소명입니다. 필요 없으면 생략할 수 있습니다.'],
+  ['image_mode', 'upload 또는 url', '이미지 전달 방식에 맞춰 둘 중 하나만 사용합니다.'],
+  ['image_url', '이미지 URL', '업로드 API 응답 URL 또는 로그인 없이 열리는 공개 HTTPS 이미지 URL입니다.'],
+];
+
 const errorRows = [
   ['400', 'invalid_request', '입력값을 수정한 뒤 다시 요청해 주세요.'],
   ['401', 'invalid_api_key', '키를 확인하고 자동 재시도를 중단해 주세요.'],
@@ -396,6 +407,21 @@ export default function ExternalEventApiGuidePage() {
               <code>/events</code>
               <span>새 일정 등록</span>
             </div>
+            <div className="EAG-callout">
+              <i className="ri-edit-line" aria-hidden="true" />
+              <div>
+                <strong>예시값은 실제 파트너 일정에 맞게 바꾸시면 됩니다.</strong>
+                <p>요청 주소, HTTP 메서드, 인증 헤더와 JSON 필드명은 그대로 사용하세요. 아래에서 “자유로운 문자열”로 표시한 값은 글 형식에 제한이 없으며 최대 길이만 지키면 됩니다. 날짜·분류·URL·이미지 방식은 정해진 형식을 지켜야 합니다.</p>
+              </div>
+            </div>
+            <div className="EAG-tableWrap">
+              <table>
+                <thead><tr><th>예시 필드</th><th>바꿀 수 있는 범위</th><th>작성 방법</th></tr></thead>
+                <tbody>{requestValueRows.map(([field, range, description]) => (
+                  <tr key={field}><td><code>{field}</code></td><td><strong>{range}</strong></td><td>{description}</td></tr>
+                ))}</tbody>
+              </table>
+            </div>
           </section>
 
           <section id="dates" className="EAG-section">
@@ -580,10 +606,14 @@ export default function ExternalEventApiGuidePage() {
               <div><span className="EAG-method EAG-methodDelete">DELETE</span><code>{'/events/{external_id}'}</code><p>같은 키로 등록한 일정 삭제</p></div>
             </div>
             <p><code>external_id</code>는 파트너 시스템 안에서 바뀌지 않는 고유값이어야 합니다. 수정은 일부 필드만 보내는 방식이 아니라 현재 일정 전체를 다시 보내는 방식입니다.</p>
+            <div className="EAG-warning">
+              <strong>등록·수정·삭제는 같은 API Key와 같은 external_id로 연결됩니다.</strong>
+              <p>등록 예시에서 정한 <code>external_id</code>를 수정 URL, 수정 본문, 삭제 URL에 똑같이 사용하세요. 제목·날짜·시간·장소·설명·이미지는 수정할 수 있지만 <code>external_id</code>를 새 값으로 바꾸면 기존 일정을 찾지 못합니다. 새 값으로 <code>POST</code>하면 별도 일정 등록으로 처리됩니다.</p>
+            </div>
             <CodeBlock label="파트너 서버 JavaScript · 일정 전체 수정" code={updateEventExample} />
-            <p>새 이미지를 보내면 WebP 4종을 다시 만들고 일정 이미지를 교체한 뒤 이전 파일을 정리합니다.</p>
+            <p>수정 본문의 값과 형식은 위 등록 요청 표와 같습니다. 바꾸지 않는 값도 포함해 현재 일정 전체를 보내야 합니다. 새 이미지를 보내면 WebP 4종을 다시 만들고 일정 이미지를 교체한 뒤 이전 파일을 정리합니다.</p>
             <CodeBlock label="파트너 서버 JavaScript · 일정 삭제" code={deleteEventExample} />
-            <p>삭제가 성공하면 Dance Billboard의 일정과 연결 이미지도 함께 삭제됩니다. 다른 파트너 키로 등록한 일정은 수정하거나 삭제할 수 없습니다.</p>
+            <p>삭제는 JSON 본문이 필요하지 않습니다. 등록에 사용한 API Key와 <code>external_id</code>만 URL에 넣습니다. 삭제가 성공하면 Dance Billboard의 일정과 연결 이미지도 함께 삭제됩니다. 다른 파트너 키로 등록한 일정은 수정하거나 삭제할 수 없습니다.</p>
           </section>
 
           <section id="limits" className="EAG-section">
@@ -594,7 +624,7 @@ export default function ExternalEventApiGuidePage() {
               <div><strong>1,000회</strong><span>테스트 권장 24시간 한도</span></div>
               <div><strong>10회</strong><span>운영 권장 분당 한도</span></div>
               <div><strong>200회</strong><span>운영 권장 24시간 한도</span></div>
-              <p>파트너 키별로 적용되며 관리자가 실제 사용량에 맞게 조정할 수 있습니다. 잘못된 반복 요청, 이미지 업로드, 주소 확인도 횟수에 포함됩니다.</p>
+              <p>파트너 키별로 적용되며 관리자가 실제 사용량에 맞게 조정할 수 있습니다. 잘못된 반복 요청과 이미지 업로드도 횟수에 포함됩니다.</p>
             </div>
             <div className="EAG-callout">
               <i className="ri-customer-service-2-line" aria-hidden="true" />

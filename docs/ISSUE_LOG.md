@@ -343,6 +343,20 @@
   - `docs/external-event-api.md`
   - `docs/external-event-api.openapi.yaml`
 
+## 2026-07-26 외부 일정 요청 예시값과 CRUD 연결 설명 보강
+
+- 상태: 해결
+- 범위: 외부 일정 API 공개 안내 페이지와 전달용 문서
+- 증상: 등록 코드 예시에서 어떤 값이 자유 입력이고 어떤 값이 고정 형식인지 바로 알기 어려웠으며, 수정·삭제가 등록값과 어떻게 연결되는지 설명이 분산돼 있었다.
+- 조치:
+  - 요청 주소·메서드·헤더·필드명은 유지하고 예시 필드값은 실제 일정에 맞게 바꾼다는 원칙을 등록 예시 바로 아래에 추가했다.
+  - 자유 문자열, 날짜 형식, 허용 분류, HTTPS URL, 이미지 방식별 변경 규칙을 표로 정리했다.
+  - 등록·수정·삭제는 동일 API Key와 동일 `external_id`로 연결되고, 수정은 전체 본문 재전송, 삭제는 본문 없이 식별자만 사용한다는 공통 규칙을 명시했다.
+- 검증: 외부 API 단위 테스트, TypeScript, 대상 ESLint, 프로덕션 빌드, 운영 브라우저 확인
+- 관련 파일:
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `docs/external-event-api.md`
+
 ## 새 항목 템플릿
 
 ```md

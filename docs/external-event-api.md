@@ -66,6 +66,23 @@ Content-Type: application/json
 
 브라우저에서 직접 호출하는 CORS 방식은 제공하지 않습니다. 파트너 서버에서 Dance Billboard 서버로 요청해 주세요.
 
+### 등록 예시의 값은 어떻게 바꾸나요?
+
+요청 주소, `POST` 메서드, 인증 헤더, `Content-Type`과 JSON 필드명은 그대로 사용하세요. 예시의 필드값은 실제 파트너 일정에 맞게 바꿀 수 있습니다.
+
+| 예시 필드 | 바꿀 수 있는 범위 | 작성 방법 |
+|---|---|---|
+| `external_id` | 자유롭게 정함 | 최대 160자. 파트너 시스템의 일정 ID를 사용하며 등록 후 같은 일정의 수정·삭제에 동일한 값을 계속 사용합니다. |
+| `title` | 자유로운 문자열 | 실제 일정 제목으로 바꿉니다. 최대 255자입니다. |
+| `event_dates` | 정해진 날짜 형식 | `YYYY-MM-DD` 배열입니다. 단일 일정은 1개, 개별 날짜 일정은 선택한 날짜를 여러 개 넣습니다. |
+| `category`, `genre` | 허용 코드만 가능 | 관리자가 승인한 최상위 분류와 장르표에 있는 값만 사용합니다. |
+| `source_url` | 공개 HTTPS URL | 상대 사이트의 실제 일정 상세 페이지 주소로 바꿉니다. |
+| `time`, `location` | 자유로운 문자열 | 표시할 시간과 장소명이며 필요 없으면 생략할 수 있습니다. |
+| `image_mode` | `upload` 또는 `url` | 이미지 전달 방식에 맞춰 둘 중 하나만 사용합니다. |
+| `image_url` | 이미지 URL | 업로드 API 응답 URL 또는 로그인 없이 열리는 공개 HTTPS 이미지 URL입니다. |
+
+`title`, `time`, `location`, `description`, `venue_name`은 최대 길이 안에서 자유롭게 작성할 수 있습니다. 반면 날짜, 분류, HTTPS URL과 이미지 방식은 문서에 정해진 형식을 지켜야 합니다.
+
 ## 3. 날짜 입력 방법
 
 날짜는 단일 일정과 개별 날짜 일정 모두 `event_dates` 하나만 사용합니다.
@@ -373,13 +390,15 @@ function selectRoadAddress() {
 
 수정은 기존 일정의 일부만 바꾸는 방식이 아니라 전체 내용을 다시 보내는 방식입니다.
 
+등록·수정·삭제는 **등록에 사용한 API Key와 `external_id`**로 연결됩니다. 등록 예시에서 정한 `external_id`를 수정 URL, 수정 본문과 삭제 URL에 똑같이 사용하세요. 제목·날짜·시간·장소·설명·이미지는 수정할 수 있지만 `external_id`를 새 값으로 바꾸면 기존 일정을 찾지 못합니다. 새 값으로 `POST`하면 별도 일정 등록으로 처리됩니다.
+
 ```http
 PUT https://swingenjoy.com/api/external/v1/events/{external_id}
 Authorization: Bearer {등록할_때_사용한_동일한_API_KEY}
 Content-Type: application/json
 ```
 
-본문은 등록 요청과 같은 필드를 보내 주세요. 본문에 `external_id`를 포함한다면 URL의 값과 같아야 합니다.
+본문의 값과 형식은 등록 요청 표와 같습니다. 수정은 부분 수정이 아니므로 바꾸지 않는 값도 포함해 현재 일정 전체를 보내 주세요. 본문에 `external_id`를 포함한다면 URL의 값과 같아야 합니다.
 
 수정 요청에는 사용할 이미지를 `upload` 또는 `url` 방식으로 다시 보내 주세요. 서버는 새 이미지 4종을 만든 뒤 일정 연결을 교체하고 이전 저장 이미지를 정리합니다.
 
@@ -413,6 +432,8 @@ if (!response.ok) throw new Error(result.message || '일정 수정 실패');
 ```
 
 삭제는 다음과 같이 요청합니다.
+
+삭제는 JSON 본문이 필요하지 않습니다. 등록에 사용한 API Key와 같은 `external_id`만 URL에 넣습니다.
 
 ```http
 DELETE https://swingenjoy.com/api/external/v1/events/{external_id}
