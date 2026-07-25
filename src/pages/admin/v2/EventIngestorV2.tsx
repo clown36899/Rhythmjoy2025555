@@ -68,7 +68,7 @@ interface ScrapedEvent {
   updated_at?: string;
 }
 
-type TabKey = 'new' | 'collected' | 'duplicate';
+type TabKey = 'new' | 'free' | 'collected' | 'duplicate';
 type ScopeFilter = 'all' | 'swing' | 'salsa' | 'bachata' | 'tango' | 'street';
 type CalendarLayoutMode = 'compact' | 'expanded' | 'horizontal';
 type CalendarItemKind = TabKey | 'db';
@@ -180,6 +180,7 @@ const CALENDAR_HIDDEN_STORAGE_KEY = 'event-ingestor-v2-calendar-hidden-v1';
 const OPERATIONAL_ASSET_ORIGIN = 'https://swingenjoy.com';
 const CALENDAR_TAB_LABELS: Record<CalendarItemKind, string> = {
   new: '신규',
+  free: '무료',
   collected: '완료',
   duplicate: '중복',
   db: '운영DB',
@@ -313,7 +314,7 @@ const EventIngestorV2: React.FC = () => {
   const [activityFilter, setActivityFilter] = useState<'전체' | '강습' | '소셜' | '행사' | '모집' | '판매이벤트'>('전체');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [tabCounts, setTabCounts] = useState<{ new: number; collected: number; duplicate: number }>({ new: 0, collected: 0, duplicate: 0 });
+  const [tabCounts, setTabCounts] = useState<{ new: number; free: number; collected: number; duplicate: number }>({ new: 0, free: 0, collected: 0, duplicate: 0 });
   const [venues, setVenues] = useState<VenueRecord[]>([]);
   const [tangoSceneMap, setTangoSceneMap] = useState<TangoSceneMap | null>(null);
   const [tangoSceneLoading, setTangoSceneLoading] = useState(false);
@@ -325,6 +326,7 @@ const EventIngestorV2: React.FC = () => {
   });
   const [calendarEventsByTab, setCalendarEventsByTab] = useState<Record<TabKey, ScrapedEvent[]>>({
     new: [],
+    free: [],
     collected: [],
     duplicate: [],
   });
@@ -333,6 +335,7 @@ const EventIngestorV2: React.FC = () => {
   const [operationalLoading, setOperationalLoading] = useState(false);
   const [calendarTabFilters, setCalendarTabFilters] = useState<Record<CalendarItemKind, boolean>>({
     new: true,
+    free: false,
     collected: true,
     duplicate: true,
     db: true,
@@ -433,20 +436,21 @@ const EventIngestorV2: React.FC = () => {
 
   const fetchTabCounts = async (scope = scopeFilter) => {
     if (!isIngestorAuthReady || !canAccessIngestor) {
-      setTabCounts({ new: 0, collected: 0, duplicate: 0 });
+      setTabCounts({ new: 0, free: 0, collected: 0, duplicate: 0 });
       return;
     }
 
     try {
       const scopeQuery = scope === 'all' ? '' : `&scope=${scope}`;
       const headers = await getAdminRequestHeaders();
-      const [resNew, resCollected, resDuplicate] = await Promise.all([
+      const [resNew, resFree, resCollected, resDuplicate] = await Promise.all([
         fetch(`/api/scraped-events?page=1&tab=new${scopeQuery}`, { headers, cache: 'no-store' }),
+        fetch(`/api/scraped-events?page=1&tab=free${scopeQuery}`, { headers, cache: 'no-store' }),
         fetch(`/api/scraped-events?page=1&tab=collected${scopeQuery}`, { headers, cache: 'no-store' }),
         fetch(`/api/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers, cache: 'no-store' }),
       ]);
-      const [jsonNew, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resCollected.json(), resDuplicate.json()]);
-      setTabCounts({ new: jsonNew.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
+      const [jsonNew, jsonFree, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resFree.json(), resCollected.json(), resDuplicate.json()]);
+      setTabCounts({ new: jsonNew.total || 0, free: jsonFree.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
     } catch (err) {
       console.error('탭 카운트 로드 실패:', err);
     }
@@ -816,7 +820,7 @@ const EventIngestorV2: React.FC = () => {
       const normalizedUpdates = updates.is_collected ? { ...updates, status: 'collected' as ScrapedEvent['status'] } : updates;
       setScrapedEvents(prev => {
         const updated = prev.map(e => e.id === id ? { ...e, ...normalizedUpdates } : e);
-        if ((activeTab === 'new' || activeTab === 'duplicate') && normalizedUpdates.is_collected) {
+        if ((activeTab === 'new' || activeTab === 'free' || activeTab === 'duplicate') && normalizedUpdates.is_collected) {
           return updated.filter(e => e.id !== id);
         }
         return updated;
@@ -927,7 +931,7 @@ const EventIngestorV2: React.FC = () => {
       setBulkProgress(`완료 처리 중... (${++i}/${selectedIds.size})`);
     }
     // 탭이 'new'면 완료 처리된 항목 즉시 제거
-    if (activeTab === 'new') {
+    if (activeTab === 'new' || activeTab === 'free') {
       setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
     }
     setSelectedIds(new Set());
@@ -1095,6 +1099,7 @@ const EventIngestorV2: React.FC = () => {
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
           <button className={activeTab === 'new' ? 'active' : ''} onClick={() => handleTabChange('new')}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
+          <button className={activeTab === 'free' ? 'active benefit-tab' : 'benefit-tab'} onClick={() => handleTabChange('free')}>무료 {tabCounts.free > 0 && <span className="tab-badge">{tabCounts.free}</span>}</button>
           <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => handleTabChange('collected')}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
           <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => handleTabChange('duplicate')}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
         </div>
@@ -1572,6 +1577,11 @@ const EventIngestorV2: React.FC = () => {
                     <div className="row-date-line">
                       <span className="row-date">{event.structured_data.date} ({event.structured_data.day || '요일미정'})</span>
                       <span className={`event-type-badge type-badge-${activity}`}>{activityLabel}</span>
+                      {event.structured_data.benefit_eligible === true && (
+                        <span className="benefit-kind-badge">
+                          {event.structured_data.benefit_kind === 'season_pass' ? '정기권' : '무료'}
+                        </span>
+                      )}
                     </div>
                     <div className="row-title">{event.structured_data.title}</div>
                     <div className="row-taxonomy">

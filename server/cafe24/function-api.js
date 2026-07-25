@@ -326,6 +326,14 @@ function filterScrapedRows(rows, req) {
 
     if (tab === 'collected') return row.is_collected === true || row.status === 'collected';
     if (tab === 'duplicate') return row.status === 'duplicate' || Boolean(sd._duplicate);
+    if (tab === 'free') {
+      return sd.benefit_eligible === true
+        && ['free_event', 'season_pass'].includes(String(sd.benefit_kind || ''))
+        && row.is_collected !== true
+        && row.status !== 'collected'
+        && row.status !== 'duplicate'
+        && row.status !== 'excluded';
+    }
     if (tab === 'new') {
       return row.is_collected !== true
         && row.status !== 'collected'
@@ -540,6 +548,7 @@ async function ingestScrapedItems(values) {
   let scrapedRows = await loadCafe24TableRows('scraped_events');
   const eventRows = await loadCafe24TableRows('events');
   const saved = [];
+  const refreshed = [];
   const skipped = [];
 
   for (const value of sortDateExpansionInputs(values)) {
@@ -567,10 +576,15 @@ async function ingestScrapedItems(values) {
     }
 
     if (existingSameId) {
-      skipped.push({
-        id: row.id,
-        reason: '이미 등록된 검토 대기 후보',
+      const refreshedRow = await saveCafe24TableRow('scraped_events', {
+        ...existingSameId,
+        ...row,
+        display_no: existingSameId.display_no ?? row.display_no,
+        created_at: existingSameId.created_at || row.created_at,
+        updated_at: new Date().toISOString(),
       });
+      refreshed.push(refreshedRow);
+      scrapedRows = replaceWorkingScrapedRow(scrapedRows, refreshedRow);
       continue;
     }
 
@@ -621,11 +635,12 @@ async function ingestScrapedItems(values) {
   const newCount = saved.filter((row) => String(row.status || '').toLowerCase() !== 'duplicate').length;
   const duplicateCount = saved.length - newCount;
   return {
-    data: saved,
+    data: [...saved, ...refreshed],
     count: newCount,
+    refreshedCount: refreshed.length,
     duplicateCount,
     skipped,
-    total: saved.length,
+    total: saved.length + refreshed.length,
   };
 }
 

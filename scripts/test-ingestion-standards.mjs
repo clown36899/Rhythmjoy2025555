@@ -59,6 +59,7 @@ const benefitPhraseCases = [
   ['Admission: FREE · Salsa social', 'free_event'],
   ['FREE WORKSHOP before the bachata social', 'free_event'],
   ['수강료 0원 탱고 입문 클래스', 'free_event'],
+  ['프로그램: 무료 스윙댄스 강습, 라이브밴드 소셜 / 누구나 무료', 'free_event'],
   ['무료 라인강습은 없습니다. 입장은 무료입니다.', 'free_event'],
   ['무료 주차 가능합니다. 입장료 15,000원', null],
   ['무료 음료 1잔 제공, 참가비 20,000원', null],
