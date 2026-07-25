@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../hooks/useModal';
@@ -292,8 +292,7 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
 }
 
 export default function ExternalEventApiGuidePage() {
-  const { isAdmin, user, userProfile, isAuthCheckComplete, signInWithKakao } = useAuth();
-  const loginPromptOpened = useRef(false);
+  const { isAdmin, user, userProfile, signInWithKakao } = useAuth();
   const partnerManagementModal = useModal('externalApiPartnerManagement');
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [shareResult, setShareResult] = useState('');
@@ -308,6 +307,7 @@ export default function ExternalEventApiGuidePage() {
   const [serverExampleId, setServerExampleId] = useState<(typeof serverExamples)[number]['id']>('node');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSectionOpen, setIsSectionOpen] = useState(false);
+  const [searchViewport, setSearchViewport] = useState({ height: 0, top: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const [myPartners, setMyPartners] = useState<Array<{
@@ -330,21 +330,6 @@ export default function ExternalEventApiGuidePage() {
         || (searchTokens.length > 1 && searchTokens.every((token) => searchableText.includes(token)));
     })()
   ));
-
-  useEffect(() => {
-    if (user || loginPromptOpened.current) return;
-    const open = () => {
-      if (loginPromptOpened.current) return;
-      loginPromptOpened.current = true;
-      setIsLoginOpen(true);
-    };
-    if (isAuthCheckComplete) {
-      open();
-      return;
-    }
-    const timer = window.setTimeout(open, 1200);
-    return () => window.clearTimeout(timer);
-  }, [isAuthCheckComplete, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -389,6 +374,58 @@ export default function ExternalEventApiGuidePage() {
   useEffect(() => {
     setActiveSearchIndex(-1);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    let animationFrame = 0;
+    let animationDeadline = 0;
+    const viewport = window.visualViewport;
+    const updateViewport = () => {
+      const candidates = [
+        viewport?.height,
+        window.innerHeight,
+        document.documentElement.clientHeight,
+      ].filter((value): value is number => typeof value === 'number' && value > 0);
+      const height = Math.round(Math.min(...candidates));
+      const top = Math.max(0, Math.round(viewport?.offsetTop || 0));
+      setSearchViewport((current) => (
+        Math.abs(current.height - height) > 1 || Math.abs(current.top - top) > 1
+          ? { height, top }
+          : current
+      ));
+    };
+    const followKeyboardAnimation = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationDeadline = performance.now() + 800;
+      const tick = () => {
+        updateViewport();
+        if (performance.now() < animationDeadline) {
+          animationFrame = window.requestAnimationFrame(tick);
+        }
+      };
+      tick();
+    };
+
+    updateViewport();
+    followKeyboardAnimation();
+    window.addEventListener('resize', followKeyboardAnimation);
+    window.addEventListener('orientationchange', followKeyboardAnimation);
+    window.addEventListener('focusin', followKeyboardAnimation);
+    window.addEventListener('focusout', followKeyboardAnimation);
+    viewport?.addEventListener('resize', followKeyboardAnimation);
+    viewport?.addEventListener('scroll', updateViewport);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', followKeyboardAnimation);
+      window.removeEventListener('orientationchange', followKeyboardAnimation);
+      window.removeEventListener('focusin', followKeyboardAnimation);
+      window.removeEventListener('focusout', followKeyboardAnimation);
+      viewport?.removeEventListener('resize', followKeyboardAnimation);
+      viewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, [isSearchOpen]);
 
   useEffect(() => {
     if (activeSearchIndex < 0) return;
@@ -950,9 +987,17 @@ export default function ExternalEventApiGuidePage() {
         </article>
       </div>
       {isSearchOpen && (
-        <div className="EAG-searchBackdrop" role="presentation" onMouseDown={(event) => {
+        <div
+          className={`EAG-searchBackdrop${searchViewport.height > 0 && searchViewport.height < 560 ? ' is-keyboard-open' : ''}`}
+          role="presentation"
+          style={{
+            '--eag-search-viewport-height': searchViewport.height ? `${searchViewport.height}px` : undefined,
+            '--eag-search-viewport-top': `${searchViewport.top}px`,
+          } as CSSProperties}
+          onMouseDown={(event) => {
           if (event.target === event.currentTarget) setIsSearchOpen(false);
-        }}>
+          }}
+        >
           <section className="EAG-searchDialog" role="dialog" aria-modal="true" aria-labelledby="external-api-search-title">
             <div className="EAG-searchHeader">
               <div>

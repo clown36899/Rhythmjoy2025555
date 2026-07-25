@@ -485,6 +485,35 @@
   - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
   - `docs/external-event-api.md`
 
+## 2026-07-26 Android 키보드 전환 중 검색 결과 하단 잘림
+
+- 상태: 해결
+- 증상: 같은 Android Chrome에서도 주소창과 키보드 애니메이션 상태에 따라 검색 결과 패널 하단이 키보드 뒤에 가려졌다.
+- 원인: 전역 `visualViewport` CSS 변수가 한 번 갱신된다는 전제에 의존해, 키보드가 단계적으로 열리거나 브라우저가 늦게 viewport 값을 보고하면 모달 높이가 이전 화면 높이에 남았다.
+- 해결:
+  - viewport 메타에 `interactive-widget=resizes-content`를 선언해 지원 브라우저가 키보드 표시 시 레이아웃 영역도 줄이도록 했다.
+  - 검색 모달이 열려 있는 동안 `visualViewport.height`, `innerHeight`, 문서 표시 높이 중 가장 작은 값을 사용하고 키보드 애니메이션 800ms 동안 매 프레임 다시 측정한다.
+  - resize·focus·회전 이벤트에도 재측정하며, 낮아진 화면에서는 제목과 도움말을 압축하고 남은 높이를 결과 목록의 내부 스크롤에 배정한다.
+- 관련 파일:
+  - `index.html`
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `src/pages/external-api/ExternalEventApiGuidePage.css`
+
+## 2026-07-26 공개 API 안내 진입 경로
+
+- 상태: 해결
+- 증상: API 안내가 관리자 하위 메뉴에만 있어 일반 사용자가 공개 문서에 접근하기 어렵고, 비로그인 방문 시 로그인 창이 자동 표시되었다.
+- 해결:
+  - 햄버거 메뉴의 빠른 기능 영역에 누구나 볼 수 있는 `API 연동` 버튼을 추가하고 일정 등록 버튼 왼쪽에 배치했다.
+  - 화면 모드 버튼은 한 줄짜리 작은 버튼으로 축소했다.
+  - 관리자 하위 메뉴의 중복 링크를 제거하고, 공개 문서는 로그인 없이 읽을 수 있게 했다.
+  - 로그인은 연동 신청이나 테스트 한도 요청을 누를 때만 요구한다.
+- 관련 파일:
+  - `src/components/SideDrawer.tsx`
+  - `src/styles/domains/overlays.css`
+  - `src/styles/theme-completion.css`
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+
 ## 새 항목 템플릿
 
 ```md

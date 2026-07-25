@@ -643,6 +643,33 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     </div>
                                 </div>
 
+                                <div
+                                    className={`SD-menuItem SD-apiGuideEntry${pageAction ? '' : ' is-solo'}`}
+                                    role="link"
+                                    tabIndex={0}
+                                    onClick={() => {
+                                        onClose();
+                                        navigate('/external-event-api');
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            onClose();
+                                            navigate('/external-event-api');
+                                        }
+                                    }}
+                                    data-analytics-id="side_drawer_external_api_guide"
+                                    data-analytics-type="nav_item"
+                                    data-analytics-title="API 연동"
+                                    data-analytics-section="side_drawer_quick"
+                                >
+                                    <i className="ri-links-line"></i>
+                                    <div className="SD-menuLabelWithStatus">
+                                        <span>API 연동</span>
+                                        <i className="ri-arrow-right-up-line SD-smallIndicatorIcon"></i>
+                                    </div>
+                                </div>
+
                                 {pageAction && (
                                     <div
                                         className="SD-menuItem SD-registrationEntry"
@@ -895,24 +922,6 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                         >
                                             <i className="ri-mail-send-line"></i>
                                             <span>초대 관리</span>
-                                        </div>
-                                        <div className="SD-submenuItem"
-                                            role="link"
-                                            tabIndex={0}
-                                            onClick={() => window.location.assign('/external-event-api')}
-                                            onKeyDown={(event) => {
-                                                if (event.key === 'Enter' || event.key === ' ') {
-                                                    event.preventDefault();
-                                                    window.location.assign('/external-event-api');
-                                                }
-                                            }}
-                                            data-analytics-id="admin_external_api_partners"
-                                            data-analytics-type="action"
-                                            data-analytics-title="API 연동"
-                                            data-analytics-section="side_drawer_admin"
-                                        >
-                                            <i className="ri-key-2-line"></i>
-                                            <span>API 연동</span>
                                         </div>
                                     </div>
 

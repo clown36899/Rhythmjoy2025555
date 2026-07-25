@@ -425,6 +425,7 @@
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry,
 .SideDrawer .SD-menuItem.SD-notificationEntry,
 .SideDrawer .SD-menuItem.SD-themeEntry,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry,
 .SideDrawer .SD-menuItem.SD-registrationEntry {
     padding: 16px 8px; /* 가로 패딩 살짝 더 축소 */
     background: rgba(255, 255, 255, 0.03);
@@ -441,6 +442,7 @@
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry:hover,
 .SideDrawer .SD-menuItem.SD-notificationEntry:hover,
 .SideDrawer .SD-menuItem.SD-themeEntry:hover,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry:hover,
 .SideDrawer .SD-menuItem.SD-registrationEntry:hover {
     background: rgba(255, 255, 255, 0.06);
     transform: translateY(-2px);
@@ -450,6 +452,7 @@
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry i:first-child,
 .SideDrawer .SD-menuItem.SD-notificationEntry i:first-child,
 .SideDrawer .SD-menuItem.SD-themeEntry i:first-child,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry i:first-child,
 .SideDrawer .SD-menuItem.SD-registrationEntry i:first-child {
     font-size: 26px;
     color: var(--text-primary);
@@ -461,6 +464,7 @@
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry .SD-menuLabelWithStatus,
 .SideDrawer .SD-menuItem.SD-notificationEntry .SD-menuLabelWithStatus,
 .SideDrawer .SD-menuItem.SD-themeEntry .SD-menuLabelWithStatus,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry .SD-menuLabelWithStatus,
 .SideDrawer .SD-menuItem.SD-registrationEntry .SD-menuLabelWithStatus {
     display: flex;
     flex-direction: row;
@@ -473,6 +477,7 @@
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry span:first-child,
 .SideDrawer .SD-menuItem.SD-notificationEntry span:first-child,
 .SideDrawer .SD-menuItem.SD-themeEntry span:first-child,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry span:first-child,
 .SideDrawer .SD-menuItem.SD-registrationEntry span:first-child {
     font-size: 11.5px; /* 폰트 크기 축소 */
     font-weight: 700;
@@ -493,6 +498,35 @@
 .SideDrawer .SD-menuItem.SD-registrationEntry:hover {
     background: rgba(167, 139, 250, 0.08) !important;
     border-color: rgba(167, 139, 250, 0.3) !important;
+}
+
+.SideDrawer .SD-menuItem.SD-themeEntry {
+    grid-column: 1 / -1;
+    min-height: 42px;
+    padding: 8px 12px;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.SideDrawer .SD-menuItem.SD-themeEntry i:first-child {
+    font-size: 18px;
+}
+
+.SideDrawer .SD-menuItem.SD-themeEntry .SD-menuLabelWithStatus {
+    width: auto;
+}
+
+.SideDrawer .SD-menuItem.SD-apiGuideEntry i:first-child {
+    color: #69a7ff !important;
+}
+
+.SideDrawer .SD-menuItem.SD-apiGuideEntry:hover {
+    background: rgba(105, 167, 255, 0.08) !important;
+    border-color: rgba(105, 167, 255, 0.3) !important;
+}
+
+.SideDrawer .SD-menuItem.SD-apiGuideEntry.is-solo {
+    grid-column: 1 / -1;
 }
 
 .SideDrawer .SD-smallIndicatorIcon {
@@ -1248,6 +1282,7 @@
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry,
 .SideDrawer .SD-menuItem.SD-notificationEntry,
 .SideDrawer .SD-menuItem.SD-themeEntry,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry,
 .SideDrawer .SD-menuItem.SD-registrationEntry {
     min-height: 74px;
     padding: 12px 8px;
@@ -1255,9 +1290,15 @@
     background: rgba(255, 255, 255, 0.045);
 }
 
+.SideDrawer .SD-menuItem.SD-themeEntry {
+    min-height: 42px;
+    padding: 8px 12px;
+}
+
 .SideDrawer .SD-menuItem.SD-pwaGuideEntry i:first-child,
 .SideDrawer .SD-menuItem.SD-notificationEntry i:first-child,
 .SideDrawer .SD-menuItem.SD-themeEntry i:first-child,
+.SideDrawer .SD-menuItem.SD-apiGuideEntry i:first-child,
 .SideDrawer .SD-menuItem.SD-registrationEntry i:first-child {
     font-size: 24px;
 }

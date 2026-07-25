@@ -373,6 +373,7 @@ html[data-theme="light"] .SideDrawer :is(
   .SD-menuItem,
   .SD-themeEntry,
   .SD-notificationEntry,
+  .SD-apiGuideEntry,
   .SD-registrationEntry,
   .SD-adminStatsOpenBtn,
   .SD-adminGridItem,
