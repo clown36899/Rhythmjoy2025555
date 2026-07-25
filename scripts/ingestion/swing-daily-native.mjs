@@ -34,6 +34,10 @@ const sourcePriorities = (process.env.INGESTION_NATIVE_SOURCE_PRIORITY || proces
   .filter(Boolean)
   .map((priority) => Number(priority))
   .filter((priority) => Number.isFinite(priority));
+const sourceTypes = (process.env.INGESTION_NATIVE_SOURCE_TYPES || '')
+  .split(',')
+  .map((type) => type.trim())
+  .filter(Boolean);
 const sourceBatchTotal = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_TOTAL || 0));
 const sourceBatchIndex = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_INDEX || 0));
 const postLimit = Number(process.env.INGESTION_NATIVE_POST_LIMIT || 4);
@@ -1759,6 +1763,7 @@ async function main() {
   const sources = getAutomationSourceList(profile)
     .filter((source) => profile === 'expanded-research' || source.saveEnabled)
     .filter((source) => sourcePriorities.length === 0 || sourcePriorities.includes(Number(source.priority)))
+    .filter((source) => sourceTypes.length === 0 || sourceTypes.includes(source.type))
     .filter((source) => sourceIds.length === 0 || sourceIds.includes(source.id))
     .sort((a, b) => sourceOrderWeight(a) - sourceOrderWeight(b)
       || Number(a.priority || 99) - Number(b.priority || 99)

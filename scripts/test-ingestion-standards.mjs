@@ -557,11 +557,11 @@ for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
     `${scope} expanded research should include a staged benefit search`,
   );
 }
-assert.equal(
-  getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search').length,
-  4,
-  'daily swing automation should run the four dedicated benefit searches without expanded genres',
-);
+const swingBenefitSources = getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search');
+assert.equal(swingBenefitSources.length, 11, 'third-stage swing automation should run eleven focused benefit searches');
+assert.ok(swingBenefitSources.every((source) => source.priority === 3), 'benefit searches must stay isolated in priority stage three');
+assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-club-free'), 'stage three should search amateur club free benefits');
+assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-bar-pass'), 'stage three should search swing-bar passes');
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');
 assert.equal(getAutomationSourceList('swing-daily').some((source) => /batswing/i.test(source.id + source.url)), false, 'daily automation must not include BAT SWING url or handle');
 assert.ok(getCollectionSources('street').length >= 5, 'street sources should be expanded');

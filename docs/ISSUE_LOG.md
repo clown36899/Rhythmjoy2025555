@@ -650,6 +650,9 @@
   - 일정 전체가 유료여도 무료 강습·입장·체험·제공·주차 등 명시된 무료 요소가 있으면 혜택 후보로 분류한다.
   - 동호회와 바의 정기권·시즌권·월정액·멤버십 판매도 같은 탭으로 분류한다.
   - 후보 등록은 기존 운영 이벤트 등록 흐름을 그대로 사용하며, 운영 일정 목록에 노출되는 동시에 메인의 `무료, 정기권` 버튼이 연결된 혜택 목록에도 추가 노출한다.
+  - 08시 우선순위 1, 09시 우선순위 2에 이어 10시 우선순위 3 자동 실행을 추가하고, 이 단계는 `benefit_search`만 실행해 일반 수집 예산과 분리한다.
+  - 3단계 스윙 혜택 검색을 무료 강습·입장·워크숍·동호회 혜택과 바·동호회·댄스홀 정기권/패스 등 11개 검색 축으로 확장했다.
+  - 기존 Instagram 접근 지연, 연속 실패 회로 차단, 20분 실행 제한은 그대로 유지해 봇 판정과 장기 실행 위험을 제어한다.
   - 같은 후보를 다시 검증했을 때 새 혜택 메타데이터가 기존 대기 후보에 갱신되도록 했다.
   - 수집 summary에 소스별 발견·검사·일치 건수를 추가했다.
 - 검증:
@@ -662,6 +665,7 @@
   - `scripts/ingestion/collection-registry.mjs`
   - `scripts/ingestion/benefit-search-utils.mjs`
   - `scripts/ingestion/swing-daily-native.mjs`
+  - `scripts/com.rhythmjoy.codex-ingestion-priority3.plist`
   - `scripts/ingestion/candidate-utils.mjs`
   - `server/cafe24/ingestion-benefit-fields.js`
   - `server/cafe24/function-api.js`
