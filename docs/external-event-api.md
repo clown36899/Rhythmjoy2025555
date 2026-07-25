@@ -1,32 +1,65 @@
-# 외부 일정 등록 API
+# Dance Billboard 외부 일정 연동 API 안내서
 
-외부 사이트가 자기 일정 등록·수정·삭제와 동시에 Swing Enjoy의 같은 일정도 동기화하기 위한 서버 간 API다.
+이 문서는 파트너 사이트에서 일정을 등록·수정·삭제할 때 Dance Billboard에도 같은 내용을 연동하는 방법을 안내합니다.
 
-## 엔드포인트
+## 1. 연동을 시작하기 전에
+
+Dance Billboard 관리자가 파트너별 API Key를 발급해 드립니다. 연동을 원하시면 다음 정보를 관리자에게 전달해 주세요.
+
+- 파트너 또는 사이트 이름
+- 기술 담당자 연락처
+- 예상 등록 건수
+- 한 종류의 일정만 등록하는지, 여러 종류를 등록하는지
+
+발급받은 키는 다음과 같은 형태입니다.
+
+```text
+rj_live_...
+```
+
+API Key는 파트너를 식별하는 서버용 비밀번호입니다. 파트너 사이트의 HTML이나 브라우저 JavaScript에 넣으면 방문자가 키를 확인할 수 있으므로, 반드시 파트너 서버의 환경변수 또는 비밀 저장소에 보관해 주세요.
+
+### 로그인과 인증은 어떻게 처리되나요?
+
+이 API는 Dance Billboard의 웹 로그인 세션이나 쿠키를 사용하지 않습니다. 파트너 사이트 사용자가 카카오 로그인 또는 자체 로그인을 했는지도 Dance Billboard에 전달하지 않습니다.
+
+파트너 서버가 요청할 때마다 아래 헤더에 발급받은 API Key를 넣어 인증합니다.
+
+```http
+Authorization: Bearer {발급받은_API_KEY}
+```
+
+서버는 이 키로 다음 항목을 확인합니다.
+
+1. 어느 파트너가 보낸 요청인지 확인합니다.
+2. 키가 사용 중지되지 않았는지 확인합니다.
+3. 해당 파트너의 호출 한도를 확인합니다.
+4. 등록·수정·삭제 기록을 파트너별로 남깁니다.
+5. 같은 키로 등록한 일정만 수정하거나 삭제할 수 있게 제한합니다.
+
+키가 잘못되었거나 중지된 경우 `401`을 반환합니다. 키가 유출된 것으로 의심되면 즉시 Dance Billboard 관리자에게 재발급을 요청해 주세요.
+
+## 2. 기본 요청 주소
 
 ```http
 POST https://swingenjoy.com/api/external/v1/events
-Authorization: Bearer {파트너 전용 API Key}
+Authorization: Bearer {발급받은_API_KEY}
 Content-Type: application/json
 ```
 
-API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 사용한다.
+브라우저에서 직접 호출하는 CORS 방식은 제공하지 않습니다. 파트너 서버에서 Dance Billboard 서버로 요청해 주세요.
 
-브라우저 직접 호출을 위한 CORS는 제공하지 않는다.
+## 3. 날짜 입력 방법
 
-외부 사이트 로그인 세션과 Swing Enjoy 로그인 세션은 서로 공유할 수 없다. 대신 파트너별 API Key를 서버 계정처럼 사용한다. 같은 키로 만든 일정만 같은 키로 수정·삭제할 수 있으며 다른 파트너의 `external_id`나 내부 `event_id`로는 접근할 수 없다.
+날짜는 단일 일정과 개별 날짜 일정 모두 `event_dates` 하나만 사용합니다.
 
-## 단일 일정 요청 예시
+### 단일 일정
 
 ```json
 {
   "external_id": "partner-event-20260801-1",
   "title": "토요일 린디합 강습",
   "event_dates": ["2026-08-01"],
-  "time": "19:30",
-  "location": "서울 강남",
-  "address": "서울특별시 강남구 테헤란로 123",
-  "description": "행사 소개",
   "category": "class",
   "genre": "린디합",
   "source_url": "https://partner.example.com/events/1",
@@ -35,11 +68,9 @@ API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 �
 }
 ```
 
-단일 일정도 `event_dates` 배열을 사용하며 날짜를 하나만 보낸다.
+단일 일정은 `event_dates`에 날짜를 하나만 넣어 주세요.
 
-## 개별 날짜 여러 개 선택 요청 예시
-
-사이트 등록 화면의 개별 날짜 선택 기능과 동일하게 `event_dates` 배열을 사용한다.
+### 서로 떨어진 날짜 여러 개
 
 ```json
 {
@@ -50,8 +81,6 @@ API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 �
     "2026-08-08",
     "2026-08-22"
   ],
-  "time": "19:30",
-  "location": "서울 강남",
   "category": "class",
   "genre": "린디합",
   "source_url": "https://partner.example.com/classes/202608",
@@ -60,98 +89,98 @@ API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 �
 }
 ```
 
-개별 날짜 일정도 같은 `event_dates`를 사용하며 실제 노출할 날짜를 모두 보낸다.
+위 요청은 8월 1일, 8일, 22일에 각각 표시됩니다. 선택하지 않은 중간 날짜에는 표시되지 않습니다.
 
-위 예시는 서로 독립된 8월 1일, 8일, 22일 일정으로 처리되어 캘린더의 각 날짜에 노출된다. 선택하지 않은 중간 날짜에는 노출되지 않으며, 연속 일정으로 처리되지 않는다.
+### 연속 기간은 지원하지 않습니다
 
-## 연속 날짜 방식은 지원하지 않음
+`start_date`와 `end_date`는 보내지 마세요. 두 필드는 지원하지 않으며 요청에 포함하면 `400`을 반환합니다.
 
-이 사이트의 외부 일정 API는 `시작일~종료일` 형태의 연속 일정을 지원하지 않는다.
+```text
+단일 일정       event_dates에 날짜 1개
+개별 날짜 일정 event_dates에 실제 선택한 날짜 여러 개
+연속 기간 일정 지원하지 않음
+```
 
-`start_date`와 `end_date` 필드는 둘 다 지원하지 않으며, 보내면 `400` 오류를 반환한다. 여러 날짜에 노출하려면 각각을 독립된 날짜로 `event_dates`에 넣어야 한다.
+## 4. 최상위 분류와 하위 분류
+
+`category`는 사이트의 최상위 분류이고 `genre`는 해당 최상위 분류 안에서 선택하는 하위 분류입니다. 표에 있는 조합만 등록할 수 있으며, 임의의 분류나 장르는 추가할 수 없습니다.
+
+| 최상위 분류 코드 (`category`) | 화면에서의 의미 | 하위 분류 코드 (`genre`) | 어떤 일정에 사용하나요? |
+|---|---|---|---|
+| `social` | 소셜 | `소셜` | 일반 소셜, 정기 소셜 |
+| `social` | 소셜 | `졸공` | 강습 수료 공연 또는 졸업 공연 |
+| `event` | 행사 | `워크샵` | 외부 강사·특강·단기 워크샵 |
+| `event` | 행사 | `파티` | 기념 파티, 특별 파티 |
+| `event` | 행사 | `대회` | 잭앤질, 대회, 경연 |
+| `event` | 행사 | `라이브밴드` | 라이브밴드가 포함된 행사 |
+| `event` | 행사 | `기타` | 위 행사 하위 분류에 해당하지 않는 행사 |
+| `class` | 강습 | `린디합` | 린디합 강습 |
+| `class` | 강습 | `솔로재즈` | 솔로재즈 강습 |
+| `class` | 강습 | `발보아` | 발보아 강습 |
+| `class` | 강습 | `블루스` | 블루스 강습 |
+| `class` | 강습 | `팀원모집` | 공연·대회 팀원 모집 |
+| `class` | 강습 | `기타` | 위 강습 하위 분류에 해당하지 않는 강습 |
+| `club` | 동호회 | `정규강습` | 동호회 정규 과정 |
+| `club` | 동호회 | `린디합` | 린디합 중심 동호회 |
+| `club` | 동호회 | `솔로재즈` | 솔로재즈 중심 동호회 |
+| `club` | 동호회 | `발보아` | 발보아 중심 동호회 |
+| `club` | 동호회 | `블루스` | 블루스 중심 동호회 |
+| `club` | 동호회 | `팀원모집` | 동호회·팀의 팀원 모집 |
+| `club` | 동호회 | `기타` | 위 동호회 하위 분류에 해당하지 않는 일정 |
+
+예를 들어 워크샵은 다음과 같이 보내 주세요.
 
 ```json
 {
-  "event_dates": [
-    "2026-08-01",
-    "2026-08-02",
-    "2026-08-03",
-    "2026-08-04",
-    "2026-08-05"
-  ]
+  "category": "event",
+  "genre": "워크샵"
 }
 ```
 
-외부 API의 날짜 입력 필드는 하나뿐이다.
+여러 종류의 일정을 등록하는 파트너는 요청마다 두 값을 보내야 합니다. 특정 파트너가 항상 한 조합만 사용하는 경우에는 Dance Billboard 관리자가 발급 단계에서 생략값을 설정해 드릴 수 있습니다. 생략값이 설정되었는지는 API Key를 전달받을 때 함께 안내해 드립니다. 별도 안내를 받지 않았다면 `category`와 `genre`를 항상 보내 주세요.
 
-```text
-단일 일정: event_dates에 날짜 1개
-개별 날짜 일정: event_dates에 날짜 여러 개
-연속 일정: 지원하지 않음
-```
+## 5. 이미지 사용 방법
 
-`external_id`, `title`, `source_url`, `event_dates`는 항상 필수다. `external_id`가 같은 요청을 다시 보내면 새 일정을 만들지 않고 최초 `event_id`를 반환한다.
+`event`, `class`, `club` 일정에는 이미지가 필요합니다. `social` 일정은 이미지를 생략할 수 있지만, 이미지를 생략하는 경우 카카오맵에서 확인되는 주소가 필요합니다.
 
-### category와 genre를 누가 정하는가
+이미지는 다음 두 방식 중 하나를 선택할 수 있습니다.
 
-원칙적으로 상대방은 요청 JSON에 `category`와 `genre`를 직접 넣는다. 아래 표에 없는 값은 등록되지 않는다.
-
-일반적인 API Key에서는 상대방이 매 요청마다 표에 있는 `category`와 `genre`를 보낸다.
-
-예외적으로 한 업체가 워크샵만 등록한다면, 키 발급 시 관리자가 그 키의 생략값을 `event/워크샵`으로 저장할 수 있다. 그 경우 두 필드를 안 보낸 요청만 서버가 `event/워크샵`으로 채운다. 새로운 장르를 만드는 기능도 아니고 모든 파트너에게 필요한 설정도 아니다. 여러 종류를 등록하는 파트너는 생략값 없이 키를 발급받고 매번 두 필드를 보낸다.
-
-| category | 의미 | 허용 genre |
+| 방식 | `image_mode` | 사용 시점 |
 |---|---|---|
-| `social` | 소셜 일정 | `소셜`, `졸공` |
-| `event` | 행사 | `워크샵`, `파티`, `대회`, `라이브밴드`, `기타` |
-| `class` | 강습 | `린디합`, `솔로재즈`, `발보아`, `블루스`, `팀원모집`, `기타` |
-| `club` | 동호회 | `정규강습`, `린디합`, `솔로재즈`, `발보아`, `블루스`, `팀원모집`, `기타` |
+| Dance Billboard 서버에 파일 업로드 | `upload` | 파트너 서버가 이미지 파일을 가지고 있을 때 |
+| 공개 이미지 URL 전달 | `url` | 로그인 없이 열리는 HTTPS 이미지 주소가 있을 때 |
 
-관련 링크는 모든 일정에서 필수다. 이미지 규칙은 일정 분류에 따라 다르다.
+### 방법 A: 이미지 파일을 직접 업로드
 
-- `event`, `class`, `club`: 이미지 필수
-- `social`: 이미지 선택
-- 이미지 없는 `social`: 상세 화면의 카카오맵 표시를 위해 `address` 필수
-
-`address`는 카카오맵 검색이 가능한 대한민국 도로명주소 또는 지번주소를 사용한다. 건물명만 쓰지 말고 시·도부터 번지까지 보낸다.
-
-```text
-권장 도로명주소: 서울특별시 강남구 테헤란로 123
-권장 지번주소: 서울특별시 강남구 역삼동 123-45
-잘못된 예: 강남 스윙홀, 지하 1층, 역삼역 근처
-```
-
-층·호수와 장소명은 `venue_name` 또는 `location`에 넣고 `address`에는 지도 검색용 주소만 넣는다.
-
-이미지를 사용하는 경우 다음 두 방식 중 하나를 선택한다.
-
-| 선택 | image_mode | 사용 방법 |
-|---|---|---|
-| Swing Enjoy에 파일 업로드 | `upload` | 이미지 업로드 API가 반환한 `image_url` 사용 |
-| 외부 이미지 URL 연결 | `url` | 상대방의 공개 HTTPS 이미지 주소 사용 |
-
-## 이미지 파일 업로드
-
-이미지 파일을 먼저 Swing Enjoy 서버에 직접 업로드한다.
+먼저 이미지 파일 자체를 업로드 API로 보내 주세요.
 
 ```http
 POST https://swingenjoy.com/api/external/v1/images
-Authorization: Bearer {파트너 전용 API Key}
+Authorization: Bearer {발급받은_API_KEY}
 Content-Type: image/jpeg
 
-{이미지 바이너리 파일}
+{이미지 파일의 바이너리 데이터}
 ```
 
-JPEG, PNG, WebP, AVIF 파일을 최대 8MB까지 받을 수 있다. 확장자나 요청 헤더만 믿지 않고 실제 이미지인지 검사한 뒤 Swing Enjoy 저장소에 다음 4종 WebP를 만든다. SVG, GIF 애니메이션, HTML 및 실행 파일은 허용하지 않는다.
+이 요청은 JSON 요청이 아닙니다. 이미지 파일의 실제 바이트를 본문에 넣어야 합니다. Base64 문자열이나 `data:image/...` 문자열을 일정 JSON에 넣는 방식은 지원하지 않습니다.
 
-| 용도 | 필드 | 최대 폭 |
+```bash
+curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
+  -H 'Authorization: Bearer 발급받은_API_KEY' \
+  -H 'Content-Type: image/jpeg' \
+  --data-binary '@poster.jpg'
+```
+
+업로드가 완료되면 서버가 자동으로 실제 이미지인지 검사하고 다음 4종 WebP 파일을 생성합니다.
+
+| 응답 필드 | 용도 | 최대 폭 |
 |---|---|---:|
-| 초소형 | `image_micro` | 100px |
-| 썸네일 | `image_thumbnail` | 300px |
-| 일반 표시 | `image_medium` | 650px |
-| 상세 원본 | `image_full` | 1300px |
+| `image_micro` | 초소형 표시 | 100px |
+| `image_thumbnail` | 목록 썸네일 | 300px |
+| `image_medium` | 일반 화면 | 650px |
+| `image_full` | 상세 화면 | 1300px |
 
-업로드 응답:
+응답 예시는 다음과 같습니다.
 
 ```json
 {
@@ -163,89 +192,101 @@ JPEG, PNG, WebP, AVIF 파일을 최대 8MB까지 받을 수 있다. 확장자나
     "image_medium": "https://swingenjoy.com/uploads/external-events/.../medium.webp",
     "image_full": "https://swingenjoy.com/uploads/external-events/.../full.webp"
   },
-  "content_type": "image/webp",
-  "bytes": {
-    "image_micro": 4200,
-    "image_thumbnail": 18300,
-    "image_medium": 56200,
-    "image_full": 183204
-  }
+  "content_type": "image/webp"
 }
 ```
 
-반환받은 `image_url`을 일정 등록 요청에 넣는다.
+응답의 `image_url`을 일정 등록 요청에 넣어 주세요.
 
 ```json
 {
-  "external_id": "partner-event-20260801-1",
-  "title": "토요일 린디합 강습",
-  "event_dates": ["2026-08-01"],
   "image_mode": "upload",
   "image_url": "https://swingenjoy.com/uploads/external-events/.../full.webp"
 }
 ```
 
-이 방식을 사용하면 원본 사이트의 로그인 권한, URL 만료, 핫링크 차단과 관계없이 Swing Enjoy에서 이미지가 표시된다. Base64 이미지를 일정 JSON 안에 직접 넣는 방식은 허용하지 않는다.
+이 방식에서는 이미지 파일이 Dance Billboard 서버에 저장됩니다. 따라서 파트너 사이트가 로그인을 요구하거나 원본 이미지 주소가 나중에 바뀌더라도, 이미 업로드된 Dance Billboard 일정 이미지는 계속 표시됩니다.
 
-업로드 cURL 예시:
+### 방법 B: 공개 이미지 URL 전달
 
-```bash
-curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
-  -H 'Authorization: Bearer 발급받은_API_KEY' \
-  -H 'Content-Type: image/jpeg' \
-  --data-binary '@poster.jpg'
-```
-
-## 외부 이미지 URL 연결
-
-이 방식은 기존 사이트의 일반 일정 등록 화면에는 없으며, 외부 API에서만 제공하는 기능이다. 상대방이 인터넷에서 로그인 없이 열리는 HTTPS 이미지 주소를 가지고 있을 때 사용한다.
+파트너가 공개 HTTPS 이미지 주소를 가지고 있다면 파일 업로드 단계를 생략하고 일정 등록 요청에 바로 넣을 수 있습니다.
 
 ```json
 {
-  "external_id": "partner-event-20260801-2",
-  "title": "토요일 소셜",
-  "event_dates": ["2026-08-01"],
-  "category": "social",
-  "genre": "소셜",
   "image_mode": "url",
   "image_url": "https://partner.example.com/images/poster.jpg"
 }
 ```
 
-허용 확장자는 AVIF, JPEG, PNG, WebP다. 서버가 URL을 등록 시점에 직접 내려받아 실제 이미지를 검사하고 동일한 4종 WebP로 변환한 뒤 Swing Enjoy에 저장한다. 이후 원본 사이트가 이미지를 삭제해도 등록된 일정 이미지는 유지된다. 내부망·로컬 주소, 사설 IP로 해석되는 DNS, 인증이 필요한 URL, 과도한 리디렉션과 8MB 초과 응답은 차단한다.
+이후 과정은 Dance Billboard 서버가 자동으로 처리합니다.
 
-## 수정과 삭제
+1. 일정 등록 요청을 받는 즉시 `image_url`의 파일을 내려받습니다.
+2. 실제 JPEG, PNG, WebP 또는 AVIF 이미지인지 검사합니다.
+3. 파일 크기, 픽셀 수, 리디렉션과 네트워크 주소를 검사합니다.
+4. 안전한 이미지이면 WebP 4종으로 변환합니다.
+5. 변환한 파일을 Dance Billboard 서버에 저장합니다.
+6. 일정에는 외부 원본 URL이 아니라 저장된 Dance Billboard 이미지 주소를 연결합니다.
 
-수정은 전체 교체 방식이다. 등록에 사용한 것과 같은 API Key와 `external_id`를 사용하며 날짜·분류·이미지 규칙도 등록과 같다.
+파트너가 별도의 변환 API를 다시 호출할 필요는 없습니다. 일정 등록 `POST` 또는 수정 `PUT` 한 번으로 자동 처리됩니다.
+
+다음 URL은 사용할 수 없습니다.
+
+- HTTP 주소
+- 로그인이 필요한 이미지 주소
+- 잠시 후 만료되는 서명 URL
+- 사설망·로컬 서버 주소
+- 8MB를 초과하는 파일
+- 지나치게 많은 리디렉션을 사용하는 주소
+- 확장자가 `.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`가 아닌 주소
+
+원본 이미지를 성공적으로 저장한 뒤에는 파트너가 원본 파일을 삭제해도 Dance Billboard에 저장된 일정 이미지는 유지됩니다.
+
+## 6. 이미지 없는 소셜과 주소 확인
+
+이미지가 없는 `social` 일정은 상세 화면에 카카오맵을 표시하므로 정확한 도로명주소 또는 지번주소가 필요합니다. 장소명, 건물명, 역 이름만 보내면 등록할 수 없습니다.
+
+파트너 등록 화면에는 다음 주소 확인 절차를 구현해 주세요.
+
+1. 사용자가 주소를 입력합니다.
+2. 파트너 서버가 아래 주소 확인 API를 호출합니다.
+3. 반환된 후보를 사용자에게 보여 줍니다.
+4. 사용자가 올바른 후보를 선택합니다.
+5. 선택한 후보의 `address` 값을 일정 등록 요청에 사용합니다.
 
 ```http
-PUT /api/external/v1/events/{external_id}
-Authorization: Bearer {동일 파트너 API Key}
-Content-Type: application/json
+GET https://swingenjoy.com/api/external/v1/addresses/validate?query={주소}
+Authorization: Bearer {발급받은_API_KEY}
 ```
 
-본문은 등록 요청과 같고 `external_id`를 넣는 경우 URL 값과 정확히 같아야 한다.
+호출 예시는 다음과 같습니다.
 
-```http
-DELETE /api/external/v1/events/{external_id}
-Authorization: Bearer {동일 파트너 API Key}
+```bash
+curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
+  -H 'Authorization: Bearer 발급받은_API_KEY' \
+  --data-urlencode 'query=서울 강남구 테헤란로 123'
 ```
 
-다른 파트너 키로 만든 일정은 존재 여부를 구분할 수 없도록 `404`로 처리한다. 내부 `event_id`는 수정·삭제 권한 식별자로 사용하지 않는다.
+응답 예시는 다음과 같습니다.
 
-## 추적과 차단
+```json
+{
+  "ok": true,
+  "query": "서울 강남구 테헤란로 123",
+  "candidates": [
+    {
+      "address": "서울 강남구 테헤란로 123",
+      "road_address": "서울 강남구 테헤란로 123",
+      "jibun_address": "서울 강남구 역삼동 123-45",
+      "building_name": "예시빌딩",
+      "postal_code": "06123",
+      "latitude": "37.000000",
+      "longitude": "127.000000"
+    }
+  ]
+}
+```
 
-- 모든 성공·중복·거절·수정·삭제 요청은 파트너 ID, `external_id`, 결과, 상태 코드, 요청 IP, 시각과 함께 기록한다.
-- 관리자는 Swing Enjoy 관리자 로그인 세션이 있어야 파트너 목록과 요청 로그를 조회할 수 있다.
-- `PATCH /api/admin/external-partners/{partner_id}`에 `{"is_active": false}`를 보내면 해당 키를 즉시 중지한다.
-- 파트너별 분당·일일 호출 제한을 적용한다.
-- API Key 원문은 발급 시 한 번만 표시하고 DB에는 SHA-256 해시만 저장한다.
-
-이미지를 사용하는 경우 `image_mode`과 `image_url` 중 하나라도 빠지면 등록되지 않는다. 둘 다 생략할 수 있는 경우는 주소가 있는 `social`뿐이다.
-
-## 이미지 없는 소셜
-
-소셜은 이미지 없이 등록할 수 있다. 이 경우 상세 화면의 이미지 영역 대신 기존 `EventKakaoMap`을 사용해 장소 주소를 카카오맵으로 표시한다.
+후보가 없으면 `422 address_not_found`를 반환합니다. 이미지 없는 소셜 등록 시에도 서버가 주소를 다시 확인하므로, 확인 API를 거치지 않은 잘못된 주소는 최종 등록 단계에서 거절됩니다.
 
 ```json
 {
@@ -256,85 +297,59 @@ Authorization: Bearer {동일 파트너 API Key}
   "category": "social",
   "genre": "소셜",
   "location": "스윙홀",
-  "address": "서울특별시 강남구 테헤란로 1",
-  "location_link": "https://map.kakao.com/...",
+  "address": "서울 강남구 테헤란로 123",
   "source_url": "https://partner.example.com/socials/3"
 }
 ```
 
-이 방식에서는 `image_mode`과 `image_url`을 모두 생략한다. 카카오 주소 검색이 가능하도록 도로명 또는 지번 주소를 `address`에 정확히 보내야 한다. `location`은 상세 화면과 지도 마커에 표시할 장소명이고, `location_link`는 지도 외부 열기 링크다.
+`location`에는 장소명을 넣고 `address`에는 주소 확인 API가 반환한 주소를 넣어 주세요. 이 경우 `image_mode`과 `image_url`은 생략합니다.
 
-## 사이트 분류값
+## 7. 등록 필드
 
-| category | 허용 genre |
-|---|---|
-| `social` | `소셜`, `졸공` |
-| `event` | `워크샵`, `파티`, `대회`, `라이브밴드`, `기타` |
-| `class` | `린디합`, `솔로재즈`, `발보아`, `블루스`, `팀원모집`, `기타` |
-| `club` | `정규강습`, `린디합`, `솔로재즈`, `발보아`, `블루스`, `팀원모집`, `기타` |
-
-표에 없는 값은 등록하지 않고 `400` 오류로 반환한다.
-
-## 필드 규칙
-
-| 필드 | 필수 | 형식 및 제한 |
+| 필드 | 필수 여부 | 설명 |
 |---|---:|---|
-| `external_id` | 예 | 파트너 시스템 내 일정 고유번호, 최대 160자 |
-| `title` | 예 | 최대 255자 |
-| `event_dates` | 예 | 날짜 배열, 최대 366개; 단일 일정은 1개, 개별 날짜 일정은 여러 개 |
-| `time` | 아니오 | 표시용 시간 문자열, 최대 120자 |
-| `location` | 아니오 | 최대 255자 |
-| `address` | 조건부 | 최대 255자; 이미지 없는 `social`에서는 카카오맵 표시를 위해 필수 |
-| `location_link` | 아니오 | 공개 HTTPS URL |
-| `description` | 아니오 | 최대 20,000자 |
-| `category` | 조건부 | 위 표의 고정 영문값, 파트너 기본값이 있으면 생략 가능 |
-| `genre` | 조건부 | 선택한 `category`에 허용된 사이트 장르값 |
-| `source_url` | 예 | 기존 사이트의 필수 관련 링크에 해당하는 원본 일정 공개 HTTPS URL |
-| `link_name1` | 아니오 | 링크 표시명, 기본값 `자세히 보기` |
-| `image_mode` | 조건부 | 이미지를 사용할 때 `upload` 또는 `url`; 이미지 없는 `social`만 생략 가능 |
-| `image_url` | 조건부 | 이미지를 사용할 때 필수; 이미지 없는 `social`만 생략 가능 |
-| `venue_name` | 아니오 | 생략 시 `location` 사용 |
+| `external_id` | 필수 | 파트너 시스템에서 사용하는 일정 고유번호, 최대 160자 |
+| `title` | 필수 | 일정 제목, 최대 255자 |
+| `event_dates` | 필수 | 실제 표시할 날짜 배열, 최대 366개 |
+| `category` | 원칙적으로 필수 | 최상위 분류 코드 |
+| `genre` | 원칙적으로 필수 | 선택한 최상위 분류의 하위 분류 코드 |
+| `source_url` | 필수 | 파트너 사이트의 공개 HTTPS 일정 상세 주소 |
+| `time` | 선택 | 표시용 시간, 최대 120자 |
+| `location` | 선택 | 장소명, 최대 255자 |
+| `address` | 조건부 | 이미지 없는 소셜에서 필수이며 주소 확인 API 결과를 사용 |
+| `location_link` | 선택 | 공개 HTTPS 지도 또는 장소 링크 |
+| `description` | 선택 | 일정 설명, 최대 20,000자 |
+| `link_name1` | 선택 | 상세 링크 표시명, 기본값은 `자세히 보기` |
+| `image_mode` | 조건부 | 이미지를 사용할 때 `upload` 또는 `url` |
+| `image_url` | 조건부 | 이미지를 사용할 때 필수 |
+| `venue_name` | 선택 | 생략하면 `location` 값을 사용 |
 
-다음 필드는 상대방이 지정할 수 없다.
+`external_id`는 매우 중요합니다. 같은 일정을 다시 요청할 때 같은 값을 사용하면 중복 일정을 만들지 않습니다. 수정과 삭제에도 같은 값을 사용합니다.
 
-```text
-id, user_id, created_at, updated_at, start_date, end_date, password,
-organizer_name, organizer_phone, dance_scope, dance_genre,
-activity_type, group_id, board_users, organizer,
-scope, show_title_on_billboard, main_ad_image_kind
+## 8. 수정과 삭제
+
+수정은 기존 일정의 일부만 바꾸는 방식이 아니라 전체 내용을 다시 보내는 방식입니다.
+
+```http
+PUT https://swingenjoy.com/api/external/v1/events/{external_id}
+Authorization: Bearer {등록할_때_사용한_동일한_API_KEY}
+Content-Type: application/json
 ```
 
-이 값들은 Swing Enjoy 서버가 사이트 규칙에 맞춰 생성한다.
+본문은 등록 요청과 같은 필드를 보내 주세요. 본문에 `external_id`를 포함한다면 URL의 값과 같아야 합니다.
 
-API로 등록되는 일정에는 기존 등록 기능과 동일하게 다음 값이 자동 적용된다.
+삭제는 다음과 같이 요청합니다.
 
-```text
-scope = domestic
-show_title_on_billboard = true
-organizer = 익명
+```http
+DELETE https://swingenjoy.com/api/external/v1/events/{external_id}
+Authorization: Bearer {등록할_때_사용한_동일한_API_KEY}
 ```
 
-## 메인 광고 노출 규칙
+다른 파트너의 키로는 일정을 수정하거나 삭제할 수 없습니다. 권한이 없는 일정은 존재 여부도 노출하지 않도록 `404`를 반환합니다.
 
-일정을 API로 등록했다고 해서 메인 광고 노출이 보장되지는 않는다. 일반 사이트 등록 일정과 같은 후보 선정 규칙을 적용한다.
+## 9. 응답과 재시도
 
-- `event`, `class`, `club` 일정만 메인 신규 이벤트 광고 후보가 될 수 있다.
-- `social` 일정은 메인 신규 이벤트 광고에서 제외된다.
-- 오늘 또는 미래에 노출 날짜가 남아 있어야 한다.
-- 관리자가 설정한 포함 장르, 등록 시간 범위, 정렬 방식과 최대 개수 설정을 적용한다.
-- 현재 기본 등록 시간 범위는 72시간이며 최대 노출 개수는 10개다. 운영 설정으로 달라질 수 있다.
-- 후보가 부족하고 관리자 fallback 설정이 켜져 있으면 등록 시간이 지난 미래 일정도 보충 후보가 될 수 있다.
-- 같은 등록자와 같은 장소의 일정은 메인 광고에서 한 건만 선택될 수 있다.
-
-`main_ad_image_kind`는 API에서 받지 않는다. 이 값은 메인 광고 강제 노출 스위치가 아니며, 관리자가 이미지의 사진/포스터 판정을 보정할 때 사용하는 내부 값이다.
-
-### 메인 광고와 빌보드는 다름
-
-`show_title_on_billboard = true`는 전용 빌보드 화면에서 이미지와 함께 제목·날짜·장소 정보를 표시할 수 있게 하는 기본값이다. 홈 화면의 메인 신규 이벤트 광고 후보 선정과는 별도 기능이다. 외부 API에서는 이 값을 임의로 끄거나 메인 광고 노출을 강제할 수 없다.
-
-## 응답
-
-최초 등록:
+최초 등록 성공:
 
 ```json
 {
@@ -345,7 +360,7 @@ organizer = 익명
 }
 ```
 
-중복 요청:
+같은 `external_id`를 다시 등록한 경우:
 
 ```json
 {
@@ -355,7 +370,7 @@ organizer = 익명
 }
 ```
 
-## 오류 응답
+오류 응답:
 
 ```json
 {
@@ -365,18 +380,20 @@ organizer = 익명
 }
 ```
 
-| HTTP | code | 의미 | 상대방 처리 |
+| HTTP | `code` | 의미 | 권장 처리 |
 |---:|---|---|---|
-| `400` | `invalid_request` | 필수값, 날짜, 분류 또는 URL이 잘못됨 | 값을 수정한 뒤 다시 요청 |
-| `401` | `invalid_api_key` | 키가 잘못됐거나 중지됨 | 키 확인, 임의 반복 금지 |
-| `413` | `payload_too_large` | 일정 JSON 256KB 또는 이미지 8MB 초과 | 본문 또는 이미지 축소 |
-| `415` | `unsupported_media_type` | 이미지 Content-Type이 지원 형식이 아님 | JPEG, PNG, WebP, AVIF로 전송 |
-| `429` | `rate_limit_exceeded` | 파트너 호출 한도 초과 | 잠시 기다린 뒤 재시도 |
-| `500` | 없음 | 서버 처리 실패 | 같은 `external_id`로 지수 백오프 재시도 |
+| `400` | `invalid_request` | 필수값, 날짜, 분류 또는 URL이 잘못되었습니다. | 값을 수정한 후 다시 요청해 주세요. |
+| `401` | `invalid_api_key` | 키가 잘못되었거나 중지되었습니다. | 자동 반복하지 말고 키를 확인해 주세요. |
+| `404` | `not_found` | 해당 키가 소유한 일정을 찾을 수 없습니다. | `external_id`와 사용한 키를 확인해 주세요. |
+| `413` | `payload_too_large` | JSON 256KB 또는 이미지 8MB를 초과했습니다. | 본문 또는 이미지를 줄여 주세요. |
+| `415` | `unsupported_media_type` | 지원하지 않는 이미지 형식입니다. | JPEG, PNG, WebP, AVIF를 사용해 주세요. |
+| `422` | `address_not_found` | 카카오맵에서 주소를 확인할 수 없습니다. | 주소 확인 API에서 후보를 다시 선택해 주세요. |
+| `429` | `rate_limit_exceeded` | 파트너 호출 한도를 초과했습니다. | 잠시 기다린 후 재시도해 주세요. |
+| `500`, `503` | 서버 오류 코드 | 일시적인 서버 또는 외부 서비스 오류입니다. | 같은 `external_id`로 간격을 늘려 재시도해 주세요. |
 
-네트워크 오류나 `500`, `429`에서는 같은 `external_id`로 재시도한다. `400`, `401`은 자동으로 반복 요청하지 않는다. 동일 `external_id` 재시도는 중복 일정을 생성하지 않는다.
+네트워크 오류, `429`, `500`, `503`에서는 같은 `external_id`로 재시도해 주세요. `400`, `401`, `404`, `422`는 입력이나 권한을 확인하기 전까지 자동 반복하지 마세요.
 
-## cURL 확인 예제
+## 10. 전체 등록 cURL 예시
 
 ```bash
 curl -X POST 'https://swingenjoy.com/api/external/v1/events' \
@@ -386,30 +403,14 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/events' \
     "external_id": "partner-event-20260801-1",
     "title": "토요일 린디합 강습",
     "event_dates": ["2026-08-01"],
+    "time": "19:30",
     "location": "서울 강남",
+    "category": "class",
+    "genre": "린디합",
     "source_url": "https://partner.example.com/events/1",
     "image_mode": "url",
     "image_url": "https://partner.example.com/images/1.webp"
   }'
 ```
 
-## 운영 준비
-
-DB에 다음 마이그레이션을 먼저 적용한다.
-
-```text
-server/cafe24/migrations/2026-07-26-external-events-api.sql
-```
-
-그다음 파트너별 키를 하나씩 발급한다.
-
-```bash
-npm run external-api:create-partner -- \
-  --name "파트너명" \
-  --category class \
-  --genre "린디합"
-```
-
-출력되는 키는 한 번만 표시된다. 파트너마다 별도 키를 사용하고, 유출 시 해당 파트너의 `is_active`를 `0`으로 변경한다.
-
-기계 판독용 정식 계약은 `docs/external-event-api.openapi.yaml`에 있다.
+기계 판독용 API 정의는 함께 전달된 `external-event-api.openapi.yaml` 파일을 참고해 주세요.

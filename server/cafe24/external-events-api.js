@@ -39,6 +39,7 @@ const MAX_TITLE_LENGTH = 255;
 const MAX_DESCRIPTION_LENGTH = 20_000;
 const MAX_TEXT_FIELD_LENGTH = 255;
 const MAX_LINK_LENGTH = 2_048;
+const KAKAO_ADDRESS_API_URL = 'https://dapi.kakao.com/v2/local/search/address.json';
 const API_KEY_PREFIX = 'rj_live_';
 const EVENTS_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
@@ -95,7 +96,7 @@ function normalizeDate(value, field) {
 
 export function isKakaoMapAddress(value) {
   const text = String(value || '').trim();
-  return /^(?:서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|제주특별자치도|경기도|강원특별자치도|충청북도|충청남도|전북특별자치도|전라남도|경상북도|경상남도)\s+.+\s+\d+(?:-\d+)?(?:\s|$)/.test(text);
+  return /^(?:서울(?:특별시)?|부산(?:광역시)?|대구(?:광역시)?|인천(?:광역시)?|광주(?:광역시)?|대전(?:광역시)?|울산(?:광역시)?|세종(?:특별자치시)?|제주(?:특별자치도)?|경기(?:도)?|강원(?:특별자치도)?|충북|충청북도|충남|충청남도|전북|전북특별자치도|전남|전라남도|경북|경상북도|경남|경상남도)\s+.+\s+\d+(?:-\d+)?(?:\s|$)/.test(text);
 }
 
 function isPublicIpv4(address) {
@@ -349,6 +350,63 @@ async function authenticatePartner(req, pool) {
     throw apiError('API Key가 유효하지 않거나 중지되었습니다.', 401, 'invalid_api_key');
   }
   return partner;
+}
+
+export function normalizeKakaoAddressDocuments(documents) {
+  return (Array.isArray(documents) ? documents : []).slice(0, 5).map((document) => {
+    const road = document?.road_address || {};
+    const jibun = document?.address || {};
+    return {
+      address: String(road.address_name || jibun.address_name || '').trim(),
+      road_address: String(road.address_name || '').trim() || null,
+      jibun_address: String(jibun.address_name || '').trim() || null,
+      building_name: String(road.building_name || '').trim() || null,
+      postal_code: String(road.zone_no || '').trim() || null,
+      latitude: String(document?.y || '').trim() || null,
+      longitude: String(document?.x || '').trim() || null,
+    };
+  }).filter((candidate) => candidate.address);
+}
+
+async function searchKakaoAddress(query) {
+  const restApiKey = String(process.env.VITE_KAKAO_REST_API_KEY || '').trim();
+  if (!restApiKey) {
+    throw apiError('주소 확인 서비스를 사용할 수 없습니다.', 503, 'address_service_unavailable');
+  }
+  const url = new URL(KAKAO_ADDRESS_API_URL);
+  url.searchParams.set('query', query);
+  url.searchParams.set('size', '5');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+  let response;
+  try {
+    response = await undiciFetch(url, {
+      signal: controller.signal,
+      headers: { Authorization: `KakaoAK ${restApiKey}` },
+    });
+  } catch {
+    throw apiError('주소 확인 서비스에 연결할 수 없습니다.', 503, 'address_service_unavailable');
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!response.ok) {
+    throw apiError('주소 확인 서비스가 요청을 처리하지 못했습니다.', 503, 'address_service_unavailable');
+  }
+  const payload = await response.json();
+  return normalizeKakaoAddressDocuments(payload?.documents);
+}
+
+async function requireVerifiedKakaoAddress(value) {
+  const query = cleanString(value, MAX_TEXT_FIELD_LENGTH, 'address', { required: true });
+  const candidates = await searchKakaoAddress(query);
+  if (!candidates.length) {
+    throw apiError(
+      '카카오맵에서 확인되지 않는 주소입니다. 주소 확인 API에서 선택한 정확한 도로명주소 또는 지번주소를 보내주세요.',
+      422,
+      'address_not_found',
+    );
+  }
+  return candidates[0];
 }
 
 export async function normalizeExternalImage(buffer) {
@@ -633,6 +691,38 @@ async function recordRequest(pool, values) {
   }
 }
 
+export async function validateExternalAddress(req, res) {
+  const pool = getMysqlPool();
+  const partner = await authenticatePartner(req, pool);
+  const query = cleanString(req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
+  await recordRequest(pool, {
+    partnerId: partner.id,
+    statusCode: 202,
+    result: 'attempt',
+    requestIp: req.ip,
+    strict: true,
+  });
+  await enforceRateLimit(pool, partner);
+  const candidates = await searchKakaoAddress(query);
+  if (!candidates.length) {
+    await recordRequest(pool, {
+      partnerId: partner.id,
+      statusCode: 422,
+      result: 'rejected',
+      errorCode: 'address_not_found',
+      requestIp: req.ip,
+    });
+    throw apiError('카카오맵에서 확인되는 주소가 없습니다.', 422, 'address_not_found');
+  }
+  await recordRequest(pool, {
+    partnerId: partner.id,
+    statusCode: 200,
+    result: 'address_validated',
+    requestIp: req.ip,
+  });
+  res.json({ ok: true, query, candidates });
+}
+
 export async function createExternalEvent(req, res) {
   const pool = getMysqlPool();
   let partner;
@@ -673,6 +763,10 @@ export async function createExternalEvent(req, res) {
         event_id: String(existingRows[0].event_id),
       });
       return;
+    }
+    if (!normalized.event.image && normalized.event.category === 'social') {
+      const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
+      normalized.event.address = verifiedAddress.address;
     }
     await materializeEventImage(normalized, partner);
 
@@ -783,6 +877,10 @@ export async function updateExternalEvent(req, res) {
   }
   const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
   const normalized = normalizeExternalEventPayload({ ...req.body, external_id: externalId }, partner);
+  if (!normalized.event.image && normalized.event.category === 'social') {
+    const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
+    normalized.event.address = verifiedAddress.address;
+  }
   await materializeEventImage(normalized, partner);
   const partnerUser = {
     id: partner.owner_user_id || `external:${partner.id}`,

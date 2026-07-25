@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizeExternalEventPayload,
   normalizeExternalImage,
+  normalizeKakaoAddressDocuments,
   normalizeExternalUrl,
   parseExternalApiKey,
   createImageVariants,
@@ -153,6 +154,27 @@ describe('external event API validation', () => {
     ].forEach((address) => expect(isPublicAddress(address)).toBe(false));
     expect(isPublicAddress('8.8.8.8')).toBe(true);
     expect(isPublicAddress('2606:4700:4700::1111')).toBe(true);
+  });
+
+  it('normalizes Kakao address search results to partner-facing candidates', () => {
+    expect(normalizeKakaoAddressDocuments([{
+      x: '127.0276',
+      y: '37.4979',
+      address: { address_name: '서울 강남구 역삼동 123-45' },
+      road_address: {
+        address_name: '서울 강남구 테헤란로 123',
+        building_name: '테스트빌딩',
+        zone_no: '06123',
+      },
+    }])).toEqual([{
+      address: '서울 강남구 테헤란로 123',
+      road_address: '서울 강남구 테헤란로 123',
+      jibun_address: '서울 강남구 역삼동 123-45',
+      building_name: '테스트빌딩',
+      postal_code: '06123',
+      latitude: '37.4979',
+      longitude: '127.0276',
+    }]);
   });
 
   it('supports explicit external URL and uploaded image modes', () => {

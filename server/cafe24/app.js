@@ -19,6 +19,7 @@ import {
   updateExternalEvent,
   updateExternalPartnerStatus,
   uploadExternalEventImage,
+  validateExternalAddress,
 } from './external-events-api.js';
 import { authProviders, devLogin, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
 import {
@@ -252,6 +253,7 @@ app.post('/api/external/v1/events', externalEventJsonBody, jsonRoute(createExter
 app.put('/api/external/v1/events/:externalId', externalEventJsonBody, jsonRoute(updateExternalEvent));
 app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent));
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
+app.get('/api/external/v1/addresses/validate', jsonRoute(validateExternalAddress));
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
 app.patch('/api/admin/external-partners/:partnerId', jsonBody, jsonRoute(updateExternalPartnerStatus));
 app.get('/api/admin/external-request-logs', jsonRoute(listExternalRequestLogs));

@@ -244,6 +244,27 @@
   - `docs/external-event-api.openapi.yaml`
 - 관련 커밋: pending
 
+## 2026-07-26 외부 일정 API 파트너 문서와 주소 확인 보강
+
+- 상태: 해결
+- 범위: 파트너 전달 문서, API 인증 설명, 이미지 없는 소셜 주소 입력
+- 증상: 파트너용 문서에 관리자 명령과 내부 광고 설명이 섞여 있었고, 주소 형식 설명만으로는 카카오맵에서 실제 검색되는 주소를 보장할 수 없었다.
+- 조치:
+  - 파트너 문서를 존댓말 안내서로 다시 작성하고 관리자 운영 절차를 별도 문서로 분리했다.
+  - 최상위 분류 `category`와 하위 분류 `genre`를 조합별 표와 사용 사례로 설명했다.
+  - 서버용 API Key 인증과 웹 로그인 세션을 사용하지 않는 이유·요청 흐름·소유권 범위를 명시했다.
+  - 파트너 인증이 필요한 카카오 주소 확인 API를 추가하고, 이미지 없는 소셜 등록·수정 시 서버가 주소를 다시 확인하도록 했다.
+- 검증:
+  - 외부 API 단위 테스트, OpenAPI 파싱, TypeScript, ESLint, 프로덕션 빌드
+  - 운영 배포 후 실제 API Key를 사용한 주소 검색·등록 거절 및 인증 차단 E2E
+- 관련 파일:
+  - `docs/external-event-api.md`
+  - `docs/external-event-api-operations.md`
+  - `docs/external-event-api.openapi.yaml`
+  - `server/cafe24/external-events-api.js`
+  - `server/cafe24/app.js`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md
