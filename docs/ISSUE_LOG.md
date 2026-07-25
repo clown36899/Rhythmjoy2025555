@@ -204,6 +204,7 @@
 - 조치:
   - `sharp`를 운영 의존성으로 이동하고 Cafe24 OS 호환 버전 `0.32.6`으로 고정했다.
   - 패키지 파일이 변경된 배포에서는 `npm install --omit=dev`를 자동 실행하도록 배포 스크립트를 보강했다.
+  - 외부 이미지 업로드 경로에서만 이미지 Content-Type을 허용하도록 ModSecurity 규칙 `960010`을 해제했다.
   - 운영 DB 백업 후 외부 API용 새 테이블만 생성했으며 기존 `events` 레코드는 변경하지 않았다.
 - 검증:
   - 운영 서버에서 `sharp runtime ok 0.32.6` 확인
@@ -213,6 +214,7 @@
   - `package.json`
   - `package-lock.json`
   - `scripts/deploy-cafe24.sh`
+  - `deploy/cafe24/apache/swingenjoy-modsecurity-exceptions.conf`
   - `server/cafe24/external-events-api.js`
 - 관련 커밋: pending
 
