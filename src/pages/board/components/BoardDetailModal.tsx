@@ -36,7 +36,8 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
         postId,
         category,
         onPostDeleted: onClose,
-        isAdmin
+        isAdmin,
+        currentUserId: user?.id || null,
     });
 
     useEffect(() => {

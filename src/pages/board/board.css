@@ -1000,6 +1000,20 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   );
 }
 
+.free-board-row.is-hidden.is-locked,
+.free-board-mobile-row.is-hidden.is-locked {
+  opacity: 1;
+}
+
+.free-board-row.is-not-clickable,
+.free-board-mobile-row.is-not-clickable {
+  cursor: default;
+}
+
+.free-board-row.is-not-clickable:hover {
+  background-color: var(--free-board-row);
+}
+
 .free-board-row.is-hidden-placeholder,
 .free-board-mobile-row.is-hidden-placeholder {
   cursor: default;

@@ -384,6 +384,7 @@ export default function BoardMainContainer() {
                         dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
+                        currentUserId={user?.id || null}
                         selectedPrefixId={selectedPrefixId}
                         onPrefixChange={handlePrefixChange}
                     />

@@ -9,6 +9,7 @@ interface UseBoardDetailProps {
     category?: string;
     onPostDeleted?: () => void;
     isAdmin?: boolean;
+    currentUserId?: string | null;
 }
 
 const getBoardDetailRequestKey = (postId: string | number | undefined, category?: string) => {
@@ -16,7 +17,7 @@ const getBoardDetailRequestKey = (postId: string | number | undefined, category?
     return `${category || 'free'}:${String(postId)}`;
 };
 
-export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: UseBoardDetailProps) {
+export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, currentUserId }: UseBoardDetailProps) {
     const [post, setPost] = useState<BoardPost | null>(null);
     const [loading, setLoading] = useState(() => Boolean(postId));
     const [updating, setUpdating] = useState(false);
@@ -117,7 +118,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
                 return;
             }
 
-            if (data.is_hidden && !isAdmin) {
+            if (data.is_hidden && !isAdmin && data.user_id !== currentUserId) {
                 setPost(null);
                 setLoadedRequestKey(requestKey);
                 perfInfo('board.detail.hidden-for-user', {
@@ -176,7 +177,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin }: Use
         } finally {
             if (isLatestRequest()) setLoading(false);
         }
-    }, [category, isAdmin]);
+    }, [category, currentUserId, isAdmin]);
 
     const refreshPost = useCallback(() => {
         if (postId) loadPost(postId);
