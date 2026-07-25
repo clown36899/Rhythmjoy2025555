@@ -514,6 +514,15 @@
   - `src/styles/theme-completion.css`
   - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
 
+## 2026-07-26 햄버거 메뉴 API 버튼 의미 불명확
+
+- 상태: 해결
+- 증상: `API 연동`이라는 짧은 이름만으로는 외부 사이트 일정을 자동 등록하는 기능인지 바로 알기 어려웠다.
+- 해결: 버튼 제목을 `자동등록 API`로 변경하고 `외부 사이트 일정 연동` 설명을 별도 줄로 표시해 제목과 용도를 한눈에 구분하도록 했다.
+- 관련 파일:
+  - `src/components/SideDrawer.tsx`
+  - `src/styles/domains/overlays.css`
+
 ## 새 항목 템플릿
 
 ```md

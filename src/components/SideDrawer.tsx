@@ -660,14 +660,15 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     }}
                                     data-analytics-id="side_drawer_external_api_guide"
                                     data-analytics-type="nav_item"
-                                    data-analytics-title="API 연동"
+                                    data-analytics-title="자동등록 API"
                                     data-analytics-section="side_drawer_quick"
                                 >
                                     <i className="ri-links-line"></i>
-                                    <div className="SD-menuLabelWithStatus">
-                                        <span>API 연동</span>
-                                        <i className="ri-arrow-right-up-line SD-smallIndicatorIcon"></i>
+                                    <div className="SD-apiGuideCopy">
+                                        <strong>자동등록 API</strong>
+                                        <small>외부 사이트 일정 연동</small>
                                     </div>
+                                    <i className="ri-arrow-right-s-line SD-apiGuideArrow" aria-hidden="true"></i>
                                 </div>
 
                                 {pageAction && (
