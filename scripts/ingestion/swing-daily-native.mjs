@@ -5,6 +5,7 @@ import {
   buildCafe24Payload,
   getBlockedKeywordReason,
   isCollectableDateTime,
+  isEvergreenSeasonPassCandidate,
   keepFirstEventDateOnly,
   normalizeSourceUrl,
   prepareCandidate,
@@ -1417,7 +1418,14 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
     return candidates;
   }
 
-  const dates = selectCandidateDates({ title: candidateTitle, cleanText, activity });
+  const isEvergreenSeasonPass = source.benefitKind === 'season_pass'
+    && isEvergreenSeasonPassCandidate({
+      extracted_text: cleanText,
+      structured_data: { title: candidateTitle },
+    });
+  const dates = isEvergreenSeasonPass
+    ? [today]
+    : selectCandidateDates({ title: candidateTitle, cleanText, activity });
   if (!dates.length) {
     result.skipped += 1;
     if (oneDayPattern.test(cleanText)) {
@@ -1436,7 +1444,7 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   };
 
   for (const [index, date] of dates.entries()) {
-    if (!isCollectableDateTime(date, `${candidateTitle}\n${cleanText}`)) {
+    if (!isEvergreenSeasonPass && !isCollectableDateTime(date, `${candidateTitle}\n${cleanText}`)) {
       result.skipped += 1;
       log(`skip ${source.id} ${date}: same-day event has no future time or is already past`);
       continue;

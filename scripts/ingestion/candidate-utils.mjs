@@ -125,7 +125,10 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
     sd.description,
     sd.price,
   ].filter(Boolean).join(' ').normalize('NFKC');
-  if (/(?:정기권|시즌권|월정액|멤버십)\s*(?:판매|신청|모집|오픈|출시|구매|이벤트)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기권|시즌권|월정액|멤버십)/i.test(text)) {
+  const seasonPassText = text
+    .replace(/(?:정기권|시즌권|월정액|멤버십|\d+\s*회권)[^.!?\n]{0,40}(?:판매|구매|신청|운영)?\s*(?:하지\s*않|안\s*함|없(?:음|습니다|다)|불가|종료|마감|중단|폐지|품절)/gi, ' ')
+    .replace(/(?:판매|구매|신청|운영)\s*(?:하지\s*않|안\s*함|없(?:음|습니다|다)|불가|종료|마감|중단|폐지|품절)[^.!?\n]{0,20}(?:정기권|시즌권|월정액|멤버십|\d+\s*회권)/gi, ' ');
+  if (/(?:정기권|시즌권|월정액|멤버십|\d+\s*회권)\s*(?:판매|신청|모집|오픈|출시|구매|이벤트|가격|요금|안내)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기권|시즌권|월정액|멤버십|\d+\s*회권)/i.test(seasonPassText)) {
     return 'season_pass';
   }
   const discountText = text
@@ -142,6 +145,21 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
     return 'free_event';
   }
   return null;
+}
+
+export function isEvergreenSeasonPassCandidate(candidate = {}) {
+  if (classifyConfirmedBenefitEvent(candidate) !== 'season_pass') return false;
+  const sd = candidate.structured_data || {};
+  const text = [
+    sd.title,
+    candidate.extracted_text,
+    sd.description,
+    sd.price,
+  ].filter(Boolean).join(' ').normalize('NFKC');
+  if (/(?:판매|신청|구매|운영|발급)\s*(?:종료|마감|중단)|(?:정기권|시즌권|월정액|멤버십|membership|\bpass\b)[^.!?\n]{0,24}(?:종료|마감|중단|폐지|품절|sold\s*out|closed|ended)/i.test(text)) {
+    return false;
+  }
+  return /상시\s*(?:판매|신청|구매|이용|운영)|연중\s*(?:판매|신청|운영)|언제든\s*(?:구매|신청|이용)|수시\s*(?:판매|신청)|(?:현재\s*)?(?:판매|구매|신청)\s*(?:중|가능)|(?:정기권|월정액|멤버십|membership)\s*(?:가격|요금|안내|구매|신청|이용)|(?:가격|요금)\s*[:：]?\s*\d[\d,]*\s*원[^.!?\n]{0,24}(?:정기권|월정액|멤버십|membership)/i.test(text);
 }
 
 export const siteGenresByCategory = {
@@ -704,13 +722,14 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   const sourceExcludedReason = getExcludedSourceReason(sourceUrl);
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
   const blockedKeywordReason = getBlockedKeywordReason(text);
+  const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenSeasonPassCandidate(candidate);
 
   if (!sourceUrl) errors.push('source_url required');
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
   if (blockedKeywordReason) errors.push(blockedKeywordReason);
   if (!date) errors.push('structured_data.date required');
-  if (date && date < today) errors.push(`past event date: ${date} < ${today}`);
-  if (date && date === today && !isCollectableDateTime(date, text, { today, nowMinutes })) {
+  if (date && date < today && !isEvergreenSeasonPass) errors.push(`past event date: ${date} < ${today}`);
+  if (date && date === today && !isEvergreenSeasonPass && !isCollectableDateTime(date, text, { today, nowMinutes })) {
     errors.push('same-day event requires an explicit future start time');
   }
   if (looksLikeDeadlineOnlyDate(text, date, taxonomy.activity_type)) {
@@ -783,6 +802,17 @@ export function prepareCandidate(rawCandidate, config = {}) {
   } else {
     delete structuredData.benefit_eligible;
     delete structuredData.benefit_kind;
+  }
+  const effectiveToday = String(config.today || todayISO()).slice(0, 10);
+  const evergreenSeasonPass = confirmedBenefit === 'season_pass'
+    && isEvergreenSeasonPassCandidate({ ...rawCandidate, structured_data: structuredData });
+  if (evergreenSeasonPass) {
+    structuredData.ongoing_sale = true;
+    const originalDate = String(structuredData.date || '').slice(0, 10);
+    if (originalDate) structuredData.source_post_date = originalDate;
+    if (!originalDate || originalDate < effectiveToday) structuredData.date = effectiveToday;
+  } else {
+    delete structuredData.ongoing_sale;
   }
   const date = String(structuredData.date || '').slice(0, 10);
   const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, date, rawCandidate.id_suffix || '');

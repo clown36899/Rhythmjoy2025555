@@ -7,6 +7,7 @@ import {
   keepFirstEventDateOnly,
   makeDeterministicId,
   prepareCandidate,
+  isEvergreenSeasonPassCandidate,
   textSimilarity,
   validateCandidate,
 } from './ingestion/candidate-utils.mjs';
@@ -381,6 +382,35 @@ assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'free_event'), false
 assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('season_pass'), 'season pass sale should keep season_pass tag internally');
+
+const evergreenSeasonPass = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/swingbar/p/OLDPASS/',
+  extracted_text: '스윙바 정기권 가격 안내. 10회권 100,000원, 현재 구매 가능',
+  structured_data: {
+    title: '스윙바 정기권 가격 안내',
+    date: '2024-01-10',
+    event_type: '판매',
+    activity_type: 'sale',
+  },
+}), { today: TODAY });
+assert.equal(isEvergreenSeasonPassCandidate(evergreenSeasonPass.candidate), true, 'ongoing season-pass sales should be recognized independently of post age');
+assert.equal(evergreenSeasonPass.validation.ok, true, 'an old post for an ongoing season-pass sale should remain collectable');
+assert.equal(evergreenSeasonPass.candidate.structured_data.date, TODAY, 'ongoing sales should use the collection date instead of an expired post date');
+assert.equal(evergreenSeasonPass.candidate.structured_data.source_post_date, '2024-01-10', 'the original old post date should remain available for review');
+assert.equal(evergreenSeasonPass.candidate.structured_data.ongoing_sale, true, 'ongoing sale metadata should be explicit');
+
+const endedSeasonPass = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/swingbar/p/ENDPASS/',
+  extracted_text: '스윙바 시즌권 판매 종료',
+  structured_data: {
+    title: '스윙바 시즌권 판매 종료',
+    date: '2024-01-10',
+    event_type: '판매',
+    activity_type: 'sale',
+  },
+}), { today: TODAY });
+assert.equal(isEvergreenSeasonPassCandidate(endedSeasonPass.candidate), false, 'ended season-pass sales must not be treated as evergreen');
+assert.equal(endedSeasonPass.validation.ok, false, 'ended old sales should still fail the past-date rule');
 
 assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://litt.ly/swingfriends',
