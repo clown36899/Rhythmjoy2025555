@@ -220,6 +220,25 @@ export default function BenefitEventsPage() {
               {selectedEvent.time && <em>{selectedEvent.time}</em>}
             </div>
             <h2 id="benefit-event-modal-title">{selectedEvent.title}</h2>
+            {getEventThumbnail(selectedEvent) && (
+              <a
+                className="benefit-event-modal-poster"
+                href={getEventThumbnail(selectedEvent)}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="포스터 원본 이미지 확대"
+              >
+                <img
+                  src={getEventThumbnail(selectedEvent)}
+                  alt={`${selectedEvent.title} 포스터`}
+                  draggable={false}
+                />
+                <span>
+                  <i className="ri-zoom-in-line" aria-hidden="true" />
+                  눌러서 원본 확대
+                </span>
+              </a>
+            )}
             <dl>
               <div>
                 <dt>일정</dt>
