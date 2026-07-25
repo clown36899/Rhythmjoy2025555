@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
@@ -84,8 +84,6 @@ function formatDateLabel(date: string) {
 
 export default function BenefitEventsPage() {
   const today = getLocalDateString();
-  const firstCurrentRef = useRef<HTMLLIElement | null>(null);
-  const didAutoScrollRef = useRef(false);
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
 
   const { data: events = [], isLoading, error } = useQuery({
@@ -103,18 +101,6 @@ export default function BenefitEventsPage() {
         return left.localeCompare(right) || String(a.title || '').localeCompare(String(b.title || ''), 'ko');
       });
   }, [events, today]);
-
-  const firstCurrentIndex = useMemo(() => {
-    return benefitEvents.findIndex((event) => !isPastEvent(event, today));
-  }, [benefitEvents, today]);
-
-  useEffect(() => {
-    if (didAutoScrollRef.current || isLoading || firstCurrentIndex < 0) return;
-    didAutoScrollRef.current = true;
-    window.requestAnimationFrame(() => {
-      firstCurrentRef.current?.scrollIntoView({ block: 'start' });
-    });
-  }, [firstCurrentIndex, isLoading]);
 
   return (
     <main className="benefit-events-page">
@@ -143,12 +129,10 @@ export default function BenefitEventsPage() {
             const displayDate = getDisplayDate(event, today);
             const isPast = isPastEvent(event, today);
             const thumbnail = getEventThumbnail(event) || '';
-            const isCurrentAnchor = index === firstCurrentIndex;
 
             return (
               <li
                 key={event.id}
-                ref={isCurrentAnchor ? firstCurrentRef : undefined}
                 className={`benefit-event-item ${isPast ? 'is-past' : 'is-current-or-future'}`}
                 role="button"
                 tabIndex={0}
