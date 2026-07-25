@@ -897,7 +897,15 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                             <span>초대 관리</span>
                                         </div>
                                         <div className="SD-submenuItem"
-                                            onClick={() => handleNavigation('/external-event-api')}
+                                            role="link"
+                                            tabIndex={0}
+                                            onClick={() => window.location.assign('/external-event-api')}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault();
+                                                    window.location.assign('/external-event-api');
+                                                }
+                                            }}
                                             data-analytics-id="admin_external_api_partners"
                                             data-analytics-type="action"
                                             data-analytics-title="API 연동"
