@@ -152,19 +152,6 @@ components:
             required: [category]
           then:
             required: [image_mode, image_url]
-        - if:
-            properties:
-              category:
-                const: social
-            required: [category]
-          then:
-            oneOf:
-              - required: [image_mode, image_url]
-              - required: [address]
-                not:
-                  anyOf:
-                    - required: [image_mode]
-                    - required: [image_url]
       properties:
         external_id:
           type: string

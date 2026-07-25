@@ -357,6 +357,50 @@
   - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
   - `docs/external-event-api.md`
 
+## 2026-07-26 외부 API 신청 담당자 연락처 필수화
+
+- 상태: 해결
+- 범위: 외부 API 연동 신청 폼과 서버 검증
+- 증상: 기술 담당자 연락처가 이메일 또는 전화번호 한 칸으로 되어 있어 긴급 연락과 기술 안내에 필요한 두 연락수단이 모두 확보되지 않았다.
+- 조치:
+  - 기술 담당자 이메일과 전화번호를 별도 필수 입력으로 변경하고 서버에서도 형식을 검증한다.
+  - 로그인 계정에 유효한 이메일이 있으면 해당 이메일 사용 체크박스를 기본 선택하고 읽기 전용으로 자동 입력한다.
+  - 소셜 로그인에서 이메일이 제공되지 않거나 형식이 유효하지 않으면 체크박스를 비활성화하고 직접 입력하게 한다.
+  - 전화번호는 로그인 제공자 정보와 무관하게 항상 직접 입력한다.
+- 검증: 연락처 정규화 단위 테스트, TypeScript, 대상 ESLint, 프로덕션 빌드, 운영 브라우저 확인
+- 관련 파일:
+  - `server/cafe24/external-events-api.js`
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `src/pages/external-api/ExternalEventApiGuidePage.css`
+
+## 2026-07-26 파트너 API Key 보관 안내 명확화
+
+- 상태: 해결
+- 범위: 외부 API 공개 안내 페이지와 전달용 문서
+- 증상: `파트너 서버에서만 사용`이라는 표현만으로는 `.env`만 사용해야 하는지, 다른 서버 비밀 저장 기술도 가능한지 판단하기 어려웠다.
+- 조치:
+  - 기술을 강제하지 않고 방문자에게 키가 노출되지 않아야 한다는 보안 원칙을 먼저 설명했다.
+  - HTML·브라우저 JavaScript·공개 앱 번들·공개 저장소는 금지하고, 서버 환경변수·호스팅 비밀변수·Secret Manager·암호화 설정을 가능한 예로 제시했다.
+  - `process.env`는 Node.js 서버 예시이며 다른 언어와 플랫폼에서는 동등한 비밀 저장 기능을 사용한다고 명시했다.
+- 검증: TypeScript, 대상 ESLint, 프로덕션 빌드, 모바일·데스크톱 브라우저 렌더링 확인
+- 관련 파일:
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `docs/external-event-api.md`
+
+## 2026-07-26 cURL 예시와 실제 연동 코드 구분
+
+- 상태: 해결
+- 범위: 외부 API 등록 요청 안내
+- 증상: cURL 예시가 모든 파트너가 그대로 사용해야 하는 고정 소스코드인지, 플랫폼별로 바꿔 구현해야 하는지 설명이 부족했다.
+- 조치:
+  - cURL은 터미널 시험용 예시이며 실제 서버 구현 코드는 언어와 플랫폼에 따라 달라진다고 명시했다.
+  - 플랫폼과 무관하게 고정되는 항목을 HTTP 메서드, URL, 인증 헤더, Content-Type, JSON 필드 계약으로 구분했다.
+  - 브라우저 코드가 아닌 파트너 서버에서 동일한 HTTP 계약을 구현하도록 안내했다.
+- 검증: TypeScript, 대상 ESLint, 프로덕션 빌드, 브라우저 렌더링 확인
+- 관련 파일:
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `docs/external-event-api.md`
+
 ## 새 항목 템플릿
 
 ```md

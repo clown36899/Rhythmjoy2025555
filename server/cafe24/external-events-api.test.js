@@ -10,6 +10,7 @@ import {
   SITE_GENRES_BY_CATEGORY,
   createPartnerApiKey,
   normalizePartnerClassification,
+  normalizePartnerContact,
   normalizeAllowedClassifications,
 } from './external-events-api.js';
 import sharp from 'sharp';
@@ -22,6 +23,25 @@ const partner = {
 };
 
 describe('external event API validation', () => {
+  it('requires both a valid partner contact email and phone number', () => {
+    expect(normalizePartnerContact({
+      contact_email: 'Developer@Example.com',
+      contact_phone: '010-1234-5678',
+    })).toEqual({
+      email: 'developer@example.com',
+      phone: '010-1234-5678',
+      stored: '이메일: developer@example.com / 전화번호: 010-1234-5678',
+    });
+    expect(() => normalizePartnerContact({
+      contact_email: '',
+      contact_phone: '010-1234-5678',
+    })).toThrow('contact_email 값이 필요합니다');
+    expect(() => normalizePartnerContact({
+      contact_email: 'developer@example.com',
+      contact_phone: '1234',
+    })).toThrow('올바른 전화번호');
+  });
+
   it('uses only the site genre values', () => {
     expect(SITE_GENRES_BY_CATEGORY).toEqual({
       social: ['소셜', '졸공'],

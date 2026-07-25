@@ -184,13 +184,25 @@ export default function ExternalEventApiGuidePage() {
   const partnerManagementModal = useModal('externalApiPartnerManagement');
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [shareResult, setShareResult] = useState('');
-  const [application, setApplication] = useState({ partner_name: '', contact: '', note: '' });
+  const [application, setApplication] = useState({
+    partner_name: '',
+    contact_email: '',
+    contact_phone: '',
+    note: '',
+  });
+  const [useLoginEmail, setUseLoginEmail] = useState(false);
   const [applicationResult, setApplicationResult] = useState('');
   const [myPartners, setMyPartners] = useState<Array<{
     id: string; name: string; environment: 'test' | 'live'; per_minute_limit: number; daily_limit: number;
   }>>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState('');
   const [limitResult, setLimitResult] = useState('');
+  const loginEmailIsUsable = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user?.email?.trim() || '');
+  const contactEmailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(application.contact_email.trim());
+  const contactPhoneDigits = application.contact_phone.replace(/\D/g, '');
+  const contactPhoneIsValid = /^\+?[0-9()\-\s]{8,24}$/.test(application.contact_phone.trim())
+    && contactPhoneDigits.length >= 9
+    && contactPhoneDigits.length <= 15;
 
   useEffect(() => {
     if (user || loginPromptOpened.current) return;
@@ -218,6 +230,17 @@ export default function ExternalEventApiGuidePage() {
       })
       .catch((error) => setLimitResult(error instanceof Error ? error.message : '파트너 정보를 불러오지 못했습니다.'));
   }, [user]);
+
+  useEffect(() => {
+    const loginEmail = user?.email?.trim() || '';
+    const canUseLoginEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail);
+    if (!canUseLoginEmail) {
+      setUseLoginEmail(false);
+      return;
+    }
+    setUseLoginEmail(true);
+    setApplication((current) => ({ ...current, contact_email: loginEmail }));
+  }, [user?.email]);
 
   const shareGuide = async () => {
     const shareData = {
@@ -252,7 +275,12 @@ export default function ExternalEventApiGuidePage() {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || '신청하지 못했습니다.');
       setApplicationResult('신청이 접수되었습니다. 관리자가 검토한 뒤 테스트 API Key를 안내해 드립니다.');
-      setApplication({ partner_name: '', contact: '', note: '' });
+      setApplication({
+        partner_name: '',
+        contact_email: useLoginEmail ? (user?.email || '') : '',
+        contact_phone: '',
+        note: '',
+      });
     } catch (error) {
       setApplicationResult(error instanceof Error ? error.message : '신청하지 못했습니다.');
     }
@@ -352,7 +380,7 @@ export default function ExternalEventApiGuidePage() {
             <div className="EAG-stepGrid">
               <div><b>1</b><strong>파트너 또는 사이트 이름</strong></div>
               <div><b>2</b><strong>연결할 Dance Billboard 로그인 아이디</strong></div>
-              <div><b>3</b><strong>기술 담당자 연락처</strong></div>
+              <div><b>3</b><strong>기술 담당자 이메일·전화번호</strong></div>
             </div>
             <div className="EAG-application">
               <div>
@@ -377,9 +405,46 @@ export default function ExternalEventApiGuidePage() {
                     <small>현재 로그인한 계정으로 고정되며 수정할 수 없습니다. 승인된 API Key와 등록 일정의 소유 계정이 됩니다.</small>
                   </label>
                   <label>파트너 또는 사이트 이름<input value={application.partner_name} onChange={(event) => setApplication({ ...application, partner_name: event.target.value })} /></label>
-                  <label>기술 담당자 연락처<input value={application.contact} onChange={(event) => setApplication({ ...application, contact: event.target.value })} placeholder="이메일 또는 전화번호" /></label>
+                  <label>기술 담당자 이메일
+                    <input
+                      type="email"
+                      value={application.contact_email}
+                      readOnly={useLoginEmail}
+                      onChange={(event) => setApplication({ ...application, contact_email: event.target.value })}
+                      placeholder="developer@example.com"
+                    />
+                    <span className="EAG-contactChoice">
+                      <input
+                        type="checkbox"
+                        checked={useLoginEmail}
+                        disabled={!loginEmailIsUsable}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setUseLoginEmail(checked);
+                          setApplication({
+                            ...application,
+                            contact_email: checked ? (user.email || '') : '',
+                          });
+                        }}
+                      />
+                      로그인 계정 이메일 사용
+                    </span>
+                    {!loginEmailIsUsable && <small>로그인 제공자가 이메일을 전달하지 않아 직접 입력해야 합니다.</small>}
+                  </label>
+                  <label>기술 담당자 전화번호
+                    <input
+                      type="tel"
+                      value={application.contact_phone}
+                      onChange={(event) => setApplication({ ...application, contact_phone: event.target.value })}
+                      placeholder="010-1234-5678"
+                    />
+                  </label>
                   <label className="is-wide">전달 사항<textarea value={application.note} onChange={(event) => setApplication({ ...application, note: event.target.value })} placeholder="연동 사이트 주소 등 필요한 내용만 적어 주세요." /></label>
-                  <button type="button" className="EAG-primaryLink" disabled={!application.partner_name.trim() || !application.contact.trim()} onClick={submitApplication}>관리자 승인 요청</button>
+                  <button type="button" className="EAG-primaryLink" disabled={
+                    !application.partner_name.trim()
+                    || !contactEmailIsValid
+                    || !contactPhoneIsValid
+                  } onClick={submitApplication}>관리자 승인 요청</button>
                   {applicationResult && <p className="EAG-applicationResult" role="status">{applicationResult}</p>}
                 </div>
               )}
@@ -387,8 +452,8 @@ export default function ExternalEventApiGuidePage() {
             <div className="EAG-callout">
               <i className="ri-shield-keyhole-line" aria-hidden="true" />
               <div>
-                <strong>API Key는 파트너 서버에서만 사용하세요.</strong>
-                <p>HTML이나 브라우저 JavaScript에 넣지 마세요. 웹 로그인 세션이나 회원 쿠키는 API 인증에 사용하지 않습니다.</p>
+                <strong>API Key가 사이트 방문자에게 보이면 안 됩니다.</strong>
+                <p>키를 HTML, 브라우저 JavaScript, 공개 앱 번들 또는 공개 Git 저장소에 넣지 마세요. 서버 환경변수(<code>.env</code>), 호스팅 서비스의 비밀변수, Secret Manager, 암호화된 서버 설정 등 파트너 환경에 맞는 비밀 저장 방식을 사용하세요. 중요한 기준은 <b>서버만 키를 읽고 방문자는 키를 볼 수 없어야 한다</b>는 것입니다.</p>
               </div>
             </div>
             <CodeBlock
@@ -401,6 +466,13 @@ export default function ExternalEventApiGuidePage() {
             <span className="EAG-sectionNo">02</span>
             <h2>일정 등록 요청</h2>
             <p className="EAG-lead">먼저 실제로 동작하는 전체 요청 형태를 확인하세요.</p>
+            <div className="EAG-callout">
+              <i className="ri-terminal-box-line" aria-hidden="true" />
+              <div>
+                <strong>cURL은 터미널에서 API를 시험하는 예시입니다.</strong>
+                <p>파트너 사이트에 이 명령문을 그대로 넣어야 하는 것은 아닙니다. 실제 개발 코드는 Node.js, PHP, Java, Python, 서버리스 등 사용하는 서버 플랫폼에 따라 달라집니다. 어떤 플랫폼을 사용해도 <b>POST 요청 주소, Authorization 헤더, Content-Type과 JSON 필드 구조</b>는 아래 예시와 동일하게 맞춰야 합니다.</p>
+              </div>
+            </div>
             <CodeBlock label="cURL · 단일 일정 등록" code={curlExample} />
             <div className="EAG-endpoint">
               <span className="EAG-method">POST</span>
@@ -414,6 +486,7 @@ export default function ExternalEventApiGuidePage() {
                 <p>요청 주소, HTTP 메서드, 인증 헤더와 JSON 필드명은 그대로 사용하세요. 아래에서 “자유로운 문자열”로 표시한 값은 글 형식에 제한이 없으며 최대 길이만 지키면 됩니다. 날짜·분류·URL·이미지 방식은 정해진 형식을 지켜야 합니다.</p>
               </div>
             </div>
+            <p className="EAG-footnote">뒤의 JavaScript 예제에 나오는 <code>process.env.DANCE_BILLBOARD_API_KEY</code>는 Node.js 서버에서 비밀변수를 읽는 예시입니다. 다른 서버 기술에서는 해당 플랫폼의 비밀변수 또는 보안 저장 기능으로 바꿔 사용하세요.</p>
             <div className="EAG-tableWrap">
               <table>
                 <thead><tr><th>예시 필드</th><th>바꿀 수 있는 범위</th><th>작성 방법</th></tr></thead>

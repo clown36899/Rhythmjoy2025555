@@ -196,6 +196,23 @@ function cleanString(value, maxLength, field, { required = false } = {}) {
   return text;
 }
 
+export function normalizePartnerContact(input = {}) {
+  const email = cleanString(input.contact_email, 254, 'contact_email', { required: true }).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw apiError('contact_email에 올바른 이메일 주소를 입력해 주세요.');
+  }
+  const phone = cleanString(input.contact_phone, 32, 'contact_phone', { required: true });
+  const phoneDigits = phone.replace(/\D/g, '');
+  if (!(/^\+?[0-9()\-\s]{8,24}$/.test(phone)) || phoneDigits.length < 9 || phoneDigits.length > 15) {
+    throw apiError('contact_phone에 국가번호 또는 지역번호를 포함한 올바른 전화번호를 입력해 주세요.');
+  }
+  return {
+    email,
+    phone,
+    stored: `이메일: ${email} / 전화번호: ${phone}`,
+  };
+}
+
 function normalizeDate(value, field) {
   const text = cleanString(value, 10, field, { required: true });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
@@ -1110,7 +1127,7 @@ export async function requestExternalPartnerAccess(req, res) {
   const user = await getCurrentUser(req);
   if (!user) throw apiError('로그인 후 연동을 신청해 주세요.', 401, 'login_required');
   const partnerName = cleanString(req.body?.partner_name, 120, 'partner_name', { required: true });
-  const contact = cleanString(req.body?.contact, 255, 'contact', { required: true });
+  const contact = normalizePartnerContact(req.body).stored;
   const note = cleanString(req.body?.note, 2000, 'note');
   const pool = getMysqlPool();
   const [pending] = await pool.execute(
