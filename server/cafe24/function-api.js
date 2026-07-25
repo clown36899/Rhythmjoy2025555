@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { benefitFieldsFromStructuredData } from './ingestion-benefit-fields.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getCurrentUser, requireAdmin } from './auth-api.js';
@@ -873,10 +874,7 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   const finalPayload = {
     ...eventData,
     ...imageFields,
-    benefit_eligible: mergedStructuredData.benefit_eligible === true,
-    benefit_kind: mergedStructuredData.benefit_eligible === true
-      ? mergedStructuredData.benefit_kind || null
-      : null,
+    ...benefitFieldsFromStructuredData(mergedStructuredData),
     id: eventData.id || crypto.randomUUID(),
     date,
     start_date: String(eventData.start_date || date).slice(0, 10),

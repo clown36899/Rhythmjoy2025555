@@ -12,6 +12,7 @@ import {
 } from './ingestion/candidate-utils.mjs';
 import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
 import { benefitSearchMatches, extractInstagramPostUrls, normalizeInstagramPostUrl } from './ingestion/benefit-search-utils.mjs';
+import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
 import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
@@ -61,6 +62,21 @@ assert.deepEqual(
   ]),
   ['https://www.instagram.com/reel/XYZ-789/'],
   'benefit discovery should dedupe posts and reject profiles',
+);
+assert.deepEqual(
+  benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'free_event' }),
+  { benefit_eligible: true, benefit_kind: 'free_event' },
+  'confirmed free-event metadata must survive candidate approval into the public event row',
+);
+assert.deepEqual(
+  benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
+  { benefit_eligible: false, benefit_kind: null },
+  'unknown benefit kinds must fail closed during public event registration',
+);
+assert.deepEqual(
+  benefitFieldsFromStructuredData({ benefit_eligible: false, benefit_kind: 'season_pass' }),
+  { benefit_eligible: false, benefit_kind: null },
+  'a benefit kind without explicit eligibility must not become publicly visible',
 );
 
 function baseCandidate(overrides = {}) {
