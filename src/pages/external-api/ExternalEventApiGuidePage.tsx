@@ -148,10 +148,12 @@ export default function ExternalEventApiGuidePage() {
               파트너 관리
             </button>
           )}
-          <button type="button" className="EAG-shareButton" onClick={shareGuide}>
-            <i className="ri-share-line" aria-hidden="true" />
-            {shareResult || '공유'}
-          </button>
+          {isAdmin && (
+            <button type="button" className="EAG-shareButton" onClick={shareGuide}>
+              <i className="ri-share-line" aria-hidden="true" />
+              {shareResult || '공유'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -163,9 +165,11 @@ export default function ExternalEventApiGuidePage() {
           <div className="EAG-heroActions">
             <a href="/external-event-api#quick-start" className="EAG-primaryLink">빠른 시작</a>
             <a href="/external-event-api#request-example" className="EAG-secondaryLink">요청 예시 보기</a>
-            <button type="button" className="EAG-secondaryLink EAG-heroShare" onClick={shareGuide}>
-              <i className="ri-share-line" aria-hidden="true" /> {shareResult || '페이지 공유'}
-            </button>
+            {isAdmin && (
+              <button type="button" className="EAG-secondaryLink EAG-heroShare" onClick={shareGuide}>
+                <i className="ri-share-line" aria-hidden="true" /> {shareResult || '페이지 공유'}
+              </button>
+            )}
           </div>
         </div>
         <div className="EAG-statusCard">
