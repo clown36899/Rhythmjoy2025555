@@ -971,8 +971,8 @@ export default function ExternalEventApiGuidePage() {
             <p className="EAG-searchHint">입력하는 즉시 이 페이지의 제목과 핵심 키워드를 찾아드립니다.</p>
             <div className="EAG-searchResultsPanel">
               <div className="EAG-searchResultsHeader" aria-live="polite" aria-atomic="true">
-                <span><i className="ri-list-check-2" aria-hidden="true" /> 검색 결과</span>
-                <strong>{searchResults.length}개</strong>
+                <strong><i className="ri-list-check-2" aria-hidden="true" /> 검색 결과 {searchResults.length}개</strong>
+                <span>자동완성</span>
               </div>
               <div id="external-api-search-results" className="EAG-searchResults" role="listbox" aria-label="검색 자동완성 결과">
                 {searchResults.map((item, index) => (
@@ -994,7 +994,10 @@ export default function ExternalEventApiGuidePage() {
                   <p className="EAG-searchEmpty">일치하는 항목이 없습니다. 날짜, 이미지, 장르, 수정처럼 짧은 단어로 다시 검색해 주세요.</p>
                 )}
               </div>
-              {searchResults.length > 3 && <small className="EAG-searchScrollHint"><i className="ri-arrow-down-s-line" aria-hidden="true" /> 결과 목록을 위아래로 스크롤할 수 있습니다.</small>}
+              <small className="EAG-searchScrollHint">
+                <i className="ri-mouse-line" aria-hidden="true" />
+                {searchResults.length > 1 ? ' 결과 목록을 위아래로 스크롤할 수 있습니다.' : ' 검색 결과 영역'}
+              </small>
             </div>
           </section>
         </div>
