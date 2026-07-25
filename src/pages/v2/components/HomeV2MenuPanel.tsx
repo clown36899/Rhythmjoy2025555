@@ -47,6 +47,7 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "home", label: "홈", icon: "ri-home-5-line", theme: "home", to: "/" },
     { id: "calendar", label: "댄스이벤트\n캘린더", icon: "ri-calendar-event-line", theme: "calendar", to: "/calendar?view=calendar&scrollToToday=true" },
     { id: "events", label: "강습&행사", icon: "ri-book-open-line", theme: "events", iconVariant: "lesson-stack", to: "/events" },
+    { id: "benefits", label: "무료,\n정기권", icon: "ri-coupon-3-line", theme: "benefits", to: "/benefit-events" },
     { id: "board", label: "자유게시판", icon: "ri-chat-3-line", theme: "board", to: "/board" },
     { id: "places", label: "map", icon: "ri-map-pin-2-line", theme: "places", to: "/places" },
     { id: "forum-media", label: "SNS 아카이브", icon: "ri-movie-2-line", theme: "media", to: "/forum/media" },
@@ -376,8 +377,11 @@ export const HomeV2MenuPanel: React.FC = () => {
             .filter((item): item is HomeMenuItem => Boolean(item));
     }, [menuItemById, pinnedMenuIds]);
     const quickMenuItems = useMemo(() => {
-        return pinnedMenuItems.slice(0, PINNED_MENU_LIMIT);
-    }, [pinnedMenuItems]);
+        const pinnedItems = pinnedMenuItems.slice(0, PINNED_MENU_LIMIT);
+        const benefitItem = menuItemById.get("benefits");
+        if (!benefitItem || pinnedItems.some((item) => item.id === benefitItem.id)) return pinnedItems;
+        return [...pinnedItems, benefitItem];
+    }, [menuItemById, pinnedMenuItems]);
     const orderedMenuItems = useMemo(() => {
         if (isEditMode) {
             return [...editPinnedMenuIds, ...editUnpinnedMenuIds]

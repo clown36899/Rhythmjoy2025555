@@ -871,6 +871,10 @@
   --icon-rgb: 255, 180, 80;
 }
 
+.home-v2-menu-icon--benefits {
+  --icon-rgb: 245, 158, 11;
+}
+
 .home-v2-menu-icon--board {
   --icon-rgb: 184, 132, 255;
 }
