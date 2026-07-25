@@ -11,10 +11,11 @@ interface UseBoardPostsProps {
     postsPerPage: number;
     isAdminChecked: boolean;
     isRealAdmin: boolean;
+    currentUserId?: string | null;
     prefixId?: number | null;
 }
 
-export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAdmin, prefixId }: UseBoardPostsProps) {
+export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAdmin, currentUserId, prefixId }: UseBoardPostsProps) {
     const [posts, setPosts] = useState<BoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -39,6 +40,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
             const isAnon = category === 'anonymous';
             const isFreeBoard = category === 'free';
+            const shouldProtectHiddenFreePosts = isFreeBoard && !isRealAdmin;
             const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
 
             // Construct query based on category
@@ -54,7 +56,18 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             `;
 
             let query: any = (cafe24.from(table) as any)
-                .select(isAnon ? anonFields : standardFields, { count: 'exact' });
+                .select(
+                    isAnon
+                        ? anonFields
+                        : shouldProtectHiddenFreePosts
+                            ? `
+                                id, is_hidden, created_at, is_notice, display_order, category,
+                                prefix_id, prefix:board_prefixes(id, name, color, admin_only),
+                                views, comment_count, likes, favorites, dislikes
+                            `
+                            : standardFields,
+                    { count: 'exact' },
+                );
 
             if (!isAnon) {
                 query = query.eq('category', category);
@@ -98,7 +111,50 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             if (error) throw error;
             setTotalCount(count || 0);
 
-            const pageData = data || [];
+            let pageData = data || [];
+            if (shouldProtectHiddenFreePosts && pageData.length > 0) {
+                const visibleIds = pageData.filter((post: any) => !post.is_hidden).map((post: any) => post.id);
+                const hiddenIds = pageData.filter((post: any) => post.is_hidden).map((post: any) => post.id);
+                const accessiblePostMap = new Map<number | string, any>();
+
+                if (visibleIds.length > 0) {
+                    const { data: visiblePosts, error: visiblePostsError } = await cafe24
+                        .from('board_posts')
+                        .select(standardFields)
+                        .eq('category', 'free')
+                        .eq('is_hidden', false)
+                        .in('id', visibleIds);
+                    if (visiblePostsError) throw visiblePostsError;
+                    (visiblePosts || []).forEach((post: any) => accessiblePostMap.set(post.id, post));
+                }
+
+                if (currentUserId && hiddenIds.length > 0) {
+                    const { data: ownHiddenPosts, error: ownHiddenPostsError } = await cafe24
+                        .from('board_posts')
+                        .select(standardFields)
+                        .eq('category', 'free')
+                        .eq('is_hidden', true)
+                        .eq('user_id', currentUserId)
+                        .in('id', hiddenIds);
+                    if (ownHiddenPostsError) throw ownHiddenPostsError;
+                    (ownHiddenPosts || []).forEach((post: any) => accessiblePostMap.set(post.id, post));
+                }
+
+                pageData = pageData.map((post: any) => {
+                    const accessiblePost = accessiblePostMap.get(post.id);
+                    if (accessiblePost) return accessiblePost;
+                    return {
+                        ...post,
+                        title: '숨김 글이 있습니다',
+                        author_name: '비공개',
+                        author_nickname: '비공개',
+                        user_id: '',
+                        image_thumbnail: null,
+                        content: undefined,
+                        image: undefined,
+                    };
+                });
+            }
 
             // Fetch profiles only for the current page.
             const profileMap: Record<string, string> = {};
@@ -153,7 +209,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         } finally {
             setLoading(false);
         }
-    }, [category, currentPage, isAdminChecked, isRealAdmin, postsPerPage, prefixId]);
+    }, [category, currentPage, currentUserId, isAdminChecked, isRealAdmin, postsPerPage, prefixId]);
 
     // Initial load
     useEffect(() => {

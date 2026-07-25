@@ -89,11 +89,30 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
                     display_order
                 `;
 
-            const { data, error } = await cafe24
+            let detailQuery = cafe24
                 .from(table)
                 .select(selectColumns)
-                .eq('id', targetPostId)
-                .maybeSingle();
+                .eq('id', targetPostId);
+
+            if (category !== 'anonymous' && !isAdmin) {
+                const { data: visibility, error: visibilityError } = await cafe24
+                    .from(table)
+                    .select('id, is_hidden')
+                    .eq('id', targetPostId)
+                    .maybeSingle();
+                if (visibilityError) throw visibilityError;
+                if (visibility?.is_hidden) {
+                    if (!currentUserId) {
+                        if (!isLatestRequest()) return;
+                        setPost(null);
+                        setLoadedRequestKey(requestKey);
+                        return;
+                    }
+                    detailQuery = detailQuery.eq('user_id', currentUserId);
+                }
+            }
+
+            const { data, error } = await detailQuery.maybeSingle();
             perfInfo('board.detail.query.done', {
                 postId: targetPostId,
                 category,

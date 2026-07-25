@@ -94,6 +94,7 @@ export default function BoardMainContainer() {
         postsPerPage,
         isAdminChecked,
         isRealAdmin,
+        currentUserId: user?.id || null,
         prefixId: selectedPrefixId
     });
 

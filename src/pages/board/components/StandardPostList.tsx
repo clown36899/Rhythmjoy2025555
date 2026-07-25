@@ -171,7 +171,7 @@ export default function StandardPostList({
                 <div className="free-board-title-line">
                     {post.is_hidden && (
                         <span className="board-hidden-badge">
-                            <i className="ri-lock-line"></i> 내용 숨김
+                            <i className="ri-lock-line"></i> 비공개
                         </span>
                     )}
                     <h3>{post.title}</h3>
@@ -209,7 +209,7 @@ export default function StandardPostList({
                 <div className="free-board-mobile-meta">
                     {post.is_hidden && (
                         <span className="board-hidden-badge">
-                            <i className="ri-lock-line"></i> 내용 숨김
+                            <i className="ri-lock-line"></i> 비공개
                         </span>
                     )}
                     <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
