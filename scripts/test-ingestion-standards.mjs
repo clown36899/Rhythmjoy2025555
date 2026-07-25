@@ -53,6 +53,27 @@ assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '첫 방문 무료 체험 클래스, 2026년 8월 2일',
   structured_data: { title: '바차타 입문 체험' },
 }), 'free_event', 'explicit free trial classes should classify across approved dance scopes');
+const benefitPhraseCases = [
+  ['입장은 무료, 음료는 별도 구매입니다.', 'free_event'],
+  ['관람 무료 / 스트릿 배틀 참가비는 별도', 'free_event'],
+  ['Admission: FREE · Salsa social', 'free_event'],
+  ['FREE WORKSHOP before the bachata social', 'free_event'],
+  ['수강료 0원 탱고 입문 클래스', 'free_event'],
+  ['무료 라인강습은 없습니다. 입장은 무료입니다.', 'free_event'],
+  ['무료 주차 가능합니다. 입장료 15,000원', null],
+  ['무료 음료 1잔 제공, 참가비 20,000원', null],
+  ['무료 상담 후 유료 수강 등록', null],
+  ['무료 이벤트는 종료되었습니다.', null],
+  ['free lesson is not available, admission required', null],
+  ['멤버십 안내만 진행하며 현재 판매하지 않습니다.', null],
+];
+for (const [phrase, expected] of benefitPhraseCases) {
+  assert.equal(
+    classifyConfirmedBenefitEvent({ extracted_text: phrase, structured_data: { title: phrase } }),
+    expected,
+    `benefit phrase classification mismatch: ${phrase}`,
+  );
+}
 
 assert.equal(
   normalizeInstagramPostUrl('/url?q=https%3A%2F%2Fwww.instagram.com%2Fp%2FABC_123%2F%3Figsh%3Dfoo', 'https://www.google.com/search?q=test'),

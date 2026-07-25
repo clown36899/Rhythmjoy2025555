@@ -71,6 +71,7 @@ const result = {
   candidates: [],
   deadlineReached: false,
   remainingSources: [],
+  benefitSearchStats: [],
 };
 
 class RunBudgetReachedError extends Error {
@@ -1563,6 +1564,7 @@ async function collectSource(page, source) {
     const targets = targetResult && !Array.isArray(targetResult)
       ? targetResult
       : { postUrls: [], profileUrls: [] };
+    const sourceByPostUrl = new Map(targets.postUrls.map((url) => [url, source]));
     const postUrls = [...targets.postUrls];
     for (const [profileIndex, profileUrl] of targets.profileUrls.entries()) {
       const discoveredSource = {
@@ -1577,22 +1579,47 @@ async function collectSource(page, source) {
         () => collectInstagramLinks(page, discoveredSource),
         sourceTimeoutMs,
       );
-      postUrls.push(...discoveredPosts);
+      for (const discoveredPost of discoveredPosts) {
+        postUrls.push(discoveredPost);
+        sourceByPostUrl.set(discoveredPost, discoveredSource);
+      }
     }
     const links = unique(postUrls);
     if (!links.length) {
+      result.benefitSearchStats.push({
+        sourceId: source.id,
+        scope: source.scope,
+        benefitKind: source.benefitKind,
+        discoveredPosts: 0,
+        checkedCandidates: 0,
+        matchedCandidates: 0,
+      });
       if (!hasAccessFailure(source.id)) recordNoContent(source, 'no verified Instagram post results');
       return [];
     }
     const candidates = [];
+    let checkedCandidates = 0;
     for (const url of links.slice(0, Math.max(1, Math.min(postLimit, 2)))) {
       ensureRunBudgetOrThrow(`benefit search post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       await throttleInstagram(`benefit post ${source.id}`, instagramPostDelayMs);
-      const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
+      const postSource = sourceByPostUrl.get(url) || source;
+      const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, postSource), postTimeoutMs + 8000);
+      checkedCandidates += postCandidates.length;
       const matched = postCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
       result.skipped += postCandidates.length - matched.length;
       candidates.push(...matched);
       if (hasAccessFailure(`${source.id}:post`)) break;
+    }
+    result.benefitSearchStats.push({
+      sourceId: source.id,
+      scope: source.scope,
+      benefitKind: source.benefitKind,
+      discoveredPosts: links.length,
+      checkedCandidates,
+      matchedCandidates: candidates.length,
+    });
+    if (!candidates.length && checkedCandidates > 0) {
+      recordNoContent(source, 'posts checked but explicit benefit was not confirmed');
     }
     return candidates;
   }
@@ -1829,6 +1856,7 @@ function printSummary() {
     deadlineReached: result.deadlineReached,
     remainingSources: result.remainingSources.slice(0, 20),
     remainingSourceCount: result.remainingSources.length,
+    benefitSearchStats: result.benefitSearchStats,
   }, null, 2));
   console.log('INGESTION_RESULT_JSON_END');
   console.log('==TELEGRAM_SUMMARY_START==');
