@@ -734,7 +734,13 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   if (looksLikeBroadScheduleNotice(candidate)) {
     errors.push('broad schedule notice is not a single collectable event');
   }
-  if (!candidate.poster_url && !candidate.imageData) errors.push('poster_url or imageData required');
+  const isImageOptionalDiscount = sd.benefit_eligible === true && sd.benefit_kind === 'discount_event';
+  if (!candidate.poster_url && !candidate.imageData && !isImageOptionalDiscount) {
+    errors.push('poster_url or imageData required');
+  }
+  if (!candidate.poster_url && !candidate.imageData && isImageOptionalDiscount) {
+    warnings.push('discount benefit collected without an image; admin image review recommended');
+  }
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) errors.push('poster_url looks cropped or thumbnail-sized');
   if (scopeExcludedReason) errors.push(scopeExcludedReason);
   if (looksLikeMixedArtOrCommercialPerformance(text, taxonomy)) {

@@ -115,6 +115,20 @@ assert.deepEqual(
   { benefit_eligible: true, benefit_kind: 'discount_event' },
   'confirmed discount metadata must survive candidate approval into the public event row',
 );
+const imageOptionalDiscount = prepareCandidate({
+  keyword: '할인 이벤트 검색',
+  source_url: 'https://www.instagram.com/example/reel/DISCOUNT2026/',
+  extracted_text: '2026년 8월 20일 스윙 워크숍 얼리버드 20% 할인',
+  structured_data: {
+    title: '스윙 워크숍 얼리버드 할인',
+    date: '2026-08-20',
+    location: '서울',
+    event_type: '행사',
+    activity_type: 'event',
+  },
+}, { today: TODAY });
+assert.equal(imageOptionalDiscount.validation.ok, true, 'confirmed discount candidates may be collected without an image');
+assert.match(imageOptionalDiscount.validation.warnings.join(' '), /without an image/, 'image-less discounts should keep an admin review warning');
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
   { benefit_eligible: false, benefit_kind: null },
