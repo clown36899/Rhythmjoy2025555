@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS external_api_partners (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   default_category VARCHAR(32) NULL,
   default_genre VARCHAR(64) NULL,
-  allowed_classifications JSON NULL,
+  allowed_classifications LONGTEXT NULL,
   environment VARCHAR(16) NOT NULL DEFAULT 'test',
   owner_user_id VARCHAR(64) NULL,
   per_minute_limit INT UNSIGNED NOT NULL DEFAULT 10,

@@ -1,7 +1,7 @@
 SET @add_allowed_classifications = (
   SELECT IF(
     COUNT(*) = 0,
-    'ALTER TABLE external_api_partners ADD COLUMN allowed_classifications JSON NULL AFTER default_genre',
+    'ALTER TABLE external_api_partners ADD COLUMN allowed_classifications LONGTEXT NULL AFTER default_genre',
     'SELECT 1'
   )
   FROM information_schema.COLUMNS
