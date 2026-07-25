@@ -17,30 +17,38 @@ export function useFreeBoardUnreadCount() {
 
     const markAsSeen = useCallback(() => {
         localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-        setCount(0);
     }, []);
 
     const loadCount = useCallback(async () => {
+        const { count: hiddenCount, error: hiddenCountError } = await cafe24
+            .from('board_posts')
+            .select('id', { count: 'exact', head: true })
+            .eq('category', 'free')
+            .eq('is_hidden', true);
+
+        if (hiddenCountError) return;
+
         if (isViewingFreeBoard) {
             markAsSeen();
+            setCount(hiddenCount || 0);
             return;
         }
 
         const lastSeen = localStorage.getItem(LAST_SEEN_KEY);
         if (!lastSeen) {
             localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-            setCount(0);
+            setCount(hiddenCount || 0);
             return;
         }
 
-        const { count: unreadCount, error } = await cafe24
+        const { count: unreadVisibleCount, error } = await cafe24
             .from('board_posts')
             .select('id', { count: 'exact', head: true })
             .eq('category', 'free')
             .eq('is_hidden', false)
             .gt('created_at', lastSeen);
 
-        if (!error) setCount(unreadCount || 0);
+        if (!error) setCount((hiddenCount || 0) + (unreadVisibleCount || 0));
     }, [isViewingFreeBoard, markAsSeen]);
 
     useEffect(() => {
@@ -52,14 +60,9 @@ export function useFreeBoardUnreadCount() {
             .channel('free-board-bottom-nav-activity')
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'board_posts', filter: 'category=eq.free' },
-                (payload: { new?: { is_hidden?: boolean } }) => {
-                    if (payload.new?.is_hidden) return;
-                    if (isViewingFreeBoard) {
-                        markAsSeen();
-                    } else {
-                        setCount((current) => current + 1);
-                    }
+                { event: '*', schema: 'public', table: 'board_posts', filter: 'category=eq.free' },
+                () => {
+                    void loadCount();
                 },
             )
             .subscribe();
@@ -67,7 +70,7 @@ export function useFreeBoardUnreadCount() {
         return () => {
             cafe24.removeChannel(channel);
         };
-    }, [isViewingFreeBoard, markAsSeen]);
+    }, [loadCount]);
 
     useEffect(() => {
         const syncCount = () => void loadCount();

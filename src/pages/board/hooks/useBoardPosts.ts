@@ -39,6 +39,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
             const isAnon = category === 'anonymous';
             const isFreeBoard = category === 'free';
+            const shouldRedactHiddenFreePosts = isFreeBoard && !isRealAdmin;
             const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
 
             // Construct query based on category
@@ -54,7 +55,14 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             `;
 
             let query: any = (cafe24.from(table) as any)
-                .select(isAnon ? anonFields : standardFields, { count: 'exact' });
+                .select(
+                    isAnon
+                        ? anonFields
+                        : shouldRedactHiddenFreePosts
+                            ? 'id, is_hidden, created_at, is_notice, display_order, category'
+                            : standardFields,
+                    { count: 'exact' },
+                );
 
             if (!isAnon) {
                 query = query.eq('category', category);
@@ -79,7 +87,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             query = query.order('created_at', { ascending: false });
 
             // Filter hidden posts for non-admins (Except anonymous board for community feedback)
-            if (!isRealAdmin && category !== 'anonymous') {
+            if (!isRealAdmin && category !== 'anonymous' && !isFreeBoard) {
                 query = query.eq('is_hidden', false);
             }
 
@@ -98,10 +106,53 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             if (error) throw error;
             setTotalCount(count || 0);
 
+            let pageData = data || [];
+            if (shouldRedactHiddenFreePosts && pageData.length > 0) {
+                const visibleIds = pageData
+                    .filter((post: any) => !post.is_hidden)
+                    .map((post: any) => post.id);
+                let visiblePostMap = new Map<number | string, any>();
+
+                if (visibleIds.length > 0) {
+                    const { data: visiblePosts, error: visiblePostsError } = await cafe24
+                        .from('board_posts')
+                        .select(standardFields)
+                        .eq('category', 'free')
+                        .eq('is_hidden', false)
+                        .in('id', visibleIds);
+                    if (visiblePostsError) throw visiblePostsError;
+                    visiblePostMap = new Map((visiblePosts || []).map((post: any) => [post.id, post]));
+                }
+
+                pageData = pageData.map((post: any) => {
+                    if (post.is_hidden) {
+                        return {
+                            id: post.id,
+                            is_hidden: true,
+                            created_at: post.created_at,
+                            is_notice: false,
+                            category: 'free',
+                            title: '',
+                            author_name: '',
+                            author_nickname: '',
+                            user_id: '',
+                            views: 0,
+                            comment_count: 0,
+                            likes: 0,
+                            favorites: 0,
+                            dislikes: 0,
+                            image_thumbnail: null,
+                            prefix: null,
+                        };
+                    }
+                    return visiblePostMap.get(post.id) || post;
+                });
+            }
+
             // Fetch profiles only for the current page.
             const profileMap: Record<string, string> = {};
-            if (!isAnon && !isFreeBoard && data && data.length > 0) {
-                const userIds = Array.from(new Set(data.map((p: any) => p.user_id).filter(Boolean)));
+            if (!isAnon && !isFreeBoard && pageData.length > 0) {
+                const userIds = Array.from(new Set(pageData.map((p: any) => p.user_id).filter(Boolean)));
                 if (userIds.length > 0) {
                     const { data: profiles } = await cafe24
                         .from('board_users')
@@ -117,7 +168,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             }
 
             // Normalize data
-            const normalizedPosts = (data || []).map((post: any) => {
+            const normalizedPosts = pageData.map((post: any) => {
                 return {
                     ...post,
                     prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,

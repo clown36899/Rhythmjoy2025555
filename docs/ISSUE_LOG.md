@@ -592,17 +592,54 @@
 - 조치:
   - 등록 후 14일 동안 데스크톱·모바일 목록 제목 옆에 `NEW`를 표시한다.
   - 건의/신청 말머리를 주황 계열로 분리하고 행 왼쪽 강조선을 추가했다.
-  - 숨김 글은 기존 일반 사용자 DB 필터를 유지하고, 관리자 목록에서는 패턴 배경과 `관리자만 표시` 배지로 구분한다.
-  - 마지막 자유게시판 확인 시각 이후 공개 글 수를 하단 포럼 메뉴의 숫자 배지로 표시하며, 실시간 신규 등록도 반영한다.
+  - 숨김 글도 목록의 정렬 위치와 신규 글 숫자에는 포함한다.
+  - 일반 사용자에게는 숨김 글의 최소 필드만 조회한 뒤 제목·말머리·작성자·날짜·반응·이미지를 모두 마스킹하고 글 존재 여부만 표시한다.
+  - 관리자 목록에서도 숨김 글 정보는 마스킹하되 관리 목적으로 상세 진입은 유지한다.
+  - 마지막 자유게시판 확인 시각 이후 모든 글 수를 하단 포럼 메뉴의 숫자 배지로 표시하며, 숨김 글의 실시간 신규 등록도 반영한다.
+  - 숨김 글은 내용을 확인할 수 없으므로 자유게시판 방문만으로 읽음 처리하지 않고, 숨김 상태인 동안 하단 숫자 배지를 유지한다.
 - 검증:
   - `npx tsc --noEmit`
   - `npm run build:only`
 - 관련 파일:
   - `src/pages/board/components/StandardPostList.tsx`
   - `src/pages/board/board.css`
+  - `src/pages/board/hooks/useBoardPosts.ts`
   - `src/hooks/useFreeBoardUnreadCount.ts`
   - `src/layouts/BottomNavigation.tsx`
 - 관련 커밋: pending
+
+## 2026-07-26 다장르 혜택 이벤트 수집·노출 경로 완성
+
+- 상태: 해결
+- 범위: 스윙·살사·바차타·탱고·스트릿 무료 이벤트 및 정기권 판매 수집
+- 증상:
+  - 혜택 판별과 전용 화면은 있었지만 등록된 검색어가 실제 일일 수집기에서 실행되지 않았다.
+  - 후보의 `benefit_eligible`가 관리자 승인 뒤 운영 `events` 행으로 전달되지 않아 화면에 노출되지 않았다.
+- 원인:
+  - 정적 계정 소스 수집과 동적 혜택 검색이 연결되지 않았고, 검색엔진 차단 시 대체 발견 경로가 없었다.
+  - 수집 후보와 운영 이벤트 사이의 혜택 메타데이터 계약이 누락됐다.
+- 조치:
+  - 스윙 전용 4개와 확장 장르 8개의 단계별 혜택 검색 소스를 추가했다.
+  - Google → Bing → Naver 프로필 발견 → 실제 Instagram 게시물 검증 순서의 폴백을 구현했다.
+  - 실제 본문·미래 날짜·원본 이미지·명시적 무료/정기권 표현을 모두 통과한 후보만 허용한다.
+  - 확장 장르는 `expanded-research`에서 저장 없이 검증하고 `expanded-ingestion`에서만 저장 가능하게 했다.
+  - 승인 시 `benefit_eligible`와 허용된 `benefit_kind`를 운영 이벤트에 보존하고 알 수 없는 값은 차단한다.
+  - 수집 summary에 소스별 발견·검사·일치 건수를 추가했다.
+- 검증:
+  - 수집 표준 및 오탐·URL·프로필·필드 계약 테스트 통과
+  - TypeScript, 관련 서버 테스트 29개, 프로덕션 빌드 통과
+  - 스윙 무료 강습 실브라우저 드라이런에서 2026-08-01 후보 2건 확인
+  - 살사·바차타·탱고·스트릿 확장 드라이런에서 무결과, 명시 혜택 불일치, Instagram 접근 실패를 저장 없이 분리 기록
+- 관련 파일:
+  - `scripts/ingestion/collection-registry.mjs`
+  - `scripts/ingestion/benefit-search-utils.mjs`
+  - `scripts/ingestion/swing-daily-native.mjs`
+  - `scripts/ingestion/candidate-utils.mjs`
+  - `server/cafe24/ingestion-benefit-fields.js`
+  - `server/cafe24/function-api.js`
+  - `src/pages/admin/v2/EventIngestorV2.tsx`
+  - `src/pages/benefit-events/BenefitEventsPage.tsx`
+- 관련 커밋: `78af6020`, `16d8e111`, `a796a641`, `db9dc114`
 
 ## 새 항목 템플릿
 

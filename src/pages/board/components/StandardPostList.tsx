@@ -92,6 +92,34 @@ export default function StandardPostList({
         isNewPost(post) ? <span className="free-board-new-badge" aria-label="등록 후 2주 이내의 새 글">NEW</span> : null
     );
 
+    const renderHiddenPlaceholder = (post: StandardBoardPost, mobile = false) => (
+        <article
+            key={`${mobile ? 'mobile' : 'desktop'}-${post.id}`}
+            onClick={isAdmin ? () => onPostClick(post) : undefined}
+            className={`${mobile ? 'free-board-mobile-row' : 'free-board-row'} is-hidden-placeholder ${isAdmin ? 'is-admin-accessible' : ''}`}
+            aria-label="내용이 숨겨진 게시글"
+        >
+            {!mobile && <div className="free-board-row-accent" />}
+            {!mobile && <div className="free-board-prefix-cell" aria-hidden="true"><span className="free-board-masked-block is-prefix" /></div>}
+            <div className={mobile ? 'free-board-mobile-main' : 'free-board-main'}>
+                <div className={mobile ? 'free-board-mobile-title-line is-hidden-title' : 'free-board-title-line'}>
+                    {mobile && <span className="free-board-masked-block is-prefix" aria-hidden="true" />}
+                    <span className="free-board-hidden-label">
+                        <i className="ri-eye-off-line" aria-hidden="true" />
+                        숨김 글이 있습니다
+                    </span>
+                    {renderNewBadge(post)}
+                </div>
+                <div className={mobile ? 'free-board-mobile-meta is-hidden-meta' : 'free-board-meta is-hidden-meta'} aria-label="게시글 정보 숨김">
+                    <span className="free-board-masked-block is-author" />
+                    <span className="free-board-masked-block is-date" />
+                </div>
+            </div>
+            {!mobile && <div className="free-board-masked-stats" aria-hidden="true"><span /><span /><span /></div>}
+            {!mobile && <div className="free-board-thumb-cell"><span className="free-board-masked-thumb" aria-hidden="true" /></div>}
+        </article>
+    );
+
     const formatDate = (value: string) => new Date(value).toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
@@ -151,7 +179,7 @@ export default function StandardPostList({
         );
     };
 
-    const renderFreeDesktopPost = (post: StandardBoardPost) => (
+    const renderFreeDesktopPost = (post: StandardBoardPost) => post.is_hidden ? renderHiddenPlaceholder(post) : (
         <article
             key={`desktop-${post.id}`}
             onClick={() => onPostClick(post)}
@@ -188,7 +216,7 @@ export default function StandardPostList({
         </article>
     );
 
-    const renderFreeMobilePost = (post: StandardBoardPost) => (
+    const renderFreeMobilePost = (post: StandardBoardPost) => post.is_hidden ? renderHiddenPlaceholder(post, true) : (
         <article
             key={`mobile-${post.id}`}
             onClick={() => onPostClick(post)}
