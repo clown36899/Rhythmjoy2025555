@@ -38,6 +38,8 @@ import { uploadEventImage } from './uploads-api.js';
 import { eventStats, recordAnalytics, siteStats } from './stats-api.js';
 import {
   dailyDigestCron,
+  listUserNotifications,
+  markUserNotificationsRead,
   notificationQueueCron,
   processNotificationQueue,
   sendBoardCommentNotification,
@@ -351,6 +353,8 @@ app.get('/api/diagnostics/reloads', jsonRoute(listClientReloadDiagnostics));
 app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnostics));
 app.post('/api/send-push-notification', jsonBody, jsonRoute(sendPushNotification));
 app.post('/api/board/comment-notification', jsonBody, jsonRoute(sendBoardCommentNotification));
+app.get('/api/notifications', jsonRoute(listUserNotifications));
+app.post('/api/notifications/read', jsonBody, jsonRoute(markUserNotificationsRead));
 app.post('/api/admin/push/send-daily-digest-test', jsonBody, jsonRoute(sendDailyDigestToAdmins));
 app.post('/api/admin/push/process-notification-queue', jsonBody, jsonRoute(processNotificationQueue));
 app.all('/api/__cron/daily-digest', jsonBody, jsonRoute(dailyDigestCron));

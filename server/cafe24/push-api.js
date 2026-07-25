@@ -341,25 +341,44 @@ export async function sendBoardCommentNotification(req, res) {
     return;
   }
 
+  const title = String(post.title || '자유게시판 글');
+  const commenter = String(comment.author_name || user.nickname || user.name || '회원');
+  const notificationTitle = '내 글에 새 댓글이 달렸습니다';
+  const notificationBody = `${commenter}님이 “${title}” 글에 댓글을 남겼습니다.`;
+  const notificationUrl = `/board/free/detail/${encodeURIComponent(String(post.id))}`;
+  const notificationData = {
+    kind: 'board_comment',
+    postId: String(post.id),
+    commentId,
+  };
+  const pool = getMysqlPool();
+  await pool.execute(
+    `INSERT IGNORE INTO user_notifications
+       (user_id, title, body, url, kind, source_id, data_json)
+     VALUES (?, ?, ?, ?, 'board_comment', ?, ?)`,
+    [
+      authorUserId,
+      notificationTitle,
+      notificationBody,
+      notificationUrl,
+      commentId,
+      JSON.stringify(notificationData),
+    ],
+  );
+
   const subscriptions = await loadPushSubscriptions();
   const targetRows = subscriptions.filter((row) => String(row.user_id || '') === authorUserId);
   if (targetRows.length === 0) {
-    res.json({ status: 'skipped', reason: 'author_not_subscribed' });
+    res.json({ status: 'saved', push: 'skipped', reason: 'author_not_subscribed' });
     return;
   }
 
-  const title = String(post.title || '자유게시판 글');
-  const commenter = String(comment.author_name || user.nickname || user.name || '회원');
   const payload = buildPayload({
-    title: '내 글에 새 댓글이 달렸습니다',
-    body: `${commenter}님이 “${title}” 글에 댓글을 남겼습니다.`,
-    url: `/board/free/detail/${encodeURIComponent(String(post.id))}`,
+    title: notificationTitle,
+    body: notificationBody,
+    url: notificationUrl,
     tag: `board-comment-${commentId}`,
-    data: {
-      kind: 'board_comment',
-      postId: String(post.id),
-      commentId,
-    },
+    data: notificationData,
   });
 
   const result = await sendPushToRows(targetRows, payload, 'board_comment');
@@ -367,6 +386,57 @@ export async function sendBoardCommentNotification(req, res) {
     ...result,
     recipientUserId: authorUserId,
   });
+}
+
+export async function listUserNotifications(req, res) {
+  const user = await getCurrentUser(req);
+  if (!user?.id) throw httpError('로그인이 필요합니다.', 401);
+
+  const pool = getMysqlPool();
+  const [rows] = await pool.execute(
+    `SELECT id, title, body, url, kind, data_json, is_read, created_at
+       FROM user_notifications
+      WHERE user_id = ? AND is_read = 0
+      ORDER BY created_at DESC
+      LIMIT 100`,
+    [String(user.id)],
+  );
+  res.json({
+    notifications: rows.map((row) => ({
+      id: `server:${row.id}`,
+      title: row.title,
+      body: row.body,
+      url: row.url,
+      received_at: row.created_at,
+      is_read: Boolean(row.is_read),
+      data: parseJsonValue(row.data_json, { kind: row.kind }),
+    })),
+  });
+}
+
+export async function markUserNotificationsRead(req, res) {
+  const user = await getCurrentUser(req);
+  if (!user?.id) throw httpError('로그인이 필요합니다.', 401);
+
+  const pool = getMysqlPool();
+  const rawId = String(req.body?.id || '');
+  if (rawId) {
+    const id = rawId.replace(/^server:/, '');
+    await pool.execute(
+      `UPDATE user_notifications
+          SET is_read = 1, read_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?`,
+      [id, String(user.id)],
+    );
+  } else {
+    await pool.execute(
+      `UPDATE user_notifications
+          SET is_read = 1, read_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND is_read = 0`,
+      [String(user.id)],
+    );
+  }
+  res.json({ ok: true });
 }
 
 function buildDailyDigestPayload(events, dateKey) {

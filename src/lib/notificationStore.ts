@@ -33,6 +33,31 @@ const getDB = async () => {
     return dbPromise;
 };
 
+async function getServerUnread(): Promise<NotificationRecord[]> {
+    if (typeof window === 'undefined') return [];
+    const response = await fetch('/api/notifications', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+    });
+    if (response.status === 401) return [];
+    if (!response.ok) throw new Error(`알림함 조회 실패 (${response.status})`);
+    const payload = await response.json();
+    return Array.isArray(payload?.notifications) ? payload.notifications : [];
+}
+
+async function markServerRead(id?: string) {
+    if (typeof window === 'undefined') return;
+    const response = await fetch('/api/notifications/read', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(id ? { id } : {}),
+    });
+    if (response.status !== 401 && !response.ok) {
+        throw new Error(`알림 읽음 처리 실패 (${response.status})`);
+    }
+}
+
 export const notificationStore = {
     async getAll() {
         const db = await getDB();
@@ -53,14 +78,25 @@ export const notificationStore = {
 
     async getUnread() {
         const db = await getDB();
-        if (!db) return [];
-        const all = await db.getAll(STORE_NAME);
-        return all.filter(n => !n.is_read).sort((a, b) =>
+        const local = db ? (await db.getAll(STORE_NAME)).filter(n => !n.is_read) : [];
+        let server: NotificationRecord[] = [];
+        try {
+            server = await getServerUnread();
+        } catch (error) {
+            console.warn('[NotificationStore] 서버 알림함 조회 실패:', error);
+        }
+        const serverCommentIds = new Set(server.map(item => item.data?.commentId).filter(Boolean));
+        const dedupedLocal = local.filter(item => !item.data?.commentId || !serverCommentIds.has(item.data.commentId));
+        return [...server, ...dedupedLocal].sort((a, b) =>
             new Date(b.received_at).getTime() - new Date(a.received_at).getTime()
         );
     },
 
     async markAsRead(id: string) {
+        if (id.startsWith('server:')) {
+            await markServerRead(id);
+            return;
+        }
         const db = await getDB();
         if (!db) return;
         const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -74,6 +110,7 @@ export const notificationStore = {
     },
 
     async markAllAsRead() {
+        await markServerRead();
         const db = await getDB();
         if (!db) return;
         const tx = db.transaction(STORE_NAME, 'readwrite');

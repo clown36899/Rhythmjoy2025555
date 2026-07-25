@@ -107,6 +107,12 @@ MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \
   -u \"\${MYSQL_USER}\" \
   \"\${MYSQL_DATABASE}\" \
   < '${APP_DIR}/server/cafe24/migrations/2026-07-26-external-api-permissions-and-environment.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \
+  -h \"\${MYSQL_HOST}\" \
+  -P \"\${MYSQL_PORT:-3306}\" \
+  -u \"\${MYSQL_USER}\" \
+  \"\${MYSQL_DATABASE}\" \
+  < '${APP_DIR}/server/cafe24/migrations/2026-07-26-user-notifications.sql'
 if [ -f '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' ] && [ -f '${APACHE_CONF_DIR}/00-swingenjoy-modsecurity-exceptions.conf' ]; then
   mv '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf.disabled'
 fi

@@ -233,4 +233,31 @@ describe('Cafe24 push delivery targeting', () => {
     expect(mocks.sendNotification).not.toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({ status: 'skipped', reason: 'self_comment' });
   });
+
+  it('saves an inbox notification even when the post author has no push subscription', async () => {
+    mocks.loadCafe24TableRows.mockImplementation(async (table) => {
+      if (table === 'board_comments') {
+        return [{ id: 'comment-2', post_id: 'post-2', user_id: 'commenter-a', author_name: '댓글러' }];
+      }
+      if (table === 'board_posts') {
+        return [{ id: 'post-2', user_id: 'author-without-push', title: '알림함 테스트' }];
+      }
+      return [];
+    });
+
+    const { sendBoardCommentNotification } = await import('./push-api.js');
+    const res = jsonResponse();
+    await sendBoardCommentNotification({ body: { commentId: 'comment-2' } }, res);
+
+    expect(mocks.mysqlExecute).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT IGNORE INTO user_notifications'),
+      expect.arrayContaining(['author-without-push', '내 글에 새 댓글이 달렸습니다']),
+    );
+    expect(mocks.sendNotification).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({
+      status: 'saved',
+      push: 'skipped',
+      reason: 'author_not_subscribed',
+    });
+  });
 });
