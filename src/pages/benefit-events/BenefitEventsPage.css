@@ -271,23 +271,27 @@
   z-index: 1000;
   display: grid;
   place-items: center;
-  padding: 18px;
-  background: rgba(5, 7, 10, 0.78);
-  backdrop-filter: blur(6px);
+  padding: 20px;
+  background: rgba(3, 5, 8, 0.86);
+  backdrop-filter: blur(10px);
 }
 
 .benefit-event-modal {
   position: relative;
   display: grid;
-  gap: 14px;
-  width: min(100%, 560px);
-  max-height: min(78dvh, 720px);
+  gap: 16px;
+  width: min(100%, 600px);
+  max-height: min(84dvh, 780px);
   overflow-y: auto;
-  padding: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
-  background: #202227;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 180px),
+    #1b1d22;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .benefit-event-modal h2,
@@ -298,9 +302,10 @@
 }
 
 .benefit-event-modal h2 {
-  padding-right: 38px;
-  font-size: clamp(20px, 5vw, 28px);
-  line-height: 1.25;
+  padding-right: 44px;
+  font-size: clamp(21px, 5vw, 30px);
+  line-height: 1.22;
+  letter-spacing: -0.025em;
 }
 
 .benefit-event-modal-poster {
@@ -308,7 +313,11 @@
   display: block;
   overflow: hidden;
   width: 100%;
-  border-radius: 10px;
+  justify-self: stretch;
+  min-height: 180px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   background: #0f1115;
   color: #fff;
   text-decoration: none;
@@ -318,7 +327,8 @@
 .benefit-event-modal-poster img {
   display: block;
   width: 100%;
-  max-height: 46dvh;
+  height: auto;
+  max-height: 52dvh;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
@@ -358,6 +368,9 @@
 .benefit-event-modal dl {
   display: grid;
   gap: 8px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .benefit-event-modal dl > div {
@@ -380,13 +393,14 @@
 
 .benefit-event-modal p {
   overflow-wrap: anywhere;
-  color: rgba(226, 232, 240, 0.78);
+  padding: 2px 2px 4px;
+  color: rgba(226, 232, 240, 0.82);
   font-size: 14px;
   line-height: 1.65;
   white-space: pre-wrap;
 }
 
-.benefit-event-modal > a {
+.benefit-event-modal > a:not(.benefit-event-modal-poster) {
   justify-self: start;
   display: inline-flex;
   align-items: center;
@@ -446,5 +460,26 @@
 
   .benefit-event-content small {
     -webkit-line-clamp: 1;
+  }
+
+  .benefit-event-modal-backdrop {
+    place-items: end center;
+    padding: 12px 10px calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .benefit-event-modal {
+    gap: 13px;
+    width: 100%;
+    max-height: calc(100dvh - 112px - env(safe-area-inset-bottom));
+    padding: 20px 18px 22px;
+    border-radius: 20px;
+  }
+
+  .benefit-event-modal-poster {
+    min-height: 220px;
+  }
+
+  .benefit-event-modal-poster img {
+    max-height: 48dvh;
   }
 }

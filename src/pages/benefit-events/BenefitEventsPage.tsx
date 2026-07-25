@@ -71,6 +71,18 @@ function getPlaceLabel(event: AppEvent) {
   return event.venue_name || event.location || event.address || '장소 미정';
 }
 
+function getEventPoster(event: AppEvent | null) {
+  if (!event) return '';
+  return String(
+    event.image_full
+    || event.image
+    || event.image_medium
+    || event.image_thumbnail
+    || event.image_micro
+    || '',
+  ).trim();
+}
+
 function formatDateLabel(date: string) {
   if (!date) return '날짜 미정';
   const parsed = new Date(`${date}T00:00:00+09:00`);
@@ -220,16 +232,16 @@ export default function BenefitEventsPage() {
               {selectedEvent.time && <em>{selectedEvent.time}</em>}
             </div>
             <h2 id="benefit-event-modal-title">{selectedEvent.title}</h2>
-            {getEventThumbnail(selectedEvent) && (
+            {getEventPoster(selectedEvent) && (
               <a
                 className="benefit-event-modal-poster"
-                href={getEventThumbnail(selectedEvent)}
+                href={getEventPoster(selectedEvent)}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="포스터 원본 이미지 확대"
               >
                 <img
-                  src={getEventThumbnail(selectedEvent)}
+                  src={getEventPoster(selectedEvent)}
                   alt={`${selectedEvent.title} 포스터`}
                   draggable={false}
                 />
