@@ -66,6 +66,9 @@ const benefitPhraseCases = [
   ['무료 상담 후 유료 수강 등록', 'free_event'],
   ['동호회 회원 대상 무료 대관 혜택, 월 회비 별도', 'free_event'],
   ['스윙바 8월 시즌권 판매 오픈', 'season_pass'],
+  ['8월 워크숍 얼리버드 20% 할인 오픈', 'discount_event'],
+  ['첫 방문 회원 5,000원 할인 혜택', 'discount_event'],
+  ['할인 이벤트는 종료되었습니다.', null],
   ['무료 이벤트는 종료되었습니다.', null],
   ['free lesson is not available, admission required', null],
   ['멤버십 안내만 진행하며 현재 판매하지 않습니다.', null],
@@ -106,6 +109,11 @@ assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'free_event' }),
   { benefit_eligible: true, benefit_kind: 'free_event' },
   'confirmed free-event metadata must survive candidate approval into the public event row',
+);
+assert.deepEqual(
+  benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'discount_event' }),
+  { benefit_eligible: true, benefit_kind: 'discount_event' },
+  'confirmed discount metadata must survive candidate approval into the public event row',
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
@@ -558,10 +566,12 @@ for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
   );
 }
 const swingBenefitSources = getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search');
-assert.equal(swingBenefitSources.length, 11, 'third-stage swing automation should run eleven focused benefit searches');
+assert.equal(swingBenefitSources.length, 14, 'third-stage swing automation should run fourteen focused benefit searches');
 assert.ok(swingBenefitSources.every((source) => source.priority === 3), 'benefit searches must stay isolated in priority stage three');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-club-free'), 'stage three should search amateur club free benefits');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-bar-pass'), 'stage three should search swing-bar passes');
+assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-discount'), 'stage three should search explicit discounts');
+assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-earlybird'), 'stage three should search early-bird benefits');
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');
 assert.equal(getAutomationSourceList('swing-daily').some((source) => /batswing/i.test(source.id + source.url)), false, 'daily automation must not include BAT SWING url or handle');
 assert.ok(getCollectionSources('street').length >= 5, 'street sources should be expanded');

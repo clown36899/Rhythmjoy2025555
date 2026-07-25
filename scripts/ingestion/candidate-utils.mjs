@@ -128,6 +128,12 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   if (/(?:정기권|시즌권|월정액|멤버십)\s*(?:판매|신청|모집|오픈|출시|구매|이벤트)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기권|시즌권|월정액|멤버십)/i.test(text)) {
     return 'season_pass';
   }
+  const discountText = text
+    .replace(/(?:할인|특가|얼리\s*버드|쿠폰|프로모션|혜택)[^.!?\n]{0,14}(?:없(?:음|습니다|다)|아님|제외|불가|종료|마감|소진)/gi, ' ')
+    .replace(/\b(?:discount|promotion|early\s*bird|coupon)\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended|sold\s*out)\b/gi, ' ');
+  if (/(?:\d{1,2}\s*%|\d[\d,]*\s*원)\s*할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록|특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|early\s*bird|coupon)\b/i.test(discountText)) {
+    return 'discount_event';
+  }
   const benefitText = text
     .replace(/무료\s*(?:라인\s*)?(?:강습|클래스|수업|체험|입장|행사|이벤트|파티)?\s*(?:은|는|이|가)?\s*(?:없(?:음|습니다|다)|아님|제외|불가|종료|마감)/gi, ' ')
     .replace(/\bfree\s+(?:class|lesson|event|party|admission)?\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended)\b/gi, ' ')

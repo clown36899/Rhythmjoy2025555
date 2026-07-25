@@ -328,7 +328,7 @@ function filterScrapedRows(rows, req) {
     if (tab === 'duplicate') return row.status === 'duplicate' || Boolean(sd._duplicate);
     if (tab === 'free') {
       return sd.benefit_eligible === true
-        && ['free_event', 'season_pass'].includes(String(sd.benefit_kind || ''))
+        && ['free_event', 'discount_event', 'season_pass'].includes(String(sd.benefit_kind || ''))
         && row.is_collected !== true
         && row.status !== 'collected'
         && row.status !== 'duplicate'

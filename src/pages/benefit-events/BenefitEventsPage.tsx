@@ -62,6 +62,7 @@ function getKindLabel(event: AppEvent) {
 
   if (tags.includes('season_pass') || /정기권|시즌권|월정액|멤버십|membership|\bpass\b/i.test(text)) return '정기권';
   if (tags.includes('free_event') || /무료|free/i.test(text)) return '무료';
+  if (tags.includes('discount_event') || /할인|특가|얼리\s*버드|쿠폰|프로모션|discount|promotion/i.test(text)) return '할인';
   if (activityType === 'sale' || tags.includes('sale_event') || /판매\s*이벤트|이벤트\s*판매|\bsale\b/i.test(text)) return '판매이벤트';
   return '혜택';
 }
@@ -121,8 +122,8 @@ export default function BenefitEventsPage() {
           <i className="ri-arrow-left-line" aria-hidden="true" />
         </a>
         <div>
-          <h1>무료, 정기권</h1>
-          <p>무료 요소가 포함된 일정과 동호회·바 정기권 판매</p>
+          <h1>무료, 할인 이벤트</h1>
+          <p>무료·할인 혜택과 정기권·시즌권·멤버십 판매</p>
         </div>
       </header>
 

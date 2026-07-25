@@ -150,10 +150,10 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                 )}
                 {showEventsCards && renderNavCard(
                     'benefit',
-                    '무료, 정기권',
+                    '무료, 할인 이벤트',
                     handleBenefitsClick,
                     displayEventImages,
-                    '무료 혜택과 정기권 모아보기',
+                    '무료·할인·정기권 혜택 모아보기',
                     '/benefit-events'
                 )}
             </div>
