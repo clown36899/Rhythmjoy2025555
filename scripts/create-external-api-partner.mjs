@@ -25,10 +25,12 @@ const perMinuteLimit = Number(readArg('per-minute-limit') || 10);
 const dailyLimit = Number(readArg('daily-limit') || 200);
 
 if (!name) {
-  fail('사용법: npm run external-api:create-partner -- --name "파트너명" --category class --genre "린디합"');
-} else if (!SITE_GENRES_BY_CATEGORY[category]) {
+  fail('사용법: npm run external-api:create-partner -- --name "파트너명" [--category class --genre "린디합"]');
+} else if (Boolean(category) !== Boolean(genre)) {
+  fail('기본 분류를 지정하려면 category와 genre를 함께 입력해야 합니다.');
+} else if (category && !SITE_GENRES_BY_CATEGORY[category]) {
   fail(`category는 ${Object.keys(SITE_GENRES_BY_CATEGORY).join(', ')} 중 하나여야 합니다.`);
-} else if (!SITE_GENRES_BY_CATEGORY[category].includes(genre)) {
+} else if (category && !SITE_GENRES_BY_CATEGORY[category].includes(genre)) {
   fail(`${category}에서 사용할 수 있는 genre는 ${SITE_GENRES_BY_CATEGORY[category].join(', ')}입니다.`);
 } else if (!Number.isInteger(perMinuteLimit) || perMinuteLimit < 1 || !Number.isInteger(dailyLimit) || dailyLimit < 1) {
   fail('호출 한도는 1 이상의 정수여야 합니다.');
@@ -50,8 +52,8 @@ if (!name) {
     console.log(JSON.stringify({
       partner_id: id,
       name,
-      default_category: category,
-      default_genre: genre,
+      default_category: category || null,
+      default_genre: genre || null,
       api_key: apiKey,
       warning: '이 API Key는 다시 조회할 수 없습니다. 안전한 비밀 저장소에 보관하세요.',
     }, null, 2));

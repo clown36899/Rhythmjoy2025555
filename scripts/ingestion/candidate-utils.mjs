@@ -117,6 +117,25 @@ const tagRules = [
   ['free_event', [/무료\s*(?:이벤트|행사|파티|강습|클래스|수업|체험)/i, /\bfree\b/i]],
 ];
 
+export function classifyConfirmedBenefitEvent(candidate = {}) {
+  const sd = candidate.structured_data || {};
+  const text = [
+    sd.title,
+    candidate.extracted_text,
+    sd.description,
+    sd.price,
+  ].filter(Boolean).join(' ').normalize('NFKC');
+  const negative = /(?:무료|free|0\s*원)[^.!?\n]{0,24}(?:없(?:음|습니다|다)|아님|제외|불가|종료|마감)|(?:유료|별도\s*비용|참가비|입장료)[^.!?\n]{0,16}(?:있|발생|required)/i;
+  if (negative.test(text)) return null;
+  if (/(?:정기권|시즌권|월정액|멤버십)\s*(?:판매|신청|모집|오픈|출시|구매|이벤트)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기권|시즌권|월정액|멤버십)/i.test(text)) {
+    return 'season_pass';
+  }
+  if (/(?:참가비|입장료|수강료|이용료)\s*[:：]?\s*(?:0\s*원|무료)|(?:전액|참가|입장|수강|체험|강습|클래스|행사|이벤트|파티)\s*무료|무료\s*(?:체험|강습|클래스|수업|이벤트|행사|파티)|\bfree\s+(?:class|lesson|event|party|admission)\b/i.test(text)) {
+    return 'free_event';
+  }
+  return null;
+}
+
 export const siteGenresByCategory = {
   social: ['소셜', '졸공'],
   event: ['워크샵', '파티', '대회', '라이브밴드', '기타'],
@@ -737,6 +756,14 @@ export function prepareCandidate(rawCandidate, config = {}) {
     ...stripVirtualTaxonomyFields(rawCandidate.structured_data || {}),
     ...siteEventFields,
   });
+  const confirmedBenefit = classifyConfirmedBenefitEvent({ ...rawCandidate, structured_data: structuredData });
+  if (confirmedBenefit) {
+    structuredData.benefit_eligible = true;
+    structuredData.benefit_kind = confirmedBenefit;
+  } else {
+    delete structuredData.benefit_eligible;
+    delete structuredData.benefit_kind;
+  }
   const date = String(structuredData.date || '').slice(0, 10);
   const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, date, rawCandidate.id_suffix || '');
   const candidate = {

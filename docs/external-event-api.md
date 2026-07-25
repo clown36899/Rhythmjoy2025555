@@ -1,6 +1,6 @@
 # 외부 일정 등록 API
 
-외부 사이트가 자기 일정 등록과 동시에 Swing Enjoy에도 같은 일정을 등록하기 위한 서버 간 API다. 현재 공개 버전은 등록만 제공하며 수정·삭제는 아직 허용하지 않는다.
+외부 사이트가 자기 일정 등록·수정·삭제와 동시에 Swing Enjoy의 같은 일정도 동기화하기 위한 서버 간 API다.
 
 ## 엔드포인트
 
@@ -14,6 +14,8 @@ API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 �
 
 브라우저 직접 호출을 위한 CORS는 제공하지 않는다.
 
+외부 사이트 로그인 세션과 Swing Enjoy 로그인 세션은 서로 공유할 수 없다. 대신 파트너별 API Key를 서버 계정처럼 사용한다. 같은 키로 만든 일정만 같은 키로 수정·삭제할 수 있으며 다른 파트너의 `external_id`나 내부 `event_id`로는 접근할 수 없다.
+
 ## 단일 일정 요청 예시
 
 ```json
@@ -23,7 +25,7 @@ API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 �
   "event_dates": ["2026-08-01"],
   "time": "19:30",
   "location": "서울 강남",
-  "address": "서울특별시 강남구",
+  "address": "서울특별시 강남구 테헤란로 123",
   "description": "행사 소개",
   "category": "class",
   "genre": "린디합",
@@ -94,7 +96,9 @@ API Key는 브라우저 JavaScript에 넣지 말고 상대방 서버에서만 �
 
 원칙적으로 상대방은 요청 JSON에 `category`와 `genre`를 직접 넣는다. 아래 표에 없는 값은 등록되지 않는다.
 
-특정 업체가 항상 같은 종류만 등록하는 경우에만 관리자가 API 키에 분류를 미리 지정할 수 있다. 예를 들어 그 키를 `category=event`, `genre=워크샵`으로 발급하면 상대방은 두 필드를 생략할 수 있고 서버가 항상 `event/워크샵`으로 저장한다. 요청값으로 다른 분류를 새로 만드는 기능이 아니다. 이런 사전 지정이 없는 일반 키는 두 필드를 반드시 보내야 한다.
+일반적인 API Key에서는 상대방이 매 요청마다 표에 있는 `category`와 `genre`를 보낸다.
+
+예외적으로 한 업체가 워크샵만 등록한다면, 키 발급 시 관리자가 그 키의 생략값을 `event/워크샵`으로 저장할 수 있다. 그 경우 두 필드를 안 보낸 요청만 서버가 `event/워크샵`으로 채운다. 새로운 장르를 만드는 기능도 아니고 모든 파트너에게 필요한 설정도 아니다. 여러 종류를 등록하는 파트너는 생략값 없이 키를 발급받고 매번 두 필드를 보낸다.
 
 | category | 의미 | 허용 genre |
 |---|---|---|
@@ -138,16 +142,34 @@ Content-Type: image/jpeg
 {이미지 바이너리 파일}
 ```
 
-JPEG, PNG, WebP, AVIF 파일을 최대 8MB까지 받을 수 있다. 확장자나 요청 헤더만 믿지 않고 실제 이미지인지 검사한 뒤, 최대 2,400×2,400 크기의 WebP로 다시 변환하여 Swing Enjoy 저장소에 보관한다. SVG, GIF 애니메이션, HTML 및 실행 파일은 허용하지 않는다.
+JPEG, PNG, WebP, AVIF 파일을 최대 8MB까지 받을 수 있다. 확장자나 요청 헤더만 믿지 않고 실제 이미지인지 검사한 뒤 Swing Enjoy 저장소에 다음 4종 WebP를 만든다. SVG, GIF 애니메이션, HTML 및 실행 파일은 허용하지 않는다.
+
+| 용도 | 필드 | 최대 폭 |
+|---|---|---:|
+| 초소형 | `image_micro` | 100px |
+| 썸네일 | `image_thumbnail` | 300px |
+| 일반 표시 | `image_medium` | 650px |
+| 상세 원본 | `image_full` | 1300px |
 
 업로드 응답:
 
 ```json
 {
   "ok": true,
-  "image_url": "https://swingenjoy.com/uploads/external-events/.../poster.webp",
+  "image_url": "https://swingenjoy.com/uploads/external-events/.../full.webp",
+  "variants": {
+    "image_micro": "https://swingenjoy.com/uploads/external-events/.../micro.webp",
+    "image_thumbnail": "https://swingenjoy.com/uploads/external-events/.../thumbnail.webp",
+    "image_medium": "https://swingenjoy.com/uploads/external-events/.../medium.webp",
+    "image_full": "https://swingenjoy.com/uploads/external-events/.../full.webp"
+  },
   "content_type": "image/webp",
-  "bytes": 183204
+  "bytes": {
+    "image_micro": 4200,
+    "image_thumbnail": 18300,
+    "image_medium": 56200,
+    "image_full": 183204
+  }
 }
 ```
 
@@ -159,7 +181,7 @@ JPEG, PNG, WebP, AVIF 파일을 최대 8MB까지 받을 수 있다. 확장자나
   "title": "토요일 린디합 강습",
   "event_dates": ["2026-08-01"],
   "image_mode": "upload",
-  "image_url": "https://swingenjoy.com/uploads/external-events/.../poster.webp"
+  "image_url": "https://swingenjoy.com/uploads/external-events/.../full.webp"
 }
 ```
 
@@ -190,7 +212,34 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 }
 ```
 
-허용 확장자는 AVIF, JPEG, PNG, WebP다. 주소에 로그인, 쿠키 또는 일회성 서명이 필요하면 사용할 수 없다. 상대방 서버가 핫링크를 막거나 이미지를 삭제하거나 URL을 만료시키면 Swing Enjoy에서도 이미지가 보이지 않을 수 있다. 그런 사이트는 `upload` 방식을 사용해야 한다.
+허용 확장자는 AVIF, JPEG, PNG, WebP다. 서버가 URL을 등록 시점에 직접 내려받아 실제 이미지를 검사하고 동일한 4종 WebP로 변환한 뒤 Swing Enjoy에 저장한다. 이후 원본 사이트가 이미지를 삭제해도 등록된 일정 이미지는 유지된다. 내부망·로컬 주소, 사설 IP로 해석되는 DNS, 인증이 필요한 URL, 과도한 리디렉션과 8MB 초과 응답은 차단한다.
+
+## 수정과 삭제
+
+수정은 전체 교체 방식이다. 등록에 사용한 것과 같은 API Key와 `external_id`를 사용하며 날짜·분류·이미지 규칙도 등록과 같다.
+
+```http
+PUT /api/external/v1/events/{external_id}
+Authorization: Bearer {동일 파트너 API Key}
+Content-Type: application/json
+```
+
+본문은 등록 요청과 같고 `external_id`를 넣는 경우 URL 값과 정확히 같아야 한다.
+
+```http
+DELETE /api/external/v1/events/{external_id}
+Authorization: Bearer {동일 파트너 API Key}
+```
+
+다른 파트너 키로 만든 일정은 존재 여부를 구분할 수 없도록 `404`로 처리한다. 내부 `event_id`는 수정·삭제 권한 식별자로 사용하지 않는다.
+
+## 추적과 차단
+
+- 모든 성공·중복·거절·수정·삭제 요청은 파트너 ID, `external_id`, 결과, 상태 코드, 요청 IP, 시각과 함께 기록한다.
+- 관리자는 Swing Enjoy 관리자 로그인 세션이 있어야 파트너 목록과 요청 로그를 조회할 수 있다.
+- `PATCH /api/admin/external-partners/{partner_id}`에 `{"is_active": false}`를 보내면 해당 키를 즉시 중지한다.
+- 파트너별 분당·일일 호출 제한을 적용한다.
+- API Key 원문은 발급 시 한 번만 표시하고 DB에는 SHA-256 해시만 저장한다.
 
 이미지를 사용하는 경우 `image_mode`과 `image_url` 중 하나라도 빠지면 등록되지 않는다. 둘 다 생략할 수 있는 경우는 주소가 있는 `social`뿐이다.
 

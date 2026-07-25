@@ -202,20 +202,44 @@
   - 배포 스크립트가 `package.json`과 잠금 파일을 전송한 뒤 운영 의존성을 설치하지 않았다.
   - 최신 `sharp` 바이너리가 운영 서버에서 제공하는 `GLIBCXX`보다 새 버전을 요구했다.
 - 조치:
-  - `sharp`를 운영 의존성으로 이동하고 Cafe24 OS 호환 버전 `0.32.6`으로 고정했다.
+  - `sharp`를 운영 의존성으로 이동하고 최초 복구 시 Cafe24 OS 호환 버전 `0.32.6`을 적용했다.
+  - 후속 보안 감사에서 구버전 libvips 취약점이 확인되어 Node 20 호환 수정 버전 `0.35.3`으로 갱신했다.
   - 패키지 파일이 변경된 배포에서는 `npm install --omit=dev`를 자동 실행하도록 배포 스크립트를 보강했다.
-  - 외부 이미지 업로드 경로에서만 이미지 Content-Type을 허용하도록 ModSecurity 규칙 `960010`을 해제했다.
+  - 외부 이미지 업로드 경로는 ModSecurity 탐지를 유지하되 차단하지 않는 `DetectionOnly`로 제한하고, 애플리케이션에서 키 인증·용량·실제 디코딩 검사를 수행하도록 했다.
   - 운영 DB 백업 후 외부 API용 새 테이블만 생성했으며 기존 `events` 레코드는 변경하지 않았다.
 - 검증:
-  - 운영 서버에서 `sharp runtime ok 0.32.6` 확인
+  - 운영 서버에서 `sharp` 런타임 로딩 확인
   - `swingenjoy.service` active 및 `/__health` 응답 확인
-  - 외부 일정 API 테스트 15개 통과
+  - 외부 일정 API 테스트 통과
 - 관련 파일:
   - `package.json`
   - `package-lock.json`
   - `scripts/deploy-cafe24.sh`
   - `deploy/cafe24/apache/swingenjoy-modsecurity-exceptions.conf`
   - `server/cafe24/external-events-api.js`
+- 관련 커밋: pending
+
+## 2026-07-26 외부 일정 API 양방향 동기화·이미지 보안 보강
+
+- 상태: 해결
+- 범위: 파트너 일정 API, 이미지 저장, 혜택 이벤트 수집 판별
+- 증상: 외부 URL 이미지는 원격 서버에 의존했고 4종 이미지가 생성되지 않았으며, 파트너 원본 수정·삭제 동기화와 엄격한 혜택 판별이 없었다.
+- 조치:
+  - 모든 이미지 방식을 실제 디코딩 후 WebP 4종으로 자체 저장하도록 통일했다.
+  - DNS·사설 IP·리디렉션·응답 크기·Content-Type 검증과 공인 IP 고정 연결을 적용했다.
+  - `partner_id + external_id` 소유권에 한정한 수정·삭제 API를 추가했다.
+  - 관리자 세션 전용 파트너 목록·활성 상태·요청 로그 API를 추가했다.
+  - 명시적인 무료 금액/무료 행사/정기권 판매만 혜택 대상으로 표시하고 부정 표현은 제외했다.
+  - 이미지 디코더를 보안 수정이 포함된 `sharp 0.35.3`으로 갱신하고 SSRF 차단에 IPv4-mapped IPv6, 예약·문서·멀티캐스트 대역을 포함했다.
+- 검증:
+  - 전체 단위 테스트 60개 및 외부 API 테스트 18개 통과
+  - 수집 기준 테스트, TypeScript, ESLint, OpenAPI YAML 파싱 및 프로덕션 빌드 통과
+- 관련 파일:
+  - `server/cafe24/external-events-api.js`
+  - `server/cafe24/app.js`
+  - `scripts/ingestion/candidate-utils.mjs`
+  - `docs/external-event-api.md`
+  - `docs/external-event-api.openapi.yaml`
 - 관련 커밋: pending
 
 ## 새 항목 템플릿

@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Swing Enjoy External Event Registration API
-  version: 1.0.0
-  description: 외부 파트너가 Swing Enjoy에 일정을 단방향 등록하는 서버 간 API
+  version: 1.1.0
+  description: 외부 파트너가 소유한 Swing Enjoy 일정을 등록·수정·삭제하는 서버 간 API
 servers:
   - url: https://swingenjoy.com
 paths:
@@ -83,6 +83,50 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/external/v1/events/{external_id}:
+    parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 160
+    put:
+      summary: 동일 파트너가 등록한 일정 전체 수정
+      operationId: updateExternalEvent
+      security:
+        - partnerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalEventRequest'
+      responses:
+        '200':
+          description: 수정 성공
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+    delete:
+      summary: 동일 파트너가 등록한 일정 삭제
+      operationId: deleteExternalEvent
+      security:
+        - partnerApiKey: []
+      responses:
+        '200':
+          description: 삭제 성공
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/RateLimited'
 components:
@@ -208,7 +252,7 @@ components:
           type: string
     ImageUploadResponse:
       type: object
-      required: [ok, image_url, content_type, bytes]
+      required: [ok, image_url, variants, content_type, bytes]
       properties:
         ok:
           type: boolean
@@ -216,12 +260,22 @@ components:
         image_url:
           type: string
           format: uri
+        variants:
+          type: object
+          required: [image_micro, image_thumbnail, image_medium, image_full]
+          properties:
+            image_micro: { type: string, format: uri }
+            image_thumbnail: { type: string, format: uri }
+            image_medium: { type: string, format: uri }
+            image_full: { type: string, format: uri }
         content_type:
           type: string
           const: image/webp
         bytes:
-          type: integer
-          minimum: 1
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 1
     ErrorResponse:
       type: object
       required: [error, message]
@@ -241,6 +295,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
       description: API Key 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 해당 파트너 소유 일정 없음
       content:
         application/json:
           schema:

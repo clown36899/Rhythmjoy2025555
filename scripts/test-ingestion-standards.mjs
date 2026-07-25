@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   buildCafe24Payload,
+  classifyConfirmedBenefitEvent,
   hasBadPosterUrl,
   isCollectableDateTime,
   keepFirstEventDateOnly,
@@ -20,6 +21,19 @@ import {
 } from '../server/cafe24/ingestion-date-expansion.js';
 
 const TODAY = '2026-05-23';
+
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '참가비 0원, 6월 5일 무료 체험 클래스',
+  structured_data: { title: '무료 체험 클래스' },
+}), 'free_event', 'explicit zero-price/free events should be benefit eligible');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '무료 라인강습은 없습니다. 입장료 15,000원',
+  structured_data: { title: '금요 소셜' },
+}), null, 'negated free wording must not be benefit eligible');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '7월 정기권 판매 오픈',
+  structured_data: { title: '7월 정기권' },
+}), 'season_pass', 'explicit season-pass sales should be benefit eligible');
 
 function baseCandidate(overrides = {}) {
   return {

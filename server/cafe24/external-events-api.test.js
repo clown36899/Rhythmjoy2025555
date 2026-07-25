@@ -4,6 +4,9 @@ import {
   normalizeExternalImage,
   normalizeExternalUrl,
   parseExternalApiKey,
+  createImageVariants,
+  isPublicAddress,
+  isKakaoMapAddress,
   SITE_GENRES_BY_CATEGORY,
 } from './external-events-api.js';
 import sharp from 'sharp';
@@ -137,6 +140,21 @@ describe('external event API validation', () => {
       .toThrow('AVIF, JPEG, PNG, WebP');
   });
 
+  it('blocks reserved, documentation and IPv4-mapped private network addresses', () => {
+    [
+      '100.64.0.1',
+      '192.0.2.1',
+      '198.18.0.1',
+      '198.51.100.1',
+      '203.0.113.1',
+      '::ffff:127.0.0.1',
+      '::ffff:192.168.0.1',
+      'ff02::1',
+    ].forEach((address) => expect(isPublicAddress(address)).toBe(false));
+    expect(isPublicAddress('8.8.8.8')).toBe(true);
+    expect(isPublicAddress('2606:4700:4700::1111')).toBe(true);
+  });
+
   it('supports explicit external URL and uploaded image modes', () => {
     const externalUrl = normalizeExternalEventPayload({
       external_id: 'partner-image-url',
@@ -153,7 +171,7 @@ describe('external event API validation', () => {
       title: '업로드 이미지',
       event_dates: ['2026-08-01'],
       image_mode: 'upload',
-      image_url: 'https://swingenjoy.com/uploads/external-events/partner/2026/08/poster.webp',
+      image_url: 'https://swingenjoy.com/uploads/external-events/c9cd539e9284e15e/2026/08/asset/full.webp',
       source_url: 'https://partner.example.com/events/image-upload',
     }, partner);
     expect(uploaded.event.external_source.image_mode).toBe('upload');
@@ -212,6 +230,37 @@ describe('external event API validation', () => {
       genre: '소셜',
       source_url: 'https://partner.example.com/socials/2',
     }, partner)).toThrow('카카오맵 표시에 사용할 address');
+
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'social-vague-address',
+      title: '모호한 장소',
+      event_dates: ['2026-08-01'],
+      category: 'social',
+      genre: '소셜',
+      address: '강남역 근처 스윙홀',
+      source_url: 'https://partner.example.com/socials/3',
+    }, partner)).toThrow('도로명주소 또는 지번주소');
+    expect(isKakaoMapAddress('서울특별시 강남구 테헤란로 123')).toBe(true);
+    expect(isKakaoMapAddress('서울특별시 강남구 역삼동 123-45')).toBe(true);
+  });
+
+  it('does not accept another origin or partner upload folder', () => {
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'cross-origin-upload',
+      title: '위조 업로드',
+      event_dates: ['2026-08-01'],
+      image_mode: 'upload',
+      image_url: 'https://attacker.example/uploads/external-events/c9cd539e9284e15e/2026/08/asset/full.webp',
+      source_url: 'https://partner.example.com/events/cross-origin',
+    }, partner)).toThrow('업로드 API가 반환한 image_url');
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'cross-partner-upload',
+      title: '다른 파트너 이미지',
+      event_dates: ['2026-08-01'],
+      image_mode: 'upload',
+      image_url: 'https://swingenjoy.com/uploads/external-events/0000000000000000/2026/08/asset/full.webp',
+      source_url: 'https://partner.example.com/events/cross-partner',
+    }, partner)).toThrow('업로드 API가 반환한 image_url');
   });
 
   it('parses only the issued key format', () => {
@@ -235,6 +284,26 @@ describe('external event API validation', () => {
     expect(metadata.format).toBe('webp');
     expect(metadata.width).toBe(10);
     expect(metadata.height).toBe(10);
+  });
+
+  it('creates the four site image sizes as WebP', async () => {
+    const png = await sharp({
+      create: {
+        width: 1600,
+        height: 1200,
+        channels: 3,
+        background: '#336699',
+      },
+    }).png().toBuffer();
+    const variants = await createImageVariants(png);
+    expect(Object.keys(variants).sort()).toEqual(['full', 'medium', 'micro', 'thumbnail']);
+    const widths = {};
+    for (const [name, buffer] of Object.entries(variants)) {
+      const metadata = await sharp(buffer).metadata();
+      expect(metadata.format).toBe('webp');
+      widths[name] = metadata.width;
+    }
+    expect(widths).toEqual({ micro: 100, thumbnail: 300, medium: 650, full: 1300 });
   });
 
   it('rejects non-image upload bodies', async () => {

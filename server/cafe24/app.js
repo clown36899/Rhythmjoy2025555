@@ -11,7 +11,15 @@ import {
   listCafe24Events,
   updateCafe24Event,
 } from './events-api.js';
-import { createExternalEvent, uploadExternalEventImage } from './external-events-api.js';
+import {
+  createExternalEvent,
+  deleteExternalEvent,
+  listExternalPartners,
+  listExternalRequestLogs,
+  updateExternalEvent,
+  updateExternalPartnerStatus,
+  uploadExternalEventImage,
+} from './external-events-api.js';
 import { authProviders, devLogin, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
 import {
   listClientReloadDiagnostics,
@@ -241,7 +249,12 @@ app.put('/api/events/:id', jsonBody, jsonRoute(updateCafe24Event));
 app.patch('/api/events/:id', jsonBody, jsonRoute(updateCafe24Event));
 app.delete('/api/events/:id', jsonRoute(deleteCafe24Event));
 app.post('/api/external/v1/events', externalEventJsonBody, jsonRoute(createExternalEvent));
+app.put('/api/external/v1/events/:externalId', externalEventJsonBody, jsonRoute(updateExternalEvent));
+app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent));
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
+app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
+app.patch('/api/admin/external-partners/:partnerId', jsonBody, jsonRoute(updateExternalPartnerStatus));
+app.get('/api/admin/external-request-logs', jsonRoute(listExternalRequestLogs));
 app.use('/api/external/v1', (error, req, res, next) => {
   if (error?.type === 'entity.too.large') {
     const isImageUpload = req.path === '/images' || req.originalUrl?.startsWith('/api/external/v1/images');

@@ -1,8 +1,10 @@
 import crypto from 'node:crypto';
+import dns from 'node:dns/promises';
 import { isIP } from 'node:net';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
+import { Agent, fetch as undiciFetch } from 'undici';
 import { getMysqlPool } from './mysql-pool.js';
 import {
   enqueueNewEventNotification,
@@ -10,6 +12,7 @@ import {
   saveEvent,
 } from './events-api.js';
 import { sanitizeEventForViewer } from './event-security.js';
+import { requireAdmin } from './auth-api.js';
 
 export const SITE_GENRES_BY_CATEGORY = Object.freeze({
   social: Object.freeze(['소셜', '졸공']),
@@ -31,6 +34,15 @@ const MAX_DESCRIPTION_LENGTH = 20_000;
 const MAX_TEXT_FIELD_LENGTH = 255;
 const MAX_LINK_LENGTH = 2_048;
 const API_KEY_PREFIX = 'rj_live_';
+const EVENTS_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
+  ? process.env.MYSQL_EVENTS_TABLE
+  : 'events';
+const IMAGE_VARIANTS = Object.freeze({
+  micro: Object.freeze({ width: 100, quality: 70 }),
+  thumbnail: Object.freeze({ width: 300, quality: 75 }),
+  medium: Object.freeze({ width: 650, quality: 90 }),
+  full: Object.freeze({ width: 1300, quality: 85 }),
+});
 const ALLOWED_EXTERNAL_EVENT_FIELDS = new Set([
   'external_id',
   'title',
@@ -75,6 +87,34 @@ function normalizeDate(value, field) {
   return text;
 }
 
+export function isKakaoMapAddress(value) {
+  const text = String(value || '').trim();
+  return /^(?:서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|제주특별자치도|경기도|강원특별자치도|충청북도|충청남도|전북특별자치도|전라남도|경상북도|경상남도)\s+.+\s+\d+(?:-\d+)?(?:\s|$)/.test(text);
+}
+
+function isPublicIpv4(address) {
+  const ipv4 = String(address).match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!ipv4) return false;
+  const octets = ipv4.slice(1).map(Number);
+  if (octets.some((part) => part < 0 || part > 255)) return false;
+  const [a, b, c] = octets;
+  return !(
+    a === 0
+    || a === 10
+    || a === 127
+    || (a === 100 && b >= 64 && b <= 127)
+    || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 0 && c === 0)
+    || (a === 192 && b === 0 && c === 2)
+    || (a === 192 && b === 168)
+    || (a === 198 && (b === 18 || b === 19))
+    || (a === 198 && b === 51 && c === 100)
+    || (a === 203 && b === 0 && c === 113)
+    || a >= 224
+  );
+}
+
 function isPublicHostname(hostname) {
   const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
   if (
@@ -86,20 +126,46 @@ function isPublicHostname(hostname) {
   ) return false;
 
   if (isIP(normalized) === 6) return false;
-  const ipv4 = normalized.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (!ipv4) return true;
-  const octets = ipv4.slice(1).map(Number);
-  if (octets.some((part) => part < 0 || part > 255)) return false;
-  const [a, b] = octets;
-  return !(
-    a === 0
-    || a === 10
-    || a === 127
-    || (a === 169 && b === 254)
-    || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 168)
-    || a >= 224
-  );
+  if (isIP(normalized) === 4) return isPublicIpv4(normalized);
+  return true;
+}
+
+export function isPublicAddress(address) {
+  const normalized = String(address || '').replace(/^\[|\]$/g, '');
+  if (isIP(normalized) === 6) {
+    const lower = normalized.toLowerCase();
+    const mappedIpv4 = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+    if (mappedIpv4) return isPublicIpv4(mappedIpv4[1]);
+    return !(
+      lower === '::1'
+      || lower === '::'
+      || lower.startsWith('fc')
+      || lower.startsWith('fd')
+      || lower.startsWith('fe8')
+      || lower.startsWith('fe9')
+      || lower.startsWith('fea')
+      || lower.startsWith('feb')
+      || lower.startsWith('ff')
+    );
+  }
+  return isPublicHostname(normalized);
+}
+
+async function assertPublicDns(hostname) {
+  if (isIP(hostname)) {
+    if (!isPublicAddress(hostname)) throw apiError('내부 네트워크 이미지 주소는 사용할 수 없습니다.');
+    return [{ address: hostname, family: isIP(hostname) }];
+  }
+  let addresses;
+  try {
+    addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+  } catch {
+    throw apiError('이미지 호스트의 DNS 주소를 확인할 수 없습니다.');
+  }
+  if (!addresses.length || addresses.some(({ address }) => !isPublicAddress(address))) {
+    throw apiError('내부 네트워크로 연결되는 이미지 주소는 사용할 수 없습니다.');
+  }
+  return addresses;
 }
 
 export function normalizeExternalUrl(value, field, { image = false } = {}) {
@@ -197,12 +263,21 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
   if (!hasAnyImageInput && category !== 'social') {
     throw apiError('행사, 강습, 동호회 일정은 image_mode과 image_url이 필요합니다.');
   }
-  if (!hasAnyImageInput && category === 'social' && !cleanString(input.address, MAX_TEXT_FIELD_LENGTH, 'address')) {
+  const address = cleanString(input.address, MAX_TEXT_FIELD_LENGTH, 'address');
+  if (!hasAnyImageInput && category === 'social' && !address) {
     throw apiError('이미지 없는 소셜은 상세 카카오맵 표시에 사용할 address 값이 필요합니다.');
+  }
+  if (!hasAnyImageInput && category === 'social' && !isKakaoMapAddress(address)) {
+    throw apiError('address는 시·도부터 번지까지 포함한 대한민국 도로명주소 또는 지번주소여야 합니다.');
   }
   if (imageMode === 'upload') {
     const uploadedUrl = new URL(imageUrl);
-    if (!uploadedUrl.pathname.startsWith('/uploads/external-events/')) {
+    const uploadOrigin = String(process.env.EXTERNAL_API_PUBLIC_ORIGIN || 'https://swingenjoy.com').replace(/\/+$/, '');
+    const partnerFolder = crypto.createHash('sha256').update(String(partner.id)).digest('hex').slice(0, 16);
+    if (
+      uploadedUrl.origin !== uploadOrigin
+      || !uploadedUrl.pathname.startsWith(`/uploads/external-events/${partnerFolder}/`)
+    ) {
       throw apiError('image_mode이 upload이면 이미지 업로드 API가 반환한 image_url을 사용해야 합니다.');
     }
   }
@@ -222,7 +297,7 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
       event_dates: eventDates,
       time: cleanString(input.time, 120, 'time'),
       location: cleanString(input.location, MAX_TEXT_FIELD_LENGTH, 'location'),
-      address: cleanString(input.address, MAX_TEXT_FIELD_LENGTH, 'address'),
+      address,
       location_link: normalizeExternalUrl(input.location_link, 'location_link'),
       description: cleanString(input.description, MAX_DESCRIPTION_LENGTH, 'description'),
       category,
@@ -313,9 +388,158 @@ export async function normalizeExternalImage(buffer) {
   }
 }
 
+export async function createImageVariants(buffer) {
+  await normalizeExternalImage(buffer);
+  const entries = await Promise.all(Object.entries(IMAGE_VARIANTS).map(async ([name, options]) => [
+    name,
+    await sharp(buffer, {
+      animated: false,
+      failOn: 'warning',
+      limitInputPixels: 40_000_000,
+    })
+      .rotate()
+      .resize({ width: options.width, withoutEnlargement: true })
+      .webp({ quality: options.quality })
+      .toBuffer(),
+  ]));
+  return Object.fromEntries(entries);
+}
+
+async function readResponseBody(response, maxBytes) {
+  const declared = Number(response.headers.get('content-length') || 0);
+  if (declared > maxBytes) throw apiError('외부 이미지가 허용 용량을 초과합니다.', 413, 'payload_too_large');
+  const reader = response.body?.getReader();
+  if (!reader) throw apiError('외부 이미지 본문을 읽을 수 없습니다.');
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw apiError('외부 이미지가 허용 용량을 초과합니다.', 413, 'payload_too_large');
+    }
+    chunks.push(Buffer.from(value));
+  }
+  return Buffer.concat(chunks);
+}
+
+async function downloadExternalImage(urlValue, maxBytes) {
+  let current = new URL(normalizeExternalUrl(urlValue, 'image_url', { image: true }));
+  for (let redirects = 0; redirects <= 3; redirects += 1) {
+    const addresses = await assertPublicDns(current.hostname);
+    let addressIndex = 0;
+    const dispatcher = new Agent({
+      connect: {
+        lookup: (_hostname, _options, callback) => {
+          const selected = addresses[addressIndex % addresses.length];
+          addressIndex += 1;
+          callback(null, selected.address, selected.family);
+        },
+      },
+    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    let response;
+    try {
+      response = await undiciFetch(current, {
+        redirect: 'manual',
+        signal: controller.signal,
+        dispatcher,
+        headers: {
+          Accept: 'image/avif,image/webp,image/png,image/jpeg',
+          'User-Agent': 'SwingEnjoyExternalEventAPI/1.0',
+        },
+      });
+    } catch {
+      dispatcher.destroy();
+      throw apiError('외부 이미지를 내려받을 수 없습니다.');
+    } finally {
+      clearTimeout(timer);
+    }
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get('location');
+      dispatcher.destroy();
+      if (!location || redirects === 3) throw apiError('외부 이미지 리디렉션이 너무 많습니다.');
+      current = new URL(location, current);
+      normalizeExternalUrl(current.href, 'image_url', { image: true });
+      continue;
+    }
+    if (!response.ok) {
+      dispatcher.destroy();
+      throw apiError(`외부 이미지 응답 오류입니다: ${response.status}`);
+    }
+    const contentType = String(response.headers.get('content-type') || '').split(';')[0].toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(contentType)) {
+      dispatcher.destroy();
+      throw apiError('외부 URL이 허용된 이미지 Content-Type을 반환하지 않았습니다.');
+    }
+    try {
+      return await readResponseBody(response, maxBytes);
+    } finally {
+      await dispatcher.close().catch(() => {});
+    }
+  }
+  throw apiError('외부 이미지를 내려받을 수 없습니다.');
+}
+
+async function storeImageVariants(buffer, partner) {
+  const variants = await createImageVariants(buffer);
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const partnerFolder = crypto.createHash('sha256').update(String(partner.id)).digest('hex').slice(0, 16);
+  const assetFolder = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
+  const relativeDir = path.posix.join('external-events', partnerFolder, yyyy, mm, assetFolder);
+  const uploadRoot = path.resolve(process.cwd(), process.env.CAFE24_UPLOADS_DIR || 'uploads');
+  const targetDir = path.join(uploadRoot, ...relativeDir.split('/'));
+  await fs.mkdir(targetDir, { recursive: true });
+  await Promise.all(Object.entries(variants).map(([name, data]) => (
+    fs.writeFile(path.join(targetDir, `${name}.webp`), data, { flag: 'wx' })
+  )));
+  return {
+    image: `/uploads/${relativeDir}/full.webp`,
+    image_micro: `/uploads/${relativeDir}/micro.webp`,
+    image_thumbnail: `/uploads/${relativeDir}/thumbnail.webp`,
+    image_medium: `/uploads/${relativeDir}/medium.webp`,
+    image_full: `/uploads/${relativeDir}/full.webp`,
+    bytes: Object.fromEntries(Object.entries(variants).map(([name, data]) => [name, data.length])),
+  };
+}
+
+function uploadedVariantFields(imageUrl) {
+  const url = new URL(imageUrl);
+  const base = url.pathname.replace(/\/(?:micro|thumbnail|medium|full)\.webp$/, '');
+  if (base === url.pathname) throw apiError('업로드 이미지 URL 형식이 올바르지 않습니다.');
+  return {
+    image: `${base}/full.webp`,
+    image_micro: `${base}/micro.webp`,
+    image_thumbnail: `${base}/thumbnail.webp`,
+    image_medium: `${base}/medium.webp`,
+    image_full: `${base}/full.webp`,
+  };
+}
+
+async function materializeEventImage(normalized, partner) {
+  const source = normalized.event.external_source;
+  if (!source?.image_mode) return normalized;
+  let fields;
+  if (source.image_mode === 'upload') {
+    fields = uploadedVariantFields(normalized.event.image);
+  } else {
+    const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 8 * 1024 * 1024);
+    const buffer = await downloadExternalImage(normalized.event.image, maxBytes);
+    fields = await storeImageVariants(buffer, partner);
+  }
+  Object.assign(normalized.event, fields);
+  return normalized;
+}
+
 export async function uploadExternalEventImage(req, res) {
   const pool = getMysqlPool();
   const partner = await authenticatePartner(req, pool);
+  await recordRequest(pool, { partnerId: partner.id, statusCode: 202, result: 'attempt', requestIp: req.ip, strict: true });
   await enforceRateLimit(pool, partner);
   const contentType = String(req.get('content-type') || '').split(';')[0].trim().toLowerCase();
   if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(contentType)) {
@@ -330,23 +554,15 @@ export async function uploadExternalEventImage(req, res) {
     throw apiError(`이미지 파일은 ${Math.floor(maxBytes / 1024 / 1024)}MB 이하여야 합니다.`, 413, 'payload_too_large');
   }
 
-  const webp = await normalizeExternalImage(req.body);
-  const now = new Date();
-  const yyyy = String(now.getFullYear());
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const partnerFolder = crypto.createHash('sha256').update(String(partner.id)).digest('hex').slice(0, 16);
-  const fileName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.webp`;
-  const uploadRoot = path.resolve(process.cwd(), process.env.CAFE24_UPLOADS_DIR || 'uploads');
-  const relativePath = path.posix.join('external-events', partnerFolder, yyyy, mm, fileName);
-  const filePath = path.join(uploadRoot, ...relativePath.split('/'));
-
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, webp, { flag: 'wx' });
+  const stored = await storeImageVariants(req.body, partner);
 
   const configuredOrigin = String(process.env.EXTERNAL_API_PUBLIC_ORIGIN || '').replace(/\/+$/, '');
   const requestOrigin = `${req.protocol}://${req.get('host')}`;
   const origin = configuredOrigin || requestOrigin;
-  const publicPath = `/uploads/${relativePath}`;
+  const absoluteVariants = Object.fromEntries(
+    ['image_micro', 'image_thumbnail', 'image_medium', 'image_full']
+      .map((key) => [key, `${origin}${stored[key]}`]),
+  );
   await recordRequest(pool, {
     partnerId: partner.id,
     statusCode: 201,
@@ -355,9 +571,10 @@ export async function uploadExternalEventImage(req, res) {
   });
   res.status(201).json({
     ok: true,
-    image_url: `${origin}${publicPath}`,
+    image_url: absoluteVariants.image_full,
+    variants: absoluteVariants,
     content_type: 'image/webp',
-    bytes: webp.length,
+    bytes: stored.bytes,
   });
 }
 
@@ -368,15 +585,16 @@ async function enforceRateLimit(pool, partner) {
        SUM(created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)) AS day_count
        FROM external_api_request_logs
       WHERE partner_id = ?
+        AND result = 'attempt'
         AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)`,
     [partner.id],
   );
   const minuteCount = Number(rows[0]?.minute_count || 0);
   const dayCount = Number(rows[0]?.day_count || 0);
-  if (minuteCount >= Number(partner.per_minute_limit || 10)) {
+  if (minuteCount > Number(partner.per_minute_limit || 10)) {
     throw apiError('분당 등록 한도를 초과했습니다.', 429, 'rate_limit_exceeded');
   }
-  if (dayCount >= Number(partner.daily_limit || 200)) {
+  if (dayCount > Number(partner.daily_limit || 200)) {
     throw apiError('일일 등록 한도를 초과했습니다.', 429, 'rate_limit_exceeded');
   }
 }
@@ -398,6 +616,9 @@ async function recordRequest(pool, values) {
       ],
     );
   } catch (error) {
+    if (values.strict) {
+      throw apiError('요청 제한 기록을 저장할 수 없어 안전하게 요청을 중단했습니다.', 503, 'rate_limit_unavailable');
+    }
     console.warn('[external-events] failed to write request log', error?.message || error);
   }
 }
@@ -409,6 +630,14 @@ export async function createExternalEvent(req, res) {
 
   try {
     partner = await authenticatePartner(req, pool);
+    await recordRequest(pool, {
+      partnerId: partner.id,
+      externalId: req.body?.external_id,
+      statusCode: 202,
+      result: 'attempt',
+      requestIp: req.ip,
+      strict: true,
+    });
     await enforceRateLimit(pool, partner);
     normalized = normalizeExternalEventPayload(req.body, partner);
 
@@ -435,6 +664,7 @@ export async function createExternalEvent(req, res) {
       });
       return;
     }
+    await materializeEventImage(normalized, partner);
 
     const partnerUser = {
       id: partner.owner_user_id || `external:${partner.id}`,
@@ -500,4 +730,164 @@ export async function createExternalEvent(req, res) {
     }
     throw error;
   }
+}
+
+function cleanExternalIdParam(value) {
+  try {
+    return cleanString(decodeURIComponent(String(value || '')), MAX_EXTERNAL_ID_LENGTH, 'external_id', { required: true });
+  } catch (error) {
+    if (error?.statusCode) throw error;
+    throw apiError('external_id URL 인코딩이 올바르지 않습니다.');
+  }
+}
+
+async function findOwnedExternalEvent(pool, partnerId, externalId) {
+  const [rows] = await pool.execute(
+    `SELECT x.event_id, e.raw_json
+       FROM external_partner_events x
+       JOIN ${EVENTS_TABLE} e ON e.id = x.event_id
+      WHERE x.partner_id = ? AND x.external_id = ?
+      LIMIT 1`,
+    [partnerId, externalId],
+  );
+  if (!rows[0]) throw apiError('해당 파트너가 등록한 일정을 찾을 수 없습니다.', 404, 'not_found');
+  let existing = {};
+  try {
+    existing = typeof rows[0].raw_json === 'string' ? JSON.parse(rows[0].raw_json) : (rows[0].raw_json || {});
+  } catch {
+    existing = {};
+  }
+  return { eventId: String(rows[0].event_id), existing };
+}
+
+export async function updateExternalEvent(req, res) {
+  const pool = getMysqlPool();
+  const partner = await authenticatePartner(req, pool);
+  const externalId = cleanExternalIdParam(req.params.externalId);
+  await recordRequest(pool, {
+    partnerId: partner.id, externalId, statusCode: 202, result: 'attempt', requestIp: req.ip, strict: true,
+  });
+  await enforceRateLimit(pool, partner);
+  if (req.body?.external_id !== undefined && String(req.body.external_id) !== externalId) {
+    throw apiError('URL의 external_id와 본문의 external_id가 일치해야 합니다.');
+  }
+  const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
+  const normalized = normalizeExternalEventPayload({ ...req.body, external_id: externalId }, partner);
+  await materializeEventImage(normalized, partner);
+  const partnerUser = {
+    id: partner.owner_user_id || `external:${partner.id}`,
+    nickname: partner.name,
+    is_admin: false,
+  };
+  const event = normalizeEventPayload({
+    ...normalized.event,
+    id: owned.eventId,
+  }, { ...owned.existing, id: owned.eventId }, partnerUser);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await saveEvent(event, connection);
+    await connection.execute(
+      `UPDATE external_partner_events SET source_url = ? WHERE partner_id = ? AND external_id = ?`,
+      [normalized.event.link1 || null, partner.id, externalId],
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+  await recordRequest(pool, {
+    partnerId: partner.id,
+    externalId,
+    eventId: owned.eventId,
+    statusCode: 200,
+    result: 'updated',
+    requestIp: req.ip,
+  });
+  res.status(200).json({ ok: true, event_id: owned.eventId, event: sanitizeEventForViewer(event, null) });
+}
+
+export async function deleteExternalEvent(req, res) {
+  const pool = getMysqlPool();
+  const partner = await authenticatePartner(req, pool);
+  const externalId = cleanExternalIdParam(req.params.externalId);
+  await recordRequest(pool, {
+    partnerId: partner.id, externalId, statusCode: 202, result: 'attempt', requestIp: req.ip, strict: true,
+  });
+  await enforceRateLimit(pool, partner);
+  const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `DELETE FROM external_partner_events WHERE partner_id = ? AND external_id = ? AND event_id = ?`,
+      [partner.id, externalId, owned.eventId],
+    );
+    await connection.execute(`DELETE FROM ${EVENTS_TABLE} WHERE id = ?`, [owned.eventId]);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+  await recordRequest(pool, {
+    partnerId: partner.id,
+    externalId,
+    eventId: owned.eventId,
+    statusCode: 200,
+    result: 'deleted',
+    requestIp: req.ip,
+  });
+  res.status(200).json({ ok: true, deleted: true, event_id: owned.eventId });
+}
+
+export async function listExternalPartners(req, res) {
+  await requireAdmin(req);
+  const pool = getMysqlPool();
+  const [partners] = await pool.execute(
+    `SELECT p.id, p.name, p.key_prefix, p.is_active, p.default_category, p.default_genre,
+            p.owner_user_id, p.per_minute_limit, p.daily_limit, p.created_at, p.updated_at,
+            COUNT(DISTINCT e.event_id) AS event_count,
+            MAX(l.created_at) AS last_request_at
+       FROM external_api_partners p
+       LEFT JOIN external_partner_events e ON e.partner_id = p.id
+       LEFT JOIN external_api_request_logs l ON l.partner_id = p.id
+      GROUP BY p.id
+      ORDER BY p.created_at DESC`,
+  );
+  res.json({ ok: true, partners });
+}
+
+export async function updateExternalPartnerStatus(req, res) {
+  await requireAdmin(req);
+  const partnerId = cleanString(req.params.partnerId, 64, 'partner_id', { required: true });
+  if (typeof req.body?.is_active !== 'boolean') throw apiError('is_active는 boolean 값이어야 합니다.');
+  const pool = getMysqlPool();
+  const [result] = await pool.execute(
+    'UPDATE external_api_partners SET is_active = ?, updated_at = NOW() WHERE id = ?',
+    [req.body.is_active ? 1 : 0, partnerId],
+  );
+  if (!result.affectedRows) throw apiError('파트너를 찾을 수 없습니다.', 404, 'not_found');
+  res.json({ ok: true, partner_id: partnerId, is_active: req.body.is_active });
+}
+
+export async function listExternalRequestLogs(req, res) {
+  await requireAdmin(req);
+  const requestedLimit = Number(req.query.limit || 100);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 500)
+    : 100;
+  const pool = getMysqlPool();
+  const [logs] = await pool.execute(
+    `SELECT l.id, l.partner_id, p.name AS partner_name, l.external_id, l.event_id,
+            l.status_code, l.result, l.error_code, l.request_ip, l.created_at
+       FROM external_api_request_logs l
+       JOIN external_api_partners p ON p.id = l.partner_id
+      ORDER BY l.id DESC
+      LIMIT ${limit}`,
+  );
+  res.json({ ok: true, logs });
 }

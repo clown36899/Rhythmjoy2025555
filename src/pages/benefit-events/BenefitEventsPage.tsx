@@ -8,30 +8,6 @@ import './BenefitEventsPage.css';
 
 const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v1';
 
-const benefitKeywordPatterns = [
-  /판매\s*이벤트/i,
-  /이벤트\s*판매/i,
-  /정기권/i,
-  /시즌권/i,
-  /월정액/i,
-  /멤버십/i,
-  /membership/i,
-  /\bpass\b/i,
-  /\bsale\b/i,
-  /\bpromotion\b/i,
-  /특가/i,
-  /할인/i,
-  /무료\s*(?:강습|클래스|수업|이벤트|행사|체험|파티)/i,
-  /\bfree\b/i,
-];
-
-const benefitTagKeys = new Set([
-  'sale_event',
-  'season_pass',
-  'free_event',
-  'open_class',
-]);
-
 function normalizeDate(value: unknown) {
   const date = String(value || '').slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '';
@@ -76,14 +52,7 @@ function getEventText(event: AppEvent) {
 }
 
 function isBenefitEvent(event: AppEvent) {
-  const activityType = String(event.activity_type || '').toLowerCase();
-  if (activityType === 'sale') return true;
-
-  const tags = Array.isArray(event.dance_tags) ? event.dance_tags : [];
-  if (tags.some((tag) => benefitTagKeys.has(String(tag)))) return true;
-
-  const text = getEventText(event);
-  return benefitKeywordPatterns.some((pattern) => pattern.test(text));
+  return (event as AppEvent & { benefit_eligible?: boolean }).benefit_eligible === true;
 }
 
 function getKindLabel(event: AppEvent) {
@@ -171,7 +140,7 @@ export default function BenefitEventsPage() {
           {benefitEvents.map((event, index) => {
             const displayDate = getDisplayDate(event, today);
             const isPast = isPastEvent(event, today);
-            const thumbnail = getEventThumbnail(event as any) || '';
+            const thumbnail = getEventThumbnail(event) || '';
             const isCurrentAnchor = index === firstCurrentIndex;
 
             return (
