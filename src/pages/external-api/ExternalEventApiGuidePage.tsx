@@ -545,7 +545,7 @@ export default function ExternalEventApiGuidePage() {
               <i className="ri-alert-line" aria-hidden="true" />
               <div>
                 <strong>Google Maps 주소 문자열은 그대로 호환되지 않을 수 있습니다.</strong>
-                <p>Google의 <code>formatted_address</code>, 영문 주소, Plus Code, 장소명은 카카오 주소검색 형식과 결과 순서가 다를 수 있습니다. Google을 사용한다면 검색 결과에서 대한민국 도로명주소를 별도로 확보해 <code>address</code>에 보내 주세요. Google 좌표만 보내는 방식은 현재 일정 API에서 지원하지 않습니다.</p>
+                <p>Google의 <code>formatted_address</code>, 영문 주소, Plus Code, 장소명은 카카오 주소검색 형식과 결과 순서가 다를 수 있습니다. Google을 사용한다면 검색 결과에서 대한민국 도로명주소를 별도로 확보해 <code>address</code>에 보내 주세요. Google 좌표만 보내는 방식은 현재 일정 API에서 지원하지 않습니다. <a href="https://developers.google.com/maps/documentation/geocoding/geocoding" target="_blank" rel="noreferrer">Google Geocoding 공식 안내</a></p>
               </div>
             </div>
             <CodeBlock label="파트너 등록 화면 · 무료 다음 우편번호 검색 적용 예시" code={addressApiExample} />
