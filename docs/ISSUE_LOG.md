@@ -192,6 +192,30 @@
   - `docs/ISSUE_LOG.md`
 - 관련 커밋: pending
 
+## 2026-07-26 외부 일정 API 배포 후 이미지 런타임 의존성 누락
+
+- 상태: 해결
+- 범위: Cafe24 Swing Enjoy 서버와 외부 일정 이미지 업로드 API
+- 증상: 서버 파일 배포 후 `sharp` 모듈을 찾지 못해 `swingenjoy.service`가 기동하지 못했다. 최신 버전을 운영 설치한 뒤에는 구형 CentOS `libstdc++`와 바이너리 호환 오류가 발생했다.
+- 원인:
+  - 런타임에서 사용하는 `sharp`가 `devDependencies`에 들어 있었다.
+  - 배포 스크립트가 `package.json`과 잠금 파일을 전송한 뒤 운영 의존성을 설치하지 않았다.
+  - 최신 `sharp` 바이너리가 운영 서버에서 제공하는 `GLIBCXX`보다 새 버전을 요구했다.
+- 조치:
+  - `sharp`를 운영 의존성으로 이동하고 Cafe24 OS 호환 버전 `0.32.6`으로 고정했다.
+  - 패키지 파일이 변경된 배포에서는 `npm install --omit=dev`를 자동 실행하도록 배포 스크립트를 보강했다.
+  - 운영 DB 백업 후 외부 API용 새 테이블만 생성했으며 기존 `events` 레코드는 변경하지 않았다.
+- 검증:
+  - 운영 서버에서 `sharp runtime ok 0.32.6` 확인
+  - `swingenjoy.service` active 및 `/__health` 응답 확인
+  - 외부 일정 API 테스트 15개 통과
+- 관련 파일:
+  - `package.json`
+  - `package-lock.json`
+  - `scripts/deploy-cafe24.sh`
+  - `server/cafe24/external-events-api.js`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md

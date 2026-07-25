@@ -18,6 +18,7 @@ APACHE_CONF_DIR="${CAFE24_APACHE_CONF_DIR:-/etc/httpd/conf.d}"
 SERVICE="${CAFE24_SWINGENJOY_SERVICE:-swingenjoy}"
 HEALTH_URL="${CAFE24_SWINGENJOY_HEALTH_URL:-http://127.0.0.1:3001/__health}"
 EXPECTED_HOSTNAME="${CAFE24_SERVER_HOSTNAME:-clown313python.cafe24.com}"
+NODE_BIN_DIR="${CAFE24_NODE_BIN_DIR:-/opt/node-v20.11.1-linux-x64-glibc-217/bin}"
 SWINGENJOY_APP_DIR="${CAFE24_SWINGENJOY_APP_DIR:-/opt/swingenjoy}"
 RHYTHMJOY_APP_DIR="${CAFE24_RHYTHMJOY_APP_DIR:-/home/clown313python/myapp}"
 
@@ -79,13 +80,22 @@ has_transfer_changes() {
 }
 
 restart_required=false
+package_changed=false
 if has_transfer_changes "${functions_log}" || has_transfer_changes "${server_log}" || has_transfer_changes "${package_log}"; then
   restart_required=true
+fi
+if has_transfer_changes "${package_log}"; then
+  package_changed=true
 fi
 
 ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
 cd '${APP_DIR}'
 httpd -t
+if [ '${package_changed}' = 'true' ]; then
+  echo 'Installing production dependencies: package files changed.'
+  export PATH='${NODE_BIN_DIR}':\"\$PATH\"
+  npm install --omit=dev --no-audit --no-fund
+fi
 if [ '${restart_required}' = 'true' ]; then
   echo 'Restarting ${SERVICE}: server-side files changed.'
   systemctl restart '${SERVICE}'
