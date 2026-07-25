@@ -11,7 +11,12 @@ import {
   validateCandidate,
 } from './ingestion/candidate-utils.mjs';
 import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
-import { benefitSearchMatches, extractInstagramPostUrls, normalizeInstagramPostUrl } from './ingestion/benefit-search-utils.mjs';
+import {
+  benefitSearchMatches,
+  extractInstagramPostUrls,
+  extractInstagramProfileUrls,
+  normalizeInstagramPostUrl,
+} from './ingestion/benefit-search-utils.mjs';
 import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
 import {
   collapseDateExpansionRows,
@@ -62,6 +67,16 @@ assert.deepEqual(
   ]),
   ['https://www.instagram.com/reel/XYZ-789/'],
   'benefit discovery should dedupe posts and reject profiles',
+);
+assert.deepEqual(
+  extractInstagramProfileUrls([
+    'https://www.instagram.com/fiesta_swingdance/?hl=ko',
+    'https://www.instagram.com/fiesta_swingdance/',
+    'https://www.instagram.com/p/ABC123/',
+    'https://example.com/fiesta_swingdance/',
+  ]),
+  ['https://www.instagram.com/fiesta_swingdance/'],
+  'search fallback should discover canonical Instagram profiles without accepting posts or foreign hosts',
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'free_event' }),

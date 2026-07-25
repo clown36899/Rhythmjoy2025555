@@ -30,6 +30,24 @@ export function extractInstagramPostUrls(hrefs = [], baseUrl) {
   return [...new Set(hrefs.map((href) => normalizeInstagramPostUrl(href, baseUrl)).filter(Boolean))];
 }
 
+export function normalizeInstagramProfileUrl(value = '', baseUrl) {
+  const unwrapped = unwrapSearchUrl(value, baseUrl);
+  if (!unwrapped) return '';
+  try {
+    const parsed = new URL(unwrapped);
+    if (!/(^|\.)instagram\.com$/i.test(parsed.hostname)) return '';
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts.length !== 1 || /^(p|reel|explore|accounts|stories)$/i.test(parts[0])) return '';
+    return `https://www.instagram.com/${parts[0]}/`;
+  } catch {
+    return '';
+  }
+}
+
+export function extractInstagramProfileUrls(hrefs = [], baseUrl) {
+  return [...new Set(hrefs.map((href) => normalizeInstagramProfileUrl(href, baseUrl)).filter(Boolean))];
+}
+
 export function benefitSearchMatches(candidate = {}, benefitKind = '') {
   const sd = candidate.structured_data || {};
   if (sd.benefit_eligible !== true) return false;

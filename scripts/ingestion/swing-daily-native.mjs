@@ -1559,8 +1559,10 @@ async function collectSource(page, source) {
   ensureRunBudgetOrThrow(`source ${source.id}`, runDeadlineGuardMs());
 
   if (source.type === 'benefit_search') {
-    const targets = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs)
-      || { postUrls: [], profileUrls: [] };
+    const targetResult = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs);
+    const targets = targetResult && !Array.isArray(targetResult)
+      ? targetResult
+      : { postUrls: [], profileUrls: [] };
     const postUrls = [...targets.postUrls];
     for (const [profileIndex, profileUrl] of targets.profileUrls.entries()) {
       const discoveredSource = {
