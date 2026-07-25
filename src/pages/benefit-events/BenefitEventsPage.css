@@ -270,30 +270,44 @@
   }
 
   .benefit-event-item {
-    grid-template-columns: 74px minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: 64px 72px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
     min-height: 0;
+    padding: 10px;
   }
 
   .benefit-event-date {
     grid-column: 1;
-    grid-row: 1 / span 2;
-    padding: 8px;
+    grid-row: 1;
+    min-height: 72px;
+    padding: 7px;
   }
 
   .benefit-event-date time {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .benefit-event-item img,
   .benefit-event-empty-image {
     grid-column: 2;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
+    grid-row: 1;
+    width: 72px;
+    height: 72px;
+    aspect-ratio: 1;
   }
 
   .benefit-event-content {
-    grid-column: 2;
+    grid-column: 3;
+    grid-row: 1;
+    gap: 6px;
+  }
+
+  .benefit-event-content h2 {
+    font-size: 16px;
+  }
+
+  .benefit-event-content small {
+    -webkit-line-clamp: 1;
   }
 }
