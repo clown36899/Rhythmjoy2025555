@@ -2338,3 +2338,260 @@ body .SideDrawer .SD-adminSubGroup .SD-submenuItem {
 body .SideDrawer .SD-adminSubGroup .SD-submenuItem::before {
     display: none;
 }
+
+/* High-contrast drawer palette: surfaces must remain visibly separate. */
+html:not([data-theme="light"]) body .SideDrawer .SD-container {
+    background: #101217 !important;
+    color: #f8fafc;
+    border-right-color: #39414d;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-header {
+    background: #171a20 !important;
+    border-bottom-color: #3b424d;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-topDashboard {
+    background: #14171c !important;
+    border-bottom-color: #3a414c;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-sectionHeading strong,
+html:not([data-theme="light"]) body .SideDrawer .SD-sectionTitle {
+    color: #f8fafc !important;
+    opacity: 1;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-sectionHeading span,
+html:not([data-theme="light"]) body .SideDrawer .SD-menuCopy small,
+html:not([data-theme="light"]) body .SideDrawer .SD-apiGuideCopy small {
+    color: #b8c1cd !important;
+    opacity: 1;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem.SD-pwaGuideEntry,
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem.SD-notificationEntry,
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem.SD-apiGuideEntry,
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem.SD-registrationEntry {
+    background: #242932 !important;
+    border-color: #46505e !important;
+    box-shadow: 0 5px 14px rgb(0 0 0 / 22%);
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem.SD-themeEntry {
+    background: #20242b !important;
+    border-color: #424a56 !important;
+}
+
+html:not([data-theme="light"]) body .SideDrawer :is(
+    .SD-menuItem.SD-pwaGuideEntry,
+    .SD-menuItem.SD-notificationEntry,
+    .SD-menuItem.SD-apiGuideEntry,
+    .SD-menuItem.SD-registrationEntry,
+    .SD-menuItem.SD-themeEntry
+) :is(strong, span) {
+    color: #ffffff !important;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-statusDot {
+    background: #343a45;
+    border-color: #596270;
+    color: #e2e8f0;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-statusDot.is-active {
+    background: #2563eb;
+    border-color: #60a5fa;
+    color: #fff;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-adminStatsOpenBtn {
+    background: #202838 !important;
+    border-color: #425779 !important;
+    color: #f8fafc;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-adminStatsOpenBtn small {
+    color: #bbc7d8;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-adminGridItem {
+    background: #20242b !important;
+    border-color: #414955 !important;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-gridVal {
+    color: #ffffff;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-gridLabel {
+    color: #c3cbd6;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-divider {
+    background: #080a0e;
+    border-color: #363d47;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem:not(.SD-pwaGuideEntry):not(.SD-notificationEntry):not(.SD-apiGuideEntry):not(.SD-registrationEntry):not(.SD-themeEntry) {
+    color: #f1f5f9;
+}
+
+html:not([data-theme="light"]) body .SideDrawer .SD-menuItem:not(.SD-pwaGuideEntry):not(.SD-notificationEntry):not(.SD-apiGuideEntry):not(.SD-registrationEntry):not(.SD-themeEntry) > i:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #292e37;
+    color: #dbe5f2;
+}
+
+html[data-theme="light"] body .SideDrawer .SD-container {
+    background: #f2f4f7 !important;
+    color: #111827;
+    border-right-color: #c4ccd7;
+}
+
+html[data-theme="light"] body .SideDrawer .SD-header,
+html[data-theme="light"] body .SideDrawer .SD-topDashboard {
+    background: #e9edf2 !important;
+    border-color: #c5cdd8 !important;
+}
+
+html[data-theme="light"] body .SideDrawer .SD-menuItem.SD-pwaGuideEntry,
+html[data-theme="light"] body .SideDrawer .SD-menuItem.SD-notificationEntry,
+html[data-theme="light"] body .SideDrawer .SD-menuItem.SD-apiGuideEntry,
+html[data-theme="light"] body .SideDrawer .SD-menuItem.SD-registrationEntry,
+html[data-theme="light"] body .SideDrawer .SD-menuItem.SD-themeEntry,
+html[data-theme="light"] body .SideDrawer .SD-adminGridItem,
+html[data-theme="light"] body .SideDrawer .SD-adminStatsOpenBtn {
+    background: #ffffff !important;
+    border-color: #bcc6d3 !important;
+    color: #111827 !important;
+    box-shadow: 0 4px 12px rgb(15 23 42 / 9%);
+}
+
+html[data-theme="light"] body .SideDrawer .SD-sectionHeading strong,
+html[data-theme="light"] body .SideDrawer .SD-menuItem span,
+html[data-theme="light"] body .SideDrawer .SD-apiGuideCopy strong {
+    color: #111827 !important;
+}
+
+html[data-theme="light"] body .SideDrawer :is(
+    .SD-sectionHeading span,
+    .SD-menuCopy small,
+    .SD-apiGuideCopy small,
+    .SD-gridLabel,
+    .SD-adminStatsOpenBtn small
+) {
+    color: #4b5563 !important;
+    opacity: 1;
+}
+
+body .SideDrawer .SD-profileMetaRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+body .SideDrawer .SD-profileMetaChip,
+body .SideDrawer .SD-profileSocialIcon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 9px;
+    border: 1px solid #48515e;
+    border-radius: 9px;
+    background: #242932;
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    text-decoration: none;
+}
+
+body .SideDrawer .SD-profileSocialIcon {
+    width: 32px;
+    padding: 0;
+    border-color: #607087;
+    background: #2a3340;
+    color: #ffffff;
+    box-shadow: 0 3px 9px rgb(0 0 0 / 24%);
+    transition: transform .16s ease, filter .16s ease, border-color .16s ease;
+}
+
+body .SideDrawer .SD-profileSocialIcon i,
+body .SideDrawer .SD-profileMetaChip i {
+    width: auto;
+    color: currentColor;
+    font-size: 15px;
+}
+
+body .SideDrawer .SD-profileSocialIcon.is-empty {
+    position: relative;
+    border-style: dashed;
+}
+
+body .SideDrawer .SD-profileSocialIcon[data-social="instagram"] {
+    border-color: #e6683c;
+    background: linear-gradient(135deg, #833ab4 5%, #c13584 38%, #e1306c 58%, #f77737 78%, #fcaf45 100%);
+    color: #ffffff;
+}
+
+body .SideDrawer .SD-profileSocialIcon[data-social="youtube"] {
+    border-color: #ff5b5b;
+    background: #ff0033;
+    color: #ffffff;
+}
+
+body .SideDrawer .SD-profileSocialIcon[data-social="website"] {
+    border-color: #2dd4bf;
+    background: #0f766e;
+    color: #ffffff;
+}
+
+body .SideDrawer .SD-profileSocialIcon[data-social="kakao_openchat"] {
+    border-color: #f7dc45;
+    background: #fee500;
+    color: #191919;
+}
+
+body .SideDrawer .SD-profileSocialIcon[data-social="other"] {
+    border-color: #a78bfa;
+    background: #6d4bc3;
+    color: #ffffff;
+}
+
+body .SideDrawer .SD-profileSocialIcon:hover,
+body .SideDrawer .SD-profileSocialIcon:focus-visible {
+    border-color: #ffffff;
+    filter: brightness(1.13) saturate(1.08);
+    outline: 2px solid rgb(255 255 255 / 72%);
+    outline-offset: 2px;
+    transform: translateY(-1px);
+}
+
+body .SideDrawer .SD-profileSocialIcon.is-empty i:last-child {
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    font-size: 9px;
+}
+
+html[data-theme="light"] body .SideDrawer .SD-profileMetaChip,
+html[data-theme="light"] body .SideDrawer .SD-profileSocialIcon {
+    border-color: #b9c3d0;
+    background: #ffffff;
+    color: #1f2937;
+}
+
+html[data-theme="light"] body .SideDrawer .SD-profileSocialIcon {
+    color: #ffffff;
+}
