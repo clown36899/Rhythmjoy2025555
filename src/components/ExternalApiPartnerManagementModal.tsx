@@ -278,18 +278,18 @@ export default function ExternalApiPartnerManagementModal({
                       <option value="">회원 선택</option>
                       {users.map((user) => <option key={user.id} value={user.id}>{user.nickname || user.email || user.id}{user.is_admin ? ' · 관리자' : ''}</option>)}
                     </select></label>
-                    <label>최상위 분류<select value={form.default_category} onChange={(event) => setForm({ ...form, default_category: event.target.value, default_genre: '' })}>
-                      <option value="">고정하지 않음</option>
+                    <label>생략 시 최상위 분류<select value={form.default_category} onChange={(event) => setForm({ ...form, default_category: event.target.value, default_genre: '' })}>
+                      <option value="">기본값 없음</option>
                       <option value="social">소셜</option><option value="event">행사</option><option value="class">강습</option><option value="club">동호회</option>
                     </select></label>
-                    <label>하위 분류<select value={form.default_genre} disabled={!form.default_category} onChange={(event) => setForm({ ...form, default_genre: event.target.value })}>
+                    <label>생략 시 하위 분류<select value={form.default_genre} disabled={!form.default_category} onChange={(event) => setForm({ ...form, default_genre: event.target.value })}>
                       <option value="">{form.default_category ? '하위 분류 선택' : '최상위 분류를 먼저 선택'}</option>
                       {availableGenres.map((genre) => <option key={genre} value={genre}>{genre}</option>)}
                     </select></label>
-                    <label>분당 한도<input type="number" min="1" value={form.per_minute_limit} onChange={(event) => setForm({ ...form, per_minute_limit: Number(event.target.value) })} /></label>
-                    <label>일일 한도<input type="number" min="1" value={form.daily_limit} onChange={(event) => setForm({ ...form, daily_limit: Number(event.target.value) })} /></label>
+                    <label>분당 API 요청 한도<input type="number" min="1" value={form.per_minute_limit} onChange={(event) => setForm({ ...form, per_minute_limit: Number(event.target.value) })} /></label>
+                    <label>24시간 API 요청 한도<input type="number" min="1" value={form.daily_limit} onChange={(event) => setForm({ ...form, daily_limit: Number(event.target.value) })} /></label>
                   </div>
-                  <p className="EAPM-hint">여러 분류를 등록하는 파트너는 분류를 고정하지 마세요. 키 원문은 발급 직후 한 번만 표시됩니다.</p>
+                  <p className="EAPM-hint">기본 분류는 요청에서 분류를 생략했을 때만 적용됩니다. 파트너는 요청마다 다른 허용 분류를 보낼 수 있습니다. 키 원문은 발급 직후 한 번만 표시됩니다.</p>
                   <button type="button" className="EAPM-primary" disabled={saving} onClick={createPartner}>{saving ? '처리 중...' : 'API Key 발급'}</button>
                 </section>
 
@@ -301,7 +301,7 @@ export default function ExternalApiPartnerManagementModal({
                         <strong>{partner.name}</strong>
                         <span>{partner.owner_nickname || partner.owner_email || partner.owner_user_id || '연결 회원 없음'}</span>
                         <small>Key: rj_live_{partner.key_prefix}_… · 일정 {Number(partner.event_count || 0)}개</small>
-                        <small>분류: {partner.default_category ? `${partner.default_category} / ${partner.default_genre}` : '요청마다 선택'} · 한도 {partner.per_minute_limit}/분, {partner.daily_limit}/일</small>
+                        <small>생략 시 분류: {partner.default_category ? `${partner.default_category} / ${partner.default_genre}` : '기본값 없음'} · API 한도 {partner.per_minute_limit}/분, {partner.daily_limit}/24시간</small>
                       </div>
                       {drafts[partner.id] && (
                         <div className="EAPM-cardSettings">
@@ -312,25 +312,25 @@ export default function ExternalApiPartnerManagementModal({
                             <option value="">회원 선택</option>
                             {users.map((user) => <option key={user.id} value={user.id}>{user.nickname || user.email || user.id}{user.is_admin ? ' · 관리자' : ''}</option>)}
                           </select></label>
-                          <label>최상위 분류<select value={drafts[partner.id].default_category} onChange={(event) => setDrafts({
+                          <label>생략 시 최상위 분류<select value={drafts[partner.id].default_category} onChange={(event) => setDrafts({
                             ...drafts,
                             [partner.id]: { ...drafts[partner.id], default_category: event.target.value, default_genre: '' },
                           })}>
-                            <option value="">요청마다 선택</option>
+                            <option value="">기본값 없음</option>
                             <option value="social">소셜</option><option value="event">행사</option><option value="class">강습</option><option value="club">동호회</option>
                           </select></label>
-                          <label>하위 분류<select value={drafts[partner.id].default_genre} disabled={!drafts[partner.id].default_category} onChange={(event) => setDrafts({
+                          <label>생략 시 하위 분류<select value={drafts[partner.id].default_genre} disabled={!drafts[partner.id].default_category} onChange={(event) => setDrafts({
                             ...drafts,
                             [partner.id]: { ...drafts[partner.id], default_genre: event.target.value },
                           })}>
                             <option value="">{drafts[partner.id].default_category ? '선택' : '요청마다 선택'}</option>
                             {(GENRES[drafts[partner.id].default_category] || []).map((genre) => <option key={genre} value={genre}>{genre}</option>)}
                           </select></label>
-                          <label>분당<input type="number" min="1" value={drafts[partner.id].per_minute_limit} onChange={(event) => setDrafts({
+                          <label>분당 요청 한도<input type="number" min="1" value={drafts[partner.id].per_minute_limit} onChange={(event) => setDrafts({
                             ...drafts,
                             [partner.id]: { ...drafts[partner.id], per_minute_limit: Number(event.target.value) },
                           })} /></label>
-                          <label>일일<input type="number" min="1" value={drafts[partner.id].daily_limit} onChange={(event) => setDrafts({
+                          <label>24시간 요청 한도<input type="number" min="1" value={drafts[partner.id].daily_limit} onChange={(event) => setDrafts({
                             ...drafts,
                             [partner.id]: { ...drafts[partner.id], daily_limit: Number(event.target.value) },
                           })} /></label>

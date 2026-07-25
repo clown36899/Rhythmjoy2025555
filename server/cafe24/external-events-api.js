@@ -724,10 +724,10 @@ async function enforceRateLimit(pool, partner) {
   const minuteCount = Number(rows[0]?.minute_count || 0);
   const dayCount = Number(rows[0]?.day_count || 0);
   if (minuteCount > Number(partner.per_minute_limit || 10)) {
-    throw apiError('분당 등록 한도를 초과했습니다.', 429, 'rate_limit_exceeded');
+    throw apiError('분당 API 요청 한도를 초과했습니다.', 429, 'rate_limit_exceeded');
   }
   if (dayCount > Number(partner.daily_limit || 200)) {
-    throw apiError('일일 등록 한도를 초과했습니다.', 429, 'rate_limit_exceeded');
+    throw apiError('24시간 API 요청 한도를 초과했습니다.', 429, 'rate_limit_exceeded');
   }
 }
 
