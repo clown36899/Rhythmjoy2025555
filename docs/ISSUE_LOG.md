@@ -643,7 +643,10 @@
   - 실제 본문·미래 날짜·원본 이미지·명시적 무료/정기권 표현을 모두 통과한 후보만 허용한다.
   - 확장 장르는 `expanded-research`에서 저장 없이 검증하고 `expanded-ingestion`에서만 저장 가능하게 했다.
   - 승인 시 `benefit_eligible`와 허용된 `benefit_kind`를 운영 이벤트에 보존하고 알 수 없는 값은 차단한다.
-  - 관리자 수집센터 상단을 `신규 | 완료 | 중복 | 무료` 독립 탭으로 구성하고, 무료 탭에는 검증 대기 중인 무료·정기권 후보만 표시한다.
+  - 관리자 수집센터 상단을 `신규 | 완료 | 중복 | 무료, 정기권` 독립 탭으로 구성하고, 해당 탭에는 검증 대기 중인 무료 요소·정기권 후보만 표시한다.
+  - 일정 전체가 유료여도 무료 강습·입장·체험·제공·주차 등 명시된 무료 요소가 있으면 혜택 후보로 분류한다.
+  - 동호회와 바의 정기권·시즌권·월정액·멤버십 판매도 같은 탭으로 분류한다.
+  - 후보 등록은 기존 운영 이벤트 등록 흐름을 그대로 사용하며, 운영 일정 목록에 노출되는 동시에 메인의 `무료, 정기권` 버튼이 연결된 혜택 목록에도 추가 노출한다.
   - 같은 후보를 다시 검증했을 때 새 혜택 메타데이터가 기존 대기 후보에 갱신되도록 했다.
   - 수집 summary에 소스별 발견·검사·일치 건수를 추가했다.
 - 검증:
@@ -660,6 +663,8 @@
   - `server/cafe24/ingestion-benefit-fields.js`
   - `server/cafe24/function-api.js`
   - `src/pages/admin/v2/EventIngestorV2.tsx`
+  - `src/pages/v2/components/HomeNavButtonsSection.tsx`
+  - `src/styles/components/HomeNavButtonsSection.css`
   - `src/pages/benefit-events/BenefitEventsPage.tsx`
 - 관련 커밋: `78af6020`, `16d8e111`, `a796a641`, `db9dc114`
 

@@ -180,7 +180,7 @@ const CALENDAR_HIDDEN_STORAGE_KEY = 'event-ingestor-v2-calendar-hidden-v1';
 const OPERATIONAL_ASSET_ORIGIN = 'https://swingenjoy.com';
 const CALENDAR_TAB_LABELS: Record<CalendarItemKind, string> = {
   new: '신규',
-  free: '무료',
+  free: '무료, 정기권',
   collected: '완료',
   duplicate: '중복',
   db: '운영DB',
@@ -1099,9 +1099,9 @@ const EventIngestorV2: React.FC = () => {
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
           <button className={activeTab === 'new' ? 'active' : ''} onClick={() => handleTabChange('new')}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
-          <button className={activeTab === 'free' ? 'active benefit-tab' : 'benefit-tab'} onClick={() => handleTabChange('free')}>무료 {tabCounts.free > 0 && <span className="tab-badge">{tabCounts.free}</span>}</button>
           <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => handleTabChange('collected')}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
           <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => handleTabChange('duplicate')}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
+          <button className={activeTab === 'free' ? 'active benefit-tab' : 'benefit-tab'} onClick={() => handleTabChange('free')}>무료, 정기권 {tabCounts.free > 0 && <span className="tab-badge">{tabCounts.free}</span>}</button>
         </div>
         <div className="ingestor-view-toggle" aria-label="인제스터 보기 방식">
           <button

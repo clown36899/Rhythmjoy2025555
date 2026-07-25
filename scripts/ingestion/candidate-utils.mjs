@@ -131,8 +131,8 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   const benefitText = text
     .replace(/무료\s*(?:라인\s*)?(?:강습|클래스|수업|체험|입장|행사|이벤트|파티)?\s*(?:은|는|이|가)?\s*(?:없(?:음|습니다|다)|아님|제외|불가|종료|마감)/gi, ' ')
     .replace(/\bfree\s+(?:class|lesson|event|party|admission)?\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended)\b/gi, ' ')
-    .replace(/무료\s*(?:주차|음료|물|락커|보관|상담|와이파이|wifi|대여)|(?:주차|음료|물|락커|보관|상담|와이파이|wifi|대여)\s*무료/gi, ' ');
-  if (/(?:참가비|입장료|수강료|이용료|가격|비용)\s*[:：]?\s*(?:0\s*원|무료)|(?:전액|참가|입장|수강|체험|강습|클래스|행사|이벤트|파티|관람)\s*(?:은|는|이|가)?\s*무료|(?:누구나|모두|전원)\s*무료|무료[^.!?\n]{0,18}(?:체험|강습|클래스|수업|이벤트|행사|파티|입장|관람)|\bfree\s+(?:class|lesson|event|party|admission|entry|workshop)\b|(?:admission|entry|class|lesson|event|party|workshop)\s*[:：-]?\s*free\b/i.test(benefitText)) {
+    .replace(/무료\s*(?:혜택|제공|증정|체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|주차|음료|물|락커|보관|상담|와이파이|wifi|대여|대관)?\s*(?:은|는|이|가)?\s*(?:종료|마감|소진)/gi, ' ');
+  if (/(?:참가비|입장료|수강료|이용료|가격|비용)\s*[:：]?\s*(?:0\s*원|무료)|(?:누구나|모두|전원)\s*무료|무료\s*(?:혜택|제공|증정|체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|주차|음료|물|락커|보관|상담|와이파이|wifi|대여|대관)|(?:혜택|제공|증정|체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|주차|음료|물|락커|보관|상담|와이파이|wifi|대여|대관)\s*(?:은|는|이|가)?\s*무료|무료[^.!?\n]{0,18}(?:혜택|제공|증정|체험|강습|클래스|수업|이벤트|행사|파티|입장|관람|대관)|\bfree\s+(?:benefit|gift|drink|parking|rental|class|lesson|event|party|admission|entry|workshop)\b|(?:benefit|gift|drink|parking|rental|admission|entry|class|lesson|event|party|workshop)\s*[:：-]?\s*free\b/i.test(benefitText)) {
     return 'free_event';
   }
   return null;

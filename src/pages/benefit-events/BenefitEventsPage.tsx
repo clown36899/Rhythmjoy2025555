@@ -121,8 +121,8 @@ export default function BenefitEventsPage() {
           <i className="ri-arrow-left-line" aria-hidden="true" />
         </a>
         <div>
-          <h1>혜택 이벤트</h1>
-          <p>정기권, 무료강습, 무료이벤트</p>
+          <h1>무료, 정기권</h1>
+          <p>무료 요소가 포함된 일정과 동호회·바 정기권 판매</p>
         </div>
       </header>
 
