@@ -154,12 +154,12 @@ Content-Type: application/json
 
 ## 5. 이미지 등록 방식
 
-이미지는 다음 두 방식 중 하나를 선택할 수 있습니다.
+이미지는 다음 두 방식 중 하나를 선택할 수 있습니다. 차이는 원본 이미지 파일을 누가 Dance Billboard 서버로 전달하느냐입니다. 두 방식 모두 최종적으로 Dance Billboard 내부 저장소에 WebP 4종을 만들기 때문에 등록이 끝난 뒤의 표시 방식은 같습니다.
 
 | 방식 | `image_mode` | 사용 시점 |
 |---|---|---|
-| Dance Billboard 서버에 파일 업로드 | `upload` | 파트너 서버가 이미지 파일을 가지고 있을 때 |
-| 공개 이미지 URL 전달 | `url` | 로그인 없이 열리는 HTTPS 이미지 주소가 있을 때 |
+| Dance Billboard 서버에 파일 업로드 | `upload` | 파트너 서버가 파일을 가지고 있거나 원본 URL에 로그인·만료·핫링크 제한이 있을 때 |
+| 공개 이미지 URL 전달 | `url` | Dance Billboard 서버가 로그인 없이 즉시 내려받을 수 있는 공개 HTTPS 이미지 주소가 있을 때 |
 
 ### 방법 A: 이미지 파일을 직접 업로드
 
@@ -218,6 +218,8 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 
 이 방식에서는 이미지 파일이 Dance Billboard 서버에 저장됩니다. 따라서 파트너 사이트가 로그인을 요구하거나 원본 이미지 주소가 나중에 바뀌더라도, 이미 업로드된 Dance Billboard 일정 이미지는 계속 표시됩니다.
 
+즉 `upload` 방식은 두 번 요청합니다. 먼저 이미지 파일을 `POST /images`로 보내고, 그 응답의 `image_url`을 일정 등록 `POST /events`에 사용합니다.
+
 ### 방법 B: 공개 이미지 URL 전달
 
 파트너가 공개 HTTPS 이미지 주소를 가지고 있다면 파일 업로드 단계를 생략하고 일정 등록 요청에 바로 넣을 수 있습니다.
@@ -251,6 +253,8 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 - 확장자가 `.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`가 아닌 주소
 
 원본 이미지를 성공적으로 저장한 뒤에는 파트너가 원본 파일을 삭제해도 Dance Billboard에 저장된 일정 이미지는 유지됩니다.
+
+두 방식 모두 이미지 검사나 변환에 실패하면 일정 등록도 실패합니다. 이미지가 필요한 `event`, `class`, `club` 일정이 이미지 없이 새로 저장되는 일은 없습니다.
 
 ## 6. 이미지 없는 소셜과 주소 확인
 

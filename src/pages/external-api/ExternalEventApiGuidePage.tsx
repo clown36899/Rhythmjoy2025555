@@ -35,6 +35,21 @@ const curlExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events
   -H 'Content-Type: application/json' \\
   --data '${singleEventExample.replace(/\n/g, '\n  ')}'`;
 
+const imageUploadExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/images' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY' \\
+  -H 'Content-Type: image/jpeg' \\
+  --data-binary '@poster.jpg'`;
+
+const uploadedImageEventExample = `{
+  "image_mode": "upload",
+  "image_url": "이미지 업로드 응답의 image_url"
+}`;
+
+const remoteImageEventExample = `{
+  "image_mode": "url",
+  "image_url": "https://partner.example.com/poster.jpg"
+}`;
+
 const categoryRows = [
   { label: '소셜', category: 'social', genres: ['소셜', '졸공'] },
   { label: '행사', category: 'event', genres: ['워크샵', '파티', '대회', '라이브밴드', '기타'] },
@@ -330,27 +345,52 @@ export default function ExternalEventApiGuidePage() {
           <section id="images" className="EAG-section">
             <span className="EAG-sectionNo">05</span>
             <h2>이미지 등록 방식</h2>
+            <p className="EAG-lead">두 방식의 차이는 <b>원본 이미지 파일을 누가 Dance Billboard 서버로 전달하느냐</b>입니다. 어느 방식을 사용해도 최종 결과는 동일하게 Dance Billboard 내부 이미지로 저장됩니다.</p>
             <div className="EAG-choiceGrid">
               <div>
                 <span className="EAG-choiceIcon"><i className="ri-upload-cloud-2-line" /></span>
-                <h3>파일 업로드</h3>
+                <h3>파일 업로드 <code>upload</code></h3>
                 <code>POST /images</code>
-                <p>파트너 서버가 가진 이미지 파일을 먼저 업로드하고 반환된 <code>image_url</code>을 일정 요청에 사용합니다.</p>
+                <p>파트너 서버가 이미지 파일을 직접 가지고 있거나, 원본 URL이 로그인·만료·핫링크 차단 때문에 외부에서 열리지 않을 때 사용합니다.</p>
               </div>
               <div>
                 <span className="EAG-choiceIcon"><i className="ri-links-line" /></span>
-                <h3>공개 URL 전달</h3>
+                <h3>공개 URL 전달 <code>url</code></h3>
                 <code>image_mode: "url"</code>
-                <p>로그인 없이 열리는 공개 HTTPS 이미지 주소를 일정 JSON에 바로 넣습니다.</p>
+                <p>이미지가 공개 HTTPS 주소에 있고 Dance Billboard 서버가 로그인 없이 즉시 내려받을 수 있을 때 사용합니다. 별도 이미지 업로드 요청을 생략할 수 있습니다.</p>
               </div>
             </div>
+            <h3 className="EAG-subheading">방법 1 · 파일을 직접 업로드하는 경우</h3>
+            <CodeBlock label="1. 파트너 서버 → 이미지 업로드" code={imageUploadExample} />
+            <p>응답으로 받은 <code>image_url</code>을 보관한 뒤 일정 JSON에 다음처럼 넣습니다.</p>
+            <CodeBlock label="2. 일정 등록 JSON에 업로드 결과 사용" code={uploadedImageEventExample} />
+            <h3 className="EAG-subheading">방법 2 · 공개 이미지 URL을 보내는 경우</h3>
+            <CodeBlock label="일정 등록 JSON에 공개 URL 사용" code={remoteImageEventExample} />
+            <p>일정 등록 요청을 받는 순간 Dance Billboard 서버가 해당 URL을 직접 내려받습니다. 브라우저가 원본 사이트의 이미지를 계속 불러오는 방식이 아닙니다.</p>
+            <h3 className="EAG-subheading">일정 등록 시 서버에서 자동으로 처리하는 작업</h3>
             <div className="EAG-flow">
-              <span>원본 확인</span><i className="ri-arrow-right-line" />
+              <span>API Key·한도 확인</span><i className="ri-arrow-right-line" />
+              <span>파일 수신 또는 URL 다운로드</span><i className="ri-arrow-right-line" />
               <span>실제 이미지 검사</span><i className="ri-arrow-right-line" />
-              <span>WebP 4종 변환</span><i className="ri-arrow-right-line" />
-              <span>Dance Billboard 저장</span>
+              <span>WebP 4종 생성</span><i className="ri-arrow-right-line" />
+              <span>내부 저장 주소로 교체</span>
             </div>
-            <p>두 방식 모두 일정 등록 시 서버가 자동 처리합니다. 저장 후에는 원본 사이트에서 이미지가 삭제되어도 Dance Billboard의 이미지는 유지됩니다. Base64 이미지를 일정 JSON에 직접 넣는 방식은 지원하지 않습니다.</p>
+            <ol className="EAG-numberList">
+              <li>파트너 키와 분당·24시간 요청 한도를 확인합니다.</li>
+              <li><code>upload</code>는 먼저 업로드된 내부 파일을 확인하고, <code>url</code>은 등록 시 원본 URL을 최대 8MB까지 내려받습니다.</li>
+              <li>확장자만 믿지 않고 실제 파일을 해석해 AVIF·JPEG·PNG·WebP인지, 손상·애니메이션·과도한 픽셀 수가 없는지 검사합니다.</li>
+              <li>화면 용도에 맞춰 폭 100·300·650·1300px의 WebP 이미지 4종을 자동 생성합니다.</li>
+              <li>생성된 파일을 Dance Billboard 저장소에 보관하고 일정에는 외부 URL 대신 내부 이미지 주소를 연결합니다.</li>
+              <li>이미지 처리에 실패하면 일정 등록도 실패 응답을 반환하므로 이미지 없는 불완전한 일정이 새로 등록되지 않습니다.</li>
+            </ol>
+            <div className="EAG-callout">
+              <i className="ri-image-2-line" aria-hidden="true" />
+              <div>
+                <strong>등록이 끝난 뒤에는 원본 사이트와 분리됩니다.</strong>
+                <p>원본 사이트가 이미지를 삭제하거나 URL을 변경해도 이미 저장된 Dance Billboard 이미지는 유지됩니다. 단, 최초 등록 순간에는 URL이 공개 상태여야 합니다.</p>
+              </div>
+            </div>
+            <p className="EAG-footnote">Base64 문자열을 일정 JSON 안에 넣는 방식은 지원하지 않습니다. 내부망·로컬 주소, 사설 IP로 연결되는 도메인, 인증이 필요한 URL, 실행 가능한 파일과 8MB 초과 파일은 차단합니다.</p>
           </section>
 
           <section id="address" className="EAG-section">
