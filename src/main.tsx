@@ -7,6 +7,21 @@ const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 const IS_KIOSK_BOOT = isKioskModeEnabled();
 const IS_LOCAL_RUNTIME = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 const ENABLE_LOCAL_PWA_TEST = import.meta.env.VITE_PWA_LOCAL_TEST === 'true';
+const USER_AGENT = navigator.userAgent || '';
+const IS_IN_APP_BROWSER = /kakao|instagram|fbav|fban|fb_iab|line/i.test(USER_AGENT);
+const IS_ANDROID_KAKAO = /android/i.test(USER_AGENT) && /kakao/i.test(USER_AGENT);
+const IS_EXTERNAL_API_GUIDE = /^\/external-event-api\/?$/.test(window.location.pathname);
+
+// 카카오톡으로 공유된 API 안내 링크는 Android 외부 브라우저에서 우선 엽니다.
+// Intent 실행이 차단된 경우 fallback 표시를 붙여 인앱에서도 반복 이동 없이 문서를 표시합니다.
+if (IS_EXTERNAL_API_GUIDE && IS_ANDROID_KAKAO && !new URLSearchParams(window.location.search).has('inapp_fallback')) {
+  const externalUrl = new URL(window.location.href);
+  const fallbackUrl = new URL(externalUrl.href);
+  fallbackUrl.searchParams.set('inapp_fallback', '1');
+  const urlWithoutScheme = externalUrl.href.replace(/^https?:\/\//, '');
+  window.location.href = `intent://${urlWithoutScheme}#Intent;scheme=https;package=com.android.chrome;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${encodeURIComponent(fallbackUrl.href)};end`;
+}
+
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
 const cleanupViewportCssVars = installViewportCssVars();
 if (import.meta.hot) {
@@ -31,8 +46,10 @@ if ((import.meta.env.DEV || IS_LOCAL_RUNTIME) && !ENABLE_LOCAL_PWA_TEST && 'serv
   }
 }
 
-if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !window.location.pathname.includes('/billboard/') && !IS_KIOSK_BOOT) {
-  import('virtual:pwa-register').then(({ registerSW }) => {
+if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !window.location.pathname.includes('/billboard/') && !IS_KIOSK_BOOT && !IS_IN_APP_BROWSER) {
+  import('virtual:pwa-register').then((pwaModule) => {
+    const registerSW = pwaModule?.registerSW;
+    if (typeof registerSW !== 'function') return;
     registerSW({
       immediate: true,
       onRegisteredSW(swUrl: string, r: ServiceWorkerRegistration | undefined) {
@@ -48,6 +65,8 @@ if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !win
         if (BOOT_DEBUG) console.debug('[SW] App ready to work offline');
       },
     });
+  }).catch((error) => {
+    console.warn('[SW] Registration module unavailable; continuing without offline cache.', error);
   });
 }
 
