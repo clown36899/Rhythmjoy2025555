@@ -13,9 +13,13 @@ import {
 } from './events-api.js';
 import {
   createExternalEvent,
+  createExternalPartner,
   deleteExternalEvent,
+  listExternalAdminAuditLogs,
   listExternalPartners,
   listExternalRequestLogs,
+  rotateExternalPartnerKey,
+  searchExternalPartnerUsers,
   updateExternalEvent,
   updateExternalPartnerStatus,
   uploadExternalEventImage,
@@ -255,8 +259,12 @@ app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent)
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
 app.get('/api/external/v1/addresses/validate', jsonRoute(validateExternalAddress));
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
+app.post('/api/admin/external-partners', jsonBody, jsonRoute(createExternalPartner));
 app.patch('/api/admin/external-partners/:partnerId', jsonBody, jsonRoute(updateExternalPartnerStatus));
+app.post('/api/admin/external-partners/:partnerId/rotate-key', jsonBody, jsonRoute(rotateExternalPartnerKey));
+app.get('/api/admin/external-partner-users', jsonRoute(searchExternalPartnerUsers));
 app.get('/api/admin/external-request-logs', jsonRoute(listExternalRequestLogs));
+app.get('/api/admin/external-admin-audit-logs', jsonRoute(listExternalAdminAuditLogs));
 app.use('/api/external/v1', (error, req, res, next) => {
   if (error?.type === 'entity.too.large') {
     const isImageUpload = req.path === '/images' || req.originalUrl?.startsWith('/api/external/v1/images');

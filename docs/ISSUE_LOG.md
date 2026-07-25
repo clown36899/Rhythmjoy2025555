@@ -265,6 +265,28 @@
   - `server/cafe24/app.js`
 - 관련 커밋: pending
 
+## 2026-07-26 외부 API Key 회원 귀속과 관리자 통제 화면
+
+- 상태: 해결
+- 범위: 외부 일정 API 인증 운영, 관리자 메뉴, 감사 추적
+- 증상: 파트너 키를 어느 계정에 귀속하고 두 관리자 계정이 어떻게 발급·통제할지 관리 화면과 기록 체계가 없었다.
+- 조치:
+  - 신규 파트너 키를 기존 회원 계정에 필수 연결하고 API 일정의 내부 소유자로 사용했다.
+  - 햄버거 메뉴의 `관리자 콘솔 → 회원 & 보안`에 외부 API 파트너 관리 화면을 추가했다.
+  - 발급·중지·재활성화·재발급·회원 연결·분류·호출 한도 설정과 요청 로그 조회를 제공했다.
+  - 관리자 세션과 동일 출처를 함께 검사하고 모든 관리자 변경을 별도 감사 로그에 기록했다.
+  - 키 원문은 발급·재발급 때 한 번만 반환하고 DB에는 해시만 저장하며, 재발급 시 이전 키를 즉시 무효화했다.
+- 검증:
+  - 두 운영 관리자 계정의 권한 확인
+  - 비로그인·비관리자·교차 출처 차단, 키 발급·재발급·중지·요청 로그·감사 로그 API 테스트
+  - 외부 API 단위 테스트, TypeScript, ESLint, 프로덕션 빌드 및 운영 배포 후 E2E
+- 관련 파일:
+  - `src/components/ExternalApiPartnerManagementModal.tsx`
+  - `server/cafe24/external-events-api.js`
+  - `server/cafe24/migrations/2026-07-26-external-api-admin-audit.sql`
+  - `docs/external-event-api-operations.md`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md

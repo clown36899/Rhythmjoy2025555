@@ -75,6 +75,70 @@ function apiError(message, statusCode = 400, code = 'invalid_request') {
   return error;
 }
 
+export function createPartnerApiKey() {
+  const prefix = crypto.randomBytes(6).toString('hex');
+  const apiKey = `${API_KEY_PREFIX}${prefix}_${crypto.randomBytes(32).toString('base64url')}`;
+  return {
+    prefix,
+    apiKey,
+    keyHash: crypto.createHash('sha256').update(apiKey).digest('hex'),
+  };
+}
+
+export function normalizePartnerClassification(categoryValue, genreValue) {
+  const category = cleanString(categoryValue, 32, 'default_category');
+  const genre = cleanString(genreValue, 64, 'default_genre');
+  if (Boolean(category) !== Boolean(genre)) {
+    throw apiError('기본 분류를 지정하려면 최상위 분류와 하위 분류를 함께 선택해 주세요.');
+  }
+  if (category && (!SITE_GENRES_BY_CATEGORY[category] || !SITE_GENRES_BY_CATEGORY[category].includes(genre))) {
+    throw apiError('사이트에서 사용하는 올바른 최상위·하위 분류 조합을 선택해 주세요.');
+  }
+  return { category: category || null, genre: genre || null };
+}
+
+function requireSameOrigin(req) {
+  const origin = cleanString(req.get?.('origin'), 512, 'origin');
+  const host = cleanString(req.get?.('host'), 255, 'host', { required: true });
+  if (!origin) throw apiError('관리자 변경 요청의 Origin 헤더가 필요합니다.', 403, 'invalid_origin');
+  let originUrl;
+  try {
+    originUrl = new URL(origin);
+  } catch {
+    throw apiError('관리자 변경 요청의 Origin이 올바르지 않습니다.', 403, 'invalid_origin');
+  }
+  if (originUrl.host !== host || !['http:', 'https:'].includes(originUrl.protocol)) {
+    throw apiError('다른 사이트에서 보낸 관리자 변경 요청은 허용되지 않습니다.', 403, 'invalid_origin');
+  }
+}
+
+function normalizePositiveInteger(value, field, fallback) {
+  const number = value === undefined ? fallback : Number(value);
+  if (!Number.isInteger(number) || number < 1 || number > 100_000) {
+    throw apiError(`${field} 값은 1 이상 100000 이하의 정수여야 합니다.`);
+  }
+  return number;
+}
+
+async function requireExistingOwnerUser(pool, ownerUserId) {
+  const id = cleanString(ownerUserId, 64, 'owner_user_id', { required: true });
+  const [rows] = await pool.execute(
+    'SELECT id, email, nickname, is_admin FROM users WHERE id = ? LIMIT 1',
+    [id],
+  );
+  if (!rows[0]) throw apiError('연결할 회원 계정을 찾을 수 없습니다.', 404, 'user_not_found');
+  return rows[0];
+}
+
+async function writeAdminAudit(connection, admin, partnerId, action, details, requestIp) {
+  await connection.execute(
+    `INSERT INTO external_api_admin_audit_logs
+       (admin_user_id, partner_id, action, details_json, request_ip, created_at)
+     VALUES (?, ?, ?, ?, ?, NOW())`,
+    [String(admin.id), partnerId, action, JSON.stringify(details || {}), requestIp || null],
+  );
+}
+
 function cleanString(value, maxLength, field, { required = false } = {}) {
   const text = value === undefined || value === null ? '' : String(value).trim();
   if (required && !text) throw apiError(`${field} 값이 필요합니다.`);
@@ -954,13 +1018,16 @@ export async function deleteExternalEvent(req, res) {
 
 export async function listExternalPartners(req, res) {
   await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
   const pool = getMysqlPool();
   const [partners] = await pool.execute(
     `SELECT p.id, p.name, p.key_prefix, p.is_active, p.default_category, p.default_genre,
             p.owner_user_id, p.per_minute_limit, p.daily_limit, p.created_at, p.updated_at,
+            u.email AS owner_email, u.nickname AS owner_nickname,
             COUNT(DISTINCT e.event_id) AS event_count,
             MAX(l.created_at) AS last_request_at
        FROM external_api_partners p
+       LEFT JOIN users u ON u.id = p.owner_user_id
        LEFT JOIN external_partner_events e ON e.partner_id = p.id
        LEFT JOIN external_api_request_logs l ON l.partner_id = p.id
       GROUP BY p.id
@@ -969,21 +1036,199 @@ export async function listExternalPartners(req, res) {
   res.json({ ok: true, partners });
 }
 
-export async function updateExternalPartnerStatus(req, res) {
+export async function searchExternalPartnerUsers(req, res) {
   await requireAdmin(req);
-  const partnerId = cleanString(req.params.partnerId, 64, 'partner_id', { required: true });
-  if (typeof req.body?.is_active !== 'boolean') throw apiError('is_active는 boolean 값이어야 합니다.');
+  res.setHeader('Cache-Control', 'no-store');
+  const query = cleanString(req.query?.query, 120, 'query');
   const pool = getMysqlPool();
-  const [result] = await pool.execute(
-    'UPDATE external_api_partners SET is_active = ?, updated_at = NOW() WHERE id = ?',
-    [req.body.is_active ? 1 : 0, partnerId],
+  const [users] = await pool.execute(
+    `SELECT id, email, nickname, is_admin, created_at
+       FROM users
+      WHERE (? = '' OR LOCATE(?, COALESCE(email, '')) > 0 OR LOCATE(?, COALESCE(nickname, '')) > 0)
+      ORDER BY is_admin DESC, created_at DESC
+      LIMIT 50`,
+    [query, query, query],
   );
-  if (!result.affectedRows) throw apiError('파트너를 찾을 수 없습니다.', 404, 'not_found');
-  res.json({ ok: true, partner_id: partnerId, is_active: req.body.is_active });
+  res.json({ ok: true, users });
+}
+
+export async function createExternalPartner(req, res) {
+  requireSameOrigin(req);
+  const admin = await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
+  const pool = getMysqlPool();
+  const owner = await requireExistingOwnerUser(pool, req.body?.owner_user_id);
+  const name = cleanString(req.body?.name, 120, 'name', { required: true });
+  const classification = normalizePartnerClassification(
+    req.body?.default_category,
+    req.body?.default_genre,
+  );
+  const perMinuteLimit = normalizePositiveInteger(req.body?.per_minute_limit, 'per_minute_limit', 10);
+  const dailyLimit = normalizePositiveInteger(req.body?.daily_limit, 'daily_limit', 200);
+  const partnerId = crypto.randomUUID();
+  const issued = createPartnerApiKey();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `INSERT INTO external_api_partners
+         (id, name, key_prefix, key_hash, is_active, default_category, default_genre,
+          owner_user_id, per_minute_limit, daily_limit)
+       VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+      [
+        partnerId,
+        name,
+        issued.prefix,
+        issued.keyHash,
+        classification.category,
+        classification.genre,
+        String(owner.id),
+        perMinuteLimit,
+        dailyLimit,
+      ],
+    );
+    await writeAdminAudit(connection, admin, partnerId, 'created', {
+      owner_user_id: String(owner.id),
+      default_category: classification.category,
+      default_genre: classification.genre,
+      per_minute_limit: perMinuteLimit,
+      daily_limit: dailyLimit,
+    }, req.ip);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+  res.status(201).json({
+    ok: true,
+    partner_id: partnerId,
+    api_key: issued.apiKey,
+    warning: '이 키는 지금 한 번만 표시됩니다. 안전한 비밀 저장소에 보관해 주세요.',
+  });
+}
+
+export async function updateExternalPartnerStatus(req, res) {
+  requireSameOrigin(req);
+  const admin = await requireAdmin(req);
+  const partnerId = cleanString(req.params.partnerId, 64, 'partner_id', { required: true });
+  const pool = getMysqlPool();
+  const [existingRows] = await pool.execute(
+    `SELECT id, name, is_active, default_category, default_genre, owner_user_id,
+            per_minute_limit, daily_limit
+       FROM external_api_partners WHERE id = ? LIMIT 1`,
+    [partnerId],
+  );
+  const existing = existingRows[0];
+  if (!existing) throw apiError('파트너를 찾을 수 없습니다.', 404, 'not_found');
+  const nextOwnerId = req.body?.owner_user_id === undefined
+    ? (existing.owner_user_id ? String(existing.owner_user_id) : null)
+    : String((await requireExistingOwnerUser(pool, req.body.owner_user_id)).id);
+  const statusOnlyEmergencyStop = !nextOwnerId
+    && req.body?.is_active === false
+    && Object.keys(req.body || {}).every((field) => field === 'is_active');
+  if (!nextOwnerId && !statusOnlyEmergencyStop) {
+    throw apiError('파트너 키에는 연결 회원이 필요합니다.');
+  }
+  const classification = normalizePartnerClassification(
+    req.body?.default_category === undefined ? existing.default_category : req.body.default_category,
+    req.body?.default_genre === undefined ? existing.default_genre : req.body.default_genre,
+  );
+  const next = {
+    name: req.body?.name === undefined
+      ? String(existing.name)
+      : cleanString(req.body.name, 120, 'name', { required: true }),
+    isActive: req.body?.is_active === undefined ? Boolean(existing.is_active) : req.body.is_active,
+    ownerUserId: nextOwnerId,
+    category: classification.category,
+    genre: classification.genre,
+    perMinuteLimit: normalizePositiveInteger(
+      req.body?.per_minute_limit,
+      'per_minute_limit',
+      Number(existing.per_minute_limit),
+    ),
+    dailyLimit: normalizePositiveInteger(
+      req.body?.daily_limit,
+      'daily_limit',
+      Number(existing.daily_limit),
+    ),
+  };
+  if (typeof next.isActive !== 'boolean') throw apiError('is_active는 boolean 값이어야 합니다.');
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.execute(
+      `UPDATE external_api_partners
+          SET name = ?, is_active = ?, default_category = ?, default_genre = ?,
+              owner_user_id = ?, per_minute_limit = ?, daily_limit = ?, updated_at = NOW()
+        WHERE id = ?`,
+      [
+        next.name,
+        next.isActive ? 1 : 0,
+        next.category,
+        next.genre,
+        next.ownerUserId,
+        next.perMinuteLimit,
+        next.dailyLimit,
+        partnerId,
+      ],
+    );
+    await writeAdminAudit(connection, admin, partnerId, 'updated', next, req.ip);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+  res.json({ ok: true, partner_id: partnerId, is_active: next.isActive });
+}
+
+export async function rotateExternalPartnerKey(req, res) {
+  requireSameOrigin(req);
+  const admin = await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
+  const partnerId = cleanString(req.params.partnerId, 64, 'partner_id', { required: true });
+  const pool = getMysqlPool();
+  const [partnerRows] = await pool.execute(
+    'SELECT owner_user_id FROM external_api_partners WHERE id = ? LIMIT 1',
+    [partnerId],
+  );
+  if (!partnerRows[0]) throw apiError('파트너를 찾을 수 없습니다.', 404, 'not_found');
+  if (!partnerRows[0].owner_user_id) {
+    throw apiError('키를 재발급하기 전에 파트너 회원 계정을 연결해 주세요.');
+  }
+  const issued = createPartnerApiKey();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [result] = await connection.execute(
+      `UPDATE external_api_partners
+          SET key_prefix = ?, key_hash = ?, is_active = 1, updated_at = NOW()
+        WHERE id = ?`,
+      [issued.prefix, issued.keyHash, partnerId],
+    );
+    if (!result.affectedRows) throw apiError('파트너를 찾을 수 없습니다.', 404, 'not_found');
+    await writeAdminAudit(connection, admin, partnerId, 'key_rotated', {}, req.ip);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+  res.json({
+    ok: true,
+    partner_id: partnerId,
+    api_key: issued.apiKey,
+    warning: '이 키는 지금 한 번만 표시되며 기존 키는 즉시 사용할 수 없습니다.',
+  });
 }
 
 export async function listExternalRequestLogs(req, res) {
   await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
   const requestedLimit = Number(req.query.limit || 100);
   const limit = Number.isFinite(requestedLimit)
     ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 500)
@@ -995,6 +1240,26 @@ export async function listExternalRequestLogs(req, res) {
        FROM external_api_request_logs l
        JOIN external_api_partners p ON p.id = l.partner_id
       ORDER BY l.id DESC
+      LIMIT ${limit}`,
+  );
+  res.json({ ok: true, logs });
+}
+
+export async function listExternalAdminAuditLogs(req, res) {
+  await requireAdmin(req);
+  res.setHeader('Cache-Control', 'no-store');
+  const requestedLimit = Number(req.query.limit || 100);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 500)
+    : 100;
+  const pool = getMysqlPool();
+  const [logs] = await pool.execute(
+    `SELECT a.id, a.admin_user_id, u.email AS admin_email, a.partner_id,
+            p.name AS partner_name, a.action, a.details_json, a.request_ip, a.created_at
+       FROM external_api_admin_audit_logs a
+       LEFT JOIN users u ON u.id = a.admin_user_id
+       LEFT JOIN external_api_partners p ON p.id = a.partner_id
+      ORDER BY a.id DESC
       LIMIT ${limit}`,
   );
   res.json({ ok: true, logs });

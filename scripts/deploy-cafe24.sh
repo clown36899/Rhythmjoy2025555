@@ -88,6 +88,19 @@ package_lock_hash="$(sha256sum package-lock.json | awk '{print $1}')"
 
 ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
 cd '${APP_DIR}'
+set -a
+. '${APP_DIR}/.env'
+set +a
+: \"\${MYSQL_HOST:?Missing MYSQL_HOST}\"
+: \"\${MYSQL_DATABASE:?Missing MYSQL_DATABASE}\"
+: \"\${MYSQL_USER:?Missing MYSQL_USER}\"
+: \"\${MYSQL_PASSWORD:?Missing MYSQL_PASSWORD}\"
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \
+  -h \"\${MYSQL_HOST}\" \
+  -P \"\${MYSQL_PORT:-3306}\" \
+  -u \"\${MYSQL_USER}\" \
+  \"\${MYSQL_DATABASE}\" \
+  < '${APP_DIR}/server/cafe24/migrations/2026-07-26-external-api-admin-audit.sql'
 if [ -f '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' ] && [ -f '${APACHE_CONF_DIR}/00-swingenjoy-modsecurity-exceptions.conf' ]; then
   mv '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf.disabled'
 fi

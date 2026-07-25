@@ -20,12 +20,12 @@ function fail(message) {
 const name = String(readArg('name') || '').trim();
 const category = String(readArg('category') || '').trim();
 const genre = String(readArg('genre') || '').trim();
-const ownerUserId = String(readArg('owner-user-id') || '').trim() || null;
+const ownerUserId = String(readArg('owner-user-id') || '').trim();
 const perMinuteLimit = Number(readArg('per-minute-limit') || 10);
 const dailyLimit = Number(readArg('daily-limit') || 200);
 
-if (!name) {
-  fail('사용법: npm run external-api:create-partner -- --name "파트너명" [--category class --genre "린디합"]');
+if (!name || !ownerUserId) {
+  fail('사용법: npm run external-api:create-partner -- --name "파트너명" --owner-user-id "연결할 회원 ID" [--category class --genre "린디합"]');
 } else if (Boolean(category) !== Boolean(genre)) {
   fail('기본 분류를 지정하려면 category와 genre를 함께 입력해야 합니다.');
 } else if (category && !SITE_GENRES_BY_CATEGORY[category]) {
@@ -42,6 +42,8 @@ if (!name) {
   const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
 
   try {
+    const [ownerRows] = await pool.execute('SELECT id FROM users WHERE id = ? LIMIT 1', [ownerUserId]);
+    if (!ownerRows[0]) throw new Error('연결할 회원 ID를 찾을 수 없습니다.');
     await pool.execute(
       `INSERT INTO external_api_partners
          (id, name, key_prefix, key_hash, default_category, default_genre,
@@ -52,6 +54,7 @@ if (!name) {
     console.log(JSON.stringify({
       partner_id: id,
       name,
+      owner_user_id: ownerUserId,
       default_category: category || null,
       default_genre: genre || null,
       api_key: apiKey,

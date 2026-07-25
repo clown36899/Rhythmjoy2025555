@@ -9,6 +9,8 @@ import {
   isPublicAddress,
   isKakaoMapAddress,
   SITE_GENRES_BY_CATEGORY,
+  createPartnerApiKey,
+  normalizePartnerClassification,
 } from './external-events-api.js';
 import sharp from 'sharp';
 
@@ -290,6 +292,27 @@ describe('external event API validation', () => {
     expect(parsed.prefix).toBe('ab12');
     expect(parsed.hash).toMatch(/^[a-f0-9]{64}$/);
     expect(() => parseExternalApiKey('Bearer random-key')).toThrow('Bearer API Key');
+  });
+
+  it('issues unique one-time keys whose stored hash matches authentication', () => {
+    const first = createPartnerApiKey();
+    const second = createPartnerApiKey();
+    const parsed = parseExternalApiKey(`Bearer ${first.apiKey}`);
+
+    expect(first.apiKey).toMatch(/^rj_live_[a-f0-9]{12}_[A-Za-z0-9_-]{43}$/);
+    expect(first.apiKey).not.toBe(second.apiKey);
+    expect(parsed.prefix).toBe(first.prefix);
+    expect(parsed.hash).toBe(first.keyHash);
+  });
+
+  it('allows only a complete site classification pair for partner defaults', () => {
+    expect(normalizePartnerClassification('', '')).toEqual({ category: null, genre: null });
+    expect(normalizePartnerClassification('event', '워크샵')).toEqual({
+      category: 'event',
+      genre: '워크샵',
+    });
+    expect(() => normalizePartnerClassification('event', '')).toThrow('함께 선택');
+    expect(() => normalizePartnerClassification('event', '린디합')).toThrow('올바른 최상위·하위 분류');
   });
 
   it('decodes and rewrites uploaded images as a safe WebP file', async () => {
