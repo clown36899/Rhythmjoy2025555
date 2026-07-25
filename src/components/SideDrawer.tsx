@@ -14,6 +14,7 @@ import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { isLegacyIOS } from '../lib/pwaDetect';
 import type { PageAction } from '../contexts/PageActionContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useModalContext } from '../contexts/ModalContext';
 import { logUserInteraction } from '../lib/analytics';
 import MobileLogViewer from './MobileLogViewer';
 import '../styles/domains/overlays.css';
@@ -92,6 +93,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const navigate = useNavigate();
     const location = useLocation();
     const { user, billboardUserName, signOut, userProfile, isAdmin, refreshUserProfile } = useAuth();
+    const { openModal, closeModal } = useModalContext();
     const { theme, toggleTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
@@ -106,6 +108,30 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
     const [eventDailyAvg, setEventDailyAvg] = useState<number | null>(null);
     const [eventBreakdown, setEventBreakdown] = useState<{ regular: number, social: number } | null>(null);
     const { totalCount: onlineCount } = useOnlineUsers();
+
+    const openEventRegistration = () => {
+        if (!user) {
+            onClose();
+            onLoginClick();
+            return;
+        }
+
+        onClose();
+        openModal('registrationChoice', {
+            onSelectMain: () => {
+                closeModal('registrationChoice');
+                openModal('eventRegistration', { selectedDate: new Date() });
+            },
+            onSelectSocial: () => {
+                closeModal('registrationChoice');
+                openModal('weeklySocial');
+            },
+            onSelectOneDay: () => {
+                closeModal('registrationChoice');
+                openModal('oneDayRecruitRegistration');
+            },
+        });
+    };
 
     // 메뉴 토글 이벤트 리스너 등록
     useEffect(() => {
@@ -625,7 +651,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     <i className="ri-arrow-right-s-line SD-apiGuideArrow" aria-hidden="true"></i>
                                 </div>
 
-                                {pageAction && (
+                                {pageAction ? (
                                     <div
                                         className="SD-menuItem SD-registrationEntry"
                                         onClick={() => {
@@ -642,6 +668,29 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                         <i className={pageAction.icon}></i>
                                         <div className="SD-menuLabelWithStatus">
                                             <span>{pageAction.label}</span>
+                                            <i className="ri-add-circle-line SD-smallIndicatorIcon"></i>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="SD-menuItem SD-registrationEntry"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={openEventRegistration}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                openEventRegistration();
+                                            }
+                                        }}
+                                        data-analytics-id="side_drawer_event_registration"
+                                        data-analytics-type="action"
+                                        data-analytics-title="이벤트 등록"
+                                        data-analytics-section="side_drawer_quick"
+                                    >
+                                        <i className="ri-calendar-event-line"></i>
+                                        <div className="SD-menuLabelWithStatus">
+                                            <span>이벤트 등록</span>
                                             <i className="ri-add-circle-line SD-smallIndicatorIcon"></i>
                                         </div>
                                     </div>
