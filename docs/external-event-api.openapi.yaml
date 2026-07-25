@@ -88,19 +88,22 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimited'
   /api/external/v1/addresses/validate:
-    get:
+    post:
       summary: 카카오맵 호환 주소 검색 및 확인
       operationId: validateExternalAddress
       security:
         - partnerApiKey: []
-      parameters:
-        - name: query
-          in: query
-          required: true
-          description: 사용자가 입력한 대한민국 도로명주소 또는 지번주소
-          schema:
-            type: string
-            maxLength: 255
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  maxLength: 255
       responses:
         '200':
           description: 주소 후보 확인 성공

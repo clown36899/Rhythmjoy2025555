@@ -877,7 +877,7 @@ async function recordRequest(pool, values) {
 export async function validateExternalAddress(req, res) {
   const pool = getMysqlPool();
   const partner = await authenticatePartner(req, pool);
-  const query = cleanString(req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
+  const query = cleanString(req.body?.query ?? req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
   await recordRequest(pool, {
     partnerId: partner.id,
     statusCode: 202,
@@ -910,7 +910,7 @@ export async function normalizeExternalAddressForMember(req, res) {
   const user = await getCurrentUser(req);
   if (!user) throw apiError('로그인 후 주소 변환기를 사용해 주세요.', 401, 'login_required');
   enforceAddressToolRateLimit(String(user.id), req.ip);
-  const query = cleanString(req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
+  const query = cleanString(req.body?.query ?? req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
   const candidates = await searchKakaoAddress(query);
   if (!candidates.length) {
     throw apiError('카카오맵에서 확인되는 주소가 없습니다.', 422, 'address_not_found');

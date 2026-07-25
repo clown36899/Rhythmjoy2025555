@@ -41,10 +41,13 @@ async function findDanceBillboardAddresses(rawAddress) {
   const url = new URL(
     "https://swingenjoy.com/api/external/v1/addresses/validate"
   );
-  url.searchParams.set("query", rawAddress);
-
   const response = await fetch(url, {
-    headers: { Authorization: \`Bearer \${API_KEY}\` }
+    method: "POST",
+    headers: {
+      Authorization: \`Bearer \${API_KEY}\`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ query: rawAddress })
   });
   const result = await response.json();
   if (!response.ok) {
@@ -261,8 +264,11 @@ export default function ExternalEventApiGuidePage() {
     setAddressResult('카카오맵에서 확인 중...');
     setAddressCandidates([]);
     try {
-      const response = await fetch(`/api/external/address-tool?query=${encodeURIComponent(addressQuery)}`, {
+      const response = await fetch('/api/external/address-tool', {
+        method: 'POST',
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: addressQuery }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || '주소를 변환하지 못했습니다.');
@@ -549,8 +555,8 @@ export default function ExternalEventApiGuidePage() {
             <h2>카카오맵 주소 자동 변환</h2>
             <p className="EAG-lead">이미지 없는 <code>social</code> 일정은 주소 확인 API의 후보를 보여주고, 사용자가 실제 장소와 일치하는 주소를 선택해야 합니다. 서버는 선택하지 않은 첫 검색 결과를 임의로 저장하지 않습니다.</p>
             <div className="EAG-endpoint">
-              <span className="EAG-method EAG-methodGet">GET</span>
-              <code>/addresses/validate?query=서울특별시+강남구+테헤란로+123</code>
+              <span className="EAG-method EAG-methodPost">POST</span>
+              <code>/addresses/validate</code>
             </div>
             <CodeBlock label="파트너 서버 JavaScript · 주소 확인 API" code={addressApiExample} />
             <div className="EAG-addressTool">

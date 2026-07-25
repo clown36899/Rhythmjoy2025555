@@ -300,16 +300,20 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 주소 확인 API는 파트너 서버에서 호출하는 개발용 API입니다. API Key가 노출되므로 브라우저 JavaScript에서 Dance Billboard API를 직접 호출하지 마세요. 파트너 브라우저가 파트너 서버에 검색어를 보내고, 파트너 서버가 아래 API를 호출한 뒤 후보 목록만 브라우저에 전달해 주세요.
 
 ```http
-GET https://swingenjoy.com/api/external/v1/addresses/validate?query={주소}
+POST https://swingenjoy.com/api/external/v1/addresses/validate
 Authorization: Bearer {발급받은_API_KEY}
+Content-Type: application/json
+
+{"query":"서울 강남구 테헤란로 123"}
 ```
 
 호출 예시는 다음과 같습니다.
 
 ```bash
-curl --get 'https://swingenjoy.com/api/external/v1/addresses/validate' \
+curl -X POST 'https://swingenjoy.com/api/external/v1/addresses/validate' \
   -H 'Authorization: Bearer 발급받은_API_KEY' \
-  --data-urlencode 'query=서울 강남구 테헤란로 123'
+  -H 'Content-Type: application/json' \
+  --data '{"query":"서울 강남구 테헤란로 123"}'
 ```
 
 파트너 서버 JavaScript에서는 다음처럼 사용할 수 있습니다.
@@ -319,9 +323,13 @@ const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
 
 async function findDanceBillboardAddresses(rawAddress) {
   const url = new URL('https://swingenjoy.com/api/external/v1/addresses/validate');
-  url.searchParams.set('query', rawAddress);
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${API_KEY}` },
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query: rawAddress }),
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.message || '주소 확인 실패');
