@@ -84,19 +84,23 @@ package_changed=false
 if has_transfer_changes "${functions_log}" || has_transfer_changes "${server_log}" || has_transfer_changes "${package_log}"; then
   restart_required=true
 fi
-if has_transfer_changes "${package_log}"; then
-  package_changed=true
-fi
+package_lock_hash="$(sha256sum package-lock.json | awk '{print $1}')"
 
 ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
 cd '${APP_DIR}'
+if [ -f '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' ] && [ -f '${APACHE_CONF_DIR}/00-swingenjoy-modsecurity-exceptions.conf' ]; then
+  mv '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf.disabled'
+fi
 httpd -t
-if [ '${package_changed}' = 'true' ]; then
+installed_package_lock_hash=\$(cat .installed-package-lock.sha256 2>/dev/null || true)
+if [ \"\$installed_package_lock_hash\" != '${package_lock_hash}' ]; then
   echo 'Installing production dependencies: package files changed.'
   export PATH='${NODE_BIN_DIR}':\"\$PATH\"
   npm install --omit=dev --no-audit --no-fund
+  printf '%s\n' '${package_lock_hash}' > .installed-package-lock.sha256
+  package_changed=true
 fi
-if [ '${restart_required}' = 'true' ]; then
+if [ '${restart_required}' = 'true' ] || [ \"\${package_changed:-false}\" = 'true' ]; then
   echo 'Restarting ${SERVICE}: server-side files changed.'
   systemctl restart '${SERVICE}'
   i=0
