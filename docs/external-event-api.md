@@ -50,7 +50,7 @@ Authorization: Bearer {발급받은_API_KEY}
 
 API Key마다 요청 횟수 한도가 적용됩니다. 테스트 단계 권장값은 분당 30회·24시간 1,000회이고, 운영 단계 권장값은 분당 10회·24시간 200회입니다. 관리자는 파트너의 정상 사용량에 맞게 조정할 수 있습니다.
 
-일정 등록·수정·삭제뿐 아니라 이미지 업로드와 주소 확인 요청도 한도에 포함됩니다. 필수값이 잘못된 요청도 반복 도배를 막기 위해 횟수에 포함됩니다. 한도를 넘으면 서버가 `429 rate_limit_exceeded`를 반환하며, 해당 응답을 받은 경우 자동 재시도를 즉시 중단하고 잠시 후 다시 요청해 주세요.
+일정 등록·수정·삭제와 이미지 업로드가 한도에 포함됩니다. 필수값이 잘못된 요청도 반복 도배를 막기 위해 횟수에 포함됩니다. 한도를 넘으면 서버가 `429 rate_limit_exceeded`를 반환하며, 해당 응답을 받은 경우 자동 재시도를 즉시 중단하고 잠시 후 다시 요청해 주세요.
 
 한 파트너의 과도한 요청은 해당 API Key만 제한하며 다른 파트너 키에는 영향을 주지 않습니다. 반복 오등록이나 비정상 사용이 확인되면 관리자가 해당 키를 즉시 중지할 수 있습니다.
 
@@ -167,7 +167,7 @@ Content-Type: application/json
 분류에 따른 이미지·주소 규칙은 다음과 같습니다.
 
 - `event`, `class`, `club`: 이미지가 반드시 필요합니다.
-- `social`: 이미지를 생략할 수 있습니다. 이때 `address`를 보내면 서버가 카카오맵 표준 주소로 자동 변환해 저장합니다.
+- `social`: 이미지를 생략할 수 있습니다. 주소도 선택 입력이지만, 주소를 보내면 상세 화면의 장소·지도 연동에 사용되므로 반드시 주소 검색 서비스에서 확인한 도로명주소를 보내 주세요.
 
 ## 5. 이미지 등록 방식
 
@@ -285,84 +285,45 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/images' \
 
 원본 사이트의 일정 고유번호를 `external_id`로 정해 등록·수정·삭제에서 계속 동일하게 사용해 주세요. 수정할 때 새 이미지가 있다면 등록 때와 똑같이 `upload` 또는 `url` 방식으로 보내야 합니다. 다른 파트너의 API Key로는 같은 `external_id`를 사용해도 해당 일정이나 이미지에 접근할 수 없습니다.
 
-## 6. 이미지 없는 소셜과 주소 확인
+## 6. 지도에 사용할 도로명주소
 
-이미지가 없는 `social` 일정은 상세 화면에 카카오맵을 표시하므로 `address`가 필요합니다. 검색 첫 결과를 자동 저장하면 다른 장소가 선택될 수 있으므로, Dance Billboard는 첫 결과를 임의로 저장하지 않습니다.
+Dance Billboard 상세 화면은 카카오맵으로 장소를 표시합니다. 주소는 필수가 아니며 이미지 유무나 분류와도 관계없지만, 주소를 보내면 카카오맵 검색에 그대로 사용됩니다. 부정확한 주소나 장소명만 보내면 카카오맵 검색 결과의 첫 번째 주소가 사용되어 실제 장소와 다른 위치가 표시될 수 있으므로, 가능한 한 확인된 도로명주소를 보내 주세요.
 
-따라서 기본 자동 연동은 다음처럼 처리하시면 됩니다.
+정확한 주소를 확인할 때는 다음 방법 중 파트너 환경에 맞는 것을 선택할 수 있습니다. API 요청에서 확인 방법 자체를 반드시 선택해야 하는 것은 아닙니다.
 
-1. 파트너 서버가 사용자의 검색어로 아래 주소 확인 API를 호출합니다.
-2. API가 반환한 `candidates`를 파트너 등록 화면에 표시합니다.
-3. 사용자가 실제 장소와 일치하는 후보 하나를 선택합니다.
-4. 선택한 `candidate.address`를 일정 등록 요청의 `address`에 넣습니다.
-5. 등록 서버는 카카오 후보와 정확히 일치하는 주소인지 다시 검사한 뒤 저장합니다.
+| 주소 확인 방법 | `address_source` | 사용 방법 |
+|---|---|---|
+| 다음 우편번호 | `daum_postcode` | 무료 검색창에서 사용자가 도로명주소 선택 |
+| 카카오맵 API | `kakao_map` | 파트너가 보유한 API에서 도로명주소 확인 |
+| 네이버지도 API | `naver_map` | 파트너가 보유한 API에서 도로명주소 확인 |
+| Google Maps API | `google_map` | 대한민국 도로명주소로 정리한 결과만 사용 |
+| 도로명주소 API | `road_address_api` | 공공 도로명주소 검색 결과 사용 |
 
-주소 확인 API는 파트너 서버에서 호출하는 개발용 API입니다. API Key가 노출되므로 브라우저 JavaScript에서 Dance Billboard API를 직접 호출하지 마세요. 파트너 브라우저가 파트너 서버에 검색어를 보내고, 파트너 서버가 아래 API를 호출한 뒤 후보 목록만 브라우저에 전달해 주세요.
+별도 지도 API가 없다면 파트너 등록 화면에 무료 다음 우편번호 서비스를 직접 적용할 수 있습니다. Dance Billboard API Key는 이 검색창에 사용하지 않습니다.
 
-```http
-POST https://swingenjoy.com/api/external/v1/addresses/validate
-Authorization: Bearer {발급받은_API_KEY}
-Content-Type: application/json
+카카오 Local API를 이미 사용하는 파트너는 주소 검색 결과에서 도로명주소를 확인한 뒤 전송해도 됩니다. 카카오 API 사용은 강제하지 않으며 카카오 개발자 앱, REST API Key, 이용 한도와 비용은 파트너가 직접 관리합니다. 자세한 사용법은 [카카오 주소 검색 API 공식 안내](https://developers.kakao.com/docs/latest/ko/local/dev-guide#address-coord)를 확인해 주세요.
 
-{"query":"서울 강남구 테헤란로 123"}
-```
+Google Maps를 사용하는 파트너도 연동할 수 있지만 Google의 `formatted_address`, 영문 주소, Plus Code 또는 장소명을 그대로 보내면 안 됩니다. Google 주소 결과는 구성과 표기가 카카오 주소검색과 달라 호환이 보장되지 않습니다. Google 검색 결과에서 대한민국 도로명주소를 별도로 확보해 `address`에 보내고, `address_source`는 `google_map`으로 기록해 주세요. Google 좌표만 보내는 방식은 현재 일정 API에서 지원하지 않습니다. Google 응답의 주소 구성과 좌표 필드는 [Google Geocoding 공식 문서](https://developers.google.com/maps/documentation/geocoding/geocoding)에서 확인할 수 있습니다.
 
-호출 예시는 다음과 같습니다.
-
-```bash
-curl -X POST 'https://swingenjoy.com/api/external/v1/addresses/validate' \
-  -H 'Authorization: Bearer 발급받은_API_KEY' \
-  -H 'Content-Type: application/json' \
-  --data '{"query":"서울 강남구 테헤란로 123"}'
-```
-
-파트너 서버 JavaScript에서는 다음처럼 사용할 수 있습니다.
-
-```js
-const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
-
-async function findDanceBillboardAddresses(rawAddress) {
-  const url = new URL('https://swingenjoy.com/api/external/v1/addresses/validate');
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query: rawAddress }),
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.message || '주소 확인 실패');
-  return result.candidates;
-}
-
-// candidates를 등록 화면에 표시한 뒤 사용자가 고른 값만 사용합니다.
-const candidates = await findDanceBillboardAddresses('서울 강남구 테헤란로 123');
-const address = candidates[selectedIndex].address;
-```
-
-응답 예시는 다음과 같습니다.
-
-```json
-{
-  "ok": true,
-  "query": "서울 강남구 테헤란로 123",
-  "selection_required": true,
-  "candidates": [
-    {
-      "address": "서울 강남구 테헤란로 123",
-      "road_address": "서울 강남구 테헤란로 123",
-      "jibun_address": "서울 강남구 역삼동 123-45",
-      "building_name": "예시빌딩",
-      "postal_code": "06123",
-      "latitude": "37.000000",
-      "longitude": "127.000000"
+```html
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+function selectRoadAddress() {
+  new daum.Postcode({
+    oncomplete(data) {
+      if (!data.roadAddress) {
+        alert('도로명주소를 선택해 주세요.');
+        return;
+      }
+      eventPayload.address = data.roadAddress;
+      eventPayload.postal_code = data.zonecode;
+      eventPayload.address_source = 'daum_postcode';
     }
-  ]
+  }).open();
 }
+</script>
+<button type="button" onclick="selectRoadAddress()">도로명주소 검색</button>
 ```
-
-후보가 없으면 `422 address_not_found`를 반환합니다. `candidates`는 여러 결과를 직접 보여줘야 할 때만 사용하세요.
 
 ```json
 {
@@ -373,12 +334,15 @@ const address = candidates[selectedIndex].address;
   "category": "social",
   "genre": "소셜",
   "location": "스윙홀",
-  "address": "서울 강남구 테헤란로 123",
+  "address": "서울 동작구 남부순환로 2077",
+  "address_detail": "건축회관 3층",
+  "postal_code": "07025",
+  "address_source": "daum_postcode",
   "source_url": "https://partner.example.com/socials/3"
 }
 ```
 
-`location`에는 장소명을 넣고 `address`에는 주소 확인 API가 반환한 주소를 넣어 주세요. 이 경우 `image_mode`과 `image_url`은 생략합니다.
+`location`에는 장소명을, `address`에는 선택한 서비스에서 확인한 도로명주소를 넣어 주세요. 층·호수는 지도 검색 주소가 틀어지지 않도록 `address_detail`로 분리합니다. Dance Billboard 서버는 유료 주소 검색을 다시 호출하거나 검색 첫 결과를 임의로 저장하지 않고 필드 형식만 검사합니다. 주소를 생략해도 일정은 등록됩니다.
 
 ## 7. 등록 필드
 
@@ -392,7 +356,10 @@ const address = candidates[selectedIndex].address;
 | `source_url` | 필수 | 파트너 사이트의 공개 HTTPS 일정 상세 주소 |
 | `time` | 선택 | 표시용 시간, 최대 120자 |
 | `location` | 선택 | 장소명, 최대 255자 |
-| `address` | 조건부 | 이미지 없는 소셜에서 필수이며 서버가 카카오맵 표준 주소로 자동 변환 |
+| `address` | 선택 | 지도 연동이 필요할 때 보내는 확인된 행정안전부 도로명주소 |
+| `address_detail` | 선택 | 층·호수 등 상세 위치. 지도 검색 주소와 분리 |
+| `postal_code` | 선택 | 주소 확인 서비스가 반환한 5자리 우편번호 |
+| `address_source` | 선택 | 주소를 확인한 서비스 기록. `daum_postcode`, `kakao_map`, `naver_map`, `google_map`, `road_address_api` 중 하나 |
 | `location_link` | 선택 | 공개 HTTPS 지도 또는 장소 링크 |
 | `description` | 선택 | 일정 설명, 최대 20,000자 |
 | `link_name1` | 선택 | 상세 링크 표시명, 기본값은 `자세히 보기` |
@@ -508,7 +475,6 @@ if (!response.ok) throw new Error(result.message || '일정 삭제 실패');
 | `404` | `not_found` | 해당 키가 소유한 일정을 찾을 수 없습니다. | `external_id`와 사용한 키를 확인해 주세요. |
 | `413` | `payload_too_large` | JSON 256KB 또는 이미지 32MB를 초과했습니다. | 본문 또는 이미지를 줄여 주세요. |
 | `415` | `unsupported_media_type` | 지원하지 않는 이미지 형식입니다. | JPEG, PNG, WebP, AVIF를 사용해 주세요. |
-| `422` | `address_not_found` | 카카오맵에서 주소를 확인할 수 없습니다. | 주소 확인 API에서 후보를 다시 선택해 주세요. |
 | `429` | `rate_limit_exceeded` | 파트너 호출 한도를 초과했습니다. | 잠시 기다린 후 재시도해 주세요. |
 | `500`, `503` | 서버 오류 코드 | 일시적인 서버 또는 외부 서비스 오류입니다. | 같은 `external_id`로 간격을 늘려 재시도해 주세요. |
 

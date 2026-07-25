@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizeExternalEventPayload,
   normalizeExternalImage,
-  normalizeKakaoAddressDocuments,
-  selectExactKakaoAddress,
   normalizeExternalUrl,
   parseExternalApiKey,
   createImageVariants,
   isPublicAddress,
-  isKakaoMapAddress,
+  isRoadAddress,
   SITE_GENRES_BY_CATEGORY,
   createPartnerApiKey,
   normalizePartnerClassification,
@@ -248,27 +246,6 @@ describe('external event API validation', () => {
     expect(isPublicAddress('2606:4700:4700::1111')).toBe(true);
   });
 
-  it('normalizes Kakao address search results to partner-facing candidates', () => {
-    expect(normalizeKakaoAddressDocuments([{
-      x: '127.0276',
-      y: '37.4979',
-      address: { address_name: '서울 강남구 역삼동 123-45' },
-      road_address: {
-        address_name: '서울 강남구 테헤란로 123',
-        building_name: '테스트빌딩',
-        zone_no: '06123',
-      },
-    }])).toEqual([{
-      address: '서울 강남구 테헤란로 123',
-      road_address: '서울 강남구 테헤란로 123',
-      jibun_address: '서울 강남구 역삼동 123-45',
-      building_name: '테스트빌딩',
-      postal_code: '06123',
-      latitude: '37.4979',
-      longitude: '127.0276',
-    }]);
-  });
-
   it('supports explicit external URL and uploaded image modes', () => {
     const externalUrl = normalizeExternalEventPayload({
       external_id: 'partner-image-url',
@@ -317,7 +294,7 @@ describe('external event API validation', () => {
     }, partner)).toThrow('source_url 값이 필요합니다');
   });
 
-  it('allows an image-less social only when a map address is supplied', () => {
+  it('keeps a social address optional and records verified road-address metadata', () => {
     const social = normalizeExternalEventPayload({
       external_id: 'social-with-map',
       title: '이미지 없는 소셜',
@@ -326,6 +303,9 @@ describe('external event API validation', () => {
       genre: '소셜',
       location: '스윙홀',
       address: '서울특별시 강남구 테헤란로 1',
+      postal_code: '06123',
+      address_source: 'daum_postcode',
+      address_detail: '3층',
       source_url: 'https://partner.example.com/socials/1',
     }, partner);
 
@@ -336,16 +316,17 @@ describe('external event API validation', () => {
       address: '서울특별시 강남구 테헤란로 1',
     });
 
-    expect(() => normalizeExternalEventPayload({
+    const withoutAddress = normalizeExternalEventPayload({
       external_id: 'social-without-map',
       title: '주소도 없는 소셜',
       event_dates: ['2026-08-01'],
       category: 'social',
       genre: '소셜',
       source_url: 'https://partner.example.com/socials/2',
-    }, partner)).toThrow('카카오맵 표시에 사용할 address');
+    }, partner);
+    expect(withoutAddress.event.address).toBe('');
 
-    expect(() => normalizeExternalEventPayload({
+    const vagueAddress = normalizeExternalEventPayload({
       external_id: 'social-vague-address',
       title: '모호한 장소',
       event_dates: ['2026-08-01'],
@@ -353,9 +334,21 @@ describe('external event API validation', () => {
       genre: '소셜',
       address: '강남역 근처 스윙홀',
       source_url: 'https://partner.example.com/socials/3',
-    }, partner)).toThrow('도로명주소 또는 지번주소');
-    expect(isKakaoMapAddress('서울특별시 강남구 테헤란로 123')).toBe(true);
-    expect(isKakaoMapAddress('서울특별시 강남구 역삼동 123-45')).toBe(true);
+    }, partner);
+    expect(vagueAddress.event.address).toBe('강남역 근처 스윙홀');
+    const googleAddress = normalizeExternalEventPayload({
+      external_id: 'social-google-road-address',
+      title: '구글에서 확인한 도로명주소',
+      event_dates: ['2026-08-01'],
+      category: 'social',
+      genre: '소셜',
+      address: '서울특별시 강남구 테헤란로 123',
+      address_source: 'google_map',
+      source_url: 'https://partner.example.com/socials/4',
+    }, partner);
+    expect(googleAddress.event.external_source.address_source).toBe('google_map');
+    expect(isRoadAddress('서울특별시 강남구 테헤란로 123')).toBe(true);
+    expect(isRoadAddress('서울특별시 강남구 역삼동 123-45')).toBe(false);
   });
 
   it('does not accept another origin or partner upload folder', () => {
@@ -439,15 +432,6 @@ describe('external event API validation', () => {
       widths[name] = metadata.width;
     }
     expect(widths).toEqual({ micro: 100, thumbnail: 300, medium: 650, full: 1300 });
-  });
-
-  it('requires the exact Kakao candidate selected by the user instead of taking the first result', () => {
-    const candidates = [
-      { address: '서울 동작구 남부순환로 2077', road_address: '서울 동작구 남부순환로 2077', jibun_address: '서울 동작구 사당동 1044-37' },
-      { address: '서울 동작구 남부순환로 2089', road_address: '서울 동작구 남부순환로 2089', jibun_address: '서울 동작구 사당동 1044-1' },
-    ];
-    expect(selectExactKakaoAddress(candidates, '서울 동작구 남부순환로 2089')).toBe(candidates[1]);
-    expect(selectExactKakaoAddress(candidates, '동작구 남부순환로')).toBeNull();
   });
 
   it('rejects non-image upload bodies', async () => {

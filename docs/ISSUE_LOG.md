@@ -324,6 +324,25 @@
   - `server/cafe24/migrations/2026-07-26-external-api-permissions-and-environment.sql`
 - 관련 커밋: pending
 
+## 2026-07-26 외부 일정 주소 입력 목적 및 비용 구조 정정
+
+- 상태: 해결
+- 범위: 외부 일정 API 주소 필드, 파트너 안내 페이지
+- 증상: 주소를 이미지 없는 소셜의 필수값으로 한정하고 Dance Billboard가 카카오 주소 검색을 대행해, 실제 목적보다 제한이 강하고 외부 호출 비용 가능성이 생겼다.
+- 원인: 주소의 목적을 모든 일정의 상세 장소·지도 연동 정확성 안내가 아니라 특정 화면의 대체 콘텐츠로 잘못 해석했다.
+- 조치:
+  - 주소를 이미지·분류와 무관한 선택값으로 변경했다.
+  - Dance Billboard의 카카오 주소 대행 API와 등록 시 재검색을 제거했다.
+  - 부정확한 주소는 상세 지도 검색의 첫 결과가 사용되어 다른 위치가 표시될 수 있음을 안내 페이지와 계약 문서에 명시했다.
+  - 파트너가 원하면 다음 우편번호, 카카오맵, 네이버지도 또는 공공 도로명주소 검색으로 미리 확인할 수 있게 예시를 제공하되 확인 수단 입력은 강제하지 않았다.
+  - Google Maps의 `formatted_address`, 영문 주소, Plus Code와 장소명은 카카오 주소검색 호환이 보장되지 않음을 확인하고, Google을 쓰는 파트너도 대한민국 도로명주소로 정리해 보내도록 안내했다.
+- 검증: 외부 API 단위 테스트, TypeScript, ESLint, 프로덕션 빌드, 배포 후 브라우저 실사용 확인
+- 관련 파일:
+  - `server/cafe24/external-events-api.js`
+  - `src/pages/external-api/ExternalEventApiGuidePage.tsx`
+  - `docs/external-event-api.md`
+  - `docs/external-event-api.openapi.yaml`
+
 ## 새 항목 템플릿
 
 ```md

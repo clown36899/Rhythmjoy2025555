@@ -39,7 +39,6 @@ const MAX_TITLE_LENGTH = 255;
 const MAX_DESCRIPTION_LENGTH = 20_000;
 const MAX_TEXT_FIELD_LENGTH = 255;
 const MAX_LINK_LENGTH = 2_048;
-const KAKAO_ADDRESS_API_URL = 'https://dapi.kakao.com/v2/local/search/address.json';
 const API_KEY_PREFIX = 'rj_live_';
 const EVENTS_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
@@ -57,6 +56,9 @@ const ALLOWED_EXTERNAL_EVENT_FIELDS = new Set([
   'time',
   'location',
   'address',
+  'address_detail',
+  'postal_code',
+  'address_source',
   'location_link',
   'description',
   'category',
@@ -67,7 +69,6 @@ const ALLOWED_EXTERNAL_EVENT_FIELDS = new Set([
   'image_url',
   'venue_name',
 ]);
-const addressToolRequests = new Map();
 
 function apiError(message, statusCode = 400, code = 'invalid_request') {
   const error = new Error(message);
@@ -207,9 +208,9 @@ function normalizeDate(value, field) {
   return text;
 }
 
-export function isKakaoMapAddress(value) {
+export function isRoadAddress(value) {
   const text = String(value || '').trim();
-  return /^(?:서울(?:특별시)?|부산(?:광역시)?|대구(?:광역시)?|인천(?:광역시)?|광주(?:광역시)?|대전(?:광역시)?|울산(?:광역시)?|세종(?:특별자치시)?|제주(?:특별자치도)?|경기(?:도)?|강원(?:특별자치도)?|충북|충청북도|충남|충청남도|전북|전북특별자치도|전남|전라남도|경북|경상북도|경남|경상남도)\s+.+\s+\d+(?:-\d+)?(?:\s|$)/.test(text);
+  return /^(?:서울(?:특별시)?|부산(?:광역시)?|대구(?:광역시)?|인천(?:광역시)?|광주(?:광역시)?|대전(?:광역시)?|울산(?:광역시)?|세종(?:특별자치시)?|제주(?:특별자치도)?|경기(?:도)?|강원(?:특별자치도)?|충북|충청북도|충남|충청남도|전북|전북특별자치도|전남|전라남도|경북|경상북도|경남|경상남도)\s+.+\s+[가-힣A-Za-z0-9·.-]+(?:로|길)\s+\d+(?:-\d+)?$/.test(text);
 }
 
 function isPublicIpv4(address) {
@@ -409,11 +410,18 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
     throw apiError('행사, 강습, 동호회 일정은 image_mode과 image_url이 필요합니다.');
   }
   const address = cleanString(input.address, MAX_TEXT_FIELD_LENGTH, 'address');
-  if (!hasAnyImageInput && category === 'social' && !address) {
-    throw apiError('이미지 없는 소셜은 상세 카카오맵 표시에 사용할 address 값이 필요합니다.');
+  const addressDetail = cleanString(input.address_detail, MAX_TEXT_FIELD_LENGTH, 'address_detail');
+  const postalCode = cleanString(input.postal_code, 5, 'postal_code');
+  const addressSource = cleanString(input.address_source, 32, 'address_source');
+  if (postalCode && !/^\d{5}$/.test(postalCode)) {
+    throw apiError('postal_code는 5자리 우편번호여야 합니다.');
   }
-  if (!hasAnyImageInput && category === 'social' && !isKakaoMapAddress(address)) {
-    throw apiError('address는 시·도부터 번지까지 포함한 대한민국 도로명주소 또는 지번주소여야 합니다.');
+  const allowedAddressSources = ['daum_postcode', 'kakao_map', 'naver_map', 'google_map', 'road_address_api'];
+  if (addressSource && !allowedAddressSources.includes(addressSource)) {
+    throw apiError(`address_source 허용값: ${allowedAddressSources.join(', ')}`);
+  }
+  if (!address && (addressDetail || postalCode || addressSource)) {
+    throw apiError('address_detail, postal_code, address_source를 보내려면 address도 함께 보내야 합니다.');
   }
   if (imageMode === 'upload') {
     const uploadedUrl = new URL(imageUrl);
@@ -459,7 +467,11 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
       image_medium: imageUrl,
       image_full: imageUrl,
       organizer: '익명',
-      venue_name: cleanString(input.venue_name || input.location, MAX_TEXT_FIELD_LENGTH, 'venue_name'),
+      venue_name: cleanString(
+        [input.venue_name || input.location, addressDetail].filter(Boolean).join(' · '),
+        MAX_TEXT_FIELD_LENGTH,
+        'venue_name',
+      ),
       group_id: category === 'social' ? 2 : null,
       show_title_on_billboard: true,
       external_source: {
@@ -468,6 +480,8 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
         external_id: externalId,
         source_url: sourceUrl || null,
         image_mode: imageUrl ? (imageMode || 'url') : null,
+        postal_code: postalCode || null,
+        address_source: addressSource || null,
       },
     },
   };
@@ -489,88 +503,6 @@ async function authenticatePartner(req, pool) {
     throw apiError('API Key가 유효하지 않거나 중지되었습니다.', 401, 'invalid_api_key');
   }
   return partner;
-}
-
-export function normalizeKakaoAddressDocuments(documents) {
-  return (Array.isArray(documents) ? documents : []).slice(0, 5).map((document) => {
-    const road = document?.road_address || {};
-    const jibun = document?.address || {};
-    return {
-      address: String(road.address_name || jibun.address_name || '').trim(),
-      road_address: String(road.address_name || '').trim() || null,
-      jibun_address: String(jibun.address_name || '').trim() || null,
-      building_name: String(road.building_name || '').trim() || null,
-      postal_code: String(road.zone_no || '').trim() || null,
-      latitude: String(document?.y || '').trim() || null,
-      longitude: String(document?.x || '').trim() || null,
-    };
-  }).filter((candidate) => candidate.address);
-}
-
-export function selectExactKakaoAddress(candidates, query) {
-  return (Array.isArray(candidates) ? candidates : []).find((candidate) => (
-    [candidate.address, candidate.road_address, candidate.jibun_address]
-      .filter(Boolean)
-      .includes(query)
-  )) || null;
-}
-
-async function searchKakaoAddress(query) {
-  const restApiKey = String(process.env.VITE_KAKAO_REST_API_KEY || '').trim();
-  if (!restApiKey) {
-    throw apiError('주소 확인 서비스를 사용할 수 없습니다.', 503, 'address_service_unavailable');
-  }
-  const url = new URL(KAKAO_ADDRESS_API_URL);
-  url.searchParams.set('query', query);
-  url.searchParams.set('size', '5');
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
-  let response;
-  try {
-    response = await undiciFetch(url, {
-      signal: controller.signal,
-      headers: { Authorization: `KakaoAK ${restApiKey}` },
-    });
-  } catch {
-    throw apiError('주소 확인 서비스에 연결할 수 없습니다.', 503, 'address_service_unavailable');
-  } finally {
-    clearTimeout(timer);
-  }
-  if (!response.ok) {
-    throw apiError('주소 확인 서비스가 요청을 처리하지 못했습니다.', 503, 'address_service_unavailable');
-  }
-  const payload = await response.json();
-  return normalizeKakaoAddressDocuments(payload?.documents);
-}
-
-async function requireVerifiedKakaoAddress(value) {
-  const query = cleanString(value, MAX_TEXT_FIELD_LENGTH, 'address', { required: true });
-  const candidates = await searchKakaoAddress(query);
-  const exact = selectExactKakaoAddress(candidates, query);
-  if (!exact) {
-    throw apiError(
-      '선택한 카카오맵 표준 주소와 정확히 일치하지 않습니다. 주소 확인 API의 candidates에서 사용자가 선택한 address를 보내주세요.',
-      422,
-      'address_not_found',
-    );
-  }
-  return { ...exact, address: query };
-}
-
-function enforceAddressToolRateLimit(userId, requestIp) {
-  const now = Date.now();
-  const key = `${userId}:${requestIp || 'unknown'}`;
-  const recent = (addressToolRequests.get(key) || []).filter((timestamp) => now - timestamp < 60_000);
-  if (recent.length >= 20) {
-    throw apiError('주소 변환은 분당 20회까지 사용할 수 있습니다.', 429, 'rate_limit_exceeded');
-  }
-  recent.push(now);
-  addressToolRequests.set(key, recent);
-  if (addressToolRequests.size > 2_000) {
-    for (const [entryKey, timestamps] of addressToolRequests) {
-      if (!timestamps.some((timestamp) => now - timestamp < 60_000)) addressToolRequests.delete(entryKey);
-    }
-  }
 }
 
 export async function normalizeExternalImage(buffer) {
@@ -878,56 +810,6 @@ async function recordRequest(pool, values) {
   }
 }
 
-export async function validateExternalAddress(req, res) {
-  const pool = getMysqlPool();
-  const partner = await authenticatePartner(req, pool);
-  const query = cleanString(req.body?.query ?? req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
-  await recordRequest(pool, {
-    partnerId: partner.id,
-    statusCode: 202,
-    result: 'attempt',
-    requestIp: req.ip,
-    strict: true,
-  });
-  await enforceRateLimit(pool, partner);
-  const candidates = await searchKakaoAddress(query);
-  if (!candidates.length) {
-    await recordRequest(pool, {
-      partnerId: partner.id,
-      statusCode: 422,
-      result: 'rejected',
-      errorCode: 'address_not_found',
-      requestIp: req.ip,
-    });
-    throw apiError('카카오맵에서 확인되는 주소가 없습니다.', 422, 'address_not_found');
-  }
-  await recordRequest(pool, {
-    partnerId: partner.id,
-    statusCode: 200,
-    result: 'address_validated',
-    requestIp: req.ip,
-  });
-  res.json({ ok: true, query, selection_required: true, candidates });
-}
-
-export async function normalizeExternalAddressForMember(req, res) {
-  const user = await getCurrentUser(req);
-  if (!user) throw apiError('로그인 후 주소 변환기를 사용해 주세요.', 401, 'login_required');
-  enforceAddressToolRateLimit(String(user.id), req.ip);
-  const query = cleanString(req.body?.query ?? req.query?.query, MAX_TEXT_FIELD_LENGTH, 'query', { required: true });
-  const candidates = await searchKakaoAddress(query);
-  if (!candidates.length) {
-    throw apiError('카카오맵에서 확인되는 주소가 없습니다.', 422, 'address_not_found');
-  }
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({
-    ok: true,
-    query,
-    selection_required: true,
-    candidates,
-  });
-}
-
 export async function createExternalEvent(req, res) {
   const pool = getMysqlPool();
   let partner;
@@ -946,10 +828,6 @@ export async function createExternalEvent(req, res) {
     await enforceRateLimit(pool, partner);
     normalized = normalizeExternalEventPayload(req.body, partner);
     if (partner.environment === 'test') {
-      if (!normalized.event.image && normalized.event.category === 'social') {
-        const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
-        normalized.event.address = verifiedAddress.address;
-      }
       if (normalized.event.external_source?.image_mode === 'url') {
         const maxBytes = Number(process.env.EXTERNAL_IMAGE_MAX_BYTES || 32 * 1024 * 1024);
         const buffer = await downloadExternalImage(normalized.event.image, maxBytes);
@@ -1001,10 +879,6 @@ export async function createExternalEvent(req, res) {
         event_id: String(existingRows[0].event_id),
       });
       return;
-    }
-    if (!normalized.event.image && normalized.event.category === 'social') {
-      const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
-      normalized.event.address = verifiedAddress.address;
     }
     await materializeEventImage(normalized, partner);
 
@@ -1122,10 +996,6 @@ export async function updateExternalEvent(req, res) {
     return;
   }
   const owned = await findOwnedExternalEvent(pool, partner.id, externalId);
-  if (!normalized.event.image && normalized.event.category === 'social') {
-    const verifiedAddress = await requireVerifiedKakaoAddress(normalized.event.address);
-    normalized.event.address = verifiedAddress.address;
-  }
   await materializeEventImage(normalized, partner);
   const partnerUser = {
     id: partner.owner_user_id || `external:${partner.id}`,

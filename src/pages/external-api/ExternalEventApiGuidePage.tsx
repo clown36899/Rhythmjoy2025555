@@ -35,32 +35,25 @@ const curlExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events
   -H 'Content-Type: application/json' \\
   --data '${singleEventExample.replace(/\n/g, '\n  ')}'`;
 
-const addressApiExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
+const addressApiExample = `<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+function selectRoadAddress() {
+  new daum.Postcode({
+    oncomplete(data) {
+      if (!data.roadAddress) {
+        alert("도로명주소를 선택해 주세요.");
+        return;
+      }
 
-async function findDanceBillboardAddresses(rawAddress) {
-  const url = new URL(
-    "https://swingenjoy.com/api/external/v1/addresses/validate"
-  );
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: \`Bearer \${API_KEY}\`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ query: rawAddress })
-  });
-  const result = await response.json();
-  if (!response.ok) {
-    throw new Error(result.message || "주소를 확인하지 못했습니다.");
-  }
-  return result.candidates;
+      // 일정 API 요청에 그대로 넣을 값입니다.
+      eventPayload.address = data.roadAddress;
+      eventPayload.postal_code = data.zonecode;
+      eventPayload.address_source = "daum_postcode";
+    }
+  }).open();
 }
-
-// 등록 화면에서 후보를 보여주고 사용자가 고른 candidate.address만 저장합니다.
-const candidates = await findDanceBillboardAddresses(
-  "서울 강남구 테헤란로 123"
-);
-const address = candidates[selectedIndex].address;`;
+</script>
+<button type="button" onclick="selectRoadAddress()">도로명주소 검색</button>`;
 
 const updateEventExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
 const externalId = "partner-event-20260801-1"; // 등록 때 사용한 값
@@ -134,7 +127,10 @@ const fieldRows = [
   ['source_url', '필수', '파트너 사이트의 공개 HTTPS 상세 주소'],
   ['time', '선택', '일정 시간'],
   ['location', '선택', '장소명'],
-  ['address', '조건부', '이미지 없는 social 일정에서 필수'],
+  ['address', '선택', '지도 연동이 필요할 때 보내는 확인된 행정안전부 도로명주소'],
+  ['address_detail', '선택', '층·호수 등 상세 위치. 지도 검색 주소와 분리'],
+  ['postal_code', '선택', '주소 확인 서비스가 반환한 5자리 우편번호'],
+  ['address_source', '선택', '주소를 확인한 서비스 기록'],
   ['description', '선택', '상세 설명'],
   ['image_mode / image_url', '조건부', 'social 이외의 분류에서 필수'],
 ];
@@ -145,7 +141,6 @@ const errorRows = [
   ['404', 'not_found', 'external_id와 사용한 키를 확인해 주세요.'],
   ['413', 'payload_too_large', 'JSON 또는 이미지 크기를 줄여 주세요.'],
   ['415', 'unsupported_media_type', 'AVIF, JPEG, PNG, WebP를 사용해 주세요.'],
-  ['422', 'address_not_found', '주소 확인 API에서 후보를 다시 선택해 주세요.'],
   ['429', 'rate_limit_exceeded', '자동 재시도를 멈추고 잠시 후 다시 요청해 주세요.'],
 ];
 
@@ -180,14 +175,6 @@ export default function ExternalEventApiGuidePage() {
   const [shareResult, setShareResult] = useState('');
   const [application, setApplication] = useState({ partner_name: '', contact: '', note: '' });
   const [applicationResult, setApplicationResult] = useState('');
-  const [addressQuery, setAddressQuery] = useState('');
-  const [addressCandidates, setAddressCandidates] = useState<Array<{
-    address: string;
-    road_address: string | null;
-    jibun_address: string | null;
-    building_name: string | null;
-  }>>([]);
-  const [addressResult, setAddressResult] = useState('');
   const [myPartners, setMyPartners] = useState<Array<{
     id: string; name: string; environment: 'test' | 'live'; per_minute_limit: number; daily_limit: number;
   }>>([]);
@@ -260,25 +247,6 @@ export default function ExternalEventApiGuidePage() {
     }
   };
 
-  const normalizeAddress = async () => {
-    setAddressResult('카카오맵에서 확인 중...');
-    setAddressCandidates([]);
-    try {
-      const response = await fetch('/api/external/address-tool', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: addressQuery }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message || '주소를 변환하지 못했습니다.');
-      setAddressCandidates(body.candidates || []);
-      setAddressResult('검색 결과에서 실제 장소와 일치하는 주소를 선택해 복사해 주세요.');
-    } catch (error) {
-      setAddressResult(error instanceof Error ? error.message : '주소를 변환하지 못했습니다.');
-    }
-  };
-
   const requestAutomaticTestLimit = async () => {
     if (!selectedPartnerId) return;
     setLimitResult('자동 승인 처리 중...');
@@ -329,7 +297,7 @@ export default function ExternalEventApiGuidePage() {
         <div className="EAG-heroContent">
           <span className="EAG-eyebrow">EXTERNAL EVENT API · v1</span>
           <h1>외부 사이트의 일정을<br />Dance Billboard에 연동하세요</h1>
-          <p>등록·수정·삭제, 이미지 저장, 주소 확인까지 파트너 서버에서 안전하게 연결하는 방법을 안내합니다.</p>
+          <p>등록·수정·삭제, 이미지 저장, 정확한 장소 주소 입력까지 파트너 서버에서 안전하게 연결하는 방법을 안내합니다.</p>
           <div className="EAG-heroActions">
             <a href="/external-event-api#quick-start" className="EAG-primaryLink">빠른 시작</a>
             <a href="/external-event-api#request-example" className="EAG-secondaryLink">요청 예시 보기</a>
@@ -491,7 +459,7 @@ export default function ExternalEventApiGuidePage() {
             <p>관리자 화면의 복수 체크는 파트너가 <b>여러 일정에서 사용할 수 있는 장르 범위</b>입니다. 한 일정에 장르를 동시에 넣을 수 있는지는 바로 위 표의 규칙을 따릅니다. 임의의 분류나 장르는 추가할 수 없습니다.</p>
             <div className="EAG-ruleCards">
               <div><strong>event · class · club</strong><p>이미지가 반드시 필요합니다.</p></div>
-              <div><strong>social</strong><p>이미지를 생략할 수 있습니다. 이때 확인된 정확한 주소가 반드시 필요합니다.</p></div>
+              <div><strong>social</strong><p>이미지를 생략할 수 있습니다. 주소도 선택값이지만, 입력하면 카카오맵 위치 표시에 사용되므로 정확한 주소를 권장합니다.</p></div>
             </div>
           </section>
 
@@ -552,51 +520,42 @@ export default function ExternalEventApiGuidePage() {
 
           <section id="address" className="EAG-section">
             <span className="EAG-sectionNo">06</span>
-            <h2>카카오맵 주소 자동 변환</h2>
-            <p className="EAG-lead">이미지 없는 <code>social</code> 일정은 주소 확인 API의 후보를 보여주고, 사용자가 실제 장소와 일치하는 주소를 선택해야 합니다. 서버는 선택하지 않은 첫 검색 결과를 임의로 저장하지 않습니다.</p>
-            <div className="EAG-endpoint">
-              <span className="EAG-method EAG-methodPost">POST</span>
-              <code>/addresses/validate</code>
+            <h2>지도에 사용할 주소 선택</h2>
+            <p className="EAG-lead">Dance Billboard 상세 화면은 카카오맵으로 장소를 표시합니다. 주소는 필수가 아니며 이미지 유무와도 관계없지만, 주소를 보내면 카카오맵 검색에 그대로 사용됩니다. 부정확한 주소나 장소명만 보내면 카카오맵 검색 결과의 첫 번째 주소가 사용되어 실제 장소와 다른 위치가 표시될 수 있으므로, 가능한 한 확인된 도로명주소를 보내 주세요.</p>
+            <div className="EAG-tableWrap">
+              <table>
+                <thead><tr><th>주소 확인 방법</th><th><code>address_source</code></th><th>사용 방법</th></tr></thead>
+                <tbody>
+                  <tr><td>다음 우편번호</td><td><code>daum_postcode</code></td><td>무료 검색창에서 사용자가 도로명주소 선택</td></tr>
+                  <tr><td>카카오맵 API</td><td><code>kakao_map</code></td><td>파트너가 보유한 API에서 도로명주소 확인</td></tr>
+                  <tr><td>네이버지도 API</td><td><code>naver_map</code></td><td>파트너가 보유한 API에서 도로명주소 확인</td></tr>
+                  <tr><td>Google Maps API</td><td><code>google_map</code></td><td>대한민국 도로명주소로 정리한 결과만 사용</td></tr>
+                  <tr><td>도로명주소 API</td><td><code>road_address_api</code></td><td>공공 도로명주소 검색 결과 사용</td></tr>
+                </tbody>
+              </table>
             </div>
-            <CodeBlock label="파트너 서버 JavaScript · 주소 확인 API" code={addressApiExample} />
-            <div className="EAG-addressTool">
+            <div className="EAG-callout">
+              <i className="ri-map-pin-line" aria-hidden="true" />
               <div>
-                <span className="EAG-kicker">주소 검색 API 체험</span>
-                <h3>실제 장소와 일치하는 카카오맵 주소를 선택하세요</h3>
+                <strong>카카오맵 API 사용은 파트너가 선택합니다.</strong>
+                <p>파트너가 카카오 Local API를 이미 사용하고 있다면 주소 검색 결과에서 도로명주소를 확인한 뒤 보낼 수 있습니다. 사용을 강제하지 않으며, 카카오 개발자 앱·REST API Key·쿼터 관리는 파트너가 직접 담당합니다. <a href="https://developers.kakao.com/docs/latest/ko/local/dev-guide#address-coord" target="_blank" rel="noreferrer">카카오 주소 검색 API 공식 안내</a></p>
               </div>
-              {!user ? (
-                <button type="button" className="EAG-primaryLink" onClick={signInWithKakao}>로그인하고 주소 변환</button>
-              ) : (
-                <>
-                  <div className="EAG-addressSearch">
-                    <input value={addressQuery} onChange={(event) => setAddressQuery(event.target.value)} onKeyDown={(event) => {
-                      if (event.key === 'Enter' && addressQuery.trim()) normalizeAddress();
-                    }} placeholder="예: 서울특별시 강남구 테헤란로 123" aria-label="변환할 주소" />
-                    <button type="button" className="EAG-primaryLink" disabled={!addressQuery.trim()} onClick={normalizeAddress}>주소 후보 검색</button>
-                  </div>
-                  {addressResult && <p className="EAG-addressResult" role="status">{addressResult}</p>}
-                  {addressCandidates.length > 0 && (
-                    <div className="EAG-addressCandidates">
-                      {addressCandidates.map((candidate, index) => (
-                        <div key={`${candidate.address}-${index}`}>
-                          <b>후보 {index + 1}</b>
-                          <strong>{candidate.address}</strong>
-                          {candidate.building_name && <span>{candidate.building_name}</span>}
-                          <button type="button" onClick={() => navigator.clipboard.writeText(candidate.address)}>주소 복사</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
             </div>
+            <div className="EAG-callout">
+              <i className="ri-alert-line" aria-hidden="true" />
+              <div>
+                <strong>Google Maps 주소 문자열은 그대로 호환되지 않을 수 있습니다.</strong>
+                <p>Google의 <code>formatted_address</code>, 영문 주소, Plus Code, 장소명은 카카오 주소검색 형식과 결과 순서가 다를 수 있습니다. Google을 사용한다면 검색 결과에서 대한민국 도로명주소를 별도로 확보해 <code>address</code>에 보내 주세요. Google 좌표만 보내는 방식은 현재 일정 API에서 지원하지 않습니다.</p>
+              </div>
+            </div>
+            <CodeBlock label="파트너 등록 화면 · 무료 다음 우편번호 검색 적용 예시" code={addressApiExample} />
             <ol className="EAG-numberList">
-              <li>파트너 서버가 주소 확인 API를 호출하고 받은 <code>candidates</code>를 등록 화면에 표시합니다.</li>
-              <li>사용자가 실제 장소와 일치하는 후보 하나를 선택합니다.</li>
-              <li>선택한 <code>candidate.address</code>를 일정 요청의 <code>address</code>에 넣습니다.</li>
-              <li>서버는 정확히 일치하는 카카오 표준 주소만 저장하며, 임의의 첫 결과를 대신 저장하지 않습니다.</li>
+              <li>위 방법 중 파트너 환경에 맞는 주소 확인 수단을 하나 선택합니다. 별도 지도 API가 없다면 무료 다음 우편번호 검색을 사용할 수 있습니다.</li>
+              <li>사용자가 실제 장소와 일치하는 도로명주소를 직접 선택하게 합니다.</li>
+              <li><code>roadAddress</code>는 <code>address</code>, <code>zonecode</code>는 <code>postal_code</code>에 넣고 <code>address_source</code>는 <code>daum_postcode</code>로 보냅니다.</li>
+              <li>층·호수는 <code>address_detail</code>에 따로 보냅니다. 지도 검색에는 기본 도로명주소만 사용하므로 상세주소 때문에 위치가 틀어지지 않습니다.</li>
             </ol>
-            <p className="EAG-footnote">API Key는 브라우저에 넣지 마세요. 파트너 브라우저 → 파트너 서버 → Dance Billboard 주소 API 순서로 호출하고, 파트너 서버가 후보 목록만 브라우저에 전달해야 합니다.</p>
+            <p className="EAG-footnote">주소를 생략해도 일정은 등록됩니다. <code>address_source</code>도 선택값입니다. 주소가 정확하지 않을 때 상세 지도 기능이 검색된 첫 번째 주소를 표시할 수 있다는 점을 반드시 고려해 주세요.</p>
           </section>
 
           <section id="fields" className="EAG-section">

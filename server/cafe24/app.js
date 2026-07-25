@@ -20,7 +20,6 @@ import {
   listExternalPartners,
   listMyExternalPartners,
   listExternalPartnerRequests,
-  normalizeExternalAddressForMember,
   requestExternalPartnerAccess,
   listExternalRequestLogs,
   rotateExternalPartnerKey,
@@ -28,7 +27,6 @@ import {
   updateExternalEvent,
   updateExternalPartnerStatus,
   uploadExternalEventImage,
-  validateExternalAddress,
 } from './external-events-api.js';
 import { authProviders, devLogin, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
 import {
@@ -287,8 +285,6 @@ app.post('/api/external/v1/events', externalEventJsonBody, jsonRoute(createExter
 app.put('/api/external/v1/events/:externalId', externalEventJsonBody, jsonRoute(updateExternalEvent));
 app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent));
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
-app.post('/api/external/v1/addresses/validate', jsonBody, jsonRoute(validateExternalAddress));
-app.post('/api/external/address-tool', jsonBody, jsonRoute(normalizeExternalAddressForMember));
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
 app.get('/api/admin/external-partner-requests', jsonRoute(listExternalPartnerRequests));
 app.post('/api/external/partner-requests', jsonBody, jsonRoute(requestExternalPartnerAccess));
