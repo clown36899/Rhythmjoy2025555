@@ -161,8 +161,8 @@ export default function ExternalEventApiGuidePage() {
           <h1>외부 사이트의 일정을<br />Dance Billboard에 연동하세요</h1>
           <p>등록·수정·삭제, 이미지 저장, 주소 확인까지 파트너 서버에서 안전하게 연결하는 방법을 안내합니다.</p>
           <div className="EAG-heroActions">
-            <a href="#quick-start" className="EAG-primaryLink">빠른 시작</a>
-            <a href="#request-example" className="EAG-secondaryLink">요청 예시 보기</a>
+            <a href="/external-event-api#quick-start" className="EAG-primaryLink">빠른 시작</a>
+            <a href="/external-event-api#request-example" className="EAG-secondaryLink">요청 예시 보기</a>
             <button type="button" className="EAG-secondaryLink EAG-heroShare" onClick={shareGuide}>
               <i className="ri-share-line" aria-hidden="true" /> {shareResult || '페이지 공유'}
             </button>
@@ -182,15 +182,15 @@ export default function ExternalEventApiGuidePage() {
       <div className="EAG-layout">
         <aside className="EAG-toc" aria-label="문서 목차">
           <strong>이 페이지에서</strong>
-          <a href="#quick-start">1. 연동 시작</a>
-          <a href="#request-example">2. 일정 요청 예시</a>
-          <a href="#dates">3. 날짜 입력</a>
-          <a href="#categories">4. 분류와 장르</a>
-          <a href="#images">5. 이미지 등록</a>
-          <a href="#address">6. 주소 확인</a>
-          <a href="#fields">7. 필드 정리</a>
-          <a href="#sync">8. 수정·삭제</a>
-          <a href="#limits">9. 한도·오류</a>
+          <a href="/external-event-api#quick-start">1. 연동 시작</a>
+          <a href="/external-event-api#request-example">2. 일정 요청 예시</a>
+          <a href="/external-event-api#dates">3. 날짜 입력</a>
+          <a href="/external-event-api#categories">4. 분류와 장르</a>
+          <a href="/external-event-api#images">5. 이미지 등록</a>
+          <a href="/external-event-api#address">6. 주소 확인</a>
+          <a href="/external-event-api#fields">7. 필드 정리</a>
+          <a href="/external-event-api#sync">8. 수정·삭제</a>
+          <a href="/external-event-api#limits">9. 한도·오류</a>
         </aside>
 
         <article className="EAG-content">
@@ -282,7 +282,17 @@ export default function ExternalEventApiGuidePage() {
               </table>
             </div>
             <CodeBlock label="예시 · 워크샵" code={'{\n  "category": "event",\n  "genre": "워크샵"\n}'} />
-            <p>모든 파트너가 표의 모든 조합을 사용할 수 있습니다. 임의의 분류는 추가할 수 없습니다. 관리자에게 생략 시 기본값을 안내받았더라도 요청에 다른 허용 조합을 보내면 해당 분류로 등록됩니다.</p>
+            <div className="EAG-warning EAG-categoryRule">
+              <strong>같은 장르 이름이 보여도 최상위 분류까지 함께 확인하세요.</strong>
+              <p>실제 사이트는 <code>genre</code> 이름만 비교하지 않고 <code>category + genre</code> 조합으로 구분합니다.</p>
+              <ul>
+                <li><b>중복 이름 허용:</b> <code>린디합</code>·<code>솔로재즈</code>·<code>발보아</code>·<code>블루스</code>·<code>팀원모집</code>은 <code>class</code>와 <code>club</code>에 각각 존재할 수 있습니다.</li>
+                <li><b>중복 이름 허용:</b> <code>기타</code>는 <code>event</code>·<code>class</code>·<code>club</code>에 각각 존재할 수 있습니다.</li>
+                <li><b>허용하지 않음:</b> 표에 없는 교차 조합은 거절됩니다. 예: <code>social + 린디합</code>, <code>event + 정규강습</code>, <code>class + 파티</code>.</li>
+                <li><b>같은 조합 반복:</b> 관리자 권한에서 동일한 조합을 여러 번 선택해도 한 번만 저장됩니다.</li>
+              </ul>
+            </div>
+            <p>일정 요청 한 건에는 <code>category</code> 1개와 그에 맞는 <code>genre</code> 1개를 보내세요. 관리자가 여러 조합을 허용할 수 있지만, 요청에서 사용할 수 있는 것은 그중 한 조합입니다. 임의의 분류나 장르는 추가할 수 없습니다.</p>
             <div className="EAG-ruleCards">
               <div><strong>event · class · club</strong><p>이미지가 반드시 필요합니다.</p></div>
               <div><strong>social</strong><p>이미지를 생략할 수 있습니다. 이때 확인된 정확한 주소가 반드시 필요합니다.</p></div>

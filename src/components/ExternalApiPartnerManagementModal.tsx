@@ -362,7 +362,7 @@ export default function ExternalApiPartnerManagementModal({
                   </div>
                   <fieldset className="EAPM-permissions">
                     <legend>등록을 허용할 장르 <small>복수 선택 가능</small></legend>
-                    <p>선택하지 않으면 사이트의 모든 분류와 장르를 등록할 수 있습니다.</p>
+                    <p>선택하지 않으면 사이트의 모든 조합을 허용합니다. 같은 장르 이름도 최상위 분류가 다르면 별도 권한입니다. 예: class/린디합과 club/린디합.</p>
                     {Object.entries(GENRES).map(([category, genres]) => (
                       <div className="EAPM-permissionRow" key={category}>
                         <strong>{CATEGORY_LABELS[category]} <code>{category}</code></strong>
@@ -429,6 +429,7 @@ export default function ExternalApiPartnerManagementModal({
                           })} /></label>
                           <fieldset className="EAPM-permissions EAPM-cardPermissions">
                             <legend>허용 장르 <small>미선택 시 전체 허용</small></legend>
+                            <p>같은 이름이라도 최상위 분류별로 따로 선택합니다.</p>
                             {Object.entries(GENRES).map(([category, genres]) => (
                               <div className="EAPM-permissionRow" key={category}>
                                 <strong>{CATEGORY_LABELS[category]}</strong>
