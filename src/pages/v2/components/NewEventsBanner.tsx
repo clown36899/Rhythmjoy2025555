@@ -1401,6 +1401,24 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         </span>
                     </button>
 
+                    <button
+                        type="button"
+                        className="NEB-benefitEventsBtn"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            navigate('/benefit-events');
+                        }}
+                        aria-label="무료, 할인 이벤트 보기"
+                    >
+                        <span className="NEB-benefitEventsIcon" aria-hidden="true">
+                            <i className="ri-coupon-3-line" />
+                        </span>
+                        <span className="NEB-benefitEventsText">
+                            <strong>무료, 할인 이벤트</strong>
+                            <small>혜택 모아보기</small>
+                        </span>
+                    </button>
+
                     <div className="NEB-activeSummaryCluster">
                         <button
                             type="button"

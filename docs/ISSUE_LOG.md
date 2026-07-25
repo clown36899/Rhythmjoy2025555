@@ -677,6 +677,21 @@
   - `src/pages/benefit-events/BenefitEventsPage.tsx`
 - 관련 커밋: `78af6020`, `16d8e111`, `a796a641`, `db9dc114`
 
+## 2026-07-26 메인 혜택 버튼 위치 누락 수정
+
+- 상태: 해결
+- 범위: 모바일·데스크톱 메인 신규 이벤트 영역
+- 증상: `무료, 할인 이벤트` 진입점이 하단 메뉴에는 표시됐지만, 지정된 `원데이 모집` 버튼 아래에는 표시되지 않았다.
+- 원인: 버튼용 반응형 스타일만 구현되어 있고 `NewEventsBanner`의 실제 버튼 마크업이 누락됐다.
+- 조치:
+  - `원데이 모집` 버튼 바로 아래에 `무료, 할인 이벤트` 버튼을 추가했다.
+  - 기존 혜택 목록 `/benefit-events`로 연결하고 버튼 내부 요소는 드래그 대상이 되지 않도록 구성했다.
+- 검증: TypeScript, 프로덕션 빌드, 모바일 실화면 노출 및 이동 확인
+- 관련 파일:
+  - `src/pages/v2/components/NewEventsBanner.tsx`
+  - `src/pages/v2/components/NewEventsBanner.css`
+- 관련 커밋: pending
+
 ## 새 항목 템플릿
 
 ```md
