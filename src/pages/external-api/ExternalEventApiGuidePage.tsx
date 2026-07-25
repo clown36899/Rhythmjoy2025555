@@ -561,6 +561,13 @@ export default function ExternalEventApiGuidePage() {
               <div><strong>200회</strong><span>운영 권장 24시간 한도</span></div>
               <p>파트너 키별로 적용되며 관리자가 실제 사용량에 맞게 조정할 수 있습니다. 잘못된 반복 요청, 이미지 업로드, 주소 확인도 횟수에 포함됩니다.</p>
             </div>
+            <div className="EAG-callout">
+              <i className="ri-customer-service-2-line" aria-hidden="true" />
+              <div>
+                <strong>개발 테스트 중 한도가 부족하면 요청해 주세요.</strong>
+                <p><a href="tel:01048017180">010-4801-7180</a>으로 파트너명, API Key 앞부분, 필요한 사유를 보내 주시면 확인 후 테스트 한도를 늘리거나 누적 사용량을 초기화해 드립니다. API Key 전체 원문은 보내지 마세요. 운영 도배나 비정상 호출에는 적용되지 않습니다.</p>
+              </div>
+            </div>
             <div className="EAG-tableWrap">
               <table>
                 <thead><tr><th>HTTP</th><th>code</th><th>처리 방법</th></tr></thead>
