@@ -68,6 +68,7 @@
     "react-router-dom": "^7.6.3",
     "react-youtube": "^10.1.0",
     "reactflow": "^11.11.4",
+    "sharp": "^0.34.5",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
     "web-push": "^3.6.7"
@@ -90,7 +91,6 @@
     "jsdom": "^27.0.1",
     "pg": "^8.18.0",
     "rollup-plugin-visualizer": "^6.0.5",
-    "sharp": "^0.34.5",
     "source-map": "^0.7.6",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
