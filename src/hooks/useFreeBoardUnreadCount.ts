@@ -1,55 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { cafe24 } from '../lib/cafe24Client';
 
-const LAST_SEEN_KEY = 'swingenjoy:free-board:last-seen';
-
-const isFreeBoardLocation = (pathname: string, search: string) => {
-    if (pathname !== '/board') return false;
-    const category = new URLSearchParams(search).get('category');
-    return !category || category === 'free';
-};
-
 export function useFreeBoardUnreadCount() {
-    const location = useLocation();
     const [count, setCount] = useState(0);
-    const isViewingFreeBoard = isFreeBoardLocation(location.pathname, location.search);
-
-    const markAsSeen = useCallback(() => {
-        localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-    }, []);
 
     const loadCount = useCallback(async () => {
-        const { count: hiddenCount, error: hiddenCountError } = await cafe24
+        const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+        const { count: recentCount, error } = await cafe24
             .from('board_posts')
             .select('id', { count: 'exact', head: true })
             .eq('category', 'free')
-            .eq('is_hidden', true);
+            .gte('created_at', fourteenDaysAgo);
 
-        if (hiddenCountError) return;
-
-        if (isViewingFreeBoard) {
-            markAsSeen();
-            setCount(hiddenCount || 0);
-            return;
-        }
-
-        const lastSeen = localStorage.getItem(LAST_SEEN_KEY);
-        if (!lastSeen) {
-            localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-            setCount(hiddenCount || 0);
-            return;
-        }
-
-        const { count: unreadVisibleCount, error } = await cafe24
-            .from('board_posts')
-            .select('id', { count: 'exact', head: true })
-            .eq('category', 'free')
-            .eq('is_hidden', false)
-            .gt('created_at', lastSeen);
-
-        if (!error) setCount((hiddenCount || 0) + (unreadVisibleCount || 0));
-    }, [isViewingFreeBoard, markAsSeen]);
+        if (!error) setCount(recentCount || 0);
+    }, []);
 
     useEffect(() => {
         void loadCount();
@@ -69,14 +33,6 @@ export function useFreeBoardUnreadCount() {
 
         return () => {
             cafe24.removeChannel(channel);
-        };
-    }, [loadCount]);
-
-    useEffect(() => {
-        const syncCount = () => void loadCount();
-        window.addEventListener('storage', syncCount);
-        return () => {
-            window.removeEventListener('storage', syncCount);
         };
     }, [loadCount]);
 

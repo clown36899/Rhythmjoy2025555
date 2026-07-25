@@ -17,6 +17,7 @@ import {
     isTempoToolItemHidden,
     useTempoToolVisibilitySettings,
 } from "../../../hooks/useTempoToolVisibilitySettings";
+import { useFreeBoardUnreadCount } from "../../../hooks/useFreeBoardUnreadCount";
 import { trackActivitySuccess } from "../../../utils/analyticsEvents";
 import { getCardThumbnail, getEventDisplayImage } from "../../../utils/getEventThumbnail";
 import { getLocalDateString, type Event } from "../utils/eventListUtils";
@@ -303,6 +304,7 @@ const getInitialPinnedMenuIds = () => [...DEFAULT_PINNED_MENU_IDS];
 const getInitialMenuOrderIds = () => sanitizeMenuOrderIds(HOME_MENU_ITEMS.map(getMenuItemKey));
 
 export const HomeV2MenuPanel: React.FC = () => {
+    const freeBoardUnreadCount = useFreeBoardUnreadCount();
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
@@ -865,6 +867,9 @@ export const HomeV2MenuPanel: React.FC = () => {
                 <span className={iconClassName} aria-hidden="true">
                     <HomeV2MenuLessonStack cards={lessonCards} />
                     {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
+                    {item.id === "board" && freeBoardUnreadCount > 0 && (
+                        <span className="home-v2-menu-unread-badge">{freeBoardUnreadCount > 99 ? "99+" : freeBoardUnreadCount}</span>
+                    )}
                 </span>
             );
         }
@@ -874,9 +879,12 @@ export const HomeV2MenuPanel: React.FC = () => {
                 <i className={item.icon} />
                 {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                 {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
+                {item.id === "board" && freeBoardUnreadCount > 0 && (
+                    <span className="home-v2-menu-unread-badge">{freeBoardUnreadCount > 99 ? "99+" : freeBoardUnreadCount}</span>
+                )}
             </span>
         );
-    }, [getMenuItemStatusClassName, lessonCards]);
+    }, [freeBoardUnreadCount, getMenuItemStatusClassName, lessonCards]);
 
     const getMenuItemVisibilityLabel = useCallback((item: HomeMenuItem, hidden: boolean) => (
         hidden ? `${item.label} 공개` : `${item.label} 숨김`
@@ -1448,6 +1456,9 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         <i className={item.icon} />
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                                         {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
+                                        {item.id === "board" && freeBoardUnreadCount > 0 && (
+                                            <span className="home-v2-menu-unread-badge">{freeBoardUnreadCount > 99 ? "99+" : freeBoardUnreadCount}</span>
+                                        )}
                                     </span>
                                     <span className={`home-v2-menu-quick-label ${item.id === "tempo-tool" ? "home-v2-menu-quick-label--tempo" : ""} ${item.id === "calendar" ? "home-v2-menu-quick-label--calendar" : ""}`}>
                                         {item.id === "tempo-tool" ? (

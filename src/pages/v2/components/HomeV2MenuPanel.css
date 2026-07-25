@@ -224,6 +224,32 @@
   transform: scale(0.9);
 }
 
+.home-v2-menu-unread-badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  z-index: 5;
+  display: inline-flex;
+  min-width: 17px;
+  height: 17px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #1b1b1c;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.home-v2-menu-quick-icon .home-v2-menu-unread-badge {
+  top: -7px;
+  right: -8px;
+}
+
 .home-v2-menu-quick-item>span:last-child {
   display: block;
   width: 100%;
