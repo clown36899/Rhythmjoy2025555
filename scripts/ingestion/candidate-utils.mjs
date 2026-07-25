@@ -734,14 +734,20 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   if (looksLikeBroadScheduleNotice(candidate)) {
     errors.push('broad schedule notice is not a single collectable event');
   }
-  const isImageOptionalDiscount = sd.benefit_eligible === true && sd.benefit_kind === 'discount_event';
-  if (!candidate.poster_url && !candidate.imageData && !isImageOptionalDiscount) {
+  const isImageOptionalCandidate = taxonomy.activity_type === 'social'
+    || sd.benefit_eligible === true;
+  if (!candidate.poster_url && !candidate.imageData && !isImageOptionalCandidate) {
     errors.push('poster_url or imageData required');
   }
-  if (!candidate.poster_url && !candidate.imageData && isImageOptionalDiscount) {
-    warnings.push('discount benefit collected without an image; admin image review recommended');
+  if (!candidate.poster_url && !candidate.imageData && isImageOptionalCandidate) {
+    warnings.push('social or benefit candidate collected without an image; admin image review recommended');
   }
-  if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) errors.push('poster_url looks cropped or thumbnail-sized');
+  if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url) && !isImageOptionalCandidate) {
+    errors.push('poster_url looks cropped or thumbnail-sized');
+  }
+  if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url) && isImageOptionalCandidate) {
+    warnings.push('social or benefit candidate has only a thumbnail image; admin image review recommended');
+  }
   if (scopeExcludedReason) errors.push(scopeExcludedReason);
   if (looksLikeMixedArtOrCommercialPerformance(text, taxonomy)) {
     errors.push('수집 범위 제외: 공연예술/상업 혼합 공연은 수동 검토 필요');

@@ -129,6 +129,32 @@ const imageOptionalDiscount = prepareCandidate({
 }, { today: TODAY });
 assert.equal(imageOptionalDiscount.validation.ok, true, 'confirmed discount candidates may be collected without an image');
 assert.match(imageOptionalDiscount.validation.warnings.join(' '), /without an image/, 'image-less discounts should keep an admin review warning');
+const imageOptionalSocial = prepareCandidate(baseCandidate({
+  poster_url: '',
+  imageData: '',
+  structured_data: {
+    title: '금요 스윙 소셜',
+    date: '2026-08-21',
+    location: '서울',
+    event_type: '소셜',
+    activity_type: 'social',
+    djs: ['DJ Test'],
+  },
+}), { today: TODAY });
+assert.equal(imageOptionalSocial.validation.ok, true, 'social candidates may be collected without an image');
+const imageOptionalFreeBenefit = prepareCandidate(baseCandidate({
+  poster_url: '',
+  imageData: '',
+  extracted_text: '2026년 8월 22일 무료 스윙댄스 체험 클래스',
+  structured_data: {
+    title: '무료 스윙댄스 체험 클래스',
+    date: '2026-08-22',
+    location: '서울',
+    event_type: '강습',
+    activity_type: 'class',
+  },
+}), { today: TODAY });
+assert.equal(imageOptionalFreeBenefit.validation.ok, true, 'all confirmed benefit candidates may be collected without an image');
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
   { benefit_eligible: false, benefit_kind: null },
@@ -454,10 +480,23 @@ assert.equal(validateCandidate(baseCandidate({
 }), { today: TODAY }).ok, false, 'discovery-only hubs must not be saved directly');
 
 assert.equal(hasBadPosterUrl('https://cdn.example.com/post/p240x240/photo.jpg'), true);
-assert.equal(validateCandidate(baseCandidate({ poster_url: 'https://cdn.example.com/post/p240x240/photo.jpg' }), { today: TODAY }).ok, false);
+assert.equal(validateCandidate(baseCandidate({
+  poster_url: 'https://cdn.example.com/post/p240x240/photo.jpg',
+  extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',
+  structured_data: { title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
+}), { today: TODAY }).ok, false, 'non-social non-benefit candidates still reject thumbnail images');
+assert.equal(validateCandidate(baseCandidate({
+  poster_url: 'https://cdn.example.com/post/p240x240/photo.jpg',
+  extracted_text: '2026년 6월 5일 무료 린디합 체험 강습',
+  structured_data: { title: '무료 린디합 체험 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class', benefit_eligible: true, benefit_kind: 'free_event' },
+}), { today: TODAY }).ok, true, 'benefit candidates should not be rejected only because the available image is a thumbnail');
 
 assert.equal(validateCandidate(baseCandidate({ structured_data: { title: '과거 이벤트', date: '2026-05-01' } }), { today: TODAY }).ok, false);
-assert.equal(validateCandidate(baseCandidate({ poster_url: '' }), { today: TODAY }).ok, false);
+assert.equal(validateCandidate(baseCandidate({
+  poster_url: '',
+  extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',
+  structured_data: { title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
+}), { today: TODAY }).ok, false, 'non-social candidates without a confirmed benefit still require an image');
 assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day candidates without explicit future time must not be saved');
 assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha 11:30', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day candidates whose time has already passed must not be saved');
 assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha 오후 8:30', { today: TODAY, nowMinutes: 12 * 60 }), true, 'same-day candidates need explicit future time');
@@ -580,8 +619,9 @@ for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
   );
 }
 const swingBenefitSources = getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search');
-assert.equal(swingBenefitSources.length, 14, 'third-stage swing automation should run fourteen focused benefit searches');
-assert.ok(swingBenefitSources.every((source) => source.priority === 3), 'benefit searches must stay isolated in priority stage three');
+assert.equal(swingBenefitSources.length, 14, 'benefit automation should run fourteen focused searches across stages three and four');
+assert.equal(swingBenefitSources.filter((source) => source.priority === 3).length, 10, 'stage three should contain free and pass benefit searches');
+assert.equal(swingBenefitSources.filter((source) => source.priority === 4).length, 4, 'stage four should contain discount benefit searches');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-club-free'), 'stage three should search amateur club free benefits');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-bar-pass'), 'stage three should search swing-bar passes');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-discount'), 'stage three should search explicit discounts');
