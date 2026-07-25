@@ -530,6 +530,7 @@ export const MobileShell: React.FC = () => {
                   ) : (
                     <button
                       className="header-hamburger-btn"
+                      aria-label="전체 메뉴 열기"
                       onClick={(e) => {
                         e.stopPropagation();
                         window.dispatchEvent(new CustomEvent('openDrawer'));

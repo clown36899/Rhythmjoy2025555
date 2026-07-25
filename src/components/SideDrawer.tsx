@@ -592,7 +592,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                             </span>
                         </div>
                     )}
-                    <button className="SD-closeBtn" onClick={onClose}>
+                    <button className="SD-closeBtn" onClick={onClose} aria-label="전체 메뉴 닫기">
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
@@ -600,7 +600,10 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                 <nav className="SD-nav">
                     <div className="SD-topDashboard">
                         <div className="SD-pwaSection">
-                            <div className="SD-sectionTitle">APP DASHBOARD</div>
+                            <div className="SD-sectionTitle SD-sectionHeading">
+                                <strong>빠른 기능</strong>
+                                <span>QUICK ACCESS</span>
+                            </div>
                             <div className="SD-pwaContainer">
                                 <PWAInstallButton variant="dashboard" />
                                 <div
@@ -696,7 +699,10 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                         </div>
 
                         <div className="SD-statsSection">
-                            <div className="SD-sectionTitle">SITE STATS</div>
+                            <div className="SD-sectionTitle SD-sectionHeading">
+                                <strong>사이트 현황</strong>
+                                <span>STATUS</span>
+                            </div>
                             {isAdmin && (
                                 <button
                                     type="button"
@@ -805,7 +811,8 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                         <div translate="no" className="SD-adminWrapper">
                             <div className="SD-menuItem SD-isExpandable SD-adminToggle" onClick={() => setIsAdminExpanded(!isAdminExpanded)}>
                                 <i className="ri-admin-line"></i>
-                                <span>ADMIN CONSOLE</span>
+                                <span>관리자 메뉴</span>
+                                <small className="SD-adminOnlyBadge">ADMIN</small>
                                 <i className={`ri-arrow-${isAdminExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
                             </div>
 
@@ -1143,8 +1150,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                              })}
                          </div>
                      ))}
-                 </nav>
- 
+
                  <div className="SD-footer">
                      {user && (
                          <button className="SD-logoutBtn" 
@@ -1165,6 +1171,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                      <MobileLogViewer placement="drawer" />
                      <div className="SD-version">v{__APP_VERSION__}</div>
                  </div>
+                 </nav>
              </div>
         </div>,
         document.body
