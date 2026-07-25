@@ -1445,6 +1445,57 @@
   }
 }
 
+/* Keep the benefit entry directly attached below the one-day entry at every viewport. */
+.NEB-quickActions {
+  position: absolute;
+  left: clamp(7px, 2.4vw, 14px);
+  top: 0;
+  z-index: 8;
+  display: grid;
+  gap: 8px;
+  width: clamp(104px, 27vw, 126px);
+}
+
+.NEB-quickActions .NEB-oneDayRecruitBtn,
+.NEB-quickActions .NEB-benefitEventsBtn {
+  position: relative;
+  inset: auto;
+  grid-column: auto;
+  grid-row: auto;
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .NEB-quickActions {
+    position: relative;
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    justify-self: start;
+    left: auto;
+    top: auto;
+    width: clamp(84px, 24vw, 102px);
+  }
+}
+
+@media (min-width: 761px) {
+  .NEB-quickActions {
+    left: clamp(18px, 3vw, 34px);
+    top: 4px;
+    width: clamp(134px, 10.5vw, 156px);
+  }
+}
+
+@media (min-width: 860px) {
+  .NEB-quickActions {
+    position: fixed;
+    top: auto;
+    bottom: calc(64px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
+    left: max(24px, calc(50vw - 325px - clamp(180px, 16vw, 310px)));
+    width: clamp(150px, 10.5vw, 172px);
+  }
+}
+
 @media (max-width: 420px) {
   .NEB-container {
     --neb-banner-ui-reserve: 184px;

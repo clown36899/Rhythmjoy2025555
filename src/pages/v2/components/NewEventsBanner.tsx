@@ -1376,48 +1376,50 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 </div>
 
                 <div className="NEB-lowerDeck" style={activeCardAlignmentStyle}>
-                    <button
-                        type="button"
-                        className={`NEB-oneDayRecruitBtn ${isOneDayRecruitPressed ? 'is-pressed' : ''}`}
-                        onClick={openOneDayRecruitment}
-                        onPointerDown={() => setIsOneDayRecruitPressed(true)}
-                        onPointerCancel={() => setIsOneDayRecruitPressed(false)}
-                        onPointerLeave={() => setIsOneDayRecruitPressed(false)}
-                        onBlur={() => setIsOneDayRecruitPressed(false)}
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                                setIsOneDayRecruitPressed(true);
-                            }
-                        }}
-                        aria-label="스윙 원데이 모집 보기"
-                    >
-                        <span className="NEB-oneDayRecruitTicket" aria-hidden="true">
-                            <span className="NEB-oneDayRecruitStub">OPEN</span>
-                            <span className="NEB-oneDayRecruitBody">
-                                <span className="NEB-oneDayRecruitKicker">SWING CLASS</span>
-                                <span className="NEB-oneDayRecruitTitle">원데이 모집</span>
-                                <span className="NEB-oneDayRecruitMeta">바로가기</span>
+                    <div className="NEB-quickActions">
+                        <button
+                            type="button"
+                            className={`NEB-oneDayRecruitBtn ${isOneDayRecruitPressed ? 'is-pressed' : ''}`}
+                            onClick={openOneDayRecruitment}
+                            onPointerDown={() => setIsOneDayRecruitPressed(true)}
+                            onPointerCancel={() => setIsOneDayRecruitPressed(false)}
+                            onPointerLeave={() => setIsOneDayRecruitPressed(false)}
+                            onBlur={() => setIsOneDayRecruitPressed(false)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    setIsOneDayRecruitPressed(true);
+                                }
+                            }}
+                            aria-label="스윙 원데이 모집 보기"
+                        >
+                            <span className="NEB-oneDayRecruitTicket" aria-hidden="true">
+                                <span className="NEB-oneDayRecruitStub">OPEN</span>
+                                <span className="NEB-oneDayRecruitBody">
+                                    <span className="NEB-oneDayRecruitKicker">SWING CLASS</span>
+                                    <span className="NEB-oneDayRecruitTitle">원데이 모집</span>
+                                    <span className="NEB-oneDayRecruitMeta">바로가기</span>
+                                </span>
                             </span>
-                        </span>
-                    </button>
+                        </button>
 
-                    <button
-                        type="button"
-                        className="NEB-benefitEventsBtn"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            navigate('/benefit-events');
-                        }}
-                        aria-label="무료, 할인 이벤트 보기"
-                    >
-                        <span className="NEB-benefitEventsIcon" aria-hidden="true">
-                            <i className="ri-coupon-3-line" />
-                        </span>
-                        <span className="NEB-benefitEventsText">
-                            <strong>무료, 할인 이벤트</strong>
-                            <small>혜택 모아보기</small>
-                        </span>
-                    </button>
+                        <button
+                            type="button"
+                            className="NEB-benefitEventsBtn"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                navigate('/benefit-events');
+                            }}
+                            aria-label="무료, 할인 이벤트 보기"
+                        >
+                            <span className="NEB-benefitEventsIcon" aria-hidden="true">
+                                <i className="ri-coupon-3-line" />
+                            </span>
+                            <span className="NEB-benefitEventsText">
+                                <strong>무료, 할인 이벤트</strong>
+                                <small>혜택 모아보기</small>
+                            </span>
+                        </button>
+                    </div>
 
                     <div className="NEB-activeSummaryCluster">
                         <button
