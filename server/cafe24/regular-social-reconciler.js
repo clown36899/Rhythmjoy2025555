@@ -149,8 +149,7 @@ function assertCronAccess(req) {
   }
 }
 
-export async function reconcileRegularSocials(req, res) {
-  assertCronAccess(req);
+export async function runRegularSocialReconciliation({ horizonDays = 90, dryRun = false } = {}) {
   const [events, scrapedEvents] = await Promise.all([
     loadCafe24TableRows('events'),
     loadCafe24TableRows('scraped_events'),
@@ -158,16 +157,15 @@ export async function reconcileRegularSocials(req, res) {
   const plan = planRegularSocialReconciliation({
     events,
     scrapedEvents,
-    horizonDays: Math.max(30, Math.min(120, Number(req.body?.horizonDays || 90))),
+    horizonDays: Math.max(30, Math.min(120, Number(horizonDays || 90))),
   });
-  const dryRun = req.body?.dryRun === true || req.query?.dryRun === '1';
   if (!dryRun) {
     if (plan.removes.length) await deleteCafe24TableRows('events', plan.removes);
     for (const event of plan.creates) {
       await saveCafe24TableRow('events', event, ['id']);
     }
   }
-  res.json({
+  return {
     status: 'ok',
     dryRun,
     rules: REGULAR_SOCIAL_RULES.length,
@@ -176,5 +174,25 @@ export async function reconcileRegularSocials(req, res) {
     retained: plan.retained.length,
     preview: plan.creates.slice(0, 20).map(({ id, title, date, location }) => ({ id, title, date, location })),
     runId: crypto.randomUUID(),
+  };
+}
+
+export async function reconcileRegularSocials(req, res) {
+  assertCronAccess(req);
+  const result = await runRegularSocialReconciliation({
+    horizonDays: req.body?.horizonDays || 90,
+    dryRun: req.body?.dryRun === true || req.query?.dryRun === '1',
   });
+  res.json(result);
+}
+
+export function startRegularSocialScheduler() {
+  const intervalMs = 24 * 60 * 60 * 1000;
+  const run = () => runRegularSocialReconciliation()
+    .then((result) => console.log('[regular-socials]', JSON.stringify(result)))
+    .catch((error) => console.error('[regular-socials] failed', error));
+  const initialTimer = setTimeout(run, 30_000);
+  const dailyTimer = setInterval(run, intervalMs);
+  initialTimer.unref?.();
+  dailyTimer.unref?.();
 }
