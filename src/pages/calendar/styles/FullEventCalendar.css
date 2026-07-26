@@ -2442,6 +2442,134 @@
 
 }
 
+/*
+ * The portrait kiosk keeps the mobile calendar composition even though its
+ * physical viewport is wider than the mobile media query.
+ */
+html.kiosk-link-router-active .calendar-page-container .calendar-grid-container {
+  --calendar-grid-line-inset-x: 3px;
+  column-gap: 1px;
+  row-gap: 3px;
+  padding: 3px 3px 8px;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-overlay-container {
+  display: contents;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-overlay-item {
+  margin-top: calc(28px + var(--lane-offset, 0px));
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-overlay-first-week {
+  margin-top: calc(3px + var(--lane-offset, 0px));
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen {
+  min-height: max(var(--cell-min-height, 30px), 30px);
+  gap: 1px;
+  padding: 1px;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen.is-today {
+  border-color: rgba(92, 141, 246, 0.42) !important;
+  border-radius: 7px !important;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen-header {
+  position: relative;
+  inset: auto;
+  z-index: 5;
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: 20px;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-date-number-fullscreen {
+  display: inline-flex !important;
+  position: relative;
+  pointer-events: auto;
+  font-size: 14px;
+  line-height: 1;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-date-number-today {
+  min-width: 18px;
+  padding: 3px 4px;
+  border-radius: 999px;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen-body {
+  --calendar-span-body-clearance: 16px;
+  gap: 3px;
+  padding-top: 0;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen-body.has-calendar-spans {
+  padding-top: calc(
+    var(--calendar-span-reserved-height) +
+    var(--calendar-span-body-clearance, 16px)
+  );
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-social-section {
+  gap: 2px;
+  margin: 2px 0 3px;
+  padding: 8px 2px 3px;
+  border-radius: 6px;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-event-card {
+  --calendar-event-title-height: var(--calendar-event-card-text-height, 30px);
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 0 3px;
+  border-radius: 6px;
+  background: var(--cal-sample-thumb-bg, #0f1115);
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-event-card.calendar-social-text-card {
+  height: var(--calendar-social-card-height, 28px);
+  min-height: var(--calendar-social-card-height, 28px);
+  max-height: var(--calendar-social-card-height, 28px);
+  overflow: visible;
+  padding: var(--calendar-social-card-padding-y, 3px) 2px;
+  border-radius: 6px;
+  background: var(--cal-sample-event-bg, rgba(255, 255, 255, 0.06));
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-image-container,
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-placeholder {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-title-container {
+  gap: 1px;
+  padding: 2px;
+}
+
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-place,
+html.kiosk-link-router-active .calendar-page-container .calendar-fullscreen-title {
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.1;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
 /* Highlighted Event (from search) */
 .calendar-event-highlighted {
   animation: highlightBlink 3s ease-out;

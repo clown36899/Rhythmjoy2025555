@@ -864,4 +864,6 @@
 ## 후속 수정
 
 - 소셜 상세 화면은 포스터 미등록뿐 아니라 등록된 포스터 URL이 모두 로딩 실패한 경우에도 주소가 있으면 카카오맵 장소 화면으로 전환하도록 보완함.
-- 관련 파일: `src/pages/v2/components/EventDetailModal.tsx`
+- 키오스크 오늘 일정에 모바일과 같은 카드형 목록 스타일, 고정 높이 내부 스크롤, 위치 표시 스크롤바를 적용함. 키오스크 폭이 모바일 미디어쿼리를 벗어나 내부 스타일이 누락되던 문제를 수정함.
+- 키오스크 캘린더에서도 모바일 셀 배치를 강제하고 날짜 헤더를 일반 흐름에 배치함. 연속 일정이 없는 셀에서 절대 배치된 날짜와 첫 이벤트가 겹치던 문제를 수정함.
+- 관련 파일: `src/pages/v2/components/EventDetailModal.tsx`, `src/pages/calendar/styles/FullEventCalendar.css`
