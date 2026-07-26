@@ -1094,6 +1094,7 @@
     --calendar-header-track-width: min(1320px, calc(100vw - 48px));
     position: relative;
     grid-template-columns: 1fr;
+    align-items: center;
     padding: 0 18px;
   }
 
@@ -1115,9 +1116,12 @@
 
   .calendar-header-sample {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: 42px;
+    align-items: center;
     justify-content: stretch;
     gap: clamp(10px, 1.2vw, 14px);
     width: var(--calendar-header-track-width);
+    height: 42px;
     margin: 0 auto;
   }
 
@@ -1135,6 +1139,8 @@
 
   .calendar-header-title-control {
     grid-column: 2;
+    grid-row: 1;
+    align-self: center;
     justify-self: center;
     grid-template-columns: 34px minmax(128px, auto) 34px;
     gap: 4px;
@@ -1146,6 +1152,8 @@
   .calendar-header-menu-cluster {
     display: inline-flex;
     grid-column: 1;
+    grid-row: 1;
+    align-self: center;
     justify-self: start;
   }
 
