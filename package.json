@@ -19,6 +19,7 @@
     "cron:cafe24:stats": "node scripts/run-cafe24-cron-refresh-stats.mjs",
     "cron:cafe24:notifications": "node scripts/run-cafe24-cron-notifications.mjs",
     "external-api:create-partner": "node scripts/create-external-api-partner.mjs",
+    "ingestion:exception-backtest": "node scripts/ingestion/run-swing-exception-backtest.mjs",
     "social-reel:generate": "node scripts/social-reels/generate-social-reel.mjs",
     "social-reel:run": "node scripts/social-reels/run-social-reel.mjs",
     "social-reel:publish": "node scripts/social-reels/run-scheduled-social-reel.mjs",

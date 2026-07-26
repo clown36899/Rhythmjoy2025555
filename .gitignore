@@ -59,6 +59,7 @@ scripts/temp_check_db.js
 .playwright-mcp/
 tmp/
 artifacts/social-reels/
+artifacts/ingestion-exception-backtest/
 src/data/scraped_events.db
 test-*.png
 *.png

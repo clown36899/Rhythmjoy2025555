@@ -35,6 +35,7 @@ import {
   recordClientReloadDiagnostic,
 } from './diagnostics-api.js';
 import { uploadEventImage } from './uploads-api.js';
+import { reconcileRegularSocials } from './regular-social-reconciler.js';
 import { eventStats, recordAnalytics, siteStats } from './stats-api.js';
 import {
   dailyDigestCron,
@@ -359,6 +360,7 @@ app.post('/api/admin/push/send-daily-digest-test', jsonBody, jsonRoute(sendDaily
 app.post('/api/admin/push/process-notification-queue', jsonBody, jsonRoute(processNotificationQueue));
 app.all('/api/__cron/daily-digest', jsonBody, jsonRoute(dailyDigestCron));
 app.all('/api/__cron/notification-queue', jsonBody, jsonRoute(notificationQueueCron));
+app.all('/api/__cron/regular-socials', jsonBody, jsonRoute(reconcileRegularSocials));
 
 app.all('/api/scraped-events', jsonBody, jsonRoute(cafe24ScrapedEvents));
 app.post('/api/ingestor-register-event', jsonBody, jsonRoute(cafe24IngestorRegisterEvent));

@@ -1,0 +1,17 @@
+export const REGULAR_SOCIAL_RULES = Object.freeze([
+  { id: 'kyungsung-tue', title: '경성홀 화요 소셜', weekday: 2, time: '20:00', location: '경성홀', sourceId: 'kyungsunghall' },
+  { id: 'kyungsung-sat', title: '경성홀 토요 소셜', weekday: 6, time: '19:30', location: '경성홀', sourceId: 'kyungsunghall' },
+  { id: 'kyungsung-sun', title: '경성홀 일요 소셜', weekday: 0, time: '19:30', location: '경성홀', sourceId: 'kyungsunghall' },
+  { id: 'scandal-thu', title: '스윙스캔들 목요 소셜', weekday: 4, time: '19:30', location: '사보이볼룸', sourceId: 'swingscandal-cafe' },
+  { id: 'scandal-sat', title: '스윙스캔들 토요 소셜', weekday: 6, time: '19:30', location: '사보이볼룸', sourceId: 'swingscandal-cafe' },
+  { id: 'swingtown-tue', title: '스윙타운 화요 소셜', weekday: 2, time: '20:30', location: '봉천살롱', sourceId: 'swingtown-cafe' },
+  { id: 'swingtown-sat', title: '스윙타운 토요 소셜', weekday: 6, time: '20:00', location: '봉천살롱', sourceId: 'swingtown-cafe' },
+  { id: 'swingtime-wed', title: '스윙타임 수요 소셜', weekday: 3, time: '20:00', location: '스윙타임', sourceId: 'swingtimebar' },
+  { id: 'swingtime-sat', title: '스윙타임 토요 소셜', weekday: 6, time: '19:30', location: '스윙타임', sourceId: 'swingtimebar' },
+  { id: 'swingtime-sun', title: '스윙타임 일요 소셜', weekday: 0, time: '19:30', location: '스윙타임', sourceId: 'swingtimebar' },
+  { id: 'neo-fri', title: '네오스윙 금요 소셜', weekday: 5, time: '19:30', location: '해피홀', sourceId: 'neo_swing' },
+  { id: 'neo-sun', title: '네오스윙 일요 소셜', weekday: 0, time: '19:30', location: '해피홀', sourceId: 'neo_swing' },
+  { id: 'dreambal-fri', title: '드림발 금요 소셜', weekday: 5, time: '19:30', location: '인더무드신림', sourceId: 'inthemood_sillim' },
+  { id: 'dreambal-sun', title: '드림발 일요 소셜', weekday: 0, time: '19:00', location: '인더무드신림', sourceId: 'inthemood_sillim' },
+  { id: 'socialclub-wed', title: 'Balboa in Social Club', weekday: 3, time: '20:00', location: '소셜클럽', sourceId: 'sosyalclub_swing' },
+]);

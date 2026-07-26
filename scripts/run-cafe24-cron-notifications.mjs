@@ -22,5 +22,6 @@ async function postCron(path) {
   if (!response.ok) process.exitCode = 1;
 }
 
+await postCron('/api/__cron/regular-socials');
 await postCron('/api/__cron/daily-digest');
 await postCron('/api/__cron/notification-queue');

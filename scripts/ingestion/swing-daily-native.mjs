@@ -24,7 +24,12 @@ const defaultEndpoint = process.env.INGESTOR_V3 === '1'
   : 'https://swingenjoy.com/api/scraped-events';
 const endpoint = process.env.CAFE24_INGEST_ENDPOINT || defaultEndpoint;
 const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
-const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1';
+const exceptionBacktest = process.env.INGESTION_EXCEPTION_BACKTEST === '1';
+const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1' || exceptionBacktest;
+const exceptionLookbackDays = Math.max(
+  1,
+  Number(process.env.INGESTION_EXCEPTION_LOOKBACK_DAYS || 180),
+);
 const sourceLimit = Number(process.env.INGESTION_NATIVE_SOURCE_LIMIT || 0);
 const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')
   .split(',')
@@ -66,6 +71,7 @@ const today = todayISO();
 const runStartedAtMs = Date.now();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 const graduationEventPattern = /졸업\s*(?:공연|파티)|graduation\s*(?:show|party|performance)/i;
+const closureEventPattern = /(?:정기\s*)?휴무|휴업|쉬어\s*갑니다|쉽니다|쉬어요|(?:이번|금)\s*주[^.\n]{0,30}(?:쉽니다|쉬어요|휴무)|소셜[^.\n]{0,20}(?:없습니다|없어요|취소)|(?:행사|운영)[^.\n]{0,20}취소/i;
 
 const result = {
   inserted: 0,
@@ -357,6 +363,9 @@ function getYearForMonth(month) {
   const now = new Date();
   const currentMonth = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', month: 'numeric' }).format(now));
   const currentYear = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', year: 'numeric' }).format(now));
+  if (exceptionBacktest) {
+    return Number(month) > currentMonth ? currentYear - 1 : currentYear;
+  }
   return Number(month) + 1 < currentMonth ? currentYear + 1 : currentYear;
 }
 
@@ -589,12 +598,13 @@ function extractDates(text = '') {
   }
 
   const todayMs = Date.parse(`${today}T00:00:00+09:00`);
+  const lookbackStartMs = todayMs - exceptionLookbackDays * 86400000;
   return unique(dates)
     .filter((date) => {
       const dateMs = Date.parse(`${date}T00:00:00+09:00`);
-      return Number.isFinite(dateMs)
-        && date >= today
-        && (dateMs - todayMs) / 86400000 <= maxFutureDays;
+      if (!Number.isFinite(dateMs)) return false;
+      if (exceptionBacktest) return dateMs >= lookbackStartMs && dateMs <= todayMs;
+      return date >= today && (dateMs - todayMs) / 86400000 <= maxFutureDays;
     })
     .sort();
 }
@@ -1066,7 +1076,8 @@ async function scrapeInstagramPost(page, url, source) {
         rectW: Math.round(img.getBoundingClientRect().width || 0),
         rectH: Math.round(img.getBoundingClientRect().height || 0),
       }));
-    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images };
+    const publishedAt = document.querySelector('time[datetime]')?.getAttribute('datetime') || '';
+    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt };
   });
 
   const primaryImages = pickInstagramPostImages(data.images, postLimit);
@@ -1079,6 +1090,13 @@ async function scrapeInstagramPost(page, url, source) {
     .join('\n');
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
+  const expectedHandle = instagramHandleFromSource(source).toLowerCase();
+  const authorText = `${data.ogTitle}\n${data.metaDescription.slice(0, 240)}`.toLowerCase();
+  if (expectedHandle && !authorText.includes(expectedHandle)) {
+    result.skipped += 1;
+    log(`skip ${source.id}: instagram author mismatch (${expectedHandle})`);
+    return [];
+  }
   const posterUrls = primaryImages.map((image) => image.src);
   const fallbackPosterUrl = pickPosterImage([
     { src: data.ogImage, w: 336, h: 336, priority: 1 },
@@ -1093,6 +1111,7 @@ async function scrapeInstagramPost(page, url, source) {
     posterUrl: posterUrls[0] || fallbackPosterUrl,
     posterUrls: posterUrls.length ? posterUrls : [fallbackPosterUrl].filter(Boolean),
     page,
+    publishedAt: data.publishedAt,
   });
 }
 
@@ -1323,7 +1342,161 @@ async function scrapeLittlyCard(page, card, source) {
   });
 }
 
-async function buildCandidatesFromText({ source, sourceUrl, text, title, posterUrl, posterUrls = [], page, referer = '' }) {
+function exceptionEvidence(text = '', pattern) {
+  const index = text.search(pattern);
+  if (index < 0) return compactText(text).slice(0, 500);
+  return compactText(text.slice(Math.max(0, index - 220), index + 320));
+}
+
+function relativeWeekdayDate(text = '', publishedAt = '') {
+  const match = text.match(/(?:이번\s*주|금\s*주)\s*(월|화|수|목|금|토|일)요일/);
+  if (!match || !publishedAt) return '';
+  const targetDay = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 }[match[1]];
+  const published = new Date(publishedAt);
+  if (!Number.isFinite(published.getTime())) return '';
+  const seoul = new Date(published.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const delta = (targetDay - seoul.getDay() + 7) % 7;
+  seoul.setDate(seoul.getDate() + delta);
+  const relativeDate = `${seoul.getFullYear()}-${String(seoul.getMonth() + 1).padStart(2, '0')}-${String(seoul.getDate()).padStart(2, '0')}`;
+  return extractDates(relativeDate)[0] || '';
+}
+
+function nearestExplicitDateBefore(text = '', signalIndex = -1) {
+  if (signalIndex < 0) return '';
+  const prefix = text.slice(Math.max(0, signalIndex - 80), signalIndex);
+  const matches = [...prefix.matchAll(/(?:(20\d{2})[.\-/년]\s*)?(\d{1,2})[.\-/월]\s*(\d{1,2})(?:일)?/g)];
+  const match = matches.at(-1);
+  if (!match) return '';
+  const year = Number(match[1] || getYearForMonth(Number(match[2])));
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const parsed = Date.parse(`${value}T00:00:00+09:00`);
+  return Number.isFinite(parsed) ? value : '';
+}
+
+function exceptionDates(text = '', title = '', pattern, publishedAt = '') {
+  const allDates = extractDates(`${title}\n${text}`);
+  const signalIndex = text.search(pattern);
+  if (signalIndex >= 0) {
+    const signalText = text.slice(Math.max(0, signalIndex - 120), signalIndex + 160);
+    const monthRange = signalText.match(/(\d{1,2})\s*,\s*(\d{1,2})월(?:에는|은|에)?\s*(?:휴무|쉬어|쉽니다)/);
+    if (monthRange) {
+      const year = Number(new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+      }).format(new Date(publishedAt || Date.now())));
+      return {
+        dates: [''],
+        allDates,
+        ambiguous: false,
+        periods: [monthRange[1], monthRange[2]]
+          .map((month) => `${year}-${String(Number(month)).padStart(2, '0')}`),
+      };
+    }
+    const relativeDate = relativeWeekdayDate(signalText, publishedAt);
+    if (relativeDate) return { dates: [relativeDate], allDates, ambiguous: false };
+
+    const explicitBefore = nearestExplicitDateBefore(text, signalIndex);
+    if (explicitBefore) {
+      const todayMs = Date.parse(`${today}T00:00:00+09:00`);
+      const dateMs = Date.parse(`${explicitBefore}T00:00:00+09:00`);
+      const lookbackStartMs = todayMs - exceptionLookbackDays * 86400000;
+      if (dateMs > todayMs || dateMs < lookbackStartMs) {
+        return { dates: [], allDates, ambiguous: false };
+      }
+      return { dates: [explicitBefore], allDates, ambiguous: false };
+    }
+
+    const beforeDates = extractDates(text.slice(Math.max(0, signalIndex - 120), signalIndex));
+    if (beforeDates.length) {
+      return { dates: [beforeDates.at(-1)], allDates, ambiguous: false };
+    }
+    const afterDates = extractDates(text.slice(signalIndex, signalIndex + 120));
+    if (afterDates.length) {
+      return { dates: [afterDates[0]], allDates, ambiguous: false };
+    }
+  }
+  if (allDates.length === 1) return { dates: allDates, allDates, ambiguous: false };
+  return { dates: [''], allDates, ambiguous: allDates.length > 1 };
+}
+
+function buildExceptionBacktestCandidates({
+  source,
+  sourceUrl,
+  cleanText,
+  title,
+  posterUrl,
+  posterUrls = [],
+  publishedAt = '',
+}) {
+  const detections = [];
+  if (closureEventPattern.test(cleanText)) {
+    detections.push({
+      type: /격주\s*휴무/i.test(cleanText) ? 'recurring_closure' : 'closure',
+      label: '휴무',
+      pattern: closureEventPattern,
+    });
+  }
+  if (graduationEventPattern.test(cleanText)) {
+    detections.push({
+      type: 'graduation',
+      label: '졸공',
+      pattern: graduationEventPattern,
+    });
+  }
+  if (!detections.length) return [];
+
+  const djs = inferDjs(cleanText);
+  const venue = inferVenue(cleanText, source) || source.name;
+  const sourceKey = Buffer.from(sourceUrl).toString('base64url').slice(-18);
+  const candidates = [];
+  for (const detection of detections) {
+    const dateSelection = exceptionDates(cleanText, title, detection.pattern, publishedAt);
+    for (const date of dateSelection.dates) {
+      candidates.push({
+        id: `exception-backtest:${source.id}:${detection.type}:${date || 'unknown'}:${sourceKey}`,
+        keyword: source.name,
+        source_id: source.id,
+        source_url: sourceUrl,
+        poster_url: posterUrls[0] || posterUrl || '',
+        published_at: publishedAt || '',
+        exception_type: detection.type,
+        date_ambiguous: dateSelection.ambiguous,
+        date_candidates: dateSelection.allDates,
+        ...(dateSelection.periods?.length
+          ? { closure_periods: dateSelection.periods }
+          : {}),
+        evidence: exceptionEvidence(cleanText, detection.pattern),
+        structured_data: {
+          title: `${source.name} ${detection.label}${date ? ` ${date}` : ''}`,
+          date,
+          activity_type: 'social_exception',
+          event_type: detection.label,
+          location: venue,
+          venue_name: venue,
+          dance_scope: source.scope,
+          genre_family: source.genre_family,
+          dance_genre: source.dance_genre,
+          ...(djs.length ? { djs } : {}),
+        },
+      });
+    }
+  }
+  return candidates;
+}
+
+async function buildCandidatesFromText({
+  source,
+  sourceUrl,
+  text,
+  title,
+  posterUrl,
+  posterUrls = [],
+  page,
+  referer = '',
+  publishedAt = '',
+}) {
   const sourceExcluded = getExcludedSourceReason(sourceUrl);
   if (sourceExcluded) {
     result.skipped += 1;
@@ -1335,6 +1508,40 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   if (!cleanText || cleanText.length < 20) {
     result.skipped += 1;
     return [];
+  }
+  if (exceptionBacktest) {
+    const exceptions = buildExceptionBacktestCandidates({
+      source,
+      sourceUrl,
+      cleanText,
+      title,
+      posterUrl,
+      posterUrls,
+      publishedAt,
+    });
+    if (!exceptions.length) result.skipped += 1;
+    return exceptions;
+  }
+  if (closureEventPattern.test(cleanText)) {
+    if (!posterUrls.length && !posterUrl) {
+      result.skipped += 1;
+      log(`skip ${source.id}: closure notice without poster`);
+      return [];
+    }
+    const closures = buildExceptionBacktestCandidates({
+      source,
+      sourceUrl,
+      cleanText,
+      title,
+      posterUrl,
+      posterUrls,
+      publishedAt,
+    }).filter((candidate) => (
+      ['closure', 'recurring_closure'].includes(candidate.exception_type)
+      && candidate.structured_data.date
+    ));
+    if (!closures.length) result.skipped += 1;
+    return closures;
   }
   const blockedKeywordReason = getBlockedKeywordReason(`${title}\n${cleanText}\n${sourceUrl}`);
   if (blockedKeywordReason) {
@@ -1498,6 +1705,11 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
 }
 
 async function postCandidate(candidate) {
+  if (exceptionBacktest) {
+    result.inserted += 1;
+    result.candidates.push(candidate);
+    return;
+  }
   if (dryRun || profile === 'expanded-research') {
     result.inserted += 1;
     result.candidates.push(`${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
@@ -1792,7 +2004,7 @@ async function main() {
     .filter((source, index) => sourceBatchTotal > 1 ? index % sourceBatchTotal === sourceBatchIndex : true)
     .slice(0, sourceLimit > 0 ? sourceLimit : undefined);
 
-  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
+  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
 
@@ -1878,7 +2090,7 @@ function printSummary() {
     },
     noContentSources,
     issues,
-    candidates: result.candidates.slice(0, 20),
+    candidates: result.candidates.slice(0, exceptionBacktest ? 200 : 20),
     deadlineReached: result.deadlineReached,
     remainingSources: result.remainingSources.slice(0, 20),
     remainingSourceCount: result.remainingSources.length,
