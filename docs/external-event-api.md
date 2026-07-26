@@ -552,3 +552,49 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/events' \
 ```
 
 기계 판독용 API 정의는 함께 전달된 `external-event-api.openapi.yaml` 파일을 참고해 주세요.
+
+## 12. 정규 소셜 반복 규칙과 날짜별 예외
+
+기존 `/events` API는 소셜·행사·강습·동호회의 날짜별 개별 일정에 계속 사용합니다. 매주 같은 요일에 열리는 정규 소셜만 아래 별도 API를 사용할 수 있으며, `social` 권한을 가진 API Key가 필요합니다.
+
+### 반복 규칙 등록
+
+```http
+POST /api/external/v1/regular-socials
+```
+
+```json
+{
+  "external_id": "friday-social",
+  "title": "금요 소셜",
+  "weekday": 5,
+  "time": "20:00",
+  "location": "샘플홀",
+  "source_url": "https://partner.example/socials/friday"
+}
+```
+
+`weekday`는 일요일 `0`부터 토요일 `6`까지입니다. 서버는 활성 규칙을 앞으로 90일의 개별 일정으로 생성합니다. 같은 장소·요일의 내부 기본 규칙보다 파트너의 공식 규칙을 우선합니다.
+
+수정은 `PUT /api/external/v1/regular-socials/{external_id}`, 삭제는 `DELETE`를 사용합니다. 삭제하거나 `active: false`로 수정하면 해당 규칙이 만든 미래 일정도 다음 조정 때 제거됩니다.
+
+### DJ·휴무 등 날짜별 예외
+
+DJ가 확정되면 반복 규칙 전체를 다시 보내지 말고 해당 날짜만 `override`로 등록합니다.
+
+```http
+POST /api/external/v1/regular-socials/friday-social/exceptions
+```
+
+```json
+{
+  "external_id": "dj-20260807",
+  "date": "2026-08-07",
+  "type": "override",
+  "dj_name": "메이저"
+}
+```
+
+휴무는 같은 형식에서 `"type": "closure"`로 보냅니다. 졸공처럼 별도의 공식 개별 일정이 있는 날은 기존 `/events` API로 그 날짜의 `genre: "졸공"` 일정을 등록하면 개별 일정이 반복 생성본보다 우선합니다.
+
+예외 수정은 `PUT /api/external/v1/regular-socials/{rule_external_id}/exceptions/{external_id}`, 삭제는 같은 주소의 `DELETE`를 사용합니다. 공식 개별 일정, 공식 날짜별 예외, 수집 정보, 반복 기본 규칙 순으로 우선 적용됩니다.

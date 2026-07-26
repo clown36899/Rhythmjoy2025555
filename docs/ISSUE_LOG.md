@@ -897,3 +897,13 @@
 - 범위 제한: 정규 소셜만 적용한다. 강습·워크숍·파티·기타 행사는 기존 수집 흐름을 유지한다.
 - 검증: 운영 데이터 읽기 전용 미리보기에서 15개 규칙, 생성 대상 190건, 이미지 누락 0건을 확인했다. 조정기 단위 테스트 3건, 수집 표준 테스트, Cafe24 프로덕션 빌드가 통과했다.
 - 관련 파일: `server/cafe24/regular-social-rules.js`, `server/cafe24/regular-social-reconciler.js`, `scripts/run-cafe24-cron-notifications.mjs`
+
+## 2026-07-26 외부 API 정규 소셜 반복·예외 지원
+
+- 상태: 구현 및 배포 검증 진행
+- 배경: 기존 외부 API는 모든 장르의 날짜별 개별 일정만 지원해, 매주 반복되는 정규 소셜도 매 날짜를 다시 전송해야 했다.
+- 조치: `social` 권한 API Key에 한해 반복 규칙과 날짜별 `closure`·`override` 예외 API를 추가했다. DJ 확정은 해당 날짜의 override만 전송하고, 졸공·별도 행사는 기존 개별 일정 API를 유지한다.
+- 데이터 우선순위: 공식 개별 일정 → 공식 날짜별 예외 → 수집 변동 → 공식 반복 규칙 → 내부 기본 규칙.
+- 안전장치: 기존 파트너 인증, 소유권, 테스트 모드, 호출 제한과 요청 로그를 동일하게 적용한다. 규칙 삭제·비활성화 및 예외 삭제 시 생성된 미래 일정도 조정한다.
+- 중복 처리: 수집 시 기존 공식 API 일정을 먼저 대조한다. 소셜은 날짜·정규화 장소가 같으면 DJ·제목 차이와 무관하게 공식 일정을 유지하고 수집 후보를 중복 처리한다. 다른 분류는 같은 날 한 장소의 복수 일정을 보존하기 위해 제목 유사도까지 확인한다.
+- 관련 파일: `server/cafe24/external-regular-socials-api.js`, `server/cafe24/regular-social-reconciler.js`, `server/cafe24/migrations/2026-07-26-external-regular-socials-api.sql`, `docs/external-event-api.md`

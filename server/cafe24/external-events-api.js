@@ -70,7 +70,7 @@ const ALLOWED_EXTERNAL_EVENT_FIELDS = new Set([
   'venue_name',
 ]);
 
-function apiError(message, statusCode = 400, code = 'invalid_request') {
+export function apiError(message, statusCode = 400, code = 'invalid_request') {
   const error = new Error(message);
   error.statusCode = statusCode;
   error.code = code;
@@ -504,7 +504,7 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
   };
 }
 
-async function authenticatePartner(req, pool) {
+export async function authenticatePartner(req, pool) {
   const parsed = parseExternalApiKey(req.get('authorization'));
   const [rows] = await pool.execute(
     `SELECT id, name, key_hash, is_active, default_category, default_genre,
@@ -782,7 +782,7 @@ export async function uploadExternalEventImage(req, res) {
   });
 }
 
-async function enforceRateLimit(pool, partner) {
+export async function enforceRateLimit(pool, partner) {
   const [rows] = await pool.execute(
     `SELECT
        SUM(created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)) AS minute_count,
@@ -803,7 +803,7 @@ async function enforceRateLimit(pool, partner) {
   }
 }
 
-async function recordRequest(pool, values) {
+export async function recordRequest(pool, values) {
   try {
     await pool.execute(
       `INSERT INTO external_api_request_logs
@@ -965,7 +965,7 @@ export async function createExternalEvent(req, res) {
   }
 }
 
-function cleanExternalIdParam(value) {
+export function cleanExternalIdParam(value) {
   try {
     return cleanString(decodeURIComponent(String(value || '')), MAX_EXTERNAL_ID_LENGTH, 'external_id', { required: true });
   } catch (error) {

@@ -4,6 +4,7 @@ import {
   loadCafe24TableRows,
   saveCafe24TableRow,
 } from './generic-data-api.js';
+import { getMysqlPool } from './mysql-pool.js';
 import { REGULAR_SOCIAL_RULES } from './regular-social-rules.js';
 
 const DAY_MS = 86_400_000;
@@ -55,10 +56,41 @@ function exceptionInfo(row) {
   return { date, sourceId };
 }
 
+function sameRegularSlot(left, right) {
+  return Number(left.weekday) === Number(right.weekday)
+    && normalize(left.location) === normalize(right.location);
+}
+
+function officialRuleId(partnerId, externalId) {
+  const digest = crypto.createHash('sha256')
+    .update(`${partnerId}\0${externalId}`)
+    .digest('hex')
+    .slice(0, 24);
+  return `api:${digest}`;
+}
+
+function officialExceptionInfo(row) {
+  return {
+    ruleId: String(row.rule_id || row.ruleId || ''),
+    date: String(row.date || '').slice(0, 10),
+    type: row.type,
+    title: row.title || null,
+    time: row.time || null,
+    location: row.location || null,
+    venueName: row.venueName || null,
+    djName: row.djName || null,
+    sourceUrl: row.sourceUrl || null,
+    description: row.description || null,
+    externalId: row.externalId || null,
+  };
+}
+
 export function planRegularSocialReconciliation({
   events,
   scrapedEvents = [],
   rules = REGULAR_SOCIAL_RULES,
+  officialRules = [],
+  officialExceptions = [],
   today = dateKey(new Date()),
   horizonDays = 90,
 }) {
@@ -68,42 +100,65 @@ export function planRegularSocialReconciliation({
   );
   const explicitEvents = events.filter((event) => !isGenerated(event) && isSocial(event));
   const exceptions = scrapedEvents.map(exceptionInfo).filter(Boolean);
+  const apiExceptions = officialExceptions.map(officialExceptionInfo)
+    .filter((item) => item.ruleId && item.date && ['closure', 'override'].includes(item.type));
+  const fallbackRules = rules.filter((rule) => !officialRules.some((official) => sameRegularSlot(rule, official)));
+  const effectiveRules = [...fallbackRules, ...officialRules];
   const creates = [];
   const removes = [];
   const retained = [];
+  const consideredIds = new Set();
 
-  for (const rule of rules) {
+  for (const rule of effectiveRules) {
     for (let cursor = dateAtNoonKst(today).getTime(); cursor <= endMs; cursor += DAY_MS) {
       const date = new Date(cursor);
       if (date.getDay() !== rule.weekday) continue;
       const key = dateKey(date);
+      if (rule.validFrom && key < rule.validFrom) continue;
+      if (rule.validUntil && key > rule.validUntil) continue;
       const id = `regular-social:${rule.id}:${key}`;
+      consideredIds.add(id);
       const generated = existingGenerated.get(id);
       const closed = exceptions.some((item) => item.date === key && item.sourceId === rule.sourceId);
+      const apiException = apiExceptions.find((item) => item.date === key && item.ruleId === rule.id);
       const explicit = explicitEvents.some((event) => eventDate(event) === key && matchesRule(event, rule));
 
-      if (closed || explicit) {
+      if (apiException?.type === 'closure' || closed || explicit) {
         if (generated) removes.push(generated);
         continue;
       }
-      if (generated) {
+      const override = apiException?.type === 'override' ? apiException : null;
+      const desiredTitle = override?.title || rule.title;
+      const desiredTime = override?.time || rule.time;
+      const desiredLocation = override?.location || rule.location;
+      const desiredDjName = override?.djName || '';
+      const generatedNeedsUpdate = generated && (
+        generated.title !== desiredTitle
+        || generated.time !== desiredTime
+        || generated.location !== desiredLocation
+        || String(generated.dj_name || '') !== desiredDjName
+        || String(generated.automation?.exception_id || '') !== String(override?.externalId || '')
+      );
+      if (generated && !generatedNeedsUpdate) {
         retained.push(generated);
         continue;
       }
+      if (generatedNeedsUpdate) removes.push(generated);
 
       const template = events.find((event) => matchesRule(event, rule) && (
         event.image || event.image_medium || event.image_thumbnail
       ));
       creates.push({
         id,
-        title: rule.title,
+        title: desiredTitle,
         date: key,
         start_date: key,
         end_date: key,
         event_dates: [key],
-        time: rule.time,
-        location: rule.location,
-        venue_name: rule.location,
+        time: desiredTime,
+        location: desiredLocation,
+        venue_name: override?.venueName || override?.location || rule.location,
+        dj_name: desiredDjName,
         category: 'social',
         activity_type: 'social',
         dance_scope: 'swing',
@@ -111,14 +166,17 @@ export function planRegularSocialReconciliation({
         image: template?.image || template?.image_medium || template?.image_thumbnail || '',
         image_medium: template?.image_medium || '',
         image_thumbnail: template?.image_thumbnail || '',
-        link1: template?.link1 || '',
+        link1: override?.sourceUrl || rule.sourceUrl || template?.link1 || '',
         link_name1: template?.link_name1 || '',
-        description: '정규 소셜 일정입니다. 휴무·특별행사·DJ 공지가 확인되면 자동으로 갱신됩니다.',
+        description: override?.description
+          || (override?.djName ? `DJ ${override.djName}` : '정규 소셜 일정입니다. 휴무·특별행사·DJ 공지가 확인되면 자동으로 갱신됩니다.'),
         organizer: 'Swing Enjoy',
         automation: {
           generated_by: GENERATED_BY,
           rule_id: rule.id,
           source_id: rule.sourceId,
+          official_api: Boolean(rule.officialApi),
+          exception_id: override?.externalId || null,
           generated_at: new Date().toISOString(),
         },
         created_at: new Date().toISOString(),
@@ -129,12 +187,68 @@ export function planRegularSocialReconciliation({
   }
 
   for (const generated of existingGenerated.values()) {
-    if (eventDate(generated) < today || eventDate(generated) > dateKey(new Date(endMs))) {
+    if (
+      eventDate(generated) < today
+      || eventDate(generated) > dateKey(new Date(endMs))
+      || !consideredIds.has(String(generated.id))
+    ) {
       if (!removes.some((item) => String(item.id) === String(generated.id))) removes.push(generated);
     }
   }
 
   return { creates, removes, retained, today, horizonDays };
+}
+
+async function loadOfficialRegularSocialData() {
+  const pool = getMysqlPool();
+  try {
+    const [ruleRows] = await pool.execute(
+      `SELECT partner_id, external_id, title, weekday, time_text, location, venue_name,
+              source_url, source_id, DATE_FORMAT(valid_from, '%Y-%m-%d') AS valid_from,
+              DATE_FORMAT(valid_until, '%Y-%m-%d') AS valid_until
+         FROM external_regular_social_rules
+        WHERE is_active = 1`,
+    );
+    const [exceptionRows] = await pool.execute(
+      `SELECT partner_id, rule_external_id, external_id, exception_date, exception_type,
+              title, time_text, location, venue_name, dj_name, source_url, description,
+              DATE_FORMAT(exception_date, '%Y-%m-%d') AS exception_date_text
+         FROM external_regular_social_exceptions
+        WHERE exception_date >= CURDATE()`,
+    );
+    return {
+      rules: ruleRows.map((row) => ({
+        id: officialRuleId(row.partner_id, row.external_id),
+        externalId: row.external_id,
+        title: row.title,
+        weekday: Number(row.weekday),
+        time: row.time_text || '',
+        location: row.location,
+        venueName: row.venue_name || row.location,
+        sourceUrl: row.source_url || '',
+        sourceId: row.source_id || row.external_id,
+        validFrom: row.valid_from || null,
+        validUntil: row.valid_until || null,
+        officialApi: true,
+      })),
+      exceptions: exceptionRows.map((row) => ({
+        ruleId: officialRuleId(row.partner_id, row.rule_external_id),
+        externalId: row.external_id,
+        date: row.exception_date_text,
+        type: row.exception_type,
+        title: row.title,
+        time: row.time_text,
+        location: row.location,
+        venueName: row.venue_name,
+        djName: row.dj_name,
+        sourceUrl: row.source_url,
+        description: row.description,
+      })),
+    };
+  } catch (error) {
+    if (error?.code === 'ER_NO_SUCH_TABLE') return { rules: [], exceptions: [] };
+    throw error;
+  }
 }
 
 function assertCronAccess(req) {
@@ -150,13 +264,16 @@ function assertCronAccess(req) {
 }
 
 export async function runRegularSocialReconciliation({ horizonDays = 90, dryRun = false } = {}) {
-  const [events, scrapedEvents] = await Promise.all([
+  const [events, scrapedEvents, official] = await Promise.all([
     loadCafe24TableRows('events'),
     loadCafe24TableRows('scraped_events'),
+    loadOfficialRegularSocialData(),
   ]);
   const plan = planRegularSocialReconciliation({
     events,
     scrapedEvents,
+    officialRules: official.rules,
+    officialExceptions: official.exceptions,
     horizonDays: Math.max(30, Math.min(120, Number(horizonDays || 90))),
   });
   if (!dryRun) {
@@ -169,6 +286,7 @@ export async function runRegularSocialReconciliation({ horizonDays = 90, dryRun 
     status: 'ok',
     dryRun,
     rules: REGULAR_SOCIAL_RULES.length,
+    officialRules: official.rules.length,
     creates: plan.creates.length,
     removes: plan.removes.length,
     retained: plan.retained.length,

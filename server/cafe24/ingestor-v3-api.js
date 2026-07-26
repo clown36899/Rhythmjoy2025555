@@ -126,6 +126,15 @@ function rowVenue(row = {}) {
   return String(row.venue_name || row.location || row.structured_data?.venue_name || row.structured_data?.location || '').trim();
 }
 
+function isOfficialApiEvent(row = {}) {
+  return Boolean(row.external_source?.partner_id && row.external_source?.external_id);
+}
+
+function isSocialRow(row = {}) {
+  return String(row.category || row.activity_type || row.structured_data?.category || row.structured_data?.activity_type || '')
+    .toLowerCase() === 'social';
+}
+
 function duplicateDescriptor(event, reason, confidenceScore) {
   return {
     target: 'events',
@@ -138,7 +147,7 @@ function duplicateDescriptor(event, reason, confidenceScore) {
   };
 }
 
-function findLiveDuplicate(candidate, liveEvents = []) {
+export function findLiveDuplicate(candidate, liveEvents = []) {
   const candidateDate = dateOnly(candidate.event_date);
   if (!candidateDate) return null;
   const candidateSource = normalizeUrl(candidate.source_url);
@@ -155,6 +164,9 @@ function findLiveDuplicate(candidate, liveEvents = []) {
     const titleScore = textSimilarity(rowTitle(event), candidateTitle);
     const eventVenue = normalizeText(rowVenue(event));
     const sameVenue = candidateVenue && eventVenue && (candidateVenue.includes(eventVenue) || eventVenue.includes(candidateVenue));
+    if (isOfficialApiEvent(event) && isSocialRow(event) && isSocialRow(candidate) && sameVenue) {
+      return duplicateDescriptor(event, 'official API social on same date and venue', 1);
+    }
     if (sameVenue && titleScore >= 0.88) {
       return duplicateDescriptor(event, 'same date, similar title, same venue', Number(titleScore.toFixed(2)));
     }

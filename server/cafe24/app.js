@@ -28,6 +28,13 @@ import {
   updateExternalPartnerStatus,
   uploadExternalEventImage,
 } from './external-events-api.js';
+import {
+  createRegularSocialRule,
+  deleteRegularSocialException,
+  deleteRegularSocialRule,
+  updateRegularSocialRule,
+  upsertRegularSocialException,
+} from './external-regular-socials-api.js';
 import { authProviders, devLogin, googleLoginCallback, googleLoginStart, kakaoLogin, logout, me } from './auth-api.js';
 import {
   listClientReloadDiagnostics,
@@ -288,6 +295,23 @@ app.delete('/api/events/:id', jsonRoute(deleteCafe24Event));
 app.post('/api/external/v1/events', externalEventJsonBody, jsonRoute(createExternalEvent));
 app.put('/api/external/v1/events/:externalId', externalEventJsonBody, jsonRoute(updateExternalEvent));
 app.delete('/api/external/v1/events/:externalId', jsonRoute(deleteExternalEvent));
+app.post('/api/external/v1/regular-socials', externalEventJsonBody, jsonRoute(createRegularSocialRule));
+app.put('/api/external/v1/regular-socials/:externalId', externalEventJsonBody, jsonRoute(updateRegularSocialRule));
+app.delete('/api/external/v1/regular-socials/:externalId', jsonRoute(deleteRegularSocialRule));
+app.post(
+  '/api/external/v1/regular-socials/:externalId/exceptions',
+  externalEventJsonBody,
+  jsonRoute(upsertRegularSocialException),
+);
+app.put(
+  '/api/external/v1/regular-socials/:externalId/exceptions/:exceptionId',
+  externalEventJsonBody,
+  jsonRoute(upsertRegularSocialException),
+);
+app.delete(
+  '/api/external/v1/regular-socials/:externalId/exceptions/:exceptionId',
+  jsonRoute(deleteRegularSocialException),
+);
 app.post('/api/external/v1/images', externalImageBody, jsonRoute(uploadExternalEventImage));
 app.get('/api/admin/external-partners', jsonRoute(listExternalPartners));
 app.get('/api/admin/external-partner-requests', jsonRoute(listExternalPartnerRequests));

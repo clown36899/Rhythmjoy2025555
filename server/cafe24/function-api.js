@@ -466,6 +466,15 @@ function terminalScrapedStatus(row) {
   return ['collected', 'duplicate', 'excluded'].includes(String(row?.status || '').toLowerCase()) || row?.is_collected === true;
 }
 
+function isOfficialApiEvent(row = {}) {
+  return Boolean(row.external_source?.partner_id && row.external_source?.external_id);
+}
+
+function isSocialDuplicateRow(row = {}) {
+  return String(row.category || row.activity_type || row.structured_data?.category || row.structured_data?.activity_type || '')
+    .toLowerCase() === 'social';
+}
+
 function duplicateMatch(row, candidate, target) {
   const date = scrapedRowDate(candidate);
   if (!date) return null;
@@ -478,6 +487,15 @@ function duplicateMatch(row, candidate, target) {
 
   if (!sameEventDate(row, date)) return null;
   const titleScore = duplicateTextSimilarity(rowTitle(row), rowTitle(candidate));
+  if (
+    target === 'events'
+    && isOfficialApiEvent(row)
+    && isSocialDuplicateRow(row)
+    && isSocialDuplicateRow(candidate)
+    && sameVenue(rowLocation(row), rowLocation(candidate))
+  ) {
+    return duplicateDescriptor(target, row, '같은 날짜·장소의 공식 API 소셜 우선');
+  }
   if (titleScore >= 0.88 && sameVenue(rowLocation(row), rowLocation(candidate))) {
     return duplicateDescriptor(target, row, '같은 날짜, 유사 제목, 같은 장소');
   }
