@@ -1981,7 +1981,11 @@
 
 .calendar-page-container .calendar-date-digit {
   order: 1;
-  display: inline-block;
+  display: inline-flex;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .calendar-page-container .calendar-cell-fullscreen-body {
