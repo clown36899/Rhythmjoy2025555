@@ -11,6 +11,7 @@ import {
 import {
   protectedEventMetadataValue,
 } from './event-mutation-policy.js';
+import { preferOfficialApiEvents } from './official-event-priority.js';
 import crypto from 'node:crypto';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -450,9 +451,9 @@ export async function listCafe24Events(req, res) {
     params,
   );
 
-  const events = await attachEventAuthors(rows
+  const events = preferOfficialApiEvents(await attachEventAuthors(rows
     .map(rowToEvent)
-    .filter((event) => isInRange(event, start, end)));
+    .filter((event) => isInRange(event, start, end))));
 
   res.json({
     backend: 'cafe24-mysql',
