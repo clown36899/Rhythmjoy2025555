@@ -2,121 +2,13 @@ import { useEffect, useState, type CSSProperties, type KeyboardEvent as ReactKey
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../hooks/useModal';
+import {
+  curlExample,
+  multipleDatesExample,
+  serverExamples,
+  singleEventExample,
+} from './externalEventApiGuideExamples';
 import './ExternalEventApiGuidePage.css';
-
-const singleEventExample = `{
-  "external_id": "partner-event-20260801-1",
-  "title": "토요일 린디합 강습",
-  "event_dates": ["2026-08-01"],
-  "category": "class",
-  "genre": "린디합",
-  "source_url": "https://partner.example.com/events/1",
-  "image_mode": "url",
-  "image_url": "https://partner.example.com/images/1.webp"
-}`;
-
-const multipleDatesExample = `{
-  "external_id": "partner-class-202608",
-  "title": "8월 토요일 린디합 강습",
-  "event_dates": [
-    "2026-08-01",
-    "2026-08-08",
-    "2026-08-22"
-  ],
-  "category": "class",
-  "genre": "린디합",
-  "source_url": "https://partner.example.com/classes/202608",
-  "image_mode": "url",
-  "image_url": "https://partner.example.com/images/class-202608.webp"
-}`;
-
-const curlExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events' \\
-  -H 'Authorization: Bearer 발급받은_API_KEY' \\
-  -H 'Content-Type: application/json' \\
-  --data '${singleEventExample.replace(/\n/g, '\n  ')}'`;
-
-const nodeExample = `const API_KEY = process.env.DANCE_BILLBOARD_API_KEY;
-
-const response = await fetch("https://swingenjoy.com/api/external/v1/events", {
-  method: "POST",
-  headers: {
-    Authorization: \`Bearer \${API_KEY}\`,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(${singleEventExample})
-});
-
-const result = await response.json();
-if (!response.ok) throw new Error(result.message || "일정 등록 실패");`;
-
-const phpExample = `<?php
-$apiKey = getenv('DANCE_BILLBOARD_API_KEY');
-$payload = [
-  'external_id' => 'partner-event-20260801-1',
-  'title' => '토요일 린디합 강습',
-  'event_dates' => ['2026-08-01'],
-  'category' => 'class',
-  'genre' => '린디합',
-  'source_url' => 'https://partner.example.com/events/1',
-  'image_mode' => 'url',
-  'image_url' => 'https://partner.example.com/images/1.webp'
-];
-
-$curl = curl_init('https://swingenjoy.com/api/external/v1/events');
-curl_setopt_array($curl, [
-  CURLOPT_POST => true,
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => [
-    'Authorization: Bearer ' . $apiKey,
-    'Content-Type: application/json'
-  ],
-  CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE)
-]);
-$body = curl_exec($curl);
-$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-curl_close($curl);
-if ($status < 200 || $status >= 300) throw new Exception($body);`;
-
-const pythonExample = `import os
-import requests
-
-api_key = os.environ["DANCE_BILLBOARD_API_KEY"]
-payload = ${singleEventExample.replace(/\btrue\b/g, 'True').replace(/\bfalse\b/g, 'False').replace(/\bnull\b/g, 'None')}
-
-response = requests.post(
-    "https://swingenjoy.com/api/external/v1/events",
-    headers={"Authorization": f"Bearer {api_key}"},
-    json=payload,
-    timeout=30,
-)
-response.raise_for_status()
-result = response.json()`;
-
-const javaExample = `// Java 17 이상
-String apiKey = System.getenv("DANCE_BILLBOARD_API_KEY");
-String json = """
-${singleEventExample.replace(/^/gm, '  ')}
-""";
-
-HttpRequest request = HttpRequest.newBuilder()
-    .uri(URI.create("https://swingenjoy.com/api/external/v1/events"))
-    .header("Authorization", "Bearer " + apiKey)
-    .header("Content-Type", "application/json")
-    .POST(HttpRequest.BodyPublishers.ofString(json))
-    .build();
-
-HttpResponse<String> response = HttpClient.newHttpClient()
-    .send(request, HttpResponse.BodyHandlers.ofString());
-if (response.statusCode() < 200 || response.statusCode() >= 300) {
-  throw new IllegalStateException(response.body());
-}`;
-
-const serverExamples = [
-  { id: 'node', label: 'Node.js', note: 'Node.js 18 이상 또는 서버리스 함수', code: nodeExample },
-  { id: 'php', label: 'PHP', note: 'PHP cURL 확장 사용', code: phpExample },
-  { id: 'python', label: 'Python', note: 'requests 패키지 사용', code: pythonExample },
-  { id: 'java', label: 'Java', note: 'Java 17 이상 HttpClient 사용', code: javaExample },
-] as const;
 
 const guideSearchItems = [
   { id: 'quick-start', title: '연동 신청과 API Key', summary: '로그인, 신청, 승인, 인증, 보안', keywords: '파트너 신청 계정 이메일 전화번호 키 발급 bearer secret env' },
@@ -810,7 +702,7 @@ export default function ExternalEventApiGuidePage() {
                 <strong>일정 등록 방식 선택</strong>
               </div>
               <nav className="EAG-registrationMenu" aria-label="일정 등록 방식 선택">
-                <a href="/external-event-api#request-example" draggable={false}>
+                <a href="/external-event-api#individual-event-request" draggable={false}>
                   <span>모든 장르</span>
                   <strong>날짜가 정해진 개별 일정</strong>
                   <small>소셜 · 행사 · 강습 · 동호회</small>
@@ -833,7 +725,7 @@ export default function ExternalEventApiGuidePage() {
                 <p>날짜가 확정된 소셜·졸공·포스터가 있는 한 회차는 다른 장르와 똑같이 <code>/events</code>로 등록합니다. <b>매주 같은 요일에 계속 열리는 정규 소셜의 기본 일정만</b> <code>/regular-socials</code>를 사용합니다.</p>
               </div>
             </div>
-            <p className="EAG-lead">먼저 실제로 동작하는 전체 요청 형태를 확인하세요.</p>
+            <p id="individual-event-request" className="EAG-lead EAG-inlineAnchor">먼저 실제로 동작하는 전체 요청 형태를 확인하세요.</p>
             <div className="EAG-callout">
               <i className="ri-terminal-box-line" aria-hidden="true" />
               <div>
