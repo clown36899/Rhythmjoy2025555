@@ -49,7 +49,7 @@
   - `scripts/social-reels/layout.test.mjs`
   - `docs/social-reel-automation.md`
   - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
-- 관련 커밋: pending
+- 관련 커밋: `7badf4d0`
 
 ## 2026-07-26 자유게시판 댓글 알림 누락 개선
 
@@ -818,11 +818,11 @@
   - `scripts/social-reels/layout.test.mjs`
   - `docs/social-reel-automation.md`
   - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
-- 관련 커밋: pending
+- 관련 커밋: `7badf4d0`
 
 ## 2026-07-26 Instagram Reel 자동 게시 예약과 연결 안정화
 
-- 상태: 구현·드라이런 완료
+- 상태: 배포 완료
 - 범위: Mac Android 에뮬레이터 기반 Instagram Reel 자동 등록, 화·목·토 12:30 예약 실행
 - 문제:
   - 수동 UI 제어가 길어지고 연결이 끊길 때 현재 단계를 알 수 없었다.
@@ -840,6 +840,7 @@
   - 실제 Instagram 439.0.0.37.89에서 `Do What You Wanna — Ramsey Lewis` 선택, 4K 커버 설정, 기본 프로필 크롭 유지, `Share` 직전 화면 확인
   - 드라이런은 실제 게시 없이 편집 내용을 자동 폐기했고 UI 구간 106.5초 소요
   - 2160×3840, 30fps, 15초, H.264, yuv420p, BT.709 결과 재검증
+  - `com.rhythmjoy.social-reel-publish`를 Mac 사용자 LaunchAgent로 설치하고 화(2)·목(4)·토(6) 12:30 트리거, `caffeinate`, 작업 경로와 로그 경로를 `launchctl print`로 확인
 - 알려진 운영 상태:
   - 기존 Telegram Bot 환경 값은 테스트 시 HTTP 404를 반환했다. Telegram 실패가 게시 성공을 실패 처리하지 않게 하고 macOS 알림·로그로 대체했다.
   - Mac 잠금은 허용되지만 잠자기·종료·로그아웃·네트워크 단절 중에는 실행할 수 없다.
@@ -850,4 +851,4 @@
   - `ops/macos/com.rhythmjoy.social-reel-publish.plist`
   - `docs/social-reel-automation.md`
   - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
-- 관련 커밋: pending
+- 관련 커밋: `7badf4d0`
