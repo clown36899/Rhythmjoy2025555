@@ -32,8 +32,7 @@ const shouldSkipViewTracking = () => (
     isLocalAnalyticsHost() ||
     isLikelyBotTraffic() ||
     isInternalAnalyticsRoute() ||
-    isKioskAnalyticsContext() ||
-    isAdminAnalyticsShielded()
+    isKioskAnalyticsContext()
 );
 
 /**

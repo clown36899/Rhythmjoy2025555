@@ -2498,9 +2498,7 @@ function viewTargetTable(itemType) {
 }
 
 function shouldSkipItemView(args = {}, context = {}) {
-  const user = context.user || null;
   const req = context.req || null;
-  if (user?.is_admin || asAnalyticsBool(args.p_is_admin ?? args.is_admin)) return true;
 
   const userAgent = args.p_user_agent || args.user_agent || req?.headers?.['user-agent'];
   if (isAnalyticsBotUserAgent(userAgent)) return true;
@@ -2577,7 +2575,7 @@ async function incrementItemViews(args = {}, context = {}) {
     viewer_key: viewerKey,
     user_id: viewerUserId || null,
     fingerprint: viewerFingerprint || null,
-    is_admin: false,
+    is_admin: Boolean(context.user?.is_admin),
     user_agent: args.p_user_agent || args.user_agent || context.req?.headers?.['user-agent'] || null,
     platform: args.p_platform || args.platform || null,
     client_ip: clientIp,
