@@ -151,12 +151,25 @@
   scroll-snap-align: start;
   display: grid;
   gap: 5px;
-  padding: 18px;
+  padding: 18px 50px 18px 18px;
   border: 1px solid #c9d9eb;
   border-radius: 14px;
   background: linear-gradient(145deg, var(--eag-paper), var(--eag-blue-soft));
   text-decoration: none;
   -webkit-user-drag: none;
+}
+.EAG-registrationArrow {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  color: var(--eag-blue);
+  font: 800 26px/1 Pretendard, sans-serif;
+  transform: translateY(-50%);
+  transition: transform .18s ease;
+}
+.EAG-registrationMenu a:hover .EAG-registrationArrow,
+.EAG-registrationMenu a:focus-visible .EAG-registrationArrow {
+  transform: translate(3px, -50%);
 }
 .EAG-registrationMenu a::before {
   content: "";

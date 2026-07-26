@@ -815,12 +815,14 @@ export default function ExternalEventApiGuidePage() {
                   <strong>날짜가 정해진 개별 일정</strong>
                   <small>소셜 · 행사 · 강습 · 동호회</small>
                   <code>POST /events</code>
+                  <i className="EAG-registrationArrow" aria-hidden="true">&gt;</i>
                 </a>
                 <a href="/external-event-api#regular-socials" draggable={false}>
                   <span>소셜만</span>
                   <strong>매주 반복하는 정규 소셜</strong>
                   <small>기본 규칙 · DJ 변경 · 휴무</small>
                   <code>POST /regular-socials</code>
+                  <i className="EAG-registrationArrow" aria-hidden="true">&gt;</i>
                 </a>
               </nav>
             </div>
