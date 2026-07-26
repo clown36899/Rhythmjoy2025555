@@ -138,3 +138,13 @@ export function dateExpansionSkipReason(primary = {}) {
   const primaryDate = dateExpansionRowDate(primary) || '첫 날짜';
   return `같은 원본/제목의 다중 날짜 강습/행사 후보는 첫 날짜만 수집: ${primaryDate}`;
 }
+
+export function shouldHidePastCandidate(row = {}, {
+  today = '',
+  tab = '',
+} = {}) {
+  const date = dateExpansionRowDate(row);
+  if (!date || !today || date >= today || tab === 'collected') return false;
+  const recoveryUntil = String(row.manual_recovery_until || '').slice(0, 10);
+  return recoveryUntil < today;
+}

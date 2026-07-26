@@ -26,6 +26,7 @@ import {
   dateExpansionKey,
   normalizeDateExpansionUrl,
   shouldSkipDateExpansionCandidate,
+  shouldHidePastCandidate,
   sortDateExpansionInputs,
 } from '../server/cafe24/ingestion-date-expansion.js';
 
@@ -287,6 +288,19 @@ assert.deepEqual(
 const dateExpansionDecision = shouldSkipDateExpansionCandidate(multiDateRows[2], [multiDateRows[1]]);
 assert.equal(dateExpansionDecision.skip, true, 'later date from the same source/title must be skipped at save time');
 assert.match(dateExpansionSkipReason(dateExpansionDecision.primary), /2026-07-06/, 'skip reason should point to the kept first date');
+assert.equal(
+  shouldHidePastCandidate({ structured_data: { date: '2026-07-25' } }, { today: '2026-07-26', tab: 'new' }),
+  true,
+  'ordinary past candidates must stay hidden from the new list',
+);
+assert.equal(
+  shouldHidePastCandidate({
+    structured_data: { date: '2026-07-25' },
+    manual_recovery_until: '2026-07-26',
+  }, { today: '2026-07-26', tab: 'new' }),
+  false,
+  'explicit manual recovery candidates must remain reviewable through the recovery date',
+);
 assert.equal(
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=13&referrerAllArticles=false'),
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=264&referrerAllArticles=false'),

@@ -14,6 +14,7 @@ import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
   normalizeDateExpansionUrl,
+  shouldHidePastCandidate,
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
@@ -321,8 +322,7 @@ function filterScrapedRows(rows, req) {
     if (type === 'lessons' && !['class', 'lesson'].includes(String(sd.activity_type || row.activity_type || '').toLowerCase())) return false;
     if (type === 'social' && String(sd.activity_type || row.activity_type || '').toLowerCase() === 'class') return false;
 
-    const date = String(sd.date || row.date || '').slice(0, 10);
-    if (date && date < today && tab !== 'collected') return false;
+    if (shouldHidePastCandidate(row, { today, tab })) return false;
 
     if (tab === 'collected') return row.is_collected === true || row.status === 'collected';
     if (tab === 'duplicate') return row.status === 'duplicate' || Boolean(sd._duplicate);

@@ -740,3 +740,8 @@
 - Root cause: the social section parser required a numeric date beside each body section. Compact dates in the title plus weekday-only body headings fell back to generic date extraction, losing per-session details; already-past dates were then correctly filtered by the future-only policy.
 - Resolution: added title-date/weekday-section matching so each future/current social session becomes its own candidate with section-scoped details. Social candidates remain exempt from first-date expansion collapse.
 - Verification: covered by `scripts/test-ingestion-standards.mjs`.
+
+### Follow-up: past session hidden after manual recovery
+
+- The 2026-07-25 session was successfully stored during a 2026-07-26 manual recovery but did not appear in the admin new-candidate list because the normal future-only list filter hid it.
+- Added a narrowly scoped `manual_recovery_until` exception. It keeps an explicitly recovered past candidate visible only through the specified review date; ordinary automated past candidates remain hidden.
