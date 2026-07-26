@@ -151,10 +151,6 @@ const compareCalendarSpanItems = (a: CalendarSpanItem, b: CalendarSpanItem) => {
   return a.key.localeCompare(b.key);
 };
 
-const isDateInCalendarSpan = (span: CalendarSpanItem, dateKey: string) => (
-  span.startDate <= dateKey && dateKey <= span.endDate
-);
-
 const getCalendarEventToneClass = (event: AppEvent) => {
   const category = String(event.category || '').toLowerCase();
   return isCalendarClassLikeCategory(category)
@@ -1126,17 +1122,28 @@ export default memo(function FullEventCalendar({
   // 전체화면 모드 그리드 렌더링
   const renderFullscreenGrid = (days: Date[], monthDate: Date) => {
     const cellHeight = getCellHeight(monthDate);
+    const reservedSpanLanesByWeek = Array.from(
+      { length: Math.ceil(days.length / 7) },
+      (_, weekRow) => {
+        const weekDays = days.slice(weekRow * 7, weekRow * 7 + 7);
+        const weekStartDate = getCalendarDateKey(weekDays[0]);
+        const weekEndDate = getCalendarDateKey(weekDays[weekDays.length - 1]);
+        if (!weekStartDate || !weekEndDate) return 0;
+
+        const spanLanesForWeek = calendarSpanItems
+          .filter((span) => span.endDate >= weekStartDate && span.startDate <= weekEndDate)
+          .map((span) => calendarSpanLaneMap.get(span.key)?.lane)
+          .filter((lane): lane is number => typeof lane === "number");
+
+        return spanLanesForWeek.length > 0 ? Math.max(...spanLanesForWeek) + 1 : 0;
+      },
+    );
 
     return days.map((day, index) => {
       const isLastRow = index >= days.length - 7;
       const isOutsideMonth = day.getMonth() !== monthDate.getMonth();
       const dayEvents = getEventsForDate(day);
-      const dateString = getCalendarDateKey(day) || "";
-      const spanLanesForDate = calendarSpanItems
-        .filter((span) => isDateInCalendarSpan(span, dateString))
-        .map((span) => calendarSpanLaneMap.get(span.key)?.lane)
-        .filter((lane): lane is number => typeof lane === "number");
-      const reservedSpanLanes = spanLanesForDate.length > 0 ? Math.max(...spanLanesForDate) + 1 : 0;
+      const reservedSpanLanes = reservedSpanLanesByWeek[Math.floor(index / 7)] || 0;
 
       return (
         <CalendarCell

@@ -1960,6 +1960,7 @@
   }
 
   .calendar-page-container .calendar-cell-fullscreen-body {
+    --calendar-date-body-clearance: 26px;
     --calendar-span-body-clearance: 26px;
   }
 }
@@ -1989,7 +1990,7 @@
   align-content: start;
   gap: 4px;
   min-width: 0;
-  padding: 0;
+  padding: var(--calendar-date-body-clearance, 0px) 0 0;
 }
 
 .calendar-page-container .calendar-cell-fullscreen-body.has-calendar-spans {
