@@ -2650,3 +2650,78 @@ html.v2-home-mode #root {
     max-width: var(--neb-card-width, 360px) !important;
   }
 }
+
+@media (min-width: 1024px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .header-content-inner {
+    width: min(calc(100vw - 104px), 1320px) !important;
+    max-width: 1320px !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .header-content-inner,
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-standard-layout {
+    width: min(calc(100vw - 104px), 1060px) !important;
+    max-width: 1060px !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid {
+    grid-template-columns: minmax(0, 1fr) 360px !important;
+    gap: 24px !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-container {
+    display: grid;
+    grid-template-columns: 146px minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    column-gap: 18px;
+    align-items: start;
+    position: relative;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-header {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-indicators {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-slider {
+    grid-column: 2;
+    grid-row: 3;
+    min-width: 0;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-lowerDeck {
+    display: contents !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions {
+    position: relative !important;
+    inset: auto !important;
+    grid-column: 1;
+    grid-row: 3;
+    align-self: start;
+    width: 140px !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-oneDayRecruitBtn,
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-benefitEventsBtn {
+    grid-column: auto;
+    grid-row: auto;
+    width: 100% !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryCluster {
+    grid-column: 2;
+    grid-row: 4;
+    width: var(--neb-summary-width, var(--neb-card-width, 360px)) !important;
+    max-width: var(--neb-summary-width, var(--neb-card-width, 360px)) !important;
+    margin: 16px 0 0 var(--neb-summary-left, var(--neb-active-left, 0px)) !important;
+  }
+}

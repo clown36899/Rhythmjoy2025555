@@ -848,6 +848,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 const isKioskSurface = document.documentElement.classList.contains('kiosk-link-router-active') ||
                     Boolean(document.body?.classList.contains('kiosk-link-router-active'));
                 const containerRect = container.getBoundingClientRect();
+                const sliderRect = container.querySelector<HTMLElement>('.NEB-slider')?.getBoundingClientRect();
                 const headerRect = container.querySelector<HTMLElement>('.NEB-header')?.getBoundingClientRect();
                 const indicatorRect = container.querySelector<HTMLElement>('.NEB-indicators')?.getBoundingClientRect();
                 const navRect = document.querySelector<HTMLElement>('.home-v2-menu-panel')?.getBoundingClientRect();
@@ -889,7 +890,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 const availableHeight = Math.floor(
                     navTop - containerRect.top - mediaBottom - lowerReserve - 14,
                 );
-                const containerWidth = containerRect.width || viewportWidth;
+                const containerWidth = sliderRect?.width || containerRect.width || viewportWidth;
                 const widthBasedHeight = Math.floor(
                     isDesktopSplitSurface
                         ? isKioskSurface
@@ -900,7 +901,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         : Math.min(360, Math.max(220, viewportWidth * (viewportWidth < 430 ? 0.62 : 0.54))),
                 );
                 const sliderHeight = Math.max(210, Math.min(widthBasedHeight, availableHeight));
-                const sliderRect = container.querySelector<HTMLElement>('.NEB-slider')?.getBoundingClientRect();
                 const todayPanelRect = container.querySelector<HTMLElement>('.NEB-todaySchedulePanel')?.getBoundingClientRect();
                 const projectedTodayPanelTop = todayPanelRect
                     ? todayPanelRect.top + (sliderHeight - (sliderRect?.height || sliderHeight))
