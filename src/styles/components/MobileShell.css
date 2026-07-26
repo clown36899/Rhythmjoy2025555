@@ -2684,6 +2684,8 @@ html.v2-home-mode #root {
   html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-header {
     grid-column: 2;
     grid-row: 1;
+    width: min(100%, calc(var(--neb-active-left, 0px) + var(--neb-card-width, 100%) - var(--neb-stage-left, 0px))) !important;
+    max-width: min(100%, calc(var(--neb-active-left, 0px) + var(--neb-card-width, 100%) - var(--neb-stage-left, 0px))) !important;
   }
 
   html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-indicators {
