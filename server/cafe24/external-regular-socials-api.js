@@ -143,8 +143,8 @@ function scheduleReconciliation() {
 }
 
 export async function createRegularSocialRule(req, res) {
+  const { pool, partner } = await beginPartnerRequest(req, null);
   const normalized = normalizeRegularSocialRulePayload(req.body);
-  const { pool, partner } = await beginPartnerRequest(req, normalized.externalId);
   if (partner.environment === 'test') {
     await finishRequest(pool, req, partner, normalized.externalId, 'test_validated', 200);
     res.json({ ok: true, test_mode: true, persisted: false, normalized });
@@ -173,9 +173,9 @@ export async function createRegularSocialRule(req, res) {
 }
 
 export async function updateRegularSocialRule(req, res) {
+  const { pool, partner } = await beginPartnerRequest(req, null);
   const externalId = cleanExternalIdParam(req.params.externalId);
   const normalized = normalizeRegularSocialRulePayload({ ...req.body, external_id: externalId }, externalId);
-  const { pool, partner } = await beginPartnerRequest(req, externalId);
   if (partner.environment === 'test') {
     await finishRequest(pool, req, partner, externalId, 'test_validated', 200);
     res.json({ ok: true, test_mode: true, persisted: false, normalized });
@@ -200,8 +200,8 @@ export async function updateRegularSocialRule(req, res) {
 }
 
 export async function deleteRegularSocialRule(req, res) {
+  const { pool, partner } = await beginPartnerRequest(req, null);
   const externalId = cleanExternalIdParam(req.params.externalId);
-  const { pool, partner } = await beginPartnerRequest(req, externalId);
   if (partner.environment === 'test') {
     await finishRequest(pool, req, partner, externalId, 'test_validated', 200);
     res.json({ ok: true, test_mode: true, persisted: false });
@@ -218,13 +218,13 @@ export async function deleteRegularSocialRule(req, res) {
 }
 
 export async function upsertRegularSocialException(req, res) {
+  const { pool, partner } = await beginPartnerRequest(req, null);
   const ruleExternalId = cleanExternalIdParam(req.params.externalId);
   const exceptionExternalId = cleanExternalIdParam(req.params.exceptionId || req.body?.external_id);
   const normalized = normalizeRegularSocialExceptionPayload(
     { ...req.body, external_id: exceptionExternalId },
     exceptionExternalId,
   );
-  const { pool, partner } = await beginPartnerRequest(req, exceptionExternalId);
   if (partner.environment === 'test') {
     await finishRequest(pool, req, partner, exceptionExternalId, 'test_validated', 200);
     res.json({ ok: true, test_mode: true, persisted: false, normalized });
@@ -263,10 +263,10 @@ export async function upsertRegularSocialException(req, res) {
 }
 
 export async function deleteRegularSocialException(req, res) {
+  const { pool, partner } = await beginPartnerRequest(req, null);
   const ruleExternalId = cleanExternalIdParam(req.params.externalId);
   const exceptionExternalId = cleanExternalIdParam(req.params.exceptionId);
   const logId = exceptionExternalId;
-  const { pool, partner } = await beginPartnerRequest(req, logId);
   if (partner.environment === 'test') {
     await finishRequest(pool, req, partner, logId, 'test_validated', 200);
     res.json({ ok: true, test_mode: true, persisted: false });

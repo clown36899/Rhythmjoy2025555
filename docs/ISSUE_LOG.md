@@ -905,5 +905,6 @@
 - 조치: `social` 권한 API Key에 한해 반복 규칙과 날짜별 `closure`·`override` 예외 API를 추가했다. DJ 확정은 해당 날짜의 override만 전송하고, 졸공·별도 행사는 기존 개별 일정 API를 유지한다.
 - 데이터 우선순위: 공식 개별 일정 → 공식 날짜별 예외 → 수집 변동 → 공식 반복 규칙 → 내부 기본 규칙.
 - 안전장치: 기존 파트너 인증, 소유권, 테스트 모드, 호출 제한과 요청 로그를 동일하게 적용한다. 규칙 삭제·비활성화 및 예외 삭제 시 생성된 미래 일정도 조정한다.
+- 배포 점검에서 인증 없는 요청이 인증보다 본문 검증을 먼저 수행해 `400`을 반환하는 순서 문제를 발견했다. 기존 API와 동일하게 인증·호출 제한을 먼저 수행하고 입력을 검증하도록 수정했다.
 - 중복 처리: 수집 시 기존 공식 API 일정을 먼저 대조한다. 소셜은 날짜·정규화 장소가 같으면 DJ·제목 차이와 무관하게 공식 일정을 유지하고 수집 후보를 중복 처리한다. 다른 분류는 같은 날 한 장소의 복수 일정을 보존하기 위해 제목 유사도까지 확인한다.
 - 관련 파일: `server/cafe24/external-regular-socials-api.js`, `server/cafe24/regular-social-reconciler.js`, `server/cafe24/migrations/2026-07-26-external-regular-socials-api.sql`, `docs/external-event-api.md`
