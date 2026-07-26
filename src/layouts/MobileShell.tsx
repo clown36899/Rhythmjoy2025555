@@ -709,23 +709,6 @@ export const MobileShell: React.FC = () => {
                         </button>
                       ))}
                     </div>
-
-                    <div className="calendar-month-nav calendar-month-nav--sample">
-                      <button
-                        type="button"
-                        className="calendar-today-header-btn"
-                        onClick={() => {
-                          console.log('[MobileShell] Today button clicked, dispatching goToToday');
-                          window.dispatchEvent(new CustomEvent('goToToday'));
-                        }}
-                        data-analytics-id="cal_goto_today_btn"
-                        data-analytics-type="action"
-                        data-analytics-title="오늘로 이동"
-                        data-analytics-section="header_calendar"
-                      >
-                        오늘
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -739,6 +722,23 @@ export const MobileShell: React.FC = () => {
             )}
 
             <div className="header-right-buttons">
+              {isCalendarPage && (
+                <button
+                  type="button"
+                  className="calendar-today-header-btn calendar-today-header-btn--desktop"
+                  onClick={() => {
+                    console.log('[MobileShell] Today button clicked, dispatching goToToday');
+                    window.dispatchEvent(new CustomEvent('goToToday'));
+                  }}
+                  data-analytics-id="cal_goto_today_btn"
+                  data-analytics-type="action"
+                  data-analytics-title="오늘로 이동"
+                  data-analytics-section="header_calendar"
+                >
+                  오늘
+                </button>
+              )}
+
               <button
                 ref={translateButtonRef}
                 type="button"
