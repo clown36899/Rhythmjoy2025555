@@ -323,6 +323,60 @@ export function keepFirstEventDateOnly(values = [], dateSelector = (value) => va
     .slice(0, 1);
 }
 
+function isoDateForIngestion(year, month, day) {
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function weekdayLabelForDate(date = '') {
+  const index = new Date(`${date}T00:00:00+09:00`).getDay();
+  return ['일', '월', '화', '수', '목', '금', '토'][index] || '';
+}
+
+/**
+ * Split one social notice into independent dated sessions when the title carries
+ * a compact date list (for example "7월 25,26일") and the body has weekday
+ * sections with different operating details.
+ */
+export function extractIndependentSocialDateSections({
+  title = '',
+  text = '',
+  today = todayISO(),
+} = {}) {
+  const normalizedTitle = String(title || '').normalize('NFKC');
+  const normalizedText = String(text || '').normalize('NFKC');
+  const titleMatch = normalizedTitle.match(/(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){2,8})/);
+  if (!titleMatch) return [];
+
+  const month = Number(titleMatch[1]);
+  const days = [...titleMatch[2].matchAll(/\d{1,2}/g)]
+    .map((match) => Number(match[0]))
+    .filter((day) => day >= 1 && day <= 31);
+  if (month < 1 || month > 12 || days.length < 2) return [];
+
+  const todayYear = Number(String(today).slice(0, 4));
+  const todayMonth = Number(String(today).slice(5, 7));
+  const year = month + 1 < todayMonth ? todayYear + 1 : todayYear;
+  const dates = [...new Set(days.map((day) => isoDateForIngestion(year, month, day)))];
+
+  const sectionPattern = /(?:^|[\n\r]\s*|(?:^|\s)[-•▪■]\s*)((?:월|화|수|목|금|토|일)요일)\s*[:：-]?\s*([\s\S]*?)(?=(?:[\n\r]\s*|(?:^|\s)[-•▪■]\s*)((?:월|화|수|목|금|토|일)요일)\s*[:：-]?|$)/g;
+  const sections = [...normalizedText.matchAll(sectionPattern)].map((match) => ({
+    day: match[1].slice(0, 1),
+    segment: String(match[2] || '').trim(),
+  }));
+  if (sections.length < 2) return [];
+
+  const result = [];
+  const usedDates = new Set();
+  for (const section of sections) {
+    const matchingDate = dates.find((date) => !usedDates.has(date) && weekdayLabelForDate(date) === section.day);
+    if (!matchingDate) continue;
+    usedDates.add(matchingDate);
+    if (matchingDate < today) continue;
+    result.push({ date: matchingDate, day: section.day, segment: section.segment });
+  }
+  return result.length >= 1 && usedDates.size >= 2 ? result : [];
+}
+
 export function normalizeText(value = '') {
   return String(value || '')
     .normalize('NFKC')

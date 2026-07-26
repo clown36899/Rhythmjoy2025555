@@ -3,6 +3,7 @@ import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import {
   buildCafe24Payload,
+  extractIndependentSocialDateSections,
   getBlockedKeywordReason,
   isCollectableDateTime,
   isEvergreenSeasonPassCandidate,
@@ -674,9 +675,21 @@ function inferFee(text = '') {
   return match ? `${match[1]}원` : '';
 }
 
-function extractSocialScheduleItems(text = '', source) {
+function extractSocialScheduleItems(text = '', source, title = '') {
   const raw = compactText(text);
   const items = [];
+  for (const section of extractIndependentSocialDateSections({ title, text, today })) {
+    if (!isCollectableDateTime(section.date, section.segment)) continue;
+    const titleDay = socialDayTitle(section.day);
+    items.push({
+      date: section.date,
+      day: section.day,
+      title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
+      djs: inferDjs(section.segment),
+      times: inferTimes(section.segment),
+      fee: inferFee(section.segment),
+    });
+  }
   const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*(?:소셜|social)\s*[:：]?\s*([\s\S]*?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2}\s*(?:일)?\s*(?:\(\s*[월화수목금토일]\s*\))?\s*(?:소셜|social)\s*[:：]?)|$)/gi;
   for (const match of raw.matchAll(pattern)) {
     const month = Number(match[1]);
@@ -1354,7 +1367,7 @@ async function buildCandidatesFromText({ source, sourceUrl, text, title, posterU
   }
 
   const socialScheduleItems = activity === 'social'
-    ? extractSocialScheduleItems(cleanText, source).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+    ? extractSocialScheduleItems(rawText, source, title).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
     : [];
   if (socialScheduleItems.length) {
     const candidates = [];

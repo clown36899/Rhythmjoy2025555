@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
+  extractIndependentSocialDateSections,
   hasBadPosterUrl,
   isCollectableDateTime,
   keepFirstEventDateOnly,
@@ -29,6 +30,36 @@ import {
 } from '../server/cafe24/ingestion-date-expansion.js';
 
 const TODAY = '2026-05-23';
+
+assert.deepEqual(
+  extractIndependentSocialDateSections({
+    today: '2026-07-12',
+    title: '■ 스윙타임바 (7월 25,26일) 토,일 소셜 공지',
+    text: `■ 스윙타임바 (7월 25,26일) 토,일 소셜 공지
+- 토요일
+저녁 7시30분부터 소셜이 진행 됩니다.
+DJ '이정' PM 8:15-10:15
+
+- 일요일
+저녁 7시30분부터 소셜이 진행 됩니다.
+1부 DJ 로젤 PM 7:30-9:00
+2부 DJ 로젤 9:00-10:30`,
+  }).map(({ date, day }) => ({ date, day })),
+  [
+    { date: '2026-07-25', day: '토' },
+    { date: '2026-07-26', day: '일' },
+  ],
+  'compact title dates with separate weekday sections must become two independent social sessions',
+);
+assert.deepEqual(
+  extractIndependentSocialDateSections({
+    today: '2026-07-26',
+    title: '스윙타임바 (7월 25,26일) 토,일 소셜 공지',
+    text: '- 토요일\nDJ Alpha 20:00\n- 일요일\nDJ Beta 20:00',
+  }).map(({ date }) => date),
+  ['2026-07-26'],
+  'past sessions remain excluded without collapsing the still-current independent session',
+);
 
 assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '참가비 0원, 6월 5일 무료 체험 클래스',

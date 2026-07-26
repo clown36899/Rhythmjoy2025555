@@ -733,3 +733,10 @@
 - 관련 파일:
 - 관련 커밋:
 ```
+## 2026-07-26 — Compact multi-day social notice collapsed to one candidate
+
+- Status: resolved
+- Context: A Naver Cafe notice titled `7월 25,26일` described Saturday and Sunday as separate social sessions with different DJ/time sections, but only one candidate appeared.
+- Root cause: the social section parser required a numeric date beside each body section. Compact dates in the title plus weekday-only body headings fell back to generic date extraction, losing per-session details; already-past dates were then correctly filtered by the future-only policy.
+- Resolution: added title-date/weekday-section matching so each future/current social session becomes its own candidate with section-scoped details. Social candidates remain exempt from first-date expansion collapse.
+- Verification: covered by `scripts/test-ingestion-standards.mjs`.
