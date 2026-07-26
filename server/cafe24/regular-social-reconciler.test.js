@@ -12,6 +12,12 @@ describe('regular social reconciliation', () => {
       horizonDays: 14,
     });
     expect(plan.creates.map((event) => event.date)).toEqual(['2026-07-31', '2026-08-07']);
+    expect(plan.creates[0]).toMatchObject({
+      dj_name: '미정',
+      image: '',
+      image_full: '',
+      address: '샘플홀',
+    });
   });
 
   it('lets an explicit collected social replace the generated default', () => {
@@ -92,6 +98,31 @@ describe('regular social reconciliation', () => {
     expect(plan.creates[0]).toMatchObject({
       dj_name: '메이저',
       description: 'DJ 메이저',
+    });
+  });
+
+  it('removes a borrowed poster from an existing default occurrence', () => {
+    const generated = {
+      id: 'regular-social:sample-fri:2026-07-31',
+      date: '2026-07-31',
+      title: rule.title,
+      time: rule.time,
+      location: rule.location,
+      image: '/uploads/old-dj-poster.webp',
+      dj_name: '',
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    const plan = planRegularSocialReconciliation({
+      events: [generated],
+      rules: [rule],
+      today: '2026-07-26',
+      horizonDays: 7,
+    });
+    expect(plan.removes).toEqual([generated]);
+    expect(plan.creates[0]).toMatchObject({
+      id: generated.id,
+      image: '',
+      dj_name: '미정',
     });
   });
 

@@ -131,13 +131,20 @@ export function planRegularSocialReconciliation({
       const desiredTitle = override?.title || rule.title;
       const desiredTime = override?.time || rule.time;
       const desiredLocation = override?.location || rule.location;
-      const desiredDjName = override?.djName || '';
+      const desiredDjName = override?.djName || '미정';
+      const hasGeneratedPoster = Boolean(
+        generated?.image
+        || generated?.image_medium
+        || generated?.image_thumbnail
+        || generated?.image_full
+      );
       const generatedNeedsUpdate = generated && (
         generated.title !== desiredTitle
         || generated.time !== desiredTime
         || generated.location !== desiredLocation
         || String(generated.dj_name || '') !== desiredDjName
         || String(generated.automation?.exception_id || '') !== String(override?.externalId || '')
+        || hasGeneratedPoster
       );
       if (generated && !generatedNeedsUpdate) {
         retained.push(generated);
@@ -145,8 +152,8 @@ export function planRegularSocialReconciliation({
       }
       if (generatedNeedsUpdate) removes.push(generated);
 
-      const template = events.find((event) => matchesRule(event, rule) && (
-        event.image || event.image_medium || event.image_thumbnail
+      const venueTemplate = events.find((event) => matchesRule(event, rule) && (
+        event.address || event.location_link || event.venue_id
       ));
       creates.push({
         id,
@@ -158,18 +165,22 @@ export function planRegularSocialReconciliation({
         time: desiredTime,
         location: desiredLocation,
         venue_name: override?.venueName || override?.location || rule.location,
+        address: venueTemplate?.address || desiredLocation,
+        location_link: venueTemplate?.location_link || '',
+        venue_id: venueTemplate?.venue_id || null,
         dj_name: desiredDjName,
         category: 'social',
         activity_type: 'social',
         dance_scope: 'swing',
         genre: '소셜',
-        image: template?.image || template?.image_medium || template?.image_thumbnail || '',
-        image_medium: template?.image_medium || '',
-        image_thumbnail: template?.image_thumbnail || '',
-        link1: override?.sourceUrl || rule.sourceUrl || template?.link1 || '',
-        link_name1: template?.link_name1 || '',
+        image: '',
+        image_full: '',
+        image_medium: '',
+        image_thumbnail: '',
+        link1: override?.sourceUrl || rule.sourceUrl || '',
+        link_name1: override?.sourceUrl || rule.sourceUrl ? '공식 안내' : '',
         description: override?.description
-          || (override?.djName ? `DJ ${override.djName}` : '정규 소셜 일정입니다. 휴무·특별행사·DJ 공지가 확인되면 자동으로 갱신됩니다.'),
+          || (override?.djName ? `DJ ${override.djName}` : 'DJ 미정 · 정규 소셜 일정입니다. 공식 공지 확인 시 갱신됩니다.'),
         organizer: 'Swing Enjoy',
         automation: {
           generated_by: GENERATED_BY,
