@@ -127,6 +127,7 @@ const guideSearchItems = [
   { id: 'address', title: '카카오맵 주소 확인', summary: '도로명주소, 다음 우편번호, 지도 호환 안내', keywords: 'address postal_code daum kakao naver google map 장소 주소 검색' },
   { id: 'fields', title: '요청 필드 정리', summary: '필수값, 선택값, 데이터 형식', keywords: 'external_id title source_url time location description field 필드' },
   { id: 'sync', title: '일정 수정과 삭제', summary: 'PUT, DELETE, external_id와 이미지 교체', keywords: 'crud update delete 동기화 자동 반영 소유권 같은 키' },
+  { id: 'regular-socials', title: '정규 소셜 반복 규칙과 예외', summary: '반복 일정, DJ 미정, 휴무, 포스터 있는 회차 대체', keywords: 'regular social 반복 정규 소셜 dj 미정 closure override 휴무 졸공 포스터 우선순위 중복' },
   { id: 'limits', title: '요청 한도와 오류 대응', summary: '테스트·운영 한도, 429와 오류 코드', keywords: 'rate limit 도배 테스트 상향 400 401 403 404 409 422 429' },
 ] as const;
 
@@ -209,6 +210,76 @@ const response = await fetch(
 );
 const result = await response.json();
 if (!response.ok) throw new Error(result.message || "일정 삭제 실패");`;
+
+const regularSocialRuleExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY' \\
+  -H 'Content-Type: application/json' \\
+  --data '{
+    "external_id": "friday-social",
+    "title": "금요 소셜",
+    "weekday": 5,
+    "time": "20:00",
+    "location": "샘플홀",
+    "source_url": "https://partner.example.com/socials/friday",
+    "valid_from": "2026-08-01",
+    "active": true
+  }'`;
+
+const regularSocialDjOverrideExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials/friday-social/exceptions' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY' \\
+  -H 'Content-Type: application/json' \\
+  --data '{
+    "external_id": "friday-social-20260807-dj",
+    "date": "2026-08-07",
+    "type": "override",
+    "dj_name": "메이저",
+    "source_url": "https://partner.example.com/socials/20260807"
+  }'`;
+
+const regularSocialClosureExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials/friday-social/exceptions' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY' \\
+  -H 'Content-Type: application/json' \\
+  --data '{
+    "external_id": "friday-social-20260814-closed",
+    "date": "2026-08-14",
+    "type": "closure",
+    "source_url": "https://partner.example.com/notices/20260814"
+  }'`;
+
+const datedSocialWithPosterExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/events' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY' \\
+  -H 'Content-Type: application/json' \\
+  --data '{
+    "external_id": "friday-social-20260821",
+    "title": "금요 소셜 · DJ 메이저",
+    "event_dates": ["2026-08-21"],
+    "time": "20:00",
+    "location": "샘플홀",
+    "address": "서울 마포구 샘플로 1",
+    "category": "social",
+    "genre": "소셜",
+    "description": "DJ 메이저",
+    "source_url": "https://partner.example.com/socials/20260821",
+    "image_mode": "url",
+    "image_url": "https://partner.example.com/images/20260821.webp"
+  }'`;
+
+const updateRegularSocialRuleExample = `curl -X PUT 'https://swingenjoy.com/api/external/v1/regular-socials/friday-social' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY' \\
+  -H 'Content-Type: application/json' \\
+  --data '{
+    "external_id": "friday-social",
+    "title": "금요 소셜",
+    "weekday": 5,
+    "time": "20:30",
+    "location": "샘플홀",
+    "source_url": "https://partner.example.com/socials/friday",
+    "active": true
+  }'`;
+
+const deleteRegularSocialExceptionExample = `curl -X DELETE \\
+  'https://swingenjoy.com/api/external/v1/regular-socials/friday-social/exceptions/friday-social-20260814-closed' \\
+  -H 'Authorization: Bearer 발급받은_API_KEY'`;
 
 const imageUploadExample = `curl -X POST 'https://swingenjoy.com/api/external/v1/images' \\
   -H 'Authorization: Bearer 발급받은_API_KEY' \\
@@ -310,6 +381,8 @@ export default function ExternalEventApiGuidePage() {
   const [searchViewport, setSearchViewport] = useState({ height: 0, top: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+  const [activeSectionId, setActiveSectionId] = useState('quick-start');
+  const [isTocFollowing, setIsTocFollowing] = useState(false);
   const [myPartners, setMyPartners] = useState<Array<{
     id: string; name: string; environment: 'test' | 'live'; per_minute_limit: number; daily_limit: number;
   }>>([]);
@@ -432,6 +505,43 @@ export default function ExternalEventApiGuidePage() {
     document.getElementById(`external-api-search-option-${activeSearchIndex}`)
       ?.scrollIntoView({ block: 'nearest' });
   }, [activeSearchIndex]);
+
+  useEffect(() => {
+    let frame = 0;
+    const sectionIds = guideSearchItems.map((item) => item.id);
+    const updateActiveSection = () => {
+      frame = 0;
+      const activationLine = Math.min(220, window.innerHeight * 0.32);
+      const tocFollowTop = Math.max(88, (window.innerHeight * 0.5) - 210);
+      const layout = document.querySelector<HTMLElement>('.EAG-layout');
+      const toc = document.querySelector<HTMLElement>('.EAG-toc');
+      const layoutRect = layout?.getBoundingClientRect();
+      const tocHeight = toc?.offsetHeight || 0;
+      const shouldFollow = Boolean(
+        layoutRect
+        && layoutRect.top <= tocFollowTop
+        && layoutRect.bottom > tocFollowTop + tocHeight,
+      );
+      let current = sectionIds[0];
+      for (const id of sectionIds) {
+        const section = document.getElementById(id);
+        if (section && section.getBoundingClientRect().top <= activationLine) current = id;
+      }
+      setIsTocFollowing((previous) => (previous === shouldFollow ? previous : shouldFollow));
+      setActiveSectionId((previous) => (previous === current ? previous : current));
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateActiveSection);
+    };
+    updateActiveSection();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', requestUpdate);
+      window.removeEventListener('resize', requestUpdate);
+    };
+  }, []);
 
   const handleSearchKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (!searchResults.length) return;
@@ -586,17 +696,19 @@ export default function ExternalEventApiGuidePage() {
       </section>
 
       <div className="EAG-layout">
-        <aside className="EAG-toc" aria-label="문서 목차">
+        <aside className={`EAG-toc${isTocFollowing ? ' is-following' : ''}`} aria-label="문서 목차">
           <strong>이 페이지에서</strong>
-          <a href="/external-event-api#quick-start">1. 연동 시작</a>
-          <a href="/external-event-api#request-example">2. 일정 요청 예시</a>
-          <a href="/external-event-api#dates">3. 날짜 입력</a>
-          <a href="/external-event-api#categories">4. 분류와 장르</a>
-          <a href="/external-event-api#images">5. 이미지 등록</a>
-          <a href="/external-event-api#address">6. 주소 확인</a>
-          <a href="/external-event-api#fields">7. 필드 정리</a>
-          <a href="/external-event-api#sync">8. 수정·삭제</a>
-          <a href="/external-event-api#limits">9. 한도·오류</a>
+          {guideSearchItems.map((item, index) => (
+            <a
+              key={item.id}
+              href={`/external-event-api#${item.id}`}
+              className={activeSectionId === item.id ? 'is-active' : undefined}
+              aria-current={activeSectionId === item.id ? 'location' : undefined}
+              draggable={false}
+            >
+              {index + 1}. {item.title}
+            </a>
+          ))}
         </aside>
 
         <article className="EAG-content">
@@ -692,6 +804,27 @@ export default function ExternalEventApiGuidePage() {
           <section id="request-example" className="EAG-section">
             <span className="EAG-sectionNo">02</span>
             <h2>일정 등록 요청</h2>
+            <nav className="EAG-registrationMenu" aria-label="일정 등록 방식 선택">
+              <a href="/external-event-api#request-example" draggable={false}>
+                <span>모든 장르</span>
+                <strong>날짜가 정해진 개별 일정</strong>
+                <small>소셜 · 행사 · 강습 · 동호회</small>
+                <code>POST /events</code>
+              </a>
+              <a href="/external-event-api#regular-socials" draggable={false}>
+                <span>소셜만</span>
+                <strong>매주 반복하는 정규 소셜</strong>
+                <small>기본 규칙 · DJ 변경 · 휴무</small>
+                <code>POST /regular-socials</code>
+              </a>
+            </nav>
+            <div className="EAG-callout">
+              <i className="ri-route-line" aria-hidden="true" />
+              <div>
+                <strong>소셜이라고 모두 반복 API를 쓰는 것은 아닙니다.</strong>
+                <p>날짜가 확정된 소셜·졸공·포스터가 있는 한 회차는 다른 장르와 똑같이 <code>/events</code>로 등록합니다. <b>매주 같은 요일에 계속 열리는 정규 소셜의 기본 일정만</b> <code>/regular-socials</code>를 사용합니다.</p>
+              </div>
+            </div>
             <p className="EAG-lead">먼저 실제로 동작하는 전체 요청 형태를 확인하세요.</p>
             <div className="EAG-callout">
               <i className="ri-terminal-box-line" aria-hidden="true" />
@@ -938,8 +1071,99 @@ export default function ExternalEventApiGuidePage() {
             <p>삭제는 JSON 본문이 필요하지 않습니다. 등록에 사용한 API Key와 <code>external_id</code>만 URL에 넣습니다. 삭제가 성공하면 Dance Billboard의 일정과 연결 이미지도 함께 삭제됩니다. 다른 파트너 키로 등록한 일정은 수정하거나 삭제할 수 없습니다.</p>
           </section>
 
-          <section id="limits" className="EAG-section">
+          <section id="regular-socials" className="EAG-section">
             <span className="EAG-sectionNo">09</span>
+            <h2>정규 소셜 반복 규칙과 날짜별 예외</h2>
+            <p className="EAG-lead">매주 같은 요일에 열리는 소셜은 기본 규칙을 한 번 등록하고, 이후에는 DJ·휴무·특별 회차처럼 달라진 날짜만 전송합니다. 이 API는 <code>social</code> 권한을 가진 파트너 키에서만 사용할 수 있습니다.</p>
+
+            <div className="EAG-tableWrap">
+              <table>
+                <thead><tr><th>등록하려는 내용</th><th>사용할 API</th><th>결과</th></tr></thead>
+                <tbody>
+                  <tr><td>모든 장르의 날짜가 정해진 일정</td><td><code>POST /events</code></td><td>해당 날짜의 개별 일정 등록</td></tr>
+                  <tr><td>매주 반복하는 정규 소셜의 기본 일정</td><td><code>POST /regular-socials</code></td><td>앞으로 90일의 기본 일정 생성</td></tr>
+                  <tr><td>특정 날짜의 DJ·시간·장소 변경</td><td><code>POST /regular-socials/{'{규칙 ID}'}/exceptions</code></td><td>해당 날짜만 <code>override</code></td></tr>
+                  <tr><td>특정 날짜 휴무·취소</td><td><code>POST /regular-socials/{'{규칙 ID}'}/exceptions</code></td><td>해당 날짜를 <code>closure</code>로 숨김</td></tr>
+                  <tr><td>포스터가 있는 한 회차·졸공·특별 소셜</td><td><code>POST /events</code></td><td>기본 일정 대신 공식 개별 일정 노출</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="EAG-warning">
+              <strong>확인되지 않은 DJ와 포스터는 기본 일정에 넣지 않습니다.</strong>
+              <p>반복 규칙만 등록된 회차는 <b>DJ 미정 · 포스터 없음 · 장소 카카오맵</b>으로 표시됩니다. 과거 포스터를 재사용하지 않습니다. 해당 날짜의 포스터가 확정되면 <code>/events</code>로 그 회차를 개별 등록하세요.</p>
+            </div>
+
+            <h3 className="EAG-subheading">1단계 · 반복 규칙을 한 번 등록</h3>
+            <CodeBlock label="cURL · 매주 금요일 정규 소셜 등록" code={regularSocialRuleExample} />
+            <div className="EAG-tableWrap">
+              <table>
+                <thead><tr><th>필드</th><th>필수</th><th>작성 방법</th></tr></thead>
+                <tbody>
+                  <tr><td><code>external_id</code></td><td>필수</td><td>파트너 시스템에서 바뀌지 않는 반복 규칙 ID, 최대 160자</td></tr>
+                  <tr><td><code>title</code></td><td>필수</td><td>기본 일정 제목</td></tr>
+                  <tr><td><code>weekday</code></td><td>필수</td><td>일 0 · 월 1 · 화 2 · 수 3 · 목 4 · 금 5 · 토 6</td></tr>
+                  <tr><td><code>location</code></td><td>필수</td><td>카카오맵에서 찾을 수 있는 정확한 장소명</td></tr>
+                  <tr><td><code>source_url</code></td><td>필수</td><td>정규 소셜을 확인할 수 있는 공개 HTTPS 주소</td></tr>
+                  <tr><td><code>time</code>, <code>venue_name</code></td><td>선택</td><td>기본 시간과 표시할 장소명</td></tr>
+                  <tr><td><code>valid_from</code>, <code>valid_until</code></td><td>선택</td><td>규칙 적용 기간, <code>YYYY-MM-DD</code></td></tr>
+                  <tr><td><code>active</code></td><td>선택</td><td><code>true</code>가 기본값. 잠시 중단할 때 <code>false</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="EAG-footnote"><code>image_mode</code>, <code>image_url</code>, <code>dj_name</code>은 반복 규칙 필드가 아닙니다. 반복 규칙 요청에 보내면 <code>400 invalid_request</code>가 발생합니다.</p>
+
+            <h3 className="EAG-subheading">2단계 · DJ만 확정되면 해당 날짜를 override</h3>
+            <CodeBlock label="cURL · 8월 7일 DJ 확정" code={regularSocialDjOverrideExample} />
+            <p>규칙 ID <code>friday-social</code>은 URL에, 예외 자체의 고유 ID <code>friday-social-20260807-dj</code>는 본문의 <code>external_id</code>에 넣습니다. 같은 예외 ID로 다시 보내면 해당 날짜의 내용을 갱신합니다.</p>
+            <div className="EAG-callout">
+              <i className="ri-image-line" aria-hidden="true" />
+              <div>
+                <strong>DJ override에는 포스터를 첨부할 수 없습니다.</strong>
+                <p>DJ 이름만 확인된 경우 위 예시처럼 예외를 보냅니다. DJ와 해당 날짜의 포스터가 모두 확인됐다면 아래처럼 기존 <code>/events</code> API로 개별 일정을 등록해야 합니다.</p>
+              </div>
+            </div>
+
+            <h3 className="EAG-subheading">3단계 · 휴무는 해당 날짜를 closure</h3>
+            <CodeBlock label="cURL · 8월 14일 휴무" code={regularSocialClosureExample} />
+            <p><code>date</code>에는 실제 반복 일정이 열릴 날짜를 넣습니다. <code>closure</code>가 등록되면 그 날짜의 기본 일정만 숨기고 다음 주 일정은 유지합니다.</p>
+
+            <h3 className="EAG-subheading">4단계 · 포스터가 있는 회차는 기존 /events로 대체</h3>
+            <CodeBlock label="cURL · DJ와 포스터가 확정된 한 회차" code={datedSocialWithPosterExample} />
+            <p>같은 날짜와 같은 장소의 공식 개별 일정이 등록되면 반복 규칙이 만든 기본 일정은 노출되지 않습니다. 졸공이면 위 JSON의 <code>genre</code>를 <code>졸공</code>으로 바꾸고 실제 제목·설명·포스터를 보내세요.</p>
+
+            <h3 className="EAG-subheading">규칙과 예외 수정·삭제</h3>
+            <div className="EAG-endpointList">
+              <div><span className="EAG-method EAG-methodPut">PUT</span><code>{'/regular-socials/{규칙 external_id}'}</code><p>규칙 전체 수정</p></div>
+              <div><span className="EAG-method EAG-methodDelete">DELETE</span><code>{'/regular-socials/{규칙 external_id}'}</code><p>규칙과 연결 예외 삭제</p></div>
+              <div><span className="EAG-method EAG-methodPut">PUT</span><code>{'/regular-socials/{규칙 ID}/exceptions/{예외 ID}'}</code><p>예외 전체 수정</p></div>
+              <div><span className="EAG-method EAG-methodDelete">DELETE</span><code>{'/regular-socials/{규칙 ID}/exceptions/{예외 ID}'}</code><p>예외 삭제</p></div>
+            </div>
+            <CodeBlock label="cURL · 반복 규칙 전체 수정" code={updateRegularSocialRuleExample} />
+            <CodeBlock label="cURL · 휴무 예외 삭제" code={deleteRegularSocialExceptionExample} />
+            <p>예외를 삭제하면 그 날짜는 다시 기본 반복 일정으로 돌아갑니다. 규칙을 삭제하거나 <code>active: false</code>로 수정하면 그 규칙이 만든 미래 기본 일정이 제거됩니다.</p>
+
+            <h3 className="EAG-subheading">우선순위와 중복 판정</h3>
+            <ol className="EAG-numberList">
+              <li><b>공식 API 개별 일정:</b> <code>/events</code>로 등록된 해당 날짜 일정</li>
+              <li><b>공식 날짜별 예외:</b> DJ·시간·장소 override 또는 closure</li>
+              <li><b>확인된 수집 일정:</b> 해당 날짜의 실제 공지와 포스터</li>
+              <li><b>공식 반복 규칙:</b> 파트너가 등록한 정규 소셜 기본값</li>
+              <li><b>내부 기본 규칙:</b> 다른 정보가 없을 때만 사용하는 기본값</li>
+            </ol>
+            <p>소셜은 <b>날짜와 정규화된 장소가 같으면</b> DJ 이름이나 제목 표현이 달라도 같은 일정으로 판정합니다. 공식 API 개별 일정이 있으면 수집본보다 공식 일정만 노출합니다. 행사·강습은 같은 장소에서 같은 날 여러 일정이 가능하므로 날짜·장소와 제목 유사도까지 함께 확인합니다.</p>
+
+            <div className="EAG-callout">
+              <i className="ri-flask-line" aria-hidden="true" />
+              <div>
+                <strong>테스트 키는 같은 요청을 검증하지만 실제 일정은 만들지 않습니다.</strong>
+                <p>응답의 <code>test_mode: true</code>, <code>persisted: false</code>를 확인한 뒤 관리자에게 운영 전환을 요청하세요. 운영 키에서는 최초 등록이 일반적으로 <code>201</code>, 동일 ID 갱신은 <code>200</code>입니다.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="limits" className="EAG-section">
+            <span className="EAG-sectionNo">10</span>
             <h2>도배 방지 한도와 오류 대응</h2>
             <div className="EAG-limitBanner">
               <div><strong>30회</strong><span>테스트 권장 분당 한도</span></div>

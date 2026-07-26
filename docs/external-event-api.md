@@ -553,48 +553,129 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/events' \
 
 기계 판독용 API 정의는 함께 전달된 `external-event-api.openapi.yaml` 파일을 참고해 주세요.
 
-## 12. 정규 소셜 반복 규칙과 날짜별 예외
+## 11. 정규 소셜 반복 규칙과 날짜별 예외
 
-기존 `/events` API는 소셜·행사·강습·동호회의 날짜별 개별 일정에 계속 사용합니다. 매주 같은 요일에 열리는 정규 소셜만 아래 별도 API를 사용할 수 있으며, `social` 권한을 가진 API Key가 필요합니다.
+먼저 등록하려는 내용에 따라 API를 구분하세요.
 
-### 반복 규칙 등록
+| 등록하려는 내용 | 사용할 API |
+|---|---|
+| 소셜·행사·강습·동호회의 날짜가 정해진 일정 | `POST /api/external/v1/events` |
+| 매주 같은 요일에 반복하는 정규 소셜의 기본 일정 | `POST /api/external/v1/regular-socials` |
+| 정규 소셜의 특정 날짜 DJ·시간·장소 변경 | `POST /api/external/v1/regular-socials/{규칙 ID}/exceptions`, `type: override` |
+| 정규 소셜의 특정 날짜 휴무·취소 | 같은 예외 API, `type: closure` |
+| 포스터가 있는 한 회차·졸공·특별 소셜 | 기존 `/events` API로 날짜별 개별 등록 |
 
-```http
-POST /api/external/v1/regular-socials
+소셜이라고 모두 반복 API를 쓰는 것은 아닙니다. **매주 같은 요일에 계속 열리는 정규 소셜의 기본 규칙만** 반복 API를 사용합니다. 날짜가 확정된 한 회차는 다른 장르와 동일하게 `/events`로 등록합니다. 반복 API는 `social` 권한을 가진 API Key에서만 사용할 수 있습니다.
+
+### 11.1 반복 규칙 등록
+
+```bash
+curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials' \
+  -H 'Authorization: Bearer 발급받은_API_KEY' \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "external_id": "friday-social",
+    "title": "금요 소셜",
+    "weekday": 5,
+    "time": "20:00",
+    "location": "샘플홀",
+    "source_url": "https://partner.example.com/socials/friday",
+    "valid_from": "2026-08-01",
+    "active": true
+  }'
 ```
 
-```json
-{
-  "external_id": "friday-social",
-  "title": "금요 소셜",
-  "weekday": 5,
-  "time": "20:00",
-  "location": "샘플홀",
-  "source_url": "https://partner.example/socials/friday"
-}
+`weekday`는 일요일 `0`, 월요일 `1`, 화요일 `2`, 수요일 `3`, 목요일 `4`, 금요일 `5`, 토요일 `6`입니다. 서버는 활성 규칙을 앞으로 90일의 개별 기본 일정으로 생성합니다.
+
+반복 규칙만으로 만든 기본 일정은 `DJ 미정`, 포스터 없음, 장소 카카오맵으로 표시됩니다. 과거 회차의 포스터를 재사용하지 않습니다. `image_mode`, `image_url`, `dj_name`은 반복 규칙에서 지원하지 않으며 보내면 `400 invalid_request`가 발생합니다.
+
+| 필드 | 필수 | 설명 |
+|---|---:|---|
+| `external_id` | 필수 | 파트너 시스템에서 바뀌지 않는 규칙 ID, 최대 160자 |
+| `title` | 필수 | 기본 일정 제목 |
+| `weekday` | 필수 | 0부터 6까지의 요일 번호 |
+| `location` | 필수 | 카카오맵에서 검색할 수 있는 정확한 장소명 |
+| `source_url` | 필수 | 정규 소셜을 확인할 수 있는 공개 HTTPS 주소 |
+| `time`, `venue_name` | 선택 | 기본 시간과 표시 장소명 |
+| `valid_from`, `valid_until` | 선택 | 규칙 적용 기간, `YYYY-MM-DD` |
+| `active` | 선택 | 기본값 `true`; 잠시 중단할 때 `false` |
+
+### 11.2 DJ만 확정된 날짜
+
+반복 규칙 전체를 다시 보내지 말고 해당 날짜만 `override`로 등록합니다.
+
+```bash
+curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials/friday-social/exceptions' \
+  -H 'Authorization: Bearer 발급받은_API_KEY' \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "external_id": "friday-social-20260807-dj",
+    "date": "2026-08-07",
+    "type": "override",
+    "dj_name": "메이저",
+    "source_url": "https://partner.example.com/socials/20260807"
+  }'
 ```
 
-`weekday`는 일요일 `0`부터 토요일 `6`까지입니다. 서버는 활성 규칙을 앞으로 90일의 개별 일정으로 생성합니다. 같은 장소·요일의 내부 기본 규칙보다 파트너의 공식 규칙을 우선합니다.
+URL의 `friday-social`은 반복 규칙 ID이고, 본문의 `external_id`는 날짜별 예외 자체의 고유 ID입니다. DJ override에는 포스터를 첨부할 수 없습니다.
 
-수정은 `PUT /api/external/v1/regular-socials/{external_id}`, 삭제는 `DELETE`를 사용합니다. 삭제하거나 `active: false`로 수정하면 해당 규칙이 만든 미래 일정도 다음 조정 때 제거됩니다.
+### 11.3 휴무·취소 날짜
 
-### DJ·휴무 등 날짜별 예외
-
-DJ가 확정되면 반복 규칙 전체를 다시 보내지 말고 해당 날짜만 `override`로 등록합니다.
-
-```http
-POST /api/external/v1/regular-socials/friday-social/exceptions
+```bash
+curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials/friday-social/exceptions' \
+  -H 'Authorization: Bearer 발급받은_API_KEY' \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "external_id": "friday-social-20260814-closed",
+    "date": "2026-08-14",
+    "type": "closure",
+    "source_url": "https://partner.example.com/notices/20260814"
+  }'
 ```
 
-```json
-{
-  "external_id": "dj-20260807",
-  "date": "2026-08-07",
-  "type": "override",
-  "dj_name": "메이저"
-}
+해당 날짜의 기본 일정만 숨기며 다음 주 반복 일정은 유지합니다.
+
+### 11.4 DJ와 포스터가 모두 확정된 한 회차
+
+포스터 필드는 반복 규칙이나 예외가 아니라 기존 `/events` API에서 사용합니다.
+
+```bash
+curl -X POST 'https://swingenjoy.com/api/external/v1/events' \
+  -H 'Authorization: Bearer 발급받은_API_KEY' \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "external_id": "friday-social-20260821",
+    "title": "금요 소셜 · DJ 메이저",
+    "event_dates": ["2026-08-21"],
+    "time": "20:00",
+    "location": "샘플홀",
+    "address": "서울 마포구 샘플로 1",
+    "category": "social",
+    "genre": "소셜",
+    "description": "DJ 메이저",
+    "source_url": "https://partner.example.com/socials/20260821",
+    "image_mode": "url",
+    "image_url": "https://partner.example.com/images/20260821.webp"
+  }'
 ```
 
-휴무는 같은 형식에서 `"type": "closure"`로 보냅니다. 졸공처럼 별도의 공식 개별 일정이 있는 날은 기존 `/events` API로 그 날짜의 `genre: "졸공"` 일정을 등록하면 개별 일정이 반복 생성본보다 우선합니다.
+같은 날짜와 장소의 공식 개별 일정이 등록되면 반복 규칙이 만든 기본 일정은 노출되지 않습니다. 졸공이면 `genre`를 `졸공`으로 보내세요.
 
-예외 수정은 `PUT /api/external/v1/regular-socials/{rule_external_id}/exceptions/{external_id}`, 삭제는 같은 주소의 `DELETE`를 사용합니다. 공식 개별 일정, 공식 날짜별 예외, 수집 정보, 반복 기본 규칙 순으로 우선 적용됩니다.
+### 11.5 수정과 삭제
+
+```text
+PUT    /api/external/v1/regular-socials/{규칙 external_id}
+DELETE /api/external/v1/regular-socials/{규칙 external_id}
+PUT    /api/external/v1/regular-socials/{규칙 ID}/exceptions/{예외 ID}
+DELETE /api/external/v1/regular-socials/{규칙 ID}/exceptions/{예외 ID}
+```
+
+`PUT`은 일부 필드만 보내는 방식이 아니라 현재 규칙 또는 예외의 전체 값을 다시 보냅니다. 예외를 삭제하면 해당 날짜가 다시 기본 반복 일정으로 돌아갑니다. 규칙을 삭제하거나 `active: false`로 수정하면 그 규칙이 만든 미래 기본 일정이 제거됩니다.
+
+### 11.6 우선순위와 중복 판정
+
+적용 순서는 공식 API 개별 일정 → 공식 날짜별 예외 → 확인된 수집 일정 → 공식 반복 규칙 → 내부 기본 규칙입니다.
+
+소셜은 날짜와 정규화된 장소가 같으면 DJ 이름이나 제목 표현이 달라도 같은 일정으로 판단하며 공식 API 개별 일정이 수집본보다 우선 노출됩니다. 행사·강습은 같은 장소에서 같은 날 여러 일정이 열릴 수 있으므로 날짜·장소와 제목 유사도까지 함께 확인합니다.
+
+테스트 키로 같은 요청을 보내면 형식과 권한만 검사하고 실제 일정은 만들지 않습니다. 응답의 `test_mode: true`, `persisted: false`를 확인한 뒤 운영 전환을 요청하세요.
