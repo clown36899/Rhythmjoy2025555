@@ -745,3 +745,16 @@
 
 - The 2026-07-25 session was successfully stored during a 2026-07-26 manual recovery but did not appear in the admin new-candidate list because the normal future-only list filter hid it.
 - Added a narrowly scoped `manual_recovery_until` exception. It keeps an explicitly recovered past candidate visible only through the specified review date; ordinary automated past candidates remain hidden.
+
+## 2026-07-26 모바일 달력 연속 일정과 날짜 헤더 간격 겹침
+
+- 상태: 해결
+- 범위: 모바일 월간 달력의 날짜·요일 헤더 및 연속 일정 표시
+- 증상: 연속 일정이 2줄 이상 표시될 때 첫 일정이 날짜·요일 표시부에 너무 가까워지고, 연속 일정 아래의 일반 이벤트와도 간격이 불균일했다.
+- 원인: 모바일 날짜 헤더의 실제 최대 높이는 오늘 날짜 배지를 포함해 20px인데, 연속 일정의 시작 위치는 행 상단 18px로 고정되어 있었다. 연속 일정 뒤 본문 여백도 별도 기준값을 사용했다.
+- 조치: 연속 일정 시작 위치를 날짜 헤더 아래 28px로 이동했다. 연속 일정의 실제 줄 수에 20px 줄 간격을 곱한 높이를 런타임 CSS 변수로 전달하고, 그 높이 뒤에 16px의 공통 여백을 적용해 1·2·3줄 이상에서도 아래 이벤트가 자동으로 밀리게 했다. 기존 3줄 표시 제한도 제거했다.
+- 검증: CSS 규칙 확인 및 프로덕션 빌드
+- 관련 파일:
+  - `src/pages/calendar/components/FullEventCalendar.tsx`
+  - `src/pages/calendar/styles/FullEventCalendar.css`
+- 관련 커밋: pending

@@ -47,6 +47,7 @@ const parseDateKey = (value: any) => {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CALENDAR_SPAN_LANE_STEP_PX = 20;
 
 type CalendarSpanItem = {
   key: string;
@@ -478,12 +479,10 @@ const CalendarCell = memo(({
       </div>
 
       <div
-        className="calendar-cell-fullscreen-body"
+        className={`calendar-cell-fullscreen-body ${reservedSpanLanes > 0 ? 'has-calendar-spans' : ''}`}
         style={{
-          paddingTop: reservedSpanLanes > 0
-            ? `calc(${reservedSpanLanes * 20}px + var(--calendar-span-body-clearance, 8px))`
-            : undefined,
-        }}
+          '--calendar-span-reserved-height': `${reservedSpanLanes * CALENDAR_SPAN_LANE_STEP_PX}px`,
+        } as React.CSSProperties}
       >
         {shouldRenderEvents ? (
           <>
@@ -737,7 +736,7 @@ export default memo(function FullEventCalendar({
     calendarSpanItems.forEach((span) => {
       let assignedLane = -1;
 
-      for (let i = 0; i < Math.min(lanes.length, 3); i++) {
+      for (let i = 0; i < lanes.length; i++) {
         if (lanes[i].endDate < span.startDate) {
           assignedLane = i;
           lanes[i] = { endDate: span.endDate, spanKey: span.key };
@@ -745,12 +744,10 @@ export default memo(function FullEventCalendar({
         }
       }
 
-      if (assignedLane === -1 && lanes.length < 3) {
+      if (assignedLane === -1) {
         assignedLane = lanes.length;
         lanes.push({ endDate: span.endDate, spanKey: span.key });
       }
-
-      if (assignedLane === -1) return;
 
       map.set(span.key, {
         lane: assignedLane,
@@ -1070,7 +1067,7 @@ export default memo(function FullEventCalendar({
         })
         .forEach((span) => {
           const laneInfo = calendarSpanLaneMap.get(span.key);
-          if (!laneInfo || laneInfo.lane >= 3) return;
+          if (!laneInfo) return;
 
           const segmentStartDate = span.startDate > weekStartDate ? span.startDate : weekStartDate;
           const segmentEndDate = span.endDate < weekEndDate ? span.endDate : weekEndDate;
@@ -1102,7 +1099,7 @@ export default memo(function FullEventCalendar({
             style={{
               gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
               gridRow: segment.weekRow + 1,
-              '--lane-offset': `${segment.lane * 20}px`,
+              '--lane-offset': `${segment.lane * CALENDAR_SPAN_LANE_STEP_PX}px`,
             } as React.CSSProperties}
             role="button"
             tabIndex={0}
@@ -1138,7 +1135,7 @@ export default memo(function FullEventCalendar({
       const spanLanesForDate = calendarSpanItems
         .filter((span) => isDateInCalendarSpan(span, dateString))
         .map((span) => calendarSpanLaneMap.get(span.key)?.lane)
-        .filter((lane): lane is number => typeof lane === "number" && lane < 3);
+        .filter((lane): lane is number => typeof lane === "number");
       const reservedSpanLanes = spanLanesForDate.length > 0 ? Math.max(...spanLanesForDate) + 1 : 0;
 
       return (

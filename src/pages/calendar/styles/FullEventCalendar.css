@@ -1984,11 +1984,19 @@
 }
 
 .calendar-page-container .calendar-cell-fullscreen-body {
+  --calendar-span-reserved-height: 0px;
   display: grid;
   align-content: start;
   gap: 4px;
   min-width: 0;
   padding: 0;
+}
+
+.calendar-page-container .calendar-cell-fullscreen-body.has-calendar-spans {
+  padding-top: calc(
+    var(--calendar-span-reserved-height) +
+    var(--calendar-span-body-clearance, 8px)
+  );
 }
 
 .calendar-page-container .calendar-social-section {
@@ -2258,7 +2266,12 @@
   }
 
   .calendar-page-container .calendar-overlay-item {
-    margin-top: calc(18px + var(--lane-offset, 0px));
+    /*
+     * Keep multi-day bars below the tallest mobile date badge (today is 20px).
+     * Each additional lane is still offset by 20px, so one and multiple lanes
+     * retain the same gap from the date header and the event cards below.
+     */
+    margin-top: calc(28px + var(--lane-offset, 0px));
   }
 
   .calendar-page-container .calendar-overlay-first-week {
@@ -2310,6 +2323,7 @@
   }
 
   .calendar-page-container .calendar-cell-fullscreen-body {
+    --calendar-span-body-clearance: 16px;
     gap: 3px;
   }
 
