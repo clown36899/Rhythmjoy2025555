@@ -842,7 +842,8 @@
   - 2160×3840, 30fps, 15초, H.264, yuv420p, BT.709 결과 재검증
   - `com.rhythmjoy.social-reel-publish`를 Mac 사용자 LaunchAgent로 설치하고 화(2)·목(4)·토(6) 12:30 트리거, `caffeinate`, 작업 경로와 로그 경로를 `launchctl print`로 확인
 - 알려진 운영 상태:
-  - 기존 Telegram Bot 환경 값은 테스트 시 HTTP 404를 반환했다. Telegram 실패가 게시 성공을 실패 처리하지 않게 하고 macOS 알림·로그로 대체했다.
+  - 초기 드라이런에서 Telegram Bot 환경 값이 HTTP 404를 반환했다. 원인은 토큰 만료가 아니라 캘린더 동기화 설정의 셸 기본값 문법을 `dotenv`가 확장하지 않은 것이었다. 셸 호환 환경 로더를 추가해 기존 캘린더 동기화 봇과 채팅 ID를 함께 사용하도록 수정했다.
+  - Telegram 전송 자체가 실패해도 게시 성공을 실패 처리하지 않으며 macOS 알림·로그로 대체한다.
   - Mac 잠금은 허용되지만 잠자기·종료·로그아웃·네트워크 단절 중에는 실행할 수 없다.
 - 관련 파일:
   - `scripts/social-reels/instagram-reel-adb.mjs`

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import dotenv from 'dotenv';
 
@@ -15,6 +15,42 @@ const defaultEnvironmentPath = path.join(
   process.env.USERPROFILE || process.env.HOME || '',
   '.rhythmjoy-ingestion.env',
 );
+
+function stripMatchingQuotes(value) {
+  if (
+    (value.startsWith('"') && value.endsWith('"'))
+    || (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+export function resolveShellDefaultExpression(key, rawValue, currentValue) {
+  const value = stripMatchingQuotes(rawValue.trim());
+  const match = value.match(/^\$\{([A-Za-z_][A-Za-z0-9_]*):-(.*)}$/);
+  if (!match || match[1] !== key) return currentValue ?? stripMatchingQuotes(value);
+  if (currentValue && currentValue !== value) return currentValue;
+  return stripMatchingQuotes(match[2]);
+}
+
+export async function loadShellCompatibleEnvironment(environmentPath) {
+  dotenv.config({ path: environmentPath, quiet: true });
+  const contents = await readFile(environmentPath, 'utf8').catch(() => '');
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const separator = trimmed.indexOf('=');
+    if (separator <= 0) continue;
+    const key = trimmed.slice(0, separator).trim();
+    const rawValue = trimmed.slice(separator + 1).trim();
+    process.env[key] = resolveShellDefaultExpression(
+      key,
+      rawValue,
+      process.env[key],
+    );
+  }
+}
 
 function parseArguments(argv) {
   const values = {};
@@ -94,7 +130,7 @@ async function main() {
   const dryRun = Boolean(args['dry-run']);
   const environmentPath = process.env.RHYTHMJOY_SOCIAL_REEL_ENV
     || defaultEnvironmentPath;
-  dotenv.config({ path: environmentPath, quiet: true });
+  await loadShellCompatibleEnvironment(environmentPath);
   const startedAt = Date.now();
 
   try {
@@ -128,19 +164,21 @@ async function main() {
   }
 }
 
-main().catch(async (error) => {
-  try {
-    const statePath = path.join(
-      repositoryRoot,
-      'artifacts/social-reels',
-      todayInKorea(),
-      'publication-state.json',
-    );
-    const state = JSON.parse(await readFile(statePath, 'utf8'));
-    console.error(JSON.stringify(state, null, 2));
-  } catch {
-    // The main error remains the useful output.
-  }
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(async (error) => {
+    try {
+      const statePath = path.join(
+        repositoryRoot,
+        'artifacts/social-reels',
+        todayInKorea(),
+        'publication-state.json',
+      );
+      const state = JSON.parse(await readFile(statePath, 'utf8'));
+      console.error(JSON.stringify(state, null, 2));
+    } catch {
+      // The main error remains the useful output.
+    }
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

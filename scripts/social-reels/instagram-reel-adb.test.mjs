@@ -6,6 +6,7 @@ import {
   chooseNextTrack,
   parseUiNodes,
 } from './instagram-reel-adb.mjs';
+import { resolveShellDefaultExpression } from './run-scheduled-social-reel.mjs';
 
 test('UI XML parser decodes accessibility fields and bounds', () => {
   const nodes = parseUiNodes([
@@ -38,4 +39,23 @@ test('music rotation never repeats the previous successful track', () => {
 test('unknown history safely starts from the first configured jazz track', () => {
   const candidates = chooseNextTrack([{ title: 'Unknown', artist: 'Unknown' }]);
   assert.deepEqual(candidates[0], JAZZ_TRACKS[0]);
+});
+
+test('shell-style environment defaults resolve for the shared notification config', () => {
+  assert.equal(
+    resolveShellDefaultExpression(
+      'TELEGRAM_BOT_TOKEN',
+      '${TELEGRAM_BOT_TOKEN:-calendar-token}',
+      '${TELEGRAM_BOT_TOKEN:-calendar-token}',
+    ),
+    'calendar-token',
+  );
+  assert.equal(
+    resolveShellDefaultExpression(
+      'TELEGRAM_BOT_TOKEN',
+      '${TELEGRAM_BOT_TOKEN:-calendar-token}',
+      'explicit-token',
+    ),
+    'explicit-token',
+  );
 });
