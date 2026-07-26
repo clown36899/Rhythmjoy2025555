@@ -272,6 +272,24 @@
   opacity: 0;
 }
 
+.NEB-slide.is-social-image-fallback .NEB-imageWrapper {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(83, 220, 169, 0.24), transparent 34%),
+    linear-gradient(145deg, #11211f 0%, #172c27 48%, #0a1112 100%);
+}
+
+.NEB-slide.is-social-image-fallback .NEB-image {
+  opacity: 0;
+}
+
+.NEB-slide.is-social-image-fallback .NEB-socialPhotoPoster {
+  justify-content: flex-end;
+}
+
+.NEB-slide.is-social-image-fallback .NEB-socialPhotoCopy strong {
+  font-size: clamp(24px, 5vw, 42px);
+}
+
 .NEB-socialPhotoPortrait {
   align-self: flex-end;
   display: block;

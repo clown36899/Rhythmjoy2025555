@@ -853,3 +853,15 @@
   - `docs/social-reel-automation.md`
   - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
 - 관련 커밋: `7badf4d0`
+# 2026-07-26 — 키오스크 홈 광고 하단 UI 정렬
+
+- 상태: 수정 완료, 1080×1920 키오스크 화면 및 프로덕션 빌드 검증 완료
+- 현상: 1024px 이상 세로형 키오스크에서 일반 데스크톱 2열 배치가 적용되어 원데이 모집/무료·할인 버튼과 광고 제목의 기준선이 어긋나고, 오늘 일정이 광고 오른쪽에 표시됨. 이미지가 없는 소셜 이벤트 광고는 장소 정보 대신 기본 누락 이미지만 노출됨.
+- 원인: 키오스크 전용 레이아웃 안에서도 `.NEB-quickActions`의 데스크톱 `position: fixed` 규칙이 남아 하단 그리드 배치를 벗어남.
+- 조치: 키오스크를 모바일과 같은 단일 열 순서로 변경하고 버튼 묶음을 하단 그리드로 되돌려 두 버튼의 폭과 간격을 통일함. 오늘 일정은 전면 광고 하단에 표시함. 이미지가 없는 소셜 광고는 전용 배경 위에 이벤트 제목·날짜·시간·장소를 표시하도록 대체 화면을 추가함. 키오스크 내 이미지는 드래그되지 않도록 제한함.
+- 관련 파일: `src/styles/kiosk-mode.css`, `src/pages/v2/components/NewEventsBanner.tsx`, `src/pages/v2/components/NewEventsBanner.css`
+
+## 후속 수정
+
+- 소셜 상세 화면은 포스터 미등록뿐 아니라 등록된 포스터 URL이 모두 로딩 실패한 경우에도 주소가 있으면 카카오맵 장소 화면으로 전환하도록 보완함.
+- 관련 파일: `src/pages/v2/components/EventDetailModal.tsx`

@@ -239,6 +239,7 @@ export default function EventDetailModal({
 
   // Smooth Transition State
   const [isHighResLoaded, setIsHighResLoaded] = useState(false);
+  const [failedPosterUrls, setFailedPosterUrls] = useState<Record<string, true>>({});
 
   // Derive sources from Draft if available
   const displayEvent = draftEvent || event;
@@ -297,7 +298,14 @@ export default function EventDetailModal({
           if (!cancelled) setIsHighResLoaded(true);
         };
         img.onerror = () => {
-          if (!cancelled) setIsHighResLoaded(false);
+          if (!cancelled) {
+            setIsHighResLoaded(false);
+            setFailedPosterUrls((previous) => (
+              previous[highResSrc]
+                ? previous
+                : { ...previous, [highResSrc]: true }
+            ));
+          }
         };
         img.src = highResSrc;
       }, 120);
@@ -313,6 +321,10 @@ export default function EventDetailModal({
       setIsHighResLoaded(true);
     }
   }, [highResSrc, thumbnailSrc]);
+
+  useEffect(() => {
+    setFailedPosterUrls({});
+  }, [displayEvent?.id]);
   // Enable mobile back gesture to close modal
   // useModalHistory(isOpen, onClose);
 
@@ -1233,9 +1245,25 @@ export default function EventDetailModal({
                   selectedEvent.image_medium ||
                   selectedEvent.image_full
                 );
+                const hasCustomThumbnail = Boolean(
+                  selectedEvent.image_micro ||
+                  selectedEvent.image_thumbnail ||
+                  selectedEvent.image_medium
+                );
+                const renderedCustomPosterUrls = Array.from(new Set([
+                  hasCustomThumbnail ? thumbnailSrc : null,
+                  highResSrc,
+                ].map((value) => String(value || '').trim()).filter(Boolean)));
+                const hasUnavailableCustomPoster = (
+                  hasCustomImage &&
+                  (
+                    renderedCustomPosterUrls.length === 0 ||
+                    renderedCustomPosterUrls.every((url) => Boolean(failedPosterUrls[url]))
+                  )
+                );
                 const showSocialKakaoMap = (
                   isEventDetailSocialLikeEvent(selectedEvent) &&
-                  !hasCustomImage &&
+                  (!hasCustomImage || hasUnavailableCustomPoster) &&
                   Boolean(selectedEvent.address?.trim())
                 );
                 const showImageArea = hasImage || showSocialKakaoMap;
@@ -1302,6 +1330,13 @@ export default function EventDetailModal({
                                   zIndex: 1,
                                   opacity: 1,
                                 }}
+                                onError={() => {
+                                  setFailedPosterUrls((previous) => (
+                                    previous[thumbnailSrc]
+                                      ? previous
+                                      : { ...previous, [thumbnailSrc]: true }
+                                  ));
+                                }}
                               />
                             )}
 
@@ -1313,6 +1348,13 @@ export default function EventDetailModal({
                                 className="EDM-imageContent"
                                 loading="eager"
                                 decoding="async"
+                                onError={() => {
+                                  setFailedPosterUrls((previous) => (
+                                    previous[highResSrc]
+                                      ? previous
+                                      : { ...previous, [highResSrc]: true }
+                                  ));
+                                }}
                                 draggable={false}
                                 style={{
                                   ...imageStyle,

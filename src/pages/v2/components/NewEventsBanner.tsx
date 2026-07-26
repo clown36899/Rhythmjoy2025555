@@ -425,6 +425,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const [edgeToneByUrl, setEdgeToneByUrl] = useState<Record<string, EdgeTone>>({});
     const [socialImageAnalysisByUrl, setSocialImageAnalysisByUrl] = useState<Record<string, SocialAdImageAnalysis>>({});
     const [imageAspectRatioByUrl, setImageAspectRatioByUrl] = useState<Record<string, number>>({});
+    const [failedImageUrls, setFailedImageUrls] = useState<Record<string, true>>({});
     const [todayScrollbarMetrics, setTodayScrollbarMetrics] = useState({
         thumbHeight: 100,
         thumbTop: 0,
@@ -1292,13 +1293,16 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 hasCustomEventImage(event) &&
                                 isSocialAdEvent(event) &&
                                 socialImageAnalysis.kind === 'photo';
+                            const isSocialImageFallback =
+                                isSocialAdEvent(event) &&
+                                (!hasCustomEventImage(event) || Boolean(failedImageUrls[eventThumbnail]));
                             const authorProfile = getAuthorProfile(event);
                             const timeLabel = getTimeLabel(event);
 
                             return (
                                 <div
                                     key={event.id}
-                                    className={`NEB-slide ${placement.className} ${edgeToneClass} ${isSocialPhotoAd ? 'is-social-photo-ad' : ''}`}
+                                    className={`NEB-slide ${placement.className} ${edgeToneClass} ${isSocialPhotoAd || isSocialImageFallback ? 'is-social-photo-ad' : ''} ${isSocialImageFallback ? 'is-social-image-fallback' : ''}`}
                                     style={placement.style}
                                     onClick={() => openEventDetail(event)}
                                     aria-label={event.title}
@@ -1317,6 +1321,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 ensureImageEdgeTone(eventThumbnail);
                                                 ensureSocialAdImageKind(eventThumbnail, event);
                                             }}
+                                            onError={() => {
+                                                if (!isSocialAdEvent(event)) return;
+                                                setFailedImageUrls((previous) => (
+                                                    previous[eventThumbnail]
+                                                        ? previous
+                                                        : { ...previous, [eventThumbnail]: true }
+                                                ));
+                                            }}
                                         />
                                         {authorProfile.image && (
                                             <span
@@ -1334,17 +1346,19 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 />
                                             </span>
                                         )}
-                                        {isSocialPhotoAd && (
+                                        {(isSocialPhotoAd || isSocialImageFallback) && (
                                             <div className="NEB-socialPhotoPoster" aria-hidden="true">
-                                                <span className="NEB-socialPhotoPortrait">
-                                                    <img
-                                                    src={eventThumbnail}
-                                                    alt=""
-                                                    loading={imageLoading}
-                                                    decoding="async"
-                                                    draggable={false}
-                                                    />
-                                                </span>
+                                                {!isSocialImageFallback && (
+                                                    <span className="NEB-socialPhotoPortrait">
+                                                        <img
+                                                            src={eventThumbnail}
+                                                            alt=""
+                                                            loading={imageLoading}
+                                                            decoding="async"
+                                                            draggable={false}
+                                                        />
+                                                    </span>
+                                                )}
                                                 <span className="NEB-socialPhotoCopy">
                                                     <span className="NEB-socialPhotoKicker">
                                                         <i className="ri-music-2-line" />

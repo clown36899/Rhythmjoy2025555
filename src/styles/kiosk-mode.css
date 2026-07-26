@@ -3,6 +3,11 @@ html.kiosk-link-router-active.v2-home-mode body.v2-home-mode {
   overflow-x: hidden !important;
 }
 
+html.kiosk-link-router-active.v2-home-mode img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 html.kiosk-link-router-active.v2-home-mode .shell-header.global-header-fixed {
   height: 128px !important;
 }
@@ -261,26 +266,40 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
   html.kiosk-link-router-active.v2-home-mode .NEB-slider,
   html.kiosk-link-router-active.v2-home-mode .NEB-track {
     width: 100% !important;
-    height: var(--neb-dynamic-slider-height, min(520px, 48vh)) !important;
+    height: var(--neb-dynamic-slider-height, min(500px, 46vh)) !important;
     min-height: 0 !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .NEB-slide {
-    width: var(--neb-width, var(--neb-card-width, min(44vw, 460px))) !important;
+    width: var(--neb-width, var(--neb-card-width, min(40vw, 420px))) !important;
     height: 100% !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
     display: grid !important;
-    grid-template-columns: 164px minmax(0, 1fr) !important;
-    gap: 18px !important;
+    grid-template-columns: 158px minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 20px !important;
     width: 100% !important;
-    min-height: 92px !important;
-    margin-top: 16px !important;
+    min-height: 122px !important;
+    margin-top: 14px !important;
     padding: 0 !important;
   }
 
+  html.kiosk-link-router-active.v2-home-mode .NEB-quickActions {
+    position: relative !important;
+    inset: auto !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    align-self: start !important;
+    gap: 8px !important;
+    width: 158px !important;
+  }
+
   html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -313,6 +332,30 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
     left: auto !important;
     width: 158px !important;
     height: 66px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsBtn {
+    position: relative !important;
+    inset: auto !important;
+    width: 158px !important;
+    min-height: 48px !important;
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 6px 10px 6px 8px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsIcon {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 17px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsText strong {
+    font-size: 12px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsText small {
+    font-size: 9px !important;
   }
 
   html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitTicket {
@@ -972,4 +1015,93 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
 
 html.kiosk-link-router-active.v2-home-mode #kiosk-carousel-controls {
   display: none !important;
+}
+
+/*
+ * The portrait kiosk follows the same single-column content order as mobile:
+ * hero advertisement, its controls/summary, then today's schedule.
+ */
+html.kiosk-link-router-active.v2-home-mode .home-neb-standard-layout {
+  width: min(calc(100vw - 72px), 760px) !important;
+  max-width: 760px !important;
+  margin-right: auto !important;
+  margin-left: auto !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-neb-desktop-grid {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .home-neb-side-panel {
+  display: none !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-slider,
+html.kiosk-link-router-active.v2-home-mode .NEB-track {
+  width: 100% !important;
+  height: min(var(--neb-dynamic-slider-height, 720px), 720px) !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-lowerDeck {
+  display: grid !important;
+  grid-template-columns: 174px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  align-items: start !important;
+  gap: 12px 18px !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  margin-top: 14px !important;
+  padding: 0 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-quickActions {
+  position: relative !important;
+  inset: auto !important;
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  display: grid !important;
+  align-self: start !important;
+  gap: 8px !important;
+  width: 174px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn,
+html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsBtn {
+  position: relative !important;
+  inset: auto !important;
+  width: 174px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+  height: 70px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsBtn {
+  min-height: 50px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary {
+  justify-items: start !important;
+  text-align: left !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-activeSummary strong {
+  text-align: left !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-todaySchedulePanel {
+  display: grid !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  max-height: 220px !important;
 }
