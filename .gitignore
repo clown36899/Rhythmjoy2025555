@@ -58,6 +58,7 @@ scripts/temp_check_db.js
 
 .playwright-mcp/
 tmp/
+artifacts/social-reels/
 src/data/scraped_events.db
 test-*.png
 *.png

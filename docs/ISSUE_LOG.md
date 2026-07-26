@@ -22,6 +22,35 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-07-26 소셜 캘린더 릴스 생성 자동화
+
+- 상태: 해결
+- 범위: swingenjoy 캘린더 캡처, 릴스용 15초 영상 생성, 동적 오버레이 배치
+- 증상:
+  - 모바일 편집 앱에서는 화살표 회전과 정밀 배치가 불안정했다.
+  - 화면 잠금 또는 잠자기 상태에서 에뮬레이터 기반 자동화가 중단됐다.
+  - 오늘 날짜의 요일 열이 매일 바뀌어 고정 좌표로는 글자와 화살표가 다른 요소를 가릴 수 있었다.
+- 해결:
+  - 캘린더의 `오늘` 버튼을 누른 뒤 파란 오늘 표시의 실제 DOM 좌표를 읽는다.
+  - 오늘 위치에 따라 글자 상자를 항상 위쪽 좌·우 중 한쪽으로 자동 배치한다.
+  - 화살표 방향과 각도를 오늘 좌표에 맞춰 다시 계산하고, 글자와 오늘 표시의 안전거리를 유지한다.
+  - 고해상도 PNG 캡처에서 2160×3840, 15초, BT.709 H.264 영상을 직접 생성한다.
+  - 좌·가운데·우 배치와 안전거리 테스트를 추가했다.
+  - 운영 실행기에 중복 실행 잠금, 최대 3회 재시도, 4K 결과 검증과 상태 기록을 추가했다.
+- 검증:
+  - `npm run test:social-reel`: 7개 테스트 통과
+  - 실제 사이트 DOM 좌표로 2026-07-26 영상 생성
+  - 2160×3840, 30fps, 15초, yuv420p, BT.709 자동 검증 통과
+  - 움직임 양끝 프레임에서 흰 상자·글자·요일·오늘 날짜 비가림 확인
+- 관련 파일:
+  - `scripts/social-reels/generate-social-reel.mjs`
+  - `scripts/social-reels/run-social-reel.mjs`
+  - `scripts/social-reels/layout.mjs`
+  - `scripts/social-reels/layout.test.mjs`
+  - `docs/social-reel-automation.md`
+  - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
+- 관련 커밋: pending
+
 ## 2026-07-26 자유게시판 댓글 알림 누락 개선
 
 - 상태: 완료
@@ -757,4 +786,68 @@
 - 관련 파일:
   - `src/pages/calendar/components/FullEventCalendar.tsx`
   - `src/pages/calendar/styles/FullEventCalendar.css`
+- 관련 커밋: pending
+
+## 2026-07-26 인스타그램 소셜 캘린더 릴스 화질·배치·커버 오류
+
+- 상태: 해결
+- 범위: `swingenjoy.com/calendar` 기반 15초 Instagram Reel 생성 및 게시
+- 증상: 데스크톱 비율 캡처 때문에 사이트 글자가 작고 화면이 잘렸으며, 색 보정으로 원본 색이 과장됐다. 글자 상자가 작거나 중앙에서 벗어났고 외곽선·라운드가 일관되지 않았다. 프로필 그리드에서는 영상 커버가 의도한 구도로 보이지 않았다.
+- 원인: 모바일 페이지를 실제 모바일 viewport로 재배치하지 않은 캡처, 고정 좌표 기반 오버레이, 불필요한 색상 필터, Instagram 프로필 커버 크롭 미설정이 함께 발생했다.
+- 연결 불안정 원인:
+  - Mac 잠금 자체는 ADB를 끊지 않지만 잠자기에 들어가면 에뮬레이터와 ADB 실행이 정지한다.
+  - Instagram 편집기는 앱 메모리 회수, 네트워크 지연, 로그인 세션 갱신 때 편집 화면 상태를 잃을 수 있다.
+  - 장시간 UI 제어 연결이 끊겨도 에뮬레이터 앱 상태와 영상 파일은 남지만, 진행 단계 확인 없이 다시 누르면 중복 게시 위험이 생긴다.
+- 조치:
+  - Android 모바일 환경의 390×844 CSS viewport와 5배 device scale로 캘린더를 다시 캡처해 사이트 글자를 약 10% 키우고, 4K 축소 단계에서 약한 선명화만 적용한다.
+  - 오늘 파란 날짜의 실제 DOM 좌표를 읽어 글자 상자를 위쪽 좌·우 중 여유 있는 곳에 배치하고 화살표 방향을 동적으로 계산한다.
+  - 글자 상자를 1080 기준 440×150, 100px·굵기 500 글자, 흰색 배경, 20px 라운드, 4px 연회색 외곽선으로 고정하고 가로·세로 중앙 정렬한다.
+  - 배경 색상 보정은 제거하고 BT.709 limited H.264 2160×3840, 30fps, 15초, CRF 16으로 출력한다.
+  - 첫 프레임과 동일한 4K 커버를 별도 생성하고 Instagram 프로필 크롭은 확대·이동 없이 기본 원본 상태를 사용한다.
+  - 실행 연결이 끊겨도 같은 날짜 결과를 중복 생성하지 않도록 잠금·재시도·검증·실행 상태 파일을 추가한다.
+  - Instagram UI는 단계별 화면 확인 후 다음 동작으로 진행하고, 게시 완료 화면과 프로필 그리드를 각각 검증한다.
+- 검증:
+  - 동적 레이아웃 자동 테스트 7개 통과.
+  - 2026-07-26 생성 영상의 2160×3840, 30fps, 15초, H.264 High Profile 및 BT.709 메타데이터 확인.
+  - 기존 저가독성 Reel을 삭제하고 개선본을 다시 게시했다. 새 게시물에서 `Take Five — Dave Brubeck` 음악, 4K 캘린더 화면과 프로필 첫 번째 그리드의 기본 원본 크롭 노출을 확인했다.
+- 재발 방지: `npm run social-reel:run`으로 동일한 생성 규칙과 레이아웃 테스트를 재사용하고, 게시 전 4K 커버와 기본 원본 프로필 크롭을 확인한다. 음악은 게시 회차마다 다른 재즈곡을 선택한다.
+- 관련 파일:
+  - `scripts/social-reels/generate-social-reel.mjs`
+  - `scripts/social-reels/run-social-reel.mjs`
+  - `scripts/social-reels/layout.mjs`
+  - `scripts/social-reels/layout.test.mjs`
+  - `docs/social-reel-automation.md`
+  - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
+- 관련 커밋: pending
+
+## 2026-07-26 Instagram Reel 자동 게시 예약과 연결 안정화
+
+- 상태: 구현·드라이런 완료
+- 범위: Mac Android 에뮬레이터 기반 Instagram Reel 자동 등록, 화·목·토 12:30 예약 실행
+- 문제:
+  - 수동 UI 제어가 길어지고 연결이 끊길 때 현재 단계를 알 수 없었다.
+  - 녹화 좌표 방식은 Instagram 팝업, 앱 업데이트, 네트워크 지연 때 다른 버튼을 누를 위험이 있었다.
+  - 공유 직후 연결이 끊기면 무조건 재실행할 경우 같은 Reel이 중복 게시될 수 있었다.
+- 해결:
+  - 매 단계에서 Android UI 계층의 접근성 ID·텍스트·설명을 확인하는 ADB 상태 기반 제어기를 추가했다.
+  - 실행 중인 `Medium_Phone` AVD를 재사용하고, 꺼져 있으면 자동으로 시작하도록 했다.
+  - 로그인 계정과 게시물 수, 최신 영상, 정확한 음악 제목·아티스트, 4K 커버, 공유 버튼을 각각 검증한다.
+  - 직전 게시 곡과 다른 재즈곡을 순환 선택하고, 검색 결과가 없으면 다음 후보를 사용한다.
+  - 공유 전 실패와 공유 후 불명확 상태를 분리했다. 공유 후에는 프로필 게시물 수 증가가 확인되지 않으면 자동 재시도를 차단한다.
+  - 화·목·토 12:30 KST LaunchAgent와 `caffeinate`, 실행 잠금, 상태 파일, 로그·알림을 구성했다.
+- 검증:
+  - `npm run test:social-reel`: 동적 배치·UI XML·음악 순환 테스트 10개 통과
+  - 실제 Instagram 439.0.0.37.89에서 `Do What You Wanna — Ramsey Lewis` 선택, 4K 커버 설정, 기본 프로필 크롭 유지, `Share` 직전 화면 확인
+  - 드라이런은 실제 게시 없이 편집 내용을 자동 폐기했고 UI 구간 106.5초 소요
+  - 2160×3840, 30fps, 15초, H.264, yuv420p, BT.709 결과 재검증
+- 알려진 운영 상태:
+  - 기존 Telegram Bot 환경 값은 테스트 시 HTTP 404를 반환했다. Telegram 실패가 게시 성공을 실패 처리하지 않게 하고 macOS 알림·로그로 대체했다.
+  - Mac 잠금은 허용되지만 잠자기·종료·로그아웃·네트워크 단절 중에는 실행할 수 없다.
+- 관련 파일:
+  - `scripts/social-reels/instagram-reel-adb.mjs`
+  - `scripts/social-reels/run-scheduled-social-reel.mjs`
+  - `scripts/social-reels/install-macos-launch-agent.sh`
+  - `ops/macos/com.rhythmjoy.social-reel-publish.plist`
+  - `docs/social-reel-automation.md`
+  - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
 - 관련 커밋: pending
