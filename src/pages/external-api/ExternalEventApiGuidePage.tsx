@@ -804,20 +804,26 @@ export default function ExternalEventApiGuidePage() {
           <section id="request-example" className="EAG-section">
             <span className="EAG-sectionNo">02</span>
             <h2>일정 등록 요청</h2>
-            <nav className="EAG-registrationMenu" aria-label="일정 등록 방식 선택">
-              <a href="/external-event-api#request-example" draggable={false}>
-                <span>모든 장르</span>
-                <strong>날짜가 정해진 개별 일정</strong>
-                <small>소셜 · 행사 · 강습 · 동호회</small>
-                <code>POST /events</code>
-              </a>
-              <a href="/external-event-api#regular-socials" draggable={false}>
-                <span>소셜만</span>
-                <strong>매주 반복하는 정규 소셜</strong>
-                <small>기본 규칙 · DJ 변경 · 휴무</small>
-                <code>POST /regular-socials</code>
-              </a>
-            </nav>
+            <div className="EAG-registrationDecision">
+              <div className="EAG-registrationDecisionLabel">
+                <i className="ri-git-branch-line" aria-hidden="true" />
+                <strong>일정 등록 방식 선택</strong>
+              </div>
+              <nav className="EAG-registrationMenu" aria-label="일정 등록 방식 선택">
+                <a href="/external-event-api#request-example" draggable={false}>
+                  <span>모든 장르</span>
+                  <strong>날짜가 정해진 개별 일정</strong>
+                  <small>소셜 · 행사 · 강습 · 동호회</small>
+                  <code>POST /events</code>
+                </a>
+                <a href="/external-event-api#regular-socials" draggable={false}>
+                  <span>소셜만</span>
+                  <strong>매주 반복하는 정규 소셜</strong>
+                  <small>기본 규칙 · DJ 변경 · 휴무</small>
+                  <code>POST /regular-socials</code>
+                </a>
+              </nav>
+            </div>
             <div className="EAG-callout">
               <i className="ri-route-line" aria-hidden="true" />
               <div>
