@@ -294,6 +294,19 @@ function sortDescCreatedAt(rows) {
   return [...rows].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
 }
 
+function sortBenefitRows(rows, today = new Date().toISOString().slice(0, 10)) {
+  const isCurrent = row => (
+    row?.structured_data?.ongoing_sale === true
+    || scrapedRowDate(row) >= today
+  );
+  return [...rows].sort((a, b) => (
+    Number(isCurrent(a)) - Number(isCurrent(b))
+    ||
+    scrapedRowDate(a).localeCompare(scrapedRowDate(b))
+    || String(a.created_at || '').localeCompare(String(b.created_at || ''))
+  ));
+}
+
 function stripVirtualCandidateTaxonomy(structuredData = {}) {
   const {
     activity_label,
@@ -673,7 +686,8 @@ export async function cafe24ScrapedEvents(req, res) {
     const allRows = await loadCafe24TableRows('scraped_events');
     const tab = String(req.query.tab || '').toLowerCase();
     const rawFiltered = filterScrapedRows(allRows, req);
-    const filtered = sortDescCreatedAt(tab === 'new' || !tab ? collapseDateExpansionRows(rawFiltered) : rawFiltered);
+    const visibleRows = tab === 'new' || !tab ? collapseDateExpansionRows(rawFiltered) : rawFiltered;
+    const filtered = tab === 'free' ? sortBenefitRows(visibleRows) : sortDescCreatedAt(visibleRows);
     const page = Math.max(1, Number(req.query.page || 1));
     const pageSize = Math.min(Math.max(Number(req.query.pageSize || req.query.limit || 100), 1), 500);
     const data = filtered.slice((page - 1) * pageSize, page * pageSize);

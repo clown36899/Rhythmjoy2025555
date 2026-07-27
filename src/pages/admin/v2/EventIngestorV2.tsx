@@ -51,6 +51,9 @@ interface ScrapedEvent {
     tag_labels?: string[];
     benefit_eligible?: boolean;
     benefit_kind?: 'free_event' | 'discount_event' | 'season_pass' | null;
+    benefit_lifecycle?: 'date_bound' | 'evergreen' | null;
+    ongoing_sale?: boolean;
+    source_post_date?: string;
     _duplicate?: {
       reason?: string;
       existingId?: string;
@@ -362,6 +365,7 @@ const EventIngestorV2: React.FC = () => {
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRequestSeq = useRef(0);
+  const candidateListRef = useRef<HTMLElement>(null);
   const localIngestorBypass = isLocalIngestorBypass();
   const canAccessIngestor = isAdmin || localIngestorBypass;
   const isIngestorAuthReady = isAuthCheckComplete || localIngestorBypass;
@@ -467,6 +471,22 @@ const EventIngestorV2: React.FC = () => {
       void fetchTabCounts(scopeFilter);
     }
   };
+
+  const scrollToCurrentBenefit = useCallback(() => {
+    const today = toCalendarDateKey(new Date());
+    const target = scrapedEvents.find(event => (
+      event.structured_data.ongoing_sale === true
+      || String(event.structured_data.date || '') >= today
+    ));
+    if (target) {
+      document.getElementById(`ingestor-v2-row-${target.id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      return;
+    }
+    candidateListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [scrapedEvents]);
 
   const handleScopeChange = (scope: ScopeFilter) => {
     setScopeFilter(scope);
@@ -1505,7 +1525,7 @@ const EventIngestorV2: React.FC = () => {
         <div className="loading-state">데이터를 불러오는 중...</div>
       ) : (
         <>
-          <section className="candidate-list-panel" aria-label="수집 후보 리스트">
+          <section ref={candidateListRef} className="candidate-list-panel" aria-label="수집 후보 리스트">
             <div className="candidate-list-head">
               <div>
                 <span>수집 후보</span>
@@ -1515,10 +1535,18 @@ const EventIngestorV2: React.FC = () => {
                   {totalCount !== visibleFilteredEvents.length && <b>전체 {totalCount}</b>}
                 </h2>
               </div>
-              <button type="button" className="candidate-list-refresh" onClick={() => fetchScrapedEvents(1, activeTab, scopeFilter)}>
-                <i className="ri-refresh-line" aria-hidden="true"></i>
-                새로고침
-              </button>
+              <div className="candidate-list-actions">
+                {activeTab === 'free' && (
+                  <button type="button" className="candidate-list-current" onClick={scrollToCurrentBenefit}>
+                    <i className="ri-focus-3-line" aria-hidden="true"></i>
+                    현재
+                  </button>
+                )}
+                <button type="button" className="candidate-list-refresh" onClick={() => fetchScrapedEvents(1, activeTab, scopeFilter)}>
+                  <i className="ri-refresh-line" aria-hidden="true"></i>
+                  새로고침
+                </button>
+              </div>
             </div>
             {listError && (
               <div className="list-error-banner">
@@ -1583,6 +1611,9 @@ const EventIngestorV2: React.FC = () => {
                             ? '정기권'
                             : event.structured_data.benefit_kind === 'discount_event' ? '할인' : '무료'}
                         </span>
+                      )}
+                      {event.structured_data.benefit_lifecycle === 'evergreen' && (
+                        <span className="benefit-lifecycle-badge">상시판매</span>
                       )}
                     </div>
                     <div className="row-title">{event.structured_data.title}</div>

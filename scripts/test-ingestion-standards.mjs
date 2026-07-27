@@ -302,6 +302,19 @@ assert.equal(
   'explicit manual recovery candidates must remain reviewable through the recovery date',
 );
 assert.equal(
+  shouldHidePastCandidate({
+    structured_data: {
+      date: '2024-01-10',
+      benefit_eligible: true,
+      benefit_kind: 'season_pass',
+      benefit_lifecycle: 'evergreen',
+      ongoing_sale: true,
+    },
+  }, { today: '2026-07-26', tab: 'free' }),
+  false,
+  'verified ongoing benefit sales must remain visible in the benefit list after the source post date',
+);
+assert.equal(
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=13&referrerAllArticles=false'),
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=264&referrerAllArticles=false'),
   'date expansion dedupe must ignore naver cafe article menu/list query noise',
@@ -440,9 +453,10 @@ const evergreenSeasonPass = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(isEvergreenSeasonPassCandidate(evergreenSeasonPass.candidate), true, 'ongoing season-pass sales should be recognized independently of post age');
 assert.equal(evergreenSeasonPass.validation.ok, true, 'an old post for an ongoing season-pass sale should remain collectable');
-assert.equal(evergreenSeasonPass.candidate.structured_data.date, TODAY, 'ongoing sales should use the collection date instead of an expired post date');
+assert.equal(evergreenSeasonPass.candidate.structured_data.date, '2024-01-10', 'ongoing sales should preserve the original post date for chronological review');
 assert.equal(evergreenSeasonPass.candidate.structured_data.source_post_date, '2024-01-10', 'the original old post date should remain available for review');
 assert.equal(evergreenSeasonPass.candidate.structured_data.ongoing_sale, true, 'ongoing sale metadata should be explicit');
+assert.equal(evergreenSeasonPass.candidate.structured_data.benefit_lifecycle, 'evergreen', 'ongoing sale lifecycle should be explicit');
 
 const endedSeasonPass = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/swingbar/p/ENDPASS/',
@@ -456,6 +470,36 @@ const endedSeasonPass = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(isEvergreenSeasonPassCandidate(endedSeasonPass.candidate), false, 'ended season-pass sales must not be treated as evergreen');
 assert.equal(endedSeasonPass.validation.ok, false, 'ended old sales should still fail the past-date rule');
+assert.equal(endedSeasonPass.candidate.structured_data.benefit_lifecycle, undefined, 'ended sales should not be promoted into the benefit list');
+
+const evergreenDiscount = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/swingbar/p/ONGOINGDISCOUNT/',
+  extracted_text: '정기권 회원 상시 할인 적용 중',
+  structured_data: {
+    title: '정기권 회원 상시 할인',
+    date: '2024-02-01',
+    event_type: '할인',
+    activity_type: 'sale',
+    location: '스윙바',
+  },
+}), { today: TODAY });
+assert.equal(evergreenDiscount.candidate.structured_data.benefit_kind, 'discount_event');
+assert.equal(evergreenDiscount.candidate.structured_data.benefit_lifecycle, 'evergreen');
+assert.equal(evergreenDiscount.validation.ok, true, 'explicit ongoing discounts should remain visible after the post date');
+
+const datedDiscount = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/swingbar/p/EARLYBIRD/',
+  extracted_text: '7월 10일까지 얼리버드 20% 할인',
+  structured_data: {
+    title: '얼리버드 할인',
+    date: '2024-07-10',
+    event_type: '할인',
+    activity_type: 'sale',
+    location: '스윙바',
+  },
+}), { today: TODAY });
+assert.equal(datedDiscount.candidate.structured_data.benefit_lifecycle, 'date_bound');
+assert.equal(datedDiscount.validation.ok, false, 'dated discounts should expire normally');
 
 assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://litt.ly/swingfriends',

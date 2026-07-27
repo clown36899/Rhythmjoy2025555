@@ -147,8 +147,9 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   return null;
 }
 
-export function isEvergreenSeasonPassCandidate(candidate = {}) {
-  if (classifyConfirmedBenefitEvent(candidate) !== 'season_pass') return false;
+export function isEvergreenBenefitCandidate(candidate = {}) {
+  const benefitKind = classifyConfirmedBenefitEvent(candidate);
+  if (!['season_pass', 'discount_event'].includes(benefitKind || '')) return false;
   const sd = candidate.structured_data || {};
   const text = [
     sd.title,
@@ -159,8 +160,13 @@ export function isEvergreenSeasonPassCandidate(candidate = {}) {
   if (/(?:판매|신청|구매|운영|발급)\s*(?:종료|마감|중단)|(?:정기권|시즌권|월정액|멤버십|membership|\bpass\b)[^.!?\n]{0,24}(?:종료|마감|중단|폐지|품절|sold\s*out|closed|ended)/i.test(text)) {
     return false;
   }
-  return /상시\s*(?:판매|신청|구매|이용|운영)|연중\s*(?:판매|신청|운영)|언제든\s*(?:구매|신청|이용)|수시\s*(?:판매|신청)|(?:현재\s*)?(?:판매|구매|신청)\s*(?:중|가능)|(?:정기권|월정액|멤버십|membership)\s*(?:가격|요금|안내|구매|신청|이용)|(?:가격|요금)\s*[:：]?\s*\d[\d,]*\s*원[^.!?\n]{0,24}(?:정기권|월정액|멤버십|membership)/i.test(text);
+  if (benefitKind === 'discount_event') {
+    return /상시\s*(?:할인|특가|혜택|적용)|연중\s*(?:할인|혜택)|언제든\s*(?:할인|적용)|(?:현재\s*)?(?:할인|프로모션)\s*(?:중|적용\s*중|진행\s*중)|(?:회원|정기권)\s*상시\s*할인/i.test(text);
+  }
+  return /상시\s*(?:판매|신청|구매|이용|운영)|연중\s*(?:판매|신청|운영)|언제든\s*(?:구매|신청|이용)|수시\s*(?:판매|신청)|(?:현재\s*)?(?:판매|구매|신청)\s*(?:중|가능)|(?:정기권|시즌권|월정액|멤버십|membership|\d+\s*회권)\s*(?:가격|요금|안내|구매|신청|이용)|(?:가격|요금)\s*[:：]?\s*\d[\d,]*\s*원[^.!?\n]{0,24}(?:정기권|시즌권|월정액|멤버십|membership|\d+\s*회권)/i.test(text);
 }
+
+export const isEvergreenSeasonPassCandidate = isEvergreenBenefitCandidate;
 
 export const siteGenresByCategory = {
   social: ['소셜', '졸공'],
@@ -776,7 +782,7 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   const sourceExcludedReason = getExcludedSourceReason(sourceUrl);
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
   const blockedKeywordReason = getBlockedKeywordReason(text);
-  const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenSeasonPassCandidate(candidate);
+  const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenBenefitCandidate(candidate);
 
   if (!sourceUrl) errors.push('source_url required');
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
@@ -857,16 +863,16 @@ export function prepareCandidate(rawCandidate, config = {}) {
     delete structuredData.benefit_eligible;
     delete structuredData.benefit_kind;
   }
-  const effectiveToday = String(config.today || todayISO()).slice(0, 10);
-  const evergreenSeasonPass = confirmedBenefit === 'season_pass'
-    && isEvergreenSeasonPassCandidate({ ...rawCandidate, structured_data: structuredData });
-  if (evergreenSeasonPass) {
+  const evergreenBenefit = isEvergreenBenefitCandidate({ ...rawCandidate, structured_data: structuredData });
+  if (evergreenBenefit) {
     structuredData.ongoing_sale = true;
+    structuredData.benefit_lifecycle = 'evergreen';
     const originalDate = String(structuredData.date || '').slice(0, 10);
     if (originalDate) structuredData.source_post_date = originalDate;
-    if (!originalDate || originalDate < effectiveToday) structuredData.date = effectiveToday;
   } else {
     delete structuredData.ongoing_sale;
+    if (confirmedBenefit) structuredData.benefit_lifecycle = 'date_bound';
+    else delete structuredData.benefit_lifecycle;
   }
   const date = String(structuredData.date || '').slice(0, 10);
   const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, date, rawCandidate.id_suffix || '');

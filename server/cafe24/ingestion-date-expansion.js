@@ -145,6 +145,15 @@ export function shouldHidePastCandidate(row = {}, {
 } = {}) {
   const date = dateExpansionRowDate(row);
   if (!date || !today || date >= today || tab === 'collected') return false;
+  const structuredData = row?.structured_data || {};
+  if (
+    tab === 'free'
+    && structuredData.benefit_eligible === true
+    && structuredData.ongoing_sale === true
+    && structuredData.benefit_lifecycle === 'evergreen'
+  ) {
+    return false;
+  }
   const recoveryUntil = String(row.manual_recovery_until || '').slice(0, 10);
   return recoveryUntil < today;
 }
