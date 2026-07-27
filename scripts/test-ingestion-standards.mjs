@@ -15,6 +15,7 @@ import {
 import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
 import {
   benefitSearchMatches,
+  expectedInstagramHandleForSource,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
   normalizeInstagramPostUrl,
@@ -449,6 +450,22 @@ assert.equal(seasonPassSale.candidate.structured_data.benefit_eligible, true);
 assert.equal(seasonPassSale.candidate.structured_data.benefit_kind, 'season_pass');
 assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'season_pass'), true);
 assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'free_event'), false);
+assert.equal(
+  expectedInstagramHandleForSource({
+    type: 'benefit_search',
+    url: 'https://www.google.com/search?q=site%3Ainstagram.com+정기권',
+  }),
+  '',
+  'benefit search posts must not compare their author with the Google /search path',
+);
+assert.equal(
+  expectedInstagramHandleForSource({
+    type: 'instagram',
+    url: 'https://www.instagram.com/happyhall2004/',
+  }),
+  'happyhall2004',
+  'known Instagram profile sources should still enforce author matching',
+);
 assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('season_pass'), 'season pass sale should keep season_pass tag internally');

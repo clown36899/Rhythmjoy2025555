@@ -56,3 +56,15 @@ export function benefitSearchMatches(candidate = {}, benefitKind = '') {
   }
   return sd.benefit_kind === benefitKind;
 }
+
+export function expectedInstagramHandleForSource(source = {}) {
+  if (source.type === 'benefit_search') return '';
+  try {
+    const parsed = new URL(source.url || '');
+    if (!/(^|\.)instagram\.com$/i.test(parsed.hostname)) return '';
+    const [handle = ''] = parsed.pathname.split('/').filter(Boolean);
+    return /^(p|reel|explore|accounts|stories|search)$/i.test(handle) ? '' : handle.toLowerCase();
+  } catch {
+    return '';
+  }
+}

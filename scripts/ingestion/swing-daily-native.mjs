@@ -13,7 +13,12 @@ import {
   todayISO,
 } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
-import { benefitSearchMatches, extractInstagramPostUrls, extractInstagramProfileUrls } from './benefit-search-utils.mjs';
+import {
+  benefitSearchMatches,
+  expectedInstagramHandleForSource,
+  extractInstagramPostUrls,
+  extractInstagramProfileUrls,
+} from './benefit-search-utils.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -1090,7 +1095,7 @@ async function scrapeInstagramPost(page, url, source) {
     .join('\n');
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
-  const expectedHandle = instagramHandleFromSource(source).toLowerCase();
+  const expectedHandle = expectedInstagramHandleForSource(source);
   const authorText = `${data.ogTitle}\n${data.metaDescription.slice(0, 240)}`.toLowerCase();
   if (expectedHandle && !authorText.includes(expectedHandle)) {
     result.skipped += 1;

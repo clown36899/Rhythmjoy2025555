@@ -959,3 +959,13 @@
 - 원인: 소셜 캘린더가 `dj_name`과 제목에서 추출한 DJ 값을 실제 이름인지 확인하지 않고 표시했다.
 - 조치: DJ 값이 `미정` 또는 `DJ 미정`이면 빈칸으로 처리하고, 실제 이름이 있을 때만 `DJ 이름`을 표시한다.
 - 관련 파일: `src/pages/calendar/components/FullEventCalendar.tsx`
+
+## 2026-07-27 무료·할인·정기권 검색 후보 전량 작성자 불일치
+
+- 상태: 해결
+- 범위: 10시 무료·정기권 및 11시 할인 혜택 자동수집
+- 증상: 검색 결과에서 인스타그램 게시물과 프로필을 발견했지만 무료·할인·정기권 후보가 한 건도 본문 판정 단계로 진행되지 않았다. 과거 게시물의 현재 판매 중 정기권도 같은 이유로 누락됐다.
+- 원인: 혜택 검색 소스의 URL은 Google 검색 URL인데, 인스타그램 원문 작성자 검증이 이 URL의 첫 경로인 `search`를 기대 계정명으로 사용했다. 따라서 실제 모든 인스타그램 작성자가 `instagram author mismatch (search)`로 거부됐다.
+- 조치: 혜택 검색에서 직접 발견한 게시물은 Google 경로를 작성자 계정명으로 간주하지 않는다. 등록된 인스타그램 프로필 소스와 검색 결과에서 발견한 프로필 소스의 실제 계정명 검증은 그대로 유지한다.
+- 검증: 혜택 검색 URL은 기대 작성자 없음, 실제 인스타그램 프로필 URL은 기대 작성자 유지 조건을 자동 테스트에 추가했다.
+- 관련 파일: `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`
