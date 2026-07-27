@@ -33,6 +33,8 @@ export interface Event {
   dance_genre?: string | null;
   activity_type?: 'class' | 'social' | 'event' | 'recruit' | string | null;
   dance_tags?: string[] | null;
+  benefit_eligible?: boolean;
+  benefit_kind?: 'free_event' | 'discount_event' | 'season_pass' | null;
   price: string;
   image: string;
   image_micro?: string;

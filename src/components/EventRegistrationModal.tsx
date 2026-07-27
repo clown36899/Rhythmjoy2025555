@@ -135,6 +135,7 @@ export default memo(function EventRegistrationModal({
   const [category, setCategory] = useState<"class" | "event" | "club" | "">("");
   const [genre, setGenre] = useState("");
   const [danceScope, setDanceScope] = useState<DanceScope>("swing");
+  const [benefitKind, setBenefitKind] = useState<'free_event' | 'discount_event' | null>(null);
   const scope = "domestic"; // 통합 이후 기본값으로 고정
   // Password state removed - using RLS-based ownership
 
@@ -317,6 +318,12 @@ export default memo(function EventRegistrationModal({
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
         setDanceScope(normalizeVisibleDanceScope(inferDanceScopeForEvent(editEventData as any), canUseExpandedDanceScopes));
+        setBenefitKind(
+          editEventData.benefit_eligible === true
+            && ['free_event', 'discount_event'].includes(String(editEventData.benefit_kind || ''))
+            ? editEventData.benefit_kind as 'free_event' | 'discount_event'
+            : null,
+        );
 
         setGroupId(groupIdForRegistrationCategory(editEventData.category, (editEventData as any).group_id));
 
@@ -352,6 +359,7 @@ export default memo(function EventRegistrationModal({
         setCategory(initialCategory || "");
         setGenre(initialGenre);
         setDanceScope("swing");
+        setBenefitKind(null);
 
         setGroupId(initialGroupId);
         setDayOfWeek(initialDayOfWeek);
@@ -772,6 +780,8 @@ export default memo(function EventRegistrationModal({
             dance_genre: effectiveDanceGenre,
             activity_type: effectiveActivityType,
             dance_tags: danceTags,
+            benefit_eligible: benefitKind !== null,
+            benefit_kind: benefitKind,
             // password 필드 제거 (RLS 기반 권한 관리로 전환)
             link1,
             link_name1: linkName1,
@@ -1011,6 +1021,8 @@ export default memo(function EventRegistrationModal({
     dance_genre: previewRecruitmentKind ? danceScope : undefined,
     activity_type: previewRecruitmentKind ? 'recruit' : undefined,
     dance_tags: previewRecruitmentKind ? ensureRecruitmentTags([], previewRecruitmentKind) : undefined,
+    benefit_eligible: benefitKind !== null,
+    benefit_kind: benefitKind,
     image: imagePreview || editEventData?.image || "",
     link1: link1,
     link_name1: linkName1,
@@ -1153,6 +1165,8 @@ export default memo(function EventRegistrationModal({
           danceScope={danceScope}
           onDanceScopeChange={handleDanceScopeChange}
           canUseExpandedDanceScopes={canUseExpandedDanceScopes}
+          benefitKind={benefitKind}
+          onBenefitKindChange={setBenefitKind}
           className="h-full"
           ref={detailRef}
           // DatePicker Props

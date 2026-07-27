@@ -56,6 +56,9 @@ function isBenefitEvent(event: AppEvent) {
 }
 
 function getKindLabel(event: AppEvent) {
+  if (event.benefit_kind === 'free_event') return '무료';
+  if (event.benefit_kind === 'discount_event') return '할인';
+  if (event.benefit_kind === 'season_pass') return '정기권';
   const activityType = String(event.activity_type || '').toLowerCase();
   const tags = Array.isArray(event.dance_tags) ? event.dance_tags.map(String) : [];
   const text = getEventText(event);

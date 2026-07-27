@@ -655,6 +655,53 @@
     z-index: var(--z-header);
 }
 
+.EED-benefitField {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.EED-benefitLabel {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    user-select: none;
+}
+
+.EED-benefitOptions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    width: min(100%, 280px);
+    padding: 4px;
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    background: var(--bg-surface-2);
+}
+
+.EED-benefitOption {
+    min-height: 34px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.EED-benefitOption.is-active {
+    background: var(--color-blue-600);
+    color: var(--text-on-accent);
+    box-shadow: var(--shadow-sm);
+}
+
 .EED-footerActions {
     display: flex;
     align-items: center;

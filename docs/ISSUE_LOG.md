@@ -988,3 +988,12 @@
 - 조치: 위 유사 표현을 정기권성 혜택으로 판정하고, 일반 다회권 검색과 스윙프렌즈 공식 계정 전용 검색을 추가했다. 부정·종료 표현과 상시 판매 판정에도 같은 어휘를 적용했다.
 - 검증: 유사 표현 7종 자동 테스트가 통과했다. 신규 검색 2개 재수집은 정상 종료했으나 Google에서 검증 가능한 Instagram 게시물 링크가 반환되지 않아 신규 후보는 0건이었다. 로그인된 공식 계정의 2026년 5월 말~6월 게시물 36개 캡션도 직접 대조했지만 해당 문구는 확인되지 않았다.
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/collection-registry.mjs`, `scripts/test-ingestion-standards.mjs`
+
+## 2026-07-27 수동 일정의 무료·할인 노출 선택 부재
+
+- 상태: 해결
+- 증상: 사용자가 일정을 직접 등록하거나 수정할 때 무료·할인 이벤트 여부를 명시적으로 선택할 수 없어 혜택 페이지 노출을 제어할 수 없었다.
+- 원인: `benefit_eligible`, `benefit_kind` 필드는 자동수집 후보에만 연결되어 있었고 공통 일정 등록 모달에는 입력 UI와 저장 연결이 없었다.
+- 조치: 모든 일정 등록 진입점이 공유하는 상세 등록 화면 하단에 `일반`, `무료`, `할인 이벤트` 선택을 추가했다. 무료·할인을 선택한 경우에만 혜택 필드를 저장하고, 일반을 선택하면 혜택 노출을 해제한다. 수정 시 기존 무료·할인 값을 복원하며 혜택 페이지의 종류 라벨도 저장값을 우선 사용한다.
+- 검증: Cafe24/MySQL 운영 설정의 프로덕션 빌드와 수집 기준 테스트, diff 검사가 통과했다.
+- 관련 파일: `src/components/EventRegistrationModal.tsx`, `src/components/EditableEventDetail.tsx`, `src/styles/components/EditableEventDetail.css`, `src/lib/cafe24Client.ts`, `src/pages/benefit-events/BenefitEventsPage.tsx`
