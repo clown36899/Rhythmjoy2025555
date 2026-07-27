@@ -18,6 +18,7 @@ import {
   expectedInstagramHandleForSource,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
+  isStaleBenefitSourcePost,
 } from './benefit-search-utils.mjs';
 
 chromium.use(stealthPlugin());
@@ -1648,6 +1649,14 @@ async function buildCandidatesFromText({
       extracted_text: cleanText,
       structured_data: { title: candidateTitle },
     });
+  if (
+    source.type === 'benefit_search'
+    && isStaleBenefitSourcePost({ publishedAt, today, evergreen: isEvergreenSeasonPass })
+  ) {
+    result.skipped += 1;
+    log(`skip ${source.id}: stale source post ${String(publishedAt).slice(0, 10)}`);
+    return [];
+  }
   const dates = isEvergreenSeasonPass
     ? [today]
     : selectCandidateDates({ title: candidateTitle, cleanText, activity });

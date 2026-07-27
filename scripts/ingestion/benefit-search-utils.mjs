@@ -68,3 +68,16 @@ export function expectedInstagramHandleForSource(source = {}) {
     return '';
   }
 }
+
+export function isStaleBenefitSourcePost({
+  publishedAt = '',
+  today = '',
+  evergreen = false,
+  maxAgeDays = 180,
+} = {}) {
+  if (evergreen || !publishedAt || !today) return false;
+  const published = new Date(publishedAt);
+  const cutoff = new Date(`${today}T00:00:00+09:00`);
+  if (Number.isNaN(published.getTime()) || Number.isNaN(cutoff.getTime())) return false;
+  return cutoff.getTime() - published.getTime() > maxAgeDays * 86_400_000;
+}

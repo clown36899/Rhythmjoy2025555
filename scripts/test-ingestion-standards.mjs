@@ -18,6 +18,7 @@ import {
   expectedInstagramHandleForSource,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
+  isStaleBenefitSourcePost,
   normalizeInstagramPostUrl,
 } from './ingestion/benefit-search-utils.mjs';
 import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
@@ -469,6 +470,23 @@ assert.equal(
   }),
   'happyhall2004',
   'known Instagram profile sources should still enforce author matching',
+);
+assert.equal(
+  isStaleBenefitSourcePost({
+    publishedAt: '2024-10-14T09:00:00.000Z',
+    today: '2026-07-27',
+  }),
+  true,
+  'old search results must not be reinterpreted as current date-bound benefits',
+);
+assert.equal(
+  isStaleBenefitSourcePost({
+    publishedAt: '2024-10-14T09:00:00.000Z',
+    today: '2026-07-27',
+    evergreen: true,
+  }),
+  false,
+  'verified ongoing pass sales may use an older source post',
 );
 assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
