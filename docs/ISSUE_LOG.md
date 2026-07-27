@@ -997,3 +997,4 @@
 - 조치: 모든 일정 등록 진입점이 공유하는 상세 등록 화면 하단에 `일반`, `무료`, `할인 이벤트` 선택을 추가했다. 무료·할인을 선택한 경우에만 혜택 필드를 저장하고, 일반을 선택하면 혜택 노출을 해제한다. 수정 시 기존 무료·할인 값을 복원하며 혜택 페이지의 종류 라벨도 저장값을 우선 사용한다.
 - 검증: Cafe24/MySQL 운영 설정의 프로덕션 빌드와 수집 기준 테스트, diff 검사가 통과했다.
 - 관련 파일: `src/components/EventRegistrationModal.tsx`, `src/components/EditableEventDetail.tsx`, `src/styles/components/EditableEventDetail.css`, `src/lib/cafe24Client.ts`, `src/pages/benefit-events/BenefitEventsPage.tsx`
+- API 후속 조치: 외부 일정 등록·수정 API에 선택 필드 `benefit_kind`를 추가했다. `free_event`, `discount_event`, `null`만 허용하고 서버가 `benefit_eligible`을 자동 계산한다. API 가이드의 요청 필드표와 서버 예제를 갱신했으며 외부 API 테스트 27개가 통과했다.

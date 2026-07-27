@@ -61,6 +61,7 @@ const ALLOWED_EXTERNAL_EVENT_FIELDS = new Set([
   'address_source',
   'location_link',
   'description',
+  'benefit_kind',
   'category',
   'genre',
   'source_url',
@@ -455,6 +456,10 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
   if (!sourceUrl) {
     throw apiError('source_url 값이 필요합니다.');
   }
+  const benefitKind = cleanString(input.benefit_kind, 32, 'benefit_kind');
+  if (benefitKind && !['free_event', 'discount_event'].includes(benefitKind)) {
+    throw apiError('benefit_kind는 free_event, discount_event 또는 null이어야 합니다.');
+  }
   const activityType = category === 'social' ? 'social' : category === 'class' || category === 'club' ? 'class' : 'event';
 
   return {
@@ -476,6 +481,8 @@ export function normalizeExternalEventPayload(input = {}, partner = {}) {
       dance_scope: 'swing',
       dance_genre: GENRE_TO_DANCE_GENRE[requestedGenres[0]] || 'swing',
       activity_type: activityType,
+      benefit_eligible: Boolean(benefitKind),
+      benefit_kind: benefitKind || null,
       link1: sourceUrl,
       link_name1: sourceUrl ? cleanString(input.link_name1 || '자세히 보기', 120, 'link_name1') : '',
       image: imageUrl,

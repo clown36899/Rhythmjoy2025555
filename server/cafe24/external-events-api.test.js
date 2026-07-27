@@ -166,6 +166,46 @@ describe('external event API validation', () => {
     });
   });
 
+  it('accepts only explicit free or discount benefit visibility values', () => {
+    const freeEvent = normalizeExternalEventPayload({
+      external_id: 'partner-free-event',
+      title: '무료 린디합 강습',
+      event_dates: ['2026-08-01'],
+      benefit_kind: 'free_event',
+      source_url: 'https://partner.example.com/events/free',
+      image_mode: 'url',
+      image_url: 'https://partner.example.com/images/free.webp',
+    }, partner);
+    expect(freeEvent.event).toMatchObject({
+      benefit_eligible: true,
+      benefit_kind: 'free_event',
+    });
+
+    const regularEvent = normalizeExternalEventPayload({
+      external_id: 'partner-regular-event',
+      title: '일반 린디합 강습',
+      event_dates: ['2026-08-01'],
+      benefit_kind: null,
+      source_url: 'https://partner.example.com/events/regular',
+      image_mode: 'url',
+      image_url: 'https://partner.example.com/images/regular.webp',
+    }, partner);
+    expect(regularEvent.event).toMatchObject({
+      benefit_eligible: false,
+      benefit_kind: null,
+    });
+
+    expect(() => normalizeExternalEventPayload({
+      external_id: 'partner-invalid-benefit',
+      title: '잘못된 혜택',
+      event_dates: ['2026-08-01'],
+      benefit_kind: 'sale',
+      source_url: 'https://partner.example.com/events/invalid',
+      image_mode: 'url',
+      image_url: 'https://partner.example.com/images/invalid.webp',
+    }, partner)).toThrow('benefit_kind는 free_event, discount_event 또는 null');
+  });
+
   it('uses selected individual dates and derives the visible date range like the site form', () => {
     const normalized = normalizeExternalEventPayload({
       external_id: 'partner-event-individual-dates',

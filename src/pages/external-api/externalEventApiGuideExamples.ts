@@ -4,6 +4,7 @@ export const singleEventExample = `{
   "event_dates": ["2026-08-01"],
   "category": "class",
   "genre": "린디합",
+  "benefit_kind": "free_event",
   "source_url": "https://partner.example.com/events/1",
   "image_mode": "url",
   "image_url": "https://partner.example.com/images/1.webp"
@@ -55,6 +56,7 @@ $payload = [
   'event_dates' => ['2026-08-01'],
   'category' => 'class',
   'genre' => '린디합',
+  'benefit_kind' => 'free_event',
   'source_url' => 'https://partner.example.com/events/1',
   'image_mode' => 'url',
   'image_url' => 'https://partner.example.com/images/1.webp'

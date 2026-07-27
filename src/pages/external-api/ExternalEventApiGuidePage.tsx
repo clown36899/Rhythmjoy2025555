@@ -71,6 +71,7 @@ const event = {
   time: "19:30",
   category: "class",
   genre: "린디합",
+  benefit_kind: "free_event",
   source_url: "https://partner.example.com/events/1",
   image_mode: "url",
   image_url: "https://partner.example.com/images/1-updated.webp"
@@ -208,6 +209,7 @@ const fieldRows = [
   ['postal_code', '선택', '주소 확인 서비스가 반환한 5자리 우편번호'],
   ['address_source', '선택', '주소를 확인한 서비스 기록'],
   ['description', '선택', '상세 설명'],
+  ['benefit_kind', '선택', '무료는 free_event, 할인 이벤트는 discount_event, 일반 일정은 생략 또는 null'],
   ['image_mode / image_url', '조건부', 'social 이외의 분류에서 필수'],
 ];
 
@@ -218,6 +220,7 @@ const requestValueRows = [
   ['category / genre', '허용 코드만 가능', '관리자가 승인한 최상위 분류와 이 페이지의 장르표에 있는 값만 사용합니다.'],
   ['source_url', '공개 HTTPS URL', '상대 사이트의 실제 일정 상세 페이지 주소로 바꿉니다.'],
   ['time / location', '자유로운 문자열', '표시할 시간과 장소명입니다. 필요 없으면 생략할 수 있습니다.'],
+  ['benefit_kind', '허용 코드만 가능', '무료는 free_event, 할인 이벤트는 discount_event입니다. 일반 일정은 생략하거나 null을 보냅니다.'],
   ['image_mode', 'upload 또는 url', '이미지 전달 방식에 맞춰 둘 중 하나만 사용합니다.'],
   ['image_url', '이미지 URL', '업로드 API 응답 URL 또는 로그인 없이 열리는 공개 HTTPS 이미지 URL입니다.'],
 ];
