@@ -23,6 +23,7 @@ import {
     suggestDanceGenres,
     type DanceScope,
 } from '../utils/danceTaxonomy';
+import BenefitKindSelector, { type ManualBenefitKind } from './BenefitKindSelector';
 
 // Register locale
 registerLocale("ko", ko);
@@ -72,8 +73,8 @@ interface EditableEventDetailProps {
     danceScope?: DanceScope;
     onDanceScopeChange?: (scope: DanceScope) => void;
     canUseExpandedDanceScopes?: boolean;
-    benefitKind?: 'free_event' | 'discount_event' | null;
-    onBenefitKindChange?: (kind: 'free_event' | 'discount_event' | null) => void;
+    benefitKind?: ManualBenefitKind;
+    onBenefitKindChange?: (kind: ManualBenefitKind) => void;
 
 }
 
@@ -837,29 +838,11 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                 {/* Footer */}
                 <div className="EED-footer">
-                    <div className="EED-benefitField">
-                        <span className="EED-benefitLabel">무료·할인 노출</span>
-                        <div className="EED-benefitOptions" role="group" aria-label="무료·할인 이벤트 노출 선택">
-                            {([
-                                [null, '일반'],
-                                ['free_event', '무료'],
-                                ['discount_event', '할인 이벤트'],
-                            ] as const).map(([value, label]) => (
-                                <button
-                                    key={value || 'none'}
-                                    type="button"
-                                    className={`EED-benefitOption ${benefitKind === value ? 'is-active' : ''}`}
-                                    aria-pressed={benefitKind === value}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onBenefitKindChange?.(value);
-                                    }}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <BenefitKindSelector
+                        className="EED-benefitField"
+                        value={benefitKind}
+                        onChange={(value) => onBenefitKindChange?.(value)}
+                    />
                     <div className="EED-footerActions">
                         {onDelete && (
                             <button

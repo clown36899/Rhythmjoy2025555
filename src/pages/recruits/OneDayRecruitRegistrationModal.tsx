@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { cafe24 } from '../../lib/cafe24Client';
+import BenefitKindSelector, { type ManualBenefitKind } from '../../components/BenefitKindSelector';
 import {
   KOREA_CENTER,
   ONE_DAY_REGION_OPTIONS,
@@ -30,6 +31,8 @@ type OneDayRecruitLinkRow = {
   logo_updated_at: string | null;
   sort_order: number | null;
   is_active: boolean | null;
+  benefit_eligible: boolean | null;
+  benefit_kind: ManualBenefitKind;
 };
 
 interface OneDayRecruitRegistrationModalProps {
@@ -38,7 +41,7 @@ interface OneDayRecruitRegistrationModalProps {
 }
 
 const ONE_DAY_LINKS_TABLE = 'swing_oneday_recruit_links';
-const ONE_DAY_LINK_SELECT = 'id,community,venue,region,area,lat,lng,url,logo_source_url,logo_micro,logo_thumbnail,logo_medium,logo_full,logo_storage_path,logo_updated_at,sort_order,is_active';
+const ONE_DAY_LINK_SELECT = 'id,community,venue,region,area,lat,lng,url,logo_source_url,logo_micro,logo_thumbnail,logo_medium,logo_full,logo_storage_path,logo_updated_at,sort_order,is_active,benefit_eligible,benefit_kind';
 const ONE_DAY_LOGO_FUNCTION_PATH = '/api/oneday-recruit-logo';
 
 const EMPTY_FORM = {
@@ -209,6 +212,7 @@ export default function OneDayRecruitRegistrationModal({
   const [form, setForm] = useState(EMPTY_FORM);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [benefitKind, setBenefitKind] = useState<ManualBenefitKind>(null);
   const previewUrl = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : ''), [logoFile]);
 
   useEffect(() => {
@@ -222,6 +226,7 @@ export default function OneDayRecruitRegistrationModal({
       setForm(EMPTY_FORM);
       setLogoFile(null);
       setIsSaving(false);
+      setBenefitKind(null);
     }
   }, [isOpen]);
 
@@ -297,6 +302,8 @@ export default function OneDayRecruitRegistrationModal({
         url,
         sort_order: sortOrder,
         is_active: true,
+        benefit_eligible: benefitKind !== null,
+        benefit_kind: benefitKind,
       };
 
       const { data, error } = await cafe24
@@ -370,6 +377,12 @@ export default function OneDayRecruitRegistrationModal({
           <span>링크</span>
           <input value={form.url} inputMode="url" onChange={(event) => updateForm('url', event.target.value)} placeholder="https://..." />
         </label>
+
+        <BenefitKindSelector
+          className="oneday-recruit-benefit-selector"
+          value={benefitKind}
+          onChange={setBenefitKind}
+        />
 
         <div className="oneday-recruit-logo-editor">
           <div className="oneday-recruit-logo-preview" aria-hidden="true">

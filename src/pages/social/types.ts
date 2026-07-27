@@ -82,6 +82,8 @@ export interface SocialSchedule {
   v2_genre?: string; // Legacy
   v2_category?: string; // Legacy
   scope?: string;
+  benefit_eligible?: boolean;
+  benefit_kind?: 'free_event' | 'discount_event' | null;
 }
 
 export interface UnifiedSocialEvent {

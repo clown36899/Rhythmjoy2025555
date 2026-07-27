@@ -998,3 +998,4 @@
 - 검증: Cafe24/MySQL 운영 설정의 프로덕션 빌드와 수집 기준 테스트, diff 검사가 통과했다.
 - 관련 파일: `src/components/EventRegistrationModal.tsx`, `src/components/EditableEventDetail.tsx`, `src/styles/components/EditableEventDetail.css`, `src/lib/cafe24Client.ts`, `src/pages/benefit-events/BenefitEventsPage.tsx`
 - API 후속 조치: 외부 일정 등록·수정 API에 선택 필드 `benefit_kind`를 추가했다. `free_event`, `discount_event`, `null`만 허용하고 서버가 `benefit_eligible`을 자동 계산한다. API 가이드의 요청 필드표와 서버 예제를 갱신했으며 외부 API 테스트 27개가 통과했다.
+- 등록 경로 후속 수정: 최초 조치는 공통 행사·강습 폼에만 적용되어 별도 구현인 소셜 일정과 원데이 모집 링크 등록에는 선택지가 없었다. 공용 혜택 선택 컴포넌트를 분리해 행사·강습, 소셜 일정, 원데이 모집 링크 세 등록 경로에 모두 적용했다. 소셜은 이벤트 혜택 필드를 직접 저장하며, 무료·할인으로 등록한 상시 원데이 모집 링크도 혜택 페이지 데이터에 합쳐 노출한다.

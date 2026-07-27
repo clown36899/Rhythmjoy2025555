@@ -2,11 +2,51 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
+import { cafe24 } from '../../lib/cafe24Client';
 import { getEventThumbnail } from '../../utils/getEventThumbnail';
 import { getLocalDateString } from '../v2/utils/eventListUtils';
 import './BenefitEventsPage.css';
 
-const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v1';
+const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v2';
+
+type OneDayBenefitLink = {
+  id: string;
+  community: string;
+  venue?: string | null;
+  region?: string | null;
+  area?: string | null;
+  url: string;
+  logo_micro?: string | null;
+  logo_thumbnail?: string | null;
+  logo_medium?: string | null;
+  logo_full?: string | null;
+  benefit_eligible?: boolean | null;
+  benefit_kind?: 'free_event' | 'discount_event' | null;
+  is_active?: boolean | null;
+};
+
+function oneDayLinkToBenefitEvent(link: OneDayBenefitLink): AppEvent {
+  return {
+    id: `oneday-${link.id}`,
+    title: `${link.community} 원데이 모집`,
+    time: '',
+    location: link.venue || link.area || link.region || '장소 미정',
+    category: 'class',
+    genre: '원데이모집',
+    price: link.benefit_kind === 'free_event' ? '무료' : '',
+    image: link.logo_full || link.logo_medium || link.logo_thumbnail || link.logo_micro || '',
+    image_micro: link.logo_micro || undefined,
+    image_thumbnail: link.logo_thumbnail || undefined,
+    image_medium: link.logo_medium || undefined,
+    image_full: link.logo_full || undefined,
+    description: '상시 원데이 모집 링크',
+    organizer: link.community,
+    link1: link.url,
+    link_name1: '모집 링크',
+    benefit_eligible: link.benefit_eligible === true,
+    benefit_kind: link.benefit_kind || null,
+  };
+}
 
 function normalizeDate(value: unknown) {
   const date = String(value || '').slice(0, 10);
@@ -103,7 +143,20 @@ export default function BenefitEventsPage() {
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['benefit-events', BENEFIT_EVENT_QUERY_VERSION],
-    queryFn: () => fetchCafe24Events({ limit: 3000 }),
+    queryFn: async () => {
+      const [eventRows, oneDayResult] = await Promise.all([
+        fetchCafe24Events({ limit: 3000 }),
+        cafe24
+          .from('swing_oneday_recruit_links')
+          .select('id,community,venue,region,area,url,logo_micro,logo_thumbnail,logo_medium,logo_full,benefit_eligible,benefit_kind,is_active')
+          .eq('is_active', true),
+      ]);
+      if (oneDayResult.error) throw oneDayResult.error;
+      const oneDayEvents = ((oneDayResult.data || []) as OneDayBenefitLink[])
+        .filter((link) => link.benefit_eligible === true)
+        .map(oneDayLinkToBenefitEvent);
+      return [...eventRows, ...oneDayEvents];
+    },
     staleTime: 5 * 60 * 1000,
   });
 

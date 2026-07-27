@@ -6,6 +6,7 @@ import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import { trackActivitySuccess } from '../../../utils/analyticsEvents';
 import { useLoading } from '../../../contexts/LoadingContext';
 import ImageCropModal from '../../../components/ImageCropModal';
+import BenefitKindSelector, { type ManualBenefitKind } from '../../../components/BenefitKindSelector';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 
 import type { SocialScheduleModalProps } from '../types';
@@ -41,6 +42,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('social');
     const [socialGenre, setSocialGenre] = useState<'DJ' | '라이브밴드' | null>(null);
+    const [benefitKind, setBenefitKind] = useState<ManualBenefitKind>(null);
 
     // Social Schedule Image States
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -89,7 +91,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         category !== (source.category || source.v2_category || 'social') ||
                         imageFile !== null ||
                         (source.link1 || source.link_url || '') !== link ||
-                        (source.link_name1 || source.link_name || '') !== linkName
+                        (source.link_name1 || source.link_name || '') !== linkName ||
+                        benefitKind !== (source.benefit_eligible === true ? source.benefit_kind || null : null)
                     );
                 } else {
                     return (
@@ -100,7 +103,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         description !== '' ||
                         imageFile !== null ||
                         link !== '' ||
-                        linkName !== ''
+                        linkName !== '' ||
+                        benefitKind !== null
                     );
                 }
             } else {
@@ -117,7 +121,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setIsDirty(hasChanges());
     }, [
         isOpen, activeTab, title, date, time, location, address, description,
-        category, imageFile, link, linkName, recruitContent, recruitContact,
+        category, imageFile, link, linkName, benefitKind, recruitContent, recruitContact,
         recruitLink, recruitImageFile, editSchedule, initialData, initialDate
     ]);
 
@@ -159,6 +163,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 setLink(source.link1 || source.link_url || '');
                 setLinkName(source.link_name1 || source.link_name || '');
                 setDescription(source.description || '');
+                setBenefitKind(
+                    source.benefit_eligible === true
+                        && ['free_event', 'discount_event'].includes(String(source.benefit_kind || ''))
+                        ? source.benefit_kind
+                        : null
+                );
 
                 // Category mapping
                 setCategory(source.category || source.v2_category || 'social');
@@ -189,6 +199,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 setDescription('');
                 setCategory('social');
                 setSocialGenre(null);
+                setBenefitKind(null);
                 setImagePreview(null);
                 setImageFile(null);
             }
@@ -411,6 +422,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     user_id: user.id,
                     category: dbCategory,
                     genre: genre,
+                    benefit_eligible: benefitKind !== null,
+                    benefit_kind: benefitKind,
                 };
 
                 console.log('[SocialScheduleModal] Final Data to save (Fixed):', eventData);
@@ -633,6 +646,10 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     <i className="ri-information-line"></i>
                                     <span>등록된 일정은 전체달력 소셜에 노출됩니다.</span>
                                 </div>
+                            </div>
+
+                            <div className="form-section">
+                                <BenefitKindSelector value={benefitKind} onChange={setBenefitKind} />
                             </div>
 
                             {category === 'social' && (
