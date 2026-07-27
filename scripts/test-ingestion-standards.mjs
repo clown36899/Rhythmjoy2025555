@@ -76,6 +76,20 @@ assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '7월 정기권 판매 오픈',
   structured_data: { title: '7월 정기권' },
 }), 'season_pass', 'explicit season-pass sales should be benefit eligible');
+for (const phrase of [
+  '스윙프렌즈 정기 할인권 판매 오픈',
+  '스윙바 다회권 구매 가능',
+  '소셜 10회권 가격 안내',
+  '7월 월간권 신청 오픈',
+  '여름 시즌패스 판매',
+  '입장권 10장 묶음 판매',
+  '스윙바 티켓북 구매 가능',
+]) {
+  assert.equal(classifyConfirmedBenefitEvent({
+    extracted_text: phrase,
+    structured_data: { title: phrase },
+  }), 'season_pass', `${phrase} should be recognized as a pass sale`);
+}
 assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '무료 라인강습은 없습니다. 8월 정기권 판매 오픈',
   structured_data: { title: '8월 정기권 판매' },
@@ -789,8 +803,9 @@ for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
   );
 }
 const swingBenefitSources = getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search');
-assert.equal(swingBenefitSources.length, 14, 'benefit automation should run fourteen focused searches across stages three and four');
-assert.equal(swingBenefitSources.filter((source) => source.priority === 3).length, 10, 'stage three should contain free and pass benefit searches');
+assert.equal(swingBenefitSources.length, 16, 'benefit automation should run sixteen focused searches across stages three and four');
+assert.equal(swingBenefitSources.filter((source) => source.priority === 3).length, 11, 'stage three should contain free and pass benefit searches');
+assert.equal(swingBenefitSources.filter((source) => source.priority === 2).length, 1, 'the known Swingfriends pass source should run before general benefit searches');
 assert.equal(swingBenefitSources.filter((source) => source.priority === 4).length, 4, 'stage four should contain discount benefit searches');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-club-free'), 'stage three should search amateur club free benefits');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-bar-pass'), 'stage three should search swing-bar passes');
