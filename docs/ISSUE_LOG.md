@@ -951,3 +951,11 @@
 - 원인: 요일은 flex 정렬을 사용하지만 날짜 숫자는 일반 inline 박스를 사용해 글꼴 행간 기준이 서로 달랐다.
 - 해결: 날짜 숫자를 1em 높이의 inline-flex 박스로 바꾸고 수직·수평 중앙 및 고정 행간을 적용했다.
 - 관련 파일: `src/pages/calendar/styles/FullEventCalendar.css`
+
+## 2026-07-27 캘린더 DJ 미정 문구 노출
+
+- 상태: 해결
+- 현상: DJ가 확정되지 않은 정규 소셜 일정에 캘린더가 `DJ 미정`을 표시했다.
+- 원인: 소셜 캘린더가 `dj_name`과 제목에서 추출한 DJ 값을 실제 이름인지 확인하지 않고 표시했다.
+- 조치: DJ 값이 `미정` 또는 `DJ 미정`이면 빈칸으로 처리하고, 실제 이름이 있을 때만 `DJ 이름`을 표시한다.
+- 관련 파일: `src/pages/calendar/components/FullEventCalendar.tsx`

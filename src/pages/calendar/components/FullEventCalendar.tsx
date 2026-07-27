@@ -166,6 +166,10 @@ const cleanCalendarDisplayText = (value?: string | null) => (
   value?.trim().replace(/\s+/g, " ") || ""
 );
 
+const isUndeterminedCalendarDj = (value: string) => (
+  /^(?:DJ\s*)?미정$/i.test(cleanCalendarDisplayText(value))
+);
+
 const getCalendarSocialDjText = (event: AppEvent) => {
   const rawDjs = (event as any).structured_data?.djs
     ?? (event as any).djs
@@ -179,7 +183,7 @@ const getCalendarSocialDjText = (event: AppEvent) => {
       : [];
   const cleanDjs = djs
     .map((dj) => cleanCalendarDisplayText(String(dj)).replace(/^DJ\s*/i, ""))
-    .filter(Boolean);
+    .filter((dj) => Boolean(dj) && !isUndeterminedCalendarDj(dj));
 
   if (cleanDjs.length > 0) return cleanDjs.join(", ");
 
@@ -191,7 +195,7 @@ const getCalendarSocialDjText = (event: AppEvent) => {
     .replace(/^DJ\s*/i, "")
     .replace(/\s*(월요|화요|수요|목요|금요|토요|일요)\s*$/g, "");
 
-  return name || "";
+  return name && !isUndeterminedCalendarDj(name) ? name : "";
 };
 
 const estimateCalendarSocialTextUnits = (value: string) => (
