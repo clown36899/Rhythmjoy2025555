@@ -149,8 +149,6 @@ export function shouldHidePastCandidate(row = {}, {
   if (
     tab === 'free'
     && structuredData.benefit_eligible === true
-    && structuredData.ongoing_sale === true
-    && structuredData.benefit_lifecycle === 'evergreen'
   ) {
     return false;
   }

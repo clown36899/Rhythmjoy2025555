@@ -315,6 +315,18 @@ assert.equal(
   'verified ongoing benefit sales must remain visible in the benefit list after the source post date',
 );
 assert.equal(
+  shouldHidePastCandidate({
+    structured_data: {
+      date: '2024-07-10',
+      benefit_eligible: true,
+      benefit_kind: 'free_event',
+      benefit_lifecycle: 'date_bound',
+    },
+  }, { today: '2026-07-26', tab: 'free' }),
+  false,
+  'expired benefits must remain available above the current benefit boundary',
+);
+assert.equal(
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=13&referrerAllArticles=false'),
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=264&referrerAllArticles=false'),
   'date expansion dedupe must ignore naver cafe article menu/list query noise',
