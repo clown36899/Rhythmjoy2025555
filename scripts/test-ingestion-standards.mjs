@@ -82,7 +82,11 @@ assert.equal(classifyConfirmedBenefitEvent({
 assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '무료 주차 가능, 입장료 20,000원',
   structured_data: { title: '토요 살사 소셜' },
-}), 'free_event', 'any explicit free element should remain discoverable even when the main event is paid');
+}), null, 'incidental free parking must not turn a paid social into a free event');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '참가비 사전 27,000원, 현장 30,000원. 이벤트 우승 경품은 무료강습권',
+  structured_data: { title: '26주년 유료 라이브 파티' },
+}), null, 'a free lesson voucher prize must not turn a paid party into a free event');
 assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '첫 방문 무료 체험 클래스, 2026년 8월 2일',
   structured_data: { title: '바차타 입문 체험' },
@@ -95,10 +99,10 @@ const benefitPhraseCases = [
   ['수강료 0원 탱고 입문 클래스', 'free_event'],
   ['프로그램: 무료 스윙댄스 강습, 라이브밴드 소셜 / 누구나 무료', 'free_event'],
   ['무료 라인강습은 없습니다. 입장은 무료입니다.', 'free_event'],
-  ['무료 주차 가능합니다. 입장료 15,000원', 'free_event'],
-  ['무료 음료 1잔 제공, 참가비 20,000원', 'free_event'],
-  ['무료 상담 후 유료 수강 등록', 'free_event'],
-  ['동호회 회원 대상 무료 대관 혜택, 월 회비 별도', 'free_event'],
+  ['무료 주차 가능합니다. 입장료 15,000원', null],
+  ['무료 음료 1잔 제공, 참가비 20,000원', null],
+  ['무료 상담 후 유료 수강 등록', null],
+  ['동호회 회원 대상 무료 대관 혜택, 월 회비 별도', null],
   ['스윙바 8월 시즌권 판매 오픈', 'season_pass'],
   ['8월 워크숍 얼리버드 20% 할인 오픈', 'discount_event'],
   ['첫 방문 회원 5,000원 할인 혜택', 'discount_event'],
@@ -324,8 +328,8 @@ assert.equal(
       benefit_lifecycle: 'date_bound',
     },
   }, { today: '2026-07-26', tab: 'free' }),
-  false,
-  'expired benefits must remain available above the current benefit boundary',
+  true,
+  'expired date-bound benefits must not remain in the current benefit tab',
 );
 assert.equal(
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=13&referrerAllArticles=false'),
