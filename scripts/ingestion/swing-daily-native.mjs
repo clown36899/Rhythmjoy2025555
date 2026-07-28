@@ -628,10 +628,15 @@ function inferActivity(text = '') {
   return { activity: 'event', eventType: '행사' };
 }
 
-function inferVenue(text = '', source) {
-  const combined = `${text} ${source?.name || ''} ${source?.id || ''}`;
-  const matched = venueAliases.find(([pattern]) => pattern.test(combined));
-  return matched?.[1] || sourceSpecificVenue.get(source?.id) || '';
+function inferVenueDetails(text = '', source) {
+  const textMatched = venueAliases.find(([pattern]) => pattern.test(text));
+  if (textMatched) return { venue: textMatched[1], provenance: 'source_text' };
+  if (source?.venue) return { venue: source.venue, provenance: 'source_registry' };
+  const configured = sourceSpecificVenue.get(source?.id);
+  if (configured) return { venue: configured, provenance: 'source_registry' };
+  const sourceMatched = venueAliases.find(([pattern]) => pattern.test(`${source?.name || ''} ${source?.id || ''}`));
+  if (sourceMatched) return { venue: sourceMatched[1], provenance: 'source_alias' };
+  return { venue: '', provenance: 'unresolved' };
 }
 
 function inferDjs(text = '') {
@@ -1454,7 +1459,8 @@ function buildExceptionBacktestCandidates({
   if (!detections.length) return [];
 
   const djs = inferDjs(cleanText);
-  const venue = inferVenue(cleanText, source) || source.name;
+  const venueResolution = inferVenueDetails(cleanText, source);
+  const venue = venueResolution.venue;
   const sourceKey = Buffer.from(sourceUrl).toString('base64url').slice(-18);
   const candidates = [];
   for (const detection of detections) {
@@ -1479,8 +1485,7 @@ function buildExceptionBacktestCandidates({
           date,
           activity_type: 'social_exception',
           event_type: detection.label,
-          location: venue,
-          venue_name: venue,
+          ...(venue ? { location: venue, venue_name: venue, venue_provenance: venueResolution.provenance } : {}),
           dance_scope: source.scope,
           genre_family: source.genre_family,
           dance_genre: source.dance_genre,
@@ -1564,7 +1569,8 @@ async function buildCandidatesFromText({
   }
 
   const { activity, eventType } = inferActivity(cleanText);
-  const venue = inferVenue(cleanText, source);
+  const venueResolution = inferVenueDetails(cleanText, source);
+  const venue = venueResolution.venue;
   const djs = inferDjs(cleanText);
   const candidateTitle = makeCandidateTitle({ source, rawTitle: title, rawText, cleanText, eventType, djs });
   const isOneDayCandidate = oneDayPattern.test(`${candidateTitle}\n${cleanText}`);
@@ -1620,8 +1626,7 @@ async function buildCandidatesFromText({
           ...(item.day ? { day: item.day } : {}),
           event_type: eventType,
           activity_type: activity,
-          location: venue || source.name,
-          venue_name: venue || source.name,
+          ...(venue ? { location: venue, venue_name: venue, venue_provenance: venueResolution.provenance } : {}),
           dance_scope: source.scope,
           genre_family: source.genre_family,
           dance_genre: source.dance_genre,
@@ -1696,8 +1701,7 @@ async function buildCandidatesFromText({
         date,
         event_type: eventType,
         activity_type: activity,
-        location: venue || source.name,
-        venue_name: venue || source.name,
+        ...(venue ? { location: venue, venue_name: venue, venue_provenance: venueResolution.provenance } : {}),
         dance_scope: source.scope,
         genre_family: source.genre_family,
         dance_genre: source.dance_genre,

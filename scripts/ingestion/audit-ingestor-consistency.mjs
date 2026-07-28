@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { getMysqlPool } from '../../server/cafe24/mysql-pool.js';
+import { findGeneratedRegularSocialReplacements } from '../../server/cafe24/regular-social-reconciler.js';
+import { validateCandidate } from './candidate-utils.mjs';
 
 const args = new Set(process.argv.slice(2));
 
@@ -109,6 +111,131 @@ function titleOfLegacyCandidate(row = {}) {
 
 function venueOfLegacyCandidate(row = {}) {
   return String(row.structured_data?.venue_name || row.structured_data?.location || row.venue_name || row.location || '').trim();
+}
+
+function activityOfLegacyCandidate(row = {}) {
+  return String(row.activity_type || row.structured_data?.activity_type || row.structured_data?.event_type || '').toLowerCase();
+}
+
+function isSocialCandidate(row = {}) {
+  return /social|소셜|정모/.test(`${activityOfLegacyCandidate(row)} ${titleOfLegacyCandidate(row)}`.toLowerCase())
+    && !/class|강습|워크숍|워크샵/.test(`${activityOfLegacyCandidate(row)} ${titleOfLegacyCandidate(row)}`.toLowerCase());
+}
+
+function canonicalVenue(value = '') {
+  return normalizeText(value)
+    .replace(/(?:서울|신촌|합정|선릉|사당|강남|강북|홍대|상수|망원|연남|서교|마포|신림|봉천|건대|성수|이태원)$/g, '')
+    .replace(/(?:bar|바)$/g, '');
+}
+
+function venueAuditRow(row = {}) {
+  const structured = row.structured_data || {};
+  return {
+    id: row.id || null,
+    title: titleOfLegacyCandidate(row) || null,
+    date: dateOfLegacyCandidate(row) || null,
+    keyword: row.keyword || null,
+    location: structured.location || row.location || null,
+    venue_name: structured.venue_name || row.venue_name || null,
+    activity_type: activityOfLegacyCandidate(row) || null,
+  };
+}
+
+function buildVenueConsistencyAudit({ today, liveEvents, legacyCandidates }) {
+  const current = legacyCandidates
+    .filter((row) => statusOfLegacyCandidate(row) === 'pending')
+    .filter((row) => {
+      const date = dateOfLegacyCandidate(row);
+      return !date || date >= today;
+    });
+  const missing = current.filter((row) => !venueOfLegacyCandidate(row));
+  const pairConflicts = current.filter((row) => {
+    const structured = row.structured_data || {};
+    const location = canonicalVenue(structured.location || row.location || '');
+    const venueName = canonicalVenue(structured.venue_name || row.venue_name || '');
+    return Boolean(location && venueName && location !== venueName);
+  });
+  const sourceFallbacks = current.filter((row) => {
+    const venue = canonicalVenue(venueOfLegacyCandidate(row));
+    const keyword = canonicalVenue(row.keyword || '');
+    return Boolean(venue && keyword && venue === keyword);
+  });
+  const regionOnly = current.filter((row) => /^(서울|부산|대구|인천|대전|광주|수원|청주|세종|제주)$/i.test(venueOfLegacyCandidate(row)));
+  const byKeyword = new Map();
+  for (const row of current) {
+    const keyword = String(row.keyword || '').trim();
+    const venue = venueOfLegacyCandidate(row);
+    if (!keyword || !venue) continue;
+    if (!byKeyword.has(keyword)) byKeyword.set(keyword, new Map());
+    const normalized = canonicalVenue(venue);
+    if (!byKeyword.get(keyword).has(normalized)) byKeyword.get(keyword).set(normalized, new Set());
+    byKeyword.get(keyword).get(normalized).add(venue);
+  }
+  const sourceVenueVariants = [...byKeyword.entries()]
+    .filter(([, venues]) => venues.size > 1)
+    .map(([keyword, venues]) => ({
+      keyword,
+      variants: [...venues.values()].map((values) => [...values]),
+    }));
+  const socials = current.filter(isSocialCandidate);
+  const standardsRejected = current
+    .map((row) => ({ row, validation: validateCandidate(row, { today }) }))
+    .filter((item) => !item.validation.ok);
+  const replacementMatches = socials.map((row) => {
+    const structured = row.structured_data || {};
+    const replacements = findGeneratedRegularSocialReplacements(liveEvents, {
+      title: titleOfLegacyCandidate(row),
+      date: dateOfLegacyCandidate(row),
+      location: structured.location || row.location || '',
+      venue_name: structured.venue_name || row.venue_name || '',
+      category: 'social',
+      activity_type: 'social',
+      link_name1: row.keyword || '',
+    }, row);
+    return { row, replacements };
+  });
+  const matchedSocials = replacementMatches.filter((item) => item.replacements.length > 0);
+  const ambiguousSocials = replacementMatches.filter((item) => item.replacements.length > 1);
+
+  return {
+    counts: {
+      currentPendingFuture: current.length,
+      withVenue: current.length - missing.length,
+      missingVenue: missing.length,
+      locationVenueConflict: pairConflicts.length,
+      sourceNameFallback: sourceFallbacks.length,
+      regionOnlyVenue: regionOnly.length,
+      sourceVenueVariantGroups: sourceVenueVariants.length,
+      currentSocials: socials.length,
+      regularReplacementMatched: matchedSocials.length,
+      regularReplacementAmbiguous: ambiguousSocials.length,
+      rejectedByCurrentStandards: standardsRejected.length,
+    },
+    rates: {
+      venuePresence: current.length ? (current.length - missing.length) / current.length : 1,
+      locationVenueAgreement: current.length ? (current.length - pairConflicts.length) / current.length : 1,
+      regularReplacementCoverage: socials.length ? matchedSocials.length / socials.length : 1,
+    },
+    samples: {
+      missingVenue: missing.slice(0, 20).map(venueAuditRow),
+      locationVenueConflict: pairConflicts.slice(0, 20).map(venueAuditRow),
+      sourceNameFallback: sourceFallbacks.slice(0, 20).map(venueAuditRow),
+      regionOnlyVenue: regionOnly.slice(0, 20).map(venueAuditRow),
+      sourceVenueVariants: sourceVenueVariants.slice(0, 20),
+      unmatchedSocials: replacementMatches
+        .filter((item) => item.replacements.length === 0)
+        .slice(0, 20)
+        .map((item) => venueAuditRow(item.row)),
+      matchedSocials: matchedSocials.slice(0, 20).map((item) => ({
+        candidate: venueAuditRow(item.row),
+        replacements: item.replacements.map(compactRow),
+      })),
+      rejectedByCurrentStandards: standardsRejected.slice(0, 20).map((item) => ({
+        candidate: venueAuditRow(item.row),
+        errors: item.validation.errors,
+      })),
+    },
+  };
 }
 
 function liveEventKey(row = {}) {
@@ -308,6 +435,15 @@ function printTextReport(report) {
   console.log(`- duplicate candidates without likely live match: ${report.legacy.risks.duplicateWithoutLikelyLiveMatchCount}`);
   console.log(`- live event same URL/date groups: ${report.legacy.risks.liveSameUrlDateGroupCount}`);
   console.log('');
+  console.log('## Current candidate venue consistency');
+  console.log(`- pending future candidates: ${report.venueConsistency.counts.currentPendingFuture}`);
+  console.log(`- venue presence: ${(report.venueConsistency.rates.venuePresence * 100).toFixed(1)}%`);
+  console.log(`- location/venue agreement: ${(report.venueConsistency.rates.locationVenueAgreement * 100).toFixed(1)}%`);
+  console.log(`- source-name fallbacks: ${report.venueConsistency.counts.sourceNameFallback}`);
+  console.log(`- region-only venues: ${report.venueConsistency.counts.regionOnlyVenue}`);
+  console.log(`- regular-social replacement coverage: ${(report.venueConsistency.rates.regularReplacementCoverage * 100).toFixed(1)}%`);
+  console.log(`- ambiguous regular-social replacements: ${report.venueConsistency.counts.regularReplacementAmbiguous}`);
+  console.log('');
   console.log('## Ingestor V3');
   if (!report.v3.installed) {
     console.log(`- installed: no (${report.v3.message})`);
@@ -320,7 +456,10 @@ function printTextReport(report) {
   }
   console.log('');
   console.log('## Samples');
-  console.log(JSON.stringify(report.legacy.samples, null, 2));
+  console.log(JSON.stringify({
+    legacy: report.legacy.samples,
+    venueConsistency: report.venueConsistency.samples,
+  }, null, 2));
 }
 
 async function main() {
@@ -343,6 +482,7 @@ async function main() {
       readOnly: true,
       writesToEvents: false,
       legacy: buildLegacyAudit({ today, liveEvents, legacyCandidates }),
+      venueConsistency: buildVenueConsistencyAudit({ today, liveEvents, legacyCandidates }),
       v3: await buildV3Audit(pool),
     };
 

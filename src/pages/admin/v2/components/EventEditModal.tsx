@@ -268,7 +268,13 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 throw new Error(registerJson.error || '운영 DB 등록에 실패했습니다.');
             }
 
-            alert(`${registerJson.skipped ? '이미 등록된 이벤트라 이미지/완료 상태를 보정했습니다.' : '등록 성공!'} (ID: ${registerJson.event?.id})`);
+            const replacedCount = Array.isArray(registerJson.replaced_regular_socials)
+                ? registerJson.replaced_regular_socials.length
+                : 0;
+            const replacementMessage = replacedCount > 0
+                ? `\n같은 날짜의 정규 소셜 ${replacedCount}건을 대체했습니다.`
+                : '';
+            alert(`${registerJson.skipped ? '이미 등록된 이벤트라 이미지/완료 상태를 보정했습니다.' : '등록 성공!'} (ID: ${registerJson.event?.id})${replacementMessage}`);
             onSuccess(event.id);
             onClose();
 

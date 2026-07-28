@@ -18,6 +18,7 @@ import {
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
+import { findGeneratedRegularSocialReplacements } from './regular-social-reconciler.js';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -909,11 +910,24 @@ export async function cafe24IngestorRegisterEvent(req, res) {
 
   if (existing) {
     const repaired = await saveCafe24TableRow('events', { ...existing, ...imageFields, updated_at: new Date().toISOString() });
+    const replacedRegularSocials = findGeneratedRegularSocialReplacements(
+      existingRows,
+      { ...repaired, ...eventData },
+      scrapedEvent,
+    );
+    if (replacedRegularSocials.length) {
+      await deleteCafe24TableRows('events', replacedRegularSocials);
+    }
     res.json({
       skipped: true,
       repaired: true,
       reason: '이미 등록된 이벤트가 있어 이미지/완료 상태만 보정했습니다.',
       event: repaired,
+      replaced_regular_socials: replacedRegularSocials.map((event) => ({
+        id: event.id,
+        title: event.title,
+        date: eventDate(event),
+      })),
     });
     return;
   }
@@ -935,7 +949,19 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     updated_at: new Date().toISOString(),
   };
   const inserted = await saveCafe24TableRow('events', finalPayload);
-  res.status(201).json({ event: inserted, owner_user_id: ownerUserId });
+  const replacedRegularSocials = findGeneratedRegularSocialReplacements(existingRows, inserted, scrapedEvent);
+  if (replacedRegularSocials.length) {
+    await deleteCafe24TableRows('events', replacedRegularSocials);
+  }
+  res.status(201).json({
+    event: inserted,
+    owner_user_id: ownerUserId,
+    replaced_regular_socials: replacedRegularSocials.map((event) => ({
+      id: event.id,
+      title: event.title,
+      date: eventDate(event),
+    })),
+  });
 }
 
 function eventIdCandidates(eventId) {

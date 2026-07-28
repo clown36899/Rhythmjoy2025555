@@ -2,6 +2,11 @@ export const allowedCollectionScopes = ['swing', 'salsa', 'bachata', 'tango', 's
 
 export const excludedSourceRules = [
   {
+    id: 'retired-swingfamily',
+    pattern: /(cafe\.naver\.com\/f-e\/cafes\/10342583\/(?:menus\/13|articles\/[^/?#]+[^#]*[?&]menuid=13)|cafe\.naver\.com\/swingfamily(?:\/|$)|linktr\.ee\/swingfamily(?:\/|$))/i,
+    reason: '운영 종료 소스 제외: 스윙패밀리',
+  },
+  {
     id: 'meroni',
     pattern: /^https?:\/\/(www\.)?meroniswing\.com(\/|$)/i,
     reason: '사용자 지정 제외 소스: meroniswing.com',
@@ -80,6 +85,7 @@ const source = ({
   notes = '',
   query = '',
   benefitKind = '',
+  venue = '',
 }) => ({
   id,
   name,
@@ -100,6 +106,7 @@ const source = ({
   notes,
   query,
   benefitKind,
+  venue,
 });
 
 export const collectionSources = [
@@ -179,12 +186,11 @@ export const collectionSources = [
   source({ id: 'neoswing-linktree', name: '네오스윙 Linktree', scope: 'swing', genre: 'swing', type: 'linktree', url: 'https://linktr.ee/neoswing', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'link_hub', sceneRole: 'community_route_map', promotionPolicy: 'external_hub_only', notes: '검색 노출에서 Daum 카페, 오픈채팅, 원데이/정규 신청 경로 확인. 직접 저장 원본으로 쓰지 않음' }),
   source({ id: 'goldenswing', name: '골든스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/goldenswing2019/', priority: 2, notes: '골든스윙 Linktree에서 확인한 공식 인스타. 당산벙커/청주 골든 소셜 원본 후보' }),
   source({ id: 'swingfactory_kr', name: '스윙팩토리', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingfactory_kr/', priority: 2 }),
-  source({ id: 'swingtown-cafe', name: '스윙타운', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/264?viewType=L', priority: 2, runOrder: -0.45, notes: '토요 소셜과 졸업파티 축을 우선 확인하는 핵심 카페 소스' }),
-  source({ id: 'swingfamily-lessons', name: '스윙패밀리 강습/행사', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/13?viewType=L', priority: 1, runOrder: -0.55, notes: '스윙 강습/워크숍/졸업공연/졸업파티 핵심 소스. 이미지가 확인된 미래 시작일 강습과 미래 행사 포스터를 우선 저장' }),
+  source({ id: 'swingtown-cafe', name: '스윙타운', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/264?viewType=L', venue: '봉천살롱', priority: 2, runOrder: -0.45, notes: '토요 소셜과 졸업파티 축을 우선 확인하는 핵심 카페 소스' }),
   source({ id: 'sweetyswing-lessons', name: '스위티스윙 공지/신청', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sweetyswing/5ngW', priority: 2, notes: '모바일 Daum 카페 URL 우선. 미래 시작일 강습만 저장' }),
   source({ id: 'sweetyswing-instagram', name: '스위티스윙 Instagram', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/sweetyswing/', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'social_origin', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: '스위티스윙 채널 설명에서 확인된 인스타 원본 후보. 날짜와 이미지가 있는 포스트만 저장' }),
   source({ id: 'sweetyswing-facebook', name: '스위티스윙 Facebook', scope: 'swing', genre: 'swing', type: 'facebook', url: 'https://www.facebook.com/sweetyswing/', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'session_sensitive_origin', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: '스위티스윙 채널 설명에서 확인된 Facebook 후보. 접근 실패는 접근불가/세션필요로 보고' }),
-  source({ id: 'daily-swing-club', name: 'Daily Swing 클럽 디렉터리', scope: 'swing', genre: 'swing', type: 'website', url: 'https://www.daily-swing.com/club', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'scene_directory', sceneRole: 'source_route_map', promotionPolicy: 'external_hub_only', notes: '네오/프렌즈/스위티/스캔들/스윙키즈/스윙패밀리/올어스 등 원본 카페·SNS 링크 확인용. 후보 저장 URL로 사용하지 않음' }),
+  source({ id: 'daily-swing-club', name: 'Daily Swing 클럽 디렉터리', scope: 'swing', genre: 'swing', type: 'website', url: 'https://www.daily-swing.com/club', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'scene_directory', sceneRole: 'source_route_map', promotionPolicy: 'external_hub_only', notes: '네오/프렌즈/스위티/스캔들/스윙키즈/올어스 등 원본 카페·SNS 링크 확인용. 후보 저장 URL로 사용하지 않음' }),
   source({ id: 'daily-swing-bar', name: 'Daily Swing 바 디렉터리', scope: 'swing', genre: 'swing', type: 'website', url: 'https://www.daily-swing.com/bar', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'scene_directory', sceneRole: 'venue_route_map', promotionPolicy: 'external_hub_only', notes: '스윙 바/홀/장소 구조 확인용. 실제 후보 저장은 venue/crew 원본 포스트에서만 수행' }),
   source({ id: 'festivall-swing-weekly', name: 'Festivall 스윙 주간 캘린더', scope: 'swing', genre: 'swing', type: 'website', url: 'https://festivall.my/schedule?locale=ko', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'weekly_schedule_hub', sceneRole: 'social_scene_map', promotionPolicy: 'external_hub_only', notes: '주간 소셜 지도 검증용. 포스터 원본이 아니므로 인제스터 후보 저장에는 사용하지 않음' }),
   source({ id: 'allaboutswing-home', name: 'AllAboutSwing 공식 홈', scope: 'swing', genre: 'swing', type: 'website', url: 'https://allaboutswing.co.kr/', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'official_community_hub', sceneRole: 'regional_route_map', promotionPolicy: 'external_hub_only', notes: '천안 빅애플/대전반/경성홀/강남반 공식 구조 확인용. /20 강습 페이지 제외 규칙은 유지' }),
@@ -195,8 +201,6 @@ export const collectionSources = [
   source({ id: 'swingverse-instagram', name: '스윙버스 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingverse/', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'social_origin', sceneRole: 'source_route_map', promotionPolicy: 'verified_original_required', notes: 'Daily Swing 클럽 디렉터리에서 확인. 더쏘셜클럽 일요일 축이며 스윙피크닉과는 별도 커뮤니티' }),
   source({ id: 'bongcheonsalon-linktree', name: '봉천살롱 Linktree', scope: 'swing', genre: 'swing', type: 'linktree', url: 'https://linktr.ee/BongcheonSalon', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'link_hub', sceneRole: 'venue_route_map', promotionPolicy: 'external_hub_only', notes: '봉천살롱 내부 소셜/서울발보아클럽/스윙타운 링크 확인용. 실제 저장은 연결된 원본 포스트에서만 수행' }),
   source({ id: 'swingkids-cafe', name: '스윙키즈 네이버 카페', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/swingkids', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'official_community_hub', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: 'Daily Swing에서 확인된 스윙키즈 공식 카페. 메뉴별 원본 게시판 확인 후 자동 수집 승격 가능' }),
-  source({ id: 'swingfamily-cafe', name: '스윙패밀리/스윙타운 네이버 카페', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/swingfamily', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'official_community_hub', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: 'Daily Swing에서 봉천살롱/스윙타운 경로로 확인. 기존 menu URL 수집을 보완하는 루트 지도용' }),
-  source({ id: 'swingfamily-linktree', name: '스윙패밀리 Linktree', scope: 'swing', genre: 'swing', type: 'linktree', url: 'https://linktr.ee/swingfamily', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'link_hub', sceneRole: 'community_route_map', promotionPolicy: 'external_hub_only', notes: '스윙패밀리 졸업파티/특강/원데이/네이버 공식 카페 경로 확인용. 저장은 연결된 원본에서만 수행' }),
   source({ id: 'balboaland-linktree', name: '발보아랜드 Linktree', scope: 'swing', genre: 'balboa', type: 'linktree', url: 'https://linktr.ee/balboaland', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'link_hub', sceneRole: 'balboa_route_map', promotionPolicy: 'external_hub_only', notes: '피에스타 토요일 발보아랜드 소셜/강습 경로. 네이버카페, 페이스북, 인스타그램 원본 역추적용' }),
   source({ id: 'balboaland-cafe', name: '발보아랜드 네이버 카페', scope: 'swing', genre: 'balboa', type: 'naver_cafe', url: 'https://cafe.naver.com/balboaland', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'official_community_hub', sceneRole: 'balboa_route_map', promotionPolicy: 'verified_original_required', notes: '발보아랜드 Linktree에서 확인. 메뉴별 원본 포스트 확인 후 자동 수집 승격 가능' }),
   source({ id: 'balboaland-facebook', name: '발보아랜드 Facebook', scope: 'swing', genre: 'balboa', type: 'facebook', url: 'https://www.facebook.com/ilovebalboaland', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'social_origin', sceneRole: 'balboa_route_map', promotionPolicy: 'verified_original_required', notes: '발보아랜드 Linktree에서 확인. Facebook은 세션/봇 접근 변수가 있어 수동 또는 세션 기반 확인 우선' }),
@@ -395,5 +399,6 @@ export function getAutomationSourceList(profile = 'swing-daily') {
     notes: item.notes,
     query: item.query,
     benefitKind: item.benefitKind,
+    venue: item.venue,
   }));
 }

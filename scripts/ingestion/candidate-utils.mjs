@@ -338,6 +338,20 @@ function weekdayLabelForDate(date = '') {
   return ['일', '월', '화', '수', '목', '금', '토'][index] || '';
 }
 
+function explicitWeekdayForCandidateDate(text = '', date = '') {
+  const match = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  const month = String(Number(match[2]));
+  const day = String(Number(match[3]));
+  const escapedMonth = month.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedDay = day.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const patterns = [
+    new RegExp(`${escapedMonth}\\s*월\\s*${escapedDay}\\s*일?\\s*[()（）\\[\\]\\s,./-]{1,8}([월화수목금토일])(?:요일|요)?`),
+    new RegExp(`${escapedMonth}\\s*[./-]\\s*${escapedDay}\\s*[()（）\\[\\]\\s,./-]{1,8}([월화수목금토일])(?:요일|요)?`),
+  ];
+  return patterns.map((pattern) => String(text).match(pattern)?.[1] || '').find(Boolean) || '';
+}
+
 /**
  * Split one social notice into independent dated sessions when the title carries
  * a compact date list (for example "7월 25,26일") and the body has weekday
@@ -780,15 +794,23 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   const taxonomy = inferCandidateTaxonomy(candidate);
   const source = findSourceByUrl(sourceUrl);
   const sourceExcludedReason = getExcludedSourceReason(sourceUrl);
+  const retiredSourceIdentity = `${candidate.source_id || ''} ${candidate.keyword || ''} ${sd.title || ''}`;
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
   const blockedKeywordReason = getBlockedKeywordReason(text);
   const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenBenefitCandidate(candidate);
 
   if (!sourceUrl) errors.push('source_url required');
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
+  if (/swingfamily|스윙패밀리/i.test(retiredSourceIdentity)) {
+    errors.push('운영 종료 소스 제외: 스윙패밀리');
+  }
   if (blockedKeywordReason) errors.push(blockedKeywordReason);
   if (!date) errors.push('structured_data.date required');
   if (date && date < today && !isEvergreenSeasonPass) errors.push(`past event date: ${date} < ${today}`);
+  const statedDay = String(sd.day || '').slice(0, 1) || explicitWeekdayForCandidateDate(text, date);
+  if (date && statedDay && statedDay !== weekdayLabelForDate(date)) {
+    errors.push(`event weekday mismatch: ${date} is ${weekdayLabelForDate(date)}, not ${statedDay}`);
+  }
   if (date && date === today && !isEvergreenSeasonPass && !isCollectableDateTime(date, text, { today, nowMinutes })) {
     errors.push('same-day event requires an explicit future start time');
   }
@@ -812,6 +834,12 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   }
   if (looksLikeBroadScheduleNotice(candidate)) {
     errors.push('broad schedule notice is not a single collectable event');
+  }
+  if (
+    taxonomy.activity_type === 'social'
+    && /(?:\d+\s*기|강습|수강생|수강|클래스).{0,24}모집|모집.{0,24}(?:강습|수강생|수강|클래스)/i.test(text)
+  ) {
+    errors.push('recruitment/class notice is misclassified as a social');
   }
   const isImageOptionalCandidate = taxonomy.activity_type === 'social'
     || sd.benefit_eligible === true;

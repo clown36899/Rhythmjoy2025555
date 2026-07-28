@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { planRegularSocialReconciliation } from './regular-social-reconciler.js';
+import {
+  findGeneratedRegularSocialReplacements,
+  planRegularSocialReconciliation,
+} from './regular-social-reconciler.js';
 
 const rule = { id: 'sample-fri', title: '샘플 금요 소셜', weekday: 5, time: '19:30', location: '샘플홀', sourceId: 'sample' };
 
@@ -39,6 +42,47 @@ describe('regular social reconciliation', () => {
     });
     expect(plan.creates).toHaveLength(0);
     expect(plan.removes).toEqual([generated]);
+  });
+
+  it('finds the generated occurrence immediately from a collected source keyword', () => {
+    const generated = {
+      id: 'regular-social:swingtown-tue:2026-07-28',
+      date: '2026-07-28',
+      title: '스윙타운 화요 소셜',
+      location: '봉천살롱',
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    const replacements = findGeneratedRegularSocialReplacements(
+      [generated],
+      {
+        id: 'actual',
+        date: '2026-07-28',
+        title: '스윙타운 DJ 미우',
+        location: '',
+        category: 'social',
+      },
+      { keyword: '스윙타운' },
+    );
+    expect(replacements).toEqual([generated]);
+  });
+
+  it('does not replace another venue or a different date', () => {
+    const generated = {
+      id: 'regular-social:swingtime-wed:2026-07-29',
+      date: '2026-07-29',
+      title: '스윙타임 수요 소셜',
+      location: '스윙타임',
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    expect(findGeneratedRegularSocialReplacements(
+      [generated],
+      {
+        date: '2026-07-28',
+        title: '스윙타운 DJ 미우',
+        category: 'social',
+      },
+      { keyword: '스윙타운' },
+    )).toEqual([]);
   });
 
   it('suppresses a date when a closure exception was collected', () => {

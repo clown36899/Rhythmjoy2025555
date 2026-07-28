@@ -584,6 +584,33 @@ const venueNormalized = prepareCandidate(baseCandidate({
 assert.equal(venueNormalized.candidate.structured_data.location, '경성홀');
 assert.equal(venueNormalized.candidate.structured_data.venue_name, '경성홀');
 
+const weekdayMismatch = prepareCandidate(baseCandidate({
+  extracted_text: '■ 스윙타임빠 (7월 28일) 수 소셜 공지',
+  structured_data: {
+    title: '■ 스윙타임빠 (7월 28일) 수 소셜 공지',
+    date: '2026-07-28',
+    location: '스윙타임',
+    activity_type: 'social',
+  },
+}), { today: '2026-07-28', nowMinutes: 0 });
+assert.equal(weekdayMismatch.validation.ok, false);
+assert.ok(weekdayMismatch.validation.errors.some((error) => error.includes('weekday mismatch')));
+
+const classRecruitMisclassifiedAsSocial = prepareCandidate(baseCandidate({
+  extracted_text: '앳더사보이 17기 수강생을 모집합니다. 지터벅 강습 신청',
+  structured_data: {
+    title: '앳더사보이 17기 모집합니다!',
+    date: '2026-09-13',
+    location: '봉천살롱',
+    activity_type: 'social',
+  },
+}), { today: TODAY });
+assert.equal(classRecruitMisclassifiedAsSocial.validation.ok, false);
+assert.ok(classRecruitMisclassifiedAsSocial.validation.errors.some((error) => error.includes('misclassified as a social')));
+
+const swingtownSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingtown-cafe');
+assert.equal(swingtownSource?.venue, '봉천살롱');
+
 const salsa = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/turn_latin_bar/p/SALSA1/',
   extracted_text: '홍턴 살사 소셜 DJ Mambo 2026.06.10',
@@ -715,7 +742,7 @@ assert.equal(validateCandidate(baseCandidate({
   source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156300?boardtype=L&menuid=13&referrerAllArticles=false',
   extracted_text: '스윙패밀리 32기 졸업공연 안내 2026.06.27 오후 8:00 봉천살롱에서 진행됩니다.',
   structured_data: { title: '스윙패밀리 32기 졸업공연', date: '2026-06-27', event_type: '행사', activity_type: 'event', location: '봉천살롱' },
-}), { today: TODAY }).ok, true, 'swing graduation performances with explicit future date and poster must be collected');
+}), { today: TODAY }).ok, false, 'retired swingfamily sources must not create new candidates');
 assert.equal(validateCandidate(baseCandidate({
   keyword: '스윙프렌즈 카페',
   source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/53903?boardtype=L&menuid=85&referrerAllArticles=false',
@@ -761,7 +788,11 @@ assert.equal(validateCandidate(baseCandidate({
 
 assert.ok(textSimilarity('국제 스윙 댄스 페스티벌', '스윙댄스 국제 페스티벌') >= 0.4);
 assert.ok(getCollectionSources('swing').length >= 20, 'swing sources should remain broad');
-assert.ok(getCollectionSources('swing').some((source) => source.id === 'swingfamily-lessons'), 'swing lesson cafe should be in stable registry');
+assert.ok(!getCollectionSources('swing').some((source) => source.id.startsWith('swingfamily')), 'retired swingfamily sources must not remain in the registry');
+assert.match(
+  getExcludedSourceReason('https://cafe.naver.com/f-e/cafes/10342583/articles/156300?boardtype=L&menuid=13') || '',
+  /스윙패밀리/,
+);
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'sweetyswing-lessons'), 'sweetyswing mobile cafe should be in stable registry');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'happyhall2004' && source.runOrder < 0), 'happyhall should run early enough to avoid daily budget starvation');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'neo_swing' && source.type === 'instagram' && source.saveEnabled), 'neoswing instagram should be part of daily automation');
@@ -776,7 +807,6 @@ const priorityOneRunOrder = getAutomationSourceList('swing-daily')
   })
   .map((source) => source.id);
 assert.ok(priorityOneRunOrder.indexOf('happyhall2004') < priorityOneRunOrder.indexOf('neo_swing'), 'happyhall should still run before later priority-one instagram sources');
-assert.ok(priorityOneRunOrder.indexOf('swingfamily-lessons') < priorityOneRunOrder.indexOf('neo_swing'), 'swingfamily graduation/class board should run before later priority-one instagram sources');
 assert.ok(priorityOneRunOrder.indexOf('swingscandal-cafe') < priorityOneRunOrder.indexOf('neo_swing'), 'priority-one naver cafe sources should run before later priority-one instagram sources');
 const priorityTwoRunOrder = getAutomationSourceList('swing-daily')
   .filter((source) => source.saveEnabled && source.scope === 'swing' && Number(source.priority) === 2)

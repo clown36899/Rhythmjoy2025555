@@ -999,3 +999,24 @@
 - 관련 파일: `src/components/EventRegistrationModal.tsx`, `src/components/EditableEventDetail.tsx`, `src/styles/components/EditableEventDetail.css`, `src/lib/cafe24Client.ts`, `src/pages/benefit-events/BenefitEventsPage.tsx`
 - API 후속 조치: 외부 일정 등록·수정 API에 선택 필드 `benefit_kind`를 추가했다. `free_event`, `discount_event`, `null`만 허용하고 서버가 `benefit_eligible`을 자동 계산한다. API 가이드의 요청 필드표와 서버 예제를 갱신했으며 외부 API 테스트 27개가 통과했다.
 - 등록 경로 후속 수정: 최초 조치는 공통 행사·강습 폼에만 적용되어 별도 구현인 소셜 일정과 원데이 모집 링크 등록에는 선택지가 없었다. 공용 혜택 선택 컴포넌트를 분리해 행사·강습, 소셜 일정, 원데이 모집 링크 세 등록 경로에 모두 적용했다. 소셜은 이벤트 혜택 필드를 직접 저장하며, 무료·할인으로 등록한 상시 원데이 모집 링크도 혜택 페이지 데이터에 합쳐 노출한다.
+
+## 2026-07-28 수집 소셜 등록 시 정규일정 대체 지연
+
+- 상태: 해결
+- 증상: 실제 DJ 공지를 수집 후보에서 등록해도 같은 날짜의 자동 생성 정규 소셜이 다음 일일 동기화 전까지 함께 남을 수 있었다. 장소가 비어 있고 출처 키워드만 있는 후보는 동기화 후에도 정규일정을 대체하지 못할 수 있었다.
+- 원인: 정규일정 대체 판단이 일일 동기화에만 있었고, 장소 또는 요일이 포함된 정규 제목 중심으로만 업장을 비교했다.
+- 조치: 수집 등록 API가 날짜와 소셜 분류를 확인한 뒤 장소·제목·출처 키워드로 같은 업장의 자동 정규 소셜을 찾아 즉시 제거한다. 이미 등록된 후보를 재처리하는 경우에도 같은 보정을 수행하며, 관리자에게 대체 건수를 알린다.
+- 검증: 출처 키워드만으로 스윙타운 정규 소셜을 찾는 경우와 다른 날짜·다른 업장을 보존하는 경우를 포함한 정규 소셜 테스트 9개 및 프로덕션 빌드가 통과했다.
+- 관련 파일: `server/cafe24/function-api.js`, `server/cafe24/regular-social-reconciler.js`, `server/cafe24/regular-social-reconciler.test.js`, `src/pages/admin/v2/components/EventEditModal.tsx`
+
+## 2026-07-28 수집 후보 장소 일관성 실측
+
+- 상태: 수집 규칙 개선 완료
+- 범위: 운영 DB의 미래 대기 후보 16건
+- 측정: 장소 필드 존재율과 `location`/`venue_name` 일치율은 각각 100%였지만, 14건(87.5%)은 원문 장소 확인값이 아니라 검색 소스명을 그대로 두 필드에 복사한 값이었다. 소셜 후보 14건 중 자동 정규일정과 단일 매칭되는 후보는 9건(64.3%), 복수 정규일정과 모호하게 매칭되는 후보는 0건이었다.
+- 발견: `스윙패밀리 강습/행사`, `무료 강습 검색`, `스윙타운` 같은 소스명이 장소로 저장됐다. 2026-07-28을 수요일로 해석한 과거 스윙타임 공지 2건과 강습 모집을 소셜로 분류한 3건도 포함됐다.
+- 조치: 장소를 찾지 못했을 때 소스명을 장소로 대입하는 동작을 제거했다. 스윙타운·스윙패밀리 소스의 검증 장소를 `봉천살롱`으로 등록하고, 장소가 본문·소스 레지스트리·소스 별칭 중 어디에서 결정됐는지 `venue_provenance`로 기록한다. 날짜와 명시 요일이 다른 후보 및 모집·강습을 소셜로 분류한 후보는 저장 전에 거부한다.
+- 재측정: 개선된 검증 규칙을 기존 16건에 재적용했을 때 오분류·날짜 불일치 5건(31.3%)이 자동 거부 대상으로 식별됐다. 기존 운영 후보는 읽기 전용으로 측정했으며 자동 수정하지 않았다.
+- 검증: 수집 표준 테스트, 정규 소셜 테스트 9개, 프로덕션 빌드 및 diff 검사를 수행한다.
+- 관련 파일: `scripts/ingestion/audit-ingestor-consistency.mjs`, `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/test-ingestion-standards.mjs`
+- 운영 상태 후속 수정: 스윙패밀리는 현재 운영되지 않는다는 사용자 확인에 따라 자동수집·발견용 소스와 원데이 모집 링크에서 제거했다. 과거 스윙패밀리 메뉴·카페·Linktree 및 후보 식별자는 운영 종료 소스로 차단한다. 봉천살롱 장소 매핑은 현재 운영 중인 스윙타운 소스에만 유지한다.

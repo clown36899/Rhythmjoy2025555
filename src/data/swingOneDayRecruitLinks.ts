@@ -75,16 +75,6 @@ export const swingOneDayRecruitLinks: SwingOneDayRecruitLink[] = [
     logoSourceUrl: 'https://ugc.production.linktr.ee/bfb38c82-5ae4-430e-9c3f-538b53ec0533_438242728-122142537692188072-11339055112714209-n.jpeg',
   },
   {
-    id: 'swingfamily-linktree',
-    community: '스윙패밀리',
-    venue: '봉천살롱',
-    region: '서울',
-    area: '서울 관악',
-    coordinates: { lat: 37.4784, lng: 126.9516 },
-    url: 'https://linktr.ee/swingfamily',
-    logoSourceUrl: 'https://ugc.production.linktr.ee/xCOZqSdKR06lA8PPI1kq_CeFz0QK7sI36RYWQ',
-  },
-  {
     id: 'allaboutswing-1day',
     community: '올어바웃스윙',
     venue: '경성홀',

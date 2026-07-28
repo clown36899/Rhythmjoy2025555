@@ -40,11 +40,42 @@ function isGenerated(event) {
     || String(event?.id || '').startsWith('regular-social:');
 }
 
-function matchesRule(event, rule) {
+function recurringIdentity(value) {
+  return normalize(value)
+    .replace(/(?:월요일|화요일|수요일|목요일|금요일|토요일|일요일|월요|화요|수요|목요|금요|토요|일요)/g, '')
+    .replace(/(?:소셜|정모|파티|공지|일정|디제이|dj)/gi, '');
+}
+
+function matchesRule(event, rule, source = null) {
   const place = normalize(`${event?.location || ''} ${event?.venue_name || ''}`);
   const title = normalize(event?.title);
+  const context = normalize([
+    event?.title,
+    event?.location,
+    event?.venue_name,
+    event?.organizer,
+    event?.link_name1,
+    source?.keyword,
+    source?.source_id,
+  ].filter(Boolean).join(' '));
+  const identity = recurringIdentity(rule.title);
   return place.includes(normalize(rule.location))
-    || title.includes(normalize(rule.title).replace(/소셜/g, ''));
+    || title.includes(normalize(rule.title).replace(/소셜/g, ''))
+    || (identity.length >= 3 && context.includes(identity));
+}
+
+export function findGeneratedRegularSocialReplacements(events, explicitEvent, source = null) {
+  if (!isSocial(explicitEvent)) return [];
+  const date = eventDate(explicitEvent);
+  if (!date) return [];
+  return events.filter((event) => {
+    if (!isGenerated(event) || eventDate(event) !== date) return false;
+    const generatedRule = {
+      title: event.title || '',
+      location: event.location || event.venue_name || '',
+    };
+    return matchesRule(explicitEvent, generatedRule, source);
+  });
 }
 
 function exceptionInfo(row) {
