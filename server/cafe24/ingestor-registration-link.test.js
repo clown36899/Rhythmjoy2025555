@@ -89,6 +89,7 @@ describe('ingestor registration linkage', () => {
 
     expect(validation.ok).toBe(true);
     expect(validation.eventData).toMatchObject({
+      title: 'DJ 뉴야 | 경성홀 수요 소셜 DJ 뉴야',
       date: '2026-07-29',
       start_date: '2026-07-29',
       end_date: '2026-07-29',

@@ -1010,7 +1010,9 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     sourceId,
     activity,
     eventData: {
-      title,
+      title: activity === 'social' && djs.length
+        ? `DJ ${djs.join(', ')} | ${title}`
+        : title,
       date,
       start_date: date,
       end_date: date,
@@ -1104,7 +1106,13 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   }
 
   if (existing) {
-    const repaired = await saveCafe24TableRow('events', { ...existing, ...imageFields, updated_at: new Date().toISOString() });
+    const repaired = await saveCafe24TableRow('events', {
+      ...existing,
+      ...eventData,
+      ...imageFields,
+      link1: existing.link1 || sourceUrl,
+      updated_at: new Date().toISOString(),
+    });
     const replacedRegularSocials = findGeneratedRegularSocialReplacements(
       existingRows,
       { ...repaired, ...eventData },
