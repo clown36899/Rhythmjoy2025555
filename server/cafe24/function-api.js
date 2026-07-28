@@ -839,6 +839,28 @@ function scrapedEventPatchFromEventData(eventData = {}) {
   return patch;
 }
 
+export function buildCollectedScrapedEventRow({
+  scrapedEvent,
+  scrapedEventPatch = {},
+  structuredData = {},
+  registeredEvent,
+  now = new Date().toISOString(),
+}) {
+  return {
+    ...scrapedEvent,
+    ...scrapedEventPatch,
+    is_collected: true,
+    status: 'collected',
+    registered_event_id: registeredEvent?.id || null,
+    registered_at: now,
+    structured_data: {
+      ...structuredData,
+      registered_event_id: registeredEvent?.id || null,
+    },
+    updated_at: now,
+  };
+}
+
 export async function cafe24IngestorRegisterEvent(req, res) {
   await requireAdmin(req);
   const body = req.body || {};
@@ -854,7 +876,6 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     res.status(400).json({ error: '이벤트 제목과 날짜가 필요합니다.' });
     return;
   }
-
   const scrapedRows = await loadCafe24TableRows('scraped_events');
   const scrapedEvent = scrapedRows.find((row) => String(row.id) === scrapedEventId);
   if (!scrapedEvent) {
@@ -894,15 +915,6 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     ...scrapedEventPatchFromEventData(eventData),
     ...pickScrapedEventPatch(body.scrapedEventPatch || {}),
   };
-  await saveCafe24TableRow('scraped_events', {
-    ...scrapedEvent,
-    ...scrapedEventPatch,
-    is_collected: true,
-    status: 'collected',
-    structured_data: mergedStructuredData,
-    updated_at: new Date().toISOString(),
-  });
-
   if (body.dryRun === true) {
     res.json({ dryRun: true, wouldInsert: !existing, existing: existing || null });
     return;
@@ -918,6 +930,12 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     if (replacedRegularSocials.length) {
       await deleteCafe24TableRows('events', replacedRegularSocials);
     }
+    await saveCafe24TableRow('scraped_events', buildCollectedScrapedEventRow({
+      scrapedEvent,
+      scrapedEventPatch,
+      structuredData: mergedStructuredData,
+      registeredEvent: repaired,
+    }));
     res.json({
       skipped: true,
       repaired: true,
@@ -953,6 +971,12 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   if (replacedRegularSocials.length) {
     await deleteCafe24TableRows('events', replacedRegularSocials);
   }
+  await saveCafe24TableRow('scraped_events', buildCollectedScrapedEventRow({
+    scrapedEvent,
+    scrapedEventPatch,
+    structuredData: mergedStructuredData,
+    registeredEvent: inserted,
+  }));
   res.status(201).json({
     event: inserted,
     owner_user_id: ownerUserId,

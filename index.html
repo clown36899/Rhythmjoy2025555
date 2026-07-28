@@ -13,6 +13,50 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <script>
+    // Kiosk must recover before the application bundle runs. A stale service
+    // worker can otherwise serve a removed asset and prevent React from ever
+    // reaching KioskModeController's cleanup effect.
+    (function () {
+      if (location.pathname !== '/kiosk' || !('serviceWorker' in navigator)) return;
+
+      var recoveryKey = 'rhythmjoy:kiosk-preboot-recovery';
+      var isControlled = Boolean(navigator.serviceWorker.controller);
+      if (!isControlled) {
+        try { sessionStorage.removeItem(recoveryKey); } catch (e) { /* storage optional */ }
+        return;
+      }
+
+      var alreadyRecovering = false;
+      try {
+        alreadyRecovering = sessionStorage.getItem(recoveryKey) === 'running';
+        sessionStorage.setItem(recoveryKey, 'running');
+      } catch (e) {
+        alreadyRecovering = false;
+      }
+
+      Promise.all([
+        navigator.serviceWorker.getRegistrations()
+          .then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) {
+              return registration.unregister();
+            }));
+          }),
+        'caches' in window
+          ? caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+          })
+          : Promise.resolve(),
+      ]).then(function () {
+        if (alreadyRecovering) return;
+        var recoveryUrl = new URL(location.href);
+        recoveryUrl.searchParams.set('kiosk_recover', Date.now().toString());
+        location.replace(recoveryUrl.href);
+      }).catch(function () {
+        // A cleanup failure must not prevent the normal kiosk boot.
+      });
+    })();
+  </script>
+  <script>
     // [Critical] v48 Armor - Bootstrap Analytics
     (function () {
       window.__LOGS = [];

@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 import { getMysqlPool } from '../../server/cafe24/mysql-pool.js';
 import { findGeneratedRegularSocialReplacements } from '../../server/cafe24/regular-social-reconciler.js';
-import { validateCandidate } from './candidate-utils.mjs';
+import {
+  evaluateAutoRegistrationReadiness,
+  prepareCandidate,
+  validateCandidate,
+} from './candidate-utils.mjs';
+import { findSourceByUrl } from './collection-registry.mjs';
 
 const args = new Set(process.argv.slice(2));
 
@@ -90,6 +95,29 @@ function textSimilarity(a = '', b = '') {
   const intersection = [...leftGrams].filter((gram) => rightGrams.has(gram)).length;
   const union = new Set([...leftGrams, ...rightGrams]).size;
   return union ? intersection / union : 0;
+}
+
+function djsFromLiveEvent(row = {}) {
+  const explicit = Array.isArray(row.djs) ? row.djs : [row.dj_name || row.dj || ''];
+  const values = explicit.filter(Boolean);
+  if (values.length) return values;
+  const titlePrefix = String(row.title || '').match(/^\s*DJ\s+(.+?)\s*\|/i)?.[1] || '';
+  const titleOnly = String(row.title || '').match(/^\s*DJ\s+([^|]{1,40})\s*$/i)?.[1] || '';
+  return (titlePrefix || titleOnly) ? (titlePrefix || titleOnly).split(/\s*,\s*/).filter(Boolean) : [];
+}
+
+function normalizeDjForAudit(value = '') {
+  return normalizeText(value)
+    .replace(/^(?:인기멤버)?(?:\d{1,3}f)?(?:스칼라)?(?:부매니저\d+)?/i, '')
+    .replace(/20\d{2}\d{1,2}\d{1,2}.*/i, '')
+    .replace(/(?:applicationlink|신청링크|등록링크|계좌).*/i, '');
+}
+
+function djsMatchForAudit(candidateDjs = [], liveDjs = []) {
+  const candidate = normalizeDjForAudit(candidateDjs.join(' '));
+  const live = normalizeDjForAudit(liveDjs.join(' '));
+  if (!candidate && !live) return true;
+  return Boolean(candidate && live && (candidate.includes(live) || live.includes(candidate)));
 }
 
 function dateOfLiveEvent(row = {}) {
@@ -181,6 +209,11 @@ function buildVenueConsistencyAudit({ today, liveEvents, legacyCandidates }) {
   const standardsRejected = current
     .map((row) => ({ row, validation: validateCandidate(row, { today }) }))
     .filter((item) => !item.validation.ok);
+  const autoReadiness = current.map((row) => ({
+    row,
+    readiness: evaluateAutoRegistrationReadiness(row, { today }),
+  }));
+  const autoReady = autoReadiness.filter((item) => item.readiness.ready);
   const replacementMatches = socials.map((row) => {
     const structured = row.structured_data || {};
     const replacements = findGeneratedRegularSocialReplacements(liveEvents, {
@@ -210,6 +243,7 @@ function buildVenueConsistencyAudit({ today, liveEvents, legacyCandidates }) {
       regularReplacementMatched: matchedSocials.length,
       regularReplacementAmbiguous: ambiguousSocials.length,
       rejectedByCurrentStandards: standardsRejected.length,
+      autoRegistrationShadowReady: autoReady.length,
     },
     rates: {
       venuePresence: current.length ? (current.length - missing.length) / current.length : 1,
@@ -234,6 +268,14 @@ function buildVenueConsistencyAudit({ today, liveEvents, legacyCandidates }) {
         candidate: venueAuditRow(item.row),
         errors: item.validation.errors,
       })),
+      autoRegistrationShadowReady: autoReady.slice(0, 20).map((item) => venueAuditRow(item.row)),
+      autoRegistrationBlocked: autoReadiness
+        .filter((item) => !item.readiness.ready)
+        .slice(0, 20)
+        .map((item) => ({
+          candidate: venueAuditRow(item.row),
+          reasons: item.readiness.reasons,
+        })),
     },
   };
 }
@@ -246,7 +288,9 @@ function legacyCandidateKey(row = {}) {
   return `${normalizeUrl(row.source_url)}|${dateOfLegacyCandidate(row)}`;
 }
 
-function hasExactLiveMatch(candidate, liveByUrlDate) {
+function hasExactLiveMatch(candidate, liveByUrlDate, liveById = new Map()) {
+  const registeredEventId = String(candidate.registered_event_id || candidate.structured_data?.registered_event_id || '');
+  if (registeredEventId && liveById.has(registeredEventId)) return true;
   const key = legacyCandidateKey(candidate);
   return Boolean(key !== '|' && liveByUrlDate.has(key));
 }
@@ -309,7 +353,9 @@ async function tableExists(pool, tableName) {
 
 function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
   const liveByUrlDate = new Map();
+  const liveById = new Map();
   for (const event of liveEvents) {
+    if (event.id !== undefined && event.id !== null) liveById.set(String(event.id), event);
     const key = liveEventKey(event);
     if (key === '|') continue;
     if (!liveByUrlDate.has(key)) liveByUrlDate.set(key, []);
@@ -329,11 +375,11 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
 
   const pendingExactLiveMatches = legacyCandidates
     .filter((row) => statusOfLegacyCandidate(row) === 'pending')
-    .filter((row) => hasExactLiveMatch(row, liveByUrlDate));
+    .filter((row) => hasExactLiveMatch(row, liveByUrlDate, liveById));
 
   const collectedWithoutExactLiveMatch = legacyCandidates
     .filter((row) => statusOfLegacyCandidate(row) === 'collected' || row.is_collected === true)
-    .filter((row) => !hasExactLiveMatch(row, liveByUrlDate));
+    .filter((row) => !hasExactLiveMatch(row, liveByUrlDate, liveById));
 
   const duplicateWithoutLikelyLiveMatch = legacyCandidates
     .filter((row) => statusOfLegacyCandidate(row) === 'duplicate' || row.structured_data?._duplicate)
@@ -347,6 +393,195 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
       rows: rows.slice(0, 5).map(compactRow),
     }));
 
+  const approvedBySource = new Map();
+  const evidenceGate = {
+    eligible: 0,
+    fullyUnchanged: 0,
+    bySource: new Map(),
+    mismatchSamples: [],
+  };
+  const currentRulesReplay = {
+    compared: 0,
+    fullyUnchanged: 0,
+    accepted: 0,
+    acceptedFullyUnchanged: 0,
+    mismatchSamples: [],
+    acceptedMismatchSamples: [],
+  };
+  for (const candidate of legacyCandidates.filter((row) => statusOfLegacyCandidate(row) === 'collected' || row.is_collected === true)) {
+    const source = findSourceByUrl(candidate.source_url);
+    const sourceId = source?.id || candidate.source_id || candidate.keyword || 'unknown';
+    const registeredEventId = String(candidate.registered_event_id || candidate.structured_data?.registered_event_id || '');
+    const exactRows = registeredEventId && liveById.has(registeredEventId)
+      ? [liveById.get(registeredEventId)]
+      : (liveByUrlDate.get(legacyCandidateKey(candidate)) || []);
+    const live = exactRows[0] || likelyLiveMatch(candidate, liveEvents)?.event || null;
+    if (!approvedBySource.has(sourceId)) {
+      approvedBySource.set(sourceId, {
+        sourceId,
+        approved: 0,
+        linked: 0,
+        titleMatch: 0,
+        venueMatch: 0,
+        activityMatch: 0,
+        djMatch: 0,
+        fullyUnchanged: 0,
+        mismatchSamples: [],
+      });
+    }
+    const stat = approvedBySource.get(sourceId);
+    stat.approved += 1;
+    if (!live) continue;
+    stat.linked += 1;
+    const candidateTitle = titleOfLegacyCandidate(candidate);
+    const candidateVenue = normalizeText(venueOfLegacyCandidate(candidate));
+    const liveVenue = normalizeText(live.venue_name || live.location || '');
+    const candidateActivity = normalizeText(candidate.activity_type || candidate.structured_data?.activity_type || '');
+    const liveActivity = normalizeText(live.activity_type || live.category || '');
+    const candidateDjs = candidate.structured_data?.djs || [];
+    const liveDjs = djsFromLiveEvent(live);
+    const titleMatch = textSimilarity(candidateTitle, live.title || '') >= 0.85;
+    const venueMatch = Boolean(candidateVenue && liveVenue && candidateVenue === liveVenue);
+    const activityMatch = Boolean(candidateActivity && liveActivity && (
+      candidateActivity === liveActivity
+      || (candidateActivity === 'class' && /class|강습|lesson/.test(liveActivity))
+      || (candidateActivity === 'social' && /social|소셜/.test(liveActivity))
+    ));
+    const djMatch = djsMatchForAudit(candidateDjs, liveDjs);
+    if (titleMatch) stat.titleMatch += 1;
+    if (venueMatch) stat.venueMatch += 1;
+    if (activityMatch) stat.activityMatch += 1;
+    if (djMatch) stat.djMatch += 1;
+    if (titleMatch && venueMatch && activityMatch && djMatch) stat.fullyUnchanged += 1;
+    if (!(titleMatch && venueMatch && activityMatch && djMatch) && stat.mismatchSamples.length < 100) {
+      stat.mismatchSamples.push({
+        candidate: {
+          id: candidate.id,
+          title: candidateTitle,
+          venue: venueOfLegacyCandidate(candidate),
+          activity: candidate.activity_type || candidate.structured_data?.activity_type || '',
+          djs: candidate.structured_data?.djs || [],
+        },
+        live: {
+          id: live.id,
+          title: live.title || '',
+          venue: live.venue_name || live.location || '',
+          activity: live.activity_type || live.category || '',
+          djs: liveDjs,
+        },
+        mismatches: [
+          !titleMatch && 'title',
+          !venueMatch && 'venue',
+          !activityMatch && 'activity',
+          !djMatch && 'dj',
+        ].filter(Boolean),
+      });
+    }
+
+    const projected = prepareCandidate(candidate, { today });
+    const projectedSource = projected.validation.source;
+    const projectedActivity = projected.validation.taxonomy.activity_type;
+    const enrolledActivities = projectedSource?.autoRegistrationAllowedActivityTypes;
+    const replayVenue = projectedSource?.venue || venueOfLegacyCandidate(projected.candidate);
+    const replayTitleMatch = textSimilarity(titleOfLegacyCandidate(projected.candidate), live.title || '') >= 0.85;
+    const replayVenueMatch = canonicalVenue(replayVenue)
+      && canonicalVenue(replayVenue) === canonicalVenue(live.venue_name || live.location || '');
+    const replayActivityMatch = normalizeText(projectedActivity) === normalizeText(live.activity_type || live.category || '');
+    const replayDjMatch = djsMatchForAudit(projected.candidate.structured_data?.djs || [], liveDjs);
+    const replayUnchanged = Boolean(replayTitleMatch && replayVenueMatch && replayActivityMatch && replayDjMatch);
+    currentRulesReplay.compared += 1;
+    if (replayUnchanged) currentRulesReplay.fullyUnchanged += 1;
+    if (!replayUnchanged && currentRulesReplay.mismatchSamples.length < 100) {
+      currentRulesReplay.mismatchSamples.push({
+        sourceId,
+        candidateId: candidate.id,
+        title: titleOfLegacyCandidate(projected.candidate),
+        projectedActivity,
+        projectedVenue: replayVenue,
+        mismatches: [
+          !replayTitleMatch && 'title',
+          !replayVenueMatch && 'venue',
+          !replayActivityMatch && 'activity',
+          !replayDjMatch && 'dj',
+        ].filter(Boolean),
+      });
+    }
+    const replayBlockingErrors = projected.validation.errors.filter((error) => (
+      !/past event date|same-day event|weekday mismatch|poster_url or imageData required/i.test(error)
+    ));
+    if (replayBlockingErrors.length === 0) {
+      currentRulesReplay.accepted += 1;
+      if (replayUnchanged) currentRulesReplay.acceptedFullyUnchanged += 1;
+      if (!replayUnchanged && currentRulesReplay.acceptedMismatchSamples.length < 100) {
+        currentRulesReplay.acceptedMismatchSamples.push({
+          sourceId,
+          candidateId: candidate.id,
+          mismatches: [
+            !replayTitleMatch && 'title',
+            !replayVenueMatch && 'venue',
+            !replayActivityMatch && 'activity',
+            !replayDjMatch && 'dj',
+          ].filter(Boolean),
+        });
+      }
+    }
+    const blockedByCurrentSemanticRule = projected.validation.errors.some((error) => (
+      /misclassified|malformed|generic|not the required event series|does not collect this activity/i.test(error)
+    ));
+    if (
+      Array.isArray(enrolledActivities)
+      && enrolledActivities.includes(projectedActivity)
+      && !blockedByCurrentSemanticRule
+    ) {
+      const projectedVenue = projectedSource.venue || venueOfLegacyCandidate(projected.candidate);
+      const projectedTitleMatch = textSimilarity(titleOfLegacyCandidate(projected.candidate), live.title || '') >= 0.85;
+      const projectedVenueMatch = canonicalVenue(projectedVenue)
+        && canonicalVenue(projectedVenue) === canonicalVenue(live.venue_name || live.location || '');
+      const projectedActivityMatch = normalizeText(projectedActivity) === normalizeText(live.activity_type || live.category || '');
+      const projectedDjMatch = djsMatchForAudit(projected.candidate.structured_data?.djs || [], liveDjs);
+      const unchanged = Boolean(projectedTitleMatch && projectedVenueMatch && projectedActivityMatch && projectedDjMatch);
+      evidenceGate.eligible += 1;
+      if (unchanged) evidenceGate.fullyUnchanged += 1;
+      if (!evidenceGate.bySource.has(sourceId)) {
+        evidenceGate.bySource.set(sourceId, { sourceId, eligible: 0, fullyUnchanged: 0 });
+      }
+      const gateSource = evidenceGate.bySource.get(sourceId);
+      gateSource.eligible += 1;
+      if (unchanged) gateSource.fullyUnchanged += 1;
+      if (!unchanged && evidenceGate.mismatchSamples.length < 20) {
+        evidenceGate.mismatchSamples.push({
+          sourceId,
+          candidateId: candidate.id,
+          mismatches: [
+            !projectedTitleMatch && 'title',
+            !projectedVenueMatch && 'venue',
+            !projectedActivityMatch && 'activity',
+            !projectedDjMatch && 'dj',
+          ].filter(Boolean),
+        });
+      }
+    }
+  }
+  const sourceApprovalReadiness = [...approvedBySource.values()]
+    .map((stat) => ({
+      ...stat,
+      linkedRate: stat.approved ? stat.linked / stat.approved : 0,
+      unchangedRate: stat.linked ? stat.fullyUnchanged / stat.linked : 0,
+      titleMatchRate: stat.linked ? stat.titleMatch / stat.linked : 0,
+      venueMatchRate: stat.linked ? stat.venueMatch / stat.linked : 0,
+      activityMatchRate: stat.linked ? stat.activityMatch / stat.linked : 0,
+      djMatchRate: stat.linked ? stat.djMatch / stat.linked : 0,
+    }))
+    .sort((a, b) => b.linked - a.linked || a.sourceId.localeCompare(b.sourceId));
+  const linkedApprovedTotal = sourceApprovalReadiness
+    .reduce((sum, stat) => sum + stat.linked, 0);
+  const evidenceCoverageRate = linkedApprovedTotal
+    ? evidenceGate.eligible / linkedApprovedTotal
+    : 0;
+  const evidenceMeasuredRate = evidenceGate.eligible
+    ? evidenceGate.fullyUnchanged / evidenceGate.eligible
+    : 0;
+
   return {
     counts: {
       liveEvents: liveEvents.length,
@@ -359,6 +594,34 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
       collectedWithoutExactLiveMatchCount: collectedWithoutExactLiveMatch.length,
       duplicateWithoutLikelyLiveMatchCount: duplicateWithoutLikelyLiveMatch.length,
       liveSameUrlDateGroupCount: liveDuplicateGroups.length,
+    },
+    sourceApprovalReadiness,
+    autoRegistrationEvidenceGate: {
+      targetRate: 0.95,
+      targetCoverageRate: 0.95,
+      linkedApprovedTotal,
+      eligible: evidenceGate.eligible,
+      fullyUnchanged: evidenceGate.fullyUnchanged,
+      measuredRate: evidenceMeasuredRate,
+      coverageRate: evidenceCoverageRate,
+      targetReached: evidenceMeasuredRate >= 0.95 && evidenceCoverageRate >= 0.95,
+      bySource: [...evidenceGate.bySource.values()].map((stat) => ({
+        ...stat,
+        measuredRate: stat.eligible ? stat.fullyUnchanged / stat.eligible : 0,
+      })),
+      mismatchSamples: evidenceGate.mismatchSamples,
+    },
+    currentRulesReplay: {
+      ...currentRulesReplay,
+      measuredRate: currentRulesReplay.compared
+        ? currentRulesReplay.fullyUnchanged / currentRulesReplay.compared
+        : 0,
+      acceptedMeasuredRate: currentRulesReplay.accepted
+        ? currentRulesReplay.acceptedFullyUnchanged / currentRulesReplay.accepted
+        : 0,
+      acceptedCoverageRate: currentRulesReplay.compared
+        ? currentRulesReplay.accepted / currentRulesReplay.compared
+        : 0,
     },
     samples: {
       pendingExactLiveMatches: pendingExactLiveMatches.slice(0, 10).map(compactRow),

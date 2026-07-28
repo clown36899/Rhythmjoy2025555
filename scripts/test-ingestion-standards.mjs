@@ -11,6 +11,7 @@ import {
   isEvergreenSeasonPassCandidate,
   textSimilarity,
   validateCandidate,
+  evaluateAutoRegistrationReadiness,
 } from './ingestion/candidate-utils.mjs';
 import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
 import {
@@ -605,11 +606,270 @@ const classRecruitMisclassifiedAsSocial = prepareCandidate(baseCandidate({
     activity_type: 'social',
   },
 }), { today: TODAY });
-assert.equal(classRecruitMisclassifiedAsSocial.validation.ok, false);
-assert.ok(classRecruitMisclassifiedAsSocial.validation.errors.some((error) => error.includes('misclassified as a social')));
+assert.equal(classRecruitMisclassifiedAsSocial.validation.ok, true);
+assert.equal(classRecruitMisclassifiedAsSocial.validation.taxonomy.activity_type, 'recruit');
+
+const namedClassMisclassifiedAsSocial = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/CLASS-SOCIAL/',
+  extracted_text: '🎩 경성 클래스 : 소셜을 더 즐기기 위한 1시간',
+  structured_data: {
+    title: '🎩 경성 클래스 : 소셜을 더 즐기기 위한 1시간',
+    date: '2026-08-04',
+    location: '경성홀',
+    activity_type: 'social',
+  },
+}), { today: TODAY });
+assert.equal(namedClassMisclassifiedAsSocial.validation.ok, true);
+assert.equal(namedClassMisclassifiedAsSocial.validation.taxonomy.activity_type, 'class');
+
+const passMisclassifiedAsSocial = prepareCandidate(baseCandidate({
+  extracted_text: '스윙타임 수요일 정기권 7, 8, 9월 판매',
+  structured_data: {
+    title: '스윙타임 정기권 판매',
+    date: '2026-07-09',
+    location: '스윙타임',
+    activity_type: 'social',
+  },
+}), { today: TODAY });
+assert.equal(passMisclassifiedAsSocial.validation.ok, true);
+assert.equal(passMisclassifiedAsSocial.validation.taxonomy.activity_type, 'sale');
+
+const anniversaryMisclassifiedAsSocial = prepareCandidate(baseCandidate({
+  extracted_text: '스윙피버 24주년 파티 2026년 8월 1일',
+  structured_data: {
+    title: '스윙피버 24주년 파티',
+    date: '2026-08-01',
+    location: '스윙잇',
+    activity_type: 'social',
+  },
+}), { today: TODAY });
+assert.equal(anniversaryMisclassifiedAsSocial.validation.ok, true);
+assert.equal(anniversaryMisclassifiedAsSocial.validation.taxonomy.activity_type, 'event');
+
+const malformedDj = prepareCandidate(baseCandidate({
+  extracted_text: '스윙타운 토요 소셜',
+  structured_data: {
+    title: '스윙타운 토요 소셜',
+    date: '2026-08-01',
+    location: '봉천살롱',
+    activity_type: 'social',
+    djs: ['사복 2026.08.01 스윙타운 소셜'],
+  },
+}), { today: TODAY });
+assert.equal(malformedDj.validation.ok, false);
+assert.ok(malformedDj.validation.errors.some((error) => error.includes('DJ value')));
+
+const unsplitMultiDateSocial = prepareCandidate(baseCandidate({
+  extracted_text: '6월 20,21일 토,일 소셜 DJ 쓴귤 DJ 캐롤 DJ 쵸코',
+  structured_data: {
+    title: '6월 20,21일 토,일 소셜 공지',
+    date: '2026-06-20',
+    location: '스윙타임',
+    activity_type: 'social',
+    djs: ['쓴귤', '캐롤', '쵸코'],
+  },
+}), { today: TODAY });
+assert.equal(unsplitMultiDateSocial.validation.ok, false);
+assert.ok(unsplitMultiDateSocial.validation.errors.some((error) => error.includes('split into one candidate per date')));
+
+const malformedApplicationLinkDj = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/thesocialcluba/p/BAD-DJ/',
+  extracted_text: 'Balboa in Social Club 7월 29일 수요일 DJ : Mungun Application link : https://forms.gle/example',
+  structured_data: {
+    title: 'Balboa in Social Club',
+    date: '2026-07-29',
+    location: '소셜클럽',
+    activity_type: 'social',
+    djs: ['Mungun Application link'],
+  },
+}), { today: TODAY });
+assert.equal(malformedApplicationLinkDj.validation.ok, false);
+assert.ok(malformedApplicationLinkDj.validation.errors.some((error) => error.includes('DJ value')));
 
 const swingtownSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingtown-cafe');
-assert.equal(swingtownSource?.venue, '봉천살롱');
+const swingScandalSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingscandal-cafe');
+assert.equal(swingtownSource?.venue, '');
+assert.equal(swingScandalSource?.venue, '사보이볼룸');
+assert.equal(swingScandalSource?.autoRegistrationPolicy, 'shadow');
+assert.equal(
+  getAutomationSourceList('swing-daily').find((item) => item.id === 'kyungsunghall')?.autoRegistrationPolicy,
+  'shadow',
+);
+assert.deepEqual(
+  getAutomationSourceList('swing-daily')
+    .filter((item) => ['neo_swing', 'sosyalclub_swing'].includes(item.id))
+    .map((item) => ({ id: item.id, venue: item.venue, policy: item.autoRegistrationPolicy })),
+  [
+    { id: 'neo_swing', venue: '해피홀', policy: 'shadow' },
+    { id: 'sosyalclub_swing', venue: '소셜클럽', policy: 'shadow' },
+  ],
+);
+const socialClubSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'sosyalclub_swing');
+assert.equal(socialClubSource?.url, 'https://www.instagram.com/thesocialcluba/');
+assert.equal(socialClubSource?.dance_genre, 'balboa');
+assert.equal(socialClubSource?.venue, '소셜클럽');
+assert.equal(socialClubSource?.autoRegistrationPolicy, 'shadow');
+assert.ok(socialClubSource?.runOrder < 0);
+
+const socialClubClassRejected = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/thesocialcluba/p/CLASS1/',
+  extracted_text: '다이나믹발보아 클래스 8월 10일 월요일 수업 이후 연습',
+  structured_data: {
+    title: '다이나믹발보아 클래스',
+    date: '2026-08-10',
+    location: '소셜클럽',
+    activity_type: 'class',
+  },
+}), { today: TODAY });
+assert.equal(socialClubClassRejected.validation.ok, false);
+assert.ok(socialClubClassRejected.validation.errors.some((error) => error.includes('activity type')));
+
+const socialClubPostedDateRejected = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/thesocialcluba/p/POSTDATE1/',
+  extracted_text: 'Balboa in Social Club 다음 수요일 소셜',
+  structured_data: {
+    title: 'Balboa in Social Club',
+    date: '2026-07-28',
+    location: '소셜클럽',
+    activity_type: 'social',
+    djs: ['아드리안'],
+  },
+}), { today: TODAY });
+assert.equal(socialClubPostedDateRejected.validation.ok, false);
+assert.ok(socialClubPostedDateRejected.validation.errors.some((error) => error.includes('weekday')));
+
+const socialClubWednesdayReady = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_url: 'https://www.instagram.com/thesocialcluba/p/WED1/',
+  poster_url: 'https://example.com/socialclub.webp',
+  extracted_text: 'Balboa in Social Club 7월 29일 수요일 DJ 아드리안',
+  structured_data: {
+    title: 'Balboa in Social Club',
+    date: '2026-07-29',
+    location: '소셜클럽',
+    venue_name: '소셜클럽',
+    venue_provenance: 'source_registry',
+    activity_type: 'social',
+    djs: ['아드리안'],
+  },
+}), { today: TODAY });
+assert.equal(socialClubWednesdayReady.ready, false);
+assert.ok(socialClubWednesdayReady.reasons.some((reason) => reason.includes('95%')));
+assert.deepEqual(
+  Object.fromEntries(
+    getAutomationSourceList('swing-daily')
+      .filter((item) => ['swingtown-cafe', 'swingfriends-cafe', 'swing_friends', 'sweetyswing-lessons'].includes(item.id))
+      .map((item) => [item.id, {
+        venue: item.venue,
+        policy: item.autoRegistrationPolicy,
+        venuePolicy: item.autoRegistrationVenuePolicy,
+      }]),
+  ),
+  {
+    'sweetyswing-lessons': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
+    'swingtown-cafe': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
+    swing_friends: { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
+    'swingfriends-cafe': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
+  },
+);
+
+const scandalVenueNormalized = prepareCandidate(baseCandidate({
+  keyword: '스윙스캔들',
+  structured_data: {
+    title: '스윙스캔들 목요 소셜',
+    date: '2026-06-18',
+    location: '사보이볼룸(사당)',
+    venue_name: '사보이',
+    activity_type: 'social',
+    djs: ['단미'],
+  },
+}), { today: TODAY });
+assert.equal(scandalVenueNormalized.candidate.structured_data.location, '사보이볼룸');
+assert.equal(scandalVenueNormalized.candidate.structured_data.venue_name, '사보이볼룸');
+
+const autoReadyScandal = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/999001?menuid=501',
+  poster_url: 'https://example.com/scandal.webp',
+  structured_data: {
+    title: '스윙스캔들 목요 소셜',
+    date: '2026-06-18',
+    location: '사보이볼룸',
+    venue_name: '사보이볼룸',
+    venue_provenance: 'source_registry',
+    activity_type: 'social',
+    djs: ['단미'],
+  },
+}), { today: TODAY });
+assert.equal(autoReadyScandal.ready, true);
+
+const autoBlockedGenericParty = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/GENERIC1/',
+  poster_url: 'https://example.com/party.webp',
+  structured_data: {
+    title: '🎉 파티',
+    date: '2026-08-15',
+    location: '경성홀',
+    venue_name: '경성홀',
+    venue_provenance: 'source_alias',
+    activity_type: 'social',
+  },
+}), { today: TODAY });
+assert.equal(autoBlockedGenericParty.ready, false);
+assert.ok(autoBlockedGenericParty.reasons.some((reason) => reason.includes('DJ')));
+
+const autoBlockedFriendsRegistryVenue = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_url: 'https://www.instagram.com/swing_friends/p/MULTIVENUE1/',
+  poster_url: 'https://example.com/friends.webp',
+  structured_data: {
+    title: '스윙프렌즈 토요 소셜',
+    date: '2026-08-15',
+    location: '스윙타임',
+    venue_name: '스윙타임',
+    venue_provenance: 'source_registry',
+    activity_type: 'social',
+    djs: ['윤슬'],
+  },
+}), { today: TODAY });
+assert.equal(autoBlockedFriendsRegistryVenue.ready, false);
+assert.ok(autoBlockedFriendsRegistryVenue.reasons.some((reason) => reason.includes('explicitly verified')));
+
+const autoReadyFriendsExplicitVenue = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_url: 'https://www.instagram.com/swing_friends/p/MULTIVENUE2/',
+  poster_url: 'https://example.com/friends-explicit.webp',
+  structured_data: {
+    title: '스윙프렌즈 토요 소셜',
+    date: '2026-08-15',
+    location: '해피홀',
+    venue_name: '해피홀',
+    venue_provenance: 'source_text',
+    activity_type: 'social',
+    djs: ['윤슬'],
+  },
+}), { today: TODAY });
+assert.equal(autoReadyFriendsExplicitVenue.ready, false);
+assert.ok(autoReadyFriendsExplicitVenue.reasons.some((reason) => reason.includes('95%')));
+
+for (const lowQualityTitle of [
+  'Instagram의 대전 스윙피버님',
+  '💙강습 안내💙',
+  '✅ 소셜 댄스 시간',
+  '스위티 공지',
+  '🎉 파티',
+  '강습링크: https://forms.gle/example',
+]) {
+  const lowQualityCandidate = prepareCandidate(baseCandidate({
+    structured_data: {
+      title: lowQualityTitle,
+      date: '2026-08-01',
+      location: '검증장소',
+      activity_type: 'class',
+    },
+  }), { today: TODAY });
+  assert.equal(lowQualityCandidate.validation.ok, false, `low-quality title must be rejected: ${lowQualityTitle}`);
+}
+
+const sweetyswingSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'sweetyswing-lessons');
+assert.equal(sweetyswingSource?.venue, '');
+assert.equal(sweetyswingSource?.autoRegistrationVenuePolicy, 'explicit');
 
 const salsa = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/turn_latin_bar/p/SALSA1/',

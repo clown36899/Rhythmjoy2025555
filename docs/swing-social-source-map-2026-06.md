@@ -41,7 +41,7 @@
 | 탐나홀 / 탐나 | `tamnahall` | Daily Swing | collectable venue source |
 | 마얀 / 홀릭 | `swingholic` | Meroni reference | collectable community source |
 | 강남웨스티스 / 웨스티, 웨코 | `gangnam_westies` | Daily Swing | collectable, daily |
-| 쏘셜클럽 / 스윙피크닉 | `sosyalclub_swing` | `swingpicnic-allevents`, `swingpicnic-facebook` | venue source checked, official event source still needs session/source confirmation |
+| 쏘셜클럽 수요 발보아 | `sosyalclub_swing` → `@thesocialcluba` | `socialclubseoul.co.kr` | 공식 Instagram이 원본, 공식 일정 페이지가 날짜·DJ 대조 경로. 스윙피크닉은 별도 비정기 행사 |
 
 ## Channel Split Notes
 

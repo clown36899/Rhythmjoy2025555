@@ -189,6 +189,7 @@ const canonicalVenueAliases = [
   [/^스윙타임(?:바)?(?:선릉)?$/i, '스윙타임'],
   [/^인더무드(?:신림)?$/i, '인더무드'],
   [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
+  [/^(?:사보이볼룸|사보이홀|사보이)(?:사당)?$/i, '사보이볼룸'],
 ];
 
 function compactVenueText(value = '') {
@@ -518,7 +519,13 @@ function looksLikeGenericSourceFallbackTitle(candidate, source, activity) {
     .filter(Boolean)
     .map((value) => normalizeText(value));
   const names = sourceNameCandidates(candidate, source).map((value) => normalizeText(value)).filter(Boolean);
-  const isGeneric = names.some((name) => suffixes.some((suffix) => normalizedTitle === `${name}${suffix}`));
+  const isGeneric = names.some((name) => (
+    suffixes.some((suffix) => normalizedTitle === `${name}${suffix}`)
+    || (
+      normalizedTitle.startsWith(name)
+      && /^(?:월|화|수|목|금|토|일)(?:요)?소셜$/.test(normalizedTitle.slice(name.length))
+    )
+  ));
   if (!isGeneric) return false;
 
   const text = textOf(candidate);
@@ -535,6 +542,11 @@ function looksLikeLowQualityAutoTitle(candidate) {
   if (/(?:은|는|을|를|며|고|에서|까지)\s*$/.test(title)) return true;
   if (/^(?:무료|유료)?\s*라인\s*강습(?:은|는|이|을|를)?\b/i.test(title)) return true;
   if (/^(?:잊지\s*말고|일찍\s*오셔서|아직|여러분|문의|연락처|신청은|프로필\s*링크)/i.test(title)) return true;
+  if (/^Instagram(?:의)?\s+.+님(?:의\s*사진과\s*동영상)?$/i.test(title)) return true;
+  if (/^(?:[^\p{L}\p{N}가-힣]*)(?:강습|수업|소셜\s*댄스)\s*(?:안내|시간|일정)(?:[^\p{L}\p{N}가-힣]*)$/iu.test(title)) return true;
+  if (/^(?:스위티\s*)?공지(?:사항)?$/i.test(title)) return true;
+  if (/^[^\p{L}\p{N}가-힣]*(?:파티|행사|이벤트|party|event)[^\p{L}\p{N}가-힣]*$/iu.test(title)) return true;
+  if (/^(?:강습\s*)?(?:기간|일정|링크)\s*[:：]/i.test(title)) return true;
   if (/(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title)) return true;
   return false;
 }
@@ -553,6 +565,15 @@ function hasNaverCafeChromeDj(candidate) {
   const djs = candidate?.structured_data?.djs;
   if (!Array.isArray(djs)) return false;
   return djs.some((dj) => naverCafeChromeRe.test(String(dj || '')));
+}
+
+function hasMalformedDj(candidate) {
+  const djs = candidate?.structured_data?.djs;
+  if (!Array.isArray(djs)) return false;
+  return djs.some((value) => (
+    /20\d{2}[.\-/년]|(?:\d{1,2}[.\-/월]){2}|소셜로\s*진행|강습|수업|모집|매니저|멤버|조회|채팅|application\s*link|registration\s*link|신청\s*링크|입금\s*계좌/i.test(String(value))
+    || String(value).trim().length > 28
+  ));
 }
 
 function looksLikeBroadScheduleNotice(candidate) {
@@ -584,7 +605,12 @@ function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
     && !/배틀|battle|워크샵|워크숍|workshop|class|클래스|수업|레슨/i.test(text);
 }
 
-function inferActivity(text, explicit) {
+function inferActivity(text, explicit, title = '') {
+  const heading = String(title || '');
+  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(heading)) return 'sale';
+  if (/(?:창립|오픈|개장)?\s*\d+\s*주년.{0,30}(?:파티|행사)|(?:파티|행사).{0,30}\d+\s*주년|anniversary/i.test(heading)) return 'event';
+  if (/(?:강습|클래스|원\s*데이|원데이|\d+\s*기).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(heading)) return 'recruit';
+  if (/(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]/i.test(heading)) return 'class';
   if (['class', 'social', 'event', 'recruit', 'sale'].includes(explicit)) return explicit;
   if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) return 'sale';
   if (/(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i.test(text)) return 'recruit';
@@ -747,7 +773,7 @@ export function inferCandidateTaxonomy(candidate) {
   const source = findSourceByUrl(candidate.source_url);
   const sd = candidate.structured_data || {};
   const text = textOf(candidate);
-  const activity = inferActivity(text, sd.activity_type);
+  const activity = inferActivity(text, sd.activity_type, titleOf(candidate));
   const inferredGenre = inferGenre(text);
   const danceGenre = sd.dance_genre || (inferredGenre.genre === 'unknown' ? source?.genre : inferredGenre.genre) || 'unknown';
   const genreFamily = sd.genre_family || (inferredGenre.family === 'unknown' ? source?.family : inferredGenre.family) || 'unknown';
@@ -832,14 +858,36 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   if (hasNaverCafeChromeDj(candidate)) {
     errors.push('naver cafe DJ contains author/profile chrome');
   }
+  if (hasMalformedDj(candidate)) {
+    errors.push('DJ value contains date, board chrome, or event-description text');
+  }
   if (looksLikeBroadScheduleNotice(candidate)) {
     errors.push('broad schedule notice is not a single collectable event');
+  }
+  if (
+    taxonomy.activity_type === 'social'
+    && /(?:\d{1,2}\s*월\s*)?\d{1,2}\s*[,·&]\s*\d{1,2}\s*일/i.test(text)
+  ) {
+    errors.push('multi-date social notice must be split into one candidate per date');
   }
   if (
     taxonomy.activity_type === 'social'
     && /(?:\d+\s*기|강습|수강생|수강|클래스).{0,24}모집|모집.{0,24}(?:강습|수강생|수강|클래스)/i.test(text)
   ) {
     errors.push('recruitment/class notice is misclassified as a social');
+  }
+  if (
+    taxonomy.activity_type === 'social'
+    && /(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]/i.test(text)
+  ) {
+    errors.push('named class notice is misclassified as a social');
+  }
+  const explicitActivity = String(candidate.activity_type || sd.activity_type || '');
+  if (explicitActivity !== 'sale' && /정기권|시즌권|월정액|멤버십|\bpass\b/i.test(text)) {
+    errors.push('season-pass sale is misclassified as a dated activity');
+  }
+  if (explicitActivity === 'social' && /(?:창립|오픈|개장)?\s*\d+\s*주년.{0,20}(?:파티|행사)|(?:파티|행사).{0,20}\d+\s*주년/i.test(text)) {
+    errors.push('anniversary event is misclassified as a regular social');
   }
   const isImageOptionalCandidate = taxonomy.activity_type === 'social'
     || sd.benefit_eligible === true;
@@ -860,6 +908,24 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
     errors.push('수집 범위 제외: 공연예술/상업 혼합 공연은 수동 검토 필요');
   }
   if (source?.discoveryOnly) errors.push('discovery-only source: official source URL required before saving');
+  if (
+    Array.isArray(source?.allowedActivityTypes)
+    && source.allowedActivityTypes.length
+    && !source.allowedActivityTypes.includes(taxonomy.activity_type)
+  ) {
+    errors.push(`source does not collect activity type: ${taxonomy.activity_type}`);
+  }
+  if (
+    date
+    && Array.isArray(source?.allowedWeekdays)
+    && source.allowedWeekdays.length
+    && !source.allowedWeekdays.includes(new Date(`${date}T12:00:00+09:00`).getDay())
+  ) {
+    errors.push(`source does not collect this weekday: ${date}`);
+  }
+  if (source?.requiredEventPattern instanceof RegExp && !source.requiredEventPattern.test(text)) {
+    errors.push('source post is not the required event series');
+  }
   if (taxonomy.activity_type === 'social' && !Array.isArray(sd.djs) && !/\bdj\b|디제이|밀롱가|프랙티카|소셜|social/i.test(text)) {
     warnings.push('social candidate lacks visible DJ or concrete social context');
   }
@@ -918,6 +984,55 @@ export function prepareCandidate(rawCandidate, config = {}) {
   };
 }
 
+export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
+  const { candidate, validation } = prepareCandidate(rawCandidate, config);
+  const sd = candidate.structured_data || {};
+  const source = validation.source;
+  const reasons = [...validation.errors];
+  const activity = validation.taxonomy.activity_type;
+  const venue = String(sd.venue_name || sd.location || '').trim();
+  const title = titleOf(candidate);
+  const djs = Array.isArray(sd.djs) ? sd.djs.filter(Boolean) : [];
+  const venueProvenance = String(sd.venue_provenance || '').trim();
+
+  if (source?.autoRegistrationPolicy !== 'shadow' && source?.autoRegistrationPolicy !== 'auto') {
+    reasons.push('source is not enrolled in auto-registration shadow policy');
+  }
+  if (source?.discoveryOnly || source?.type === 'benefit_search') {
+    reasons.push('search/discovery sources require manual approval');
+  }
+  if (!candidate.poster_url && !candidate.imageData) reasons.push('auto-registration requires an image');
+  if (!venue) reasons.push('auto-registration requires a verified venue');
+  if (!sd.venue_provenance && !source?.venue) reasons.push('venue provenance is not verified');
+  if (
+    source?.autoRegistrationVenuePolicy === 'explicit'
+    && !['source_text', 'poster_text', 'manual_verified'].includes(venueProvenance)
+  ) {
+    reasons.push('this multi-venue source requires a venue explicitly verified from the post');
+  }
+  if (!title || title.length < 4) reasons.push('auto-registration requires a concrete title');
+  if (!['class', 'social', 'event', 'recruit', 'sale'].includes(activity)) {
+    reasons.push('activity type is not auto-registerable');
+  }
+  if (
+    Array.isArray(source?.autoRegistrationAllowedActivityTypes)
+    && !source.autoRegistrationAllowedActivityTypes.includes(activity)
+  ) {
+    reasons.push('source/activity has not reached the 95% auto-registration evidence gate');
+  }
+  if (activity === 'social' && djs.length === 0) reasons.push('social auto-registration requires a DJ');
+  if (activity === 'social' && hasMalformedDj(candidate)) {
+    reasons.push('social auto-registration requires a clean DJ name');
+  }
+
+  return {
+    ready: reasons.length === 0,
+    mode: source?.autoRegistrationPolicy || 'manual',
+    source_id: source?.id || candidate.source_id || null,
+    reasons: [...new Set(reasons)],
+  };
+}
+
 export function buildCafe24Payload(rawCandidate, config = {}) {
   const { candidate, validation } = prepareCandidate(rawCandidate, config);
   if (!validation.ok) {
@@ -925,5 +1040,8 @@ export function buildCafe24Payload(rawCandidate, config = {}) {
     error.validation = validation;
     throw error;
   }
-  return candidate;
+  return {
+    ...candidate,
+    auto_registration: evaluateAutoRegistrationReadiness(candidate, config),
+  };
 }

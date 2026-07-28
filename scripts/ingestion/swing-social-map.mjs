@@ -337,6 +337,24 @@ export const swingSocialSourceRoutes = [
     notes: 'Daily Swing에서 더쏘셜클럽 일요일 축으로 확인. 스윙피크닉과 별도 커뮤니티',
   },
   {
+    id: 'sosyalclub_swing',
+    label: 'The Social Club 공식 Instagram',
+    channel: 'instagram',
+    url: 'https://www.instagram.com/thesocialcluba/',
+    status: 'collectable_origin',
+    automation: 'swing-daily',
+    notes: '공식 홈페이지 socialclubseoul.co.kr가 연결한 채널. 매주 수요일 Balboa in Social Club 공지의 날짜·DJ·포스터 원본',
+  },
+  {
+    id: 'socialclubseoul-home',
+    label: 'The Social Club 공식 일정 페이지',
+    channel: 'website',
+    url: 'https://socialclubseoul.co.kr/',
+    status: 'official_schedule_fallback',
+    automation: 'discovery_only',
+    notes: '수요일 일정·DJ·신청 링크 대조용. 후보 저장 원본은 공식 Instagram 포스트를 우선 사용',
+  },
+  {
     id: 'swingpicnic-allevents',
     label: '스윙피크닉 AllEvents',
     channel: 'website',
@@ -468,7 +486,7 @@ const row = ({ date, venue, community, dj = '', routeIds = [], notes = '', perio
 });
 
 export const currentSwingSocialMap = [
-  row({ date: '2026-06-03', venue: '쏘셜클럽', community: '스윙피크닉', dj: 'Dan & 정양', routeIds: ['sosyalclub_swing', 'swingpicnic-allevents', 'swingpicnic-facebook'], notes: '스윙피크닉은 AllEvents와 Facebook 후보만 확인. 해당 주차 DJ 원본은 세션 기반 추가 확인 필요' }),
+  row({ date: '2026-06-03', venue: '쏘셜클럽', community: 'Balboa in Social Club', dj: 'Dan & 정양', routeIds: ['sosyalclub_swing', 'socialclubseoul-home'], notes: '수요일 정규 발보아 소셜은 The Social Club 공식 Instagram과 일정 페이지에서 대조. 스윙피크닉은 별도 비정기 행사' }),
   row({ date: '2026-06-03', venue: '해피홀', community: '네오', routeIds: ['happyhall2004', 'neoswing-daum', 'neoswing-linktree'] }),
   row({ date: '2026-06-03', venue: '타임', community: '프렌즈/스위티', dj: '거북이', routeIds: ['swingtimebar', 'swingfriends-cafe', 'swing_friends', 'swingfriends-facebook', 'swingfriends-oneday-littly', 'swingfriends-site', 'sweetyswing-lessons', 'sweetyswing-instagram', 'sweetyswing-facebook'] }),
   row({ date: '2026-06-03', venue: 'Dialogue', community: '스윙팝', dj: '격주휴무', routeIds: ['dialogue_swing', 'swingpopseoul', 'swingpopseoul-linktree', 'swingpopseoul-meetup', 'swingpopseoul-facebook', 'kpdancehall'], notes: '휴무/운영여부는 원본 포스트 또는 허브 대조 필요' }),

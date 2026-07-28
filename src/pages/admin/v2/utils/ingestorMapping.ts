@@ -87,7 +87,7 @@ const SOURCE_VENUE_ALIASES: Array<[RegExp, string]> = [
   [/instagram\.com\/dialogue_swing/i, 'Dialogue'],
   [/instagram\.com\/243_swingbar/i, '243'],
   [/instagram\.com\/asurajang_swing/i, '아수라장'],
-  [/instagram\.com\/sosyalclub_swing/i, '쏘셜클럽'],
+  [/instagram\.com\/thesocialcluba/i, '쏘셜클럽'],
   [/instagram\.com\/swingit_seoul/i, '스윙잇'],
   [/instagram\.com\/spa_swingdance/i, '스파'],
   [/instagram\.com\/lq_studio_swing/i, 'LQ'],

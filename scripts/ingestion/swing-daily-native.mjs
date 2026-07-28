@@ -139,24 +139,20 @@ const sourceSpecificVenue = new Map([
   ['luna_swingbar', '루나'],
   ['swingcats20', '루나'],
   ['inthemood_sillim', '인더무드'],
-  ['swingpopseoul', 'Dialogue'],
   ['kyungsunghall', '경성홀'],
   ['tamnahall', '탐나홀'],
   ['kpdancehall', 'KP댄스홀'],
   ['stepupdance_swing', '스탭업댄스'],
   ['sosyalclub_swing', '소셜클럽'],
   ['daejeon_swingfever', '스윙잇'],
-  ['allaboutswing_official', '경성홀'],
+  ['swingscandal-cafe', '사보이볼룸'],
   ['swingscandal-littly', '사보이'],
   ['balboaland-instagram', '피에스타'],
-  ['swingkids-oneday-littly', '스윙키즈'],
-  ['swingfriends-oneday-littly', '스윙프렌즈'],
-  ['swing_friends', '스윙타임'],
+  ['swingkids-oneday-littly', '피에스타'],
+  ['swingfriends-oneday-littly', '스윙타임'],
   ['neo_swing', '해피홀'],
   ['neoswing-daum', '해피홀'],
   ['swinghouse-littly', '비밥바'],
-  ['goldenswing', '당산벙커'],
-  ['goldenswing-littly', '당산벙커'],
 ]);
 
 let lastInstagramHitAt = 0;
@@ -616,9 +612,20 @@ function extractDates(text = '') {
 }
 
 function inferActivity(text = '') {
-  if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
   if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) {
     return { activity: 'sale', eventType: '판매이벤트' };
+  }
+  if (/(?:창립|오픈|개장)?\s*\d+\s*주년.{0,30}(?:파티|행사)|(?:파티|행사).{0,30}\d+\s*주년|anniversary/i.test(text)) {
+    return { activity: 'event', eventType: '행사' };
+  }
+  if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
+  if (/(?:강습|클래스|원\s*데이|원데이).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(text)) {
+    return { activity: 'recruit', eventType: '모집' };
+  }
+  if (
+    /(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]|(?:강습|수업|클래스).{0,24}(?:신청|안내)|신청.{0,24}(?:강습|수업|클래스)/i.test(text)
+  ) {
+    return { activity: 'class', eventType: '강습' };
   }
   if (/소셜|social|(?<![A-Za-z0-9가-힣])DJ|디제이|파티|party/i.test(text)) return { activity: 'social', eventType: '소셜' };
   if (graduationEventPattern.test(text)) return { activity: 'event', eventType: '행사' };
@@ -644,6 +651,10 @@ function inferDjs(text = '') {
   for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
     const value = compactText(match[1])
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
+      .replace(/\s*(?:application|registration|apply)\s*link\b.*$/i, '')
+      .replace(/\s*(?:신청|등록|입금|계좌|문의)\s*(?:링크|방법|안내)?\b.*$/i, '')
+      .replace(/\s+20\d{2}[.\-/년].*$/i, '')
+      .replace(/^(?:인기\s*멤버\s*)?(?:\d+\s*F\s*)?스칼라\s+(?:부\s*매니저\s*\d*\s*)?/i, '')
       .replace(/\s*(?:와|과|및|님|입니다|입니다\.|와 함께).*$/i, '')
       .replace(/\s*(?:소셜은|소셜\s*은|참석|되시며|됩니다|문의|입장|현금|카드|제로페이).*$/i, '')
       .replace(/\s*(?:月|월|생일|잼서클|라인\s*강습|있어요|쉬어요|\d+\s*기|지터벅|확정|환영).*$/i, '')
