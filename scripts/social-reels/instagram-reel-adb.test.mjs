@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   JAZZ_TRACKS,
   chooseNextTrack,
+  parseAdbDevices,
   parseUiNodes,
 } from './instagram-reel-adb.mjs';
 import { resolveShellDefaultExpression } from './run-scheduled-social-reel.mjs';
@@ -39,6 +40,23 @@ test('music rotation never repeats the previous successful track', () => {
 test('unknown history safely starts from the first configured jazz track', () => {
   const candidates = chooseNextTrack([{ title: 'Unknown', artist: 'Unknown' }]);
   assert.deepEqual(candidates[0], JAZZ_TRACKS[0]);
+});
+
+test('ADB device parsing keeps serial and state so publishing can target one emulator', () => {
+  assert.deepEqual(
+    parseAdbDevices([
+      'List of devices attached',
+      '192.168.0.36:5555 device product:kiosk model:TV',
+      'emulator-5554 device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64',
+      'emulator-5556 offline transport_id:3',
+      '',
+    ].join('\n')),
+    [
+      { serial: '192.168.0.36:5555', state: 'device' },
+      { serial: 'emulator-5554', state: 'device' },
+      { serial: 'emulator-5556', state: 'offline' },
+    ],
+  );
 });
 
 test('shell-style environment defaults resolve for the shared notification config', () => {

@@ -853,6 +853,27 @@
   - `docs/social-reel-automation.md`
   - `docs/decisions/2026-07-26-social-reel-dynamic-layout.md`
 - 관련 커밋: `7badf4d0`
+
+## 2026-07-28 Instagram Reel 화·목·토 예약 게시 실패
+
+- 상태: 코드 수정 및 회귀 테스트 완료, 2026-07-28 누락분 재게시 대기
+- 현상: 화요일 12:30 예약 작업이 영상·커버 생성까지 완료했지만 Instagram 공유 단계로 진입하지 못했다.
+- 원인:
+  - 키오스크 ADB 연결과 `Medium_Phone` 에뮬레이터가 동시에 존재했다.
+  - 게시기가 모든 ADB 명령을 serial 지정 없이 실행해 `more than one device/emulator`로 중단됐다.
+  - 실패 뒤 남은 에뮬레이터 Quick Boot 스냅샷은 ADB `offline` 상태로 복원돼 자동 재게시도 진행할 수 없었다.
+- 조치:
+  - `adb devices` 결과를 파싱하고 실행 중인 AVD 이름을 확인해 `Medium_Phone` serial만 선택하도록 변경했다.
+  - 이후 모든 ADB 명령에 `-s <serial>`을 적용해 키오스크나 다른 에뮬레이터가 함께 연결돼도 게시 대상을 혼동하지 않도록 했다.
+  - 다중 장치와 offline 장치가 섞인 회귀 테스트를 추가했다.
+- 검증:
+  - `npm run test:social-reel`: 12개 테스트 통과
+  - 예약 작업 실행 기록에서 2026-07-28 영상은 2160×3840, H.264, 30fps, 15초, BT.709로 정상 생성됐고 실패 지점은 공유 전 ADB 대상 선택임을 확인
+- 후속:
+  - Mac 로그인 화면을 사용자가 잠금 해제한 뒤 기존 Instagram 로그인 스냅샷의 ADB 연결을 복구하고 2026-07-28 누락분을 재게시한다.
+- 관련 파일:
+  - `scripts/social-reels/instagram-reel-adb.mjs`
+  - `scripts/social-reels/instagram-reel-adb.test.mjs`
 # 2026-07-26 — 키오스크 홈 광고 하단 UI 정렬
 
 - 상태: 수정 완료, 1080×1920 키오스크 화면 및 프로덕션 빌드 검증 완료

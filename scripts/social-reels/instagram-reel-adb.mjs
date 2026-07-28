@@ -26,6 +26,7 @@ const avdName = process.env.ANDROID_AVD_NAME || 'Medium_Phone';
 const pollIntervalMs = 700;
 const normalTimeoutMs = 30_000;
 const lockMaxAgeMs = 30 * 60 * 1000;
+let activeAdbSerial = process.env.ANDROID_SERIAL || '';
 
 export const JAZZ_TRACKS = Object.freeze([
   { title: 'Take Five', artist: 'Dave Brubeck' },
@@ -125,7 +126,10 @@ async function run(command, args, options = {}) {
 }
 
 async function adb(args, options = {}) {
-  return run(adbPath, args, options);
+  const scopedArgs = activeAdbSerial && args[0] !== 'devices'
+    ? ['-s', activeAdbSerial, ...args]
+    : args;
+  return run(adbPath, scopedArgs, options);
 }
 
 async function adbShell(...args) {
@@ -186,15 +190,39 @@ async function releaseLock(lockPath, handle) {
   });
 }
 
-async function ensureEmulator() {
-  let state = '';
-  try {
-    state = (await adb(['get-state'], { timeout: 5_000 })).stdout.trim();
-  } catch {
-    // The AVD is started below.
+export function parseAdbDevices(output = '') {
+  return String(output)
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => line.trim().split(/\s+/))
+    .filter(([serial, state]) => serial && state)
+    .map(([serial, state]) => ({ serial, state }));
+}
+
+async function findTargetEmulatorSerial() {
+  const { stdout } = await run(adbPath, ['devices']);
+  const onlineEmulators = parseAdbDevices(stdout)
+    .filter(({ serial, state }) => state === 'device' && serial.startsWith('emulator-'));
+
+  for (const { serial } of onlineEmulators) {
+    try {
+      const { stdout: runningAvdName } = await run(
+        adbPath,
+        ['-s', serial, 'emu', 'avd', 'name'],
+        { timeout: 5_000 },
+      );
+      if (runningAvdName.trim().split(/\r?\n/)[0] === avdName) return serial;
+    } catch {
+      // Continue checking other online emulators.
+    }
   }
 
-  if (state !== 'device') {
+  return onlineEmulators.length === 1 ? onlineEmulators[0].serial : '';
+}
+
+async function ensureEmulator() {
+  activeAdbSerial = await findTargetEmulatorSerial();
+  if (!activeAdbSerial) {
     const child = spawn(emulatorPath, [
       '-avd', avdName,
       '-no-audio',
@@ -204,7 +232,15 @@ async function ensureEmulator() {
       stdio: 'ignore',
     });
     child.unref();
-    await adb(['wait-for-device'], { timeout: 120_000 });
+
+    const deviceDeadline = Date.now() + 120_000;
+    while (Date.now() < deviceDeadline && !activeAdbSerial) {
+      await wait(1_000);
+      activeAdbSerial = await findTargetEmulatorSerial();
+    }
+    if (!activeAdbSerial) {
+      throw new Error(`Android emulator ${avdName} did not appear in adb devices.`);
+    }
   }
 
   const deadline = Date.now() + 120_000;
