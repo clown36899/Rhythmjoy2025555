@@ -1,6 +1,6 @@
 # Android TV Kiosk Notes
 
-최종 업데이트: 2026-06-05
+최종 업데이트: 2026-07-28
 
 ## 목적
 
@@ -71,6 +71,33 @@ Bluetooth 관련 패키지/서비스는 TV 모델마다 다르므로, 무리해�
 - ADB 명령은 TV 모델별로 다르게 동작할 수 있다.
 - 시스템 앱 삭제보다는 disable, notification off, setting 변경을 우선한다.
 - Mini PC Chrome kiosk 설정과 TV ADB 설정을 섞어서 생각하지 말 것.
+
+## USB 디버깅 승인 모달 원격 제거 절차
+
+2026-07-28 확인한 장치:
+
+- Android TV: `2K US Google TV`
+- 주소: `172.30.1.28`
+- Android TV Remote v2: TCP `6466`, `6467`
+- Mini PC: `172.30.1.13`이며 ADB가 설치되어 있지 않음
+
+승인 모달은 관리 Mac의 ADB가 `172.30.1.28:5555`에 연결되어 `unauthorized`가 되면서 발생했다. `adb disconnect`와 `adb kill-server`는 재발 연결은 막지만 이미 화면에 떠 있는 Android 시스템 모달을 닫지는 못한다. Mini PC Chrome 재시작, HDMI 신호 재설정, Chrome DevTools 클릭도 Android 시스템 오버레이에는 효과가 없다.
+
+검증된 해결 방법:
+
+1. 관리 Mac에서 ADB 연결과 서버를 종료한다.
+2. `androidtvremote2`로 Android TV Remote v2를 페어링한다.
+3. TV에 표시된 6자리 페어링 코드를 입력한다.
+4. 페어링된 리모컨으로 `BACK` 키를 두 번 전송한다.
+5. TV가 `com.google.android.tv.inputplayer` HDMI 입력으로 복귀하고 현장 화면에서 모달이 사라졌는지 확인한다.
+
+중요:
+
+- `DPAD_LEFT` 후 `DPAD_CENTER`만 전송한 첫 시도는 모달을 닫지 못했다.
+- 성공한 명령은 Android TV Remote v2의 `BACK` 두 번이다.
+- 인증서는 로컬 관리 장치의 `~/.config/rhythmjoy-androidtv-remote/`에만 보관하며 저장소에 넣지 않는다.
+- 실제 화면 확인 전에는 “닫혔다”고 보고하지 않는다.
+- 운영 중에는 ADB를 자동 연결하지 않는다.
 
 ## 아직 부족한 것
 
