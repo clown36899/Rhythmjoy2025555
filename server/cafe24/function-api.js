@@ -881,17 +881,30 @@ export function buildCollectedScrapedEventRow({
   };
 }
 
-const AUTOMATIC_REGISTRATION_SOURCE_ACTIVITIES = new Map([
-  ['kyungsunghall', new Set(['social'])],
-  ['swingscandal-cafe', new Set(['social'])],
+const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
+  ['kyungsunghall', { activities: new Set(['social']) }],
+  ['swingscandal-cafe', { activities: new Set(['social']) }],
+  ['neo_swing', { activities: new Set(['social', 'class']) }],
+  ['sosyalclub_swing', { activities: new Set(['social']), weekdays: new Set([3]) }],
+  ['swingfriends-cafe', { activities: new Set(['social', 'class', 'event', 'sale']), explicitVenue: true }],
+  ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), explicitVenue: true }],
+  ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), explicitVenue: true }],
 ]);
+
+const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
+  social: /(?:소셜|social|정모)/i,
+  class: /(?:강습|수업|클래스|class|워크숍|워크샵|workshop|레슨|lesson)/i,
+  event: /(?:행사|이벤트|event|파티|party|공연|대회)/i,
+  recruit: /(?:모집|신청|등록|recruit)/i,
+  sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
+};
 
 export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const structured = scrapedEvent?.structured_data || {};
   const readiness = scrapedEvent?.auto_registration || {};
   const sourceId = String(readiness.source_id || scrapedEvent?.source_id || '').trim();
   const activity = String(structured.activity_type || '').trim().toLowerCase();
-  const allowedActivities = AUTOMATIC_REGISTRATION_SOURCE_ACTIVITIES.get(sourceId);
+  const sourceRule = AUTOMATIC_REGISTRATION_SOURCE_RULES.get(sourceId);
   const title = String(structured.title || '').trim();
   const date = String(structured.date || '').slice(0, 10);
   const venue = String(structured.venue_name || structured.location || '').trim();
@@ -902,10 +915,20 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   if (readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
   if (Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
   if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
-  if (!allowedActivities?.has(activity)) reasons.push('source/activity is not server-enrolled');
+  if (!sourceRule?.activities?.has(activity)) reasons.push('source/activity is not server-enrolled');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) reasons.push('exact event date is required');
   if (!title || title.length < 4) reasons.push('concrete title is required');
   if (!venue) reasons.push('verified venue is required');
+  if (
+    sourceRule?.explicitVenue
+    && !['source_text', 'poster_text', 'manual_verified'].includes(String(structured.venue_provenance || ''))
+  ) {
+    reasons.push('source requires a venue explicitly verified from the post');
+  }
+  if (sourceRule?.weekdays?.size && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
+    if (!sourceRule.weekdays.has(weekday)) reasons.push('candidate weekday is not server-enrolled for source');
+  }
   if (!scrapedEvent?.poster_url) reasons.push('poster image is required');
   if (activity === 'social' && djs.length === 0) reasons.push('social requires a DJ');
   if (structured.times?.length || structured.time) reasons.push('time fields are not accepted');
@@ -940,8 +963,9 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   if (djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
     reasons.push('AI evidence does not explicitly contain every candidate DJ');
   }
-  if (activity === 'social' && !/(?:소셜|social|정모)/i.test(normalizedEvidence)) {
-    reasons.push('AI evidence does not explicitly identify a social');
+  const activityPattern = AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS[activity];
+  if (!activityPattern || !activityPattern.test(normalizedEvidence)) {
+    reasons.push(`AI evidence does not explicitly identify activity ${activity}`);
   }
   const status = String(scrapedEvent?.status || 'pending').toLowerCase();
   if (status !== 'pending' || scrapedEvent?.is_collected) reasons.push('candidate is not pending');

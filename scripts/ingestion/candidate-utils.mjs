@@ -1060,7 +1060,7 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
     Array.isArray(source?.autoRegistrationAllowedActivityTypes)
     && !source.autoRegistrationAllowedActivityTypes.includes(activity)
   ) {
-    reasons.push('source/activity has not reached the 95% auto-registration evidence gate');
+    reasons.push('source/activity has not reached the 98% AI auto-registration evidence gate');
   }
   if (activity === 'social' && djs.length === 0) reasons.push('social auto-registration requires a DJ');
   if (activity === 'social' && hasMalformedDj(candidate)) {

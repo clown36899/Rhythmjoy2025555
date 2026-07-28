@@ -78,12 +78,12 @@ describe('ingestor registration linkage', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-unsafe',
       status: 'pending',
-      source_id: 'swingtown-cafe',
+      source_id: 'happyhall2004',
       poster_url: 'https://example.com/poster.jpg',
       auto_registration: {
         ready: true,
         mode: 'shadow',
-        source_id: 'swingtown-cafe',
+        source_id: 'happyhall2004',
       },
       structured_data: {
         title: '스윙타운 소셜',
@@ -100,6 +100,67 @@ describe('ingestor registration linkage', () => {
       'social requires a DJ',
       'time fields are not accepted',
     ]));
+  });
+
+  it('allows Social Club only on Wednesday', () => {
+    const base = {
+      id: 'social-club-candidate',
+      status: 'pending',
+      source_id: 'sosyalclub_swing',
+      poster_url: 'https://example.com/social-club.jpg',
+      extracted_text: '7월 29일 소셜클럽 수요 소셜 DJ 아드리안',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'sosyalclub_swing',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: 'Balboa in Social Club',
+        date: '2026-07-29',
+        activity_type: 'social',
+        venue_name: '소셜클럽',
+        venue_provenance: 'source_text',
+        djs: ['아드리안'],
+        ai_evidence_quotes: ['7월 29일', '소셜클럽 수요 소셜', 'DJ 아드리안'],
+      },
+    };
+    expect(validateAutomaticRegistrationCandidate(base).ok).toBe(true);
+    const wrongWeekday = structuredClone(base);
+    wrongWeekday.structured_data.date = '2026-07-30';
+    wrongWeekday.extracted_text = '7월 30일 소셜클럽 목요 소셜 DJ 아드리안';
+    wrongWeekday.structured_data.ai_evidence_quotes = ['7월 30일', '소셜클럽 목요 소셜', 'DJ 아드리안'];
+    expect(validateAutomaticRegistrationCandidate(wrongWeekday).reasons)
+      .toContain('candidate weekday is not server-enrolled for source');
+  });
+
+  it('blocks a group name used as a venue for multi-venue sources', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'swingtown-bad-venue',
+      status: 'pending',
+      source_id: 'swingtown-cafe',
+      poster_url: 'https://example.com/swingtown.jpg',
+      extracted_text: '8월 1일 스윙타운 토요 소셜 DJ 루비',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtown-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙타운 토요 소셜',
+        date: '2026-08-01',
+        activity_type: 'social',
+        venue_name: '스윙타운',
+        venue_provenance: 'source_registry',
+        djs: ['루비'],
+        ai_evidence_quotes: ['8월 1일', '스윙타운 토요 소셜', 'DJ 루비'],
+      },
+    });
+    expect(validation.ok).toBe(false);
+    expect(validation.reasons).toContain('source requires a venue explicitly verified from the post');
   });
 
   it('never auto-registers a duplicate candidate', () => {

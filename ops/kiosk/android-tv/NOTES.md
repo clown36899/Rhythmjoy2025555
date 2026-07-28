@@ -19,13 +19,8 @@ ADB 대상:
 172.30.1.28:5555
 ```
 
-기본 연결:
-
-```bash
-adb connect 172.30.1.28:5555
-```
-
-사용자가 TV에서 개발자 옵션과 디버깅 허용을 켠 뒤 진행했다.
+운영 중에는 이 주소로 `adb connect`를 실행하지 않는다. 승인되지 않은 ADB
+클라이언트의 연결 시도 자체가 TV에 USB 디버깅 승인 모달을 띄운다.
 
 ## 진행한 방향
 
@@ -55,13 +50,8 @@ TV는 웹사이트를 띄우는 주체가 아니라 Mini PC 화면을 보여주�
 
 ## 다음 작업자가 먼저 확인할 것
 
-```bash
-adb devices
-adb shell getprop ro.product.model
-adb shell settings list secure
-adb shell settings list global
-adb shell settings list system
-```
+ADB 상태 조회도 먼저 연결을 요구하므로 운영 화면에서는 실행하지 않는다. TV 설정
+변경이 꼭 필요할 때만 현장 확인이 가능한 정비 시간에 수행한다.
 
 Bluetooth 관련 패키지/서비스는 TV 모델마다 다르므로, 무리해서 삭제하지 말고 disable/hide 가능한 범위부터 확인한다.
 
@@ -98,6 +88,9 @@ Bluetooth 관련 패키지/서비스는 TV 모델마다 다르므로, 무리해�
 - 인증서는 로컬 관리 장치의 `~/.config/rhythmjoy-androidtv-remote/`에만 보관하며 저장소에 넣지 않는다.
 - 실제 화면 확인 전에는 “닫혔다”고 보고하지 않는다.
 - 운영 중에는 ADB를 자동 연결하지 않는다.
+- 관리 Mac과 Mini PC에 ADB 자동연결 프로세스/서비스를 두지 않는다.
+- 모달 제거는 ADB가 아니라 페어링된 Android TV Remote v2의 `BACK` 두 번만 사용한다.
+- 포트 5555가 열려 있어도 클라이언트가 연결하지 않으면 승인 모달은 발생하지 않는다.
 
 ## 아직 부족한 것
 

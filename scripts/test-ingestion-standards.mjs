@@ -819,8 +819,8 @@ const socialClubWednesdayReady = evaluateAutoRegistrationReadiness(baseCandidate
     djs: ['아드리안'],
   },
 }), { today: TODAY });
-assert.equal(socialClubWednesdayReady.ready, false);
-assert.ok(socialClubWednesdayReady.reasons.some((reason) => reason.includes('95%')));
+assert.equal(socialClubWednesdayReady.ready, true);
+assert.equal(socialClubWednesdayReady.reasons.some((reason) => reason.includes('98%')), false);
 assert.deepEqual(
   Object.fromEntries(
     getAutomationSourceList('swing-daily')
@@ -832,7 +832,7 @@ assert.deepEqual(
       }]),
   ),
   {
-    'sweetyswing-lessons': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
+    'sweetyswing-lessons': { venue: '', policy: 'manual', venuePolicy: 'explicit' },
     'swingtown-cafe': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
     swing_friends: { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
     'swingfriends-cafe': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
@@ -912,8 +912,8 @@ const autoReadyFriendsExplicitVenue = evaluateAutoRegistrationReadiness(baseCand
     djs: ['윤슬'],
   },
 }), { today: TODAY });
-assert.equal(autoReadyFriendsExplicitVenue.ready, false);
-assert.ok(autoReadyFriendsExplicitVenue.reasons.some((reason) => reason.includes('95%')));
+assert.equal(autoReadyFriendsExplicitVenue.ready, true);
+assert.equal(autoReadyFriendsExplicitVenue.reasons.some((reason) => reason.includes('98%')), false);
 
 for (const lowQualityTitle of [
   'Instagram의 대전 스윙피버님',

@@ -82,7 +82,28 @@ describe('AI candidate adjudication grounding', () => {
       'AI confidence is below 0.98',
       'AI evidence does not explicitly contain the candidate venue',
       'AI evidence does not explicitly contain every candidate DJ',
-      'AI evidence does not explicitly identify a social',
+      'AI evidence does not explicitly identify activity social',
     ]));
+  });
+
+  it('requires an explicit class marker for class registration', () => {
+    const classCandidate = {
+      extracted_text: '8월 3일 해피홀 네오스윙 입문 강습',
+      structured_data: {
+        title: '네오스윙 입문 강습',
+        date: '2026-08-03',
+        activity_type: 'class',
+        venue_name: '해피홀',
+      },
+    };
+    expect(validateAiAdjudication(classCandidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-08-03',
+      activity_type: 'class',
+      venue: '해피홀',
+      djs: [],
+      evidence_quotes: ['8월 3일', '해피홀', '입문 강습'],
+    }).ok).toBe(true);
   });
 });

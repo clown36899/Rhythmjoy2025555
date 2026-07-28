@@ -93,6 +93,14 @@ function evidenceMentionsDate(evidence, isoDate) {
   ].some((pattern) => pattern.test(evidence));
 }
 
+const ACTIVITY_EVIDENCE_PATTERNS = {
+  social: /(?:소셜|social|정모)/i,
+  class: /(?:강습|수업|클래스|class|워크숍|워크샵|workshop|레슨|lesson)/i,
+  event: /(?:행사|이벤트|event|파티|party|공연|대회)/i,
+  recruit: /(?:모집|신청|등록|recruit)/i,
+  sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
+};
+
 export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const sd = candidate?.structured_data || {};
   const sourceText = `${candidate?.extracted_text || ''}\n${sd.title || ''}`;
@@ -118,8 +126,9 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   if (!evidenceMentionsDate(evidenceCorpus, sd.date)) reasons.push('AI evidence does not explicitly contain the candidate date');
   if (candidateVenue && !evidenceCorpus.includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
   if (candidateDjs.some((dj) => !evidenceCorpus.includes(dj))) reasons.push('AI evidence does not explicitly contain every candidate DJ');
-  if (String(sd.activity_type || '') === 'social' && !/(?:소셜|social|정모)/i.test(evidenceCorpus)) {
-    reasons.push('AI evidence does not explicitly identify a social');
+  const activityPattern = ACTIVITY_EVIDENCE_PATTERNS[String(sd.activity_type || '')];
+  if (!activityPattern || !activityPattern.test(evidenceCorpus)) {
+    reasons.push(`AI evidence does not explicitly identify activity ${String(sd.activity_type || '')}`);
   }
   if (sd.time || (Array.isArray(sd.times) && sd.times.length)) reasons.push('time fields are not accepted');
 
