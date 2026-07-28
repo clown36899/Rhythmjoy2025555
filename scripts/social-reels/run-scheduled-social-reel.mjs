@@ -71,6 +71,32 @@ function todayInKorea() {
   }).format(new Date());
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+export function canRetryPublicationState(state = {}) {
+  return state.status === 'failed-before-share';
+}
+
+async function publishWithSafeRetries(options, publicationStatePath) {
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await publishInstagramReel(options);
+    } catch (error) {
+      lastError = error;
+      const state = JSON.parse(
+        await readFile(publicationStatePath, 'utf8').catch(() => '{}'),
+      );
+      if (!canRetryPublicationState(state) || attempt === 3) throw error;
+      console.warn(`Instagram pre-share attempt ${attempt} failed; retrying safely.`);
+      await wait(attempt * 15_000);
+    }
+  }
+  throw lastError;
+}
+
 async function run(command, args) {
   await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -135,11 +161,20 @@ async function main() {
 
   try {
     await run(process.execPath, [generatorRunner, `--date=${date}`]);
-    const result = await publishInstagramReel({
+    const publicationStatePath = path.join(
+      repositoryRoot,
+      'artifacts/social-reels',
       date,
-      dryRun,
-      cleanup: !args['leave-ready'],
-    });
+      'publication-state.json',
+    );
+    const result = await publishWithSafeRetries(
+      {
+        date,
+        dryRun,
+        cleanup: !args['leave-ready'],
+      },
+      publicationStatePath,
+    );
     const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
     await notify([
       dryRun ? 'Instagram 릴스 드라이런 완료' : 'Instagram 릴스 자동 게시 완료',

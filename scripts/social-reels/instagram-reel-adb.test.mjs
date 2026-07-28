@@ -7,7 +7,10 @@ import {
   parseAdbDevices,
   parseUiNodes,
 } from './instagram-reel-adb.mjs';
-import { resolveShellDefaultExpression } from './run-scheduled-social-reel.mjs';
+import {
+  canRetryPublicationState,
+  resolveShellDefaultExpression,
+} from './run-scheduled-social-reel.mjs';
 
 test('UI XML parser decodes accessibility fields and bounds', () => {
   const nodes = parseUiNodes([
@@ -76,4 +79,10 @@ test('shell-style environment defaults resolve for the shared notification confi
     ),
     'explicit-token',
   );
+});
+
+test('publisher retries only failures known to occur before Share', () => {
+  assert.equal(canRetryPublicationState({ status: 'failed-before-share' }), true);
+  assert.equal(canRetryPublicationState({ status: 'verification-required' }), false);
+  assert.equal(canRetryPublicationState({ status: 'published' }), false);
 });
