@@ -871,7 +871,11 @@
   - `npm run test:social-reel`: 12개 테스트 통과
   - 예약 작업 실행 기록에서 2026-07-28 영상은 2160×3840, H.264, 30fps, 15초, BT.709로 정상 생성됐고 실패 지점은 공유 전 ADB 대상 선택임을 확인
 - 후속:
-  - Mac 로그인 화면을 사용자가 잠금 해제한 뒤 기존 Instagram 로그인 스냅샷의 ADB 연결을 복구하고 2026-07-28 누락분을 재게시한다.
+  - 실제 게시 환경은 `Medium_Phone`과 2026-07-26 Quick Boot 스냅샷이다.
+  - 스냅샷 RAM에서 `com.instagram.android`를 재확인했다. 앱과 로그인 흔적이 없다는 초기 판단은 cold boot의 영구 저장 영역만 조회한 잘못이었다.
+  - `Medium_Phone_2`와 cold boot는 게시 환경으로 사용하지 않는다.
+  - Mac 잠금 해제에 의존하지 않고 emulator gRPC 화면 제어로 기존 스냅샷 상태를 확인할 수 있음을 검증했다.
+  - 이후 모든 장애 대응은 AVD 이름·snapshot 경로·ADB serial·Instagram 패키지 확인 결과를 먼저 기록하고 진행한다.
 - 관련 파일:
   - `scripts/social-reels/instagram-reel-adb.mjs`
   - `scripts/social-reels/instagram-reel-adb.test.mjs`

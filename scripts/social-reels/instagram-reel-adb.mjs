@@ -253,6 +253,23 @@ async function ensureEmulator() {
   const bootCompleted = (await adbShell('getprop', 'sys.boot_completed')).stdout.trim();
   if (bootCompleted !== '1') throw new Error('Android emulator did not finish booting.');
 
+  const runningAvdName = (await adb(['emu', 'avd', 'name'], { timeout: 5_000 }))
+    .stdout.trim().split(/\r?\n/)[0];
+  if (runningAvdName !== avdName) {
+    throw new Error(`Wrong Instagram AVD selected: ${runningAvdName || 'unknown'} (${activeAdbSerial}).`);
+  }
+  const instagramPackagePath = (await adbShell('pm', 'path', instagramPackage))
+    .stdout.trim();
+  if (!instagramPackagePath.startsWith('package:')) {
+    throw new Error(`Instagram is missing from ${runningAvdName} (${activeAdbSerial}).`);
+  }
+  console.log(JSON.stringify({
+    status: 'instagram-emulator-ready',
+    avdName: runningAvdName,
+    adbSerial: activeAdbSerial,
+    instagramPackage: instagramPackage,
+  }));
+
   await adbShell('svc', 'power', 'stayon', 'true');
   await adbShell('settings', 'put', 'system', 'screen_off_timeout', '2147483647');
   await adbShell('input', 'keyevent', 'KEYCODE_WAKEUP');
