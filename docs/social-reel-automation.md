@@ -86,13 +86,15 @@ npm run test:social-reel
 ## 운영 경계
 
 - 실제 Instagram 게시 환경의 단일 기준 AVD는 `Medium_Phone`이다.
-- `korea_swing_social` 로그인 상태는
-  `~/.android/avd/Medium_Phone.avd/snapshots/default_boot`의 2026-07-26
-  Quick Boot 스냅샷에 있다.
-- `Medium_Phone_2`는 게시 환경이 아니다. 장애 시 임의로 다른 AVD나
-  `-no-snapshot-load` cold boot로 대체하지 않는다.
+- `Medium_Phone`은 항상 `-no-snapshot-load -no-snapshot-save`로 cold boot한다.
+  앱과 로그인 데이터는 AVD 영구 사용자 데이터만 사용하며 Quick Boot 스냅샷은
+  게시 상태의 근거 또는 복구 수단으로 사용하지 않는다.
+- `Medium_Phone_2`는 게시 환경이 아니며 실행 중인 에뮬레이터가 하나뿐이어도
+  AVD 이름이 정확히 `Medium_Phone`이 아니면 게시 대상으로 대체하지 않는다.
 - 게시 전 선택한 AVD 이름, ADB serial, `com.instagram.android` 패키지 존재를
-  반드시 로그로 남긴다. 셋 중 하나라도 다르면 공유 화면으로 진행하지 않는다.
+  Android Package Manager의 `pm path`로 확인하고 반드시 로그로 남긴다.
+  RAM·스냅샷 문자열은 설치 증거로 인정하지 않는다. 셋 중 하나라도 다르면
+  공유 화면으로 진행하지 않는다.
 - 영상 생성은 헤드리스 브라우저로 실행하므로 화면 잠금과 무관하다.
 - Instagram 앱 조작도 ADB로 실행하므로 Mac 화면 잠금 상태에서 진행할 수 있다.
 - Mac이 잠자기, 종료 또는 네트워크 단절 상태면 로컬 예약 실행은 동작하지 않는다. 설치된 LaunchAgent는 실행 동안 `caffeinate -dimsu`로 잠자기를 막는다.

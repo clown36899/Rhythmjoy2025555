@@ -199,35 +199,77 @@ export function parseAdbDevices(output = '') {
     .map(([serial, state]) => ({ serial, state }));
 }
 
+export function emulatorLaunchArguments(targetAvdName = avdName) {
+  return [
+    '-avd', targetAvdName,
+    '-no-audio',
+    '-no-snapshot-load',
+    '-no-snapshot-save',
+  ];
+}
+
+export function selectTargetEmulatorSerial(
+  emulatorStates,
+  targetAvdName = avdName,
+) {
+  const matches = emulatorStates.filter((emulator) => (
+    emulator.state === 'device'
+    && emulator.serial.startsWith('emulator-')
+    && emulator.avdName === targetAvdName
+  ));
+  if (matches.length > 1) {
+    throw new Error(
+      `Multiple running emulators use the Instagram AVD name ${targetAvdName}.`,
+    );
+  }
+  return matches[0]?.serial || '';
+}
+
+export function isInstalledPackagePath(output = '') {
+  return String(output).trim().startsWith('package:');
+}
+
+async function installedPackagePath(packageName) {
+  try {
+    return (await adbShell('pm', 'path', packageName)).stdout.trim();
+  } catch (error) {
+    const commandFailedWithoutDiagnostic = error.cause?.code === 1
+      && !error.cause?.stdout?.toString().trim()
+      && !error.cause?.stderr?.toString().trim();
+    if (commandFailedWithoutDiagnostic) return '';
+    throw error;
+  }
+}
+
 async function findTargetEmulatorSerial() {
   const { stdout } = await run(adbPath, ['devices']);
   const onlineEmulators = parseAdbDevices(stdout)
     .filter(({ serial, state }) => state === 'device' && serial.startsWith('emulator-'));
+  const emulatorStates = [];
 
-  for (const { serial } of onlineEmulators) {
+  for (const emulator of onlineEmulators) {
     try {
       const { stdout: runningAvdName } = await run(
         adbPath,
-        ['-s', serial, 'emu', 'avd', 'name'],
+        ['-s', emulator.serial, 'emu', 'avd', 'name'],
         { timeout: 5_000 },
       );
-      if (runningAvdName.trim().split(/\r?\n/)[0] === avdName) return serial;
+      emulatorStates.push({
+        ...emulator,
+        avdName: runningAvdName.trim().split(/\r?\n/)[0],
+      });
     } catch {
       // Continue checking other online emulators.
     }
   }
 
-  return onlineEmulators.length === 1 ? onlineEmulators[0].serial : '';
+  return selectTargetEmulatorSerial(emulatorStates);
 }
 
 async function ensureEmulator() {
   activeAdbSerial = await findTargetEmulatorSerial();
   if (!activeAdbSerial) {
-    const child = spawn(emulatorPath, [
-      '-avd', avdName,
-      '-no-audio',
-      '-no-snapshot-save',
-    ], {
+    const child = spawn(emulatorPath, emulatorLaunchArguments(), {
       detached: true,
       stdio: 'ignore',
     });
@@ -258,22 +300,28 @@ async function ensureEmulator() {
   if (runningAvdName !== avdName) {
     throw new Error(`Wrong Instagram AVD selected: ${runningAvdName || 'unknown'} (${activeAdbSerial}).`);
   }
-  const instagramPackagePath = (await adbShell('pm', 'path', instagramPackage))
-    .stdout.trim();
-  if (!instagramPackagePath.startsWith('package:')) {
-    throw new Error(`Instagram is missing from ${runningAvdName} (${activeAdbSerial}).`);
+  const instagramPackagePath = await installedPackagePath(instagramPackage);
+  if (!isInstalledPackagePath(instagramPackagePath)) {
+    throw new Error(
+      `Instagram is missing from ${runningAvdName} (${activeAdbSerial}). `
+      + 'Package Manager is the source of truth; restore the app and login under a cold boot.',
+    );
   }
-  console.log(JSON.stringify({
+  const health = {
     status: 'instagram-emulator-ready',
     avdName: runningAvdName,
     adbSerial: activeAdbSerial,
     instagramPackage: instagramPackage,
-  }));
+    instagramPackagePath,
+    snapshotLoadDisabled: true,
+  };
+  console.log(JSON.stringify(health));
 
   await adbShell('svc', 'power', 'stayon', 'true');
   await adbShell('settings', 'put', 'system', 'screen_off_timeout', '2147483647');
   await adbShell('input', 'keyevent', 'KEYCODE_WAKEUP');
   await adbShell('wm', 'dismiss-keyguard').catch(() => {});
+  return health;
 }
 
 async function dumpUi() {

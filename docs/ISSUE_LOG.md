@@ -871,14 +871,63 @@
   - `npm run test:social-reel`: 12개 테스트 통과
   - 예약 작업 실행 기록에서 2026-07-28 영상은 2160×3840, H.264, 30fps, 15초, BT.709로 정상 생성됐고 실패 지점은 공유 전 ADB 대상 선택임을 확인
 - 후속:
-  - 실제 게시 환경은 `Medium_Phone`과 2026-07-26 Quick Boot 스냅샷이다.
-  - 스냅샷 RAM에서 `com.instagram.android`를 재확인했다. 앱과 로그인 흔적이 없다는 초기 판단은 cold boot의 영구 저장 영역만 조회한 잘못이었다.
-  - `Medium_Phone_2`와 cold boot는 게시 환경으로 사용하지 않는다.
+  - 실제 게시 환경은 `Medium_Phone`의 영구 사용자 데이터다. Quick Boot
+    스냅샷은 게시 환경 또는 앱 설치 상태의 근거로 사용하지 않는다.
+  - 당시 스냅샷 RAM 문자열만으로 `com.instagram.android` 설치 상태를
+    재확인했다는 기록은 잘못이었다. 설치 여부의 단일 기준은 실행 중인
+    대상 AVD에서 조회한 Android Package Manager의 `pm path` 결과다.
+  - `Medium_Phone_2`는 게시 환경으로 사용하지 않으며 `Medium_Phone`은
+    항상 snapshot load/save를 비활성화하고 cold boot한다.
   - Mac 잠금 해제에 의존하지 않고 emulator gRPC 화면 제어로 기존 스냅샷 상태를 확인할 수 있음을 검증했다.
   - 이후 모든 장애 대응은 AVD 이름·snapshot 경로·ADB serial·Instagram 패키지 확인 결과를 먼저 기록하고 진행한다.
 - 관련 파일:
   - `scripts/social-reels/instagram-reel-adb.mjs`
   - `scripts/social-reels/instagram-reel-adb.test.mjs`
+
+## 2026-07-28 Instagram 앱·로그인 상태 Quick Boot 롤백
+
+- 상태: 원인 확인 및 재발 방지 적용, 앱 재설치·로그인 복구 필요
+- 현상: 이전에 Instagram 설치와 `korea_swing_social` 로그인을 완료한
+  `Medium_Phone`에서 앱 패키지가 보이지 않아 자동 게시가 중단됐다.
+- 원인:
+  - `default_boot` Quick Boot 스냅샷은 2026-07-26 14:56 KST에 저장됐고
+    해당 스냅샷 화면과 Package Manager 상태에는 Instagram이 없었다.
+  - 실제 Instagram 자동화 드라이런 성공은 같은 날 19:43 KST였다.
+  - 게시기 시작 옵션은 snapshot save만 막고 snapshot load는 허용했다.
+    따라서 2026-07-28 시작 시 14:56 스냅샷이 로드되어 그 뒤 설치·로그인한
+    상태가 이전 시점으로 되돌아갔다. 앱 삭제 명령이나 AVD 재생성 기록은
+    발견되지 않았다.
+  - RAM 바이너리 문자열을 앱 설치 증거로 잘못 판단해 Package Manager
+    검증이 코드에 추가되기 전까지 상태 손실을 조기에 차단하지 못했다.
+- 조치:
+  - 자동 실행 인자에 `-no-snapshot-load -no-snapshot-save`를 함께 적용해
+    Quick Boot 상태를 읽거나 저장하지 않도록 했다.
+  - 단 하나의 에뮬레이터만 실행 중이어도 AVD 이름이 `Medium_Phone`과
+    일치하지 않으면 게시 대상으로 사용하는 fallback을 제거했다.
+  - 게시 전에 `pm path com.instagram.android`, AVD 이름, ADB serial을
+    검증하고 패키지가 없으면 미디어 선택이나 `Share` 전에 중단한다.
+  - `Medium_Phone` 설정도 force cold boot로 변경해 Android Studio에서
+    수동 시작해도 오래된 Quick Boot 스냅샷을 복원하지 않도록 했다.
+- 검증:
+  - 7월 26일 스냅샷 저장 시각과 실제 드라이런 성공 시각의 선후관계를
+    상태 파일과 AVD 파일 메타데이터로 교차 확인했다.
+  - 두 AVD 모두 `pm path com.instagram.android`가 비어 있음을 확인했다.
+  - 중복 조사용 `Medium_Phone_2` 실행을 종료하고 `Medium_Phone`만 남겼다.
+  - `Medium_Phone`을 실제 cold boot로 다시 시작해 실행 인자에
+    `-no-snapshot-load -no-snapshot-save`가 기록되고 snapshot load 로그가
+    생성되지 않는 것을 확인했다.
+  - `npm run test:social-reel`: 17개 테스트 통과
+  - 실제 게시 사전검증은 AVD·serial을 정확히 선택한 뒤 Package Manager에서
+    앱 누락을 `failed-before-share`로 기록하고 공유 전에 중단했다.
+- 남은 복구:
+  - Instagram을 공식 경로로 다시 설치하고 `korea_swing_social`에 한 번
+    로그인해야 오늘 누락 게시와 이후 예약 게시를 재개할 수 있다.
+- 관련 파일:
+  - `scripts/social-reels/instagram-reel-adb.mjs`
+  - `scripts/social-reels/instagram-reel-adb.test.mjs`
+  - `docs/social-reel-automation.md`
+  - `docs/decisions/2026-07-28-instagram-avd-state-persistence.md`
+
 # 2026-07-26 — 키오스크 홈 광고 하단 UI 정렬
 
 - 상태: 수정 완료, 1080×1920 키오스크 화면 및 프로덕션 빌드 검증 완료
