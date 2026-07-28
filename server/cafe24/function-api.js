@@ -638,9 +638,11 @@ async function ingestScrapedItems(values) {
     }
 
     if (existingSameId) {
+      const reopenGeneratedRegular = canReopenGeneratedRegularSocialDuplicate(existingSameId, row);
       const refreshedRow = await saveCafe24TableRow('scraped_events', {
         ...existingSameId,
         ...row,
+        ...(reopenGeneratedRegular ? { status: 'pending', is_collected: false } : {}),
         display_no: existingSameId.display_no ?? row.display_no,
         created_at: existingSameId.created_at || row.created_at,
         updated_at: new Date().toISOString(),
