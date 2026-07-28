@@ -50,6 +50,7 @@ describe('ingestor registration linkage', () => {
       structured_data: { activity_type: 'social' },
     };
     expect(canReopenGeneratedRegularSocialDuplicate(existing, corrected)).toBe(true);
+    expect(canReopenGeneratedRegularSocialDuplicate({ status: 'duplicate' }, corrected)).toBe(true);
     expect(canReopenGeneratedRegularSocialDuplicate(existing, {
       ...corrected,
       auto_registration: { ...corrected.auto_registration, ai_confidence: 0.97 },

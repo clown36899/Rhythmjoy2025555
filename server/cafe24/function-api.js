@@ -486,8 +486,13 @@ export function canReopenGeneratedRegularSocialDuplicate(existingRow = {}, incom
   const replacement = duplicate || priorDuplicate;
   const readiness = incomingRow?.auto_registration || {};
   return String(existingRow?.status || '').toLowerCase() === 'duplicate'
-    && replacement?.target === 'events'
-    && String(replacement?.existingId || '').startsWith('regular-social:')
+    && (
+      !replacement
+      || (
+        replacement.target === 'events'
+        && String(replacement.existingId || '').startsWith('regular-social:')
+      )
+    )
     && readiness.ready === true
     && readiness.ai_verified === true
     && Number(readiness.ai_confidence || 0) >= 0.98
