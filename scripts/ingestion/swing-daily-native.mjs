@@ -642,6 +642,22 @@ function inferActivity(text = '') {
   return { activity: 'event', eventType: '행사' };
 }
 
+function selectSourceEvidenceText(text = '', source = {}) {
+  const raw = String(text || '');
+  if (source.id !== 'sosyalclub_swing') return raw;
+
+  const [koreanSection = ''] = raw.split(/-{10,}/);
+  if (
+    /Balboa in Social club/i.test(koreanSection)
+    && /날짜\s*[:：]\s*\d{1,2}\s*월\s*\d{1,2}\s*일/i.test(koreanSection)
+    && /장소\s*[:：]\s*쏘?셜클럽/i.test(koreanSection)
+    && /D\s*J\s*[:：]\s*[A-Za-z가-힣]/i.test(koreanSection)
+  ) {
+    return koreanSection.trim();
+  }
+  return raw;
+}
+
 function inferVenueDetails(text = '', source) {
   const textMatched = venueAliases.find(([pattern]) => pattern.test(text));
   if (textMatched) return { venue: textMatched[1], provenance: 'source_text' };
@@ -655,11 +671,11 @@ function inferVenueDetails(text = '', source) {
 
 function inferDjs(text = '') {
   const djs = [];
-  for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
+  for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
     const value = compactText(match[1])
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
       .replace(/\s*(?:application|registration|apply)\s*link\b.*$/i, '')
-      .replace(/\s*(?:신청|등록|입금|계좌|문의)\s*(?:링크|방법|안내)?\b.*$/i, '')
+      .replace(/\s*(?:사전\s*신청|현장\s*신청|신청|등록|입금|계좌|문의)\s*(?:링크|방법|안내)?.*$/i, '')
       .replace(/\s+20\d{2}[.\-/년].*$/i, '')
       .replace(/^(?:인기\s*멤버\s*)?(?:\d+\s*F\s*)?스칼라\s+(?:부\s*매니저\s*\d*\s*)?/i, '')
       .replace(/\s*(?:와|과|및|님|입니다|입니다\.|와 함께).*$/i, '')
@@ -1532,7 +1548,7 @@ async function buildCandidatesFromText({
     return [];
   }
 
-  const rawText = String(text || '');
+  const rawText = selectSourceEvidenceText(text, source);
   const cleanText = compactText(rawText);
   if (!cleanText || cleanText.length < 20) {
     result.skipped += 1;

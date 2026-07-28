@@ -74,6 +74,12 @@ function normalized(value) {
   return String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+function normalizedVenue(value) {
+  return normalized(value)
+    .replace(/쏘셜클럽/g, '소셜클럽')
+    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
+}
+
 function exactEvidenceIsGrounded(evidenceQuotes, sourceText) {
   const haystack = normalized(sourceText);
   return evidenceQuotes.length > 0
@@ -111,20 +117,20 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const aiDjs = Array.isArray(adjudication?.djs) ? adjudication.djs.map(normalized).filter(Boolean) : [];
   const threshold = Number(config.minimumConfidence ?? minimumConfidence);
   const evidenceCorpus = normalized(evidenceQuotes.join(' '));
-  const candidateVenue = normalized(sd.venue_name || sd.location);
+  const candidateVenue = normalizedVenue(sd.venue_name || sd.location);
   const reasons = [];
 
   if (adjudication?.decision !== 'register') reasons.push('AI did not approve registration');
   if (Number(adjudication?.confidence || 0) < threshold) reasons.push(`AI confidence is below ${threshold}`);
   if (String(adjudication?.event_date || '') !== String(sd.date || '').slice(0, 10)) reasons.push('AI date disagrees with collector date');
   if (String(adjudication?.activity_type || '') !== String(sd.activity_type || '')) reasons.push('AI activity disagrees with collector activity');
-  if (normalized(adjudication?.venue) !== normalized(sd.venue_name || sd.location)) reasons.push('AI venue disagrees with collector venue');
+  if (normalizedVenue(adjudication?.venue) !== candidateVenue) reasons.push('AI venue disagrees with collector venue');
   if (candidateDjs.length && (candidateDjs.length !== aiDjs.length || candidateDjs.some((dj) => !aiDjs.includes(dj)))) {
     reasons.push('AI DJ list disagrees with collector DJ list');
   }
   if (!exactEvidenceIsGrounded(evidenceQuotes, sourceText)) reasons.push('AI evidence is not an exact substring of source text');
   if (!evidenceMentionsDate(evidenceCorpus, sd.date)) reasons.push('AI evidence does not explicitly contain the candidate date');
-  if (candidateVenue && !evidenceCorpus.includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
+  if (candidateVenue && !normalizedVenue(evidenceCorpus).includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
   if (candidateDjs.some((dj) => !evidenceCorpus.includes(dj))) reasons.push('AI evidence does not explicitly contain every candidate DJ');
   const activityPattern = ACTIVITY_EVIDENCE_PATTERNS[String(sd.activity_type || '')];
   if (!activityPattern || !activityPattern.test(evidenceCorpus)) {
@@ -149,6 +155,9 @@ The calendar stores dates only. Never output or reason from an event time.
 Return "register" only when the text unambiguously supports exactly one event on the collector date,
 the activity type, venue, and (for a social) every DJ. If several dates or several DJ lineups are mixed
 and the supplied candidate is not clearly one date-specific section, return "review".
+The collector resolves the year from the collection date. When SOURCE_TEXT explicitly contains the
+same month and day but omits the year, return the collector ISO event_date; an explicit source year
+is not required. Never do this when a conflicting event month/day remains in SOURCE_TEXT.
 Every evidence quote must be copied exactly from SOURCE_TEXT. Confidence >= 0.98 is reserved for
 fully explicit, internally consistent evidence. Otherwise return review or reject.
 

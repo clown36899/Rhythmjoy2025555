@@ -106,4 +106,26 @@ describe('AI candidate adjudication grounding', () => {
       evidence_quotes: ['8월 3일', '해피홀', '입문 강습'],
     }).ok).toBe(true);
   });
+
+  it('accepts the canonical Social Club venue when the post spells it 쏘셜클럽', () => {
+    const socialClubCandidate = {
+      extracted_text: '[Balboa in Social club] 날짜 : 7월 29일 (매주 수요일) 장소 : 쏘셜클럽 D J : 멍군',
+      structured_data: {
+        title: '[Balboa in Social club]',
+        date: '2026-07-29',
+        activity_type: 'social',
+        venue_name: '소셜클럽',
+        djs: ['멍군'],
+      },
+    };
+    expect(validateAiAdjudication(socialClubCandidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-07-29',
+      activity_type: 'social',
+      venue: '쏘셜클럽',
+      djs: ['멍군'],
+      evidence_quotes: ['Balboa in Social club', '날짜 : 7월 29일', '장소 : 쏘셜클럽', 'D J : 멍군'],
+    }).ok).toBe(true);
+  });
 });

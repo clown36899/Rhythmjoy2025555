@@ -481,6 +481,19 @@ function terminalScrapedStatus(row) {
   return ['collected', 'duplicate', 'excluded'].includes(String(row?.status || '').toLowerCase()) || row?.is_collected === true;
 }
 
+export function canReopenGeneratedRegularSocialDuplicate(existingRow = {}, incomingRow = {}, duplicate = null) {
+  const priorDuplicate = existingRow?.structured_data?._duplicate;
+  const replacement = duplicate || priorDuplicate;
+  const readiness = incomingRow?.auto_registration || {};
+  return String(existingRow?.status || '').toLowerCase() === 'duplicate'
+    && replacement?.target === 'events'
+    && String(replacement?.existingId || '').startsWith('regular-social:')
+    && readiness.ready === true
+    && readiness.ai_verified === true
+    && Number(readiness.ai_confidence || 0) >= 0.98
+    && String(incomingRow?.structured_data?.activity_type || '').toLowerCase() === 'social';
+}
+
 function isOfficialApiEvent(row = {}) {
   return Boolean(row.external_source?.partner_id && row.external_source?.external_id);
 }
@@ -609,7 +622,11 @@ async function ingestScrapedItems(values) {
       continue;
     }
 
-    if (existingSameId && terminalScrapedStatus(existingSameId)) {
+    if (
+      existingSameId
+      && terminalScrapedStatus(existingSameId)
+      && !canReopenGeneratedRegularSocialDuplicate(existingSameId, row)
+    ) {
       const reason = existingSameId.status === 'collected' || existingSameId.is_collected === true
         ? '이미 수집 완료된 같은 후보'
         : `이미 ${existingSameId.status} 처리된 같은 후보`;
@@ -651,7 +668,11 @@ async function ingestScrapedItems(values) {
     }
 
     const duplicate = findOperationalDuplicateForScrapedItem(row, eventRows);
-    if (duplicate) {
+    if (duplicate && !canReopenGeneratedRegularSocialDuplicate(
+      { status: 'duplicate', structured_data: { _duplicate: duplicate } },
+      row,
+      duplicate,
+    )) {
       const duplicateRow = {
         ...row,
         is_collected: false,
@@ -956,8 +977,14 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
       reasons.push('AI evidence does not explicitly contain the candidate date');
     }
   }
-  const normalizedVenue = venue.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
-  if (normalizedVenue && !normalizedEvidence.includes(normalizedVenue)) {
+  const normalizeVenueEvidence = (value) => String(value || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/쏘셜클럽/g, '소셜클럽')
+    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
+  const normalizedVenue = normalizeVenueEvidence(venue);
+  if (normalizedVenue && !normalizeVenueEvidence(normalizedEvidence).includes(normalizedVenue)) {
     reasons.push('AI evidence does not explicitly contain the candidate venue');
   }
   if (djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {

@@ -753,6 +753,21 @@ const malformedApplicationLinkDj = prepareCandidate(baseCandidate({
 assert.equal(malformedApplicationLinkDj.validation.ok, false);
 assert.ok(malformedApplicationLinkDj.validation.errors.some((error) => error.includes('DJ value')));
 
+const correctedSocialClubDj = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/thesocialcluba/p/DbR4PJMkzry/',
+  extracted_text: '[Balboa in Social club] 날짜 : 7월 29일 (매주 수요일) 장소 : 쏘셜클럽 D J : 멍군',
+  structured_data: {
+    title: '[Balboa in Social club]',
+    date: '2026-07-29',
+    location: '소셜클럽',
+    venue_name: '소셜클럽',
+    venue_provenance: 'source_text',
+    activity_type: 'social',
+    djs: ['멍군'],
+  },
+}), { today: TODAY });
+assert.equal(correctedSocialClubDj.validation.ok, true);
+
 const swingtownSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingtown-cafe');
 const swingScandalSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingscandal-cafe');
 assert.equal(swingtownSource?.venue, '');

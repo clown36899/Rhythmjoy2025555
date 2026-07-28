@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCollectedScrapedEventRow,
+  canReopenGeneratedRegularSocialDuplicate,
   hasRegisteredEventLink,
   validateAutomaticRegistrationCandidate,
 } from './function-api.js';
@@ -35,6 +36,28 @@ describe('ingestor registration linkage', () => {
     expect(hasRegisteredEventLink({ registered_event_id: 'event-1' })).toBe(true);
     expect(hasRegisteredEventLink({ structured_data: { registered_event_id: 'event-2' } })).toBe(true);
     expect(hasRegisteredEventLink({ status: 'collected', is_collected: true })).toBe(false);
+  });
+
+  it('reopens only an AI-verified duplicate of a generated regular social', () => {
+    const existing = {
+      status: 'duplicate',
+      structured_data: {
+        _duplicate: { target: 'events', existingId: 'regular-social:socialclub-wed:2026-07-29' },
+      },
+    };
+    const corrected = {
+      auto_registration: { ready: true, ai_verified: true, ai_confidence: 0.99 },
+      structured_data: { activity_type: 'social' },
+    };
+    expect(canReopenGeneratedRegularSocialDuplicate(existing, corrected)).toBe(true);
+    expect(canReopenGeneratedRegularSocialDuplicate(existing, {
+      ...corrected,
+      auto_registration: { ...corrected.auto_registration, ai_confidence: 0.97 },
+    })).toBe(false);
+    expect(canReopenGeneratedRegularSocialDuplicate({
+      ...existing,
+      structured_data: { _duplicate: { target: 'events', existingId: 'manual-event-1' } },
+    }, corrected)).toBe(false);
   });
 
   it('allows a date-only, grounded candidate from an enrolled source', () => {
