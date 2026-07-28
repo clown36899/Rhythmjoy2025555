@@ -622,6 +622,37 @@ const namedClassMisclassifiedAsSocial = prepareCandidate(baseCandidate({
 assert.equal(namedClassMisclassifiedAsSocial.validation.ok, true);
 assert.equal(namedClassMisclassifiedAsSocial.validation.taxonomy.activity_type, 'class');
 
+const datedSocialWithAdjacentClassNotice = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/WEEKLY-SOCIAL/',
+  extracted_text: '7/25 토 DJ 고즈 7/26 일 DJ 뉴야. 7/28 화요일에는 경성 클래스도 함께 진행됩니다.',
+  structured_data: {
+    title: '경성홀 토요 소셜',
+    date: '2026-08-01',
+    location: '경성홀',
+    activity_type: 'social',
+    djs: ['고즈'],
+  },
+}), { today: TODAY });
+assert.equal(datedSocialWithAdjacentClassNotice.validation.ok, true);
+assert.equal(datedSocialWithAdjacentClassNotice.validation.taxonomy.activity_type, 'social');
+
+const unsplitWeeklySocialWithClassTaxonomy = prepareCandidate(baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/WEEKLY-MERGED/',
+  extracted_text: '7/25 토 DJ 고즈 7/26 일 DJ 뉴야 7/28 화 DJ 메이저. 7/28에는 경성 클래스도 진행됩니다.',
+  structured_data: {
+    title: '바로 이어지는 화요 소셜을 더 편안하게 즐겨보세요.',
+    date: '2026-07-28',
+    location: '경성홀',
+    event_type: '강습',
+    category: 'class',
+    activity_type: 'social',
+    djs: ['고즈', '뉴야', '메이저'],
+  },
+}), { today: TODAY });
+assert.equal(unsplitWeeklySocialWithClassTaxonomy.validation.ok, false);
+assert.ok(unsplitWeeklySocialWithClassTaxonomy.validation.errors.some((error) => error.includes('multi-date multi-DJ')));
+assert.ok(unsplitWeeklySocialWithClassTaxonomy.validation.errors.some((error) => error.includes('conflicting class taxonomy')));
+
 const passMisclassifiedAsSocial = prepareCandidate(baseCandidate({
   extracted_text: '스윙타임 수요일 정기권 7, 8, 9월 판매',
   structured_data: {
@@ -646,6 +677,30 @@ const anniversaryMisclassifiedAsSocial = prepareCandidate(baseCandidate({
 assert.equal(anniversaryMisclassifiedAsSocial.validation.ok, true);
 assert.equal(anniversaryMisclassifiedAsSocial.validation.taxonomy.activity_type, 'event');
 
+const explicitSocialMisclassifiedAsEvent = prepareCandidate(baseCandidate({
+  extracted_text: '갤러리 스윙 재즈 소셜 개츠비의 밤',
+  structured_data: {
+    title: '갤러리 스윙 재즈 소셜 (개츠비의 밤)',
+    date: '2026-08-08',
+    location: '더샵갤러리',
+    activity_type: 'event',
+  },
+}), { today: TODAY });
+assert.equal(explicitSocialMisclassifiedAsEvent.validation.ok, true);
+assert.equal(explicitSocialMisclassifiedAsEvent.validation.taxonomy.activity_type, 'social');
+
+const soloJazzSeasonMisclassifiedAsRecruit = prepareCandidate(baseCandidate({
+  extracted_text: '로빈 JAZZSEASON Solo Jazz 7/6부터 진행',
+  structured_data: {
+    title: '로빈 JAZZSEASON Solo Jazz(7/6~)',
+    date: '2026-08-03',
+    location: '봉천살롱',
+    activity_type: 'recruit',
+  },
+}), { today: TODAY });
+assert.equal(soloJazzSeasonMisclassifiedAsRecruit.validation.ok, true);
+assert.equal(soloJazzSeasonMisclassifiedAsRecruit.validation.taxonomy.activity_type, 'class');
+
 const malformedDj = prepareCandidate(baseCandidate({
   extracted_text: '스윙타운 토요 소셜',
   structured_data: {
@@ -658,6 +713,18 @@ const malformedDj = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(malformedDj.validation.ok, false);
 assert.ok(malformedDj.validation.errors.some((error) => error.includes('DJ value')));
+
+const dateRangeCaptionFragment = prepareCandidate(baseCandidate({
+  extracted_text: '일정 : 7/5~8/16 (6주) 매주 일요일, 8/23 졸업파티',
+  structured_data: {
+    title: '🔸일정 : 7/5~8/16 (6주) 매주 일요일, 8/23 졸업파티',
+    date: '2026-08-16',
+    location: '해피홀',
+    activity_type: 'event',
+  },
+}), { today: TODAY });
+assert.equal(dateRangeCaptionFragment.validation.ok, false);
+assert.ok(dateRangeCaptionFragment.validation.errors.some((error) => error.includes('caption fragment')));
 
 const unsplitMultiDateSocial = prepareCandidate(baseCandidate({
   extracted_text: '6월 20,21일 토,일 소셜 DJ 쓴귤 DJ 캐롤 DJ 쵸코',

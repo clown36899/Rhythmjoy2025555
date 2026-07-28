@@ -20,6 +20,7 @@ import {
   extractInstagramProfileUrls,
   isStaleBenefitSourcePost,
 } from './benefit-search-utils.mjs';
+import { adjudicateCandidateWithAi } from './ai-candidate-adjudicator.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -29,9 +30,13 @@ const defaultEndpoint = process.env.INGESTOR_V3 === '1'
   ? 'https://swingenjoy.com/api/ingestor-v3/candidates'
   : 'https://swingenjoy.com/api/scraped-events';
 const endpoint = process.env.CAFE24_INGEST_ENDPOINT || defaultEndpoint;
+const automaticRegistrationEndpoint = process.env.CAFE24_AUTO_REGISTER_ENDPOINT
+  || new URL('/api/ingestor-register-event', endpoint).toString();
 const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
 const exceptionBacktest = process.env.INGESTION_EXCEPTION_BACKTEST === '1';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1' || exceptionBacktest;
+const diagnosticJson = dryRun && process.env.INGESTION_NATIVE_DIAGNOSTIC_JSON === '1';
+const aiAdjudicationEnabled = process.env.INGESTION_AI_ADJUDICATION !== '0';
 const exceptionLookbackDays = Math.max(
   1,
   Number(process.env.INGESTION_EXCEPTION_LOOKBACK_DAYS || 180),
@@ -289,6 +294,8 @@ function looksLikeCaptionFragmentTitle(value = '') {
     || /(?:은|는|을|를|며|고|에서|까지)\s*$/.test(title)
     || /^(?:무료|유료)?\s*라인\s*강습(?:은|는|이|을|를)?\b/i.test(title)
     || /^(?:잊지\s*말고|일찍\s*오셔서|아직|여러분|문의|연락처|신청은|프로필\s*링크)/i.test(title)
+    || /^[^\p{L}\p{N}가-힣]*(?:강습\s*)?(?:기간|일정|링크)\s*[:：]/iu.test(title)
+    || /^[^\p{L}\p{N}가-힣]*일정\s*[:：].*(?:매주|주간|주\s*[회차]|~|～)/iu.test(title)
     || /(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title);
 }
 
@@ -1741,8 +1748,42 @@ async function postCandidate(candidate) {
   }
   if (dryRun || profile === 'expanded-research') {
     result.inserted += 1;
-    result.candidates.push(`${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
+    result.candidates.push(diagnosticJson ? {
+      id: candidate.id,
+      keyword: candidate.keyword,
+      source_id: candidate.source_id || null,
+      source_url: candidate.source_url,
+      poster_url: candidate.poster_url || null,
+      structured_data: candidate.structured_data,
+      auto_registration: candidate.auto_registration || null,
+    } : `${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
     return;
+  }
+
+  let candidateToPost = candidate;
+  if (aiAdjudicationEnabled && candidate.auto_registration?.ready === true) {
+    const aiResult = await adjudicateCandidateWithAi(candidate);
+    candidateToPost = {
+      ...candidate,
+      structured_data: {
+        ...(candidate.structured_data || {}),
+        ai_adjudication: aiResult.adjudication || null,
+        ai_evidence_quotes: aiResult.validation?.evidence_quotes || [],
+      },
+      auto_registration: {
+        ...(candidate.auto_registration || {}),
+        ready: aiResult.approved === true,
+        ai_verified: aiResult.approved === true,
+        ai_confidence: aiResult.validation?.confidence || 0,
+        reasons: [
+          ...(candidate.auto_registration?.reasons || []),
+          ...(aiResult.reasons || []),
+        ],
+      },
+    };
+    if (!aiResult.approved) {
+      log(`AI review required ${candidate.id}: ${(aiResult.reasons || []).join('; ')}`);
+    }
   }
 
   let response;
@@ -1753,7 +1794,7 @@ async function postCandidate(candidate) {
     const postResult = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers,
-      body: JSON.stringify(candidate),
+      body: JSON.stringify(candidateToPost),
     }, postRequestTimeoutMs);
     response = postResult.response;
     bodyText = postResult.body;
@@ -1773,6 +1814,29 @@ async function postCandidate(candidate) {
     result.issues.push(`post ${candidate.id}: HTTP ${response.status}`);
     log(`post failed ${candidate.id}: ${response.status} ${bodyText.slice(0, 300)}`);
     return;
+  }
+
+  const savedCandidate = Array.isArray(body?.data) ? body.data[0] : body?.data || body;
+  if (candidateToPost.auto_registration?.ready === true && savedCandidate?.id && ingestToken) {
+    try {
+      const autoResult = await fetchWithTimeout(automaticRegistrationEndpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          automatic: true,
+          scrapedEventId: savedCandidate.id,
+        }),
+      }, postRequestTimeoutMs);
+      if (!autoResult.response.ok) {
+        result.issues.push(`auto-register ${savedCandidate.id}: HTTP ${autoResult.response.status}`);
+        log(`auto-register blocked ${savedCandidate.id}: ${autoResult.response.status} ${autoResult.body.slice(0, 300)}`);
+      } else {
+        log(`auto-registered ${savedCandidate.id}`);
+      }
+    } catch (error) {
+      result.issues.push(`auto-register ${savedCandidate.id}: ${error?.message || error?.name || 'request failed'}`);
+      log(`auto-register failed ${savedCandidate.id}: ${error?.message || error}`);
+    }
   }
 
   if (Array.isArray(body.skipped) && body.skipped.length) {

@@ -54,6 +54,7 @@ interface ScrapedEvent {
     benefit_lifecycle?: 'date_bound' | 'evergreen' | null;
     ongoing_sale?: boolean;
     source_post_date?: string;
+    registered_event_id?: string | number | null;
     _duplicate?: {
       reason?: string;
       existingId?: string;
@@ -65,6 +66,7 @@ interface ScrapedEvent {
     };
   };
   is_collected?: boolean;
+  registered_event_id?: string | number | null;
   status?: 'ignored' | 'collected' | 'pending' | 'duplicate';
   display_no?: number | null;
   created_at?: string;
@@ -944,11 +946,19 @@ const EventIngestorV2: React.FC = () => {
 
   const handleBulkCollect = async () => {
     if (!selectedIds.size) return;
+    const linkedIds = Array.from(selectedIds).filter((id) => {
+      const event = scrapedEvents.find((item) => item.id === id);
+      return Boolean(event?.registered_event_id || event?.structured_data?.registered_event_id);
+    });
+    if (!linkedIds.length) {
+      alert('일정 등록 없이 완료 처리할 수 없습니다. 각 후보의 등록 버튼을 사용해 주세요.');
+      return;
+    }
     setBulkProgress(`완료 처리 중... (0/${selectedIds.size})`);
     let i = 0;
-    for (const id of selectedIds) {
+    for (const id of linkedIds) {
       await handleUpdateStatus(id, { is_collected: true });
-      setBulkProgress(`완료 처리 중... (${++i}/${selectedIds.size})`);
+      setBulkProgress(`완료 처리 중... (${++i}/${linkedIds.length})`);
     }
     // 탭이 'new'면 완료 처리된 항목 즉시 제거
     if (activeTab === 'new' || activeTab === 'free') {

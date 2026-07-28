@@ -103,7 +103,9 @@ function djsFromLiveEvent(row = {}) {
   if (values.length) return values;
   const titlePrefix = String(row.title || '').match(/^\s*DJ\s+(.+?)\s*\|/i)?.[1] || '';
   const titleOnly = String(row.title || '').match(/^\s*DJ\s+([^|]{1,40})\s*$/i)?.[1] || '';
-  return (titlePrefix || titleOnly) ? (titlePrefix || titleOnly).split(/\s*,\s*/).filter(Boolean) : [];
+  const inlineTitle = String(row.title || '').match(/\bDJ\s*[:：]?\s*([^|,()]{1,30})\s*$/i)?.[1] || '';
+  const value = titlePrefix || titleOnly || inlineTitle;
+  return value ? value.split(/\s*,\s*/).map((item) => item.trim()).filter(Boolean) : [];
 }
 
 function normalizeDjForAudit(value = '') {
@@ -141,6 +143,34 @@ function venueOfLegacyCandidate(row = {}) {
   return String(row.structured_data?.venue_name || row.structured_data?.location || row.venue_name || row.location || '').trim();
 }
 
+function withoutUnverifiedExplicitVenue(candidate = {}, source = null) {
+  if (source?.autoRegistrationVenuePolicy !== 'explicit') return candidate;
+  const structured = { ...(candidate.structured_data || {}) };
+  const venue = venueOfLegacyCandidate(candidate);
+  const provenance = String(structured.venue_provenance || candidate.venue_provenance || '').toLowerCase();
+  const sourceLabels = [
+    candidate.keyword,
+    candidate.source_name,
+    source?.name,
+    '스윙패밀리 강습/행사',
+    '스윙타운',
+    '스윙프렌즈',
+  ].map(normalizeText).filter(Boolean);
+  const sourceDerived = sourceLabels.includes(normalizeText(venue));
+  const verifiedProvenance = /(?:body|caption|poster|explicit|registry)/.test(provenance);
+  if (!sourceDerived || verifiedProvenance) return candidate;
+
+  delete structured.location;
+  delete structured.venue_name;
+  delete structured.venue_provenance;
+  return {
+    ...candidate,
+    structured_data: structured,
+    location: '',
+    venue_name: '',
+  };
+}
+
 function activityOfLegacyCandidate(row = {}) {
   return String(row.activity_type || row.structured_data?.activity_type || row.structured_data?.event_type || '').toLowerCase();
 }
@@ -151,9 +181,48 @@ function isSocialCandidate(row = {}) {
 }
 
 function canonicalVenue(value = '') {
-  return normalizeText(value)
+  const normalized = normalizeText(value)
     .replace(/(?:서울|신촌|합정|선릉|사당|강남|강북|홍대|상수|망원|연남|서교|마포|신림|봉천|건대|성수|이태원)$/g, '')
     .replace(/(?:bar|바)$/g, '');
+  if (/^(?:bigapple|빅애플)(?:스윙)?$/.test(normalized)) return '빅애플';
+  if (/^(?:savoy|사보이)(?:ballroom|볼룸)?$/.test(normalized)) return '사보이볼룸';
+  return normalized;
+}
+
+function canonicalVenueParts(value = '') {
+  return String(value || '')
+    .split(/\s*(?:\/|\||,|&|·)\s*/)
+    .map(canonicalVenue)
+    .filter(Boolean);
+}
+
+function venuesMatchForAudit(candidateVenue = '', liveVenue = '') {
+  const candidateParts = canonicalVenueParts(candidateVenue);
+  const liveParts = canonicalVenueParts(liveVenue);
+  return candidateParts.some((venue) => liveParts.includes(venue));
+}
+
+function explicitActivityFromTitle(title = '') {
+  const heading = String(title || '');
+  if (/판매\s*이벤트|이벤트\s*판매|정기권|정기\s*할인권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(heading)) return 'sale';
+  if (/(?:창립|오픈|개장)?\s*\d+\s*주년.{0,30}(?:파티|행사)|(?:파티|행사).{0,30}\d+\s*주년|anniversary/i.test(heading)) return 'event';
+  if (/(?:강습|클래스|원\s*데이|원데이|\d+\s*기).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(heading)) return 'recruit';
+  if (/(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]/i.test(heading)) return 'class';
+  if (/(?:solo\s*jazz|솔로\s*재즈).*(?:\d{1,2}[./]\d{1,2}\s*[~～]|시즌|season)/i.test(heading)
+    && !/(?:모집|신청|접수)/i.test(heading)) return 'class';
+  if (/(?:소셜|social|프랙티카|practica|밀롱가|milonga)/i.test(heading)
+    && !/(?:강습|수업|레슨|클래스|워크샵|워크숍|원\s*데이|원데이|모집|신청)/i.test(heading)) return 'social';
+  return '';
+}
+
+function activitiesMatchForReplay(projectedActivity = '', liveActivity = '', title = '') {
+  const projected = normalizeText(projectedActivity);
+  const live = normalizeText(liveActivity);
+  const explicit = explicitActivityFromTitle(title);
+  // A strong title signal is primary evidence. Older approved rows sometimes contain
+  // manual category mistakes (for example, a season pass stored as an event).
+  if (explicit) return projected === explicit;
+  return projected === live;
 }
 
 function venueAuditRow(row = {}) {
@@ -284,6 +353,14 @@ function liveEventKey(row = {}) {
   return `${normalizeUrl(row.link1)}|${dateOfLiveEvent(row)}`;
 }
 
+function sourceUrlsOfLiveEvent(row = {}) {
+  return [...new Set([
+    row.link1,
+    row.link2,
+    row.link3,
+  ].map(normalizeUrl).filter(Boolean))];
+}
+
 function legacyCandidateKey(row = {}) {
   return `${normalizeUrl(row.source_url)}|${dateOfLegacyCandidate(row)}`;
 }
@@ -297,29 +374,60 @@ function hasExactLiveMatch(candidate, liveByUrlDate, liveById = new Map()) {
 
 function likelyLiveMatch(candidate, liveEvents) {
   const date = dateOfLegacyCandidate(candidate);
-  if (!date) return null;
   const candidateTitle = titleOfLegacyCandidate(candidate);
-  const candidateVenue = normalizeText(venueOfLegacyCandidate(candidate));
+  const candidateVenue = venueOfLegacyCandidate(candidate);
+  const candidateDjs = candidate.structured_data?.djs || [];
   const sourceUrl = normalizeUrl(candidate.source_url);
+  const candidateDateMs = Date.parse(`${date}T00:00:00+09:00`);
+  const ranked = [];
 
   for (const event of liveEvents) {
-    if (dateOfLiveEvent(event) !== date) continue;
-    if (sourceUrl && normalizeUrl(event.link1) === sourceUrl) {
-      return { event, reason: 'same source_url and date', score: 1 };
-    }
+    const eventDate = dateOfLiveEvent(event);
+    const sameDate = Boolean(date && eventDate === date);
+    const sameUrl = Boolean(sourceUrl && sourceUrlsOfLiveEvent(event).includes(sourceUrl));
+    const titleScore = textSimilarity(candidateTitle, event.title || '');
+    const sameVenue = venuesMatchForAudit(candidateVenue, event.venue_name || event.location || '');
+    const liveDjs = djsFromLiveEvent(event);
+    const hasBothDjs = candidateDjs.length > 0 && liveDjs.length > 0;
+    const sameDjs = hasBothDjs && djsMatchForAudit(candidateDjs, liveDjs);
+    const eventDateMs = Date.parse(`${eventDate}T00:00:00+09:00`);
+    const dayDelta = Number.isFinite(candidateDateMs) && Number.isFinite(eventDateMs)
+      ? Math.abs(eventDateMs - candidateDateMs) / 86400000
+      : Number.POSITIVE_INFINITY;
 
-    const venue = normalizeText(event.venue_name || event.location || '');
-    const sameVenue = candidateVenue && venue && (candidateVenue.includes(venue) || venue.includes(candidateVenue));
-    const score = textSimilarity(candidateTitle, event.title || '');
-    if (sameVenue && score >= 0.88) {
-      return { event, reason: 'same date, similar title, same venue', score };
-    }
-    if (normalizeText(candidateTitle).length >= 12 && score >= 0.95) {
-      return { event, reason: 'same date and near-identical title', score };
-    }
+    const plausible = (sameUrl && (sameDate || titleScore >= 0.55 || sameDjs))
+      || (sameDate && (
+        titleScore >= 0.78
+        || (sameVenue && titleScore >= 0.45)
+        || (sameVenue && sameDjs)
+      ))
+      || (dayDelta <= 7 && sameVenue && titleScore >= 0.92);
+    if (!plausible) continue;
+
+    const score = (sameUrl ? 0.45 : 0)
+      + (sameDate ? 0.25 : 0)
+      + (titleScore * 0.35)
+      + (sameVenue ? 0.15 : 0)
+      + (sameDjs ? 0.15 : 0);
+    ranked.push({
+      event,
+      score,
+      reason: [
+        sameUrl && 'same source_url',
+        sameDate && 'same date',
+        sameVenue && 'same venue',
+        sameDjs && 'same DJ',
+        `title=${titleScore.toFixed(2)}`,
+      ].filter(Boolean).join(', '),
+    });
   }
 
-  return null;
+  ranked.sort((a, b) => b.score - a.score);
+  const best = ranked[0];
+  const second = ranked[1];
+  if (!best || best.score < 0.72) return null;
+  if (second && best.score - second.score < 0.08) return null;
+  return best;
 }
 
 function compactRow(row = {}) {
@@ -356,10 +464,11 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
   const liveById = new Map();
   for (const event of liveEvents) {
     if (event.id !== undefined && event.id !== null) liveById.set(String(event.id), event);
-    const key = liveEventKey(event);
-    if (key === '|') continue;
-    if (!liveByUrlDate.has(key)) liveByUrlDate.set(key, []);
-    liveByUrlDate.get(key).push(event);
+    for (const sourceUrl of sourceUrlsOfLiveEvent(event)) {
+      const key = `${sourceUrl}|${dateOfLiveEvent(event)}`;
+      if (!liveByUrlDate.has(key)) liveByUrlDate.set(key, []);
+      liveByUrlDate.get(key).push(event);
+    }
   }
 
   const statusCounts = {};
@@ -393,29 +502,65 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
       rows: rows.slice(0, 5).map(compactRow),
     }));
 
+  const collectedCandidates = legacyCandidates
+    .filter((row) => statusOfLegacyCandidate(row) === 'collected' || row.is_collected === true);
+  const candidateLiveMatches = new Map();
+  const usedLiveIds = new Set();
+  const liveMatchId = (event) => String(event?.id || '');
+  const assignMatch = (candidate, event) => {
+    const eventId = liveMatchId(event);
+    if (!event || !eventId || usedLiveIds.has(eventId)) return false;
+    candidateLiveMatches.set(String(candidate.id), event);
+    usedLiveIds.add(eventId);
+    return true;
+  };
+
+  for (const candidate of collectedCandidates) {
+    const registeredEventId = String(candidate.registered_event_id || candidate.structured_data?.registered_event_id || '');
+    if (registeredEventId && liveById.has(registeredEventId)) assignMatch(candidate, liveById.get(registeredEventId));
+  }
+  for (const candidate of collectedCandidates) {
+    if (candidateLiveMatches.has(String(candidate.id))) continue;
+    const exactRows = (liveByUrlDate.get(legacyCandidateKey(candidate)) || [])
+      .filter((event) => !usedLiveIds.has(liveMatchId(event)))
+      .sort((a, b) => (
+        textSimilarity(titleOfLegacyCandidate(candidate), b.title || '')
+        - textSimilarity(titleOfLegacyCandidate(candidate), a.title || '')
+      ));
+    if (exactRows[0]) assignMatch(candidate, exactRows[0]);
+  }
+  for (const candidate of collectedCandidates) {
+    if (candidateLiveMatches.has(String(candidate.id))) continue;
+    const match = likelyLiveMatch(
+      candidate,
+      liveEvents.filter((event) => !usedLiveIds.has(liveMatchId(event))),
+    );
+    if (match?.event) assignMatch(candidate, match.event);
+  }
+
   const approvedBySource = new Map();
   const evidenceGate = {
+    enrolled: 0,
     eligible: 0,
+    blocked: 0,
     fullyUnchanged: 0,
     bySource: new Map(),
     mismatchSamples: [],
+    blockedSamples: [],
   };
   const currentRulesReplay = {
     compared: 0,
     fullyUnchanged: 0,
     accepted: 0,
     acceptedFullyUnchanged: 0,
+    acceptedBySource: {},
     mismatchSamples: [],
     acceptedMismatchSamples: [],
   };
-  for (const candidate of legacyCandidates.filter((row) => statusOfLegacyCandidate(row) === 'collected' || row.is_collected === true)) {
+  for (const candidate of collectedCandidates) {
     const source = findSourceByUrl(candidate.source_url);
     const sourceId = source?.id || candidate.source_id || candidate.keyword || 'unknown';
-    const registeredEventId = String(candidate.registered_event_id || candidate.structured_data?.registered_event_id || '');
-    const exactRows = registeredEventId && liveById.has(registeredEventId)
-      ? [liveById.get(registeredEventId)]
-      : (liveByUrlDate.get(legacyCandidateKey(candidate)) || []);
-    const live = exactRows[0] || likelyLiveMatch(candidate, liveEvents)?.event || null;
+    const live = candidateLiveMatches.get(String(candidate.id)) || null;
     if (!approvedBySource.has(sourceId)) {
       approvedBySource.set(sourceId, {
         sourceId,
@@ -478,15 +623,26 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
       });
     }
 
-    const projected = prepareCandidate(candidate, { today });
+    const currentSource = findSourceByUrl(candidate.source_url || candidate.url || '');
+    const replayInput = withoutUnverifiedExplicitVenue(candidate, currentSource);
+    const projected = prepareCandidate({
+      ...replayInput,
+      ...(currentSource ? {
+        source_id: currentSource.id,
+        keyword: currentSource.name,
+      } : {}),
+    }, { today });
     const projectedSource = projected.validation.source;
     const projectedActivity = projected.validation.taxonomy.activity_type;
     const enrolledActivities = projectedSource?.autoRegistrationAllowedActivityTypes;
     const replayVenue = projectedSource?.venue || venueOfLegacyCandidate(projected.candidate);
     const replayTitleMatch = textSimilarity(titleOfLegacyCandidate(projected.candidate), live.title || '') >= 0.85;
-    const replayVenueMatch = canonicalVenue(replayVenue)
-      && canonicalVenue(replayVenue) === canonicalVenue(live.venue_name || live.location || '');
-    const replayActivityMatch = normalizeText(projectedActivity) === normalizeText(live.activity_type || live.category || '');
+    const replayVenueMatch = venuesMatchForAudit(replayVenue, live.venue_name || live.location || '');
+    const replayActivityMatch = activitiesMatchForReplay(
+      projectedActivity,
+      live.activity_type || live.category || '',
+      titleOfLegacyCandidate(projected.candidate),
+    );
     const replayDjMatch = djsMatchForAudit(projected.candidate.structured_data?.djs || [], liveDjs);
     const replayUnchanged = Boolean(replayTitleMatch && replayVenueMatch && replayActivityMatch && replayDjMatch);
     currentRulesReplay.compared += 1;
@@ -498,6 +654,7 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
         title: titleOfLegacyCandidate(projected.candidate),
         projectedActivity,
         projectedVenue: replayVenue,
+        validationErrors: projected.validation.errors,
         mismatches: [
           !replayTitleMatch && 'title',
           !replayVenueMatch && 'venue',
@@ -512,6 +669,9 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
     if (replayBlockingErrors.length === 0) {
       currentRulesReplay.accepted += 1;
       if (replayUnchanged) currentRulesReplay.acceptedFullyUnchanged += 1;
+      currentRulesReplay.acceptedBySource[sourceId] ||= { accepted: 0, fullyUnchanged: 0 };
+      currentRulesReplay.acceptedBySource[sourceId].accepted += 1;
+      if (replayUnchanged) currentRulesReplay.acceptedBySource[sourceId].fullyUnchanged += 1;
       if (!replayUnchanged && currentRulesReplay.acceptedMismatchSamples.length < 100) {
         currentRulesReplay.acceptedMismatchSamples.push({
           sourceId,
@@ -526,18 +686,31 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
       }
     }
     const blockedByCurrentSemanticRule = projected.validation.errors.some((error) => (
-      /misclassified|malformed|generic|not the required event series|does not collect this activity/i.test(error)
+      /misclassified|malformed|generic|caption fragment|DJ value|multi-date|운영 종료|수집 금지|not the required event series|does not collect this activity/i.test(error)
     ));
-    if (
-      Array.isArray(enrolledActivities)
-      && enrolledActivities.includes(projectedActivity)
-      && !blockedByCurrentSemanticRule
-    ) {
+    const enrolledForProjectedActivity = Array.isArray(enrolledActivities)
+      && enrolledActivities.includes(projectedActivity);
+    if (enrolledForProjectedActivity) evidenceGate.enrolled += 1;
+    if (enrolledForProjectedActivity && blockedByCurrentSemanticRule) {
+      evidenceGate.blocked += 1;
+      if (evidenceGate.blockedSamples.length < 30) {
+        evidenceGate.blockedSamples.push({
+          sourceId,
+          candidateId: candidate.id,
+          title: titleOfLegacyCandidate(projected.candidate),
+          reasons: projected.validation.errors,
+        });
+      }
+    }
+    if (enrolledForProjectedActivity && !blockedByCurrentSemanticRule) {
       const projectedVenue = projectedSource.venue || venueOfLegacyCandidate(projected.candidate);
       const projectedTitleMatch = textSimilarity(titleOfLegacyCandidate(projected.candidate), live.title || '') >= 0.85;
-      const projectedVenueMatch = canonicalVenue(projectedVenue)
-        && canonicalVenue(projectedVenue) === canonicalVenue(live.venue_name || live.location || '');
-      const projectedActivityMatch = normalizeText(projectedActivity) === normalizeText(live.activity_type || live.category || '');
+      const projectedVenueMatch = venuesMatchForAudit(projectedVenue, live.venue_name || live.location || '');
+      const projectedActivityMatch = activitiesMatchForReplay(
+        projectedActivity,
+        live.activity_type || live.category || '',
+        titleOfLegacyCandidate(projected.candidate),
+      );
       const projectedDjMatch = djsMatchForAudit(projected.candidate.structured_data?.djs || [], liveDjs);
       const unchanged = Boolean(projectedTitleMatch && projectedVenueMatch && projectedActivityMatch && projectedDjMatch);
       evidenceGate.eligible += 1;
@@ -575,7 +748,15 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
     .sort((a, b) => b.linked - a.linked || a.sourceId.localeCompare(b.sourceId));
   const linkedApprovedTotal = sourceApprovalReadiness
     .reduce((sum, stat) => sum + stat.linked, 0);
-  const evidenceCoverageRate = linkedApprovedTotal
+  const approvedTotal = sourceApprovalReadiness
+    .reduce((sum, stat) => sum + stat.approved, 0);
+  const approvedLinkCoverageRate = approvedTotal
+    ? linkedApprovedTotal / approvedTotal
+    : 0;
+  const evidenceCoverageRate = evidenceGate.enrolled
+    ? evidenceGate.eligible / evidenceGate.enrolled
+    : 0;
+  const globalAutomationCoverageRate = linkedApprovedTotal
     ? evidenceGate.eligible / linkedApprovedTotal
     : 0;
   const evidenceMeasuredRate = evidenceGate.eligible
@@ -599,17 +780,25 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
     autoRegistrationEvidenceGate: {
       targetRate: 0.95,
       targetCoverageRate: 0.95,
+      approvedTotal,
       linkedApprovedTotal,
+      approvedLinkCoverageRate,
+      enrolledLinkedTotal: evidenceGate.enrolled,
       eligible: evidenceGate.eligible,
+      blocked: evidenceGate.blocked,
       fullyUnchanged: evidenceGate.fullyUnchanged,
       measuredRate: evidenceMeasuredRate,
       coverageRate: evidenceCoverageRate,
-      targetReached: evidenceMeasuredRate >= 0.95 && evidenceCoverageRate >= 0.95,
+      globalAutomationCoverageRate,
+      targetReached: evidenceMeasuredRate >= 0.95
+        && evidenceCoverageRate >= 0.95
+        && approvedLinkCoverageRate >= 0.95,
       bySource: [...evidenceGate.bySource.values()].map((stat) => ({
         ...stat,
         measuredRate: stat.eligible ? stat.fullyUnchanged / stat.eligible : 0,
       })),
       mismatchSamples: evidenceGate.mismatchSamples,
+      blockedSamples: evidenceGate.blockedSamples,
     },
     currentRulesReplay: {
       ...currentRulesReplay,

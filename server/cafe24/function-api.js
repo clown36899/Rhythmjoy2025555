@@ -567,6 +567,18 @@ async function upsertScrapedItem(item) {
   return saveCafe24TableRow('scraped_events', row);
 }
 
+export function hasRegisteredEventLink(item = {}) {
+  return Boolean(String(
+    item.registered_event_id
+    || item.structured_data?.registered_event_id
+    || '',
+  ).trim());
+}
+
+function requestsCollectedStatus(item = {}) {
+  return item.is_collected === true || String(item.status || '').toLowerCase() === 'collected';
+}
+
 function replaceWorkingScrapedRow(rows, saved) {
   const id = String(saved?.id || '');
   if (!id) return rows;
@@ -712,7 +724,15 @@ export async function cafe24ScrapedEvents(req, res) {
     }
 
     const saved = [];
-    for (const value of values) saved.push(await upsertScrapedItem(value));
+    for (const value of values) {
+      if (requestsCollectedStatus(value) && !hasRegisteredEventLink(value)) {
+        res.status(400).json({
+          error: '실제 등록 일정 ID 없이 수집 후보를 완료 처리할 수 없습니다. 등록 버튼을 사용해 주세요.',
+        });
+        return;
+      }
+      saved.push(await upsertScrapedItem(value));
+    }
     res.json(Array.isArray(req.body) ? saved : saved[0]);
     return;
   }
@@ -861,19 +881,83 @@ export function buildCollectedScrapedEventRow({
   };
 }
 
+const AUTOMATIC_REGISTRATION_SOURCE_ACTIVITIES = new Map([
+  ['kyungsunghall', new Set(['social'])],
+  ['swingscandal-cafe', new Set(['social'])],
+]);
+
+export function validateAutomaticRegistrationCandidate(scrapedEvent) {
+  const structured = scrapedEvent?.structured_data || {};
+  const readiness = scrapedEvent?.auto_registration || {};
+  const sourceId = String(readiness.source_id || scrapedEvent?.source_id || '').trim();
+  const activity = String(structured.activity_type || '').trim().toLowerCase();
+  const allowedActivities = AUTOMATIC_REGISTRATION_SOURCE_ACTIVITIES.get(sourceId);
+  const title = String(structured.title || '').trim();
+  const date = String(structured.date || '').slice(0, 10);
+  const venue = String(structured.venue_name || structured.location || '').trim();
+  const djs = Array.isArray(structured.djs) ? structured.djs.map((dj) => String(dj || '').trim()).filter(Boolean) : [];
+  const reasons = [];
+
+  if (readiness.ready !== true) reasons.push('candidate was not approved by the collector gate');
+  if (readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
+  if (Number(readiness.ai_confidence || 0) < 0.95) reasons.push('AI confidence is below 0.95');
+  if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
+  if (!allowedActivities?.has(activity)) reasons.push('source/activity is not server-enrolled');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) reasons.push('exact event date is required');
+  if (!title || title.length < 4) reasons.push('concrete title is required');
+  if (!venue) reasons.push('verified venue is required');
+  if (!scrapedEvent?.poster_url) reasons.push('poster image is required');
+  if (activity === 'social' && djs.length === 0) reasons.push('social requires a DJ');
+  if (structured.times?.length || structured.time) reasons.push('time fields are not accepted');
+  const evidenceQuotes = Array.isArray(structured.ai_evidence_quotes)
+    ? structured.ai_evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)
+    : [];
+  const normalizedSourceText = String(scrapedEvent?.extracted_text || '').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
+  if (!evidenceQuotes.length || evidenceQuotes.some((quote) => !normalizedSourceText.includes(
+    quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
+  ))) {
+    reasons.push('AI evidence is not grounded in the stored source text');
+  }
+  const status = String(scrapedEvent?.status || 'pending').toLowerCase();
+  if (status !== 'pending' || scrapedEvent?.is_collected) reasons.push('candidate is not pending');
+
+  return {
+    ok: reasons.length === 0,
+    reasons,
+    sourceId,
+    activity,
+    eventData: {
+      title,
+      date,
+      start_date: date,
+      end_date: date,
+      location: venue,
+      venue_name: String(structured.venue_name || venue),
+      address: String(structured.address || ''),
+      venue_id: structured.venue_id || null,
+      location_link: String(structured.location_link || ''),
+      category: activity === 'social' ? 'social' : activity === 'class' ? 'class' : 'event',
+      activity_type: activity,
+      event_type: structured.event_type || (activity === 'social' ? '소셜' : '파티/행사'),
+      genre: structured.genre || structured.dance_genre || '스윙댄스',
+      dance_scope: structured.dance_scope || 'swing',
+      description: String(scrapedEvent?.extracted_text || '').slice(0, 6000),
+      image: scrapedEvent?.poster_url || null,
+      image_full: scrapedEvent?.poster_url || null,
+      organizer: structured.organizer || sourceId,
+      organizer_name: structured.organizer_name || sourceId,
+    },
+  };
+}
+
 export async function cafe24IngestorRegisterEvent(req, res) {
-  await requireAdmin(req);
   const body = req.body || {};
+  const automaticRequest = body.automatic === true && hasValidIngestionToken(req);
+  if (!automaticRequest) await requireAdmin(req);
   const scrapedEventId = String(body.scrapedEventId || '').trim();
-  const eventData = body.eventData || {};
-  const date = eventDate(eventData);
 
   if (!scrapedEventId) {
     res.status(400).json({ error: 'scrapedEventId가 필요합니다.' });
-    return;
-  }
-  if (!eventData.title || !date) {
-    res.status(400).json({ error: '이벤트 제목과 날짜가 필요합니다.' });
     return;
   }
   const scrapedRows = await loadCafe24TableRows('scraped_events');
@@ -884,6 +968,22 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   }
   if (scrapedEvent.status === 'excluded') {
     res.status(400).json({ error: '제외 처리된 후보는 등록할 수 없습니다.' });
+    return;
+  }
+  const automaticValidation = automaticRequest
+    ? validateAutomaticRegistrationCandidate(scrapedEvent)
+    : null;
+  if (automaticValidation && !automaticValidation.ok) {
+    res.status(422).json({
+      error: '자동등록 안전 기준을 충족하지 못했습니다.',
+      reasons: automaticValidation.reasons,
+    });
+    return;
+  }
+  const eventData = automaticValidation?.eventData || body.eventData || {};
+  const date = eventDate(eventData);
+  if (!eventData.title || !date) {
+    res.status(400).json({ error: '이벤트 제목과 날짜가 필요합니다.' });
     return;
   }
 

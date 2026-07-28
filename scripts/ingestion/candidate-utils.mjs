@@ -546,7 +546,8 @@ function looksLikeLowQualityAutoTitle(candidate) {
   if (/^(?:[^\p{L}\p{N}가-힣]*)(?:강습|수업|소셜\s*댄스)\s*(?:안내|시간|일정)(?:[^\p{L}\p{N}가-힣]*)$/iu.test(title)) return true;
   if (/^(?:스위티\s*)?공지(?:사항)?$/i.test(title)) return true;
   if (/^[^\p{L}\p{N}가-힣]*(?:파티|행사|이벤트|party|event)[^\p{L}\p{N}가-힣]*$/iu.test(title)) return true;
-  if (/^(?:강습\s*)?(?:기간|일정|링크)\s*[:：]/i.test(title)) return true;
+  if (/^[^\p{L}\p{N}가-힣]*(?:강습\s*)?(?:기간|일정|링크)\s*[:：]/iu.test(title)) return true;
+  if (/^[^\p{L}\p{N}가-힣]*일정\s*[:：].*(?:매주|주간|주\s*[회차]|~|～)/iu.test(title)) return true;
   if (/(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title)) return true;
   return false;
 }
@@ -574,6 +575,16 @@ function hasMalformedDj(candidate) {
     /20\d{2}[.\-/년]|(?:\d{1,2}[.\-/월]){2}|소셜로\s*진행|강습|수업|모집|매니저|멤버|조회|채팅|application\s*link|registration\s*link|신청\s*링크|입금\s*계좌/i.test(String(value))
     || String(value).trim().length > 28
   ));
+}
+
+function hasMultipleExplicitCalendarDates(text = '') {
+  const dates = new Set();
+  for (const match of String(text || '').matchAll(/(?<!\d)(\d{1,2})\s*(?:[./-]|월)\s*(\d{1,2})(?:일)?(?!\d)/g)) {
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) dates.add(`${month}-${day}`);
+  }
+  return dates.size > 1;
 }
 
 function looksLikeBroadScheduleNotice(candidate) {
@@ -611,6 +622,10 @@ function inferActivity(text, explicit, title = '') {
   if (/(?:창립|오픈|개장)?\s*\d+\s*주년.{0,30}(?:파티|행사)|(?:파티|행사).{0,30}\d+\s*주년|anniversary/i.test(heading)) return 'event';
   if (/(?:강습|클래스|원\s*데이|원데이|\d+\s*기).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(heading)) return 'recruit';
   if (/(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]/i.test(heading)) return 'class';
+  if (/(?:solo\s*jazz|솔로\s*재즈).*(?:\d{1,2}[./]\d{1,2}\s*[~～]|시즌|season)/i.test(heading)
+    && !/(?:모집|신청|접수)/i.test(heading)) return 'class';
+  if (/(?:소셜|social|프랙티카|practica|밀롱가|milonga)/i.test(heading)
+    && !/(?:강습|수업|레슨|클래스|워크샵|워크숍|원\s*데이|원데이|모집|신청)/i.test(heading)) return 'social';
   if (['class', 'social', 'event', 'recruit', 'sale'].includes(explicit)) return explicit;
   if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) return 'sale';
   if (/(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i.test(text)) return 'recruit';
@@ -872,13 +887,40 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   }
   if (
     taxonomy.activity_type === 'social'
+    && hasMultipleExplicitCalendarDates(text)
+    && Array.isArray(sd.djs)
+    && sd.djs.filter(Boolean).length > 1
+  ) {
+    errors.push('multi-date multi-DJ social notice must be split before registration');
+  }
+  if (
+    taxonomy.activity_type === 'social'
+    && (
+      /class|강습|lesson/i.test(String(sd.event_type || candidate.event_type || ''))
+      || /class|강습|lesson/i.test(String(sd.category || candidate.category || ''))
+    )
+  ) {
+    errors.push('social candidate retains conflicting class taxonomy');
+  }
+  if (
+    taxonomy.activity_type === 'social'
     && /(?:\d+\s*기|강습|수강생|수강|클래스).{0,24}모집|모집.{0,24}(?:강습|수강생|수강|클래스)/i.test(text)
+    && (
+      !/소셜|social/i.test(titleOf(candidate))
+      || !Array.isArray(sd.djs)
+      || sd.djs.filter(Boolean).length === 0
+    )
   ) {
     errors.push('recruitment/class notice is misclassified as a social');
   }
   if (
     taxonomy.activity_type === 'social'
     && /(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]/i.test(text)
+    && (
+      !/소셜|social/i.test(titleOf(candidate))
+      || !Array.isArray(sd.djs)
+      || sd.djs.filter(Boolean).length === 0
+    )
   ) {
     errors.push('named class notice is misclassified as a social');
   }
