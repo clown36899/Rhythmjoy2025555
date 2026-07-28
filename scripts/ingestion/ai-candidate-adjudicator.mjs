@@ -158,6 +158,13 @@ and the supplied candidate is not clearly one date-specific section, return "rev
 The collector resolves the year from the collection date. When SOURCE_TEXT explicitly contains the
 same month and day but omits the year, return the collector ISO event_date; an explicit source year
 is not required. Never do this when a conflicting event month/day remains in SOURCE_TEXT.
+Dates explicitly labeled as advance-registration/payment deadlines are not competing event dates.
+For every register decision, evidence_quotes must separately include the event date, venue, every DJ,
+and an activity marker. For a social, quote text containing "Social" or "소셜" (the event title is
+valid activity evidence). When these fields are explicit, unique, and agree with the collector,
+return register with confidence 0.99.
+For venue agreement, treat these established spelling aliases as identical:
+"쏘셜클럽" = "소셜클럽", and "사보이" = "사보이홀" = "사보이볼룸".
 Every evidence quote must be copied exactly from SOURCE_TEXT. Confidence >= 0.98 is reserved for
 fully explicit, internally consistent evidence. Otherwise return review or reject.
 
