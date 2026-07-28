@@ -59,7 +59,7 @@ describe('ingestor registration linkage', () => {
         venue_name: '경성홀',
         venue_provenance: 'source_text',
         djs: ['뉴야'],
-        ai_evidence_quotes: ['7월 29일', '경성홀', 'DJ 뉴야'],
+        ai_evidence_quotes: ['7월 29일', '경성홀 수요 소셜', 'DJ 뉴야'],
       },
     });
 

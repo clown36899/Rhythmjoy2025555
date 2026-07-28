@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
 const defaultModel = process.env.INGESTION_AI_MODEL || 'gpt-5.6-sol';
-const minimumConfidence = Number(process.env.INGESTION_AI_MIN_CONFIDENCE || 0.95);
+const minimumConfidence = Number(process.env.INGESTION_AI_MIN_CONFIDENCE || 0.98);
 
 async function firstExecutable(paths) {
   for (const candidate of paths.filter(Boolean)) {
@@ -80,6 +80,19 @@ function exactEvidenceIsGrounded(evidenceQuotes, sourceText) {
     && evidenceQuotes.every((quote) => quote.length >= 2 && haystack.includes(normalized(quote)));
 }
 
+function evidenceMentionsDate(evidence, isoDate) {
+  const match = String(isoDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const [, year, monthPadded, dayPadded] = match;
+  const month = String(Number(monthPadded));
+  const day = String(Number(dayPadded));
+  return [
+    new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
+    new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
+    new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
+  ].some((pattern) => pattern.test(evidence));
+}
+
 export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const sd = candidate?.structured_data || {};
   const sourceText = `${candidate?.extracted_text || ''}\n${sd.title || ''}`;
@@ -89,6 +102,8 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const candidateDjs = Array.isArray(sd.djs) ? sd.djs.map(normalized).filter(Boolean) : [];
   const aiDjs = Array.isArray(adjudication?.djs) ? adjudication.djs.map(normalized).filter(Boolean) : [];
   const threshold = Number(config.minimumConfidence ?? minimumConfidence);
+  const evidenceCorpus = normalized(evidenceQuotes.join(' '));
+  const candidateVenue = normalized(sd.venue_name || sd.location);
   const reasons = [];
 
   if (adjudication?.decision !== 'register') reasons.push('AI did not approve registration');
@@ -100,6 +115,12 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
     reasons.push('AI DJ list disagrees with collector DJ list');
   }
   if (!exactEvidenceIsGrounded(evidenceQuotes, sourceText)) reasons.push('AI evidence is not an exact substring of source text');
+  if (!evidenceMentionsDate(evidenceCorpus, sd.date)) reasons.push('AI evidence does not explicitly contain the candidate date');
+  if (candidateVenue && !evidenceCorpus.includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
+  if (candidateDjs.some((dj) => !evidenceCorpus.includes(dj))) reasons.push('AI evidence does not explicitly contain every candidate DJ');
+  if (String(sd.activity_type || '') === 'social' && !/(?:소셜|social|정모)/i.test(evidenceCorpus)) {
+    reasons.push('AI evidence does not explicitly identify a social');
+  }
   if (sd.time || (Array.isArray(sd.times) && sd.times.length)) reasons.push('time fields are not accepted');
 
   return {
@@ -119,7 +140,7 @@ The calendar stores dates only. Never output or reason from an event time.
 Return "register" only when the text unambiguously supports exactly one event on the collector date,
 the activity type, venue, and (for a social) every DJ. If several dates or several DJ lineups are mixed
 and the supplied candidate is not clearly one date-specific section, return "review".
-Every evidence quote must be copied exactly from SOURCE_TEXT. Confidence >= 0.95 is reserved for
+Every evidence quote must be copied exactly from SOURCE_TEXT. Confidence >= 0.98 is reserved for
 fully explicit, internally consistent evidence. Otherwise return review or reject.
 
 COLLECTOR_CANDIDATE:

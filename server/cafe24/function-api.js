@@ -900,7 +900,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
 
   if (readiness.ready !== true) reasons.push('candidate was not approved by the collector gate');
   if (readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
-  if (Number(readiness.ai_confidence || 0) < 0.95) reasons.push('AI confidence is below 0.95');
+  if (Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
   if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
   if (!allowedActivities?.has(activity)) reasons.push('source/activity is not server-enrolled');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) reasons.push('exact event date is required');
@@ -917,6 +917,31 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
   ))) {
     reasons.push('AI evidence is not grounded in the stored source text');
+  }
+  const normalizedEvidence = evidenceQuotes.join(' ').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
+  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateMatch) {
+    const [, year, monthPadded, dayPadded] = dateMatch;
+    const month = String(Number(monthPadded));
+    const day = String(Number(dayPadded));
+    const datePatterns = [
+      new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
+      new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
+      new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
+    ];
+    if (!datePatterns.some((pattern) => pattern.test(normalizedEvidence))) {
+      reasons.push('AI evidence does not explicitly contain the candidate date');
+    }
+  }
+  const normalizedVenue = venue.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
+  if (normalizedVenue && !normalizedEvidence.includes(normalizedVenue)) {
+    reasons.push('AI evidence does not explicitly contain the candidate venue');
+  }
+  if (djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
+    reasons.push('AI evidence does not explicitly contain every candidate DJ');
+  }
+  if (activity === 'social' && !/(?:소셜|social|정모)/i.test(normalizedEvidence)) {
+    reasons.push('AI evidence does not explicitly identify a social');
   }
   const status = String(scrapedEvent?.status || 'pending').toLowerCase();
   if (status !== 'pending' || scrapedEvent?.is_collected) reasons.push('candidate is not pending');

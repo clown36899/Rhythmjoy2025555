@@ -13,7 +13,7 @@ const candidate = {
 };
 
 describe('AI candidate adjudication grounding', () => {
-  it('approves only a 0.95+ agreement grounded in exact source text', () => {
+  it('approves only a 0.98+ agreement grounded in exact source text', () => {
     const result = validateAiAdjudication(candidate, {
       decision: 'register',
       confidence: 0.98,
@@ -21,7 +21,7 @@ describe('AI candidate adjudication grounding', () => {
       activity_type: 'social',
       venue: '경성홀',
       djs: ['뉴야'],
-      evidence_quotes: ['7월 29일', '경성홀', 'DJ 뉴야'],
+      evidence_quotes: ['7월 29일', '경성홀 수요 소셜', 'DJ 뉴야'],
       reasons: [],
     });
 
@@ -62,6 +62,27 @@ describe('AI candidate adjudication grounding', () => {
       'AI activity disagrees with collector activity',
       'AI venue disagrees with collector venue',
       'AI DJ list disagrees with collector DJ list',
+    ]));
+  });
+
+  it('rejects 0.97 confidence and incomplete field evidence', () => {
+    const result = validateAiAdjudication(candidate, {
+      decision: 'register',
+      confidence: 0.97,
+      event_date: '2026-07-29',
+      activity_type: 'social',
+      venue: '경성홀',
+      djs: ['뉴야'],
+      evidence_quotes: ['7월 29일'],
+      reasons: [],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toEqual(expect.arrayContaining([
+      'AI confidence is below 0.98',
+      'AI evidence does not explicitly contain the candidate venue',
+      'AI evidence does not explicitly contain every candidate DJ',
+      'AI evidence does not explicitly identify a social',
     ]));
   });
 });
