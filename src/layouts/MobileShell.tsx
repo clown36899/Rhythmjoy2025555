@@ -36,7 +36,7 @@ const getCalendarHeaderDisplayMode = (search: string): CalendarHeaderDisplayMode
 export const MobileShell: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAuthProcessing, isLoggingOut, cancelAuth } = useAuth();
+  const { user, userProfile, isAdmin, isAuthProcessing, isLoggingOut, cancelAuth } = useAuth();
   const { i18n } = useTranslation();
   const { action: pageAction } = usePageAction();
   const { activeResource, isMinimized, closePlayer, minimizePlayer, restorePlayer } = useGlobalPlayer();
@@ -141,7 +141,7 @@ export const MobileShell: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const openLoginOrKioskGuide = useCallback((message?: string) => {
-    if (isKioskModeEnabled()) {
+    if (isKioskModeEnabled({ isAdmin, pathname: location.pathname })) {
       requestKioskMobileGuide();
       return;
     }
@@ -149,7 +149,7 @@ export const MobileShell: React.FC = () => {
     loginModal.open({
       message: message || '댄스빌보드 로그인'
     });
-  }, [loginModal]);
+  }, [isAdmin, location.pathname, loginModal]);
 
   useEffect(() => {
     const handleUpdateCalendarView = (e: any) => {

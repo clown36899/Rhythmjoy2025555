@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  disableKioskMode,
   enableKioskMode,
+  isAdminPath,
   KIOSK_HOME_PATH,
   isKioskModeEnabled,
   KIOSK_MOBILE_GUIDE_EVENT,
@@ -98,23 +100,32 @@ function clickIndicator(button: HTMLButtonElement) {
   button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
 }
 
-export default function KioskModeController() {
+type KioskModeControllerProps = {
+  isAdmin?: boolean;
+};
+
+export default function KioskModeController({ isAdmin = false }: KioskModeControllerProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isActive, setIsActive] = useState(() => isKioskModeEnabled());
+  const isActive = isKioskModeEnabled({ isAdmin, pathname: location.pathname });
   const [blockedExternalLink, setBlockedExternalLink] = useState<BlockedExternalLink | null>(null);
   const [carouselTop, setCarouselTop] = useState(0);
   const [showCarouselControls, setShowCarouselControls] = useState(false);
 
   useEffect(() => {
-    const active = isKioskModeEnabled();
-    setIsActive(active);
-    syncKioskModeClass(active);
+    syncKioskModeClass(isActive);
 
-    if (active) {
+    if (isActive) {
       enableKioskMode();
+      return;
     }
-  }, [location.pathname]);
+
+    setBlockedExternalLink(null);
+
+    if (isAdmin || isAdminPath(location.pathname)) {
+      disableKioskMode();
+    }
+  }, [isActive, isAdmin, location.pathname]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -446,7 +457,7 @@ export default function KioskModeController() {
           }}
         >
           <div className="kel-panel">
-            <img src={KIOSK_QR_DATA_URI} alt="댄스빌보드 QR" />
+            <img src={KIOSK_QR_DATA_URI} alt="댄스빌보드 QR" draggable={false} />
             <div>
               <div className="kel-title">외부 링크 연결 기능 등 온전한 기능 사용은</div>
               <div className="kel-copy">모바일에서 댄스빌보드 사이트를 열어주세요.</div>

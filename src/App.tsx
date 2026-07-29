@@ -40,7 +40,11 @@ const shouldPrefetchCalendarForPath = (pathname: string) => (
   pathname === '/main-v2-test'
 );
 
-function AppContent() {
+type AppContentProps = {
+  isAdmin: boolean;
+};
+
+function AppContent({ isAdmin }: AppContentProps) {
   const location = useLocation();
 
   // Track online presence for all users
@@ -295,7 +299,7 @@ function AppContent() {
 
   return (
     <>
-      <KioskModeController />
+      <KioskModeController isAdmin={isAdmin} />
       <Suspense fallback={
         <div className="full-screen-fallback">
           <LocalLoading />
@@ -325,7 +329,7 @@ function App() {
           {/* Add GlobalPlayerProvider */}
           <GlobalPlayerProvider>
             <InAppBrowserGuard />
-            <AppContent />
+            <AppContent isAdmin={isAdmin} />
           </GlobalPlayerProvider>
         </SiteAnalyticsProvider>
         {/* DevTools는 관리자만 볼 수 있음 */}

@@ -119,10 +119,7 @@ const hasKioskStorageFlag = (): boolean => {
     if (typeof window === 'undefined') return false;
 
     try {
-        return (
-            window.localStorage.getItem(KIOSK_MODE_STORAGE_KEY) === KIOSK_MODE_VALUE ||
-            window.sessionStorage.getItem(KIOSK_MODE_STORAGE_KEY) === KIOSK_MODE_VALUE
-        );
+        return window.sessionStorage.getItem(KIOSK_MODE_STORAGE_KEY) === KIOSK_MODE_VALUE;
     } catch {
         return false;
     }

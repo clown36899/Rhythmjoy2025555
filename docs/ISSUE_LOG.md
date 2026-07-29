@@ -1169,3 +1169,12 @@
 - 보안 원칙: 이 키오스크는 운영 중 ADB를 사용하지 않는다. 유지보수가 필요하면 현장에서 일시적으로만 활성화하고 작업 후 즉시 비활성화한다.
 - 재발 방지 확인: 관리 Mac의 ADB 서버는 종료 상태이고 ADB/scrcpy 자동실행 launchd 항목이 없으며, Mini PC에도 ADB가 없다. 운영 문서에서 `adb connect` 안내를 제거했다. TCP 5555가 열린 현재 상태에서 제3의 ADB 클라이언트가 새로 접속하면 모달이 다시 뜰 가능성은 남으므로, 절대적 차단은 TV 설정에서 디버깅을 끈 뒤 완료된다.
 - 재발 대응: Mini PC Chrome/HDMI를 재시작하지 말고 ADB 연결 주체부터 종료한 다음, 저장된 Android TV Remote v2 인증으로 `BACK`을 두 번 보낸다. 실제 화면 확인 전에는 해결로 보고하지 않는다.
+
+## 2026-07-29 키오스크 외부 링크 안내가 관리자·일반 데스크톱에 노출됨
+
+- 상태: 해결
+- 현상: 관리자 수집 화면에서 외부 원문을 열 때 키오스크 전용 QR 안내창이 표시됐고, `/kiosk`를 사용한 적이 있는 일반 데스크톱의 다른 탭에도 키오스크 동작이 이어졌다.
+- 원인: `/kiosk` 진입 상태를 origin 전체가 공유하는 `localStorage`에 영구 저장했고, 관리자 경로와 관리자 인증 상태를 키오스크 활성 조건에서 제외하지 않았다.
+- 조치: 키오스크 상태를 전용 탭의 `sessionStorage`에만 저장하고 기존 `localStorage` 값은 활성 조건에서 제거했다. `/admin` 계열 경로와 인증된 관리자 상태에서는 키오스크 컨트롤러 및 외부 링크 안내를 즉시 비활성화하고 해당 탭의 키오스크 상태를 정리한다.
+- 검증: 레거시 영구 플래그 무시, 키오스크 진입·탭 세션 유지, 관리자 경로·관리자 인증에서 안내창 미표시, 실제 키오스크 탭에서 안내창 유지 조건을 자동 테스트로 추가했다.
+- 관련 파일: `src/lib/kioskMode.ts`, `src/components/KioskModeController.tsx`, `src/layouts/MobileShell.tsx`, `src/components/LoginModal.tsx`, `src/utils/analyticsGuards.ts`, `src/lib/kioskMode.test.ts`, `src/components/KioskModeController.test.tsx`

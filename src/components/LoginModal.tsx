@@ -13,16 +13,16 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose, message }: LoginModalProps) {
-    const { signInWithKakao, signInWithGoogle, isAuthProcessing, user } = useAuth();
+    const { signInWithKakao, signInWithGoogle, isAdmin, isAuthProcessing, user } = useAuth();
     const [pendingProvider, setPendingProvider] = useState<'kakao' | 'google' | null>(null);
     const [cafe24GoogleAvailable, setCafe24GoogleAvailable] = useState(!CAFE24_AUTH_ENABLED);
 
     useEffect(() => {
-        if (!isOpen || !isKioskModeEnabled()) return;
+        if (!isOpen || !isKioskModeEnabled({ isAdmin })) return;
 
         requestKioskMobileGuide();
         onClose();
-    }, [isOpen, onClose]);
+    }, [isAdmin, isOpen, onClose]);
 
     useEffect(() => {
         if (isOpen && (user || isAuthProcessing)) {
@@ -37,7 +37,7 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
     }, [isOpen]);
 
     useEffect(() => {
-        if (!isOpen || isKioskModeEnabled() || !CAFE24_AUTH_ENABLED) return;
+        if (!isOpen || isKioskModeEnabled({ isAdmin }) || !CAFE24_AUTH_ENABLED) return;
 
         let cancelled = false;
         fetch('/api/auth/providers', {
@@ -55,9 +55,9 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
         return () => {
             cancelled = true;
         };
-    }, [isOpen]);
+    }, [isAdmin, isOpen]);
 
-    if (!isOpen || isKioskModeEnabled() || user || isAuthProcessing) return null;
+    if (!isOpen || isKioskModeEnabled({ isAdmin }) || user || isAuthProcessing) return null;
 
     const handleProviderLogin = async (
         event: MouseEvent<HTMLButtonElement>,

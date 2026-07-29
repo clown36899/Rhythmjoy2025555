@@ -9,7 +9,16 @@ type KioskMobileGuideOptions = {
   closeOnly?: boolean;
 };
 
+type KioskModeContext = {
+  isAdmin?: boolean;
+  pathname?: string;
+};
+
 const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+
+export function isAdminPath(pathname: string) {
+  return /^\/admin(?:\/|$)/i.test(pathname);
+}
 
 export function syncKioskModeClass(enabled: boolean) {
   if (typeof document === "undefined") return;
@@ -27,23 +36,24 @@ export function enableKioskMode() {
   if (!canUseStorage()) return;
 
   try {
-    window.localStorage.setItem(KIOSK_MODE_STORAGE_KEY, KIOSK_MODE_VALUE);
+    // Kiosk mode belongs to the dedicated kiosk tab, not every tab on this origin.
+    window.localStorage.removeItem(KIOSK_MODE_STORAGE_KEY);
     window.sessionStorage.setItem(KIOSK_MODE_STORAGE_KEY, KIOSK_MODE_VALUE);
   } catch {
     // Storage may be unavailable in strict privacy modes. The /kiosk route still enables the current render.
   }
 }
 
-export function isKioskModeEnabled() {
+export function isKioskModeEnabled(context: KioskModeContext = {}) {
   if (typeof window === "undefined") return false;
 
-  if (window.location.pathname === KIOSK_ENTRY_PATH) return true;
+  const pathname = context.pathname ?? window.location.pathname;
+
+  if (context.isAdmin || isAdminPath(pathname)) return false;
+  if (pathname === KIOSK_ENTRY_PATH) return true;
 
   try {
-    return (
-      window.localStorage.getItem(KIOSK_MODE_STORAGE_KEY) === KIOSK_MODE_VALUE ||
-      window.sessionStorage.getItem(KIOSK_MODE_STORAGE_KEY) === KIOSK_MODE_VALUE
-    );
+    return window.sessionStorage.getItem(KIOSK_MODE_STORAGE_KEY) === KIOSK_MODE_VALUE;
   } catch {
     return false;
   }
