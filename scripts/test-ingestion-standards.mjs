@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
+  extractDatedDjSections,
   extractIndependentSocialDateSections,
   hasBadPosterUrl,
   isCollectableDate,
@@ -9,6 +10,7 @@ import {
   makeDeterministicId,
   prepareCandidate,
   isEvergreenSeasonPassCandidate,
+  isHighConfidenceDatedSocialSchedule,
   stripNaverCafeMemberPrefix,
   textSimilarity,
   validateCandidate,
@@ -64,6 +66,51 @@ assert.deepEqual(
   }).map(({ date }) => date),
   ['2026-07-26'],
   'past sessions remain excluded without collapsing the still-current independent session',
+);
+
+const kyungsungWeeklySections = extractDatedDjSections({
+  today: '2026-07-30',
+  text: `📍 This Week at Kyungsung Hall
+🗓 8/1 (토)
+🕢 19:30 ~ 23:00
+🎧 DJ 북실
+🗓 8/2 (일)
+🕢 19:30 ~ 23:00
+🎧 DJ 메이저
+🗓 8/4 (화)
+🕗 20:00 ~ 23:00
+🎧 DJ 스톰
+✨ 8/4(화) 19:00부터는 8월 첫 번째 경성 클래스가 함께 진행됩니다!
+🎩 Theme : Social Essentials`,
+});
+assert.deepEqual(
+  kyungsungWeeklySections.map(({ date, day, segment }) => ({
+    date,
+    day,
+    dj: segment.match(/DJ\s+([A-Za-z가-힣]+)/i)?.[1] || '',
+  })),
+  [
+    { date: '2026-08-01', day: '토', dj: '북실' },
+    { date: '2026-08-02', day: '일', dj: '메이저' },
+    { date: '2026-08-04', day: '화', dj: '스톰' },
+  ],
+  'a Kyungsung weekly social post must remain split by date/DJ even with an adjacent class notice',
+);
+assert.equal(
+  isHighConfidenceDatedSocialSchedule(kyungsungWeeklySections.map((section) => ({
+    date: section.date,
+    djs: [section.segment.match(/DJ\s+([A-Za-z가-힣]+)/i)?.[1]].filter(Boolean),
+  }))),
+  true,
+  'two or more complete date/DJ pairs must take precedence over post-wide class wording',
+);
+assert.equal(
+  isHighConfidenceDatedSocialSchedule([
+    { date: '2026-08-01', djs: ['북실'] },
+    { date: '2026-08-02', djs: [] },
+  ]),
+  false,
+  'incomplete weekly schedules must not be promoted to automatic social registration',
 );
 
 assert.equal(classifyConfirmedBenefitEvent({

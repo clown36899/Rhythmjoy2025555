@@ -349,6 +349,61 @@ export function extractIndependentSocialDateSections({
   return result.length >= 1 && usedDates.size >= 2 ? result : [];
 }
 
+/**
+ * Extract date-scoped DJ sections from weekly social notices. This deliberately
+ * ignores time expressions and leaves DJ-name cleanup to the source collector.
+ */
+export function extractDatedDjSections({
+  text = '',
+  today = todayISO(),
+} = {}) {
+  const raw = String(text || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)/i.test(raw)) return [];
+
+  const todayYear = Number(String(today).slice(0, 4));
+  const todayMonth = Number(String(today).slice(5, 7));
+  const sections = [];
+  const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
+
+  for (const match of raw.matchAll(pattern)) {
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+
+    const year = month + 1 < todayMonth ? todayYear + 1 : todayYear;
+    const date = isoDateForIngestion(year, month, day);
+    if (!isCollectableDate(date, { today })) continue;
+
+    const segment = String(match[4] || '').trim();
+    if (!/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)/i.test(segment)) continue;
+    const dateLabel = String(match[0] || '')
+      .slice(0, Math.max(0, String(match[0] || '').length - String(match[4] || '').length))
+      .trim();
+    sections.push({
+      date,
+      day: match[3] || weekdayLabelForDate(date),
+      dateLabel,
+      segment,
+    });
+  }
+
+  return sections;
+}
+
+export function isHighConfidenceDatedSocialSchedule(items = []) {
+  const validItems = (Array.isArray(items) ? items : []).filter((item) => (
+    /^\d{4}-\d{2}-\d{2}$/.test(String(item?.date || ''))
+    && Array.isArray(item?.djs)
+    && item.djs.length > 0
+  ));
+  return validItems.length >= 2
+    && new Set(validItems.map((item) => item.date)).size >= 2
+    && validItems.length === items.length;
+}
+
 export function normalizeText(value = '') {
   return String(value || '')
     .normalize('NFKC')

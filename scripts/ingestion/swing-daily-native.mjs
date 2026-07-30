@@ -3,8 +3,10 @@ import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import {
   buildCafe24Payload,
+  extractDatedDjSections,
   extractIndependentSocialDateSections,
   getBlockedKeywordReason,
+  isHighConfidenceDatedSocialSchedule,
   isCollectableDate,
   isEvergreenSeasonPassCandidate,
   keepFirstEventDateOnly,
@@ -708,6 +710,14 @@ function inferFee(text = '') {
   return match ? `${match[1]}원` : '';
 }
 
+function inferUnambiguousFee(text = '') {
+  const fees = unique(
+    [...String(text || '').matchAll(/\(?\s*(\d{1,3}(?:,\d{3})*)\s*원\s*\)?/g)]
+      .map((match) => `${match[1]}원`),
+  );
+  return fees.length === 1 ? fees[0] : '';
+}
+
 function extractSocialScheduleItems(text = '', source, title = '') {
   const raw = compactText(text);
   const items = [];
@@ -719,7 +729,7 @@ function extractSocialScheduleItems(text = '', source, title = '') {
       day: section.day,
       title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
       djs: inferDjs(section.segment),
-      fee: inferFee(section.segment),
+      fee: inferUnambiguousFee(section.segment),
     });
   }
   const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*(?:소셜|social)\s*[:：]?\s*([\s\S]*?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2}\s*(?:일)?\s*(?:\(\s*[월화수목금토일]\s*\))?\s*(?:소셜|social)\s*[:：]?)|$)/gi;
@@ -738,7 +748,7 @@ function extractSocialScheduleItems(text = '', source, title = '') {
       day: dayLabel,
       title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
       djs: inferDjs(segment),
-      fee: inferFee(segment),
+      fee: inferUnambiguousFee(segment),
     });
   }
   const seen = new Set(items.map((item) => `${item.date}:${item.djs.join(',')}`));
@@ -758,30 +768,25 @@ function extractSocialScheduleItems(text = '', source, title = '') {
 }
 
 function extractDatedDjSocialItems(raw = '', source) {
-  if (!/(?<![A-Za-z0-9가-힣])DJ|디제이/i.test(raw)) return [];
   const items = [];
-  const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
-  for (const match of raw.matchAll(pattern)) {
-    const month = Number(match[1]);
-    const day = Number(match[2]);
-    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
-    const date = isoDate(getYearForMonth(month), month, day);
-    if (date < today) continue;
-
-    const segment = compactText(match[4] || '');
-    if (!/(?<![A-Za-z0-9가-힣])DJ|디제이/i.test(segment)) continue;
+  for (const section of extractDatedDjSections({ text: raw, today })) {
+    const segment = compactText(section.segment);
     const djs = inferDjs(segment);
     if (!djs.length) continue;
-    if (!isCollectableDate(date, { today })) continue;
 
-    const dayLabel = match[3] || dayLabelFromISO(date);
+    const dayLabel = section.day || dayLabelFromISO(section.date);
     const titleDay = socialDayTitle(dayLabel);
     items.push({
-      date,
+      date: section.date,
       day: dayLabel,
       title: `${source.name} ${titleDay || ''} 소셜`.replace(/\s+/g, ' ').trim(),
       djs,
-      fee: inferFee(segment),
+      fee: inferUnambiguousFee(segment),
+      aiEvidenceText: [
+        raw.includes(source.name) ? source.name : '',
+        section.dateLabel,
+        segment.split(/\s(?:💰|✨|입장료|클래스\s*[:：])/i)[0].trim(),
+      ].filter(Boolean).join('\n'),
     });
   }
   return items;
@@ -1573,7 +1578,13 @@ async function buildCandidatesFromText({
     return [];
   }
 
-  const { activity, eventType } = inferActivity(cleanText);
+  const inferredActivity = inferActivity(cleanText);
+  const socialScheduleItems = extractSocialScheduleItems(rawText, source, title)
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  const preferDatedSocialSchedule = isHighConfidenceDatedSocialSchedule(socialScheduleItems);
+  const { activity, eventType } = preferDatedSocialSchedule
+    ? { activity: 'social', eventType: '소셜' }
+    : inferredActivity;
   const venueResolution = inferVenueDetails(cleanText, source);
   const venue = venueResolution.venue;
   const djs = inferDjs(cleanText);
@@ -1590,10 +1601,7 @@ async function buildCandidatesFromText({
     return [];
   }
 
-  const socialScheduleItems = activity === 'social'
-    ? extractSocialScheduleItems(rawText, source, title).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
-    : [];
-  if (socialScheduleItems.length) {
+  if (activity === 'social' && socialScheduleItems.length) {
     const candidates = [];
     const socialDateCounts = socialScheduleItems.reduce((counts, item) => {
       const date = String(item.date || '').slice(0, 10);
@@ -1624,6 +1632,7 @@ async function buildCandidatesFromText({
         ...(socialDetailSuffix ? { id_suffix: socialDetailSuffix } : {}),
         poster_url: candidatePosterUrl,
         ...(imageData ? { imageData } : {}),
+        ...(item.aiEvidenceText ? { _ai_evidence_text: `${item.aiEvidenceText}\n${socialTitle}` } : {}),
         extracted_text: cleanText.slice(0, 6000),
         structured_data: {
           title: socialTitle,
@@ -1746,11 +1755,17 @@ async function postCandidate(candidate) {
     return;
   }
 
-  let candidateToPost = candidate;
+  const {
+    _ai_evidence_text: aiEvidenceText = '',
+    ...candidateForPost
+  } = candidate;
+  let candidateToPost = candidateForPost;
   if (aiAdjudicationEnabled && candidate.auto_registration?.ready === true) {
-    const aiResult = await adjudicateCandidateWithAi(candidate);
+    const aiResult = await adjudicateCandidateWithAi(aiEvidenceText
+      ? { ...candidate, extracted_text: aiEvidenceText }
+      : candidate);
     candidateToPost = {
-      ...candidate,
+      ...candidateForPost,
       structured_data: {
         ...(candidate.structured_data || {}),
         ai_adjudication: aiResult.adjudication || null,
