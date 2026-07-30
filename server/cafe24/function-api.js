@@ -499,8 +499,7 @@ export function canReopenGeneratedRegularSocialDuplicate(existingRow = {}, incom
     && String(incomingRow?.structured_data?.activity_type || '').toLowerCase() === 'social';
 }
 
-export function canReprocessCollectedAutomaticCandidate(existingRow = {}, incomingRow = {}) {
-  if (!hasRegisteredEventLink(existingRow)) return false;
+export function canReprocessCollectedAutomaticCandidate(existingRow = {}, incomingRow = {}, eventRows = []) {
   if (
     String(existingRow?.status || '').toLowerCase() !== 'collected'
     && existingRow?.is_collected !== true
@@ -514,11 +513,21 @@ export function canReprocessCollectedAutomaticCandidate(existingRow = {}, incomi
     return false;
   }
   if (scrapedRowDate(existingRow) !== scrapedRowDate(incomingRow)) return false;
-  return validateAutomaticRegistrationCandidate({
+  const validation = validateAutomaticRegistrationCandidate({
     ...incomingRow,
     status: 'pending',
     is_collected: false,
-  }).ok;
+  });
+  if (!validation.ok) return false;
+  if (hasRegisteredEventLink(existingRow)) return true;
+
+  const sourceUrl = rowSourceUrl(existingRow, 'scraped_events');
+  const date = scrapedRowDate(existingRow);
+  const exactOperationalMatches = eventRows.filter((event) => (
+    sameSourceUrl(rowSourceUrl(event, 'events'), sourceUrl)
+    && sameEventDate(event, date)
+  ));
+  return exactOperationalMatches.length === 1;
 }
 
 function isOfficialApiEvent(row = {}) {
@@ -640,7 +649,7 @@ async function ingestScrapedItems(values) {
     const row = await prepareScrapedItem(value);
     const existingSameId = scrapedRows.find((item) => String(item?.id || '') === String(row.id));
     const reprocessCollectedAutomatic = existingSameId
-      ? canReprocessCollectedAutomaticCandidate(existingSameId, row)
+      ? canReprocessCollectedAutomaticCandidate(existingSameId, row, eventRows)
       : false;
 
     if (String(existingSameId?.status || '').toLowerCase() === 'excluded') {
@@ -1156,6 +1165,7 @@ export async function cafe24IngestorRegisterEvent(req, res) {
       ...existing,
       ...eventData,
       ...imageFields,
+      ...(automaticRequest ? { time: null } : {}),
       link1: existing.link1 || sourceUrl,
       updated_at: new Date().toISOString(),
     });
@@ -1192,6 +1202,7 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     ...eventData,
     ...imageFields,
     ...benefitFieldsFromStructuredData(mergedStructuredData),
+    ...(automaticRequest ? { time: null } : {}),
     id: eventData.id || crypto.randomUUID(),
     date,
     start_date: String(eventData.start_date || date).slice(0, 10),

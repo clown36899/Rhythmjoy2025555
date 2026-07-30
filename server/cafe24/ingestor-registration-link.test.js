@@ -111,6 +111,56 @@ describe('ingestor registration linkage', () => {
     )).toBe(false);
   });
 
+  it('recovers one legacy collected candidate through one exact operational source/date match', () => {
+    const existing = {
+      id: 'legacy-swingtown',
+      status: 'collected',
+      is_collected: true,
+      source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156592',
+      structured_data: { date: '2026-08-01' },
+    };
+    const corrected = {
+      id: 'legacy-swingtown',
+      source_id: 'swingtown-cafe',
+      source_url: existing.source_url,
+      poster_url: 'https://example.com/swingtown.jpg',
+      extracted_text: '2026.08.01 스윙타운 소셜 DJ 사복',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtown-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙타운 토요소셜',
+        date: '2026-08-01',
+        activity_type: 'social',
+        venue_name: '봉천살롱',
+        venue_provenance: 'source_registry',
+        djs: ['사복'],
+        ai_evidence_quotes: [
+          '2026.08.01',
+          '스윙타운 소셜',
+          'DJ 사복',
+          '검증된 공식 수집원 고정 장소: 봉천살롱',
+        ],
+      },
+    };
+    const exactEvent = {
+      id: 'event-swingtown',
+      date: '2026-08-01',
+      link1: existing.source_url,
+    };
+
+    expect(canReprocessCollectedAutomaticCandidate(existing, corrected, [exactEvent])).toBe(true);
+    expect(canReprocessCollectedAutomaticCandidate(existing, corrected, [])).toBe(false);
+    expect(canReprocessCollectedAutomaticCandidate(existing, corrected, [exactEvent, {
+      ...exactEvent,
+      id: 'event-swingtown-duplicate',
+    }])).toBe(false);
+  });
+
   it('allows a date-only, grounded candidate from an enrolled source', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-safe',
