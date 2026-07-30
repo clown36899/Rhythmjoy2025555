@@ -242,6 +242,12 @@ export function isCollectableDate(date = '', {
   return Boolean(date) && date >= today;
 }
 
+export function stripNaverCafeMemberPrefix(value = '') {
+  return String(value || '')
+    .replace(/^\s*\d+\s*F\s+[A-Za-z0-9가-힣._-]{1,20}\s+/i, '')
+    .trim();
+}
+
 export function normalizeSourceUrl(url = '') {
   try {
     const parsed = new URL(url);

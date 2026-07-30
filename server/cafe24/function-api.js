@@ -499,6 +499,28 @@ export function canReopenGeneratedRegularSocialDuplicate(existingRow = {}, incom
     && String(incomingRow?.structured_data?.activity_type || '').toLowerCase() === 'social';
 }
 
+export function canReprocessCollectedAutomaticCandidate(existingRow = {}, incomingRow = {}) {
+  if (!hasRegisteredEventLink(existingRow)) return false;
+  if (
+    String(existingRow?.status || '').toLowerCase() !== 'collected'
+    && existingRow?.is_collected !== true
+  ) {
+    return false;
+  }
+  if (!sameSourceUrl(
+    rowSourceUrl(existingRow, 'scraped_events'),
+    rowSourceUrl(incomingRow, 'scraped_events'),
+  )) {
+    return false;
+  }
+  if (scrapedRowDate(existingRow) !== scrapedRowDate(incomingRow)) return false;
+  return validateAutomaticRegistrationCandidate({
+    ...incomingRow,
+    status: 'pending',
+    is_collected: false,
+  }).ok;
+}
+
 function isOfficialApiEvent(row = {}) {
   return Boolean(row.external_source?.partner_id && row.external_source?.external_id);
 }
@@ -617,6 +639,9 @@ async function ingestScrapedItems(values) {
   for (const value of sortDateExpansionInputs(values)) {
     const row = await prepareScrapedItem(value);
     const existingSameId = scrapedRows.find((item) => String(item?.id || '') === String(row.id));
+    const reprocessCollectedAutomatic = existingSameId
+      ? canReprocessCollectedAutomaticCandidate(existingSameId, row)
+      : false;
 
     if (String(existingSameId?.status || '').toLowerCase() === 'excluded') {
       const reason = '이미 제외 처리된 같은 후보';
@@ -631,6 +656,7 @@ async function ingestScrapedItems(values) {
       existingSameId
       && terminalScrapedStatus(existingSameId)
       && !canReopenGeneratedRegularSocialDuplicate(existingSameId, row)
+      && !reprocessCollectedAutomatic
     ) {
       const reason = existingSameId.status === 'collected' || existingSameId.is_collected === true
         ? '이미 수집 완료된 같은 후보'
@@ -647,7 +673,9 @@ async function ingestScrapedItems(values) {
       const refreshedRow = await saveCafe24TableRow('scraped_events', {
         ...existingSameId,
         ...row,
-        ...(reopenGeneratedRegular ? { status: 'pending', is_collected: false } : {}),
+        ...(reopenGeneratedRegular || reprocessCollectedAutomatic
+          ? { status: 'pending', is_collected: false }
+          : {}),
         display_no: existingSameId.display_no ?? row.display_no,
         created_at: existingSameId.created_at || row.created_at,
         updated_at: new Date().toISOString(),

@@ -10,6 +10,7 @@ import {
   keepFirstEventDateOnly,
   normalizeSourceUrl,
   prepareCandidate,
+  stripNaverCafeMemberPrefix,
   todayISO,
 } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
@@ -672,7 +673,7 @@ function inferVenueDetails(text = '', source) {
 function inferDjs(text = '') {
   const djs = [];
   for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
-    const value = compactText(match[1])
+    const value = stripNaverCafeMemberPrefix(compactText(match[1]))
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
       .replace(/\s*(?:application|registration|apply)\s*link\b.*$/i, '')
       .replace(/\s*(?:사전\s*신청|현장\s*신청|신청|등록|입금|계좌|문의)\s*(?:링크|방법|안내)?.*$/i, '')

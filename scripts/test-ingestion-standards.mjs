@@ -9,6 +9,7 @@ import {
   makeDeterministicId,
   prepareCandidate,
   isEvergreenSeasonPassCandidate,
+  stripNaverCafeMemberPrefix,
   textSimilarity,
   validateCandidate,
   evaluateAutoRegistrationReadiness,
@@ -1053,6 +1054,9 @@ assert.equal(validateCandidate(baseCandidate({
 assert.equal(isCollectableDate(TODAY, { today: TODAY }), true, 'same-day candidates are collectable without time evidence');
 assert.equal(isCollectableDate('2026-05-22', { today: TODAY }), false, 'past candidates remain excluded');
 assert.equal(isCollectableDate('2026-05-24', { today: TODAY }), true, 'future candidates remain collectable');
+assert.equal(stripNaverCafeMemberPrefix('57F 밍밍 테일'), '테일', 'Naver member grade and nickname must not pollute DJ names');
+assert.equal(stripNaverCafeMemberPrefix('85F 스칼라 루비'), '루비', 'Naver member aliases must be removed consistently');
+assert.equal(stripNaverCafeMemberPrefix('테일'), '테일', 'plain DJ names must remain unchanged');
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23',
   structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'] },

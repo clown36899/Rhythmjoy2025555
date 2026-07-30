@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCollectedScrapedEventRow,
+  canReprocessCollectedAutomaticCandidate,
   canReopenGeneratedRegularSocialDuplicate,
   hasRegisteredEventLink,
   validateAutomaticRegistrationCandidate,
@@ -59,6 +60,55 @@ describe('ingestor registration linkage', () => {
       ...existing,
       structured_data: { _duplicate: { target: 'events', existingId: 'manual-event-1' } },
     }, corrected)).toBe(false);
+  });
+
+  it('reprocesses a corrected automatic candidate only when it already links to the same event source and date', () => {
+    const existing = {
+      id: '7cd2d516eace25d8',
+      status: 'collected',
+      is_collected: true,
+      registered_event_id: 'event-scandal-thu',
+      source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/102575',
+      structured_data: { date: '2026-07-30' },
+    };
+    const corrected = {
+      id: '7cd2d516eace25d8',
+      source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/102575',
+      source_id: 'swingscandal-cafe',
+      poster_url: 'https://example.com/scandal.jpg',
+      extracted_text: '2026.07.30 스윙스캔들 목요소셜 DJ 테일',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingscandal-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙스캔들 목요소셜',
+        date: '2026-07-30',
+        activity_type: 'social',
+        venue_name: '사보이볼룸',
+        venue_provenance: 'source_registry',
+        djs: ['테일'],
+        ai_evidence_quotes: [
+          '2026.07.30',
+          '스윙스캔들 목요소셜',
+          'DJ 테일',
+          '검증된 공식 수집원 고정 장소: 사보이볼룸',
+        ],
+      },
+    };
+
+    expect(canReprocessCollectedAutomaticCandidate(existing, corrected)).toBe(true);
+    expect(canReprocessCollectedAutomaticCandidate(
+      existing,
+      { ...corrected, source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/other' },
+    )).toBe(false);
+    expect(canReprocessCollectedAutomaticCandidate(
+      existing,
+      { ...corrected, structured_data: { ...corrected.structured_data, date: '2026-08-01' } },
+    )).toBe(false);
   });
 
   it('allows a date-only, grounded candidate from an enrolled source', () => {
