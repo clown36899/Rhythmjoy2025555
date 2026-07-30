@@ -4,7 +4,7 @@ import {
   classifyConfirmedBenefitEvent,
   extractIndependentSocialDateSections,
   hasBadPosterUrl,
-  isCollectableDateTime,
+  isCollectableDate,
   keepFirstEventDateOnly,
   makeDeterministicId,
   prepareCandidate,
@@ -1050,18 +1050,23 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',
   structured_data: { title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
 }), { today: TODAY }).ok, false, 'non-social candidates without a confirmed benefit still require an image');
-assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day candidates without explicit future time must not be saved');
-assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha 11:30', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day candidates whose time has already passed must not be saved');
-assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 DJ Alpha 오후 8:30', { today: TODAY, nowMinutes: 12 * 60 }), true, 'same-day candidates need explicit future time');
-assert.equal(isCollectableDateTime(TODAY, '스윙타임 금요 소셜 신청 마감 23:59', { today: TODAY, nowMinutes: 12 * 60 }), false, 'same-day deadline times must not be treated as event start times');
+assert.equal(isCollectableDate(TODAY, { today: TODAY }), true, 'same-day candidates are collectable without time evidence');
+assert.equal(isCollectableDate('2026-05-22', { today: TODAY }), false, 'past candidates remain excluded');
+assert.equal(isCollectableDate('2026-05-24', { today: TODAY }), true, 'future candidates remain collectable');
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23',
   structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'] },
-}), { today: TODAY, nowMinutes: 12 * 60 }).ok, false, 'same-day candidates without time fail standard validation');
+}), { today: TODAY }).ok, true, 'same-day candidates pass standard validation without time');
 assert.equal(validateCandidate(baseCandidate({
-  extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23 20:30',
-  structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'] },
-}), { today: TODAY, nowMinutes: 12 * 60 }).ok, true, 'same-day candidates with future time pass standard validation');
+  extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23 11:30',
+  structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'], time: '11:30', times: ['11:30'] },
+}), { today: TODAY }).ok, true, 'same-day validation ignores event time');
+const dateOnlyPayload = buildCafe24Payload(baseCandidate({
+  extracted_text: '스윙타임 금요 소셜 DJ Alpha 2026.05.23 11:30',
+  structured_data: { title: '스윙타임 금요 소셜', date: TODAY, event_type: '소셜', activity_type: 'social', djs: ['DJ Alpha'], time: '11:30', times: ['11:30'] },
+}), { today: TODAY });
+assert.equal('time' in dateOnlyPayload.structured_data, false, 'collector payloads must not store time');
+assert.equal('times' in dateOnlyPayload.structured_data, false, 'collector payloads must not store time arrays');
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'K-pop cover dance audition 2026.06.01',
   structured_data: { title: 'K-pop cover audition', date: '2026-06-01' },

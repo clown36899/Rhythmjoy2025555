@@ -910,9 +910,9 @@ export function buildCollectedScrapedEventRow({
 }
 
 const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
-  ['kyungsunghall', { activities: new Set(['social']) }],
-  ['swingscandal-cafe', { activities: new Set(['social']) }],
-  ['neo_swing', { activities: new Set(['social', 'class']) }],
+  ['kyungsunghall', { activities: new Set(['social']), trustedVenue: '경성홀' }],
+  ['swingscandal-cafe', { activities: new Set(['social']), trustedVenue: '사보이볼룸' }],
+  ['neo_swing', { activities: new Set(['social', 'class']), trustedVenue: '해피홀' }],
   ['sosyalclub_swing', { activities: new Set(['social']), weekdays: new Set([3]) }],
   ['swingfriends-cafe', { activities: new Set(['social', 'class', 'event', 'sale']), explicitVenue: true }],
   ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), explicitVenue: true }],
@@ -963,7 +963,18 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const evidenceQuotes = Array.isArray(structured.ai_evidence_quotes)
     ? structured.ai_evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)
     : [];
-  const normalizedSourceText = String(scrapedEvent?.extracted_text || '').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
+  const trustedVenueContext = (
+    sourceRule?.trustedVenue
+    && String(structured.venue_provenance || '') === 'source_registry'
+    && normalizeDuplicateText(sourceRule.trustedVenue) === normalizeDuplicateText(venue)
+  )
+    ? `검증된 공식 수집원 고정 장소: ${sourceRule.trustedVenue}`
+    : '';
+  const normalizedSourceText = [
+    scrapedEvent?.extracted_text || '',
+    title,
+    trustedVenueContext,
+  ].filter(Boolean).join('\n').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
   if (!evidenceQuotes.length || evidenceQuotes.some((quote) => !normalizedSourceText.includes(
     quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
   ))) {

@@ -236,65 +236,10 @@ export function todayISO(now = new Date()) {
   }).format(now);
 }
 
-function to24HourNumber(hour, meridiem = '') {
-  let value = Number(hour);
-  if (/오후|저녁|pm/i.test(meridiem) && value < 12) value += 12;
-  if (/오전|am/i.test(meridiem) && value === 12) value = 0;
-  return value;
-}
-
-export function kstNowMinutes(now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Seoul',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(now);
-  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
-  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
-  return (hour * 60) + minute;
-}
-
-export function inferStartMinutes(text = '') {
-  const minutes = [];
-  const raw = String(text || '').replace(/\s+/g, ' ').trim();
-  const nonEventTimeRe = /마감|얼리\s*버드|얼리버드|입금|결제|할인|등록|신청|접수|납부|계좌|deadline|early\s*bird|payment/i;
-  const patterns = [
-    /(오전|오후|저녁|AM|PM)\s*(\d{1,2})\s*[:：]\s*(\d{2})\b/gi,
-    /(오전|오후|저녁|AM|PM)\s*(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분?)?/gi,
-    /(?:^|[^\d])(\d{1,2})\s*[:：]\s*(\d{2})\b/g,
-    /(?:^|[^\d])(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분?)?/g,
-  ];
-
-  for (const pattern of patterns) {
-    for (const match of raw.matchAll(pattern)) {
-      const index = match.index || 0;
-      const context = raw.slice(Math.max(0, index - 24), index + match[0].length + 24);
-      if (nonEventTimeRe.test(context)) continue;
-      const hasMeridiem = /오전|오후|저녁|AM|PM/i.test(match[1] || '');
-      const meridiem = hasMeridiem ? match[1] : '';
-      const hour = hasMeridiem ? match[2] : match[1];
-      const minute = hasMeridiem ? (match[3] || '0') : (match[2] || '0');
-      const numericHour = Number(hour);
-      const numericMinute = Number(minute);
-      if (!Number.isFinite(numericHour) || !Number.isFinite(numericMinute)) continue;
-      if (numericHour < 0 || numericHour > 24 || numericMinute < 0 || numericMinute > 59) continue;
-      minutes.push((to24HourNumber(numericHour, meridiem) * 60) + numericMinute);
-    }
-  }
-
-  return [...new Set(minutes)].sort((a, b) => a - b);
-}
-
-export function isCollectableDateTime(date = '', text = '', {
+export function isCollectableDate(date = '', {
   today = todayISO(),
-  nowMinutes = kstNowMinutes(),
 } = {}) {
-  if (!date) return false;
-  if (date > today) return true;
-  if (date < today) return false;
-  const times = inferStartMinutes(text);
-  return times.length > 0 && times.some((minute) => minute >= nowMinutes);
+  return Boolean(date) && date >= today;
 }
 
 export function normalizeSourceUrl(url = '') {
@@ -779,6 +724,8 @@ function stripVirtualTaxonomyFields(structuredData = {}) {
     taxonomy_confidence,
     tags,
     tag_labels,
+    time,
+    times,
     ...siteStructuredData
   } = structuredData || {};
   return siteStructuredData;
@@ -825,7 +772,7 @@ export function getCollectionExclusionReason(taxonomy) {
   return null;
 }
 
-export function validateCandidate(candidate, { today = todayISO(), nowMinutes = kstNowMinutes() } = {}) {
+export function validateCandidate(candidate, { today = todayISO() } = {}) {
   const errors = [];
   const warnings = [];
   const sourceUrl = normalizeSourceUrl(candidate.source_url);
@@ -851,9 +798,6 @@ export function validateCandidate(candidate, { today = todayISO(), nowMinutes = 
   const statedDay = String(sd.day || '').slice(0, 1) || explicitWeekdayForCandidateDate(text, date);
   if (date && statedDay && statedDay !== weekdayLabelForDate(date)) {
     errors.push(`event weekday mismatch: ${date} is ${weekdayLabelForDate(date)}, not ${statedDay}`);
-  }
-  if (date && date === today && !isEvergreenSeasonPass && !isCollectableDateTime(date, text, { today, nowMinutes })) {
-    errors.push('same-day event requires an explicit future start time');
   }
   if (looksLikeDeadlineOnlyDate(text, date, taxonomy.activity_type)) {
     errors.push('event date looks like a deadline/registration/payment date, not an actual event date');

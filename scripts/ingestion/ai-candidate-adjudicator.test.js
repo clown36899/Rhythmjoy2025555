@@ -128,4 +128,59 @@ describe('AI candidate adjudication grounding', () => {
       evidence_quotes: ['Balboa in Social club', '날짜 : 7월 29일', '장소 : 쏘셜클럽', 'D J : 멍군'],
     }).ok).toBe(true);
   });
+
+  it('accepts fixed venue evidence from a verified single-venue official source', () => {
+    const scandalCandidate = {
+      source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/102575',
+      extracted_text: '2026.07.30 스윙스캔들 목요소셜 DJ 테일',
+      structured_data: {
+        title: '스윙스캔들 목요 소셜',
+        date: '2026-07-30',
+        activity_type: 'social',
+        venue_name: '사보이볼룸',
+        venue_provenance: 'source_registry',
+        djs: ['테일'],
+      },
+    };
+    expect(validateAiAdjudication(scandalCandidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-07-30',
+      activity_type: 'social',
+      venue: '사보이볼룸',
+      djs: ['테일'],
+      evidence_quotes: [
+        '2026.07.30',
+        '스윙스캔들 목요소셜',
+        'DJ 테일',
+        '검증된 공식 수집원 고정 장소: 사보이볼룸',
+      ],
+    }).ok).toBe(true);
+  });
+
+  it('does not use registry venue evidence for a multi-venue explicit source', () => {
+    const multiVenueCandidate = {
+      source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/53903',
+      extracted_text: '2026.08.01 스윙프렌즈 토요소셜 DJ 테스트',
+      structured_data: {
+        title: '스윙프렌즈 토요 소셜',
+        date: '2026-08-01',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        venue_provenance: 'source_registry',
+        djs: ['테스트'],
+      },
+    };
+    const result = validateAiAdjudication(multiVenueCandidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-08-01',
+      activity_type: 'social',
+      venue: '스윙타임',
+      djs: ['테스트'],
+      evidence_quotes: ['2026.08.01', '스윙프렌즈 토요소셜', 'DJ 테스트'],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain('AI evidence does not explicitly contain the candidate venue');
+  });
 });

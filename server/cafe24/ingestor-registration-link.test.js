@@ -99,6 +99,45 @@ describe('ingestor registration linkage', () => {
     expect(validation.eventData).not.toHaveProperty('time');
   });
 
+  it('accepts fixed venue evidence for the official Swing Scandal source', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: '7cd2d516eace25d8',
+      status: 'pending',
+      source_id: 'swingscandal-cafe',
+      poster_url: 'https://example.com/scandal.jpg',
+      extracted_text: '2026.07.30 스윙스캔들 목요소셜 DJ 테일',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingscandal-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙스캔들 목요소셜',
+        date: '2026-07-30',
+        activity_type: 'social',
+        venue_name: '사보이볼룸',
+        venue_provenance: 'source_registry',
+        djs: ['테일'],
+        ai_evidence_quotes: [
+          '2026.07.30',
+          '스윙스캔들 목요소셜',
+          'DJ 테일',
+          '검증된 공식 수집원 고정 장소: 사보이볼룸',
+        ],
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData).toMatchObject({
+      title: 'DJ 테일 | 스윙스캔들 목요소셜',
+      date: '2026-07-30',
+      location: '사보이볼룸',
+    });
+    expect(validation.eventData).not.toHaveProperty('time');
+  });
+
   it('blocks unproved sources, missing DJs, and every time field', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-unsafe',

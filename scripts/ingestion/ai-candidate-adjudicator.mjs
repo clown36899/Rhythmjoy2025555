@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findSourceByUrl } from './collection-registry.mjs';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
 const defaultModel = process.env.INGESTION_AI_MODEL || 'gpt-5.6-sol';
@@ -80,6 +81,19 @@ function normalizedVenue(value) {
     .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
 }
 
+function trustedSourceVenueContext(candidate = {}) {
+  const source = findSourceByUrl(candidate.source_url);
+  const provenance = String(candidate?.structured_data?.venue_provenance || '').trim();
+  if (
+    !source?.venue
+    || source.autoRegistrationVenuePolicy === 'explicit'
+    || provenance !== 'source_registry'
+  ) {
+    return '';
+  }
+  return `검증된 공식 수집원 고정 장소: ${source.venue}`;
+}
+
 function exactEvidenceIsGrounded(evidenceQuotes, sourceText) {
   const haystack = normalized(sourceText);
   return evidenceQuotes.length > 0
@@ -109,7 +123,11 @@ const ACTIVITY_EVIDENCE_PATTERNS = {
 
 export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const sd = candidate?.structured_data || {};
-  const sourceText = `${candidate?.extracted_text || ''}\n${sd.title || ''}`;
+  const sourceText = [
+    candidate?.extracted_text || '',
+    sd.title || '',
+    trustedSourceVenueContext(candidate),
+  ].filter(Boolean).join('\n');
   const evidenceQuotes = Array.isArray(adjudication?.evidence_quotes)
     ? adjudication.evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)
     : [];
@@ -148,6 +166,7 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
 
 function buildPrompt(candidate) {
   const sd = candidate.structured_data || {};
+  const trustedVenueContext = trustedSourceVenueContext(candidate);
   return `You are the second-stage verifier for a Korean swing-dance event calendar.
 Judge only the supplied source text. Do not browse, infer a time, or use outside knowledge.
 The calendar stores dates only. Never output or reason from an event time.
@@ -165,7 +184,9 @@ valid activity evidence). When these fields are explicit, unique, and agree with
 return register with confidence 0.99.
 For venue agreement, treat these established spelling aliases as identical:
 "쏘셜클럽" = "소셜클럽", and "사보이" = "사보이홀" = "사보이볼룸".
-Every evidence quote must be copied exactly from SOURCE_TEXT. Confidence >= 0.98 is reserved for
+When TRUSTED_SOURCE_CONTEXT contains a fixed venue, it is verified configuration for that official
+single-venue source and may be quoted only as venue evidence. It is never date, DJ, or activity evidence.
+Every evidence quote must be copied exactly from SOURCE_TEXT or TRUSTED_SOURCE_CONTEXT. Confidence >= 0.98 is reserved for
 fully explicit, internally consistent evidence. Otherwise return review or reject.
 
 COLLECTOR_CANDIDATE:
@@ -180,7 +201,10 @@ ${JSON.stringify({
   })}
 
 SOURCE_TEXT:
-${String(candidate.extracted_text || '').slice(0, 6000)}`;
+${String(candidate.extracted_text || '').slice(0, 6000)}
+
+TRUSTED_SOURCE_CONTEXT:
+${trustedVenueContext || '(none)'}`;
 }
 
 export async function adjudicateCandidateWithAi(candidate, config = {}) {

@@ -5,7 +5,7 @@ import {
   buildCafe24Payload,
   extractIndependentSocialDateSections,
   getBlockedKeywordReason,
-  isCollectableDateTime,
+  isCollectableDate,
   isEvergreenSeasonPassCandidate,
   keepFirstEventDateOnly,
   normalizeSourceUrl,
@@ -699,32 +699,6 @@ function inferDjs(text = '') {
   return unique(djs).slice(0, 5);
 }
 
-function to24Hour(hour, meridiem = '') {
-  let value = Number(hour);
-  if (/오후|저녁|pm/i.test(meridiem) && value < 12) value += 12;
-  if (/오전|am/i.test(meridiem) && value === 12) value = 0;
-  return String(value).padStart(2, '0');
-}
-
-function inferTimes(text = '') {
-  const times = [];
-  const pattern = /(?:\b(오전|오후|저녁|AM|PM)\s*)?(\d{1,2})(?:[:：](\d{2}))?\s*(?:-|~|–|—)\s*(\d{1,2})(?:[:：](\d{2}))?\s*시?/gi;
-  for (const match of text.matchAll(pattern)) {
-    const meridiem = match[1] || '';
-    const startHour = to24Hour(match[2], meridiem);
-    const endHour = to24Hour(match[4], meridiem);
-    const startMinute = match[3] || '00';
-    const endMinute = match[5] || '00';
-    times.push(`${startHour}:${startMinute}-${endHour}:${endMinute}`);
-  }
-  const singlePattern = /(?:DJ\s*time|time|시작|오픈|입장)?\s*(오전|오후|저녁|AM|PM)\s*(\d{1,2})\s*[:：]\s*(\d{2})/gi;
-  for (const match of text.matchAll(singlePattern)) {
-    const hour = to24Hour(match[2], match[1] || '');
-    times.push(`${hour}:${match[3]}`);
-  }
-  return unique(times).slice(0, 3);
-}
-
 function inferFee(text = '') {
   const match = String(text || '').match(/\(?\s*(\d{1,3}(?:,\d{3})*)\s*원\s*\)?/);
   return match ? `${match[1]}원` : '';
@@ -734,14 +708,13 @@ function extractSocialScheduleItems(text = '', source, title = '') {
   const raw = compactText(text);
   const items = [];
   for (const section of extractIndependentSocialDateSections({ title, text, today })) {
-    if (!isCollectableDateTime(section.date, section.segment)) continue;
+    if (!isCollectableDate(section.date, { today })) continue;
     const titleDay = socialDayTitle(section.day);
     items.push({
       date: section.date,
       day: section.day,
       title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
       djs: inferDjs(section.segment),
-      times: inferTimes(section.segment),
       fee: inferFee(section.segment),
     });
   }
@@ -753,7 +726,7 @@ function extractSocialScheduleItems(text = '', source, title = '') {
     const date = isoDate(getYearForMonth(month), month, day);
     if (date < today) continue;
     const segment = compactText(match[4] || '');
-    if (!isCollectableDateTime(date, `${match[0]}\n${segment}`)) continue;
+    if (!isCollectableDate(date, { today })) continue;
     const dayLabel = match[3] || '';
     const titleDay = socialDayTitle(dayLabel);
     items.push({
@@ -761,7 +734,6 @@ function extractSocialScheduleItems(text = '', source, title = '') {
       day: dayLabel,
       title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
       djs: inferDjs(segment),
-      times: inferTimes(segment),
       fee: inferFee(segment),
     });
   }
@@ -796,7 +768,7 @@ function extractDatedDjSocialItems(raw = '', source) {
     if (!/(?<![A-Za-z0-9가-힣])DJ|디제이/i.test(segment)) continue;
     const djs = inferDjs(segment);
     if (!djs.length) continue;
-    if (!isCollectableDateTime(date, `${match[0]}\n${segment}`)) continue;
+    if (!isCollectableDate(date, { today })) continue;
 
     const dayLabel = match[3] || dayLabelFromISO(date);
     const titleDay = socialDayTitle(dayLabel);
@@ -805,7 +777,6 @@ function extractDatedDjSocialItems(raw = '', source) {
       day: dayLabel,
       title: `${source.name} ${titleDay || ''} 소셜`.replace(/\s+/g, ' ').trim(),
       djs,
-      times: inferTimes(segment),
       fee: inferFee(segment),
     });
   }
@@ -824,15 +795,12 @@ function extractHappyHallWeeklySocialItems(raw = '', source) {
   const dates = extractDates(raw).slice(0, 4);
   const djs = inferDjs(raw);
   if (!dates.length || !djs.length) return [];
-  const times = inferTimes(raw);
   const fee = inferFee(raw);
   const items = [];
   for (const [index, date] of dates.entries()) {
     const assignedDj = djs[index] || (dates.length === 1 ? djs[0] : '');
     if (!assignedDj) continue;
-    const assignedTime = times[index] || (dates.length === 1 ? times[0] : '');
-    const textForDate = `${raw} ${assignedTime || ''}`;
-    if (!isCollectableDateTime(date, textForDate)) continue;
+    if (!isCollectableDate(date, { today })) continue;
     const day = dayLabelFromISO(date);
     const titleDay = socialDayTitle(day);
     items.push({
@@ -840,7 +808,6 @@ function extractHappyHallWeeklySocialItems(raw = '', source) {
       day,
       title: `${source.name} ${titleDay || ''} 소셜`.replace(/\s+/g, ' ').trim(),
       djs: [assignedDj],
-      times: assignedTime ? [assignedTime] : [],
       fee,
     });
   }
@@ -1642,7 +1609,7 @@ async function buildCandidatesFromText({
       const imageData = await getImageData(candidatePosterUrl);
       const hasSameDateSiblings = (socialDateCounts.get(String(item.date || '').slice(0, 10)) || 0) > 1;
       const socialDetailSuffix = hasSameDateSiblings
-        ? [item.title, item.djs.join(','), item.times.join(','), index].filter(Boolean).join('|')
+        ? [item.title, item.djs.join(','), index].filter(Boolean).join('|')
         : '';
       const socialTitle = hasSameDateSiblings && item.djs.length
         ? `${item.title} DJ ${item.djs.join(', ')}`
@@ -1665,7 +1632,6 @@ async function buildCandidatesFromText({
           genre_family: source.genre_family,
           dance_genre: source.dance_genre,
           ...(item.djs.length ? { djs: item.djs } : {}),
-          ...(item.times.length ? { times: item.times } : {}),
           ...(item.fee ? { fee: item.fee } : {}),
         },
       };
@@ -1717,9 +1683,9 @@ async function buildCandidatesFromText({
   };
 
   for (const [index, date] of dates.entries()) {
-    if (!isEvergreenSeasonPass && !isCollectableDateTime(date, `${candidateTitle}\n${cleanText}`)) {
+    if (!isEvergreenSeasonPass && !isCollectableDate(date, { today })) {
       result.skipped += 1;
-      log(`skip ${source.id} ${date}: same-day event has no future time or is already past`);
+      log(`skip ${source.id} ${date}: event date is already past`);
       continue;
     }
     const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
