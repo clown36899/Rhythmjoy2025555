@@ -158,8 +158,8 @@ describe('AI candidate adjudication grounding', () => {
     }).ok).toBe(true);
   });
 
-  it('does not use registry venue evidence for a multi-venue explicit source', () => {
-    const multiVenueCandidate = {
+  it('accepts the verified Swing Friends default venue', () => {
+    const defaultVenueCandidate = {
       source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/53903',
       extracted_text: '2026.08.01 스윙프렌즈 토요소셜 DJ 테스트',
       structured_data: {
@@ -171,16 +171,75 @@ describe('AI candidate adjudication grounding', () => {
         djs: ['테스트'],
       },
     };
-    const result = validateAiAdjudication(multiVenueCandidate, {
+    const result = validateAiAdjudication(defaultVenueCandidate, {
       decision: 'register',
       confidence: 0.99,
       event_date: '2026-08-01',
       activity_type: 'social',
       venue: '스윙타임',
       djs: ['테스트'],
-      evidence_quotes: ['2026.08.01', '스윙프렌즈 토요소셜', 'DJ 테스트'],
+      evidence_quotes: [
+        '2026.08.01',
+        '스윙프렌즈 토요소셜',
+        'DJ 테스트',
+        '검증된 공식 수집원 고정 장소: 스윙타임',
+      ],
     });
-    expect(result.ok).toBe(false);
-    expect(result.reasons).toContain('AI evidence does not explicitly contain the candidate venue');
+    expect(result.ok).toBe(true);
+  });
+
+  it('uses an explicitly named Happy Hall instead of the Swing Friends default venue', () => {
+    const happyHallCandidate = {
+      source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/53904',
+      extracted_text: '2026.08.08 스윙프렌즈 토요소셜 장소 해피홀 DJ 테스트',
+      structured_data: {
+        title: '스윙프렌즈 토요 소셜',
+        date: '2026-08-08',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        venue_provenance: 'source_text',
+        djs: ['테스트'],
+      },
+    };
+    const result = validateAiAdjudication(happyHallCandidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-08-08',
+      activity_type: 'social',
+      venue: '해피홀',
+      djs: ['테스트'],
+      evidence_quotes: ['2026.08.08', '스윙프렌즈 토요소셜', '장소 해피홀', 'DJ 테스트'],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it('normalizes Naver member metadata before comparing the AI DJ', () => {
+    const candidate = {
+      source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/102575',
+      extracted_text: '2026.07.30 스윙스캔들 목요소셜 DJ 57F 밍밍 테일',
+      structured_data: {
+        title: '스윙스캔들 목요 소셜',
+        date: '2026-07-30',
+        activity_type: 'social',
+        venue_name: '사보이볼룸',
+        venue_provenance: 'source_registry',
+        djs: ['테일'],
+      },
+    };
+    const result = validateAiAdjudication(candidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-07-30',
+      activity_type: 'social',
+      venue: '사보이볼룸',
+      djs: ['57F 밍밍 테일'],
+      evidence_quotes: [
+        '2026.07.30',
+        '스윙스캔들 목요소셜',
+        'DJ 57F 밍밍 테일',
+        '검증된 공식 수집원 고정 장소: 사보이볼룸',
+      ],
+    });
+    expect(result.ok).toBe(true);
   });
 });

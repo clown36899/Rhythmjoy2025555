@@ -942,9 +942,9 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['swingscandal-cafe', { activities: new Set(['social']), trustedVenue: '사보이볼룸' }],
   ['neo_swing', { activities: new Set(['social', 'class']), trustedVenue: '해피홀' }],
   ['sosyalclub_swing', { activities: new Set(['social']), weekdays: new Set([3]) }],
-  ['swingfriends-cafe', { activities: new Set(['social', 'class', 'event', 'sale']), explicitVenue: true }],
-  ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), explicitVenue: true }],
-  ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), explicitVenue: true }],
+  ['swingfriends-cafe', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
+  ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
+  ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), trustedVenue: '봉천살롱' }],
 ]);
 
 const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
@@ -980,6 +980,13 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     && !['source_text', 'poster_text', 'manual_verified'].includes(String(structured.venue_provenance || ''))
   ) {
     reasons.push('source requires a venue explicitly verified from the post');
+  }
+  if (
+    sourceRule?.trustedVenue
+    && String(structured.venue_provenance || '') === 'source_registry'
+    && normalizeDuplicateText(sourceRule.trustedVenue) !== normalizeDuplicateText(venue)
+  ) {
+    reasons.push('source registry venue disagrees with configured fixed venue');
   }
   if (sourceRule?.weekdays?.size && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();

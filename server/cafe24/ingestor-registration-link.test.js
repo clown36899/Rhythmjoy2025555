@@ -188,6 +188,72 @@ describe('ingestor registration linkage', () => {
     expect(validation.eventData).not.toHaveProperty('time');
   });
 
+  it('accepts Swing Town and Swing Friends fixed venues plus an explicit Happy Hall override', () => {
+    const buildCandidate = ({
+      sourceId,
+      sourceUrl,
+      date,
+      venue,
+      venueProvenance,
+      trustedVenue,
+    }) => ({
+      source_id: sourceId,
+      source_url: sourceUrl,
+      poster_url: 'https://example.com/poster.jpg',
+      extracted_text: `${date} 소셜 DJ 테스트${venueProvenance === 'source_text' ? ` 장소 ${venue}` : ''}`,
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: sourceId,
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: `${sourceId} 소셜`,
+        date,
+        activity_type: 'social',
+        venue_name: venue,
+        venue_provenance: venueProvenance,
+        djs: ['테스트'],
+        ai_evidence_quotes: [
+          date,
+          '소셜',
+          'DJ 테스트',
+          venueProvenance === 'source_registry'
+            ? `검증된 공식 수집원 고정 장소: ${trustedVenue}`
+            : `장소 ${venue}`,
+        ],
+      },
+    });
+
+    expect(validateAutomaticRegistrationCandidate(buildCandidate({
+      sourceId: 'swingtown-cafe',
+      sourceUrl: 'https://cafe.naver.com/f-e/cafes/10342583/articles/1',
+      date: '2026-08-04',
+      venue: '봉천살롱',
+      venueProvenance: 'source_registry',
+      trustedVenue: '봉천살롱',
+    })).ok).toBe(true);
+
+    expect(validateAutomaticRegistrationCandidate(buildCandidate({
+      sourceId: 'swingfriends-cafe',
+      sourceUrl: 'https://cafe.naver.com/f-e/cafes/10026855/articles/1',
+      date: '2026-08-05',
+      venue: '스윙타임',
+      venueProvenance: 'source_registry',
+      trustedVenue: '스윙타임',
+    })).ok).toBe(true);
+
+    expect(validateAutomaticRegistrationCandidate(buildCandidate({
+      sourceId: 'swingfriends-cafe',
+      sourceUrl: 'https://cafe.naver.com/f-e/cafes/10026855/articles/2',
+      date: '2026-08-08',
+      venue: '해피홀',
+      venueProvenance: 'source_text',
+      trustedVenue: '스윙타임',
+    })).ok).toBe(true);
+  });
+
   it('blocks unproved sources, missing DJs, and every time field', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-unsafe',
@@ -249,7 +315,7 @@ describe('ingestor registration linkage', () => {
       .toContain('candidate weekday is not server-enrolled for source');
   });
 
-  it('blocks a group name used as a venue for multi-venue sources', () => {
+  it('blocks a group name used instead of the configured fixed venue', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'swingtown-bad-venue',
       status: 'pending',
@@ -274,7 +340,7 @@ describe('ingestor registration linkage', () => {
       },
     });
     expect(validation.ok).toBe(false);
-    expect(validation.reasons).toContain('source requires a venue explicitly verified from the post');
+    expect(validation.reasons).toContain('source registry venue disagrees with configured fixed venue');
   });
 
   it('never auto-registers a duplicate candidate', () => {

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSourceByUrl } from './collection-registry.mjs';
+import { stripNaverCafeMemberPrefix } from './candidate-utils.mjs';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
 const defaultModel = process.env.INGESTION_AI_MODEL || 'gpt-5.6-sol';
@@ -84,10 +85,12 @@ function normalizedVenue(value) {
 function trustedSourceVenueContext(candidate = {}) {
   const source = findSourceByUrl(candidate.source_url);
   const provenance = String(candidate?.structured_data?.venue_provenance || '').trim();
+  const candidateVenue = candidate?.structured_data?.venue_name || candidate?.structured_data?.location || '';
   if (
     !source?.venue
     || source.autoRegistrationVenuePolicy === 'explicit'
     || provenance !== 'source_registry'
+    || normalizedVenue(source.venue) !== normalizedVenue(candidateVenue)
   ) {
     return '';
   }
@@ -132,10 +135,13 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
     ? adjudication.evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)
     : [];
   const candidateDjs = Array.isArray(sd.djs) ? sd.djs.map(normalized).filter(Boolean) : [];
-  const aiDjs = Array.isArray(adjudication?.djs) ? adjudication.djs.map(normalized).filter(Boolean) : [];
+  const aiDjs = Array.isArray(adjudication?.djs)
+    ? adjudication.djs.map((dj) => normalized(stripNaverCafeMemberPrefix(dj))).filter(Boolean)
+    : [];
   const threshold = Number(config.minimumConfidence ?? minimumConfidence);
   const evidenceCorpus = normalized(evidenceQuotes.join(' '));
   const candidateVenue = normalizedVenue(sd.venue_name || sd.location);
+  const source = findSourceByUrl(candidate?.source_url);
   const reasons = [];
 
   if (adjudication?.decision !== 'register') reasons.push('AI did not approve registration');
@@ -143,6 +149,13 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   if (String(adjudication?.event_date || '') !== String(sd.date || '').slice(0, 10)) reasons.push('AI date disagrees with collector date');
   if (String(adjudication?.activity_type || '') !== String(sd.activity_type || '')) reasons.push('AI activity disagrees with collector activity');
   if (normalizedVenue(adjudication?.venue) !== candidateVenue) reasons.push('AI venue disagrees with collector venue');
+  if (
+    String(sd.venue_provenance || '') === 'source_registry'
+    && source?.venue
+    && normalizedVenue(source.venue) !== candidateVenue
+  ) {
+    reasons.push('collector registry venue disagrees with configured fixed venue');
+  }
   if (candidateDjs.length && (candidateDjs.length !== aiDjs.length || candidateDjs.some((dj) => !aiDjs.includes(dj)))) {
     reasons.push('AI DJ list disagrees with collector DJ list');
   }
@@ -186,6 +199,8 @@ For venue agreement, treat these established spelling aliases as identical:
 "쏘셜클럽" = "소셜클럽", and "사보이" = "사보이홀" = "사보이볼룸".
 When TRUSTED_SOURCE_CONTEXT contains a fixed venue, it is verified configuration for that official
 single-venue source and may be quoted only as venue evidence. It is never date, DJ, or activity evidence.
+In Naver Cafe text, a prefix such as "57F 밍밍" before the actual DJ is a member-grade and author
+nickname, not part of the DJ name. Exclude that prefix and return only the collector-normalized DJ.
 Every evidence quote must be copied exactly from SOURCE_TEXT or TRUSTED_SOURCE_CONTEXT. Confidence >= 0.98 is reserved for
 fully explicit, internally consistent evidence. Otherwise return review or reject.
 

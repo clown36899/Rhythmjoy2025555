@@ -770,8 +770,12 @@ const correctedSocialClubDj = prepareCandidate(baseCandidate({
 assert.equal(correctedSocialClubDj.validation.ok, true);
 
 const swingtownSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingtown-cafe');
+const swingFriendsCafeSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingfriends-cafe');
+const swingFriendsInstagramSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swing_friends');
 const swingScandalSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingscandal-cafe');
-assert.equal(swingtownSource?.venue, '');
+assert.equal(swingtownSource?.venue, '봉천살롱');
+assert.equal(swingFriendsCafeSource?.venue, '스윙타임');
+assert.equal(swingFriendsInstagramSource?.venue, '스윙타임');
 assert.equal(swingScandalSource?.venue, '사보이볼룸');
 assert.equal(swingScandalSource?.autoRegistrationPolicy, 'shadow');
 assert.equal(
@@ -849,9 +853,9 @@ assert.deepEqual(
   ),
   {
     'sweetyswing-lessons': { venue: '', policy: 'manual', venuePolicy: 'explicit' },
-    'swingtown-cafe': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
-    swing_friends: { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
-    'swingfriends-cafe': { venue: '', policy: 'shadow', venuePolicy: 'explicit' },
+    'swingtown-cafe': { venue: '봉천살롱', policy: 'shadow', venuePolicy: 'registry-or-explicit' },
+    swing_friends: { venue: '스윙타임', policy: 'shadow', venuePolicy: 'registry-or-explicit' },
+    'swingfriends-cafe': { venue: '스윙타임', policy: 'shadow', venuePolicy: 'registry-or-explicit' },
   },
 );
 
@@ -899,7 +903,7 @@ const autoBlockedGenericParty = evaluateAutoRegistrationReadiness(baseCandidate(
 assert.equal(autoBlockedGenericParty.ready, false);
 assert.ok(autoBlockedGenericParty.reasons.some((reason) => reason.includes('DJ')));
 
-const autoBlockedFriendsRegistryVenue = evaluateAutoRegistrationReadiness(baseCandidate({
+const autoReadyFriendsRegistryVenue = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://www.instagram.com/swing_friends/p/MULTIVENUE1/',
   poster_url: 'https://example.com/friends.webp',
   structured_data: {
@@ -912,8 +916,7 @@ const autoBlockedFriendsRegistryVenue = evaluateAutoRegistrationReadiness(baseCa
     djs: ['윤슬'],
   },
 }), { today: TODAY });
-assert.equal(autoBlockedFriendsRegistryVenue.ready, false);
-assert.ok(autoBlockedFriendsRegistryVenue.reasons.some((reason) => reason.includes('explicitly verified')));
+assert.equal(autoReadyFriendsRegistryVenue.ready, true);
 
 const autoReadyFriendsExplicitVenue = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://www.instagram.com/swing_friends/p/MULTIVENUE2/',
