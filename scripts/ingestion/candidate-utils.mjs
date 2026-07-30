@@ -366,7 +366,7 @@ export function extractDatedDjSections({
   const todayYear = Number(String(today).slice(0, 4));
   const todayMonth = Number(String(today).slice(5, 7));
   const sections = [];
-  const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
+  const pattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
 
   for (const match of raw.matchAll(pattern)) {
     const month = Number(match[1]);
@@ -402,6 +402,72 @@ export function isHighConfidenceDatedSocialSchedule(items = []) {
   return validItems.length >= 2
     && new Set(validItems.map((item) => item.date)).size >= 2
     && validItems.length === items.length;
+}
+
+function parseNeoWeeklySchedule({
+  text = '',
+  today = todayISO(),
+} = {}) {
+  const raw = String(text || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!/위클리\s*네오/i.test(raw) || !/(?:금|일)\s*햅/i.test(raw)) {
+    return { items: [], closureDates: [] };
+  }
+
+  const todayYear = Number(String(today).slice(0, 4));
+  const todayMonth = Number(String(today).slice(5, 7));
+  const dates = [];
+  const closureDates = new Set();
+  const dateSectionPattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
+
+  for (const match of raw.matchAll(dateSectionPattern)) {
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    const year = month + 1 < todayMonth ? todayYear + 1 : todayYear;
+    const date = isoDateForIngestion(year, month, day);
+    if (!isCollectableDate(date, { today })) continue;
+    const dateLabel = String(match[0] || '')
+      .slice(0, Math.max(0, String(match[0] || '').length - String(match[4] || '').length))
+      .trim();
+    dates.push({
+      date,
+      day: match[3] || weekdayLabelForDate(date),
+      dateLabel,
+    });
+    if (/(?:강습|소셜|운영)[^.\n]{0,30}(?:쉬어\s*갑니다|쉽니다|쉬어요|휴무|없습니다|없어요|취소)/i.test(match[4] || '')) {
+      closureDates.add(date);
+    }
+  }
+
+  const uniqueDates = [...new Map(dates.map((item) => [item.date, item])).values()];
+  const items = [];
+  for (const match of raw.matchAll(/(?:🎧\s*)?([금일])\s*햅\s*(?:D\s*J|디제이)\s*[:：]?\s*([A-Za-z0-9가-힣._&+\-/]{1,28})/gi)) {
+    const day = match[1];
+    const dateItem = uniqueDates.find((item) => item.day === day && !closureDates.has(item.date));
+    if (!dateItem || items.some((item) => item.date === dateItem.date)) continue;
+    items.push({
+      ...dateItem,
+      djs: [match[2]],
+      djLabel: String(match[0] || '').trim(),
+      venueEvidence: raw.includes('해피홀') ? '해피홀' : '',
+    });
+  }
+
+  return {
+    items: items.sort((a, b) => a.date.localeCompare(b.date)),
+    closureDates: [...closureDates].sort(),
+  };
+}
+
+export function extractNeoWeeklySocialSchedule(options = {}) {
+  return parseNeoWeeklySchedule(options).items;
+}
+
+export function extractNeoWeeklyClosureDates(options = {}) {
+  return parseNeoWeeklySchedule(options).closureDates;
 }
 
 export function normalizeText(value = '') {

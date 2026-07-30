@@ -5,6 +5,8 @@ import {
   buildCafe24Payload,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
+  extractNeoWeeklyClosureDates,
+  extractNeoWeeklySocialSchedule,
   getBlockedKeywordReason,
   isHighConfidenceDatedSocialSchedule,
   isCollectableDate,
@@ -720,6 +722,20 @@ function inferUnambiguousFee(text = '') {
 
 function extractSocialScheduleItems(text = '', source, title = '') {
   const raw = compactText(text);
+  if (source?.id === 'neo_swing' && /위클리\s*네오/i.test(raw)) {
+    return extractNeoWeeklySocialSchedule({ text: raw, today }).map((item) => ({
+      date: item.date,
+      day: item.day,
+      title: `${source.name.replace(/\s*인스타그램$/i, '')} ${socialDayTitle(item.day) || ''} 소셜`.replace(/\s+/g, ' ').trim(),
+      djs: item.djs,
+      fee: '',
+      aiEvidenceText: [
+        item.venueEvidence,
+        item.dateLabel,
+        item.djLabel,
+      ].filter(Boolean).join('\n'),
+    }));
+  }
   const items = [];
   for (const section of extractIndependentSocialDateSections({ title, text, today })) {
     if (!isCollectableDate(section.date, { today })) continue;
@@ -784,6 +800,7 @@ function extractDatedDjSocialItems(raw = '', source) {
       fee: inferUnambiguousFee(segment),
       aiEvidenceText: [
         raw.includes(source.name) ? source.name : '',
+        source.venue && raw.includes(source.venue) ? source.venue : '',
         section.dateLabel,
         segment.split(/\s(?:💰|✨|입장료|클래스\s*[:：])/i)[0].trim(),
       ].filter(Boolean).join('\n'),
@@ -1543,7 +1560,58 @@ async function buildCandidatesFromText({
     if (!exceptions.length) result.skipped += 1;
     return exceptions;
   }
-  if (closureEventPattern.test(cleanText)) {
+  const preclassifiedSocialScheduleItems = extractSocialScheduleItems(rawText, source, title)
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  const genericMixedClosureCandidates = closureEventPattern.test(cleanText) && preclassifiedSocialScheduleItems.length
+    ? buildExceptionBacktestCandidates({
+      source,
+      sourceUrl,
+      cleanText,
+      title,
+      posterUrl,
+      posterUrls,
+      publishedAt,
+    }).filter((candidate) => (
+      ['closure', 'recurring_closure'].includes(candidate.exception_type)
+      && candidate.structured_data.date
+    ))
+    : [];
+  const neoClosureDates = source.id === 'neo_swing'
+    ? extractNeoWeeklyClosureDates({ text: rawText, today })
+    : [];
+  const venueResolutionForClosure = inferVenueDetails(cleanText, source);
+  const sourceKeyForClosure = Buffer.from(sourceUrl).toString('base64url').slice(-18);
+  const neoMixedClosureCandidates = neoClosureDates.map((date) => ({
+    id: `exception-backtest:${source.id}:closure:${date}:${sourceKeyForClosure}`,
+    keyword: source.name,
+    source_id: source.id,
+    source_url: sourceUrl,
+    poster_url: posterUrls[0] || posterUrl || '',
+    published_at: publishedAt || '',
+    exception_type: 'closure',
+    date_ambiguous: false,
+    date_candidates: [date],
+    evidence: exceptionEvidence(cleanText, closureEventPattern),
+    structured_data: {
+      title: `${source.name} 휴무 ${date}`,
+      date,
+      activity_type: 'social_exception',
+      event_type: '휴무',
+      ...(venueResolutionForClosure.venue ? {
+        location: venueResolutionForClosure.venue,
+        venue_name: venueResolutionForClosure.venue,
+        venue_provenance: venueResolutionForClosure.provenance,
+      } : {}),
+      dance_scope: source.scope,
+      genre_family: source.genre_family,
+      dance_genre: source.dance_genre,
+    },
+  }));
+  const mixedClosureCandidates = [...new Map(
+    [...genericMixedClosureCandidates, ...neoMixedClosureCandidates]
+      .map((candidate) => [candidate.id, candidate]),
+  ).values()];
+  if (closureEventPattern.test(cleanText) && !preclassifiedSocialScheduleItems.length) {
     if (!posterUrls.length && !posterUrl) {
       result.skipped += 1;
       log(`skip ${source.id}: closure notice without poster`);
@@ -1564,6 +1632,9 @@ async function buildCandidatesFromText({
     if (!closures.length) result.skipped += 1;
     return closures;
   }
+  if (closureEventPattern.test(cleanText) && preclassifiedSocialScheduleItems.length) {
+    log(`mixed closure/social ${source.id}: preserving ${preclassifiedSocialScheduleItems.length} explicit dated DJ schedule(s)`);
+  }
   const blockedKeywordReason = getBlockedKeywordReason(`${title}\n${cleanText}\n${sourceUrl}`);
   if (blockedKeywordReason) {
     result.skipped += 1;
@@ -1579,8 +1650,7 @@ async function buildCandidatesFromText({
   }
 
   const inferredActivity = inferActivity(cleanText);
-  const socialScheduleItems = extractSocialScheduleItems(rawText, source, title)
-    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+  const socialScheduleItems = preclassifiedSocialScheduleItems;
   const preferDatedSocialSchedule = isHighConfidenceDatedSocialSchedule(socialScheduleItems);
   const { activity, eventType } = preferDatedSocialSchedule
     ? { activity: 'social', eventType: '소셜' }
@@ -1659,7 +1729,7 @@ async function buildCandidatesFromText({
       candidates.push(buildCafe24Payload(raw, { today }));
     }
 
-    return candidates;
+    return [...mixedClosureCandidates, ...candidates];
   }
 
   const isEvergreenSeasonPass = source.benefitKind === 'season_pass'

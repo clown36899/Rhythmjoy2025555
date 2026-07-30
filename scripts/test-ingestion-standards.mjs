@@ -4,6 +4,8 @@ import {
   classifyConfirmedBenefitEvent,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
+  extractNeoWeeklyClosureDates,
+  extractNeoWeeklySocialSchedule,
   hasBadPosterUrl,
   isCollectableDate,
   keepFirstEventDateOnly,
@@ -111,6 +113,46 @@ assert.equal(
   ]),
   false,
   'incomplete weekly schedules must not be promoted to automatic social registration',
+);
+
+const neoMixedClosureSections = extractDatedDjSections({
+  today: '2026-07-30',
+  text: `위클리 네오 7월 5주차
+7월 31일 금햅 DJ 호두
+스윙베이비 [프랑]
+8월 2일 일요일, 해피홀에서의 강습과 소셜은 한 주 쉬어갑니다.`,
+});
+assert.deepEqual(
+  neoMixedClosureSections.map(({ date, day, segment }) => ({
+    date,
+    day,
+    dj: segment.match(/DJ\s+([A-Za-z가-힣]+)/i)?.[1] || '',
+  })),
+  [{ date: '2026-07-31', day: '금', dj: '호두' }],
+  'a dated Neo DJ social must survive when a different date in the same weekly post is a closure',
+);
+assert.deepEqual(
+  extractNeoWeeklySocialSchedule({
+    today: '2026-07-30',
+    text: `위클리 네오 7월 5주차
+🎧 금햅 DJ 호두
+🪩 스윙베이비 [프랑]
+7월 31일 금햅
+8월 2일 일요일, 해피홀에서의 강습과 소셜은 한 주 쉬어갑니다.`,
+  }).map(({ date, day, djs }) => ({ date, day, djs })),
+  [{ date: '2026-07-31', day: '금', djs: ['호두'] }],
+  'Neo weekly parsing must keep the Friday DJ, ignore non-DJ program text, and exclude the Sunday closure',
+);
+assert.deepEqual(
+  extractNeoWeeklyClosureDates({
+    today: '2026-07-30',
+    text: `위클리 네오 7월 5주차
+🎧 금햅 DJ 호두
+7월 31일 금햅
+8월 2일 일요일, 해피홀에서의 강습과 소셜은 한 주 쉬어갑니다.`,
+  }),
+  ['2026-08-02'],
+  'Neo weekly parsing must preserve the explicit closure date separately from active social sessions',
 );
 
 assert.equal(classifyConfirmedBenefitEvent({
