@@ -951,6 +951,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['swingscandal-cafe', { activities: new Set(['social']), trustedVenue: '사보이볼룸' }],
   ['neo_swing', { activities: new Set(['social', 'class']), trustedVenue: '해피홀' }],
   ['sosyalclub_swing', { activities: new Set(['social']), weekdays: new Set([3]) }],
+  ['swingtimebar', { activities: new Set(['social']), trustedVenue: '스윙타임' }],
   ['swingfriends-cafe', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
   ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
   ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), trustedVenue: '봉천살롱' }],
@@ -1001,7 +1002,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
     if (!sourceRule.weekdays.has(weekday)) reasons.push('candidate weekday is not server-enrolled for source');
   }
-  if (!scrapedEvent?.poster_url) reasons.push('poster image is required');
+  if (activity !== 'social' && !scrapedEvent?.poster_url) reasons.push('poster image is required');
   if (activity === 'social' && djs.length === 0) reasons.push('social requires a DJ');
   if (structured.times?.length || structured.time) reasons.push('time fields are not accepted');
   const evidenceQuotes = Array.isArray(structured.ai_evidence_quotes)
@@ -1033,6 +1034,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     const datePatterns = [
       new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
       new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
+      new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*(?:0?\\d{1,2}\\s*(?:일)?\\s*[,，·ㆍ/&]\\s*)+0?${day}\\s*일`),
       new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
     ];
     if (!datePatterns.some((pattern) => pattern.test(normalizedEvidence))) {

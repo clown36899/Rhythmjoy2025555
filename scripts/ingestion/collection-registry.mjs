@@ -166,7 +166,7 @@ export const collectionSources = [
   })),
   source({ id: 'happyhall2004', name: '해피홀', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/happyhall2004/', priority: 1, runOrder: -1.0 }),
   source({ id: 'neo_swing', name: '네오스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/neo_swing/', venue: '해피홀', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class'], priority: 1, notes: '공식 Instagram 원본만 사용한다. 날짜·활동·해피홀·(소셜이면) DJ가 원문에 명시되고 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
-  source({ id: 'swingtimebar', name: '스윙타임', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingtimebar/', priority: 1 }),
+  source({ id: 'swingtimebar', name: '스윙타임', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingtimebar/', venue: '스윙타임', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social'], priority: 1, notes: '공식 단일 장소 계정이다. 소셜은 원문에서 미래 날짜와 날짜별 DJ가 명확하고 AI 98% 재검증을 통과하면 이미지 없이도 자동등록한다.' }),
   source({ id: 'fiesta_swingdance', name: '피에스타', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/fiesta_swingdance/', priority: 1 }),
   source({ id: 'bongcheonsalon', name: '봉천살롱', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/bongcheonsalon/', priority: 1 }),
   source({ id: 'bebopbar_swing', name: '비밥바', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/bebopbar_swing/', priority: 1 }),

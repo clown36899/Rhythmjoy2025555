@@ -238,6 +238,44 @@ describe('ingestor registration linkage', () => {
     expect(validation.eventData).not.toHaveProperty('time');
   });
 
+  it('accepts an image-less Swingtime social when date and DJ evidence are grounded', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'swingtime-no-image',
+      status: 'pending',
+      source_id: 'swingtimebar',
+      extracted_text: '8월 2일 일요일 소셜 DJ 훔머',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtimebar',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙타임 일요 소셜',
+        date: '2026-08-02',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        venue_provenance: 'source_registry',
+        djs: ['훔머'],
+        ai_evidence_quotes: [
+          '8월 2일',
+          '일요일 소셜',
+          'DJ 훔머',
+          '검증된 공식 수집원 고정 장소: 스윙타임',
+        ],
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData).toMatchObject({
+      title: 'DJ 훔머 | 스윙타임 일요 소셜',
+      date: '2026-08-02',
+      location: '스윙타임',
+      image: null,
+    });
+  });
+
   it('accepts Swing Town and Swing Friends fixed venues plus an explicit Happy Hall override', () => {
     const buildCandidate = ({
       sourceId,

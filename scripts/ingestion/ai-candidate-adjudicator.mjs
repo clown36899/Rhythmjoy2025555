@@ -112,6 +112,7 @@ function evidenceMentionsDate(evidence, isoDate) {
   return [
     new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
     new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
+    new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*(?:0?\\d{1,2}\\s*(?:일)?\\s*[,，·ㆍ/&]\\s*)+0?${day}\\s*일`),
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
   ].some((pattern) => pattern.test(evidence));
 }
@@ -191,6 +192,8 @@ The collector resolves the year from the collection date. When SOURCE_TEXT expli
 same month and day but omits the year, return the collector ISO event_date; an explicit source year
 is not required. Never do this when a conflicting event month/day remains in SOURCE_TEXT.
 Dates explicitly labeled as advance-registration/payment deadlines are not competing event dates.
+Compact source headers such as "8월 1,2일" may support the collector date only when SOURCE_TEXT
+contains just the matching weekday/DJ section and no competing lineup.
 For every register decision, evidence_quotes must separately include the event date, venue, every DJ,
 and an activity marker. For a social, quote text containing "Social" or "소셜" (the event title is
 valid activity evidence). When these fields are explicit, unique, and agree with the collector,

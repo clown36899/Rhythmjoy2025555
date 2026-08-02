@@ -51,6 +51,10 @@ const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')
   .split(',')
   .map((id) => id.trim())
   .filter(Boolean);
+const traceSourceIds = new Set((process.env.INGESTION_NATIVE_TRACE_SOURCE_IDS || '')
+  .split(',')
+  .map((id) => id.trim())
+  .filter(Boolean));
 const sourcePriorities = (process.env.INGESTION_NATIVE_SOURCE_PRIORITY || process.env.INGESTION_NATIVE_PRIORITY || '')
   .split(',')
   .map((priority) => priority.trim())
@@ -720,6 +724,20 @@ function inferUnambiguousFee(text = '') {
   return fees.length === 1 ? fees[0] : '';
 }
 
+function explicitDateListEvidence(text = '', date = '') {
+  const match = String(date).match(/^\d{4}-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  for (const dateList of String(text).matchAll(/\d{1,2}\s*월\s*(?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8}/g)) {
+    const value = dateList[0];
+    const parsedMonth = Number(value.match(/^(\d{1,2})/)?.[1]);
+    const days = [...value.replace(/^\d{1,2}\s*월/, '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));
+    if (parsedMonth === month && days.includes(day)) return value.trim();
+  }
+  return '';
+}
+
 function extractSocialScheduleItems(text = '', source, title = '') {
   const raw = compactText(text);
   if (source?.id === 'neo_swing' && /위클리\s*네오/i.test(raw)) {
@@ -746,6 +764,10 @@ function extractSocialScheduleItems(text = '', source, title = '') {
       title: titleDay ? `${source.name} ${titleDay} 소셜` : `${source.name} 소셜`,
       djs: inferDjs(section.segment),
       fee: inferUnambiguousFee(section.segment),
+      aiEvidenceText: [
+        explicitDateListEvidence(raw, section.date),
+        section.segment,
+      ].filter(Boolean).join('\n'),
     });
   }
   const pattern = /(?:^|\s)(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*(?:소셜|social)\s*[:：]?\s*([\s\S]*?)(?=(?:\s\d{1,2}\s*(?:[./]|월)\s*\d{1,2}\s*(?:일)?\s*(?:\(\s*[월화수목금토일]\s*\))?\s*(?:소셜|social)\s*[:：]?)|$)/gi;
@@ -1126,6 +1148,15 @@ async function scrapeInstagramPost(page, url, source) {
   let text = [imageAltText, data.articleText || data.metaDescription || data.ogTitle || '']
     .filter(Boolean)
     .join('\n');
+  if (traceSourceIds.has(source.id)) {
+    log(`trace ${source.id} ${url}: ${JSON.stringify({
+      publishedAt: data.publishedAt,
+      title: data.ogTitle,
+      text: text.slice(0, 3000),
+      primaryImages: primaryImages.map(({ src, w, h, rectW, rectH }) => ({ src, w, h, rectW, rectH })),
+      ogImage: data.ogImage,
+    })}`);
+  }
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
   const expectedHandle = expectedInstagramHandleForSource(source);
@@ -1643,18 +1674,17 @@ async function buildCandidatesFromText({
   }
 
   const posterUrlList = unique([...posterUrls, posterUrl].filter(Boolean));
-  if (!posterUrlList.length) {
-    result.skipped += 1;
-    result.issues.push(`${source.id}: poster missing`);
-    return [];
-  }
-
   const inferredActivity = inferActivity(cleanText);
   const socialScheduleItems = preclassifiedSocialScheduleItems;
   const preferDatedSocialSchedule = isHighConfidenceDatedSocialSchedule(socialScheduleItems);
   const { activity, eventType } = preferDatedSocialSchedule
     ? { activity: 'social', eventType: '소셜' }
     : inferredActivity;
+  if (!posterUrlList.length && activity !== 'social') {
+    result.skipped += 1;
+    result.issues.push(`${source.id}: poster missing`);
+    return [];
+  }
   const venueResolution = inferVenueDetails(cleanText, source);
   const venue = venueResolution.venue;
   const djs = inferDjs(cleanText);
@@ -1687,7 +1717,7 @@ async function buildCandidatesFromText({
     };
 
     for (const [index, item] of socialScheduleItems.entries()) {
-      const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
+      const candidatePosterUrl = posterUrlList[index] || posterUrlList[0] || '';
       const imageData = await getImageData(candidatePosterUrl);
       const hasSameDateSiblings = (socialDateCounts.get(String(item.date || '').slice(0, 10)) || 0) > 1;
       const socialDetailSuffix = hasSameDateSiblings
@@ -1700,10 +1730,11 @@ async function buildCandidatesFromText({
         keyword: source.name,
         source_url: sourceUrl,
         ...(socialDetailSuffix ? { id_suffix: socialDetailSuffix } : {}),
-        poster_url: candidatePosterUrl,
+        ...(candidatePosterUrl ? { poster_url: candidatePosterUrl } : {}),
         ...(imageData ? { imageData } : {}),
         ...(item.aiEvidenceText ? { _ai_evidence_text: `${item.aiEvidenceText}\n${socialTitle}` } : {}),
-        extracted_text: cleanText.slice(0, 6000),
+        ...(item.aiEvidenceText ? { _date_scoped_social_evidence: true } : {}),
+        extracted_text: String(item.aiEvidenceText || cleanText).slice(0, 6000),
         structured_data: {
           title: socialTitle,
           date: item.date,
@@ -1771,12 +1802,12 @@ async function buildCandidatesFromText({
       log(`skip ${source.id} ${date}: event date is already past`);
       continue;
     }
-    const candidatePosterUrl = posterUrlList[index] || posterUrlList[0];
+    const candidatePosterUrl = posterUrlList[index] || posterUrlList[0] || '';
     const imageData = await getImageData(candidatePosterUrl);
     const raw = {
       keyword: source.name,
       source_url: sourceUrl,
-      poster_url: candidatePosterUrl,
+      ...(candidatePosterUrl ? { poster_url: candidatePosterUrl } : {}),
       ...(imageData ? { imageData } : {}),
       extracted_text: cleanText.slice(0, 6000),
       structured_data: {
@@ -1827,6 +1858,7 @@ async function postCandidate(candidate) {
 
   const {
     _ai_evidence_text: aiEvidenceText = '',
+    _date_scoped_social_evidence: _dateScopedSocialEvidence = false,
     ...candidateForPost
   } = candidate;
   let candidateToPost = candidateForPost;

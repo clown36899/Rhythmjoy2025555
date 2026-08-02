@@ -104,8 +104,27 @@ assert.equal(
     djs: [section.segment.match(/DJ\s+([A-Za-z가-힣]+)/i)?.[1]].filter(Boolean),
   }))),
   true,
-  'two or more complete date/DJ pairs must take precedence over post-wide class wording',
+  'complete date/DJ pairs must take precedence over post-wide class wording',
 );
+assert.equal(
+  isHighConfidenceDatedSocialSchedule([
+    { date: '2026-08-02', djs: ['훔머'] },
+  ]),
+  true,
+  'one complete date/DJ pair must be enough to isolate a social from an adjacent event notice',
+);
+const scopedMultiDateSocial = prepareCandidate(baseCandidate({
+  _date_scoped_social_evidence: true,
+  extracted_text: `8월 1,2일\n일요일 소셜이 진행 됩니다. DJ '훔머'`,
+  structured_data: {
+    title: '스윙타임 일요 소셜',
+    date: '2026-08-02',
+    location: '스윙타임',
+    activity_type: 'social',
+    djs: ['훔머'],
+  },
+}), { today: TODAY });
+assert.equal(scopedMultiDateSocial.validation.ok, true, 'a date-list header is valid after the collector isolates one weekday/DJ section');
 assert.equal(
   isHighConfidenceDatedSocialSchedule([
     { date: '2026-08-01', djs: ['북실'] },
@@ -862,11 +881,15 @@ const swingtownSource = getAutomationSourceList('swing-daily').find((item) => it
 const swingFriendsCafeSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingfriends-cafe');
 const swingFriendsInstagramSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swing_friends');
 const swingScandalSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingscandal-cafe');
+const swingtimeSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingtimebar');
 assert.equal(swingtownSource?.venue, '봉천살롱');
 assert.equal(swingFriendsCafeSource?.venue, '스윙타임');
 assert.equal(swingFriendsInstagramSource?.venue, '스윙타임');
 assert.equal(swingScandalSource?.venue, '사보이볼룸');
 assert.equal(swingScandalSource?.autoRegistrationPolicy, 'shadow');
+assert.equal(swingtimeSource?.venue, '스윙타임');
+assert.equal(swingtimeSource?.autoRegistrationPolicy, 'shadow');
+assert.deepEqual(swingtimeSource?.autoRegistrationAllowedActivityTypes, ['social']);
 assert.equal(
   getAutomationSourceList('swing-daily').find((item) => item.id === 'kyungsunghall')?.autoRegistrationPolicy,
   'shadow',
@@ -976,6 +999,23 @@ const autoReadyScandal = evaluateAutoRegistrationReadiness(baseCandidate({
   },
 }), { today: TODAY });
 assert.equal(autoReadyScandal.ready, true);
+
+const autoReadySwingtimeWithoutImage = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_url: 'https://www.instagram.com/swingtimebar/p/NOIMAGE1/',
+  poster_url: '',
+  imageData: '',
+  extracted_text: '스윙타임빠 8월 2일 일요일 소셜 DJ 훔머',
+  structured_data: {
+    title: '스윙타임 일요 소셜',
+    date: '2026-08-02',
+    location: '스윙타임',
+    venue_name: '스윙타임',
+    venue_provenance: 'source_registry',
+    activity_type: 'social',
+    djs: ['훔머'],
+  },
+}), { today: TODAY });
+assert.equal(autoReadySwingtimeWithoutImage.ready, true);
 
 const autoBlockedGenericParty = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://www.instagram.com/kyungsunghall/p/GENERIC1/',

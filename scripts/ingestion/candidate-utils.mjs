@@ -399,8 +399,8 @@ export function isHighConfidenceDatedSocialSchedule(items = []) {
     && Array.isArray(item?.djs)
     && item.djs.length > 0
   ));
-  return validItems.length >= 2
-    && new Set(validItems.map((item) => item.date)).size >= 2
+  return validItems.length >= 1
+    && new Set(validItems.map((item) => item.date)).size === validItems.length
     && validItems.length === items.length;
 }
 
@@ -952,12 +952,14 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   }
   if (
     taxonomy.activity_type === 'social'
+    && candidate._date_scoped_social_evidence !== true
     && /(?:\d{1,2}\s*월\s*)?\d{1,2}\s*[,·&]\s*\d{1,2}\s*일/i.test(text)
   ) {
     errors.push('multi-date social notice must be split into one candidate per date');
   }
   if (
     taxonomy.activity_type === 'social'
+    && candidate._date_scoped_social_evidence !== true
     && hasMultipleExplicitCalendarDates(text)
     && Array.isArray(sd.djs)
     && sd.djs.filter(Boolean).length > 1
@@ -1114,7 +1116,9 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   if (source?.discoveryOnly || source?.type === 'benefit_search') {
     reasons.push('search/discovery sources require manual approval');
   }
-  if (!candidate.poster_url && !candidate.imageData) reasons.push('auto-registration requires an image');
+  if (activity !== 'social' && !candidate.poster_url && !candidate.imageData) {
+    reasons.push('auto-registration requires an image');
+  }
   if (!venue) reasons.push('auto-registration requires a verified venue');
   if (!sd.venue_provenance && !source?.venue) reasons.push('venue provenance is not verified');
   if (
