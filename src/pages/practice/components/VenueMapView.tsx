@@ -31,6 +31,16 @@ function getThumbnail(venue: Venue): string {
     return "";
 }
 
+function escapeHtml(value: string): string {
+    return value.replace(/[&<>'"]/g, (character) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;',
+    })[character] || character);
+}
+
 export default function VenueMapView({ venues, onVenueClick }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<any>(null);
@@ -38,18 +48,40 @@ export default function VenueMapView({ venues, onVenueClick }: Props) {
     const initialViewRef = useRef<{ center: any; level: number } | null>(null);
     const [mapReady, setMapReady] = useState(false);
     const [geocoding, setGeocoding] = useState(false);
+    const [sdkState, setSdkState] = useState<"loading" | "ready" | "unavailable">("loading");
 
     useEffect(() => {
-        if (!containerRef.current || mapRef.current) return;
-        if (!window.kakao?.maps) return;
-        window.kakao.maps.load(() => {
-            if (!containerRef.current) return;
-            mapRef.current = new window.kakao.maps.Map(containerRef.current, {
-                center: new window.kakao.maps.LatLng(37.5665, 126.9780),
-                level: 8,
+        let disposed = false;
+        let retryTimer = 0;
+        let unavailableTimer = 0;
+
+        const initializeMap = () => {
+            if (!containerRef.current || mapRef.current || !window.kakao?.maps?.load) return;
+            window.kakao.maps.load(() => {
+                if (disposed || !containerRef.current || mapRef.current) return;
+                mapRef.current = new window.kakao.maps.Map(containerRef.current, {
+                    center: new window.kakao.maps.LatLng(37.5665, 126.9780),
+                    level: 8,
+                });
+                window.clearInterval(retryTimer);
+                window.clearTimeout(unavailableTimer);
+                setSdkState("ready");
+                setMapReady(true);
             });
-            setMapReady(true);
-        });
+        };
+
+        initializeMap();
+        retryTimer = window.setInterval(initializeMap, 200);
+        unavailableTimer = window.setTimeout(() => {
+            window.clearInterval(retryTimer);
+            if (!mapRef.current && !disposed) setSdkState("unavailable");
+        }, 6000);
+
+        return () => {
+            disposed = true;
+            window.clearInterval(retryTimer);
+            window.clearTimeout(unavailableTimer);
+        };
     }, []);
 
     useEffect(() => {
@@ -96,6 +128,8 @@ export default function VenueMapView({ venues, onVenueClick }: Props) {
                 );
 
                 const thumb = getThumbnail(venue);
+                const safeName = escapeHtml(venue.name);
+                const safeThumb = escapeHtml(thumb);
                 const el = document.createElement("div");
                 el.className = "vmv-marker-container";
                 el.setAttribute("data-venue-id", venue.id);
@@ -104,15 +138,15 @@ export default function VenueMapView({ venues, onVenueClick }: Props) {
                         <div class="vmv-marker-icon">
                             <div class="vmv-marker">
                                 <div class="vmv-marker-inner">
-                                    ${thumb
-                                        ? `<img src="${thumb}" alt="${venue.name}" />`
+                                    ${safeThumb
+                                        ? `<img src="${safeThumb}" alt="" draggable="false" />`
                                         : `<i class="ri-map-pin-2-fill"></i>`
                                     }
                                 </div>
                             </div>
                             <div class="vmv-marker-tail"></div>
                         </div>
-                        <div class="vmv-marker-label"><span>${venue.name}</span></div>
+                        <div class="vmv-marker-label"><span>${safeName}</span></div>
                     </div>
                 `;
                 el.addEventListener("click", (e) => {
@@ -158,9 +192,24 @@ export default function VenueMapView({ venues, onVenueClick }: Props) {
     return (
         <div className="vmv-wrapper">
             <div ref={containerRef} className="vmv-map" />
-            <button className="vmv-reset-btn" onClick={handleReset} title="초기 위치로">
-                <i className="ri-focus-3-line"></i>
-            </button>
+            {sdkState === "ready" && (
+                <button className="vmv-reset-btn" onClick={handleReset} title="초기 위치로">
+                    <i className="ri-focus-3-line"></i>
+                </button>
+            )}
+            {sdkState === "loading" && !geocoding && (
+                <div className="vmv-sdk-state" aria-live="polite">
+                    <i className="ri-loader-4-line" />
+                    <span>지도를 준비하는 중입니다</span>
+                </div>
+            )}
+            {sdkState === "unavailable" && (
+                <div className="vmv-sdk-state is-error" role="status">
+                    <i className="ri-map-pin-line" />
+                    <strong>지도를 불러오지 못했습니다</strong>
+                    <span>잠시 후 다시 시도하거나 리스트에서 연습실을 선택해주세요.</span>
+                </div>
+            )}
             {geocoding && (
                 <div className="vmv-geocoding-badge">
                     <i className="ri-loader-4-line"></i> 위치 로딩 중...

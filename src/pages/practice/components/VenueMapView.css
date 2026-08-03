@@ -52,10 +52,54 @@
     gap: 5px;
 }
 
+.vmv-sdk-state {
+    position: absolute;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 9px;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 50% 38%, rgba(56, 189, 248, 0.12), transparent 180px),
+        #12161d;
+    color: #a5b4c7;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.vmv-sdk-state i {
+    color: #38bdf8;
+    font-size: 30px;
+    animation: vmv-spin 900ms linear infinite;
+}
+
+.vmv-sdk-state.is-error i {
+    animation: none;
+}
+
+.vmv-sdk-state strong {
+    color: #e2e8f0;
+    font-size: 14px;
+}
+
+.vmv-sdk-state span {
+    max-width: 260px;
+    line-height: 1.45;
+}
+
+@keyframes vmv-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ── 커스텀 마커 ── */
 .vmv-marker-container {
     cursor: pointer;
     user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
 }
 
 .vmv-marker-wrapper {
@@ -96,6 +140,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    pointer-events: none;
+    -webkit-user-drag: none;
 }
 
 .vmv-marker-inner i {

@@ -885,8 +885,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 const lowerReserve = isDesktopSplitSurface
                     ? desktopLowerReserve
                     : todaySchedules.length > 0
-                    ? 86 + (todayRows * 30) + (viewportWidth < 430 ? 18 : 28)
-                    : 96;
+                    ? Math.max(158, 86 + (todayRows * 30) + (viewportWidth < 430 ? 18 : 28))
+                    : 158;
                 const availableHeight = Math.floor(
                     navTop - containerRect.top - mediaBottom - lowerReserve - 14,
                 );
@@ -1228,6 +1228,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         >
                             <i className="ri-information-line"></i>
                         </button>
+
                     </div>
                     <div>
                         <button
@@ -1432,6 +1433,25 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 <strong>무료, 할인 이벤트</strong>
                                 <small>혜택 모아보기</small>
                             </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="NEB-practiceRoomsBtn"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                navigate('/practice');
+                            }}
+                            aria-label="등록된 연습실 찾기"
+                        >
+                            <span className="NEB-practiceRoomsIcon" aria-hidden="true">
+                                <i className="ri-music-2-line" />
+                            </span>
+                            <span className="NEB-practiceRoomsText">
+                                <strong>연습실</strong>
+                                <small>바로 찾아보기</small>
+                            </span>
+                            <i className="ri-arrow-right-s-line NEB-practiceRoomsArrow" aria-hidden="true" />
                         </button>
                     </div>
 

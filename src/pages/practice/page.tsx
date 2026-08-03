@@ -1,282 +1,275 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { cafe24 } from "../../lib/cafe24Client";
-import PracticeRoomList from "./components/PracticeRoomList";
-import VenueTabBar from "./components/VenueTabBar";
-import VenueMapView from "./components/VenueMapView";
-import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSetPageAction } from "../../contexts/PageActionContext";
-import './practice.css';
+import { useModal } from "../../hooks/useModal";
+import PracticeRoomList, { type PracticeRoom } from "./components/PracticeRoomList";
+import VenueMapView from "./components/VenueMapView";
+import VenueTabBar from "./components/VenueTabBar";
+import { getVenueDirectUrl } from "./utils/venueLinks";
+import "./practice.css";
+
+type ViewMode = "list" | "map";
+type RegionFilter = "all" | "seoul" | "other";
+type SortMode = "recommended" | "title";
+
+const SEOUL_ADDRESS_PREFIXES = [
+  "서울", "서울시", "서울특별시", "종로구", "중구", "용산구", "성동구", "광진구",
+  "동대문구", "중랑구", "성북구", "강북구", "도봉구", "노원구", "은평구",
+  "서대문구", "마포구", "양천구", "강서구", "구로구", "금천구", "영등포구",
+  "동작구", "관악구", "서초구", "강남구", "송파구", "강동구",
+];
+
+const isSeoulAddress = (address?: string | null) => (
+  Boolean(address && SEOUL_ADDRESS_PREFIXES.some((prefix) => address.trim().startsWith(prefix)))
+);
 
 export default function PracticeRoomsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showSortModal, setShowSortModal] = useState(false);
-  const [sortBy, setSortBy] = useState<"random" | "time" | "title" | "newest">("random");
-  const venueDetailModal = useModal('venueDetail');
-  const venueRegistrationModal = useModal('venueRegistration');
-  const calendarSearchModal = useModal('calendarSearch');
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>("연습실");
+  const [activeCategory, setActiveCategory] = useState("연습실");
+  const [rooms, setRooms] = useState<PracticeRoom[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  const [regionFilter, setRegionFilter] = useState<"all" | "seoul" | "other">("all");
-
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
+  const [sortBy, setSortBy] = useState<SortMode>("recommended");
+  const [searchQuery, setSearchQuery] = useState("");
+  const handledRoomIdRef = useRef<string | null>(null);
+  const { open: openVenueRegistrationModal } = useModal("venueRegistration");
   const { user, isAdmin } = useAuth();
-  const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
-  const isEffectiveAdmin = isAdmin || isDevAdmin;
-
-  // Get room ID from URL params
-  const roomId = searchParams.get('id');
-
-  // 페이지 로드 시 랜덤 순서 초기화 (새로고침 시 재정렬)
-  useEffect(() => {
-    sessionStorage.removeItem('practiceRoomsRandomOrder');
-  }, []);
-
-  // Handle URL param for room detail
-  useEffect(() => {
-    if (roomId) {
-      venueDetailModal.open({
-        venueId: roomId,
-        onClose: handleCloseDetail,
-        onEdit: () => handleEditVenue(roomId)
-      });
-    }
-
-    // Handle action=register param
-    const action = searchParams.get('action');
-    if (action === 'register') {
-      const handleAutoRegister = () => {
-        if (!user) {
-          window.dispatchEvent(new CustomEvent('requestProtectedAction', {
-            detail: { message: '연습실 등록을 위해 로그인이 필요합니다.' }
-          }));
-        } else {
-          venueRegistrationModal.open({
-            editVenueId: null,
-            onVenueCreated: handleVenueCreatedOrUpdated,
-            onVenueDeleted: handleVenueCreatedOrUpdated
-          });
-        }
-        // Clear the param so it doesn't reopen on refresh/nav
-        const params = new URLSearchParams(searchParams);
-        params.delete('action');
-        setSearchParams(params, { replace: true });
-      };
-      // Small timeout to ensure modal context is ready or just run it
-      setTimeout(handleAutoRegister, 100);
-    }
-  }, [roomId, searchParams]); // add searchParams dependency or separate effect
-
-  // Event search from header
-  useEffect(() => {
-    const handleOpenEventSearch = () => calendarSearchModal.open({
-      searchMode: 'all',
-      onSelectEvent: () => { }
-    });
-    window.addEventListener('openEventSearch', handleOpenEventSearch);
-    return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
-  }, []);
+  const isEffectiveAdmin = isAdmin || localStorage.getItem("isDevAdmin") === "true";
 
   useEffect(() => {
-    const handleRegisterEvent = () => {
-      if (!user) {
-        window.dispatchEvent(new CustomEvent('requestProtectedAction', {
-          detail: { message: '연습실 등록을 위해 로그인이 필요합니다.' }
-        }));
-        return;
-      }
+    let cancelled = false;
 
-      venueRegistrationModal.open({
-        editVenueId: null,
-        onVenueCreated: handleVenueCreatedOrUpdated,
-        onVenueDeleted: handleVenueCreatedOrUpdated
-      });
-    };
-
-    window.addEventListener('practiceRoomRegister', handleRegisterEvent);
-
-    return () => {
-      window.removeEventListener('practiceRoomRegister', handleRegisterEvent);
-    };
-  }, [user, isEffectiveAdmin]);
-
-  const handleCloseDetail = () => {
-    venueDetailModal.close();
-    // Clear URL param
-    const params = new URLSearchParams(searchParams);
-    params.delete('id');
-    setSearchParams(params, { replace: true });
-  };
-
-  const handleVenueClick = (venueId: string) => {
-    venueDetailModal.open({
-      venueId,
-      onClose: handleCloseDetail,
-      onEdit: () => handleEditVenue(venueId)
-    });
-    // Update URL param
-    const params = new URLSearchParams(searchParams);
-    params.set('id', venueId);
-    setSearchParams(params, { replace: true });
-  };
-
-  const handleEditVenue = (venueId: string) => {
-    venueDetailModal.close(); // Close detail modal
-    venueRegistrationModal.open({
-      editVenueId: venueId,
-      onVenueCreated: handleVenueCreatedOrUpdated,
-      onVenueDeleted: handleVenueCreatedOrUpdated
-    });
-  };
-
-  const handleVenueCreatedOrUpdated = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  // Swipe Navigation
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
-  const minSwipeDistance = 50;
-
-  // Load venue categories
-  useEffect(() => {
-    const loadCategories = async () => {
+    const fetchRooms = async () => {
+      setLoading(true);
       try {
-        const { data } = await cafe24
-          .from('venues')
-          .select('category')
-          .eq('is_active', true);
+        const { data, error } = await cafe24
+          .from("venues")
+          .select("*")
+          .eq("category", activeCategory)
+          .eq("is_active", true)
+          .order("display_order", { ascending: true });
 
-        if (data) {
-          const uniqueCategories = [...new Set(data.map(v => v.category))];
-          setCategories(uniqueCategories);
-        }
+        if (error) throw error;
+        if (cancelled) return;
+
+        setRooms((data ?? []).map((room) => ({
+          ...room,
+          images: typeof room.images === "string"
+            ? (() => {
+                try { return JSON.parse(room.images); } catch { return []; }
+              })()
+            : (room.images ?? []),
+        })) as PracticeRoom[]);
       } catch (error) {
-        console.error('Failed to load categories:', error);
+        console.error("Failed to load practice rooms:", error);
+        if (!cancelled) setRooms([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-    loadCategories();
+
+    void fetchRooms();
+    return () => { cancelled = true; };
+  }, [activeCategory, refreshTrigger]);
+
+  const categoryRooms = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase("ko-KR");
+
+    return rooms.filter((room) => {
+      const inRegion = regionFilter === "all"
+        || (regionFilter === "seoul" && isSeoulAddress(room.address))
+        || (regionFilter === "other" && !isSeoulAddress(room.address));
+      if (!inRegion) return false;
+      if (!normalizedQuery) return true;
+
+      return [room.name, room.address, room.location]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase("ko-KR").includes(normalizedQuery));
+    });
+  }, [regionFilter, rooms, searchQuery]);
+
+  const visibleRooms = useMemo(() => (
+    sortBy === "title"
+      ? [...categoryRooms].sort((a, b) => a.name.localeCompare(b.name, "ko"))
+      : categoryRooms
+  ), [categoryRooms, sortBy]);
+
+  const seoulCount = useMemo(
+    () => rooms.filter((room) => isSeoulAddress(room.address)).length,
+    [rooms],
+  );
+
+  const openVenueLink = useCallback((venueId: string, directUrl?: string) => {
+    const venue = rooms.find((room) => room.id === venueId);
+    const targetUrl = directUrl || (venue ? getVenueDirectUrl(venue) : "");
+    if (!targetUrl) return;
+    window.location.assign(targetUrl);
+  }, [rooms]);
+
+  useEffect(() => {
+    const roomId = searchParams.get("id");
+    if (!roomId || loading || handledRoomIdRef.current === roomId) return;
+    const room = rooms.find((candidate) => candidate.id === roomId);
+    if (!room) return;
+
+    handledRoomIdRef.current = roomId;
+    openVenueLink(roomId);
+  }, [loading, openVenueLink, rooms, searchParams]);
+
+  const handleVenueCreatedOrUpdated = useCallback(() => {
+    setRefreshTrigger((previous) => previous + 1);
   }, []);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    const currentIndex = categories.findIndex(cat => cat === activeCategory);
-
-    if (isLeftSwipe && currentIndex < categories.length - 1) {
-      setActiveCategory(categories[currentIndex + 1]);
+  const openRegistration = useCallback(() => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent("requestProtectedAction", {
+        detail: { message: "연습실 등록을 위해 로그인이 필요합니다." },
+      }));
+      return;
     }
-    if (isRightSwipe && currentIndex > 0) {
-      setActiveCategory(categories[currentIndex - 1]);
-    }
-  };
 
-  // FAB Action Registration
+    openVenueRegistrationModal({
+      editVenueId: null,
+      onVenueCreated: handleVenueCreatedOrUpdated,
+      onVenueDeleted: handleVenueCreatedOrUpdated,
+    });
+  }, [handleVenueCreatedOrUpdated, openVenueRegistrationModal, user]);
+
+  useEffect(() => {
+    const handleRegisterEvent = () => openRegistration();
+    window.addEventListener("practiceRoomRegister", handleRegisterEvent);
+    return () => window.removeEventListener("practiceRoomRegister", handleRegisterEvent);
+  }, [openRegistration]);
+
+  useEffect(() => {
+    if (searchParams.get("action") !== "register") return;
+    openRegistration();
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("action");
+    setSearchParams(nextParams, { replace: true });
+  }, [openRegistration, searchParams, setSearchParams]);
+
   useSetPageAction({
-    icon: 'ri-pencil-fill',
-    label: '연습실 등록',
-    onClick: () => {
-      const event = new CustomEvent('practiceRoomRegister');
-      window.dispatchEvent(event);
-    },
-    requireAuth: true // Shell will handle login prompt if needed
+    icon: "ri-add-line",
+    label: "연습실 등록",
+    onClick: () => window.dispatchEvent(new CustomEvent("practiceRoomRegister")),
+    requireAuth: true,
   });
 
   return (
-    <div className="practice-page-container" >
-      {/* Main Content */}
-      <div className="practice-main-content"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        {/* Tab Menu */}
-        <VenueTabBar
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-        />
-
-        {/* View Controls */}
-        <div className="practice-view-controls">
-          <div className="practice-view-toggle">
-            <button
-              className={`practice-view-btn${viewMode === "list" ? " active" : ""}`}
-              onClick={() => setViewMode("list")}
-            >
-              <i className="ri-list-check"></i> 리스트
-            </button>
-            <button
-              className={`practice-view-btn${viewMode === "map" ? " active" : ""}`}
-              onClick={() => setViewMode("map")}
-            >
-              <i className="ri-map-2-line"></i> 지도
-            </button>
+    <main className="practice-page-container">
+      <div className="practice-main-content">
+        <header className="practice-discovery-header">
+          <div className="practice-title-row">
+            <div>
+              <span className="practice-title-kicker">DANCE SPACE</span>
+              <h1>연습실 찾기</h1>
+            </div>
+            {!loading && <span className="practice-result-count">{visibleRooms.length}곳</span>}
           </div>
-          <div className="practice-region-filter">
-            {(["all", "seoul", "other"] as const).map(r => (
+
+          <VenueTabBar activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+
+          <label className="practice-search-box">
+            <i className="ri-search-line" aria-hidden="true" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="연습실 이름이나 지역 검색"
+              aria-label="연습실 검색"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery("")} aria-label="검색어 지우기">
+                <i className="ri-close-circle-fill" aria-hidden="true" />
+              </button>
+            )}
+          </label>
+
+          <div className="practice-control-row">
+            <div className="practice-view-toggle" aria-label="보기 방식">
               <button
-                key={r}
-                className={`practice-region-btn${regionFilter === r ? " active" : ""}`}
-                onClick={() => setRegionFilter(r)}
+                type="button"
+                className={viewMode === "list" ? "active" : ""}
+                onClick={() => setViewMode("list")}
+                aria-pressed={viewMode === "list"}
               >
-                {r === "all" ? "전체" : r === "seoul" ? "서울" : "다른 지역"}
+                <i className="ri-list-check" aria-hidden="true" /> 리스트
+              </button>
+              <button
+                type="button"
+                className={viewMode === "map" ? "active" : ""}
+                onClick={() => setViewMode("map")}
+                aria-pressed={viewMode === "map"}
+              >
+                <i className="ri-map-2-line" aria-hidden="true" /> 지도
+              </button>
+            </div>
+
+            <select
+              className="practice-sort-select"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as SortMode)}
+              aria-label="연습실 정렬"
+            >
+              <option value="recommended">추천순</option>
+              <option value="title">이름순</option>
+            </select>
+          </div>
+
+          <div className="practice-region-filter" aria-label="지역 필터">
+            {([
+              ["all", `전체 ${rooms.length}`],
+              ["seoul", `서울 ${seoulCount}`],
+              ["other", `그 외 ${Math.max(0, rooms.length - seoulCount)}`],
+            ] as const).map(([value, label]) => (
+              <button
+                type="button"
+                key={value}
+                className={regionFilter === value ? "active" : ""}
+                onClick={() => setRegionFilter(value)}
+                aria-pressed={regionFilter === value}
+              >
+                {label}
               </button>
             ))}
           </div>
-        </div>
+        </header>
 
-        {/* Map View */}
-        {viewMode === "map" && (
-          <VenueMapView
-            activeCategory={activeCategory}
-            regionFilter={regionFilter}
-            onVenueClick={handleVenueClick}
-            refreshTrigger={refreshTrigger}
+        {viewMode === "map" ? (
+          <section className="practice-map-section" aria-label="연습실 지도">
+            {loading ? (
+              <div className="practice-loading"><span />위치를 불러오는 중입니다</div>
+            ) : visibleRooms.length > 0 ? (
+              <>
+                <VenueMapView venues={visibleRooms} onVenueClick={openVenueLink} />
+                <p className="practice-map-hint">
+                  <i className="ri-cursor-line" aria-hidden="true" /> 마커를 누르면 예약 또는 지도 링크로 바로 이동합니다.
+                </p>
+              </>
+            ) : (
+              <div className="practice-empty-search">
+                <i className="ri-map-pin-line" aria-hidden="true" />
+                <strong>조건에 맞는 연습실이 없습니다</strong>
+                <button type="button" onClick={() => { setSearchQuery(""); setRegionFilter("all"); }}>필터 초기화</button>
+              </div>
+            )}
+          </section>
+        ) : (
+          <PracticeRoomList
+            adminType={isEffectiveAdmin ? "super" : null}
+            rooms={visibleRooms}
+            loading={loading}
+            hasActiveFilter={Boolean(searchQuery.trim()) || regionFilter !== "all"}
+            onClearFilters={() => { setSearchQuery(""); setRegionFilter("all"); }}
+            onVenueClick={openVenueLink}
           />
         )}
-
-        {/* Venue List */}
-        <PracticeRoomList
-          adminType={isEffectiveAdmin ? "super" : null}
-          showSearchModal={showSearchModal}
-          setShowSearchModal={setShowSearchModal}
-          showSortModal={showSortModal}
-          setShowSortModal={setShowSortModal}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          activeCategory={activeCategory}
-          onVenueClick={handleVenueClick}
-          refreshTrigger={refreshTrigger}
-          regionFilter={regionFilter}
-        />
       </div>
-
-      {/* Contact Modal - Custom UI, not in ModalRegistry */}
-      {showContactModal && (
-        <div className="practice-contact-modal-overlay" onClick={() => setShowContactModal(false)}>
-          <div className="practice-contact-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>연습실 등록 문의</h3>
-            <p>연습실 등록을 원하시면 관리자에게 문의해주세요.</p>
-            <button onClick={() => setShowContactModal(false)}>닫기</button>
-          </div>
-        </div>
-      )}
-    </div>
+    </main>
   );
 }

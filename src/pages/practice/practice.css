@@ -1,227 +1,325 @@
-/* practice.css - PracticeRoomsPage 컴포넌트 전용 스타일 */
+.practice-page-container {
+  min-height: 100vh;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 90% 0%, rgba(56, 189, 248, 0.09), transparent 260px),
+    var(--page-bg, #111214);
+  color: #f8fafc;
+}
 
-/* ===== 뷰 컨트롤 (지도/리스트 토글 + 지역 필터) ===== */
-.practice-view-controls {
+.practice-main-content {
+  min-height: 100vh;
+}
+
+.practice-discovery-header {
+  position: relative;
+  z-index: 20;
+  padding: 18px 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(17, 18, 20, 0.93);
+  backdrop-filter: blur(18px);
+}
+
+.practice-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 12px;
+}
+
+.practice-title-kicker {
+  display: block;
+  margin-bottom: 3px;
+  color: #67e8f9;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.practice-title-row h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 23px;
+  font-weight: 950;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.practice-result-count {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.09);
+  color: #a5f3fc;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.practice-discovery-header .venue-tab-bar {
+  position: relative;
+  top: auto;
+  margin: 0 -14px 12px;
+}
+
+.practice-search-box {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 28px;
+  min-height: 46px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.055);
+  color: #8b98aa;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.practice-search-box:focus-within {
+  border-color: rgba(103, 232, 249, 0.48);
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.practice-search-box > i {
+  color: #7dd3fc;
+  font-size: 18px;
+}
+
+.practice-search-box input {
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f8fafc;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.practice-search-box input::placeholder {
+  color: #778295;
+}
+
+.practice-search-box input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.practice-search-box button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7e8a9b;
+  cursor: pointer;
+  place-items: center;
+}
+
+.practice-control-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .practice-view-toggle {
-  display: flex;
-  background: var(--bg-surface-2, #1a1a2e);
-  border-radius: 8px;
-  padding: 2px;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 176px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.22);
 }
 
-.practice-view-btn {
-  display: flex;
+.practice-view-toggle button {
+  display: inline-flex;
+  min-height: 34px;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border: none;
-  border-radius: 6px;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--text-secondary, #888);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  color: #8f9bad;
   cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 850;
+  touch-action: manipulation;
 }
 
-.practice-view-btn.active {
-  background: var(--color-blue-500, #3b82f6);
+.practice-view-toggle button.active {
+  background: linear-gradient(135deg, #0891b2, #2563eb);
   color: #fff;
+  box-shadow: 0 5px 12px rgba(8, 145, 178, 0.22);
+}
+
+.practice-sort-select {
+  min-height: 40px;
+  padding: 0 30px 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  outline: 0;
+  background: #1b1e24;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .practice-region-filter {
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.practice-region-btn {
-  padding: 5px 10px;
-  border: 1px solid var(--border-glass, rgba(255,255,255,0.1));
-  border-radius: 20px;
-  background: transparent;
-  color: var(--text-secondary, #888);
-  font-size: 0.75rem;
-  font-weight: 500;
+.practice-region-filter::-webkit-scrollbar {
+  display: none;
+}
+
+.practice-region-filter button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #95a1b2;
   cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 850;
+  touch-action: manipulation;
 }
 
-.practice-region-btn.active {
-  border-color: var(--color-blue-500, #3b82f6);
-  color: var(--color-blue-500, #3b82f6);
-  background: rgba(59, 130, 246, 0.1);
+.practice-region-filter button.active {
+  border-color: rgba(103, 232, 249, 0.35);
+  background: rgba(34, 211, 238, 0.12);
+  color: #a5f3fc;
 }
 
-/* ===== 페이지 컨테이너 ===== */
-/* Practice Page Header */
-.practice-header-inner {
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  padding-left: 9px;
-  padding-right: 9px;
+.practice-map-section {
+  padding: 14px 14px calc(180px + env(safe-area-inset-bottom));
 }
 
-.practice-header-content {
-  display: flex;
-  align-items: center;
-  height: 3rem !important;
-  overflow: hidden;
-  white-space: nowrap;
-  box-sizing: border-box;
-  position: relative;
+.practice-map-section .vmv-wrapper {
+  height: min(58vh, 520px);
+  min-height: 380px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
 }
 
-.practice-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  z-index: 1;
-}
-
-.practice-back-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  font-size: 17px !important;
-  background: transparent;
-  color: var(--text-primary);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 4px;
-}
-
-.practice-back-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.practice-back-btn i {
-  font-size: 1rem;
-}
-
-/* Practice Page Container */
-.practice-page-container {
-  min-height: 100vh;
-  margin-top: 0;
-  padding-bottom: 142px;
-
-  /* background-color: #272727; */
-}
-
-/* ===== 헤더 ===== */
-.practice-header {
-  /* position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: var(--z-30);
-  border-bottom: 1px solid #22262a; */
-}
-
-/* ===== 메인 컨텐츠 ===== */
-.practice-main-content {
-  height: 100%;
-  padding-bottom: 4rem;
-}
-
-/* ===== Contact Modal (Non-Admin) ===== */
-.practice-modal-overlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+.practice-map-hint {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-50);
-  padding: var(--spacing-4);
-}
-
-.practice-modal-container {
-  background-color: #242424;
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 24rem;
-  padding: var(--spacing-6);
-}
-
-.practice-modal-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: white;
-  margin-bottom: var(--spacing-4);
+  gap: 5px;
+  margin: 10px 0 0;
+  color: #8491a3;
+  font-size: 11px;
+  font-weight: 750;
   text-align: center;
 }
 
-.practice-modal-subtitle {
-  color: var(--color-gray-300);
+.practice-loading,
+.practice-empty-search {
+  display: grid;
+  min-height: 340px;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 800;
   text-align: center;
-  margin-bottom: var(--spacing-2);
 }
 
-.practice-modal-description {
-  color: var(--color-gray-400);
-  font-size: 0.875rem;
-  text-align: center;
-  margin-bottom: var(--spacing-6);
+.practice-loading span {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(125, 211, 252, 0.16);
+  border-top-color: #38bdf8;
+  border-radius: 999px;
+  animation: practice-spin 800ms linear infinite;
 }
 
-.practice-modal-phone-link {
-  display: block;
-  width: 100%;
-  background-color: var(--color-blue-600);
-  color: white;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  border-radius: var(--radius-lg);
-  text-align: center;
-  font-weight: 600;
-  transition: var(--transition-colors);
+.practice-empty-search > i {
+  color: #64748b;
+  font-size: 40px;
+}
+
+.practice-empty-search strong {
+  color: #dbe4f0;
+}
+
+.practice-empty-search button {
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #bae6fd;
   cursor: pointer;
-  margin-bottom: 0.75rem;
-  text-decoration: none;
+  font-weight: 850;
 }
 
-.practice-modal-phone-link:hover {
-  background-color: var(--color-blue-700);
+@keyframes practice-spin {
+  to { transform: rotate(360deg); }
 }
 
-.practice-modal-phone-icon {
-  margin-right: var(--spacing-2);
+@media (min-width: 700px) {
+  .practice-discovery-header,
+  .practice-map-section,
+  .prl-main-container {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .practice-discovery-header .venue-tab-bar {
+    margin-right: -22px;
+    margin-left: -22px;
+  }
+
+  .prl-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.practice-modal-close-btn {
-  width: 100%;
-  background-color: #242424;
-  color: var(--color-gray-300);
-  padding-top: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
-  padding-left: var(--spacing-4);
-  padding-right: var(--spacing-4);
-  border-radius: var(--radius-lg);
-  transition: var(--transition-colors);
-  cursor: pointer;
-  border: none;
+@media (max-width: 420px) {
+  .practice-discovery-header {
+    padding-inline: 10px;
+  }
+
+  .practice-discovery-header .venue-tab-bar {
+    margin-inline: -10px;
+  }
+
+  .practice-view-toggle {
+    min-width: 164px;
+  }
+
+  .practice-map-section {
+    padding-inline: 10px;
+  }
 }
 
-.practice-modal-close-btn:hover {
-  background-color: var(--color-gray-600);
-  color: white;
+@media (prefers-reduced-motion: reduce) {
+  .practice-search-box,
+  .practice-loading span {
+    transition: none;
+  }
+
+  .practice-loading span {
+    animation-duration: 1.6s;
+  }
 }

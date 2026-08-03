@@ -22,6 +22,32 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-03 연습실 탐색 화면 및 지도 로딩 개선
+
+- 상태: 완료
+- 범위: 홈 연습실 바로가기, 연습실 목록·검색·지역 필터·지도 전환, 외부 링크 이동
+- 증상:
+  - 연습실 검색 진입점이 화면에 상시 노출되지 않았고 지도 컴포넌트 호출 규격이 실제 구현과 맞지 않았다.
+  - 연습실 카드를 누르면 예약 또는 지도 링크 대신 소개 상세 모달을 먼저 거쳤다.
+  - 지도 SDK가 늦게 로드되거나 차단되면 빈 지도 영역만 남았다.
+- 해결:
+  - 홈의 기존 바로가기 두 개 아래에 연습실 버튼을 추가했다.
+  - 운영 `venues` 데이터를 한 번 불러와 기본 리스트, 즉시 검색, 서울/기타 필터, 지도 보기에 함께 사용하도록 정리했다.
+  - 카드와 지도 마커는 홈페이지·추가 링크·등록 지도 링크·주소 검색 순으로 목적지를 결정해 바로 이동한다.
+  - 지도 SDK를 일정 시간 재확인하고 끝내 사용할 수 없으면 빈 화면 대신 재시도 안내를 표시한다.
+  - 일반 카드 이미지와 지도 마커 이미지는 브라우저 기본 드래그 대상에서 제외했다.
+- 검증:
+  - Cafe24 운영 DB 연결 로컬 화면에서 활성 연습실 16개 노출 확인
+  - `사당` 검색 결과 1개, 리스트 기본 선택, 지도 전환, 모바일 가로 넘침 없음 확인
+  - 링크 해석 단위 테스트 4개 통과, 대상 파일 ESLint 통과, 프로덕션 빌드 통과
+- 관련 파일:
+  - `src/pages/practice/page.tsx`
+  - `src/pages/practice/components/PracticeRoomList.tsx`
+  - `src/pages/practice/components/VenueMapView.tsx`
+  - `src/pages/practice/utils/venueLinks.ts`
+  - `src/pages/v2/components/NewEventsBanner.tsx`
+- 관련 커밋: pending
+
 ## 2026-07-26 소셜 캘린더 릴스 생성 자동화
 
 - 상태: 해결

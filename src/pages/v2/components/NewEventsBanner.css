@@ -776,6 +776,78 @@
   white-space: nowrap;
 }
 
+.NEB-practiceRoomsBtn {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr) 12px;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 7px;
+  border: 1px solid rgba(103, 232, 249, 0.34);
+  border-radius: 9px;
+  background:
+    linear-gradient(135deg, rgba(8, 145, 178, 0.2), rgba(37, 99, 235, 0.11)),
+    #151d27;
+  color: #ecfeff;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.NEB-practiceRoomsBtn:active {
+  transform: translateY(2px) scale(0.98);
+  filter: brightness(1.1);
+}
+
+.NEB-practiceRoomsIcon {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #22d3ee, #3b82f6);
+  color: #fff;
+  font-size: 15px;
+  place-items: center;
+  pointer-events: none;
+}
+
+.NEB-practiceRoomsText {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.NEB-practiceRoomsText strong,
+.NEB-practiceRoomsText small {
+  overflow: hidden;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.NEB-practiceRoomsText strong {
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.NEB-practiceRoomsText small {
+  color: rgba(207, 250, 254, 0.7);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.NEB-practiceRoomsArrow {
+  color: #67e8f9;
+  font-size: 15px;
+  pointer-events: none;
+}
+
 .NEB-benefitEventsText strong {
   font-size: 12px;
   font-weight: 950;
@@ -790,6 +862,7 @@
 @media (prefers-reduced-motion: reduce) {
   .NEB-oneDayRecruitBtn,
   .NEB-benefitEventsBtn,
+  .NEB-practiceRoomsBtn,
   .NEB-oneDayRecruitBtn::before,
   .NEB-oneDayRecruitTicket {
     transition: none;
@@ -1475,7 +1548,8 @@
 }
 
 .NEB-quickActions .NEB-oneDayRecruitBtn,
-.NEB-quickActions .NEB-benefitEventsBtn {
+.NEB-quickActions .NEB-benefitEventsBtn,
+.NEB-quickActions .NEB-practiceRoomsBtn {
   position: relative;
   inset: auto;
   grid-column: auto;
@@ -1545,5 +1619,35 @@
 
   .NEB-todayScheduleItem {
     grid-template-columns: 18px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .NEB-practiceRoomsBtn {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 3px;
+    min-height: 42px;
+    padding: 6px;
+    text-align: center;
+  }
+
+  .NEB-practiceRoomsIcon {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+
+  .NEB-practiceRoomsText strong {
+    font-size: 11px;
+  }
+
+  .NEB-practiceRoomsText small {
+    font-size: 8px;
+  }
+
+  .NEB-practiceRoomsArrow {
+    display: none;
   }
 }
