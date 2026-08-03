@@ -34,5 +34,9 @@ export async function seedNotificationResetNotice() {
 const isMain = process.argv[1]
   && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
-  console.log(JSON.stringify(await seedNotificationResetNotice()));
+  try {
+    console.log(JSON.stringify(await seedNotificationResetNotice()));
+  } finally {
+    await getMysqlPool().end();
+  }
 }

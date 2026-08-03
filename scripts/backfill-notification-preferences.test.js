@@ -2,14 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   loadCafe24TableRows: vi.fn(),
-  deleteCafe24TableRows: vi.fn(),
+  execute: vi.fn(),
   getUserNotificationPreferences: vi.fn(),
   saveUserNotificationPreferences: vi.fn(),
 }));
 
 vi.mock('../server/cafe24/generic-data-api.js', () => ({
   loadCafe24TableRows: mocks.loadCafe24TableRows,
-  deleteCafe24TableRows: mocks.deleteCafe24TableRows,
+}));
+vi.mock('../server/cafe24/mysql-pool.js', () => ({
+  getMysqlPool: () => ({ execute: mocks.execute }),
 }));
 vi.mock('../server/cafe24/notification-preferences.js', () => ({
   getUserNotificationPreferences: mocks.getUserNotificationPreferences,
@@ -28,7 +30,7 @@ describe('notification preference backfill', () => {
       userId === 'disabled-user' ? { user_id: userId, enabled: false } : null
     ));
     mocks.saveUserNotificationPreferences.mockResolvedValue({});
-    mocks.deleteCafe24TableRows.mockResolvedValue(undefined);
+    mocks.execute.mockResolvedValue([{ affectedRows: 3 }]);
   });
 
   it('preserves existing preferences and disables every missing legacy user', async () => {
@@ -59,7 +61,7 @@ describe('notification preference backfill', () => {
         pref_new_event_alerts: false,
       }),
     );
-    expect(mocks.deleteCafe24TableRows).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
 
   it('disables every existing subscriber and removes every server subscription during rollout reset', async () => {
@@ -81,13 +83,9 @@ describe('notification preference backfill', () => {
         pref_new_event_alerts: false,
       }));
     }
-    expect(mocks.deleteCafe24TableRows).toHaveBeenCalledWith(
-      'user_push_subscriptions',
-      expect.arrayContaining([
-        expect.objectContaining({ user_id: 'disabled-user' }),
-        expect.objectContaining({ user_id: 'new-user' }),
-        expect.objectContaining({ user_id: 'legacy-user' }),
-      ]),
+    expect(mocks.execute).toHaveBeenCalledWith(
+      'DELETE FROM generic_records WHERE table_name = ?',
+      ['user_push_subscriptions'],
     );
   });
 });

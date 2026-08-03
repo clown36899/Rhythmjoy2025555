@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadCafe24TableRows, saveCafe24TableRow } from '../server/cafe24/generic-data-api.js';
+import { getMysqlPool } from '../server/cafe24/mysql-pool.js';
 
 export async function baselineNotificationQueue(processedAt = new Date().toISOString()) {
   const pendingRows = (await loadCafe24TableRows('notification_queue'))
@@ -33,5 +34,9 @@ export async function baselineNotificationQueue(processedAt = new Date().toISOSt
 const isMain = process.argv[1]
   && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
-  console.log(JSON.stringify(await baselineNotificationQueue()));
+  try {
+    console.log(JSON.stringify(await baselineNotificationQueue()));
+  } finally {
+    await getMysqlPool().end();
+  }
 }

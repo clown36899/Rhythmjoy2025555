@@ -1,9 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  deleteCafe24TableRows,
   loadCafe24TableRows,
 } from '../server/cafe24/generic-data-api.js';
+import { getMysqlPool } from '../server/cafe24/mysql-pool.js';
 import {
   getUserNotificationPreferences,
   saveUserNotificationPreferences,
@@ -32,22 +32,31 @@ export async function backfillNotificationPreferences({ resetExistingSubscriptio
     migratedUsers += 1;
   }
 
+  let deletedSubscriptions = 0;
   if (resetExistingSubscriptions && rows.length > 0) {
-    await deleteCafe24TableRows('user_push_subscriptions', rows);
+    const [result] = await getMysqlPool().execute(
+      'DELETE FROM generic_records WHERE table_name = ?',
+      ['user_push_subscriptions'],
+    );
+    deletedSubscriptions = Number(result?.affectedRows || 0);
   }
 
   return {
     migratedUsers,
     preservedUsers,
     subscriptionUsers: latestByUser.size,
-    deletedSubscriptions: resetExistingSubscriptions ? rows.length : 0,
+    deletedSubscriptions,
   };
 }
 
 const isMain = process.argv[1]
   && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
-  console.log(JSON.stringify(await backfillNotificationPreferences({
-    resetExistingSubscriptions: process.env.RESET_EXISTING_NOTIFICATION_SUBSCRIPTIONS === '1',
-  })));
+  try {
+    console.log(JSON.stringify(await backfillNotificationPreferences({
+      resetExistingSubscriptions: process.env.RESET_EXISTING_NOTIFICATION_SUBSCRIPTIONS === '1',
+    })));
+  } finally {
+    await getMysqlPool().end();
+  }
 }
