@@ -92,8 +92,8 @@ export async function saveUserNotificationPreferences(userId, input = {}) {
        pref_new_event_social, pref_new_event_class, pref_new_event_clubs,
        pref_filter_tags_json, pref_filter_class_genres_json,
        pref_digest_time, pref_digest_days_json, pref_digest_timezone,
-       pref_only_with_events
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       pref_only_with_events, created_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
      ON DUPLICATE KEY UPDATE
        enabled = VALUES(enabled), pref_today_digest = VALUES(pref_today_digest),
        pref_new_event_alerts = VALUES(pref_new_event_alerts), pref_events = VALUES(pref_events),

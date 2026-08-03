@@ -49,5 +49,7 @@ describe('user-scoped notification preferences', () => {
       expect.stringContaining('ON DUPLICATE KEY UPDATE'),
       expect.arrayContaining(['user-a', 1, 1, 1]),
     );
+    expect(mocks.execute.mock.calls[0][0]).toContain('pref_only_with_events, created_at');
+    expect(mocks.execute.mock.calls[0][0]).toContain('CURRENT_TIMESTAMP');
   });
 });

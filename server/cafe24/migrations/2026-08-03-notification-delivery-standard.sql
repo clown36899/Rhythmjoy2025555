@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS user_notification_preferences (
   pref_digest_days_json VARCHAR(64) NOT NULL DEFAULT '[0,1,2,3,4,5,6]',
   pref_digest_timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Seoul',
   pref_only_with_events TINYINT(1) NOT NULL DEFAULT 1,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY user_notification_preferences_enabled_idx (enabled, pref_today_digest, pref_new_event_alerts)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
