@@ -222,7 +222,7 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  // [Feature] 클라이언트(앱)가 켜졌을 때 알림창/배지 모두 제거
+  // 사용자가 명시적으로 전체 읽음을 실행했을 때만 운영체제 알림과 배지를 정리한다.
   if (event.data && event.data.type === 'CLEAR_NOTIFICATIONS') {
     self.registration.getNotifications().then(notifications => {
       notifications.forEach(notification => notification.close());
@@ -409,20 +409,32 @@ self.addEventListener('notificationclick', (event) => {
 
   const urlToOpen = event.notification.data?.url || '/';
   const dbId = event.notification.data?.dbId;
-  // [Update] 알림 클릭 시 읽음 처리는 앱(클라이언트)이 맡음
-  // SW에서 즉시 처리해버리면 앱 진입 시 '읽지 않은 알림' 목록이 비어있게 되기 때문
-  /* 
-  if (dbId) {
-    markAsReadInDB(dbId);
-  }
-  */
+  const markReadPromise = dbId ? markAsReadInDB(dbId) : Promise.resolve();
 
-  // [Update] 앱이 알림을 통해 진입했음을 알 수 있도록 파라미터 추가
+  const notificationData = event.notification.data || {};
+  const sourceKind = notificationData.queueId
+    ? 'new_event'
+    : notificationData.commentId
+      ? 'board_comment'
+      : notificationData.kind === 'daily_schedule_morning' && notificationData.date
+        ? 'daily_schedule'
+        : null;
+  const sourceId = notificationData.queueId || notificationData.commentId || (
+    notificationData.kind === 'daily_schedule_morning' ? notificationData.date : null
+  );
+
+  // 클릭한 한 건만 사용자별 서버 읽음 상태와 동기화할 수 있도록 식별자를 전달한다.
   const url = new URL(urlToOpen, self.location.origin);
   url.searchParams.set('open_notifications', 'true');
+  if (dbId) url.searchParams.set('notification_local_id', dbId);
+  if (sourceKind && sourceId) {
+    url.searchParams.set('notification_kind', sourceKind);
+    url.searchParams.set('notification_source_id', sourceId);
+  }
   const finalUrl = url.href;
 
-  event.waitUntil(
+  event.waitUntil(Promise.all([
+    markReadPromise,
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
         // 이미 같은 URL이 열려있다면 해당 창 포커스
@@ -435,6 +447,6 @@ self.addEventListener('notificationclick', (event) => {
         if (clients.openWindow) {
           return clients.openWindow(finalUrl);
         }
-      })
-  );
+      }),
+  ]));
 });

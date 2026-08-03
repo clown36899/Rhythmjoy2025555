@@ -679,10 +679,10 @@
   align-items: center;
   justify-content: center;
   color: #171410;
-  font-size: clamp(14px, 4vw, 17px);
+  font-size: clamp(11px, 3.2vw, 15px);
   font-weight: 950;
   line-height: 0.94;
-  white-space: normal;
+  white-space: nowrap;
   word-break: keep-all;
   text-shadow:
     0 1px 0 rgba(255, 250, 232, 0.9),
@@ -962,7 +962,7 @@
   }
 
   .NEB-oneDayRecruitTitle {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .NEB-oneDayRecruitMeta {
@@ -1117,7 +1117,7 @@
     }
 
     .NEB-oneDayRecruitTitle {
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .NEB-oneDayRecruitMeta {

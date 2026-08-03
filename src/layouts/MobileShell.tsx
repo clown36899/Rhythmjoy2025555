@@ -12,9 +12,8 @@ import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
-import { notificationStore } from '../lib/notificationStore';
+import { NOTIFICATION_INBOX_EVENT, notificationStore } from '../lib/notificationStore';
 import {
-  getSiteNotifications,
   getUnreadSiteNotifications,
   markSiteNotificationsRead,
   SITE_NOTIFICATION_INBOX_EVENT,
@@ -417,7 +416,7 @@ export const MobileShell: React.FC = () => {
       console.warn('[MobileShell] Failed to refresh notification badge:', error);
       setNotificationBadgeCount(getUnreadSiteNotifications().length);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     const refreshSoon = () => {
@@ -434,12 +433,14 @@ export const MobileShell: React.FC = () => {
 
     void refreshNotificationBadgeCount();
     window.addEventListener(SITE_NOTIFICATION_INBOX_EVENT, refreshSoon);
+    window.addEventListener(NOTIFICATION_INBOX_EVENT, refreshSoon);
     window.addEventListener('focus', refreshSoon);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
 
     return () => {
       window.removeEventListener(SITE_NOTIFICATION_INBOX_EVENT, refreshSoon);
+      window.removeEventListener(NOTIFICATION_INBOX_EVENT, refreshSoon);
       window.removeEventListener('focus', refreshSoon);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
@@ -456,7 +457,7 @@ export const MobileShell: React.FC = () => {
 
     notificationHistoryModal.open({
       notifications: unreadPushNotifications,
-      siteNotifications: getSiteNotifications(),
+      siteNotifications: getUnreadSiteNotifications(),
       onRefresh: refreshNotificationBadgeCount,
       onOpenNotificationSettings: handleNotificationSettingsClick,
     });

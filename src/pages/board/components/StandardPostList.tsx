@@ -38,6 +38,7 @@ interface StandardPostListProps {
     onToggleFavorite?: (postId: number) => void;
     isAdmin: boolean;
     currentUserId?: string | null;
+    unreadPostIds?: Set<string>;
     selectedPrefixId?: number | null;
     onPrefixChange?: (prefixId: number | null) => void;
 }
@@ -52,6 +53,7 @@ export default function StandardPostList({
     onToggleFavorite,
     isAdmin,
     currentUserId,
+    unreadPostIds,
 }: StandardPostListProps) {
 
     const truncateText = (text: string, maxLength: number) => {
@@ -91,7 +93,9 @@ export default function StandardPostList({
     };
 
     const renderNewBadge = (post: StandardBoardPost) => (
-        isNewPost(post) ? <span className="free-board-new-badge" aria-label="등록 후 2주 이내의 새 글">NEW</span> : null
+        isNewPost(post) && unreadPostIds?.has(String(post.id))
+            ? <span className="free-board-new-badge" aria-label="아직 읽지 않은 새 글">NEW</span>
+            : null
     );
 
     const canOpenPost = (post: StandardBoardPost) => (

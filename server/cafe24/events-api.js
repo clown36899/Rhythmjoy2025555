@@ -64,17 +64,30 @@ export async function enqueueNewEventNotification(event) {
         ? '소셜'
         : '행사';
   const dateText = normalizeDate(event.start_date || event.date) || '';
+  const lastDateText = [
+    normalizeDate(event.end_date),
+    ...normalizeArray(event.event_dates).map(normalizeDate),
+    dateText,
+  ].filter(Boolean).sort().at(-1) || '';
   const place = event.venue_name || event.location || event.place_name || '장소 미정';
+  const today = formatDateObject(new Date());
+  if (lastDateText && lastDateText < today) return;
 
   try {
     await saveCafe24TableRow('notification_queue', {
-      id: crypto.randomUUID(),
+      id: `event-created:${String(event.id)}`,
       title: `새 ${label} 등록`,
       body: `${event.title || '새 일정'}${dateText ? ` · ${dateText}` : ''} · ${place}`,
       category,
       payload: {
         url: `/calendar?id=${event.id}`,
         eventId: String(event.id),
+        category,
+        date: dateText || null,
+        endDate: lastDateText || dateText || null,
+        eventType: event.event_type || null,
+        genre: event.genre || event.dance_genre || null,
+        tags: Array.isArray(event.tags) ? event.tags : [],
         image: event.image_thumbnail || event.image_medium || event.image || event.image_full || null,
         queueSource: 'event_create',
       },

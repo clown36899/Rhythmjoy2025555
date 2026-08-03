@@ -28,6 +28,7 @@ import {
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
 import { createPerfTrace } from './perf-log.js';
+import { saveUserNotificationPreferences } from './notification-preferences.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -2686,6 +2687,11 @@ async function handlePushSubscription(args = {}, user = null) {
     created_at: existing?.created_at || now,
     updated_at: now,
   }, ['endpoint']);
+
+  await saveUserNotificationPreferences(user.id, {
+    enabled: true,
+    ...finalPrefs,
+  });
 
   console.info('[PushSaveServer] upsert success', {
     userId: user.id,

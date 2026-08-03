@@ -15,18 +15,9 @@ const STORAGE_KEY = 'swingenjoy_site_notification_read_ids_v1';
 
 export const SITE_NOTIFICATION_INBOX_EVENT = 'siteNotificationInboxChanged';
 
-const SITE_NOTIFICATIONS: SiteNotificationItem[] = [
-    {
-        id: 'push-public-rollout-2026-07-11',
-        title: '알림 구독이 전체 사용자에게 열렸습니다',
-        body: '오늘 일정 알림과 새 일정 등록 알림을 받을 수 있습니다.',
-        detail: '기존 구독자는 알림 설정에서 저장을 다시 누르면 현재 브라우저 구독과 새 설정이 갱신됩니다.',
-        received_at: '2026-07-11T00:00:00+09:00',
-        icon: 'ri-notification-badge-line',
-        actionLabel: '알림 설정 / 구독 갱신',
-        action: 'open-notification-settings',
-    },
-];
+// 상태 변경 공지는 사용자별 서버 읽음 상태로 관리한다. 정적 로컬 공지를
+// 함께 두면 새 서버 공지와 중복되어 종 숫자가 실제 미읽음 수보다 커진다.
+const SITE_NOTIFICATIONS: SiteNotificationItem[] = [];
 
 function readReadIds() {
     if (typeof window === 'undefined') return new Set<string>();

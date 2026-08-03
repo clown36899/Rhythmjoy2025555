@@ -46,6 +46,7 @@ import { reconcileRegularSocials } from './regular-social-reconciler.js';
 import { eventStats, recordAnalytics, siteStats } from './stats-api.js';
 import {
   dailyDigestCron,
+  getNotificationPreferences,
   listUserNotifications,
   markUserNotificationsRead,
   notificationQueueCron,
@@ -53,7 +54,12 @@ import {
   sendBoardCommentNotification,
   sendDailyDigestToAdmins,
   sendPushNotification,
+  updateNotificationPreferences,
 } from './push-api.js';
+import {
+  listUnreadFreeBoardPosts,
+  markFreeBoardPostRead,
+} from './board-read-api.js';
 import {
   cafe24IngestorV3Candidates,
   cafe24IngestorV3RegisterBlocked,
@@ -378,8 +384,12 @@ app.get('/api/diagnostics/reloads', jsonRoute(listClientReloadDiagnostics));
 app.get('/api/diagnostics/server-versions', jsonRoute(listServerVersionDiagnostics));
 app.post('/api/send-push-notification', jsonBody, jsonRoute(sendPushNotification));
 app.post('/api/board/comment-notification', jsonBody, jsonRoute(sendBoardCommentNotification));
+app.get('/api/board/free/unread', jsonRoute(listUnreadFreeBoardPosts));
+app.post('/api/board/free/read', jsonBody, jsonRoute(markFreeBoardPostRead));
 app.get('/api/notifications', jsonRoute(listUserNotifications));
 app.post('/api/notifications/read', jsonBody, jsonRoute(markUserNotificationsRead));
+app.get('/api/notification-preferences', jsonRoute(getNotificationPreferences));
+app.put('/api/notification-preferences', jsonBody, jsonRoute(updateNotificationPreferences));
 app.post('/api/admin/push/send-daily-digest-test', jsonBody, jsonRoute(sendDailyDigestToAdmins));
 app.post('/api/admin/push/process-notification-queue', jsonBody, jsonRoute(processNotificationQueue));
 app.all('/api/__cron/daily-digest', jsonBody, jsonRoute(dailyDigestCron));

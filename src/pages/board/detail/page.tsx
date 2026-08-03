@@ -6,6 +6,7 @@ import { useBoardDetail } from '../hooks/useBoardDetail';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { type UserData } from '../components/UserRegistrationModal';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
+import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
 import '../board.css';
 import './detail.css';
 
@@ -36,6 +37,7 @@ export default function BoardDetailPage() {
         onPostDeleted: handlePostDeleted,
         isAdmin
     });
+    useMarkFreeBoardPostRead(post?.id || id, post?.category, Boolean(post));
 
     useEffect(() => {
         const loadUserData = async () => {

@@ -9,6 +9,7 @@ import {
   saveCafe24TableRow,
 } from './generic-data-api.js';
 import { canManageEvent, userMatchesId } from './event-security.js';
+import { enqueueNewEventNotification } from './events-api.js';
 import { removeEventUploads as removeEventUploadFiles } from './upload-cleanup.js';
 import {
   collapseDateExpansionRows,
@@ -1217,6 +1218,7 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     updated_at: new Date().toISOString(),
   };
   const inserted = await saveCafe24TableRow('events', finalPayload);
+  await enqueueNewEventNotification(inserted);
   const replacedRegularSocials = findGeneratedRegularSocialReplacements(existingRows, inserted, scrapedEvent);
   if (replacedRegularSocials.length) {
     await deleteCafe24TableRows('events', replacedRegularSocials);

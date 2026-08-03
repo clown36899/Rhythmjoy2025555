@@ -35,6 +35,7 @@ const SUGGESTION_WRITE_PRESET: BoardEditorPreset = {
 // Hooks
 import { useBoardPosts } from './hooks/useBoardPosts';
 import { useBoardInteractions } from './hooks/useBoardInteractions';
+import { useFreeBoardUnreadState } from '../../hooks/useFreeBoardUnreadCount';
 
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -50,6 +51,7 @@ export default function BoardMainContainer() {
     const selectedPostId = activePostId;
     const [postsPerPage] = useState(10);
     const [selectedPrefixId, setSelectedPrefixId] = useState<number | null>(null);
+    const { unreadPostIds } = useFreeBoardUnreadState();
 
     useEffect(() => {
         setActivePostId(urlPostId);
@@ -386,6 +388,7 @@ export default function BoardMainContainer() {
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
                         currentUserId={user?.id || null}
+                        unreadPostIds={unreadPostIds}
                         selectedPrefixId={selectedPrefixId}
                         onPrefixChange={handlePrefixChange}
                     />

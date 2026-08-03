@@ -5,6 +5,7 @@ import { useBoardDetail } from '../hooks/useBoardDetail';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { type UserData } from './UserRegistrationModal';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
+import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
 import '../board.css';
 import '../detail/detail.css';
 import './BoardDetailModal.css';
@@ -39,6 +40,7 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
         isAdmin,
         currentUserId: user?.id || null,
     });
+    useMarkFreeBoardPostRead(post?.id || postId, post?.category || category, isOpen && Boolean(post));
 
     useEffect(() => {
         const loadUserData = async () => {

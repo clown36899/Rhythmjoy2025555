@@ -22,6 +22,7 @@ import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getColl
 import {
   benefitSearchMatches,
   expectedInstagramHandleForSource,
+  extractBenefitDocumentUrls,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
   isStaleBenefitSourcePost,
@@ -267,6 +268,19 @@ assert.deepEqual(
   ]),
   ['https://www.instagram.com/fiesta_swingdance/'],
   'search fallback should discover canonical Instagram profiles without accepting posts or foreign hosts',
+);
+assert.deepEqual(
+  extractBenefitDocumentUrls([
+    '/url?q=https%3A%2F%2Fm.cafe.daum.net%2Fsweetyswing%2F5lqO%2F1732%3Fsvc%3DAXZ',
+    'https://cafe.daum.net/sweetyswing/5lqO/1732?svc=cafeapi',
+    'https://m.blog.naver.com/goldenswing/222973823693',
+    'https://www.instagram.com/p/ABC123/',
+  ], 'https://www.google.com/search?q=출빠+정기권'),
+  [
+    'https://m.cafe.daum.net/sweetyswing/5lqO/1732',
+    'https://m.blog.naver.com/goldenswing/222973823693',
+  ],
+  'benefit discovery should keep canonical original cafe/blog documents and dedupe search variants',
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'free_event' }),
@@ -646,6 +660,37 @@ const endedSeasonPass = prepareCandidate(baseCandidate({
 assert.equal(isEvergreenSeasonPassCandidate(endedSeasonPass.candidate), false, 'ended season-pass sales must not be treated as evergreen');
 assert.equal(endedSeasonPass.validation.ok, false, 'ended old sales should still fail the past-date rule');
 assert.equal(endedSeasonPass.candidate.structured_data.benefit_lifecycle, undefined, 'ended sales should not be promoted into the benefit list');
+
+const datedPassProduct = prepareCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/5lqO/1732',
+  extracted_text: '스윙타임빠 2개월 정기권(4,5월)을 판매합니다. 4월 8일~6월 7일, 가격 13만원',
+  structured_data: {
+    title: '스윙타임빠 정기권(4,5월) 판매',
+    date: '2026-04-08',
+    event_type: '판매',
+    activity_type: 'sale',
+    dance_scope: 'swing',
+    dance_genre: 'swing',
+    genre_family: 'partner',
+  },
+}), { today: '2026-08-03' });
+const samePassDifferentReviewDate = prepareCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/5lqO/1732',
+  extracted_text: '스윙타임빠 2개월 정기권(4,5월)을 판매합니다. 4월 8일~6월 7일, 가격 13만원',
+  structured_data: {
+    title: '스윙타임빠 정기권(4,5월) 판매',
+    date: '2026-08-03',
+    event_type: '판매',
+    activity_type: 'sale',
+    dance_scope: 'swing',
+    dance_genre: 'swing',
+    genre_family: 'partner',
+  },
+}), { today: '2026-08-03' });
+assert.equal(datedPassProduct.validation.ok, true, 'a dated pass product must not be rejected as a past one-off event');
+assert.equal(datedPassProduct.candidate.structured_data.ongoing_sale, true, 'pass products remain reviewable until an explicit sale-end notice');
+assert.equal(datedPassProduct.candidate.structured_data.activity_type, 'sale', 'pass wording must win over adjacent social wording');
+assert.equal(datedPassProduct.candidate.id, samePassDifferentReviewDate.candidate.id, 'the same pass source URL must dedupe independently of the review date');
 
 const evergreenDiscount = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/swingbar/p/ONGOINGDISCOUNT/',
@@ -1307,6 +1352,7 @@ assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigak
 assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
 assert.ok(dynamicSearchQueries.swing.some((query) => /원데이|체험|오픈\s*클래스/.test(query)), 'swing dynamic search should include one-day/trial class discovery');
 assert.ok(dynamicSearchQueries.swing.some((query) => /정기권|무료|판매\s*이벤트/.test(query)), 'swing dynamic search should include sale/free/season-pass discovery');
+assert.ok(dynamicSearchQueries.swing.includes('출빠 정기권'), 'swing benefit discovery should include the high-yield attendance-pass query');
 for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
   assert.ok(dynamicSearchQueries[scope].some((query) => /무료/.test(query)), `${scope} dynamic search should include free-event discovery`);
   assert.ok(dynamicSearchQueries[scope].some((query) => /정기권|멤버십|패스|수강권/.test(query)), `${scope} dynamic search should include pass-sale discovery`);

@@ -20,9 +20,7 @@ import KioskModeController from './components/KioskModeController';
 
 import { notificationStore } from './lib/notificationStore';
 import {
-  getSiteNotifications,
-  markSiteNotificationsRead,
-  SITE_NOTIFICATION_INBOX_EVENT,
+  getUnreadSiteNotifications,
 } from './lib/siteNotificationInbox';
 import { useModalActions, useModalState } from './contexts/ModalContext';
 import { CALENDAR_EVENTS_QUERY_VERSION, getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
@@ -136,22 +134,16 @@ function AppContent({ isAdmin }: AppContentProps) {
 
       // 3. 사용자를 방해하지 않도록 자동 오픈은 하지 않고, 강제 진입/이미 열린 상태만 처리
       const currentStack = modalStackRef.current;
-      // 모달이 이미 열려있으면 알림을 읽어도 목록 갱신 (읽은 항목 즉시 제거)
       const isModalAlreadyOpen = currentStack.includes('notificationHistory');
 
       if (forceOpen || isModalAlreadyOpen) {
         if (currentCount > 0 || forceOpen || isModalAlreadyOpen) {
           const notifProps = {
             notifications: unread,
-            siteNotifications: getSiteNotifications(),
+            siteNotifications: getUnreadSiteNotifications(),
             onRefresh: () => loadUnreadNotifications(false),
             onOpenNotificationSettings: () => openModal('notificationSettings'),
           };
-          if (forceOpen) {
-            await notificationStore.markAllAsRead();
-            markSiteNotificationsRead();
-            window.dispatchEvent(new CustomEvent(SITE_NOTIFICATION_INBOX_EVENT));
-          }
           // [Bug Fix] notificationHistory 위에 다른 모달(eventDetail 등)이 올라와 있을 때
           // openModal을 호출하면 notificationHistory가 스택 최상위로 이동해 eventDetail을 가림.
           // 이 경우 props만 업데이트하고 스택 순서는 유지 (백그라운드 갱신).
@@ -210,85 +202,47 @@ function AppContent({ isAdmin }: AppContentProps) {
     }
   };
 
-  // [Feature] 알림 배지 및 센터 청소 통합 함수
-  const lastNotificationClearRef = useRef(0);
-
-  const clearNotifications = async (force = false) => {
-    const now = Date.now();
-    if (!force && now - lastNotificationClearRef.current < 3000) return;
-    lastNotificationClearRef.current = now;
-
-    // 1. 서비스 워커에게 '알림센터 비우기' 명령 전송
-    const serviceWorker = navigator.serviceWorker;
-    if (serviceWorker?.ready) {
-      try {
-        const registration = await serviceWorker.ready;
-        if (registration?.active) {
-          registration.active.postMessage({ type: 'CLEAR_NOTIFICATIONS' });
-        }
-      } catch (err) {
-        console.warn('[Notification] Service worker cleanup skipped:', err);
-      }
-    }
-
-    // 2. 앱 배지(숫자) 비우기 API 호출
-    const nav = navigator as any;
-    if (nav.clearAppBadge) {
-      nav.clearAppBadge().catch((err: any) => console.error('[Badge] Clear failed:', err));
-    } else if (nav.setAppBadge) {
-      nav.setAppBadge(0).catch((err: any) => console.error('[Badge] Set(0) failed:', err));
-    }
-  };
-
-  // 1. 앱 실행 시 & 포커스 & 상호작용 시 청소
+  // 앱 실행·포커스·일반 클릭으로 운영체제 알림을 임의 삭제하지 않는다.
+  // 알림은 사용자가 탭하거나 알림함에서 읽었을 때만 읽음 처리한다.
   useEffect(() => {
-    // A. 초기 실행 (약간의 지연 후 시도)
-    setTimeout(() => clearNotifications(true), 500);
-
-    // B. 포커스/가시성 변경 감지
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        clearNotifications(true);
         loadUnreadNotifications();
       }
     };
 
-    // C. 유저 상호작용(터치/클릭) 시 즉시 청소 (제스처 요구사항 대응 & 확실한 트리거)
-    const handleInteraction = () => {
-      clearNotifications();
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange); // 데스크탑 포커스 대응
-    window.addEventListener('click', handleInteraction);      // 클릭 대응
-    window.addEventListener('touchstart', handleInteraction, { passive: true }); // 모바일 터치 대응
-
-    // D. 초기 로드 시 알림 확인 및 정리
+    window.addEventListener('focus', handleVisibilityChange);
     loadUnreadNotifications();
-    notificationStore.deleteOld(); // 1주일 지난 알림 자동 삭제
+    notificationStore.deleteOld();
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
-      window.removeEventListener('click', handleInteraction);
-      window.removeEventListener('touchstart', handleInteraction);
     };
-  }, []);
+  }, [loadUnreadNotifications]);
 
 
 
-  // 2. 페이지 이동 시에도 청소 (location)
   useEffect(() => {
-    clearNotifications(true);
-
     // [Feature] 알림 클릭 진입 감지 (open_notifications 파라미터)
     const params = new URLSearchParams(location.search);
     if (params.get('open_notifications') === 'true') {
-      loadUnreadNotifications(true); // 강제 오픈
+      const localId = params.get('notification_local_id');
+      const kind = params.get('notification_kind');
+      const sourceId = params.get('notification_source_id');
+
+      void (async () => {
+        if (localId) await notificationStore.markAsRead(localId);
+        if (kind && sourceId) await notificationStore.markSourceAsRead(kind, sourceId);
+      })();
 
       // URL에서 파라미터 제거 (뒤로가기 시 중복 방지)
       const newParams = new URLSearchParams(location.search);
       newParams.delete('open_notifications');
+      newParams.delete('notification_local_id');
+      newParams.delete('notification_kind');
+      newParams.delete('notification_source_id');
       const newSearch = newParams.toString();
       const newUrl = location.pathname + (newSearch ? `?${newSearch}` : '') + location.hash;
       window.history.replaceState({}, '', newUrl);

@@ -47,7 +47,7 @@ fi
 
 npm run build:cafe24
 
-ssh "${SSH_ARGS[@]}" "${TARGET}" "mkdir -p '${APP_DIR}/dist' '${APP_DIR}/dist-cafe24' '${APP_DIR}/server/cafe24' '${APP_DIR}/scripts'"
+ssh "${SSH_ARGS[@]}" "${TARGET}" "mkdir -p '${APP_DIR}/dist' '${APP_DIR}/dist-cafe24' '${APP_DIR}/server/cafe24' '${APP_DIR}/scripts' '${APP_DIR}/deploy/cafe24/cron' /etc/cron.d"
 
 RSYNC_LOG_DIR="$(mktemp -d)"
 cleanup() {
@@ -61,6 +61,7 @@ server_log="${RSYNC_LOG_DIR}/server.log"
 scripts_log="${RSYNC_LOG_DIR}/scripts.log"
 package_log="${RSYNC_LOG_DIR}/package.log"
 apache_log="${RSYNC_LOG_DIR}/apache.log"
+cron_log="${RSYNC_LOG_DIR}/cron.log"
 
 rsync -azi --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/ "${TARGET}:${APP_DIR}/dist/" | tee "${dist_log}"
 rsync -azi --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist-cafe24/ "${TARGET}:${APP_DIR}/dist-cafe24/" | tee "${functions_log}"
@@ -68,12 +69,16 @@ rsync -azi --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${
 rsync -azi -e "${RSYNC_SSH}" scripts/audit-analytics-admin-devices.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/backfill-analytics-identities.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/backfill-event-image-variants.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/baseline-notification-queue.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/backfill-notification-preferences.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/exclude-analytics-kiosk-network.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/import-lindycollection-routines.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/seed-notification-reset-notice.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" package.json package-lock.json "${TARGET}:${APP_DIR}/" | tee "${package_log}"
 rsync -azi --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" deploy/cafe24/apache/ "${TARGET}:${APACHE_CONF_DIR}/" | tee "${apache_log}"
+rsync -azi -e "${RSYNC_SSH}" deploy/cafe24/cron/swingenjoy-notifications "${TARGET}:${APP_DIR}/deploy/cafe24/cron/" | tee "${cron_log}"
 
 has_transfer_changes() {
   grep -Eq '^([<>ch]|\*deleting)' "$1"
@@ -87,6 +92,9 @@ fi
 package_lock_hash="$(sha256sum package-lock.json | awk '{print $1}')"
 
 ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
+rm -f /etc/cron.d/swingenjoy-notifications
+systemctl reload crond || systemctl restart crond
+/usr/bin/flock -w 65 /run/swingenjoy-notifications.lock /bin/true
 cd '${APP_DIR}'
 set -a
 . '${APP_DIR}/.env'
@@ -119,6 +127,31 @@ MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \
   -u \"\${MYSQL_USER}\" \
   \"\${MYSQL_DATABASE}\" \
   < '${APP_DIR}/server/cafe24/migrations/2026-07-26-user-notifications.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
+  -h \"\${MYSQL_HOST}\" \\
+  -P \"\${MYSQL_PORT:-3306}\" \\
+  -u \"\${MYSQL_USER}\" \\
+  \"\${MYSQL_DATABASE}\" \\
+  < '${APP_DIR}/server/cafe24/migrations/2026-08-03-notification-delivery-standard.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
+  -h \"\${MYSQL_HOST}\" \\
+  -P \"\${MYSQL_PORT:-3306}\" \\
+  -u \"\${MYSQL_USER}\" \\
+  \"\${MYSQL_DATABASE}\" \\
+  < '${APP_DIR}/server/cafe24/migrations/2026-08-03-user-board-post-reads.sql'
+export PATH='${NODE_BIN_DIR}':\"\$PATH\"
+if [ ! -f '${APP_DIR}/.notification-subscriptions-reset-20260803' ]; then
+  RESET_EXISTING_NOTIFICATION_SUBSCRIPTIONS=1 \
+    '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/backfill-notification-preferences.mjs'
+  '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/seed-notification-reset-notice.mjs'
+  touch '${APP_DIR}/.notification-subscriptions-reset-20260803'
+else
+  '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/backfill-notification-preferences.mjs'
+fi
+if [ ! -f '${APP_DIR}/.notification-delivery-baselined' ]; then
+  '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/baseline-notification-queue.mjs'
+  touch '${APP_DIR}/.notification-delivery-baselined'
+fi
 if [ -f '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' ] && [ -f '${APACHE_CONF_DIR}/00-swingenjoy-modsecurity-exceptions.conf' ]; then
   mv '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf' '${APACHE_CONF_DIR}/swingenjoy-modsecurity-exceptions.conf.disabled'
 fi
@@ -161,6 +194,9 @@ else
     done
   fi
 fi
+install -m 0644 '${APP_DIR}/deploy/cafe24/cron/swingenjoy-notifications' /etc/cron.d/swingenjoy-notifications
+chown root:root /etc/cron.d/swingenjoy-notifications
+systemctl reload crond || systemctl restart crond
 systemctl reload httpd || true
 systemctl is-active '${SERVICE}'
 cat dist/version.json"

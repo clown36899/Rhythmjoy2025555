@@ -263,6 +263,11 @@ export default function NotificationHistoryModal({
         handleClose();
     };
 
+    const handleOpenDeviceNotificationSettings = () => {
+        onClose();
+        onOpenNotificationSettings?.();
+    };
+
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
         return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
@@ -363,14 +368,28 @@ export default function NotificationHistoryModal({
                     )}
                 </div>
 
-                {totalDisplayCount > 0 && (
+                {(onOpenNotificationSettings || totalDisplayCount > 0) && (
                     <div className="nhm-footer">
-                        <button
-                            onClick={handleMarkAllRead}
-                            className="nhm-read-all-btn"
-                        >
-                            모두 읽음 처리
-                        </button>
+                        {onOpenNotificationSettings && (
+                            <button
+                                type="button"
+                                onClick={handleOpenDeviceNotificationSettings}
+                                className="nhm-device-settings-btn"
+                            >
+                                <i className="ri-smartphone-line" aria-hidden="true"></i>
+                                단말 알림 설정
+                                <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+                            </button>
+                        )}
+                        {totalDisplayCount > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleMarkAllRead}
+                                className="nhm-read-all-btn"
+                            >
+                                모두 읽음 처리
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

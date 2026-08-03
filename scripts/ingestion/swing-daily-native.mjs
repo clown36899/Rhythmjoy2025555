@@ -21,6 +21,7 @@ import { getAutomationSourceList, getExcludedSourceReason } from './collection-r
 import {
   benefitSearchMatches,
   expectedInstagramHandleForSource,
+  extractBenefitDocumentUrls,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
   isStaleBenefitSourcePost,
@@ -368,6 +369,38 @@ function selectCandidateDates({ title, cleanText, activity }) {
   return keepFirstEventDateOnly(sourceDates);
 }
 
+function publishedDateKey(value = '') {
+  const raw = String(value || '').trim();
+  const explicit = raw.match(/(20\d{2})\D{0,3}(\d{1,2})\D{0,3}(\d{1,2})/);
+  if (explicit) return isoDate(explicit[1], explicit[2], explicit[3]);
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed);
+}
+
+function alignYearlessBenefitDatesToPublication(dates = [], text = '', publishedAt = '') {
+  const publicationDate = publishedDateKey(publishedAt);
+  if (!publicationDate || /20\d{2}\s*[.\-/년]/.test(String(text || ''))) return dates;
+  const publicationMs = Date.parse(`${publicationDate}T00:00:00+09:00`);
+  const publicationYear = Number(publicationDate.slice(0, 4));
+
+  return dates.map((date) => {
+    const [, month, day] = String(date).match(/^\d{4}-(\d{2})-(\d{2})$/) || [];
+    if (!month || !day) return date;
+    return [publicationYear - 1, publicationYear, publicationYear + 1]
+      .map((year) => isoDate(year, month, day))
+      .sort((left, right) => (
+        Math.abs(Date.parse(`${left}T00:00:00+09:00`) - publicationMs)
+        - Math.abs(Date.parse(`${right}T00:00:00+09:00`) - publicationMs)
+      ))[0];
+  });
+}
+
 function socialDayTitle(day = '') {
   return ({
     월: '월요',
@@ -631,7 +664,7 @@ function extractDates(text = '') {
 }
 
 function inferActivity(text = '') {
-  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) {
+  if (/판매\s*이벤트|이벤트\s*판매|정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) {
     return { activity: 'sale', eventType: '판매이벤트' };
   }
   if (/(?:창립|오픈|개장)?\s*\d+\s*주년.{0,30}(?:파티|행사)|(?:파티|행사).{0,30}\d+\s*주년|anniversary/i.test(text)) {
@@ -1058,8 +1091,9 @@ async function collectBenefitSearchLinks(page, source) {
   }));
   let links = extractInstagramPostUrls(state.hrefs, state.url);
   let profiles = extractInstagramProfileUrls(state.hrefs, state.url);
+  let documentUrls = extractBenefitDocumentUrls(state.hrefs, state.url);
 
-  if (!links.length && /unusual traffic|abnormal traffic|비정상적인\s*트래픽|captcha|자동화된\s*쿼리|로봇이\s*아니|동의하기/i.test(state.bodyText)) {
+  if (!links.length && !profiles.length && !documentUrls.length && /unusual traffic|abnormal traffic|비정상적인\s*트래픽|captcha|자동화된\s*쿼리|로봇이\s*아니|동의하기/i.test(state.bodyText)) {
     const fallbackUrl = `https://www.bing.com/search?q=${encodeURIComponent(source.query || '')}`;
     await safeGoto(page, fallbackUrl, Math.min(sourceTimeoutMs, 20_000));
     const fallback = await page.evaluate(() => ({
@@ -1068,9 +1102,10 @@ async function collectBenefitSearchLinks(page, source) {
     }));
     links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
     profiles = extractInstagramProfileUrls(fallback.hrefs, fallback.url);
+    documentUrls = extractBenefitDocumentUrls(fallback.hrefs, fallback.url);
   }
 
-  if (!links.length && !profiles.length) {
+  if (!links.length && !profiles.length && !documentUrls.length) {
     const naverUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(source.query || '')}`;
     await safeGoto(page, naverUrl, Math.min(sourceTimeoutMs, 20_000));
     const fallback = await page.evaluate(() => ({
@@ -1079,11 +1114,13 @@ async function collectBenefitSearchLinks(page, source) {
     }));
     links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
     profiles = extractInstagramProfileUrls(fallback.hrefs, fallback.url);
+    documentUrls = extractBenefitDocumentUrls(fallback.hrefs, fallback.url);
   }
 
   return {
     postUrls: links.slice(0, Math.max(1, postLimit)),
     profileUrls: profiles.slice(0, 3),
+    documentUrls: documentUrls.slice(0, Math.max(1, postLimit)),
   };
 }
 
@@ -1307,13 +1344,17 @@ async function scrapeDaumArticle(page, link, source) {
   const data = await page.evaluate(() => {
     const title = document.querySelector('.tit_subject, .article_title, .tit_view, h3, h2')?.textContent || '';
     const text = document.body.innerText || '';
+    const publishedAt = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')
+      || document.querySelector('time[datetime]')?.getAttribute('datetime')
+      || document.querySelector('.txt_date, .date, .info_date, [class*="date"]')?.textContent
+      || '';
     const images = [...document.querySelectorAll('img')]
       .map((img) => ({
         src: img.currentSrc || img.src,
         w: img.naturalWidth || img.width || 0,
         h: img.naturalHeight || img.height || 0,
       }));
-    return { title, text, images };
+    return { title, text, images, publishedAt };
   });
   const posterUrl = pickPosterImage(data.images);
   return buildCandidatesFromText({
@@ -1324,7 +1365,55 @@ async function scrapeDaumArticle(page, link, source) {
     posterUrl,
     page,
     referer: 'https://m.cafe.daum.net/',
+    publishedAt: data.publishedAt,
   });
+}
+
+async function scrapeGenericBenefitDocument(page, url, source) {
+  await safeGoto(page, url, postTimeoutMs);
+  const data = await page.evaluate(() => {
+    const article = document.querySelector('article, main, [role="main"]') || document.body;
+    const title = document.querySelector('meta[property="og:title"]')?.getAttribute('content')
+      || document.querySelector('h1, h2')?.textContent
+      || document.title
+      || '';
+    const description = document.querySelector('meta[property="og:description"], meta[name="description"]')?.getAttribute('content') || '';
+    const text = article?.innerText || description;
+    const publishedAt = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')
+      || document.querySelector('time[datetime]')?.getAttribute('datetime')
+      || '';
+    const images = [...article.querySelectorAll('img')].map((img) => ({
+      src: img.currentSrc || img.src,
+      w: img.naturalWidth || img.width || 0,
+      h: img.naturalHeight || img.height || 0,
+    }));
+    const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+    return { title, text: `${description}\n${text}`, publishedAt, images, ogImage };
+  });
+  const posterUrl = pickPosterImage([
+    ...data.images,
+    ...(data.ogImage ? [{ src: data.ogImage, w: 1200, h: 630 }] : []),
+  ]);
+  return buildCandidatesFromText({
+    source,
+    sourceUrl: normalizeSourceUrl(url),
+    text: `${data.title}\n${data.text}`,
+    title: data.title,
+    posterUrl,
+    page,
+    referer: url,
+    publishedAt: data.publishedAt,
+  });
+}
+
+async function scrapeBenefitDocument(page, url, source) {
+  if (/^https:\/\/m\.cafe\.daum\.net\//i.test(url)) {
+    return scrapeDaumArticle(page, { href: url, title: '' }, source);
+  }
+  if (/^https:\/\/cafe\.naver\.com\/f-e\/cafes\/\d+\/articles\/\d+/i.test(url)) {
+    return scrapeNaverArticle(page, { href: url, title: '' }, source);
+  }
+  return scrapeGenericBenefitDocument(page, url, source);
 }
 
 function resolveLittlyImageUrl(imageUrl = '') {
@@ -1680,7 +1769,7 @@ async function buildCandidatesFromText({
   const { activity, eventType } = preferDatedSocialSchedule
     ? { activity: 'social', eventType: '소셜' }
     : inferredActivity;
-  if (!posterUrlList.length && activity !== 'social') {
+  if (!posterUrlList.length && activity !== 'social' && source.type !== 'benefit_search') {
     result.skipped += 1;
     result.issues.push(`${source.id}: poster missing`);
     return [];
@@ -1776,9 +1865,24 @@ async function buildCandidatesFromText({
     log(`skip ${source.id}: stale source post ${String(publishedAt).slice(0, 10)}`);
     return [];
   }
+  const publicationDate = publishedDateKey(publishedAt);
+  if (
+    source.type === 'benefit_search'
+    && !isEvergreenSeasonPass
+    && !publicationDate
+    && !/20\d{2}\s*[.\-/년]/.test(`${candidateTitle}\n${cleanText}`)
+  ) {
+    result.skipped += 1;
+    log(`skip ${source.id}: date-bound benefit lacks a verified publication year`);
+    return [];
+  }
   const dates = isEvergreenSeasonPass
-    ? [today]
-    : selectCandidateDates({ title: candidateTitle, cleanText, activity });
+    ? [publicationDate || today]
+    : alignYearlessBenefitDatesToPublication(
+      selectCandidateDates({ title: candidateTitle, cleanText, activity }),
+      `${candidateTitle}\n${cleanText}`,
+      publishedAt,
+    );
   if (!dates.length) {
     result.skipped += 1;
     if (oneDayPattern.test(cleanText)) {
@@ -1996,7 +2100,7 @@ async function collectSource(page, source) {
     const targetResult = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs);
     const targets = targetResult && !Array.isArray(targetResult)
       ? targetResult
-      : { postUrls: [], profileUrls: [] };
+      : { postUrls: [], profileUrls: [], documentUrls: [] };
     const sourceByPostUrl = new Map(targets.postUrls.map((url) => [url, source]));
     const postUrls = [...targets.postUrls];
     for (const [profileIndex, profileUrl] of targets.profileUrls.entries()) {
@@ -2018,7 +2122,8 @@ async function collectSource(page, source) {
       }
     }
     const links = unique(postUrls);
-    if (!links.length) {
+    const documentUrls = unique(targets.documentUrls || []);
+    if (!links.length && !documentUrls.length) {
       result.benefitSearchStats.push({
         sourceId: source.id,
         scope: source.scope,
@@ -2043,11 +2148,24 @@ async function collectSource(page, source) {
       candidates.push(...matched);
       if (hasAccessFailure(`${source.id}:post`)) break;
     }
+    for (const url of documentUrls.slice(0, Math.max(1, postLimit))) {
+      ensureRunBudgetOrThrow(`benefit search document ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
+      const documentCandidates = await withBoundedStep(
+        `${source.id}:document`,
+        () => scrapeBenefitDocument(page, url, source),
+        postTimeoutMs + 8000,
+      );
+      checkedCandidates += documentCandidates.length;
+      const matched = documentCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
+      result.skipped += documentCandidates.length - matched.length;
+      candidates.push(...matched);
+      if (hasAccessFailure(`${source.id}:document`)) break;
+    }
     result.benefitSearchStats.push({
       sourceId: source.id,
       scope: source.scope,
       benefitKind: source.benefitKind,
-      discoveredPosts: links.length,
+      discoveredPosts: links.length + documentUrls.length,
       checkedCandidates,
       matchedCandidates: candidates.length,
     });

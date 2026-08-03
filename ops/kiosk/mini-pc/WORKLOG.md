@@ -17,7 +17,7 @@ Mini PC Ubuntu를 매장/현장용 댄스빌보드 키오스크로 안정화한�
 
 ## 현재 연결 정보
 
-- Mini PC SSH 대상: `kiosk-j@172.30.1.13`
+- Mini PC SSH 대상: `kiosk-j@kiosk-host.local` 우선, 현재 DHCP 주소 `172.30.1.14`
 - Chrome 원격 디버깅: `127.0.0.1:9222` on Mini PC
 - 키오스크 전용 URL: `https://swingenjoy.com/kiosk`
 - 홈 URL: `https://swingenjoy.com/`
@@ -25,6 +25,7 @@ Mini PC Ubuntu를 매장/현장용 댄스빌보드 키오스크로 안정화한�
 
 비밀번호와 SSH 개인키는 이 repo에 저장하지 않는다.
 비밀번호가 필요하면 채팅에 쓰지 말고 SSH 터미널 프롬프트에 직접 입력한다.
+DHCP 주소는 바뀔 수 있으므로 고정 IP를 추정하지 말고 `kiosk-host.local`을 먼저 조회한다.
 
 ## 백업된 파일
 

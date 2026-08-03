@@ -128,7 +128,7 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   const seasonPassText = text
     .replace(/(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)[^.!?\n]{0,40}(?:판매|구매|신청|운영)?\s*(?:하지\s*않|안\s*함|없(?:음|습니다|다)|불가|종료|마감|중단|폐지|품절)/gi, ' ')
     .replace(/(?:판매|구매|신청|운영)\s*(?:하지\s*않|안\s*함|없(?:음|습니다|다)|불가|종료|마감|중단|폐지|품절)[^.!?\n]{0,20}(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)/gi, ' ');
-  if (/(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)\s*(?:판매|신청|모집|오픈|출시|구매|이벤트|가격|요금|안내)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)|(?:입장권|티켓)\s*\d+\s*(?:장|회)\s*(?:묶음|패키지)\s*(?:판매|구매|신청|오픈|가격|안내)/i.test(seasonPassText)) {
+  if (/(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)[^.!?\n]{0,60}(?:판매|신청|모집|오픈|출시|구매|이벤트|가격|요금|안내)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)|(?:입장권|티켓)\s*\d+\s*(?:장|회)\s*(?:묶음|패키지)\s*(?:판매|구매|신청|오픈|가격|안내)/i.test(seasonPassText)) {
     return 'season_pass';
   }
   const discountText = text
@@ -160,10 +160,13 @@ export function isEvergreenBenefitCandidate(candidate = {}) {
   if (/(?:판매|신청|구매|운영|발급)\s*(?:종료|마감|중단)|(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b)[^.!?\n]{0,24}(?:종료|마감|중단|폐지|품절|sold\s*out|closed|ended)/i.test(text)) {
     return false;
   }
+  // 정기권/다회권은 하루짜리 과거 이벤트가 아니라 반복 이용 상품이다.
+  // 판매 종료가 명시되지 않은 한 게시일이나 사용 시작일이 지났다는 이유로 버리지 않는다.
+  if (benefitKind === 'season_pass') return true;
   if (benefitKind === 'discount_event') {
     return /상시\s*(?:할인|특가|혜택|적용)|연중\s*(?:할인|혜택)|언제든\s*(?:할인|적용)|(?:현재\s*)?(?:할인|프로모션)\s*(?:중|적용\s*중|진행\s*중)|(?:회원|정기권)\s*상시\s*할인/i.test(text);
   }
-  return /상시\s*(?:판매|신청|구매|이용|운영)|연중\s*(?:판매|신청|운영)|언제든\s*(?:구매|신청|이용)|수시\s*(?:판매|신청)|(?:현재\s*)?(?:판매|구매|신청)\s*(?:중|가능)|(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership)\s*(?:가격|요금|안내|구매|신청|이용)|(?:가격|요금)\s*[:：]?\s*\d[\d,]*\s*원[^.!?\n]{0,24}(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership)/i.test(text);
+  return false;
 }
 
 export const isEvergreenSeasonPassCandidate = isEvergreenBenefitCandidate;
@@ -690,7 +693,7 @@ function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
 
 function inferActivity(text, explicit, title = '') {
   const heading = String(title || '');
-  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(heading)) return 'sale';
+  if (/판매\s*이벤트|이벤트\s*판매|정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(heading)) return 'sale';
   if (/(?:창립|오픈|개장)?\s*\d+\s*주년.{0,30}(?:파티|행사)|(?:파티|행사).{0,30}\d+\s*주년|anniversary/i.test(heading)) return 'event';
   if (/(?:강습|클래스|원\s*데이|원데이|\d+\s*기).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(heading)) return 'recruit';
   if (/(?:경성|다이나믹\s*발보아|dynamic\s*balboa)\s*클래스|클래스\s*[:：]/i.test(heading)) return 'class';
@@ -699,7 +702,7 @@ function inferActivity(text, explicit, title = '') {
   if (/(?:소셜|social|프랙티카|practica|밀롱가|milonga)/i.test(heading)
     && !/(?:강습|수업|레슨|클래스|워크샵|워크숍|원\s*데이|원데이|모집|신청)/i.test(heading)) return 'social';
   if (['class', 'social', 'event', 'recruit', 'sale'].includes(explicit)) return explicit;
-  if (/판매\s*이벤트|이벤트\s*판매|정기권|시즌권|월정액|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) return 'sale';
+  if (/판매\s*이벤트|이벤트\s*판매|정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) return 'sale';
   if (/(참가자|팀원|크루|멤버|댄서|출연진)\s*모집|오디션|audition|crew\s*recruit|team\s*recruit/i.test(text)) return 'recruit';
   if (/강습|수업|레슨|클래스|워크샵|워크숍|특강|원\s*데이|원데이|오픈\s*클래스|체험\s*(?:클래스|강습|수업)|일일\s*(?:클래스|강습|수업)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|배워)|입문|초급|중급|class|lesson|workshop|one\s*day|oneday|open\s*class/i.test(text)) return 'class';
   if (/소셜|social|프랙티카|practica|밀롱가|milonga|\bdj\b/i.test(text)) return 'social';
@@ -998,7 +1001,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
     errors.push('named class notice is misclassified as a social');
   }
   const explicitActivity = String(candidate.activity_type || sd.activity_type || '');
-  if (explicitActivity !== 'sale' && /정기권|시즌권|월정액|멤버십|\bpass\b/i.test(text)) {
+  if (explicitActivity !== 'sale' && /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b/i.test(text)) {
     errors.push('season-pass sale is misclassified as a dated activity');
   }
   if (explicitActivity === 'social' && /(?:창립|오픈|개장)?\s*\d+\s*주년.{0,20}(?:파티|행사)|(?:파티|행사).{0,20}\d+\s*주년/i.test(text)) {
@@ -1084,7 +1087,8 @@ export function prepareCandidate(rawCandidate, config = {}) {
     else delete structuredData.benefit_lifecycle;
   }
   const date = String(structuredData.date || '').slice(0, 10);
-  const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, date, rawCandidate.id_suffix || '');
+  const identityDate = confirmedBenefit === 'season_pass' ? 'season-pass' : date;
+  const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, identityDate, rawCandidate.id_suffix || '');
   const candidate = {
     ...rawCandidate,
     id,

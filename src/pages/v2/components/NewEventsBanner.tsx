@@ -1404,13 +1404,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     setIsOneDayRecruitPressed(true);
                                 }
                             }}
-                            aria-label="스윙 원데이 모집 보기"
+                            aria-label="스윙 원데이 및 동호회 보기"
                         >
                             <span className="NEB-oneDayRecruitTicket" aria-hidden="true">
                                 <span className="NEB-oneDayRecruitStub">OPEN</span>
                                 <span className="NEB-oneDayRecruitBody">
                                     <span className="NEB-oneDayRecruitKicker">SWING CLASS</span>
-                                    <span className="NEB-oneDayRecruitTitle">원데이 모집</span>
+                                    <span className="NEB-oneDayRecruitTitle">원데이&amp;동호회</span>
                                     <span className="NEB-oneDayRecruitMeta">바로가기</span>
                                 </span>
                             </span>

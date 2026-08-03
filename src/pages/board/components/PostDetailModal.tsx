@@ -3,6 +3,7 @@ import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { StandardBoardPost as BoardPost } from '../../../types/board';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
+import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
 import './PostDetailModal.css';
 import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 
@@ -25,6 +26,7 @@ export default function PostDetailModal({
 }: PostDetailModalProps) {
   console.log('[PostDetailModal] Render:', { isOpen, postId: post?.id, hasPost: !!post });
   const { user, isAdmin } = useAuth();
+  useMarkFreeBoardPostRead(post?.id, post?.category, isOpen);
 
   // Debugging permissions removed
 

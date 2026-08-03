@@ -48,6 +48,40 @@ export function extractInstagramProfileUrls(hrefs = [], baseUrl) {
   return [...new Set(hrefs.map((href) => normalizeInstagramProfileUrl(href, baseUrl)).filter(Boolean))];
 }
 
+export function normalizeBenefitDocumentUrl(value = '', baseUrl) {
+  const unwrapped = unwrapSearchUrl(value, baseUrl);
+  if (!unwrapped) return '';
+  try {
+    const parsed = new URL(unwrapped);
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    parsed.hash = '';
+
+    if (host === 'm.cafe.daum.net' || host === 'cafe.daum.net') {
+      if (!/^\/[^/]+\/[A-Za-z0-9]+\/\d+\/?$/i.test(parsed.pathname)) return '';
+      return `https://m.cafe.daum.net${parsed.pathname.replace(/\/$/, '')}`;
+    }
+    if (host === 'cafe.naver.com') {
+      if (!/^\/f-e\/cafes\/\d+\/articles\/\d+\/?$/i.test(parsed.pathname)) return '';
+      return `https://cafe.naver.com${parsed.pathname.replace(/\/$/, '')}`;
+    }
+    if (host === 'm.blog.naver.com' || host === 'blog.naver.com') {
+      if (!/^\/[^/]+\/\d+\/?$/i.test(parsed.pathname)) return '';
+      return `https://m.blog.naver.com${parsed.pathname.replace(/\/$/, '')}`;
+    }
+    if (host === 'facebook.com' || host === 'm.facebook.com') {
+      if (!/\/(?:posts\/|permalink\.php|story\.php)/i.test(`${parsed.pathname}${parsed.search}`)) return '';
+      return `https://www.facebook.com${parsed.pathname}${parsed.search}`;
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+export function extractBenefitDocumentUrls(hrefs = [], baseUrl) {
+  return [...new Set(hrefs.map((href) => normalizeBenefitDocumentUrl(href, baseUrl)).filter(Boolean))];
+}
+
 export function benefitSearchMatches(candidate = {}, benefitKind = '') {
   const sd = candidate.structured_data || {};
   if (sd.benefit_eligible !== true) return false;

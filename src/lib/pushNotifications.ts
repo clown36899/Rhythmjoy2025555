@@ -661,6 +661,17 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
         const { data: { user } } = await cafe24.auth.getUser();
         if (!user) return null;
 
+        const preferenceResponse = await fetch('/api/notification-preferences', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        });
+        if (preferenceResponse.ok) {
+            const payload = await preferenceResponse.json();
+            if (payload?.preferences) {
+                return normalizePushPreferences(payload.preferences, payload.preferences);
+            }
+        }
+
         const sub = await getPushSubscription();
         if (!sub || !sub.endpoint) {
             return null;
@@ -720,6 +731,20 @@ export async function unsubscribeFromPush(): Promise<boolean> {
         // 서버에서도 구독 정보 삭제
         const { data: { user } } = await cafe24.auth.getUser();
         if (user) {
+            const preferenceResponse = await fetch('/api/notification-preferences', {
+                method: 'PUT',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...(await getPushPreferences() || DEFAULT_PUSH_PREFERENCES),
+                    enabled: false,
+                    pref_today_digest: false,
+                    pref_new_event_alerts: false,
+                }),
+            });
+            if (!preferenceResponse.ok) {
+                throw new Error(`알림 해제 설정 저장 실패 (${preferenceResponse.status})`);
+            }
             const { error } = await cafe24
                 .from('user_push_subscriptions')
                 .delete()
