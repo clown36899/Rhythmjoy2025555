@@ -69,7 +69,9 @@ const shouldUseDesktopCalendarContentAnchor = () => (
     && window.matchMedia('(min-width: 721px) and (hover: hover) and (pointer: fine)').matches
 );
 
-const getCalendarContentAnchorGap = () => shouldUseDesktopCalendarContentAnchor() ? 8 : 0;
+// Regular mobile date labels are 2px shorter than the fixed date row. Keeping
+// a 5px anchor gap preserves a real 3px clearance at the fixed row boundary.
+const getCalendarContentAnchorGap = () => shouldUseDesktopCalendarContentAnchor() ? 8 : 5;
 
 const doRectsIntersect = (a: DOMRect, b: DOMRect) => (
     a.bottom > b.top

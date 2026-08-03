@@ -1823,8 +1823,11 @@
 
 .calendar-page-container .calendar-grid-container {
   --calendar-grid-line-inset-x: 12px;
+  --calendar-min-vertical-gap: 3px;
+  --calendar-date-content-gap: 3px;
+  --calendar-social-badge-overhang: 7px;
   column-gap: 5px;
-  row-gap: 3px;
+  row-gap: var(--calendar-min-vertical-gap);
   padding: 12px;
   border-radius: 0;
   background: transparent;
@@ -1960,7 +1963,8 @@
   }
 
   .calendar-page-container .calendar-cell-fullscreen-body {
-    --calendar-date-body-clearance: 26px;
+    /* The padded today chip is 1px taller than regular desktop dates. */
+    --calendar-date-body-clearance: 27px;
     --calendar-span-body-clearance: 26px;
   }
 }
@@ -1992,7 +1996,7 @@
   --calendar-span-reserved-height: 0px;
   display: grid;
   align-content: start;
-  gap: 4px;
+  gap: max(4px, var(--calendar-min-vertical-gap, 3px));
   min-width: 0;
   padding: var(--calendar-date-body-clearance, 0px) 0 0;
 }
@@ -2004,12 +2008,40 @@
   );
 }
 
+.calendar-page-container .calendar-day-more-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  padding: 3px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cal-sample-muted, #a8b0bd);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  touch-action: manipulation;
+}
+
 .calendar-page-container .calendar-social-section {
   position: relative;
   display: grid;
   min-width: 0;
   gap: 3px;
-  margin: 2px 1px 3px;
+  /*
+   * The badge sits above the section border. Its full overhang plus the
+   * shared gap is reserved in flow, so it can never enter the date/span slot.
+   */
+  margin: calc(
+    var(--calendar-social-badge-overhang, 7px) +
+    var(--calendar-min-vertical-gap, 3px)
+  ) 1px 3px;
   padding: 9px 3px 4px;
   border: 1px solid rgba(77, 216, 158, 0.45);
   border-radius: 7px;
@@ -2019,7 +2051,7 @@
 
 .calendar-page-container .calendar-social-section-header {
   position: absolute;
-  top: -7px;
+  top: calc(-1 * var(--calendar-social-badge-overhang, 7px));
   left: 5px;
   z-index: 3;
   display: inline-flex;
@@ -2261,8 +2293,10 @@
 
   .calendar-page-container .calendar-grid-container {
     --calendar-grid-line-inset-x: 3px;
+    --calendar-date-content-gap: var(--calendar-min-vertical-gap);
+    --calendar-social-badge-overhang: 6px;
     column-gap: 1px;
-    row-gap: 3px;
+    row-gap: var(--calendar-min-vertical-gap);
     padding: 3px 3px 8px;
   }
 
@@ -2289,7 +2323,8 @@
 
   .calendar-page-container .calendar-cell-fullscreen {
     min-height: max(var(--cell-min-height, 30px), 30px);
-    gap: 1px;
+    /* Date header -> first event always keeps the same minimum clearance. */
+    gap: var(--calendar-date-content-gap);
     padding: 1px;
     border-color: transparent !important;
     border-radius: 0 !important;
@@ -2328,15 +2363,22 @@
   }
 
   .calendar-page-container .calendar-cell-fullscreen-body {
-    /* 날짜와 첫 소셜/기본 이벤트 사이에 공통 여백을 둔다. */
-    --calendar-date-body-clearance: 5px;
-    --calendar-span-body-clearance: 16px;
+    --calendar-span-body-clearance: 6px;
     gap: 3px;
+  }
+
+  .calendar-page-container .calendar-day-more-button {
+    min-height: 20px;
+    padding: 3px 1px;
+    font-size: 7px;
   }
 
   .calendar-page-container .calendar-social-section {
     gap: 2px;
-    margin: 2px 0 3px;
+    margin: calc(
+      var(--calendar-social-badge-overhang) +
+      var(--calendar-min-vertical-gap)
+    ) 0 3px;
     padding: 8px 2px 3px;
     border-radius: 6px;
   }
@@ -2455,8 +2497,11 @@
  */
 html.kiosk-link-router-active .calendar-page-container .calendar-grid-container {
   --calendar-grid-line-inset-x: 3px;
+  --calendar-min-vertical-gap: 3px;
+  --calendar-date-content-gap: var(--calendar-min-vertical-gap);
+  --calendar-social-badge-overhang: 6px;
   column-gap: 1px;
-  row-gap: 3px;
+  row-gap: var(--calendar-min-vertical-gap);
   padding: 3px 3px 8px;
 }
 
@@ -2474,7 +2519,7 @@ html.kiosk-link-router-active .calendar-page-container .calendar-overlay-first-w
 
 html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen {
   min-height: max(var(--cell-min-height, 30px), 30px);
-  gap: 1px;
+  gap: var(--calendar-date-content-gap);
   padding: 1px;
   border-color: transparent !important;
   border-radius: 0 !important;
@@ -2513,7 +2558,7 @@ html.kiosk-link-router-active .calendar-page-container .calendar-date-number-tod
 }
 
 html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen-body {
-  --calendar-span-body-clearance: 16px;
+  --calendar-span-body-clearance: 6px;
   gap: 3px;
   padding-top: 0;
 }
@@ -2521,13 +2566,16 @@ html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen
 html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen-body.has-calendar-spans {
   padding-top: calc(
     var(--calendar-span-reserved-height) +
-    var(--calendar-span-body-clearance, 16px)
+    var(--calendar-span-body-clearance, 6px)
   );
 }
 
 html.kiosk-link-router-active .calendar-page-container .calendar-social-section {
   gap: 2px;
-  margin: 2px 0 3px;
+  margin: calc(
+    var(--calendar-social-badge-overhang) +
+    var(--calendar-min-vertical-gap)
+  ) 0 3px;
   padding: 8px 2px 3px;
   border-radius: 6px;
 }
