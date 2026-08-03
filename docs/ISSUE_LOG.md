@@ -1224,3 +1224,12 @@
 - 조치: 완결된 날짜/DJ 대응이 한 건이어도 해당 구간을 소셜로 우선 분리한다. 묶음 날짜 머리글과 해당 요일/DJ 구간만 후보 증거로 보존해 다른 날짜의 파티·강습 문구를 배제한다. 스윙타임 공식 계정을 고정 장소 `스윙타임`, 자동등록 활동 `social`로 등록했다. 소셜은 미래 날짜와 DJ가 명확하고 AI 0.98 및 서버 검증을 통과하면 이미지 없이도 자동등록하며 시간 필드는 계속 금지한다.
 - 검증: 실제 게시물 `DbbCeEdGhIO` 재수집 실행 `20260802_133435_34812`에서 `2026-08-02 / 스윙타임 일요 소셜 / DJ 훔머 / ready=true` 후보 1건이 생성됐다. 시간 필드는 없고 이미지 원본은 1053×1317이었다. 같은 날짜별 증거로 AI 판정은 `register`, 신뢰도 0.99, 결정 검증 오류 0건이었다. 수집 표준 검사와 AI·서버·정규 일정 회귀 테스트 32개가 통과했다.
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/ai-candidate-adjudicator.mjs`, `scripts/ingestion/collection-registry.mjs`, `server/cafe24/function-api.js`
+
+## 2026-08-03 모바일 월간 달력 날짜와 첫 일정 겹침
+
+- 상태: 해결, 프로덕션 빌드 검증 완료
+- 현상: 모바일 월간 달력에서 날짜 바로 아래의 `소셜` 묶음 라벨 또는 첫 기본 이벤트가 날짜 헤더와 붙거나 겹쳐 보였다.
+- 원인: 모바일 날짜 셀 본문의 날짜 하단 공통 여백이 `0px`이었고, 소셜 묶음 라벨은 섹션 위로 6px 올라오는 구조라 날짜 영역을 침범했다.
+- 조치: 소셜 유무와 관계없이 날짜 셀 본문에 5px 상단 여백을 적용했다. 기존 주 행 사이 `row-gap: 3px`는 유지했다.
+- 검증: `npm run build:cafe24` 통과. 운영 화면 실측은 배포 후 진행한다.
+- 관련 파일: `src/pages/calendar/styles/FullEventCalendar.css`

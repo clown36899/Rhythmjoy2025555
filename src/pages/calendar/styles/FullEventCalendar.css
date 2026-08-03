@@ -2328,6 +2328,8 @@
   }
 
   .calendar-page-container .calendar-cell-fullscreen-body {
+    /* 날짜와 첫 소셜/기본 이벤트 사이에 공통 여백을 둔다. */
+    --calendar-date-body-clearance: 5px;
     --calendar-span-body-clearance: 16px;
     gap: 3px;
   }
