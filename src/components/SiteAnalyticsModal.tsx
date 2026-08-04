@@ -242,6 +242,7 @@ const BOTTOM_MENU_APP_LABELS: Record<string, string> = {
     'home_menu_bpm-tapper': '홈 메뉴 · BPM 측정기',
     home_menu_metronome: '홈 메뉴 · 메트로놈',
     'home_menu_tempo-tool': '홈 메뉴 · BPM/메트로놈',
+    'home_menu_groove-lab': '홈 메뉴 · 개발중 그루브 랩',
     home_menu_shopping: '홈 메뉴 · 쇼핑',
     home_menu_guide: '홈 메뉴 · 안내',
     home_menu_register: '홈 메뉴 · 일정 등록',

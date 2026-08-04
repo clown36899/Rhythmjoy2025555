@@ -56,6 +56,7 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "bpm-tapper", label: "BPM 측정기", icon: "ri-pulse-line", theme: "bpm", to: "/bpm-tapper" },
     { id: "metronome", label: "메트로놈", icon: "ri-timer-flash-line", theme: "metronome", to: "/metronome" },
     { id: "tempo-tool", label: "BPM 측정기/메트로놈", shortLabel: "BPM/메트로놈", icon: "ri-speed-up-line", theme: "tempo", to: "/tempo-tool" },
+    { id: "groove-lab", label: "개발중", shortLabel: "개발중", icon: "ri-flask-line", theme: "groove-lab", to: "/groove-lab", status: "BETA" },
     { id: "shopping", label: "쇼핑", icon: "ri-shopping-bag-3-line", theme: "shopping", to: "/shopping" },
     { id: "guide", label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
 ];
@@ -378,9 +379,11 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [menuItemById, pinnedMenuIds]);
     const quickMenuItems = useMemo(() => {
         const pinnedItems = pinnedMenuItems.slice(0, PINNED_MENU_LIMIT);
-        const benefitItem = menuItemById.get("benefits");
-        if (!benefitItem || pinnedItems.some((item) => item.id === benefitItem.id)) return pinnedItems;
-        return [...pinnedItems, benefitItem];
+        const requiredItems = [menuItemById.get("benefits"), menuItemById.get("groove-lab")]
+            .filter((item): item is HomeMenuItem => Boolean(item));
+        return requiredItems.reduce<HomeMenuItem[]>((items, item) => (
+            items.some((current) => current.id === item.id) ? items : [...items, item]
+        ), pinnedItems);
     }, [menuItemById, pinnedMenuItems]);
     const orderedMenuItems = useMemo(() => {
         if (isEditMode) {

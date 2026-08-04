@@ -911,6 +911,10 @@
   --icon-rgb: 20, 184, 166;
 }
 
+.home-v2-menu-icon--groove-lab {
+  --icon-rgb: 56, 189, 248;
+}
+
 .home-v2-menu-icon--shopping {
   --icon-rgb: 246, 202, 75;
 }

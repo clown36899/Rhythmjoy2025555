@@ -1,0 +1,678 @@
+.groove-lab-page {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    background:
+        radial-gradient(circle at 18% -4%, rgba(14, 165, 233, 0.14), transparent 28%),
+        radial-gradient(circle at 92% 12%, rgba(245, 158, 11, 0.12), transparent 26%),
+        var(--bg-surface-1);
+    color: var(--text-primary);
+    -webkit-user-drag: none;
+}
+
+.groove-lab-page *,
+.groove-lab-page *::before,
+.groove-lab-page *::after {
+    box-sizing: border-box;
+}
+
+.groove-lab-page img,
+.groove-lab-page a,
+.groove-lab-page button:not([draggable="true"]) {
+    -webkit-user-drag: none;
+}
+
+.groove-lab-content {
+    width: min(100%, 760px);
+    margin: 0 auto;
+    padding: 14px clamp(14px, 4vw, 24px) calc(28px + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    gap: 12px;
+}
+
+.groove-lab-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+}
+
+.groove-lab-beta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+
+.groove-lab-intro h1 {
+    margin: 8px 0 4px;
+    font-size: clamp(1.2rem, 4.8vw, 1.65rem);
+    line-height: 1.08;
+    font-weight: 950;
+    letter-spacing: -0.04em;
+}
+
+.groove-lab-intro p {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.groove-lab-ratio {
+    min-width: 94px;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-surface-2) 90%, transparent);
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+}
+
+.groove-lab-ratio span,
+.groove-lab-ratio small {
+    color: var(--text-tertiary);
+    font-size: 0.55rem;
+    font-weight: 850;
+    line-height: 1.15;
+}
+
+.groove-lab-ratio strong {
+    color: #38bdf8;
+    font-size: 1.08rem;
+    font-weight: 950;
+    font-variant-numeric: tabular-nums;
+}
+
+.groove-lab-transport {
+    min-height: 192px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 9px;
+}
+
+.groove-lab-tap,
+.groove-lab-play,
+.groove-lab-steps button,
+.groove-lab-feels button,
+.groove-lab-family-tabs button,
+.groove-lab-preset-grid button {
+    font: inherit;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.groove-lab-tap {
+    min-width: 0;
+    border: 0;
+    border-radius: 24px;
+    background:
+        linear-gradient(145deg, rgba(244, 63, 94, 0.98), rgba(14, 165, 233, 0.92)),
+        #ec4899;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 100ms ease, filter 160ms ease;
+}
+
+.groove-lab-tap:active {
+    transform: scale(0.98);
+    filter: saturate(1.1);
+}
+
+.groove-lab-tap span {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 0.67rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+}
+
+.groove-lab-tap strong {
+    font-size: clamp(4rem, 17vw, 6rem);
+    line-height: 0.86;
+    font-weight: 950;
+    font-variant-numeric: tabular-nums;
+}
+
+.groove-lab-tap small {
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+}
+
+.groove-lab-play-column {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: minmax(72px, 1fr) auto;
+    gap: 8px;
+}
+
+.groove-lab-play {
+    border: 1px solid rgba(20, 184, 166, 0.35);
+    border-radius: 20px;
+    background: rgba(20, 184, 166, 0.12);
+    color: #14b8a6;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 900;
+    transition: transform 120ms ease, background 160ms ease;
+}
+
+.groove-lab-play i {
+    font-size: 1.8rem;
+}
+
+.groove-lab-play.is-playing {
+    background: rgba(20, 184, 166, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(20, 184, 166, 0.16);
+}
+
+.groove-lab-play:active,
+.groove-lab-steps button:active,
+.groove-lab-feels button:active,
+.groove-lab-family-tabs button:active,
+.groove-lab-preset-grid button:active {
+    transform: scale(0.96);
+}
+
+.groove-lab-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.groove-lab-steps button {
+    min-height: 38px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 11px;
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.76rem;
+    font-weight: 900;
+}
+
+.groove-lab-control-card,
+.groove-lab-timeline,
+.groove-lab-presets,
+.groove-lab-evidence {
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--bg-surface-2) 88%, transparent);
+}
+
+.groove-lab-control-card {
+    padding: 13px;
+    display: grid;
+    gap: 10px;
+}
+
+.groove-lab-control-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+}
+
+.groove-lab-control-head > div {
+    display: grid;
+    gap: 2px;
+}
+
+.groove-lab-control-head span,
+.groove-lab-section-heading span {
+    color: #38bdf8;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+}
+
+.groove-lab-control-head strong {
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    font-weight: 850;
+}
+
+.groove-lab-control-head label {
+    width: min(42%, 170px);
+    display: grid;
+    gap: 5px;
+    color: var(--text-tertiary);
+    font-size: 0.64rem;
+    font-weight: 800;
+    text-align: right;
+}
+
+.groove-lab-control-head input {
+    width: 100%;
+    accent-color: #f59e0b;
+    cursor: ew-resize;
+}
+
+.groove-lab-feels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.groove-lab-feels button {
+    min-width: 0;
+    min-height: 38px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 11px;
+    background: var(--bg-surface-1);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.groove-lab-feels button.active {
+    border-color: rgba(56, 189, 248, 0.52);
+    background: rgba(14, 165, 233, 0.14);
+    color: #38bdf8;
+}
+
+.groove-lab-feels button:disabled {
+    cursor: default;
+    opacity: 0.64;
+    transform: none;
+}
+
+.groove-lab-feel-note,
+.groove-lab-timeline > p {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 0.7rem;
+    font-weight: 650;
+    line-height: 1.5;
+}
+
+.groove-lab-timeline,
+.groove-lab-presets {
+    padding: 14px;
+}
+
+.groove-lab-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.groove-lab-section-heading h2 {
+    margin: 2px 0 0;
+    color: var(--text-primary);
+    font-size: 0.96rem;
+    font-weight: 920;
+    letter-spacing: -0.02em;
+}
+
+.groove-lab-section-heading code,
+.groove-lab-section-heading > small {
+    color: var(--text-tertiary);
+    font-family: inherit;
+    font-size: 0.62rem;
+    font-weight: 750;
+    text-align: right;
+}
+
+.groove-lab-track {
+    position: relative;
+    height: 72px;
+    margin: 15px 9px 9px;
+    border-radius: 13px;
+    background:
+        linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 25% 100%,
+        var(--bg-surface-1);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+}
+
+.groove-lab-track::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.groove-lab-beat-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    z-index: 1;
+}
+
+.groove-lab-beat-line b {
+    position: absolute;
+    top: 7px;
+    left: 6px;
+    color: var(--text-tertiary);
+    font-size: 0.58rem;
+    font-weight: 800;
+}
+
+.groove-lab-hit {
+    --hit-color: #38bdf8;
+    position: absolute;
+    top: 50%;
+    width: 13px;
+    height: 13px;
+    border: 3px solid color-mix(in srgb, var(--hit-color) 45%, transparent);
+    border-radius: 50%;
+    background: var(--hit-color);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--hit-color) 10%, transparent);
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    transition: width 70ms ease, height 70ms ease, box-shadow 70ms ease;
+}
+
+.groove-lab-hit--hat,
+.groove-lab-hit--click {
+    width: 9px;
+    height: 9px;
+    opacity: 0.82;
+}
+
+.groove-lab-hit small {
+    position: absolute;
+    left: 7px;
+    top: -13px;
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: var(--bg-surface-3);
+    color: var(--text-secondary);
+    font-size: 0.5rem;
+    line-height: 13px;
+    text-align: center;
+}
+
+.groove-lab-hit.active {
+    width: 21px;
+    height: 21px;
+    opacity: 1;
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--hit-color) 18%, transparent), 0 0 20px var(--hit-color);
+}
+
+.groove-lab-presets {
+    display: grid;
+    gap: 12px;
+}
+
+.groove-lab-family-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(86px, 1fr));
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+}
+
+.groove-lab-family-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.groove-lab-family-tabs button {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 11px;
+    background: var(--bg-surface-1);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.groove-lab-family-tabs button.active {
+    border-color: rgba(56, 189, 248, 0.5);
+    background: rgba(14, 165, 233, 0.13);
+    color: #38bdf8;
+}
+
+.groove-lab-family-description {
+    margin: -5px 2px 0;
+    color: var(--text-tertiary);
+    font-size: 0.66rem;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.groove-lab-concept-note {
+    margin: -2px 0 0;
+    padding: 10px 11px;
+    border: 1px solid rgba(129, 140, 248, 0.22);
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: start;
+    gap: 8px;
+    font-size: 0.66rem;
+    line-height: 1.5;
+}
+
+.groove-lab-concept-note > i {
+    flex: 0 0 auto;
+    color: #818cf8;
+    font-size: 0.9rem;
+}
+
+.groove-lab-concept-note strong {
+    color: var(--text-secondary);
+}
+
+.groove-lab-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+}
+
+.groove-lab-preset-grid button {
+    --preset-color: #38bdf8;
+    min-width: 0;
+    min-height: 58px;
+    padding: 9px 10px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 14px;
+    background: var(--bg-surface-1);
+    color: var(--text-secondary);
+    display: grid;
+    grid-template-columns: 31px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.groove-lab-preset-grid button > i:first-child {
+    width: 31px;
+    height: 31px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--preset-color) 14%, transparent);
+    color: var(--preset-color);
+    display: grid;
+    place-items: center;
+    font-size: 1.08rem;
+}
+
+.groove-lab-preset-grid button span {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.groove-lab-preset-grid button small {
+    color: var(--text-tertiary);
+    font-size: 0.56rem;
+    font-weight: 750;
+}
+
+.groove-lab-preset-grid button strong {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.groove-lab-preset-grid button.active {
+    border-color: color-mix(in srgb, var(--preset-color) 58%, transparent);
+    background: color-mix(in srgb, var(--preset-color) 9%, var(--bg-surface-1));
+}
+
+.groove-lab-preset-grid button.active strong,
+.groove-lab-check {
+    color: var(--preset-color);
+}
+
+.groove-lab-evidence {
+    overflow: hidden;
+}
+
+.groove-lab-evidence summary {
+    min-height: 52px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.75rem;
+    font-weight: 850;
+    user-select: none;
+}
+
+.groove-lab-evidence summary::-webkit-details-marker {
+    display: none;
+}
+
+.groove-lab-evidence summary span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.groove-lab-evidence summary span i {
+    color: #f59e0b;
+    font-size: 1rem;
+}
+
+.groove-lab-evidence[open] summary > i {
+    transform: rotate(180deg);
+}
+
+.groove-lab-evidence > div {
+    padding: 0 12px 12px;
+    display: grid;
+    gap: 7px;
+}
+
+.groove-lab-evidence a {
+    padding: 11px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 13px;
+    background: var(--bg-surface-1);
+    color: inherit;
+    text-decoration: none;
+}
+
+.groove-lab-evidence a strong {
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.groove-lab-evidence a p,
+.groove-lab-caveat {
+    margin: 5px 0;
+    color: var(--text-tertiary);
+    font-size: 0.66rem;
+    line-height: 1.5;
+}
+
+.groove-lab-evidence a span {
+    color: #38bdf8;
+    font-size: 0.62rem;
+    font-weight: 800;
+}
+
+.groove-lab-caveat {
+    padding: 7px 4px 0;
+}
+
+@media (min-width: 700px) {
+    .groove-lab-preset-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .groove-lab-transport {
+        min-height: 220px;
+    }
+}
+
+@media (max-width: 380px) {
+    .groove-lab-content {
+        padding-inline: 11px;
+    }
+
+    .groove-lab-intro p {
+        max-width: 230px;
+    }
+
+    .groove-lab-ratio {
+        min-width: 86px;
+        padding-inline: 9px;
+    }
+
+    .groove-lab-transport {
+        grid-template-columns: minmax(0, 1fr) 100px;
+        min-height: 178px;
+    }
+
+    .groove-lab-feels button {
+        font-size: 0.65rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .groove-lab-page * {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}

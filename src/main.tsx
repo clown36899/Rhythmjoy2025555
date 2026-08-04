@@ -195,6 +195,7 @@ const MediaArchivePage = lazy(() => import('./pages/forum/media/MediaArchivePage
 const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
 const TempoToolPage = lazy(() => import('./pages/tempo-tool/TempoToolPage'));
+const GrooveLabPage = lazy(() => import('./pages/groove-lab/GrooveLabPage'));
 const KioskEntryRoute = lazy(() => import('./pages/kiosk/KioskEntryRoute'));
 const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
 const AdminUiSamplesPage = lazy(() => import('./pages/admin/ui/AdminUiSamplesPage'));
@@ -360,6 +361,7 @@ const router = createBrowserRouter([
       { path: "/bpm-tapper", element: <MenuVisibilityGate itemId="bpm-tapper"><BpmTapperPage /></MenuVisibilityGate> },
       { path: "/metronome", element: <MenuVisibilityGate itemId="metronome"><MetronomePage /></MenuVisibilityGate> },
       { path: "/tempo-tool", element: <MenuVisibilityGate itemId="tempo-tool"><TempoToolPage /></MenuVisibilityGate> },
+      { path: "/groove-lab", element: <GrooveLabPage /> },
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },
