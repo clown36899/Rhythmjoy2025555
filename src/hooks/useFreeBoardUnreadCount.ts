@@ -73,31 +73,36 @@ export function useFreeBoardUnreadState() {
     const [unreadPostIds, setUnreadPostIds] = useState<Set<string>>(new Set());
 
     const loadUnread = useCallback(async () => {
-        if (user?.id) {
-            const response = await fetch('/api/board/free/unread', {
-                credentials: 'same-origin',
-                cache: 'no-store',
-                headers: { Accept: 'application/json' },
-            });
-            if (!response.ok) {
-                if (response.status === 401) setUnreadPostIds(new Set());
+        try {
+            if (user?.id) {
+                const response = await fetch('/api/board/free/unread', {
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: { Accept: 'application/json' },
+                });
+                if (!response.ok) {
+                    if (response.status === 401) setUnreadPostIds(new Set());
+                    return;
+                }
+                const payload = await response.json();
+                setUnreadPostIds(new Set((payload.unreadPostIds || []).map(String)));
                 return;
             }
-            const payload = await response.json();
-            setUnreadPostIds(new Set((payload.unreadPostIds || []).map(String)));
-            return;
-        }
 
-        const fourteenDaysAgo = new Date(Date.now() - RECENT_WINDOW_MS).toISOString();
-        const { data, error } = await cafe24
-            .from('board_posts')
-            .select('id, is_hidden')
-            .eq('category', 'free')
-            .eq('is_hidden', false)
-            .gte('created_at', fourteenDaysAgo);
-        if (error) return;
-        const readIds = getGuestReadIds();
-        setUnreadPostIds(new Set((data || []).map((post: any) => String(post.id)).filter((id: string) => !readIds.has(id))));
+            const fourteenDaysAgo = new Date(Date.now() - RECENT_WINDOW_MS).toISOString();
+            const { data, error } = await cafe24
+                .from('board_posts')
+                .select('id, is_hidden')
+                .eq('category', 'free')
+                .eq('is_hidden', false)
+                .gte('created_at', fourteenDaysAgo);
+            if (error) return;
+            const readIds = getGuestReadIds();
+            setUnreadPostIds(new Set((data || []).map((post: any) => String(post.id)).filter((id: string) => !readIds.has(id))));
+        } catch (error) {
+            // 모바일 화면 복귀 직후의 일시적 fetch 실패는 기존 배지 상태를 유지한다.
+            console.warn('[FreeBoardRead] Failed to refresh unread state:', error);
+        }
     }, [user?.id]);
 
     useEffect(() => {
@@ -136,21 +141,31 @@ export function useFreeBoardUnreadState() {
                 void loadUnread();
             }
         };
-        const handleVisibilityRefresh = () => {
-            if (document.visibilityState === 'visible') void loadUnread();
+        let resumeRefreshTimer: number | null = null;
+        const scheduleResumeRefresh = () => {
+            if (document.visibilityState !== 'visible') return;
+            if (resumeRefreshTimer !== null) window.clearTimeout(resumeRefreshTimer);
+            // Android Chrome가 foreground로 돌아온 뒤 네트워크가 안정될 시간을 준다.
+            resumeRefreshTimer = window.setTimeout(() => {
+                resumeRefreshTimer = null;
+                void loadUnread();
+            }, 800);
         };
         readChannel?.addEventListener('message', handleBroadcastRead);
         window.addEventListener(FREE_BOARD_READ_EVENT, handleRead);
         window.addEventListener('storage', handleStorageRead);
-        window.addEventListener('focus', loadUnread);
-        document.addEventListener('visibilitychange', handleVisibilityRefresh);
+        window.addEventListener('focus', scheduleResumeRefresh);
+        window.addEventListener('online', scheduleResumeRefresh);
+        document.addEventListener('visibilitychange', scheduleResumeRefresh);
         return () => {
+            if (resumeRefreshTimer !== null) window.clearTimeout(resumeRefreshTimer);
             readChannel?.removeEventListener('message', handleBroadcastRead);
             readChannel?.close();
             window.removeEventListener(FREE_BOARD_READ_EVENT, handleRead);
             window.removeEventListener('storage', handleStorageRead);
-            window.removeEventListener('focus', loadUnread);
-            document.removeEventListener('visibilitychange', handleVisibilityRefresh);
+            window.removeEventListener('focus', scheduleResumeRefresh);
+            window.removeEventListener('online', scheduleResumeRefresh);
+            document.removeEventListener('visibilitychange', scheduleResumeRefresh);
             cafe24.removeChannel(channel);
         };
     }, [loadUnread]);

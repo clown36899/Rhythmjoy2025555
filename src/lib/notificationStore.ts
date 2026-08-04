@@ -34,6 +34,11 @@ const dbPromise = canUseIndexedDB
                 transaction.objectStore(STORE_NAME).clear();
             }
         },
+    }).catch((error) => {
+        // 구버전 탭과 새 탭이 동시에 살아 있는 동안 VersionError가 나더라도
+        // 서버 알림함만 사용하면 기능을 계속 제공할 수 있다.
+        console.warn('[NotificationStore] IndexedDB unavailable; using server-only fallback:', error);
+        return null;
     })
     : null;
 

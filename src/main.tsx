@@ -2,6 +2,7 @@ import { initClientLogBuffer } from './utils/clientLogBuffer';
 import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 import { isKioskModeEnabled } from './lib/kioskMode';
 import { installViewportCssVars } from './utils/viewportMetrics';
+import { isNonFatalClientRuntimeError } from './utils/globalErrorPolicy';
 
 const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 const IS_KIOSK_BOOT = isKioskModeEnabled();
@@ -497,6 +498,15 @@ function RootApp() {
           },
         }, { beacon: true });
         window.location.reload();
+        return;
+      }
+
+      // Android Chrome은 백그라운드 복귀 직후 navigator.onLine=true여도
+      // 네트워크 스택이 아직 준비되지 않아 fetch가 잠깐 실패할 수 있다.
+      // 저장소 버전 경합도 서버 알림함 fallback이 가능하므로 전체 앱을 가리지 않는다.
+      if (isNonFatalClientRuntimeError(message, stack)) {
+        event.preventDefault();
+        console.warn('[RuntimeRecovery] Non-fatal client error suppressed:', { message, stack });
         return;
       }
 

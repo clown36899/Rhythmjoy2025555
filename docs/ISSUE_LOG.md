@@ -1376,3 +1376,11 @@
 - 조치: 그루브 랩 전용 셸을 뷰포트 높이로 고정하고 페이지 내부에 관성 세로 스크롤과 하단 안전 여백을 부여했다. 리듬·악기 선택을 첫 화면으로 올리고 8계열 28프리셋으로 확장했다. 확장 메뉴의 외곽 inset을 제거하고 모든 메뉴 라벨 및 `강습&행사` 합성 아이콘에 명시적 중앙 정렬을 적용했다.
 - 검증: 390×844 모바일 브라우저에서 첫 화면에 리듬 선택이 노출되고, 최하단 조사 근거까지 스크롤되며, 확장 메뉴에서 `개발중`은 커스텀 목록에만 있고 `강습&행사` 아이콘·라벨이 카드 중앙에 배치됨을 확인했다. 엔진 테스트 12개와 프로덕션 빌드가 통과했다.
 - 관련 파일: `src/layouts/MobileShell.tsx`, `src/styles/components/MobileShell.css`, `src/pages/groove-lab/GrooveLabPage.tsx`, `src/pages/groove-lab/groove-lab.css`, `src/pages/groove-lab/grooveEngine.ts`, `src/pages/v2/components/HomeV2MenuPanel.css`, `src/styles/theme-completion.css`
+
+## 2026-08-04 Android 화면 복귀 시 `Failed to fetch` 전역 오류창
+
+- 상태: 수정 및 검증 완료, 배포 준비
+- 현상: Android Chrome에서 `/groove-lab`을 열어 둔 채 다른 화면으로 나갔다가 돌아오면 `TypeError: Failed to fetch`가 전역 치명 오류창으로 표시됐다.
+- 원인: 자유게시판 미읽음 배지의 `focus`·`visibilitychange` 리스너가 화면 복귀 즉시 `/api/board/free/unread`를 호출했고, Android 네트워크가 아직 안정되지 않은 순간의 fetch 거부를 처리하지 않아 `unhandledrejection`으로 전파했다. 알림 IndexedDB의 구버전 탭 경합도 일부 비동기 호출에서 같은 전역 경로로 전파될 수 있었다.
+- 조치: 복귀 배지 조회를 800ms 디바운스하고 조회 실패 시 기존 상태를 유지한다. 전역 오류 정책은 동적 청크 실패와 일반 앱 오류는 기존대로 처리하면서 일시적 네트워크 실패와 정확한 IndexedDB 하위 버전 경합만 비치명으로 분류한다. 알림 저장소는 IndexedDB를 열 수 없을 때 서버 알림함 fallback을 사용하며 오래된 로컬 알림 정리 실패도 명시적으로 처리한다.
+- 검증: 오류 정책 8개와 로그인 사용자의 화면 복귀 fetch 실패 회귀 테스트 1개가 통과했다. 프로덕션 빌드가 성공했다. 411×803 모바일 브라우저에서 API 연결을 끊은 뒤 다른 탭에서 돌아오는 조건을 재현했고, 기존 화면이 유지되며 `#crash-fallback-overlay`가 0개임을 확인했다.

@@ -214,7 +214,9 @@ function AppContent({ isAdmin }: AppContentProps) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
     loadUnreadNotifications();
-    notificationStore.deleteOld();
+    void notificationStore.deleteOld().catch((error) => {
+      console.warn('[App] Failed to prune old notification history:', error);
+    });
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
