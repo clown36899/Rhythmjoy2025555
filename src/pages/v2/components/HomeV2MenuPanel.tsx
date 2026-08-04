@@ -379,11 +379,9 @@ export const HomeV2MenuPanel: React.FC = () => {
     }, [menuItemById, pinnedMenuIds]);
     const quickMenuItems = useMemo(() => {
         const pinnedItems = pinnedMenuItems.slice(0, PINNED_MENU_LIMIT);
-        const requiredItems = [menuItemById.get("benefits"), menuItemById.get("groove-lab")]
-            .filter((item): item is HomeMenuItem => Boolean(item));
-        return requiredItems.reduce<HomeMenuItem[]>((items, item) => (
-            items.some((current) => current.id === item.id) ? items : [...items, item]
-        ), pinnedItems);
+        const benefitItem = menuItemById.get("benefits");
+        if (!benefitItem || pinnedItems.some((item) => item.id === benefitItem.id)) return pinnedItems;
+        return [...pinnedItems, benefitItem];
     }, [menuItemById, pinnedMenuItems]);
     const orderedMenuItems = useMemo(() => {
         if (isEditMode) {

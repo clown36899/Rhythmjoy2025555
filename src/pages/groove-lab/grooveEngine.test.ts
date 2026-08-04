@@ -84,9 +84,24 @@ describe('grooveEngine', () => {
     it('keeps every documented preset assigned to a family and buildable', () => {
         const familyIds = new Set(GROOVE_FAMILIES.map((family) => family.id));
 
+        expect(GROOVE_FAMILIES).toHaveLength(8);
+        expect(GROOVE_PRESETS).toHaveLength(28);
+
         GROOVE_PRESETS.forEach((preset) => {
             expect(familyIds.has(preset.family)).toBe(true);
             expect(buildGrooveBar(preset.id, preset.recommendedFeel, 140).length).toBeGreaterThan(0);
         });
+    });
+
+    it('preserves opposite 3-2 and 2-3 son-clave directions', () => {
+        expect(buildGrooveBar('son-clave-32', 'straight', 120).map((item) => item.position))
+            .toEqual([0, 0.75, 1.5, 2.5, 3]);
+        expect(buildGrooveBar('son-clave-23', 'straight', 120).map((item) => item.position))
+            .toEqual([0.5, 1, 2, 2.75, 3.5]);
+    });
+
+    it('gives funk and samba their full sixteenth-note reference layers', () => {
+        expect(buildGrooveBar('funk-drums', 'straight', 96).filter((item) => item.voice === 'hat')).toHaveLength(16);
+        expect(buildGrooveBar('samba-pandeiro', 'straight', 96)).toHaveLength(16);
     });
 });

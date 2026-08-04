@@ -505,7 +505,7 @@ export const MobileShell: React.FC = () => {
   }, [translateButtonLabel]);
 
   return (
-    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${isEventsPage ? 'v2-home-shell' : ''} ${isSwingFloorCouncilPage ? 'swing-floor-council-shell' : ''} ${isHomeMenuHubTestPage ? 'home-menu-hub-test-shell' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''} ${isCalendarPage ? 'calendar-shell-page' : ''} ${location.pathname === '/groove-lab' ? 'groove-lab-shell' : ''} ${isEventsPage ? 'v2-home-shell' : ''} ${isSwingFloorCouncilPage ? 'swing-floor-council-shell' : ''} ${isHomeMenuHubTestPage ? 'home-menu-hub-test-shell' : ''}`}>
       {/* Global Fixed Header */}
       {!isFullscreen && !isAdminWebzinePage && !isAdminV2Ingestor && !isSwingFloorCouncilPage && (
         <header className="shell-header global-header-fixed">

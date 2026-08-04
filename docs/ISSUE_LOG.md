@@ -1348,3 +1348,21 @@
 - 원인: 미니PC의 DHCP 주소가 기존 `172.30.1.13`에서 `172.30.1.14`로 바뀌어 이전 주소의 SSH가 타임아웃됐고, 6일간 유지된 Chrome 탭에는 과거 운영 503 응답이 남아 있었다. 디스플레이·Chrome 서비스 자체는 active/enabled 상태였다.
 - 조치: mDNS `kiosk-host.local`로 현재 주소를 찾고 전용 관리 키로 접속해 `kiosk-display.service`와 `kiosk-chrome.service`를 재시작했다. 운영 문서의 접속 기준을 고정 IP보다 mDNS 우선으로 변경했다.
 - 검증: 두 서비스가 모두 active/enabled, Chrome 원격 디버깅 탭 1개, 탭 제목 `댄스빌보드`, 최종 URL `https://swingenjoy.com/`, 운영 `/kiosk` HTTP 200을 확인했다.
+
+## 2026-08-04 그루브 랩 하단 고정 메뉴 강제 노출
+
+- 상태: 수정 및 재배포
+- 현상: 새 `개발중` 그루브 랩 앱이 사용자의 메뉴 편집 선택과 무관하게 하단 고정 메뉴에 강제로 추가됐다.
+- 원인: 커스텀 메뉴 앱 목록 등록과 기본 고정 메뉴 노출을 같은 작업으로 잘못 해석해 `quickMenuItems` 필수 항목에 그루브 랩을 넣었다.
+- 조치: 그루브 랩은 전체 커스텀 메뉴 목록에만 `BETA` 앱으로 유지하고, 사용자가 기존 메뉴 편집 기능으로 직접 고정할 때만 하단에 나타나도록 강제 추가를 제거했다.
+- 검증: 고정 메뉴 계산이 기존 항목과 혜택 메뉴만 유지하며 `groove-lab`은 `HOME_MENU_ITEMS` 카탈로그에만 존재함을 확인했다. 그루브 엔진 테스트 10개와 프로덕션 빌드가 통과했다.
+- 관련 파일: `src/pages/v2/components/HomeV2MenuPanel.tsx`, `docs/decisions/2026-08-04-instrument-groove-lab.md`
+
+## 2026-08-04 그루브 랩 모바일 스크롤 및 메뉴 정렬
+
+- 상태: 수정 및 재배포 준비
+- 현상: 그루브 랩이 모바일 셸 안에서 세로 스크롤되지 않아 아래 프리셋과 조사 근거를 볼 수 없었다. 선택 영역도 재생기 아래에 있어 리듬 탐색이 늦었고, 확장 메뉴 상단에는 외곽선이 남았으며 `강습&행사` 합성 아이콘과 문구의 가로 중앙 기준이 명시되지 않았다.
+- 원인: 일반 셸은 전역 스크롤을 막지만 그루브 랩 경로에 높이·내부 스크롤 계약이 없었다. 프리셋 선택 영역은 DOM 후반의 기본 배치였고, 확장 메뉴 패널의 inset 그림자가 외곽선처럼 보였다.
+- 조치: 그루브 랩 전용 셸을 뷰포트 높이로 고정하고 페이지 내부에 관성 세로 스크롤과 하단 안전 여백을 부여했다. 리듬·악기 선택을 첫 화면으로 올리고 8계열 28프리셋으로 확장했다. 확장 메뉴의 외곽 inset을 제거하고 모든 메뉴 라벨 및 `강습&행사` 합성 아이콘에 명시적 중앙 정렬을 적용했다.
+- 검증: 390×844 모바일 브라우저에서 첫 화면에 리듬 선택이 노출되고, 최하단 조사 근거까지 스크롤되며, 확장 메뉴에서 `개발중`은 커스텀 목록에만 있고 `강습&행사` 아이콘·라벨이 카드 중앙에 배치됨을 확인했다. 엔진 테스트 12개와 프로덕션 빌드가 통과했다.
+- 관련 파일: `src/layouts/MobileShell.tsx`, `src/styles/components/MobileShell.css`, `src/pages/groove-lab/GrooveLabPage.tsx`, `src/pages/groove-lab/groove-lab.css`, `src/pages/groove-lab/grooveEngine.ts`, `src/pages/v2/components/HomeV2MenuPanel.css`, `src/styles/theme-completion.css`

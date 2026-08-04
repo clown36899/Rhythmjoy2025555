@@ -360,9 +360,9 @@
   padding: 0 12px var(--home-v2-menu-expanded-padding-bottom);
   border-radius: 24px 24px 0 0;
   background: var(--home-v2-menu-sheet-bg);
-  box-shadow:
-    0 -18px 48px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 0;
+  outline: 0;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.38);
   overflow: hidden;
   touch-action: pan-y;
 }
@@ -809,6 +809,8 @@
 .home-v2-menu-icon--lesson-stack {
   width: 86px;
   height: 64px;
+  justify-self: center;
+  margin-inline: auto;
   color: var(--icon-fg);
 }
 
@@ -942,6 +944,8 @@
   letter-spacing: 0;
   text-overflow: ellipsis;
   transition: opacity 120ms ease;
+  justify-self: center;
+  text-align: center;
   white-space: nowrap;
 }
 
