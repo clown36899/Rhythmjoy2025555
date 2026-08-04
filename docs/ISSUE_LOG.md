@@ -1310,6 +1310,15 @@
 - 검증: 무저장 실행 `20260804_113355_89926`에서 두 후보 모두 DJ가 각각 `안토니`, `파인` 한 명이고 `ready=true`였다. 실제 실행 `20260804_113651_90292`에서 후보 `5f351f76b591752b`, `7e4b03a07f5fa490`이 자동등록됐다. 운영 일정은 8월 4일 `DJ 안토니 | 스윙타운 DJ 안토니`(`8c021244-74ef-40c7-a12c-a6b0d2906ac8`), 8월 8일 `DJ 파인 | 스윙타운 DJ 파인`(`e4559a0a-8780-437a-b833-5e1fcac5993e`)만 남고 해당 날짜의 `regular-social:swingtown-*` 일정은 제거됐다.
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`
 
+### 이미지 없는 혜택 등록 및 목록 깨진 이미지 후속
+
+- 상태: 로컬 수정 및 회귀 검증 완료, 배포 전
+- 현상: 무료·할인 혜택을 일반 일정 등록창에서 저장할 때 이미지가 무조건 필수였고, 이미지 없이 등록된 정기권은 혜택 목록 카드에서 깨진 이미지 아이콘으로 표시됐다.
+- 원인: 일반 일정과 혜택 일정이 같은 이미지 필수 검증을 사용했다. 혜택 목록은 실제 이미지가 없는 일정에도 공통 기본 썸네일 URL을 반환했는데, 코드 경로 `/uploads/images/default-thumbnails`와 실제 정적 파일 경로 `/default-thumbnails`도 서로 달랐다.
+- 조치: `free_event`, `discount_event`, `season_pass`는 이미지 없이 등록할 수 있도록 이미지 필수 검증에서 제외했다. 혜택 목록은 실제 저장 이미지가 있을 때만 `<img>`를 만들며, 이미지가 없거나 로드에 실패하면 가짜 이미지·아이콘·빈 미디어 영역을 만들지 않고 본문이 해당 공간을 사용한다. 공통 기본 썸네일 경로도 실제 배포 경로로 바로잡았다.
+- 검증: 이미지 필수 정책, 혜택 이미지 선택, 무이미지 카드 및 이미지 로드 실패 전환 테스트 6개가 통과했다. `npm run build`가 성공했고 빌드 결과에 `/default-thumbnails/default_thumbnail.webp`가 포함됨을 확인했다.
+- 관련 파일: `src/components/EventRegistrationModal.tsx`, `src/lib/eventRegistrationRules.ts`, `src/pages/benefit-events/BenefitEventsPage.tsx`, `src/utils/getEventThumbnail.ts`
+
 ### 캘린더 날짜·소셜 뱃지 세로 간격 후속
 
 - 현상: 모바일에서 스크롤 고정 날짜줄과 소셜 섹션의 돌출 뱃지가 2px까지 가까워졌고, 소셜이 없는 일반 이벤트도 날짜와의 간격 규칙이 별도로 관리됐다.

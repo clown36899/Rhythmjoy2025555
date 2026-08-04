@@ -34,6 +34,7 @@ import {
 } from "../utils/danceTaxonomy";
 import { queryClient } from "../lib/queryClient";
 import { applyEventMutationToQueryCache } from "../utils/eventMutationSync";
+import { isEventRegistrationImageRequired } from "../lib/eventRegistrationRules";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -624,9 +625,9 @@ export default memo(function EventRegistrationModal({
       return;
     }
 
-    // Validation: Image is strictly required
+    // 무료·할인·정기권 혜택은 텍스트 원문만으로도 유효할 수 있다.
     const hasExistingImage = editEventData && (editEventData.image || editEventData.image_thumbnail);
-    if (!imageFile && !hasExistingImage) {
+    if (isEventRegistrationImageRequired(benefitKind) && !imageFile && !hasExistingImage) {
       if (videoUrl) {
         alert("이미지는 필수입니다! 동영상이 있다면 '썸네일 추출'을 눌러 이미지를 생성해주세요.");
       } else {

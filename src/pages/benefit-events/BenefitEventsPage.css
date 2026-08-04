@@ -110,7 +110,7 @@
 
 .benefit-event-item {
   display: grid;
-  grid-template-columns: 118px 112px minmax(0, 1fr);
+  grid-template-columns: 118px minmax(0, 1fr);
   align-items: stretch;
   gap: 14px;
   min-height: 132px;
@@ -121,6 +121,10 @@
   background: #202227;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
   cursor: pointer;
+}
+
+.benefit-event-item.has-image {
+  grid-template-columns: 118px 112px minmax(0, 1fr);
 }
 
 .benefit-event-item.is-past {
@@ -158,8 +162,7 @@
   color: #9ca3af;
 }
 
-.benefit-event-item img,
-.benefit-event-empty-image {
+.benefit-event-item img {
   width: 112px;
   height: 112px;
   align-self: center;
@@ -168,13 +171,6 @@
   object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
-}
-
-.benefit-event-empty-image {
-  display: grid;
-  place-items: center;
-  color: rgba(248, 250, 252, 0.36);
-  font-size: 28px;
 }
 
 .benefit-event-content {
@@ -421,11 +417,15 @@
   }
 
   .benefit-event-item {
-    grid-template-columns: 64px 72px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
     align-items: start;
     gap: 8px;
     min-height: 0;
     padding: 10px;
+  }
+
+  .benefit-event-item.has-image {
+    grid-template-columns: 64px 72px minmax(0, 1fr);
   }
 
   .benefit-event-date {
@@ -439,8 +439,7 @@
     font-size: 14px;
   }
 
-  .benefit-event-item img,
-  .benefit-event-empty-image {
+  .benefit-event-item img {
     grid-column: 2;
     grid-row: 1;
     width: 72px;
@@ -449,9 +448,13 @@
   }
 
   .benefit-event-content {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 1;
     gap: 6px;
+  }
+
+  .benefit-event-item.has-image .benefit-event-content {
+    grid-column: 3;
   }
 
   .benefit-event-content h2 {

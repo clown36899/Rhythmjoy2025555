@@ -8,7 +8,7 @@ export interface EventThumbnailData {
   video_url?: string | null;
 }
 
-const DEFAULT_THUMBNAIL_BASE = '/uploads/images/default-thumbnails';
+const DEFAULT_THUMBNAIL_BASE = '/default-thumbnails';
 const DEFAULT_THUMBNAILS = {
   micro: `${DEFAULT_THUMBNAIL_BASE}/default_micro.webp`,
   thumbnail: `${DEFAULT_THUMBNAIL_BASE}/default_thumbnail.webp`,

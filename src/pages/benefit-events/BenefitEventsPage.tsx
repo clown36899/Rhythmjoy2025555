@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
 import { cafe24 } from '../../lib/cafe24Client';
-import { getEventThumbnail } from '../../utils/getEventThumbnail';
 import { getLocalDateString } from '../v2/utils/eventListUtils';
 import './BenefitEventsPage.css';
 
@@ -126,6 +125,18 @@ function getEventPoster(event: AppEvent | null) {
   ).trim();
 }
 
+export function getBenefitEventThumbnail(event: AppEvent | null) {
+  if (!event) return '';
+  return String(
+    event.image_thumbnail
+    || event.image_medium
+    || event.image_micro
+    || event.image
+    || event.image_full
+    || '',
+  ).trim();
+}
+
 function formatDateLabel(date: string) {
   if (!date) return '날짜 미정';
   const parsed = new Date(`${date}T00:00:00+09:00`);
@@ -140,6 +151,18 @@ function formatDateLabel(date: string) {
 export default function BenefitEventsPage() {
   const today = getLocalDateString();
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
+  const [failedImageIds, setFailedImageIds] = useState<Set<string>>(() => new Set());
+
+  const markImageFailed = (eventId: AppEvent['id']) => {
+    const id = String(eventId || '');
+    if (!id) return;
+    setFailedImageIds((current) => {
+      if (current.has(id)) return current;
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  };
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['benefit-events', BENEFIT_EVENT_QUERY_VERSION],
@@ -169,6 +192,9 @@ export default function BenefitEventsPage() {
         return left.localeCompare(right) || String(a.title || '').localeCompare(String(b.title || ''), 'ko');
       });
   }, [events, today]);
+  const selectedEventPoster = selectedEvent && !failedImageIds.has(String(selectedEvent.id || ''))
+    ? getEventPoster(selectedEvent)
+    : '';
 
   return (
     <main className="benefit-events-page">
@@ -196,12 +222,14 @@ export default function BenefitEventsPage() {
           {benefitEvents.map((event, index) => {
             const displayDate = getDisplayDate(event, today);
             const isPast = isPastEvent(event, today);
-            const thumbnail = getEventThumbnail(event) || '';
+            const thumbnail = failedImageIds.has(String(event.id || ''))
+              ? ''
+              : getBenefitEventThumbnail(event);
 
             return (
               <li
                 key={event.id}
-                className={`benefit-event-item ${isPast ? 'is-past' : 'is-current-or-future'}`}
+                className={`benefit-event-item ${thumbnail ? 'has-image' : 'has-no-image'} ${isPast ? 'is-past' : 'is-current-or-future'}`}
                 role="button"
                 tabIndex={0}
                 onClick={() => setSelectedEvent(event)}
@@ -223,12 +251,9 @@ export default function BenefitEventsPage() {
                     loading={index < 4 ? 'eager' : 'lazy'}
                     decoding="async"
                     draggable={false}
+                    onError={() => markImageFailed(event.id)}
                   />
-                ) : (
-                  <div className="benefit-event-empty-image" aria-hidden="true">
-                    <i className="ri-coupon-3-line" />
-                  </div>
-                )}
+                ) : null}
                 <div className="benefit-event-content">
                   <div className="benefit-event-kicker">
                     <span>{getKindLabel(event)}</span>
@@ -288,18 +313,19 @@ export default function BenefitEventsPage() {
               {selectedEvent.time && <em>{selectedEvent.time}</em>}
             </div>
             <h2 id="benefit-event-modal-title">{selectedEvent.title}</h2>
-            {getEventPoster(selectedEvent) && (
+            {selectedEventPoster && (
               <a
                 className="benefit-event-modal-poster"
-                href={getEventPoster(selectedEvent)}
+                href={selectedEventPoster}
                 target="_blank"
                 rel="noreferrer"
                 aria-label="포스터 원본 이미지 확대"
               >
                 <img
-                  src={getEventPoster(selectedEvent)}
+                  src={selectedEventPoster}
                   alt={`${selectedEvent.title} 포스터`}
                   draggable={false}
+                  onError={() => markImageFailed(selectedEvent.id)}
                 />
                 <span>
                   <i className="ri-zoom-in-line" aria-hidden="true" />
