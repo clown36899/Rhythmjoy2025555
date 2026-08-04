@@ -1312,11 +1312,12 @@
 
 ### 이미지 없는 혜택 등록 및 목록 깨진 이미지 후속
 
-- 상태: 로컬 수정 및 회귀 검증 완료, 배포 전
+- 상태: 수정·회귀 검증 및 운영 배포 완료
 - 현상: 무료·할인 혜택을 일반 일정 등록창에서 저장할 때 이미지가 무조건 필수였고, 이미지 없이 등록된 정기권은 혜택 목록 카드에서 깨진 이미지 아이콘으로 표시됐다.
 - 원인: 일반 일정과 혜택 일정이 같은 이미지 필수 검증을 사용했다. 혜택 목록은 실제 이미지가 없는 일정에도 공통 기본 썸네일 URL을 반환했는데, 코드 경로 `/uploads/images/default-thumbnails`와 실제 정적 파일 경로 `/default-thumbnails`도 서로 달랐다.
 - 조치: `free_event`, `discount_event`, `season_pass`는 이미지 없이 등록할 수 있도록 이미지 필수 검증에서 제외했다. 혜택 목록은 실제 저장 이미지가 있을 때만 `<img>`를 만들며, 이미지가 없거나 로드에 실패하면 가짜 이미지·아이콘·빈 미디어 영역을 만들지 않고 본문이 해당 공간을 사용한다. 공통 기본 썸네일 경로도 실제 배포 경로로 바로잡았다.
 - 검증: 이미지 필수 정책, 혜택 이미지 선택, 무이미지 카드 및 이미지 로드 실패 전환 테스트 6개가 통과했다. `npm run build`가 성공했고 빌드 결과에 `/default-thumbnails/default_thumbnail.webp`가 포함됨을 확인했다.
+- 운영 배포: 변경 커밋 `e1b6a3e3`을 `origin/main`에 푸시하고 Cafe24에 배포했다. 운영 API에서 정기권 `0e803bac-f59f-40c0-8e01-23165a976e80`의 모든 이미지 필드가 `null`임을 확인했고, 공개 번들에는 `has-no-image` 분기가 있으며 빈 이미지 자리표시자 클래스는 없다. 서비스는 `active`, 내부·외부 헬스는 모두 `ok`, 공개 버전은 `2026-08-04T06:59:21.509Z`다.
 - 관련 파일: `src/components/EventRegistrationModal.tsx`, `src/lib/eventRegistrationRules.ts`, `src/pages/benefit-events/BenefitEventsPage.tsx`, `src/utils/getEventThumbnail.ts`
 
 ### 캘린더 날짜·소셜 뱃지 세로 간격 후속
