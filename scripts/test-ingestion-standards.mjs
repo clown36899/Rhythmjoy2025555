@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
+  extractBenefitValidityEndDate,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
+  extractSeasonPassEvidenceSections,
   hasBadPosterUrl,
   isCollectableDate,
   keepFirstEventDateOnly,
@@ -14,18 +16,21 @@ import {
   isEvergreenSeasonPassCandidate,
   isHighConfidenceDatedSocialSchedule,
   stripNaverCafeMemberPrefix,
+  stripRepeatedDjContext,
   textSimilarity,
   validateCandidate,
   evaluateAutoRegistrationReadiness,
 } from './ingestion/candidate-utils.mjs';
-import { dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason } from './ingestion/collection-registry.mjs';
+import { buildVenuePassSearchSources, dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason, normalizeBenefitSearchQuery } from './ingestion/collection-registry.mjs';
 import {
   benefitSearchMatches,
+  buildBenefitSearchUrls,
   expectedInstagramHandleForSource,
   extractBenefitDocumentUrls,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
   isStaleBenefitSourcePost,
+  mergeBenefitSearchTargets,
   normalizeInstagramPostUrl,
 } from './ingestion/benefit-search-utils.mjs';
 import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
@@ -40,6 +45,45 @@ import {
 } from '../server/cafe24/ingestion-date-expansion.js';
 
 const TODAY = '2026-05-23';
+
+assert.equal(
+  stripRepeatedDjContext('안토니 스윙타운 DJ 안토니 20'),
+  '안토니',
+  'repeated Swingtown title context must not become a second DJ name',
+);
+assert.equal(
+  stripRepeatedDjContext('파인 스윙타운 DJ 파인 20'),
+  '파인',
+  'repeated Swingtown DJ context must collapse to the grounded DJ token',
+);
+assert.equal(stripRepeatedDjContext('뉴야'), '뉴야', 'ordinary DJ names must stay unchanged');
+
+const mixedTimebarSocialAndPassText = `■ 스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.
+■ 스윙타임빠 (7월 2일) 수 소셜 공지
+- 수요일
+저녁 7시30분부터 소셜이 진행 됩니다.
+DJ "훔머" PM 8:15~10:15
+
+■ 타임빠소셜 실시간 스트리밍 서비스 안내
+수, 일요일 소셜은 스윙프렌즈 유튜브채널에서 실시간으로 현장을 보실수 있습니다.
+
+■ 스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.
+수탐 정기권은 기간내에 타임빠 수요일 소셜의 입장을 할 수 있는 수요 정기권입니다.
+3개월 단위(14주:7월1일~9월30일)로 가격은 6만원(한달에 2만원)으로 판매합니다.`;
+const mixedTimebarPassSections = extractSeasonPassEvidenceSections(mixedTimebarSocialAndPassText);
+assert.equal(mixedTimebarPassSections.length, 1, 'a mixed cafe post must isolate its season-pass sale block');
+assert.match(mixedTimebarPassSections[0], /정기권\(7,8,9월\)/, 'the focused pass block must retain the sale title');
+assert.doesNotMatch(mixedTimebarPassSections[0], /DJ\s*["“”']?훔머/i, 'the focused pass block must not inherit the neighbouring social DJ');
+assert.doesNotMatch(mixedTimebarPassSections[0], /스트리밍\s*서비스/, 'the focused pass block must not inherit an unrelated notice');
+const mixedTimebarSocialSections = extractDatedDjSections({
+  text: mixedTimebarSocialAndPassText,
+  today: '2026-06-30',
+});
+assert.deepEqual(
+  mixedTimebarSocialSections.map(({ date }) => date),
+  ['2026-07-02'],
+  'the dated social in a mixed pass post must remain an independent event section',
+);
 
 assert.deepEqual(
   extractIndependentSocialDateSections({
@@ -281,6 +325,27 @@ assert.deepEqual(
     'https://m.blog.naver.com/goldenswing/222973823693',
   ],
   'benefit discovery should keep canonical original cafe/blog documents and dedupe search variants',
+);
+const benefitSearchUrls = buildBenefitSearchUrls('스윙타임 정기권', 'https://www.google.com/search?q=%EC%8A%A4%EC%9C%99%ED%83%80%EC%9E%84+%EC%A0%95%EA%B8%B0%EA%B6%8C');
+assert.equal(new URL(benefitSearchUrls[0]).searchParams.get('tbs'), 'sbd:1', 'benefit search must inspect newest results first');
+assert.equal(new URL(benefitSearchUrls[0]).searchParams.get('hl'), 'ko', 'benefit search must use Korean result language');
+assert.equal(new URL(benefitSearchUrls[0]).searchParams.get('gl'), 'kr', 'benefit search must use the Korean result region');
+assert.equal(new URL(benefitSearchUrls[1]).searchParams.has('tbs'), false, 'benefit search must retain a relevance fallback');
+assert.deepEqual(
+  mergeBenefitSearchTargets(
+    { documentUrls: ['https://m.cafe.daum.net/sweetyswing/5lqO/NEW'], postUrls: [], profileUrls: [] },
+    { documentUrls: ['https://m.cafe.daum.net/sweetyswing/5lqO/OLD', 'https://m.cafe.daum.net/sweetyswing/5lqO/NEW'], postUrls: [], profileUrls: [] },
+  ).documentUrls,
+  ['https://m.cafe.daum.net/sweetyswing/5lqO/NEW', 'https://m.cafe.daum.net/sweetyswing/5lqO/OLD'],
+  'newest search targets must stay ahead of relevance results after dedupe',
+);
+assert.deepEqual(
+  mergeBenefitSearchTargets(
+    { documentUrls: ['latest-1', 'latest-2', 'latest-3'], postUrls: [], profileUrls: [] },
+    { documentUrls: ['relevance-1', 'relevance-2'], postUrls: [], profileUrls: [] },
+  ).documentUrls,
+  ['latest-1', 'relevance-1', 'latest-2', 'relevance-2', 'latest-3'],
+  'latest and relevance result modes must not starve each other before the scan limit',
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'free_event' }),
@@ -594,6 +659,22 @@ assert.equal(seasonPassSale.candidate.structured_data.benefit_kind, 'season_pass
 assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'season_pass'), true);
 assert.equal(benefitSearchMatches(seasonPassSale.candidate, 'free_event'), false);
 assert.equal(
+  classifyConfirmedBenefitEvent({
+    extracted_text: '8월 4일 화요일 저녁 8시 스윙 소셜 DJ 안토니',
+    structured_data: { title: '스윙타운 DJ 안토니', fee: '15,000원' },
+  }),
+  null,
+  'ordinary paid socials discovered beside a benefit must not inherit that benefit',
+);
+assert.equal(
+  classifyConfirmedBenefitEvent({
+    extracted_text: '정기권 구매자는 8월 4일 소셜 무료 입장',
+    structured_data: { title: '정기권 무료 소셜 혜택' },
+  }),
+  'season_pass',
+  'a social may remain in a season-pass source only when its own evidence confirms the pass benefit',
+);
+assert.equal(
   expectedInstagramHandleForSource({
     type: 'benefit_search',
     url: 'https://www.google.com/search?q=site%3Ainstagram.com+정기권',
@@ -629,6 +710,35 @@ assert.equal(
 assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('season_pass'), 'season pass sale should keep season_pass tag internally');
+
+const socialSeasonPassSale = prepareCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/5lqO/1765',
+  extracted_text: '스윙타임빠 수요일 정기권을 판매합니다. 기간 내 수요일 소셜 입장을 할 수 있는 정기권입니다. 7월 1일~9월 30일',
+  structured_data: {
+    title: '스윙타임빠 수요일 정기권(7,8,9월) 판매',
+    date: '2026-06-30',
+    event_type: '판매이벤트',
+  },
+}), { today: TODAY });
+assert.equal(socialSeasonPassSale.candidate.structured_data.activity_type, 'sale');
+assert.equal(socialSeasonPassSale.candidate.structured_data.category, 'social', 'a pass may retain its social top-level category while sale remains the independent activity');
+assert.equal(socialSeasonPassSale.candidate.structured_data.genre, '소셜');
+
+const imageFreeSocialSeasonPassSale = prepareCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/5lqO/1765',
+  poster_url: '',
+  extracted_text: mixedTimebarPassSections[0],
+  structured_data: {
+    title: '스윙타임빠 수요일 타임빠 정기권(7,8,9월) 판매',
+    date: '2026-06-30',
+    event_type: '판매이벤트',
+    activity_type: 'sale',
+    location: '스윙타임',
+  },
+}), { today: '2026-06-30' });
+assert.equal(imageFreeSocialSeasonPassSale.validation.ok, true, 'a text-grounded season pass must remain collectable without an image');
+assert.equal(imageFreeSocialSeasonPassSale.candidate.structured_data.benefit_kind, 'season_pass');
+assert.ok(imageFreeSocialSeasonPassSale.validation.warnings.some((warning) => /without an image/i.test(warning)), 'image-free pass candidates should remain visible with an admin-review warning');
 
 const evergreenSeasonPass = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/swingbar/p/OLDPASS/',
@@ -687,10 +797,29 @@ const samePassDifferentReviewDate = prepareCandidate(baseCandidate({
     genre_family: 'partner',
   },
 }), { today: '2026-08-03' });
-assert.equal(datedPassProduct.validation.ok, true, 'a dated pass product must not be rejected as a past one-off event');
-assert.equal(datedPassProduct.candidate.structured_data.ongoing_sale, true, 'pass products remain reviewable until an explicit sale-end notice');
+assert.equal(extractBenefitValidityEndDate(datedPassProduct.candidate.extracted_text, { today: '2026-08-03' }), '2026-06-07');
+assert.equal(datedPassProduct.validation.ok, false, 'an expired pass validity window must not remain collectable');
+assert.equal(datedPassProduct.candidate.structured_data.ongoing_sale, undefined, 'expired pass products must not be marked as ongoing');
+assert.ok(datedPassProduct.validation.errors.some((error) => error.includes('expired benefit validity')));
 assert.equal(datedPassProduct.candidate.structured_data.activity_type, 'sale', 'pass wording must win over adjacent social wording');
 assert.equal(datedPassProduct.candidate.id, samePassDifferentReviewDate.candidate.id, 'the same pass source URL must dedupe independently of the review date');
+
+const currentDatedPassProduct = prepareCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/5lqO/2000',
+  extracted_text: '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다. 기간은 7월 1일~9월 30일입니다.',
+  structured_data: {
+    title: '스윙타임빠 수요일 타임빠 정기권(7,8,9월) 판매',
+    date: '2026-06-09',
+    event_type: '판매',
+    activity_type: 'sale',
+    dance_scope: 'swing',
+    dance_genre: 'swing',
+    genre_family: 'partner',
+  },
+}), { today: '2026-08-03' });
+assert.equal(extractBenefitValidityEndDate(currentDatedPassProduct.candidate.extracted_text, { today: '2026-08-03' }), '2026-09-30');
+assert.equal(currentDatedPassProduct.validation.ok, true, 'a currently valid pass found in newest results must remain collectable');
+assert.equal(currentDatedPassProduct.candidate.structured_data.ongoing_sale, true);
 
 const evergreenDiscount = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/swingbar/p/ONGOINGDISCOUNT/',
@@ -1029,6 +1158,15 @@ const scandalVenueNormalized = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(scandalVenueNormalized.candidate.structured_data.location, '사보이볼룸');
 assert.equal(scandalVenueNormalized.candidate.structured_data.venue_name, '사보이볼룸');
+assert.equal(prepareCandidate(baseCandidate({
+  structured_data: {
+    title: '스윙타임빠 수요일 소셜',
+    date: '2026-08-05',
+    location: '스윙타임빠',
+    activity_type: 'social',
+    djs: ['훔머'],
+  },
+}), { today: TODAY }).candidate.structured_data.location, '스윙타임');
 
 const autoReadyScandal = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/999001?menuid=501',
@@ -1107,6 +1245,25 @@ const autoReadyFriendsExplicitVenue = evaluateAutoRegistrationReadiness(baseCand
 }), { today: TODAY });
 assert.equal(autoReadyFriendsExplicitVenue.ready, true);
 assert.equal(autoReadyFriendsExplicitVenue.reasons.some((reason) => reason.includes('98%')), false);
+
+const benefitSearchOfficialSourceBlocked = evaluateAutoRegistrationReadiness(baseCandidate({
+  source_id: 'benefit-search-swingfriends-pass',
+  discovery_source_id: 'benefit-search-swingfriends-pass',
+  discovery_source_type: 'benefit_search',
+  source_url: 'https://www.instagram.com/swing_friends/p/PASSDISCOVERY1/',
+  poster_url: 'https://example.com/pass.webp',
+  extracted_text: '스윙프렌즈 8월 정기권 판매 2026년 8월 1일부터 신청 가능',
+  structured_data: {
+    title: '스윙프렌즈 8월 정기권 판매',
+    date: '2026-08-01',
+    location: '스윙타임',
+    venue_name: '스윙타임',
+    venue_provenance: 'source_registry',
+    activity_type: 'sale',
+  },
+}), { today: TODAY });
+assert.equal(benefitSearchOfficialSourceBlocked.ready, false, 'benefit-search discoveries must never inherit official-source auto-registration');
+assert.ok(benefitSearchOfficialSourceBlocked.reasons.some((reason) => reason.includes('manual approval')));
 
 for (const lowQualityTitle of [
   'Instagram의 대전 스윙피버님',
@@ -1350,9 +1507,16 @@ assert.ok(priorityTwoRunOrder.indexOf('swingtown-cafe') < priorityTwoRunOrder.in
 assert.equal(getAutomationSourceList('swing-daily').some((source) => source.type === 'littly'), false, 'daily automation must exclude littly hubs');
 assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigakR0I/')?.id, 'happyhall2004', 'instagram source matching should respect account path');
 assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
+assert.equal(findSourceByUrl('https://m.cafe.daum.net/sweetyswing/5lqO/1759')?.id, 'sweetyswing-timebar-pass', 'timebar pass articles must map to the direct manual-review source');
+const timebarPassSource = getAutomationSourceList('swing-daily').find((source) => source.id === 'sweetyswing-timebar-pass');
+assert.equal(timebarPassSource?.type, 'daum_cafe');
+assert.match(timebarPassSource?.url || '', /\/5lqO\/search\?query=/);
+assert.equal(timebarPassSource?.autoRegistrationPolicy, 'manual');
+assert.deepEqual(timebarPassSource?.autoRegistrationAllowedActivityTypes, []);
 assert.ok(dynamicSearchQueries.swing.some((query) => /원데이|체험|오픈\s*클래스/.test(query)), 'swing dynamic search should include one-day/trial class discovery');
 assert.ok(dynamicSearchQueries.swing.some((query) => /정기권|무료|판매\s*이벤트/.test(query)), 'swing dynamic search should include sale/free/season-pass discovery');
 assert.ok(dynamicSearchQueries.swing.includes('출빠 정기권'), 'swing benefit discovery should include the high-yield attendance-pass query');
+assert.ok(dynamicSearchQueries.swing.includes('스윙바 정기권 OR 시즌권 OR 월정액'), 'swing pass discovery must not be restricted to Instagram');
 for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
   assert.ok(dynamicSearchQueries[scope].some((query) => /무료/.test(query)), `${scope} dynamic search should include free-event discovery`);
   assert.ok(dynamicSearchQueries[scope].some((query) => /정기권|멤버십|패스|수강권/.test(query)), `${scope} dynamic search should include pass-sale discovery`);
@@ -1362,12 +1526,19 @@ for (const scope of ['salsa', 'bachata', 'tango', 'street']) {
   );
 }
 const swingBenefitSources = getAutomationSourceList('swing-daily').filter((source) => source.type === 'benefit_search');
-assert.equal(swingBenefitSources.length, 16, 'benefit automation should run sixteen focused searches across stages three and four');
-assert.equal(swingBenefitSources.filter((source) => source.priority === 3).length, 11, 'stage three should contain free and pass benefit searches');
+const derivedVenuePassSources = buildVenuePassSearchSources(getCollectionSources('swing'));
+assert.equal(normalizeBenefitSearchQuery('site:instagram.com/swing_friends 정기권'), 'swing_friends 정기권');
+assert.ok(swingBenefitSources.every((source) => !/\bsite:instagram\.com\b/i.test(source.query)), 'all benefit searches must include indexed cafe/blog documents instead of being Instagram-only');
+assert.equal(derivedVenuePassSources.length, 6, 'known swing venues should generate six focused pass searches');
+assert.ok(derivedVenuePassSources.some((source) => source.query === '스윙타임 정기권'), 'known venues must automatically produce a focused latest pass query');
+assert.ok(derivedVenuePassSources.every((source) => !source.query.startsWith('site:')), 'derived venue searches must include indexed cafe documents');
+assert.equal(swingBenefitSources.length, 16 + derivedVenuePassSources.length, 'benefit automation should include the base searches and generated venue searches');
+assert.equal(swingBenefitSources.filter((source) => source.priority === 3).length, 11 + derivedVenuePassSources.length, 'stage three should contain free and pass benefit searches');
 assert.equal(swingBenefitSources.filter((source) => source.priority === 2).length, 1, 'the known Swingfriends pass source should run before general benefit searches');
 assert.equal(swingBenefitSources.filter((source) => source.priority === 4).length, 4, 'stage four should contain discount benefit searches');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-club-free'), 'stage three should search amateur club free benefits');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-bar-pass'), 'stage three should search swing-bar passes');
+assert.equal(swingBenefitSources.find((source) => source.id === 'benefit-search-bar-pass')?.query.startsWith('site:'), false, 'swing-bar pass search must include indexed cafe documents');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-discount'), 'stage three should search explicit discounts');
 assert.ok(swingBenefitSources.some((source) => source.id === 'benefit-search-earlybird'), 'stage three should search early-bird benefits');
 assert.equal(getCollectionSources('swing').some((source) => source.id === 'batswing'), false, 'BAT SWING should not be an active collection source');

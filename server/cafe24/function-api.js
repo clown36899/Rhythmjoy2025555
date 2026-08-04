@@ -972,6 +972,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const sourceId = String(readiness.source_id || scrapedEvent?.source_id || '').trim();
   const activity = String(structured.activity_type || '').trim().toLowerCase();
   const sourceRule = AUTOMATIC_REGISTRATION_SOURCE_RULES.get(sourceId);
+  const discoverySourceType = String(scrapedEvent?.discovery_source_type || '').trim().toLowerCase();
   const title = String(structured.title || '').trim();
   const date = String(structured.date || '').slice(0, 10);
   const venue = String(structured.venue_name || structured.location || '').trim();
@@ -982,6 +983,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   if (readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
   if (Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
   if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
+  if (discoverySourceType === 'benefit_search') reasons.push('benefit search candidates require manual approval');
   if (!sourceRule?.activities?.has(activity)) reasons.push('source/activity is not server-enrolled');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) reasons.push('exact event date is required');
   if (!title || title.length < 4) reasons.push('concrete title is required');

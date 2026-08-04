@@ -50,6 +50,7 @@ public/scraped/
 !server/cafe24/schema.sql
 !server/cafe24/migrations/*.sql
 *.json
+!scripts/ingestion/ai-*.schema.json
 !package.json
 !package-lock.json
 !tsconfig*.json

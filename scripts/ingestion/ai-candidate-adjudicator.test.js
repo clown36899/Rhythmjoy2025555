@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateAiAdjudication } from './ai-candidate-adjudicator.mjs';
+import { validateAiAdjudication, validateBenefitAiReview } from './ai-candidate-adjudicator.mjs';
 
 const candidate = {
   extracted_text: '7월 29일 경성홀 수요 소셜 DJ 뉴야',
@@ -241,5 +241,93 @@ describe('AI candidate adjudication grounding', () => {
       ],
     });
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('AI benefit candidate review', () => {
+  const currentPassCandidate = {
+    extracted_text: '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.\n3개월 단위(14주:7월1일~9월30일)로 가격은 6만원입니다.\n기간내 수요일 소셜 입장을 할 수 있습니다.',
+    structured_data: {
+      title: '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.',
+      date: '2026-06-30',
+      source_post_date: '2026-06-30',
+      benefit_eligible: true,
+      benefit_kind: 'season_pass',
+      category: 'social',
+      activity_type: 'sale',
+      venue_name: '스윙타임',
+    },
+  };
+
+  it('approves a grounded, currently valid social pass without granting auto-registration', () => {
+    const result = validateBenefitAiReview(currentPassCandidate, {
+      decision: 'accept',
+      confidence: 0.99,
+      benefit_kind: 'season_pass',
+      category: 'social',
+      activity_type: 'sale',
+      active_on_today: true,
+      validity_end_date: '2026-09-30',
+      title: '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.',
+      venue: '스윙타임',
+      evidence_quotes: [
+        '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.',
+        '3개월 단위(14주:7월1일~9월30일)로 가격은 6만원입니다.',
+        '기간내 수요일 소셜 입장을 할 수 있습니다.',
+      ],
+      reasons: [],
+    }, { today: '2026-08-03' });
+
+    expect(result.outcome).toBe('approved');
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an explicitly expired old pass with grounded evidence', () => {
+    const expiredCandidate = {
+      ...currentPassCandidate,
+      extracted_text: '스윙타임빠 정기권(4,5월)을 판매합니다.\n2개월 단위(9주:4월8일~6월7일)입니다.',
+    };
+    const result = validateBenefitAiReview(expiredCandidate, {
+      decision: 'reject',
+      confidence: 0.99,
+      benefit_kind: 'season_pass',
+      category: 'social',
+      activity_type: 'sale',
+      active_on_today: false,
+      validity_end_date: '2026-06-07',
+      title: '스윙타임빠 정기권(4,5월)을 판매합니다.',
+      venue: '스윙타임',
+      evidence_quotes: [
+        '스윙타임빠 정기권(4,5월)을 판매합니다.',
+        '2개월 단위(9주:4월8일~6월7일)입니다.',
+      ],
+      reasons: ['이용 기간이 종료됨'],
+    }, { today: '2026-08-03' });
+
+    expect(result.outcome).toBe('rejected');
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain('AI found expired benefit validity: 2026-06-07 < 2026-08-03');
+  });
+
+  it('keeps a category disagreement for manual review instead of silently rewriting it', () => {
+    const result = validateBenefitAiReview(currentPassCandidate, {
+      decision: 'accept',
+      confidence: 0.99,
+      benefit_kind: 'season_pass',
+      category: 'event',
+      activity_type: 'sale',
+      active_on_today: true,
+      validity_end_date: '2026-09-30',
+      title: '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.',
+      venue: '스윙타임',
+      evidence_quotes: [
+        '스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.',
+        '3개월 단위(14주:7월1일~9월30일)로 가격은 6만원입니다.',
+      ],
+      reasons: [],
+    }, { today: '2026-08-03' });
+
+    expect(result.outcome).toBe('review');
+    expect(result.reasons).toContain('AI category disagrees with collector category');
   });
 });

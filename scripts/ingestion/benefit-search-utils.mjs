@@ -12,6 +12,49 @@ function unwrapSearchUrl(value = '', baseUrl = 'https://www.google.com/') {
   }
 }
 
+export function buildBenefitSearchUrls(query = '', configuredUrl = '') {
+  const normalizedQuery = String(query || '').trim();
+  const relevanceUrl = configuredUrl || `https://www.google.com/search?q=${encodeURIComponent(normalizedQuery)}`;
+  try {
+    const parsed = new URL(relevanceUrl);
+    if (!/^(?:www\.)?google\./i.test(parsed.hostname)) {
+      return [relevanceUrl];
+    }
+    if (normalizedQuery) parsed.searchParams.set('q', normalizedQuery);
+    parsed.searchParams.set('hl', 'ko');
+    parsed.searchParams.set('gl', 'kr');
+    parsed.searchParams.delete('tbs');
+    const relevance = parsed.toString();
+    const latest = new URL(relevance);
+    latest.searchParams.set('tbs', 'sbd:1');
+    return [latest.toString(), relevance];
+  } catch {
+    return [relevanceUrl];
+  }
+}
+
+export function mergeBenefitSearchTargets(...batches) {
+  const uniqueInOrder = (key) => {
+    const seen = new Set();
+    const values = [];
+    const longestBatch = Math.max(0, ...batches.map((batch) => batch?.[key]?.length || 0));
+    for (let index = 0; index < longestBatch; index += 1) {
+      for (const batch of batches) {
+        const value = batch?.[key]?.[index];
+        if (!value || seen.has(value)) continue;
+        seen.add(value);
+        values.push(value);
+      }
+    }
+    return values;
+  };
+  return {
+    postUrls: uniqueInOrder('postUrls'),
+    profileUrls: uniqueInOrder('profileUrls'),
+    documentUrls: uniqueInOrder('documentUrls'),
+  };
+}
+
 export function normalizeInstagramPostUrl(value = '', baseUrl) {
   const unwrapped = unwrapSearchUrl(value, baseUrl);
   if (!unwrapped) return '';

@@ -8,6 +8,7 @@ import { findSourceByUrl } from './collection-registry.mjs';
 import { stripNaverCafeMemberPrefix } from './candidate-utils.mjs';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
+const benefitReviewSchemaPath = path.join(moduleDir, 'ai-benefit-review.schema.json');
 const defaultModel = process.env.INGESTION_AI_MODEL || 'gpt-5.6-sol';
 const minimumConfidence = Number(process.env.INGESTION_AI_MIN_CONFIDENCE || 0.98);
 
@@ -79,7 +80,8 @@ function normalized(value) {
 function normalizedVenue(value) {
   return normalized(value)
     .replace(/쏘셜클럽/g, '소셜클럽')
-    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
+    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸')
+    .replace(/스윙타임(?:빠|바)?/g, '스윙타임');
 }
 
 function trustedSourceVenueContext(candidate = {}) {
@@ -124,6 +126,73 @@ const ACTIVITY_EVIDENCE_PATTERNS = {
   recruit: /(?:모집|신청|등록|recruit)/i,
   sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
 };
+
+const BENEFIT_EVIDENCE_PATTERNS = {
+  free_event: /무료|0\s*원|\bfree\b/i,
+  discount_event: /할인|특가|얼리\s*버드|조기\s*등록|쿠폰|프로모션|\bdiscount\b|\bpromotion\b/i,
+  season_pass: /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|멤버십|\bmembership\b|\bpass\b/i,
+};
+
+export function validateBenefitAiReview(candidate, review, config = {}) {
+  const sd = candidate?.structured_data || {};
+  const today = String(config.today || new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date()));
+  const threshold = Number(config.minimumConfidence ?? minimumConfidence);
+  const sourceText = [candidate?.extracted_text || '', sd.title || ''].filter(Boolean).join('\n');
+  const evidenceQuotes = Array.isArray(review?.evidence_quotes)
+    ? review.evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)
+    : [];
+  const grounded = exactEvidenceIsGrounded(evidenceQuotes, sourceText);
+  const expectedKind = String(sd.benefit_kind || '');
+  const expectedCategory = String(sd.category || '');
+  const expectedActivity = String(sd.activity_type || '');
+  const expectedVenue = normalizedVenue(sd.venue_name || sd.location || '');
+  const validityEndDate = String(review?.validity_end_date || '');
+  const evidenceCorpus = evidenceQuotes.join(' ');
+  const errors = [];
+  const warnings = [];
+
+  if (Number(review?.confidence || 0) < threshold) errors.push(`AI confidence is below ${threshold}`);
+  if (!grounded) errors.push('AI benefit evidence is not an exact substring of source text');
+  if (String(review?.benefit_kind || '') !== expectedKind) errors.push('AI benefit kind disagrees with collector benefit kind');
+  if (expectedCategory && String(review?.category || '') !== expectedCategory) warnings.push('AI category disagrees with collector category');
+  if (expectedActivity && String(review?.activity_type || '') !== expectedActivity) warnings.push('AI activity disagrees with collector activity');
+  if (expectedVenue && normalizedVenue(review?.venue || '') !== expectedVenue) warnings.push('AI venue disagrees with collector venue');
+  if (validityEndDate && validityEndDate < today) errors.push(`AI found expired benefit validity: ${validityEndDate} < ${today}`);
+  const benefitPattern = BENEFIT_EVIDENCE_PATTERNS[expectedKind];
+  if (!benefitPattern || !benefitPattern.test(evidenceCorpus)) errors.push(`AI evidence does not explicitly identify benefit ${expectedKind || 'unknown'}`);
+
+  const confidentGroundedReject = review?.decision === 'reject'
+    && Number(review?.confidence || 0) >= threshold
+    && grounded;
+  if (confidentGroundedReject) {
+    return {
+      outcome: 'rejected',
+      ok: false,
+      reasons: [...new Set([...(review?.reasons || []), ...errors])],
+      warnings,
+      confidence: Number(review?.confidence || 0),
+      evidence_quotes: evidenceQuotes,
+    };
+  }
+
+  if (review?.decision !== 'accept') errors.push('AI requires manual benefit review');
+  if (review?.active_on_today !== true) errors.push('AI did not confirm the benefit is active today');
+  if (warnings.length) errors.push(...warnings);
+
+  return {
+    outcome: errors.length === 0 ? 'approved' : 'review',
+    ok: errors.length === 0,
+    reasons: [...new Set(errors)],
+    warnings,
+    confidence: Number(review?.confidence || 0),
+    evidence_quotes: evidenceQuotes,
+  };
+}
 
 export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const sd = candidate?.structured_data || {};
@@ -223,6 +292,101 @@ ${String(candidate.extracted_text || '').slice(0, 6000)}
 
 TRUSTED_SOURCE_CONTEXT:
 ${trustedVenueContext || '(none)'}`;
+}
+
+function buildBenefitReviewPrompt(candidate, today) {
+  const sd = candidate.structured_data || {};
+  return `You are the second-stage reviewer for Korean dance benefit collection.
+Judge only SOURCE_TEXT. Do not browse or use outside knowledge. TODAY_KST is ${today}.
+
+Decide whether the source explicitly offers a currently usable benefit:
+- free_event: a free class, admission, participation, or event;
+- discount_event: a real discount, coupon, early-bird price, or promotion;
+- season_pass: a season pass, membership, multi-use ticket, monthly pass, or recurring admission pass for sale.
+
+Reject expired, ended, sold-out, negated, or merely historical offers. active_on_today means the
+candidate is still relevant as of TODAY_KST; an upcoming future free/discount event is true even though
+the event does not happen today. A source post date is not an
+event date. For season_pass, compare an explicit validity end date with TODAY_KST. If there is no
+explicit end date but the text clearly says it is currently sold or available, active_on_today may be true;
+otherwise use null and decision review. Never turn an old single event into an evergreen offer.
+
+Independently identify the underlying category. A pass for social admission is category social while
+activity_type remains sale. A class pass is category class. Do not force every sale into category event.
+Return accept only when benefit kind, current validity, title, category/activity, and venue are explicit
+and internally consistent. Return review when ambiguous and reject when clearly wrong or expired.
+Every evidence quote must be copied exactly from SOURCE_TEXT and must include the benefit wording and
+any validity/end wording used in the decision. Confidence >= 0.98 is reserved for fully explicit evidence.
+
+COLLECTOR_CANDIDATE:
+${JSON.stringify({
+    title: sd.title || null,
+    source_post_date: sd.source_post_date || sd.date || null,
+    benefit_kind: sd.benefit_kind || null,
+    category: sd.category || null,
+    activity_type: sd.activity_type || null,
+    venue: sd.venue_name || sd.location || null,
+    source_url: candidate.source_url || null,
+  })}
+
+SOURCE_TEXT:
+${String(candidate.extracted_text || '').slice(0, 6000)}`;
+}
+
+export async function reviewBenefitCandidateWithAi(candidate, config = {}) {
+  const codex = config.codexPath || await findCodex();
+  if (!codex) return { available: false, approved: false, outcome: 'unavailable', reasons: ['Codex CLI is unavailable'] };
+
+  const today = String(config.today || new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date()));
+  const workDir = await mkdtemp(path.join(tmpdir(), 'rhythmjoy-ai-benefit-review-'));
+  const outputPath = path.join(workDir, 'result.json');
+  try {
+    await writeFile(outputPath, '', 'utf8');
+    await runCodex(codex, [
+      'exec',
+      '--ephemeral',
+      '--ignore-user-config',
+      '--skip-git-repo-check',
+      '--sandbox', 'read-only',
+      '--model', config.model || defaultModel,
+      '--output-schema', benefitReviewSchemaPath,
+      '--output-last-message', outputPath,
+      '-',
+    ], buildBenefitReviewPrompt(candidate, today), {
+      cwd: moduleDir,
+      timeout: Number(config.timeoutMs || process.env.INGESTION_AI_TIMEOUT_MS || 90_000),
+      maxBuffer: 2 * 1024 * 1024,
+      env: process.env,
+    });
+    const adjudication = JSON.parse(await readFile(outputPath, 'utf8'));
+    const validation = validateBenefitAiReview(candidate, adjudication, { ...config, today });
+    return {
+      available: true,
+      approved: validation.ok,
+      outcome: validation.outcome,
+      adjudication,
+      validation,
+      reasons: validation.reasons,
+    };
+  } catch (error) {
+    const detail = String(error?.stderr || error?.stdout || error?.message || error)
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 800);
+    return {
+      available: true,
+      approved: false,
+      outcome: 'error',
+      reasons: [`AI benefit review failed: ${detail || 'unknown error'}`],
+    };
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
 }
 
 export async function adjudicateCandidateWithAi(candidate, config = {}) {

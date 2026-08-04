@@ -117,6 +117,50 @@ const tagRules = [
   ['free_event', [/무료\s*(?:이벤트|행사|파티|강습|클래스|수업|체험)/i, /\bfree\b/i]],
 ];
 
+const seasonPassEvidencePattern = /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b/i;
+const contentSectionMarkerPattern = /(?:^|[\n\r]|\s)([■▪●◆◇□▶▣])\s*/gu;
+
+/**
+ * Keep a pass-sale block independent from other events in the same source post.
+ * Daum/Naver cafe notices commonly concatenate multiple bullet-headed notices,
+ * and a pass block must not inherit a neighbouring social's date or DJ.
+ */
+export function extractSeasonPassEvidenceSections(text = '') {
+  const raw = String(text || '').normalize('NFKC').trim();
+  if (!raw || !seasonPassEvidencePattern.test(raw)) return [];
+
+  const markerMatches = [...raw.matchAll(contentSectionMarkerPattern)];
+  const markedSections = markerMatches.map((match, index) => {
+    const markerOffset = String(match[0] || '').lastIndexOf(match[1]);
+    const start = match.index + Math.max(0, markerOffset);
+    const next = markerMatches[index + 1];
+    const nextMarkerOffset = next ? String(next[0] || '').lastIndexOf(next[1]) : 0;
+    const end = next ? next.index + Math.max(0, nextMarkerOffset) : raw.length;
+    return raw.slice(start, end).trim();
+  }).filter((section) => seasonPassEvidencePattern.test(section));
+
+  const paragraphSections = raw
+    .split(/\n\s*\n+/)
+    .map((section) => section.trim())
+    .filter((section) => section && seasonPassEvidencePattern.test(section));
+  const focused = markedSections.length ? markedSections : paragraphSections;
+  const sections = focused.length ? focused : [raw];
+  const uniqueSections = [...new Map(sections.map((section) => [
+    section.replace(/\s+/g, ' ').trim(),
+    section,
+  ])).values()];
+
+  return uniqueSections.filter((section, index, all) => {
+    const compact = section.replace(/\s+/g, ' ').trim();
+    if (compact.length >= 120) return true;
+    return !all.some((other, otherIndex) => {
+      if (otherIndex === index) return false;
+      const otherCompact = other.replace(/\s+/g, ' ').trim();
+      return otherCompact.length > compact.length && otherCompact.includes(compact);
+    });
+  });
+}
+
 export function classifyConfirmedBenefitEvent(candidate = {}) {
   const sd = candidate.structured_data || {};
   const text = [
@@ -147,7 +191,42 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   return null;
 }
 
-export function isEvergreenBenefitCandidate(candidate = {}) {
+function validIsoDate(year, month, day) {
+  const numericYear = Number(year);
+  const numericMonth = Number(month);
+  const numericDay = Number(day);
+  const parsed = new Date(Date.UTC(numericYear, numericMonth - 1, numericDay));
+  if (
+    parsed.getUTCFullYear() !== numericYear
+    || parsed.getUTCMonth() + 1 !== numericMonth
+    || parsed.getUTCDate() !== numericDay
+  ) return '';
+  return `${String(numericYear).padStart(4, '0')}-${String(numericMonth).padStart(2, '0')}-${String(numericDay).padStart(2, '0')}`;
+}
+
+export function extractBenefitValidityEndDate(value = '', { today = todayISO() } = {}) {
+  const text = String(value || '').normalize('NFKC');
+  const referenceYear = Number(String(today || todayISO()).slice(0, 4));
+  const ranges = [];
+  const addRange = (startYear, startMonth, startDay, endYear, endMonth, endDay) => {
+    let resolvedStartYear = Number(startYear) || referenceYear;
+    let resolvedEndYear = Number(endYear) || resolvedStartYear;
+    if (!endYear && Number(endMonth) < Number(startMonth)) resolvedEndYear += 1;
+    const start = validIsoDate(resolvedStartYear, startMonth, startDay);
+    const end = validIsoDate(resolvedEndYear, endMonth, endDay);
+    if (start && end && end >= start) ranges.push(end);
+  };
+
+  for (const match of text.matchAll(/(?:(20\d{2})\s*년\s*)?(\d{1,2})\s*월\s*(\d{1,2})\s*일?\s*(?:~|～|−|–|—|-|부터)\s*(?:(20\d{2})\s*년\s*)?(\d{1,2})\s*월\s*(\d{1,2})\s*일?/g)) {
+    addRange(match[1], match[2], match[3], match[4], match[5], match[6]);
+  }
+  for (const match of text.matchAll(/(?:(20\d{2})[./-])?(\d{1,2})[./-](\d{1,2})\s*(?:~|～|−|–|—|부터)\s*(?:(20\d{2})[./-])?(\d{1,2})[./-](\d{1,2})/g)) {
+    addRange(match[1], match[2], match[3], match[4], match[5], match[6]);
+  }
+  return ranges.sort().at(-1) || '';
+}
+
+export function isEvergreenBenefitCandidate(candidate = {}, { today = todayISO() } = {}) {
   const benefitKind = classifyConfirmedBenefitEvent(candidate);
   if (!['season_pass', 'discount_event'].includes(benefitKind || '')) return false;
   const sd = candidate.structured_data || {};
@@ -160,8 +239,10 @@ export function isEvergreenBenefitCandidate(candidate = {}) {
   if (/(?:판매|신청|구매|운영|발급)\s*(?:종료|마감|중단)|(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b)[^.!?\n]{0,24}(?:종료|마감|중단|폐지|품절|sold\s*out|closed|ended)/i.test(text)) {
     return false;
   }
+  const validityEndDate = extractBenefitValidityEndDate(text, { today });
+  if (validityEndDate && validityEndDate < today) return false;
   // 정기권/다회권은 하루짜리 과거 이벤트가 아니라 반복 이용 상품이다.
-  // 판매 종료가 명시되지 않은 한 게시일이나 사용 시작일이 지났다는 이유로 버리지 않는다.
+  // 판매 종료나 이용 기간 종료가 명시되지 않은 한 게시일이나 사용 시작일만으로 버리지 않는다.
   if (benefitKind === 'season_pass') return true;
   if (benefitKind === 'discount_event') {
     return /상시\s*(?:할인|특가|혜택|적용)|연중\s*(?:할인|혜택)|언제든\s*(?:할인|적용)|(?:현재\s*)?(?:할인|프로모션)\s*(?:중|적용\s*중|진행\s*중)|(?:회원|정기권)\s*상시\s*할인/i.test(text);
@@ -189,7 +270,7 @@ const canonicalVenueAliases = [
   [/^경성홀(?:신촌)?$/i, '경성홀'],
   [/^해피홀(?:신촌)?$/i, '해피홀'],
   [/^(?:소셜클럽|쏘셜클럽|sosyalclub)(?:합정)?$/i, '소셜클럽'],
-  [/^스윙타임(?:바)?(?:선릉)?$/i, '스윙타임'],
+  [/^스윙타임(?:바|빠)?(?:선릉)?$/i, '스윙타임'],
   [/^인더무드(?:신림)?$/i, '인더무드'],
   [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
   [/^(?:사보이볼룸|사보이홀|사보이)(?:사당)?$/i, '사보이볼룸'],
@@ -248,6 +329,15 @@ export function isCollectableDate(date = '', {
 export function stripNaverCafeMemberPrefix(value = '') {
   return String(value || '')
     .replace(/^\s*\d+\s*F\s+[A-Za-z0-9가-힣._-]{1,20}\s+/i, '')
+    .trim();
+}
+
+export function stripRepeatedDjContext(value = '') {
+  return String(value || '')
+    .replace(
+      /^([A-Za-z0-9가-힣._&+\-/]{1,20})\s+스윙타운\s+(?:D\s*J|디제이)\s+\1(?:\s.*)?$/i,
+      '$1',
+    )
     .trim();
 }
 
@@ -758,7 +848,11 @@ function siteCategoryFromCandidate(candidate, taxonomy) {
   if (/졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(text)) return 'social';
   if (taxonomy.activity_type === 'social') return 'social';
   if (taxonomy.activity_type === 'class') return 'class';
-  if (taxonomy.activity_type === 'sale') return 'event';
+  if (taxonomy.activity_type === 'sale') {
+    if (/소셜|social|밀롱가|프랙티카/i.test(text)) return 'social';
+    if (/강습|수업|클래스|레슨|workshop|class|lesson/i.test(text)) return 'class';
+    return 'event';
+  }
   if (taxonomy.activity_type === 'recruit') {
     return /팀원\s*모집|팀\s*모집|크루\s*모집|멤버\s*모집|team\s*recruit|crew\s*recruit/i.test(text)
       ? 'class'
@@ -915,7 +1009,10 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   const retiredSourceIdentity = `${candidate.source_id || ''} ${candidate.keyword || ''} ${sd.title || ''}`;
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
   const blockedKeywordReason = getBlockedKeywordReason(text);
-  const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenBenefitCandidate(candidate);
+  const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenBenefitCandidate(candidate, { today });
+  const benefitValidityEndDate = sd.benefit_eligible === true
+    ? extractBenefitValidityEndDate(text, { today })
+    : '';
 
   if (!sourceUrl) errors.push('source_url required');
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
@@ -923,6 +1020,9 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
     errors.push('운영 종료 소스 제외: 스윙패밀리');
   }
   if (blockedKeywordReason) errors.push(blockedKeywordReason);
+  if (benefitValidityEndDate && benefitValidityEndDate < today) {
+    errors.push(`expired benefit validity: ${benefitValidityEndDate} < ${today}`);
+  }
   if (!date) errors.push('structured_data.date required');
   if (date && date < today && !isEvergreenSeasonPass) errors.push(`past event date: ${date} < ${today}`);
   const statedDay = String(sd.day || '').slice(0, 1) || explicitWeekdayForCandidateDate(text, date);
@@ -1075,7 +1175,7 @@ export function prepareCandidate(rawCandidate, config = {}) {
     delete structuredData.benefit_eligible;
     delete structuredData.benefit_kind;
   }
-  const evergreenBenefit = isEvergreenBenefitCandidate({ ...rawCandidate, structured_data: structuredData });
+  const evergreenBenefit = isEvergreenBenefitCandidate({ ...rawCandidate, structured_data: structuredData }, config);
   if (evergreenBenefit) {
     structuredData.ongoing_sale = true;
     structuredData.benefit_lifecycle = 'evergreen';
@@ -1113,11 +1213,12 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   const title = titleOf(candidate);
   const djs = Array.isArray(sd.djs) ? sd.djs.filter(Boolean) : [];
   const venueProvenance = String(sd.venue_provenance || '').trim();
+  const discoverySourceType = String(candidate.discovery_source_type || '').trim().toLowerCase();
 
   if (source?.autoRegistrationPolicy !== 'shadow' && source?.autoRegistrationPolicy !== 'auto') {
     reasons.push('source is not enrolled in auto-registration shadow policy');
   }
-  if (source?.discoveryOnly || source?.type === 'benefit_search') {
+  if (source?.discoveryOnly || source?.type === 'benefit_search' || discoverySourceType === 'benefit_search') {
     reasons.push('search/discovery sources require manual approval');
   }
   if (activity !== 'social' && !candidate.poster_url && !candidate.imageData) {

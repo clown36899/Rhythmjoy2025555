@@ -65,6 +65,14 @@ function resolveProfile(profile = 'swing-daily') {
   return aliases[profile] || profile;
 }
 
+export function normalizeBenefitSearchQuery(value = '') {
+  return String(value || '')
+    .replace(/\bsite:instagram\.com\/([A-Za-z0-9_.-]+)/gi, '$1')
+    .replace(/\bsite:instagram\.com\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const source = ({
   id,
   name,
@@ -92,34 +100,40 @@ const source = ({
   allowedActivityTypes = [],
   allowedWeekdays = [],
   requiredEventPattern = null,
-}) => ({
-  id,
-  name,
-  scope,
-  family,
-  genre,
-  type,
-  url,
-  match,
-  priority,
-  savePolicy,
-  discoveryOnly,
-  phase,
-  sourceKind,
-  sceneRole,
-  promotionPolicy,
-  runOrder,
-  notes,
-  query,
-  benefitKind,
-  venue,
-  autoRegistrationPolicy,
-  autoRegistrationVenuePolicy,
-  autoRegistrationAllowedActivityTypes,
-  allowedActivityTypes,
-  allowedWeekdays,
-  requiredEventPattern,
-});
+}) => {
+  const effectiveQuery = type === 'benefit_search' ? normalizeBenefitSearchQuery(query) : query;
+  const effectiveUrl = type === 'benefit_search' && effectiveQuery
+    ? `https://www.google.com/search?q=${encodeURIComponent(effectiveQuery)}`
+    : url;
+  return {
+    id,
+    name,
+    scope,
+    family,
+    genre,
+    type,
+    url: effectiveUrl,
+    match: type === 'benefit_search' ? effectiveUrl : match,
+    priority,
+    savePolicy,
+    discoveryOnly,
+    phase,
+    sourceKind,
+    sceneRole,
+    promotionPolicy,
+    runOrder,
+    notes,
+    query: effectiveQuery,
+    benefitKind,
+    venue,
+    autoRegistrationPolicy,
+    autoRegistrationVenuePolicy,
+    autoRegistrationAllowedActivityTypes,
+    allowedActivityTypes,
+    allowedWeekdays,
+    requiredEventPattern,
+  };
+};
 
 export const collectionSources = [
   source({ id: 'benefit-search-free-class', name: '무료 강습 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: 'https://www.google.com/search?q=site%3Ainstagram.com+%EC%8A%A4%EC%9C%99%EB%8C%84%EC%8A%A4+%EB%AC%B4%EB%A3%8C+%EA%B0%95%EC%8A%B5', query: 'site:instagram.com 스윙댄스 무료 강습', benefitKind: 'free_event', priority: 3, runOrder: 0, notes: '3단계 혜택 전용 검색. 실제 Instagram 게시물 본문·날짜·원본 이미지를 다시 확인한다.' }),
@@ -131,7 +145,7 @@ export const collectionSources = [
   source({ id: 'benefit-search-season-pass', name: '출빠·정기권 판매 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('출빠 정기권')}`, query: '출빠 정기권', benefitKind: 'season_pass', priority: 3, runOrder: 0, notes: '3단계 정기권 전용 검색. Instagram에 한정하지 않고 Daum 카페·Naver·Facebook 등 실제 판매 원문을 확인하며, 정기권은 단일 과거 이벤트가 아닌 상품형 후보로 저장하고 원본 URL로 중복 제거한다.' }),
   source({ id: 'benefit-search-multi-pass', name: '다회·할인권 판매 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('site:instagram.com 스윙댄스 "정기 할인권" OR 다회권 OR "10회권" OR 티켓북 OR 프리패스')}`, query: 'site:instagram.com 스윙댄스 "정기 할인권" OR 다회권 OR "10회권" OR 티켓북 OR 프리패스', benefitKind: 'season_pass', priority: 3, runOrder: 0 }),
   source({ id: 'benefit-search-swingfriends-pass', name: '스윙프렌즈 할인·다회권 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('site:instagram.com/swing_friends 할인권 OR 다회권 OR 회권 OR 패키지 OR 프리패스')}`, query: 'site:instagram.com/swing_friends 할인권 OR 다회권 OR 회권 OR 패키지 OR 프리패스', benefitKind: 'season_pass', priority: 2, runOrder: 0 }),
-  source({ id: 'benefit-search-bar-pass', name: '스윙바 정기권·시즌권 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('site:instagram.com 스윙바 정기권 OR 시즌권 OR 월정액')}`, query: 'site:instagram.com 스윙바 정기권 OR 시즌권 OR 월정액', benefitKind: 'season_pass', priority: 3, runOrder: 0 }),
+  source({ id: 'benefit-search-bar-pass', name: '스윙바 정기권·시즌권 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('스윙바 정기권 OR 시즌권 OR 월정액')}`, query: '스윙바 정기권 OR 시즌권 OR 월정액', benefitKind: 'season_pass', priority: 3, runOrder: 0, notes: 'Instagram으로 제한하지 않고 Google 최신순과 관련도순을 함께 확인해 Daum·Naver 카페를 포함한 실제 판매 원문을 수집한다.' }),
   source({ id: 'benefit-search-club-membership', name: '동호회 멤버십·패스 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('site:instagram.com 스윙 동호회 멤버십 OR 패스 판매')}`, query: 'site:instagram.com 스윙 동호회 멤버십 OR 패스 판매', benefitKind: 'season_pass', priority: 3, runOrder: 0 }),
   source({ id: 'benefit-search-dancehall-pass', name: '댄스홀 수강권·패스 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('site:instagram.com 스윙 댄스홀 수강권 OR 패스 판매')}`, query: 'site:instagram.com 스윙 댄스홀 수강권 OR 패스 판매', benefitKind: 'season_pass', priority: 3, runOrder: 0 }),
   source({ id: 'benefit-search-discount', name: '할인 이벤트 검색', scope: 'swing', genre: 'swing', type: 'benefit_search', url: `https://www.google.com/search?q=${encodeURIComponent('site:instagram.com 스윙댄스 할인 OR 특가 이벤트')}`, query: 'site:instagram.com 스윙댄스 할인 OR 특가 이벤트', benefitKind: 'discount_event', priority: 4, runOrder: 0 }),
@@ -200,6 +214,7 @@ export const collectionSources = [
   source({ id: 'swingfactory_kr', name: '스윙팩토리', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingfactory_kr/', priority: 2 }),
   source({ id: 'swingtown-cafe', name: '스윙타운', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/264?viewType=L', venue: '봉천살롱', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class', 'event'], priority: 2, runOrder: -0.45, notes: '스윙타운의 고정 장소는 봉천살롱이다. 원문에 다른 장소가 명시된 외부 강습·행사는 해당 장소를 우선하고, 활동 근거와 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
   source({ id: 'sweetyswing-lessons', name: '스위티스윙 공지/신청', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sweetyswing/5ngW', autoRegistrationPolicy: 'manual', autoRegistrationVenuePolicy: 'explicit', autoRegistrationAllowedActivityTypes: [], priority: 2, notes: '수집 후보로만 저장하며 자동등록 대상에서는 제외한다.' }),
+  source({ id: 'sweetyswing-timebar-pass', name: '스위티스윙 타임빠 정기권', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sweetyswing/5lqO/search?query=%EC%A0%95%EA%B8%B0%EA%B6%8C', match: /^https?:\/\/m\.cafe\.daum\.net\/sweetyswing\/5lqO\/\d+/i, benefitKind: 'season_pass', autoRegistrationPolicy: 'manual', autoRegistrationVenuePolicy: 'explicit', autoRegistrationAllowedActivityTypes: [], priority: 2, runOrder: -0.4, notes: '타임빠 통신 게시판의 정기권 검색 결과를 직접 순회한다. 검색엔진 발견 여부와 무관하게 실제 판매 원문을 후보로만 저장하고 자동등록하지 않는다.' }),
   source({ id: 'sweetyswing-instagram', name: '스위티스윙 Instagram', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/sweetyswing/', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'social_origin', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: '스위티스윙 채널 설명에서 확인된 인스타 원본 후보. 날짜와 이미지가 있는 포스트만 저장' }),
   source({ id: 'sweetyswing-facebook', name: '스위티스윙 Facebook', scope: 'swing', genre: 'swing', type: 'facebook', url: 'https://www.facebook.com/sweetyswing/', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'session_sensitive_origin', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: '스위티스윙 채널 설명에서 확인된 Facebook 후보. 접근 실패는 접근불가/세션필요로 보고' }),
   source({ id: 'daily-swing-club', name: 'Daily Swing 클럽 디렉터리', scope: 'swing', genre: 'swing', type: 'website', url: 'https://www.daily-swing.com/club', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'scene_directory', sceneRole: 'source_route_map', promotionPolicy: 'external_hub_only', notes: '네오/프렌즈/스위티/스캔들/스윙키즈/올어스 등 원본 카페·SNS 링크 확인용. 후보 저장 URL로 사용하지 않음' }),
@@ -295,7 +310,7 @@ export const dynamicSearchQueries = {
     'site:instagram.com 스윙댄스 오픈 클래스',
     'site:instagram.com 스윙댄스 무료 강습',
     'site:instagram.com 린디합 무료 이벤트',
-    'site:instagram.com 스윙댄스 정기권',
+    '스윙바 정기권 OR 시즌권 OR 월정액',
     '출빠 정기권',
     'site:instagram.com 스윙댄스 판매 이벤트',
     'site:instagram.com 발보아 소셜 서울',
@@ -354,6 +369,33 @@ export function getCollectionSourcesForProfile(profile = 'swing-daily') {
     .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, 'ko'));
 }
 
+export function buildVenuePassSearchSources(items = []) {
+  const base = items.find((item) => item.id === 'benefit-search-season-pass');
+  if (!base) return [];
+  const seenVenues = new Set();
+  const derived = [];
+  for (const item of items) {
+    const venue = String(item.venue || '').trim();
+    if (!venue || item.type === 'benefit_search' || seenVenues.has(venue)) continue;
+    seenVenues.add(venue);
+    const query = `${venue} 정기권`;
+    derived.push(source({
+      id: `benefit-search-venue-pass-${item.id}`,
+      name: `${venue} 정기권 최신 검색`,
+      scope: 'swing',
+      genre: 'swing',
+      type: 'benefit_search',
+      url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+      query,
+      benefitKind: 'season_pass',
+      priority: base.priority,
+      runOrder: Number(base.runOrder || 0) + 0.05,
+      notes: '등록된 실제 장소명을 기준으로 자동 생성된다. 최신순을 먼저 확인하고 관련도순을 보완하며 특정 웹사이트로 제한하지 않는다.',
+    }));
+  }
+  return derived;
+}
+
 export function findSourceByUrl(url = '') {
   const normalized = String(url || '').toLowerCase();
   const cafeDescriptor = getNaverCafeDescriptor(url);
@@ -400,7 +442,11 @@ function getNaverCafeDescriptor(url = '') {
 export function getAutomationSourceList(profile = 'swing-daily') {
   const normalized = resolveProfile(profile);
   const selected = collectionProfiles[normalized] || collectionProfiles.swingDaily;
-  return getCollectionSourcesForProfile(normalized).map((item) => ({
+  const profileSources = getCollectionSourcesForProfile(normalized);
+  const derivedVenuePassSources = selected.scopes.includes('swing')
+    ? buildVenuePassSearchSources(profileSources)
+    : [];
+  return [...profileSources, ...derivedVenuePassSources].map((item) => ({
     id: item.id,
     name: item.name,
     type: item.type,

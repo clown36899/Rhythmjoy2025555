@@ -3,10 +3,12 @@ import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import {
   buildCafe24Payload,
+  classifyConfirmedBenefitEvent,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
+  extractSeasonPassEvidenceSections,
   getBlockedKeywordReason,
   isHighConfidenceDatedSocialSchedule,
   isCollectableDate,
@@ -15,18 +17,21 @@ import {
   normalizeSourceUrl,
   prepareCandidate,
   stripNaverCafeMemberPrefix,
+  stripRepeatedDjContext,
   todayISO,
 } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
 import {
   benefitSearchMatches,
+  buildBenefitSearchUrls,
   expectedInstagramHandleForSource,
   extractBenefitDocumentUrls,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
   isStaleBenefitSourcePost,
+  mergeBenefitSearchTargets,
 } from './benefit-search-utils.mjs';
-import { adjudicateCandidateWithAi } from './ai-candidate-adjudicator.mjs';
+import { adjudicateCandidateWithAi, reviewBenefitCandidateWithAi } from './ai-candidate-adjudicator.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -43,6 +48,7 @@ const exceptionBacktest = process.env.INGESTION_EXCEPTION_BACKTEST === '1';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1' || exceptionBacktest;
 const diagnosticJson = dryRun && process.env.INGESTION_NATIVE_DIAGNOSTIC_JSON === '1';
 const aiAdjudicationEnabled = process.env.INGESTION_AI_ADJUDICATION !== '0';
+const benefitAiReviewDryRun = process.env.INGESTION_AI_REVIEW_DRY_RUN === '1';
 const exceptionLookbackDays = Math.max(
   1,
   Number(process.env.INGESTION_EXCEPTION_LOOKBACK_DAYS || 180),
@@ -88,7 +94,10 @@ const instagramSourceDelayMs = Number(process.env.INGESTION_INSTAGRAM_SOURCE_DEL
 const instagramPostDelayMs = Number(process.env.INGESTION_INSTAGRAM_POST_DELAY_MS || (instagramSafeMode ? 12_000 : 0));
 const instagramProfileWaitMs = Number(process.env.INGESTION_INSTAGRAM_PROFILE_WAIT_MS || (instagramSafeMode ? 5_500 : 1_800));
 const instagramFailureCircuitThreshold = Number(process.env.INGESTION_INSTAGRAM_FAILURE_CIRCUIT_THRESHOLD || (instagramSafeMode ? 3 : 0));
-const today = todayISO();
+const dryRunReferenceDate = String(process.env.INGESTION_TEST_TODAY || '').trim();
+const today = dryRun && /^20\d{2}-\d{2}-\d{2}$/.test(dryRunReferenceDate)
+  ? dryRunReferenceDate
+  : todayISO();
 const runStartedAtMs = Date.now();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 const graduationEventPattern = /졸업\s*(?:공연|파티)|graduation\s*(?:show|party|performance)/i;
@@ -105,6 +114,13 @@ const result = {
   deadlineReached: false,
   remainingSources: [],
   benefitSearchStats: [],
+  benefitAiReviewStats: {
+    approved: 0,
+    review: 0,
+    rejected: 0,
+    error: 0,
+    unavailable: 0,
+  },
 };
 
 class RunBudgetReachedError extends Error {
@@ -313,6 +329,26 @@ function looksLikeCaptionFragmentTitle(value = '') {
 }
 
 function makeCandidateTitle({ source, rawTitle, rawText = '', cleanText, eventType, djs = [] }) {
+  const benefitTitlePattern = source.benefitKind === 'season_pass'
+    ? /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|멤버십/i
+    : source.benefitKind === 'discount_event'
+      ? /할인|특가|얼리\s*버드|쿠폰|프로모션/i
+      : source.benefitKind === 'free_event'
+        ? /무료\s*(?:이벤트|행사|파티|강습|클래스|수업|체험|입장|관람)/i
+        : null;
+  const benefitTitle = benefitTitlePattern
+    ? String(rawText || cleanText || '')
+      .split(/\n| {2,}/)
+      .map((line) => cleanTitle(line))
+      .find((line) => (
+        line.length >= 6
+        && line.length <= 100
+        && benefitTitlePattern.test(line)
+        && !looksLikeNonTitleLine(line)
+      ))
+    : '';
+  if (benefitTitle && !looksLikeCaptionFragmentTitle(benefitTitle)) return benefitTitle;
+
   const instagramCaptionTitle = extractInstagramCaptionTitle(rawTitle);
   if (instagramCaptionTitle && !looksLikeCaptionFragmentTitle(instagramCaptionTitle)) return instagramCaptionTitle;
 
@@ -373,6 +409,8 @@ function publishedDateKey(value = '') {
   const raw = String(value || '').trim();
   const explicit = raw.match(/(20\d{2})\D{0,3}(\d{1,2})\D{0,3}(\d{1,2})/);
   if (explicit) return isoDate(explicit[1], explicit[2], explicit[3]);
+  const short = raw.match(/(?:^|\D)(\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})(?:\D|$)/);
+  if (short) return isoDate(2000 + Number(short[1]), short[2], short[3]);
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return '';
   return new Intl.DateTimeFormat('en-CA', {
@@ -523,6 +561,14 @@ function sourceOrderWeight(source) {
   const runOrder = Number(source.runOrder);
   if (hasRunOrder && Number.isFinite(runOrder)) return runOrder;
   return sourceTypeWeight.get(source.type) ?? 5;
+}
+
+function eventLabelForBenefitSource(source = {}) {
+  const label = String(source.name || '').replace(
+    /\s+(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|프리\s*패스|티켓\s*북|멤버십)(?:\s*(?:판매|검색))?\s*$/i,
+    '',
+  ).trim();
+  return label || String(source.name || '');
 }
 
 function instagramProfileUrl(url = '') {
@@ -717,7 +763,7 @@ function inferVenueDetails(text = '', source) {
 function inferDjs(text = '') {
   const djs = [];
   for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
-    const value = stripNaverCafeMemberPrefix(compactText(match[1]))
+    const value = stripRepeatedDjContext(stripNaverCafeMemberPrefix(compactText(match[1]))
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
       .replace(/\s*(?:application|registration|apply)\s*link\b.*$/i, '')
       .replace(/\s*(?:사전\s*신청|현장\s*신청|신청|등록|입금|계좌|문의)\s*(?:링크|방법|안내)?.*$/i, '')
@@ -731,7 +777,7 @@ function inferDjs(text = '') {
       .replace(/^[._\-\s]+/, '')
       .replace(/\b([A-Za-z가-힣._-]{1,12})\s+\1\b/i, '$1')
       .replace(/^(.{1,12})\s+\1$/u, '$1')
-      .trim();
+      .trim());
     if (
       value
       && value.length <= 28
@@ -1082,45 +1128,68 @@ async function collectInstagramLinks(page, source) {
 }
 
 async function collectBenefitSearchLinks(page, source) {
-  const searchUrl = source.url || `https://www.google.com/search?q=${encodeURIComponent(source.query || '')}`;
-  await safeGoto(page, searchUrl, Math.min(sourceTimeoutMs, 20_000));
-  const state = await page.evaluate(() => ({
-    hrefs: [...document.querySelectorAll('a[href]')].map((anchor) => anchor.getAttribute('href') || anchor.href || ''),
-    bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 2500),
-    url: window.location.href,
-  }));
-  let links = extractInstagramPostUrls(state.hrefs, state.url);
-  let profiles = extractInstagramProfileUrls(state.hrefs, state.url);
-  let documentUrls = extractBenefitDocumentUrls(state.hrefs, state.url);
-
-  if (!links.length && !profiles.length && !documentUrls.length && /unusual traffic|abnormal traffic|비정상적인\s*트래픽|captcha|자동화된\s*쿼리|로봇이\s*아니|동의하기/i.test(state.bodyText)) {
-    const fallbackUrl = `https://www.bing.com/search?q=${encodeURIComponent(source.query || '')}`;
-    await safeGoto(page, fallbackUrl, Math.min(sourceTimeoutMs, 20_000));
-    const fallback = await page.evaluate(() => ({
+  const readSearchTargets = async (url) => {
+    await safeGoto(page, url, Math.min(sourceTimeoutMs, 20_000));
+    const state = await page.evaluate(() => ({
       hrefs: [...document.querySelectorAll('a[href]')].map((anchor) => anchor.getAttribute('href') || anchor.href || ''),
+      bodyText: (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 2500),
       url: window.location.href,
     }));
-    links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
-    profiles = extractInstagramProfileUrls(fallback.hrefs, fallback.url);
-    documentUrls = extractBenefitDocumentUrls(fallback.hrefs, fallback.url);
+    return {
+      state,
+      targets: {
+        postUrls: extractInstagramPostUrls(state.hrefs, state.url),
+        profileUrls: extractInstagramProfileUrls(state.hrefs, state.url),
+        documentUrls: extractBenefitDocumentUrls(state.hrefs, state.url),
+      },
+    };
+  };
+
+  const googleBatches = [];
+  let googleBlocked = false;
+  for (const searchUrl of buildBenefitSearchUrls(source.query, source.url)) {
+    const batch = await readSearchTargets(searchUrl);
+    googleBatches.push(batch.targets);
+    const currentPageBlocked = /unusual traffic|abnormal traffic|비정상적인\s*트래픽|captcha|자동화된\s*쿼리|로봇이\s*아니|동의하기/i.test(batch.state.bodyText);
+    googleBlocked ||= currentPageBlocked;
+    if (traceSourceIds.has(source.id)) {
+      log(`trace ${source.id} search page: ${JSON.stringify({
+        requestedUrl: searchUrl,
+        resultUrl: batch.state.url,
+        bodyText: batch.state.bodyText.slice(0, 300),
+        relevantHrefs: batch.state.hrefs.filter((href) => /daum|sweetyswing|instagram|naver/i.test(href)).slice(0, 20),
+        targets: batch.targets,
+      })}`);
+    }
+    if (currentPageBlocked) break;
+  }
+  let mergedTargets = mergeBenefitSearchTargets(...googleBatches);
+
+  if (!mergedTargets.postUrls.length && !mergedTargets.profileUrls.length && !mergedTargets.documentUrls.length && googleBlocked) {
+    recordAccessFailure(source, 'Google search blocked by unusual traffic');
+    const fallbackUrl = `https://www.bing.com/search?q=${encodeURIComponent(source.query || '')}`;
+    const fallback = await readSearchTargets(fallbackUrl);
+    const naverLatestUrl = `https://search.naver.com/search.naver?where=nexearch&sort=date&query=${encodeURIComponent(source.query || '')}`;
+    const naverRelevanceUrl = `https://search.naver.com/search.naver?where=nexearch&query=${encodeURIComponent(source.query || '')}`;
+    const naverLatest = await readSearchTargets(naverLatestUrl);
+    const naverRelevance = await readSearchTargets(naverRelevanceUrl);
+    mergedTargets = mergeBenefitSearchTargets(fallback.targets, naverLatest.targets, naverRelevance.targets);
+  } else if (!mergedTargets.postUrls.length && !mergedTargets.profileUrls.length && !mergedTargets.documentUrls.length) {
+    const naverLatestUrl = `https://search.naver.com/search.naver?where=nexearch&sort=date&query=${encodeURIComponent(source.query || '')}`;
+    const naverRelevanceUrl = `https://search.naver.com/search.naver?where=nexearch&query=${encodeURIComponent(source.query || '')}`;
+    const naverLatest = await readSearchTargets(naverLatestUrl);
+    const naverRelevance = await readSearchTargets(naverRelevanceUrl);
+    mergedTargets = mergeBenefitSearchTargets(naverLatest.targets, naverRelevance.targets);
   }
 
-  if (!links.length && !profiles.length && !documentUrls.length) {
-    const naverUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(source.query || '')}`;
-    await safeGoto(page, naverUrl, Math.min(sourceTimeoutMs, 20_000));
-    const fallback = await page.evaluate(() => ({
-      hrefs: [...document.querySelectorAll('a[href]')].map((anchor) => anchor.getAttribute('href') || anchor.href || ''),
-      url: window.location.href,
-    }));
-    links = extractInstagramPostUrls(fallback.hrefs, fallback.url);
-    profiles = extractInstagramProfileUrls(fallback.hrefs, fallback.url);
-    documentUrls = extractBenefitDocumentUrls(fallback.hrefs, fallback.url);
+  if (traceSourceIds.has(source.id)) {
+    log(`trace ${source.id} search targets: ${JSON.stringify(mergedTargets)}`);
   }
 
   return {
-    postUrls: links.slice(0, Math.max(1, postLimit)),
-    profileUrls: profiles.slice(0, 3),
-    documentUrls: documentUrls.slice(0, Math.max(1, postLimit)),
+    postUrls: mergedTargets.postUrls.slice(0, Math.max(1, postLimit)),
+    profileUrls: mergedTargets.profileUrls.slice(0, 3),
+    documentUrls: mergedTargets.documentUrls.slice(0, Math.max(1, postLimit)),
   };
 }
 
@@ -1311,10 +1380,16 @@ async function scrapeNaverArticle(page, link, source) {
 
 async function collectDaumArticleLinks(page, source) {
   await safeGoto(page, source.url);
-  return await page.evaluate(() => {
+  return await page.evaluate((benefitKind) => {
     const textOf = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
     const hasGraduationEvent = (title) => /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(title);
     const hasEventDate = (title) => /\b20\d{2}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2}|(?:^|\s)\d{1,2}[./월]\s*\d{1,2}(?:일|\b)/.test(title);
+    const hasRequestedBenefit = (title) => {
+      if (benefitKind === 'season_pass') return /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|멤버십/i.test(title);
+      if (benefitKind === 'discount_event') return /할인|특가|얼리\s*버드|쿠폰|프로모션/i.test(title);
+      if (benefitKind === 'free_event') return /무료\s*(?:이벤트|행사|파티|강습|클래스|수업|체험|입장|관람)/i.test(title);
+      return false;
+    };
     const items = [...document.querySelectorAll('a[href]')]
       .map((a, index) => {
         const href = a.href.split('#')[0];
@@ -1329,23 +1404,29 @@ async function collectDaumArticleLinks(page, source) {
       ));
     return [...new Map(items.map((item) => [item.href, item])).values()]
       .sort((a, b) => {
+        const aBenefit = hasRequestedBenefit(a.title) ? 0 : 1;
+        const bBenefit = hasRequestedBenefit(b.title) ? 0 : 1;
         const aGraduation = hasGraduationEvent(`${a.title} ${a.rowText}`) ? 0 : 1;
         const bGraduation = hasGraduationEvent(`${b.title} ${b.rowText}`) ? 0 : 1;
         const aDate = hasEventDate(a.title) ? 0 : 1;
         const bDate = hasEventDate(b.title) ? 0 : 1;
-        return aGraduation - bGraduation || aDate - bDate || a.index - b.index;
+        return aBenefit - bBenefit || aGraduation - bGraduation || aDate - bDate || a.index - b.index;
       })
       .slice(0, 20);
-  }).catch(() => []);
+  }, source.benefitKind || '').catch(() => []);
 }
 
 async function scrapeDaumArticle(page, link, source) {
   await safeGoto(page, link.href, postTimeoutMs);
   const data = await page.evaluate(() => {
-    const title = document.querySelector('.tit_subject, .article_title, .tit_view, h3, h2')?.textContent || '';
     const text = document.body.innerText || '';
+    const title = document.querySelector('meta[property="og:title"]')?.getAttribute('content')
+      || document.querySelector('.tit_subject, .article_title, .tit_view, h3, h2')?.textContent
+      || '';
+    const visiblePublishedAt = text.match(/작성시간\s*((?:20)?\d{2}[.\-/]\d{1,2}[.\-/]\d{1,2})/)?.[1] || '';
     const publishedAt = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')
       || document.querySelector('time[datetime]')?.getAttribute('datetime')
+      || visiblePublishedAt
       || document.querySelector('.txt_date, .date, .info_date, [class*="date"]')?.textContent
       || '';
     const images = [...document.querySelectorAll('img')]
@@ -1654,7 +1735,13 @@ async function buildCandidatesFromText({
   page,
   referer = '',
   publishedAt = '',
+  splitMixedSeasonPass = true,
 }) {
+  const candidateProvenance = {
+    source_id: source.id,
+    discovery_source_id: source.discovery_source_id || source.id,
+    discovery_source_type: source.discovery_source_type || source.type,
+  };
   const sourceExcluded = getExcludedSourceReason(sourceUrl);
   if (sourceExcluded) {
     result.skipped += 1;
@@ -1680,7 +1767,50 @@ async function buildCandidatesFromText({
     if (!exceptions.length) result.skipped += 1;
     return exceptions;
   }
-  const preclassifiedSocialScheduleItems = extractSocialScheduleItems(rawText, source, title)
+  const normalizedRawText = String(rawText || '').normalize('NFKC');
+  const focusedSeasonPassSections = splitMixedSeasonPass && source.benefitKind === 'season_pass'
+    ? extractSeasonPassEvidenceSections(normalizedRawText).filter((section) => (
+      normalizeForCompare(section) !== normalizeForCompare(normalizedRawText)
+    ))
+    : [];
+  const focusedSeasonPassCandidates = [];
+  for (const section of focusedSeasonPassSections) {
+    const sectionTitle = String(section)
+      .split(/\n| {2,}/)
+      .map((line) => cleanTitle(line))
+      .find((line) => /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(line))
+      || title;
+    const sectionCandidates = await buildCandidatesFromText({
+      source,
+      sourceUrl,
+      text: section,
+      title: sectionTitle,
+      posterUrl: '',
+      posterUrls: [],
+      page,
+      referer,
+      publishedAt,
+      splitMixedSeasonPass: false,
+    });
+    focusedSeasonPassCandidates.push(...sectionCandidates.filter((candidate) => (
+      candidate.structured_data?.benefit_kind === 'season_pass'
+    )));
+  }
+  const socialExtractionSource = source.benefitKind
+    ? { ...source, name: eventLabelForBenefitSource(source) }
+    : source;
+  const socialEvidenceText = focusedSeasonPassSections.reduce(
+    (remaining, section) => remaining.replace(section, '\n'),
+    normalizedRawText,
+  ).split(/\n/).filter((line) => (
+    !/정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(line)
+  )).join('\n');
+  const socialExtractionTitle = source.benefitKind === 'season_pass' ? '' : title;
+  const preclassifiedSocialScheduleItems = extractSocialScheduleItems(
+    socialEvidenceText,
+    socialExtractionSource,
+    socialExtractionTitle,
+  )
     .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
   const genericMixedClosureCandidates = closureEventPattern.test(cleanText) && preclassifiedSocialScheduleItems.length
     ? buildExceptionBacktestCandidates({
@@ -1769,7 +1899,9 @@ async function buildCandidatesFromText({
   const { activity, eventType } = preferDatedSocialSchedule
     ? { activity: 'social', eventType: '소셜' }
     : inferredActivity;
-  if (!posterUrlList.length && activity !== 'social' && source.type !== 'benefit_search') {
+  const imageOptionalBenefit = source.benefitKind === 'season_pass'
+    && /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(cleanText);
+  if (!posterUrlList.length && activity !== 'social' && source.type !== 'benefit_search' && !imageOptionalBenefit) {
     result.skipped += 1;
     result.issues.push(`${source.id}: poster missing`);
     return [];
@@ -1784,7 +1916,13 @@ async function buildCandidatesFromText({
     log(`skip ${source.id}: broad schedule notice (${candidateTitle})`);
     return [];
   }
-  if (looksLikeGenericTitle(candidateTitle, source, eventType) && !(activity === 'social' && djs.length)) {
+  const hasCompleteDatedSocialIdentity = preferDatedSocialSchedule
+    && socialScheduleItems.every((item) => item.djs.length > 0);
+  if (
+    looksLikeGenericTitle(candidateTitle, source, eventType)
+    && !hasCompleteDatedSocialIdentity
+    && !(activity === 'social' && djs.length)
+  ) {
     result.skipped += 1;
     log(`skip ${source.id}: generic fallback title (${candidateTitle})`);
     return [];
@@ -1807,7 +1945,7 @@ async function buildCandidatesFromText({
 
     for (const [index, item] of socialScheduleItems.entries()) {
       const candidatePosterUrl = posterUrlList[index] || posterUrlList[0] || '';
-      const imageData = await getImageData(candidatePosterUrl);
+      const imageData = candidatePosterUrl ? await getImageData(candidatePosterUrl) : '';
       const hasSameDateSiblings = (socialDateCounts.get(String(item.date || '').slice(0, 10)) || 0) > 1;
       const socialDetailSuffix = hasSameDateSiblings
         ? [item.title, item.djs.join(','), index].filter(Boolean).join('|')
@@ -1816,7 +1954,8 @@ async function buildCandidatesFromText({
         ? `${item.title} DJ ${item.djs.join(', ')}`
         : item.title;
       const raw = {
-        keyword: source.name,
+        ...candidateProvenance,
+        keyword: socialExtractionSource.name,
         source_url: sourceUrl,
         ...(socialDetailSuffix ? { id_suffix: socialDetailSuffix } : {}),
         ...(candidatePosterUrl ? { poster_url: candidatePosterUrl } : {}),
@@ -1846,17 +1985,33 @@ async function buildCandidatesFromText({
         continue;
       }
 
+      const scopedBenefitKind = classifyConfirmedBenefitEvent({
+        extracted_text: item.aiEvidenceText || '',
+        structured_data: {
+          title: socialTitle,
+          ...(item.fee ? { fee: item.fee } : {}),
+        },
+      });
+      if (source.benefitKind && scopedBenefitKind !== source.benefitKind) {
+        result.skipped += 1;
+        log(`skip ${source.id} ${item.date}: social has no confirmed ${source.benefitKind} benefit`);
+        continue;
+      }
+
       candidates.push(buildCafe24Payload(raw, { today }));
     }
 
-    return [...mixedClosureCandidates, ...candidates];
+    return [...mixedClosureCandidates, ...candidates, ...focusedSeasonPassCandidates];
   }
 
+  if (focusedSeasonPassCandidates.length) return focusedSeasonPassCandidates;
+
+  const publicationDate = publishedDateKey(publishedAt);
   const isEvergreenSeasonPass = source.benefitKind === 'season_pass'
     && isEvergreenSeasonPassCandidate({
       extracted_text: cleanText,
-      structured_data: { title: candidateTitle },
-    });
+      structured_data: { title: candidateTitle, date: publicationDate || today },
+    }, { today });
   if (
     source.type === 'benefit_search'
     && isStaleBenefitSourcePost({ publishedAt, today, evergreen: isEvergreenSeasonPass })
@@ -1865,7 +2020,6 @@ async function buildCandidatesFromText({
     log(`skip ${source.id}: stale source post ${String(publishedAt).slice(0, 10)}`);
     return [];
   }
-  const publicationDate = publishedDateKey(publishedAt);
   if (
     source.type === 'benefit_search'
     && !isEvergreenSeasonPass
@@ -1907,11 +2061,12 @@ async function buildCandidatesFromText({
       continue;
     }
     const candidatePosterUrl = posterUrlList[index] || posterUrlList[0] || '';
-    const imageData = await getImageData(candidatePosterUrl);
+    const imageData = candidatePosterUrl ? await getImageData(candidatePosterUrl) : '';
     const raw = {
+      ...candidateProvenance,
       keyword: source.name,
       source_url: sourceUrl,
-      ...(candidatePosterUrl ? { poster_url: candidatePosterUrl } : {}),
+      ...(candidatePosterUrl || imageOptionalBenefit ? { poster_url: candidatePosterUrl } : {}),
       ...(imageData ? { imageData } : {}),
       extracted_text: cleanText.slice(0, 6000),
       structured_data: {
@@ -1934,6 +2089,16 @@ async function buildCandidatesFromText({
       continue;
     }
 
+    if (
+      source.benefitKind
+      && activity === 'social'
+      && classifyConfirmedBenefitEvent(raw) !== source.benefitKind
+    ) {
+      result.skipped += 1;
+      log(`skip ${source.id} ${date}: social has no confirmed ${source.benefitKind} benefit`);
+      continue;
+    }
+
     candidates.push(buildCafe24Payload(raw, { today }));
   }
 
@@ -1946,19 +2111,6 @@ async function postCandidate(candidate) {
     result.candidates.push(candidate);
     return;
   }
-  if (dryRun || profile === 'expanded-research') {
-    result.inserted += 1;
-    result.candidates.push(diagnosticJson ? {
-      id: candidate.id,
-      keyword: candidate.keyword,
-      source_id: candidate.source_id || null,
-      source_url: candidate.source_url,
-      poster_url: candidate.poster_url || null,
-      structured_data: candidate.structured_data,
-      auto_registration: candidate.auto_registration || null,
-    } : `${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
-    return;
-  }
 
   const {
     _ai_evidence_text: aiEvidenceText = '',
@@ -1966,19 +2118,75 @@ async function postCandidate(candidate) {
     ...candidateForPost
   } = candidate;
   let candidateToPost = candidateForPost;
-  if (aiAdjudicationEnabled && candidate.auto_registration?.ready === true) {
-    const aiResult = await adjudicateCandidateWithAi(aiEvidenceText
-      ? { ...candidate, extracted_text: aiEvidenceText }
-      : candidate);
+  const isBenefitCandidate = candidate.structured_data?.benefit_eligible === true;
+  const shouldRunBenefitAiReview = aiAdjudicationEnabled
+    && isBenefitCandidate
+    && ((!dryRun && profile !== 'expanded-research') || benefitAiReviewDryRun);
+  if (shouldRunBenefitAiReview) {
+    const benefitAiResult = await reviewBenefitCandidateWithAi(candidate, {
+      today,
+      timeoutMs: Math.max(5_000, Math.min(90_000, runRemainingMs() - runDeadlineGuardMs())),
+    });
+    const benefitAiStatus = benefitAiResult.outcome || (benefitAiResult.available === false ? 'unavailable' : 'error');
+    if (Object.hasOwn(result.benefitAiReviewStats, benefitAiStatus)) {
+      result.benefitAiReviewStats[benefitAiStatus] += 1;
+    }
     candidateToPost = {
       ...candidateForPost,
       structured_data: {
-        ...(candidate.structured_data || {}),
+        ...(candidateForPost.structured_data || {}),
+        benefit_ai_review: {
+          status: benefitAiStatus,
+          confidence: benefitAiResult.validation?.confidence || benefitAiResult.adjudication?.confidence || 0,
+          suggested_benefit_kind: benefitAiResult.adjudication?.benefit_kind || null,
+          suggested_category: benefitAiResult.adjudication?.category || null,
+          suggested_activity_type: benefitAiResult.adjudication?.activity_type || null,
+          active_on_today: benefitAiResult.adjudication?.active_on_today ?? null,
+          validity_end_date: benefitAiResult.adjudication?.validity_end_date || null,
+          suggested_title: benefitAiResult.adjudication?.title || null,
+          suggested_venue: benefitAiResult.adjudication?.venue || null,
+          evidence_quotes: benefitAiResult.validation?.evidence_quotes || [],
+          reasons: benefitAiResult.reasons || [],
+        },
+      },
+    };
+    if (benefitAiStatus === 'rejected') {
+      result.skipped += 1;
+      log(`AI rejected benefit ${candidate.id}: ${(benefitAiResult.reasons || []).join('; ')}`);
+      return;
+    }
+    if (benefitAiStatus !== 'approved') {
+      log(`AI benefit review required ${candidate.id}: ${(benefitAiResult.reasons || []).join('; ')}`);
+    }
+  }
+
+  if (dryRun || profile === 'expanded-research') {
+    result.inserted += 1;
+    result.candidates.push(diagnosticJson ? {
+      id: candidateToPost.id,
+      keyword: candidateToPost.keyword,
+      source_id: candidateToPost.source_id || null,
+      source_url: candidateToPost.source_url,
+      poster_url: candidateToPost.poster_url || null,
+      structured_data: candidateToPost.structured_data,
+      auto_registration: candidateToPost.auto_registration || null,
+    } : `${candidateToPost.keyword}:${candidateToPost.structured_data?.date}:${candidateToPost.structured_data?.title}`);
+    return;
+  }
+
+  if (aiAdjudicationEnabled && candidateToPost.auto_registration?.ready === true) {
+    const aiResult = await adjudicateCandidateWithAi(aiEvidenceText
+      ? { ...candidateToPost, extracted_text: aiEvidenceText }
+      : candidateToPost);
+    candidateToPost = {
+      ...candidateToPost,
+      structured_data: {
+        ...(candidateToPost.structured_data || {}),
         ai_adjudication: aiResult.adjudication || null,
         ai_evidence_quotes: aiResult.validation?.evidence_quotes || [],
       },
       auto_registration: {
-        ...(candidate.auto_registration || {}),
+        ...(candidateToPost.auto_registration || {}),
         ready: aiResult.approved === true,
         ai_verified: aiResult.approved === true,
         ai_confidence: aiResult.validation?.confidence || 0,
@@ -2086,11 +2294,15 @@ async function withBoundedStep(label, fn, timeoutMs) {
 }
 
 function hasAccessFailure(label) {
-  return result.accessFailures.some((item) => item.startsWith(`${label}(`));
+  return result.accessFailures.some((item) => (
+    item.startsWith(`${label}(`) || item.startsWith(`${label}:`)
+  ));
 }
 
 function hasNoContent(label) {
-  return result.noContentSources.some((item) => item.startsWith(`${label}(`));
+  return result.noContentSources.some((item) => (
+    item.startsWith(`${label}(`) || item.startsWith(`${label}:`)
+  ));
 }
 
 async function collectSource(page, source) {
@@ -2101,75 +2313,97 @@ async function collectSource(page, source) {
     const targets = targetResult && !Array.isArray(targetResult)
       ? targetResult
       : { postUrls: [], profileUrls: [], documentUrls: [] };
-    const sourceByPostUrl = new Map(targets.postUrls.map((url) => [url, source]));
-    const postUrls = [...targets.postUrls];
-    for (const [profileIndex, profileUrl] of targets.profileUrls.entries()) {
-      const discoveredSource = {
-        ...source,
-        id: `${source.id}:profile-${profileIndex + 1}`,
-        name: profileUrl.split('/').filter(Boolean).at(-1) || source.name,
-        type: 'instagram',
-        url: profileUrl,
-      };
-      const discoveredPosts = await withBoundedStep(
-        discoveredSource.id,
-        () => collectInstagramLinks(page, discoveredSource),
-        sourceTimeoutMs,
-      );
-      for (const discoveredPost of discoveredPosts) {
-        postUrls.push(discoveredPost);
-        sourceByPostUrl.set(discoveredPost, discoveredSource);
-      }
-    }
-    const links = unique(postUrls);
+    const directPostUrls = unique(targets.postUrls || []);
     const documentUrls = unique(targets.documentUrls || []);
-    if (!links.length && !documentUrls.length) {
+    if (!directPostUrls.length && !documentUrls.length && !targets.profileUrls.length) {
       result.benefitSearchStats.push({
         sourceId: source.id,
         scope: source.scope,
         benefitKind: source.benefitKind,
         discoveredPosts: 0,
+        checkedTargets: 0,
         checkedCandidates: 0,
         matchedCandidates: 0,
       });
-      if (!hasAccessFailure(source.id)) recordNoContent(source, 'no verified Instagram post results');
+      if (!hasAccessFailure(source.id)) recordNoContent(source, 'no verified source results');
       return [];
     }
     const candidates = [];
+    let checkedTargets = 0;
     let checkedCandidates = 0;
-    for (const url of links.slice(0, Math.max(1, Math.min(postLimit, 2)))) {
-      ensureRunBudgetOrThrow(`benefit search post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
-      await throttleInstagram(`benefit post ${source.id}`, instagramPostDelayMs);
-      const postSource = sourceByPostUrl.get(url) || source;
-      const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, postSource), postTimeoutMs + 8000);
-      checkedCandidates += postCandidates.length;
-      const matched = postCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
-      result.skipped += postCandidates.length - matched.length;
-      candidates.push(...matched);
-      if (hasAccessFailure(`${source.id}:post`)) break;
-    }
-    for (const url of documentUrls.slice(0, Math.max(1, postLimit))) {
+    let discoveredPostCount = directPostUrls.length;
+
+    // 검색 결과의 카페·블로그 원문을 프로필 확장보다 먼저 확인한다.
+    for (const [documentIndex, url] of documentUrls.slice(0, Math.max(1, postLimit)).entries()) {
       ensureRunBudgetOrThrow(`benefit search document ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
+      const stepLabel = `${source.id}:document-${documentIndex + 1}`;
       const documentCandidates = await withBoundedStep(
-        `${source.id}:document`,
+        stepLabel,
         () => scrapeBenefitDocument(page, url, source),
         postTimeoutMs + 8000,
       );
+      checkedTargets += 1;
       checkedCandidates += documentCandidates.length;
       const matched = documentCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
       result.skipped += documentCandidates.length - matched.length;
       candidates.push(...matched);
-      if (hasAccessFailure(`${source.id}:document`)) break;
+    }
+
+    for (const [postIndex, url] of directPostUrls.slice(0, Math.max(1, Math.min(postLimit, 2))).entries()) {
+      ensureRunBudgetOrThrow(`benefit search post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
+      await throttleInstagram(`benefit post ${source.id}`, instagramPostDelayMs);
+      const stepLabel = `${source.id}:post-${postIndex + 1}`;
+      const postCandidates = await withBoundedStep(stepLabel, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
+      checkedTargets += 1;
+      checkedCandidates += postCandidates.length;
+      const matched = postCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
+      result.skipped += postCandidates.length - matched.length;
+      candidates.push(...matched);
+    }
+
+    // 직접 원문에서 혜택이 없을 때만 Instagram 프로필을 추가 탐색한다.
+    if (!candidates.length) {
+      for (const [profileIndex, profileUrl] of targets.profileUrls.entries()) {
+        const discoveredSource = {
+          ...source,
+          id: `${source.id}:profile-${profileIndex + 1}`,
+          name: profileUrl.split('/').filter(Boolean).at(-1) || source.name,
+          type: 'instagram',
+          url: profileUrl,
+          discovery_source_id: source.discovery_source_id || source.id,
+          discovery_source_type: source.discovery_source_type || source.type,
+        };
+        const discoveredPosts = await withBoundedStep(
+          discoveredSource.id,
+          () => collectInstagramLinks(page, discoveredSource),
+          sourceTimeoutMs,
+        );
+        discoveredPostCount += discoveredPosts.length;
+        for (const [postIndex, url] of unique(discoveredPosts).slice(0, Math.max(1, Math.min(postLimit, 2))).entries()) {
+          ensureRunBudgetOrThrow(`benefit profile post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
+          await throttleInstagram(`benefit profile post ${source.id}`, instagramPostDelayMs);
+          const stepLabel = `${source.id}:profile-${profileIndex + 1}-post-${postIndex + 1}`;
+          const postCandidates = await withBoundedStep(stepLabel, () => scrapeInstagramPost(page, url, discoveredSource), postTimeoutMs + 8000);
+          checkedTargets += 1;
+          checkedCandidates += postCandidates.length;
+          const matched = postCandidates.filter((candidate) => benefitSearchMatches(candidate, source.benefitKind));
+          result.skipped += postCandidates.length - matched.length;
+          candidates.push(...matched);
+          if (candidates.length) break;
+        }
+        if (candidates.length) break;
+      }
     }
     result.benefitSearchStats.push({
       sourceId: source.id,
       scope: source.scope,
       benefitKind: source.benefitKind,
-      discoveredPosts: links.length + documentUrls.length,
+      discoveredPosts: discoveredPostCount + documentUrls.length,
+      checkedTargets,
       checkedCandidates,
       matchedCandidates: candidates.length,
     });
-    if (!candidates.length && checkedCandidates > 0) {
+    if (!candidates.length && checkedTargets > 0 && !hasAccessFailure(source.id)) {
       recordNoContent(source, 'posts checked but explicit benefit was not confirmed');
     }
     return candidates;
@@ -2350,11 +2584,17 @@ async function main() {
           ensureRunBudgetOrThrow(`post candidate ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
 
           const sd = candidate.structured_data || {};
-          const runKey = [
-            sd.date,
-            normalizeForCompare(sd.title),
-            normalizeForCompare(sd.location || sd.venue_name),
-          ].join('|');
+          const runKey = sd.benefit_kind === 'season_pass'
+            ? [
+              'season_pass',
+              normalizeForCompare(sd.title),
+              normalizeForCompare(sd.location || sd.venue_name),
+            ].join('|')
+            : [
+              sd.date,
+              normalizeForCompare(sd.title),
+              normalizeForCompare(sd.location || sd.venue_name),
+            ].join('|');
           if (seenRunKeys.has(runKey)) {
             result.skipped += 1;
             log(`skip ${source.id} ${sd.date}: duplicate within run (${sd.title})`);
@@ -2409,6 +2649,7 @@ function printSummary() {
     remainingSources: result.remainingSources.slice(0, 20),
     remainingSourceCount: result.remainingSources.length,
     benefitSearchStats: result.benefitSearchStats,
+    benefitAiReviewStats: result.benefitAiReviewStats,
   }, null, 2));
   console.log('INGESTION_RESULT_JSON_END');
   console.log('==TELEGRAM_SUMMARY_START==');
@@ -2418,6 +2659,7 @@ function printSummary() {
   console.log(`접근불가: ${accessFailures.length ? accessFailures.join(', ') : 'none'}`);
   console.log(`인스타회로차단: ${instagramCircuitSkipsAll.length ? `${instagramCircuitSkipsAll.length}건 (${instagramCircuitSkips.join(', ')}${instagramCircuitSkipsAll.length > instagramCircuitSkips.length ? ', ...' : ''})` : 'none'}`);
   console.log(`수집대상없음: ${noContentSources.length ? noContentSources.join(', ') : 'none'}`);
+  console.log(`AI혜택판정: 확인 ${result.benefitAiReviewStats.approved} / 재검토 ${result.benefitAiReviewStats.review} / 제외 ${result.benefitAiReviewStats.rejected} / 오류 ${result.benefitAiReviewStats.error + result.benefitAiReviewStats.unavailable}`);
   console.log(`이슈: ${issues.length ? issues.join(' / ') : 'none'}`);
   console.log('==TELEGRAM_SUMMARY_END==');
 }

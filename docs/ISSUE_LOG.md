@@ -1270,6 +1270,45 @@
 - 검증: `node scripts/test-ingestion-standards.mjs`, 관련 수집기 구문 검사, `npm run build:only`가 통과했다.
 - 관련 파일: `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `src/pages/calendar/components/FullEventCalendar.tsx`, `src/pages/calendar/styles/FullEventCalendar.css`, `src/pages/v2/components/NewEventsBanner.tsx`, `src/pages/v2/components/NewEventsBanner.css`
 
+### 정기권 최신 검색 누락 후속
+
+- 상태: 로컬 수정 및 무저장 수집 검증 완료, 배포 전
+- 현상: Google에서 `스윙타임 정기권`을 직접 검색하면 7·8·9월 정기권 다음카페 글이 보이지만, 자동수집은 과거 4·5월 정기권을 후보로 사용하고 최신 글을 안정적으로 발견하지 못했다. 관리자 폼도 `판매이벤트` 선택 시 대분류를 `파티/행사`로 강제해 `소셜 + 판매이벤트` 조합을 유지하지 못했다.
+- 원인: 혜택 수집이 관련도순 결과의 제한된 링크만 검사했고, 여러 정기권 검색축이 Instagram으로 제한돼 있었다. 검색 결과의 Instagram 프로필을 카페 원문보다 먼저 확장해 시간 예산을 소모했으며, 사용 종료일이 명시된 정기권도 판매 종료 문구가 없으면 상시 상품으로 간주했다. Google 비정상 트래픽 차단도 접근 실패가 아니라 수집 대상 없음으로 기록됐다.
+- 조치: 모든 혜택 검색에서 Google 최신순을 먼저 조회하고 관련도순을 교차 병합한다. 한국어·한국 지역 결과를 사용하고, 등록된 실제 장소에서 `장소명 + 정기권` 검색 소스를 자동 생성하며, 스윙바 정기권 검색의 Instagram 제한을 제거했다. 카페·블로그 원문을 Instagram 프로필 확장보다 먼저 검사하고, 명시된 이용 기간 종료일이 오늘 이전이면 만료 후보로 거부한다. Google 차단은 즉시 해당 엔진 재시도를 중단하고 접근 실패로 보고한다. 관리자 분류에서는 판매 여부와 소셜/행사 대분류를 독립 선택하도록 강제 전환을 제거했다.
+- 검증: `node scripts/test-ingestion-standards.mjs`, 수집기 구문 검사, `npm run build:only`가 통과했다. 무저장 `스윙타임 정기권` 실행에서 검색 결과 원문 `https://m.cafe.daum.net/sweetyswing/5lqO/1759`가 과거 원문보다 먼저 발견됐고 후보 1건 생성 경로를 확인했다. 이후 Google이 비정상 트래픽을 반환한 실행에서는 같은 상태가 `접근불가`로 명시됐으며 운영 API/DB 쓰기는 없었다.
+- 관련 파일: `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `src/pages/admin/v2/components/EventEditModal.tsx`
+
+### 혜택 검색과 자동등록 경계 후속
+
+- 상태: 로컬 수정 및 회귀 검증 완료, 배포 전
+- 현상: 혜택 검색 소스 자체는 수동 검수 정책이지만, 검색 결과가 자동등록 허용 공식 계정의 원문 URL이면 후보 판정이 검색 경로를 잃고 공식 계정 정책을 상속할 수 있었다. 무료·할인·정기권 검색 다수에도 Instagram 한정 검색어가 남아 카페·블로그 원문 발견 범위가 불균일했다.
+- 원인: 후보에는 실제 원문 URL만 남고 해당 원문을 직접 순회했는지 검색으로 발견했는지 나타내는 발견 출처가 없었다. 자동등록 준비 판정은 실제 원문 URL로 레지스트리를 다시 찾아 정책을 결정했다.
+- 조치: 모든 후보에 `source_id`, `discovery_source_id`, `discovery_source_type`을 보존한다. `benefit_search`로 발견한 후보는 실제 원문이 자동등록 허용 계정이어도 수집기와 서버 양쪽에서 자동등록을 거부하고 검수 대기로만 저장한다. 혜택 검색어는 생성 단계에서 Instagram `site:` 제한을 제거해 무료·할인·정기권 22개 검색축이 최신순·관련도순 및 카페·블로그 원문을 공통으로 확인한다. 한 검색 결과 원문 접근 실패가 다음 결과 검사를 중단하지 않도록 대상별 실패를 격리하고, Google 차단 시 Bing 결과가 있어도 Naver 최신순·관련도순을 함께 병합한다. 스위티스윙 `타임빠 통신`의 게시판 내부 `정기권` 검색을 수동 검수 전용 직접 소스로 추가해 검색엔진 색인에 의존하지 않는다. 혜택 종류는 `free_event`, `discount_event`, `season_pass`로 독립 분류하되 같은 `scraped_events` 검수 큐와 승인된 `events` 저장소를 사용한다. `sale` 활동과 대분류도 분리해 소셜 입장 정기권은 `category=social + activity_type=sale`을 유지한다. 쇼핑의 `shops`·`featured_items`는 소유권과 상품 등록 흐름이 다른 별도 데이터이므로 자동 생성·복제하지 않는다.
+- 검증: 수집 표준 검사에서 혜택 검색 22개가 모두 Instagram 비한정이며 무료 6개, 할인 4개, 정기권 12개로 분리됨을 확인했다. 공식 스윙프렌즈 원문이더라도 혜택 검색으로 발견된 후보는 수집기 준비 판정과 서버 자동등록 재검증 양쪽에서 차단되는 회귀 테스트를 추가했다. Google 차단 상태의 무저장 검색 실행은 발견 원문 5개를 모두 검사해 첫 실패 뒤 중단하지 않음을 확인했다. 게시판 직접 무저장 실행은 `2026-06-30 / 스윙타임빠 수요일 타임빠 정기권(7,8,9월) / category=social / activity_type=sale / season_pass / auto-registration=false` 후보 1건을 생성했으며 운영 DB 쓰기는 없었다. 서버 자동등록 테스트 14개가 통과했다.
+- 관련 파일: `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `server/cafe24/function-api.js`, `server/cafe24/ingestor-registration-link.test.js`
+
+### 혜택 후보 AI 보조 판정 누락 후속
+
+- 상태: 로컬 수정, 실제 AI 검증 및 운영 검수 후보 저장 완료, 배포 전
+- 현상: 기존 AI 판정 호출이 `auto_registration.ready=true` 후보에만 실행돼, 안전상 수동 검수로 고정한 `benefit_search`와 정기권 직접 수집 후보에는 AI가 전혀 개입하지 않았다.
+- 원인: AI의 원문 재검증과 자동등록 권한이 하나의 조건으로 결합돼 있었다. 기존 AI 스키마도 날짜·활동·장소·DJ 자동등록 검증용이라 혜택 종류, 이용 기간, 현재 유효성, 판매 활동과 대분류의 독립성을 판단하지 않았다.
+- 조치: 혜택 후보 전용 AI 검토 스키마와 판정기를 추가했다. AI는 원문만 사용해 `free_event`, `discount_event`, `season_pass`, 현재 유효성, 종료일, 제목, 장소, `category`, `activity_type`을 독립 판정하고 정확한 원문 근거를 반환한다. 고신뢰·원문 근거가 있는 명백한 거절 후보만 저장 전에 제외하며, 불일치·애매함·AI 오류는 후보를 없애지 않고 `AI 재검토` 또는 `AI 오류`로 관리자 검수에 남긴다. AI 확인 후보도 검색 발견 정책상 자동등록하지 않는다. 관리자 수집 목록에는 `AI 확인`, `AI 재검토`, `AI 오류` 상태를 표시하고 근거 사유를 툴팁으로 제공한다.
+- 검증: 스위티스윙 정기권 직접 소스를 무저장·AI 활성화로 실행해 `season_pass`, `category=social`, `activity_type=sale`, `active_on_today=true`, 종료일 `2026-09-30`, 신뢰도 `0.99`, 원문 근거 3개로 `AI 확인`된 후보 1건을 확인했다. 후보의 자동등록 상태는 계속 `ready=false`였고 운영 API/DB 쓰기는 없었다. 혜택 AI 승인·만료 거절·분류 불일치 재검토 테스트를 포함한 AI/서버 테스트 27개가 통과했다.
+- 운영 수집 화면 검증: 무저장 시험만으로 수집 화면 반영을 확인했다고 볼 수 없었던 점을 정정했다. 실행 `20260804_000658_77339`을 실제 저장 모드로 수행해 후보 `ef5c493f33ba3b77` 1건을 운영 `scraped_events`에 저장했다. 운영 DB 읽기 전용 조회에서 `is_collected=false`, `benefit_eligible=true`, `benefit_kind=season_pass`, `category=social`, `activity_type=sale`, `benefit_lifecycle=evergreen`, `ongoing_sale=true`, 혜택 AI `approved/0.99`, 자동등록 정보 없음으로 확인했다. 현재 운영 서버의 `free` 탭 필터는 `season_pass`를 포함하고, 지난 작성일이어도 `evergreen + ongoing_sale` 혜택은 숨기지 않으므로 이 후보가 무료·할인·정기권 검수 탭 조건을 통과함을 운영 배포 코드와 대조했다. 관리자 로그인 세션이 없는 별도 브라우저에서는 목록 GET이 차단되어 화면 DOM 자체는 확인하지 못했다.
+- 혼합 게시물 분리 후속: 같은 원문에는 `7월 2일 수 소셜/DJ 훔머`, 스트리밍 안내, `7·8·9월 정기권`이 함께 있었다. 수집기가 정기권 소스 이름과 글 전체를 한 후보에 사용해 소셜과 판매 중 하나만 남기거나 소셜을 정기권으로 오염시키던 문제를 수정했다. 글머리표 블록을 먼저 분리해 날짜·DJ 소셜과 정기권 판매를 독립 후보로 만들고, 정기권 블록에는 다른 소셜의 DJ·스트리밍·이미지를 상속하지 않는다. 이미지 없는 정기권도 원문 판매 근거가 있으면 검수 후보로 허용한다. `INGESTION_TEST_TODAY=2026-06-30`인 무저장 실제 원문 시험은 소셜 후보 `30738a38e83bab41`과 정기권 후보 `ef5c493f33ba3b77` 두 건을 생성했고 자동등록은 둘 다 차단했다. 오늘 `2026-08-04` 기준으로는 지난 소셜을 제외하고 유효한 정기권만 유지한다. 운영 갱신 실행 `20260804_002144_79212` 및 이미지 정리 실행 `20260804_002303_79439`에서 정기권 후보의 본문은 정기권 블록 307자만 남았고 `훔머=false`, `스트리밍 서비스=false`, `poster_url=''`, AI `approved/0.99`, 종료일 `2026-09-30`, 자동등록 `false`를 운영 DB에서 확인했다.
+- 혜택 전용 소스 범위 정정: 정기권·무료 혜택을 찾기 위한 소스에서는 같은 글이나 검색 결과에 함께 노출된 일반 유료 소셜을 수집하지 않는다. 날짜별 소셜 후보 자체의 제한된 근거에서 요청한 혜택 종류가 확인될 때만 저장하고, 이웃한 정기권 블록의 문구를 일반 소셜이 상속하지 못하게 했다. 실제 스위티스윙 원문 무저장 실행 `20260804_113622_90153`에서 일반 목요·일요 소셜 2건은 `no confirmed season_pass benefit`으로 제외되고 정기권 후보 `ef5c493f33ba3b77` 한 건만 유지됐다. 과거 잘못 저장된 일반 소셜 후보 `e87a84553a70b0bc`, `3d708f4e5672d4bb`와 무료 혜택이 확인되지 않은 검색 후보 `09a1309fc567531c`는 공식 수집 API를 통해 삭제했으며 운영 DB에는 세 ID가 남지 않았다.
+- 관련 파일: `scripts/ingestion/ai-benefit-review.schema.json`, `scripts/ingestion/ai-candidate-adjudicator.mjs`, `scripts/ingestion/ai-candidate-adjudicator.test.js`, `scripts/ingestion/swing-daily-native.mjs`, `src/pages/admin/v2/EventIngestorV2.tsx`, `src/pages/admin/v2/EventIngestorV2.css`
+
+### 스윙타운 8월 4일 DJ 안토니 정규 소셜 교체 누락
+
+- 상태: 수정 및 운영 교체 완료
+- 현상: 스윙타운 공식 공지에서 2026-08-04 DJ 안토니와 2026-08-08 DJ 파인을 수집했지만 자동 생성된 `DJ 미정` 정규 소셜을 교체하지 못했다.
+- 원인: 네이버 카페 본문의 작성자 문맥이 DJ명 뒤에 반복돼 `안토니 스윙타운 DJ 안토니 20`, `파인 스윙타운 DJ 파인 20`이 각각 두 번째 DJ처럼 저장됐다. 복수·불일치 DJ 안전 게이트가 후보 자동등록을 차단했다.
+- 조치: `이름 + 스윙타운 DJ + 같은 이름 + 시간 조각` 형태의 반복 문맥을 단일 DJ명으로 축약하고 일반 DJ 표기는 유지했다.
+- 검증: 무저장 실행 `20260804_113355_89926`에서 두 후보 모두 DJ가 각각 `안토니`, `파인` 한 명이고 `ready=true`였다. 실제 실행 `20260804_113651_90292`에서 후보 `5f351f76b591752b`, `7e4b03a07f5fa490`이 자동등록됐다. 운영 일정은 8월 4일 `DJ 안토니 | 스윙타운 DJ 안토니`(`8c021244-74ef-40c7-a12c-a6b0d2906ac8`), 8월 8일 `DJ 파인 | 스윙타운 DJ 파인`(`e4559a0a-8780-437a-b833-5e1fcac5993e`)만 남고 해당 날짜의 `regular-social:swingtown-*` 일정은 제거됐다.
+- 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`
+
 ### 캘린더 날짜·소셜 뱃지 세로 간격 후속
 
 - 현상: 모바일에서 스크롤 고정 날짜줄과 소셜 섹션의 돌출 뱃지가 2px까지 가까워졌고, 소셜이 없는 일반 이벤트도 날짜와의 간격 규칙이 별도로 관리됐다.

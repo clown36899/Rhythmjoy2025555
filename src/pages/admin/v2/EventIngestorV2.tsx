@@ -54,6 +54,19 @@ interface ScrapedEvent {
     benefit_lifecycle?: 'date_bound' | 'evergreen' | null;
     ongoing_sale?: boolean;
     source_post_date?: string;
+    benefit_ai_review?: {
+      status?: 'approved' | 'review' | 'rejected' | 'error' | 'unavailable';
+      confidence?: number;
+      suggested_benefit_kind?: 'free_event' | 'discount_event' | 'season_pass' | null;
+      suggested_category?: 'social' | 'class' | 'event' | 'club' | null;
+      suggested_activity_type?: 'class' | 'social' | 'event' | 'recruit' | 'sale' | null;
+      active_on_today?: boolean | null;
+      validity_end_date?: string | null;
+      suggested_title?: string | null;
+      suggested_venue?: string | null;
+      evidence_quotes?: string[];
+      reasons?: string[];
+    };
     registered_event_id?: string | number | null;
     _duplicate?: {
       reason?: string;
@@ -1624,6 +1637,24 @@ const EventIngestorV2: React.FC = () => {
                       )}
                       {event.structured_data.benefit_lifecycle === 'evergreen' && (
                         <span className="benefit-lifecycle-badge">상시판매</span>
+                      )}
+                      {event.structured_data.benefit_ai_review && (
+                        <span
+                          className={`benefit-ai-badge is-${event.structured_data.benefit_ai_review.status || 'review'}`}
+                          title={[
+                            event.structured_data.benefit_ai_review.confidence
+                              ? `신뢰도 ${Math.round(event.structured_data.benefit_ai_review.confidence * 100)}%`
+                              : '',
+                            ...(event.structured_data.benefit_ai_review.reasons || []),
+                          ].filter(Boolean).join(' · ')}
+                        >
+                          {event.structured_data.benefit_ai_review.status === 'approved'
+                            ? 'AI 확인'
+                            : event.structured_data.benefit_ai_review.status === 'error'
+                              || event.structured_data.benefit_ai_review.status === 'unavailable'
+                              ? 'AI 오류'
+                              : 'AI 재검토'}
+                        </span>
                       )}
                     </div>
                     <div className="row-title">{event.structured_data.title}</div>

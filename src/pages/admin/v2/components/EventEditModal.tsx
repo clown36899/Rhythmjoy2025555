@@ -96,7 +96,6 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
             category: normalizedCategory,
             genre,
             recruitment_kind: '',
-            is_sale_event: false,
             group_id: normalizedCategory === 'social' ? 2 : null,
         }));
     };
@@ -106,10 +105,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
         setFormData((prev: any) => ({
             ...prev,
             is_sale_event: isSaleEvent,
-            category: isSaleEvent ? 'event' : prev.category,
-            genre: isSaleEvent ? (prev.genre || '기타') : prev.genre,
             recruitment_kind: isSaleEvent ? '' : prev.recruitment_kind,
-            group_id: isSaleEvent ? null : prev.group_id,
         }));
     };
 
@@ -198,7 +194,7 @@ const EventEditModal: React.FC<EventEditModalProps> = ({ isOpen, onClose, event,
                 dance_tags: selectedActivity === 'sale'
                     ? Array.from(new Set([...baseMapped.dance_tags, 'sale_event']))
                     : ensureRecruitmentTags(baseMapped.dance_tags, recruitmentKind),
-                group_id: recruitmentKind || selectedActivity === 'sale' ? null : (selectedCategory === 'social' ? 2 : null),
+                group_id: recruitmentKind ? null : (selectedCategory === 'social' ? 2 : null),
             };
             const duplicate = await findRegisteredDuplicate(formattedTitle, mapped);
 

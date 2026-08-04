@@ -199,6 +199,36 @@ describe('ingestor registration linkage', () => {
     expect(validation.eventData).not.toHaveProperty('time');
   });
 
+  it('blocks a benefit-search discovery even when its original account is auto-enrolled', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'candidate-benefit-search',
+      status: 'pending',
+      source_id: 'swing_friends',
+      discovery_source_id: 'benefit-search-swingfriends-pass',
+      discovery_source_type: 'benefit_search',
+      poster_url: 'https://example.com/pass.jpg',
+      extracted_text: '2026.08.01 스윙프렌즈 정기권 판매 스윙타임',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swing_friends',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙프렌즈 8월 정기권 판매',
+        date: '2026-08-01',
+        activity_type: 'sale',
+        venue_name: '스윙타임',
+        venue_provenance: 'source_text',
+        ai_evidence_quotes: ['2026.08.01', '스윙프렌즈 정기권 판매', '스윙타임'],
+      },
+    });
+
+    expect(validation.ok).toBe(false);
+    expect(validation.reasons).toContain('benefit search candidates require manual approval');
+  });
+
   it('accepts fixed venue evidence for the official Swing Scandal source', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: '7cd2d516eace25d8',
