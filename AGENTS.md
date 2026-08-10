@@ -22,3 +22,7 @@ For non-trivial work, leave a concise project record in Git-tracked documentatio
 3. Keep records factual: date, status, context, root cause if known, resolution, verification, and related files or commits.
 4. Do not record secrets, passwords, private keys, cookies, or production tokens. Refer to secret storage locations only at a high level.
 5. `CHANGELOG.md` remains for user-facing version changes; detailed troubleshooting and rationale belong in `docs/ISSUE_LOG.md` or `docs/decisions/`.
+
+## Notification Time Information Policy
+
+The site notification channels do not provide time information. Do not show or include event start times, notification sent times, or notification received times in the in-app notification inbox, Web Push title/body, or notification preview data. Dates and locations may still be shown. Timestamps may be retained internally only for sorting, expiry, delivery, and read-state processing.
