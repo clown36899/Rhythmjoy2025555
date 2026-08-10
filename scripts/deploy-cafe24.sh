@@ -76,6 +76,7 @@ rsync -azi -e "${RSYNC_SSH}" scripts/baseline-notification-queue.mjs "${TARGET}:
 rsync -azi -e "${RSYNC_SSH}" scripts/backfill-notification-preferences.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/exclude-analytics-kiosk-network.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/import-lindycollection-routines.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/migrate-push-subscription-record-keys.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/seed-notification-reset-notice.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
@@ -148,6 +149,7 @@ MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -u \"\${MYSQL_USER}\" \\
   \"\${MYSQL_DATABASE}\" \\
   < '${APP_DIR}/server/cafe24/migrations/2026-08-11-push-subscription-record-keys.sql'
+'${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/migrate-push-subscription-record-keys.mjs'
 MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -h \"\${MYSQL_HOST}\" \\
   -P \"\${MYSQL_PORT:-3306}\" \\
