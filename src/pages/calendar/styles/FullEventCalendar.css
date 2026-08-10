@@ -2312,7 +2312,9 @@
   }
 
   .calendar-page-container .calendar-cell-fullscreen-header {
+    height: 14px;
     min-height: 14px;
+    overflow: visible;
   }
 
   .calendar-page-container .calendar-grid-container > .calendar-cell-fullscreen:nth-child(-n+7) .calendar-cell-fullscreen-header {
@@ -2326,7 +2328,7 @@
 
   .calendar-page-container .calendar-date-number-today {
     min-width: 18px;
-    padding: 3px 4px;
+    padding: 1px 4px;
     border-radius: 999px;
   }
 

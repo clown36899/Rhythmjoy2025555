@@ -69,9 +69,10 @@ const shouldUseDesktopCalendarContentAnchor = () => (
     && window.matchMedia('(min-width: 721px) and (hover: hover) and (pointer: fine)').matches
 );
 
-// Regular mobile date labels are 2px shorter than the fixed date row. Keeping
-// a 5px anchor gap preserves a real 3px clearance at the fixed row boundary.
-const getCalendarContentAnchorGap = () => shouldUseDesktopCalendarContentAnchor() ? 8 : 5;
+// Mobile anchors the cell body directly below the fixed date row. The social
+// badge already has its own 4px clearance inside the body, so an extra anchor
+// gap would expose the underlying date chip while scrolling to today.
+const getCalendarContentAnchorGap = () => shouldUseDesktopCalendarContentAnchor() ? 8 : 0;
 
 const doRectsIntersect = (a: DOMRect, b: DOMRect) => (
     a.bottom > b.top

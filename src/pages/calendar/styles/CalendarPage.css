@@ -615,8 +615,6 @@ html {
         border-radius: 0;
         border: 0;
         background: var(--cal-sample-bg);
-        /* Cover the scrolled row's date pill inside the intentional anchor gap. */
-        box-shadow: 0 5px 0 var(--cal-sample-bg);
     }
 
     .calendar-live-topbar {

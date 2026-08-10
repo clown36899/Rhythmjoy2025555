@@ -22,13 +22,24 @@ describe('FullEventCalendar social row alignment', () => {
     expect(styles).toContain('margin-top: var(--calendar-social-section-top-offset);');
   });
 
-  it('masks the underlying mobile date pill at the sticky weekday boundary', () => {
+  it('keeps mobile event rows aligned without masking social badges at the sticky boundary', () => {
+    const page = readFileSync(
+      resolve(process.cwd(), 'src/pages/calendar/page.tsx'),
+      'utf8',
+    );
+    const calendarStyles = readFileSync(
+      resolve(process.cwd(), 'src/pages/calendar/styles/FullEventCalendar.css'),
+      'utf8',
+    );
     const pageStyles = readFileSync(
       resolve(process.cwd(), 'src/pages/calendar/styles/CalendarPage.css'),
       'utf8',
     );
 
-    expect(pageStyles).toContain('box-shadow: 0 5px 0 var(--cal-sample-bg);');
+    expect(calendarStyles).toContain('height: 14px;\n    min-height: 14px;\n    overflow: visible;');
+    expect(calendarStyles).toContain('min-width: 18px;\n    padding: 1px 4px;');
+    expect(page).toContain('shouldUseDesktopCalendarContentAnchor() ? 8 : 0');
+    expect(pageStyles).not.toContain('box-shadow: 0 5px 0 var(--cal-sample-bg);');
   });
 
   it('keys consecutive schedule colors by stable event or series identity', () => {
