@@ -146,6 +146,28 @@ export function expectedInstagramHandleForSource(source = {}) {
   }
 }
 
+export function instagramAuthorMatches({ expectedHandle = '', ogTitle = '', metaDescription = '', profileHrefs = [] } = {}) {
+  const expected = String(expectedHandle || '').trim().replace(/^@/, '').toLowerCase();
+  if (!expected) return true;
+
+  const linkedHandles = [...new Set(profileHrefs.flatMap((href) => {
+    try {
+      const parsed = new URL(href, 'https://www.instagram.com/');
+      if (!/(^|\.)instagram\.com$/i.test(parsed.hostname)) return [];
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      if (segments.length !== 1 || /^(p|reel|explore|accounts|stories|search)$/i.test(segments[0])) return [];
+      return [segments[0].toLowerCase()];
+    } catch {
+      return [];
+    }
+  }))];
+  if (linkedHandles.includes(expected)) return true;
+  if (linkedHandles.length > 0) return false;
+
+  const metadata = `${ogTitle}\n${metaDescription}`.normalize('NFKC').toLowerCase();
+  return metadata.includes(`@${expected}`) || metadata.includes(expected);
+}
+
 export function isStaleBenefitSourcePost({
   publishedAt = '',
   today = '',

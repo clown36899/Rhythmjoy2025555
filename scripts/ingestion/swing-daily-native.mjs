@@ -29,6 +29,7 @@ import {
   extractBenefitDocumentUrls,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
+  instagramAuthorMatches,
   isStaleBenefitSourcePost,
   mergeBenefitSearchTargets,
 } from './benefit-search-utils.mjs';
@@ -1253,7 +1254,11 @@ async function scrapeInstagramPost(page, url, source) {
         rectH: Math.round(img.getBoundingClientRect().height || 0),
       }));
     const publishedAt = document.querySelector('time[datetime]')?.getAttribute('datetime') || '';
-    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt };
+    const profileHrefs = [...article.querySelectorAll('a[href]')]
+      .map((anchor) => anchor.href || anchor.getAttribute('href') || '')
+      .filter(Boolean)
+      .slice(0, 80);
+    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt, profileHrefs };
   });
 
   const primaryImages = pickInstagramPostImages(data.images, postLimit);
@@ -1276,8 +1281,12 @@ async function scrapeInstagramPost(page, url, source) {
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
   const expectedHandle = expectedInstagramHandleForSource(source);
-  const authorText = `${data.ogTitle}\n${data.metaDescription.slice(0, 240)}`.toLowerCase();
-  if (expectedHandle && !authorText.includes(expectedHandle)) {
+  if (!instagramAuthorMatches({
+    expectedHandle,
+    ogTitle: data.ogTitle,
+    metaDescription: data.metaDescription.slice(0, 240),
+    profileHrefs: data.profileHrefs,
+  })) {
     result.skipped += 1;
     log(`skip ${source.id}: instagram author mismatch (${expectedHandle})`);
     return [];

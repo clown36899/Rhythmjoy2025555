@@ -30,6 +30,7 @@ import {
   extractBenefitDocumentUrls,
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
+  instagramAuthorMatches,
   isStaleBenefitSourcePost,
   mergeBenefitSearchTargets,
   normalizeInstagramPostUrl,
@@ -77,6 +78,18 @@ assert.equal(
   'repeated Swingtown DJ context must collapse to the grounded DJ token',
 );
 assert.equal(stripRepeatedDjContext('뉴야'), '뉴야', 'ordinary DJ names must stay unchanged');
+assert.equal(instagramAuthorMatches({
+  expectedHandle: 'bongcheonsalon',
+  ogTitle: '봉천살롱 • Instagram 사진 및 동영상',
+  metaDescription: '봉천살롱의 새로운 게시물',
+  profileHrefs: ['/bongcheonsalon/', '/other_commenter/'],
+}), true, 'the visible article author link must verify a localized Instagram display name');
+assert.equal(instagramAuthorMatches({
+  expectedHandle: 'bongcheonsalon',
+  ogTitle: '추천 게시물',
+  metaDescription: '다른 계정의 게시물',
+  profileHrefs: ['/unrelated_account/'],
+}), false, 'a different visible Instagram author must remain blocked');
 
 const mixedTimebarSocialAndPassText = `■ 스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.
 ■ 스윙타임빠 (7월 2일) 수 소셜 공지
