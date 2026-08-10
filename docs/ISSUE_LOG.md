@@ -1384,3 +1384,30 @@
 - 원인: 자유게시판 미읽음 배지의 `focus`·`visibilitychange` 리스너가 화면 복귀 즉시 `/api/board/free/unread`를 호출했고, Android 네트워크가 아직 안정되지 않은 순간의 fetch 거부를 처리하지 않아 `unhandledrejection`으로 전파했다. 알림 IndexedDB의 구버전 탭 경합도 일부 비동기 호출에서 같은 전역 경로로 전파될 수 있었다.
 - 조치: 복귀 배지 조회를 800ms 디바운스하고 조회 실패 시 기존 상태를 유지한다. 전역 오류 정책은 동적 청크 실패와 일반 앱 오류는 기존대로 처리하면서 일시적 네트워크 실패와 정확한 IndexedDB 하위 버전 경합만 비치명으로 분류한다. 알림 저장소는 IndexedDB를 열 수 없을 때 서버 알림함 fallback을 사용하며 오래된 로컬 알림 정리 실패도 명시적으로 처리한다.
 - 검증: 오류 정책 8개와 로그인 사용자의 화면 복귀 fetch 실패 회귀 테스트 1개가 통과했다. 프로덕션 빌드가 성공했다. 411×803 모바일 브라우저에서 API 연결을 끊은 뒤 다른 탭에서 돌아오는 조건을 재현했고, 기존 화면이 유지되며 `#crash-fallback-overlay`가 0개임을 확인했다.
+- 관련 파일: `src/hooks/useFreeBoardUnreadCount.ts`, `src/utils/globalErrorPolicy.ts`, `src/main.tsx`, `src/lib/notificationStore.ts`, `src/App.tsx`
+
+## 2026-08-09 PWA 혼합 버전 오류 및 로컬 자동화 공백 재검토
+
+- 상태: 원인 재현·수집 보강·Instagram 상태 복구 완료. PWA 구조 수정 및 운영 배포 완료
+- PWA 현상: Android Chrome에서 `The requested version (1) is less than the existing version (2)`와 `Failed to fetch` 전역 오류창이 배포 전후 반복됐다.
+- PWA 구조 원인: 앱은 `notification-history` DB v2, 서비스워커는 같은 DB v1을 연다. 서비스워커와 PWA 등록은 새 버전을 즉시 활성화·리로드하고 구 캐시를 정리하며, 배포는 `rsync --delete`로 구 해시 자산을 즉시 삭제한다. 존재하지 않는 `/assets/*` 요청도 SPA fallback이 `index.html`을 200 HTML로 반환한다. 이 조합은 구버전 탭과 신버전 서비스워커·서버가 섞이는 정상적인 배포 중첩 구간을 지원하지 않는다.
+- PWA 재현: 격리 브라우저에서 현재 방식인 즉시 활성화·구 캐시/구 자산 삭제 뒤 구버전 탭의 지연 import가 `FAILED:TypeError`로 실패했다. 새 서비스워커를 대기시키고 구 자산을 유지한 비교군은 `lazy-1-ok`로 성공했다. 앱 DB v2를 연 뒤 v1 경로를 열면 `VersionError`, v2로 정렬하면 성공했다. 운영의 과거 해시 `assets/index-CuhdXVuW.js` 요청도 HTTP 200 `text/html`로 확인됐다.
+- PWA 제안: 직전 릴리스 중첩 보존, `/assets/*` 정확한 404, 자산 선업로드·검증 후 진입 파일 전환, 단일 갱신 코디네이터, 서비스워커의 알림 DB 소유 제거를 불변 조건으로 정리했다. DB 숫자만 올리거나 캐시 초기화를 강화하는 단기 처방은 다음 마이그레이션·배포에서 재발하므로 채택하지 않았다.
+- PWA 재발 확인: 2026-08-10 운영 로그에서 앱 부팅 직후 `[MobileShell]`과 `[App]`의 알림 조회가 다시 `The requested version (1) is less than the existing version (2)`로 실패하고 같은 오류가 `unhandledrejection`으로 전파됐다. 당시 `Online: true`였으므로 네트워크 단절이 아니라 운영에 남은 동일 IndexedDB 소유권 충돌의 재발로 판정했다.
+- PWA 구조 수정: 운영 알림함의 유일한 원본을 서버 `user_notifications`로 고정하고 앱·서비스워커의 `notification-history` IndexedDB 사용을 모두 제거했다. 서비스워커는 운영체제 Push 표시와 서버 출처 식별자 전달만 담당하며, 관리자 미리보기는 새로고침 시 사라지는 메모리 저장소만 사용한다. 알림 조회·읽음은 캐시하지 않는 서버 API로 통일했다.
+- PWA 릴리스 수정: 클라이언트 해시 자산을 진입 파일보다 먼저 올리고 구 해시를 즉시 삭제하지 않으며, 없는 `/assets/*`는 SPA HTML이 아닌 정확한 404로 종료한다. PWA 등록은 `prompt`로 바꾸고 설치 단계의 무조건 `skipWaiting()`을 제거했다. 기존 모달·입력·숨김 탭 보호를 유지하는 단일 갱신 코디네이터가 안전 시점에만 대기 중 서비스워커를 활성화하고 리로드한다.
+- PWA 검증 및 배포: 서버 알림 조회·읽음, 서비스워커 저장소 비소유, 배포 순서·404·안전 활성화 계약, 갱신 재시도 및 전역 오류 정책을 포함한 관련 테스트 98개가 통과했다. 커밋 `ad681a7e`를 `origin/main`에 푸시하고 Cafe24에 배포했다. 운영 서비스와 내부·외부 헬스는 정상이고 공개 버전은 `2026-08-10T03:45:17.762Z`다. 공개 서비스워커에서 `notification-history`, `indexedDB`, `notification_local_id`가 모두 0건이며, 새 진입 자산과 8월 4일 구 해시 자산은 HTTP 200, 없는 `/assets/*`는 `text/plain` HTTP 404임을 확인했다.
+- 예약 수집 감사: 2026-08-05~09에는 매일 08·09·10·11시 네 LaunchAgent 실행이 모두 종료 코드 0으로 남아 있어 3일 전체 미실행은 아니었다. 다만 컴퓨터 전원 종료 공백을 소스별 마지막 성공 위치에서 이어가는 cursor가 없고, 우선순위 1은 최신 2개·우선순위 2는 최신 1개만 보는 고정 범위라 여러 게시물이 올라오면 누락될 구조적 가능성이 있다.
+- 수집 보강: 기준 테스트와 source guard 통과 후 우선순위 1·2 공식 Instagram 33개 소스를 게시물 4개 범위로 두 번에 나눠 실행했다. `20260809_174023_43759`는 신규 후보 2건을 저장하고 기존 보류 1건을 포함한 자동등록 3건을 성공시킨 뒤 남은 16개를 기록했다. `20260809_175753_45982`는 그 16개만 이어서 확인해 신규 0건, 남은 소스 0, 종료 코드 0으로 끝났다. 운영 일정 API에서 8월 12일 소셜클럽 `DJ 쵸리`, 8월 9일 네오스윙 `DJ 조커`, 스윙타임 `DJ 메이져` 반영을 확인했다.
+- Instagram 복구: 8월 8일 실행은 Share를 눌렀지만 게시물 수 검증이 끝나지 않아 `verification-required`였다. 같은 날짜 안전 복구를 실행해 재게시 없이 프로필 게시물 수 17→18을 확인하고 `published / profile-post-count`로 복구했다. 소셜 릴스 Node 테스트 20개가 통과했다.
+- Telegram 승인 검토: 릴스 전용 봇은 webhook 없음, pending update 0이며 Codex 대화용 봇과 분리돼 있다. 최종 Share 화면·릴스 미리보기를 보내고 단일 chat ID, 난수 nonce, 10~15분 TTL, 일회용 inline `게시 승인`/`취소` callback을 사용하는 fail-closed 상태머신이 가능하다. 승인·검증 전에는 Share를 누르지 않고 거절·시간초과·재시작은 자동 게시하지 않는 구조를 권고했다.
+- 관련 기록: `docs/decisions/2026-08-09-pwa-release-consistency.md`, `docs/decisions/2026-08-09-local-automation-catchup-and-approval.md`
+
+## 2026-08-09 지난 금요일 정규 소셜 자동 제거
+
+- 상태: 원인 확인, 수정·배포 전
+- 현상: 8월 월간 캘린더에서 지난 금요일인 2026-08-07의 소셜이 전부 비어 보였다.
+- 운영 확인: 8월 7일 소셜은 운영 일정 API에 0건이다. 반면 8월 14일에는 `Busan Balboa Social`, `네오스윙 금요 소셜`, `드림발 금요 소셜`이 있고, 8월 21일·28일에도 네오스윙·드림발 금요 소셜이 남아 있다.
+- 원인: 정규 소셜 조정기가 `regular-social:*` 자동 생성 일정 중 `eventDate < today`인 행을 제거 목록에 넣고 실제 `events`에서 삭제한다. 따라서 날짜가 지난 정규 소셜은 월간 캘린더의 역사에서 사라진다. 8월 9일 확대 재수집은 legacy cleanup을 스킵했고 삭제 건수도 0이므로 이번 수집 실행이 원인이 아니다.
+- 판단: 미래 90일 롤링 생성과 과거 일정 보존을 같은 정리 조건으로 처리한 구조 문제다. 월간 캘린더가 지난 일정을 보여야 한다면 자동 생성 정규 소셜도 과거 보존 기간 또는 월 경계까지 유지하도록 별도 정책이 필요하다.
+- 관련 파일: `server/cafe24/regular-social-reconciler.js`, `server/cafe24/regular-social-rules.js`
