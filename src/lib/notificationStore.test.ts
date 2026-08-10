@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getNotificationDisplayCount } from './notificationStore';
+import type { NotificationRecord } from './notificationStore';
 
 function jsonResponse(payload: unknown, status = 200) {
   return {
@@ -93,4 +95,26 @@ describe('notificationStore server ownership', () => {
     ]);
     expect(warn).toHaveBeenCalled();
   });
+});
+
+const record = (id: string, items?: unknown[]): NotificationRecord => ({
+    id,
+    title: id,
+    body: '',
+    received_at: '2026-08-11T00:00:00.000Z',
+    is_read: false,
+    data: items === undefined ? {} : { items },
+});
+
+describe('notification inbox display count', () => {
+    it('counts aggregate digest items as the cards shown in both mobile and desktop', () => {
+        expect(getNotificationDisplayCount([
+            record('new-event'),
+            record('daily-digest', [{ eventId: '1' }, { eventId: '2' }, { eventId: '3' }]),
+        ])).toBe(4);
+    });
+
+    it('keeps an empty aggregate as one summary card', () => {
+        expect(getNotificationDisplayCount([record('empty-digest', [])])).toBe(1);
+    });
 });

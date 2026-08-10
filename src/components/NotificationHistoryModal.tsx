@@ -24,7 +24,6 @@ interface NotificationDisplayItem {
     url?: string;
     image?: string | null;
     eventId?: string;
-    receivedAt: string;
     category?: string | null;
     location?: string | null;
     date?: string | null;
@@ -112,7 +111,6 @@ export default function NotificationHistoryModal({
                         url,
                         image: item.image || item.image_thumbnail || item.image_medium || item.icon || notification.data?.image,
                         eventId,
-                        receivedAt: notification.received_at,
                         category: item.category || notification.data?.category,
                         location: item.location,
                         date: item.date || item.start_date,
@@ -130,7 +128,6 @@ export default function NotificationHistoryModal({
                 url,
                 image: notification.data?.image || notification.image || notification.icon,
                 eventId,
-                receivedAt: notification.received_at,
                 category: notification.data?.category,
             }];
         });
@@ -268,11 +265,6 @@ export default function NotificationHistoryModal({
         onOpenNotificationSettings?.();
     };
 
-    const formatTime = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    };
-
     return (
         <div className="nhm-overlay">
             <div className="nhm-container">
@@ -358,7 +350,6 @@ export default function NotificationHistoryModal({
                                             <div className="nhm-item-meta">
                                                 {date && <span>{formatDateShort(date)}</span>}
                                                 {location && <span>{location}</span>}
-                                                <time>{formatTime(item.receivedAt)}</time>
                                             </div>
                                         </div>
                                     </button>

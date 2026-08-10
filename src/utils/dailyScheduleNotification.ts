@@ -83,10 +83,9 @@ export function buildDailyScheduleNotification(
     const sortedEvents = sortDailyScheduleEvents(events);
     const firstEvent = sortedEvents[0];
     const count = sortedEvents.length;
-    const firstTime = firstEvent ? getDailyScheduleTime(firstEvent) : '';
     const firstPlace = firstEvent ? getDailySchedulePlace(firstEvent) : '';
     const firstSummary = firstEvent
-        ? `${firstTime ? `${firstTime} ` : ''}${firstEvent.title} · ${firstPlace}`
+        ? `${firstEvent.title} · ${firstPlace}`
         : '';
     const body = count > 0
         ? `${firstSummary}${count > 1 ? ` 외 ${count - 1}개` : ''}`
@@ -116,7 +115,6 @@ export function buildDailyScheduleNotification(
                 category: getDailyScheduleCategory(event),
                 location: getDailySchedulePlace(event),
                 date: getDailyScheduleEventDate(event, dateKey),
-                time: getDailyScheduleTime(event),
                 order: index,
             })),
         },

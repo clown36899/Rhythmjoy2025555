@@ -70,18 +70,6 @@ const normalizeModalPrefs = (prefs?: Partial<PushPreferences> | null): PushPrefe
         pref_only_with_events: prefs?.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
     };
 
-    if (getEnabledChannelCount(normalized) === 0) {
-        normalized.pref_events = true;
-    }
-
-    if (getNewEventChannelCount(normalized) === 0) {
-        normalized.pref_new_event_social = true;
-    }
-
-    if (getEnabledNotificationRouteCount(normalized) === 0) {
-        normalized.pref_today_digest = true;
-    }
-
     return normalized;
 };
 
@@ -192,6 +180,8 @@ const detectLegacyAndroidPwaScope = (platform: MobilePlatform, isPwa: boolean) =
 export default function NotificationSettingsModal({ isOpen, onClose }: NotificationSettingsModalProps) {
     const { user } = useAuth();
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
+    const [isDeviceConnected, setIsDeviceConnected] = useState<boolean>(false);
+    const [isDeviceConnectionKnown, setIsDeviceConnectionKnown] = useState<boolean>(false);
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [needsPwaReinstall, setNeedsPwaReinstall] = useState(false);
@@ -270,48 +260,74 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         }
 
         loadSettings();
-    }, [isOpen]);
+    }, [isOpen, user?.id]);
 
     const loadSettings = async () => {
         if (!user) {
             console.warn('[NotificationSettingsModal] load skipped no user', getRuntimeLogMeta(platform, isRunningInPWA));
+            setIsPushLoading(false);
             return;
         }
         setIsPushLoading(true);
+        setIsDeviceConnectionKnown(false);
         try {
             console.info('[NotificationSettingsModal] load start', {
                 hasUser: true,
                 ...getRuntimeLogMeta(platform, isRunningInPWA),
             });
-            const browserSub = await getPushSubscription();
+            const [browserSub, prefs] = await Promise.all([
+                getPushSubscription(),
+                getPushPreferences(),
+            ]);
             let isVerified = false;
+            let connectionError: unknown = null;
             if (browserSub) {
-                isVerified = await verifySubscriptionOwnership();
+                try {
+                    isVerified = await verifySubscriptionOwnership();
+                } catch (error) {
+                    connectionError = error;
+                }
             }
 
             console.info('[NotificationSettingsModal] load subscription result', {
                 hasBrowserSubscription: Boolean(browserSub),
                 isVerified,
+                connectionCheckFailed: Boolean(connectionError),
                 ...getRuntimeLogMeta(platform, isRunningInPWA),
             });
 
-            setIsPushEnabled(isVerified);
-            setOriginalPushEnabled(isVerified);
-
-            if (isVerified) {
-                const prefs = await getPushPreferences();
-                if (prefs) {
-                    const uiPrefs = normalizeModalPrefs(prefs);
-                    setPushPrefs(uiPrefs);
-                    setOriginalPrefs({ ...uiPrefs });
-                }
-            } else {
-                const uiPrefs = normalizeModalPrefs(DEFAULT_PUSH_PREFERENCES);
-                setPushPrefs(uiPrefs);
-                setOriginalPrefs({ ...uiPrefs });
+            setIsDeviceConnected(isVerified);
+            setIsDeviceConnectionKnown(!connectionError);
+            if (!prefs) {
+                throw new Error('계정 알림 설정을 불러오지 못했습니다.');
+            }
+            const uiPrefs = normalizeModalPrefs(prefs);
+            const accountEnabled = Boolean(prefs.enabled);
+            setIsPushEnabled(accountEnabled);
+            setOriginalPushEnabled(accountEnabled);
+            setPushPrefs(uiPrefs);
+            setOriginalPrefs({ ...uiPrefs });
+            if (connectionError) {
+                setLoggedStatusMessage({
+                    type: 'error',
+                    text: connectionError instanceof Error
+                        ? connectionError.message
+                        : '이 기기의 알림 연결 상태를 확인하지 못했습니다. 잠시 후 다시 열어주세요.',
+                }, { step: 'load-device-check-error' });
+            } else if (accountEnabled && !isVerified) {
+                setLoggedStatusMessage({
+                    type: 'error',
+                    text: '계정 알림 설정은 켜져 있지만 이 브라우저 연결이 만료됐습니다. 아래 저장 버튼을 눌러 이 기기를 다시 연결해주세요.',
+                }, { step: 'load-device-disconnected' });
             }
         } catch (error) {
             console.error('[NotificationSettingsModal] Load error:', error);
+            setLoggedStatusMessage({
+                type: 'error',
+                text: error instanceof Error && error.message
+                    ? error.message
+                    : '계정 알림 설정을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+            }, { step: 'load-catch' });
         } finally {
             setIsPushLoading(false);
             console.info('[NotificationSettingsModal] load end', getRuntimeLogMeta(platform, isRunningInPWA));
@@ -413,7 +429,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 }
             }
 
-            setPushPrefs(prev => normalizeModalPrefs(prev));
+            setPushPrefs(prev => ({ ...normalizeModalPrefs(prev), enabled: true }));
             setIsPushEnabled(true);
             console.info('[NotificationSettingsModal] toggle on staged without subscription save', getRuntimeLogMeta(platform, isRunningInPWA));
             return true;
@@ -445,7 +461,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         }
 
         setLoggedStatusMessage(null);
-        setPushPrefs(prev => normalizeModalPrefs({ ...prev, [type]: true }));
+        setPushPrefs(prev => {
+            const next = { ...prev, enabled: true, [type]: true };
+            if (type === 'pref_today_digest' && getEnabledChannelCount(next) === 0) next.pref_events = true;
+            if (type === 'pref_new_event_alerts' && getNewEventChannelCount(next) === 0) next.pref_new_event_social = true;
+            return normalizeModalPrefs(next);
+        });
     };
 
     const handleDigestDayToggle = (day: number) => {
@@ -481,7 +502,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         setIsSaving(true);
         setLoggedStatusMessage(null);
         try {
-            const prefsToSave = isPushEnabled ? normalizeModalPrefs(pushPrefs) : { ...pushPrefs };
+            const prefsToSave = normalizeModalPrefs({ ...pushPrefs, enabled: isPushEnabled });
             console.info('[NotificationSettingsModal] save start', {
                 pushEnabled: isPushEnabled,
                 originalPushEnabled,
@@ -533,13 +554,11 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 const { support, permission: currentPermission } = refreshPushEnvironment('save-before-permission');
                 if (!support.supported) {
                     setLoggedStatusMessage({ type: 'error', text: getPushSupportMessage(support, platform) }, { step: 'save-unsupported' });
-                    setIsPushEnabled(false);
                     return;
                 }
 
                 if (currentPermission === 'denied') {
                     setLoggedStatusMessage({ type: 'error', text: getPermissionBlockedMessage(platform) }, { step: 'save-denied-before-request' });
-                    setIsPushEnabled(false);
                     return;
                 }
 
@@ -548,12 +567,14 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     setLoggedStatusMessage({ type: 'error', text: '알림 권한이 아직 허용되지 않았습니다. 알림 스위치를 다시 켜서 권한을 먼저 허용해주세요.' }, {
                         step: 'save-permission-default',
                     });
-                    setIsPushEnabled(false);
                     return;
                 }
 
                 console.info('[NotificationSettingsModal] subscription upsert before save', getRuntimeLogMeta(platform, isRunningInPWA));
-                const sub = await subscribeToPush();
+                const currentSubscription = await getPushSubscription();
+                const sub = await subscribeToPush({
+                    forceRenew: !isDeviceConnected && Boolean(currentSubscription),
+                });
                 console.info('[NotificationSettingsModal] subscription upsert after save', {
                     hasSubscription: Boolean(sub),
                     ...getRuntimeLogMeta(platform, isRunningInPWA),
@@ -567,7 +588,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                             ? getPermissionBlockedMessage(platform)
                             : '브라우저가 푸시 구독을 거부했습니다. Chrome 사이트 설정과 휴대폰의 Chrome 알림 권한을 확인해주세요.',
                     }, { step: 'save-subscribe-missing', latestPermission });
-                    setIsPushEnabled(false);
                     return;
                 }
                 localStorage.removeItem('push_explicitly_disabled');
@@ -579,6 +599,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     return;
                 }
                 console.info('[NotificationSettingsModal] datastore save after', getRuntimeLogMeta(platform, isRunningInPWA));
+                setIsDeviceConnected(true);
             } else if (isPushEnabled !== originalPushEnabled) {
                 console.info('[NotificationSettingsModal] unsubscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
                 await unsubscribeFromPush();
@@ -625,6 +646,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const todayRouteLabel = isTodayAlertActive ? '켜짐' : '꺼짐';
     const newEventRouteLabel = isNewEventAlertActive ? '켜짐' : '꺼짐';
     const hasUnsavedChanges = (isPushEnabled !== originalPushEnabled) ||
+        (isPushEnabled && isDeviceConnectionKnown && !isDeviceConnected) ||
         (isPushEnabled && JSON.stringify(pushPrefs) !== JSON.stringify(originalPrefs));
     const isPermissionBlocked = permissionStatus === 'denied';
     const isPushUnavailable = !pushSupportStatus.supported;
@@ -634,7 +656,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         : isPushEnabled && isPermissionBlocked
             ? '권한 차단됨'
             : null;
-    const saveButtonDisabled = !hasUnsavedChanges || isSaving || isRequestingPermission || (isPushEnabled && (isPermissionBlocked || isPushUnavailable));
+    const saveButtonDisabled = !hasUnsavedChanges || isSaving || isRequestingPermission || (isPushEnabled && (!isDeviceConnectionKnown || isPermissionBlocked || isPushUnavailable));
     const saveButtonLabel = isSaving
         ? '저장 중...'
         : isRequestingPermission
@@ -646,7 +668,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             : statusMessage?.type === 'error' && !hasUnsavedChanges
                 ? '확인 필요'
             : hasUnsavedChanges
-                ? '설정 저장'
+                ? isPushEnabled && isDeviceConnectionKnown && !isDeviceConnected ? '이 기기 연결 및 저장' : '설정 저장'
                 : '저장됨';
     const showInstallGuideOnly = needsPwaReinstall || (!isRunningInPWA && platform === 'ios');
     const showSaveControls = !isPushLoading && !showInstallGuideOnly;
@@ -839,6 +861,13 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                     <div className={`NSM-statusBanner NSM-statusBanner--${statusMessage.type}`}>
                         <i className={statusMessage.type === 'error' ? 'ri-error-warning-fill' : 'ri-checkbox-circle-fill'}></i>
                         {statusMessage.text}
+                    </div>
+                )}
+
+                {showSaveControls && isPushEnabled && isDeviceConnectionKnown && !isDeviceConnected && statusMessage?.type !== 'error' && (
+                    <div className="NSM-statusBanner NSM-statusBanner--error">
+                        <i className="ri-link-unlink-m"></i>
+                        계정 설정은 켜져 있지만 이 기기는 연결되지 않았습니다. 저장하면 새 푸시 구독으로 다시 연결됩니다.
                     </div>
                 )}
 

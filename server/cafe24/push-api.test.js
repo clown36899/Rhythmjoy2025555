@@ -106,7 +106,10 @@ describe('Cafe24 push delivery targeting', () => {
     mocks.requireAdmin.mockResolvedValue({ id: 'admin-user', is_admin: true });
     mocks.getCurrentUser.mockResolvedValue({ id: 'commenter-a', nickname: '댓글러' });
     mocks.saveCafe24TableRow.mockResolvedValue({});
-    mocks.deleteCafe24TableRows.mockResolvedValue(undefined);
+    mocks.deleteCafe24TableRows.mockImplementation(async (_table, rows = []) => ({
+      requested: rows.length,
+      deleted: rows.length,
+    }));
     mocks.sendNotification.mockResolvedValue({});
     mocks.getUserNotificationPreferences.mockResolvedValue(null);
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([]);
@@ -119,6 +122,138 @@ describe('Cafe24 push delivery targeting', () => {
       if (String(sql).includes('INSERT IGNORE INTO user_notifications')) return [{ affectedRows: 1 }];
       return [[]];
     });
+  });
+
+  it('does not expose event times in the daily digest push payload', async () => {
+    const { buildDailyDigestPayload } = await import('./push-api.js');
+    const payload = JSON.parse(buildDailyDigestPayload([
+      {
+        id: 'event-1',
+        title: '저녁 소셜',
+        date: '2026-08-05',
+        time: '19:30',
+        location: '테스트홀',
+      },
+    ], '2026-08-05'));
+
+    expect(payload.body).toBe('저녁 소셜 · 테스트홀');
+    expect(payload.body).not.toContain('19:30');
+    expect(payload.data.items[0]).not.toHaveProperty('time');
+  });
+
+  it('queues the morning digest, retries through the shared queue, and stores every event as a bell card', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-10T23:30:00.000Z'));
+    try {
+      const events = Array.from({ length: 10 }, (_, index) => ({
+        id: `digest-event-${index + 1}`,
+        title: `오늘 일정 ${index + 1}`,
+        start_date: '2026-08-11',
+        location: `장소 ${index + 1}`,
+        category: 'social',
+      }));
+      let queuedRow = null;
+      mocks.loadEnabledNotificationPreferences.mockResolvedValue([{
+        user_id: 'user-a',
+        enabled: true,
+        pref_today_digest: true,
+        pref_digest_time: '08:30',
+        pref_digest_days: [2],
+        pref_events: true,
+        pref_only_with_events: true,
+      }]);
+      mocks.loadCafe24TableRows.mockImplementation(async (table) => {
+        if (table === 'events') return events;
+        if (table === 'notification_queue') return queuedRow ? [queuedRow] : [];
+        if (table === 'user_push_subscriptions') return [subscription('digest-device', 'user-a', false)];
+        return [];
+      });
+      mocks.saveCafe24TableRow.mockImplementation(async (table, row) => {
+        if (table === 'notification_queue') queuedRow = row;
+        return row;
+      });
+
+      const { dailyDigestCron, notificationQueueCron } = await import('./push-api.js');
+      const cronRequest = { headers: {}, query: {}, body: {}, socket: { remoteAddress: '127.0.0.1' } };
+      const digestResponse = jsonResponse();
+      await dailyDigestCron(cronRequest, digestResponse);
+
+      expect(queuedRow).toEqual(expect.objectContaining({
+        id: 'daily-digest:2026-08-11:user-a',
+        status: 'pending',
+        payload: expect.objectContaining({
+          notificationRoute: 'daily_digest',
+          userId: 'user-a',
+          items: expect.any(Array),
+          inboxItems: expect.any(Array),
+        }),
+      }));
+      expect(queuedRow.payload.items).toHaveLength(8);
+      expect(queuedRow.payload.inboxItems).toHaveLength(10);
+      expect(mocks.sendNotification).not.toHaveBeenCalled();
+      expect(digestResponse.json).toHaveBeenCalledWith(expect.objectContaining({ queued: 1 }));
+
+      await notificationQueueCron(cronRequest, jsonResponse());
+
+      expect(mocks.sendNotification).toHaveBeenCalledTimes(1);
+      const pushPayload = JSON.parse(mocks.sendNotification.mock.calls[0][1]);
+      expect(pushPayload.data.items).toHaveLength(8);
+      expect(pushPayload.data).not.toHaveProperty('inboxItems');
+      const inboxWrite = mocks.mysqlExecute.mock.calls.find(([sql]) => (
+        String(sql).includes('INSERT IGNORE INTO user_notifications')
+      ));
+      expect(inboxWrite?.[1]?.[4]).toBe('daily_schedule');
+      expect(JSON.parse(inboxWrite?.[1]?.[6] || '{}').items).toHaveLength(10);
+      expect(queuedRow.status).toBe('sent');
+      expect(queuedRow.delivered_subscription_ids).toEqual(['digest-device']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps delivery pending after a permanent 410 so a renewed device can recover within the retry window', async () => {
+    mocks.loadEnabledNotificationPreferences.mockResolvedValue([{
+      user_id: 'user-a',
+      enabled: true,
+      pref_today_digest: true,
+    }]);
+    mocks.loadCafe24TableRows.mockImplementation(async (table) => {
+      if (table === 'user_push_subscriptions') return [subscription('expired-digest-device', 'user-a', false)];
+      if (table === 'notification_queue') return [{
+        id: 'daily-digest:2026-08-11:user-a',
+        title: '오늘 일정 1개',
+        body: '테스트 일정 · 테스트홀',
+        category: 'daily_digest',
+        payload: {
+          notificationRoute: 'daily_digest',
+          userId: 'user-a',
+          date: '2026-08-11',
+          url: '/calendar?date=2026-08-11',
+          items: [{ eventId: '1', title: '테스트 일정' }],
+          inboxItems: [{ eventId: '1', title: '테스트 일정' }],
+        },
+        scheduled_at: new Date(Date.now() - 1000).toISOString(),
+        created_at: new Date(Date.now() - 1000).toISOString(),
+        status: 'pending',
+      }];
+      return [];
+    });
+    mocks.sendNotification.mockRejectedValueOnce({ statusCode: 410, body: 'expired subscription' });
+
+    const { processNotificationQueue } = await import('./push-api.js');
+    await processNotificationQueue({ body: {} }, jsonResponse());
+
+    expect(mocks.deleteCafe24TableRows).toHaveBeenCalledTimes(1);
+    expect(mocks.saveCafe24TableRow).toHaveBeenCalledWith(
+      'notification_queue',
+      expect.objectContaining({
+        id: 'daily-digest:2026-08-11:user-a',
+        status: 'pending',
+        attempt_count: 1,
+        processed_at: null,
+      }),
+      ['id'],
+    );
   });
 
   it('sends manual push only to admin users, including old rows saved with is_admin false', async () => {
@@ -276,14 +411,16 @@ describe('Cafe24 push delivery targeting', () => {
     );
   });
 
-  it('shows a queued event in the bell only when it was registered after the user last visited', async () => {
-    const registeredAt = '2026-08-03T09:00:00.000Z';
+  it('keeps queued events unread until each user explicitly reads the bell', async () => {
+    const registeredAt = new Date(Date.now() - 1000).toISOString();
+    const visitedBeforeRegistration = new Date(Date.parse(registeredAt) - 1000).toISOString();
+    const visitedAfterRegistration = new Date(Date.parse(registeredAt) + 1000).toISOString();
     mocks.mysqlExecute.mockImplementation(async (sql) => {
       if (String(sql).includes('WHERE is_admin = 1')) return [[]];
       if (String(sql).includes('FROM users u')) {
         return [[
-          { user_id: 'user-before', last_seen_at: '2026-08-03T08:59:00.000Z' },
-          { user_id: 'user-after', last_seen_at: '2026-08-03T09:01:00.000Z' },
+          { user_id: 'user-before', last_seen_at: visitedBeforeRegistration },
+          { user_id: 'user-after', last_seen_at: visitedAfterRegistration },
         ]];
       }
       if (String(sql).includes('INSERT IGNORE INTO user_notifications')) return [{ affectedRows: 1 }];
@@ -322,7 +459,7 @@ describe('Cafe24 push delivery targeting', () => {
     const inboxRecipients = mocks.mysqlExecute.mock.calls
       .filter(([sql]) => String(sql).includes('INSERT IGNORE INTO user_notifications'))
       .map(([, values]) => values[0]);
-    expect(inboxRecipients).toEqual(['user-before']);
+    expect(inboxRecipients).toEqual(['user-before', 'user-after']);
   });
 
   it('suppresses individual device pushes when four or more queue items would create a burst', async () => {
@@ -361,13 +498,71 @@ describe('Cafe24 push delivery targeting', () => {
     expect(queueWrites).toHaveLength(4);
     for (const [, row] of queueWrites) {
       expect(row).toEqual(expect.objectContaining({
-        status: 'sent',
+        status: 'inbox_only',
         result: expect.objectContaining({
           status: 'suppressed',
           summary: expect.objectContaining({ success: 0, skipped: 1 }),
         }),
       }));
     }
+  });
+
+  it('still sends a queued morning digest while a new-event backlog is suppressed', async () => {
+    mocks.loadEnabledNotificationPreferences.mockResolvedValue([
+      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
+      { user_id: 'user-a', enabled: true, pref_today_digest: true },
+    ]);
+    const dueAt = new Date(Date.now() - 1000).toISOString();
+    mocks.loadCafe24TableRows.mockImplementation(async (table) => {
+      if (table === 'user_push_subscriptions') {
+        return [
+          subscription('burst-admin-device', 'admin-a', true),
+          subscription('digest-user-device', 'user-a', false),
+        ];
+      }
+      if (table === 'notification_queue') {
+        return [
+          ...Array.from({ length: 4 }, (_, index) => ({
+            id: `queue-backlog-${index + 1}`,
+            title: `밀린 새 일정 ${index + 1}`,
+            body: '폭주 억제 대상',
+            category: 'social',
+            payload: { adminOnly: true, userId: 'admin-a', url: `/calendar?id=backlog-${index + 1}` },
+            created_at: dueAt,
+            scheduled_at: dueAt,
+            status: 'pending',
+          })),
+          {
+            id: 'daily-digest:2026-08-11:user-a',
+            title: '오늘 일정 1개',
+            body: '오늘 일정 · 테스트홀',
+            category: 'daily_digest',
+            payload: {
+              notificationRoute: 'daily_digest',
+              userId: 'user-a',
+              date: '2026-08-11',
+              url: '/calendar?date=2026-08-11',
+              items: [{ eventId: 'digest-1', title: '오늘 일정' }],
+              inboxItems: [{ eventId: 'digest-1', title: '오늘 일정' }],
+            },
+            created_at: dueAt,
+            scheduled_at: dueAt,
+            status: 'pending',
+          },
+        ];
+      }
+      return [];
+    });
+
+    const { processNotificationQueue } = await import('./push-api.js');
+    await processNotificationQueue({ body: {} }, jsonResponse());
+
+    expect(mocks.sendNotification).toHaveBeenCalledTimes(1);
+    expect(mocks.sendNotification.mock.calls[0][0].endpoint).toContain('digest-user-device');
+    const queueWrites = mocks.saveCafe24TableRow.mock.calls.filter(([table]) => table === 'notification_queue');
+    expect(queueWrites.find(([, row]) => row.id === 'daily-digest:2026-08-11:user-a')?.[1].status).toBe('sent');
+    expect(queueWrites.filter(([, row]) => String(row.id).startsWith('queue-backlog-'))
+      .every(([, row]) => row.status === 'inbox_only')).toBe(true);
   });
 
   it('coalesces concurrent queue triggers so the same device is not notified twice', async () => {

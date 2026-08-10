@@ -29,6 +29,7 @@ import {
 } from './analytics-purity.js';
 import { createPerfTrace } from './perf-log.js';
 import { saveUserNotificationPreferences } from './notification-preferences.js';
+import { getPushSubscriptionRecordId } from './push-subscription-key.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -639,6 +640,10 @@ async function requireGenericAccess(req, table, action = 'query', body = {}) {
 }
 
 function getRecordId(row, conflictKeys = [], table = '') {
+  if (table === 'user_push_subscriptions' && row?.endpoint) {
+    return getPushSubscriptionRecordId(row.endpoint);
+  }
+
   if ([
     'board_anonymous_likes',
     'board_anonymous_dislikes',
@@ -1160,6 +1165,9 @@ async function loadRowsByActor(table, userId, limit = 20000) {
 
 async function loadRowsForQuery(table, body = {}) {
   const singleRecordId = table === 'events' ? null : getSingleRecordLookupValue(body);
+  if (table === 'user_push_subscriptions' && singleRecordId) {
+    return loadRowsByJsonField(table, 'id', singleRecordId, 2);
+  }
   if (table === 'home_menu_layout_defaults' && String(singleRecordId || '') === 'default') {
     const rows = await loadRowsByRecordId(table, singleRecordId);
     return rows.length ? rows : loadAdminHomeMenuLayoutDefaultRows();
@@ -1167,6 +1175,9 @@ async function loadRowsForQuery(table, body = {}) {
   if (singleRecordId !== null) return loadRowsByRecordId(table, singleRecordId);
 
   const narrowFilter = table === 'events' ? null : getNarrowEqFilter(body);
+  if (table === 'user_push_subscriptions' && narrowFilter?.field === 'endpoint') {
+    return loadRowsByRecordId(table, getPushSubscriptionRecordId(narrowFilter.value));
+  }
   if (table === 'home_menu_layout_defaults' && narrowFilter?.field === 'id' && String(narrowFilter.value) === 'default') {
     const rows = await loadRowsByRecordId(table, narrowFilter.value);
     return rows.length ? rows : loadAdminHomeMenuLayoutDefaultRows();
@@ -1308,23 +1319,24 @@ async function saveRow(table, row, conflictKeys = []) {
 
 async function deleteRows(table, rows) {
   assertTableName(table);
-  if (!rows.length) return;
+  if (!rows.length) return { requested: 0, deleted: 0 };
   invalidateGenericRowsCache(table);
   const pool = getMysqlPool();
 
   if (table === 'events') {
     await Promise.all(rows.map((row) => removeEventUploads(row)));
-    await pool.query(
+    const [result] = await pool.query(
       `DELETE FROM events WHERE id IN (${rows.map(() => '?').join(',')})`,
       rows.map((row) => String(row.id)),
     );
-    return;
+    return { requested: rows.length, deleted: Number(result?.affectedRows || 0) };
   }
 
-  await pool.query(
+  const [result] = await pool.query(
     `DELETE FROM generic_records WHERE table_name = ? AND record_id IN (${rows.map(() => '?').join(',')})`,
     [table, ...rows.map((row) => getRecordId(row, [], table))],
   );
+  return { requested: rows.length, deleted: Number(result?.affectedRows || 0) };
 }
 
 async function findRelated(table, field, value) {
@@ -1335,7 +1347,10 @@ async function findRelated(table, field, value) {
     value !== null &&
     value !== ''
   ) {
-    const directRows = await loadRowsByRecordId(table, value);
+    const recordId = table === 'user_push_subscriptions' && field === 'endpoint'
+      ? getPushSubscriptionRecordId(value)
+      : value;
+    const directRows = await loadRowsByRecordId(table, recordId);
     const directRow = directRows.find((row) => String(getValue(row, field)) === String(value));
     if (directRow) return directRow;
 
