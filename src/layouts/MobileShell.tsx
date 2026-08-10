@@ -12,7 +12,7 @@ import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
-import { NOTIFICATION_INBOX_EVENT, notificationStore } from '../lib/notificationStore';
+import { getNotificationDisplayCount, NOTIFICATION_INBOX_EVENT, notificationStore } from '../lib/notificationStore';
 import {
   getUnreadSiteNotifications,
   markSiteNotificationsRead,
@@ -411,7 +411,7 @@ export const MobileShell: React.FC = () => {
   const refreshNotificationBadgeCount = useCallback(async () => {
     try {
       const unreadPushNotifications = await notificationStore.getUnread();
-      setNotificationBadgeCount(unreadPushNotifications.length + getUnreadSiteNotifications().length);
+      setNotificationBadgeCount(getNotificationDisplayCount(unreadPushNotifications) + getUnreadSiteNotifications().length);
     } catch (error) {
       console.warn('[MobileShell] Failed to refresh notification badge:', error);
       setNotificationBadgeCount(getUnreadSiteNotifications().length);
@@ -462,13 +462,10 @@ export const MobileShell: React.FC = () => {
       onOpenNotificationSettings: handleNotificationSettingsClick,
     });
 
-    if (unreadPushNotifications.length > 0) {
-      await notificationStore.markAllAsRead();
-    }
     if (getUnreadSiteNotifications().length > 0) {
       markSiteNotificationsRead();
     }
-    setNotificationBadgeCount(0);
+    await refreshNotificationBadgeCount();
   }, [handleNotificationSettingsClick, notificationHistoryModal, refreshNotificationBadgeCount]);
 
   const isEnglishTranslationActive = i18n.language?.startsWith('en') || hasBrowserTranslation;

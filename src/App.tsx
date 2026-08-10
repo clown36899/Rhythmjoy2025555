@@ -12,7 +12,7 @@ import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import { InAppBrowserGuard } from './components/InAppBrowserGuard';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
-import { saveSubscriptionToDataStore, subscribeToPush } from './lib/pushNotifications';
+import { repairPushSubscriptionIfNeeded, saveSubscriptionToDataStore, subscribeToPush } from './lib/pushNotifications';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import DeploymentAutoRefresh from './components/DeploymentAutoRefresh';
 import { AppNoticeToast } from './components/common/AppNoticeToast';
@@ -44,6 +44,7 @@ type AppContentProps = {
 
 function AppContent({ isAdmin }: AppContentProps) {
   const location = useLocation();
+  const { user } = useAuth();
 
   // Track online presence for all users
   useOnlinePresence();
@@ -172,6 +173,23 @@ function AppContent({ isAdmin }: AppContentProps) {
       setShowPwaModal(true);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const timer = window.setTimeout(() => {
+      void repairPushSubscriptionIfNeeded()
+        .then((status) => {
+          if (status === 'repaired') {
+            pwaDebug('[Push] Expired device subscription repaired.');
+            window.dispatchEvent(new CustomEvent('pushStatusChanged', { detail: { enabled: true } }));
+          }
+        })
+        .catch((error) => {
+          console.warn('[Push] Automatic device subscription repair deferred:', error);
+        });
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [user?.id]);
 
   const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_class: boolean, pref_clubs: boolean, pref_filter_tags: string[] | null, pref_filter_class_genres: string[] | null }, dontShowAgain: boolean) => {
     setShowPwaModal(false);

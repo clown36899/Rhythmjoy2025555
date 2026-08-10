@@ -257,7 +257,6 @@ export default function NotificationPreviewPage() {
           <div className="admin-notification-preview-list" aria-label="오늘 일정 목록">
             {todayEvents.slice(0, 5).map((event) => (
               <div key={event.id} className="admin-notification-preview-row">
-                <span>{event.time || event.start_time || '--:--'}</span>
                 <strong>{event.title}</strong>
                 <em>{event.location || event.venue_name || event.place_name || '장소 미정'}</em>
               </div>

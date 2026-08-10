@@ -6,8 +6,7 @@ import { cafe24 } from '../lib/cafe24Client';
 import { useEffect, useRef, useState } from 'react';
 import { PWAInstallButton } from './PWAInstallButton';
 import {
-    getPushSubscription,
-    verifySubscriptionOwnership
+    getPushPreferences,
 } from '../lib/pushNotifications';
 import { HAMBURGER_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
@@ -161,9 +160,6 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
         };
         window.addEventListener('pushStatusChanged', handlePushStatus);
 
-        // 초기 로드 시 체크
-        checkStatus();
-
         return () => {
             window.removeEventListener('toggleDrawer', handleToggle);
             window.removeEventListener('openDrawer', handleOpen);
@@ -186,13 +182,8 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
             return;
         }
         try {
-            const sub = await getPushSubscription();
-            if (sub) {
-                const verified = await verifySubscriptionOwnership();
-                setIsPushEnabled(verified);
-            } else {
-                setIsPushEnabled(false);
-            }
+            const prefs = await getPushPreferences();
+            setIsPushEnabled(Boolean(prefs?.enabled));
         } catch (e) {
             console.error('[SideDrawer] Push status check failed:', e);
         }

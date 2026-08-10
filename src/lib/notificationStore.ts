@@ -16,6 +16,13 @@ export interface NotificationRecord {
     data?: any;
 }
 
+export function getNotificationDisplayCount(records: NotificationRecord[]) {
+    return records.reduce((total, record) => {
+        const items = Array.isArray(record.data?.items) ? record.data.items : [];
+        return total + (items.length > 0 ? items.length : 1);
+    }, 0);
+}
+
 // 운영 알림함의 원본은 서버 user_notifications 하나뿐이다.
 // 이 메모리 저장소는 관리자 로컬 미리보기만 지원하며 새로고침 시 사라진다.
 // 서비스워커나 앱이 같은 IndexedDB 스키마를 각자 소유하지 않도록 한다.

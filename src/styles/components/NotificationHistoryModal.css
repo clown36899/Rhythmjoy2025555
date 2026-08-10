@@ -309,8 +309,7 @@
     line-height: 1.2;
 }
 
-.nhm-item-meta span,
-.nhm-item-meta time {
+.nhm-item-meta span {
     min-width: 0;
     max-width: 100%;
     overflow: hidden;

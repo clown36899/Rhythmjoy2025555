@@ -142,6 +142,18 @@ MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -u \"\${MYSQL_USER}\" \\
   \"\${MYSQL_DATABASE}\" \\
   < '${APP_DIR}/server/cafe24/migrations/2026-08-03-user-board-post-reads.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
+  -h \"\${MYSQL_HOST}\" \\
+  -P \"\${MYSQL_PORT:-3306}\" \\
+  -u \"\${MYSQL_USER}\" \\
+  \"\${MYSQL_DATABASE}\" \\
+  < '${APP_DIR}/server/cafe24/migrations/2026-08-11-push-subscription-record-keys.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
+  -h \"\${MYSQL_HOST}\" \\
+  -P \"\${MYSQL_PORT:-3306}\" \\
+  -u \"\${MYSQL_USER}\" \\
+  \"\${MYSQL_DATABASE}\" \\
+  < '${APP_DIR}/server/cafe24/migrations/2026-08-11-notification-explicit-read-recovery.sql'
 export PATH='${NODE_BIN_DIR}':\"\$PATH\"
 if [ ! -f '${APP_DIR}/.notification-subscriptions-reset-20260803' ]; then
   RESET_EXISTING_NOTIFICATION_SUBSCRIPTIONS=1 \

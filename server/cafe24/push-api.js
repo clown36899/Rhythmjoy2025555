@@ -244,17 +244,10 @@ async function loadPushSubscriptions() {
 async function loadNotificationInboxRecipients() {
   const pool = getMysqlPool();
   const [rows] = await pool.execute(
-    `SELECT u.id AS user_id,
-            MAX(COALESCE(s.last_seen_at, s.created_at, u.created_at)) AS last_seen_at
-       FROM users u
-       LEFT JOIN sessions s ON s.user_id = u.id
-      GROUP BY u.id`,
+    'SELECT u.id AS user_id FROM users u',
   );
   return rows
-    .map((row) => ({
-      user_id: String(row.user_id || row.id || ''),
-      last_seen_at: row.last_seen_at || null,
-    }))
+    .map((row) => ({ user_id: String(row.user_id || row.id || '') }))
     .filter((row) => row.user_id);
 }
 
@@ -393,8 +386,10 @@ async function sendPushToRows(rows, payload, source = 'manual', delivery = {}) {
     }
   }
 
+  let staleDeleted = 0;
   if (staleRows.length > 0) {
-    await deleteCafe24TableRows('user_push_subscriptions', staleRows);
+    const deletion = await deleteCafe24TableRows('user_push_subscriptions', staleRows);
+    staleDeleted = Number(deletion?.deleted || 0);
   }
 
   const success = results.filter((result) => result.status === 'sent').length;
@@ -407,7 +402,8 @@ async function sendPushToRows(rows, payload, source = 'manual', delivery = {}) {
     success,
     failure,
     skipped,
-    staleDeleted: staleRows.length,
+    staleRequested: staleRows.length,
+    staleDeleted,
   });
 
   return {
@@ -417,7 +413,8 @@ async function sendPushToRows(rows, payload, source = 'manual', delivery = {}) {
       success,
       failure,
       skipped,
-      staleDeleted: staleRows.length,
+      staleRequested: staleRows.length,
+      staleDeleted,
     },
     results,
   };
@@ -611,15 +608,32 @@ export async function markUserNotificationsRead(req, res) {
   res.json({ ok: true });
 }
 
-function buildDailyDigestPayload(events, dateKey) {
+export function buildDailyDigestItems(events, dateKey) {
   const sorted = [...events].sort((a, b) => {
     const at = String(a.time || a.start_time || '').localeCompare(String(b.time || b.start_time || ''));
     return at || String(a.title || '').localeCompare(String(b.title || ''), 'ko');
   });
+  return sorted.map((event, index) => ({
+    eventId: String(event.id),
+    title: event.title,
+    url: `/calendar?id=${event.id}&date=${dateKey}`,
+    order: index,
+    date: normalizeDateKey(event.start_date || event.date || event.date_value),
+    location: event.place_name || event.venue_name || event.location || null,
+    category: event.category || event.activity_type || null,
+    image: event.image_thumbnail || event.image_medium || event.image || event.image_full || null,
+  }));
+}
+
+export function buildDailyDigestPayload(events, dateKey) {
+  const sorted = [...events].sort((a, b) => {
+    const at = String(a.time || a.start_time || '').localeCompare(String(b.time || b.start_time || ''));
+    return at || String(a.title || '').localeCompare(String(b.title || ''), 'ko');
+  });
+  const items = buildDailyDigestItems(sorted, dateKey);
   const first = sorted[0] || {};
-  const firstTime = String(first.time || first.start_time || '').slice(0, 5);
   const firstPlace = first.place_name || first.venue_name || first.location || '장소 미정';
-  const firstLine = first.title ? `${firstTime ? `${firstTime} ` : ''}${first.title} · ${firstPlace}` : '';
+  const firstLine = first.title ? `${first.title} · ${firstPlace}` : '';
 
   return buildPayload({
     title: sorted.length > 0 ? `오늘 일정 ${sorted.length}개` : '오늘 일정 없음',
@@ -632,12 +646,7 @@ function buildDailyDigestPayload(events, dateKey) {
       queueSource: 'daily_schedule_morning',
       date: dateKey,
       count: sorted.length,
-      items: sorted.slice(0, 8).map((event, index) => ({
-        eventId: String(event.id),
-        title: event.title,
-        url: `/calendar?id=${event.id}&date=${dateKey}`,
-        order: index,
-      })),
+      items: items.slice(0, 8),
     },
   });
 }
@@ -691,7 +700,11 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
     .filter((row) => String(row.status || 'pending') === 'pending')
     .filter((row) => !row.next_attempt_at || String(row.next_attempt_at) <= now)
     .filter((row) => !row.scheduled_at || String(row.scheduled_at) <= now);
-  const suppressPushBurst = dueQueueRows.length > NOTIFICATION_QUEUE_PUSH_BURST_LIMIT;
+  const burstEligibleRows = dueQueueRows.filter((row) => {
+    const data = parseJsonValue(row.payload, row.payload || {});
+    return data?.notificationRoute !== 'daily_digest';
+  });
+  const suppressPushBurst = burstEligibleRows.length > NOTIFICATION_QUEUE_PUSH_BURST_LIMIT;
   const queueRows = suppressPushBurst ? dueQueueRows : dueQueueRows.slice(0, 20);
 
   const [allRows, adminUserIds] = await Promise.all([
@@ -704,24 +717,37 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
 
   for (const queueRow of queueRows) {
     const payloadData = parseJsonValue(queueRow.payload, queueRow.payload || {});
+    const notificationRoute = payloadData?.notificationRoute === 'daily_digest'
+      ? 'daily_digest'
+      : 'new_event';
+    const suppressThisPush = suppressPushBurst && notificationRoute !== 'daily_digest';
     const requestedUserId = payloadData?.userId ? String(payloadData.userId) : '';
     const inboxTargetRecipients = inboxRecipients.filter((row) => (
       (!requestedUserId || String(row.user_id) === requestedUserId)
       && (payloadData?.adminOnly !== true || adminUserIds.has(String(row.user_id)))
     ));
     const queuedAt = Date.parse(String(queueRow.created_at || queueRow.scheduled_at || ''));
-    const unseenInboxRecipients = inboxTargetRecipients.filter((row) => {
-      const lastSeenAt = Date.parse(String(row.last_seen_at || ''));
-      return !Number.isFinite(queuedAt) || !Number.isFinite(lastSeenAt) || lastSeenAt < queuedAt;
-    });
+    const inboxKind = notificationRoute === 'daily_digest' ? 'daily_schedule' : 'new_event';
+    const inboxSourceId = notificationRoute === 'daily_digest'
+      ? String(payloadData?.date || queueRow.id)
+      : String(queueRow.id);
+    const inboxData = {
+      ...payloadData,
+      ...(notificationRoute === 'daily_digest'
+        ? { items: Array.isArray(payloadData?.inboxItems) ? payloadData.inboxItems : payloadData?.items || [] }
+        : {}),
+      queueId: queueRow.id,
+      queueSource: source,
+    };
+    delete inboxData.inboxItems;
     if (Number.isFinite(queuedAt) && Date.now() - queuedAt > NOTIFICATION_QUEUE_MAX_AGE_MS) {
-      const inbox = await saveInboxNotifications(unseenInboxRecipients, {
+      const inbox = await saveInboxNotifications(inboxTargetRecipients, {
         title: queueRow.title,
         body: queueRow.body,
         url: payloadData?.url || '/',
-        kind: 'new_event',
-        sourceId: queueRow.id,
-        data: { ...payloadData, queueId: queueRow.id, queueSource: source },
+        kind: inboxKind,
+        sourceId: inboxSourceId,
+        data: inboxData,
       });
       const expiredResult = {
         status: 'expired',
@@ -748,8 +774,9 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
     const eligiblePreferences = preferenceRows.filter((prefs) => (
       (!requestedUserId || String(prefs.user_id) === requestedUserId)
       && (payloadData?.adminOnly !== true || adminUserIds.has(String(prefs.user_id)))
-      && asBool(prefs.pref_new_event_alerts)
-      && eventMatchesNewEventPrefs(eventLike, prefs)
+      && (notificationRoute === 'daily_digest'
+        ? asBool(prefs.pref_today_digest)
+        : asBool(prefs.pref_new_event_alerts) && eventMatchesNewEventPrefs(eventLike, prefs))
     ));
     const eligibleUserIds = new Set(eligiblePreferences.map((prefs) => String(prefs.user_id)));
     const storedDeliveredIds = Array.isArray(queueRow.delivered_subscription_ids)
@@ -763,34 +790,34 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
       && !deliveredSubscriptionIds.has(String(row.id))
     ));
 
+    const pushData = {
+      ...payloadData,
+      queueId: queueRow.id,
+      queueSource: source,
+    };
+    delete pushData.inboxItems;
     const payload = buildPayload({
       title: queueRow.title,
       body: queueRow.body,
       url: payloadData?.url || '/',
       image: payloadData?.image || null,
-      tag: `notification-queue-${queueRow.id}`,
-      data: {
-      ...payloadData,
-      queueId: queueRow.id,
-        queueSource: source,
-      },
+      tag: notificationRoute === 'daily_digest'
+        ? `daily-schedule-${payloadData?.date || queueRow.id}`
+        : `notification-queue-${queueRow.id}`,
+      data: pushData,
     });
 
     let result;
     try {
-      const inbox = await saveInboxNotifications(unseenInboxRecipients, {
+      const inbox = await saveInboxNotifications(inboxTargetRecipients, {
         title: queueRow.title,
         body: queueRow.body,
         url: payloadData?.url || '/',
-        kind: 'new_event',
-        sourceId: queueRow.id,
-        data: {
-          ...payloadData,
-          queueId: queueRow.id,
-          queueSource: source,
-        },
+        kind: inboxKind,
+        sourceId: inboxSourceId,
+        data: inboxData,
       });
-      const push = suppressPushBurst
+      const push = suppressThisPush
         ? {
             status: 'suppressed',
             summary: {
@@ -818,15 +845,22 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
         .forEach((item) => deliveredSubscriptionIds.add(String(item.id)));
       const attemptCount = Number(queueRow.attempt_count || 0) + 1;
       const retryableFailures = push.results.filter((item) => item.status === 'failed' && item.permanent !== true).length;
-      const shouldRetry = retryableFailures > 0 && attemptCount < NOTIFICATION_QUEUE_MAX_ATTEMPTS;
+      const permanentFailures = push.results.filter((item) => item.status === 'failed' && item.permanent === true).length;
+      const needsDeliveryRecovery = eligiblePreferences.length > 0
+        && deliveredSubscriptionIds.size === 0
+        && push.status !== 'suppressed'
+        && (targetRows.length === 0 || retryableFailures > 0 || permanentFailures > 0);
+      const shouldRetry = needsDeliveryRecovery && attemptCount < NOTIFICATION_QUEUE_MAX_ATTEMPTS;
       const retryDelayMinutes = Math.min(60, 2 ** Math.max(0, attemptCount - 1));
       await saveCafe24TableRow('notification_queue', {
         ...queueRow,
         status: shouldRetry
           ? 'pending'
-          : inbox.targets > 0 || deliveredSubscriptionIds.size > 0
+          : deliveredSubscriptionIds.size > 0
             ? 'sent'
-            : 'skipped',
+            : inbox.targets > 0
+              ? 'inbox_only'
+              : 'skipped',
         attempt_count: attemptCount,
         next_attempt_at: shouldRetry
           ? new Date(Date.now() + retryDelayMinutes * 60_000).toISOString()
@@ -904,7 +938,7 @@ export async function dailyDigestCron(req, res) {
 
   const now = kstDateParts();
   const allEvents = await loadCafe24TableRows('events');
-  const subscriptions = await loadPushSubscriptions();
+  const existingQueueRows = await loadCafe24TableRows('notification_queue');
   const targetPreferences = (await loadEnabledNotificationPreferences()).filter((prefs) => {
     return asBool(prefs.pref_today_digest)
       && prefs.pref_digest_time === now.timeKey
@@ -912,36 +946,36 @@ export async function dailyDigestCron(req, res) {
       && prefs.pref_digest_days.map(Number).includes(now.day);
   });
 
-  const sentRows = [];
+  const queuedRows = [];
   for (const prefs of targetPreferences) {
     const events = allEvents
       .filter((event) => eventOccursOnDate(event, now.dateKey))
       .filter((event) => eventMatchesDigestPrefs(event, prefs));
     if (events.length === 0 && asBool(prefs.pref_only_with_events)) continue;
-    const payload = buildDailyDigestPayload(events, now.dateKey);
-    const inbox = await saveInboxNotifications([prefs], {
-      title: events.length > 0 ? `오늘 일정 ${events.length}개` : '오늘 일정 없음',
-      body: events.length > 0
-        ? `${events[0]?.title || '오늘 일정'}${events.length > 1 ? ` 외 ${events.length - 1}개` : ''}`
-        : '오늘 등록된 스윙 일정이 없습니다.',
-      url: `/calendar?date=${now.dateKey}&scrollToToday=true`,
-      kind: 'daily_schedule',
-      sourceId: now.dateKey,
-      data: { kind: 'daily_schedule_morning', date: now.dateKey, count: events.length },
-    });
-    if (inbox.saved === 0) {
-      sentRows.push({
-        status: 'duplicate',
-        summary: { targets: 0, success: 0, failure: 0, skipped: 0, staleDeleted: 0 },
-        inbox,
-      });
+    const queueId = `daily-digest:${now.dateKey}:${String(prefs.user_id)}`;
+    if (existingQueueRows.some((row) => String(row.id) === queueId)) {
+      queuedRows.push({ id: queueId, userId: String(prefs.user_id), status: 'duplicate' });
       continue;
     }
-    const targetRows = subscriptions.filter((row) => String(row.user_id || '') === String(prefs.user_id));
-    sentRows.push({
-      ...(await sendPushToRows(targetRows, payload, 'daily_schedule_morning_cron')),
-      inbox,
-    });
+    const digestPayload = JSON.parse(buildDailyDigestPayload(events, now.dateKey));
+    await saveCafe24TableRow('notification_queue', {
+      id: queueId,
+      title: digestPayload.title,
+      body: digestPayload.body,
+      category: 'daily_digest',
+      payload: {
+        ...digestPayload.data,
+        image: digestPayload.image || null,
+        notificationRoute: 'daily_digest',
+        userId: String(prefs.user_id),
+        inboxItems: buildDailyDigestItems(events, now.dateKey),
+      },
+      scheduled_at: new Date().toISOString(),
+      status: 'pending',
+      attempt_count: 0,
+      created_at: new Date().toISOString(),
+    }, ['id']);
+    queuedRows.push({ id: queueId, userId: String(prefs.user_id), status: 'queued', events: events.length });
   }
 
   res.json({
@@ -950,7 +984,9 @@ export async function dailyDigestCron(req, res) {
     date: now.dateKey,
     time: now.timeKey,
     targets: targetPreferences.length,
-    sent: sentRows.reduce((sum, item) => sum + item.summary.success, 0),
+    queued: queuedRows.filter((item) => item.status === 'queued').length,
+    duplicates: queuedRows.filter((item) => item.status === 'duplicate').length,
+    items: queuedRows,
   });
 }
 

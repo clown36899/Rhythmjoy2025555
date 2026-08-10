@@ -198,6 +198,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * [Updated] Push Preferences Interface
  */
 export interface PushPreferences {
+    enabled: boolean;
     pref_today_digest: boolean;
     pref_new_event_alerts: boolean;
     pref_events: boolean;
@@ -222,6 +223,7 @@ export const PUSH_DIGEST_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) =>
 });
 
 export const DEFAULT_PUSH_PREFERENCES: PushPreferences = {
+    enabled: false,
     pref_today_digest: true,
     pref_new_event_alerts: false,
     pref_events: true,
@@ -272,9 +274,10 @@ const getStoredPushPreferences = (subscriptionPayload: any): Partial<PushPrefere
     return preferences;
 };
 
-const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences> = {}): PushPreferences => {
+export const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences> = {}): PushPreferences => {
     const normalized: PushPreferences = {
         ...DEFAULT_PUSH_PREFERENCES,
+        enabled: stored.enabled ?? row.enabled ?? DEFAULT_PUSH_PREFERENCES.enabled,
         pref_today_digest: stored.pref_today_digest ?? row.pref_today_digest ?? DEFAULT_PUSH_PREFERENCES.pref_today_digest,
         pref_new_event_alerts: stored.pref_new_event_alerts ?? row.pref_new_event_alerts ?? DEFAULT_PUSH_PREFERENCES.pref_new_event_alerts,
         pref_events: row.pref_events ?? stored.pref_events ?? DEFAULT_PUSH_PREFERENCES.pref_events,
@@ -290,18 +293,6 @@ const normalizePushPreferences = (row: any = {}, stored: Partial<PushPreferences
         pref_digest_timezone: normalizeDigestTimezone(stored.pref_digest_timezone ?? row.pref_digest_timezone),
         pref_only_with_events: stored.pref_only_with_events ?? row.pref_only_with_events ?? DEFAULT_PUSH_PREFERENCES.pref_only_with_events,
     };
-
-    if (!normalized.pref_events && !normalized.pref_class && !normalized.pref_clubs) {
-        normalized.pref_events = true;
-    }
-
-    if (!normalized.pref_new_event_social && !normalized.pref_new_event_class && !normalized.pref_new_event_clubs) {
-        normalized.pref_new_event_social = true;
-    }
-
-    if (!normalized.pref_today_digest && !normalized.pref_new_event_alerts) {
-        normalized.pref_today_digest = true;
-    }
 
     return normalized;
 };
@@ -339,6 +330,7 @@ const getEndpointMeta = (endpoint?: string | null) => {
 };
 
 const getPushPrefsLogMeta = (prefs: PushPreferences) => ({
+    enabled: prefs.enabled,
     pref_today_digest: prefs.pref_today_digest,
     pref_new_event_alerts: prefs.pref_new_event_alerts,
     pref_events: prefs.pref_events,
@@ -389,13 +381,13 @@ export const verifySubscriptionOwnership = async (): Promise<boolean> => {
 
     if (error) {
         console.error('[Push] Verification failed:', error);
-        return false;
+        throw new Error(`이 기기의 알림 연결 상태를 확인하지 못했습니다: ${error.message || 'unknown error'}`);
     }
 
     return (count || 0) > 0;
 };
 
-export const subscribeToPush = async (): Promise<PushSubscription | null> => {
+export const subscribeToPush = async (options: { forceRenew?: boolean } = {}): Promise<PushSubscription | null> => {
     const support = getPushSupportStatus();
     if (!support.supported) {
         pushWarn('subscribe unsupported', support);
@@ -424,12 +416,16 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) {
             const storedVapidPublicKey = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE_KEY);
-            if (storedVapidPublicKey !== VAPID_PUBLIC_KEY) {
-                pushWarn('subscribe existing key mismatch, recreating subscription', {
+            if (options.forceRenew || storedVapidPublicKey !== VAPID_PUBLIC_KEY) {
+                pushWarn('subscribe recreating existing subscription', {
+                    forceRenew: Boolean(options.forceRenew),
                     hasStoredKey: Boolean(storedVapidPublicKey),
                     ...getEndpointMeta(existingSub.endpoint),
                 });
-                await existingSub.unsubscribe();
+                const removed = await existingSub.unsubscribe();
+                if (!removed && options.forceRenew) {
+                    throw new Error('만료된 브라우저 푸시 구독을 갱신하지 못했습니다. Chrome을 완전히 종료한 뒤 다시 시도해주세요.');
+                }
             } else {
                 pushInfo('subscribe existing', getEndpointMeta(existingSub.endpoint));
                 return existingSub;
@@ -438,6 +434,9 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
 
         const currentSub = await registration.pushManager.getSubscription();
         if (currentSub) {
+            if (options.forceRenew) {
+                throw new Error('기존 브라우저 푸시 구독이 남아 있어 새 구독을 만들지 못했습니다. Chrome을 완전히 종료한 뒤 다시 시도해주세요.');
+            }
             pushInfo('subscribe existing', getEndpointMeta(currentSub.endpoint));
             localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE_KEY, VAPID_PUBLIC_KEY);
             return currentSub;
@@ -482,53 +481,11 @@ export const saveSubscriptionToDataStore = async (subscription: PushSubscription
         throw new Error('브라우저 푸시 구독 endpoint가 없어 저장하지 못했습니다.');
     }
 
-    // 새 구독 저장 전, 같은 유저 + 같은 기기의 이전(죽은) 구독만 정리
-    // 다른 기기(iOS vs Android vs Mac 등)의 구독은 유지
-    let savedDevicePrefs: PushPreferences | null = null;
-    try {
-        const currentUA = navigator.userAgent;
-        const { data: oldSubs } = await cafe24
-            .from('user_push_subscriptions')
-            .select('id, endpoint, user_agent, updated_at, subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres, pref_digest_time, pref_digest_days, pref_digest_timezone, pref_only_with_events')
-            .eq('user_id', user.id)
-            .neq('endpoint', endpoint);
-
-        if (oldSubs && oldSubs.length > 0) {
-            // 같은 기기 판별: OS 키워드 기반 매칭
-            const getDeviceKey = (ua: string): string => {
-                if (/iPhone|iPad/.test(ua)) return 'ios';
-                if (/Android/.test(ua)) return 'android';
-                if (/Mac/.test(ua)) return 'mac';
-                if (/Windows/.test(ua)) return 'windows';
-                return 'unknown';
-            };
-            const currentDevice = getDeviceKey(currentUA);
-            const sameDeviceSubs = oldSubs.filter(s => getDeviceKey(s.user_agent) === currentDevice);
-
-            if (sameDeviceSubs.length > 0) {
-                // 재설치 시 이전 기기 설정 복원: prefs가 명시적으로 전달되지 않은 경우에만 적용
-                if (!prefs) {
-                    const mostRecent = sameDeviceSubs.sort((a, b) =>
-                        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-                    )[0];
-                    savedDevicePrefs = normalizePushPreferences(mostRecent, getStoredPushPreferences(mostRecent.subscription));
-                    pushDebug(`[Push] Restoring previous preferences for device (${currentDevice})`);
-                }
-
-                const oldIds = sameDeviceSubs.map(s => s.id);
-                pushDebug(`[Push] Cleaning ${oldIds.length} old subscription(s) for same device (${currentDevice})`);
-                await cafe24
-                    .from('user_push_subscriptions')
-                    .delete()
-                    .in('id', oldIds);
-            }
-        }
-    } catch (e) {
-        console.warn('[Push] Old subscription cleanup failed (non-critical):', e);
-    }
-
-    // 우선순위: 명시적 prefs > 이전 기기 설정(재설치 복원) > 기본값
-    const finalPrefs = normalizePushPreferences(prefs || savedDevicePrefs || DEFAULT_PUSH_PREFERENCES);
+    // 구독 endpoint 하나가 기기 하나다. OS/UA로 다른 기기의 구독을 추정 삭제하지 않는다.
+    const finalPrefs = normalizePushPreferences({
+        ...(prefs || DEFAULT_PUSH_PREFERENCES),
+        enabled: true,
+    });
     pushInfo('save start', {
         hasUser: true,
         ...getEndpointMeta(endpoint),
@@ -665,38 +622,15 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
         });
-        if (preferenceResponse.ok) {
-            const payload = await preferenceResponse.json();
-            if (payload?.preferences) {
-                return normalizePushPreferences(payload.preferences, payload.preferences);
-            }
+        if (!preferenceResponse.ok) {
+            throw new Error(`알림 설정 조회 실패 (${preferenceResponse.status})`);
         }
-
-        const sub = await getPushSubscription();
-        if (!sub || !sub.endpoint) {
-            return null;
-        }
-
-        const { data, error } = await cafe24
-            .from('user_push_subscriptions')
-            .select('subscription, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres, pref_digest_time, pref_digest_days, pref_digest_timezone, pref_only_with_events')
-            .eq('user_id', user.id)
-            .eq('endpoint', sub.endpoint)
-            .maybeSingle();
-
-        if (error) {
-            if (error.code === 'PGRST116') return {
-                ...DEFAULT_PUSH_PREFERENCES,
-            };
-            throw error;
-        }
-
-        if (!data) return null;
-
-        return normalizePushPreferences(data, getStoredPushPreferences(data.subscription));
+        const payload = await preferenceResponse.json();
+        if (!payload?.preferences) throw new Error('알림 설정 응답이 비어 있습니다.');
+        return normalizePushPreferences(payload.preferences, payload.preferences);
     } catch (error) {
         console.error('[Push] Failed to fetch preferences:', error);
-        return null;
+        throw error;
     }
 }
 
@@ -706,37 +640,15 @@ export async function getPushPreferences(): Promise<PushPreferences | null> {
 export async function unsubscribeFromPush(): Promise<boolean> {
     pushDebug('[Push] Unsubscribing from push notifications...');
     try {
-        const registration = await checkServiceWorkerRegistration();
-        if (!registration) {
-            console.warn('[Push] No Service Worker registration found for unsubscribe.');
-            return false;
-        }
-
-        const subscription = await registration.pushManager.getSubscription();
-        if (!subscription) {
-            pushDebug('[Push] No active subscription found to unsubscribe.');
-            return true;
-        }
-
-        const endpoint = subscription.endpoint;
-        const successful = await subscription.unsubscribe();
-        pushDebug('[Push] Push subscription removed from browser:', successful);
-
-        if (successful) {
-            // 사용자가 명시적으로 구독을 해제했음을 기록
-            // → 앱 재실행 시 'granted' 권한이 있더라도 조용히 재구독하지 않도록 방지
-            localStorage.setItem('push_explicitly_disabled', 'true');
-        }
-
-        // 서버에서도 구독 정보 삭제
         const { data: { user } } = await cafe24.auth.getUser();
         if (user) {
+            const currentPrefs = await getPushPreferences();
             const preferenceResponse = await fetch('/api/notification-preferences', {
                 method: 'PUT',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ...(await getPushPreferences() || DEFAULT_PUSH_PREFERENCES),
+                    ...(currentPrefs || DEFAULT_PUSH_PREFERENCES),
                     enabled: false,
                     pref_today_digest: false,
                     pref_new_event_alerts: false,
@@ -745,6 +657,13 @@ export async function unsubscribeFromPush(): Promise<boolean> {
             if (!preferenceResponse.ok) {
                 throw new Error(`알림 해제 설정 저장 실패 (${preferenceResponse.status})`);
             }
+        }
+
+        const registration = await checkServiceWorkerRegistration();
+        const subscription = registration ? await registration.pushManager.getSubscription() : null;
+        const endpoint = subscription?.endpoint || null;
+
+        if (user && endpoint) {
             const { error } = await cafe24
                 .from('user_push_subscriptions')
                 .delete()
@@ -755,9 +674,32 @@ export async function unsubscribeFromPush(): Promise<boolean> {
             else pushDebug('[Push] Push subscription removed from server');
         }
 
+        const successful = subscription ? await subscription.unsubscribe() : true;
+        pushDebug('[Push] Push subscription removed from browser:', successful);
+        localStorage.setItem('push_explicitly_disabled', 'true');
         return successful;
     } catch (error) {
         console.error('[Push] Failed to unsubscribe:', error);
         return false;
     }
+}
+
+export async function repairPushSubscriptionIfNeeded(): Promise<'disabled' | 'skipped' | 'connected' | 'repaired'> {
+    if (!isPushSupported() || getNotificationPermission() !== 'granted') return 'skipped';
+    if (localStorage.getItem('push_explicitly_disabled') === 'true') return 'skipped';
+
+    const prefs = await getPushPreferences();
+    if (!prefs?.enabled) return 'disabled';
+
+    const existing = await getPushSubscription();
+    if (existing) {
+        const owned = await verifySubscriptionOwnership();
+        if (owned) return 'connected';
+    }
+
+    const subscription = await subscribeToPush({ forceRenew: Boolean(existing) });
+    if (!subscription) throw new Error('알림 기기 연결을 자동 복구하지 못했습니다.');
+    await saveSubscriptionToDataStore(subscription, prefs);
+    localStorage.removeItem('push_explicitly_disabled');
+    return 'repaired';
 }
