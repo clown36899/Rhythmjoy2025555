@@ -24,7 +24,7 @@
 
 ## 2026-08-11 자유게시판 상세 첨부 이미지 드래그·모바일 넘침
 
-- 상태: 수정 및 로컬 검증 완료, 운영 배포 준비
+- 상태: 운영 배포 완료 (2026-08-11 03:48 KST)
 - 현상:
   - 자유게시판 글에 첨부한 이미지를 상세 화면에서 위아래로 스크롤하려 하면 이미지가 브라우저 드래그 대상으로 잡혔다.
   - 원본 크기가 큰 이미지는 모바일 본문 너비를 넘거나 정렬이 어색해질 수 있었다.
@@ -39,6 +39,8 @@
   - 과거 인라인 1600px 이미지, 링크로 감싼 이미지, 이미지 드래그 차단, 일반 텍스트 드래그 허용을 포함한 컴포넌트 테스트 4개와 앱 테스트 1개가 통과했다.
   - 프로덕션 빌드와 대상 ESLint(오류 0건)가 통과했다.
   - 실제 브라우저 411×803에서 본문·이미지 너비가 모두 379px, 좌우 넘침과 중심 오차가 0px였고 이미지 위 스와이프로 스크롤 위치가 0에서 380px로 이동했다. 1280px 화면에서도 800px 본문 안에 비율 유지·가운데 정렬됐다.
+  - 운영 버전은 `1786387579328`이다. 공개·서버 `version.json`, 새 읽기 전용 CSS·JS, service worker의 SHA-256이 로컬 배포 산출물과 일치했고 루트와 헬스체크는 HTTP 200이었다.
+  - 운영 앱과 cron은 active이며 배포 직후 03:46 정규 일정·아침 digest·알림 전달 작업이 모두 HTTP 200으로 완료됐다.
 - 관련 파일:
   - `src/pages/board/components/ReadOnlyBoardContent.tsx`
   - `src/pages/board/components/ReadOnlyBoardContent.css`
@@ -46,7 +48,7 @@
   - `src/pages/board/components/PostDetailModal.tsx`
   - `src/pages/board/detail/page.tsx`
   - `src/utils/sanitizeHtml.ts`
-- 관련 커밋: pending
+- 관련 커밋: `74925660`
 
 ## 2026-08-11 관리자 알림 설정 표시·아침 Push·알림함 카드 불일치
 
