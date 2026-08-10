@@ -30,4 +30,16 @@ describe('FullEventCalendar social row alignment', () => {
 
     expect(pageStyles).toContain('box-shadow: 0 5px 0 var(--cal-sample-bg);');
   });
+
+  it('keys consecutive schedule colors by stable event or series identity', () => {
+    const component = readFileSync(
+      resolve(process.cwd(), 'src/pages/calendar/components/FullEventCalendar.tsx'),
+      'utf8',
+    );
+
+    expect(component).toContain('toneKey: `event:${event.id}`');
+    expect(component).toContain('toneKey: `series:${seriesKey}`');
+    expect(component).toContain('getCalendarSpanToneClass(span.toneKey)');
+    expect(component).not.toContain('getCalendarSpanToneClass(spanIndex)');
+  });
 });

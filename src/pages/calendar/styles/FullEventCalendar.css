@@ -2036,27 +2036,6 @@
   );
 }
 
-.calendar-page-container .calendar-day-more-button {
-  width: 100%;
-  min-width: 0;
-  min-height: 22px;
-  padding: 3px 2px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--cal-sample-muted, #a8b0bd);
-  font: inherit;
-  font-size: 8px;
-  font-weight: 900;
-  line-height: 1;
-  text-align: center;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-user-drag: none;
-  touch-action: manipulation;
-}
-
 .calendar-page-container .calendar-social-section {
   position: relative;
   display: grid;
@@ -2398,12 +2377,6 @@
   .calendar-page-container .calendar-cell-fullscreen-body {
     --calendar-span-body-clearance: 6px;
     gap: 3px;
-  }
-
-  .calendar-page-container .calendar-day-more-button {
-    min-height: 20px;
-    padding: 3px 1px;
-    font-size: 7px;
   }
 
   .calendar-page-container .calendar-social-section {

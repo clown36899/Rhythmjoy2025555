@@ -52,6 +52,7 @@ const CALENDAR_SPAN_LANE_STEP_PX = 20;
 
 type CalendarSpanItem = {
   key: string;
+  toneKey: string;
   representativeEvent: AppEvent;
   eventIds: Array<number | string>;
   title: string;
@@ -260,7 +261,6 @@ const CalendarCell = memo(({
   gridColumn,
   gridRow,
   events,
-  maxVisibleEvents,
   hiddenEventDateKeys,
   reservedSpanLanes,
   highlightedEventId,
@@ -277,7 +277,6 @@ const CalendarCell = memo(({
   gridColumn: number;
   gridRow: number;
   events: AppEvent[];
-  maxVisibleEvents: number;
   hiddenEventDateKeys: Set<string>;
   reservedSpanLanes: number;
   highlightedEventId: number | string | null;
@@ -303,12 +302,8 @@ const CalendarCell = memo(({
 
   const dateString = getCalendarDateKey(day) || "";
   const visibleEvents = events.filter((event) => !hiddenEventDateKeys.has(eventDatePairKey(event.id, dateString)));
-  const allSocialEvents = visibleEvents.filter(isCalendarSocialEvent);
-  const allNonSocialEvents = visibleEvents.filter((event) => !isCalendarSocialEvent(event));
-  const socialEvents = allSocialEvents.slice(0, maxVisibleEvents);
-  const remainingVisibleSlots = Math.max(0, maxVisibleEvents - socialEvents.length);
-  const nonSocialEvents = allNonSocialEvents.slice(0, remainingVisibleSlots);
-  const hiddenVisibleEventCount = Math.max(0, visibleEvents.length - socialEvents.length - nonSocialEvents.length);
+  const socialEvents = visibleEvents.filter(isCalendarSocialEvent);
+  const nonSocialEvents = visibleEvents.filter((event) => !isCalendarSocialEvent(event));
 
   const renderEventCard = (event: AppEvent) => {
     const thumbnailUrl = getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium'])
@@ -495,17 +490,6 @@ const CalendarCell = memo(({
           <>
             {renderSocialSection(socialEvents)}
             {nonSocialEvents.map(renderEventCard)}
-            {hiddenVisibleEventCount > 0 && (
-              <button
-                type="button"
-                className="calendar-day-more-button"
-                onClick={(event) => onDateNumberClick(event, day)}
-                draggable={false}
-                aria-label={`${day.getDate()}일 일정 ${hiddenVisibleEventCount}개 더 보기`}
-              >
-                +{hiddenVisibleEventCount} 더보기
-              </button>
-            )}
           </>
         ) : (
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
@@ -513,18 +497,6 @@ const CalendarCell = memo(({
           <>
             {renderSocialSection(socialEvents, true)}
             {nonSocialEvents.map(renderEventSkeleton)}
-            {hiddenVisibleEventCount > 0 && (
-              <button
-                type="button"
-                className="calendar-day-more-button"
-                style={{ opacity: 0 }}
-                tabIndex={-1}
-                aria-hidden="true"
-                draggable={false}
-              >
-                +{hiddenVisibleEventCount} 더보기
-              </button>
-            )}
           </>
         )}
       </div>
@@ -683,6 +655,7 @@ export default memo(function FullEventCalendar({
 
           spanItems.push({
             key: `event-dates:${event.id}:${startDate}:${endDate}`,
+            toneKey: `event:${event.id}`,
             representativeEvent: event,
             eventIds: [event.id],
             title: event.title || "",
@@ -738,6 +711,7 @@ export default memo(function FullEventCalendar({
 
         spanItems.push({
           key: `series:${seriesKey}:${startDate}:${endDate}`,
+          toneKey: `series:${seriesKey}`,
           representativeEvent,
           eventIds: runEvents.map((event) => event.id),
           title: representativeEvent.title || "",
@@ -763,7 +737,7 @@ export default memo(function FullEventCalendar({
     const map = new Map<string, { lane: number; toneClass: string }>();
     const lanes: Array<{ endDate: string; spanKey: string }> = [];
 
-    calendarSpanItems.forEach((span, spanIndex) => {
+    calendarSpanItems.forEach((span) => {
       let assignedLane = -1;
 
       for (let i = 0; i < lanes.length; i++) {
@@ -781,7 +755,7 @@ export default memo(function FullEventCalendar({
 
       map.set(span.key, {
         lane: assignedLane,
-        toneClass: getCalendarSpanToneClass(spanIndex),
+        toneClass: getCalendarSpanToneClass(span.toneKey),
       });
     });
 
@@ -1190,7 +1164,6 @@ export default memo(function FullEventCalendar({
           gridColumn={(index % 7) + 1}
           gridRow={Math.floor(index / 7) + 1}
           events={dayEvents}
-          maxVisibleEvents={layoutMetrics.isMobile ? 5 : Number.MAX_SAFE_INTEGER}
           hiddenEventDateKeys={hiddenEventDateKeys}
           reservedSpanLanes={reservedSpanLanes}
           highlightedEventId={highlightedEventId}
