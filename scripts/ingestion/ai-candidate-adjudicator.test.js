@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateAiAdjudication, validateBenefitAiReview } from './ai-candidate-adjudicator.mjs';
+import { shouldPersistBenefitAiOutcome, validateAiAdjudication, validateBenefitAiReview } from './ai-candidate-adjudicator.mjs';
 
 const candidate = {
   extracted_text: '7월 29일 경성홀 수요 소셜 DJ 뉴야',
@@ -11,6 +11,16 @@ const candidate = {
     djs: ['뉴야'],
   },
 };
+
+describe('benefit candidate persistence policy', () => {
+  it('stores only fully approved AI benefit outcomes', () => {
+    expect(shouldPersistBenefitAiOutcome('approved')).toBe(true);
+    expect(shouldPersistBenefitAiOutcome('review')).toBe(false);
+    expect(shouldPersistBenefitAiOutcome('rejected')).toBe(false);
+    expect(shouldPersistBenefitAiOutcome('unavailable')).toBe(false);
+    expect(shouldPersistBenefitAiOutcome('error')).toBe(false);
+  });
+});
 
 describe('AI candidate adjudication grounding', () => {
   it('approves only a 0.98+ agreement grounded in exact source text', () => {

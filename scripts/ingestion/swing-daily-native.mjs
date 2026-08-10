@@ -33,7 +33,7 @@ import {
   isStaleBenefitSourcePost,
   mergeBenefitSearchTargets,
 } from './benefit-search-utils.mjs';
-import { adjudicateCandidateWithAi, reviewBenefitCandidateWithAi } from './ai-candidate-adjudicator.mjs';
+import { adjudicateCandidateWithAi, reviewBenefitCandidateWithAi, shouldPersistBenefitAiOutcome } from './ai-candidate-adjudicator.mjs';
 import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
@@ -2174,8 +2174,10 @@ async function postCandidate(candidate) {
       log(`AI rejected benefit ${candidate.id}: ${(benefitAiResult.reasons || []).join('; ')}`);
       return;
     }
-    if (benefitAiStatus !== 'approved') {
-      log(`AI benefit review required ${candidate.id}: ${(benefitAiResult.reasons || []).join('; ')}`);
+    if (!shouldPersistBenefitAiOutcome(benefitAiStatus)) {
+      result.skipped += 1;
+      log(`skip benefit without AI approval ${candidate.id} (${benefitAiStatus}): ${(benefitAiResult.reasons || []).join('; ')}`);
+      return;
     }
   }
 
