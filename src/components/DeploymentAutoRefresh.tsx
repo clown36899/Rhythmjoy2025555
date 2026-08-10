@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { logReloadDiagnostic } from '../utils/reloadDiagnostics';
 import {
   activatePendingPwaUpdate,
+  hasPendingPwaUpdate,
   PWA_UPDATE_READY_EVENT,
 } from '../lib/pwaUpdateCoordinator';
 
@@ -22,7 +23,6 @@ const BUSY_GRACE_MS = 60_000;
 const RELOAD_TARGET_KEY = 'rhythmjoy:auto-reload-target-build';
 const RELOAD_AT_KEY = 'rhythmjoy:auto-reload-at';
 const RELOAD_SUPPRESS_MS = 10 * 60_000;
-const SW_ACTIVATION_RELOAD_FALLBACK_MS = 4_000;
 
 function getActiveEditableElement() {
   const active = document.activeElement;
@@ -72,6 +72,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
   const checkingRef = useRef(false);
   const reloadTimerRef = useRef<number | null>(null);
   const busyRetryTimerRef = useRef<number | null>(null);
+  const pendingReasonRef = useRef<'version_mismatch' | 'service_worker_waiting'>('version_mismatch');
 
   useEffect(() => {
     hasOpenModalRef.current = hasOpenModal;
@@ -100,14 +101,25 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       return blockers;
     };
 
-    const scheduleReload = (targetBuildId: string) => {
+    const resetPendingState = () => {
+      pendingBuildIdRef.current = '';
+      detectedAtRef.current = 0;
+      pendingReasonRef.current = 'version_mismatch';
+      setPendingReload(false);
+    };
+
+    const scheduleReload = (
+      targetBuildId: string,
+      reason: 'version_mismatch' | 'service_worker_waiting' = 'version_mismatch',
+    ) => {
       pendingBuildIdRef.current = targetBuildId;
+      pendingReasonRef.current = reason;
       if (!detectedAtRef.current) detectedAtRef.current = Date.now();
       setPendingReload(true);
 
       if (wasReloadRecentlyRequested(targetBuildId)) {
         logReloadDiagnostic({
-          reason: 'version_mismatch',
+          reason,
           phase: 'suppressed',
           trigger: 'deployment-auto-refresh',
           serverBuildId: targetBuildId,
@@ -117,7 +129,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
             suppressWindowMs: RELOAD_SUPPRESS_MS,
           },
         });
-        setPendingReload(false);
+        resetPendingState();
         return;
       }
 
@@ -125,7 +137,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       if (blockers.length) {
         if (busyRetryTimerRef.current === null) {
           logReloadDiagnostic({
-            reason: 'version_mismatch',
+            reason,
             phase: 'delayed',
             trigger: 'deployment-auto-refresh',
             serverBuildId: targetBuildId,
@@ -138,7 +150,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
           });
           busyRetryTimerRef.current = window.setTimeout(() => {
             busyRetryTimerRef.current = null;
-            scheduleReload(pendingBuildIdRef.current);
+            scheduleReload(pendingBuildIdRef.current, pendingReasonRef.current);
           }, BUSY_RETRY_MS);
         }
         return;
@@ -147,7 +159,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       if (reloadTimerRef.current !== null) return;
       markReloadRequested(targetBuildId);
       logReloadDiagnostic({
-        reason: 'version_mismatch',
+        reason,
         phase: 'scheduled',
         trigger: 'deployment-auto-refresh',
         serverBuildId: targetBuildId,
@@ -160,7 +172,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       });
       reloadTimerRef.current = window.setTimeout(async () => {
         logReloadDiagnostic({
-          reason: 'version_mismatch',
+          reason,
           phase: 'execute',
           trigger: 'deployment-auto-refresh',
           serverBuildId: targetBuildId,
@@ -173,14 +185,14 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
         try {
           const activatedWaitingWorker = await activatePendingPwaUpdate();
           if (activatedWaitingWorker) {
-            // vite-plugin-pwa의 controlling 이벤트가 새 SW가 제어권을 얻은 뒤
-            // 한 번만 리로드한다. 이벤트가 오지 않는 비정상 상황만 fallback한다.
-            window.setTimeout(() => window.location.reload(), SW_ACTIVATION_RELOAD_FALLBACK_MS);
+            // The registered activator resolves after the waiting worker has
+            // reached activated. This tab alone now performs the navigation.
+            window.location.reload();
             return;
           }
         } catch (error) {
           logReloadDiagnostic({
-            reason: 'version_mismatch',
+            reason,
             phase: 'error',
             trigger: 'pwa-safe-activation',
             serverBuildId: targetBuildId,
@@ -207,7 +219,14 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
 
         const version = await response.json() as BuildVersion;
         const serverBuildId = getBuildId(version);
-        if (!serverBuildId || serverBuildId === __BUILD_TIME__) return;
+        if (!serverBuildId) return;
+
+        if (serverBuildId === __BUILD_TIME__) {
+          if (hasPendingPwaUpdate()) {
+            scheduleReload(serverBuildId, 'service_worker_waiting');
+          }
+          return;
+        }
 
         logReloadDiagnostic({
           reason: 'version_mismatch',
@@ -220,7 +239,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
             serverVersion: version,
           },
         });
-        scheduleReload(serverBuildId);
+        scheduleReload(serverBuildId, 'version_mismatch');
       } catch (error) {
         logReloadDiagnostic({
           reason: 'version_check_failed',
@@ -239,7 +258,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
 
     const handleVisibilityOrFocus = () => {
       if (pendingBuildIdRef.current) {
-        scheduleReload(pendingBuildIdRef.current);
+        scheduleReload(pendingBuildIdRef.current, pendingReasonRef.current);
         return;
       }
       checkVersion();

@@ -3,6 +3,7 @@ import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 import { isKioskModeEnabled } from './lib/kioskMode';
 import { installViewportCssVars } from './utils/viewportMetrics';
 import { isNonFatalClientRuntimeError } from './utils/globalErrorPolicy';
+import { activateWaitingServiceWorker, resetAppRuntimeAndRestart } from './lib/pwaRecovery';
 import {
   markPwaUpdateWaiting,
   registerPwaUpdateActivator,
@@ -73,7 +74,13 @@ if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !win
         if (BOOT_DEBUG) console.debug('[SW] App ready to work offline');
       },
     });
-    registerPwaUpdateActivator(() => updateServiceWorker());
+    registerPwaUpdateActivator(async () => {
+      // Wait for the actual activated state. The normal worker intentionally
+      // does not claim existing tabs, so Workbox's controlling callback alone
+      // cannot be the update completion signal.
+      const activated = await activateWaitingServiceWorker();
+      if (!activated) await updateServiceWorker(false);
+    });
   }).catch((error) => {
     console.warn('[SW] Registration module unavailable; continuing without offline cache.', error);
   });
@@ -564,7 +571,7 @@ function RootApp() {
             ">
               로그 복사
             </button>
-            <button onclick="sessionStorage.clear(); localStorage.clear(); if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))}; window.location.reload();" 
+            <button id="crash-reset-app" type="button"
               class="crash-fallback-btn" style="
               padding: 12px 24px; background: #2563eb; color: white; border: none; 
               border-radius: 8px; font-weight: bold; font-size: 14px;
@@ -586,6 +593,12 @@ function RootApp() {
         </div>
       `;
       document.body.appendChild(overlay);
+      const resetButton = overlay.querySelector<HTMLButtonElement>('#crash-reset-app');
+      resetButton?.addEventListener('click', () => {
+        resetButton.disabled = true;
+        resetButton.textContent = '초기화 중...';
+        void resetAppRuntimeAndRestart();
+      });
     };
 
     window.addEventListener('error', handleGlobalError);

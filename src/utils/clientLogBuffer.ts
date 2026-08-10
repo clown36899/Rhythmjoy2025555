@@ -6,9 +6,12 @@ export interface ClientLogEntry {
   level: ClientLogLevel;
   route: string;
   message: string;
+  buildId: string;
+  bootId: string;
 }
 
-const STORAGE_KEY = 'rhythmjoy_client_logs_v1';
+const STORAGE_KEY = 'rhythmjoy_client_logs_v2';
+const LEGACY_STORAGE_KEY = 'rhythmjoy_client_logs_v1';
 const MAX_LOGS = 120;
 const MAX_ARG_LENGTH = 1200;
 const MAX_STRING_LENGTH = 360;
@@ -27,8 +30,27 @@ let logs: ClientLogEntry[] = [];
 let nextId = 1;
 let flushTimer: number | null = null;
 
+export const CURRENT_CLIENT_BUILD_ID = String(__BUILD_TIME__ || 'development');
+export const CURRENT_CLIENT_BOOT_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
 function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function normalizeStoredLogs(value: unknown, legacy = false): ClientLogEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(-MAX_LOGS).map((item, index) => {
+    const record = item && typeof item === 'object' ? item as Partial<ClientLogEntry> : {};
+    return {
+      id: Number(record.id || index + 1),
+      timestamp: String(record.timestamp || new Date(0).toISOString()),
+      level: record.level || 'log',
+      route: String(record.route || '/'),
+      message: String(record.message || ''),
+      buildId: legacy ? 'legacy-unknown' : String(record.buildId || 'legacy-unknown'),
+      bootId: legacy ? 'legacy-boot' : String(record.bootId || 'legacy-boot'),
+    };
+  });
 }
 
 function loadStoredLogs(): ClientLogEntry[] {
@@ -36,9 +58,17 @@ function loadStoredLogs(): ClientLogEntry[] {
 
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed.slice(-MAX_LOGS) : [];
+    if (stored) {
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return normalizeStoredLogs(JSON.parse(stored));
+    }
+
+    const legacyStored = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!legacyStored) return [];
+    const migrated = normalizeStoredLogs(JSON.parse(legacyStored), true);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return migrated;
   } catch {
     return [];
   }
@@ -169,6 +199,8 @@ export function addClientLog(level: ClientLogLevel, ...args: unknown[]) {
     level,
     route: sanitizeUrl(`${window.location.pathname}${window.location.search}`),
     message: serializeArgs(args),
+    buildId: CURRENT_CLIENT_BUILD_ID,
+    bootId: CURRENT_CLIENT_BOOT_ID,
   };
 
   logs = [...logs, entry].slice(-MAX_LOGS);
@@ -183,6 +215,12 @@ export function getClientLogs() {
   return logs.slice();
 }
 
+export function getCurrentBootClientLogs() {
+  return getClientLogs().filter((entry) => (
+    entry.buildId === CURRENT_CLIENT_BUILD_ID && entry.bootId === CURRENT_CLIENT_BOOT_ID
+  ));
+}
+
 export function getClientLogText() {
   if (typeof window === 'undefined') return '';
 
@@ -192,15 +230,32 @@ export function getClientLogText() {
     `UA: ${window.navigator.userAgent}`,
     `Viewport: ${window.innerWidth}x${window.innerHeight} DPR:${window.devicePixelRatio || 1}`,
     `Online: ${window.navigator.onLine}`,
+    `Current Build: ${CURRENT_CLIENT_BUILD_ID}`,
+    `Current Boot: ${CURRENT_CLIENT_BOOT_ID}`,
     '',
-    'Logs:',
+    'Current Boot Logs:',
   ];
 
-  const body = getClientLogs().map((log) => {
+  const allLogs = getClientLogs();
+  const currentLogs = allLogs.filter((log) => (
+    log.buildId === CURRENT_CLIENT_BUILD_ID && log.bootId === CURRENT_CLIENT_BOOT_ID
+  ));
+  const historicalLogs = allLogs.filter((log) => (
+    log.buildId !== CURRENT_CLIENT_BUILD_ID || log.bootId !== CURRENT_CLIENT_BOOT_ID
+  ));
+  const serializeLog = (log: ClientLogEntry) => {
     return `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.route} ${log.message}`;
-  });
+  };
+  const body = currentLogs.length ? currentLogs.map(serializeLog) : ['(none)'];
+  const history = historicalLogs.length
+    ? [
+      '',
+      'Previous Boot Logs (historical; not current errors):',
+      ...historicalLogs.map((log) => `[build:${log.buildId} boot:${log.bootId}] ${serializeLog(log)}`),
+    ]
+    : [];
 
-  return [...header, ...body].join('\n');
+  return [...header, ...body, ...history].join('\n');
 }
 
 export function clearClientLogs() {
@@ -208,6 +263,7 @@ export function clearClientLogs() {
   if (canUseStorage()) {
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch {
       // no-op
     }

@@ -1,37 +1,59 @@
 // PWA 서비스 워커 (vite-plugin-pwa injectManifest 방식)
-// 매 빌드마다 self.__WB_MANIFEST가 Workbox에 의해 자동 주입됨 → SW 내용이 바뀌어 자동 업데이트 감지 가능
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-
-// [Optimization] Workbox의 시끄러운 개발 로그(프리캐싱 경고 등)를 비활성화합니다.
-// 알림 작동 확인을 위한 커스텀 로깅([Push], [SW])만 남기기 위함입니다.
-self.__WB_DISABLE_DEV_LOGS = true;
-
-const PRECACHE_MANIFEST = self.__WB_MANIFEST || [];
-const indexPrecacheEntry = PRECACHE_MANIFEST.find((entry) => entry.url === 'index.html');
-const runtimeRevision = indexPrecacheEntry?.revision || 'dev';
+// index revision은 릴리스 식별에만 사용한다. HTML/JS/CSS는 절대 SW에
+// 프리캐시하지 않아 이미 끝난 앱 버전을 다시 부팅시키지 않는다.
+const RELEASE_MANIFEST = self.__WB_MANIFEST || [];
+const indexReleaseEntry = RELEASE_MANIFEST.find((entry) => entry.url === 'index.html');
+const RELEASE_STAMP = indexReleaseEntry?.revision || 'dev';
 
 const RUNTIME_CACHE_PREFIX = 'rhythmjoy-runtime-';
 const LEGACY_CACHE_PREFIX = 'rhythmjoy-cache-';
-const CACHE_NAME = `${RUNTIME_CACHE_PREFIX}${runtimeRevision}`;
+const WORKBOX_CACHE_PREFIX = 'workbox-precache';
 const SHARE_TARGET_CACHE = 'rhythmjoy-share-targets-v1';
 const SHARE_TARGET_PATH = '/__pwa-share-target/';
 const SHARE_TARGET_MAX_AGE_MS = 10 * 60 * 1000;
-// Last updated: 2026-06-11 (v56)
-self.addEventListener('install', (event) => {
-  // Cache only the shell essentials. Build-specific cache names prevent stale Cafe24 HTML.
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll([
-        new Request('/index.html', { cache: 'reload' }),
-        new Request('/manifest.json', { cache: 'reload' }),
-        new Request('/icon-192.png', { cache: 'reload' }),
-      ]))
-      .then(() => {
-        // 기존 탭을 즉시 선점하지 않는다. 앱의 단일 갱신 코디네이터가 입력·모달
-        // 상태를 확인한 뒤 SKIP_WAITING을 보낼 때만 새 버전을 활성화한다.
-        console.log('[SW] Essential assets pre-cached; waiting for safe activation');
-      })
+
+// 2026-08-11 transition bridge: clients running the former autoUpdate
+// registration never send SKIP_WAITING to a prompt worker. This persistent
+// marker allows exactly one forced activation per browser storage, then every
+// later release returns to the normal prompt/safe-update lifecycle.
+const RELEASE_STATE_CACHE = 'swingenjoy-release-state-v1';
+const LEGACY_BRIDGE_EPOCH = 'legacy-autoupdate-bridge-20260811-v1';
+const RELEASE_STATE_BASE = `${self.location.origin}/__pwa-release/${LEGACY_BRIDGE_EPOCH}`;
+const RELEASE_PENDING_KEY = `${RELEASE_STATE_BASE}/pending`;
+const RELEASE_COMPLETE_KEY = `${RELEASE_STATE_BASE}/complete`;
+let markerFallbackActivation = false;
+
+async function writeReleaseState(cache, key, value) {
+  await cache.put(
+    new Request(key),
+    new Response(value, { headers: { 'Content-Type': 'text/plain' } }),
   );
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    try {
+      const stateCache = await caches.open(RELEASE_STATE_CACHE);
+      const completed = await stateCache.match(RELEASE_COMPLETE_KEY);
+      const hasLegacyActiveWorker = Boolean(self.registration.active);
+
+      if (!completed && hasLegacyActiveWorker) {
+        await writeReleaseState(stateCache, RELEASE_PENDING_KEY, RELEASE_STAMP);
+        await self.skipWaiting();
+        console.log('[SW] One-time legacy autoUpdate bridge scheduled', RELEASE_STAMP);
+        return;
+      }
+
+      console.log('[SW] Installed; waiting for the app update coordinator', RELEASE_STAMP);
+    } catch (error) {
+      // A storage failure must not preserve the known autoUpdate/prompt deadlock.
+      if (self.registration.active) {
+        markerFallbackActivation = true;
+        console.warn('[SW] Release marker unavailable; forcing compatibility activation', error);
+        await self.skipWaiting();
+      }
+    }
+  })());
 });
 
 function compactShareValue(value) {
@@ -105,117 +127,101 @@ async function handleShareTargetRequest(request, url) {
   return Response.redirect(new URL(`/forum/media/share?share_id=${encodeURIComponent(shareId)}`, self.location.origin).href, 303);
 }
 
-async function appShellFallback(response) {
-  if (response?.ok) return response;
-  const cached = await caches.match('/index.html');
-  if (cached) return cached;
-  return response;
+function isLegacyAppShellCache(cacheName) {
+  return cacheName.startsWith(RUNTIME_CACHE_PREFIX)
+    || cacheName.startsWith(LEGACY_CACHE_PREFIX)
+    || cacheName.startsWith(WORKBOX_CACHE_PREFIX);
+}
+
+function canNavigateClientForLegacyBridge(clientUrl) {
+  try {
+    const url = new URL(clientUrl);
+    const hasSensitiveAuthState = /(?:^|[?&])(?:code|error)=/i.test(url.search)
+      || /(?:access_token|refresh_token)=/i.test(url.hash);
+    return url.origin === self.location.origin
+      && url.pathname !== '/kiosk'
+      && !url.pathname.startsWith('/billboard/')
+      && url.pathname !== '/auth/kakao-callback'
+      && !hasSensitiveAuthState;
+  } catch {
+    return false;
+  }
+}
+
+async function notifyClientsAndBridgeLegacyTabs(legacyBridgePending) {
+  const windowClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  windowClients.forEach((client) => {
+    client.postMessage({
+      type: 'SW_UPDATED',
+      reason: legacyBridgePending ? 'legacy-autoupdate-bridge' : 'service-worker-activated',
+      buildId: RELEASE_STAMP,
+    });
+
+    if (!legacyBridgePending || !canNavigateClientForLegacyBridge(client.url) || !('navigate' in client)) return;
+    const target = new URL(client.url);
+    target.searchParams.set('rj_pwa_recover', `${LEGACY_BRIDGE_EPOCH}-${RELEASE_STAMP}`);
+    // Chrome does not start Client.navigate() until activation completes. Do
+    // not await this promise from activate.waitUntil or both sides deadlock.
+    client.navigate(target.href).catch((error) => {
+      console.warn('[SW] Legacy client navigation failed', client.url, error);
+    });
+  });
 }
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(
-        keys
-          .filter(key => (
-            key !== CACHE_NAME &&
-            (key.startsWith(RUNTIME_CACHE_PREFIX) || key.startsWith(LEGACY_CACHE_PREFIX))
-          ))
-          .map(key => caches.delete(key))
-      ))
-      .then(() => console.log('[SW] Old runtime caches cleared'))
-      .then(() => self.clients.claim())
-      .then(() => {
-        // 업데이트 완료 후 모든 클라이언트에 리로드 신호 전송
-        return self.clients.matchAll({ type: 'window' }).then(clients => {
-          clients.forEach(client => {
-            client.postMessage({ type: 'SW_UPDATED' });
-          });
-        });
-      })
-  );
+  event.waitUntil((async () => {
+    let stateCache = null;
+    let legacyBridgePending = false;
+
+    try {
+      stateCache = await caches.open(RELEASE_STATE_CACHE);
+      const pendingResponse = await stateCache.match(RELEASE_PENDING_KEY);
+      const completedResponse = await stateCache.match(RELEASE_COMPLETE_KEY);
+      const pendingStamp = pendingResponse ? await pendingResponse.text() : '';
+      legacyBridgePending = markerFallbackActivation
+        || (!completedResponse && pendingStamp === RELEASE_STAMP);
+    } catch (error) {
+      // If install forced activation because marker storage failed, retaining
+      // clients is riskier than one extra convergence pass.
+      legacyBridgePending = Boolean(self.registration.active);
+      console.warn('[SW] Could not read release marker during activation', error);
+    }
+
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames
+      .filter(isLegacyAppShellCache)
+      .map((cacheName) => caches.delete(cacheName)));
+
+    if (legacyBridgePending) {
+      // Intentional one-release exception: old autoUpdate clients cannot
+      // acknowledge a prompt worker, so claim before converging all stale tabs.
+      await self.clients.claim();
+    }
+
+    await notifyClientsAndBridgeLegacyTabs(legacyBridgePending);
+
+    if (stateCache) {
+      await writeReleaseState(stateCache, RELEASE_COMPLETE_KEY, RELEASE_STAMP);
+      await stateCache.delete(RELEASE_PENDING_KEY);
+    }
+    console.log('[SW] Activated with network-only app shell', RELEASE_STAMP);
+  })());
 });
 
-// Fetch 이벤트 핸들러 - 네트워크 우선
+// Only the Web Share Target is intercepted. Navigations, HTML, JS, CSS and API
+// requests always use the browser/server network path and cannot fall back to a
+// cached application version.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  const isSameOrigin = url.origin === self.location.origin;
-  const isShareTargetRoute = isSameOrigin && url.pathname === '/forum/media/share';
+  const isShareTargetRoute = url.origin === self.location.origin && url.pathname === '/forum/media/share';
+  if (!isShareTargetRoute) return;
 
-  if (
-    isShareTargetRoute &&
-    (
-      event.request.method === 'POST' ||
-      (event.request.method === 'GET' && hasIncomingShareParams(url) && !url.searchParams.has('share_id'))
-    )
-  ) {
-    event.respondWith(handleShareTargetRequest(event.request, url));
-    if (event.stopImmediatePropagation) {
-      event.stopImmediatePropagation();
-    }
-    return;
-  }
+  const isIncomingShare = event.request.method === 'POST'
+    || (event.request.method === 'GET' && hasIncomingShareParams(url) && !url.searchParams.has('share_id'));
+  if (!isIncomingShare) return;
 
-  const isApiRequest =
-    url.pathname.startsWith('/api/') ||
-    url.pathname === '/version.json' ||
-    url.pathname === '/service-worker.js';
-  const isAuthApiRequest =
-    url.pathname === '/api/kakao-login' ||
-    url.pathname === '/auth/kakao-callback';
-  const isExternalRequest = url.hostname !== self.location.hostname;
-  
-  // 인증 관련 API 및 외부 요청 바이패스
-  const isBypassRequest = event.request.method !== 'GET' ||
-    isApiRequest ||
-    isAuthApiRequest ||
-    isExternalRequest ||
-    url.search.includes('code=') ||
-    url.search.includes('error=') ||
-    url.hash.includes('access_token=') ||
-    url.hash.includes('refresh_token=');
-
-  if (isBypassRequest) {
-    if (isExternalRequest || isApiRequest || event.request.method !== 'GET') {
-      event.respondWith(fetch(event.request));
-    } else {
-      console.log('[SW] 🛡️ Bypass request detected (Auth). Forcing network direct.', url.href);
-      event.respondWith(fetch(event.request));
-    }
-    
-    // 이 핸들러가 응답을 맡았으므로 다른 (Workbox) 핸들러로 전파 중단
-    if (event.stopImmediatePropagation) {
-      event.stopImmediatePropagation();
-    }
-    return;
-  }
-
-  // navigate 요청 → 네트워크 우선, 실패 시 캐시된 index.html
-  if (event.request.mode === 'navigate') {
-    const freshNavigationRequest = new Request(event.request, { cache: 'no-store' });
-
-    event.respondWith(
-      fetch(freshNavigationRequest)
-        .then(response => {
-          const contentType = response.headers.get('Content-Type') || '';
-          // 성공 시 index.html 캐시 갱신
-          if (response.ok && contentType.includes('text/html')) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone));
-          }
-          return appShellFallback(response);
-        })
-        .catch(() => caches.match('/index.html'))
-    );
-    if (event.stopImmediatePropagation) {
-      event.stopImmediatePropagation();
-    }
-    return;
-  }
+  event.respondWith(handleShareTargetRequest(event.request, url));
 });
-
-cleanupOutdatedCaches();
-precacheAndRoute(PRECACHE_MANIFEST);
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {

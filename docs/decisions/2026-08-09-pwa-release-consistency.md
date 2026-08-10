@@ -60,3 +60,19 @@ Android Chrome에서 배포 전후의 서로 다른 앱·서비스워커가 동�
 - 관련 계약 및 회귀 테스트 18개와 Cafe24 프로덕션 빌드가 통과했다. 생성 서비스워커에도 알림 IndexedDB 접근이 없음을 확인했다.
 - 커밋 `ad681a7e`를 `origin/main`에 푸시하고 Cafe24 운영에 배포했다. 공개 버전은 `2026-08-10T03:45:17.762Z`이며 서비스·내부·외부 헬스가 정상이다. 공개 서비스워커에는 알림 IndexedDB 접근이 없고, 새 자산과 구 해시 자산 보존 및 없는 자산의 정확한 404를 외부 요청으로 확인했다.
 - 직전 자산의 장기 보존 기간과 정리 작업은 별도 운영 변경으로 남겨 둔다. 현재 정책은 배포 시 구 해시를 즉시 삭제하지 않아 혼합 버전 탭의 실행 연속성을 우선한다.
+
+## 2026-08-11 구 autoUpdate 클라이언트 전환 보완
+
+운영 재검토에서 `prompt` 전환 자체에 구 클라이언트 호환 교착이 있음을 확인했다. 구 `autoUpdate` 등록 모듈은 worker가 설치 단계에서 스스로 `skipWaiting()`한다고 가정하며 waiting worker에 활성화 메시지를 보내지 않는다. 반면 새 worker는 앱 코디네이터의 메시지를 기다린다. 두 세대가 겹치면 어느 쪽도 활성화를 시작하지 않을 수 있다.
+
+다음 전환 규칙을 추가로 채택한다.
+
+1. 영속 release-state marker가 완료되지 않았고 기존 active worker가 있는 브라우저에서만 새 worker가 한 번 `skipWaiting()`한다.
+2. 해당 호환 활성화에서만 `clients.claim()`과 안전한 동일 출처 탭의 복구 navigation을 허용한다. Chrome은 worker activation이 끝나기 전 `Client.navigate()`를 진행하지 않으므로 activate의 `waitUntil`에서 navigation promise를 기다리지 않고 예약만 한다. 완료 marker를 쓴 뒤 이후 릴리스는 다시 일반 `prompt` 대기로 돌아간다.
+3. 서비스워커는 앱 셸을 전혀 캐시하거나 navigation에 응답하지 않는다. inject manifest의 `index.html` 항목은 worker 내용이 릴리스마다 바뀌게 하는 식별자로만 사용한다.
+4. Web Share Target 임시 payload 캐시와 release-state marker 캐시는 구 앱 셸 캐시 정리 대상에서 제외한다. Push 등록도 보존하며 일반 복구에서 worker unregister를 사용하지 않는다.
+5. 새 문서의 첫 모듈은 React가 아니라 build gate다. 서버 build ID가 문서의 build ID와 일치해야 앱 모듈을 평가한다. 전환 URL에서는 구 `notification-history` DB와 알려진 앱 셸 캐시를 best-effort로 정리한다.
+6. 수동 오류 복구만 worker unregister와 저장소 초기화를 수행한다. 정리 promise를 기다리지 않고 즉시 reload하는 인라인 복구는 금지한다.
+7. 로그의 build/boot 경계를 진단 계약에 포함한다. 이전 부트 기록은 보존할 수 있지만 현재 오류 상태와 개수에는 포함하지 않는다.
+
+이 호환 브리지는 코드에 남아 있어도 marker당 한 번만 강제 동작한다. marker 저장소가 사용자가 직접 삭제된 경우 다음 worker 갱신에서 한 번 더 동작하는 안전 우선 실패로 간주한다.

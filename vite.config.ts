@@ -28,11 +28,16 @@ const BUILD_TIME = Date.now().toString();
 function buildVersionPlugin(): Plugin {
   return {
     name: 'build-version',
+    apply: 'build',
     transformIndexHtml(html) {
       // index.html에서 __BUILD_TIME__을 실제 빌드 타임으로 교체
       return html.replace(/__BUILD_TIME__/g, BUILD_TIME);
     },
     closeBundle() {
+      // Vitest loads this Vite config and can otherwise overwrite an existing
+      // dist/version.json without rebuilding the HTML/assets that contain the
+      // corresponding __BUILD_TIME__ value.
+      if (process.env.VITEST) return;
       const version = {
         buildTime: BUILD_TIME,
         date: new Date().toISOString()
@@ -149,7 +154,9 @@ export default defineConfig({
       },
       injectManifest: {
         swSrc: resolve(__dirname, 'public/service-worker.js'),
-        globPatterns: ['assets/**/*.{js,css}', 'index.html'],
+        // index.html is injected only as a changing release stamp. The worker
+        // does not call precacheAndRoute and never caches the app shell.
+        globPatterns: ['index.html'],
         injectionPoint: 'self.__WB_MANIFEST',
       },
     }),

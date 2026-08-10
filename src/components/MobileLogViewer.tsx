@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   clearClientLogs,
   getClientLogText,
   getClientLogs,
+  getCurrentBootClientLogs,
   type ClientLogEntry,
 } from '../utils/clientLogBuffer';
 import '../styles/components/MobileLogViewer.css';
@@ -24,9 +25,11 @@ export default function MobileLogViewer({ placement = 'hidden' }: MobileLogViewe
   const [logs, setLogs] = useState<ClientLogEntry[]>(() => getClientLogs());
   const [copyStatus, setCopyStatus] = useState('');
 
-  const logText = useMemo(() => getClientLogText(), [logs]);
-  const errorCount = logs.filter((log) => log.level === 'error').length;
-  const warnCount = logs.filter((log) => log.level === 'warn').length;
+  const logText = getClientLogText();
+  const currentBootLogs = getCurrentBootClientLogs();
+  const errorCount = currentBootLogs.filter((log) => log.level === 'error').length;
+  const warnCount = currentBootLogs.filter((log) => log.level === 'warn').length;
+  const historicalCount = logs.length - currentBootLogs.length;
 
   const refresh = () => {
     setLogs(getClientLogs());
@@ -86,14 +89,17 @@ export default function MobileLogViewer({ placement = 'hidden' }: MobileLogViewe
           <header className="mobile-log-viewer__header">
             <div>
               <strong>모바일 로그</strong>
-              <span>{logs.length}개 저장 · 에러 {errorCount} · 경고 {warnCount}</span>
+              <span>
+                현재 {currentBootLogs.length}개 · 에러 {errorCount} · 경고 {warnCount}
+                {historicalCount > 0 ? ` · 과거 ${historicalCount}개` : ''}
+              </span>
             </div>
             <button type="button" onClick={() => setIsOpen(false)} aria-label="모바일 로그 닫기">
               닫기
             </button>
           </header>
 
-          <p className="mobile-log-viewer__summary">{summarizeLatest(logs)}</p>
+          <p className="mobile-log-viewer__summary">{summarizeLatest(currentBootLogs)}</p>
 
           <div className="mobile-log-viewer__actions">
             <button type="button" onClick={copyLogs}>복사</button>

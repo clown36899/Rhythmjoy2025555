@@ -1,5 +1,6 @@
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { resetAppRuntimeAndRestart } from '../lib/pwaRecovery';
 
 interface Props {
     children: ReactNode;
@@ -67,21 +68,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
                     </pre>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '25px' }}>
                         <button
-                            onClick={async () => {
-                                try {
-                                    // 1. Clear all caches
-                                    if ('caches' in window) {
-                                        const keys = await caches.keys();
-                                        await Promise.all(keys.map(key => caches.delete(key)));
-                                    }
-                                    // 2. Clear storage
-                                    sessionStorage.clear();
-                                    // 3. Reload
-                                    window.location.reload();
-                                } catch (e) {
-                                    window.location.href = '/';
-                                }
-                            }}
+                            onClick={() => void resetAppRuntimeAndRestart()}
                             style={{
                                 padding: '12px 24px',
                                 background: '#4f46e5',
