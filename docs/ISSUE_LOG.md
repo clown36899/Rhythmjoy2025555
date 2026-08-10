@@ -1405,7 +1405,7 @@
 
 ### 2026-08-11 구 PWA 탭의 DB VersionError 선발생 후 지연 정상화
 
-- 상태: 구조 수정 및 로컬 검증 완료, 운영 배포 준비
+- 상태: 구조 수정·운영 배포·검증 완료
 - 현상: Android Chrome의 오래 열린 탭을 전면으로 가져오면 `The requested version (1) is less than the existing version (2)` 오류 화면이 먼저 나타나고 약 1초 뒤 사이트가 정상 로딩됐다. 새로 생성한 로그에도 과거 오류가 남아 같은 오류가 계속 발생한 것처럼 보였다.
 - 운영 근거: 2026-08-10 14:39:08 UTC 오류 시점의 reload diagnostic은 실행 중 클라이언트를 빌드 `1785315591396`(2026-07-29, 커밋 `95cf4ff6`)으로, 서버를 `1786342147739`로 기록했다. 14:39:09에 리로드가 실행된 직후 현행 코드만 사용하는 `/api/notifications?unread=1` 요청이 성공했다. 14:40:53에 복사된 로그의 오류 항목 시각은 여전히 14:39:08이므로 리로드 뒤 새 오류가 아니라 localStorage에서 복원된 이전 부트 기록이었다.
 - 직접 원인: 7월 29일 번들은 모듈 평가 시 `notification-history` v1을 열고, 이미 다른 탭이 v2로 올린 DB와 충돌했다. App의 처리되지 않은 `deleteOld()` 거부가 전역 오류 화면을 만들었고 기존 버전 폴러가 1.5초 뒤 현행 번들로 리로드했다. 이미 메모리에 실행 중인 구 JS에는 이후 배포한 catch와 DB 소유권 제거가 적용될 수 없었다.
@@ -1414,6 +1414,7 @@
 - 부트·복구 조치: `index.html` 진입점을 가벼운 pre-React bootstrap으로 바꿔 서버 빌드가 현재 번들과 다르면 React와 알림 코드를 평가하기 전에 캐시 정리·worker 갱신·cache-busted navigation을 수행한다. 오류 화면의 초기화 버튼은 worker unregister, 구 앱 셸 캐시와 `notification-history` 삭제를 모두 기다린 뒤 재시작한다. 자동 복구가 두 번 실패하면 자동 unregister·reload를 반복하지 않고 수동 재시도 화면에서 멈춘다.
 - 진단 조치: 클라이언트 로그에 build ID와 boot ID를 기록한다. 현재 부트와 이전 부트를 복사 텍스트에서 분리하며 오류 점·오류/경고 수는 현재 부트만 계산한다.
 - 로컬 검증: PWA 릴리스 계약, 1회 브리지 조건, 코디네이터 동시성·재시도, 구 캐시·DB 정리, 로그 부트 경계를 포함한 Vitest 30개가 통과했다. 실제 Chromium에서 7월 29일 worker가 제어하는 구 탭 2개, DB v2, 구 runtime·Workbox 캐시를 만든 회귀도 통과했다. 두 탭이 약 3.5초 안에 최신 `__APP_STARTED`로 수렴했고 구 캐시는 삭제, Share·무관 캐시는 보존됐으며 `notification-history` 삭제 뒤 v1 open이 성공하고 VersionError·crash overlay는 0건이었다. 이 회귀가 activate에서 `client.navigate()` 완료를 기다리던 교착을 검출했고 navigation을 예약만 하도록 고친 뒤 통과했다. 프로덕션 빌드가 성공했고 생성 서비스워커는 약 6.4KB, inject manifest 1개이며 앱 자산 프리캐시·cached index fallback·알림 DB open이 없음을 확인했다.
+- 운영 배포 및 검증: 수정 커밋 `d3850c6a`를 `origin/main`에 푸시한 뒤 동일 커밋의 clean worktree에서 Cafe24에 배포했다. 공개·서버·배포 원본의 버전은 `1786378011134`로 일치하고 서비스워커 SHA-256도 `49b34b66fd03828be33dd211ddeffc65d55c958a76bcc416ebed5eb8acd72d27`로 모두 같았다. 공개 서비스워커는 `no-store`이며 전환 marker를 포함하고 앱 자산 프리캐시·cached navigation·`notification-history` 문자열은 0건이다. 외부 헬스와 서비스 상태는 정상, 미존재 자산은 `text/plain` HTTP 404다. 운영 Chromium 스모크 테스트에서 앱 본문과 active worker를 확인했고 VersionError·치명 오류 화면·관련 console/page error는 0건이었다.
 - 관련 파일: `src/bootstrap.ts`, `src/lib/pwaRecovery.ts`, `public/service-worker.js`, `vite.config.ts`, `src/lib/pwaUpdateCoordinator.ts`, `src/components/DeploymentAutoRefresh.tsx`, `src/utils/clientLogBuffer.ts`, `src/main.tsx`
 
 ## 2026-08-09 지난 금요일 정규 소셜 자동 제거
