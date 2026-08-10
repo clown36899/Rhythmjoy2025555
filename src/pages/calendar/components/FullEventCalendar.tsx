@@ -22,6 +22,7 @@ import {
   isCalendarSocialLikeEvent,
   normalizeCalendarEventKindPart,
 } from "../utils/calendarEventKind";
+import { getCalendarSpanToneClass } from "../utils/calendarSpanTone";
 import "../styles/FullEventCalendar.css";
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
@@ -485,7 +486,7 @@ const CalendarCell = memo(({
       </div>
 
       <div
-        className={`calendar-cell-fullscreen-body ${reservedSpanLanes > 0 ? 'has-calendar-spans' : ''}`}
+        className={`calendar-cell-fullscreen-body ${socialEvents.length > 0 ? 'has-social-events' : 'has-no-social-events'} ${reservedSpanLanes > 0 ? 'has-calendar-spans' : ''}`}
         style={{
           '--calendar-span-reserved-height': `${reservedSpanLanes * CALENDAR_SPAN_LANE_STEP_PX}px`,
         } as React.CSSProperties}
@@ -762,7 +763,7 @@ export default memo(function FullEventCalendar({
     const map = new Map<string, { lane: number; toneClass: string }>();
     const lanes: Array<{ endDate: string; spanKey: string }> = [];
 
-    calendarSpanItems.forEach((span) => {
+    calendarSpanItems.forEach((span, spanIndex) => {
       let assignedLane = -1;
 
       for (let i = 0; i < lanes.length; i++) {
@@ -780,7 +781,7 @@ export default memo(function FullEventCalendar({
 
       map.set(span.key, {
         lane: assignedLane,
-        toneClass: getCalendarEventToneClass(span.representativeEvent),
+        toneClass: getCalendarSpanToneClass(spanIndex),
       });
     });
 

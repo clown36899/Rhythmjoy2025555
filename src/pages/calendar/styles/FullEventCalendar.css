@@ -1082,20 +1082,44 @@
   outline-offset: 2px;
 }
 
-.calendar-overlay-item.calendar-event-tone-blue {
-  background: rgba(92, 141, 246, 0.88);
+.calendar-overlay-item.calendar-span-tone-blue {
+  background: rgba(79, 120, 213, 0.94);
 }
 
-.calendar-overlay-item.calendar-event-tone-green {
-  background: rgba(59, 194, 139, 0.88);
+.calendar-overlay-item.calendar-span-tone-emerald {
+  background: rgba(38, 149, 111, 0.94);
 }
 
-.calendar-overlay-item.calendar-event-tone-amber {
-  background: rgba(232, 184, 74, 0.9);
+.calendar-overlay-item.calendar-span-tone-amber {
+  background: rgba(179, 122, 34, 0.95);
 }
 
-.calendar-overlay-item.calendar-event-tone-violet {
-  background: rgba(183, 131, 255, 0.88);
+.calendar-overlay-item.calendar-span-tone-violet {
+  background: rgba(133, 85, 193, 0.94);
+}
+
+.calendar-overlay-item.calendar-span-tone-rose {
+  background: rgba(185, 72, 107, 0.94);
+}
+
+.calendar-overlay-item.calendar-span-tone-cyan {
+  background: rgba(39, 139, 163, 0.94);
+}
+
+.calendar-overlay-item.calendar-span-tone-orange {
+  background: rgba(180, 92, 43, 0.95);
+}
+
+.calendar-overlay-item.calendar-span-tone-indigo {
+  background: rgba(85, 89, 189, 0.94);
+}
+
+.calendar-overlay-item.calendar-span-tone-lime {
+  background: rgba(113, 143, 44, 0.95);
+}
+
+.calendar-overlay-item.calendar-span-tone-fuchsia {
+  background: rgba(168, 69, 158, 0.94);
 }
 
 .calendar-overlay-title {
@@ -1826,6 +1850,10 @@
   --calendar-min-vertical-gap: 3px;
   --calendar-date-content-gap: 3px;
   --calendar-social-badge-overhang: 7px;
+  --calendar-social-section-top-offset: calc(
+    var(--calendar-social-badge-overhang) +
+    var(--calendar-min-vertical-gap)
+  );
   column-gap: 5px;
   row-gap: var(--calendar-min-vertical-gap);
   padding: 12px;
@@ -2038,15 +2066,20 @@
    * The badge sits above the section border. Its full overhang plus the
    * shared gap is reserved in flow, so it can never enter the date/span slot.
    */
-  margin: calc(
-    var(--calendar-social-badge-overhang, 7px) +
-    var(--calendar-min-vertical-gap, 3px)
-  ) 1px 3px;
+  margin: var(--calendar-social-section-top-offset) 1px 3px;
   padding: 9px 3px 4px;
   border: 1px solid rgba(77, 216, 158, 0.45);
   border-radius: 7px;
   background: rgba(54, 186, 132, 0.07);
   box-shadow: inset 0 0 0 1px rgba(14, 18, 24, 0.36);
+}
+
+/*
+ * 소셜이 없는 날짜도 첫 일반 이벤트를 뱃지 윗선이 아니라
+ * 소셜 라운드 컨테이너의 윗선과 맞춘다.
+ */
+.calendar-page-container .calendar-cell-fullscreen-body.has-no-social-events > .calendar-fullscreen-event-card:first-child {
+  margin-top: var(--calendar-social-section-top-offset);
 }
 
 .calendar-page-container .calendar-social-section-header {
@@ -2375,10 +2408,7 @@
 
   .calendar-page-container .calendar-social-section {
     gap: 2px;
-    margin: calc(
-      var(--calendar-social-badge-overhang) +
-      var(--calendar-min-vertical-gap)
-    ) 0 3px;
+    margin: var(--calendar-social-section-top-offset) 0 3px;
     padding: 8px 2px 3px;
     border-radius: 6px;
   }
@@ -2572,10 +2602,7 @@ html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen
 
 html.kiosk-link-router-active .calendar-page-container .calendar-social-section {
   gap: 2px;
-  margin: calc(
-    var(--calendar-social-badge-overhang) +
-    var(--calendar-min-vertical-gap)
-  ) 0 3px;
+  margin: var(--calendar-social-section-top-offset) 0 3px;
   padding: 8px 2px 3px;
   border-radius: 6px;
 }

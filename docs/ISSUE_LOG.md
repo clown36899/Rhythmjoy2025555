@@ -1411,3 +1411,14 @@
 - 원인: 정규 소셜 조정기가 `regular-social:*` 자동 생성 일정 중 `eventDate < today`인 행을 제거 목록에 넣고 실제 `events`에서 삭제한다. 따라서 날짜가 지난 정규 소셜은 월간 캘린더의 역사에서 사라진다. 8월 9일 확대 재수집은 legacy cleanup을 스킵했고 삭제 건수도 0이므로 이번 수집 실행이 원인이 아니다.
 - 판단: 미래 90일 롤링 생성과 과거 일정 보존을 같은 정리 조건으로 처리한 구조 문제다. 월간 캘린더가 지난 일정을 보여야 한다면 자동 생성 정규 소셜도 과거 보존 기간 또는 월 경계까지 유지하도록 별도 정책이 필요하다.
 - 관련 파일: `server/cafe24/regular-social-reconciler.js`, `server/cafe24/regular-social-rules.js`
+
+## 2026-08-10 캘린더 소셜 유무 날짜의 첫 이벤트 윗선 불일치
+
+- 상태: 로컬 수정 및 검증 완료, 배포 전
+- 현상: 소셜이 없는 날짜의 첫 일반 이벤트 윗선이 인접 날짜의 초록색 소셜 라운드 컨테이너가 아니라 그 위로 돌출된 `소셜 N` 뱃지 윗선에 맞춰져 보였다.
+- 조치: 소셜이 있는 날짜와 없는 날짜를 셀 본문 클래스에서 구분하고, 소셜 라운드의 상단 여백과 소셜이 없는 날짜의 첫 일반 이벤트 상단 여백이 같은 CSS 변수 하나를 사용하도록 통일했다. 뱃지의 돌출 위치는 유지했다.
+- 검증: 레이아웃 계약 테스트와 프로덕션 빌드가 통과했다. Chromium 실측에서 일반 이벤트 윗선과 소셜 라운드 윗선의 차이는 390px 모바일과 1024px 데스크톱 모두 0px였고, 뱃지는 라운드보다 각각 5px·6px 위에 유지됐다. 대상 ESLint는 오류 0건이며 기존 경고만 남았다.
+- 연속 일정 색상 후속: 연속 일정 막대가 모두 `event` 분류의 단일 색을 공유하던 구조를 분리했다. 정렬된 연속 일정마다 10색 팔레트를 순환 배정하고, 같은 일정이 주 경계에서 여러 조각으로 나뉘어도 동일한 색상 클래스를 유지한다.
+- 연속 일정 검증: 첫 10개 일정의 색상 클래스가 모두 다르고 팔레트 순환과 음수 인덱스도 결정적으로 처리되는 단위 테스트를 추가했다. 캘린더 레이아웃 테스트를 포함한 대상 테스트 3개와 프로덕션 빌드가 통과했다.
+- 오늘 표시 중복 후속: 모바일에서 오늘 버튼 또는 주간 스크롤 정착 위치로 이동하면 고정 요일줄의 파란 오늘 원과 그 아래 실제 날짜 원의 하단이 동시에 보였다. 콘텐츠 기준 스크롤의 의도된 5px 여백은 유지하되, 고정 컨트롤이 그 경계 여백을 같은 배경색으로 덮어 실제 날짜 원이 비치지 않게 했다.
+- 관련 파일: `src/pages/calendar/components/FullEventCalendar.tsx`, `src/pages/calendar/styles/FullEventCalendar.css`, `src/pages/calendar/styles/CalendarPage.css`, `src/pages/calendar/components/FullEventCalendar.layout.test.ts`, `src/pages/calendar/utils/calendarSpanTone.ts`, `src/pages/calendar/utils/calendarSpanTone.test.ts`
