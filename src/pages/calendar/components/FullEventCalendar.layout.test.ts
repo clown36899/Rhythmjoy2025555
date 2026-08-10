@@ -39,7 +39,7 @@ describe('FullEventCalendar social row alignment', () => {
 
     expect(component).toContain('toneKey: `event:${event.id}`');
     expect(component).toContain('toneKey: `series:${seriesKey}`');
-    expect(component).toContain('getCalendarSpanToneClass(span.toneKey)');
-    expect(component).not.toContain('getCalendarSpanToneClass(spanIndex)');
+    expect(component).toContain('getCalendarSpanToneColor(span.toneKey)');
+    expect(component).not.toContain('getCalendarSpanToneColor(spanIndex)');
   });
 });

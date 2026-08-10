@@ -22,7 +22,7 @@ import {
   isCalendarSocialLikeEvent,
   normalizeCalendarEventKindPart,
 } from "../utils/calendarEventKind";
-import { getCalendarSpanToneClass } from "../utils/calendarSpanTone";
+import { getCalendarSpanToneColor } from "../utils/calendarSpanTone";
 import "../styles/FullEventCalendar.css";
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
 
@@ -734,7 +734,7 @@ export default memo(function FullEventCalendar({
   }, [filteredEvents]);
 
   const calendarSpanLaneMap = useMemo(() => {
-    const map = new Map<string, { lane: number; toneClass: string }>();
+    const map = new Map<string, { lane: number; toneColor: string }>();
     const lanes: Array<{ endDate: string; spanKey: string }> = [];
 
     calendarSpanItems.forEach((span) => {
@@ -755,7 +755,7 @@ export default memo(function FullEventCalendar({
 
       map.set(span.key, {
         lane: assignedLane,
-        toneClass: getCalendarSpanToneClass(span.toneKey),
+        toneColor: getCalendarSpanToneColor(span.toneKey),
       });
     });
 
@@ -1049,7 +1049,7 @@ export default memo(function FullEventCalendar({
       weekRow: number;
       startCol: number;
       span: number;
-      toneClass: string;
+      toneColor: string;
       representativeEvent: AppEvent;
       dateKey: string;
     }> = [];
@@ -1085,7 +1085,7 @@ export default memo(function FullEventCalendar({
             weekRow,
             startCol,
             span: segmentSpan,
-            toneClass: laneInfo.toneClass,
+            toneColor: laneInfo.toneColor,
             representativeEvent: span.representativeEvent,
             dateKey: segmentStartDate,
           });
@@ -1099,11 +1099,12 @@ export default memo(function FullEventCalendar({
         {titleSegments.map((segment) => (
           <div
             key={`${segment.spanKey}-${segment.weekRow}`}
-            className={`calendar-overlay-item ${segment.weekRow === 0 ? 'calendar-overlay-first-week' : ''} ${segment.toneClass}`}
+            className={`calendar-overlay-item calendar-span-tone ${segment.weekRow === 0 ? 'calendar-overlay-first-week' : ''}`}
             style={{
               gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
               gridRow: segment.weekRow + 1,
               '--lane-offset': `${segment.lane * CALENDAR_SPAN_LANE_STEP_PX}px`,
+              '--calendar-span-tone-background': segment.toneColor,
             } as React.CSSProperties}
             role="button"
             tabIndex={0}

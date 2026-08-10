@@ -1082,44 +1082,8 @@
   outline-offset: 2px;
 }
 
-.calendar-overlay-item.calendar-span-tone-blue {
-  background: rgba(79, 120, 213, 0.94);
-}
-
-.calendar-overlay-item.calendar-span-tone-emerald {
-  background: rgba(38, 149, 111, 0.94);
-}
-
-.calendar-overlay-item.calendar-span-tone-amber {
-  background: rgba(179, 122, 34, 0.95);
-}
-
-.calendar-overlay-item.calendar-span-tone-violet {
-  background: rgba(133, 85, 193, 0.94);
-}
-
-.calendar-overlay-item.calendar-span-tone-rose {
-  background: rgba(185, 72, 107, 0.94);
-}
-
-.calendar-overlay-item.calendar-span-tone-cyan {
-  background: rgba(39, 139, 163, 0.94);
-}
-
-.calendar-overlay-item.calendar-span-tone-orange {
-  background: rgba(180, 92, 43, 0.95);
-}
-
-.calendar-overlay-item.calendar-span-tone-indigo {
-  background: rgba(85, 89, 189, 0.94);
-}
-
-.calendar-overlay-item.calendar-span-tone-lime {
-  background: rgba(113, 143, 44, 0.95);
-}
-
-.calendar-overlay-item.calendar-span-tone-fuchsia {
-  background: rgba(168, 69, 158, 0.94);
+.calendar-overlay-item.calendar-span-tone {
+  background: var(--calendar-span-tone-background);
 }
 
 .calendar-overlay-title {
