@@ -27,10 +27,9 @@ self.addEventListener('install', (event) => {
         new Request('/icon-192.png', { cache: 'reload' }),
       ]))
       .then(() => {
-        console.log('[SW] Essential assets pre-cached');
-        // 새 SW 즉시 활성화: waiting 상태로 멈추지 않도록 skipWaiting() 즉시 호출
-        // → push 구독 시도 시 SW 전환 타이밍 충돌로 인한 NotAllowedError 방지
-        return self.skipWaiting();
+        // 기존 탭을 즉시 선점하지 않는다. 앱의 단일 갱신 코디네이터가 입력·모달
+        // 상태를 확인한 뒤 SKIP_WAITING을 보낼 때만 새 버전을 활성화한다.
+        console.log('[SW] Essential assets pre-cached; waiting for safe activation');
       })
   );
 });
@@ -235,87 +234,7 @@ self.addEventListener('message', (event) => {
     }
   }
 
-  // [Feature] 알림 읽음 처리 (모달에서 클릭 시)
-  if (event.data && event.data.type === 'MARK_NOTIFICATION_READ') {
-    const id = event.data.id;
-    markAsReadInDB(id);
-  }
 });
-
-// IndexedDB Helper for SW
-const DB_NAME = 'notification-history';
-const STORE_NAME = 'notifications';
-const DB_VERSION = 1;
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function saveToDB(notification) {
-  try {
-    const db = await openDB();
-    const id = Date.now() + Math.random().toString(36).substr(2, 9);
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-
-      const record = {
-        ...notification,
-        url: notification.data?.url || notification.url, // URL 평탄화
-        id: id,
-        received_at: new Date().toISOString(),
-        is_read: false
-      };
-
-      const request = store.add(record);
-
-      tx.oncomplete = () => resolve(id);
-      tx.onerror = () => reject(tx.error);
-      request.onerror = () => reject(request.error);
-    });
-  } catch (err) {
-    console.error('[SW] DB Save Error:', err);
-    return null;
-  }
-}
-
-async function markAsReadInDB(id) {
-  try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const getRequest = store.get(id);
-
-      getRequest.onsuccess = () => {
-        const data = getRequest.result;
-        if (data) {
-          data.is_read = true;
-          const putRequest = store.put(data);
-          putRequest.onsuccess = () => resolve();
-          putRequest.onerror = () => reject(putRequest.error);
-        } else {
-          resolve();
-        }
-      };
-      getRequest.onerror = () => reject(getRequest.error);
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (err) {
-    console.error('[SW] DB Update Error:', err);
-  }
-}
 
 // 푸시 알림 수신 이벤트
 self.addEventListener('push', (event) => {
@@ -356,31 +275,29 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  // [Feature] DB 저장 및 알림/배지 표시 통합 제어
+  // 운영 알림함의 원본은 서버 user_notifications이다.
+  // 서비스워커는 IndexedDB를 소유하지 않고 운영체제 알림 표시만 담당한다.
   event.waitUntil((async () => {
     try {
-      const dbId = await saveToDB(notificationData);
-
-      // 1. 알림 표시 (DB ID 포함)
       await self.registration.showNotification(notificationData.title, {
         body: notificationData.body,
         icon: notificationData.icon,
         image: notificationData.image,
         badge: notificationData.badge,
         tag: notificationData.tag,
-        data: { ...notificationData.data, dbId: dbId },
+        data: { ...notificationData.data },
         vibrate: [200, 100, 200],
         requireInteraction: true,
         silent: false,
         renotify: notificationData.renotify === true
       });
 
-      // 2. 앱 배지 설정
+      // 1. 앱 배지 설정
       if (navigator.setAppBadge) {
         await navigator.setAppBadge(1);
       }
 
-      // 3. [Update] 알림 수신 시 새 SW 버전 백그라운드 체크
+      // 2. 알림 수신 시 새 SW 버전 백그라운드 체크
       // 사용자가 알림을 탭해서 앱을 열 때쯤엔 새 버전이 준비 완료되어 자동 적용됨
       self.registration.update().catch(() => { });
     } catch (err) {
@@ -408,9 +325,6 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   const urlToOpen = event.notification.data?.url || '/';
-  const dbId = event.notification.data?.dbId;
-  const markReadPromise = dbId ? markAsReadInDB(dbId) : Promise.resolve();
-
   const notificationData = event.notification.data || {};
   const sourceKind = notificationData.queueId
     ? 'new_event'
@@ -426,15 +340,13 @@ self.addEventListener('notificationclick', (event) => {
   // 클릭한 한 건만 사용자별 서버 읽음 상태와 동기화할 수 있도록 식별자를 전달한다.
   const url = new URL(urlToOpen, self.location.origin);
   url.searchParams.set('open_notifications', 'true');
-  if (dbId) url.searchParams.set('notification_local_id', dbId);
   if (sourceKind && sourceId) {
     url.searchParams.set('notification_kind', sourceKind);
     url.searchParams.set('notification_source_id', sourceId);
   }
   const finalUrl = url.href;
 
-  event.waitUntil(Promise.all([
-    markReadPromise,
+  event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
         // 이미 같은 URL이 열려있다면 해당 창 포커스
@@ -447,6 +359,6 @@ self.addEventListener('notificationclick', (event) => {
         if (clients.openWindow) {
           return clients.openWindow(finalUrl);
         }
-      }),
-  ]));
+      })
+  );
 });

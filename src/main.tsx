@@ -3,6 +3,10 @@ import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 import { isKioskModeEnabled } from './lib/kioskMode';
 import { installViewportCssVars } from './utils/viewportMetrics';
 import { isNonFatalClientRuntimeError } from './utils/globalErrorPolicy';
+import {
+  markPwaUpdateWaiting,
+  registerPwaUpdateActivator,
+} from './lib/pwaUpdateCoordinator';
 
 const BOOT_DEBUG = import.meta.env.VITE_BOOT_DEBUG === 'true';
 const IS_KIOSK_BOOT = isKioskModeEnabled();
@@ -51,8 +55,11 @@ if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !win
   import('virtual:pwa-register').then((pwaModule) => {
     const registerSW = pwaModule?.registerSW;
     if (typeof registerSW !== 'function') return;
-    registerSW({
+    const updateServiceWorker = registerSW({
       immediate: true,
+      onNeedRefresh() {
+        markPwaUpdateWaiting();
+      },
       onRegisteredSW(swUrl: string, r: ServiceWorkerRegistration | undefined) {
         // 앱 포커스 복귀 시 SW 업데이트 체크 (visibilitychange)
         document.addEventListener('visibilitychange', () => {
@@ -66,6 +73,7 @@ if (import.meta.env.PROD && (!IS_LOCAL_RUNTIME || ENABLE_LOCAL_PWA_TEST) && !win
         if (BOOT_DEBUG) console.debug('[SW] App ready to work offline');
       },
     });
+    registerPwaUpdateActivator(() => updateServiceWorker());
   }).catch((error) => {
     console.warn('[SW] Registration module unavailable; continuing without offline cache.', error);
   });

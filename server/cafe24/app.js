@@ -531,6 +531,13 @@ app.use(express.static(distDir, {
   },
 }));
 
+// 정적 자산 요청은 SPA 문서로 대체하지 않는다. 구버전 탭이 요청한 해시가
+// 실제로 없으면 정확한 404를 반환해야 모듈 로더와 배포 복구 경로가 동작한다.
+app.use('/assets', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(404).type('text/plain').send('Asset not found');
+});
+
 app.use((req, res, next) => {
   if (!['GET', 'HEAD'].includes(req.method)) {
     next();

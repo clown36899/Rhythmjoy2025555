@@ -139,7 +139,7 @@ export default defineConfig({
       srcDir: 'public',
       filename: 'service-worker.js',
       outDir: 'dist',
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: false,          // 기존 public/manifest.json 그대로 사용
       injectRegister: null,     // main.tsx에서 직접 registerSW 호출 (빌보드 격리 위해)
       devOptions: {

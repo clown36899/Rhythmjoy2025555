@@ -230,19 +230,16 @@ function AppContent({ isAdmin }: AppContentProps) {
     // [Feature] 알림 클릭 진입 감지 (open_notifications 파라미터)
     const params = new URLSearchParams(location.search);
     if (params.get('open_notifications') === 'true') {
-      const localId = params.get('notification_local_id');
       const kind = params.get('notification_kind');
       const sourceId = params.get('notification_source_id');
 
       void (async () => {
-        if (localId) await notificationStore.markAsRead(localId);
         if (kind && sourceId) await notificationStore.markSourceAsRead(kind, sourceId);
       })();
 
       // URL에서 파라미터 제거 (뒤로가기 시 중복 방지)
       const newParams = new URLSearchParams(location.search);
       newParams.delete('open_notifications');
-      newParams.delete('notification_local_id');
       newParams.delete('notification_kind');
       newParams.delete('notification_source_id');
       const newSearch = newParams.toString();

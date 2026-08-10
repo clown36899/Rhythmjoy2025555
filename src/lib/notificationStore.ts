@@ -1,8 +1,3 @@
-import { openDB } from 'idb';
-
-const DB_NAME = 'notification-history';
-const STORE_NAME = 'notifications';
-const DB_VERSION = 2;
 export const NOTIFICATION_INBOX_EVENT = 'swingenjoy:notification-inbox-changed';
 
 const notifyInboxChanged = () => {
@@ -21,37 +16,17 @@ export interface NotificationRecord {
     data?: any;
 }
 
-const canUseIndexedDB = typeof indexedDB !== 'undefined';
-
-const dbPromise = canUseIndexedDB
-    ? openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion, _newVersion, transaction) {
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-            } else if (oldVersion < 2) {
-                // 새 서버 알림함 전환 전에 브라우저에만 남은 과거 미읽음 복제본을
-                // 제거한다. 전환 공지는 서버가 사용자별로 정확히 한 건 생성한다.
-                transaction.objectStore(STORE_NAME).clear();
-            }
-        },
-    }).catch((error) => {
-        // 구버전 탭과 새 탭이 동시에 살아 있는 동안 VersionError가 나더라도
-        // 서버 알림함만 사용하면 기능을 계속 제공할 수 있다.
-        console.warn('[NotificationStore] IndexedDB unavailable; using server-only fallback:', error);
-        return null;
-    })
-    : null;
-
-const getDB = async () => {
-    if (!dbPromise) return null;
-    return dbPromise;
-};
+// 운영 알림함의 원본은 서버 user_notifications 하나뿐이다.
+// 이 메모리 저장소는 관리자 로컬 미리보기만 지원하며 새로고침 시 사라진다.
+// 서비스워커나 앱이 같은 IndexedDB 스키마를 각자 소유하지 않도록 한다.
+const volatilePreviewNotifications = new Map<string, NotificationRecord>();
 
 async function getServerNotifications(unreadOnly: boolean): Promise<NotificationRecord[]> {
     if (typeof window === 'undefined') return [];
     const response = await fetch(`/api/notifications${unreadOnly ? '?unread=1' : ''}`, {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
+        cache: 'no-store',
     });
     if (response.status === 401) return [];
     if (!response.ok) throw new Error(`알림함 조회 실패 (${response.status})`);
@@ -71,6 +46,10 @@ function mergeNotifications(server: NotificationRecord[], local: NotificationRec
     const identities = new Set(server.map(notificationIdentity));
     return [...server, ...local.filter(item => !identities.has(notificationIdentity(item)))]
         .sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
+}
+
+function getVolatileNotifications() {
+    return [...volatilePreviewNotifications.values()];
 }
 
 async function markServerRead(id?: string) {
@@ -101,67 +80,47 @@ async function markServerSourceRead(kind: string, sourceId: string) {
 
 export const notificationStore = {
     async getAll() {
-        const db = await getDB();
-        if (!db) return [];
-        return db.getAll(STORE_NAME);
+        return getVolatileNotifications();
     },
 
     async upsertMany(records: NotificationRecord[]) {
-        const db = await getDB();
-        if (!db) return;
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
         for (const record of records) {
-            await store.put(record);
+            volatilePreviewNotifications.set(record.id, record);
         }
-        await tx.done;
+        notifyInboxChanged();
     },
 
     async getUnread() {
-        const db = await getDB();
-        const local = db ? (await db.getAll(STORE_NAME)).filter(n => !n.is_read) : [];
-        let serverHistory: NotificationRecord[] = [];
+        const local = getVolatileNotifications().filter(item => !item.is_read);
         try {
-            // 서버의 사용자별 읽음 상태를 기준으로 삼아 다른 기기에서 읽은 로컬 복제본도 숨긴다.
-            serverHistory = await getServerNotifications(false);
+            const server = await getServerNotifications(true);
+            return mergeNotifications(server, local);
         } catch (error) {
             console.warn('[NotificationStore] 서버 알림함 조회 실패:', error);
             return local;
         }
-        const serverIdentities = new Set(serverHistory.map(notificationIdentity));
-        const unreadServer = serverHistory.filter(item => !item.is_read);
-        const localOnly = local.filter(item => !serverIdentities.has(notificationIdentity(item)));
-        return mergeNotifications(unreadServer, localOnly);
     },
 
     async getRecent() {
-        const db = await getDB();
-        const local = db ? await db.getAll(STORE_NAME) : [];
-        let server: NotificationRecord[] = [];
+        const local = getVolatileNotifications();
         try {
-            server = await getServerNotifications(false);
+            const server = await getServerNotifications(false);
+            return mergeNotifications(server, local).slice(0, 100);
         } catch (error) {
             console.warn('[NotificationStore] 서버 알림함 조회 실패:', error);
+            return local.slice(0, 100);
         }
-        return mergeNotifications(server, local).slice(0, 100);
     },
 
     async markAsRead(id: string) {
         if (id.startsWith('server:')) {
             await markServerRead(id);
-            notifyInboxChanged();
-            return;
+        } else {
+            const notification = volatilePreviewNotifications.get(id);
+            if (notification) {
+                volatilePreviewNotifications.set(id, { ...notification, is_read: true });
+            }
         }
-        const db = await getDB();
-        if (!db) return;
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const notification = await store.get(id);
-        if (notification) {
-            notification.is_read = true;
-            await store.put(notification);
-        }
-        await tx.done;
         notifyInboxChanged();
     },
 
@@ -172,35 +131,20 @@ export const notificationStore = {
 
     async markAllAsRead() {
         await markServerRead();
-        const db = await getDB();
-        if (!db) return;
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const notifications = await store.getAll();
-        for (const n of notifications) {
-            if (!n.is_read) {
-                n.is_read = true;
-                await store.put(n);
+        for (const [id, notification] of volatilePreviewNotifications.entries()) {
+            if (!notification.is_read) {
+                volatilePreviewNotifications.set(id, { ...notification, is_read: true });
             }
         }
-        await tx.done;
         notifyInboxChanged();
     },
 
     async deleteOld() {
-        const db = await getDB();
-        if (!db) return;
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const notifications = await store.getAll();
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-        for (const n of notifications) {
-            if (new Date(n.received_at) < sevenDaysAgo) {
-                await store.delete(n.id);
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        for (const [id, notification] of volatilePreviewNotifications.entries()) {
+            if (new Date(notification.received_at).getTime() < sevenDaysAgo) {
+                volatilePreviewNotifications.delete(id);
             }
         }
-        await tx.done;
-    }
+    },
 };

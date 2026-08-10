@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { logReloadDiagnostic } from '../utils/reloadDiagnostics';
+import {
+  activatePendingPwaUpdate,
+  PWA_UPDATE_READY_EVENT,
+} from '../lib/pwaUpdateCoordinator';
 
 interface DeploymentAutoRefreshProps {
   hasOpenModal: boolean;
@@ -18,6 +22,7 @@ const BUSY_GRACE_MS = 60_000;
 const RELOAD_TARGET_KEY = 'rhythmjoy:auto-reload-target-build';
 const RELOAD_AT_KEY = 'rhythmjoy:auto-reload-at';
 const RELOAD_SUPPRESS_MS = 10 * 60_000;
+const SW_ACTIVATION_RELOAD_FALLBACK_MS = 4_000;
 
 function getActiveEditableElement() {
   const active = document.activeElement;
@@ -153,7 +158,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
           detectedAt: detectedAtRef.current,
         },
       });
-      reloadTimerRef.current = window.setTimeout(() => {
+      reloadTimerRef.current = window.setTimeout(async () => {
         logReloadDiagnostic({
           reason: 'version_mismatch',
           phase: 'execute',
@@ -165,6 +170,24 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
             elapsedSinceDetectedMs: Date.now() - detectedAtRef.current,
           },
         }, { beacon: true });
+        try {
+          const activatedWaitingWorker = await activatePendingPwaUpdate();
+          if (activatedWaitingWorker) {
+            // vite-plugin-pwa의 controlling 이벤트가 새 SW가 제어권을 얻은 뒤
+            // 한 번만 리로드한다. 이벤트가 오지 않는 비정상 상황만 fallback한다.
+            window.setTimeout(() => window.location.reload(), SW_ACTIVATION_RELOAD_FALLBACK_MS);
+            return;
+          }
+        } catch (error) {
+          logReloadDiagnostic({
+            reason: 'version_mismatch',
+            phase: 'error',
+            trigger: 'pwa-safe-activation',
+            serverBuildId: targetBuildId,
+            targetBuildId,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
         window.location.reload();
       }, AUTO_RELOAD_DELAY_MS);
     };
@@ -232,6 +255,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
     const interval = window.setInterval(checkVersion, CHECK_INTERVAL_MS);
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
+    window.addEventListener(PWA_UPDATE_READY_EVENT, handleVisibilityOrFocus);
     navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
 
     return () => {
@@ -239,6 +263,7 @@ export default function DeploymentAutoRefresh({ hasOpenModal }: DeploymentAutoRe
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
+      window.removeEventListener(PWA_UPDATE_READY_EVENT, handleVisibilityOrFocus);
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       clearTimers();
     };
