@@ -24,6 +24,15 @@ const sanitizeElement = (element: Element) => {
             }
         }
     }
+
+    if (element.tagName.toLowerCase() === 'img') {
+        element.setAttribute('draggable', 'false');
+        element.setAttribute('loading', 'lazy');
+        element.setAttribute('decoding', 'async');
+
+        const imageLink = element.closest('a');
+        if (imageLink) imageLink.setAttribute('draggable', 'false');
+    }
 };
 
 export const sanitizeHtml = (html: string | null | undefined): string => {

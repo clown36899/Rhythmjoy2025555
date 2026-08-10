@@ -4,8 +4,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardDetail } from '../hooks/useBoardDetail';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { type UserData } from './UserRegistrationModal';
-import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
+import ReadOnlyBoardContent from './ReadOnlyBoardContent';
 import '../board.css';
 import '../detail/detail.css';
 import './BoardDetailModal.css';
@@ -240,6 +240,7 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
                                             alt="Profile"
                                             className="board-detail-author-avatar"
                                             referrerPolicy="no-referrer"
+                                            draggable={false}
                                         />
                                     ) : (
                                         <i className="ri-user-line"></i>
@@ -282,10 +283,7 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
                                 </div>
                             )}
 
-                            <div
-                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || '') }}
-                                style={{ width: '100%' }}
-                            />
+                            <ReadOnlyBoardContent html={post.content} />
                         </div>
 
                         {/* Comment Section */}

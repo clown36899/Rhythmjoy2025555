@@ -22,6 +22,32 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-11 자유게시판 상세 첨부 이미지 드래그·모바일 넘침
+
+- 상태: 수정 및 로컬 검증 완료, 운영 배포 준비
+- 현상:
+  - 자유게시판 글에 첨부한 이미지를 상세 화면에서 위아래로 스크롤하려 하면 이미지가 브라우저 드래그 대상으로 잡혔다.
+  - 원본 크기가 큰 이미지는 모바일 본문 너비를 넘거나 정렬이 어색해질 수 있었다.
+- 원인:
+  - 저장된 본문 HTML을 세 상세 화면에서 각각 직접 렌더링했고, 대표 이미지와 달리 본문 이미지에는 읽기 전용 화면의 드래그 방지 계약이 없었다.
+  - 공용 편집기 스타일은 이미지 크기만 일부 제한했으며, 과거 저장 HTML의 `draggable` 속성·인라인 너비와 모바일 터치 스크롤까지 정규화하지 않았다.
+- 해결:
+  - 세 상세 화면을 공용 `ReadOnlyBoardContent` 렌더러로 통합하고, 정제 단계에서 모든 본문 이미지와 감싸는 링크를 드래그 불가로 강제했다.
+  - 이미지는 본문 너비 100% 이내에서 원본 비율을 유지하고 가운데 정렬하며, `contain` 배치와 세로 스크롤·핀치 줌을 허용한다.
+  - 이미지·그림 영역에서만 기본 드래그를 차단해 일반 본문 텍스트 선택과 편집기의 의도된 이미지 이동은 유지했다.
+- 검증:
+  - 과거 인라인 1600px 이미지, 링크로 감싼 이미지, 이미지 드래그 차단, 일반 텍스트 드래그 허용을 포함한 컴포넌트 테스트 4개와 앱 테스트 1개가 통과했다.
+  - 프로덕션 빌드와 대상 ESLint(오류 0건)가 통과했다.
+  - 실제 브라우저 411×803에서 본문·이미지 너비가 모두 379px, 좌우 넘침과 중심 오차가 0px였고 이미지 위 스와이프로 스크롤 위치가 0에서 380px로 이동했다. 1280px 화면에서도 800px 본문 안에 비율 유지·가운데 정렬됐다.
+- 관련 파일:
+  - `src/pages/board/components/ReadOnlyBoardContent.tsx`
+  - `src/pages/board/components/ReadOnlyBoardContent.css`
+  - `src/pages/board/components/BoardDetailModal.tsx`
+  - `src/pages/board/components/PostDetailModal.tsx`
+  - `src/pages/board/detail/page.tsx`
+  - `src/utils/sanitizeHtml.ts`
+- 관련 커밋: pending
+
 ## 2026-08-11 관리자 알림 설정 표시·아침 Push·알림함 카드 불일치
 
 - 상태: 운영 배포 완료 (2026-08-11 03:20 KST)
