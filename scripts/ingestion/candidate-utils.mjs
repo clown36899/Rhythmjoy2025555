@@ -4,6 +4,7 @@ import {
   findSourceByUrl,
   getExcludedSourceReason,
 } from './collection-registry.mjs';
+import { getIngestionCandidateExclusionReason } from '../../server/cafe24/ingestion-candidate-policy.js';
 
 const activityLabels = {
   class: '강습',
@@ -241,8 +242,7 @@ export function isEvergreenBenefitCandidate(candidate = {}, { today = todayISO()
   }
   const validityEndDate = extractBenefitValidityEndDate(text, { today });
   if (validityEndDate && validityEndDate < today) return false;
-  // 정기권/다회권은 하루짜리 과거 이벤트가 아니라 반복 이용 상품이다.
-  // 판매 종료나 이용 기간 종료가 명시되지 않은 한 게시일이나 사용 시작일만으로 버리지 않는다.
+  // 여기서는 상품 성격만 분류한다. 실제 수집 가능 여부는 공통 미래 날짜 정책에서 별도로 판정한다.
   if (benefitKind === 'season_pass') return true;
   if (benefitKind === 'discount_event') {
     return /상시\s*(?:할인|특가|혜택|적용)|연중\s*(?:할인|혜택)|언제든\s*(?:할인|적용)|(?:현재\s*)?(?:할인|프로모션)\s*(?:중|적용\s*중|진행\s*중)|(?:회원|정기권)\s*상시\s*할인/i.test(text);
@@ -713,8 +713,18 @@ function looksLikeLowQualityAutoTitle(candidate) {
   if (/^[^\p{L}\p{N}가-힣]*(?:파티|행사|이벤트|party|event)[^\p{L}\p{N}가-힣]*$/iu.test(title)) return true;
   if (/^[^\p{L}\p{N}가-힣]*(?:강습\s*)?(?:기간|일정|링크)\s*[:：]/iu.test(title)) return true;
   if (/^[^\p{L}\p{N}가-힣]*일정\s*[:：].*(?:매주|주간|주\s*[회차]|~|～)/iu.test(title)) return true;
-  if (/(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title)) return true;
+  if (/^(?:바로\s*)?이어지는.{0,40}(?:소셜|행사)/i.test(title)) return true;
+  if (/(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다|즐겨?\s*보세요|활용해\s*보세요)\s*[.!。]*$/i.test(title)) return true;
   return false;
+}
+
+function hasConcreteSocialOperatingEvidence(candidate) {
+  const sd = candidate.structured_data || {};
+  const djs = Array.isArray(sd.djs) ? sd.djs.map((value) => String(value || '').trim()).filter(Boolean) : [];
+  if (djs.length > 0) return true;
+
+  const text = textOf(candidate);
+  return /(?:입장료|참가비|커버\s*차지|커버비|도어\s*오픈|오픈\s*시간|운영\s*시간|\d{1,2}\s*[:시]\s*\d{0,2}\s*(?:분)?\s*(?:부터|~|～|-)|\d[\d,]*\s*원|라이브\s*(?:밴드|연주)|밀롱가|프랙티카)/i.test(text);
 }
 
 const naverCafeChromeRe = /말머리|공지사항|필독|작성자|조회수?|댓글|목록|URL\s*복사|인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|채팅|좋아요|신고|게시글|멤버\s*리스트/i;
@@ -1009,7 +1019,6 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   const retiredSourceIdentity = `${candidate.source_id || ''} ${candidate.keyword || ''} ${sd.title || ''}`;
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
   const blockedKeywordReason = getBlockedKeywordReason(text);
-  const isEvergreenSeasonPass = sd.ongoing_sale === true && isEvergreenBenefitCandidate(candidate, { today });
   const benefitValidityEndDate = sd.benefit_eligible === true
     ? extractBenefitValidityEndDate(text, { today })
     : '';
@@ -1020,11 +1029,12 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
     errors.push('운영 종료 소스 제외: 스윙패밀리');
   }
   if (blockedKeywordReason) errors.push(blockedKeywordReason);
+  const policyExclusionReason = getIngestionCandidateExclusionReason(candidate, { today });
+  if (policyExclusionReason) errors.push(policyExclusionReason);
   if (benefitValidityEndDate && benefitValidityEndDate < today) {
     errors.push(`expired benefit validity: ${benefitValidityEndDate} < ${today}`);
   }
   if (!date) errors.push('structured_data.date required');
-  if (date && date < today && !isEvergreenSeasonPass) errors.push(`past event date: ${date} < ${today}`);
   const statedDay = String(sd.day || '').slice(0, 1) || explicitWeekdayForCandidateDate(text, date);
   if (date && statedDay && statedDay !== weekdayLabelForDate(date)) {
     errors.push(`event weekday mismatch: ${date} is ${weekdayLabelForDate(date)}, not ${statedDay}`);
@@ -1107,19 +1117,11 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (explicitActivity === 'social' && /(?:창립|오픈|개장)?\s*\d+\s*주년.{0,20}(?:파티|행사)|(?:파티|행사).{0,20}\d+\s*주년/i.test(text)) {
     errors.push('anniversary event is misclassified as a regular social');
   }
-  const isImageOptionalCandidate = taxonomy.activity_type === 'social'
-    || sd.benefit_eligible === true;
-  if (!candidate.poster_url && !candidate.imageData && !isImageOptionalCandidate) {
+  if (!candidate.poster_url && !candidate.imageData) {
     errors.push('poster_url or imageData required');
   }
-  if (!candidate.poster_url && !candidate.imageData && isImageOptionalCandidate) {
-    warnings.push('social or benefit candidate collected without an image; admin image review recommended');
-  }
-  if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url) && !isImageOptionalCandidate) {
+  if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) {
     errors.push('poster_url looks cropped or thumbnail-sized');
-  }
-  if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url) && isImageOptionalCandidate) {
-    warnings.push('social or benefit candidate has only a thumbnail image; admin image review recommended');
   }
   if (scopeExcludedReason) errors.push(scopeExcludedReason);
   if (looksLikeMixedArtOrCommercialPerformance(text, taxonomy)) {
@@ -1144,8 +1146,8 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (source?.requiredEventPattern instanceof RegExp && !source.requiredEventPattern.test(text)) {
     errors.push('source post is not the required event series');
   }
-  if (taxonomy.activity_type === 'social' && !Array.isArray(sd.djs) && !/\bdj\b|디제이|밀롱가|프랙티카|소셜|social/i.test(text)) {
-    warnings.push('social candidate lacks visible DJ or concrete social context');
+  if (taxonomy.activity_type === 'social' && !hasConcreteSocialOperatingEvidence(candidate)) {
+    errors.push('social candidate requires a DJ or concrete operating evidence');
   }
 
   return {
@@ -1157,6 +1159,52 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
     normalizedSourceUrl: sourceUrl,
     date,
   };
+}
+
+function socialVariantBaseTitle(candidate) {
+  return normalizeText(titleOf(candidate).replace(/\s+(?:DJ|디제이)\s+.+$/i, ''));
+}
+
+function socialVariantDjs(candidate) {
+  return [...new Set((candidate?.structured_data?.djs || [])
+    .map((value) => normalizeText(value))
+    .filter(Boolean))];
+}
+
+export function collapseSocialCandidateVariants(candidates = []) {
+  const grouped = new Map();
+  const output = [];
+
+  for (const candidate of candidates) {
+    const taxonomy = inferCandidateTaxonomy(candidate);
+    if (taxonomy.activity_type !== 'social') {
+      output.push(candidate);
+      continue;
+    }
+
+    const sd = candidate.structured_data || {};
+    const key = [
+      normalizeSourceUrl(candidate.source_url),
+      String(sd.date || candidate.date || '').slice(0, 10),
+      normalizeText(sd.venue_name || sd.location || ''),
+      socialVariantBaseTitle(candidate),
+    ].join('|');
+    const existingIndex = grouped.get(key);
+    if (existingIndex === undefined) {
+      grouped.set(key, output.length);
+      output.push(candidate);
+      continue;
+    }
+
+    const existing = output[existingIndex];
+    const existingDjs = socialVariantDjs(existing);
+    const candidateDjs = socialVariantDjs(candidate);
+    const candidateIsRicher = candidateDjs.length > existingDjs.length
+      && existingDjs.every((dj) => candidateDjs.includes(dj));
+    if (candidateIsRicher) output[existingIndex] = candidate;
+  }
+
+  return output;
 }
 
 export function prepareCandidate(rawCandidate, config = {}) {

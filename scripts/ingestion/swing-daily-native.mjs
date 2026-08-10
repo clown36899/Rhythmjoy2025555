@@ -4,6 +4,7 @@ import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
+  collapseSocialCandidateVariants,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
   extractNeoWeeklyClosureDates,
@@ -32,6 +33,14 @@ import {
   mergeBenefitSearchTargets,
 } from './benefit-search-utils.mjs';
 import { adjudicateCandidateWithAi, reviewBenefitCandidateWithAi } from './ai-candidate-adjudicator.mjs';
+import {
+  buildIngestionProgressState,
+  catchupInstagramPostLimit,
+  loadIngestionProgress,
+  progressFileForPriority,
+  reorderSourcesForResume,
+  saveIngestionProgress,
+} from './ingestion-progress.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -75,7 +84,7 @@ const sourceTypes = (process.env.INGESTION_NATIVE_SOURCE_TYPES || '')
 const sourceBatchTotal = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_TOTAL || 0));
 const sourceBatchIndex = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_INDEX || 0));
 const postLimit = Number(process.env.INGESTION_NATIVE_POST_LIMIT || 4);
-const instagramSourcePostLimit = Number(process.env.INGESTION_NATIVE_INSTAGRAM_POST_LIMIT || 2);
+let instagramSourcePostLimit = Number(process.env.INGESTION_NATIVE_INSTAGRAM_POST_LIMIT || 2);
 const naverSourcePostLimit = Number(process.env.INGESTION_NATIVE_NAVER_POST_LIMIT || 3);
 const daumSourcePostLimit = Number(process.env.INGESTION_NATIVE_DAUM_POST_LIMIT || 3);
 const littlySourceCardLimit = Number(process.env.INGESTION_NATIVE_LITTLY_CARD_LIMIT || 6);
@@ -325,7 +334,8 @@ function looksLikeCaptionFragmentTitle(value = '') {
     || /^(?:잊지\s*말고|일찍\s*오셔서|아직|여러분|문의|연락처|신청은|프로필\s*링크)/i.test(title)
     || /^[^\p{L}\p{N}가-힣]*(?:강습\s*)?(?:기간|일정|링크)\s*[:：]/iu.test(title)
     || /^[^\p{L}\p{N}가-힣]*일정\s*[:：].*(?:매주|주간|주\s*[회차]|~|～)/iu.test(title)
-    || /(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다)\s*[.!。]*$/i.test(title);
+    || /^(?:바로\s*)?이어지는.{0,40}(?:소셜|행사)/i.test(title)
+    || /(?:만나요|확인해\s*주세요|부탁드립니다|감사합니다|즐겨?\s*보세요|활용해\s*보세요)\s*[.!。]*$/i.test(title);
 }
 
 function makeCandidateTitle({ source, rawTitle, rawText = '', cleanText, eventType, djs = [] }) {
@@ -2014,7 +2024,7 @@ async function buildCandidatesFromText({
     }, { today });
   if (
     source.type === 'benefit_search'
-    && isStaleBenefitSourcePost({ publishedAt, today, evergreen: isEvergreenSeasonPass })
+    && isStaleBenefitSourcePost({ publishedAt, today })
   ) {
     result.skipped += 1;
     log(`skip ${source.id}: stale source post ${String(publishedAt).slice(0, 10)}`);
@@ -2055,7 +2065,7 @@ async function buildCandidatesFromText({
   };
 
   for (const [index, date] of dates.entries()) {
-    if (!isEvergreenSeasonPass && !isCollectableDate(date, { today })) {
+    if (!isCollectableDate(date, { today })) {
       result.skipped += 1;
       log(`skip ${source.id} ${date}: event date is already past`);
       continue;
@@ -2541,7 +2551,7 @@ async function main() {
     throw new Error(`unsupported native collector profile: ${profile}`);
   }
 
-  const sources = getAutomationSourceList(profile)
+  let sources = getAutomationSourceList(profile)
     .filter((source) => profile === 'expanded-research' || source.saveEnabled)
     .filter((source) => sourcePriorities.length === 0 || sourcePriorities.includes(Number(source.priority)))
     .filter((source) => sourceTypes.length === 0 || sourceTypes.includes(source.type))
@@ -2551,6 +2561,37 @@ async function main() {
       || a.name.localeCompare(b.name, 'ko'))
     .filter((source, index) => sourceBatchTotal > 1 ? index % sourceBatchTotal === sourceBatchIndex : true)
     .slice(0, sourceLimit > 0 ? sourceLimit : undefined);
+
+  const progressEnabled = profile === 'swing-daily'
+    && sourcePriorities.length === 1
+    && sourceIds.length === 0
+    && sourceBatchTotal <= 1
+    && sourceLimit <= 0
+    && !dryRun;
+  const progressFile = progressEnabled
+    ? progressFileForPriority(sourcePriorities[0], process.env.INGESTION_PROGRESS_STATE_DIR || '')
+    : '';
+  const progressState = progressEnabled
+    ? await loadIngestionProgress(progressFile)
+    : { remainingSources: [], lastCompletedAt: '', updatedAt: '' };
+  if (progressEnabled) {
+    sources = reorderSourcesForResume(sources, progressState.remainingSources);
+    instagramSourcePostLimit = catchupInstagramPostLimit(instagramSourcePostLimit, progressState.lastCompletedAt);
+    await saveIngestionProgress(progressFile, buildIngestionProgressState({
+      remainingSources: sources.map((source) => source.id),
+      lastCompletedAt: progressState.lastCompletedAt,
+    }));
+    log(`resume state=${progressFile} prior_remaining=${progressState.remainingSources.length} instagram_post_limit=${instagramSourcePostLimit}`);
+  }
+
+  const checkpointProgress = async (remainingSources, completed = false) => {
+    if (!progressEnabled) return;
+    await saveIngestionProgress(progressFile, buildIngestionProgressState({
+      remainingSources,
+      lastCompletedAt: progressState.lastCompletedAt,
+      completed,
+    }));
+  };
 
   log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
@@ -2569,6 +2610,7 @@ async function main() {
       if (excluded) {
         result.skipped += 1;
         log(`excluded source ${source.id}: ${excluded}`);
+        await checkpointProgress(sources.slice(sourceIndex + 1).map((item) => item.id));
         continue;
       }
 
@@ -2579,7 +2621,8 @@ async function main() {
       page.setDefaultNavigationTimeout(18000);
       try {
         const candidates = await collectSource(page, source);
-        const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
+        const mergedSocialVariants = collapseSocialCandidateVariants(candidates);
+        const deduped = [...new Map(mergedSocialVariants.map((candidate) => [candidate.id, candidate])).values()];
         for (const candidate of deduped) {
           ensureRunBudgetOrThrow(`post candidate ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
 
@@ -2618,10 +2661,14 @@ async function main() {
       }
 
       if (result.deadlineReached) break;
+      await checkpointProgress(sources.slice(sourceIndex + 1).map((item) => item.id));
     }
   } finally {
     await settleWithin(browserSession.close(), 2_000);
   }
+
+  const partialRun = result.deadlineReached || result.remainingSources.length > 0;
+  await checkpointProgress(partialRun ? result.remainingSources : [], !partialRun);
 
   printSummary();
 }
@@ -2672,7 +2719,7 @@ async function flushAndExit(code) {
 
 main()
   .then(async () => {
-    await flushAndExit(0);
+    await flushAndExit(result.deadlineReached || result.remainingSources.length ? 75 : 0);
   })
   .catch(async (error) => {
     result.issues.push(error.message);

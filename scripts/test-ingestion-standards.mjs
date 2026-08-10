@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
+  collapseSocialCandidateVariants,
   extractBenefitValidityEndDate,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
@@ -43,8 +44,27 @@ import {
   shouldHidePastCandidate,
   sortDateExpansionInputs,
 } from '../server/cafe24/ingestion-date-expansion.js';
+import {
+  getIngestionCandidateExclusionReason,
+  isVenueRentalAvailabilityNotice,
+} from '../server/cafe24/ingestion-candidate-policy.js';
+import {
+  buildIngestionProgressState,
+  catchupInstagramPostLimit,
+  reorderSourcesForResume,
+} from './ingestion/ingestion-progress.mjs';
 
 const TODAY = '2026-05-23';
+
+assert.deepEqual(
+  reorderSourcesForResume([{ id: 'done' }, { id: 'remaining-b' }, { id: 'remaining-a' }], ['remaining-a', 'remaining-b']).map((source) => source.id),
+  ['remaining-a', 'remaining-b', 'done'],
+  'an interrupted priority run must resume its recorded sources first',
+);
+assert.equal(catchupInstagramPostLimit(2, '', new Date('2026-08-10T00:00:00Z')), 4, 'a missing completion state must widen the Instagram catch-up window');
+assert.equal(catchupInstagramPostLimit(2, '2026-08-07T00:00:00Z', new Date('2026-08-10T00:00:00Z')), 6, 'three days of downtime must widen the catch-up window deterministically');
+assert.equal(catchupInstagramPostLimit(2, '2026-08-09T00:00:00Z', new Date('2026-08-10T00:00:00Z')), 2, 'a current schedule keeps its normal post window');
+assert.equal(buildIngestionProgressState({ remainingSources: [], completed: true, now: new Date('2026-08-10T00:00:00Z') }).lastCompletedAt, '2026-08-10T00:00:00.000Z');
 
 assert.equal(
   stripRepeatedDjContext('안토니 스윙타운 DJ 안토니 20'),
@@ -369,8 +389,8 @@ const imageOptionalDiscount = prepareCandidate({
     activity_type: 'event',
   },
 }, { today: TODAY });
-assert.equal(imageOptionalDiscount.validation.ok, true, 'confirmed discount candidates may be collected without an image');
-assert.match(imageOptionalDiscount.validation.warnings.join(' '), /without an image/, 'image-less discounts should keep an admin review warning');
+assert.equal(imageOptionalDiscount.validation.ok, false, 'confirmed discount candidates require an image before collection');
+assert.match(imageOptionalDiscount.validation.errors.join(' '), /poster_url or imageData required/, 'image-less discounts must fail closed');
 const imageOptionalSocial = prepareCandidate(baseCandidate({
   poster_url: '',
   imageData: '',
@@ -383,7 +403,7 @@ const imageOptionalSocial = prepareCandidate(baseCandidate({
     djs: ['DJ Test'],
   },
 }), { today: TODAY });
-assert.equal(imageOptionalSocial.validation.ok, true, 'social candidates may be collected without an image');
+assert.equal(imageOptionalSocial.validation.ok, false, 'social candidates require an image before collection');
 const imageOptionalFreeBenefit = prepareCandidate(baseCandidate({
   poster_url: '',
   imageData: '',
@@ -396,7 +416,7 @@ const imageOptionalFreeBenefit = prepareCandidate(baseCandidate({
     activity_type: 'class',
   },
 }), { today: TODAY });
-assert.equal(imageOptionalFreeBenefit.validation.ok, true, 'all confirmed benefit candidates may be collected without an image');
+assert.equal(imageOptionalFreeBenefit.validation.ok, false, 'free benefit candidates require an image before collection');
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
   { benefit_eligible: false, benefit_kind: null },
@@ -520,8 +540,8 @@ assert.equal(
       ongoing_sale: true,
     },
   }, { today: '2026-07-26', tab: 'free' }),
-  false,
-  'verified ongoing benefit sales must remain visible in the benefit list after the source post date',
+  true,
+  'past ongoing benefit posts must not remain visible in the current benefit list',
 );
 assert.equal(
   shouldHidePastCandidate({
@@ -534,6 +554,18 @@ assert.equal(
   }, { today: '2026-07-26', tab: 'free' }),
   true,
   'expired date-bound benefits must not remain in the current benefit tab',
+);
+assert.equal(
+  shouldHidePastCandidate({
+    structured_data: {
+      date: '2026-07-25',
+      benefit_eligible: true,
+      benefit_kind: 'discount_event',
+    },
+    manual_recovery_until: '2026-07-30',
+  }, { today: '2026-07-26', tab: 'free' }),
+  true,
+  'manual recovery must not reopen a past benefit in the current benefit tab',
 );
 assert.equal(
   normalizeDateExpansionUrl('https://cafe.naver.com/f-e/cafes/10342583/articles/156900?boardtype=L&menuid=13&referrerAllArticles=false'),
@@ -704,8 +736,8 @@ assert.equal(
     today: '2026-07-27',
     evergreen: true,
   }),
-  false,
-  'verified ongoing pass sales may use an older source post',
+  true,
+  'evergreen metadata must not bypass stale benefit-source checks',
 );
 assert.equal(seasonPassSale.candidate.structured_data.category, 'event');
 assert.ok(seasonPassSale.validation.taxonomy.tags.includes('sale_event'), 'sale events should keep sale_event tag internally');
@@ -736,9 +768,9 @@ const imageFreeSocialSeasonPassSale = prepareCandidate(baseCandidate({
     location: '스윙타임',
   },
 }), { today: '2026-06-30' });
-assert.equal(imageFreeSocialSeasonPassSale.validation.ok, true, 'a text-grounded season pass must remain collectable without an image');
+assert.equal(imageFreeSocialSeasonPassSale.validation.ok, false, 'a season pass without an image must not enter the review queue');
 assert.equal(imageFreeSocialSeasonPassSale.candidate.structured_data.benefit_kind, 'season_pass');
-assert.ok(imageFreeSocialSeasonPassSale.validation.warnings.some((warning) => /without an image/i.test(warning)), 'image-free pass candidates should remain visible with an admin-review warning');
+assert.ok(imageFreeSocialSeasonPassSale.validation.errors.some((error) => /poster_url or imageData required/i.test(error)), 'image-free pass candidates must fail closed');
 
 const evergreenSeasonPass = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/swingbar/p/OLDPASS/',
@@ -751,7 +783,12 @@ const evergreenSeasonPass = prepareCandidate(baseCandidate({
   },
 }), { today: TODAY });
 assert.equal(isEvergreenSeasonPassCandidate(evergreenSeasonPass.candidate), true, 'ongoing season-pass sales should be recognized independently of post age');
-assert.equal(evergreenSeasonPass.validation.ok, true, 'an old post for an ongoing season-pass sale should remain collectable');
+assert.equal(evergreenSeasonPass.validation.ok, false, 'an old ongoing season-pass post must not bypass the future-only collection rule');
+assert.equal(
+  getIngestionCandidateExclusionReason(evergreenSeasonPass.candidate, { today: TODAY }),
+  `past event date: 2024-01-10 < ${TODAY}`,
+  'the shared server ingestion gate must reject the same past ongoing benefit',
+);
 assert.equal(evergreenSeasonPass.candidate.structured_data.date, '2024-01-10', 'ongoing sales should preserve the original post date for chronological review');
 assert.equal(evergreenSeasonPass.candidate.structured_data.source_post_date, '2024-01-10', 'the original old post date should remain available for review');
 assert.equal(evergreenSeasonPass.candidate.structured_data.ongoing_sale, true, 'ongoing sale metadata should be explicit');
@@ -818,7 +855,7 @@ const currentDatedPassProduct = prepareCandidate(baseCandidate({
   },
 }), { today: '2026-08-03' });
 assert.equal(extractBenefitValidityEndDate(currentDatedPassProduct.candidate.extracted_text, { today: '2026-08-03' }), '2026-09-30');
-assert.equal(currentDatedPassProduct.validation.ok, true, 'a currently valid pass found in newest results must remain collectable');
+assert.equal(currentDatedPassProduct.validation.ok, false, 'a pass with a past candidate date must not be collected even while its validity window remains open');
 assert.equal(currentDatedPassProduct.candidate.structured_data.ongoing_sale, true);
 
 const evergreenDiscount = prepareCandidate(baseCandidate({
@@ -834,7 +871,7 @@ const evergreenDiscount = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(evergreenDiscount.candidate.structured_data.benefit_kind, 'discount_event');
 assert.equal(evergreenDiscount.candidate.structured_data.benefit_lifecycle, 'evergreen');
-assert.equal(evergreenDiscount.validation.ok, true, 'explicit ongoing discounts should remain visible after the post date');
+assert.equal(evergreenDiscount.validation.ok, false, 'explicit ongoing discounts must not bypass the future-only collection rule');
 
 const datedDiscount = prepareCandidate(baseCandidate({
   source_url: 'https://www.instagram.com/swingbar/p/EARLYBIRD/',
@@ -969,7 +1006,7 @@ const explicitSocialMisclassifiedAsEvent = prepareCandidate(baseCandidate({
     activity_type: 'event',
   },
 }), { today: TODAY });
-assert.equal(explicitSocialMisclassifiedAsEvent.validation.ok, true);
+assert.equal(explicitSocialMisclassifiedAsEvent.validation.ok, false, 'social classification alone is insufficient without a DJ or operating detail');
 assert.equal(explicitSocialMisclassifiedAsEvent.validation.taxonomy.activity_type, 'social');
 
 const soloJazzSeasonMisclassifiedAsRecruit = prepareCandidate(baseCandidate({
@@ -1198,7 +1235,7 @@ const autoReadySwingtimeWithoutImage = evaluateAutoRegistrationReadiness(baseCan
     djs: ['훔머'],
   },
 }), { today: TODAY });
-assert.equal(autoReadySwingtimeWithoutImage.ready, true);
+assert.equal(autoReadySwingtimeWithoutImage.ready, false, 'auto-registration must fail closed when no source image was captured');
 
 const autoBlockedGenericParty = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://www.instagram.com/kyungsunghall/p/GENERIC1/',
@@ -1377,9 +1414,67 @@ assert.equal(validateCandidate(baseCandidate({
   poster_url: 'https://cdn.example.com/post/p240x240/photo.jpg',
   extracted_text: '2026년 6월 5일 무료 린디합 체험 강습',
   structured_data: { title: '무료 린디합 체험 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class', benefit_eligible: true, benefit_kind: 'free_event' },
-}), { today: TODAY }).ok, true, 'benefit candidates should not be rejected only because the available image is a thumbnail');
+}), { today: TODAY }).ok, false, 'benefit candidates must reject thumbnail-only images');
+
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: '2026년 6월 5일 경성홀 토요 소셜에서 함께 즐겨보세요',
+  structured_data: { title: '경성홀 토요 소셜', date: '2026-06-05', location: '경성홀', event_type: '소셜', activity_type: 'social', djs: [] },
+}), { today: TODAY }).ok, false, 'a generic social mention without a DJ or operating detail must be rejected');
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: '2026년 6월 5일 경성홀 토요 소셜 입장료 10,000원',
+  structured_data: { title: '경성홀 토요 소셜', date: '2026-06-05', location: '경성홀', event_type: '소셜', activity_type: 'social', djs: [] },
+}), { today: TODAY }).ok, true, 'concrete operating evidence may ground a social without a named DJ');
+assert.equal(validateCandidate(baseCandidate({
+  extracted_text: '2026년 6월 5일 경성홀 강습 후 토요 소셜',
+  structured_data: { title: '바로 이어지는 토요 소셜에서 직접 즐기고 활용해보세요.', date: '2026-06-05', location: '경성홀', event_type: '소셜', activity_type: 'social', djs: ['DJ Test'] },
+}), { today: TODAY }).ok, false, 'instructional caption fragments must not become social titles');
+
+const collapsedSocialVariants = collapseSocialCandidateVariants([
+  baseCandidate({
+    id: 'social-subset',
+    structured_data: { title: '스윙타임 토요 소셜 DJ 비비비', date: '2026-06-06', location: '스윙타임', event_type: '소셜', activity_type: 'social', djs: ['비비비'] },
+  }),
+  baseCandidate({
+    id: 'social-superset',
+    structured_data: { title: '스윙타임 토요 소셜 DJ 비비비, 메이져', date: '2026-06-06', location: '스윙타임', event_type: '소셜', activity_type: 'social', djs: ['비비비', '메이져'] },
+  }),
+]);
+assert.deepEqual(collapsedSocialVariants.map((candidate) => candidate.id), ['social-superset'], 'same-source social DJ subsets must collapse to the richer schedule row');
 
 assert.equal(validateCandidate(baseCandidate({ structured_data: { title: '과거 이벤트', date: '2026-05-01' } }), { today: TODAY }).ok, false);
+const rentalAvailabilityNotice = baseCandidate({
+  source_url: 'https://www.instagram.com/kyungsunghall/p/Damg6VxktkS',
+  extracted_text: '경성홀 8월 대관 가능일정 안내입니다. 빈 날짜는 DM으로 문의해 주세요.',
+  structured_data: {
+    title: '경성홀 8월 대관 가능일정',
+    date: '2026-06-05',
+    location: '경성홀',
+    activity_type: 'event',
+  },
+});
+assert.equal(isVenueRentalAvailabilityNotice(rentalAvailabilityNotice), true, 'venue rental availability schedules are non-event notices');
+assert.equal(
+  getIngestionCandidateExclusionReason(rentalAvailabilityNotice, { today: TODAY }),
+  'non-event venue rental availability notice',
+  'the shared server gate must reject the reported Kyungsung Hall rental post',
+);
+assert.equal(
+  validateCandidate(rentalAvailabilityNotice, { today: TODAY }).ok,
+  false,
+  'rental availability notices must not enter any ingestion profile',
+);
+const reservableDanceEvent = baseCandidate({
+  extracted_text: '2026년 6월 5일 경성홀 린디합 원데이 클래스, 사전 예약 가능',
+  structured_data: {
+    title: '경성홀 린디합 원데이 클래스',
+    date: '2026-06-05',
+    location: '경성홀',
+    event_type: '강습',
+    activity_type: 'class',
+  },
+});
+assert.equal(isVenueRentalAvailabilityNotice(reservableDanceEvent), false, 'ordinary dance-event reservations must not be mistaken for venue rental availability');
+assert.equal(validateCandidate(reservableDanceEvent, { today: TODAY }).ok, true, 'a future reservable dance event must remain collectable');
 assert.equal(validateCandidate(baseCandidate({
   poster_url: '',
   extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',

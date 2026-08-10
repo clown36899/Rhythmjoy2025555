@@ -6,6 +6,8 @@
     <string>com.rhythmjoy.codex-ingestion-priority2</string>
     <key>ProgramArguments</key>
     <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-dimsu</string>
         <string>/bin/bash</string>
         <string>/Users/inteyeo/scripts/run-ingestion.sh</string>
     </array>
@@ -33,7 +35,7 @@
         <key>INGESTION_NATIVE_RUN_BUDGET_MS</key>
         <string>1200000</string>
         <key>INGESTION_NATIVE_INSTAGRAM_POST_LIMIT</key>
-        <string>1</string>
+        <string>2</string>
     </dict>
 </dict>
 </plist>

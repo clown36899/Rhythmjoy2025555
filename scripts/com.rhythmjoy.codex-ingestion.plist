@@ -6,6 +6,8 @@
     <string>com.rhythmjoy.codex-ingestion</string>
     <key>ProgramArguments</key>
     <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-dimsu</string>
         <string>/bin/bash</string>
         <string>/Users/inteyeo/scripts/run-ingestion.sh</string>
     </array>

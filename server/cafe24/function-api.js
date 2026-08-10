@@ -20,6 +20,10 @@ import {
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
 import { findGeneratedRegularSocialReplacements } from './regular-social-reconciler.js';
+import {
+  getIngestionCandidateExclusionReason,
+  isVenueRentalAvailabilityNotice,
+} from './ingestion-candidate-policy.js';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -338,6 +342,7 @@ function filterScrapedRows(rows, req) {
     if (type === 'social' && String(sd.activity_type || row.activity_type || '').toLowerCase() === 'class') return false;
 
     if (shouldHidePastCandidate(row, { today, tab })) return false;
+    if (tab !== 'collected' && isVenueRentalAvailabilityNotice(row)) return false;
 
     if (tab === 'collected') {
       return (row.is_collected === true || row.status === 'collected')
@@ -647,6 +652,14 @@ async function ingestScrapedItems(values) {
   const skipped = [];
 
   for (const value of sortDateExpansionInputs(values)) {
+    const policyExclusionReason = getIngestionCandidateExclusionReason(value, { today: kstToday() });
+    if (policyExclusionReason) {
+      skipped.push({
+        id: String(value?.id || ''),
+        reason: policyExclusionReason,
+      });
+      continue;
+    }
     const row = await prepareScrapedItem(value);
     const existingSameId = scrapedRows.find((item) => String(item?.id || '') === String(row.id));
     const reprocessCollectedAutomatic = existingSameId
