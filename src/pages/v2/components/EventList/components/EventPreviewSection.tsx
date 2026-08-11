@@ -43,6 +43,7 @@ interface EventPreviewSectionProps {
     clubRegularClasses: Event[];
     newlyRegisteredEvents: Event[]; // 👈 신규 등록 이벤트 (24시간)
     homeAdCandidateEvents: Event[];
+    homeAdMaxItems: number;
     favoriteEventsList: Event[];
     // events: Event[]; // Removed for BillboardSection
 
@@ -66,6 +67,7 @@ interface HomeNewEventsDesktopSplitProps {
     onEventClick: (event: Event) => void;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
+    maxItems: number;
 }
 
 type HomeAdDanceScope = (typeof calendarDanceScopeOptions)[number]["key"];
@@ -187,6 +189,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     onEventClick,
     defaultThumbnailClass,
     defaultThumbnailEvent,
+    maxItems,
 }) => {
     const { isAdmin } = useAuth();
     const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
@@ -227,8 +230,12 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                 selectedScopeAdEvents,
                 mergeUniqueEvents(visibleEvents, visibleFallbackEvents).filter((event) => getHomeAdEventScope(event) !== preferredScope),
             ));
-        return nextEvents.slice(0, NEB_MAX_ITEMS);
-    }, [preferredScope, selectedScopeAdEvents, visibleEvents, visibleFallbackEvents]);
+        return nextEvents.slice(0, Math.min(maxItems, NEB_MAX_ITEMS));
+    }, [maxItems, preferredScope, selectedScopeAdEvents, visibleEvents, visibleFallbackEvents]);
+    const lowPriorityEventIds = useMemo(
+        () => new Set(visibleFallbackEvents.map((event) => event.id)),
+        [visibleFallbackEvents],
+    );
     const isFallbackMixed = selectedScopeAdEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeAdEvents.length;
     const [activeIndex, setActiveIndex] = useState(0);
     const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
@@ -296,6 +303,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         currentIndex={safeActiveIndex}
                         onCurrentIndexChange={setActiveIndex}
+                        lowPriorityEventIds={lowPriorityEventIds}
                         todaySchedules={todaySchedules}
                     />
                 </div>
@@ -330,6 +338,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     clubRegularClasses,
     newlyRegisteredEvents,
     homeAdCandidateEvents,
+    homeAdMaxItems,
     favoriteEventsList,
     // events, // Removed
     onEventClick,
@@ -354,6 +363,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
                     fallbackEvents={homeAdCandidateEvents}
+                    maxItems={homeAdMaxItems}
                     todaySchedules={todayCalendarSchedules}
                     onEventClick={onEventClick}
                     defaultThumbnailClass={defaultThumbnailClass}

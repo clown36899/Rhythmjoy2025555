@@ -172,6 +172,7 @@ async function main() {
         date,
         dryRun,
         cleanup: !args['leave-ready'],
+        forceRecovery: Boolean(args['force-recovery']),
       },
       publicationStatePath,
     );

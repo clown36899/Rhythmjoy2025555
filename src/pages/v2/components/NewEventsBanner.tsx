@@ -14,6 +14,7 @@ import {
     getTodayScheduleWeekdayLabel,
     shouldShowTodaySchedulePlaceLine,
 } from './EventList/utils/todayScheduleDisplay';
+import { getNextHomeAdAutoIndex } from './EventList/utils/homeAdPriority';
 
 type EdgeTone = 'dark' | 'light';
 type SocialAdImageKind = 'photo' | 'poster' | 'unknown';
@@ -75,6 +76,7 @@ const getMainAdPreviewImage = (
     getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
 
 const DEFAULT_NEB_TODAY_SCHEDULES = 3;
+const EMPTY_LOW_PRIORITY_EVENT_IDS = new Set<number | string>();
 
 const getTodayMonthDayLabel = () => {
     const today = new Date();
@@ -370,6 +372,7 @@ interface NewEventsBannerProps {
     currentIndex?: number;
     onCurrentIndexChange?: (index: number) => void;
     todaySchedules?: SocialSchedule[];
+    lowPriorityEventIds?: ReadonlySet<number | string>;
 }
 
 export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
@@ -380,6 +383,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     currentIndex: controlledCurrentIndex,
     onCurrentIndexChange,
     todaySchedules = [],
+    lowPriorityEventIds = EMPTY_LOW_PRIORITY_EVENT_IDS,
 }) => {
     const { openModal } = useModalContext();
     const navigate = useNavigate();
@@ -412,6 +416,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const slideMotionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const oneDayRecruitPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const autoRotationStepRef = React.useRef(0);
     const todayScheduleListRef = React.useRef<HTMLDivElement | null>(null);
     const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
     const pendingSocialImageKindUrlsRef = React.useRef<Set<string>>(new Set());
@@ -578,17 +583,30 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         setTouchEnd(null);
     };
 
-    // 자동 슬라이드 (8초마다)
+    const eventRotationKey = useMemo(
+        () => events.map((event) => `${event.id}:${lowPriorityEventIds.has(event.id) ? 'low' : 'regular'}`).join('|'),
+        [events, lowPriorityEventIds],
+    );
+    useEffect(() => {
+        autoRotationStepRef.current = 0;
+    }, [eventRotationKey]);
+
+    // 자동 슬라이드 (8초마다). 지난 일정 보충 카드는 8회 중 1회만 전면에 노출한다.
     useEffect(() => {
         if (events.length <= 1 || isPaused || isManualPaused) return;
 
         const interval = setInterval(() => {
+            autoRotationStepRef.current += 1;
             markSlideMotion('forward');
-            setCurrentIndex((prev) => (prev - 1 + events.length) % events.length);
+            setCurrentIndex(getNextHomeAdAutoIndex(
+                events,
+                lowPriorityEventIds,
+                autoRotationStepRef.current,
+            ));
         }, 8000);
 
         return () => clearInterval(interval);
-    }, [events.length, isPaused, isManualPaused, markSlideMotion, setCurrentIndex]);
+    }, [events, isPaused, isManualPaused, lowPriorityEventIds, markSlideMotion, setCurrentIndex]);
 
     const goToSlide = useCallback((index: number) => {
         triggerManualPause();
@@ -764,11 +782,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         if (!currentEvent) return;
         requestGoogleTranslateRefresh();
     }, [currentEvent]);
-
-    if (events.length === 0) return null;
-
-    // PWA 재개 시 refetch 중 currentEvent가 undefined일 수 있음
-    if (!currentEvent) return null;
 
     const hasMultipleEvents = events.length > 1;
     const visibleTodaySchedules = todaySchedules;
@@ -1196,6 +1209,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         };
     };
 
+    // PWA 재개 시 refetch 중 currentEvent가 undefined일 수 있음. 모든 Hook 호출 뒤에
+    // 반환해야 렌더 사이의 Hook 순서가 바뀌지 않는다.
+    if (events.length === 0 || !currentEvent) return null;
+
     return (
         <>
             <div
@@ -1531,8 +1548,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         <div className="neb-modal" onClick={e => e.stopPropagation()}>
                             <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
                             <div className="neb-modal-content">
-                                <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.<br />72시간 내 신규 이벤트가 없을 경우 최근 등록 15개가 표시됩니다.</p>
-                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 라이브밴드 파티는 기간 제한 없이 계속 노출됩니다.</p>
+                                <p className="neb-highlight">오늘 일정 중 한 건이 진입할 때마다 먼저 선택됩니다.<br />이후 최근 등록 일정, 시작일이 가까운 일정 순으로 노출됩니다.</p>
+                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 광고 수가 부족할 때만 지난 일정이 뒤쪽에 보충되며, 자동 전면 노출은 8회 중 1회로 제한됩니다.</p>
                                 <ul className="neb-modal-list">
                                     <li>자동 슬라이드: 8초마다 전환</li>
                                     <li>마우스 호버 시 일시정지</li>
