@@ -38,6 +38,30 @@ fi
 
 cd "${ROOT_DIR}"
 
+# A production deploy must come from a clean, pushed branch that includes the
+# latest main line. This prevents an older parallel branch from silently
+# replacing fixes that were already deployed from main.
+git fetch origin main --quiet
+deploy_base_ref="${CAFE24_DEPLOY_BASE_REF:-origin/main}"
+if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+  echo "Refusing to deploy with uncommitted or untracked project changes." >&2
+  exit 2
+fi
+if ! git merge-base --is-ancestor "${deploy_base_ref}" HEAD; then
+  echo "Refusing to deploy a branch that does not include '${deploy_base_ref}'." >&2
+  echo "Integrate the latest main branch before deploying." >&2
+  exit 2
+fi
+deploy_upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+if [[ -z "${deploy_upstream}" ]]; then
+  echo "Refusing to deploy a branch without an upstream remote." >&2
+  exit 2
+fi
+if [[ "$(git rev-parse HEAD)" != "$(git rev-parse "${deploy_upstream}")" ]]; then
+  echo "Refusing to deploy before HEAD is pushed to '${deploy_upstream}'." >&2
+  exit 2
+fi
+
 REMOTE_HOSTNAME="$(ssh "${SSH_ARGS[@]}" "${TARGET}" "hostname")"
 if [[ "${REMOTE_HOSTNAME}" != "${EXPECTED_HOSTNAME}" ]]; then
   echo "Refusing to deploy to unexpected Cafe24 host '${REMOTE_HOSTNAME}'." >&2

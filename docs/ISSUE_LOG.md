@@ -22,6 +22,33 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-11 사이트 전역 이미지 드래그 수정 회귀
+
+- 상태: 구조 개선 및 통합 완료, 운영 배포 전
+- 범위: 사이트 전체 정적·동적 이미지, 자유게시판 저장 HTML, 모바일 드래그 폴리필, 게시물·웹진 편집기, Cafe24 배포 기준선
+- 증상: 자유게시판 본문 이미지에서 세로 스크롤 대신 반투명 이미지 드래그가 다시 발생했다.
+- 원인:
+  - 자유게시판 반응형 이미지 수정 `74925660`과 전역 이미지 드래그 정책 `c003b875`은 `origin/main`에 있었지만, 이후 전체 배포한 병렬 브랜치가 두 커밋을 포함하지 않아 운영 산출물에서 수정이 사라졌다.
+  - 모바일 `mobile-drag-drop` 폴리필은 기본 `draggable=true`인 이미지뿐 아니라 이미지의 상위 링크도 드래그 대상으로 승격했다.
+  - 현재 JSX 이미지 180개 중 129개가 개별 `draggable` 속성을 두지 않았고 저장 HTML·지도 오버레이 같은 동적 DOM도 있어 화면별 속성 추가로는 전역 정책을 보장할 수 없었다.
+  - 기존 전역 정책에는 허용 표식은 있었지만 실제 이미지 이동 기능인 UniversalEditor와 WebzineEditor가 명시적으로 등록되지 않았다.
+- 해결:
+  - 최신 `origin/main`에서 통합 배포 브랜치를 만들고 병렬 브랜치의 고유 수집·메인 광고·Groove·릴스 변경을 옮겨 하나의 배포 기준선으로 합쳤다.
+  - 앱 시작 시 기존 이미지와 MutationObserver로 추가·변경되는 이미지에 `draggable=false`를 강제하고 캡처 단계 `dragstart`를 차단한다.
+  - 모바일 폴리필의 대상 탐색기를 교체해 비허용 이미지에서 시작한 터치가 상위 링크·카드 드래그로 승격되지 않게 했다.
+  - 저장 HTML의 `data-image-drag`를 제거하고 모든 `draggable`을 `false`로 정규화한다.
+  - 게시물 UniversalEditor와 관리자 WebzineEditor만 `data-image-drag="allow"`로 명시하고 실제 편집 이미지에 `draggable=true`를 설정했다.
+  - 배포 스크립트가 최신 `origin/main` 포함, 깨끗한 작업 트리, upstream 푸시 완료를 확인하지 못하면 배포를 시작하지 않도록 했다.
+- 검증:
+  - 이미지 정책·저장 HTML·자유게시판 본문 회귀 테스트 12개 통과.
+  - 전체 Vitest 54개 파일, 330개 테스트 통과.
+  - 수집 기준 테스트 및 소셜 릴스 테스트 20개 통과. 외부 API 예제는 cURL·Node·Python·Java가 통과했고 로컬 Docker 비실행으로 PHP 컨테이너 항목만 실행하지 못했다.
+  - 대상 ESLint 오류 0개(기존 경고만 유지), `git diff --check`, 배포 스크립트 문법 및 미커밋 변경 차단 검증, Cafe24 프로덕션 빌드 통과.
+  - 운영 DB 연결 모바일 폭 로컬 화면에서 신고된 게시물의 본문 이미지가 `draggable=false`, 허용 표식 없음, 본문 폭 356px 안에 수납되고 가로 넘침이 없음을 확인했다. 같은 화면의 이미지 9개가 모두 전역 차단됐고 브라우저 오류 로그는 0건이었다.
+- 관련 결정: `docs/decisions/2026-08-11-global-image-drag-policy.md`, `docs/decisions/2026-08-11-deployment-branch-integration-guard.md`
+- 관련 파일: `src/utils/imageDragPolicy.ts`, `src/utils/sanitizeHtml.ts`, `src/main.tsx`, `src/components/UniversalEditor/Core/UniversalEditor.tsx`, `src/pages/admin/webzine/WebzineEditor.tsx`, `scripts/deploy-cafe24.sh`
+- 관련 커밋: pending
+
 ## 2026-08-11 오늘 일정·신규 등록 혼합 및 알림 클릭 403
 
 - 상태: 운영 배포·검증 완료 (2026-08-11 09:34 KST)

@@ -70,6 +70,7 @@ export default function UniversalEditor({
                 autocomplete: 'off',
                 autocorrect: 'off',
                 autocapitalize: 'off',
+                'data-image-drag': readOnly ? 'block' : 'allow',
             },
         },
     });

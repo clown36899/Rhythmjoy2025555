@@ -142,7 +142,7 @@ export const ResizableImageView: React.FC<NodeViewProps> = ({ node, updateAttrib
             )}
 
             <div className="ri-image-container">
-                <img src={src} alt={alt} className="ri-img" />
+                <img src={src} alt={alt} className="ri-img" draggable={true} />
 
                 {selected && (
                     <div

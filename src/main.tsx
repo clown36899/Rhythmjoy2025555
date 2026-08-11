@@ -2,7 +2,7 @@ import { initClientLogBuffer } from './utils/clientLogBuffer';
 import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 import { isKioskModeEnabled } from './lib/kioskMode';
 import { installViewportCssVars } from './utils/viewportMetrics';
-import { installGlobalImageDragPolicy } from './utils/imageDragPolicy';
+import { findMobileDragTarget, installGlobalImageDragPolicy } from './utils/imageDragPolicy';
 import { isNonFatalClientRuntimeError } from './utils/globalErrorPolicy';
 import { activateWaitingServiceWorker, resetAppRuntimeAndRestart } from './lib/pwaRecovery';
 import {
@@ -632,6 +632,7 @@ if (typeof window !== 'undefined' && 'ontouchstart' in window && /iPhone|iPad|iP
     polyfill({
       dragImageCenterOnTouch: true,
       iterationInterval: 16,
+      tryFindDraggableTarget: findMobileDragTarget,
       dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride
     });
   } catch (error) {

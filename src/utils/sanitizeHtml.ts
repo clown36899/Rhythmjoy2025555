@@ -6,8 +6,18 @@ const sanitizeElement = (element: Element) => {
         const name = attr.name.toLowerCase();
         const value = attr.value.trim();
 
-        if (name.startsWith('on') || name === 'style' || name === 'srcdoc') {
+        if (
+            name.startsWith('on')
+            || name === 'style'
+            || name === 'srcdoc'
+            || name === 'data-image-drag'
+        ) {
             element.removeAttribute(attr.name);
+            continue;
+        }
+
+        if (name === 'draggable') {
+            element.setAttribute('draggable', 'false');
             continue;
         }
 

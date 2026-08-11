@@ -16,6 +16,34 @@ function applyPolicyToNode(node: Node) {
   node.querySelectorAll<HTMLImageElement>('img').forEach(disableNativeImageDrag);
 }
 
+function getEventPath(event: Event): EventTarget[] {
+  if (typeof event.composedPath === 'function') return event.composedPath();
+
+  const path: EventTarget[] = [];
+  let current = event.target as Node | null;
+  while (current) {
+    path.push(current);
+    current = current.parentNode;
+  }
+  path.push(window);
+  return path;
+}
+
+/**
+ * mobile-drag-drop otherwise promotes an image's draggable link/card ancestor
+ * to the drag source even after the image itself has draggable=false. Reject a
+ * touch that started on a normal image before the polyfill captures it.
+ */
+export function findMobileDragTarget(event: TouchEvent): HTMLElement | undefined {
+  const path = getEventPath(event);
+  const image = path.find((item): item is HTMLImageElement => item instanceof HTMLImageElement);
+  if (image && !isImageDragAllowed(image)) return undefined;
+
+  return path.find((item): item is HTMLElement => (
+    item instanceof HTMLElement && item.draggable
+  ));
+}
+
 /**
  * Native image dragging is opt-in across the site. This keeps a vertical swipe
  * over a poster/thumbnail attached to the surrounding scroll container instead
@@ -28,7 +56,7 @@ export function installGlobalImageDragPolicy(root: Document = document) {
   root.querySelectorAll<HTMLImageElement>('img').forEach(disableNativeImageDrag);
 
   const handleDragStart = (event: Event) => {
-    const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
+    const path = getEventPath(event);
     const image = path.find((item): item is HTMLImageElement => item instanceof HTMLImageElement);
     if (image && !isImageDragAllowed(image)) event.preventDefault();
   };

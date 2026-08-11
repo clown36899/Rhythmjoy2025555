@@ -67,6 +67,7 @@ export const CustomImage = Image.extend({
 
             const img = document.createElement('img');
             img.src = src;
+            img.draggable = true;
             if (alt) img.alt = alt;
             if (title) img.title = title;
 

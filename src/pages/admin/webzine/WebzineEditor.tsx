@@ -179,6 +179,11 @@ const WebzineEditor = () => {
     const editor = useEditor({
         extensions: uniqueExtensions,
         content: '',
+        editorProps: {
+            attributes: {
+                'data-image-drag': 'allow',
+            },
+        },
     });
 
     // Handle Editor Initialization Safely
