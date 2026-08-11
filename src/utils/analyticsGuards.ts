@@ -4,6 +4,7 @@ export const ANALYTICS_ADMIN_DEVICE_KEY = 'ga-admin-device-shield';
 export const ANALYTICS_BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|selenium|webdriver|curl|wget|python-requests|gptbot|chatgpt|oai-searchbot|openai|claude|anthropic|perplexity|bytespider|ccbot|googleother|google-extended|cohere|mistralai|amazonbot|applebot-extended/i;
 export const ANALYTICS_KIOSK_ROUTE_PATTERN = /^\/(?:kiosk|키오스크)(?:\/|$)/i;
 export const ANALYTICS_INTERNAL_ROUTE_PATTERN = /^\/(?:admin|test|main-v2-test|debug|__|api|kiosk|키오스크)(?:\/|$)/i;
+const ANDROID_USER_AGENT_PATTERN = /android/i;
 export const ANALYTICS_DEFAULT_DATACENTER_IP_RULES = [
     '3.0.0.0/8',
     '13.0.0.0/8',
@@ -21,6 +22,42 @@ export const ANALYTICS_DEFAULT_DATACENTER_IP_RULES = [
 ];
 const KIOSK_MODE_STORAGE_KEY = 'rhythmjoy:kiosk-mode';
 const KIOSK_MODE_VALUE = 'mini-pc';
+
+export type AnalyticsInAppSource = 'kakao' | 'instagram' | 'facebook' | 'line';
+
+export const getAnalyticsInAppSource = (
+    userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+): AnalyticsInAppSource | null => {
+    const normalized = String(userAgent || '').toLowerCase();
+    if (normalized.includes('kakao')) return 'kakao';
+    if (normalized.includes('instagram')) return 'instagram';
+    if (/fbav|fban|fb_iab/i.test(normalized)) return 'facebook';
+    if (normalized.includes('line')) return 'line';
+    return null;
+};
+
+/**
+ * Android in-app browsers are only a handoff surface: the actual visit starts
+ * after the intent opens Chrome. Suppressing this intermediary context avoids
+ * counting one person twice with two isolated browser storage containers.
+ */
+export const isAndroidInAppAnalyticsHandoff = (
+    userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+): boolean => ANDROID_USER_AGENT_PATTERN.test(userAgent) && getAnalyticsInAppSource(userAgent) !== null;
+
+export const addInAppHandoffAttribution = (
+    rawUrl: string,
+    source: AnalyticsInAppSource
+): string => {
+    try {
+        const url = new URL(rawUrl, typeof window !== 'undefined' ? window.location.origin : undefined);
+        if (!url.searchParams.has('utm_source')) url.searchParams.set('utm_source', source);
+        if (!url.searchParams.has('utm_medium')) url.searchParams.set('utm_medium', 'in_app_handoff');
+        return url.toString();
+    } catch {
+        return rawUrl;
+    }
+};
 
 const splitAnalyticsRules = (value: unknown): string[] => String(value || '')
     .split(',')

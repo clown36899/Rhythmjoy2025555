@@ -18,10 +18,44 @@ describe('notification launch metadata', () => {
             search: '',
             hash: `#${fragment.toString()}`,
         })).toEqual({
-            target: '/calendar?date=2026-08-11&scrollToToday=true',
+            target: '/calendar?date=2026-08-11&scrollToToday=true&category=all',
             kind: 'daily_schedule',
             sourceId: '2026-08-11',
         });
+    });
+
+    it('overrides a stale social filter when a daily schedule notification opens the calendar', () => {
+        const fragment = new URLSearchParams({
+            notification_click: 'true',
+            notification_target: '/calendar?date=2026-08-12&category=social&scrollToToday=true',
+            notification_kind: 'daily_schedule',
+            notification_source_id: '2026-08-12',
+        });
+
+        const launch = parseNotificationLaunch({
+            origin,
+            pathname: '/',
+            search: '',
+            hash: `#${fragment.toString()}`,
+        });
+
+        expect(new URL(launch?.target || '/', origin).searchParams.get('category')).toBe('all');
+    });
+
+    it('preserves an explicit social filter for non-daily notifications', () => {
+        const fragment = new URLSearchParams({
+            notification_click: 'true',
+            notification_target: '/calendar?id=event-1&category=social',
+            notification_kind: 'new_event',
+            notification_source_id: 'event-created:event-1',
+        });
+
+        expect(parseNotificationLaunch({
+            origin,
+            pathname: '/',
+            search: '',
+            hash: `#${fragment.toString()}`,
+        })?.target).toBe('/calendar?id=event-1&category=social');
     });
 
     it('rejects an external notification target', () => {
@@ -47,7 +81,7 @@ describe('notification launch metadata', () => {
             search: '?date=2026-08-11&open_notifications=true&notification_kind=daily_schedule&notification_source_id=2026-08-11',
             hash: '',
         })).toEqual({
-            target: '/calendar?date=2026-08-11',
+            target: '/calendar?date=2026-08-11&category=all',
             kind: 'daily_schedule',
             sourceId: '2026-08-11',
         });

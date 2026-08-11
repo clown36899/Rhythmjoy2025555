@@ -75,7 +75,9 @@ test('daily reconciliation keeps only schedules starting on the digest date', ()
   assert.equal(result.action, 'update');
   assert.equal(result.eventCount, 1);
   assert.equal(result.title, '오늘 일정 1개');
+  assert.equal(result.url, '/calendar?date=2026-08-11&scrollToToday=true&category=all');
   assert.deepEqual(result.data.items.map((item) => item.eventId), ['starts-today']);
+  assert.equal(result.data.items[0].url, '/calendar?id=starts-today&date=2026-08-11&category=all');
   assert.ok(result.data.items.every((item) => item.date === '2026-08-11'));
   assert.ok(!JSON.stringify(result).includes('weekly-class'));
   assert.ok(!JSON.stringify(result).includes('festival-gap'));

@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
 import LocalLoading from '../../../components/LocalLoading';
-import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';
 
 import { useSwingSceneStats } from '../hooks/useSwingSceneStats';
-import type { StatItem, DayStats, SceneStats, MonthlyStat } from '../hooks/useSwingSceneStats';
+import type { StatItem, DayStats, MonthlyStat } from '../hooks/useSwingSceneStats';
 
 interface SwingSceneStatsProps {
     onInsertItem?: (type: string, name: string, config: any) => void;
@@ -37,6 +36,17 @@ const TYPE_SEGMENTS: Array<{ name: StatItem['type']; color: string }> = [
     { name: '동호회 이벤트+소셜', color: COLORS.socials }
 ];
 
+const getKstDateKey = () => {
+    const parts = new Intl.DateTimeFormat('en', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).formatToParts(new Date());
+    const value = (type: 'year' | 'month' | 'day') => parts.find(part => part.type === type)?.value || '';
+    return `${value('year')}-${value('month')}-${value('day')}`;
+};
+
 export default function SwingSceneStats({ onInsertItem, section }: SwingSceneStatsProps) {
     const { stats, loading, refreshing, manualRefresh } = useSwingSceneStats();
     // Removed local stats/loading/refreshing states
@@ -54,47 +64,14 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
     // 일 최대 이벤트 상세 모달
-    const [maxDailyModalData, setMaxDailyModalData] = useState<{ date: string; events: any[] } | null>(null);
-    const [maxDailyLoading, setMaxDailyLoading] = useState(false);
+    const [maxDailyModalData, setMaxDailyModalData] = useState<{ date: string; events: StatItem[] } | null>(null);
 
-    const handleMaxDailyClick = async (targetDate: string | undefined) => {
-        console.log('[MaxDailyClick] Clicked. targetDate:', targetDate);
-        if (!targetDate) {
-            console.warn('[MaxDailyClick] No targetDate provided. Check if server stats have maxDailyDate field.');
-            return;
-        }
-        setMaxDailyLoading(true);
-        try {
-            // Fetch only non-recurring events as they are what contributes to act_count in stats index.
-            // Conditions from DB refresh_site_stats_index function:
-            // 1. day_of_week IS NULL
-            // 2. category != 'board' (and not 'notice', 'notice_popup' in some versions)
-            // 3. Match by: (start_date OR date) OR (any date inside event_dates)
-
-            const { data, error } = await cafe24
-                .from('events')
-                .select('id, title, category, genre, start_date, date, location, image_thumbnail, event_dates')
-                .not('category', 'in', '("board", "notice", "notice_popup")')
-                .or(`start_date.eq.${targetDate},date.eq.${targetDate},event_dates.cs.["${targetDate}"],event_dates.cs.[{"date":"${targetDate}"}]`)
-                .order('category', { ascending: true });
-
-            if (error) throw error;
-
-            console.log(`[MaxDailyClick] Target: ${targetDate}, Found: ${data?.length} events`);
-            if (data && data.length > 0) {
-                data.forEach((ev, idx) => {
-                    console.log(`  ${idx + 1}. [${ev.category}] ${ev.title} (ID: ${ev.id})`);
-                });
-            } else {
-                console.warn(`[MaxDailyClick] No events found for ${targetDate}`);
-            }
-
-            setMaxDailyModalData({ date: targetDate, events: data || [] });
-        } catch (err) {
-            console.error('[MaxDailyClick] Error:', err);
-        } finally {
-            setMaxDailyLoading(false);
-        }
+    const handleMaxDailyClick = (month: MonthlyStat | undefined) => {
+        if (!month?.maxDailyDate) return;
+        setMaxDailyModalData({
+            date: month.maxDailyDate,
+            events: Array.isArray(month.maxDailyItems) ? month.maxDailyItems : []
+        });
     };
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
@@ -118,21 +95,6 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
         await manualRefresh();
     };
 
-    // Save Cache when stats update
-    useEffect(() => {
-        if (stats) {
-            try {
-                localStorage.setItem('swing_scene_stats_cache', JSON.stringify({
-                    timestamp: new Date().getTime(),
-                    data: stats,
-                    v: 'v5'
-                }));
-            } catch (e) {
-                console.error('Cache save failed', e);
-            }
-        }
-    }, [stats]);
-
     // Scroll to current month when chart becomes visible
     const hasScrolledRef = useRef(false);
     useEffect(() => {
@@ -149,8 +111,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             const containerWidth = container.clientWidth;
             if (containerWidth === 0) return; // 아직 visible 아님
 
-            const now = new Date();
-            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const currentMonthStr = stats.dataQuality?.asOfDate?.slice(0, 7) || getKstDateKey().slice(0, 7);
             const currentIndex = stats.monthly.findIndex(m => m.month === currentMonthStr);
 
             if (currentIndex !== -1) {
@@ -203,6 +164,17 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     // const currentMonthly = monthlyRange === '1y' ? stats.monthly : stats.monthly.slice(stats.monthly.length - 6);
     // [Mod] Always show all data for horizontal scrolling
     const currentMonthly = stats.monthly;
+    const asOfDate = stats.dataQuality.asOfDate || getKstDateKey();
+    const currentMonthKey = asOfDate.slice(0, 7);
+    const generatedAtLabel = stats.dataQuality.generatedAt
+        ? new Intl.DateTimeFormat('ko-KR', {
+            timeZone: stats.dataQuality.timezone || 'Asia/Seoul',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(new Date(stats.dataQuality.generatedAt))
+        : '집계 시각 없음';
 
     const maxMonthly = Math.max(...currentMonthly.map(m => m.total), 1);
     const getDayCount = (dayStats: DayStats) => (
@@ -224,7 +196,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             const countB = getTypeCount(b, type as StatItem['type']);
             return countB - countA;
         });
-        return sorted[0]?.day || '-';
+        const peak = sorted[0];
+        return peak && getTypeCount(peak, type as StatItem['type']) > 0 ? peak.day : '-';
     };
 
     const getGenrePeak = (genre: string) => {
@@ -233,7 +206,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             const countB = getGenreCount(b, genre);
             return countB - countA;
         });
-        return sorted[0]?.day || '-';
+        const peak = sorted[0];
+        return peak && getGenreCount(peak, genre) > 0 ? peak.day : '-';
     };
 
     const getGenreColor = (name: string) => {
@@ -260,7 +234,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
 
     const handleShare = async () => {
         if (!stats) return;
-        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 이벤트 등록수: ${stats.summary.totalItems}건\n- 실질 일평균 이벤트: ${stats.summary.dailyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://swingenjoy.com?modal=stats`;
+        const topDayText = stats.summary.topDay === '-' ? '집계 없음' : `${stats.summary.topDay}요일`;
+        const text = `📊 스윙씬 통계 요약 (댄스빌보드)\n\n- 최근 12개월 실제 개최 회차: ${stats.summary.totalItems}회\n- 포함된 등록 이벤트: ${stats.summary.uniqueEvents}개\n- ${Number(currentMonthKey.slice(5, 7))}월 등록 일정: ${stats.summary.currentMonthOccurrences}회차 (일평균 ${stats.summary.dailyAverage}회)\n- 가장 많은 개최 요일: ${topDayText}\n\n운영 사이트에 등록된 이벤트의 개최일 기준 통계입니다.\nhttps://swingenjoy.com?modal=stats`;
 
         if (navigator.share) {
             try {
@@ -297,7 +272,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                         data-analytics-section="stats_modal"
                     >
                         <i className={refreshing ? "ri-loader-4-line spinner" : "ri-refresh-line"}></i>
-                        {refreshing ? '갱신 중...' : 'DB 통계 갱신'}
+                        {refreshing ? '집계 중...' : '통계 다시 집계'}
                     </button>
                 )}
                 <button 
@@ -327,6 +302,23 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
         <div className={`swing-scene-stats ${section ? 'section-view' : ''}`}>
             {!section && renderHeaderControls()}
 
+            {!section && (
+                <div className="scene-trust-strip" aria-label="스윙씬 통계 데이터 기준">
+                    <div className="scene-trust-primary">
+                        <span className="scene-trust-badge"><i className="ri-shield-check-line"></i> 운영 DB 검증 집계</span>
+                        <strong>{stats.summary.uniqueEvents.toLocaleString()}개 일정 · {stats.summary.totalItems.toLocaleString()}회차</strong>
+                        <span>{stats.dataQuality.windowStart} ~ {stats.dataQuality.windowEnd}</span>
+                    </div>
+                    <div className="scene-trust-metrics">
+                        <span>명시 개최일 {stats.dataQuality.explicitDateRecords.toLocaleString()}건</span>
+                        <span>장르 분류율 {stats.dataQuality.genreCoverageRate.toFixed(1)}%</span>
+                        <span>정확 중복 {stats.dataQuality.deduplicatedOccurrences.toLocaleString()}회 제거</span>
+                        <span>{generatedAtLabel} KST 갱신</span>
+                    </div>
+                    <p>event_dates를 우선하며, 없을 때만 시작일을 1회로 계산합니다. 이번 달은 현재 등록된 예정 일정까지 포함합니다.</p>
+                </div>
+            )}
+
             <div className="stats-container">
 
                 {/* Column 1: Summary & Monthly */}
@@ -334,12 +326,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                     <div className="stats-col-1">
                         {/* Summary Section */}
                         {(!section || section === 'summary') && (() => {
-                            // KST 시간 계산 (카드 공유용)
-                            const now = new Date();
-                            const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-                            const curMonth = kstNow.getUTCMonth() + 1;
-                            const curYear = kstNow.getUTCFullYear();
-                            const curStr = `${curYear}-${String(curMonth).padStart(2, '0')}`;
+                            const [curYear, curMonth] = currentMonthKey.split('-').map(Number);
+                            const curStr = currentMonthKey;
                             const lastDate = new Date(Date.UTC(curYear, curMonth - 2, 1));
                             const lastMonth = lastDate.getUTCMonth() + 1;
                             const lastYear = lastDate.getUTCFullYear();
@@ -350,32 +338,42 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                             return (
                                 <div className="stats-card-grid">
                                     <div className="stats-card">
-                                        <div className="card-label">최근 1년 이벤트 등록수</div>
-                                        <div className="card-value">{stats.summary.totalItems}건</div>
-                                        <div className="card-hint">시작일 기준</div>
+                                        <div className="card-label">최근 12개월 개최 회차</div>
+                                        <div className="card-value">{stats.summary.totalItems}회</div>
+                                        <div className="card-hint">등록 이벤트 {stats.summary.uniqueEvents}개 기준</div>
                                     </div>
                                     <div className="stats-card">
-                                        <div className="card-label">{curMonth}월 일평균 이벤트</div>
-                                        <div className="card-value">{stats.summary.dailyAverage}건</div>
-                                        <div className="card-hint">하루 평균 발생 수</div>
+                                        <div className="card-label">{curMonth}월 등록 개최 회차</div>
+                                        <div className="card-value">{stats.summary.currentMonthOccurrences}회</div>
+                                        <div className="card-hint">예정 포함 · 하루 평균 {stats.summary.dailyAverage}회</div>
                                     </div>
                                     <div 
                                         className="stats-card stats-card-clickable" 
-                                        onClick={() => handleMaxDailyClick(lastStat?.maxDailyDate)}
+                                        onClick={() => handleMaxDailyClick(lastStat)}
+                                        onKeyDown={(event) => {
+                                            if ((event.key === 'Enter' || event.key === ' ') && lastStat?.maxDailyDate) {
+                                                event.preventDefault();
+                                                handleMaxDailyClick(lastStat);
+                                            }
+                                        }}
+                                        role="button"
+                                        tabIndex={lastStat?.maxDailyDate ? 0 : -1}
+                                        aria-disabled={!lastStat?.maxDailyDate}
+                                        aria-label={`${lastMonth}월 하루 최다 개최 회차 상세 보기`}
                                         data-analytics-id="stats_max_daily_click"
                                         data-analytics-type="action"
                                         data-analytics-title={`일 최대 이벤트 상세보기 (${lastMonth}월)`}
                                         data-analytics-section="stats_modal_summary"
                                     >
-                                        <div className="card-label">{lastMonth}월 일 최대 이벤트수</div>
-                                        <div className="card-value">{lastStat?.maxDaily || 0}건</div>
-                                        <div className="card-hint">하루에 가장 많이 등록된 수 (이번달 {curStat?.maxDaily || 0}건)</div>
+                                        <div className="card-label">{lastMonth}월 하루 최다 회차</div>
+                                        <div className="card-value">{lastStat?.maxDaily || 0}회</div>
+                                        <div className="card-hint">실제 개최일 기준 (이번 달 {curStat?.maxDaily || 0}회)</div>
                                         <div className="card-hint card-click-hint"><i className="ri-eye-line"></i> 터치하여 상세 보기</div>
                                     </div>
                                     <div className="stats-card">
-                                        <div className="card-label">최고 활성</div>
-                                        <div className="card-value">{stats.summary.topDay}요일</div>
-                                        <div className="card-hint">누적 통계</div>
+                                        <div className="card-label">개최가 가장 많은 요일</div>
+                                        <div className="card-value">{stats.summary.topDay === '-' ? '-' : `${stats.summary.topDay}요일`}</div>
+                                        <div className="card-hint">최근 12개월 회차 기준</div>
                                     </div>
                                     {onInsertItem && (
                                         <div className="card-insert-row">
@@ -397,7 +395,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 <div className="stats-header">
                                     <h4 className="section-title">
                                         <i className="ri-bar-chart-fill"></i> 월별 활동 추이
-                                        <span className="title-sub">(시작일 기준)</span>
+                                        <span className="title-sub">(실제 개최일 기준)</span>
                                     </h4>
                                     {onInsertItem && (
                                         <button
@@ -408,7 +406,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         </button>
                                     )}
                                     <div className="tab-group">
-                                        <span className="tab-btn active static">최근 1년</span>
+                                        <span className="tab-btn active static">최근 12개월</span>
                                     </div>
                                 </div>
                                 <div
@@ -420,8 +418,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 >
                                     {/* ... bars mapping ... */}
                                     {currentMonthly.map((m, i) => {
-                                        const [year, monthNum] = m.month.split('-').map(Number);
-                                        const isThisMonth = year === new Date().getFullYear() && monthNum === (new Date().getMonth() + 1);
+                                        const isThisMonth = m.month === currentMonthKey;
                                         return (
                                             <div key={i} className={`bar-wrapper ${isThisMonth ? 'current-month' : ''}`}>
                                                 <div className="bar-info-group">
@@ -447,12 +444,12 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                                         {(m.events || 0) > 5 && <span className="segment-val">{m.events}</span>}
                                                     </div>
                                                     <div className="bar-segment" style={{
-                                                        height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`,
-                                                        minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0',
+                                                        height: `${((m.socials || 0) / maxMonthly) * 100}%`,
+                                                        minHeight: (m.socials || 0) > 0 ? '1px' : '0',
                                                         background: COLORS.socials,
                                                         position: 'relative'
                                                     }}>
-                                                        {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
+                                                        {(m.socials || 0) > 5 && <span className="segment-val">{m.socials}</span>}
                                                     </div>
                                                 </div>
                                                 <div className="axis-group" style={{ height: '70px', justifyContent: 'flex-start', paddingTop: '8px' }}>
@@ -499,11 +496,11 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 <div className="chart-info-footer">
                                     <div className="info-item">
                                         <span className="info-label total">실행기준</span>
-                                        <span className="info-text"> 숫자 : 이벤트 시작일 기준 발생 수</span>
+                                        <span className="info-text"> 숫자 : 실제 개최일별 회차 수</span>
                                     </div>
                                     <div className="info-item">
                                         <span className="info-label reg">등록기준</span>
-                                        <span className="info-text"> +N : 신규 정보 등록 건수</span>
+                                        <span className="info-text"> +N : 해당 월 신규 등록 콘텐츠 수</span>
                                     </div>
                                     <div className="info-item" style={{ alignItems: 'flex-start', marginTop: '4px' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '40px', marginRight: '8px' }}>
@@ -511,8 +508,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                             <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', opacity: 0.5, fontWeight: 400, marginTop: '2px' }}>1.5</span>
                                         </div>
                                         <span className="info-text" style={{ fontSize: '0.7rem', lineHeight: '1.2', color: 'var(--text-tertiary)' }}>
-                                            위(큰 숫자)는 해당 월의 <strong style={{ color: '#fff' }}>일일 최대 등록수</strong>,<br />
-                                            아래(작은 숫자)는 해당 월의 <strong style={{ color: 'var(--text-secondary)' }}>일평균 발생수</strong>를 의미합니다.
+                                            위(큰 숫자)는 해당 월의 <strong style={{ color: '#fff' }}>하루 최다 개최 회차</strong>,<br />
+                                            아래(작은 숫자)는 해당 월의 <strong style={{ color: 'var(--text-secondary)' }}>일평균 개최 회차</strong>입니다.
                                         </span>
                                     </div>
 
@@ -537,7 +534,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         data-analytics-title="주간분석: 전체"
                                         data-analytics-section="stats_modal_weekly"
                                     >
-                                        전체
+                                        최근 12개월
                                     </button>
                                     <button 
                                         onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} 
@@ -612,7 +609,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                             </div>
 
                             <div className="chart-desc">
-                                <p>• <strong>동호회 이벤트+소셜</strong> 항목은 <strong>{getTypePeak('동호회 이벤트+소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발합니다.</p>
+                                <p>• <strong>동호회 이벤트+소셜</strong> 회차는 <strong>{getTypePeak('동호회 이벤트+소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 많이 집계됩니다.</p>
                             </div>
 
                             {inspectTypeDay && (
@@ -628,7 +625,8 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                         {!section && <div className="spacer-52"></div>}
 
                         <div className="stats-section">
-                            <h4 className="section-title"><i className="ri-medal-2-line"></i> 외부강습 요일별 장르 비중</h4>
+                            <h4 className="section-title"><i className="ri-medal-2-line"></i> 요일별 장르 비중</h4>
+                            <div className="touch-hint">* 구조화된 장르 {stats.dataQuality.genreClassifiedOccurrences}회차 / 전체 {stats.dataQuality.includedOccurrences}회차</div>
 
                             <div
                                 className="chart-container weekly-chart"
@@ -675,7 +673,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
 
                             {(stats.topGenresList || [])[0] && (
                                 <div className="chart-desc">
-                                    <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 핫합니다.</p>
+                                    <p>• 분류 가능한 회차 중 {stats.topGenresList[0]}은 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 많습니다.</p>
                                 </div>
                             )}
 
@@ -693,57 +691,57 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                         {stats.leadTimeAnalysis && (
                             <div className="promo-analysis-section">
                                 <div className="stats-header">
-                                    <h4 className="section-title"><i className="ri-flashlight-line"></i> 홍보 시작 시점별 조회 도달율</h4>
+                                    <h4 className="section-title"><i className="ri-flashlight-line"></i> 등록 리드타임 분포</h4>
                                     {onInsertItem && (
                                         <button
                                             className="mw-insert-btn"
-                                            onClick={() => onInsertItem('scene-lead-time', '홍보 리드타임 분석', {})}
+                                            onClick={() => onInsertItem('scene-lead-time', '등록 리드타임 분석', {})}
                                         >
                                             <i className="ri-add-line"></i> 본문에 삽입
                                         </button>
                                     )}
                                 </div>
-                                <p className="touch-hint" style={{ textAlign: 'left', marginTop: 0 }}>* 등록일부터 행사 시작일까지의 준비 기간별 분석</p>
+                                <p className="touch-hint" style={{ textAlign: 'left', marginTop: 0 }}>* 등록일부터 첫 개최일까지 계산한 유효 표본 {(stats.leadTimeAnalysis.classSampleSize || 0) + (stats.leadTimeAnalysis.eventSampleSize || 0)}건</p>
 
                                 <div className="promo-chart-container">
                                     {/* Class bars */}
                                     <div className="promo-bar-group">
-                                        <div className="card-label" style={{ textAlign: 'left' }}>정규 강습</div>
+                                        <div className="card-label" style={{ textAlign: 'left' }}>강습 · 중앙값 {stats.leadTimeAnalysis.classMedianDays ?? '-'}일</div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>얼리버드 (28일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly} pv</span></div>
+                                            <div className="promo-label-row"><span>28일 이상 전</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly}건</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classEarly / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                         </div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>적기 홍보 (7~21일)</span> <span className="promo-value">{stats.leadTimeAnalysis.classMid} pv</span></div>
+                                            <div className="promo-label-row"><span>7~27일 전</span> <span className="promo-value">{stats.leadTimeAnalysis.classMid}건</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classMid / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                         </div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>긴급 등록 (7일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.classLate} pv</span></div>
+                                            <div className="promo-label-row"><span>0~6일 전</span> <span className="promo-value">{stats.leadTimeAnalysis.classLate}건</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classLate / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                         </div>
                                     </div>
 
                                     {/* Event bars */}
                                     <div className="promo-bar-group">
-                                        <div className="card-label" style={{ textAlign: 'left' }}>파티 및 이벤트</div>
+                                        <div className="card-label" style={{ textAlign: 'left' }}>행사·소셜 · 중앙값 {stats.leadTimeAnalysis.eventMedianDays ?? '-'}일</div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>얼리버드 (42일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly} pv</span></div>
+                                            <div className="promo-label-row"><span>42일 이상 전</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly}건</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventEarly / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                         </div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>적기 홍보 (14~35일)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventMid} pv</span></div>
+                                            <div className="promo-label-row"><span>14~41일 전</span> <span className="promo-value">{stats.leadTimeAnalysis.eventMid}건</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventMid / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                         </div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>긴급 등록 (14일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventLate} pv</span></div>
+                                            <div className="promo-label-row"><span>0~13일 전</span> <span className="promo-value">{stats.leadTimeAnalysis.eventLate}건</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventLate / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <p className="touch-hint" style={{ textAlign: 'left', lineHeight: 1.4 }}>
-                                    * 리드타임이 길수록 잠재 고객 노출 기회가 많아집니다.<br />
-                                    * 강습은 최소 21일 전, 이벤트는 35일 전 등록을 권장합니다.
+                                    * 조회수나 도달률을 추정하지 않고 실제 등록일·개최일 간격만 표시합니다.<br />
+                                    * 개최 후 등록 등 날짜가 역전된 표본 {stats.leadTimeAnalysis.excludedSamples || 0}건은 제외했습니다.
                                 </p>
                             </div>
                         )}
@@ -752,13 +750,6 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             </div>
             {maxDailyModalData && (
                 <MaxDailyModal data={maxDailyModalData} onClose={() => setMaxDailyModalData(null)} />
-            )}
-            {maxDailyLoading && (
-                <div className="inspector-overlay">
-                    <div className="inspector-modal" style={{ textAlign: 'center', padding: '40px' }}>
-                        <LocalLoading message="이벤트 조회 중..." size="sm" />
-                    </div>
-                </div>
             )}
         </div>
     );
@@ -850,7 +841,7 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
     );
 };
 
-const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] }; onClose: () => void }) => {
+const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: StatItem[] }; onClose: () => void }) => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
@@ -861,54 +852,29 @@ const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] 
 
     const formattedDate = (() => {
         const [y, m, d] = data.date.split('-');
-        const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+        const dateObj = new Date(`${y}-${m}-${d}T00:00:00Z`);
         const days = ['일', '월', '화', '수', '목', '금', '토'];
-        return `${Number(m)}월 ${Number(d)}일 (${days[dateObj.getDay()]})`;
+        return `${Number(m)}월 ${Number(d)}일 (${days[dateObj.getUTCDay()]})`;
     })();
 
-    const getEventCategoryInfo = (category: string) => {
-        const cat = category || '';
-
-        // 실제 분류(DB의 category 필드)를 기반으로 고유 테마 매핑
-        if (cat === 'class' || cat === 'club_lesson' || cat === '강습') {
-            return { label: '강습', theme: 'class' };
-        }
-        if (cat === 'social' || cat === '소셜') {
-            return { label: '소셜', theme: 'social' };
-        }
-        if (cat === 'club' || cat === '동호회') {
-            return { label: '동호회', theme: 'club' };
-        }
-        if (cat === 'event' || cat === '행사') {
-            return { label: '행사', theme: 'event' };
-        }
-
-        return { label: cat || '이벤트', theme: 'etc' };
+    const getEventCategoryInfo = (type: StatItem['type']) => {
+        if (type === '강습') return { label: type, theme: 'class' };
+        if (type === '동호회 이벤트+소셜') return { label: type, theme: 'social' };
+        return { label: '행사', theme: 'event' };
     };
 
-    // --- 통계 집계 로직 ---
     const statsBreakdown = (() => {
         const catMap: { [key: string]: number } = {};
         const genreMap: { [key: string]: number } = {};
         const totalEvents = data.events.length;
 
         data.events.forEach(ev => {
-            // 1. 대분류 집계 (이벤트당 1개, 총합이 totalEvents와 일치)
-            const { label } = getEventCategoryInfo(ev.category);
+            const { label } = getEventCategoryInfo(ev.type);
             catMap[label] = (catMap[label] || 0) + 1;
-
-            // 2. 소분류(장르) 집계 (한 이벤트가 여러 장르를 가질 수 있음)
-            if (ev.genre) {
-                const genres = ev.genre.split(',').map((g: string) => g.trim()).filter(Boolean);
-                genres.forEach((g: string) => {
-                    genreMap[g] = (genreMap[g] || 0) + 1;
-                });
-            } else {
-                genreMap['기타'] = (genreMap['기타'] || 0) + 1;
-            }
+            const genre = ev.genre || '장르 미분류';
+            genreMap[genre] = (genreMap[genre] || 0) + 1;
         });
 
-        // 3. 정렬
         const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
         const sortedGenres = Object.entries(genreMap).sort((a, b) => b[1] - a[1]);
 
@@ -920,7 +886,7 @@ const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] 
             <div className="inspector-modal">
                 <div className="inspector-header">
                     <h4 className="inspector-title">
-                        {formattedDate} 이벤트 <span className="inspector-subtitle">({data.events.length}건)</span>
+                        {formattedDate} 개최 회차 <span className="inspector-subtitle">({data.events.length}회)</span>
                     </h4>
                     <button onClick={onClose} className="inspector-close-btn">
                         <i className="ri-close-line"></i>
@@ -933,24 +899,22 @@ const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] 
                     onTouchEnd={(e) => e.stopPropagation()}
                 >
                     {data.events.length === 0 ? (
-                        <div className="inspector-empty">이벤트가 없습니다.</div>
+                        <div className="inspector-empty">집계된 개최 회차가 없습니다.</div>
                     ) : (
                         <>
-                            {/* 통계 요약 섹션 */}
                             <div className="max-daily-stats-summary">
                                 <div className="stats-summary-header">
                                     <span className="main-label">분류별 비중</span>
-                                    <span className="sub-label">(전체 {statsBreakdown.totalEvents}건)</span>
+                                    <span className="sub-label">(전체 {statsBreakdown.totalEvents}회)</span>
                                 </div>
 
-                                {/* 대분류 기준 비율 바 (총합 100%) */}
                                 <div className="stats-visual-ratio">
                                     {statsBreakdown.sortedCats.map(([cat, count]) => (
                                         <div
                                             key={cat}
-                                            className={`ratio-segment theme-${getEventCategoryInfo(cat).theme}`}
+                                            className={`ratio-segment theme-${getEventCategoryInfo(cat as StatItem['type']).theme}`}
                                             style={{ width: `${(count / statsBreakdown.totalEvents) * 100}%` }}
-                                            title={`${cat}: ${count}건`}
+                                            title={`${cat}: ${count}회`}
                                         >
                                             <span className="ratio-label">{cat}</span>
                                         </div>
@@ -958,12 +922,11 @@ const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] 
                                 </div>
 
                                 <div className="stats-summary-groups">
-                                    {/* 대분류 칩 */}
                                     <div className="stats-group">
                                         <div className="group-title">대분류</div>
                                         <div className="stats-chips-row">
                                             {statsBreakdown.sortedCats.map(([cat, count]) => (
-                                                <div key={cat} className={`stats-summary-chip ${getEventCategoryInfo(cat).theme}`}>
+                                                <div key={cat} className={`stats-summary-chip ${getEventCategoryInfo(cat as StatItem['type']).theme}`}>
                                                     <span className="chip-cat">{cat}</span>
                                                     <span className="chip-count">{count}</span>
                                                 </div>
@@ -971,9 +934,8 @@ const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] 
                                         </div>
                                     </div>
 
-                                    {/* 소분류(장르) 칩 */}
                                     <div className="stats-group">
-                                        <div className="group-title">소분류(장르)</div>
+                                        <div className="group-title">구조화 장르</div>
                                         <div className="stats-chips-row">
                                             {statsBreakdown.sortedGenres.map(([genre, count]) => (
                                                 <div key={genre} className="stats-summary-chip genre">
@@ -988,18 +950,14 @@ const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] 
 
                             <div className="max-daily-event-list">
                                 {data.events.map((ev, idx) => (
-                                    <div key={ev.id || idx} className="max-daily-event-item">
-                                        {ev.image_thumbnail && (
-                                            <div className="max-daily-event-thumb">
-                                                <img src={ev.image_thumbnail} alt={ev.title} />
-                                            </div>
-                                        )}
+                                    <div key={`${ev.eventId || ev.title}-${idx}`} className="max-daily-event-item">
                                         <div className="max-daily-event-info">
                                             <div className="max-daily-event-badge-row">
-                                                <span className={`type-badge ${getEventCategoryInfo(ev.category).theme}`}>{getEventCategoryInfo(ev.category).label}</span>
+                                                <span className={`type-badge ${getEventCategoryInfo(ev.type).theme}`}>{getEventCategoryInfo(ev.type).label}</span>
                                                 {ev.genre && <span className="max-daily-event-genre">{ev.genre}</span>}
                                             </div>
                                             <div className="max-daily-event-title">{ev.title}</div>
+                                            {ev.time && <div className="max-daily-event-location"><i className="ri-time-line"></i> {ev.time}</div>}
                                             {ev.location && <div className="max-daily-event-location"><i className="ri-map-pin-line"></i> {ev.location}</div>}
                                         </div>
                                     </div>

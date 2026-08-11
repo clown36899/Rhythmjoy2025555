@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { isPWAMode } from '../lib/pwaDetect';
+import {
+    addInAppHandoffAttribution,
+    getAnalyticsInAppSource,
+} from '../utils/analyticsGuards';
 
 export const InAppBrowserGuard: React.FC = () => {
     const [isIOS, setIsIOS] = useState(false);
@@ -7,8 +11,7 @@ export const InAppBrowserGuard: React.FC = () => {
 
     useEffect(() => {
         // Run detection logic
-        const userAgent = navigator.userAgent.toLowerCase();
-        const targetUrl = window.location.href;
+        const userAgent = navigator.userAgent;
 
         // Check if running in PWA mode
         // If already in PWA, don't do anything
@@ -28,7 +31,8 @@ export const InAppBrowserGuard: React.FC = () => {
         // Refined In-app browser detection
         // Includes: Kakao, Instagram, Facebook (FBAV/FBAN), Line, and general 'wv' (WebView) presence if needed, 
         // but sticking to specific apps is safer to avoid blocking legitimate embedded browsers that act like proper browsers.
-        const checkInApp = /kakao|instagram|fbav|fban|fb_iab|line/i.test(userAgent);
+        const inAppSource = getAnalyticsInAppSource(userAgent);
+        const checkInApp = inAppSource !== null;
 
         // Infinite Loop Prevention:
         // Chrome on Android does NOT have these keywords in UA.
@@ -40,11 +44,13 @@ export const InAppBrowserGuard: React.FC = () => {
         setIsInAppBrowser(checkInApp);
 
         // Logic 1: Android - Auto Redirect
-        if (checkInApp && isAndroid) {
+        if (inAppSource && isAndroid) {
             // Mark that we attempted redirect
             sessionStorage.setItem('iab_redirect_attempted', 'true');
 
             // Android Intent: leave the in-app browser through Chrome, not an installed PWA.
+            // Preserve a first-touch source marker because Chrome otherwise receives no referrer.
+            const targetUrl = addInAppHandoffAttribution(window.location.href, inAppSource);
             const urlWithoutScheme = targetUrl.replace(/^https?:\/\//, '');
             const fallbackUrl = encodeURIComponent(targetUrl);
             const intentUrl = `intent://${urlWithoutScheme}#Intent;scheme=https;package=com.android.chrome;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallbackUrl};end`;

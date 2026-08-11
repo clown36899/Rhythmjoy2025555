@@ -5,6 +5,7 @@ import type { NotificationRecord } from '../lib/notificationStore';
 import type { SiteNotificationItem } from '../lib/siteNotificationInbox';
 import { useModalActions } from '../contexts/ModalContext';
 import { cafe24 } from '../lib/cafe24Client';
+import { normalizeNotificationLaunchTarget } from '../lib/notificationLaunch';
 import "../styles/components/NotificationHistoryModal.css";
 
 interface NotificationHistoryModalProps {
@@ -311,11 +312,16 @@ export default function NotificationHistoryModal({
                 }
             }
 
-            const path = targetUrl.replace(window.location.origin, '');
-            if (path.startsWith('http')) {
-                window.open(targetUrl, '_blank');
+            if (url.origin !== window.location.origin) {
+                if (url.protocol === 'https:' || url.protocol === 'http:') {
+                    window.open(targetUrl, '_blank');
+                }
             } else {
-                navigate(path);
+                navigate(normalizeNotificationLaunchTarget(
+                    targetUrl,
+                    window.location.origin,
+                    item.kind === 'daily_schedule' ? 'daily_schedule' : null,
+                ));
                 onClose();
             }
         } catch (err) {

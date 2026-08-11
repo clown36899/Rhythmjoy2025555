@@ -30,6 +30,8 @@ import {
 import { createPerfTrace } from './perf-log.js';
 import { saveUserNotificationPreferences } from './notification-preferences.js';
 import { getPushSubscriptionRecordId } from './push-subscription-key.js';
+import { comparableGenericFilterPair } from './generic-filter-comparison.js';
+import { buildAnalyticsSessionSummary } from './analytics-session-summary.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -697,13 +699,6 @@ function getValue(row, field) {
   return row?.[field];
 }
 
-function comparable(value) {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'number') return value;
-  if (typeof value === 'boolean') return value ? 1 : 0;
-  return String(value);
-}
-
 function stripQuotes(value) {
   if (value === 'null') return null;
   if (value === 'true') return true;
@@ -838,20 +833,21 @@ function matchesFilter(row, filter) {
 
   const value = getValue(row, filter.field);
   const expected = stripQuotes(filter.value);
+  const [comparableValue, comparableExpected] = comparableGenericFilterPair(value, expected);
 
   switch (filter.op) {
     case 'eq':
-      return String(comparable(value)) === String(comparable(expected));
+      return String(comparableValue) === String(comparableExpected);
     case 'neq':
-      return String(comparable(value)) !== String(comparable(expected));
+      return String(comparableValue) !== String(comparableExpected);
     case 'gt':
-      return comparable(value) > comparable(expected);
+      return comparableValue > comparableExpected;
     case 'gte':
-      return comparable(value) >= comparable(expected);
+      return comparableValue >= comparableExpected;
     case 'lt':
-      return comparable(value) < comparable(expected);
+      return comparableValue < comparableExpected;
     case 'lte':
-      return comparable(value) <= comparable(expected);
+      return comparableValue <= comparableExpected;
     case 'is':
       return expected === null ? value === null || value === undefined : value === expected;
     case 'not.is':
@@ -913,8 +909,9 @@ function applyOrders(rows, orders = []) {
       if (aEmpty && bEmpty) return 0;
       if (aEmpty) return order.nullsFirst ? -1 : 1;
       if (bEmpty) return order.nullsFirst ? 1 : -1;
-      if (av < bv) return -1 * direction;
-      if (av > bv) return 1 * direction;
+      const [comparableA, comparableB] = comparableGenericFilterPair(av, bv);
+      if (comparableA < comparableB) return -1 * direction;
+      if (comparableA > comparableB) return 1 * direction;
       return 0;
     });
   }
@@ -2000,6 +1997,10 @@ async function getAnalyticsSummaryV2(args = {}) {
     ...activityRows.map((item) => item.row),
     ...sessionRows.map((item) => item.row),
   ], identity);
+  const sessionSummary = buildAnalyticsSessionSummary(
+    sessionRows.map((item) => item.row),
+    (row, index) => analyticsIdentifier(row, index, identity, guestNetworkBridge),
+  );
 
   const dedupedByBucket = new Map();
   for (const item of activityRows) {
@@ -2217,7 +2218,9 @@ async function getAnalyticsSummaryV2(args = {}) {
       included_activity_total: activityRows.length,
       included_session_total: sessionRows.length,
       stitched_guest_devices: guestNetworkBridge.size,
+      logical_session_total: sessionSummary.total_sessions,
     },
+    session_summary: sessionSummary,
     user_list: userList,
     guest_list: guestList,
   };

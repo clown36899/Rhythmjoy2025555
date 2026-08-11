@@ -35,12 +35,34 @@ function normalizeInternalTarget(target: string | null, origin: string) {
     }
 }
 
+export function normalizeNotificationLaunchTarget(
+    target: string | null,
+    origin: string,
+    kind: NotificationLaunchKind | null,
+) {
+    const internalTarget = normalizeInternalTarget(target, origin);
+    if (kind !== 'daily_schedule') return internalTarget;
+
+    const url = new URL(internalTarget, origin);
+    if (url.pathname !== '/calendar') return internalTarget;
+
+    // 오늘 일정 알림은 소셜·강습을 함께 요약하므로, 이전 캘린더 탭
+    // 상태나 오래된 알림 URL과 관계없이 항상 전체 목록으로 진입한다.
+    url.searchParams.set('category', 'all');
+    return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export function parseNotificationLaunch(location: NotificationLaunchLocation): NotificationLaunch | null {
     const fragmentParams = new URLSearchParams(location.hash.replace(/^#/, ''));
     if (fragmentParams.get('notification_click') === 'true') {
+        const kind = normalizeKind(fragmentParams.get('notification_kind'));
         return {
-            target: normalizeInternalTarget(fragmentParams.get('notification_target'), location.origin),
-            kind: normalizeKind(fragmentParams.get('notification_kind')),
+            target: normalizeNotificationLaunchTarget(
+                fragmentParams.get('notification_target'),
+                location.origin,
+                kind,
+            ),
+            kind,
             sourceId: fragmentParams.get('notification_source_id'),
         };
     }
@@ -56,9 +78,10 @@ export function parseNotificationLaunch(location: NotificationLaunchLocation): N
     const cleanSearch = queryParams.toString();
 
     return {
-        target: normalizeInternalTarget(
+        target: normalizeNotificationLaunchTarget(
             `${location.pathname}${cleanSearch ? `?${cleanSearch}` : ''}${location.hash}`,
             location.origin,
+            kind,
         ),
         kind,
         sourceId,

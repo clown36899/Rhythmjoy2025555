@@ -5,6 +5,7 @@ import { initializeFingerprint, isInternalAnalyticsRoute, isKioskAnalyticsContex
 import type { AnalyticsLog } from '../utils/analyticsEngine';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
+import { isAndroidInAppAnalyticsHandoff } from '../utils/analyticsGuards';
 
 /**
  * 전역 사이트 분석 프로바이더
@@ -25,7 +26,8 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
         if (
             location.pathname.startsWith('/billboard') ||
             isInternalAnalyticsRoute(location.pathname) ||
-            isKioskAnalyticsContext(location.pathname, location.search)
+            isKioskAnalyticsContext(location.pathname, location.search) ||
+            isAndroidInAppAnalyticsHandoff()
         ) {
             return;
         }

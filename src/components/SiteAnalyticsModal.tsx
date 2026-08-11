@@ -362,10 +362,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 const past = new Date();
                 past.setDate(today.getDate() - 365); // 1년치 데이터 (비지터 분석용)
                 startStr = getKRDateString(past) + 'T00:00:00+09:00';
-                endStr = getKRDateString(today) + 'T23:59:59+09:00';
+                endStr = getKRDateString(today) + 'T23:59:59.999+09:00';
             } else {
                 startStr = dateRange.start + 'T00:00:00+09:00';
-                endStr = dateRange.end + 'T23:59:59+09:00';
+                endStr = dateRange.end + 'T23:59:59.999+09:00';
             }
 
             // RPC Call
@@ -378,6 +378,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             let clickBasedLoggedIn = 0;
             let clickBasedAnon = 0;
             let rpcVisitorSummary: any = null;
+            let rpcSessionSummary: any = null;
             let rpcGuestList: GuestInfo[] | null = null;
 
             if (rpcError) {
@@ -385,6 +386,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             } else if (rpcData) {
                 const stats = rpcData as any;
                 rpcVisitorSummary = stats.visitor_summary || null;
+                rpcSessionSummary = stats.session_summary || null;
                 clickBasedLoggedIn = rpcVisitorSummary?.unique_logged_in ?? stats.logged_in_visits ?? 0;
                 clickBasedAnon = rpcVisitorSummary?.unique_guest ?? stats.anonymous_visits ?? 0;
 
@@ -1344,6 +1346,20 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 };
             }
 
+            // Headline session quality is authoritative from the same server-side
+            // purity filter and identity bridge used by the unique visitor count.
+            if (rpcSessionSummary) {
+                sessionStats = {
+                    total_sessions: Number(rpcSessionSummary.total_sessions || 0),
+                    raw_sessions: Number(rpcSessionSummary.raw_sessions || 0),
+                    avg_duration: Number(rpcSessionSummary.avg_duration || 0),
+                    median_duration: Number(rpcSessionSummary.median_duration || 0),
+                    engagement_rate: Number(rpcSessionSummary.engagement_rate || 0),
+                    bounce_rate: Number(rpcSessionSummary.bounce_rate || 0),
+                    duration_cap_seconds: Number(rpcSessionSummary.duration_cap_seconds || SESSION_DURATION_CAP_SECONDS),
+                };
+            }
+
             // PWA Stats
             let pwaStats: any = undefined;
             const { data: installData, error: installError } = await cafe24
@@ -1430,11 +1446,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                 pwaStats = {
                     total_installs: uniqueInstalls.length,
-                    pwa_sessions: pwaSessions.length,
-                    browser_sessions: browserSessions.length,
-                    pwa_percentage: logicalSessions.length > 0 ? (pwaSessions.length / logicalSessions.length) * 100 : 0,
-                    avg_pwa_duration: avgPWADuration,
-                    avg_browser_duration: avgBrowserDuration,
+                    pwa_sessions: Number(rpcSessionSummary?.pwa_sessions ?? pwaSessions.length),
+                    browser_sessions: Number(rpcSessionSummary?.browser_sessions ?? browserSessions.length),
+                    pwa_percentage: Number(rpcSessionSummary?.pwa_percentage ?? (logicalSessions.length > 0 ? (pwaSessions.length / logicalSessions.length) * 100 : 0)),
+                    avg_pwa_duration: Number(rpcSessionSummary?.avg_pwa_duration ?? avgPWADuration),
+                    avg_browser_duration: Number(rpcSessionSummary?.avg_browser_duration ?? avgBrowserDuration),
                     recent_installs: recentInstalls,
                     recent_pwa_sessions: recentPWASessions
                 };
@@ -1449,7 +1465,17 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const typeStats = Array.from(typeBreakdownMap.entries()).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count }));
 
             // Referrer stats
-            const getReferrerCategory = (ref: string): string => {
+            const getReferrerCategory = (ref: string, utmSource?: string | null): string => {
+                const normalizedSource = String(utmSource || '').trim().toLowerCase();
+                if (normalizedSource) {
+                    if (normalizedSource.includes('kakao')) return 'Kakao';
+                    if (normalizedSource.includes('instagram')) return 'Instagram';
+                    if (normalizedSource.includes('facebook')) return 'Facebook';
+                    if (normalizedSource.includes('naver')) return 'Naver';
+                    if (normalizedSource.includes('google')) return 'Google';
+                    if (normalizedSource === 'pwa') return 'PWA';
+                    return `UTM · ${normalizedSource}`;
+                }
                 if (!ref) return '직접 입력';
                 try {
                     const url = new URL(ref);
@@ -1475,7 +1501,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return Array.from(firstActivityByVisitor.values());
             })();
             referrerRows.forEach((row: any) => {
-                const category = getReferrerCategory(row.referrer || '');
+                const category = getReferrerCategory(row.referrer || '', row.utm_source);
                 referrerMap.set(category, (referrerMap.get(category) || 0) + 1);
             });
             const referrerStats = Array.from(referrerMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([source, count]) => ({ source, count }));
@@ -1604,27 +1630,31 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             }).sort((a, b) => b.date.localeCompare(a.date)); // Descending match
 
             const newSummary = {
-                total_clicks: validData.length,
+                total_clicks: Number(rpcVisitorSummary?.included_activity_total ?? validData.length),
                 user_clicks: displayLoggedInVisits,
                 anon_clicks: displayAnonVisits,
                 session_users: sessionLoggedInVisits,
                 session_anon: sessionAnonVisits,
-                admin_clicks: data.length - validData.length,
+                admin_clicks: Math.max(
+                    0,
+                    Number(rpcVisitorSummary?.raw_activity_total ?? data.length)
+                        - Number(rpcVisitorSummary?.included_activity_total ?? validData.length),
+                ),
                 visitor_summary: {
                     unique_total: displayLoggedInVisits + displayAnonVisits,
                     unique_logged_in: displayLoggedInVisits,
                     unique_guest: displayAnonVisits,
-                    session_total: logicalSessions.length,
+                    session_total: Number(rpcSessionSummary?.total_sessions ?? logicalSessions.length),
                     session_logged_in: sessionLoggedInVisits,
                     session_guest: sessionAnonVisits,
                     raw_session_total: rpcVisitorSummary?.raw_session_total ?? sessionData.length,
-                    logical_session_total: logicalSessions.length,
+                    logical_session_total: Number(rpcSessionSummary?.total_sessions ?? logicalSessions.length),
                     raw_activity_total: rpcVisitorSummary?.raw_activity_total,
                     included_activity_total: rpcVisitorSummary?.included_activity_total,
                     included_session_total: rpcVisitorSummary?.included_session_total,
                     engaged_unique: engagedVisitorKeys.size,
                     guest_missing_identifier: guestMissingIdentifier,
-                    stitched_guest_devices: stitchedGuestDevices
+                    stitched_guest_devices: Number(rpcVisitorSummary?.stitched_guest_devices ?? stitchedGuestDevices)
                 },
                 type_breakdown: typeStats,
                 daily_details: dailyDetails,
@@ -1637,7 +1667,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 items_by_type: itemsByTypeRecord,
                 visitor_stats,
                 daily_visit_trend: dailyVisitTrend,
-                total_pv: validData.length, // [PHASE 24] 전체 로그 기반 PV
+                total_pv: Number(rpcVisitorSummary?.included_activity_total ?? validData.length),
                 bottom_menu_apps: bottomMenuAppStats
             };
 

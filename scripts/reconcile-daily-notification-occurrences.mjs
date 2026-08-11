@@ -51,7 +51,7 @@ export function buildDailyNotificationReconciliation(notification, preference, a
     eventCount: events.length,
     title: payload.title,
     body: payload.body,
-    url: payload.data?.url || `/calendar?date=${dateKey}&scrollToToday=true`,
+    url: payload.data?.url || `/calendar?date=${dateKey}&scrollToToday=true&category=all`,
     data: {
       ...data,
       ...payload.data,

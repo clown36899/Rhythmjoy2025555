@@ -26,6 +26,12 @@ import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceS
 import { showComingSoonNotice } from "../../utils/appNotice";
 import { getCalendarLayoutMetrics } from "./utils/calendarLayoutMetrics";
 import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from "./utils/calendarEventKind";
+import {
+    getExplicitCalendarTabFilter,
+    getInitialCalendarTabFilter,
+    resolveCalendarTabFilterOnNavigation,
+    type CalendarTabFilter,
+} from "./utils/calendarTabFilter";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -191,17 +197,9 @@ export default function CalendarPage() {
     // [Fix] 랜덤 시드 고정
     const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
-    // URL 파라미터에서 category 읽기
-    const initialTabFilter = useMemo(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const category = urlParams.get('category');
-        if (category === 'social') return 'social-events';
-        if (category === 'classes') return 'classes';
-        if (category === 'all') return 'all';
-        return 'all';
-    }, []);
-
-    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter as any);
+    const [tabFilter, setTabFilter] = useState<CalendarTabFilter>(() => (
+        getInitialCalendarTabFilter(window.location.search)
+    ));
     const [danceScope, setDanceScope] = useState<CalendarDanceScope>(() => {
         const urlParams = new URLSearchParams(window.location.search);
         return normalizeVisibleDanceScope(urlParams.get('dance'), false);
@@ -212,6 +210,16 @@ export default function CalendarPage() {
     });
     const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<CalendarStickyWeekDateLabel[]>(createEmptyStickyWeekDateLabels);
     const [listTodayScrollSignal, setListTodayScrollSignal] = useState(0);
+
+    // 같은 캘린더 컴포넌트가 유지된 채 알림 URL로 다시 이동해도 URL의
+    // 명시적 필터가 이전 탭 상태를 덮어쓰도록 한다. 일반 탭 클릭은 URL
+    // 이동이 아니므로 사용자가 고른 상태를 그대로 유지한다.
+    useEffect(() => {
+        setTabFilter(currentFilter => (
+            resolveCalendarTabFilterOnNavigation(location.search, currentFilter)
+        ));
+    }, [location.key, location.search]);
+
     const handleSetDisplayMode = useCallback((mode: CalendarDisplayMode) => {
         setDisplayMode(mode);
         const nextParams = new URLSearchParams(window.location.search);
@@ -1017,7 +1025,7 @@ export default function CalendarPage() {
         moveToToday();
     }, [moveToToday]);
 
-    const handleTabClick = (filter: 'all' | 'social-events' | 'classes') => {
+    const handleTabClick = (filter: CalendarTabFilter) => {
         if (displayMode === 'list') {
             setTabFilter(filter);
             return;
@@ -1103,12 +1111,17 @@ export default function CalendarPage() {
                         const isSocial = isCalendarSocialLikeEvent(data);
                         const isLesson = isCalendarClassLikeCategory(data.category);
 
-                        if (isSocial) {
-                            setTabFilter('social-events');
-                        } else if (isLesson) {
-                            setTabFilter('classes');
-                        } else {
-                            setTabFilter('social-events');
+                        // 오늘 일정 알림의 category=all은 이벤트 상세 자동 선택보다
+                        // 우선한다. 신규 등록 등 category가 없는 기존 링크는 이전처럼
+                        // 해당 이벤트가 보이는 탭을 자동 선택한다.
+                        if (getExplicitCalendarTabFilter(location.search) !== 'all') {
+                            if (isSocial) {
+                                setTabFilter('social-events');
+                            } else if (isLesson) {
+                                setTabFilter('classes');
+                            } else {
+                                setTabFilter('social-events');
+                            }
                         }
 
                         const eventDate = new Date(data.date || data.start_date || new Date());

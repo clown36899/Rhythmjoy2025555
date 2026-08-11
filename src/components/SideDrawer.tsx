@@ -46,6 +46,7 @@ const fixedSocialLinks: Record<string, { label: string; icon: string }> = {
 };
 
 const profileThemeClassNames = new Set(['electric', 'sunset', 'mint', 'mono']);
+const SIDE_DRAWER_STATS_CACHE_KEY = 'layout_stats_v2_scene_occurrence';
 
 const parseSocialLinks = (value: unknown): DrawerSocialLink[] => {
     if (!value) return [];
@@ -279,7 +280,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
         try {
             // 1. [Optimistic] 로컬 캐시 즉시 로딩 (0ms Feedback)
             try {
-                const localCache = localStorage.getItem('layout_stats_v1');
+                const localCache = localStorage.getItem(SIDE_DRAWER_STATS_CACHE_KEY);
                 if (localCache) {
                     const parsed = JSON.parse(localCache);
                     // 캐시된 데이터가 있으면 즉시 반영하여 빈 화면 방지
@@ -291,7 +292,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                     if (parsed.eventBreakdown) setEventBreakdown(parsed.eventBreakdown);
                 }
             } catch (e) {
-                console.warn('[SideDrawer] Failed to parse layout_stats_v1', e);
+                console.warn('[SideDrawer] Failed to parse scene occurrence stats cache', e);
             }
 
             // 2. [Background] Server DB 캐시 조회 (Lazy Cache)
@@ -321,7 +322,7 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                 setEventBreakdown(newData.eventBreakdown);
 
                 // 로컬 스토리지 업데이트 (다음 접속을 위해)
-                localStorage.setItem('layout_stats_v1', JSON.stringify(newData));
+                localStorage.setItem(SIDE_DRAWER_STATS_CACHE_KEY, JSON.stringify(newData));
 
             } else {
                 // API 실패 시 폴백 (관리자만 Cafe24 호환 클라이언트 직접 조회)
@@ -786,11 +787,11 @@ export default function SideDrawer({ onLoginClick, pageAction, onPageActionClick
                                     style={{ position: 'relative' }}
                                 >
                                     <span className="SD-gridVal" style={{ color: '#818cf8' }}>{typeof eventCountTotal === 'number' ? eventCountTotal : '-'}</span>
-                                    <span className="SD-gridLabel">이벤트(누적)</span>
+                                    <span className="SD-gridLabel">12개월 개최</span>
                                 </div>
                                 <div className="SD-adminGridItem is-readonly">
                                     <span className="SD-gridVal" style={{ color: '#a78bfa' }}>{typeof eventDailyAvg === 'number' ? eventDailyAvg : '-'}</span>
-                                    <span className="SD-gridLabel">일평균 이벤트</span>
+                                    <span className="SD-gridLabel">이번 달 일평균</span>
                                 </div>
                             </div>
                         </div>

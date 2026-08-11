@@ -18,6 +18,17 @@ const common = {
     received_at: '2026-08-11T00:00:00.000Z',
 };
 
+const getKstTodayKey = () => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+};
+
 describe('NotificationHistoryModal route separation', () => {
     it('renders today schedules and newly registered events as separate sections and counts', () => {
         const { container } = render(
@@ -35,7 +46,7 @@ describe('NotificationHistoryModal route separation', () => {
                             data: {
                                 notificationKind: 'daily_schedule',
                                 kind: 'daily_schedule_morning',
-                                date: '2026-08-11',
+                                date: getKstTodayKey(),
                                 items: [
                                     { title: '오늘 일정 A', date: '2026-07-30', location: 'A홀', image: '/a.jpg' },
                                     { title: '오늘 일정 B', date: '2026-07-18', location: 'B홀' },

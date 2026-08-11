@@ -141,6 +141,8 @@ describe('Cafe24 push delivery targeting', () => {
     expect(payload.body).toBe('저녁 소셜 · 테스트홀');
     expect(payload.body).not.toContain('19:30');
     expect(payload.data.items[0]).not.toHaveProperty('time');
+    expect(payload.data.url).toBe('/calendar?date=2026-08-05&scrollToToday=true&category=all');
+    expect(payload.data.items[0].url).toBe('/calendar?id=event-1&date=2026-08-05&category=all');
   });
 
   it('includes only schedules whose primary start date is the digest date', async () => {

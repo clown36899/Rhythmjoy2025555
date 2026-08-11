@@ -16,5 +16,7 @@ describe('daily schedule notification time-information policy', () => {
     expect(notification.body).toBe('저녁 소셜 · 테스트홀');
     expect(notification.body).not.toContain('19:30');
     expect(notification.data.items[0]).not.toHaveProperty('time');
+    expect(notification.url).toBe('/calendar?date=2026-08-05&scrollToToday=true&category=all');
+    expect(notification.data.items[0].url).toBe('/calendar?id=1&date=2026-08-05&category=all');
   });
 });

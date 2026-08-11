@@ -595,7 +595,7 @@ export function buildDailyDigestItems(events, dateKey) {
   return sorted.map((event, index) => ({
     eventId: String(event.id),
     title: event.title,
-    url: `/calendar?id=${event.id}&date=${dateKey}`,
+    url: `/calendar?id=${event.id}&date=${dateKey}&category=all`,
     order: index,
     // Every item in this route starts on the digest date.
     date: dateKey,
@@ -618,7 +618,7 @@ export function buildDailyDigestPayload(events, dateKey) {
   return buildPayload({
     title: sorted.length > 0 ? `오늘 일정 ${sorted.length}개` : '오늘 일정 없음',
     body: sorted.length > 0 ? `${firstLine}${sorted.length > 1 ? ` 외 ${sorted.length - 1}개` : ''}` : '오늘 등록된 스윙 일정이 없습니다.',
-    url: `/calendar?date=${dateKey}&scrollToToday=true`,
+    url: `/calendar?date=${dateKey}&scrollToToday=true&category=all`,
     image: first.image_thumbnail || first.image_medium || first.image || first.image_full || null,
     tag: `daily-schedule-${dateKey}`,
     data: {

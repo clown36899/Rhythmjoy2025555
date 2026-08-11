@@ -3,6 +3,7 @@ import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 import {
     isAdminAnalyticsShielded,
+    isAndroidInAppAnalyticsHandoff,
     isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
@@ -45,6 +46,15 @@ let sessionNeedsUpsert = false;
 let lastFinalizeAt = 0;
 let lastActivityMarkAt = 0;
 let heartbeatTimer: number | null = null;
+let sessionAttribution: SessionAttribution | null = null;
+
+interface SessionAttribution {
+    referrer: string | null;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    landing_page: string;
+}
 
 const SESSION_STORAGE_KEYS = {
     ID: 'analytics_session_id',
@@ -52,6 +62,13 @@ const SESSION_STORAGE_KEYS = {
     LAST_ACTIVITY: 'analytics_session_last_activity',
     PAGE_VIEWS: 'analytics_session_page_views',
     LAST_PAGE: 'analytics_session_last_page',
+    SEQUENCE: 'analytics_session_sequence',
+    ATTRIBUTION_CAPTURED: 'analytics_session_attribution_captured',
+    REFERRER: 'analytics_session_referrer',
+    UTM_SOURCE: 'analytics_session_utm_source',
+    UTM_MEDIUM: 'analytics_session_utm_medium',
+    UTM_CAMPAIGN: 'analytics_session_utm_campaign',
+    LANDING_PAGE: 'analytics_session_landing_page',
 };
 const ANALYTICS_FINGERPRINT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365 * 2;
 
@@ -59,7 +76,8 @@ const shouldAllowAnalyticsTransport = () => SITE_ANALYTICS_CONFIG.ENABLED
     && !isLocalAnalyticsHost()
     && !isLikelyBotTraffic()
     && !isInternalAnalyticsRoute()
-    && !isKioskAnalyticsContext();
+    && !isKioskAnalyticsContext()
+    && !isAndroidInAppAnalyticsHandoff();
 
 const shouldTrackAnalytics = () => shouldAllowAnalyticsTransport()
     && !isAdminAnalyticsShielded();
@@ -145,6 +163,41 @@ const readStoredString = (key: string): string | null => {
     }
 };
 
+const writeOptionalSessionValue = (key: string, value: string | null | undefined) => {
+    if (value) sessionStorage.setItem(key, value);
+    else sessionStorage.removeItem(key);
+};
+
+const captureCurrentSessionAttribution = (): SessionAttribution => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        referrer: document.referrer || null,
+        utm_source: params.get('utm_source') || undefined,
+        utm_medium: params.get('utm_medium') || undefined,
+        utm_campaign: params.get('utm_campaign') || undefined,
+        landing_page: window.location.pathname || '/',
+    };
+};
+
+const restoreSessionAttribution = (): SessionAttribution => {
+    if (readStoredString(SESSION_STORAGE_KEYS.ATTRIBUTION_CAPTURED) !== 'true') {
+        return captureCurrentSessionAttribution();
+    }
+
+    return {
+        referrer: readStoredString(SESSION_STORAGE_KEYS.REFERRER),
+        utm_source: readStoredString(SESSION_STORAGE_KEYS.UTM_SOURCE) || undefined,
+        utm_medium: readStoredString(SESSION_STORAGE_KEYS.UTM_MEDIUM) || undefined,
+        utm_campaign: readStoredString(SESSION_STORAGE_KEYS.UTM_CAMPAIGN) || undefined,
+        landing_page: readStoredString(SESSION_STORAGE_KEYS.LANDING_PAGE) || window.location.pathname || '/',
+    };
+};
+
+const getSessionAttribution = (): SessionAttribution => {
+    if (!sessionAttribution) sessionAttribution = restoreSessionAttribution();
+    return sessionAttribution;
+};
+
 const persistSessionState = () => {
     if (!sessionId || !sessionStartTime) return;
     try {
@@ -152,7 +205,16 @@ const persistSessionState = () => {
         sessionStorage.setItem(SESSION_STORAGE_KEYS.START, sessionStartTime.toString());
         sessionStorage.setItem(SESSION_STORAGE_KEYS.LAST_ACTIVITY, (sessionLastActivity || sessionStartTime).toString());
         sessionStorage.setItem(SESSION_STORAGE_KEYS.PAGE_VIEWS, sessionPageViews.toString());
+        sessionStorage.setItem(SESSION_STORAGE_KEYS.SEQUENCE, sessionSequence.toString());
         if (lastPageViewPath) sessionStorage.setItem(SESSION_STORAGE_KEYS.LAST_PAGE, lastPageViewPath);
+        else sessionStorage.removeItem(SESSION_STORAGE_KEYS.LAST_PAGE);
+        const attribution = getSessionAttribution();
+        sessionStorage.setItem(SESSION_STORAGE_KEYS.ATTRIBUTION_CAPTURED, 'true');
+        writeOptionalSessionValue(SESSION_STORAGE_KEYS.REFERRER, attribution.referrer);
+        writeOptionalSessionValue(SESSION_STORAGE_KEYS.UTM_SOURCE, attribution.utm_source);
+        writeOptionalSessionValue(SESSION_STORAGE_KEYS.UTM_MEDIUM, attribution.utm_medium);
+        writeOptionalSessionValue(SESSION_STORAGE_KEYS.UTM_CAMPAIGN, attribution.utm_campaign);
+        writeOptionalSessionValue(SESSION_STORAGE_KEYS.LANDING_PAGE, attribution.landing_page);
     } catch {
         // SecurityError 등으로 sessionStorage 접근 불가 시 무시
     }
@@ -181,6 +243,7 @@ const startNewSession = (now = Date.now(), finalizePrevious = true): string => {
     sessionSequence = 0;
     sessionPageViews = 0;
     lastPageViewPath = null;
+    sessionAttribution = captureCurrentSessionAttribution();
     sessionNeedsUpsert = true;
     lastFinalizeAt = 0;
     lastActivityMarkAt = now;
@@ -228,7 +291,9 @@ export const getOrCreateSessionId = (): string => {
             sessionStartTime = storedStart || now;
             sessionLastActivity = storedLastActivity || sessionStartTime;
             sessionPageViews = readStoredNumber(SESSION_STORAGE_KEYS.PAGE_VIEWS) || 0;
+            sessionSequence = Math.max(0, Math.floor(readStoredNumber(SESSION_STORAGE_KEYS.SEQUENCE) || 0));
             lastPageViewPath = readStoredString(SESSION_STORAGE_KEYS.LAST_PAGE);
+            sessionAttribution = restoreSessionAttribution();
 
             if (hasSessionTimedOut(sessionLastActivity, now)) {
                 return startNewSession(now);
@@ -241,18 +306,6 @@ export const getOrCreateSessionId = (): string => {
     }
 
     return startNewSession(now, false);
-};
-
-/**
- * UTM 파라미터 파싱
- */
-const parseUTMParams = (): { utm_source?: string; utm_medium?: string; utm_campaign?: string } => {
-    const params = new URLSearchParams(window.location.search);
-    return {
-        utm_source: params.get('utm_source') || undefined,
-        utm_medium: params.get('utm_medium') || undefined,
-        utm_campaign: params.get('utm_campaign') || undefined,
-    };
 };
 
 /**
@@ -323,8 +376,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
     if (isAdminAnalyticsShielded()) return;
 
     const currentSessionId = getOrCreateSessionId();
-    const utm = parseUTMParams();
-    const referrer = document.referrer;
+    const attribution = getSessionAttribution();
     const fingerprint = getAnalyticsFingerprint();
     const { displayMode } = detectPWAMode();
 
@@ -345,14 +397,14 @@ export const trackPWAInstall = async (user?: { id: string }) => {
             user_id: userId || null,
             fingerprint: fingerprint || null,
             installed_at: new Date().toISOString(),
-            install_page: window.location.pathname,
+            install_page: attribution.landing_page,
             display_mode: displayMode,
             user_agent: navigator.userAgent,
             platform: navigator.platform,
-            utm_source: utm.utm_source,
-            utm_medium: utm.utm_medium,
-            utm_campaign: utm.utm_campaign,
-            referrer: referrer || null,
+            utm_source: attribution.utm_source,
+            utm_medium: attribution.utm_medium,
+            utm_campaign: attribution.utm_campaign,
+            referrer: attribution.referrer,
             session_id: currentSessionId,
         });
 
@@ -374,8 +426,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
 
     const currentSessionId = getOrCreateSessionId();
     trackPageViewForCurrentSession();
-    const utm = parseUTMParams();
-    const referrer = document.referrer;
+    const attribution = getSessionAttribution();
     const fingerprint = getAnalyticsFingerprint();
     const { isPWA, displayMode } = detectPWAMode();
 
@@ -396,11 +447,11 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
                 is_admin: isAdminIdentity,
                 analytics_excluded: isAdminIdentity,
                 analytics_exclusion_reason: isAdminIdentity ? 'client_admin_identity' : null,
-                entry_page: window.location.pathname,
-                referrer: referrer || null,
-                utm_source: utm.utm_source,
-                utm_medium: utm.utm_medium,
-                utm_campaign: utm.utm_campaign,
+                entry_page: attribution.landing_page,
+                referrer: attribution.referrer,
+                utm_source: attribution.utm_source,
+                utm_medium: attribution.utm_medium,
+                utm_campaign: attribution.utm_campaign,
                 session_start: new Date(sessionStartTime).toISOString(),
                 is_pwa: isPWA,
                 pwa_display_mode: displayMode,
@@ -533,10 +584,9 @@ export const trackEvent = (log: AnalyticsLog) => {
         void initializeAnalyticsSession(log.user_id ? { id: log.user_id } : undefined, log.is_admin);
     }
     sessionSequence++;
-    markSessionActivity();
+    markSessionActivity(now, true);
 
-    const utm = parseUTMParams();
-    const referrer = document.referrer;
+    const attribution = getSessionAttribution();
 
     const logData = {
         ...log,
@@ -545,11 +595,11 @@ export const trackEvent = (log: AnalyticsLog) => {
         // [PHASE 15-17] Advanced tracking
         session_id: currentSessionId,
         sequence_number: sessionSequence,
-        referrer: referrer || null,
-        utm_source: utm.utm_source,
-        utm_medium: utm.utm_medium,
-        utm_campaign: utm.utm_campaign,
-        landing_page: sessionSequence === 1 ? window.location.pathname : null,
+        referrer: attribution.referrer,
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        utm_campaign: attribution.utm_campaign,
+        landing_page: sessionSequence === 1 ? attribution.landing_page : null,
         page_url: window.location.pathname,
     };
 

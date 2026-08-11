@@ -9,6 +9,9 @@ export interface StatItem {
     createdAt: string;
     genre: string;
     day: string;
+    eventId?: string;
+    time?: string;
+    location?: string;
 }
 
 export interface DayStats {
@@ -27,7 +30,11 @@ export interface SceneStats {
     topGenresList: string[];
     summary: {
         totalItems: number;
+        uniqueEvents: number;
         dailyAverage: number;
+        currentMonthOccurrences: number;
+        currentMonthUniqueEvents: number;
+        upcomingOccurrences: number;
         topDay: string;
         memberCount?: number;
         pwaCount?: number;
@@ -40,7 +47,40 @@ export interface SceneStats {
         eventEarly: number;
         eventMid: number;
         eventLate: number;
+        classSampleSize?: number;
+        eventSampleSize?: number;
+        classMedianDays?: number | null;
+        eventMedianDays?: number | null;
+        excludedSamples?: number;
     };
+    dataQuality: SceneDataQuality;
+    generatedAt?: string;
+}
+
+export interface SceneDataQuality {
+    methodologyVersion: string;
+    source: string;
+    timezone: string;
+    generatedAt: string;
+    asOfDate: string;
+    windowStart: string;
+    windowEnd: string;
+    currentMonthProvisional: boolean;
+    sourceRows: number;
+    trustedRows: number;
+    includedEventRecords: number;
+    rawOccurrences: number;
+    includedOccurrences: number;
+    deduplicatedOccurrences: number;
+    invalidDateEntries: number;
+    explicitDateRecords: number;
+    fallbackDateRecords: number;
+    genreClassifiedOccurrences: number;
+    genreCoverageRate: number;
+    excludedRows: number;
+    exclusions: Record<string, number>;
+    datePolicy: string;
+    dedupePolicy: string;
 }
 
 export interface MonthlyStat {
@@ -54,6 +94,8 @@ export interface MonthlyStat {
     dailyAvg: number;
     maxDaily: number;
     maxDailyDate?: string;
+    maxDailyItems?: StatItem[];
+    uniqueEvents?: number;
 }
 
 // Global session cache to share data across components and persist after closing/opening modal
@@ -75,16 +117,51 @@ const createEmptyStats = (): SceneStats => ({
     topGenresList: [],
     summary: {
         totalItems: 0,
+        uniqueEvents: 0,
         dailyAverage: 0,
+        currentMonthOccurrences: 0,
+        currentMonthUniqueEvents: 0,
+        upcomingOccurrences: 0,
         topDay: '-',
         memberCount: 0,
         pwaCount: 0,
         pushCount: 0
+    },
+    dataQuality: {
+        methodologyVersion: 'scene-occurrence-v4',
+        source: 'production_events',
+        timezone: 'Asia/Seoul',
+        generatedAt: '',
+        asOfDate: '',
+        windowStart: '',
+        windowEnd: '',
+        currentMonthProvisional: true,
+        sourceRows: 0,
+        trustedRows: 0,
+        includedEventRecords: 0,
+        rawOccurrences: 0,
+        includedOccurrences: 0,
+        deduplicatedOccurrences: 0,
+        invalidDateEntries: 0,
+        explicitDateRecords: 0,
+        fallbackDateRecords: 0,
+        genreClassifiedOccurrences: 0,
+        genreCoverageRate: 0,
+        excludedRows: 0,
+        exclusions: {},
+        datePolicy: '',
+        dedupePolicy: ''
     }
 });
 
 const normalizeSceneStats = (data: any): SceneStats => ({
-    monthly: data?.monthly || [],
+    monthly: (data?.monthly || []).map((month: any) => ({
+        ...month,
+        socials: Number(month?.socials ?? month?.clubs ?? 0),
+        clubs: 0,
+        maxDailyItems: Array.isArray(month?.maxDailyItems) ? month.maxDailyItems.flat() : [],
+        uniqueEvents: Number(month?.uniqueEvents || 0)
+    })),
     totalWeekly: (data?.totalWeekly || []).map((d: any) => ({
         ...d,
         items: Array.isArray(d.items) ? d.items.flat() : []
@@ -96,13 +173,22 @@ const normalizeSceneStats = (data: any): SceneStats => ({
     topGenresList: data?.topGenresList || [],
     summary: {
         totalItems: data?.summary?.totalItems || 0,
+        uniqueEvents: data?.summary?.uniqueEvents || 0,
         dailyAverage: data?.summary?.dailyAverage || 0,
+        currentMonthOccurrences: data?.summary?.currentMonthOccurrences || 0,
+        currentMonthUniqueEvents: data?.summary?.currentMonthUniqueEvents || 0,
+        upcomingOccurrences: data?.summary?.upcomingOccurrences || 0,
         topDay: data?.summary?.topDay || '-',
         memberCount: data?.summary?.memberCount || 0,
         pwaCount: data?.summary?.pwaCount || 0,
         pushCount: data?.summary?.pushCount || 0
     },
-    leadTimeAnalysis: data?.leadTimeAnalysis
+    leadTimeAnalysis: data?.leadTimeAnalysis,
+    dataQuality: {
+        ...createEmptyStats().dataQuality,
+        ...(data?.dataQuality || {})
+    },
+    generatedAt: data?.generatedAt || data?.dataQuality?.generatedAt
 });
 
 const shouldUseStatsFunction = () => {
@@ -250,7 +336,7 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
                 const { data } = await cafe24
                     .from('metrics_cache')
                     .select('value')
-                    .eq('key', 'scene_analytics_v3')
+                    .eq('key', 'scene_analytics_v4')
                     .maybeSingle();
 
                 if (data?.value) {
@@ -284,20 +370,16 @@ export const useSwingSceneStats = (options: { autoLoad?: boolean } = {}) => {
     }, []);
 
     const manualRefresh = useCallback(async () => {
-        if (!confirm('DB 통계 인덱스를 재생성하고 캐시를 갱신하시겠습니까?')) return;
+        if (!confirm('운영 이벤트 원본으로 스윙씬 통계를 다시 집계하시겠습니까?')) return;
         statsDebug(`[Stats#${instanceId.current}] 수동 갱신 시작`);
         setRefreshing(true);
         try {
-            const { error } = await cafe24.rpc('refresh_site_stats_index');
-            if (error) throw error;
-            statsDebug(`[Stats#${instanceId.current}] refresh_site_stats_index 완료`);
-            if (shouldUseStatsFunction()) {
-                await fetchSceneStats(true);
-            } else {
-                sessionCache = null;
-                await loadServerCache();
-            }
-            alert('통계 인덱스가 성공적으로 최신화되었습니다.');
+            sessionCache = null;
+            const refreshed = shouldUseStatsFunction()
+                ? await fetchSceneStats(true)
+                : await loadServerCache();
+            if (!refreshed) throw new Error('신뢰 가능한 통계 응답을 받지 못했습니다.');
+            alert('운영 이벤트 기준 통계를 최신화했습니다.');
         } catch (err) {
             console.error(`[Stats#${instanceId.current}] 수동 갱신 실패:`, err);
             alert('갱신 실패: ' + (err as any).message);

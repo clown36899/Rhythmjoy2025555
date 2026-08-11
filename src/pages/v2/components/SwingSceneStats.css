@@ -41,6 +41,9 @@
     position: relative;
     height: 100%;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .swing-scene-stats.section-view {
@@ -72,12 +75,73 @@
     z-index: 10;
 }
 
+.scene-trust-strip {
+    margin: var(--spacing-2) var(--spacing-4) var(--spacing-3);
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--color-emerald-500) 35%, var(--border-glass));
+    border-radius: var(--radius-xl);
+    background: color-mix(in srgb, var(--color-emerald-500) 8%, var(--bg-surface-2));
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+.scene-trust-primary,
+.scene-trust-metrics {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px 12px;
+}
+
+.scene-trust-primary strong {
+    font-size: 0.82rem;
+    color: var(--text-primary);
+}
+
+.scene-trust-primary > span:not(.scene-trust-badge),
+.scene-trust-metrics span,
+.scene-trust-strip p {
+    font-size: 0.68rem;
+    color: var(--text-tertiary);
+}
+
+.scene-trust-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-emerald-500) 18%, transparent);
+    color: var(--color-emerald-400);
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.scene-trust-metrics span {
+    padding-right: 10px;
+    border-right: 1px solid var(--border-glass-subtle);
+}
+
+.scene-trust-metrics span:last-child {
+    border-right: 0;
+    padding-right: 0;
+}
+
+.scene-trust-strip p {
+    margin: 0;
+    line-height: 1.45;
+}
+
 .stats-container {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-3);
     width: 100%;
-    height: 100%;
+    height: auto;
+    flex: 1;
+    min-height: 0;
     box-sizing: border-box;
     padding: 0 var(--spacing-1);
 }
@@ -91,7 +155,8 @@
         grid-template-rows: 100%;
         gap: var(--spacing-3);
         /* 간격 축소: 4 -> 3 */
-        height: 100%;
+        height: auto;
+        flex: 1;
         overflow: hidden;
         padding-top: var(--spacing-3);
         /* Reduced from 50px as controls moved to portal */
@@ -117,6 +182,19 @@
         position: static;
         z-index: 1100;
         /* Ensure it's above other elements if needed */
+    }
+
+    .scene-trust-strip {
+        margin: var(--spacing-2) var(--spacing-3) 0;
+        padding: 8px 12px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 18px;
+    }
+
+    .scene-trust-strip p {
+        max-width: 32%;
     }
 
     .stats-value,

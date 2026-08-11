@@ -12,6 +12,7 @@ import {
   isAnalyticsInternalRouteRow,
 } from './analytics-purity.js';
 import { createPerfTrace } from './perf-log.js';
+import { buildTrustedSceneStats } from './scene-stats.js';
 
 const EVENT_TABLE = /^[a-z0-9_]+$/i.test(process.env.MYSQL_EVENTS_TABLE || '')
   ? process.env.MYSQL_EVENTS_TABLE
@@ -276,180 +277,47 @@ function parseJson(value, fallback = {}) {
   }
 }
 
-function getEventStartDate(event = {}) {
-  return asString(event.start_date || event.date || event.date_value);
-}
-
-function getEventCategory(event = {}) {
-  const category = String(event.category || '').toLowerCase();
-  const title = String(event.title || '').toLowerCase();
-  if (category.includes('class') || title.includes('강습') || title.includes('모집')) return '강습';
-  if (category.includes('social') || category.includes('group') || event.group_id || title.includes('소셜')) return '동호회 이벤트+소셜';
-  return '행사';
-}
-
-function getEventGenre(event = {}) {
-  return asString(event.genre || event.dance_genre || event.dance_scope) || '기타';
-}
-
-function getWeekdayLabel(dateValue) {
-  const date = new Date(`${String(dateValue).slice(0, 10)}T00:00:00+09:00`);
-  const labels = ['일', '월', '화', '수', '목', '금', '토'];
-  return labels[date.getDay()] || '-';
-}
-
-function emptyDayStats(label) {
-  return {
-    day: label,
-    count: 0,
-    typeBreakdown: [],
-    genreBreakdown: [],
-    topGenre: '-',
-    items: [],
-  };
-}
-
-function addBreakdown(map, key, amount = 1) {
-  const safeKey = key || '기타';
-  map.set(safeKey, (map.get(safeKey) || 0) + amount);
-}
-
-function breakdownArray(map) {
-  return Array.from(map.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-}
-
-function buildDayStats(dayMap) {
-  const labels = ['일', '월', '화', '수', '목', '금', '토'];
-  return labels.map((day) => {
-    const bucket = dayMap.get(day);
-    if (!bucket) return emptyDayStats(day);
-    const genreBreakdown = breakdownArray(bucket.genres);
-    return {
-      day,
-      count: bucket.items.length,
-      typeBreakdown: breakdownArray(bucket.types),
-      genreBreakdown,
-      topGenre: genreBreakdown[0]?.name || '-',
-      items: bucket.items,
-    };
-  });
-}
-
-function incrementEventStats(stats, event) {
-  const startDate = getEventStartDate(event);
-  if (!startDate) return;
-
-  const category = getEventCategory(event);
-  const genre = getEventGenre(event);
-  const day = getWeekdayLabel(startDate);
-  const item = {
-    type: category,
-    title: event.title || 'Untitled',
-    date: String(startDate).slice(0, 10),
-    createdAt: event.created_at || event.updated_at || '',
-    genre,
-    day,
-  };
-
-  const weekdayBucket = stats.totalWeeklyMap.get(day) || { items: [], types: new Map(), genres: new Map() };
-  weekdayBucket.items.push(item);
-  addBreakdown(weekdayBucket.types, category);
-  addBreakdown(weekdayBucket.genres, genre);
-  stats.totalWeeklyMap.set(day, weekdayBucket);
-
-  const now = new Date();
-  const eventMonth = String(startDate).slice(0, 7);
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  if (eventMonth === currentMonth) {
-    const monthBucket = stats.monthlyWeeklyMap.get(day) || { items: [], types: new Map(), genres: new Map() };
-    monthBucket.items.push(item);
-    addBreakdown(monthBucket.types, category);
-    addBreakdown(monthBucket.genres, genre);
-    stats.monthlyWeeklyMap.set(day, monthBucket);
-  }
-
-  const monthlyBucket = stats.monthlyMap.get(eventMonth) || {
-    month: eventMonth,
-    classes: 0,
-    events: 0,
-    socials: 0,
-    clubs: 0,
-    total: 0,
-    registrations: 0,
-    dailyAvg: 0,
-    maxDaily: 0,
-    maxDailyDate: null,
-    daily: new Map(),
-  };
-  if (category === '강습') monthlyBucket.classes += 1;
-  else if (category === '동호회 이벤트+소셜') monthlyBucket.socials += 1;
-  else monthlyBucket.events += 1;
-  monthlyBucket.total += 1;
-  monthlyBucket.registrations += 1;
-  const dayKey = String(startDate).slice(0, 10);
-  monthlyBucket.daily.set(dayKey, (monthlyBucket.daily.get(dayKey) || 0) + 1);
-  stats.monthlyMap.set(eventMonth, monthlyBucket);
-
-  addBreakdown(stats.genreMap, genre);
-}
-
 async function loadGenericRows(table) {
   return loadCafe24TableRows(table);
 }
 
 async function buildCafe24SiteStats() {
   const pool = getMysqlPool();
-  const [eventRows] = await pool.query(`SELECT raw_json FROM ${EVENT_TABLE}`);
-  const events = eventRows.map((row) => parseJson(row.raw_json, {}));
+  const [eventRows] = await pool.query(`
+    SELECT id, title, date_value, start_date, end_date, event_dates_json, time_text,
+           location, category, genre, dance_scope, activity_type, venue_name, address,
+           created_at, updated_at, raw_json
+      FROM ${EVENT_TABLE}
+  `);
+  const events = eventRows.map((row) => {
+    const raw = parseJson(row.raw_json, {});
+    return {
+      ...row,
+      ...raw,
+      id: raw.id ?? row.id,
+      title: raw.title ?? row.title,
+      date: raw.date || row.date_value,
+      start_date: raw.start_date || raw.date || row.start_date || row.date_value,
+      end_date: raw.end_date || row.end_date || raw.start_date || raw.date || row.start_date || row.date_value,
+      event_dates: raw.event_dates ?? parseJson(row.event_dates_json, []),
+      time: raw.time || row.time_text,
+      location: raw.location || row.location,
+      category: raw.category || row.category,
+      genre: raw.genre || row.genre,
+      dance_scope: raw.dance_scope || row.dance_scope,
+      activity_type: raw.activity_type || row.activity_type,
+      venue_name: raw.venue_name || row.venue_name,
+      address: raw.address || row.address,
+      created_at: raw.created_at || row.created_at,
+      updated_at: raw.updated_at || row.updated_at,
+    };
+  });
   const [boardUsers, pwaInstalls, pushSubscriptions, adminIdentities] = await Promise.all([
     loadGenericRows('board_users'),
     loadGenericRows('pwa_installs'),
     loadGenericRows('user_push_subscriptions'),
     getAnalyticsAdminIdentityCache().catch(() => ({ userIds: new Set() })),
   ]);
-
-  const stats = {
-    totalWeeklyMap: new Map(),
-    monthlyWeeklyMap: new Map(),
-    monthlyMap: new Map(),
-    genreMap: new Map(),
-  };
-
-  events.forEach((event) => incrementEventStats(stats, event));
-
-  const monthly = Array.from(stats.monthlyMap.values())
-    .map((month) => {
-      let maxDaily = 0;
-      let maxDailyDate = null;
-      month.daily.forEach((count, date) => {
-        if (count > maxDaily) {
-          maxDaily = count;
-          maxDailyDate = date;
-        }
-      });
-      const [year, monthNumber] = month.month.split('-').map(Number);
-      const daysInMonth = year && monthNumber ? new Date(year, monthNumber, 0).getDate() : 30;
-      const { daily, ...rest } = month;
-      return {
-        ...rest,
-        clubs: rest.socials,
-        dailyAvg: Number((rest.total / Math.max(daysInMonth, 1)).toFixed(1)),
-        maxDaily,
-        maxDailyDate,
-      };
-    })
-    .sort((a, b) => a.month.localeCompare(b.month));
-
-  const totalWeekly = buildDayStats(stats.totalWeeklyMap);
-  const monthlyWeekly = buildDayStats(stats.monthlyWeeklyMap);
-  const topDay = [...totalWeekly].sort((a, b) => b.count - a.count)[0]?.day || '-';
-  const topGenresList = breakdownArray(stats.genreMap).slice(0, 10).map((item) => item.name);
-  const totalItems = events.length;
-  const dailyAverage = monthly.length
-    ? Number((monthly.reduce((sum, item) => sum + item.dailyAvg, 0) / monthly.length).toFixed(1))
-    : 0;
 
   const activeMemberIds = new Set(
     boardUsers
@@ -479,40 +347,10 @@ async function buildCafe24SiteStats() {
       .filter(isNonAdminActiveMember)
       .map(String),
   ).size;
-  const eventBreakdown = {
-    class: events.filter((event) => getEventCategory(event) === '강습').length,
-    event: events.filter((event) => getEventCategory(event) === '행사').length,
-    social: events.filter((event) => getEventCategory(event) === '동호회 이벤트+소셜').length,
-  };
-
-  const payload = {
-    backend: 'cafe24-mysql',
-    monthly,
-    totalWeekly,
-    monthlyWeekly,
-    topGenresList,
-    summary: {
-      totalItems,
-      dailyAverage,
-      topDay,
-      memberCount,
-      pwaCount,
-      pushCount,
-    },
-    eventBreakdown,
-    leadTimeAnalysis: {
-      classEarly: 0,
-      classMid: 0,
-      classLate: 0,
-      eventEarly: 0,
-      eventMid: 0,
-      eventLate: 0,
-    },
-    generatedAt: new Date().toISOString(),
-  };
+  const payload = buildTrustedSceneStats(events, { memberCount, pwaCount, pushCount });
 
   await saveCafe24TableRow('metrics_cache', {
-    key: 'scene_analytics_v3',
+    key: 'scene_analytics_v4',
     value: payload,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
