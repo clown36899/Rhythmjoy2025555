@@ -41,6 +41,18 @@
 - 관련 파일: `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/NewEventsBanner.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`
 - 관련 커밋: pending
 
+## 2026-08-11 Cafe24 배포 중 푸시 구독 마이그레이션 호환성 오류
+
+- 상태: 수정 완료, 재배포 대기
+- 범위: Cafe24 배포 스크립트의 `2026-08-11-push-subscription-record-keys.sql` 재실행 단계
+- 증상: 프론트 정적 파일 전송 뒤 DB 마이그레이션에서 `FUNCTION swingenjoy_app.JSON_UNQUOTE does not exist` 오류가 발생해 최종 서비스 확인 전에 배포가 중단됐다.
+- 원인: 운영 DB가 MariaDB 5.5.68인데 푸시 구독 레코드 키 마이그레이션이 해당 버전에 없는 `JSON_EXTRACT`·`JSON_UNQUOTE`를 사용했다.
+- 해결: `generic_records.data_json`이 `JSON.stringify`의 공백 없는 형식으로 저장되는 점을 이용해 MariaDB 5.5 호환 `SUBSTRING_INDEX`로 endpoint를 추출한다. 기존 해시 레코드는 `ON DUPLICATE KEY UPDATE`로 안전하게 유지하고 원시 endpoint 키만 제거하는 멱등성은 유지한다.
+- 데이터 확인: 운영 푸시 구독 2건은 모두 이미 `push:` SHA-256 키를 사용하며 compact endpoint marker를 보유해 데이터 손상이나 유실이 없음을 확인했다.
+- 검증: 관련 서버 테스트와 운영 DB의 호환 추출식·해시 일치 확인 후 재배포한다.
+- 관련 파일: `server/cafe24/migrations/2026-08-11-push-subscription-record-keys.sql`, `server/cafe24/push-subscription-key.test.js`
+- 관련 커밋: pending
+
 ## 2026-08-05 알림함 시간 정보 노출
 
 - 상태: 수정 완료, 배포 전

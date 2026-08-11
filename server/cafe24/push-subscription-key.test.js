@@ -52,5 +52,8 @@ describe('push subscription record keys', () => {
     expect(sql).toContain("WHERE table_name = 'user_push_subscriptions'");
     expect(sql).toContain("record_id NOT LIKE 'push:%'");
     expect(sql).toContain('ON DUPLICATE KEY UPDATE');
+    expect(sql).toContain('SUBSTRING_INDEX');
+    expect(sql).not.toContain('JSON_UNQUOTE');
+    expect(sql).not.toContain('JSON_EXTRACT');
   });
 });
