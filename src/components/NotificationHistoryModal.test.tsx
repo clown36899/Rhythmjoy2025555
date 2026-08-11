@@ -56,7 +56,7 @@ describe('NotificationHistoryModal route separation', () => {
 
         expect(screen.getByText('오늘 일정 (2)')).toBeInTheDocument();
         expect(screen.getByText('신규 등록 (1)')).toBeInTheDocument();
-        expect(screen.getByText('등록 시점과 관계없이 오늘 진행되는 일정')).toBeInTheDocument();
+        expect(screen.getByText('시작일이 오늘인 일정')).toBeInTheDocument();
         expect(screen.getByText('알림 설정 후 새로 등록된 일정')).toBeInTheDocument();
         expect(screen.queryByText('첫 일정 · 테스트홀 외 1개')).not.toBeInTheDocument();
 
@@ -65,7 +65,7 @@ describe('NotificationHistoryModal route separation', () => {
         expect(within(summary).getByText('신규 등록').parentElement).toHaveTextContent('1');
         expect(container.querySelectorAll('[data-notification-kind="daily_schedule"]')).toHaveLength(2);
         expect(container.querySelectorAll('[data-notification-kind="new_event"]')).toHaveLength(1);
-        expect(screen.getAllByText('오늘 진행')).toHaveLength(2);
+        expect(screen.getAllByText('오늘 시작')).toHaveLength(2);
         expect(screen.queryByText('7.30')).not.toBeInTheDocument();
         expect(screen.queryByText('7.18')).not.toBeInTheDocument();
         expect(container.querySelector('img')).toHaveAttribute('draggable', 'false');

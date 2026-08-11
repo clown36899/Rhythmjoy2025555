@@ -7,11 +7,11 @@ import {
   buildDailyDigestItems,
   buildDailyDigestPayload,
   eventMatchesDigestPrefs,
-  eventOccursOnNotificationDate,
+  eventStartsOnNotificationDate,
 } from '../server/cafe24/push-api.js';
 
 export const DAILY_OCCURRENCE_RECONCILIATION_ID =
-  '2026-08-11-daily-notification-occurrence-reconciliation-v1';
+  '2026-08-11-daily-notification-start-date-reconciliation-v2';
 
 function parseData(value) {
   if (value && typeof value === 'object') return value;
@@ -38,7 +38,7 @@ export function buildDailyNotificationReconciliation(notification, preference, a
   }
 
   const events = allEvents
-    .filter((event) => eventOccursOnNotificationDate(event, dateKey))
+    .filter((event) => eventStartsOnNotificationDate(event, dateKey))
     .filter((event) => eventMatchesDigestPrefs(event, prefs));
   if (events.length === 0 && prefs.pref_only_with_events) {
     return { action: 'mark-read', reason: 'no-events' };

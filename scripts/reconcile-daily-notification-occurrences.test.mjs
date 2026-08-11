@@ -60,18 +60,42 @@ const events = [
     start_date: '2026-08-10',
     end_date: '2026-08-12',
   },
+  {
+    id: 'starts-today',
+    title: '오늘 시작 행사',
+    category: 'social',
+    start_date: '2026-08-11',
+    end_date: '2026-08-20',
+  },
 ];
 
-test('daily reconciliation keeps explicit occurrences authoritative and stores the digest date', () => {
+test('daily reconciliation keeps only schedules starting on the digest date', () => {
   const result = buildDailyNotificationReconciliation(notification, preference, events);
 
   assert.equal(result.action, 'update');
-  assert.equal(result.eventCount, 2);
-  assert.equal(result.title, '오늘 일정 2개');
-  assert.deepEqual(result.data.items.map((item) => item.eventId), ['continuous-today', 'explicit-today']);
+  assert.equal(result.eventCount, 1);
+  assert.equal(result.title, '오늘 일정 1개');
+  assert.deepEqual(result.data.items.map((item) => item.eventId), ['starts-today']);
   assert.ok(result.data.items.every((item) => item.date === '2026-08-11'));
   assert.ok(!JSON.stringify(result).includes('weekly-class'));
   assert.ok(!JSON.stringify(result).includes('festival-gap'));
+  assert.ok(!JSON.stringify(result).includes('explicit-today'));
+  assert.ok(!JSON.stringify(result).includes('continuous-today'));
+});
+
+test('the production-shaped August 11 digest excludes older multi-session classes', () => {
+  const productionShape = [
+    { id: 'ellastin', title: '엘라스틴 LINDINIT', category: 'class', start_date: '2026-07-07', end_date: '2026-08-11', event_dates: ['2026-08-11'] },
+    { id: 'jazzbuzz', title: 'JAZZBUZZ', category: 'class', start_date: '2026-07-07', end_date: '2026-08-18', event_dates: ['2026-08-11'] },
+    { id: 'hanbo', title: '한보 JazzLab', category: 'class', start_date: '2026-07-28', end_date: '2026-08-11', event_dates: ['2026-08-11'] },
+    { id: 'juan', title: 'DJ 후안', category: 'social', start_date: '2026-08-11', end_date: '2026-08-11' },
+    { id: 'balup', title: 'New Balup', category: 'class', start_date: '2026-08-11', end_date: '2026-08-11' },
+    { id: 'kyungsung', title: '경성홀 화요 소셜', category: 'social', start_date: '2026-08-11', end_date: '2026-08-11', event_dates: ['2026-08-11'] },
+  ];
+
+  const result = buildDailyNotificationReconciliation(notification, preference, productionShape);
+  assert.equal(result.eventCount, 3);
+  assert.deepEqual(new Set(result.data.items.map((item) => item.eventId)), new Set(['juan', 'balup', 'kyungsung']));
 });
 
 test('daily reconciliation migration is idempotent and updates unread rows transactionally', async () => {
@@ -100,7 +124,7 @@ test('daily reconciliation migration is idempotent and updates unread rows trans
   assert.equal(result.updated, 1);
   assert.equal(result.markedRead, 0);
   const update = writes.find(([sql]) => sql.startsWith('UPDATE user_notifications'));
-  assert.equal(JSON.parse(update[1][3]).count, 2);
+  assert.equal(JSON.parse(update[1][3]).count, 1);
   assert.deepEqual(writes.at(-2), ['commit']);
   assert.deepEqual(writes.at(-1), ['release']);
 });

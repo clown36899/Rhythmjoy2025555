@@ -109,7 +109,7 @@ function getKstDateKey(date = new Date()) {
 function formatDigestDate(value?: string | null) {
     if (!value) return '';
     return String(value).slice(0, 10) === getKstDateKey()
-        ? '오늘 진행'
+        ? '오늘 시작'
         : formatDateShort(value);
 }
 
@@ -187,7 +187,7 @@ export default function NotificationHistoryModal({
             {
                 kind: 'daily_schedule' as const,
                 title: '오늘 일정',
-                description: '등록 시점과 관계없이 오늘 진행되는 일정',
+                description: '시작일이 오늘인 일정',
                 icon: 'ri-calendar-check-line',
                 items: byKind.daily_schedule,
             },

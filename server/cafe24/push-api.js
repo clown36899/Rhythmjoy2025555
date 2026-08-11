@@ -76,32 +76,11 @@ function normalizeDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
-function explicitEventDateKeys(event = {}) {
-  const keys = new Set();
-  const explicitDates = Array.isArray(event.event_dates)
-    ? event.event_dates
-    : parseJsonValue(event.event_dates, []);
-  if (Array.isArray(explicitDates)) {
-    explicitDates.forEach((date) => {
-      const key = normalizeDateKey(date);
-      if (key) keys.add(key);
-    });
-  }
-
-  return keys;
-}
-
-export function eventOccursOnNotificationDate(event, dateKey) {
-  const explicitKeys = explicitEventDateKeys(event);
-  // The calendar treats event_dates as the authoritative occurrence list.
-  // Falling through to the start/end range here made weekly classes appear in
-  // every daily digest between the first and last class date.
-  if (explicitKeys.size > 0) return explicitKeys.has(dateKey);
-
+export function eventStartsOnNotificationDate(event, dateKey) {
+  // Product contract: the morning "today" route is for schedules whose
+  // primary start date is today. Later sessions of a multi-date course and
+  // days inside a continuous range do not belong to this route.
   const start = normalizeDateKey(event.start_date || event.date || event.date_value);
-  const end = normalizeDateKey(event.end_date);
-  if (start && end) return start <= dateKey && dateKey <= end;
-
   return start === dateKey;
 }
 
@@ -618,7 +597,7 @@ export function buildDailyDigestItems(events, dateKey) {
     title: event.title,
     url: `/calendar?id=${event.id}&date=${dateKey}`,
     order: index,
-    // A daily digest card describes this occurrence, not the series start.
+    // Every item in this route starts on the digest date.
     date: dateKey,
     location: event.place_name || event.venue_name || event.location || null,
     category: event.category || event.activity_type || null,
@@ -664,7 +643,7 @@ export async function sendDailyDigestToAdmins(req, res) {
   for (const row of adminRows) {
     const prefs = getStoredPreferences(row);
     const events = allEvents
-      .filter((event) => eventOccursOnNotificationDate(event, requestedDate))
+      .filter((event) => eventStartsOnNotificationDate(event, requestedDate))
       .filter((event) => eventMatchesDigestPrefs(event, prefs));
 
     if (events.length === 0 && asBool(prefs.pref_only_with_events)) {
@@ -964,7 +943,7 @@ export async function dailyDigestCron(req, res) {
   const queuedRows = [];
   for (const prefs of targetPreferences) {
     const events = allEvents
-      .filter((event) => eventOccursOnNotificationDate(event, now.dateKey))
+      .filter((event) => eventStartsOnNotificationDate(event, now.dateKey))
       .filter((event) => eventMatchesDigestPrefs(event, prefs));
     if (events.length === 0 && asBool(prefs.pref_only_with_events)) continue;
     const queueId = `daily-digest:${now.dateKey}:${String(prefs.user_id)}`;

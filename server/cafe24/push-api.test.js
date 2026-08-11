@@ -143,10 +143,10 @@ describe('Cafe24 push delivery targeting', () => {
     expect(payload.data.items[0]).not.toHaveProperty('time');
   });
 
-  it('uses explicit occurrence dates as authoritative for daily notifications', async () => {
+  it('includes only schedules whose primary start date is the digest date', async () => {
     const {
       buildDailyDigestItems,
-      eventOccursOnNotificationDate,
+      eventStartsOnNotificationDate,
     } = await import('./push-api.js');
     const weekly = {
       id: 'weekly-class',
@@ -159,11 +159,18 @@ describe('Cafe24 push delivery targeting', () => {
       start_date: '2026-08-10',
       end_date: '2026-08-12',
     };
+    const startsToday = {
+      id: 'starts-today',
+      start_date: '2026-08-11',
+      end_date: '2026-09-01',
+      event_dates: ['2026-08-11', '2026-08-18'],
+    };
 
-    expect(eventOccursOnNotificationDate(weekly, '2026-08-11')).toBe(false);
-    expect(eventOccursOnNotificationDate(weekly, '2026-08-13')).toBe(true);
-    expect(eventOccursOnNotificationDate(continuous, '2026-08-11')).toBe(true);
-    expect(buildDailyDigestItems([weekly], '2026-08-13')[0].date).toBe('2026-08-13');
+    expect(eventStartsOnNotificationDate(weekly, '2026-08-11')).toBe(false);
+    expect(eventStartsOnNotificationDate(weekly, '2026-08-13')).toBe(false);
+    expect(eventStartsOnNotificationDate(continuous, '2026-08-11')).toBe(false);
+    expect(eventStartsOnNotificationDate(startsToday, '2026-08-11')).toBe(true);
+    expect(buildDailyDigestItems([startsToday], '2026-08-11')[0].date).toBe('2026-08-11');
   });
 
   it('queues the morning digest, retries through the shared queue, and stores every event as a bell card', async () => {

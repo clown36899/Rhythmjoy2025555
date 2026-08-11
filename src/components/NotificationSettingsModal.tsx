@@ -811,7 +811,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                     <i className="ri-calendar-check-line" aria-hidden="true"></i>
                                     <span>
                                         <strong>오늘 일정 요약</strong>
-                                        <small>등록 시점과 관계없이 오늘 진행되는 일정을 한 번에 받기</small>
+                                        <small>시작일이 오늘인 일정을 한 번에 받기</small>
                                     </span>
                                     <button
                                         type="button"
