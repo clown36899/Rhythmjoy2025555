@@ -24,6 +24,7 @@ interface NotificationSettingsModalProps {
 
 type StatusMessage = { type: 'success' | 'error'; text: string };
 type NotificationDetailPanel = 'today' | 'new';
+type SettingsLoadState = 'idle' | 'loading' | 'loaded' | 'error';
 
 const DEFAULT_EVENT_TAGS = ['워크샵', '파티', '대회', '기타'];
 const DEFAULT_CLASS_GENRES = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
@@ -183,6 +184,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isDeviceConnected, setIsDeviceConnected] = useState<boolean>(false);
     const [isDeviceConnectionKnown, setIsDeviceConnectionKnown] = useState<boolean>(false);
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
+    const [settingsLoadState, setSettingsLoadState] = useState<SettingsLoadState>('loading');
+    const [loadedSettingsUserId, setLoadedSettingsUserId] = useState<string | null>(null);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [needsPwaReinstall, setNeedsPwaReinstall] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -251,6 +254,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         const legacyAndroidPwa = detectLegacyAndroidPwaScope(platform, pwa);
         setNeedsPwaReinstall(legacyAndroidPwa);
         if (legacyAndroidPwa) {
+            setSettingsLoadState('idle');
             console.warn('[NotificationSettingsModal] legacy Android PWA scope detected', {
                 path: window.location.pathname,
                 search: window.location.search,
@@ -263,8 +267,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     }, [isOpen, user?.id]);
 
     const loadSettings = async () => {
+        setSettingsLoadState('loading');
+        setLoggedStatusMessage(null);
         if (!user) {
             console.warn('[NotificationSettingsModal] load skipped no user', getRuntimeLogMeta(platform, isRunningInPWA));
+            setSettingsLoadState('error');
+            setLoggedStatusMessage({ type: 'error', text: '로그인 정보를 확인한 뒤 다시 시도해주세요.' }, { step: 'load-no-user' });
             setIsPushLoading(false);
             return;
         }
@@ -307,6 +315,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             setOriginalPushEnabled(accountEnabled);
             setPushPrefs(uiPrefs);
             setOriginalPrefs({ ...uiPrefs });
+            setLoadedSettingsUserId(String(user.id));
+            setSettingsLoadState('loaded');
             if (connectionError) {
                 setLoggedStatusMessage({
                     type: 'error',
@@ -322,6 +332,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             }
         } catch (error) {
             console.error('[NotificationSettingsModal] Load error:', error);
+            setLoadedSettingsUserId(null);
+            setSettingsLoadState('error');
             setLoggedStatusMessage({
                 type: 'error',
                 text: error instanceof Error && error.message
@@ -499,6 +511,10 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     };
 
     const handleSaveChanges = async () => {
+        if (settingsLoadState !== 'loaded') {
+            setLoggedStatusMessage({ type: 'error', text: '계정 알림 설정을 먼저 다시 불러와주세요.' }, { step: 'save-before-load' });
+            return;
+        }
         setIsSaving(true);
         setLoggedStatusMessage(null);
         try {
@@ -602,7 +618,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 setIsDeviceConnected(true);
             } else if (isPushEnabled !== originalPushEnabled) {
                 console.info('[NotificationSettingsModal] unsubscribe before save', getRuntimeLogMeta(platform, isRunningInPWA));
-                await unsubscribeFromPush();
+                const disabled = await unsubscribeFromPush();
+                if (!disabled) throw new Error('알림 해제를 서버에 저장하지 못했습니다. 다시 시도해주세요.');
                 console.info('[NotificationSettingsModal] unsubscribe after save', getRuntimeLogMeta(platform, isRunningInPWA));
             }
 
@@ -671,7 +688,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 ? isPushEnabled && isDeviceConnectionKnown && !isDeviceConnected ? '이 기기 연결 및 저장' : '설정 저장'
                 : '저장됨';
     const showInstallGuideOnly = needsPwaReinstall || (!isRunningInPWA && platform === 'ios');
-    const showSaveControls = !isPushLoading && !showInstallGuideOnly;
+    const hasCurrentAccountSettings = settingsLoadState === 'loaded'
+        && loadedSettingsUserId === String(user?.id || '');
+    const showSaveControls = hasCurrentAccountSettings && !isPushLoading && !showInstallGuideOnly;
 
     if (!isOpen) return null;
 
@@ -690,10 +709,17 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 </div>
 
                 <div className="NSM-body">
-                    {isPushLoading ? (
+                    {isPushLoading || settingsLoadState === 'loading' || (settingsLoadState === 'loaded' && !hasCurrentAccountSettings) ? (
                         <div className="NSM-loadingRow">
                             <i className="ri-loader-4-line NSM-spinner"></i>
                             <span>설정 불러오는 중...</span>
+                        </div>
+                    ) : settingsLoadState === 'error' ? (
+                        <div className="NSM-loadError" role="alert">
+                            <i className="ri-error-warning-line" aria-hidden="true"></i>
+                            <strong>설정을 표시할 수 없음</strong>
+                            <p>{statusMessage?.text || '계정 알림 설정을 불러오지 못했습니다.'}</p>
+                            <button type="button" onClick={loadSettings}>다시 불러오기</button>
                         </div>
                     ) : needsPwaReinstall ? (
                         <div className="NSM-pwaTip NSM-pwaTip--warning">
@@ -793,6 +819,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                         onClick={() => handleAlertActivationToggle('pref_today_digest')}
                                         disabled={isSaving || isPushLoading || isRequestingPermission}
                                         aria-pressed={isTodayAlertActive}
+                                        aria-label={`오늘 일정 요약 ${todayRouteLabel}`}
                                     >
                                         <span>{todayRouteLabel}</span>
                                         <span className={`NSM-switch ${isTodayAlertActive ? 'is-active' : ''} ${isRequestingPermission ? 'is-loading' : ''}`} aria-hidden="true">
@@ -830,6 +857,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                         onClick={() => handleAlertActivationToggle('pref_new_event_alerts')}
                                         disabled={isSaving || isPushLoading || isRequestingPermission}
                                         aria-pressed={isNewEventAlertActive}
+                                        aria-label={`새 등록 알림 ${newEventRouteLabel}`}
                                     >
                                         <span>{newEventRouteLabel}</span>
                                         <span className={`NSM-switch ${isNewEventAlertActive ? 'is-active' : ''} ${isRequestingPermission ? 'is-loading' : ''}`} aria-hidden="true">

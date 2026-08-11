@@ -27,6 +27,7 @@ interface NotificationDisplayItem {
     category?: string | null;
     location?: string | null;
     date?: string | null;
+    digestDate?: string | null;
     kind: NotificationDisplayKind;
 }
 
@@ -94,6 +95,24 @@ function formatDateShort(value?: string | null) {
     return `${Number(match[2])}.${Number(match[3])}`;
 }
 
+function getKstDateKey(date = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function formatDigestDate(value?: string | null) {
+    if (!value) return '';
+    return String(value).slice(0, 10) === getKstDateKey()
+        ? '오늘 진행'
+        : formatDateShort(value);
+}
+
 function getNotificationDisplayKind(notification: NotificationRecord): NotificationDisplayKind {
     const kind = String(notification.data?.notificationKind || '');
     if (kind === 'daily_schedule' || notification.data?.kind === 'daily_schedule_morning') {
@@ -135,6 +154,7 @@ export default function NotificationHistoryModal({
                         category: item.category || notification.data?.category,
                         location: item.location,
                         date: item.date || item.start_date,
+                        digestDate: kind === 'daily_schedule' ? notification.data?.date : null,
                         kind,
                     };
                 });
@@ -151,6 +171,7 @@ export default function NotificationHistoryModal({
                 image: notification.data?.image || notification.image || notification.icon,
                 eventId,
                 category: notification.data?.category,
+                digestDate: kind === 'daily_schedule' ? notification.data?.date : null,
                 kind,
             }];
         });
@@ -410,7 +431,12 @@ export default function NotificationHistoryModal({
                                             const preview = item.eventId ? eventPreviews[item.eventId] : undefined;
                                             const title = preview?.title || item.title;
                                             const location = preview?.location || item.location;
-                                            const date = preview?.start_date || preview?.date || item.date;
+                                            const date = item.kind === 'daily_schedule'
+                                                ? item.digestDate
+                                                : preview?.start_date || preview?.date || item.date;
+                                            const dateLabel = item.kind === 'daily_schedule'
+                                                ? formatDigestDate(date)
+                                                : formatDateShort(date);
                                             const image = getBestImage(item, preview);
 
                                             return (
@@ -438,7 +464,7 @@ export default function NotificationHistoryModal({
                                                         <div className="nhm-item-title">{title}</div>
                                                         {item.body && <div className="nhm-item-body">{item.body}</div>}
                                                         <div className="nhm-item-meta">
-                                                            {date && <span>{formatDateShort(date)}</span>}
+                                                            {dateLabel && <span>{dateLabel}</span>}
                                                             {location && <span>{location}</span>}
                                                         </div>
                                                     </div>

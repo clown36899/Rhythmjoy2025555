@@ -1515,6 +1515,17 @@
 - 운영 배포 및 검증: 수정 커밋 `d3850c6a`를 `origin/main`에 푸시한 뒤 동일 커밋의 clean worktree에서 Cafe24에 배포했다. 공개·서버·배포 원본의 버전은 `1786378011134`로 일치하고 서비스워커 SHA-256도 `49b34b66fd03828be33dd211ddeffc65d55c958a76bcc416ebed5eb8acd72d27`로 모두 같았다. 공개 서비스워커는 `no-store`이며 전환 marker를 포함하고 앱 자산 프리캐시·cached navigation·`notification-history` 문자열은 0건이다. 외부 헬스와 서비스 상태는 정상, 미존재 자산은 `text/plain` HTTP 404다. 운영 Chromium 스모크 테스트에서 앱 본문과 active worker를 확인했고 VersionError·치명 오류 화면·관련 console/page error는 0건이었다.
 - 관련 파일: `src/bootstrap.ts`, `src/lib/pwaRecovery.ts`, `public/service-worker.js`, `vite.config.ts`, `src/lib/pwaUpdateCoordinator.ts`, `src/components/DeploymentAutoRefresh.tsx`, `src/utils/clientLogBuffer.ts`, `src/main.tsx`
 
+## 2026-08-11 오늘 일정 알림의 비개최 일정 혼입 및 설정 오류 오표시
+
+- 상태: 구조 수정 및 배포 준비
+- 현상: 2026-08-11 아침 Push와 알림함에 실제 화요일 개최 일정뿐 아니라 목요일·토요일 반복 수업과 7월/9월 구간 축제까지 포함돼 `오늘 일정 11개`로 표시됐다. 일정 카드에는 7월의 시리즈 시작일이 나타나 과거 등록분을 다시 보낸 것처럼 보였다. 설정 API가 실패하면 저장된 계정 설정 대신 기본 OFF 화면을 표시할 수도 있었다.
+- 원인: 알림 서버가 명시 개최일 `event_dates`에 오늘이 없더라도 `start_date <= 오늘 <= end_date`이면 개최로 인정했다. 캘린더는 명시 개최일을 우선하므로 화면과 알림의 날짜 계약이 달랐다. 알림함은 오늘 요약 날짜 대신 이벤트 시리즈 시작일을 표시했고, 설정 모달은 조회 성공 여부와 설정값 표시 상태를 구분하지 않았다.
+- 조치: `event_dates`가 있으면 그 목록만 개최일로 사용하고, 명시 개최일이 없는 연속 일정만 시작~종료 범위를 사용한다. 일일 요약 항목에는 요약 대상 날짜를 저장하고 오늘 받은 카드는 `오늘 진행`으로 표시한다. 설정 조회 실패 시 스위치·저장 UI를 숨긴 재시도 화면을 표시하며, 해제 API 실패 시 모달을 성공으로 닫지 않는다. 배포 시 1회 보정 스크립트가 기존 미확인 오늘 알림을 동일 규칙으로 재계산한다.
+- 운영 사전 감사: 기존 판정은 11건, 캘린더와 일치하는 엄격 판정은 6건이었다. 잘못 포함된 5건은 실제 개최일이 목·토·수요일이거나 7월/9월의 분리 기간인 일정이었다. 오늘 cron·큐·Push 전달 자체는 성공했으며 분류 계산이 직접 원인이었다.
+- 검증: 반복 일정·분리 기간·연속 일정 판정, 전체 항목 저장 날짜, 기존 알림의 트랜잭션 보정과 멱등성, 오늘/신규 알림함 분리, 설정 조회 실패·재시도·해제 실패 회귀 테스트를 추가했다.
+- 관련 결정: `docs/decisions/2026-08-11-notification-delivery-lifecycle.md`
+- 관련 파일: `server/cafe24/push-api.js`, `scripts/reconcile-daily-notification-occurrences.mjs`, `src/components/NotificationHistoryModal.tsx`, `src/components/NotificationSettingsModal.tsx`, `scripts/deploy-cafe24.sh`
+
 ## 2026-08-09 지난 금요일 정규 소셜 자동 제거
 
 - 상태: 원인 확인, 수정·배포 전

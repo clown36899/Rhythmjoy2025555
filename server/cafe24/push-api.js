@@ -76,7 +76,7 @@ function normalizeDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
-function eventDateKeys(event = {}) {
+function explicitEventDateKeys(event = {}) {
   const keys = new Set();
   const explicitDates = Array.isArray(event.event_dates)
     ? event.event_dates
@@ -88,23 +88,21 @@ function eventDateKeys(event = {}) {
     });
   }
 
-  [event.start_date, event.date, event.date_value].forEach((date) => {
-    const key = normalizeDateKey(date);
-    if (key) keys.add(key);
-  });
-
   return keys;
 }
 
-function eventOccursOnDate(event, dateKey) {
-  const keys = eventDateKeys(event);
-  if (keys.has(dateKey)) return true;
+export function eventOccursOnNotificationDate(event, dateKey) {
+  const explicitKeys = explicitEventDateKeys(event);
+  // The calendar treats event_dates as the authoritative occurrence list.
+  // Falling through to the start/end range here made weekly classes appear in
+  // every daily digest between the first and last class date.
+  if (explicitKeys.size > 0) return explicitKeys.has(dateKey);
 
   const start = normalizeDateKey(event.start_date || event.date || event.date_value);
   const end = normalizeDateKey(event.end_date);
   if (start && end) return start <= dateKey && dateKey <= end;
 
-  return false;
+  return start === dateKey;
 }
 
 function eventLastDateKey(event = {}) {
@@ -121,7 +119,7 @@ function eventLastDateKey(event = {}) {
   return candidates.at(-1) || null;
 }
 
-function eventMatchesDigestPrefs(event, prefs = {}) {
+export function eventMatchesDigestPrefs(event, prefs = {}) {
   const category = String(event.category || event.activity_type || '').toLowerCase();
   if ((category === 'class' || category === 'regular') && !asBool(prefs.pref_class ?? true)) return false;
   if (category === 'club' && !asBool(prefs.pref_clubs ?? true)) return false;
@@ -620,7 +618,8 @@ export function buildDailyDigestItems(events, dateKey) {
     title: event.title,
     url: `/calendar?id=${event.id}&date=${dateKey}`,
     order: index,
-    date: normalizeDateKey(event.start_date || event.date || event.date_value),
+    // A daily digest card describes this occurrence, not the series start.
+    date: dateKey,
     location: event.place_name || event.venue_name || event.location || null,
     category: event.category || event.activity_type || null,
     image: event.image_thumbnail || event.image_medium || event.image || event.image_full || null,
@@ -665,7 +664,7 @@ export async function sendDailyDigestToAdmins(req, res) {
   for (const row of adminRows) {
     const prefs = getStoredPreferences(row);
     const events = allEvents
-      .filter((event) => eventOccursOnDate(event, requestedDate))
+      .filter((event) => eventOccursOnNotificationDate(event, requestedDate))
       .filter((event) => eventMatchesDigestPrefs(event, prefs));
 
     if (events.length === 0 && asBool(prefs.pref_only_with_events)) {
@@ -965,7 +964,7 @@ export async function dailyDigestCron(req, res) {
   const queuedRows = [];
   for (const prefs of targetPreferences) {
     const events = allEvents
-      .filter((event) => eventOccursOnDate(event, now.dateKey))
+      .filter((event) => eventOccursOnNotificationDate(event, now.dateKey))
       .filter((event) => eventMatchesDigestPrefs(event, prefs));
     if (events.length === 0 && asBool(prefs.pref_only_with_events)) continue;
     const queueId = `daily-digest:${now.dateKey}:${String(prefs.user_id)}`;

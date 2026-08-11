@@ -77,6 +77,7 @@ rsync -azi -e "${RSYNC_SSH}" scripts/backfill-notification-preferences.mjs "${TA
 rsync -azi -e "${RSYNC_SSH}" scripts/exclude-analytics-kiosk-network.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/import-lindycollection-routines.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/migrate-push-subscription-record-keys.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/reconcile-daily-notification-occurrences.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/reconcile-notification-inbox-preferences.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
@@ -173,6 +174,7 @@ else
   '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/backfill-notification-preferences.mjs'
 fi
 '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/reconcile-notification-inbox-preferences.mjs'
+'${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/reconcile-daily-notification-occurrences.mjs'
 if [ ! -f '${APP_DIR}/.notification-delivery-baselined' ]; then
   '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/baseline-notification-queue.mjs'
   touch '${APP_DIR}/.notification-delivery-baselined'

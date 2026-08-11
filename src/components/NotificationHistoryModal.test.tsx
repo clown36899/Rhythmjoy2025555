@@ -35,9 +35,10 @@ describe('NotificationHistoryModal route separation', () => {
                             data: {
                                 notificationKind: 'daily_schedule',
                                 kind: 'daily_schedule_morning',
+                                date: '2026-08-11',
                                 items: [
-                                    { title: '오늘 일정 A', date: '2026-08-11', location: 'A홀', image: '/a.jpg' },
-                                    { title: '오늘 일정 B', date: '2026-08-11', location: 'B홀' },
+                                    { title: '오늘 일정 A', date: '2026-07-30', location: 'A홀', image: '/a.jpg' },
+                                    { title: '오늘 일정 B', date: '2026-07-18', location: 'B홀' },
                                 ],
                             },
                         },
@@ -64,6 +65,9 @@ describe('NotificationHistoryModal route separation', () => {
         expect(within(summary).getByText('신규 등록').parentElement).toHaveTextContent('1');
         expect(container.querySelectorAll('[data-notification-kind="daily_schedule"]')).toHaveLength(2);
         expect(container.querySelectorAll('[data-notification-kind="new_event"]')).toHaveLength(1);
+        expect(screen.getAllByText('오늘 진행')).toHaveLength(2);
+        expect(screen.queryByText('7.30')).not.toBeInTheDocument();
+        expect(screen.queryByText('7.18')).not.toBeInTheDocument();
         expect(container.querySelector('img')).toHaveAttribute('draggable', 'false');
         expect(screen.getByText(/다음 발송 설정에는 영향을 주지 않습니다/)).toBeInTheDocument();
     });

@@ -26,6 +26,7 @@
     "social-reel:publish:dry-run": "node scripts/social-reels/run-scheduled-social-reel.mjs --dry-run",
     "social-reel:install-macos": "bash scripts/social-reels/install-macos-launch-agent.sh",
     "test:social-reel": "node --test scripts/social-reels/*.test.mjs",
+    "test:node": "node --test scripts/*.test.mjs scripts/social-reels/*.test.mjs",
     "test:external-api-guide-examples": "vite-node scripts/test-external-api-guide-examples.ts",
     "test": "vitest",
     "test:ingestion": "node scripts/test-ingestion-standards.mjs",

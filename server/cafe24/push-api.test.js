@@ -143,6 +143,29 @@ describe('Cafe24 push delivery targeting', () => {
     expect(payload.data.items[0]).not.toHaveProperty('time');
   });
 
+  it('uses explicit occurrence dates as authoritative for daily notifications', async () => {
+    const {
+      buildDailyDigestItems,
+      eventOccursOnNotificationDate,
+    } = await import('./push-api.js');
+    const weekly = {
+      id: 'weekly-class',
+      start_date: '2026-07-30',
+      end_date: '2026-09-03',
+      event_dates: ['2026-08-06', '2026-08-13'],
+    };
+    const continuous = {
+      id: 'continuous-event',
+      start_date: '2026-08-10',
+      end_date: '2026-08-12',
+    };
+
+    expect(eventOccursOnNotificationDate(weekly, '2026-08-11')).toBe(false);
+    expect(eventOccursOnNotificationDate(weekly, '2026-08-13')).toBe(true);
+    expect(eventOccursOnNotificationDate(continuous, '2026-08-11')).toBe(true);
+    expect(buildDailyDigestItems([weekly], '2026-08-13')[0].date).toBe('2026-08-13');
+  });
+
   it('queues the morning digest, retries through the shared queue, and stores every event as a bell card', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-10T23:30:00.000Z'));

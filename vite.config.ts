@@ -243,6 +243,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/.claude/**'],
+    // Node's built-in test files use node:test and are run by `npm run test:node`.
+    // Letting Vitest collect them executes the tests but then reports a false
+    // "No test suite found" failure because they do not register Vitest suites.
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/.claude/**', '**/*.test.mjs'],
   },
 });
