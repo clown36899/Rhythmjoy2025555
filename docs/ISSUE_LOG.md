@@ -24,7 +24,7 @@
 
 ## 2026-08-11 메인 신규 이벤트 광고의 지난 일정 우선 노출
 
-- 상태: 수정 완료, 배포 전
+- 상태: 수정 및 Cafe24 운영 배포 완료
 - 범위: 홈 `신규 이벤트` 광고 후보 선정, 첫 진입 순서, 8초 자동 순환
 - 증상: 시작일이 지난 일정이 유효 일정과 같은 우선순위로 광고 전면에 노출됐고, 관리자 최대 개수 설정과 부족분 보충 기준도 최종 표시 목록에 일관되게 적용되지 않았다.
 - 원인:
@@ -37,21 +37,21 @@
   - 시작일이 지난 일정은 현재·미래 일정만으로 최종 광고 개수를 채우지 못할 때만 뒤쪽 보충 후보로 사용한다.
   - 지난 보충 일정은 배경 카드 스택에는 남기되 자동 전면 노출을 8회 중 1회로 제한하고, 수동 선택은 계속 허용한다.
   - 최종 작성자·장소 중복 제거 뒤에도 관리자 최대 노출 개수가 적용되도록 표시 단계에 설정값을 전달한다.
-- 검증: 메인 광고 우선순위 및 저빈도 순환 테스트 6개, 기존 배너 번역 회귀 테스트 1개 통과. 대상 ESLint 오류 0개(기존 경고만 유지), Cafe24 프로덕션 번들 빌드 성공.
+- 검증: 메인 광고 우선순위 및 저빈도 순환 테스트 6개, 기존 배너 번역 회귀 테스트 1개 통과. 대상 ESLint 오류 0개(기존 경고만 유지), Cafe24 프로덕션 번들 빌드 성공. 운영 번들에서 새 우선순위 및 저빈도 노출 안내 문구를 확인했다.
 - 관련 파일: `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/NewEventsBanner.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`
-- 관련 커밋: pending
+- 관련 커밋: `08f1c8a0`
 
 ## 2026-08-11 Cafe24 배포 중 푸시 구독 마이그레이션 호환성 오류
 
-- 상태: 수정 완료, 재배포 대기
+- 상태: 해결 및 재배포 완료
 - 범위: Cafe24 배포 스크립트의 `2026-08-11-push-subscription-record-keys.sql` 재실행 단계
 - 증상: 프론트 정적 파일 전송 뒤 DB 마이그레이션에서 `FUNCTION swingenjoy_app.JSON_UNQUOTE does not exist` 오류가 발생해 최종 서비스 확인 전에 배포가 중단됐다.
 - 원인: 운영 DB가 MariaDB 5.5.68인데 푸시 구독 레코드 키 마이그레이션이 해당 버전에 없는 `JSON_EXTRACT`·`JSON_UNQUOTE`를 사용했다.
 - 해결: `generic_records.data_json`이 `JSON.stringify`의 공백 없는 형식으로 저장되는 점을 이용해 MariaDB 5.5 호환 `SUBSTRING_INDEX`로 endpoint를 추출한다. 기존 해시 레코드는 `ON DUPLICATE KEY UPDATE`로 안전하게 유지하고 원시 endpoint 키만 제거하는 멱등성은 유지한다.
 - 데이터 확인: 운영 푸시 구독 2건은 모두 이미 `push:` SHA-256 키를 사용하며 compact endpoint marker를 보유해 데이터 손상이나 유실이 없음을 확인했다.
-- 검증: 관련 서버 테스트와 운영 DB의 호환 추출식·해시 일치 확인 후 재배포한다.
+- 검증: 관련 서버 테스트 3개 통과, 운영 DB 2건의 호환 추출식·해시 일치 확인. 재배포 후 서비스 `active`, 내부 헬스 응답 `ok: true`, 외부·서버 버전 `2026-08-11T02:40:20.023Z` 일치를 확인했다.
 - 관련 파일: `server/cafe24/migrations/2026-08-11-push-subscription-record-keys.sql`, `server/cafe24/push-subscription-key.test.js`
-- 관련 커밋: pending
+- 관련 커밋: `c27bc96e`
 
 ## 2026-08-05 알림함 시간 정보 노출
 
