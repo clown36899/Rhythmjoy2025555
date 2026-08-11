@@ -24,7 +24,7 @@
 
 ## 2026-08-11 사이트 전역 이미지 드래그 수정 회귀
 
-- 상태: 구조 개선 및 통합 완료, 운영 배포 전
+- 상태: 구조 개선 및 Cafe24 운영 배포 완료
 - 범위: 사이트 전체 정적·동적 이미지, 자유게시판 저장 HTML, 모바일 드래그 폴리필, 게시물·웹진 편집기, Cafe24 배포 기준선
 - 증상: 자유게시판 본문 이미지에서 세로 스크롤 대신 반투명 이미지 드래그가 다시 발생했다.
 - 원인:
@@ -45,9 +45,11 @@
   - 수집 기준 테스트 및 소셜 릴스 테스트 20개 통과. 외부 API 예제는 cURL·Node·Python·Java가 통과했고 로컬 Docker 비실행으로 PHP 컨테이너 항목만 실행하지 못했다.
   - 대상 ESLint 오류 0개(기존 경고만 유지), `git diff --check`, 배포 스크립트 문법 및 미커밋 변경 차단 검증, Cafe24 프로덕션 빌드 통과.
   - 운영 DB 연결 모바일 폭 로컬 화면에서 신고된 게시물의 본문 이미지가 `draggable=false`, 허용 표식 없음, 본문 폭 356px 안에 수납되고 가로 넘침이 없음을 확인했다. 같은 화면의 이미지 9개가 모두 전역 차단됐고 브라우저 오류 로그는 0건이었다.
+  - Cafe24 배포 후 서비스와 cron은 `active`, 내부 헬스는 `ok: true`이며 로컬·서버·외부 버전이 `2026-08-11T05:06:38.837Z`로 일치했다.
+  - 공개 `index.html`과 전역 정책·자유게시판 본문·UniversalEditor·WebzineEditor 번들의 SHA-256이 로컬 배포 산출물과 모두 일치했다.
 - 관련 결정: `docs/decisions/2026-08-11-global-image-drag-policy.md`, `docs/decisions/2026-08-11-deployment-branch-integration-guard.md`
 - 관련 파일: `src/utils/imageDragPolicy.ts`, `src/utils/sanitizeHtml.ts`, `src/main.tsx`, `src/components/UniversalEditor/Core/UniversalEditor.tsx`, `src/pages/admin/webzine/WebzineEditor.tsx`, `scripts/deploy-cafe24.sh`
-- 관련 커밋: pending
+- 관련 커밋: `c02cecdb`
 
 ## 2026-08-11 오늘 일정·신규 등록 혼합 및 알림 클릭 403
 
