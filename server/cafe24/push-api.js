@@ -158,6 +158,18 @@ function eventMatchesNewEventPrefs(event, prefs = {}) {
   return asBool(prefs.pref_new_event_social ?? true);
 }
 
+export function isNewEventQueueAfterActivation(queueCreatedAt, prefs = {}) {
+  const activationTime = Date.parse(String(prefs.new_event_enabled_at || ''));
+  // Missing provenance must fail closed. The migration backfills every active
+  // route and every later enable stores a boundary before queue processing.
+  if (!Number.isFinite(activationTime)) return false;
+
+  const queueTime = typeof queueCreatedAt === 'number'
+    ? queueCreatedAt
+    : Date.parse(String(queueCreatedAt || ''));
+  return Number.isFinite(queueTime) && queueTime >= activationTime;
+}
+
 function getStoredPreferences(row = {}) {
   const subscription = parseJsonValue(row.subscription, row.subscription || {});
   const stored = subscription?.preferences && typeof subscription.preferences === 'object'
@@ -239,16 +251,6 @@ async function loadAdminSubscriptions() {
 
 async function loadPushSubscriptions() {
   return await loadCafe24TableRows('user_push_subscriptions');
-}
-
-async function loadNotificationInboxRecipients() {
-  const pool = getMysqlPool();
-  const [rows] = await pool.execute(
-    'SELECT u.id AS user_id FROM users u',
-  );
-  return rows
-    .map((row) => ({ user_id: String(row.user_id || row.id || '') }))
-    .filter((row) => row.user_id);
 }
 
 function latestStoredPreferencesForUser(rows, userId) {
@@ -700,33 +702,61 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
     .filter((row) => String(row.status || 'pending') === 'pending')
     .filter((row) => !row.next_attempt_at || String(row.next_attempt_at) <= now)
     .filter((row) => !row.scheduled_at || String(row.scheduled_at) <= now);
-  const burstEligibleRows = dueQueueRows.filter((row) => {
-    const data = parseJsonValue(row.payload, row.payload || {});
-    return data?.notificationRoute !== 'daily_digest';
-  });
-  const suppressPushBurst = burstEligibleRows.length > NOTIFICATION_QUEUE_PUSH_BURST_LIMIT;
-  const queueRows = suppressPushBurst ? dueQueueRows : dueQueueRows.slice(0, 20);
-
-  const [allRows, adminUserIds] = await Promise.all([
+  const [allRows, adminUserIds, preferenceRows] = await Promise.all([
     loadPushSubscriptions(),
     loadAdminUserIds(),
+    loadEnabledNotificationPreferences(),
   ]);
-  const inboxRecipients = await loadNotificationInboxRecipients();
-  const preferenceRows = await loadEnabledNotificationPreferences();
-  const processed = [];
-
-  for (const queueRow of queueRows) {
+  const queueContexts = dueQueueRows.map((queueRow) => {
     const payloadData = parseJsonValue(queueRow.payload, queueRow.payload || {});
     const notificationRoute = payloadData?.notificationRoute === 'daily_digest'
       ? 'daily_digest'
       : 'new_event';
-    const suppressThisPush = suppressPushBurst && notificationRoute !== 'daily_digest';
     const requestedUserId = payloadData?.userId ? String(payloadData.userId) : '';
-    const inboxTargetRecipients = inboxRecipients.filter((row) => (
-      (!requestedUserId || String(row.user_id) === requestedUserId)
-      && (payloadData?.adminOnly !== true || adminUserIds.has(String(row.user_id)))
-    ));
     const queuedAt = Date.parse(String(queueRow.created_at || queueRow.scheduled_at || ''));
+    const eventLike = {
+      category: queueRow.category || payloadData?.category,
+      activity_type: queueRow.category || payloadData?.category,
+      event_type: payloadData?.eventType,
+      genre: payloadData?.genre,
+      tags: payloadData?.tags,
+    };
+    const eligiblePreferences = preferenceRows.filter((prefs) => (
+      (!requestedUserId || String(prefs.user_id) === requestedUserId)
+      && (payloadData?.adminOnly !== true || adminUserIds.has(String(prefs.user_id)))
+      && (notificationRoute === 'daily_digest'
+        ? asBool(prefs.pref_today_digest)
+        : asBool(prefs.pref_new_event_alerts)
+          && eventMatchesNewEventPrefs(eventLike, prefs)
+          && isNewEventQueueAfterActivation(queuedAt, prefs))
+    ));
+    return {
+      queueRow,
+      payloadData,
+      notificationRoute,
+      queuedAt,
+      eligiblePreferences,
+    };
+  });
+  const burstEligibleRows = queueContexts.filter((context) => (
+    context.notificationRoute === 'new_event' && context.eligiblePreferences.length > 0
+  ));
+  const suppressPushBurst = burstEligibleRows.length > NOTIFICATION_QUEUE_PUSH_BURST_LIMIT;
+  const contextsToProcess = suppressPushBurst ? queueContexts : queueContexts.slice(0, 20);
+  const processed = [];
+
+  for (const context of contextsToProcess) {
+    const {
+      queueRow,
+      payloadData,
+      notificationRoute,
+      queuedAt,
+      eligiblePreferences,
+    } = context;
+    const suppressThisPush = suppressPushBurst && notificationRoute !== 'daily_digest';
+    const inboxTargetRecipients = eligiblePreferences.map((prefs) => ({
+      user_id: String(prefs.user_id),
+    }));
     const inboxKind = notificationRoute === 'daily_digest' ? 'daily_schedule' : 'new_event';
     const inboxSourceId = notificationRoute === 'daily_digest'
       ? String(payloadData?.date || queueRow.id)
@@ -764,20 +794,6 @@ async function processDueNotificationQueueUnlocked(source = 'notification_queue'
       continue;
     }
 
-    const eventLike = {
-      category: queueRow.category || payloadData?.category,
-      activity_type: queueRow.category || payloadData?.category,
-      event_type: payloadData?.eventType,
-      genre: payloadData?.genre,
-      tags: payloadData?.tags,
-    };
-    const eligiblePreferences = preferenceRows.filter((prefs) => (
-      (!requestedUserId || String(prefs.user_id) === requestedUserId)
-      && (payloadData?.adminOnly !== true || adminUserIds.has(String(prefs.user_id)))
-      && (notificationRoute === 'daily_digest'
-        ? asBool(prefs.pref_today_digest)
-        : asBool(prefs.pref_new_event_alerts) && eventMatchesNewEventPrefs(eventLike, prefs))
-    ));
     const eligibleUserIds = new Set(eligiblePreferences.map((prefs) => String(prefs.user_id)));
     const storedDeliveredIds = Array.isArray(queueRow.delivered_subscription_ids)
       ? queueRow.delivered_subscription_ids

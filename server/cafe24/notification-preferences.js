@@ -36,6 +36,12 @@ function parseArray(value, fallback) {
   return fallback;
 }
 
+function normalizeTimestamp(value) {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
 export function normalizeNotificationPreferences(value = {}) {
   const defaults = DEFAULT_NOTIFICATION_PREFERENCES;
   const days = parseArray(value.pref_digest_days ?? value.pref_digest_days_json, defaults.pref_digest_days)
@@ -71,13 +77,21 @@ export async function getUserNotificationPreferences(userId) {
     'SELECT * FROM user_notification_preferences WHERE user_id = ? LIMIT 1',
     [id],
   );
-  return rows[0] ? { user_id: id, ...normalizeNotificationPreferences(rows[0]) } : null;
+  return rows[0] ? {
+    user_id: id,
+    ...normalizeNotificationPreferences(rows[0]),
+    new_event_enabled_at: normalizeTimestamp(rows[0].new_event_enabled_at),
+  } : null;
 }
 
 export async function loadEnabledNotificationPreferences() {
   const pool = getMysqlPool();
   const [rows] = await pool.execute('SELECT * FROM user_notification_preferences WHERE enabled = 1');
-  return rows.map((row) => ({ user_id: String(row.user_id), ...normalizeNotificationPreferences(row) }));
+  return rows.map((row) => ({
+    user_id: String(row.user_id),
+    ...normalizeNotificationPreferences(row),
+    new_event_enabled_at: normalizeTimestamp(row.new_event_enabled_at),
+  }));
 }
 
 export async function saveUserNotificationPreferences(userId, input = {}) {
@@ -85,18 +99,38 @@ export async function saveUserNotificationPreferences(userId, input = {}) {
   if (!id) throw new Error('user_id is required');
   const prefs = normalizeNotificationPreferences(input);
   const pool = getMysqlPool();
+  const [existingRows] = await pool.execute(
+    `SELECT enabled, pref_new_event_alerts, new_event_enabled_at
+       FROM user_notification_preferences
+      WHERE user_id = ?
+      LIMIT 1`,
+    [id],
+  );
+  const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+  const wasNewEventRouteEnabled = Boolean(
+    existing
+    && asBool(existing.enabled, false)
+    && asBool(existing.pref_new_event_alerts, false)
+  );
+  const willEnableNewEventRoute = prefs.enabled && prefs.pref_new_event_alerts;
+  const newEventEnabledAt = willEnableNewEventRoute
+    ? wasNewEventRouteEnabled && existing?.new_event_enabled_at
+      ? existing.new_event_enabled_at
+      : new Date()
+    : null;
   await pool.execute(
     `INSERT INTO user_notification_preferences (
-       user_id, enabled, pref_today_digest, pref_new_event_alerts,
+       user_id, enabled, pref_today_digest, pref_new_event_alerts, new_event_enabled_at,
        pref_events, pref_class, pref_clubs,
        pref_new_event_social, pref_new_event_class, pref_new_event_clubs,
        pref_filter_tags_json, pref_filter_class_genres_json,
        pref_digest_time, pref_digest_days_json, pref_digest_timezone,
        pref_only_with_events, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
      ON DUPLICATE KEY UPDATE
        enabled = VALUES(enabled), pref_today_digest = VALUES(pref_today_digest),
-       pref_new_event_alerts = VALUES(pref_new_event_alerts), pref_events = VALUES(pref_events),
+       pref_new_event_alerts = VALUES(pref_new_event_alerts),
+       new_event_enabled_at = VALUES(new_event_enabled_at), pref_events = VALUES(pref_events),
        pref_class = VALUES(pref_class), pref_clubs = VALUES(pref_clubs),
        pref_new_event_social = VALUES(pref_new_event_social),
        pref_new_event_class = VALUES(pref_new_event_class),
@@ -111,6 +145,7 @@ export async function saveUserNotificationPreferences(userId, input = {}) {
     [
       id, prefs.enabled ? 1 : 0,
       prefs.pref_today_digest ? 1 : 0, prefs.pref_new_event_alerts ? 1 : 0,
+      newEventEnabledAt,
       prefs.pref_events ? 1 : 0, prefs.pref_class ? 1 : 0, prefs.pref_clubs ? 1 : 0,
       prefs.pref_new_event_social ? 1 : 0,
       prefs.pref_new_event_class ? 1 : 0,
@@ -121,5 +156,9 @@ export async function saveUserNotificationPreferences(userId, input = {}) {
       prefs.pref_only_with_events ? 1 : 0,
     ],
   );
-  return { user_id: id, ...prefs };
+  return {
+    user_id: id,
+    ...prefs,
+    new_event_enabled_at: normalizeTimestamp(newEventEnabledAt),
+  };
 }

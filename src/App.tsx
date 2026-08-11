@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MobileShell } from "./layouts/MobileShell";
 import { Suspense, useEffect, useCallback, useState, useRef } from "react";
 import { logPageView } from "./lib/analytics";
@@ -25,6 +25,7 @@ import {
 import { useModalActions, useModalState } from './contexts/ModalContext';
 import { CALENDAR_EVENTS_QUERY_VERSION, getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
 import LocalLoading from './components/LocalLoading';
+import { parseNotificationLaunch } from './lib/notificationLaunch';
 import './styles/devtools.css';
 
 let calendarPrefetchStarted = false;
@@ -44,7 +45,8 @@ type AppContentProps = {
 
 function AppContent({ isAdmin }: AppContentProps) {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAuthCheckComplete } = useAuth();
 
   // Track online presence for all users
   useOnlinePresence();
@@ -245,28 +247,25 @@ function AppContent({ isAdmin }: AppContentProps) {
 
 
   useEffect(() => {
-    // [Feature] 알림 클릭 진입 감지 (open_notifications 파라미터)
-    const params = new URLSearchParams(location.search);
-    if (params.get('open_notifications') === 'true') {
-      const kind = params.get('notification_kind');
-      const sourceId = params.get('notification_source_id');
+    const launch = parseNotificationLaunch({
+      origin: window.location.origin,
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+    });
+    if (!launch || !isAuthCheckComplete) return;
 
-      void (async () => {
-        if (kind && sourceId) await notificationStore.markSourceAsRead(kind, sourceId);
-      })();
-
-      // URL에서 파라미터 제거 (뒤로가기 시 중복 방지)
-      const newParams = new URLSearchParams(location.search);
-      newParams.delete('open_notifications');
-      newParams.delete('notification_kind');
-      newParams.delete('notification_source_id');
-      const newSearch = newParams.toString();
-      const newUrl = location.pathname + (newSearch ? `?${newSearch}` : '') + location.hash;
-      window.history.replaceState({}, '', newUrl);
+    if (user?.id && launch.kind && launch.sourceId) {
+      void notificationStore.markSourceAsRead(launch.kind, launch.sourceId).catch((error) => {
+        console.warn('[App] Failed to mark clicked notification read:', error);
+      });
     }
+    navigate(launch.target, { replace: true });
+  }, [isAuthCheckComplete, location.hash, location.pathname, location.search, navigate, user?.id]);
 
+  useEffect(() => {
     logPageView(location.pathname + location.search);
-  }, [location, loadUnreadNotifications]);
+  }, [location.pathname, location.search]);
 
   return (
     <>

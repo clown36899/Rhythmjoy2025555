@@ -77,6 +77,7 @@ rsync -azi -e "${RSYNC_SSH}" scripts/backfill-notification-preferences.mjs "${TA
 rsync -azi -e "${RSYNC_SSH}" scripts/exclude-analytics-kiosk-network.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/import-lindycollection-routines.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/migrate-push-subscription-record-keys.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/reconcile-notification-inbox-preferences.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/seed-notification-reset-notice.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
@@ -142,6 +143,12 @@ MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -P \"\${MYSQL_PORT:-3306}\" \\
   -u \"\${MYSQL_USER}\" \\
   \"\${MYSQL_DATABASE}\" \\
+  < '${APP_DIR}/server/cafe24/migrations/2026-08-11-notification-route-boundaries.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
+  -h \"\${MYSQL_HOST}\" \\
+  -P \"\${MYSQL_PORT:-3306}\" \\
+  -u \"\${MYSQL_USER}\" \\
+  \"\${MYSQL_DATABASE}\" \\
   < '${APP_DIR}/server/cafe24/migrations/2026-08-03-user-board-post-reads.sql'
 MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -h \"\${MYSQL_HOST}\" \\
@@ -165,6 +172,7 @@ if [ ! -f '${APP_DIR}/.notification-subscriptions-reset-20260803' ]; then
 else
   '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/backfill-notification-preferences.mjs'
 fi
+'${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/reconcile-notification-inbox-preferences.mjs'
 if [ ! -f '${APP_DIR}/.notification-delivery-baselined' ]; then
   '${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/baseline-notification-queue.mjs'
   touch '${APP_DIR}/.notification-delivery-baselined'

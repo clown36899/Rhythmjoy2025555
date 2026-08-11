@@ -319,6 +319,40 @@ self.addEventListener('push', (event) => {
   });
 });
 
+function getNotificationSource(notificationData = {}) {
+  if (notificationData.kind === 'daily_schedule_morning' && notificationData.date) {
+    return { kind: 'daily_schedule', id: String(notificationData.date) };
+  }
+  if (notificationData.commentId) {
+    return { kind: 'board_comment', id: String(notificationData.commentId) };
+  }
+  if (notificationData.queueId) {
+    return { kind: 'new_event', id: String(notificationData.queueId) };
+  }
+  return { kind: null, id: null };
+}
+
+function buildNotificationLaunchUrl(notificationData = {}) {
+  const targetUrl = new URL(notificationData.url || '/', self.location.origin);
+  const safeTarget = targetUrl.origin === self.location.origin
+    ? `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`
+    : '/';
+  const source = getNotificationSource(notificationData);
+  const launchParams = new URLSearchParams();
+  launchParams.set('notification_click', 'true');
+  launchParams.set('notification_target', safeTarget);
+  if (source.kind && source.id) {
+    launchParams.set('notification_kind', source.kind);
+    launchParams.set('notification_source_id', source.id);
+  }
+
+  // The fragment is not sent to Apache/ModSecurity. Queue UUIDs therefore
+  // cannot be mistaken for a SQL-injection-shaped query parameter on a cold launch.
+  const launchUrl = new URL('/', self.location.origin);
+  launchUrl.hash = launchParams.toString();
+  return launchUrl.href;
+}
+
 // 알림 클릭 이벤트
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -330,38 +364,30 @@ self.addEventListener('notificationclick', (event) => {
     navigator.setAppBadge(0).catch(e => console.error('[SW] Clear Badge Error:', e));
   }
 
-  const urlToOpen = event.notification.data?.url || '/';
   const notificationData = event.notification.data || {};
-  const sourceKind = notificationData.queueId
-    ? 'new_event'
-    : notificationData.commentId
-      ? 'board_comment'
-      : notificationData.kind === 'daily_schedule_morning' && notificationData.date
-        ? 'daily_schedule'
-        : null;
-  const sourceId = notificationData.queueId || notificationData.commentId || (
-    notificationData.kind === 'daily_schedule_morning' ? notificationData.date : null
-  );
-
-  // 클릭한 한 건만 사용자별 서버 읽음 상태와 동기화할 수 있도록 식별자를 전달한다.
-  const url = new URL(urlToOpen, self.location.origin);
-  url.searchParams.set('open_notifications', 'true');
-  if (sourceKind && sourceId) {
-    url.searchParams.set('notification_kind', sourceKind);
-    url.searchParams.set('notification_source_id', sourceId);
-  }
-  const finalUrl = url.href;
+  const finalUrl = buildNotificationLaunchUrl(notificationData);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // 이미 같은 URL이 열려있다면 해당 창 포커스
+      .then(async (clientList) => {
         for (const client of clientList) {
           if (client.url === finalUrl && 'focus' in client) {
             return client.focus();
           }
         }
-        // 없으면 새 창
+
+        const existingClient = clientList.find((client) => {
+          try {
+            return new URL(client.url).origin === self.location.origin;
+          } catch {
+            return false;
+          }
+        });
+        if (existingClient && 'navigate' in existingClient) {
+          const navigatedClient = await existingClient.navigate(finalUrl);
+          return (navigatedClient || existingClient).focus();
+        }
+
         if (clients.openWindow) {
           return clients.openWindow(finalUrl);
         }

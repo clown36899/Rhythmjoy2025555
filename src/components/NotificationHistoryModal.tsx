@@ -27,6 +27,17 @@ interface NotificationDisplayItem {
     category?: string | null;
     location?: string | null;
     date?: string | null;
+    kind: NotificationDisplayKind;
+}
+
+type NotificationDisplayKind = 'daily_schedule' | 'new_event' | 'other';
+
+interface NotificationDisplaySection {
+    kind: NotificationDisplayKind;
+    title: string;
+    description: string;
+    icon: string;
+    items: NotificationDisplayItem[];
 }
 
 type EventPreview = {
@@ -83,6 +94,15 @@ function formatDateShort(value?: string | null) {
     return `${Number(match[2])}.${Number(match[3])}`;
 }
 
+function getNotificationDisplayKind(notification: NotificationRecord): NotificationDisplayKind {
+    const kind = String(notification.data?.notificationKind || '');
+    if (kind === 'daily_schedule' || notification.data?.kind === 'daily_schedule_morning') {
+        return 'daily_schedule';
+    }
+    if (kind === 'new_event') return 'new_event';
+    return 'other';
+}
+
 export default function NotificationHistoryModal({
     isOpen,
     onClose,
@@ -98,6 +118,7 @@ export default function NotificationHistoryModal({
 
     const displayItems = React.useMemo<NotificationDisplayItem[]>(() => {
         return notifications.flatMap((notification) => {
+            const kind = getNotificationDisplayKind(notification);
             const items = Array.isArray(notification.data?.items) ? notification.data.items : null;
             if (items?.length) {
                 return items.map((item: any, index: number) => {
@@ -107,13 +128,14 @@ export default function NotificationHistoryModal({
                         id: `${notification.id}-${eventId || index}`,
                         notification,
                         title: item.title || notification.title,
-                        body: item.body || notification.body,
+                        body: item.body || (kind === 'daily_schedule' ? '' : notification.body),
                         url,
                         image: item.image || item.image_thumbnail || item.image_medium || item.icon || notification.data?.image,
                         eventId,
                         category: item.category || notification.data?.category,
                         location: item.location,
                         date: item.date || item.start_date,
+                        kind,
                     };
                 });
             }
@@ -129,9 +151,44 @@ export default function NotificationHistoryModal({
                 image: notification.data?.image || notification.image || notification.icon,
                 eventId,
                 category: notification.data?.category,
+                kind,
             }];
         });
     }, [notifications]);
+
+    const displaySections = React.useMemo<NotificationDisplaySection[]>(() => {
+        const byKind = {
+            daily_schedule: displayItems.filter(item => item.kind === 'daily_schedule'),
+            new_event: displayItems.filter(item => item.kind === 'new_event'),
+            other: displayItems.filter(item => item.kind === 'other'),
+        };
+        return [
+            {
+                kind: 'daily_schedule' as const,
+                title: '오늘 일정',
+                description: '등록 시점과 관계없이 오늘 진행되는 일정',
+                icon: 'ri-calendar-check-line',
+                items: byKind.daily_schedule,
+            },
+            {
+                kind: 'new_event' as const,
+                title: '신규 등록',
+                description: '알림 설정 후 새로 등록된 일정',
+                icon: 'ri-notification-badge-line',
+                items: byKind.new_event,
+            },
+            {
+                kind: 'other' as const,
+                title: '기타 알림',
+                description: '댓글과 서비스 안내',
+                icon: 'ri-notification-3-line',
+                items: byKind.other,
+            },
+        ].filter(section => section.items.length > 0);
+    }, [displayItems]);
+
+    const dailyScheduleCount = displayItems.filter(item => item.kind === 'daily_schedule').length;
+    const newEventCount = displayItems.filter(item => item.kind === 'new_event').length;
 
     React.useEffect(() => {
         if (!isOpen) return;
@@ -320,41 +377,77 @@ export default function NotificationHistoryModal({
                             )}
 
                             {displayItems.length > 0 && (
-                                <div className="nhm-section-title">수신 알림</div>
+                                <div className="nhm-route-summary" aria-label="읽지 않은 알림 종류별 개수">
+                                    <div className="nhm-route-summary-item is-today">
+                                        <i className="ri-calendar-check-line" aria-hidden="true"></i>
+                                        <span>오늘 일정</span>
+                                        <strong>{dailyScheduleCount}</strong>
+                                    </div>
+                                    <div className="nhm-route-summary-item is-new">
+                                        <i className="ri-notification-badge-line" aria-hidden="true"></i>
+                                        <span>신규 등록</span>
+                                        <strong>{newEventCount}</strong>
+                                    </div>
+                                </div>
                             )}
 
-                            {displayItems.map((item) => {
-                                const preview = item.eventId ? eventPreviews[item.eventId] : undefined;
-                                const title = preview?.title || item.title;
-                                const location = preview?.location || item.location;
-                                const date = preview?.start_date || preview?.date || item.date;
-                                const image = getBestImage(item, preview);
+                            {displaySections.map((section) => (
+                                <section
+                                    className={`nhm-section nhm-notification-section is-${section.kind}`}
+                                    key={section.kind}
+                                >
+                                    <div className="nhm-notification-section-head">
+                                        <span className="nhm-notification-section-icon" aria-hidden="true">
+                                            <i className={section.icon}></i>
+                                        </span>
+                                        <span className="nhm-notification-section-copy">
+                                            <strong>{section.title} ({section.items.length})</strong>
+                                            <small>{section.description}</small>
+                                        </span>
+                                    </div>
+                                    <div className="nhm-notification-items">
+                                        {section.items.map((item) => {
+                                            const preview = item.eventId ? eventPreviews[item.eventId] : undefined;
+                                            const title = preview?.title || item.title;
+                                            const location = preview?.location || item.location;
+                                            const date = preview?.start_date || preview?.date || item.date;
+                                            const image = getBestImage(item, preview);
 
-                                return (
-                                    <button
-                                        type="button"
-                                        key={item.id}
-                                        onClick={() => handleItemClick(item)}
-                                        className="nhm-item"
-                                    >
-                                        <div className="nhm-item-media" aria-hidden="true">
-                                            {image ? (
-                                                <img src={image} alt="" loading="lazy" />
-                                            ) : (
-                                                <i className="ri-notification-badge-line nhm-item-icon"></i>
-                                            )}
-                                        </div>
-                                        <div className="nhm-item-content">
-                                            <div className="nhm-item-title">{title}</div>
-                                            <div className="nhm-item-body">{item.body}</div>
-                                            <div className="nhm-item-meta">
-                                                {date && <span>{formatDateShort(date)}</span>}
-                                                {location && <span>{location}</span>}
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })}
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={item.id}
+                                                    onClick={() => handleItemClick(item)}
+                                                    className="nhm-item"
+                                                    data-notification-kind={item.kind}
+                                                >
+                                                    <div className="nhm-item-media" aria-hidden="true">
+                                                        {image ? (
+                                                            <img
+                                                                src={image}
+                                                                alt=""
+                                                                loading="lazy"
+                                                                draggable={false}
+                                                                onDragStart={event => event.preventDefault()}
+                                                            />
+                                                        ) : (
+                                                            <i className="ri-notification-badge-line nhm-item-icon"></i>
+                                                        )}
+                                                    </div>
+                                                    <div className="nhm-item-content">
+                                                        <div className="nhm-item-title">{title}</div>
+                                                        {item.body && <div className="nhm-item-body">{item.body}</div>}
+                                                        <div className="nhm-item-meta">
+                                                            {date && <span>{formatDateShort(date)}</span>}
+                                                            {location && <span>{location}</span>}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -373,13 +466,18 @@ export default function NotificationHistoryModal({
                             </button>
                         )}
                         {totalDisplayCount > 0 && (
-                            <button
-                                type="button"
-                                onClick={handleMarkAllRead}
-                                className="nhm-read-all-btn"
-                            >
-                                모두 읽음 처리
-                            </button>
+                            <>
+                                <p className="nhm-read-hint">
+                                    읽음 처리는 지금 받은 알림만 정리하며 다음 발송 설정에는 영향을 주지 않습니다.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleMarkAllRead}
+                                    className="nhm-read-all-btn"
+                                >
+                                    모두 읽음 처리
+                                </button>
+                            </>
                         )}
                     </div>
                 )}

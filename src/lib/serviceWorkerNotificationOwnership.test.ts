@@ -7,7 +7,13 @@ describe('service worker notification ownership', () => {
     const source = readFileSync(resolve(process.cwd(), 'public/service-worker.js'), 'utf8');
 
     expect(source).toContain('self.registration.showNotification');
-    expect(source).toContain("url.searchParams.set('notification_kind'");
+    expect(source).toContain("launchUrl.hash = launchParams.toString()");
+    expect(source).toContain("launchParams.set('notification_kind', source.kind)");
+    expect(source).toContain("return { kind: 'daily_schedule', id: String(notificationData.date) }");
+    expect(source.indexOf("notificationData.kind === 'daily_schedule_morning'")).toBeLessThan(
+      source.indexOf('if (notificationData.queueId)'),
+    );
+    expect(source).not.toContain("url.searchParams.set('notification_source_id'");
     expect(source).not.toContain('notification-history');
     expect(source).not.toContain('indexedDB');
     expect(source).not.toContain('saveToDB');

@@ -84,6 +84,8 @@ const jsonResponse = () => {
   return res;
 };
 
+const NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE = '2020-01-01T00:00:00.000Z';
+
 const adminDeliveryMatrix = ['social', 'class', 'club', 'event'].flatMap((category) => (
   [false, true].flatMap((notificationsEnabled) => (
     [false, true].flatMap((categoryEnabled) => (
@@ -320,8 +322,8 @@ describe('Cafe24 push delivery targeting', () => {
 
   it('processes queued new-event notifications for subscribers with that route enabled', async () => {
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([
-      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_class: true },
-      { user_id: 'user-a', enabled: true, pref_new_event_alerts: true, pref_new_event_class: true },
+      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_class: true, new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE },
+      { user_id: 'user-a', enabled: true, pref_new_event_alerts: true, pref_new_event_class: true, new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE },
     ]);
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
@@ -365,8 +367,8 @@ describe('Cafe24 push delivery targeting', () => {
     const inboxWrites = mocks.mysqlExecute.mock.calls.filter(([sql]) => (
       String(sql).includes('INSERT IGNORE INTO user_notifications')
     ));
-    expect(inboxWrites).toHaveLength(3);
-    expect(inboxWrites.map(([, values]) => values[0])).toEqual(['admin-a', 'admin-b', 'user-a']);
+    expect(inboxWrites).toHaveLength(2);
+    expect(inboxWrites.map(([, values]) => values[0])).toEqual(['admin-a', 'user-a']);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       adminOnly: false,
       processed: 1,
@@ -375,7 +377,7 @@ describe('Cafe24 push delivery targeting', () => {
 
   it('keeps a queued alert in the server inbox even when web push delivery fails', async () => {
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([
-      { user_id: 'user-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
+      { user_id: 'user-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true, new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE },
     ]);
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
@@ -411,30 +413,31 @@ describe('Cafe24 push delivery targeting', () => {
     );
   });
 
-  it('keeps queued events unread until each user explicitly reads the bell', async () => {
+  it('delivers new-event alerts only when the event was queued after that user enabled the route', async () => {
     const registeredAt = new Date(Date.now() - 1000).toISOString();
-    const visitedBeforeRegistration = new Date(Date.parse(registeredAt) - 1000).toISOString();
-    const visitedAfterRegistration = new Date(Date.parse(registeredAt) + 1000).toISOString();
-    mocks.mysqlExecute.mockImplementation(async (sql) => {
-      if (String(sql).includes('WHERE is_admin = 1')) return [[]];
-      if (String(sql).includes('FROM users u')) {
-        return [[
-          { user_id: 'user-before', last_seen_at: visitedBeforeRegistration },
-          { user_id: 'user-after', last_seen_at: visitedAfterRegistration },
-        ]];
-      }
-      if (String(sql).includes('INSERT IGNORE INTO user_notifications')) return [{ affectedRows: 1 }];
-      return [[]];
-    });
+    const enabledBeforeRegistration = new Date(Date.parse(registeredAt) - 1000).toISOString();
+    const enabledAfterRegistration = new Date(Date.parse(registeredAt) + 1000).toISOString();
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([
-      { user_id: 'user-before', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
-      { user_id: 'user-after', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
+      {
+        user_id: 'enabled-before',
+        enabled: true,
+        pref_new_event_alerts: true,
+        pref_new_event_social: true,
+        new_event_enabled_at: enabledBeforeRegistration,
+      },
+      {
+        user_id: 'enabled-after',
+        enabled: true,
+        pref_new_event_alerts: true,
+        pref_new_event_social: true,
+        new_event_enabled_at: enabledAfterRegistration,
+      },
     ]);
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
         return [
-          subscription('before-device', 'user-before', false),
-          subscription('after-device', 'user-after', false),
+          subscription('before-device', 'enabled-before', false),
+          subscription('after-device', 'enabled-after', false),
         ];
       }
       if (table === 'notification_queue') {
@@ -455,16 +458,22 @@ describe('Cafe24 push delivery targeting', () => {
     const { processNotificationQueue } = await import('./push-api.js');
     await processNotificationQueue({ body: {} }, jsonResponse());
 
-    expect(mocks.sendNotification).toHaveBeenCalledTimes(2);
+    expect(mocks.sendNotification).toHaveBeenCalledTimes(1);
+    expect(mocks.sendNotification.mock.calls[0][0].endpoint).toContain('/before-device');
     const inboxRecipients = mocks.mysqlExecute.mock.calls
       .filter(([sql]) => String(sql).includes('INSERT IGNORE INTO user_notifications'))
       .map(([, values]) => values[0]);
-    expect(inboxRecipients).toEqual(['user-before', 'user-after']);
+    expect(inboxRecipients).toEqual(['enabled-before']);
+  });
+
+  it('fails closed when an enabled new-event route has no activation provenance', async () => {
+    const { isNewEventQueueAfterActivation } = await import('./push-api.js');
+    expect(isNewEventQueueAfterActivation(new Date().toISOString(), {})).toBe(false);
   });
 
   it('suppresses individual device pushes when four or more queue items would create a burst', async () => {
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([
-      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
+      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true, new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE },
     ]);
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
@@ -509,7 +518,7 @@ describe('Cafe24 push delivery targeting', () => {
 
   it('still sends a queued morning digest while a new-event backlog is suppressed', async () => {
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([
-      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
+      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true, new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE },
       { user_id: 'user-a', enabled: true, pref_today_digest: true },
     ]);
     const dueAt = new Date(Date.now() - 1000).toISOString();
@@ -567,7 +576,7 @@ describe('Cafe24 push delivery targeting', () => {
 
   it('coalesces concurrent queue triggers so the same device is not notified twice', async () => {
     mocks.loadEnabledNotificationPreferences.mockResolvedValue([
-      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true },
+      { user_id: 'admin-a', enabled: true, pref_new_event_alerts: true, pref_new_event_social: true, new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE },
     ]);
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
@@ -613,7 +622,7 @@ describe('Cafe24 push delivery targeting', () => {
     expect(inboxWrites).toHaveLength(1);
   });
 
-  it('expires stale queue items instead of sending a burst of old alerts', async () => {
+  it('expires stale queue items without backfilling an inbox that did not opt in', async () => {
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {
       if (table === 'user_push_subscriptions') {
         return [subscription('user-device', 'user-a', false, { pref_new_event_alerts: true })];
@@ -639,7 +648,7 @@ describe('Cafe24 push delivery targeting', () => {
     expect(mocks.sendNotification).not.toHaveBeenCalled();
     expect(mocks.mysqlExecute.mock.calls.some(([sql]) => (
       String(sql).includes('INSERT IGNORE INTO user_notifications')
-    ))).toBe(true);
+    ))).toBe(false);
     expect(mocks.saveCafe24TableRow).toHaveBeenCalledWith(
       'notification_queue',
       expect.objectContaining({ id: 'queue-stale', status: 'expired' }),
@@ -804,6 +813,7 @@ describe('Cafe24 push delivery targeting', () => {
           user_id: 'admin-a',
           enabled: true,
           pref_new_event_alerts: true,
+          new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE,
           ...routePrefs,
         }]
         : []);
@@ -852,7 +862,9 @@ describe('Cafe24 push delivery targeting', () => {
       const inboxRecipients = mocks.mysqlExecute.mock.calls
         .filter(([sql]) => String(sql).includes('INSERT IGNORE INTO user_notifications'))
         .map(([, values]) => values[0]);
-      expect(inboxRecipients).toEqual(['admin-a']);
+      expect(inboxRecipients).toEqual(
+        notificationsEnabled && categoryEnabled ? ['admin-a'] : [],
+      );
     },
   );
 
@@ -863,18 +875,21 @@ describe('Cafe24 push delivery targeting', () => {
         enabled: true,
         pref_new_event_alerts: true,
         pref_new_event_social: true,
+        new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE,
       },
       {
         user_id: 'admin-b',
         enabled: true,
         pref_new_event_alerts: true,
         pref_new_event_social: true,
+        new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE,
       },
       {
         user_id: 'user-a',
         enabled: true,
         pref_new_event_alerts: true,
         pref_new_event_social: true,
+        new_event_enabled_at: NEW_EVENT_ENABLED_BEFORE_TEST_QUEUE,
       },
     ]);
     mocks.loadCafe24TableRows.mockImplementation(async (table) => {

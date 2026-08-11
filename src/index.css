@@ -9,6 +9,32 @@
 @import './styles/shared/links.css' layer(components);
 @import './styles/components/DatePickerTheme.css' layer(components);
 
+/*
+ * Native image drag is disabled by default across every route. Keep pointer
+ * events intact so images inside links, buttons, viewers and editors remain
+ * clickable. A genuine native image-drag tool must opt in explicitly.
+ */
+img:not([data-image-drag="allow"]),
+[data-image-drag]:not([data-image-drag="allow"]) img {
+  -webkit-user-drag: none !important;
+  -khtml-user-drag: none !important;
+  -moz-user-drag: none !important;
+  -o-user-drag: none !important;
+  user-drag: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+img[data-image-drag="allow"],
+[data-image-drag="allow"] img {
+  -webkit-user-drag: element !important;
+  user-drag: element !important;
+  -webkit-user-select: auto;
+  user-select: auto;
+  -webkit-touch-callout: default;
+}
+
 @layer components {
 
   /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */

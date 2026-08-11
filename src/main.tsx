@@ -2,6 +2,7 @@ import { initClientLogBuffer } from './utils/clientLogBuffer';
 import { logReloadDiagnostic } from './utils/reloadDiagnostics';
 import { isKioskModeEnabled } from './lib/kioskMode';
 import { installViewportCssVars } from './utils/viewportMetrics';
+import { installGlobalImageDragPolicy } from './utils/imageDragPolicy';
 import { isNonFatalClientRuntimeError } from './utils/globalErrorPolicy';
 import { activateWaitingServiceWorker, resetAppRuntimeAndRestart } from './lib/pwaRecovery';
 import {
@@ -29,9 +30,13 @@ if (IS_EXTERNAL_API_GUIDE && IS_ANDROID_KAKAO && !new URLSearchParams(window.loc
 }
 
 initClientLogBuffer({ suppressConsoleInProd: import.meta.env.PROD });
+const cleanupGlobalImageDragPolicy = installGlobalImageDragPolicy();
 const cleanupViewportCssVars = installViewportCssVars();
 if (import.meta.hot) {
-  import.meta.hot.dispose(cleanupViewportCssVars);
+  import.meta.hot.dispose(() => {
+    cleanupGlobalImageDragPolicy();
+    cleanupViewportCssVars();
+  });
 }
 if (BOOT_DEBUG) {
     console.debug('%c[Main] JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');

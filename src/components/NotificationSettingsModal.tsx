@@ -785,7 +785,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                     <i className="ri-calendar-check-line" aria-hidden="true"></i>
                                     <span>
                                         <strong>오늘 일정 요약</strong>
-                                        <small>아침에 오늘 일정만 모아서 받기</small>
+                                        <small>등록 시점과 관계없이 오늘 진행되는 일정을 한 번에 받기</small>
                                     </span>
                                     <button
                                         type="button"
@@ -822,7 +822,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                                     <i className="ri-notification-badge-line" aria-hidden="true"></i>
                                     <span>
                                         <strong>새 등록 알림</strong>
-                                        <small>누가 새 일정을 올리면 받기</small>
+                                        <small>설정 저장 후 새로 등록되는 일정만 받기</small>
                                     </span>
                                     <button
                                         type="button"
