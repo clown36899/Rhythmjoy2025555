@@ -13,12 +13,12 @@ const candidate = {
 };
 
 describe('benefit candidate persistence policy', () => {
-  it('stores only fully approved AI benefit outcomes', () => {
+  it('keeps deterministic benefit candidates unless AI returns a grounded rejection', () => {
     expect(shouldPersistBenefitAiOutcome('approved')).toBe(true);
-    expect(shouldPersistBenefitAiOutcome('review')).toBe(false);
+    expect(shouldPersistBenefitAiOutcome('review')).toBe(true);
     expect(shouldPersistBenefitAiOutcome('rejected')).toBe(false);
-    expect(shouldPersistBenefitAiOutcome('unavailable')).toBe(false);
-    expect(shouldPersistBenefitAiOutcome('error')).toBe(false);
+    expect(shouldPersistBenefitAiOutcome('unavailable')).toBe(true);
+    expect(shouldPersistBenefitAiOutcome('error')).toBe(true);
   });
 });
 

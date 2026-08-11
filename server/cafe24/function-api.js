@@ -490,7 +490,11 @@ function terminalScrapedStatus(row) {
 export function canReopenGeneratedRegularSocialDuplicate(existingRow = {}, incomingRow = {}, duplicate = null) {
   const priorDuplicate = existingRow?.structured_data?._duplicate;
   const replacement = duplicate || priorDuplicate;
-  const readiness = incomingRow?.auto_registration || {};
+  const validation = validateAutomaticRegistrationCandidate({
+    ...incomingRow,
+    status: 'pending',
+    is_collected: false,
+  });
   return String(existingRow?.status || '').toLowerCase() === 'duplicate'
     && (
       !replacement
@@ -499,9 +503,7 @@ export function canReopenGeneratedRegularSocialDuplicate(existingRow = {}, incom
         && String(replacement.existingId || '').startsWith('regular-social:')
       )
     )
-    && readiness.ready === true
-    && readiness.ai_verified === true
-    && Number(readiness.ai_confidence || 0) >= 0.98
+    && validation.ok
     && String(incomingRow?.structured_data?.activity_type || '').toLowerCase() === 'social';
 }
 
@@ -990,11 +992,13 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const date = String(structured.date || '').slice(0, 10);
   const venue = String(structured.venue_name || structured.location || '').trim();
   const djs = Array.isArray(structured.djs) ? structured.djs.map((dj) => String(dj || '').trim()).filter(Boolean) : [];
+  const deterministicDateScopedSocial = activity === 'social'
+    && String(structured.evidence_scope || '') === 'date_scoped_social';
   const reasons = [];
 
   if (readiness.ready !== true) reasons.push('candidate was not approved by the collector gate');
-  if (readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
-  if (Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
+  if (!deterministicDateScopedSocial && readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
+  if (!deterministicDateScopedSocial && Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
   if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
   if (discoverySourceType === 'benefit_search') reasons.push('benefit search candidates require manual approval');
   if (!sourceRule?.activities?.has(activity)) reasons.push('source/activity is not server-enrolled');
@@ -1036,12 +1040,18 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     title,
     trustedVenueContext,
   ].filter(Boolean).join('\n').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
-  if (!evidenceQuotes.length || evidenceQuotes.some((quote) => !normalizedSourceText.includes(
-    quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
-  ))) {
+  if (!deterministicDateScopedSocial && (
+    !evidenceQuotes.length
+    || evidenceQuotes.some((quote) => !normalizedSourceText.includes(
+      quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
+    ))
+  )) {
     reasons.push('AI evidence is not grounded in the stored source text');
   }
-  const normalizedEvidence = evidenceQuotes.join(' ').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
+  const normalizedEvidence = (deterministicDateScopedSocial
+    ? normalizedSourceText
+    : evidenceQuotes.join(' ')
+  ).normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
   const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (dateMatch) {
     const [, year, monthPadded, dayPadded] = dateMatch;
@@ -1054,7 +1064,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
       new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
     ];
     if (!datePatterns.some((pattern) => pattern.test(normalizedEvidence))) {
-      reasons.push('AI evidence does not explicitly contain the candidate date');
+      reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate date`);
     }
   }
   const normalizeVenueEvidence = (value) => String(value || '')
@@ -1065,14 +1075,14 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
   const normalizedVenue = normalizeVenueEvidence(venue);
   if (normalizedVenue && !normalizeVenueEvidence(normalizedEvidence).includes(normalizedVenue)) {
-    reasons.push('AI evidence does not explicitly contain the candidate venue');
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate venue`);
   }
   if (djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
-    reasons.push('AI evidence does not explicitly contain every candidate DJ');
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain every candidate DJ`);
   }
   const activityPattern = AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS[activity];
   if (!activityPattern || !activityPattern.test(normalizedEvidence)) {
-    reasons.push(`AI evidence does not explicitly identify activity ${activity}`);
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly identify activity ${activity}`);
   }
   const status = String(scrapedEvent?.status || 'pending').toLowerCase();
   if (status !== 'pending' || scrapedEvent?.is_collected) reasons.push('candidate is not pending');

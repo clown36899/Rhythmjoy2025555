@@ -16,9 +16,20 @@ export async function loadIngestionProgress(filePath) {
         : [],
       lastCompletedAt: typeof parsed.lastCompletedAt === 'string' ? parsed.lastCompletedAt : '',
       updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '',
+      instagramSeenPosts: Object.fromEntries(Object.entries(parsed.instagramSeenPosts || {})
+        .map(([sourceId, urls]) => [
+          String(sourceId),
+          Array.isArray(urls) ? urls.map(String).filter(Boolean).slice(0, 96) : [],
+        ])
+        .filter(([, urls]) => urls.length > 0)),
     };
   } catch (error) {
-    if (error?.code === 'ENOENT') return { remainingSources: [], lastCompletedAt: '', updatedAt: '' };
+    if (error?.code === 'ENOENT') return {
+      remainingSources: [],
+      lastCompletedAt: '',
+      updatedAt: '',
+      instagramSeenPosts: {},
+    };
     throw error;
   }
 }
@@ -41,19 +52,40 @@ export function reorderSourcesForResume(sources = [], remainingSources = []) {
 
 export function catchupInstagramPostLimit(baseLimit, lastCompletedAt, now = new Date()) {
   const base = Math.max(1, Number(baseLimit) || 1);
-  if (!lastCompletedAt) return Math.min(8, Math.max(base, 4));
+  if (!lastCompletedAt) return base;
   const completedAt = new Date(lastCompletedAt);
-  if (Number.isNaN(completedAt.getTime())) return Math.min(8, Math.max(base, 4));
+  if (Number.isNaN(completedAt.getTime())) return base;
   const elapsedDays = Math.max(0, Math.floor((now.getTime() - completedAt.getTime()) / 86_400_000));
   if (elapsedDays <= 1) return base;
   return Math.min(8, Math.max(base, base + ((elapsedDays - 1) * 2)));
 }
 
-export function buildIngestionProgressState({ remainingSources = [], lastCompletedAt = '', completed = false, now = new Date() }) {
+export function selectUnseenInstagramPosts(links = [], seenPosts = [], limit = 1) {
+  const visible = [...new Set(links.map(String).filter(Boolean))];
+  const seen = new Set(seenPosts.map(String).filter(Boolean));
+  const unseen = visible.filter((url) => !seen.has(url));
+  return unseen.slice(0, Math.max(1, Number(limit) || 1));
+}
+
+export function mergeSeenInstagramPosts(seenPosts = [], completedPosts = [], maxEntries = 96) {
+  return [...new Set([
+    ...completedPosts.map(String).filter(Boolean),
+    ...seenPosts.map(String).filter(Boolean),
+  ])].slice(0, Math.max(1, Number(maxEntries) || 32));
+}
+
+export function buildIngestionProgressState({
+  remainingSources = [],
+  lastCompletedAt = '',
+  completed = false,
+  instagramSeenPosts = {},
+  now = new Date(),
+}) {
   const timestamp = now.toISOString();
   return {
     remainingSources: remainingSources.map(String).filter(Boolean),
     lastCompletedAt: completed ? timestamp : lastCompletedAt,
     updatedAt: timestamp,
+    instagramSeenPosts,
   };
 }

@@ -1439,3 +1439,35 @@
 - 정렬 재배포 검증: 커밋 `7881c5f6`을 `origin/main`에 푸시하고 Cafe24에 재배포했다. 공개·서버 버전은 `2026-08-10T05:28:07.389Z`로 일치하고 서비스와 헬스 체크가 정상이다. 운영 화면의 359px 및 551px 오늘 이동 상태에서 일반 이벤트와 소셜 라운드 윗선 차이 0px, 소셜 뱃지 완전 노출, 오늘 칩 비노출, 고정 컨트롤 그림자 없음, `+N 더보기` 0건을 확인했다.
 - 날짜 칸 표시 후속: 모바일의 5개 제한과 `+N 더보기`를 제거해 기간 막대로 대체되는 중복 항목 외에는 날짜별 모든 일정을 셀에 직접 렌더링한다.
 - 관련 파일: `src/pages/calendar/components/FullEventCalendar.tsx`, `src/pages/calendar/styles/FullEventCalendar.css`, `src/pages/calendar/styles/CalendarPage.css`, `src/pages/calendar/components/FullEventCalendar.layout.test.ts`, `src/pages/calendar/utils/calendarSpanTone.ts`, `src/pages/calendar/utils/calendarSpanTone.test.ts`
+
+## 2026-08-10 과거 혜택·대관 가능일정 오수집 및 예약 실행 누락
+
+- 상태: 구조 수정·로컬 예약 설정 반영 및 배포 준비 완료
+- 현상: 무료·할인·정기권 후보에 `evergreen` 또는 `ongoing_sale`이 붙으면 과거 후보 날짜와 오래된 원문 게시일을 통과했다. 경성홀 Instagram 게시물 `Damg6VxktkS`처럼 실제 이벤트가 아닌 대관 가능일정도 이벤트 후보로 분류될 수 있었다.
+- 원인: 상시 혜택 판정이 혜택 종류 분류뿐 아니라 미래 날짜·원문 신선도 검사의 예외로도 사용됐다. 비이벤트 운영 공지 중 대관 가능일정에 대한 결정적 제외 규칙이 없었고, 서버 수집 API는 수집기 검증 결과를 신뢰해 동일 정책을 재검사하지 않았다.
+- 조치: 후보 날짜는 혜택 생명주기와 관계없이 오늘 이후만 허용하고, 오래된 혜택 원문에도 `evergreen` 예외를 제거했다. 과거 상시 혜택은 관리자 혜택 탭에서도 숨긴다. `대관/공간·홀·연습실·스튜디오 대여`와 `가능일·가능일정·빈 시간·스케줄·캘린더`가 같은 문맥에 있는 게시물은 비이벤트 공지로 제외한다. 일반 이벤트의 `사전 예약 가능` 문구는 이 규칙에서 제외한다. 이 정책을 수집기 중앙 검증과 서버 후보 저장 단계가 함께 사용하며, 이미 저장된 미수집 대관 공지도 관리자 후보 목록에서 숨긴다.
+- 예약 실행 원인: 메인 Mac 절전으로 우선순위 실행이 중간에 멈춘 뒤 남은 소스가 있어도 종료 코드 0을 반환했고, 뒤 예약은 전역 잠금과 충돌했다. 미니 PC는 키오스크 표시 장치이며 수집을 실행하지 않는다.
+- 신뢰성 조치: 우선순위별 남은 소스와 마지막 완주 시각을 체크포인트하고 다음 실행에서 남은 소스를 먼저 확인한다. 공백 기간에는 Instagram 게시물 확인 범위를 최대 8개까지 확대한다. 부분 실행은 종료 코드 75를 반환하고 네 LaunchAgent를 `caffeinate -dimsu`로 감싸 실행 중 절전을 막는다.
+- 품질 조치: 모든 후보에 실제 이미지를 의무화하고, 소셜은 DJ 또는 구체적 운영 근거를 요구한다. 설명 문장형 제목을 차단하고 같은 소스·날짜·장소의 DJ 부분집합 후보는 더 완전한 한 건으로 병합한다. AI는 이 결정 규칙 뒤 자동등록 직전의 최종 안전판으로만 유지한다.
+- 검증: `node scripts/test-ingestion-standards.mjs`가 통과했고, 경성홀 보고 URL의 대관 가능일정 차단과 미래 예약 가능 원데이 클래스 허용 회귀 사례를 포함한다. AI 판정·자동등록·공식 일정 중복 테스트 31개가 통과했다. 경성홀·네오스윙·스윙타임 실제 Instagram 경로 무저장 실행에서 15건을 품질 규칙으로 제외하고 저장 후보 0건, 접근 오류 0건을 확인했다.
+- 관련 파일: `server/cafe24/ingestion-candidate-policy.js`, `server/cafe24/ingestion-date-expansion.js`, `server/cafe24/function-api.js`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`
+
+## 2026-08-11 수집 부분 실행 실패 오표기 및 경성홀 이벤트 누락
+
+- 상태: 원인 수정 및 운영 후보 갱신 완료
+- 현상: 08:00·09:00 우선순위 수집이 각각 마지막 소스 1개를 남기고 종료 코드 75를 반환하면서 Telegram에는 `이벤트 수집 실패 / 중복 실행 차단`으로 표시됐다. 경성홀 공식 Instagram의 2026-08-15 `광복절 특별 워크숍`도 실제 게시물과 원본급 이미지가 있는데 후보로 저장되지 않았다.
+- 원인: 새 진행상태에 완주 시각이 없으면 기본 2개 대신 Instagram 게시물 4개를 확인해 20분 예산을 반복 초과했다. 운영 래퍼는 부분 실행용 종료 코드 75를 과거의 중복 실행 코드로만 해석했다. 경성홀은 `계정명 on Instagram: "캡션"` 제목 형식의 첫 줄을 파싱하지 못했고, 본문의 후속 소셜 문구가 주 활동을 소셜로 뒤집었다. 프로필 화면에 섞인 다른 계정 추천 URL도 경성홀 확인 개수를 소모했다.
+- 조치: 완주 이력이 없는 최초 상태에서는 설정된 게시물 수를 그대로 사용하고 실제 완주 공백이 계산될 때만 확인 범위를 늘린다. 종료 코드 75와 `remaining sources`가 함께 있으면 운영 알림을 실패가 아닌 부분 완료·다음 회차 재개로 표시한다. Instagram 양쪽 제목 형식에서 캡션 첫 줄을 추출하고, 그 첫 줄이 워크숍·강습이면 본문 후반 소셜 문구보다 강습 분류를 우선한다. 계정명이 포함된 permalink는 대상 handle과 일치하는 것만 프로필 확인 창에 포함한다.
+- 검증: 수집 표준 테스트와 Node 구문 검사, 운영 래퍼 `bash -n`, 변경 공백 검사가 통과했다. 경성홀 단독 무저장 실행에서 대관 가능일정은 계속 제외되고 `광복절 특별 워크숍`은 `class / 경성홀 / 2026-08-15` 후보 1건으로 통과했다. 이어 Cafe24 공식 수집 API 실실행에서 후보 ID `7abe53e13177a57b`가 `refreshed`로 확인되어 원문 이미지와 정규화 데이터가 운영 후보에 갱신됐다. 오늘 예산으로 빠졌던 LQ스튜디오·KP댄스홀도 별도 실행해 남은 후보가 없음을 확인하고 우선순위 1·2 진행상태를 완주로 마감했다.
+- 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/ingestion-progress.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `/Users/inteyeo/scripts/run-ingestion.sh`
+
+## 2026-08-11 경성홀 소셜 자동등록 중단 및 과거 게시물 미래 일정 오인
+
+- 상태: 구조 수정 및 운영 배포 검증 진행 중
+- 현상: 경성홀 공식 경로에서 날짜·DJ·장소가 명확한 소셜을 수집해도 자동등록되지 않았다. 오래된 무료 행사와 종료된 모집 게시물의 연도 없는 날짜는 수집일 기준 2027년으로 바뀌어 신규 후보에 나타났고, 고정 최신 N개 확인 방식 때문에 게시물이 연속으로 올라오면 아직 확인하지 않은 글이 수집 창 밖으로 밀릴 수 있었다.
+- 원인: 수집기가 결정 규칙을 통과한 소셜도 AI로 다시 판정해 AI 오류·재검토 결과로 `ready`를 취소했고, 서버는 AI 승인과 0.98 신뢰도를 필수로 요구했다. 생성형 정규 소셜 중복을 실제 게시물로 교체하는 경로에도 같은 AI 조건이 중복 적용됐다. 연도 없는 날짜는 원문 게시일이 아닌 현재 수집일로 연도를 정했고, 소스별 확인 게시물 체크포인트가 없었다. 혜택 후보는 AI 호출 실패만으로 저장 전에 유실됐다.
+- 조치: 날짜별 소셜 근거에 날짜·고정 또는 원문 장소·DJ·소셜 표지가 모두 있으면 결정 규칙과 서버가 원문 근거를 직접 재검증해 자동등록한다. AI는 비정형·애매한 자동등록 후보와 혜택의 보조 판정으로만 사용하며, 혜택은 근거가 있는 명시적 거절만 버리고 AI 오류·불가·재검토는 관리자 후보로 보존한다. 연도 없는 날짜는 원문 게시일과 가장 가까운 연도로 맞추고 서버도 게시일 대비 400일 초과 및 180일을 넘긴 혜택 원문을 차단한다. Instagram은 소스별 확인 URL을 보존해 최신 고정 개수가 아니라 아직 확인하지 않은 게시물부터 처리하며, 후보 저장 또는 자동등록 오류가 없는 경우에만 체크포인트를 확정한다.
+- 운영 정리: 과거·후기·은퇴 소스에서 잘못 생성된 후보 8건을 관리자 큐에서 일괄 제외 대상으로 정리했다. 경성홀 실제 경로 무저장 실행은 대관 가능일정을 제외하고 `광복절 특별 워크숍`과 당일 강습을 강습 후보로, 2026-08-11 `DJ 테일` 일정을 자동등록 가능한 소셜로 분리했다.
+- 검증: `node scripts/test-ingestion-standards.mjs`와 AI 판정·자동등록 링크·정규 소셜 교체 Vitest 37개가 통과했다. 경성홀 단독 무저장 실행은 접근 오류 없이 강습 2건과 소셜 1건을 만들었고, 소셜은 `date_scoped_social`, 장소 `경성홀`, DJ `테일`, 자동등록 준비 완료로 확인됐다.
+- 관련 결정: `docs/decisions/2026-08-11-deterministic-ingestion-checkpoints.md`
+- 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/ingestion-progress.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/ai-candidate-adjudicator.mjs`, `server/cafe24/ingestion-candidate-policy.js`, `server/cafe24/function-api.js`

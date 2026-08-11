@@ -320,6 +320,49 @@ export function todayISO(now = new Date()) {
   }).format(now);
 }
 
+export function publicationDateKey(value = '') {
+  const raw = String(value || '').trim();
+  const explicit = raw.match(/(20\d{2})\D{0,3}(\d{1,2})\D{0,3}(\d{1,2})/);
+  if (explicit) return isoDateForIngestion(explicit[1], explicit[2], explicit[3]);
+  const short = raw.match(/(?:^|\D)(\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})(?:\D|$)/);
+  if (short) return isoDateForIngestion(2000 + Number(short[1]), short[2], short[3]);
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed);
+}
+
+/**
+ * Yearless dates must be interpreted near the source publication date, never
+ * rolled forward relative to the day the collector happens to revisit a post.
+ */
+export function alignYearlessDatesToPublication(dates = [], text = '', publishedAt = '') {
+  const publicationDate = publicationDateKey(publishedAt);
+  if (!publicationDate) return dates;
+  const sourceText = String(text || '').normalize('NFKC');
+  const publicationMs = Date.parse(`${publicationDate}T00:00:00+09:00`);
+  const publicationYear = Number(publicationDate.slice(0, 4));
+
+  return dates.map((date) => {
+    const [candidate, year, month, day] = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/) || [];
+    if (!month || !day) return date;
+    const explicitCandidatePattern = new RegExp(
+      `${year}\\s*[.\\-/년]\\s*0?${Number(month)}\\s*[.\\-/월]\\s*0?${Number(day)}(?:\\s*일)?(?:\\D|$)`,
+    );
+    if (explicitCandidatePattern.test(sourceText)) return candidate;
+    return [publicationYear - 1, publicationYear, publicationYear + 1]
+      .map((year) => isoDateForIngestion(year, month, day))
+      .sort((left, right) => (
+        Math.abs(Date.parse(`${left}T00:00:00+09:00`) - publicationMs)
+        - Math.abs(Date.parse(`${right}T00:00:00+09:00`) - publicationMs)
+      ))[0];
+  });
+}
+
 export function isCollectableDate(date = '', {
   today = todayISO(),
 } = {}) {
@@ -573,6 +616,23 @@ export function normalizeText(value = '') {
     .replace(/festival/g, '페스티벌')
     .replace(/dj\s*/gi, '')
     .replace(/[^\w가-힣]/g, '');
+}
+
+export function extractInstagramCaptionHeadline(value = '') {
+  const raw = String(value || '').normalize('NFKC');
+  const match = raw.match(/(?:on\s+Instagram|Instagram(?:의)?\s+[^:：]{1,120})\s*[:：]\s*["“”']?\s*([\s\S]{6,240})/i);
+  if (!match?.[1]) return '';
+  return String(match[1])
+    .split(/\n| {2,}/)
+    .map((line) => line.replace(/^["“”']+|["“”']+$/g, '').replace(/\s+/g, ' ').trim())
+    .find((line) => line.length >= 6 && line.length <= 100 && !/^\d+\s*(?:likes?|comments?)/i.test(line))
+    || '';
+}
+
+export function isInstagramCaptionClassHeadline(value = '') {
+  return /(?:워크샵|워크숍|특강|workshop|클래스|class|강습|수업|레슨)/i.test(
+    extractInstagramCaptionHeadline(value),
+  );
 }
 
 export function textSimilarity(a, b) {
@@ -1288,7 +1348,7 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
     Array.isArray(source?.autoRegistrationAllowedActivityTypes)
     && !source.autoRegistrationAllowedActivityTypes.includes(activity)
   ) {
-    reasons.push('source/activity has not reached the 98% AI auto-registration evidence gate');
+    reasons.push('source/activity is not enrolled for automatic registration');
   }
   if (activity === 'social' && djs.length === 0) reasons.push('social auto-registration requires a DJ');
   if (activity === 'social' && hasMalformedDj(candidate)) {

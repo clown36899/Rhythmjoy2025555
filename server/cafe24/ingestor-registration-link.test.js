@@ -39,7 +39,7 @@ describe('ingestor registration linkage', () => {
     expect(hasRegisteredEventLink({ status: 'collected', is_collected: true })).toBe(false);
   });
 
-  it('reopens only an AI-verified duplicate of a generated regular social', () => {
+  it('reopens a generated regular social only after the full automatic gate passes', () => {
     const existing = {
       status: 'duplicate',
       structured_data: {
@@ -47,14 +47,24 @@ describe('ingestor registration linkage', () => {
       },
     };
     const corrected = {
-      auto_registration: { ready: true, ai_verified: true, ai_confidence: 0.99 },
-      structured_data: { activity_type: 'social' },
+      source_id: 'kyungsunghall',
+      extracted_text: '7월 29일 경성홀 수요 소셜 DJ 뉴야',
+      auto_registration: { ready: true, mode: 'shadow', source_id: 'kyungsunghall' },
+      structured_data: {
+        title: '경성홀 수요 소셜',
+        date: '2026-07-29',
+        activity_type: 'social',
+        venue_name: '경성홀',
+        venue_provenance: 'source_registry',
+        djs: ['뉴야'],
+        evidence_scope: 'date_scoped_social',
+      },
     };
     expect(canReopenGeneratedRegularSocialDuplicate(existing, corrected)).toBe(true);
     expect(canReopenGeneratedRegularSocialDuplicate({ status: 'duplicate' }, corrected)).toBe(true);
     expect(canReopenGeneratedRegularSocialDuplicate(existing, {
       ...corrected,
-      auto_registration: { ...corrected.auto_registration, ai_confidence: 0.97 },
+      structured_data: { ...corrected.structured_data, djs: [] },
     })).toBe(false);
     expect(canReopenGeneratedRegularSocialDuplicate({
       ...existing,
@@ -172,8 +182,6 @@ describe('ingestor registration linkage', () => {
         ready: true,
         mode: 'shadow',
         source_id: 'kyungsunghall',
-        ai_verified: true,
-        ai_confidence: 0.98,
       },
       structured_data: {
         title: '경성홀 수요 소셜 DJ 뉴야',
@@ -183,7 +191,7 @@ describe('ingestor registration linkage', () => {
         venue_name: '경성홀',
         venue_provenance: 'source_text',
         djs: ['뉴야'],
-        ai_evidence_quotes: ['7월 29일', '경성홀 수요 소셜', 'DJ 뉴야'],
+        evidence_scope: 'date_scoped_social',
       },
     });
 
