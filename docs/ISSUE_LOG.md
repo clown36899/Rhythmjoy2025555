@@ -1681,3 +1681,13 @@
 - 관련 커밋: `60ccae83`
 - 관련 결정: `docs/decisions/2026-08-11-deterministic-ingestion-checkpoints.md`
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/ingestion-progress.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/ai-candidate-adjudicator.mjs`, `server/cafe24/ingestion-candidate-policy.js`, `server/cafe24/function-api.js`
+
+## 2026-08-11 일정 등록 분류·장르 시트의 목록 소실과 저장 동작 부재
+
+- 상태: 구조 수정·회귀 검증 완료
+- 현상: 세부 장르 버튼을 누르면 그 장르가 검색어로 강제 입력되어 하위 목록이 검색 결과 몇 개로 축소됐다. `혹시 스윙인가요?` 자동 교정 버튼이 같은 값을 다시 제안했고, 분류 시트에는 완료·저장 동작이 없어 사용자가 선택 종료 방식을 알 수 없었다. 필수 장르 누락 뒤 등록을 누르면 실제로 존재하지 않는 `genre` 모달을 열어 시트가 나타나지 않는 경로도 있었다.
+- 원인: 선택 상태와 검색 입력 상태를 하나의 `genreQuery`로 공유했고, 시트 선택을 부모 폼에 즉시 반영하면서 별도 완료 동작을 두지 않았다. 운영 일정 전체의 기존 `genre` 값까지 선택지로 합쳐 `강습`, `DJ`, `소셜` 같은 활동값이 세부 장르로 섞였다.
+- 조치: 검색 입력·직접 입력·퍼지 추천·`혹시 ...인가요?` 교정 UI를 등록 시트에서 제거했다. 분류·범위·세부 장르는 시트 내부 임시 상태로 선택하고 `저장`할 때만 폼에 반영하며, 취소·배경 닫기는 변경을 버린다. 새 등록에는 정식 프리셋만 표시하고 기존 일정 수정 시 해당 일정의 레거시 장르 한 개만 보존한다. 범위 변경 시 맞지 않는 세부 장르를 비워 잘못된 범위·장르 조합을 막고, 모바일의 5개 범위는 숨은 가로 스크롤 대신 3열 그리드로 모두 노출한다. 장르·분류 누락 검증은 항상 같은 분류 시트를 열도록 통합했고, 폼 초기화의 중복 분류 설정과 전달된 초기 그룹을 다시 `null`로 덮던 코드도 정리했다.
+- 비확장 검토: 스윙 외 살사·바차타·탱고·스트릿 범위와 기존 프리셋은 유지하되 새 장르나 추론 규칙은 추가하지 않았다. 수동 선택 UI는 범위와 세부 장르가 일치할 때만 저장되며, 과거 일정에서 수집한 비정식 장르는 신규 선택지로 확산되지 않는다.
+- 검증: 신규 시트 회귀 테스트 5개를 포함한 Vitest 55개 파일·335개 테스트가 통과했다. 프로덕션 빌드와 대상 ESLint가 오류 없이 통과했고, 390×844 모바일 렌더에서 분류 3개·범위 5개·스윙 세부 장르 7개 및 고정 `취소/저장` 동작이 한 시트에 노출됨을 확인했다.
+- 관련 파일: `src/components/EditableEventDetail.tsx`, `src/components/EventRegistrationModal.tsx`, `src/styles/components/EditableEventDetail.css`, `src/components/EditableEventDetail.classification.test.tsx`

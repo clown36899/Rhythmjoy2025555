@@ -315,7 +315,6 @@ export default memo(function EventRegistrationModal({
         setVenueCustomLink((editEventData as any).venue_custom_link || "");
         setDescription(editEventData.description || "");
         setCategory((editEventData.category as "class" | "event" | "club") || "event");
-        setCategory((editEventData.category as "class" | "event" | "club") || "event");
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
         setDanceScope(normalizeVisibleDanceScope(inferDanceScopeForEvent(editEventData as any), canUseExpandedDanceScopes));
@@ -357,7 +356,6 @@ export default memo(function EventRegistrationModal({
         setLocationLink("");
         setDescription("");
         setCategory(initialCategory || "");
-        setCategory(initialCategory || "");
         setGenre(initialGenre);
         setDanceScope("swing");
         setBenefitKind(null);
@@ -373,7 +371,6 @@ export default memo(function EventRegistrationModal({
         setOriginalImageFile(null);
         setImagePreview("");
         setImagePosition({ x: 0, y: 0 });
-        setGroupId(null);
       }
       // Common Reset
       setPreviewMode('detail');
@@ -598,22 +595,19 @@ export default memo(function EventRegistrationModal({
       return;
     }
 
-    if (!genre) {
-      alert("장르를 선택해주세요.");
-      detailRef.current?.openModal('genre');
+    if (!category || !genre) {
+      alert(!category && !genre
+        ? "분류와 장르를 선택해주세요."
+        : !category
+          ? "분류를 선택해주세요."
+          : "장르를 선택해주세요.");
+      detailRef.current?.openModal('classification');
       return;
     }
 
     if (!date && (!eventDates || eventDates.length === 0)) {
       alert("날짜를 선택해주세요.");
       detailRef.current?.openModal('date');
-      return;
-    }
-
-    // New Validation: Category is required
-    if (!category) {
-      alert("분류(행사/강습)를 선택해주세요.");
-      detailRef.current?.openModal('classification');
       return;
     }
 
@@ -1162,7 +1156,6 @@ export default memo(function EventRegistrationModal({
           onImageUpload={handleImageClick}
           imagePosition={imagePosition}
           onImagePositionChange={setImagePosition}
-          genreSuggestions={allGenres}
           danceScope={danceScope}
           onDanceScopeChange={handleDanceScopeChange}
           canUseExpandedDanceScopes={canUseExpandedDanceScopes}

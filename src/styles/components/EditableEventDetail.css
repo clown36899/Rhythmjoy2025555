@@ -851,6 +851,8 @@
     color: var(--text-secondary);
     text-align: left;
     cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
 }
 
 .EED-scopeBtn strong,
@@ -880,55 +882,15 @@
     box-shadow: inset 0 2px 0 var(--color-blue-400);
 }
 
-.EED-genreSearchBox {
-    display: flex;
-    align-items: center;
+.EED-classificationChoices {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
-    min-height: 46px;
-    padding: 0 13px;
-    border: 1px solid var(--border-glass);
-    border-radius: 12px;
-    background: var(--bg-surface-2);
 }
 
-.EED-genreSearchBox i {
-    color: var(--text-tertiary);
-    font-size: 1.05rem;
-}
-
-.EED-genreSearchInput {
-    width: 100%;
+.EED-classificationChoices .EED-sheetBtn {
     min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--text-primary);
-    font: inherit;
-    font-size: 0.95rem;
-}
-
-.EED-genreCorrection,
-.EED-customGenreBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    min-height: 42px;
-    border-radius: 12px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.EED-genreCorrection {
-    border: 1px solid color-mix(in srgb, var(--color-blue-400) 52%, transparent);
-    background: color-mix(in srgb, var(--color-blue-500) 13%, var(--bg-surface-2));
-    color: var(--text-primary);
-}
-
-.EED-customGenreBtn {
-    border: 1px dashed var(--border-glass-strong);
-    background: transparent;
-    color: var(--text-secondary);
+    height: 48px;
 }
 
 /* Animations */
@@ -1038,6 +1000,13 @@
     gap: 12px;
 }
 
+.EED-classificationFooter {
+    flex-shrink: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-glass);
+    background: var(--bg-surface-1);
+}
+
 .EED-sheetBtn {
     flex: 1;
     height: 52px;
@@ -1053,6 +1022,12 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.EED-sheetBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+    box-shadow: none;
 }
 
 .EED-sheetBtn:hover {
@@ -1182,18 +1157,17 @@
 
 @media (max-width: 767px) {
     .EED-scopeRail {
-        display: flex;
-        overflow-x: auto;
-        padding-bottom: 2px;
-        scrollbar-width: none;
-    }
-
-    .EED-scopeRail::-webkit-scrollbar {
-        display: none;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
     }
 
     .EED-scopeBtn {
-        flex: 0 0 92px;
+        min-height: 44px;
+        text-align: center;
+    }
+
+    .EED-scopeBtn span {
+        display: none;
     }
 
     .EED-genreGrid.is-compact {
