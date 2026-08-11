@@ -13,7 +13,7 @@ const defaultModel = process.env.INGESTION_AI_MODEL || 'gpt-5.6-sol';
 const minimumConfidence = Number(process.env.INGESTION_AI_MIN_CONFIDENCE || 0.98);
 
 export function shouldPersistBenefitAiOutcome(outcome = '') {
-  return String(outcome || '').toLowerCase() === 'approved';
+  return ['approved', 'review', 'unavailable', 'error'].includes(String(outcome || '').toLowerCase());
 }
 
 async function firstExecutable(paths) {

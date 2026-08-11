@@ -146,6 +146,21 @@ export function expectedInstagramHandleForSource(source = {}) {
   }
 }
 
+export function instagramPostMatchesExpectedHandle(url = '', expectedHandle = '') {
+  const expected = String(expectedHandle || '').trim().replace(/^@/, '').toLowerCase();
+  if (!expected) return true;
+  try {
+    const parsed = new URL(url, 'https://www.instagram.com/');
+    if (!/(^|\.)instagram\.com$/i.test(parsed.hostname)) return false;
+    const segments = parsed.pathname.split('/').filter(Boolean).map((segment) => segment.toLowerCase());
+    if (/^(p|reel)$/.test(segments[0] || '') && segments[1]) return true;
+    if (segments.length >= 3 && /^(p|reel)$/.test(segments[1])) return segments[0] === expected;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function instagramAuthorMatches({ expectedHandle = '', ogTitle = '', metaDescription = '', profileHrefs = [] } = {}) {
   const expected = String(expectedHandle || '').trim().replace(/^@/, '').toLowerCase();
   if (!expected) return true;

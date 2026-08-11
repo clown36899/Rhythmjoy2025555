@@ -21,6 +21,23 @@ function candidateText(candidate = {}) {
   ].filter(Boolean).join('\n').normalize('NFKC');
 }
 
+function publicationDate(candidate = {}) {
+  const raw = String(candidate.published_at || candidate.publishedAt || '').trim();
+  if (!raw) return '';
+  const explicit = raw.match(/(20\d{2})\D{0,3}(\d{1,2})\D{0,3}(\d{1,2})/);
+  if (explicit) {
+    return `${explicit[1]}-${String(explicit[2]).padStart(2, '0')}-${String(explicit[3]).padStart(2, '0')}`;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed);
+}
+
 const rentalSubjectPattern = /(?:대관|공간\s*(?:대여|렌탈)|홀\s*(?:대여|렌탈)|연습실\s*(?:대여|렌탈)|스튜디오\s*(?:대여|렌탈))/i;
 const rentalAvailabilityPattern = /(?:가능(?:한)?\s*(?:일|날짜|일정|시간|타임|스케줄)|예약\s*가능|빈\s*(?:날짜|시간|타임)|잔여\s*(?:일정|시간|타임)|(?:대관\s*)?(?:스케줄|캘린더))/i;
 
@@ -39,6 +56,25 @@ export function isVenueRentalAvailabilityNotice(candidate = {}) {
 export function getIngestionCandidateExclusionReason(candidate = {}, { today = '' } = {}) {
   const date = candidateDate(candidate);
   if (date && today && date < today) return `past event date: ${date} < ${today}`;
+  const published = publicationDate(candidate);
+  if (date && published) {
+    const eventMs = Date.parse(`${date}T00:00:00+09:00`);
+    const publishedMs = Date.parse(`${published}T00:00:00+09:00`);
+    if (Number.isFinite(eventMs) && Number.isFinite(publishedMs) && eventMs - publishedMs > 400 * 86_400_000) {
+      return `event date is implausibly far after source publication: ${published} -> ${date}`;
+    }
+  }
+  if (
+    published
+    && today
+    && String(candidate.discovery_source_type || '').toLowerCase() === 'benefit_search'
+  ) {
+    const todayMs = Date.parse(`${today}T00:00:00+09:00`);
+    const publishedMs = Date.parse(`${published}T00:00:00+09:00`);
+    if (Number.isFinite(todayMs) && Number.isFinite(publishedMs) && todayMs - publishedMs > 180 * 86_400_000) {
+      return `stale benefit source post: ${published}`;
+    }
+  }
   if (isVenueRentalAvailabilityNotice(candidate)) {
     return 'non-event venue rental availability notice';
   }

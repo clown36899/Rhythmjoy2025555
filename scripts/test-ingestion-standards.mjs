@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import {
+  alignYearlessDatesToPublication,
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
   collapseSocialCandidateVariants,
   extractBenefitValidityEndDate,
   extractDatedDjSections,
   extractIndependentSocialDateSections,
+  extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
   extractSeasonPassEvidenceSections,
@@ -16,6 +18,7 @@ import {
   prepareCandidate,
   isEvergreenSeasonPassCandidate,
   isHighConfidenceDatedSocialSchedule,
+  isInstagramCaptionClassHeadline,
   stripNaverCafeMemberPrefix,
   stripRepeatedDjContext,
   textSimilarity,
@@ -31,6 +34,7 @@ import {
   extractInstagramPostUrls,
   extractInstagramProfileUrls,
   instagramAuthorMatches,
+  instagramPostMatchesExpectedHandle,
   isStaleBenefitSourcePost,
   mergeBenefitSearchTargets,
   normalizeInstagramPostUrl,
@@ -52,7 +56,9 @@ import {
 import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
+  mergeSeenInstagramPosts,
   reorderSourcesForResume,
+  selectUnseenInstagramPosts,
 } from './ingestion/ingestion-progress.mjs';
 
 const TODAY = '2026-05-23';
@@ -62,10 +68,64 @@ assert.deepEqual(
   ['remaining-a', 'remaining-b', 'done'],
   'an interrupted priority run must resume its recorded sources first',
 );
-assert.equal(catchupInstagramPostLimit(2, '', new Date('2026-08-10T00:00:00Z')), 4, 'a missing completion state must widen the Instagram catch-up window');
+assert.equal(catchupInstagramPostLimit(2, '', new Date('2026-08-10T00:00:00Z')), 2, 'a fresh progress state must keep the configured post window so the first run can finish');
 assert.equal(catchupInstagramPostLimit(2, '2026-08-07T00:00:00Z', new Date('2026-08-10T00:00:00Z')), 6, 'three days of downtime must widen the catch-up window deterministically');
 assert.equal(catchupInstagramPostLimit(2, '2026-08-09T00:00:00Z', new Date('2026-08-10T00:00:00Z')), 2, 'a current schedule keeps its normal post window');
 assert.equal(buildIngestionProgressState({ remainingSources: [], completed: true, now: new Date('2026-08-10T00:00:00Z') }).lastCompletedAt, '2026-08-10T00:00:00.000Z');
+assert.deepEqual(
+  selectUnseenInstagramPosts(['new', 'seen', 'older'], ['seen'], 2),
+  ['new', 'older'],
+  'Instagram collection must continue from per-source checked posts instead of a fixed newest-N window',
+);
+assert.deepEqual(
+  mergeSeenInstagramPosts(['seen', 'old'], ['new', 'seen']),
+  ['new', 'seen', 'old'],
+  'completed Instagram posts must advance the per-source checkpoint without losing prior history',
+);
+assert.deepEqual(
+  alignYearlessDatesToPublication(
+    ['2027-05-09', '2027-05-16'],
+    '5월 9일, 5월 16일 무료 워크숍 후기',
+    '2025-05-17T03:00:00.000Z',
+  ),
+  ['2025-05-09', '2025-05-16'],
+  'revisiting an old yearless post must not roll its past dates into a fake future year',
+);
+assert.deepEqual(
+  alignYearlessDatesToPublication(
+    ['2025-04-01', '2027-05-16'],
+    '2025년 4월 1일 공지 · 5월 16일 무료 워크숍 후기',
+    '2025-05-17T03:00:00.000Z',
+  ),
+  ['2025-04-01', '2025-05-16'],
+  'an explicit year elsewhere in an old post must not prevent yearless dates from aligning to publication',
+);
+
+assert.equal(
+  extractInstagramCaptionHeadline('Kyungsunghall_ 경성홀 on Instagram: "🇰🇷 광복절 특별 워크숍\n행자 & 칼요와 함께합니다"'),
+  '🇰🇷 광복절 특별 워크숍',
+  'localized Instagram titles must expose the actual first caption line',
+);
+assert.equal(
+  isInstagramCaptionClassHeadline('Kyungsunghall_ 경성홀 on Instagram: "🇰🇷 광복절 특별 워크숍\n워크숍 뒤 토요 소셜"'),
+  true,
+  'an explicit class headline must outrank a social mention later in the caption',
+);
+assert.equal(
+  isInstagramCaptionClassHeadline('Kyungsunghall_ 경성홀 on Instagram: "This Week at Kyungsung Hall\n토요 소셜 DJ 북실"'),
+  false,
+  'a weekly social headline must not become a class because of its body text',
+);
+assert.equal(
+  instagramPostMatchesExpectedHandle('https://www.instagram.com/kyungsunghall/p/Dbu7wPmSv9d/', 'kyungsunghall'),
+  true,
+  'profile-owned Instagram permalinks must remain eligible',
+);
+assert.equal(
+  instagramPostMatchesExpectedHandle('https://www.instagram.com/allaboutswing_official/reel/DbyceuJTSTn/', 'kyungsunghall'),
+  false,
+  'recommended or linked posts from another handle must not consume the source post window',
+);
 
 assert.equal(
   stripRepeatedDjContext('안토니 스윙타운 DJ 안토니 20'),
@@ -1475,6 +1535,26 @@ assert.equal(
   validateCandidate(rentalAvailabilityNotice, { today: TODAY }).ok,
   false,
   'rental availability notices must not enter any ingestion profile',
+);
+assert.equal(
+  getIngestionCandidateExclusionReason({
+    discovery_source_type: 'benefit_search',
+    published_at: '2025-05-17T03:00:00.000Z',
+    extracted_text: '5월 16일 무료 워크숍 후기',
+    structured_data: { title: '무료 워크숍', date: '2027-05-16' },
+  }, { today: '2026-08-11' }),
+  'event date is implausibly far after source publication: 2025-05-17 -> 2027-05-16',
+  'the server must reject a stale yearless post rolled into a fake future year',
+);
+assert.equal(
+  getIngestionCandidateExclusionReason({
+    discovery_source_type: 'benefit_search',
+    published_at: '2025-12-01T03:00:00.000Z',
+    extracted_text: '2026년 9월 1일 무료 체험 강습',
+    structured_data: { title: '무료 체험 강습', date: '2026-09-01' },
+  }, { today: '2026-08-11' }),
+  'stale benefit source post: 2025-12-01',
+  'old benefit-search sources must be rejected even when their candidate date is still in the future',
 );
 const reservableDanceEvent = baseCandidate({
   extracted_text: '2026년 6월 5일 경성홀 린디합 원데이 클래스, 사전 예약 가능',
