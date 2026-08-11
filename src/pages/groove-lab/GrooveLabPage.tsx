@@ -3,6 +3,9 @@ import './groove-lab.css';
 import {
     buildGrooveBar,
     getFeelLabel,
+    getGrooveBeatsPerBar,
+    getGrooveLoopBeats,
+    getGrooveLoopBars,
     getGroovePreset,
     getSwingRatio,
     GROOVE_FAMILIES,
@@ -11,7 +14,14 @@ import {
     type GrooveFamilyId,
     type GrooveFeel,
     type GroovePresetId,
+    type GrooveVoice,
 } from './grooveEngine';
+import {
+    createGrooveAudioRuntime,
+    createGrooveMasterOutput,
+    scheduleGrooveVoice as scheduleHighQualityGrooveVoice,
+} from './grooveAudio';
+import { getModelProfilesForEvents } from './grooveModelProfiles';
 
 const MIN_BPM = 50;
 const MAX_BPM = 260;
@@ -21,8 +31,15 @@ const SCHEDULER_INTERVAL_MS = 25;
 const clampBpm = (value: number) => Math.round(Math.min(MAX_BPM, Math.max(MIN_BPM, value)));
 
 type QueuedVisualEvent = { id: string; time: number };
+type PracticeMode = 'continuous' | 'listen-mute' | 'tempo-ladder';
 
-const EVIDENCE = {
+const PRACTICE_MODES: readonly { id: PracticeMode; label: string; description: string }[] = [
+    { id: 'continuous', label: '계속 듣기', description: '선택한 1~2마디 패턴을 끊김 없이 반복합니다.' },
+    { id: 'listen-mute', label: '2+2 콜백', description: '2마디를 듣고 2마디는 소리를 비워 직접 연주하거나 클랩합니다.' },
+    { id: 'tempo-ladder', label: '+2 사다리', description: '4마디마다 2 BPM씩 올리고 +10 BPM에서 시작 템포로 돌아옵니다.' },
+] as const;
+
+export const EVIDENCE = {
     friberg: {
         title: 'Friberg & Sundström (2002)',
         summary: '라이드의 스윙 비율은 템포에 따라 대략 선형으로 감소하며, 느린 템포에서는 3–3.5:1, 약 200 BPM에서 2:1, 매우 빠른 템포에서는 1:1에 접근했습니다.',
@@ -44,9 +61,9 @@ const EVIDENCE = {
         href: 'https://www.jazzbooks.com/mm5/samples/D-AATC.pdf',
     },
     freddie: {
-        title: 'Freddie Green: Birth of a Style',
-        summary: 'Freddie Green 스타일은 작은 코드를 한 마디에 네 번 스트럼하는 four-to-the-bar 방식으로 설명됩니다.',
-        href: 'https://freddiegreen.com/technique/ness.html',
+        title: 'William Paterson University 석사논문 — Freddie Green 분석',
+        summary: '전 경력의 연주 전사를 분석한 연구는 네 박의 흔들리지 않는 펄스와 함께, 한 음 중심의 보이스 리딩 및 뮤트된 현이 만드는 타악적 질감을 핵심으로 봅니다. 앱은 큰 3음 코드를 반복하지 않고 이 축약 방향을 사용합니다.',
+        href: 'https://www.freddiegreen.org/technique/butterman_thesis.pdf',
     },
     musicxml: {
         title: 'W3C MusicXML 4.0 swing 표준',
@@ -64,14 +81,19 @@ const EVIDENCE = {
         href: 'https://content.alfred.com/catpages/00-UBSBK103R.pdf',
     },
     'boogie-study': {
-        title: 'The Twentieth Century Jazz Piano Trio',
+        title: 'University of Évora 박사논문 — The Twentieth Century Jazz Piano Trio',
         summary: '부기우기는 왼손 오스티나토가 4/4 한 마디의 여덟 하위 박을 지속하는 eight-to-the-bar 어법으로 기술됩니다.',
-        href: 'https://files.core.ac.uk/download/62475602.pdf',
+        href: 'https://dspace.uevora.pt/rdpc/handle/10174/18583',
     },
     'boogie-riff': {
         title: 'Boogie Shuffle 5도–6도 패턴',
-        summary: '대표적인 기타 부기 셔플은 근음을 유지하며 5도와 6도를 교대합니다. 같은 골격이 베이스형 리프에도 쓰입니다.',
+        summary: '대표적인 기타 부기 셔플은 근음을 유지한 두 음 보이싱에서 5도와 6도를 교대합니다. 앱도 매 타격을 큰 3음 코드가 아닌 root–5th와 root–6th dyad로 냅니다.',
         href: 'https://www.guitarworld.com/lessons/artist-lessons/jim-oblon-inverted-boogie-riffing',
+    },
+    'berklee-groove-guitar': {
+        title: 'Berklee — Rhythm and Groove Guitar',
+        summary: '리듬 기타의 기본 도구로 Root 5·Root 6, 뮤트, 반복, 오른손 주법과 더블스톱을 분리해 가르칩니다. 앱의 셔플 기타는 Root 5/6 두 음형만 사용합니다.',
+        href: 'https://online.berklee.edu/courses/rhythm-and-groove-guitar',
     },
     'slow-blues': {
         title: 'Slow Blues 12/8 연주 분석',
@@ -84,9 +106,9 @@ const EVIDENCE = {
         href: 'https://www.gmth.de/zeitschrift/artikel/1224.aspx',
     },
     'funk-one': {
-        title: 'James Brown rhythm-section analysis',
+        title: 'Université de Montréal 박사논문 — Who Got Da Funk?',
         summary: 'James Brown식 펑크에서는 매 마디 첫 다운비트인 “the one”을 베이스와 리듬 섹션이 강하게 공유하는 원리가 강조됩니다.',
-        href: 'https://files.core.ac.uk/download/346448664.pdf',
+        href: 'https://tagg.org/bookxtrax/DavisFunkPhDv1.pdf',
     },
     'funk-syncopation': {
         title: 'Music Perception — Syncopation and Groove',
@@ -110,7 +132,7 @@ const EVIDENCE = {
     },
     'samba-microtiming': {
         title: 'Rhythmical structures in samba performance',
-        summary: '삼바 타악 실연은 16분음표를 단순 균등 분할하지 않고 중–짧–중–긴에 가까운 체계적 길이·강세 구조를 보입니다.',
+        summary: '한 실연 분석에서 네 16분음표 길이는 23.0%·23.6%·22.8%·30.7%로 측정됐고, 셋째와 넷째 onset이 균등 격자보다 앞섰습니다. 앱은 이를 정규화한 연구 예시를 사용합니다.',
         href: 'https://www.researchgate.net/publication/268219833_Rhythmical_structures_in_music_and_body_movement_in_samba_performance',
     },
     'samba-tempo-study': {
@@ -128,15 +150,20 @@ const EVIDENCE = {
         summary: '클라베는 단독 타악 패턴을 넘어 베이스·콩가·기타 등 다른 악기의 프레이즈를 조직하는 시간적 기준으로 설명됩니다.',
         href: 'https://journals.library.columbia.edu/index.php/currentmusicology/article/view/5234',
     },
+    'conga-tumbao-study': {
+        title: 'AAWM — 쿠바 베이스·콩가 타이밍 실연 연구',
+        summary: '기본 한 북 콩가 툼바오는 연속 8분 `heel–toe–slap–toe–heel–toe–open–open`이며, 2박 슬랩과 4박·4& 오픈톤이 자연 강세를 만듭니다. 앱은 이 손 발음 순서와 강세를 그대로 반복합니다.',
+        href: 'https://journal.iftawm.org/wp-content/uploads/2023/01/Poole_AAWM_Vol_10_2.pdf',
+    },
     'pop-syncopation-study': {
         title: 'Open Music Theory — Pop/Rock Syncopation',
         summary: '팝·록에서는 연속된 음을 약한 8분·16분 위치로 앞당기는 anticipation이 대표적인 싱코페이션 어휘로 제시됩니다.',
         href: 'https://openmusictheory.github.io/syncopation.html',
     },
     'blue-note-grove': {
-        title: 'Grove Music, Blue note (Kubik)',
-        summary: '블루 노트는 서양 온음계에서 벗어나는 음높이 값이며, 3·7도와 때로 5도를 낮추되 미분음적으로 흔들리는 현상으로 설명됩니다.',
-        href: 'https://doi.org/10.1093/gmo/9781561592630.article.A2234425',
+        title: 'Empirical Musicology Review — 블루 노트 미분음 실측',
+        summary: '초기 블루스 15곡의 1,101개 음을 측정한 연구는 319.1·582.8·1037.9센트 부근의 세 주요 군집과 연주자별 차이를 확인했습니다. 앱의 벤드는 이 넓은 현상을 한 가지 기타형 예시로만 들려줍니다.',
+        href: 'https://doi.org/10.18061/emr.v13i1-2.6316',
     },
     'blue-note-research': {
         title: 'Eastman School of Music, Blue-note research',
@@ -148,208 +175,116 @@ const EVIDENCE = {
         summary: '블루 노트는 흔히 움직이는 음높이라 고정 건반의 피아노가 그대로 낼 수 없습니다. 피아노 프리셋은 인접 건반 병치라는 근사임을 명시합니다.',
         href: 'https://api.pageplace.de/preview/DT0400.9781135887131_A24421853/preview-9781135887131_A24421853.pdf',
     },
+    'karplus-strong': {
+        title: 'Karplus & Strong (1983) — 현·드럼 디지털 합성',
+        summary: '짧은 잡음 여기와 감쇠하는 지연선을 사용하면 고차 배음이 더 빨리 사라지는 발현·기타형 음색을 적은 연산으로 만들 수 있음을 제시한 원 논문입니다.',
+        href: 'https://www.moforte.com/wp-content/uploads/2020/05/Karplus-Strong-CMJ-1983.pdf',
+    },
+    'drum-modal-synthesis': {
+        title: 'Nagata & Saito (2025) — 드럼 모달 합성',
+        summary: '실제 드럼의 타격 응답은 단일 오실레이터보다 여러 진동 모드와 방사 특성의 결합으로 모델링해야 함을 보여줍니다. 앱은 모바일 실시간성에 맞춰 축약된 다중 모드를 사용합니다.',
+        href: 'https://doi.org/10.1177/10775463241272937',
+    },
+    'webaudio-dynamics': {
+        title: 'W3C Web Audio 1.1 — 출력 다이내믹 처리',
+        summary: '여러 소리가 동시에 겹칠 때 클리핑을 줄이기 위한 공식 DynamicsCompressorNode 규격을 따라 출력단에 DC 차단과 압축을 둡니다. 출처 없는 공통 톤 EQ는 악기별 스펙트럼을 오염시켜 제거했습니다.',
+        href: 'https://webaudio.github.io/web-audio-api/#DynamicsCompressorNode',
+    },
+    'auditory-motor-learning': {
+        title: 'Scientific Reports (2022) — 음악 연습의 청각 피드백',
+        summary: '기타·피아노 학습자 115명을 비교한 연구에서 소리를 들으며 연주하는 조건과 무음 운동 연습이 서로 다른 학습 이점을 보였습니다. 2+2 콜백은 두 피드백 조건을 번갈아 경험하도록 단순화한 연습 모드입니다.',
+        href: 'https://doi.org/10.1038/s41598-022-24262-x',
+    },
+    'practice-variability': {
+        title: 'PLOS ONE (2018) — 템포 변동과 운동·타이밍 학습',
+        summary: '초보 피아노 학습 실험에서 템포 변화의 폭과 순서가 타이밍 및 운동 기술의 전이에 서로 다르게 작용했습니다. 앱은 무작위 점프가 아니라 작은 폭의 비무작위 +2 BPM 사다리를 제공합니다.',
+        href: 'https://doi.org/10.1371/journal.pone.0193580',
+    },
+    'stk-source': {
+        title: 'Stanford CCRMA STK — 공개 합성 구현',
+        summary: 'STK의 Twang 모델은 지연선·루프 필터·플럭 위치 콤 필터를 분리하고, 몸통 임펄스 응답을 입력으로 넣는 commuted synthesis 경로를 명시합니다. 앱의 현 모델 구조를 검토하는 공개 구현 기준으로 사용합니다.',
+        href: 'https://github.com/thestk/stk/blob/master/src/Twang.cpp',
+    },
+    'stk-guitar-body-source': {
+        title: 'Stanford CCRMA STK Guitar — 몸통 파일·결합 한계',
+        summary: '공식 Guitar 모델은 외부 몸통 응답 파일을 받을 뿐 기타 IR을 기본 제공하지 않고, 파일이 없으면 임의 200샘플 노이즈를 사용합니다. 1% 브리지 피드백도 traveling-wave 성분에 접근하지 못하는 근사라고 소스가 명시하므로 앱은 측정 몸통·정밀 현 결합으로 확대하지 않습니다.',
+        href: 'https://github.com/thestk/stk/blob/master/src/Guitar.cpp',
+    },
+    'stk-pickup-source': {
+        title: 'Stanford CCRMA STK — 자기 픽업 위치 구현',
+        summary: 'STK의 StifKarp는 현 출력에서 픽업 위치만큼 지연된 출력을 빼 별도의 스펙트럼 영점을 만듭니다. 앱은 이 공개 구현을 전기 베이스에만 적용하며, 특정 실물 베이스의 치수를 복제한다고 주장하지 않습니다.',
+        href: 'https://github.com/thestk/stk/blob/master/include/StifKarp.h',
+    },
+    'faust-physical-models': {
+        title: 'Stanford CCRMA·GRAME — Faust Physical Modeling Library',
+        summary: '논문과 연결된 공식 라이브러리는 강철·나일론 현, 플럭 위치, 브리지, 모달 타악기를 모듈로 분리합니다. 동시에 현재 기타 몸통 모델이 완전하지 않다는 한계도 코드에 명시하므로 앱도 완전 재현이라고 주장하지 않습니다.',
+        href: 'https://faustlibraries.grame.fr/libs/physmodels/',
+    },
+    'guitar-model': {
+        title: 'DAFx — Full-scale acoustic guitar model',
+        summary: '고급 기타 모델은 플럭 위치 필터, 주파수별 감쇠, 두 진동 편극, 몸통 전달함수와 공명, 현 사이 결합을 구분합니다. 앱은 모바일 실시간성을 위해 이 중 플럭 위치와 두 편극만 축약 구현합니다.',
+        href: 'https://www.dafx.de/paper-archive/1999/karjalainen2.pdf',
+    },
+    'guitar-pluck': {
+        title: 'DAFx — 기타 플럭 위치 추정 연구',
+        summary: '브리지 근처 플럭은 고주파 성분이 강해지고, 플럭 위치에 따른 배음 영점이 생깁니다. 앱의 기타·베이스 발음별 플럭 위치 필터에 이 방향성을 사용합니다.',
+        href: 'https://www.dafx.de/paper-archive/2000/pdf/Caroline_Traube.pdf',
+    },
+    'bass-synthesis': {
+        title: 'Fraunhofer IDMT — Electric bass synthesis',
+        summary: '핑거·피크·뮤트·슬랩 엄지·슬랩 팝과 데드 노트·벤드·슬라이드 등 연주법을 물리 영향과 청취 평가로 구분한 연구입니다. 앱은 현재 핑거·피크·뮤트·슬랩·팝·데드의 공격과 감쇠만 축약합니다.',
+        href: 'https://www.idmt.fraunhofer.de/en/publications/datasets/bass_synthesis.html',
+    },
+    'bass-contact': {
+        title: 'Applied Acoustics — 베이스 현·프렛 충돌 모델',
+        summary: '슬랩과 팝의 타격성은 현과 프렛·넥 사이의 비선형 접촉에서 생깁니다. 앱은 짧은 대역 잡음으로 그 공격음을 근사하며 실제 충돌 해석은 아직 포함하지 않습니다.',
+        href: 'https://doi.org/10.1016/j.apacoust.2017.07.021',
+    },
+    'piano-hammer': {
+        title: 'DAFx — 비선형 피아노 해머·현 모델',
+        summary: '피아노 발음은 해머–현의 비선형 힘, 뻣뻣한 현의 비정수 배음, 사운드보드 전달을 포함합니다. 앱은 해머 트랜지언트와 비정수 배음만 축약 구현합니다.',
+        href: 'https://dafx.de/papers/DAFX02_Bank_Sujbert_piano_synthesis.pdf',
+    },
+    'piano-unison': {
+        title: 'DAFx — 레이저 측정 기반 결합 피아노 현',
+        summary: '실제 피아노의 중·고음은 매우 가깝게 조율된 2–3개 현이 같은 음을 내며 비팅을 만듭니다. 측정 연구의 이중 공진 간격은 0.1–5 Hz였습니다. 앱은 이 범위 안의 독립 복현만 축약하고 브리지 결합·이중 감쇠는 구현하지 않습니다.',
+        href: 'https://www.dafx.de/paper-archive/1999/aramaki.pdf',
+    },
+    'cymbal-model': {
+        title: 'Acoustical Science and Technology — 심벌 물리모델',
+        summary: '심벌은 비선형 셸 진동과 지지·와셔·스틱 조건에 따라 음색이 달라집니다. 앱의 라이드·하이햇은 다중 비정수 모드와 잡음 여기만 사용하며 실제 셸 해석은 포함하지 않습니다.',
+        href: 'https://doi.org/10.1250/ast.42.314',
+    },
+    'pandeiro-sounds': {
+        title: 'ISMIR — 2,448개 판데이루 타격음 분석',
+        summary: '전문 연주자가 녹음한 여섯 발음 중 앱은 반복 연습에 필요한 tung 저음, tchi 징글, pa 중앙 타격, PA 큰 슬랩을 네 하위박 역할로 사용합니다. 단순 강약 차이가 아니라 막 저음·징글·두 슬랩의 공격과 잔향을 구분합니다.',
+        href: 'https://ismir2007.ismir.net/proceedings/ISMIR2007_p229_roy.pdf',
+    },
+    'clavinet-model': {
+        title: 'EURASIP — Clavinet D6 디지털 웨이브가이드',
+        summary: '실제 Clavinet D6 녹음과 오픈소스 Pure Data 모델을 함께 검증한 연구입니다. 매 5번째 배음의 픽업 콤 노치와 톤 스위치를 뺀 앰프의 −3 dB@130 Hz·+3 dB@4 kHz 응답을 축약합니다. 두 픽업 선택·비선형·톤 스위치는 포함하지 않습니다.',
+        href: 'https://doi.org/10.1186/1687-6180-2013-103',
+    },
 } as const;
 
-const makeNoiseBuffer = (context: AudioContext, duration: number) => {
-    const length = Math.max(1, Math.floor(context.sampleRate * duration));
-    const buffer = context.createBuffer(1, length, context.sampleRate);
-    const channel = buffer.getChannelData(0);
-    for (let index = 0; index < length; index += 1) {
-        channel[index] = (Math.random() * 2 - 1) * (1 - index / length);
-    }
-    return buffer;
-};
-
-const scheduleOscillator = (
-    context: AudioContext,
-    time: number,
-    destination: AudioNode,
-    options: {
-        frequency: number;
-        endFrequency?: number;
-        gain: number;
-        duration: number;
-        type?: OscillatorType;
-        attack?: number;
-    },
-) => {
-    const oscillator = context.createOscillator();
-    const envelope = context.createGain();
-    const attack = Math.min(options.attack ?? 0.003, options.duration / 2);
-    oscillator.type = options.type ?? 'triangle';
-    oscillator.frequency.setValueAtTime(options.frequency, time);
-    if (options.endFrequency) {
-        oscillator.frequency.exponentialRampToValueAtTime(options.endFrequency, time + options.duration);
-    }
-    envelope.gain.setValueAtTime(0.0001, time);
-    envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002, options.gain), time + attack);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, time + options.duration);
-    oscillator.connect(envelope);
-    envelope.connect(destination);
-    oscillator.start(time);
-    oscillator.stop(time + options.duration + 0.025);
-};
-
-const scheduleNoise = (
-    context: AudioContext,
-    time: number,
-    destination: AudioNode,
-    options: { frequency: number; gain: number; duration: number; type?: BiquadFilterType; q?: number },
-) => {
-    const source = context.createBufferSource();
-    const filter = context.createBiquadFilter();
-    const envelope = context.createGain();
-    source.buffer = makeNoiseBuffer(context, options.duration);
-    filter.type = options.type ?? 'highpass';
-    filter.frequency.setValueAtTime(options.frequency, time);
-    filter.Q.setValueAtTime(options.q ?? 0.8, time);
-    envelope.gain.setValueAtTime(Math.max(0.0002, options.gain), time);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, time + options.duration);
-    source.connect(filter);
-    filter.connect(envelope);
-    envelope.connect(destination);
-    source.start(time);
-    source.stop(time + options.duration + 0.02);
-};
-
-const scheduleGrooveVoice = (
-    context: AudioContext,
-    time: number,
-    event: GrooveEvent,
-    masterVolume: number,
-    destination: AudioNode,
-) => {
-    const master = context.createGain();
-    const level = Math.max(0, Math.min(1, masterVolume / 100));
-    master.gain.setValueAtTime(level * event.gain, time);
-    master.connect(destination);
-
-    switch (event.voice) {
-        case 'ride':
-            scheduleNoise(context, time, master, { frequency: 4100, gain: 0.19, duration: 0.18, type: 'highpass' });
-            scheduleOscillator(context, time, master, { frequency: event.variant === 4 ? 760 : 610, gain: 0.035, duration: 0.11, type: 'triangle' });
-            break;
-        case 'hat':
-            scheduleNoise(context, time, master, { frequency: 6800, gain: 0.22, duration: 0.052, type: 'highpass' });
-            break;
-        case 'snare':
-            scheduleNoise(context, time, master, { frequency: 1550, gain: 0.29, duration: 0.095, type: 'bandpass', q: 0.7 });
-            scheduleOscillator(context, time, master, { frequency: 185, endFrequency: 125, gain: 0.08, duration: 0.065, type: 'triangle' });
-            break;
-        case 'kick':
-            scheduleOscillator(context, time, master, { frequency: 118, endFrequency: 48, gain: 0.45, duration: 0.12, type: 'sine' });
-            break;
-        case 'bass': {
-            const walkingBassFrequencies = [82.41, 98, 110, 123.47];
-            const shuffleBassFrequencies = [65.41, 98, 110];
-            const extendedBassFrequencies = [65.41, 73.42, 82.41, 98, 110, 123.47];
-            const variant = event.variant ?? 0;
-            const frequency = variant >= 20
-                ? extendedBassFrequencies[variant % extendedBassFrequencies.length]
-                : variant >= 10
-                    ? shuffleBassFrequencies[variant - 10] ?? shuffleBassFrequencies[0]
-                    : walkingBassFrequencies[variant] ?? walkingBassFrequencies[0];
-            const duration = variant >= 20 && variant < 30 ? 0.105 : 0.2;
-            scheduleOscillator(context, time, master, { frequency, endFrequency: frequency * 0.985, gain: 0.28, duration, type: 'triangle', attack: 0.008 });
-            scheduleOscillator(context, time, master, { frequency: frequency * 2, gain: 0.055, duration: 0.075, type: 'sine' });
-            break;
-        }
-        case 'piano': {
-            const chord = event.variant === 1 ? [196, 246.94, 293.66] : [174.61, 220, 261.63];
-            chord.forEach((frequency, index) => {
-                scheduleOscillator(context, time, master, { frequency, gain: 0.075 - index * 0.008, duration: 0.18, type: 'triangle', attack: 0.004 });
-            });
-            break;
-        }
-        case 'guitar': {
-            const roots = [146.83, 164.81, 174.61, 130.81];
-            const variant = event.variant ?? 0;
-            const isFunk = variant >= 20 && variant < 30;
-            const isRock = variant >= 30;
-            const isBluesShuffle = variant >= 10 && variant < 20;
-            const root = isBluesShuffle ? 110 : isFunk ? 146.83 : isRock ? 98 : roots[variant] ?? roots[0];
-            const chordMultiples = isBluesShuffle
-                ? [1, 1.5, event.variant === 11 ? (5 / 3) : 2]
-                : isFunk
-                    ? [1, 1.25, 1.5]
-                    : isRock
-                        ? [1, 1.5, 2]
-                : [1, 1.25, 1.5];
-            chordMultiples.forEach((multiple, index) => {
-                scheduleOscillator(context, time + index * 0.004, master, { frequency: root * multiple, gain: isFunk ? 0.035 : 0.06, duration: isFunk ? 0.042 : isRock ? 0.12 : 0.085, type: 'sawtooth', attack: 0.002 });
-            });
-            scheduleNoise(context, time, master, { frequency: isFunk ? 2600 : 1800, gain: isFunk ? 0.07 : 0.045, duration: isFunk ? 0.032 : 0.045, type: 'bandpass', q: 1.3 });
-            break;
-        }
-        case 'boogie': {
-            const boogieFrequencies = [65.41, 98, 110, 116.54];
-            const frequency = boogieFrequencies[event.variant ?? 0] ?? boogieFrequencies[0];
-            scheduleOscillator(context, time, master, { frequency, endFrequency: frequency * 0.99, gain: 0.24, duration: 0.13, type: 'triangle', attack: 0.004 });
-            scheduleOscillator(context, time, master, { frequency: frequency * 2, gain: 0.07, duration: 0.075, type: 'sine' });
-            break;
-        }
-        case 'blue-note': {
-            const bends = [
-                [261.63, 261.63],
-                [311.13, 320],
-                [349.23, 349.23],
-                [369.99, 349.23],
-                [392, 392],
-            ];
-            const [frequency, endFrequency] = bends[event.variant ?? 0] ?? bends[0];
-            scheduleOscillator(context, time, master, { frequency, endFrequency, gain: 0.14, duration: 0.25, type: 'sawtooth', attack: 0.018 });
-            scheduleOscillator(context, time, master, { frequency: frequency / 2, endFrequency: endFrequency / 2, gain: 0.055, duration: 0.25, type: 'triangle', attack: 0.018 });
-            break;
-        }
-        case 'blue-piano': {
-            const pianoBluesFrequencies = [261.63, 311.13, 329.63, 349.23, 369.99, 392, 466.16];
-            const frequency = pianoBluesFrequencies[event.variant ?? 0] ?? pianoBluesFrequencies[0];
-            scheduleOscillator(context, time, master, { frequency, gain: 0.14, duration: 0.17, type: 'triangle', attack: 0.003 });
-            scheduleOscillator(context, time, master, { frequency: frequency * 2, gain: 0.035, duration: 0.09, type: 'sine' });
-            break;
-        }
-        case 'clav': {
-            const roots = [146.83, 174.61, 196];
-            const root = roots[event.variant ?? 0] ?? roots[0];
-            [1, 1.25, 1.5].forEach((multiple, index) => {
-                scheduleOscillator(context, time + index * 0.002, master, { frequency: root * multiple, endFrequency: root * multiple * 0.985, gain: 0.07, duration: 0.075, type: 'square', attack: 0.002 });
-            });
-            break;
-        }
-        case 'bossa-guitar': {
-            const variant = event.variant ?? 0;
-            if (variant < 10) {
-                const frequency = variant === 0 ? 82.41 : 123.47;
-                scheduleOscillator(context, time, master, { frequency, endFrequency: frequency * 0.99, gain: 0.2, duration: 0.24, type: 'triangle', attack: 0.008 });
-            } else {
-                const chord = variant === 10 ? [196, 246.94, 329.63] : [174.61, 220, 293.66];
-                chord.forEach((frequency, index) => scheduleOscillator(context, time + index * 0.005, master, { frequency, gain: 0.055, duration: 0.19, type: 'triangle', attack: 0.004 }));
-            }
-            break;
-        }
-        case 'surdo':
-            scheduleOscillator(context, time, master, { frequency: event.variant === 1 ? 82 : 68, endFrequency: event.variant === 1 ? 48 : 43, gain: event.variant === 1 ? 0.52 : 0.34, duration: 0.2, type: 'sine', attack: 0.004 });
-            break;
-        case 'pandeiro':
-            scheduleNoise(context, time, master, { frequency: event.variant === 3 ? 4300 : 6200, gain: event.variant === 3 ? 0.2 : 0.12, duration: event.variant === 3 ? 0.08 : 0.04, type: 'bandpass', q: 0.9 });
-            if (event.variant === 0 || event.variant === 3) {
-                scheduleOscillator(context, time, master, { frequency: event.variant === 0 ? 170 : 220, endFrequency: 120, gain: 0.1, duration: 0.06, type: 'triangle' });
-            }
-            break;
-        case 'clave':
-            scheduleOscillator(context, time, master, { frequency: 1850, endFrequency: 1320, gain: 0.16, duration: 0.045, type: 'square', attack: 0.001 });
-            scheduleOscillator(context, time, master, { frequency: 2440, gain: 0.055, duration: 0.028, type: 'sine', attack: 0.001 });
-            break;
-        case 'conga': {
-            const openTone = event.variant === 1;
-            scheduleOscillator(context, time, master, { frequency: openTone ? 230 : 175, endFrequency: openTone ? 180 : 130, gain: openTone ? 0.3 : 0.17, duration: openTone ? 0.16 : 0.075, type: 'triangle', attack: 0.003 });
-            scheduleNoise(context, time, master, { frequency: openTone ? 1400 : 920, gain: 0.055, duration: 0.035, type: 'bandpass', q: 1.1 });
-            break;
-        }
-        case 'click':
-            scheduleOscillator(context, time, master, { frequency: event.variant === 0 ? 1120 : 780, endFrequency: 610, gain: 0.18, duration: 0.035, type: 'square' });
-            break;
-    }
+const PRACTICE_EVIDENCE = ['auditory-motor-learning', 'practice-variability'] as const;
+const VOICE_MODEL_EVIDENCE: Partial<Record<GrooveVoice, readonly (keyof typeof EVIDENCE)[]>> = {
+    ride: ['cymbal-model', 'drum-modal-synthesis', 'faust-physical-models'],
+    hat: ['cymbal-model', 'drum-modal-synthesis', 'faust-physical-models'],
+    snare: ['drum-modal-synthesis', 'faust-physical-models'],
+    kick: ['drum-modal-synthesis', 'faust-physical-models'],
+    surdo: ['drum-modal-synthesis', 'faust-physical-models'],
+    pandeiro: ['pandeiro-sounds', 'drum-modal-synthesis', 'faust-physical-models'],
+    clave: ['drum-modal-synthesis', 'faust-physical-models'],
+    conga: ['conga-tumbao-study', 'drum-modal-synthesis', 'faust-physical-models'],
+    bass: ['karplus-strong', 'stk-source', 'stk-pickup-source', 'faust-physical-models', 'guitar-pluck', 'bass-synthesis', 'bass-contact'],
+    guitar: ['karplus-strong', 'stk-source', 'stk-guitar-body-source', 'faust-physical-models', 'guitar-model', 'guitar-pluck', 'berklee-groove-guitar'],
+    'bossa-guitar': ['karplus-strong', 'stk-source', 'stk-guitar-body-source', 'faust-physical-models', 'guitar-model', 'guitar-pluck'],
+    clav: ['karplus-strong', 'stk-source', 'clavinet-model'],
+    piano: ['piano-hammer', 'piano-unison'],
+    boogie: ['piano-hammer', 'piano-unison'],
+    'blue-piano': ['piano-hammer', 'piano-unison'],
+    'blue-note': ['guitar-model', 'guitar-pluck'],
 };
 
 const GrooveLabPage: React.FC = () => {
@@ -358,17 +293,29 @@ const GrooveLabPage: React.FC = () => {
     const [bpm, setBpm] = useState(140);
     const [volume, setVolume] = useState(72);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [practiceMode, setPracticeMode] = useState<PracticeMode>('continuous');
+    const [practiceBar, setPracticeBar] = useState(0);
+    const [practicePhase, setPracticePhase] = useState<'sound' | 'mute'>('sound');
     const [activeEventId, setActiveEventId] = useState<string | null>(null);
     const [tapTimes, setTapTimes] = useState<number[]>([]);
 
     const audioContextRef = useRef<AudioContext | null>(null);
+    const audioRuntimeRef = useRef(createGrooveAudioRuntime());
     const nextBarTimeRef = useRef(0);
     const queuedEventsRef = useRef<QueuedVisualEvent[]>([]);
     const volumeRef = useRef(volume);
+    const bpmRef = useRef(bpm);
+    const practiceBarRef = useRef(0);
+    const ladderBaseBpmRef = useRef(bpm);
     const tapResetTimerRef = useRef<number | null>(null);
 
     const preset = getGroovePreset(presetId);
+    const loopBeats = getGrooveLoopBeats(presetId);
+    const beatsPerBar = getGrooveBeatsPerBar(presetId);
+    const loopBars = getGrooveLoopBars(presetId);
     const effectiveFeel = preset.fixedTripletGrid ? 'triplet' : preset.timingLocked ? preset.recommendedFeel : feel;
+    const feelOptions = preset.feelOptions ?? [];
+    const hasRatioControl = feelOptions.length > 1;
     const swingRatio = getSwingRatio(effectiveFeel, bpm);
     const barEvents = useMemo(() => buildGrooveBar(presetId, feel, bpm), [bpm, feel, presetId]);
     const timelinePoints = useMemo(() => {
@@ -380,8 +327,16 @@ const GrooveLabPage: React.FC = () => {
         return Array.from(groups.values());
     }, [barEvents]);
     const selectedEvidence = useMemo(() => (
-        preset.evidenceIds.map((id) => EVIDENCE[id as keyof typeof EVIDENCE]).filter(Boolean)
-    ), [preset.evidenceIds]);
+        Array.from(new Set([
+            ...preset.evidenceIds,
+            ...barEvents.flatMap((item) => VOICE_MODEL_EVIDENCE[item.voice] ?? []),
+            'webaudio-dynamics',
+            ...PRACTICE_EVIDENCE,
+        ]))
+            .map((id) => EVIDENCE[id as keyof typeof EVIDENCE])
+            .filter(Boolean)
+    ), [barEvents, preset.evidenceIds]);
+    const modelProfiles = useMemo(() => getModelProfilesForEvents(barEvents), [barEvents]);
     const familyPresets = useMemo(() => (
         GROOVE_PRESETS.filter((item) => item.family === preset.family)
     ), [preset.family]);
@@ -389,6 +344,10 @@ const GrooveLabPage: React.FC = () => {
     useEffect(() => {
         volumeRef.current = volume;
     }, [volume]);
+
+    useEffect(() => {
+        bpmRef.current = bpm;
+    }, [bpm]);
 
     const ensureAudioContext = useCallback(async () => {
         if (!audioContextRef.current) {
@@ -411,6 +370,10 @@ const GrooveLabPage: React.FC = () => {
         if (!context) return;
         nextBarTimeRef.current = context.currentTime + 0.07;
         queuedEventsRef.current = [];
+        practiceBarRef.current = 0;
+        ladderBaseBpmRef.current = bpmRef.current;
+        setPracticeBar(0);
+        setPracticePhase('sound');
         setIsPlaying(true);
     }, [ensureAudioContext, isPlaying]);
 
@@ -425,19 +388,45 @@ const GrooveLabPage: React.FC = () => {
         if (!context) return undefined;
         nextBarTimeRef.current = Math.max(context.currentTime + 0.07, nextBarTimeRef.current);
         let animationFrame = 0;
-        const runOutput = context.createGain();
-        runOutput.gain.setValueAtTime(1, context.currentTime);
-        runOutput.connect(context.destination);
+        const phaseTimers: number[] = [];
+        const runOutput = createGrooveMasterOutput(context, context.destination);
 
         const schedule = () => {
             while (nextBarTimeRef.current < context.currentTime + LOOK_AHEAD_SECONDS) {
-                const secondsPerBeat = 60 / bpm;
-                barEvents.forEach((item) => {
-                    const eventTime = nextBarTimeRef.current + item.position * secondsPerBeat;
-                    scheduleGrooveVoice(context, eventTime, item, volumeRef.current, runOutput);
-                    queuedEventsRef.current.push({ id: item.id, time: eventTime });
-                });
-                nextBarTimeRef.current += secondsPerBeat * 4;
+                const scheduledBpm = bpmRef.current;
+                const secondsPerBeat = 60 / scheduledBpm;
+                const barNumber = practiceBarRef.current;
+                const isMuteBar = practiceMode === 'listen-mute' && barNumber % 4 >= 2;
+                const scheduledEvents = buildGrooveBar(presetId, feel, scheduledBpm);
+                if (!isMuteBar) {
+                    scheduledEvents.forEach((item) => {
+                        const eventTime = nextBarTimeRef.current + item.position * secondsPerBeat;
+                        scheduleHighQualityGrooveVoice(
+                            context,
+                            audioRuntimeRef.current,
+                            eventTime,
+                            item,
+                            volumeRef.current,
+                            runOutput.input,
+                        );
+                        queuedEventsRef.current.push({ id: item.id, time: eventTime });
+                    });
+                }
+
+                const phaseDelay = Math.max(0, (nextBarTimeRef.current - context.currentTime) * 1000);
+                const nextBarNumber = barNumber + loopBars;
+                phaseTimers.push(window.setTimeout(() => {
+                    setPracticeBar(nextBarNumber);
+                    setPracticePhase(isMuteBar ? 'mute' : 'sound');
+                    if (practiceMode === 'tempo-ladder' && nextBarNumber % 4 === 0) {
+                        const ceiling = ladderBaseBpmRef.current + 10;
+                        const nextBpm = bpmRef.current >= ceiling ? ladderBaseBpmRef.current : bpmRef.current + 2;
+                        bpmRef.current = clampBpm(nextBpm);
+                        setBpm(bpmRef.current);
+                    }
+                }, phaseDelay));
+                practiceBarRef.current = nextBarNumber;
+                nextBarTimeRef.current += secondsPerBeat * loopBeats;
             }
         };
 
@@ -456,20 +445,24 @@ const GrooveLabPage: React.FC = () => {
         return () => {
             window.clearInterval(scheduler);
             window.cancelAnimationFrame(animationFrame);
+            phaseTimers.forEach((timer) => window.clearTimeout(timer));
             queuedEventsRef.current = [];
             nextBarTimeRef.current = context.currentTime + 0.07;
-            runOutput.gain.cancelScheduledValues(context.currentTime);
-            runOutput.gain.setValueAtTime(0, context.currentTime);
-            window.setTimeout(() => runOutput.disconnect(), 180);
+            runOutput.dispose();
         };
-    }, [barEvents, bpm, isPlaying]);
+    }, [feel, isPlaying, loopBars, loopBeats, practiceMode, presetId]);
 
     useEffect(() => () => {
         if (tapResetTimerRef.current !== null) window.clearTimeout(tapResetTimerRef.current);
         void audioContextRef.current?.close();
     }, []);
 
-    const updateBpm = (next: number) => setBpm(clampBpm(next));
+    const updateBpm = (next: number) => {
+        const clamped = clampBpm(next);
+        bpmRef.current = clamped;
+        setBpm(clamped);
+        if (!isPlaying || practiceMode !== 'tempo-ladder') ladderBaseBpmRef.current = clamped;
+    };
 
     const selectPreset = (nextPresetId: GroovePresetId) => {
         const nextPreset = getGroovePreset(nextPresetId);
@@ -501,14 +494,14 @@ const GrooveLabPage: React.FC = () => {
             <div className="groove-lab-content">
                 <section className="groove-lab-intro" aria-labelledby="groove-lab-title">
                     <div>
-                        <span className="groove-lab-beta">개발중 · 8 RHYTHMS · {GROOVE_PRESETS.length} PRESETS</span>
+                        <span className="groove-lab-beta">MEASURED SYNTH · 17 VOICES · {GROOVE_PRESETS.length} PRESETS</span>
                         <h1 id="groove-lab-title">악기별 리듬 그루브 랩</h1>
                         <p>박자만 세지 않고, 리듬 계열마다 악기가 맡는 위치·강세·음높이 표현을 반복합니다.</p>
                     </div>
-                    <div className="groove-lab-ratio" aria-label={`현재 타이밍 비율 ${swingRatio} 대 1`}>
-                        <span>TIME FEEL · 1 BAR LOOP</span>
-                        <strong>{swingRatio.toFixed(2)}:1</strong>
-                        <small>{preset.fixedTripletGrid ? '고정 셋잇단 격자' : preset.timingLocked ? '프리셋 고정 타이밍' : getFeelLabel(feel)}</small>
+                    <div className="groove-lab-ratio" aria-label={hasRatioControl ? `현재 타이밍 비율 ${swingRatio} 대 1` : '이 프리셋은 라이드 스윙 비율을 사용하지 않음'}>
+                        <span>TIME FEEL · {loopBars} BAR LOOP</span>
+                        <strong>{preset.fixedTripletGrid ? '2:1' : preset.timingLocked ? 'LOCK' : hasRatioControl ? `${swingRatio.toFixed(2)}:1` : 'PULSE'}</strong>
+                        <small>{preset.fixedTripletGrid ? '고정 셋잇단 격자' : preset.timingLocked ? '프리셋 고정 타이밍' : hasRatioControl ? getFeelLabel(feel) : '라이드 비율 비적용'}</small>
                     </div>
                 </section>
 
@@ -542,7 +535,7 @@ const GrooveLabPage: React.FC = () => {
                     <div className="groove-lab-control-head">
                         <div>
                             <span>표현 방식</span>
-                            <strong>{preset.fixedTripletGrid || preset.timingLocked ? '프리셋 고정' : '비율을 직접 비교해 보세요'}</strong>
+                            <strong>{preset.fixedTripletGrid || preset.timingLocked ? '프리셋 고정' : hasRatioControl ? '이 악기의 분할만 비교합니다' : '박·강세·발음으로 표현합니다'}</strong>
                         </div>
                         <label>
                             음량 {volume}%
@@ -557,13 +550,13 @@ const GrooveLabPage: React.FC = () => {
                         </label>
                     </div>
                     <div className="groove-lab-feels" role="group" aria-label="스윙 표현">
-                        {(['adaptive', 'triplet', 'straight'] as const).map((option) => (
+                        {(hasRatioControl ? feelOptions : [effectiveFeel]).map((option) => (
                             <button
                                 key={option}
                                 type="button"
                                 className={effectiveFeel === option ? 'active' : ''}
                                 onClick={() => setFeel(option)}
-                                disabled={preset.fixedTripletGrid || preset.timingLocked}
+                                disabled={!hasRatioControl || preset.fixedTripletGrid || preset.timingLocked}
                             >
                                 {getFeelLabel(option)}
                             </button>
@@ -574,15 +567,43 @@ const GrooveLabPage: React.FC = () => {
                             ? '이 프리셋은 세 칸이 같은 정확한 셋잇단음 격자를 사용합니다.'
                             : preset.timingLocked
                                 ? '연구된 대표 패턴의 기준 격자를 고정해 악기 사이의 맞물림을 비교합니다.'
+                            : !hasRatioControl
+                                ? '이 악기는 라이드의 롱–숏 비율을 적용하지 않습니다. 박의 위치, 강세와 발음 길이로 역할을 표현합니다.'
                             : feel === 'adaptive'
-                                ? `논문 관찰 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다.`
+                                ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 솔리스트의 비율과 같다는 뜻은 아닙니다.`
                                 : feel === 'triplet'
                                     ? '첫 음 2칸 + 둘째 음 1칸의 정확한 2:1 해석입니다.'
                                     : '두 8분음표를 같은 길이로 재생합니다.'}
                     </p>
                 </section>
 
-                <section className="groove-lab-timeline" aria-label={`${preset.name} 한 마디 패턴`}>
+                <section className="groove-lab-practice" aria-labelledby="groove-practice-title">
+                    <div className="groove-lab-control-head">
+                        <div>
+                            <span>PRACTICE LOOP</span>
+                            <strong id="groove-practice-title">반복 연습 방식</strong>
+                        </div>
+                        <span className={`groove-lab-phase ${practicePhase === 'mute' ? 'is-mute' : ''}`}>
+                            {isPlaying ? `${practiceBar}마디 · ${practicePhase === 'mute' ? '내 차례' : '듣기'}` : '대기'}
+                        </span>
+                    </div>
+                    <div className="groove-lab-practice-modes" role="group" aria-label="반복 연습 방식">
+                        {PRACTICE_MODES.map((mode) => (
+                            <button
+                                key={mode.id}
+                                type="button"
+                                className={practiceMode === mode.id ? 'active' : ''}
+                                onClick={() => setPracticeMode(mode.id)}
+                                aria-pressed={practiceMode === mode.id}
+                            >
+                                {mode.label}
+                            </button>
+                        ))}
+                    </div>
+                    <p>{PRACTICE_MODES.find((mode) => mode.id === practiceMode)?.description}</p>
+                </section>
+
+                <section className="groove-lab-timeline" aria-label={`${preset.name} ${loopBars}마디 패턴`}>
                     <div className="groove-lab-section-heading">
                         <div>
                             <span>{preset.instrument}</span>
@@ -590,10 +611,18 @@ const GrooveLabPage: React.FC = () => {
                         </div>
                         <code>{preset.pattern}</code>
                     </div>
-                    <div className="groove-lab-track" aria-hidden="true">
-                        {[0, 1, 2, 3].map((beat) => (
-                            <span key={beat} className="groove-lab-beat-line" style={{ left: `${beat * 25}%` }}>
-                                <b>{beat + 1}</b>
+                    <div
+                        className="groove-lab-track"
+                        aria-hidden="true"
+                        style={{ '--beat-grid': `${100 / loopBeats}%` } as React.CSSProperties}
+                    >
+                        {Array.from({ length: loopBeats }, (_, beat) => beat).map((beat) => (
+                            <span
+                                key={beat}
+                                className={`groove-lab-beat-line ${beat > 0 && beat % beatsPerBar === 0 ? 'is-bar-start' : ''}`}
+                                style={{ left: `${(beat / loopBeats) * 100}%` }}
+                            >
+                                <b>{(beat % beatsPerBar) + 1}</b>
                             </span>
                         ))}
                         {timelinePoints.map((group) => {
@@ -603,7 +632,7 @@ const GrooveLabPage: React.FC = () => {
                                 <span
                                     key={first.position}
                                     className={`groove-lab-hit groove-lab-hit--${first.voice} ${isActive ? 'active' : ''}`}
-                                    style={{ left: `${(first.position / 4) * 100}%`, '--hit-color': preset.color } as React.CSSProperties}
+                                    style={{ left: `${(first.position / loopBeats) * 100}%`, '--hit-color': preset.color } as React.CSSProperties}
                                 >
                                     {group.length > 1 && <small>{group.length}</small>}
                                 </span>
@@ -671,6 +700,16 @@ const GrooveLabPage: React.FC = () => {
                         <i className="ri-arrow-down-s-line" aria-hidden="true" />
                     </summary>
                     <div>
+                        <div className="groove-lab-model-scope-list" aria-label="현재 소리 모델 범위">
+                            {modelProfiles.map(({ voice, voiceLabel, profile }) => (
+                                <section className="groove-lab-model-scope" key={voice}>
+                                    <span>MODEL SCOPE · {voiceLabel}</span>
+                                    <strong>{profile.label}</strong>
+                                    <p><b>현재 포함</b>{profile.implemented}</p>
+                                    <p><b>아직 제외</b>{profile.omitted}</p>
+                                </section>
+                            ))}
+                        </div>
                         {selectedEvidence.map((source) => (
                             <a key={source.href} href={source.href} target="_blank" rel="noreferrer">
                                 <strong>{source.title}</strong>
@@ -679,7 +718,7 @@ const GrooveLabPage: React.FC = () => {
                             </a>
                         ))}
                         <p className="groove-lab-caveat">
-                            프리셋은 연구된 공통 골격을 연습용 한 마디로 단순화한 것입니다. 실제 연주자는 곡·앙상블·개인 스타일에 따라 변주합니다.
+                            프리셋은 연구된 공통 골격을 연습용 1~2마디로 단순화한 합성 모델입니다. 실제 악기 녹음이나 모든 연주자의 대표값이 아니며 곡·앙상블·개인 스타일에 따라 달라집니다.
                         </p>
                     </div>
                 </details>

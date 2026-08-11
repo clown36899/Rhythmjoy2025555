@@ -26,3 +26,6 @@ For non-trivial work, leave a concise project record in Git-tracked documentatio
 ## Notification Time Information Policy
 
 The site notification channels do not provide time information. Do not show or include event start times, notification sent times, or notification received times in the in-app notification inbox, Web Push title/body, or notification preview data. Dates and locations may still be shown. Timestamps may be retained internally only for sorting, expiry, delivery, and read-state processing.
+## Calendar Event Visibility Policy
+
+The month calendar must render every event for each date directly in its date cell. Do not cap the number of visible events and do not add a `+N more` or equivalent collapsed-event control.

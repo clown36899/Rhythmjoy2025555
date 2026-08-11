@@ -5,9 +5,14 @@ import {
   JAZZ_TRACKS,
   chooseNextTrack,
   emulatorLaunchArguments,
+  initialInstagramPermissionAction,
+  instagramOnboardingDismissAction,
   isInstalledPackagePath,
   parseAdbDevices,
+  parseInstagramPostCount,
   parseUiNodes,
+  publicationCountConfirmsSuccess,
+  publicationNeedsReconciliation,
   selectTargetEmulatorSerial,
 } from './instagram-reel-adb.mjs';
 import {
@@ -133,6 +138,83 @@ test('only an actual Package Manager path proves Instagram is installed', () => 
   );
   assert.equal(isInstalledPackagePath(''), false);
   assert.equal(isInstalledPackagePath('com.instagram.android'), false);
+});
+
+test('post-share verification parses profile counts and reconciles only uncertain runs', () => {
+  assert.equal(parseInstagramPostCount([
+    { description: '17posts' },
+  ]), 17);
+  assert.equal(parseInstagramPostCount([
+    { description: '1,234posts' },
+  ]), 1234);
+  assert.equal(parseInstagramPostCount([{ description: 'Profile' }]), null);
+
+  assert.equal(publicationNeedsReconciliation({ status: 'sharing' }), true);
+  assert.equal(publicationNeedsReconciliation({ status: 'verification-required' }), true);
+  assert.equal(publicationNeedsReconciliation({ status: 'failed-before-share' }), false);
+  assert.equal(
+    publicationCountConfirmsSuccess({ postCountBefore: 16 }, 17),
+    true,
+  );
+  assert.equal(
+    publicationCountConfirmsSuccess({ postCountBefore: 16 }, 16),
+    false,
+  );
+});
+
+test('initial Instagram permissions allow media but deny camera and microphone', () => {
+  assert.deepEqual(
+    initialInstagramPermissionAction([
+      { text: 'Allow Instagram to access photos and videos on this device?' },
+      { text: 'Allow all' },
+    ]),
+    { prompt: 'media', buttonText: 'Allow all' },
+  );
+  assert.deepEqual(
+    initialInstagramPermissionAction([
+      { text: 'Allow Instagram to take pictures and record video?' },
+      { text: 'Don’t allow' },
+    ]),
+    { prompt: 'nonessential-permission', buttonText: 'Don’t allow' },
+  );
+  assert.deepEqual(
+    initialInstagramPermissionAction([
+      { text: 'Allow Instagram to record audio?' },
+      { text: 'Don’t allow' },
+    ]),
+    { prompt: 'nonessential-permission', buttonText: 'Don’t allow' },
+  );
+  assert.deepEqual(
+    initialInstagramPermissionAction([
+      { text: 'Allow Instagram to send you notifications?' },
+      { text: 'Don’t allow' },
+    ]),
+    { prompt: 'nonessential-permission', buttonText: 'Don’t allow' },
+  );
+  assert.equal(initialInstagramPermissionAction([{ description: 'Profile' }]), null);
+});
+
+test('optional Instagram sticker onboarding is dismissed without enabling it', () => {
+  assert.deepEqual(
+    instagramOnboardingDismissAction([
+      { text: 'Create a sticker' },
+      { text: 'Try it' },
+      { text: 'Not now' },
+    ]),
+    { prompt: 'create-a-sticker', buttonText: 'Not now' },
+  );
+  assert.deepEqual(
+    instagramOnboardingDismissAction([
+      { text: 'New ways to reuse' },
+      { text: 'OK', clickable: true },
+      { text: 'Manage settings' },
+    ]),
+    { prompt: 'new-ways-to-reuse', buttonText: 'OK' },
+  );
+  assert.equal(
+    instagramOnboardingDismissAction([{ description: 'Add audio' }]),
+    null,
+  );
 });
 
 test('shell-style environment defaults resolve for the shared notification config', () => {

@@ -62,6 +62,7 @@ export interface GrooveEvent {
     voice: GrooveVoice;
     gain: number;
     variant?: number;
+    durationSeconds?: number;
 }
 
 export interface GroovePreset {
@@ -77,6 +78,9 @@ export interface GroovePreset {
     recommendedFeel: GrooveFeel;
     fixedTripletGrid?: boolean;
     timingLocked?: boolean;
+    feelOptions?: readonly GrooveFeel[];
+    beatsPerLoop?: 4 | 8;
+    beatsPerBar?: 2 | 4;
     evidenceIds: readonly string[];
 }
 
@@ -103,6 +107,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         pattern: '딩 · 딩—가 · 딩 · 딩—가',
         explanation: '라이드는 네 박을 유지하고 2·4박 뒤에 짧은 스킵 노트, 하이햇은 2·4박에 둡니다.',
         recommendedFeel: 'adaptive',
+        feelOptions: ['adaptive', 'triplet', 'straight'],
         evidenceIds: ['friberg', 'butterfield'],
     },
     {
@@ -128,7 +133,8 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         color: '#c084fc',
         pattern: '1 · · · 2 · & ·',
         explanation: '1박과 2박 뒤 업비트에 짧은 코드를 놓는 기본 컴핑 어휘입니다. 업비트 위치는 선택한 스윙 표현을 따릅니다.',
-        recommendedFeel: 'adaptive',
+        recommendedFeel: 'triplet',
+        feelOptions: ['triplet', 'straight'],
         evidenceIds: ['comping', 'musicxml'],
     },
     {
@@ -140,7 +146,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         icon: 'ri-guitar-line',
         color: '#34d399',
         pattern: '착 · 착 · 착 · 착',
-        explanation: '짧고 가벼운 코드를 매 박에 한 번씩 연주하는 빅밴드 리듬 기타의 기본형입니다.',
+        explanation: '매 박의 안정된 펄스 위에 한 음 중심의 보이스 리딩과 뮤트된 현의 짧은 타격감을 겹치는 빅밴드 리듬 기타 축약형입니다.',
         recommendedFeel: 'straight',
         evidenceIds: ['freddie'],
     },
@@ -184,7 +190,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         explanation: '각 박의 첫째·셋째 셋잇단 칸에서 근음과 5·6도를 교대해 블루스 셔플의 추진력을 만듭니다.',
         recommendedFeel: 'triplet',
         fixedTripletGrid: true,
-        evidenceIds: ['shuffle-definition', 'boogie-riff'],
+        evidenceIds: ['triplet-definition', 'shuffle-definition', 'boogie-riff'],
     },
     {
         id: 'boogie-piano',
@@ -212,7 +218,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         explanation: '파워 코드의 5도와 6도를 교대하며 각 박의 첫째·셋째 칸을 짧게 스트럼하는 대표적인 부기 셔플 반주입니다.',
         recommendedFeel: 'triplet',
         fixedTripletGrid: true,
-        evidenceIds: ['shuffle-definition', 'boogie-riff'],
+        evidenceIds: ['triplet-definition', 'shuffle-definition', 'boogie-riff'],
     },
     {
         id: 'slow-blues',
@@ -296,6 +302,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         explanation: '엄지는 낮은 베이스를 박에 두고, 손가락 코드는 독립된 싱코페이션으로 응답하는 2마디형 기타 반주를 한 루프로 단순화했습니다.',
         recommendedFeel: 'straight',
         timingLocked: true,
+        beatsPerBar: 2,
         evidenceIds: ['bossa-pattern-study', 'bossa-accompaniment'],
     },
     {
@@ -352,6 +359,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         explanation: '앞쪽의 세 타와 뒤쪽의 두 타가 두 마디 방향성을 만들며 다른 악기 패턴의 기준선이 됩니다.',
         recommendedFeel: 'straight',
         timingLocked: true,
+        beatsPerLoop: 8,
         evidenceIds: ['clave-analysis', 'clave-grammar'],
     },
     {
@@ -366,6 +374,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         explanation: '3–2의 두 마디 순서를 뒤집은 방향입니다. 단순히 같은 한 마디를 회전한 것이 아니라 앙상블 프레이즈의 기준이 바뀝니다.',
         recommendedFeel: 'straight',
         timingLocked: true,
+        beatsPerLoop: 8,
         evidenceIds: ['clave-analysis', 'clave-grammar'],
     },
     {
@@ -376,11 +385,11 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         shortName: 'Tumbao Bass',
         icon: 'ri-music-2-line',
         color: '#2dd4bf',
-        pattern: '1 · &2 · &3 · &4',
-        explanation: '클라베 위에서 다음 강박을 미리 당기는 오프비트 음을 반복해 전진감을 만드는 단순화된 툼바오입니다.',
+        pattern: '&2 · 4~(다음 1)',
+        explanation: '원형 bajo anticipado의 2&와 4 두 음을 반복합니다. 4박 음은 다음 마디 1박의 화성 변화를 미리 당겨 이어지는 핵심 anticipation입니다.',
         recommendedFeel: 'straight',
         timingLocked: true,
-        evidenceIds: ['clave-grammar'],
+        evidenceIds: ['clave-grammar', 'conga-tumbao-study'],
     },
     {
         id: 'conga-tumbao',
@@ -390,11 +399,11 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         shortName: 'Conga',
         icon: 'ri-rhythm-line',
         color: '#a78bfa',
-        pattern: '뮤트·슬랩·오픈톤 맞물림',
-        explanation: '8분 격자에서 짧은 뮤트와 오픈톤을 교대하고, 마디 뒤쪽의 오픈톤을 강조해 클라베와 맞물리게 합니다.',
+        pattern: 'heel–toe–slap–toe–heel–toe–open–open',
+        explanation: '연속 8분 heel–toe 속에서 2박 슬랩과 4박·4&의 두 오픈톤을 강조하는 기본 한 북 툼바오입니다.',
         recommendedFeel: 'straight',
         timingLocked: true,
-        evidenceIds: ['clave-grammar'],
+        evidenceIds: ['clave-grammar', 'conga-tumbao-study'],
     },
     {
         id: 'rock-drums',
@@ -441,8 +450,8 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
     {
         id: 'pop-syncopation',
         family: 'backbeat',
-        instrument: '키보드·기타',
-        name: 'Pop Anticipation',
+        instrument: '키보드',
+        name: 'Pop Keyboard Anticipation',
         shortName: 'Pop Syncopation',
         icon: 'ri-keyboard-box-line',
         color: '#60a5fa',
@@ -455,14 +464,15 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
     {
         id: 'blue-note-bend',
         family: 'blue-note',
-        instrument: '보컬·관악·기타',
-        name: '가변 음높이 Blue Note',
+        instrument: '기타형 벤드',
+        name: '플럭 현 가변 Blue Note',
         shortName: 'Blue Bend',
         icon: 'ri-sound-module-line',
         color: '#818cf8',
         pattern: '1 · ♭3↗3 · 4 · ♭5↘4 · 1',
-        explanation: '3·5·7도 주변을 고정 반음이 아니라 연속적으로 굴절하는 표현입니다. 실제 보컬·관악·벤딩 가능한 기타의 성격을 단순화했습니다.',
-        recommendedFeel: 'adaptive',
+        explanation: '플럭 현 버퍼의 재생률을 연속 이동해 3·5·7도 주변의 굴절을 비교합니다. 보컬·관악기 재현이 아니라 벤딩 가능한 기타형 기준음입니다.',
+        recommendedFeel: 'triplet',
+        feelOptions: ['triplet', 'straight'],
         evidenceIds: ['blue-note-grove', 'blue-note-research'],
     },
     {
@@ -475,13 +485,22 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         color: '#f472b6',
         pattern: '1 · ♭3→3 · 4 · ♭5→5 · ♭7',
         explanation: '피아노는 한 음 안에서 피치를 구부릴 수 없어 ♭3/3, ♭5/5, ♭7 같은 고정 건반을 빠르게 병치해 블루 노트를 근사합니다.',
-        recommendedFeel: 'adaptive',
+        recommendedFeel: 'triplet',
+        feelOptions: ['triplet', 'straight'],
         evidenceIds: ['blue-note-grove', 'blue-note-piano'],
     },
 ] as const;
 
 export const getGroovePreset = (id: GroovePresetId): GroovePreset => (
     GROOVE_PRESETS.find((preset) => preset.id === id) ?? GROOVE_PRESETS[0]
+);
+
+export const getGrooveLoopBeats = (id: GroovePresetId): number => getGroovePreset(id).beatsPerLoop ?? 4;
+
+export const getGrooveBeatsPerBar = (id: GroovePresetId): number => getGroovePreset(id).beatsPerBar ?? 4;
+
+export const getGrooveLoopBars = (id: GroovePresetId): number => (
+    getGrooveLoopBeats(id) / getGrooveBeatsPerBar(id)
 );
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -507,13 +526,31 @@ export const getOffbeatPosition = (ratio: number): number => {
     return safeRatio / (safeRatio + 1);
 };
 
+/**
+ * One measured samba-performance reference reported by Haugen & Godøy:
+ * 23.0%, 23.6%, 22.8%, 30.7% of a beat. The values are normalized because
+ * the rounded percentages total 100.1%. This is an educational reference,
+ * not a claim that every samba performer uses one fixed grid.
+ */
+export const getSambaSubdivisionOffsets = (): readonly number[] => {
+    const durations = [23, 23.6, 22.8, 30.7];
+    const total = durations.reduce((sum, duration) => sum + duration, 0);
+    let elapsed = 0;
+    return durations.map((duration) => {
+        const position = elapsed / total;
+        elapsed += duration;
+        return position;
+    });
+};
+
 const event = (
     id: string,
     position: number,
     voice: GrooveVoice,
     gain: number,
     variant?: number,
-): GrooveEvent => ({ id, position, voice, gain, variant });
+    durationSeconds?: number,
+): GrooveEvent => ({ id, position, voice, gain, variant, durationSeconds });
 
 export const buildGrooveBar = (
     presetId: GroovePresetId,
@@ -618,7 +655,7 @@ export const buildGrooveBar = (
                 events.push(event(`funk-kick-${index}`, position, 'kick', index === 0 ? 1 : 0.66));
             });
             [1, 3].forEach((position, index) => events.push(event(`funk-snare-${index}`, position, 'snare', 0.9)));
-            [1.75, 3.5].forEach((position, index) => events.push(event(`funk-ghost-${index}`, position, 'snare', 0.25)));
+            [1.75, 3.5].forEach((position, index) => events.push(event(`funk-ghost-${index}`, position, 'snare', 0.25, 1)));
             break;
         case 'funk-bass':
             [0, 0.75, 1.5, 2.25, 2.75, 3.5].forEach((position, index) => {
@@ -655,31 +692,39 @@ export const buildGrooveBar = (
             });
             break;
         case 'samba-pandeiro':
-            for (let partial = 0; partial < 16; partial += 1) {
-                const withinBeat = partial % 4;
-                events.push(event(`pandeiro-${partial}`, partial / 4, 'pandeiro', [0.64, 0.34, 0.48, 0.72][withinBeat], withinBeat));
+            for (let beat = 0; beat < 4; beat += 1) {
+                getSambaSubdivisionOffsets().forEach((offset, withinBeat) => {
+                    const partial = beat * 4 + withinBeat;
+                    events.push(event(`pandeiro-${partial}`, beat + offset, 'pandeiro', [0.64, 0.34, 0.48, 0.72][withinBeat], withinBeat));
+                });
             }
             break;
         case 'son-clave-32':
-            [0, 0.75, 1.5, 2.5, 3].forEach((position, index) => {
+            [0, 1.5, 3, 5, 6].forEach((position, index) => {
                 events.push(event(`clave-32-${index}`, position, 'clave', index < 3 ? 0.9 : 0.72, index));
             });
             break;
         case 'son-clave-23':
-            [0.5, 1, 2, 2.75, 3.5].forEach((position, index) => {
+            [1, 2, 4, 5.5, 7].forEach((position, index) => {
                 events.push(event(`clave-23-${index}`, position, 'clave', index < 2 ? 0.72 : 0.9, index));
             });
             break;
         case 'tumbao-bass':
-            [0, 1.5, 2.5, 3.5].forEach((position, index) => {
-                events.push(event(`tumbao-bass-${index}`, position, 'bass', index === 0 ? 0.86 : 0.72, 40 + (index % 3)));
+            [1.5, 3].forEach((position, index) => {
+                events.push(event(
+                    `tumbao-bass-${index}`,
+                    position,
+                    'bass',
+                    index === 1 ? 0.9 : 0.72,
+                    40 + index,
+                    index === 1 ? 60 / Math.max(1, bpm) : undefined,
+                ));
             });
             break;
         case 'conga-tumbao':
-            for (let partial = 0; partial < 8; partial += 1) {
-                const openTone = partial === 3 || partial === 7;
-                events.push(event(`conga-${partial}`, partial / 2, 'conga', openTone ? 0.9 : 0.42, openTone ? 1 : partial % 2));
-            }
+            [0, 1, 2, 1, 0, 1, 3, 3].forEach((tone, partial) => {
+                events.push(event(`conga-${partial}`, partial / 2, 'conga', tone === 3 ? 0.9 : tone === 2 ? 0.68 : 0.32, tone));
+            });
             break;
         case 'rock-drums':
             for (let partial = 0; partial < 8; partial += 1) {
@@ -735,7 +780,7 @@ export const buildGrooveBar = (
 };
 
 export const getFeelLabel = (feel: GrooveFeel) => {
-    if (feel === 'adaptive') return '실연 스윙';
+    if (feel === 'adaptive') return '라이드 스윙';
     if (feel === 'triplet') return '2:1 3연';
     return '스트레이트';
 };

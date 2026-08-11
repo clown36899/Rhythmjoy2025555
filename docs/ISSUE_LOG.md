@@ -120,6 +120,47 @@
 - 관련 결정: `docs/decisions/2026-08-11-notification-delivery-lifecycle.md`
 - 관련 커밋: `e0fcf669`, `583942d3`
 
+## 2026-08-11 메인 신규 이벤트 광고의 지난 일정 우선 노출
+
+- 상태: 수정 완료, 배포 전
+- 범위: 홈 `신규 이벤트` 광고 후보 선정, 첫 진입 순서, 8초 자동 순환
+- 증상: 시작일이 지난 일정이 유효 일정과 같은 우선순위로 광고 전면에 노출됐고, 관리자 최대 개수 설정과 부족분 보충 기준도 최종 표시 목록에 일관되게 적용되지 않았다.
+- 원인:
+  - 유효 여부를 시작일이 아닌 `end_date`로 판단해 이미 시작한 장기 일정이 계속 주 후보에 남았다.
+  - 최근 등록 후보가 부족하면 같은 종료일 기준 후보를 다시 합쳐 지난 일정이 전면 순서에 재진입했다.
+  - 광고 목록 뒤쪽 카드를 8초마다 한 칸씩 동일 비율로 순환해, 뒤에 둔 보충 일정도 첫 자동 전환부터 전면으로 이동했다.
+- 해결:
+  - 단일 일정은 `start_date` 우선, 여러 날짜 일정은 `event_dates`의 오늘 이후 다음 회차를 기준으로 현재·미래 후보를 판정한다.
+  - 오늘 일정 중 한 건을 페이지 진입 시드로 선두에 고정하고, 나머지는 최근 등록 시각과 가까운 미래 시작일 순으로 정렬한다.
+  - 시작일이 지난 일정은 현재·미래 일정만으로 최종 광고 개수를 채우지 못할 때만 뒤쪽 보충 후보로 사용한다.
+  - 지난 보충 일정은 배경 카드 스택에는 남기되 자동 전면 노출을 8회 중 1회로 제한하고, 수동 선택은 계속 허용한다.
+  - 최종 작성자·장소 중복 제거 뒤에도 관리자 최대 노출 개수가 적용되도록 표시 단계에 설정값을 전달한다.
+- 검증: 메인 광고 우선순위 및 저빈도 순환 테스트 6개, 기존 배너 번역 회귀 테스트 1개 통과. 대상 ESLint 오류 0개(기존 경고만 유지), Cafe24 프로덕션 번들 빌드 성공.
+- 관련 파일: `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/NewEventsBanner.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`
+- 관련 커밋: pending
+
+## 2026-08-05 알림함 시간 정보 노출
+
+- 상태: 수정 완료, 배포 전
+- 범위: 인앱 알림함, 오늘 일정 Web Push, 관리자 알림 미리보기
+- 증상: 알림 카드 하단에 수신 시각이 표시되고, 오늘 일정 요약 본문과 미리보기 항목 데이터에 첫 일정의 시작 시각이 포함됐다.
+- 원인: 알림 카드가 저장된 `received_at`을 무조건 시각으로 렌더링했고, 클라이언트와 서버의 일정 요약 생성기가 이벤트 `time`을 사용자용 본문과 데이터에 복사했다.
+- 해결: 알림 카드의 수신 시각 렌더링을 제거하고 일정 요약 본문·항목 데이터·관리자 미리보기에서 시작 시각을 제거했다. 시간 값은 정렬·만료·전달·읽음 처리 같은 내부 처리에만 사용할 수 있다는 장기 운영 원칙을 `AGENTS.md`와 결정 기록에 남겼다.
+- 검증: 일정 요약 클라이언트·서버 회귀 테스트를 포함한 알림 테스트 81개가 통과했고, 본문에 `19:30`이 없으며 미리보기 항목에 `time` 필드가 없는 것을 확인했다. 대상 ESLint는 오류 없이 통과했고 기존 `any` 경고 2건만 남았다. 프로덕션 빌드가 성공했다.
+- 관련 파일: `AGENTS.md`, `src/components/NotificationHistoryModal.tsx`, `src/utils/dailyScheduleNotification.ts`, `server/cafe24/push-api.js`, `src/pages/admin/NotificationPreviewPage.tsx`, `docs/decisions/2026-08-05-notification-time-information-policy.md`
+- 관련 커밋: pending
+
+## 2026-08-05 모바일 월간 캘린더 일정 숨김
+
+- 상태: 수정 완료, 배포 전
+- 범위: 월간 캘린더 모바일·데스크톱 날짜 칸
+- 증상: 모바일 날짜 칸은 일정을 최대 5개까지만 렌더링하고 나머지를 `+N 더보기` 버튼으로 접어 실제 일정 전체가 캘린더에 바로 보이지 않았다.
+- 원인: 모바일 레이아웃이 `maxVisibleEvents=5`를 전달하고 날짜 셀이 소셜·일반 일정을 그 한도에 맞춰 잘랐다.
+- 해결: 날짜 칸의 일정 개수 제한과 더보기 버튼·스타일을 제거했다. 기간 막대로 별도 표현되는 중복 항목을 제외한 날짜별 일정은 모두 셀 안에 직접 렌더링한다. 이 원칙을 `AGENTS.md`에 기록했다.
+- 검증: `FullEventCalendar`에서 이벤트 개수 제한, 이벤트 `slice`, `calendar-day-more-button`, `더보기` 문구가 모두 제거된 것을 확인했다. 대상 ESLint는 오류 없이 통과했고 기존 경고만 남았으며 프로덕션 빌드가 성공했다.
+- 관련 파일: `AGENTS.md`, `src/pages/calendar/components/FullEventCalendar.tsx`, `src/pages/calendar/styles/FullEventCalendar.css`
+- 관련 커밋: pending
+
 ## 2026-08-03 연습실 탐색 화면 및 지도 로딩 개선
 
 - 상태: 완료
@@ -1474,6 +1515,35 @@
 - 조치: 그루브 랩 전용 셸을 뷰포트 높이로 고정하고 페이지 내부에 관성 세로 스크롤과 하단 안전 여백을 부여했다. 리듬·악기 선택을 첫 화면으로 올리고 8계열 28프리셋으로 확장했다. 확장 메뉴의 외곽 inset을 제거하고 모든 메뉴 라벨 및 `강습&행사` 합성 아이콘에 명시적 중앙 정렬을 적용했다.
 - 검증: 390×844 모바일 브라우저에서 첫 화면에 리듬 선택이 노출되고, 최하단 조사 근거까지 스크롤되며, 확장 메뉴에서 `개발중`은 커스텀 목록에만 있고 `강습&행사` 아이콘·라벨이 카드 중앙에 배치됨을 확인했다. 엔진 테스트 12개와 프로덕션 빌드가 통과했다.
 - 관련 파일: `src/layouts/MobileShell.tsx`, `src/styles/components/MobileShell.css`, `src/pages/groove-lab/GrooveLabPage.tsx`, `src/pages/groove-lab/groove-lab.css`, `src/pages/groove-lab/grooveEngine.ts`, `src/pages/v2/components/HomeV2MenuPanel.css`, `src/styles/theme-completion.css`
+
+## 2026-08-04 그루브 랩 합성 음질·연구 설명 불일치
+
+- 상태: 로컬 수정 및 근거 기반 적응형 감사 진행 중, 배포 전
+- 현상: 대부분의 악기가 단일 파형과 매 타격마다 새로 만든 난수에 의존해 반복 음색이 얇고 동시 타격의 출력 보호가 부족했다. 판데이루 화면은 비균등 삼바 미세타이밍을 설명했지만 실제 이벤트는 균등 16분음표였고, 드러머 라이드에서 측정된 스윙 곡선의 적용 범위도 솔리스트와 구분되지 않았다.
+- 원인: 첫 버전은 리듬 위치 검증을 우선해 음원 모델과 출력단을 최소 구현으로 두었다. 연구 근거가 설명과 이벤트 생성·합성 파라미터까지 연결되는 자동 감사가 없었다.
+- 조치: 발현 현악 합성, 다중 모드 타악 합성, 재사용 결정적 노이즈, DC 차단·다이내믹 압축 출력단을 분리 구현했다. 삼바 실연의 23.0/23.6/22.8/30.7% 길이를 정규화한 onset 기준을 실제 이벤트에 반영하고, 스윙 UI를 드러머 라이드 측정 모델로 한정했다. 출처 없는 전역 톤 EQ는 제거하고 측정값이 있는 보이스 전용 필터만 유지했다. 내부 수치 탐색 100스텝을 연구 감사 100회처럼 표시하던 문구와 테스트를 제거했다.
+- 초기 감사 한계: 네 모델의 감쇠·밝기를 내부 목표로 조정한 100스텝은 논문 검토나 청취 평가가 아니었다. 이 숫자는 연구 회차에서 제외하고 역사 기록에 한계를 명시했다.
+- 검증: 그루브 단위 테스트 33개가 통과했다. Chromium `OfflineAudioContext`에서 17보이스 45개 단일 렌더, 28개 프리셋 1~2마디 전체 루프, 22개 발음 쌍 기술량을 검사했다. 전체 믹스 최대 피크 0.788751에서 클리핑이 없고, 픽업 필터 뒤 현 조율 최대 오차는 0.2784 cents다. 화면의 고유 근거 URL 44개를 실제 요청해 자동 접근 39개, 출판사 자동화 제한 5개, 실제 끊김 0개를 확인했다.
+- 관련 파일: `src/pages/groove-lab/grooveAudio.ts`, `src/pages/groove-lab/grooveQuality.ts`, `src/pages/groove-lab/grooveEngine.ts`, `src/pages/groove-lab/GrooveLabPage.tsx`, `docs/research-data/groove-lab-quality-audit-2026-08-04.md`
+
+## 2026-08-04 Instagram 캘린더 릴스 게시 성공 오판
+
+- 상태: 수정 및 실제 게시 상태 복구 완료
+- 현상: 화요일 12:30 예약 실행이 오늘 캘린더 영상을 생성하고 Instagram `Share`까지 수행했지만 10분 뒤 `verification-required`와 exit 1로 끝나 자동 게시가 실패한 것처럼 보고됐다.
+- 원인: 게시 직후 Instagram이 새 릴스 화면과 알림 권한 요청을 표시했는데, 검증기는 현재 화면에서 하단 `Profile` 탭만 찾았다. 프로필 화면으로 돌아가지 못해 게시물 수를 읽지 못했으며, `verification-required` 상태도 다음 수동 실행에서 자동으로 차단되지 않아 중복 게시 위험이 있었다.
+- 조치: 공유 뒤 20초 동안 업로드의 백그라운드 전환을 기다리고, 정확한 `korea_swing_social` 프로필 딥링크를 열어 권한창을 처리한 뒤 게시물 수를 검증한다. `sharing`과 `verification-required` 상태는 다음 실행에서 먼저 현재 게시물 수와 이전 기준값을 대조하고, 증가가 확인되면 재게시 없이 `published`로 복구하며 증가가 없으면 명시적 강제 복구 전까지 차단한다.
+- 검증: 오늘 게시 전 기록은 16건이었고 실제 Instagram 프로필은 17건이며, 계정의 최신 릴스에서 오늘 캘린더 영상과 `4 hours ago` 표시를 확인했다. 수정된 예약 실행을 같은 날짜로 다시 수행해 4.5초 만에 새 게시물을 만들지 않고 기존 실행을 `published / profile-post-count`로 복구했다. LaunchAgent도 재기동해 `already-published`로 중복 없이 종료했고 실행 횟수 2, 마지막 종료 코드 0을 확인했다. 소셜 릴스 테스트 20개가 통과했다.
+- 관련 파일: `scripts/social-reels/instagram-reel-adb.mjs`, `scripts/social-reels/run-scheduled-social-reel.mjs`, `scripts/social-reels/instagram-reel-adb.test.mjs`, `docs/social-reel-automation.md`
+
+## 2026-08-04 그루브 랩 악기 모델 과장 및 반복 연습 부족
+
+- 상태: 적응형 개선 진행 중, 배포 전
+- 현상: 라이드의 스윙 비율이 네 박 리듬 기타에도 적용되는 것처럼 보였고, Four-to-bar 기타는 완전한 3음 코드를 반복했다. 블루 노트 기타형 벤드는 단순 톱니파였으며 반복 연습은 계속 듣기만 가능했다. 모든 프리셋에 동일한 현·타악 합성 근거를 붙여 실제 적용 범위도 구분되지 않았다.
+- 원인: 첫 버전은 패턴 탐색 범위를 먼저 넓히며 악기별 발음 모델, 주장 단위 출처 연결, 능동 반복 훈련을 분리하지 않았다. 공식 공개 합성 구현과 앱의 축약 범위를 대조하는 게이트도 없었다.
+- 조치: 라이드 비율을 실제 분할 제어가 있는 프리셋으로 제한했다. 플럭 위치·두 편극 현, 주법별 베이스, 해머 현, 다중 모드 타악을 도입했다. 공식 STK·Faust 구현과 연결 논문을 대조해 기타의 몸통 IR·현 결합 부재를 화면에 명시했다. 블루 노트는 현 버퍼 전체 피치 벤드, Four-to-bar는 대학원 전사 분석에 따른 한 음 중심·뮤트 질감으로 수정했다. 이후 STK 원코드 재검토로 플럭 콤의 편도 지연 계산을 교정하고, 피아노에는 음역별 1/2/3현 미세 비팅, 전기 베이스에는 업라이트와 분리된 자기 픽업 위치 콤 필터를 추가했다. 실제 Clavinet D6 측정에 맞춰 매 5번째 배음 픽업 노치를 넣고 두 픽업 선택·비선형·톤 스위치 부재를 구분했다. 2+2 콜백과 +2 BPM 사다리 연습, 프리셋 주장 범위·출처 등급 자동 감사를 유지한다.
+- 검증: 그루브 테스트 26개, 관련 lint, 프로덕션 빌드가 통과했다. Chromium OfflineAudioContext의 17보이스 42케이스는 피크 0.026706–0.258072, 유한값·비무음·무클리핑이었다. 390×844 실제 브라우저에서 내부 스크롤, 기타의 `PULSE`, 2+2 무음 전환, 모델 포함/제외 범위와 대학원 논문 링크 노출을 확인했다.
+- 추적: 실제 수정과 브라우저 검증이 연결된 회차만 `docs/research-data/groove-lab-adaptive-1000-ledger-2026-08-04.md`에 누적하며 현재 9/1000이다.
+- 관련 파일: `src/pages/groove-lab/GrooveLabPage.tsx`, `src/pages/groove-lab/groove-lab.css`, `src/pages/groove-lab/grooveAudio.ts`, `src/pages/groove-lab/grooveEngine.ts`, `src/pages/groove-lab/grooveEvidence.ts`, `src/pages/groove-lab/grooveEvidence.test.ts`
 
 ## 2026-08-04 Android 화면 복귀 시 `Failed to fetch` 전역 오류창
 

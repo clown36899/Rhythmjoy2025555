@@ -413,6 +413,13 @@ async function tapNode(node) {
   await adbShell('input', 'tap', String(x), String(y));
 }
 
+async function doubleTapNode(node) {
+  if (!node?.bounds) throw new Error('Cannot double tap a UI node without bounds.');
+  const x = Math.round((node.bounds.left + node.bounds.right) / 2);
+  const y = Math.round((node.bounds.top + node.bounds.bottom) / 2);
+  await adb(['shell', `input tap ${x} ${y}; input tap ${x} ${y}`]);
+}
+
 async function tapAndWait(selector, nextSelector, options = {}) {
   const { node } = await waitForNode(selector, options);
   await tapNode(node);
@@ -441,12 +448,149 @@ async function pushMedia(localPath, remotePath) {
   );
 }
 
-function parsePostCount(nodes) {
+export function initialInstagramPermissionAction(nodes = []) {
+  const visibleText = nodes
+    .map((node) => node.text || node.description)
+    .filter(Boolean);
+  if (visibleText.some((value) => value.includes('access photos and videos'))) {
+    return { prompt: 'media', buttonText: 'Allow all' };
+  }
+  if (visibleText.some((value) => (
+    value.includes('take pictures and record video')
+    || value.includes('record audio')
+    || value.includes('send you notifications')
+  ))) {
+    return { prompt: 'nonessential-permission', buttonText: 'Don’t allow' };
+  }
+  return null;
+}
+
+export function instagramOnboardingDismissAction(nodes = []) {
+  const visibleText = nodes
+    .map((node) => node.text || node.description)
+    .filter(Boolean);
+  if (
+    visibleText.includes('Create a sticker')
+    && visibleText.includes('Not now')
+  ) {
+    return { prompt: 'create-a-sticker', buttonText: 'Not now' };
+  }
+  if (
+    visibleText.includes('New ways to reuse')
+    && visibleText.includes('OK')
+  ) {
+    return { prompt: 'new-ways-to-reuse', buttonText: 'OK' };
+  }
+  return null;
+}
+
+async function dismissInitialPermissionPrompts(timeout = 60_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const nodes = await dumpUi();
+    if (nodes.some((node) => matches(node, { description: 'Profile' }))) return;
+    const action = initialInstagramPermissionAction(nodes);
+    if (action) {
+      const button = nodes.find((node) => node.text === action.buttonText);
+      if (!button) {
+        throw new Error(
+          `Instagram ${action.prompt} permission prompt is missing ${action.buttonText}.`,
+        );
+      }
+      await tapNode(button);
+      await wait(750);
+      continue;
+    }
+    await wait(pollIntervalMs);
+  }
+}
+
+async function waitForNodeDismissingPermissions(selector, options = {}) {
+  const timeout = options.timeout || normalTimeoutMs;
+  const deadline = Date.now() + timeout;
+  let lastNodes = [];
+  while (Date.now() < deadline) {
+    lastNodes = await dumpUi();
+    const node = lastNodes.find((candidate) => matches(candidate, selector));
+    if (node) return { node, nodes: lastNodes };
+    const action = initialInstagramPermissionAction(lastNodes);
+    if (action) {
+      const button = lastNodes.find((candidate) => candidate.text === action.buttonText);
+      if (!button) {
+        throw new Error(
+          `Instagram ${action.prompt} permission prompt is missing ${action.buttonText}.`,
+        );
+      }
+      await tapNode(button);
+      await wait(750);
+      continue;
+    }
+    const onboardingAction = instagramOnboardingDismissAction(lastNodes);
+    if (onboardingAction) {
+      const button = lastNodes.find((candidate) => (
+        candidate.text === onboardingAction.buttonText
+        && candidate.clickable
+      )) || lastNodes.find((candidate) => candidate.text === onboardingAction.buttonText);
+      if (!button) {
+        throw new Error(
+          `Instagram ${onboardingAction.prompt} prompt is missing ${onboardingAction.buttonText}.`,
+        );
+      }
+      await tapNode(button);
+      await wait(750);
+      continue;
+    }
+    await wait(pollIntervalMs);
+  }
+  const visible = lastNodes
+    .filter((node) => node.text || node.description)
+    .slice(-25)
+    .map((node) => node.text || node.description);
+  throw new Error(
+    `Timed out waiting for ${JSON.stringify(selector)}. Visible: ${visible.join(' | ')}`,
+  );
+}
+
+async function dismissOptionalOnboardingPrompt(timeout = 8_000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const nodes = await dumpUi();
+    const action = instagramOnboardingDismissAction(nodes);
+    if (action) {
+      const button = nodes.find((node) => node.text === action.buttonText);
+      if (!button) {
+        throw new Error(
+          `Instagram ${action.prompt} prompt is missing ${action.buttonText}.`,
+        );
+      }
+      await tapNode(button);
+      await wait(750);
+      return true;
+    }
+    if (nodes.some((node) => matches(node, { description: 'Add audio' }))) {
+      return false;
+    }
+    await wait(pollIntervalMs);
+  }
+  return false;
+}
+
+export function parseInstagramPostCount(nodes) {
   for (const node of nodes) {
     const match = node.description.match(/^([\d,]+)posts$/);
     if (match) return Number(match[1].replaceAll(',', ''));
   }
   return null;
+}
+
+export function publicationNeedsReconciliation(state = {}) {
+  return ['sharing', 'verification-required'].includes(state.status);
+}
+
+export function publicationCountConfirmsSuccess(state = {}, currentCount) {
+  return Number.isInteger(state.postCountBefore)
+    && Number.isInteger(currentCount)
+    && currentCount > state.postCountBefore;
 }
 
 async function openInstagramProfile() {
@@ -459,6 +603,7 @@ async function openInstagramProfile() {
     'android.intent.category.LAUNCHER',
     '1',
   );
+  await dismissInitialPermissionPrompts();
   const { node: profileTab } = await waitForNode(
     { description: 'Profile' },
     { timeout: 60_000 },
@@ -468,9 +613,31 @@ async function openInstagramProfile() {
     { resourceIdEndsWith: ':id/action_bar_title', text: expectedAccount },
     { timeout: 30_000 },
   );
-  const postCount = parsePostCount(nodes);
+  const postCount = parseInstagramPostCount(nodes);
   if (!Number.isInteger(postCount)) {
     throw new Error('Could not read the Instagram profile post count.');
+  }
+  return postCount;
+}
+
+async function readExpectedProfilePostCountForVerification() {
+  await adbShell(
+    'am',
+    'start',
+    '-W',
+    '-a',
+    'android.intent.action.VIEW',
+    '-d',
+    `https://www.instagram.com/${expectedAccount}/`,
+    instagramPackage,
+  );
+  const { nodes } = await waitForNodeDismissingPermissions(
+    { resourceIdEndsWith: ':id/action_bar_title', text: expectedAccount },
+    { timeout: 30_000 },
+  );
+  const postCount = parseInstagramPostCount(nodes);
+  if (!Number.isInteger(postCount)) {
+    throw new Error('Could not read the Instagram profile post count during verification.');
   }
   return postCount;
 }
@@ -501,10 +668,14 @@ async function openNewestVideo() {
       && node.description.startsWith('Unselected Video thumbnail created on'),
   );
   await tapNode(newestVideo);
-  await waitForNode({ description: 'Next' }, { timeout: 60_000 });
+  await waitForNodeDismissingPermissions(
+    { description: 'Next' },
+    { timeout: 60_000 },
+  );
 }
 
 async function searchAndSelectTrack(trackCandidates) {
+  await dismissOptionalOnboardingPrompt();
   await tapAndWait(
     { description: 'Add audio' },
     { resourceIdEndsWith: ':id/row_search_edit_text' },
@@ -554,16 +725,26 @@ async function searchAndSelectTrack(trackCandidates) {
 }
 
 async function setCoverAndReachShareScreen() {
-  await tapAndWait(
+  const { node: next } = await waitForNode(
     { description: 'Next' },
-    { resourceIdEndsWith: ':id/clip_thumbnail_text', text: 'Edit cover' },
     { timeout: 60_000 },
   );
-  const { node: editCover } = await waitForNode({
-    resourceIdEndsWith: ':id/clip_thumbnail_text',
-    text: 'Edit cover',
-  });
-  await tapNode(editCover);
+  await tapNode(next);
+  const coverEntry = await waitForAny([
+    { resourceIdEndsWith: ':id/clip_thumbnail_text', text: 'Edit cover' },
+    { description: 'Double tap to edit cover photo' },
+  ], { timeout: 60_000 });
+  const editCover = coverEntry.node;
+  if (editCover.description === 'Double tap to edit cover photo') {
+    await doubleTapNode(editCover);
+    const { node: editCoverOverlay } = await waitForNode({
+      resourceIdEndsWith: ':id/clip_thumbnail_layout',
+      clickable: true,
+    });
+    await tapNode(editCoverOverlay);
+  } else {
+    await tapNode(editCover);
+  }
   await tapAndWait(
     { description: 'Add from camera roll' },
     { resourceIdEndsWith: ':id/gallery_image', descriptionStartsWith: 'Photo thumbnail, Added on' },
@@ -580,16 +761,44 @@ async function setCoverAndReachShareScreen() {
       && node.description.startsWith('Photo thumbnail, Added on'),
   );
   await tapNode(newestPhoto);
-  await tapAndWait(
+  const { node: done } = await waitForNode(
     { resourceIdEndsWith: ':id/action_bar_button_text', description: 'Done' },
-    { resourceIdEndsWith: ':id/share_button', description: 'Share' },
     { timeout: 30_000 },
   );
+  await tapNode(done);
+  const shareStep = await waitForAny([
+    {
+      resourceIdEndsWith: ':id/clips_original_audio_nux_sheet_turn_off_and_share_button',
+      description: 'Turn off and share',
+    },
+    { resourceIdEndsWith: ':id/share_button', description: 'Share' },
+    { resourceIdEndsWith: ':id/share_button', description: 'Next' },
+  ], { timeout: 30_000 });
+  if (shareStep.node.description === 'Next') {
+    await tapNode(shareStep.node);
+    return waitForAny([
+      {
+        resourceIdEndsWith: ':id/clips_original_audio_nux_sheet_turn_off_and_share_button',
+        description: 'Turn off and share',
+      },
+      { resourceIdEndsWith: ':id/share_button', description: 'Share' },
+    ], { timeout: 30_000 });
+  }
+  return shareStep;
 }
 
 async function discardDryRun() {
-  await adbShell('input', 'keyevent', 'KEYCODE_BACK');
-  await waitForNode({ description: 'Cancel' });
+  let cancelNode = null;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const nodes = await dumpUi();
+    cancelNode = nodes.find((node) => matches(node, { description: 'Cancel' }));
+    if (cancelNode) break;
+    await adbShell('input', 'keyevent', 'KEYCODE_BACK');
+    await wait(750);
+  }
+  if (!cancelNode) {
+    await waitForNode({ description: 'Cancel' });
+  }
   await tapAndWait(
     { description: 'Cancel' },
     { text: 'Start over' },
@@ -606,20 +815,12 @@ async function discardDryRun() {
 
 async function verifyPostCountIncrement(previousCount, timeout = 10 * 60_000) {
   const deadline = Date.now() + timeout;
-  await wait(8_000);
+  // Leave Instagram enough time to hand the upload to its background worker before
+  // navigating away from the newly published reel screen.
+  await wait(20_000);
   while (Date.now() < deadline) {
     try {
-      const nodes = await dumpUi();
-      const profileTab = nodes.find((node) => node.description === 'Profile');
-      if (profileTab) {
-        await tapNode(profileTab);
-        await wait(1_500);
-      }
-      const profile = await waitForNode(
-        { resourceIdEndsWith: ':id/action_bar_title', text: expectedAccount },
-        { timeout: 15_000 },
-      );
-      const currentCount = parsePostCount(profile.nodes);
+      const currentCount = await readExpectedProfilePostCountForVerification();
       if (Number.isInteger(currentCount) && currentCount > previousCount) {
         return currentCount;
       }
@@ -654,15 +855,55 @@ export async function publishInstagramReel(options = {}) {
   if (previousState.status === 'published') {
     return { status: 'already-published', state: previousState };
   }
-  if (previousState.status === 'sharing' && !options.forceRecovery) {
-    throw new Error(
-      'A previous Share action has an uncertain result. Automatic retry is blocked to prevent a duplicate.',
-    );
-  }
 
   const lockHandle = await acquireLock(lockPath);
   const startedAt = new Date();
   try {
+    if (publicationNeedsReconciliation(previousState)) {
+      await ensureEmulator();
+      const currentCount = await readExpectedProfilePostCountForVerification();
+      if (publicationCountConfirmsSuccess(previousState, currentCount)) {
+        const recoveredAt = new Date();
+        const recoveredState = {
+          ...previousState,
+          status: 'published',
+          postCountAfter: currentCount,
+          completedAt: recoveredAt.toISOString(),
+          recoveredAt: recoveredAt.toISOString(),
+          recoveryMethod: 'profile-post-count',
+        };
+        delete recoveredState.verificationFailedAt;
+        delete recoveredState.note;
+        await writeJsonAtomically(publicationStatePath, recoveredState);
+
+        if (previousState.selectedTrack) {
+          const historyState = await readJson(historyPath, { history: [] });
+          const history = historyState.history || [];
+          const alreadyRecorded = history.some((entry) => entry.date === date);
+          if (!alreadyRecorded) {
+            await writeJsonAtomically(historyPath, {
+              history: [
+                ...history,
+                {
+                  ...previousState.selectedTrack,
+                  date,
+                  publishedAt: previousState.shareCommittedAt || recoveredAt.toISOString(),
+                  recoveredAt: recoveredAt.toISOString(),
+                },
+              ].slice(-50),
+            });
+          }
+        }
+        return recoveredState;
+      }
+      if (!options.forceRecovery) {
+        throw new Error(
+          'A previous Share action remains unconfirmed. The profile count did not increase; '
+          + 'automatic retry is blocked to prevent a duplicate.',
+        );
+      }
+    }
+
     await writeJsonAtomically(publicationStatePath, {
       status: 'preparing',
       date,
@@ -687,7 +928,7 @@ export async function publishInstagramReel(options = {}) {
     const selectedTrack = await searchAndSelectTrack(trackCandidates);
 
     await pushMedia(coverPath, remoteCover);
-    await setCoverAndReachShareScreen();
+    const finalShareTarget = await setCoverAndReachShareScreen();
     const readyScreenshotPath = path.join(artifactDirectory, 'instagram-share-ready.png');
     await screenshot(readyScreenshotPath);
 
@@ -717,10 +958,7 @@ export async function publishInstagramReel(options = {}) {
       note: 'Do not automatically retry this date unless the profile is checked first.',
     };
     await writeJsonAtomically(publicationStatePath, sharingState);
-    const { node: shareButton } = await waitForNode({
-      resourceIdEndsWith: ':id/share_button',
-      description: 'Share',
-    });
+    const { node: shareButton } = await waitForNode(finalShareTarget.selector);
     await tapNode(shareButton);
 
     const postCountAfter = await verifyPostCountIncrement(postCountBefore);

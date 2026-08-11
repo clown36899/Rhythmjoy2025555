@@ -38,6 +38,7 @@ import {
   sortEvents
 } from "../utils/eventListUtils";
 import type { Event } from "../utils/eventListUtils";
+import { rankHomeAdEvents, rankPastHomeAdEvents } from "./EventList/utils/homeAdPriority";
 
 interface EventListProps {
   currentMonth?: Date;
@@ -182,7 +183,7 @@ const EventList: React.FC<EventListProps> = ({
   });
 
   // 3.65 Newly Registered Events — NEB 광고 섹션 (관리자 설정 기반)
-  const newlyRegisteredEvents = useMemo(() => {
+  const homeAdDisplay = useMemo(() => {
     const {
       sort_by,
       time_window_hours,
@@ -191,9 +192,6 @@ const EventList: React.FC<EventListProps> = ({
       include_genres,
     } = nebFilterSettings;
     const maxItems = clampNebMaxItems(max_items);
-
-    const now = new Date();
-    const windowAgo = new Date(now.getTime() - time_window_hours * 60 * 60 * 1000);
     const todayStr = getCalendarTodayDateKey();
 
     const isEligible = (event: Event) => {
@@ -203,70 +201,33 @@ const EventList: React.FC<EventListProps> = ({
       if (eventGenres.length === 0) return false;
       if (!eventGenres.some(g => include_genres.includes(g))) return false;
 
-      // 미래/오늘 일정만 포함
-      const eventEndDate = event.end_date || event.date || "";
-      if (eventEndDate < todayStr) return false;
       if (isMainAdSocialEvent(event)) return false;
 
       return true;
     };
 
-    if (sort_by === 'date') {
-      // 이벤트 날짜 임박순
-      return events
-        .filter(isEligible)
-        .sort((a, b) => {
-          const da = a.date || a.start_date || '';
-          const db = b.date || b.start_date || '';
-          return da.localeCompare(db);
-        })
-        .slice(0, maxItems);
-    }
+    const eligibleEvents = events.filter(isEligible);
+    const now = new Date();
+    const activeEvents = rankHomeAdEvents(eligibleEvents, {
+      todayDateKey: todayStr,
+      now,
+      randomSeed,
+      timeWindowHours: time_window_hours,
+      sortBy: sort_by,
+      useFallback: use_fallback,
+    });
 
-    // 등록일 기준
-    const withinWindow = events.filter(event => {
-      if (!isEligible(event) || !event.created_at) return false;
-      return new Date(event.created_at) > windowAgo;
-    }).sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
+    return {
+      events: activeEvents,
+      fallbackEvents: use_fallback
+        ? rankPastHomeAdEvents(eligibleEvents, todayStr, now)
+        : [],
+      maxItems,
+    };
+  }, [events, nebFilterSettings, randomSeed]);
 
-    if (use_fallback && withinWindow.length < maxItems) {
-      const fallback = events
-        .filter(isEligible)
-        .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
-        .slice(0, maxItems);
-      const seenIds = new Set(withinWindow.map(e => e.id));
-      const combined = [...withinWindow];
-      for (const e of fallback) {
-        if (!seenIds.has(e.id)) {
-          combined.push(e);
-          if (combined.length >= maxItems) break;
-        }
-      }
-      return combined;
-    }
-
-    return withinWindow.slice(0, maxItems);
-  }, [events, nebFilterSettings]);
-
-  const homeAdCandidateEvents = useMemo(() => {
-    const todayStr = getCalendarTodayDateKey();
-
-    return events
-      .filter((event) => {
-        if (isMainAdSocialEvent(event)) return false;
-        if (event.event_dates?.some((date) => date >= todayStr)) return true;
-        const endDate = event.end_date || event.date || event.start_date || "";
-        return Boolean(endDate) && endDate >= todayStr;
-      })
-      .sort((a, b) => {
-        const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
-        if (aCreated !== bCreated) return bCreated - aCreated;
-        const aDate = a.date || a.start_date || '';
-        const bDate = b.date || b.start_date || '';
-        return aDate.localeCompare(bDate);
-      });
-  }, [events]);
+  const newlyRegisteredEvents = homeAdDisplay.events;
+  const homeAdCandidateEvents = homeAdDisplay.fallbackEvents;
 
   // 3.7 Realtime Subscription to sync data immediately
   useEffect(() => {
@@ -603,6 +564,7 @@ const EventList: React.FC<EventListProps> = ({
           clubRegularClasses={randomizedClubRegularClasses}
           newlyRegisteredEvents={newlyRegisteredEvents}
           homeAdCandidateEvents={homeAdCandidateEvents}
+          homeAdMaxItems={homeAdDisplay.maxItems}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(Number(e.id)))}
           // events={events} // Removed
 
