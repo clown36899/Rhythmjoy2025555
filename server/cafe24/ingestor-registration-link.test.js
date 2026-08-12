@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCollectedScrapedEventRow,
+  buildDuplicateScrapedEventRow,
   canReprocessCollectedAutomaticCandidate,
   canReopenGeneratedRegularSocialDuplicate,
+  findBlockingAutomaticRegistrationDuplicate,
+  findOperationalDuplicateForScrapedItem,
   hasRegisteredEventLink,
+  isHighConfidenceSocialDuplicate,
   validateAutomaticRegistrationCandidate,
 } from './function-api.js';
 
@@ -37,6 +41,163 @@ describe('ingestor registration linkage', () => {
     expect(hasRegisteredEventLink({ registered_event_id: 'event-1' })).toBe(true);
     expect(hasRegisteredEventLink({ structured_data: { registered_event_id: 'event-2' } })).toBe(true);
     expect(hasRegisteredEventLink({ status: 'collected', is_collected: true })).toBe(false);
+  });
+
+  it('marks a remediated candidate duplicate without leaving a stale registration link', () => {
+    const duplicate = {
+      target: 'events',
+      existingId: 'event-official',
+      reason: '같은 날짜·장소·활동·DJ의 소셜',
+    };
+    const row = buildDuplicateScrapedEventRow({
+      scrapedEvent: {
+        id: 'candidate-cafe',
+        status: 'collected',
+        is_collected: true,
+        registered_event_id: 'event-removed',
+        registered_at: '2026-08-12T00:00:08.000Z',
+        structured_data: {
+          date: '2026-08-12',
+          registered_event_id: 'event-removed',
+        },
+      },
+      duplicate,
+      now: '2026-08-12T03:00:00.000Z',
+    });
+
+    expect(row).toMatchObject({
+      id: 'candidate-cafe',
+      status: 'duplicate',
+      is_collected: false,
+      updated_at: '2026-08-12T03:00:00.000Z',
+      structured_data: {
+        date: '2026-08-12',
+        _duplicate: duplicate,
+      },
+    });
+    expect(row).not.toHaveProperty('registered_event_id');
+    expect(row).not.toHaveProperty('registered_at');
+    expect(row.structured_data).not.toHaveProperty('registered_event_id');
+  });
+
+  it('blocks the same social discovered from different sources when date, venue, activity, and DJ match', () => {
+    const officialEvent = {
+      id: 'event-swingtime-instagram',
+      title: 'DJ 뉴야 | 스윙타임 수요 소셜',
+      start_date: '2026-08-12',
+      end_date: '2026-08-12',
+      category: 'social',
+      location: '스윙타임',
+      link1: 'https://www.instagram.com/swingtimebar/p/official',
+    };
+    const cafeCandidate = {
+      id: 'candidate-swingfriends-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/56120',
+      structured_data: {
+        title: 'DJ 뉴야 | 스윙프렌즈 카페 수요 소셜',
+        date: '2026-08-12',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['뉴야'],
+      },
+    };
+
+    expect(isHighConfidenceSocialDuplicate(officialEvent, cafeCandidate)).toBe(true);
+    const duplicate = {
+      target: 'events',
+      existingId: 'event-swingtime-instagram',
+      existingTitle: 'DJ 뉴야 | 스윙타임 수요 소셜',
+      existingDate: '2026-08-12',
+      existingSourceUrl: 'https://www.instagram.com/swingtimebar/p/official',
+      reason: '같은 날짜·장소·활동·DJ의 소셜',
+    };
+    expect(findOperationalDuplicateForScrapedItem(cafeCandidate, [officialEvent])).toEqual(duplicate);
+    expect(findBlockingAutomaticRegistrationDuplicate(cafeCandidate, [officialEvent])).toEqual(duplicate);
+  });
+
+  it('does not merge socials when the DJ differs or is unknown', () => {
+    const baseEvent = {
+      id: 'event-swingtime',
+      title: 'DJ 뉴야 | 스윙타임 수요 소셜',
+      start_date: '2026-08-12',
+      category: 'social',
+      location: '스윙타임',
+      link1: 'https://www.instagram.com/swingtimebar/p/official',
+    };
+    const candidate = {
+      source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/other',
+      structured_data: {
+        title: '별도 수요 소셜',
+        date: '2026-08-12',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['초리'],
+      },
+    };
+
+    expect(isHighConfidenceSocialDuplicate(baseEvent, candidate)).toBe(false);
+    expect(findOperationalDuplicateForScrapedItem(candidate, [baseEvent])).toBe(null);
+    expect(isHighConfidenceSocialDuplicate(
+      { ...baseEvent, title: '스윙타임 수요 소셜', dj_name: '미정' },
+      { ...candidate, structured_data: { ...candidate.structured_data, djs: ['미정'] } },
+    )).toBe(false);
+  });
+
+  it('normalizes DJ lineup order without weakening date or activity boundaries', () => {
+    const event = {
+      id: 'event-duo',
+      title: 'DJ 뉴야, 초리 | 스윙타임 수요 소셜',
+      start_date: '2026-08-12',
+      category: 'social',
+      venue_name: '스윙타임바',
+    };
+    const candidate = {
+      structured_data: {
+        title: '스윙프렌즈 수요 소셜',
+        date: '2026-08-12',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['초리', '뉴야'],
+      },
+    };
+
+    expect(isHighConfidenceSocialDuplicate(event, candidate)).toBe(true);
+    expect(isHighConfidenceSocialDuplicate(event, {
+      ...candidate,
+      structured_data: { ...candidate.structured_data, date: '2026-08-13' },
+    })).toBe(false);
+    expect(isHighConfidenceSocialDuplicate(
+      { ...event, category: 'event' },
+      candidate,
+    )).toBe(false);
+  });
+
+  it('uses explicit occurrence dates instead of treating every date inside a range as the same social', () => {
+    const recurringEvent = {
+      id: 'event-recurring',
+      title: 'DJ 뉴야 | 스윙타임 토요 소셜',
+      date: '2026-08-01',
+      start_date: '2026-08-01',
+      end_date: '2026-08-22',
+      event_dates: ['2026-08-01', '2026-08-08', '2026-08-22'],
+      category: 'social',
+      location: '스윙타임',
+    };
+    const candidate = {
+      structured_data: {
+        title: 'DJ 뉴야 | 스윙프렌즈 소셜',
+        date: '2026-08-15',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['뉴야'],
+      },
+    };
+
+    expect(isHighConfidenceSocialDuplicate(recurringEvent, candidate)).toBe(false);
+    expect(isHighConfidenceSocialDuplicate(recurringEvent, {
+      ...candidate,
+      structured_data: { ...candidate.structured_data, date: '2026-08-08' },
+    })).toBe(true);
   });
 
   it('reopens a generated regular social only after the full automatic gate passes', () => {

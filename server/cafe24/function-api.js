@@ -441,6 +441,93 @@ function sameVenue(left, right) {
   return duplicateTextSimilarity(a, b) >= 0.7;
 }
 
+const unknownDjValues = new Set([
+  'na',
+  'tbd',
+  'unknown',
+  '미정',
+  '없음',
+  '추후',
+  '추후공지',
+]);
+
+function splitDjValues(value = '') {
+  return String(value || '')
+    .normalize('NFKC')
+    .replace(/^\s*(?:DJ|디제이)\s*[:：-]?\s*/i, '')
+    .split(/\s*(?:,|，|\/|·|ㆍ|&|\band\b|\s+및\s+)\s*/i)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function explicitDjValues(row = {}) {
+  const arrays = [
+    row?.structured_data?.djs,
+    row?.djs,
+    row?.dj_names,
+  ];
+  const values = arrays
+    .filter(Array.isArray)
+    .flatMap((items) => items.flatMap(splitDjValues));
+  [
+    row?.structured_data?.dj_name,
+    row?.dj_name,
+    row?.djName,
+  ].filter(Boolean).forEach((value) => values.push(...splitDjValues(value)));
+  return values;
+}
+
+function titleDjValues(row = {}) {
+  const title = rowTitle(row);
+  if (!title) return [];
+  const prefixed = title.match(/^\s*(?:DJ|디제이)\s*[:：-]?\s*([^|｜\n]{1,80})\s*[|｜]/i)?.[1];
+  if (prefixed) return splitDjValues(prefixed);
+  const suffixed = title.match(/(?:^|[\s|｜])(?:DJ|디제이)\s*[:：-]?\s*([^|｜()[\]\n]{1,40})\s*$/i)?.[1];
+  return suffixed ? splitDjValues(suffixed) : [];
+}
+
+function normalizedDjLineup(row = {}) {
+  const explicit = explicitDjValues(row);
+  const values = explicit.length ? explicit : titleDjValues(row);
+  return [...new Set(values
+    .map((value) => normalizeDuplicateText(
+      String(value || '').replace(/^\s*(?:DJ|디제이)\s*[:：-]?\s*/i, ''),
+    ))
+    .filter((value) => value && !unknownDjValues.has(value)))]
+    .sort((left, right) => left.localeCompare(right, 'ko'));
+}
+
+function sameKnownDjLineup(left, right) {
+  const leftDjs = normalizedDjLineup(left);
+  const rightDjs = normalizedDjLineup(right);
+  return leftDjs.length > 0
+    && leftDjs.length === rightDjs.length
+    && leftDjs.every((dj, index) => dj === rightDjs[index]);
+}
+
+function explicitEventDates(row = {}) {
+  let values = row?.event_dates;
+  if (typeof values === 'string') {
+    try {
+      values = JSON.parse(values);
+    } catch {
+      values = [];
+    }
+  }
+  return Array.isArray(values)
+    ? values.map((value) => String(value || '').slice(0, 10)).filter(Boolean)
+    : [];
+}
+
+function sameExactEventOccurrence(row = {}, date = '') {
+  if (!date) return false;
+  const dates = explicitEventDates(row);
+  if (dates.length) return dates.includes(date);
+  const directDate = String(row.date || '').slice(0, 10);
+  const startDate = String(row.start_date || '').slice(0, 10);
+  return directDate === date || startDate === date;
+}
+
 function sourceIdentity(value = '') {
   try {
     const parsed = new URL(String(value || '').trim());
@@ -547,6 +634,18 @@ function isSocialDuplicateRow(row = {}) {
     .toLowerCase() === 'social';
 }
 
+export function isHighConfidenceSocialDuplicate(existing = {}, candidate = {}) {
+  const date = scrapedRowDate(candidate);
+  return Boolean(
+    date
+    && sameExactEventOccurrence(existing, date)
+    && isSocialDuplicateRow(existing)
+    && isSocialDuplicateRow(candidate)
+    && sameVenue(rowLocation(existing), rowLocation(candidate))
+    && sameKnownDjLineup(existing, candidate),
+  );
+}
+
 function duplicateMatch(row, candidate, target) {
   const date = scrapedRowDate(candidate);
   if (!date) return null;
@@ -559,6 +658,9 @@ function duplicateMatch(row, candidate, target) {
 
   if (!sameEventDate(row, date)) return null;
   const titleScore = duplicateTextSimilarity(rowTitle(row), rowTitle(candidate));
+  if (isHighConfidenceSocialDuplicate(row, candidate)) {
+    return duplicateDescriptor(target, row, '같은 날짜·장소·활동·DJ의 소셜');
+  }
   if (
     target === 'events'
     && isOfficialApiEvent(row)
@@ -590,12 +692,22 @@ function duplicateMatch(row, candidate, target) {
   return null;
 }
 
-function findOperationalDuplicateForScrapedItem(candidate, eventRows = []) {
+export function findOperationalDuplicateForScrapedItem(candidate, eventRows = []) {
   for (const event of eventRows) {
     const match = duplicateMatch(event, candidate, 'events');
     if (match) return match;
   }
   return null;
+}
+
+export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows = []) {
+  const duplicate = findOperationalDuplicateForScrapedItem(candidate, eventRows);
+  if (!duplicate) return null;
+  return canReopenGeneratedRegularSocialDuplicate(
+    { status: 'duplicate', structured_data: { _duplicate: duplicate } },
+    candidate,
+    duplicate,
+  ) ? null : duplicate;
 }
 
 async function prepareScrapedItem(item) {
@@ -630,6 +742,28 @@ export function hasRegisteredEventLink(item = {}) {
     || item.structured_data?.registered_event_id
     || '',
   ).trim());
+}
+
+export function buildDuplicateScrapedEventRow({
+  scrapedEvent = {},
+  duplicate,
+  now = new Date().toISOString(),
+} = {}) {
+  const structuredData = {
+    ...(scrapedEvent.structured_data || {}),
+    _duplicate: duplicate,
+  };
+  delete structuredData.registered_event_id;
+  const row = {
+    ...scrapedEvent,
+    is_collected: false,
+    status: 'duplicate',
+    structured_data: structuredData,
+    updated_at: now,
+  };
+  delete row.registered_event_id;
+  delete row.registered_at;
+  return row;
 }
 
 function requestsCollectedStatus(item = {}) {
@@ -727,21 +861,12 @@ async function ingestScrapedItems(values) {
       continue;
     }
 
-    const duplicate = findOperationalDuplicateForScrapedItem(row, eventRows);
-    if (duplicate && !canReopenGeneratedRegularSocialDuplicate(
-      { status: 'duplicate', structured_data: { _duplicate: duplicate } },
-      row,
-      duplicate,
-    )) {
-      const duplicateRow = {
-        ...row,
-        is_collected: false,
-        status: 'duplicate',
-        structured_data: {
-          ...(row.structured_data || {}),
-          _duplicate: duplicate,
-        },
-      };
+    const duplicate = findBlockingAutomaticRegistrationDuplicate(row, eventRows);
+    if (duplicate) {
+      const duplicateRow = buildDuplicateScrapedEventRow({
+        scrapedEvent: row,
+        duplicate,
+      });
       const savedRow = await saveCafe24TableRow('scraped_events', duplicateRow);
       saved.push(savedRow);
       scrapedRows = replaceWorkingScrapedRow(scrapedRows, savedRow);
@@ -1159,6 +1284,21 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   const existingRows = await loadCafe24TableRows('events');
   const existing = existingRows.find((row) => String(row.id) === String(body.existingEventId || ''))
     || existingRows.find((row) => sourceUrl && row.link1 === sourceUrl && sameEventDate(row, date));
+  const operationalDuplicate = automaticRequest && !existing
+    ? findBlockingAutomaticRegistrationDuplicate(scrapedEvent, existingRows)
+    : null;
+
+  if (operationalDuplicate) {
+    await saveCafe24TableRow('scraped_events', buildDuplicateScrapedEventRow({
+      scrapedEvent,
+      duplicate: operationalDuplicate,
+    }));
+    res.status(409).json({
+      error: '이미 등록된 동일 소셜이 있습니다.',
+      duplicate: operationalDuplicate,
+    });
+    return;
+  }
 
   let imageFields = normalizeImageFields(eventData, scrapedEvent.poster_url || eventData.image || eventData.image_full || null);
   const folder = `images/ingestor-events/${safeSegment(scrapedEventId)}`;

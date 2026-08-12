@@ -2267,6 +2267,12 @@ async function postCandidate(candidate) {
     return;
   }
 
+  if (Array.isArray(body.skipped) && body.skipped.length) {
+    result.skipped += body.skipped.length;
+    result.candidates.push(`skip:${candidate.keyword}:${body.skipped[0].reason}`);
+    return;
+  }
+
   const savedCandidate = Array.isArray(body?.data) ? body.data[0] : body?.data || body;
   if (candidateToPost.auto_registration?.ready === true && savedCandidate?.id && ingestToken) {
     try {
@@ -2278,6 +2284,14 @@ async function postCandidate(candidate) {
           scrapedEventId: savedCandidate.id,
         }),
       }, postRequestTimeoutMs);
+      let autoBody = {};
+      try { autoBody = JSON.parse(autoResult.body); } catch {}
+      if (autoResult.response.status === 409 && autoBody?.duplicate) {
+        result.skipped += 1;
+        result.candidates.push(`skip:${candidate.keyword}:${autoBody.duplicate.reason || 'operational duplicate'}`);
+        log(`auto-register skipped duplicate ${savedCandidate.id}: ${autoBody.duplicate.reason || 'operational duplicate'}`);
+        return;
+      }
       if (!autoResult.response.ok) {
         result.issues.push(`auto-register ${savedCandidate.id}: HTTP ${autoResult.response.status}`);
         log(`auto-register blocked ${savedCandidate.id}: ${autoResult.response.status} ${autoResult.body.slice(0, 300)}`);
@@ -2288,12 +2302,6 @@ async function postCandidate(candidate) {
       result.issues.push(`auto-register ${savedCandidate.id}: ${error?.message || error?.name || 'request failed'}`);
       log(`auto-register failed ${savedCandidate.id}: ${error?.message || error}`);
     }
-  }
-
-  if (Array.isArray(body.skipped) && body.skipped.length) {
-    result.skipped += body.skipped.length;
-    result.candidates.push(`skip:${candidate.keyword}:${body.skipped[0].reason}`);
-    return;
   }
 
   if (Number(body.refreshedCount || 0) > 0) {
