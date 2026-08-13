@@ -165,6 +165,14 @@ const compositeKeysByTable = {
   session_logs: ['session_id'],
 };
 
+// These tables intentionally store at most one generic record per user. A
+// user_id on every other table is ownership metadata, not a record identity.
+const userScopedSingletonTables = new Set([
+  'board_admins',
+  'board_users',
+  'user_home_menu_settings',
+]);
+
 const adminOnlyGenericTables = new Set([
   'board_admins',
   'client_reload_diagnostics',
@@ -664,16 +672,30 @@ function getRecordId(row, conflictKeys = [], table = '') {
     return tableKeys.map((key) => String(row[key])).join(':');
   }
 
-  for (const key of conflictKeys) {
+  if (row?.id !== undefined && row?.id !== null && row?.id !== '') {
+    return String(row.id);
+  }
+
+  if (
+    conflictKeys.length > 0
+    && conflictKeys.every((key) => row?.[key] !== undefined && row?.[key] !== null && row?.[key] !== '')
+  ) {
+    return conflictKeys.map((key) => String(row[key])).join(':');
+  }
+
+  for (const key of ['code', 'key', 'token', 'endpoint']) {
     if (row?.[key] !== undefined && row?.[key] !== null && row?.[key] !== '') {
       return String(row[key]);
     }
   }
 
-  for (const key of ['id', 'code', 'key', 'token', 'endpoint', 'user_id']) {
-    if (row?.[key] !== undefined && row?.[key] !== null && row?.[key] !== '') {
-      return String(row[key]);
-    }
+  if (
+    userScopedSingletonTables.has(table)
+    && row?.user_id !== undefined
+    && row?.user_id !== null
+    && row?.user_id !== ''
+  ) {
+    return String(row.user_id);
   }
 
   return crypto.randomUUID();
@@ -682,7 +704,7 @@ function getRecordId(row, conflictKeys = [], table = '') {
 function ensureId(row, conflictKeys = [], table = '') {
   const next = { ...(row || {}) };
   const recordId = getRecordId(next, conflictKeys, table);
-  if (next.id === undefined && !conflictKeys.length) next.id = recordId;
+  if (next.id === undefined || next.id === null || next.id === '') next.id = recordId;
   return { row: next, recordId };
 }
 
@@ -3541,6 +3563,8 @@ export async function removeGenericFiles(req, res) {
 export {
   applyFilters as applyCafe24Filters,
   deleteRows as deleteCafe24TableRows,
+  ensureId as ensureCafe24RecordId,
+  getRecordId as getCafe24RecordId,
   loadRows as loadCafe24TableRows,
   normalizeEventUpdateValues,
   normalizeEventUpsertValue,

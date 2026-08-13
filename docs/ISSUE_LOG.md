@@ -1754,3 +1754,15 @@
 - 비확장 검토: 스윙 외 살사·바차타·탱고·스트릿 범위와 기존 프리셋은 유지하되 새 장르나 추론 규칙은 추가하지 않았다. 수동 선택 UI는 범위와 세부 장르가 일치할 때만 저장되며, 과거 일정에서 수집한 비정식 장르는 신규 선택지로 확산되지 않는다.
 - 검증: 신규 시트 회귀 테스트 5개를 포함한 Vitest 55개 파일·335개 테스트가 통과했다. 프로덕션 빌드와 대상 ESLint가 오류 없이 통과했고, 390×844 모바일 렌더에서 분류 3개·범위 5개·스윙 세부 장르 7개 및 고정 `취소/저장` 동작이 한 시트에 노출됨을 확인했다.
 - 관련 파일: `src/components/EditableEventDetail.tsx`, `src/components/EventRegistrationModal.tsx`, `src/styles/components/EditableEventDetail.css`, `src/components/EditableEventDetail.classification.test.tsx`
+
+## 2026-08-13 자유게시판 동일 작성자의 이전 글 덮어쓰기
+
+- 상태: 원인 확정, 서버 수정·운영 복원 준비
+- 현상: 관리자가 자유게시판에 `경성홀 입장료변경안내`를 새로 등록한 직후 기존 글 일부가 목록과 DB에서 사라졌다. 새 글 등록 뒤 자유게시판 전체 건수가 증가하지 않았다.
+- 운영 증거: Apache 접근 로그에는 2026-08-13 10:21:23 KST 요청이 수정이 아닌 `POST /api/cafe24-data/board_posts/insert`와 HTTP 201로 기록됐다. 그러나 새 글은 작성자 사용자 ID와 같은 기존 레코드 ID를 사용했다. 2026-07-14부터 2026-08-13까지의 로컬 전체 DB 백업을 대조한 결과 같은 레코드가 `이벤트수집 규칙`에서 `제주스윙캠프 2026 취소소식`, 다시 `경성홀 입장료변경안내`로 교체됐다.
+- 원인: 범용 레코드 ID 계산기가 명시적 ID와 자연 키가 없는 모든 행에서 `user_id`를 최종 식별자로 사용했다. 따라서 소유권 필드만 가진 `board_posts`, `board_comments` 등 다건 테이블은 같은 사용자의 두 번째 insert가 첫 번째 행과 같은 `(table_name, record_id)`를 만들었고 `ON DUPLICATE KEY UPDATE`가 기존 행을 덮어썼다.
+- 조치: 복합 키 테이블은 선언된 전체 키, 기존 행은 명시적 ID, 신규 upsert는 전체 conflict 키, 자연 키 테이블은 자연 키를 사용한다. `user_id` 단독 식별은 `board_admins`, `board_users`, `user_home_menu_settings`처럼 사용자당 한 행인 테이블에만 허용하고 나머지 ID 없는 행에는 새 UUID를 부여한다. 생성 응답의 JSON에도 계산된 ID를 항상 기록한다.
+- 복원 범위: 백업에서 서로 다른 기존 글 2건의 마지막 정상 본문·메타데이터를 확보했다. 현재 글을 먼저 새 UUID로 보존한 뒤 두 과거 글을 각각 독립 ID로 복원하며, 관련 댓글·좋아요·즐겨찾기·읽음 행이 현재 0건임을 확인했다.
+- 검증: 범용 ID 정책 회귀 테스트 5개를 포함한 Cafe24 서버 테스트 19개 파일·188개 테스트, 대상 ESLint, 프로덕션 프런트엔드·서버 함수 빌드가 통과했다. 운영 복원·배포 결과는 완료 후 이 항목에 추가한다.
+- 관련 결정: `docs/decisions/2026-08-13-generic-record-identity.md`
+- 관련 파일: `server/cafe24/generic-data-api.js`, `server/cafe24/generic-record-id.test.js`
