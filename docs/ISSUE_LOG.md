@@ -1770,22 +1770,26 @@
 
 ## 2026-08-13 자유게시판 UUID 머릿말 수정 누락 및 상세 새로고침 403
 
-- 상태: 수정·회귀 검증 완료, 운영 배포·데이터 교정 대기
+- 상태: 수정·운영 데이터 교정·배포 검증 완료
 - 현상: 관리자 메뉴에서 자유게시판 머릿말 `뉴스`를 추가한 뒤 `경성홀 입장료변경안내` 글의 머릿말을 변경했지만 목록에 적용되지 않았다. UUID 게시글 상세 주소를 새로고침하면 간헐적으로 흰색 `Forbidden` 화면이 표시됐다.
 - 운영 증거: `뉴스` 머릿말은 ID `b8e2e936-f6c6-487e-8880-3fa0c1ae0d5a`로 2026-08-13 10:54 KST 생성됐다. 대상 글은 10:55 KST 수정됐지만 `prefix_id=null`이었다. Apache 감사 로그에서 10:54:41·10:54:43 KST의 `/board?category=free&postId=8ca978c6-cb7b-4ba9-aaac-bc8f11c9512f` 요청이 ModSecurity CRS 2.2.9 규칙 `981173`의 SQL 문자 이상 탐지로 403 처리됐으며, UUID의 하이픈 네 개가 오탐 근거였다. 같은 규칙은 `/calendar?id=<UUID>` 직접 진입도 차단할 수 있었다.
 - 원인: 게시글 편집기가 머릿말 선택값에 `Number()` 또는 `parseInt()`를 적용해 UUID를 `NaN`으로 만들었고 JSON 직렬화 과정에서 `null`이 됐다. 머릿말 관리 모달은 자체 목록만 다시 불러와 게시판 정적 데이터 캐시를 갱신하지 않았다. Apache에는 SPA 상세 이동용 UUID 쿼리 인수에 대한 좁은 예외가 없었다.
-- 조치: 머릿말 ID를 `number | string` 불투명 식별자로 통일하고 숫자 레거시 값만 안전하게 숫자로 복원한다. 추가·수정·삭제 후 게시판 정적 데이터를 함께 갱신한다. ModSecurity 규칙 `981173`에서 `/board`의 `postId`와 `/calendar`의 `id` 인수만 검사 대상에서 제외하며 API와 다른 인수의 검사는 유지한다. 운영 교정 스크립트는 대상 글과 `뉴스` 머릿말의 제목·ID·카테고리를 잠근 뒤 해당 `prefix_id`만 복구한다.
-- 검증: 머릿말 UUID·보안 설정 회귀 테스트, 대상 ESLint, 프로덕션 빌드와 전체 Vitest 64개 파일·372개 테스트가 통과했다.
+- 조치: 머릿말 ID를 `number | string` 불투명 식별자로 통일하고 숫자 레거시 값만 안전하게 숫자로 복원한다. 추가·수정·삭제 후 게시판 정적 데이터를 함께 갱신한다. ModSecurity 규칙 `981173`에서 `/board`의 `postId`와 `/calendar`의 `id` 인수만 검사 대상에서 제외하며 API와 다른 인수의 검사는 유지한다. 이 서버의 `REQUEST_URI`에는 쿼리 문자열도 포함되므로 정확 경로와 `?` 또는 값 끝을 일치시키는 좁은 정규식으로 예외를 등록했다. 운영 교정 스크립트는 대상 글과 `뉴스` 머릿말의 제목·ID·카테고리를 잠근 뒤 해당 `prefix_id`만 복구했다.
+- 운영 교정: 미리보기에서 대상 글의 `prefix_id`가 `null`이고 교정 대상이 `뉴스` UUID임을 확인한 뒤 한 트랜잭션으로 적용했다. 교정 전 게시글·머릿말·이벤트·수집 후보 원본은 권한 0600 백업 `/opt/swingenjoy/backups/data-fixes/2026-08-13-prefix-benefit-2026-08-13T02-22-16-161Z.json`에 보존했다. 재실행 결과는 `alreadyApplied=true`였다.
+- 검증: 머릿말 UUID·보안 설정 회귀 테스트, Node 테스트 25개, 대상 ESLint, 프로덕션 빌드와 전체 Vitest 64개 파일·372개 테스트가 통과했다. 운영 API에서 `경성홀 입장료변경안내`의 머릿말 UUID와 `뉴스` 조인이 일치했고, 관리자 브라우저의 목록·상세에도 `뉴스`가 표시됐다. 게시글과 달력 UUID 직접 주소는 모두 HTTP 200이며 Apache 설정은 `Syntax OK`, 서비스는 정상이다. 공개 빌드는 `1786587934399` (`2026-08-13T02:25:38.951Z`)이다.
+- 관련 커밋: `2bb4b35c`, `efc57b29`
 - 관련 결정: `docs/decisions/2026-08-13-generic-record-identity.md`
 - 관련 파일: `src/utils/boardPrefixId.ts`, `src/pages/board/components/UniversalPostEditor.tsx`, `src/components/BoardPrefixManagementModal.tsx`, `deploy/cafe24/apache/00-swingenjoy-modsecurity-exceptions.conf`, `scripts/repair-2026-08-13-prefix-and-benefit.mjs`
 
 ## 2026-08-13 수집 일정의 얼리버드 할인 오분류 및 상세 교정 기능 누락
 
-- 상태: 수정·회귀 검증 완료, 운영 배포·데이터 교정 대기
+- 상태: 수정·운영 데이터 교정·배포 검증 완료
 - 현상: 수집 후보에서 등록한 `대전 피버 토 졸파`가 일반 유료 행사인데 무료·할인 이벤트에 노출됐다. 달력 상세 인라인 수정 화면에는 혜택 분류를 해제하거나 바꾸는 기능이 없었다.
 - 운영 증거: 운영 이벤트 ID `4cc850cb-3d38-458c-9ef2-3d30b7baa221`와 수집 후보 ID `3e37414b5bf363f2`가 모두 `benefit_eligible=true`, `benefit_kind=discount_event`였다. 후보의 AI 검토도 `review`, 신뢰도 0.94로 수동 검수를 요구했으며 할인 근거로 `얼리버드 5인: 6,000원 / 사전 신청: 12,000원 / 현장 신청: 20,000원` 입장료 구간을 제시했다.
 - 원인: 결정 규칙이 `얼리버드` 또는 `early bird` 단어만 있어도 할인으로 확정했다. 등록용 전체 편집기에는 혜택 선택기가 있었지만 사용자가 실제로 연 상세 인라인 편집기는 별도 구현이며 해당 필드를 제공하지 않았다.
-- 조치: `얼리버드`·`조기 등록`은 할인·특가·혜택 또는 할인율이 같은 근거 범위에 있을 때만 할인으로 판정한다. 상세 인라인 편집 상단에 `일반/무료/할인 이벤트/정기권` 선택을 추가하고 `일반` 저장 시 두 혜택 필드를 일관되게 해제한다. 운영 교정 스크립트는 이벤트와 연결된 수집 후보를 함께 일반 일정으로 바꾸고 대상 원본을 트랜잭션 전 백업한다.
-- 검증: 실제 입장료 문구가 일반 일정으로 남는 수집 회귀 사례, 상세 편집 선택기 테스트, 혜택 상태 정규화 테스트를 추가했다. 수집 표준 테스트, 대상 ESLint, 프로덕션 빌드와 전체 Vitest 64개 파일·372개 테스트가 통과했다.
+- 조치: `얼리버드`·`조기 등록`은 할인·특가·혜택 또는 할인율이 같은 근거 범위에 있을 때만 할인으로 판정한다. 상세 인라인 편집 상단에 `일반/무료/할인 이벤트/정기권` 선택을 추가하고 `일반` 저장 시 두 혜택 필드를 일관되게 해제한다. 운영 교정 스크립트는 이벤트와 연결된 수집 후보를 같은 트랜잭션에서 일반 일정으로 바꾸고 대상 원본을 적용 전에 백업했다.
+- 운영 교정: `대전 피버 토 졸파` 이벤트는 `benefit_eligible=false`, `benefit_kind=null`로 바꾸고 연결된 수집 후보에서는 혜택 분류·수명주기 필드를 제거했다. 적용 전 미리보기와 적용 후 `alreadyApplied=true` 재검증을 모두 통과했다.
+- 검증: 실제 입장료 문구가 일반 일정으로 남는 수집 회귀 사례, 상세 편집 선택기 테스트, 혜택 상태 정규화 테스트를 추가했다. 수집 표준 테스트, 대상 ESLint, 프로덕션 빌드와 전체 Vitest 64개 파일·372개 테스트가 통과했다. 공개 이벤트 API가 `false/null`을 반환하고 혜택 모아보기에는 해당 일정이 0건이며, 관리자 상세 수정 화면에서 현재 `일반`과 네 가지 선택지가 표시됨을 확인했다. 공개 빌드는 `1786587934399`다.
+- 관련 커밋: `2bb4b35c`
 - 관련 결정: `docs/decisions/2026-08-13-benefit-classification-evidence.md`
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/test-ingestion-standards.mjs`, `src/pages/v2/components/EventDetailModal.tsx`, `src/pages/v2/components/EventEditBottomSheet.tsx`, `src/utils/eventBenefitKind.ts`, `scripts/repair-2026-08-13-prefix-and-benefit.mjs`
