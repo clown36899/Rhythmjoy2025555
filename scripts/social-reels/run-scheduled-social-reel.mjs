@@ -6,7 +6,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import dotenv from 'dotenv';
 
-import { publishInstagramReel } from './instagram-reel-adb.mjs';
+import {
+  publicationNeedsReconciliation,
+  publishInstagramReel,
+} from './instagram-reel-adb.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, '../..');
@@ -77,6 +80,36 @@ function wait(milliseconds) {
 
 export function canRetryPublicationState(state = {}) {
   return state.status === 'failed-before-share';
+}
+
+export function buildPublicationProblemNotification({
+  date,
+  elapsedSeconds,
+  errorMessage,
+  state = {},
+}) {
+  if (publicationNeedsReconciliation(state)) {
+    return {
+      title: 'Rhythmjoy Instagram 확인 대기',
+      message: [
+        'Instagram 릴스 공유 완료 · 게시 확인 대기',
+        `날짜: ${date}`,
+        '공유 버튼 입력은 완료됐습니다.',
+        '프로필 수치가 아직 갱신되지 않아 중복 방지를 위해 재게시하지 않습니다.',
+        `확인: ${errorMessage}`,
+        `소요: ${elapsedSeconds}초`,
+      ].join('\n'),
+    };
+  }
+  return {
+    title: 'Rhythmjoy Instagram 오류',
+    message: [
+      'Instagram 릴스 자동화 실패',
+      `날짜: ${date}`,
+      `오류: ${errorMessage}`,
+      `소요: ${elapsedSeconds}초`,
+    ].join('\n'),
+  };
 }
 
 async function publishWithSafeRetries(options, publicationStatePath) {
@@ -158,15 +191,15 @@ async function main() {
     || defaultEnvironmentPath;
   await loadShellCompatibleEnvironment(environmentPath);
   const startedAt = Date.now();
+  const publicationStatePath = path.join(
+    repositoryRoot,
+    'artifacts/social-reels',
+    date,
+    'publication-state.json',
+  );
 
   try {
     await run(process.execPath, [generatorRunner, `--date=${date}`]);
-    const publicationStatePath = path.join(
-      repositoryRoot,
-      'artifacts/social-reels',
-      date,
-      'publication-state.json',
-    );
     const result = await publishWithSafeRetries(
       {
         date,
@@ -178,7 +211,11 @@ async function main() {
     );
     const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
     await notify([
-      dryRun ? 'Instagram 릴스 드라이런 완료' : 'Instagram 릴스 자동 게시 완료',
+      dryRun
+        ? 'Instagram 릴스 드라이런 완료'
+        : result.recoveredAt
+          ? 'Instagram 릴스 게시 확인 완료'
+          : 'Instagram 릴스 자동 게시 완료',
       `날짜: ${date}`,
       `상태: ${result.status}`,
       result.selectedTrack
@@ -189,13 +226,16 @@ async function main() {
     console.log(JSON.stringify({ ...result, totalElapsedSeconds: Number(elapsedSeconds) }, null, 2));
   } catch (error) {
     const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-    await notify([
-      'Instagram 릴스 자동화 실패',
-      `날짜: ${date}`,
-      `공유 후 검증 불명확이면 중복 방지를 위해 자동 재시도하지 않습니다.`,
-      `오류: ${error.message}`,
-      `소요: ${elapsedSeconds}초`,
-    ].join('\n'), 'Rhythmjoy Instagram 오류');
+    const state = JSON.parse(
+      await readFile(publicationStatePath, 'utf8').catch(() => '{}'),
+    );
+    const notification = buildPublicationProblemNotification({
+      date,
+      elapsedSeconds,
+      errorMessage: error.message,
+      state,
+    });
+    await notify(notification.message, notification.title);
     throw error;
   }
 }

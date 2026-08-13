@@ -583,6 +583,40 @@ export function parseInstagramPostCount(nodes) {
   return null;
 }
 
+export function parseAndroidDisplaySize(output = '') {
+  const physicalMatch = String(output).match(/Physical size:\s*(\d+)x(\d+)/i);
+  const overrideMatch = String(output).match(/Override size:\s*(\d+)x(\d+)/i);
+  const match = overrideMatch || physicalMatch;
+  if (!match) return null;
+  return {
+    width: Number(match[1]),
+    height: Number(match[2]),
+  };
+}
+
+export function profileRefreshSwipeArguments(displaySize) {
+  if (
+    !Number.isFinite(displaySize?.width)
+    || !Number.isFinite(displaySize?.height)
+    || displaySize.width <= 0
+    || displaySize.height <= 0
+  ) {
+    throw new Error('A valid Android display size is required to refresh the profile.');
+  }
+  const centerX = Math.round(displaySize.width / 2);
+  const startY = Math.round(displaySize.height * 0.21);
+  const endY = Math.round(displaySize.height * 0.625);
+  return [
+    'input',
+    'swipe',
+    String(centerX),
+    String(startY),
+    String(centerX),
+    String(endY),
+    '700',
+  ];
+}
+
 export function publicationNeedsReconciliation(state = {}) {
   return ['sharing', 'verification-required'].includes(state.status);
 }
@@ -620,7 +654,39 @@ async function openInstagramProfile() {
   return postCount;
 }
 
-async function readExpectedProfilePostCountForVerification() {
+async function refreshInstagramProfileCount(initialCount, previousCount) {
+  const { stdout: displaySizeOutput } = await adbShell('wm', 'size');
+  const displaySize = parseAndroidDisplaySize(displaySizeOutput);
+  if (!displaySize) {
+    throw new Error(`Could not read the Android display size: ${displaySizeOutput.trim()}`);
+  }
+
+  await adbShell(...profileRefreshSwipeArguments(displaySize));
+  const deadline = Date.now() + 8_000;
+  let latestCount = initialCount;
+  await wait(1_000);
+
+  while (Date.now() < deadline) {
+    const nodes = await dumpUi();
+    const onExpectedProfile = nodes.some((node) => (
+      node.resourceId.endsWith(':id/action_bar_title')
+      && node.text === expectedAccount
+    ));
+    if (onExpectedProfile) {
+      const currentCount = parseInstagramPostCount(nodes);
+      if (Number.isInteger(currentCount)) {
+        latestCount = currentCount;
+        if (currentCount !== initialCount || currentCount > previousCount) {
+          return currentCount;
+        }
+      }
+    }
+    await wait(pollIntervalMs);
+  }
+  return latestCount;
+}
+
+async function readExpectedProfilePostCountForVerification(previousCount) {
   await adbShell(
     'am',
     'start',
@@ -635,10 +701,20 @@ async function readExpectedProfilePostCountForVerification() {
     { resourceIdEndsWith: ':id/action_bar_title', text: expectedAccount },
     { timeout: 30_000 },
   );
-  const postCount = parseInstagramPostCount(nodes);
+  const initialCount = parseInstagramPostCount(nodes);
+  const postCount = Number.isInteger(previousCount) && initialCount > previousCount
+    ? initialCount
+    : await refreshInstagramProfileCount(initialCount, previousCount);
   if (!Number.isInteger(postCount)) {
     throw new Error('Could not read the Instagram profile post count during verification.');
   }
+  console.log(JSON.stringify({
+    status: 'instagram-profile-count-checked',
+    previousCount,
+    initialCount,
+    postCount,
+    refreshed: postCount === initialCount ? initialCount <= previousCount : true,
+  }));
   return postCount;
 }
 
@@ -820,14 +896,15 @@ async function verifyPostCountIncrement(previousCount, timeout = 10 * 60_000) {
   await wait(20_000);
   while (Date.now() < deadline) {
     try {
-      const currentCount = await readExpectedProfilePostCountForVerification();
+      const currentCount = await readExpectedProfilePostCountForVerification(previousCount);
       if (Number.isInteger(currentCount) && currentCount > previousCount) {
         return currentCount;
       }
-    } catch {
+    } catch (error) {
       // Instagram may still be encoding or uploading; poll again.
+      console.warn(`Instagram profile verification check failed: ${error.message}`);
     }
-    await wait(8_000);
+    await wait(20_000);
   }
   return null;
 }
@@ -861,7 +938,9 @@ export async function publishInstagramReel(options = {}) {
   try {
     if (publicationNeedsReconciliation(previousState)) {
       await ensureEmulator();
-      const currentCount = await readExpectedProfilePostCountForVerification();
+      const currentCount = await readExpectedProfilePostCountForVerification(
+        previousState.postCountBefore,
+      );
       if (publicationCountConfirmsSuccess(previousState, currentCount)) {
         const recoveredAt = new Date();
         const recoveredState = {

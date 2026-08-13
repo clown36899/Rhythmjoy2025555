@@ -29,7 +29,7 @@ export interface StandardBoardPost extends BaseBoardPost {
     comment_count?: number; // Often joined or counted
     likes_count?: number;
     favorites_count?: number;
-    is_hidden?: boolean; // For admin visibility control
+    is_hidden?: boolean; // Private to the author/admin, or hidden by an admin
     // Standard specific fields
 }
 

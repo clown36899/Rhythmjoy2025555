@@ -8,14 +8,17 @@ import {
   initialInstagramPermissionAction,
   instagramOnboardingDismissAction,
   isInstalledPackagePath,
+  parseAndroidDisplaySize,
   parseAdbDevices,
   parseInstagramPostCount,
   parseUiNodes,
+  profileRefreshSwipeArguments,
   publicationCountConfirmsSuccess,
   publicationNeedsReconciliation,
   selectTargetEmulatorSerial,
 } from './instagram-reel-adb.mjs';
 import {
+  buildPublicationProblemNotification,
   canRetryPublicationState,
   resolveShellDefaultExpression,
 } from './run-scheduled-social-reel.mjs';
@@ -162,6 +165,22 @@ test('post-share verification parses profile counts and reconciles only uncertai
   );
 });
 
+test('profile verification refresh uses the active Android display dimensions', () => {
+  assert.deepEqual(
+    parseAndroidDisplaySize('Physical size: 1080x2400\n'),
+    { width: 1080, height: 2400 },
+  );
+  assert.deepEqual(
+    parseAndroidDisplaySize('Physical size: 1080x2400\nOverride size: 720x1600\n'),
+    { width: 720, height: 1600 },
+  );
+  assert.equal(parseAndroidDisplaySize('size unavailable'), null);
+  assert.deepEqual(
+    profileRefreshSwipeArguments({ width: 1080, height: 2400 }),
+    ['input', 'swipe', '540', '504', '540', '1500', '700'],
+  );
+});
+
 test('initial Instagram permissions allow media but deny camera and microphone', () => {
   assert.deepEqual(
     initialInstagramPermissionAction([
@@ -240,4 +259,25 @@ test('publisher retries only failures known to occur before Share', () => {
   assert.equal(canRetryPublicationState({ status: 'failed-before-share' }), true);
   assert.equal(canRetryPublicationState({ status: 'verification-required' }), false);
   assert.equal(canRetryPublicationState({ status: 'published' }), false);
+});
+
+test('post-share uncertainty is reported as confirmation pending instead of failure', () => {
+  const pending = buildPublicationProblemNotification({
+    date: '2026-08-13',
+    elapsedSeconds: '816.9',
+    errorMessage: 'Profile count did not confirm publication.',
+    state: { status: 'verification-required' },
+  });
+  assert.equal(pending.title, 'Rhythmjoy Instagram 확인 대기');
+  assert.match(pending.message, /공유 완료 · 게시 확인 대기/);
+  assert.doesNotMatch(pending.message, /자동화 실패/);
+
+  const failed = buildPublicationProblemNotification({
+    date: '2026-08-13',
+    elapsedSeconds: '20.0',
+    errorMessage: 'Instagram is not installed.',
+    state: { status: 'failed-before-share' },
+  });
+  assert.equal(failed.title, 'Rhythmjoy Instagram 오류');
+  assert.match(failed.message, /자동화 실패/);
 });

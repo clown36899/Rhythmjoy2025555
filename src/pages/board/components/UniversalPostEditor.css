@@ -83,6 +83,18 @@
     cursor: pointer;
 }
 
+.pem-private-checkbox-label {
+    flex-wrap: wrap;
+}
+
+.pem-private-description {
+    flex-basis: 100%;
+    padding-left: 24px;
+    color: #8f96a3;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
 @media (max-width: 640px) {
     .image-upload-area {
         height: 120px;

@@ -32,6 +32,10 @@ import { saveUserNotificationPreferences } from './notification-preferences.js';
 import { getPushSubscriptionRecordId } from './push-subscription-key.js';
 import { comparableGenericFilterPair } from './generic-filter-comparison.js';
 import { buildAnalyticsSessionSummary } from './analytics-session-summary.js';
+import {
+  sanitizeBoardPostForViewer,
+  sanitizeBoardPostsForViewer,
+} from './board-post-security.js';
 
 const tableNameRe = /^[a-z0-9_-]+$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -424,9 +428,11 @@ function sanitizeBoardUserForViewer(row = {}, user) {
 
 function sanitizeRowForViewer(table, row = {}, user) {
   let next = stripPrivateFields(row || {});
+  if (table === 'board_posts') next = sanitizeBoardPostForViewer(next, user);
   if (table === 'board_users') next = sanitizeBoardUserForViewer(next, user);
   if (table === 'sns_media_items' && !user?.is_admin) delete next.views;
   if (next.board_users) next.board_users = sanitizeBoardUserForViewer(next.board_users, user);
+  if (next.board_posts) next.board_posts = sanitizeBoardPostForViewer(next.board_posts, user);
   return next;
 }
 
@@ -453,6 +459,12 @@ function queryRequestsDeletedRows(body = {}) {
 }
 
 function filterRowsForViewer(table, rows = [], user, body = {}) {
+  if (table === 'board_posts') {
+    // Redact before applying caller-provided filters so private titles,
+    // authors and content cannot be inferred through exact-match queries.
+    return sanitizeBoardPostsForViewer(rows, user);
+  }
+
   if (table === 'sns_media_items') {
     const wantsDeletedRows = queryRequestsDeletedRows(body);
     const scopedRows = rows.filter((row) => (wantsDeletedRows ? isDeletedGenericRow(row) : !isDeletedGenericRow(row)));
@@ -1492,6 +1504,7 @@ function responsePayload({ data, error = null, count = null, status = 200 }) {
 
 function queryNeedsCurrentUser(table, select = '') {
   if (table === 'events') return true;
+  if (table === 'board_posts' || String(select || '').includes('board_posts')) return true;
   if (table === 'board_users') return true;
   if (table === 'user_home_menu_settings') return true;
   if (table === 'sns_media_playlists' || table === 'sns_media_items' || table === 'site_links') return true;

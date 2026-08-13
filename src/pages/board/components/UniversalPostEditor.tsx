@@ -476,8 +476,11 @@ export default function UniversalPostEditor({
                             </label>
                         )}
 
-                        {(preset?.showHiddenOption || (post && formData.is_hidden)) && (
-                            <label className="pem-checkbox-label pem-private-checkbox-label">
+                        {(formData.category === 'free' || preset?.showHiddenOption || (post && formData.is_hidden)) && (
+                            <label
+                                className="pem-checkbox-label pem-private-checkbox-label"
+                                title="작성자와 관리자만 이 글을 볼 수 있습니다."
+                            >
                                 <input
                                     type="checkbox"
                                     checked={formData.is_hidden}
@@ -487,9 +490,14 @@ export default function UniversalPostEditor({
                                     }))}
                                 />
                                 <span className="manual-label-wrapper">
-                                    <span className="translated-part">Private to admins</span>
+                                    <span className="translated-part">Private post</span>
                                     <span className="fixed-part ko" translate="no">비공개로 등록</span>
-                                    <span className="fixed-part en" translate="no">Private to admins</span>
+                                    <span className="fixed-part en" translate="no">Private post</span>
+                                </span>
+                                <span className="pem-private-description manual-label-wrapper">
+                                    <span className="translated-part">Only you and admins can view it.</span>
+                                    <span className="fixed-part ko" translate="no">작성자와 관리자만 볼 수 있습니다.</span>
+                                    <span className="fixed-part en" translate="no">Only you and admins can view it.</span>
                                 </span>
                             </label>
                         )}
