@@ -9,11 +9,11 @@ test('direct UUID navigation excludes only the affected SPA query arguments', as
 
   assert.match(
     config,
-    /@streq \/board.*ctl:ruleRemoveTargetById=981173;ARGS:postId/,
+    /@rx \^\/board\(\?:\[\?\]\|\$\).*ctl:ruleRemoveTargetById=981173;ARGS:postId/,
   );
   assert.match(
     config,
-    /@streq \/calendar.*ctl:ruleRemoveTargetById=981173;ARGS:id/,
+    /@rx \^\/calendar\(\?:\[\?\]\|\$\).*ctl:ruleRemoveTargetById=981173;ARGS:id/,
   );
   assert.doesNotMatch(config, /<Location "\/board">\s*SecRuleRemoveById 981173/);
 });
