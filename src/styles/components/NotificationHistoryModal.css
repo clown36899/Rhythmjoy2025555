@@ -132,59 +132,6 @@
     letter-spacing: 0;
 }
 
-.nhm-route-summary {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.nhm-route-summary-item {
-    display: grid;
-    min-width: 0;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 7px;
-    padding: 10px 11px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.045);
-    color: #cbd5e1;
-    font-size: 0.78rem;
-    font-weight: 800;
-}
-
-.nhm-route-summary-item i {
-    font-size: 1rem;
-}
-
-.nhm-route-summary-item span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.nhm-route-summary-item strong {
-    display: inline-flex;
-    min-width: 24px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    padding-inline: 6px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    font-size: 0.78rem;
-}
-
-.nhm-route-summary-item.is-today i {
-    color: #60a5fa;
-}
-
-.nhm-route-summary-item.is-new i {
-    color: #34d399;
-}
-
 .nhm-notification-section {
     gap: 9px;
     padding-top: 4px;
@@ -501,12 +448,6 @@
 
     .nhm-body {
         padding: 12px;
-    }
-
-    .nhm-route-summary-item {
-        gap: 6px;
-        padding: 9px;
-        font-size: 0.75rem;
     }
 
     .nhm-item {

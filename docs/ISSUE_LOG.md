@@ -1803,3 +1803,12 @@
 - 검증: 머릿말 DOM 구조·모바일 조회수·이미지 비드래그 및 상세 변경 목록 동기화 회귀 사례를 포함한 전체 Vitest 66개 파일·376개 테스트, 대상 ESLint와 Cafe24 운영 빌드가 통과했다. 운영 DB 연결 로컬 사이트의 390×844 모바일 렌더에서 배지는 24×14px, 배지 왼쪽 4px·제목 왼쪽 12px, 세로 겹침 약 1px로 측정됐다. 이미지 없는 카드와 비공개 카드는 70px, 썸네일 카드는 약 72.5px로 복원됐고 작성자·날짜·조회수·댓글 메타데이터 넘침과 드래그 가능한 썸네일은 모두 0건이었다. 후속 커밋 `07444a1d`를 푸시·배포한 뒤 운영 모바일 351×760 화면에서도 동일한 24×14px 배지, 제목과 약 1px 겹침, 70~73px 카드 높이, 조회수 표시, 메타데이터 넘침 0건과 드래그 가능한 썸네일 0건을 재확인했다. 외부 상태 확인과 자유게시판 응답은 정상이었으며 공개 빌드는 `1786590058891` (`2026-08-13T03:01:03.414Z`)이다.
 - 관련 커밋: `c867db26`, `07444a1d`
 - 관련 파일: `src/pages/board/BoardMainContainer.tsx`, `src/pages/board/board.css`, `src/pages/board/components/StandardPostList.tsx`, `src/pages/board/components/BoardDetailModal.tsx`, `src/pages/board/components/UniversalPostEditor.tsx`, `src/pages/board/components/CommentSection.tsx`, `src/pages/board/hooks/useBoardDetail.ts`
+
+## 2026-08-13 알림함 오늘 일정·신규 등록 중복 기준과 개수 표시 혼선
+
+- 상태: 수정·회귀 검증 완료
+- 현상: 알림함 상단과 각 섹션 제목에 `오늘 일정`·`신규 등록` 건수가 반복 표시됐다. 오늘 열리는 일정이라도 알림 원본이 신규 등록 경로이면 `신규 등록` 구역에 남아, 일정 날짜와 알림 생성 경로 중 무엇이 분류 기준인지 혼동될 수 있었다.
+- 원인: 화면 분류가 일정의 실제 개최일을 확인하지 않고 `daily_schedule` 또는 `new_event` 알림 종류만 그대로 사용했다. 별도의 경로별 숫자 요약과 섹션 제목의 괄호 숫자도 같은 값을 중복 노출했다.
+- 조치: 상단의 경로별 숫자 요약을 제거하고 모든 섹션 제목에서 괄호 개수를 뺐다. 신규 등록 알림은 알림 데이터와 최신 일정 미리보기의 시작일·종료일·명시 개최일을 달력과 같은 KST 날짜 규칙으로 판정하며, 오늘 일정이면 `오늘 일정`에 먼저 배치하고 그 밖의 항목만 `신규 등록`에 남긴다. 전체 읽지 않은 알림 수는 알림함 제목에만 유지한다.
+- 검증: 오늘 날짜와 미래 날짜의 신규 등록을 함께 둔 회귀 테스트에서 오늘 신규 일정은 `daily_schedule`, 미래 신규 일정은 `new_event` 구역에 각각 한 번만 분류되고 상단 숫자 요약과 섹션별 괄호 숫자가 렌더되지 않음을 확인했다. 대상 ESLint·TypeScript 검사, 전체 Vitest 66개 파일·376개 테스트와 Cafe24 프로덕션 빌드가 통과했다. 운영 DB 연결 로컬 사이트의 390×844 모바일 렌더에서 상단 요약 0개, 숫자가 붙은 섹션 제목 0개, 가로 넘침 0px와 드래그 가능한 이미지 0건을 확인했다.
+- 관련 파일: `src/components/NotificationHistoryModal.tsx`, `src/components/NotificationHistoryModal.test.tsx`, `src/styles/components/NotificationHistoryModal.css`

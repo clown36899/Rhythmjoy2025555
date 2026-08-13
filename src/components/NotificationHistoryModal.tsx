@@ -6,6 +6,7 @@ import type { SiteNotificationItem } from '../lib/siteNotificationInbox';
 import { useModalActions } from '../contexts/ModalContext';
 import { cafe24 } from '../lib/cafe24Client';
 import { normalizeNotificationLaunchTarget } from '../lib/notificationLaunch';
+import { isEventShownOnCalendarDate } from '../utils/calendarEventVisibility';
 import "../styles/components/NotificationHistoryModal.css";
 
 interface NotificationHistoryModalProps {
@@ -28,6 +29,8 @@ interface NotificationDisplayItem {
     category?: string | null;
     location?: string | null;
     date?: string | null;
+    endDate?: string | null;
+    eventDates?: string[] | null;
     digestDate?: string | null;
     kind: NotificationDisplayKind;
 }
@@ -42,11 +45,33 @@ interface NotificationDisplaySection {
     items: NotificationDisplayItem[];
 }
 
+interface NotificationPayloadItem {
+    url?: string;
+    eventId?: string | number;
+    event_id?: string | number;
+    title?: string;
+    body?: string;
+    image?: string | null;
+    image_thumbnail?: string | null;
+    image_medium?: string | null;
+    icon?: string | null;
+    category?: string | null;
+    location?: string | null;
+    date?: string | null;
+    start_date?: string | null;
+    endDate?: string | null;
+    end_date?: string | null;
+    eventDates?: string[] | null;
+    event_dates?: string[] | null;
+}
+
 type EventPreview = {
     id: number | string;
     title?: string | null;
     date?: string | null;
     start_date?: string | null;
+    end_date?: string | null;
+    event_dates?: string[] | null;
     location?: string | null;
     category?: string | null;
     image?: string | null;
@@ -141,9 +166,10 @@ export default function NotificationHistoryModal({
             const kind = getNotificationDisplayKind(notification);
             const items = Array.isArray(notification.data?.items) ? notification.data.items : null;
             if (items?.length) {
-                return items.map((item: any, index: number) => {
+                return items.map((item: NotificationPayloadItem, index: number) => {
                     const url = item.url || notification.url || notification.data?.url;
-                    const eventId = item.eventId || item.event_id || extractEventId(url);
+                    const rawEventId = item.eventId || item.event_id || extractEventId(url);
+                    const eventId = rawEventId === undefined ? undefined : String(rawEventId);
                     return {
                         id: `${notification.id}-${eventId || index}`,
                         notification,
@@ -154,7 +180,9 @@ export default function NotificationHistoryModal({
                         eventId,
                         category: item.category || notification.data?.category,
                         location: item.location,
-                        date: item.date || item.start_date,
+                        date: item.date || item.start_date || notification.data?.date || notification.data?.startDate,
+                        endDate: item.endDate || item.end_date || notification.data?.endDate || notification.data?.end_date,
+                        eventDates: item.eventDates || item.event_dates || notification.data?.eventDates || notification.data?.event_dates,
                         digestDate: kind === 'daily_schedule' ? notification.data?.date : null,
                         kind,
                     };
@@ -172,23 +200,58 @@ export default function NotificationHistoryModal({
                 image: notification.data?.image || notification.image || notification.icon,
                 eventId,
                 category: notification.data?.category,
+                location: notification.data?.location,
+                date: notification.data?.date || notification.data?.startDate || notification.data?.start_date,
+                endDate: notification.data?.endDate || notification.data?.end_date,
+                eventDates: notification.data?.eventDates || notification.data?.event_dates,
                 digestDate: kind === 'daily_schedule' ? notification.data?.date : null,
                 kind,
             }];
         });
     }, [notifications]);
 
+    const prioritizedDisplayItems = React.useMemo<NotificationDisplayItem[]>(() => {
+        const todayDateKey = getKstDateKey();
+        const dailyEventIds = new Set(
+            displayItems
+                .filter(item => (
+                    item.kind === 'daily_schedule'
+                    && item.eventId
+                    && String(item.digestDate || '').slice(0, 10) === todayDateKey
+                ))
+                .map(item => String(item.eventId)),
+        );
+
+        return displayItems.map((item) => {
+            if (item.kind !== 'new_event') return item;
+
+            const preview = item.eventId ? eventPreviews[item.eventId] : undefined;
+            const isAlreadyInDailySchedule = Boolean(item.eventId && dailyEventIds.has(String(item.eventId)));
+            const isScheduledToday = isEventShownOnCalendarDate({
+                category: preview?.category || item.category,
+                date: preview?.date || item.date,
+                start_date: preview?.start_date || item.date,
+                end_date: preview?.end_date || item.endDate,
+                event_dates: preview?.event_dates || item.eventDates,
+            }, todayDateKey);
+
+            return isAlreadyInDailySchedule || isScheduledToday
+                ? { ...item, kind: 'daily_schedule', digestDate: todayDateKey }
+                : item;
+        });
+    }, [displayItems, eventPreviews]);
+
     const displaySections = React.useMemo<NotificationDisplaySection[]>(() => {
         const byKind = {
-            daily_schedule: displayItems.filter(item => item.kind === 'daily_schedule'),
-            new_event: displayItems.filter(item => item.kind === 'new_event'),
-            other: displayItems.filter(item => item.kind === 'other'),
+            daily_schedule: prioritizedDisplayItems.filter(item => item.kind === 'daily_schedule'),
+            new_event: prioritizedDisplayItems.filter(item => item.kind === 'new_event'),
+            other: prioritizedDisplayItems.filter(item => item.kind === 'other'),
         };
         return [
             {
                 kind: 'daily_schedule' as const,
                 title: '오늘 일정',
-                description: '시작일이 오늘인 일정',
+                description: '오늘 진행되는 일정',
                 icon: 'ri-calendar-check-line',
                 items: byKind.daily_schedule,
             },
@@ -207,10 +270,7 @@ export default function NotificationHistoryModal({
                 items: byKind.other,
             },
         ].filter(section => section.items.length > 0);
-    }, [displayItems]);
-
-    const dailyScheduleCount = displayItems.filter(item => item.kind === 'daily_schedule').length;
-    const newEventCount = displayItems.filter(item => item.kind === 'new_event').length;
+    }, [prioritizedDisplayItems]);
 
     React.useEffect(() => {
         if (!isOpen) return;
@@ -221,7 +281,7 @@ export default function NotificationHistoryModal({
         let cancelled = false;
         cafe24
             .from('events')
-            .select('id,title,date,start_date,location,category,image,image_micro,image_thumbnail,image_medium,image_full')
+            .select('id,title,date,start_date,end_date,event_dates,location,category,image,image_micro,image_thumbnail,image_medium,image_full')
             .in('id', missingIds)
             .then(({ data, error }) => {
                 if (cancelled || error || !data) return;
@@ -403,21 +463,6 @@ export default function NotificationHistoryModal({
                                 </section>
                             )}
 
-                            {displayItems.length > 0 && (
-                                <div className="nhm-route-summary" aria-label="읽지 않은 알림 종류별 개수">
-                                    <div className="nhm-route-summary-item is-today">
-                                        <i className="ri-calendar-check-line" aria-hidden="true"></i>
-                                        <span>오늘 일정</span>
-                                        <strong>{dailyScheduleCount}</strong>
-                                    </div>
-                                    <div className="nhm-route-summary-item is-new">
-                                        <i className="ri-notification-badge-line" aria-hidden="true"></i>
-                                        <span>신규 등록</span>
-                                        <strong>{newEventCount}</strong>
-                                    </div>
-                                </div>
-                            )}
-
                             {displaySections.map((section) => (
                                 <section
                                     className={`nhm-section nhm-notification-section is-${section.kind}`}
@@ -428,7 +473,7 @@ export default function NotificationHistoryModal({
                                             <i className={section.icon}></i>
                                         </span>
                                         <span className="nhm-notification-section-copy">
-                                            <strong>{section.title} ({section.items.length})</strong>
+                                            <strong>{section.title}</strong>
                                             <small>{section.description}</small>
                                         </span>
                                     </div>
