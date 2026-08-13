@@ -521,6 +521,7 @@ export default function BoardMainContainer() {
                         category={category}
                         isOpen={true}
                         onClose={handleCloseModal}
+                        onPostChanged={loadPosts}
                     />
                 )
             }

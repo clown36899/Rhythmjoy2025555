@@ -169,16 +169,16 @@ export default function StandardPostList({
             className={`free-board-row ${post.is_notice ? 'is-notice' : ''} ${isSuggestionPost(post) ? 'is-suggestion' : ''} ${post.is_hidden ? 'is-hidden is-locked' : ''} ${canOpenPost(post) ? '' : 'is-not-clickable'}`}
         >
             <div className="free-board-row-accent" />
-            <div className="free-board-prefix-cell">
-                {renderFreePrefix(post)}
-            </div>
             <div className="free-board-main">
-                <div className="free-board-title-line">
+                <div className="free-board-badge-row">
+                    {renderFreePrefix(post)}
                     {post.is_hidden && (
                         <span className="board-hidden-badge">
                             <i className="ri-lock-line"></i> 비공개
                         </span>
                     )}
+                </div>
+                <div className="free-board-title-line">
                     <h3>{post.title}</h3>
                     {renderNewBadge(post)}
                 </div>
@@ -206,17 +206,19 @@ export default function StandardPostList({
             className={`free-board-mobile-row ${post.is_notice ? 'is-notice' : ''} ${isSuggestionPost(post) ? 'is-suggestion' : ''} ${post.is_hidden ? 'is-hidden is-locked' : ''} ${canOpenPost(post) ? '' : 'is-not-clickable'}`}
         >
             <div className="free-board-mobile-main">
-                <div className="free-board-mobile-title-line">
+                <div className="free-board-mobile-badge-row">
                     {renderFreePrefix(post)}
-                    <h3>{post.title}</h3>
-                    {renderNewBadge(post)}
-                </div>
-                <div className="free-board-mobile-meta">
                     {post.is_hidden && (
                         <span className="board-hidden-badge">
                             <i className="ri-lock-line"></i> 비공개
                         </span>
                     )}
+                </div>
+                <div className="free-board-mobile-title-line">
+                    <h3>{post.title}</h3>
+                    {renderNewBadge(post)}
+                </div>
+                <div className="free-board-mobile-meta">
                     <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
                     <span>{formatDate(post.created_at)}</span>
                     <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>

@@ -10,9 +10,10 @@ import './comment.css';
 interface CommentSectionProps {
     postId: number;
     category: string;
+    onPostChanged?: () => void | Promise<void>;
 }
 
-export default function CommentSection({ postId, category }: CommentSectionProps) {
+export default function CommentSection({ postId, category, onPostChanged }: CommentSectionProps) {
     const { user, isAdmin } = useAuth();
     const [comments, setComments] = useState<BoardComment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -176,6 +177,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 if (error) throw error;
                 // Optimistic Delete (Admin)
                 setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
+                await onPostChanged?.();
                 return true;
             } else {
                 if (category === 'anonymous') {
@@ -189,6 +191,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
                     if (success) {
                         setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
+                        await onPostChanged?.();
                         return true;
                     } else {
                         return false;
@@ -199,6 +202,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
 
                     if (!directError) {
                         setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
+                        await onPostChanged?.();
                         return true;
                     }
 
@@ -276,6 +280,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     // Optimistic Add
                     if (newComment) {
                         setComments(prev => [...prev, { ...newComment, author_profile_image: user?.user_metadata?.profile_image || null } as any]);
+                        void onPostChanged?.();
                     }
                 }}
                 disabled={!!editingComment}

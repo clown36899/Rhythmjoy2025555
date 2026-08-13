@@ -20,7 +20,7 @@ import './UniversalPostEditor.css';
 interface UniversalPostEditorProps {
     isOpen: boolean;
     onClose: () => void;
-    onPostCreated: () => void;
+    onPostCreated: () => void | Promise<void>;
     post?: BoardPost | null;
     userNickname?: string;
     category: BoardCategory;
@@ -358,7 +358,7 @@ export default function UniversalPostEditor({
                 alert('게시글이 등록되었습니다!');
             }
 
-            onPostCreated();
+            await onPostCreated();
             onClose();
 
         } catch (error) {

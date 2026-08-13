@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardDetail } from '../hooks/useBoardDetail';
@@ -18,12 +18,18 @@ interface BoardDetailModalProps {
     category?: string;
     isOpen: boolean;
     onClose: () => void;
+    onPostChanged?: () => void | Promise<void>;
 }
 
-export default function BoardDetailModal({ postId, category, isOpen, onClose }: BoardDetailModalProps) {
+export default function BoardDetailModal({ postId, category, isOpen, onClose, onPostChanged }: BoardDetailModalProps) {
     const { user, isAdmin, userProfile } = useAuth();
     const [showEditorModal, setShowEditorModal] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
+
+    const handlePostDeleted = useCallback(async () => {
+        await onPostChanged?.();
+        onClose();
+    }, [onClose, onPostChanged]);
 
     const {
         post,
@@ -36,7 +42,7 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
     } = useBoardDetail({
         postId,
         category,
-        onPostDeleted: onClose,
+        onPostDeleted: handlePostDeleted,
         isAdmin,
         currentUserId: user?.id || null,
     });
@@ -88,9 +94,14 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
         setShowEditorModal(true);
     };
 
-    const handlePostUpdated = () => {
-        refreshPost();
+    const handlePostUpdated = async () => {
+        await Promise.all([refreshPost(), onPostChanged?.()]);
         setShowEditorModal(false);
+    };
+
+    const handleHiddenToggle = async () => {
+        const changed = await handleToggleHidden();
+        if (changed) await onPostChanged?.();
     };
 
     const formatDate = (dateString?: string) => {
@@ -213,7 +224,7 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
                                         </button>
                                         {isAdmin && (
                                             <button
-                                                onClick={handleToggleHidden}
+                                                onClick={handleHiddenToggle}
                                                 className={`top-action-btn ${post.is_hidden ? 'unhide' : 'hide'}`}
                                                 title={post.is_hidden ? '숨김 해제' : '숨기기'}
                                                 data-analytics-id="board_detail_toggle_hidden"
@@ -288,7 +299,11 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose }: 
 
                         {/* Comment Section */}
                         <Suspense fallback={null}>
-                            <CommentSection postId={post.id} category={(post as any).category || 'free'} />
+                            <CommentSection
+                                postId={post.id}
+                                category={(post as any).category || 'free'}
+                                onPostChanged={onPostChanged}
+                            />
                         </Suspense>
                     </div>
                 )}

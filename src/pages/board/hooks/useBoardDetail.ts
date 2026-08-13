@@ -7,7 +7,7 @@ import { perfInfo, perfMs, perfNow } from '../../../utils/perfTrace';
 interface UseBoardDetailProps {
     postId: string | undefined;
     category?: string;
-    onPostDeleted?: () => void;
+    onPostDeleted?: () => void | Promise<void>;
     isAdmin?: boolean;
     currentUserId?: string | null;
 }
@@ -199,7 +199,8 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
     }, [category, currentUserId, isAdmin]);
 
     const refreshPost = useCallback(() => {
-        if (postId) loadPost(postId);
+        if (postId) return loadPost(postId);
+        return Promise.resolve();
     }, [loadPost, postId]);
 
     useEffect(() => {
@@ -238,7 +239,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
 
                         if (newPost.is_hidden && !isAdmin) {
                             alert('삭제된 게시글입니다.');
-                            onPostDeleted?.();
+                            void onPostDeleted?.();
                             return;
                         }
 
@@ -247,7 +248,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
 
                     if (payload.eventType === 'DELETE') {
                         alert('삭제된 게시글입니다.');
-                        onPostDeleted?.();
+                        void onPostDeleted?.();
                     }
                 }
             )
@@ -273,10 +274,12 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
             if (error) throw error;
 
             alert('게시글이 삭제되었습니다.');
-            onPostDeleted?.();
+            await onPostDeleted?.();
+            return true;
         } catch (error) {
             console.error('게시글 삭제 실패:', error);
             alert('게시글 삭제 중 오류가 발생했습니다.');
+            return false;
         } finally {
             setUpdating(false);
         }
@@ -297,9 +300,11 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
 
             setPost(prev => prev ? { ...prev, is_hidden: newHiddenState } : null);
             alert(`게시글이 ${newHiddenState ? '숨김' : '공개'} 처리되었습니다.`);
+            return true;
         } catch (error) {
             console.error('숨김 처리 실패:', error);
             alert('오류가 발생했습니다.');
+            return false;
         }
     };
 
