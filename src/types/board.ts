@@ -1,3 +1,5 @@
+import type { BoardPrefixId } from '../utils/boardPrefixId';
+
 export interface BaseBoardPost {
     id: number;
     title: string;
@@ -16,9 +18,9 @@ export interface StandardBoardPost extends BaseBoardPost {
     author_name: string; // Display name
     author_nickname?: string;
     author_profile_image?: string | null; // Profile image URL
-    prefix_id?: number | null;
+    prefix_id?: BoardPrefixId | null;
     prefix?: {
-        id: number;
+        id: BoardPrefixId;
         name: string;
         color: string;
         admin_only: boolean;

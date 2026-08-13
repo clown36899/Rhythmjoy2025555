@@ -471,7 +471,8 @@
     gap: var(--spacing-2);
 }
 
-.EDM-mainAdKindGroup {
+.EDM-mainAdKindGroup,
+.EDM-benefitKindGroup {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -480,11 +481,13 @@
     font-size: 0.8rem;
 }
 
-.EDM-mainAdKindLabel {
+.EDM-mainAdKindLabel,
+.EDM-benefitKindLabel {
     font-weight: 700;
 }
 
-.EDM-mainAdKindValue {
+.EDM-mainAdKindValue,
+.EDM-benefitKindValue {
     color: var(--text-primary);
     font-size: 0.82rem;
     line-height: 1;
@@ -1285,6 +1288,33 @@
 }
 
 .EDM-mainAdKindSummary {
+    color: var(--text-tertiary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.EDM-benefitKindEditContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.EDM-benefitKindToggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 4px;
+    border-radius: var(--radius-xl);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.EDM-benefitKindToggle .EDM-categoryToggleBtn {
+    min-height: 42px;
+}
+
+.EDM-benefitKindSummary {
+    margin: 0;
     color: var(--text-tertiary);
     font-size: 0.82rem;
     font-weight: 700;

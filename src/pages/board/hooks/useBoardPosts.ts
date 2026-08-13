@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import type { StandardBoardPost, AnonymousBoardPost } from '../../../types/board';
 import { perfInfo, perfMs, perfNow } from '../../../utils/perfTrace';
+import { isNoticeBoardPrefixId, type BoardPrefixId } from '../../../utils/boardPrefixId';
 
 export type BoardPost = StandardBoardPost | AnonymousBoardPost;
 import type { BoardCategory } from '../components/BoardTabBar';
@@ -12,7 +13,7 @@ interface UseBoardPostsProps {
     isAdminChecked: boolean;
     isRealAdmin: boolean;
     currentUserId?: string | null;
-    prefixId?: number | null;
+    prefixId?: BoardPrefixId | null;
 }
 
 export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAdmin, currentUserId, prefixId }: UseBoardPostsProps) {
@@ -75,7 +76,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
             if (!isAnon && prefixId) {
                 // Prefix id 1 is the legacy "공지" tab in this board.
-                if (prefixId === 1) {
+                if (isNoticeBoardPrefixId(prefixId)) {
                     query = query.eq('is_notice', true);
                 } else {
                     query = query.eq('prefix_id', prefixId).eq('is_notice', false);

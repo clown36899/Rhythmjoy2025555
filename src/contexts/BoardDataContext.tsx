@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { cafe24 } from '../lib/cafe24Client';
 import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
+import type { BoardPrefixId } from '../utils/boardPrefixId';
 
 interface BoardCategory {
     id: number;
@@ -14,7 +15,7 @@ interface BoardCategory {
 }
 
 interface BoardPrefix {
-    id: number;
+    id: BoardPrefixId;
     name: string;
     color: string;
     admin_only: boolean;

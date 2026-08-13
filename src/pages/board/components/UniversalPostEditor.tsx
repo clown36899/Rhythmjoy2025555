@@ -12,6 +12,7 @@ import { resizeImage } from '../../../utils/imageResize'; // [UPDATED] Only resi
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import { trackActivitySuccess } from '../../../utils/analyticsEvents';
 import { sanitizeHtml } from '../../../utils/sanitizeHtml';
+import { parseBoardPrefixId, type BoardPrefixId } from '../../../utils/boardPrefixId';
 import UniversalEditor from '../../../components/UniversalEditor/Core/UniversalEditor'; // [UPDATED] Import UniversalEditor
 import './PostEditorModal.css';
 import './UniversalPostEditor.css';
@@ -65,7 +66,7 @@ export default function UniversalPostEditor({
         content: '',
         author_name: '',
         is_notice: false,
-        prefix_id: null as number | null,
+        prefix_id: null as BoardPrefixId | null,
         is_hidden: false,
         category: category
     });
@@ -411,7 +412,7 @@ export default function UniversalPostEditor({
                             <select
                                 value={formData.prefix_id || ''}
                                 name="prefix_id"
-                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
+                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
                                 className="pem-select half-width lang-ko-only"
                                 disabled={formData.is_notice}
                             >
@@ -423,7 +424,7 @@ export default function UniversalPostEditor({
                             <select
                                 value={formData.prefix_id || ''}
                                 name="prefix_id"
-                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
+                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
                                 className="pem-select half-width lang-en-only"
                                 disabled={formData.is_notice}
                             >

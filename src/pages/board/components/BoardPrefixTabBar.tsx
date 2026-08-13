@@ -1,10 +1,11 @@
 import { useRef, useLayoutEffect, type ReactNode } from 'react';
+import type { BoardPrefixId } from '../../../utils/boardPrefixId';
 import './BoardPrefixTabBar.css';
 
 interface BoardPrefixTabBarProps {
     prefixes: any[];
-    selectedPrefixId: number | null;
-    onPrefixChange: (id: number | null) => void;
+    selectedPrefixId: BoardPrefixId | null;
+    onPrefixChange: (id: BoardPrefixId | null) => void;
     rightAction?: ReactNode;
 }
 

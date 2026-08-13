@@ -3,6 +3,10 @@ import { createPortal } from 'react-dom';
 import DatePicker from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import { formatDateForInput } from '../../../utils/fileUtils';
+import {
+    normalizeEventBenefitKind,
+    type EventBenefitKind,
+} from '../../../utils/eventBenefitKind';
 import { parseDateSafe } from '../utils/eventListUtils';
 
 interface BottomSheetProps {
@@ -29,6 +33,7 @@ const EventEditBottomSheet = React.memo(({
     const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club' | 'social'>('event');
     const [dateMode, setDateMode] = useState<'single' | 'dates'>('single');
     const [editScope, setEditScope] = useState<string>('domestic');
+    const [editBenefitKind, setEditBenefitKind] = useState<EventBenefitKind>(null);
     const [linkEditValues, setLinkEditValues] = useState({
         link1: '', link_name1: '',
         link2: '', link_name2: '',
@@ -50,6 +55,12 @@ const EventEditBottomSheet = React.memo(({
         }
         if (activeField === 'description') setEditValue(initialValue.description || '');
         if (activeField === 'mainAdImageKind') setEditValue(initialValue.main_ad_image_kind || 'auto');
+        if (activeField === 'benefitKind') {
+            setEditBenefitKind(normalizeEventBenefitKind(
+                initialValue.benefit_kind,
+                initialValue.benefit_eligible,
+            ));
+        }
         if (activeField === 'date') {
             const dates = initialValue.event_dates || [];
             if (dates.length > 0) {
@@ -101,6 +112,7 @@ const EventEditBottomSheet = React.memo(({
                     {activeField === 'links' && <><i className="ri-link"></i>링크 수정</>}
                     {activeField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
                     {activeField === 'mainAdImageKind' && <><i className="ri-image-line"></i>메인광고 판정</>}
+                    {activeField === 'benefitKind' && <><i className="ri-coupon-3-line"></i>혜택 분류 수정</>}
                 </h3>
 
                 <div className="EDM-bottomSheetBody">
@@ -208,6 +220,30 @@ const EventEditBottomSheet = React.memo(({
                                     {editValue === 'poster' ? '원본 디자인 유지' : editValue === 'photo' ? '제목 오버레이 표시' : '포스터 확실할 때만 원본 유지'}
                                 </div>
                             </div>
+                        ) : activeField === 'benefitKind' ? (
+                            <div className="EDM-benefitKindEditContainer">
+                                <div className="EDM-benefitKindToggle" role="group" aria-label="혜택 분류">
+                                    {([
+                                        [null, '일반'],
+                                        ['free_event', '무료'],
+                                        ['discount_event', '할인 이벤트'],
+                                        ['season_pass', '정기권'],
+                                    ] as const).map(([kind, label]) => (
+                                        <button
+                                            key={kind || 'none'}
+                                            type="button"
+                                            className={`EDM-categoryToggleBtn ${editBenefitKind === kind ? 'is-active' : ''}`}
+                                            aria-pressed={editBenefitKind === kind}
+                                            onClick={() => setEditBenefitKind(kind)}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="EDM-benefitKindSummary">
+                                    일반을 선택하면 무료·할인 이벤트 모아보기에서 제외됩니다.
+                                </p>
+                            </div>
                         ) : activeField === 'genre' ? (
                             <div className="EDM-genreEditContainer">
                                 <div className="EDM-categoryToggle">
@@ -299,6 +335,8 @@ const EventEditBottomSheet = React.memo(({
                                 onSave({ genre: editValue, scope: editScope }, editCategory);
                             } else if (activeField === 'mainAdImageKind') {
                                 onSave(editValue === 'auto' ? null : editValue, editCategory);
+                            } else if (activeField === 'benefitKind') {
+                                onSave(editBenefitKind, editCategory);
                             } else {
                                 onSave(editValue, editCategory);
                             }

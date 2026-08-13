@@ -36,6 +36,7 @@ const SUGGESTION_WRITE_PRESET: BoardEditorPreset = {
 import { useBoardPosts } from './hooks/useBoardPosts';
 import { useBoardInteractions } from './hooks/useBoardInteractions';
 import { useFreeBoardUnreadState } from '../../hooks/useFreeBoardUnreadCount';
+import type { BoardPrefixId } from '../../utils/boardPrefixId';
 
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -50,7 +51,7 @@ export default function BoardMainContainer() {
     const [activePostId, setActivePostId] = useState<string | null>(urlPostId);
     const selectedPostId = activePostId;
     const [postsPerPage] = useState(10);
-    const [selectedPrefixId, setSelectedPrefixId] = useState<number | null>(null);
+    const [selectedPrefixId, setSelectedPrefixId] = useState<BoardPrefixId | null>(null);
     const { unreadPostIds } = useFreeBoardUnreadState();
 
     useEffect(() => {
@@ -127,7 +128,7 @@ export default function BoardMainContainer() {
         setSearchParams({ category: newCategory }, { replace: true });
     };
 
-    const handlePrefixChange = (prefixId: number | null) => {
+    const handlePrefixChange = (prefixId: BoardPrefixId | null) => {
         setCurrentPage(1);
         setSelectedPrefixId(prefixId);
     };

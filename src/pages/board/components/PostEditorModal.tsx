@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardPost } from '../page';
 import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
+import { parseBoardPrefixId, type BoardPrefixId } from '../../../utils/boardPrefixId';
 import './PostEditorModal.css';
 
 interface PostEditorModalProps {
@@ -29,7 +30,7 @@ export default function PostEditorModal({
     content: '',
     author_name: '',
     is_notice: false,
-    prefix_id: null as number | null
+    prefix_id: null as BoardPrefixId | null
   });
   const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -218,7 +219,7 @@ export default function PostEditorModal({
                 value={formData.prefix_id || ''}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
-                  prefix_id: e.target.value ? parseInt(e.target.value) : null
+                  prefix_id: parseBoardPrefixId(e.target.value)
                 }))}
                 className="pem-select"
               >

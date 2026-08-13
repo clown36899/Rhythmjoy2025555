@@ -27,6 +27,10 @@ import EventEditBottomSheet from './EventEditBottomSheet';
 import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
 import { addClientLog } from '../../../utils/clientLogBuffer';
 import { getActivityTypeForCategory } from '../../events/eventsInfoCategory';
+import {
+  eventBenefitFields,
+  getEventBenefitKindLabel,
+} from '../../../utils/eventBenefitKind';
 
 registerLocale("ko", ko);
 
@@ -779,6 +783,9 @@ export default function EventDetailModal({
     if (activeEditField === 'mainAdImageKind') {
       updates.main_ad_image_kind = normalizeMainAdImageKind(value);
     }
+    if (activeEditField === 'benefitKind') {
+      Object.assign(updates, eventBenefitFields(value));
+    }
     if (activeEditField === 'date') {
       const dates = value.split(',').filter(Boolean).sort();
       if (dates.length > 1) {
@@ -831,7 +838,8 @@ export default function EventDetailModal({
     const fieldsToCheck = [
       'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category', 'activity_type', 'group_id',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
-      'date', 'start_date', 'end_date', 'event_dates', 'time', 'main_ad_image_kind'
+      'date', 'start_date', 'end_date', 'event_dates', 'time', 'main_ad_image_kind',
+      'benefit_eligible', 'benefit_kind'
     ];
 
     if (EVENT_DETAIL_DEBUG) console.debug('[hasChanges] Checking for changes...');
@@ -888,6 +896,9 @@ export default function EventDetailModal({
         link3: draftEvent.link3,
         link_name3: draftEvent.link_name3,
         scope: draftEvent.scope,
+        ...eventBenefitFields(
+          draftEvent.benefit_eligible === true ? draftEvent.benefit_kind : null,
+        ),
       };
 
 
@@ -1539,6 +1550,28 @@ export default function EventDetailModal({
                         }}
                         className="EDM-editTrigger"
                         title="메인광고 판정 수정"
+                      >
+                        <i className="ri-pencil-line"></i>
+                      </button>
+                    </div>
+                  )}
+
+                  {isSelectionMode && (
+                    <div className="EDM-benefitKindGroup">
+                      <span className="EDM-benefitKindLabel">혜택 분류</span>
+                      <strong className="EDM-benefitKindValue">
+                        {getEventBenefitKindLabel(
+                          selectedEvent.benefit_kind,
+                          selectedEvent.benefit_eligible,
+                        )}
+                      </strong>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveEditField('benefitKind');
+                        }}
+                        className="EDM-editTrigger"
+                        title="혜택 분류 수정"
                       >
                         <i className="ri-pencil-line"></i>
                       </button>

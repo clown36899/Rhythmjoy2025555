@@ -2,6 +2,7 @@
 // import { getAvatarStyle } from '../../../utils/avatarUtils'; // Removed due to resolution issue
 import type { StandardBoardPost } from '../../../types/board';
 import { type BoardCategory } from './BoardTabBar';
+import type { BoardPrefixId } from '../../../utils/boardPrefixId';
 import './BoardPostList.css'; // Keep just in case, though board.css covers most
 import '../board.css'; // CRITICAL: Import main board styles for standard-view classes
 
@@ -39,8 +40,8 @@ interface StandardPostListProps {
     isAdmin: boolean;
     currentUserId?: string | null;
     unreadPostIds?: Set<string>;
-    selectedPrefixId?: number | null;
-    onPrefixChange?: (prefixId: number | null) => void;
+    selectedPrefixId?: BoardPrefixId | null;
+    onPrefixChange?: (prefixId: BoardPrefixId | null) => void;
 }
 
 export default function StandardPostList({

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cafe24 } from '../lib/cafe24Client';
+import { useBoardStaticData } from '../contexts/BoardDataContext';
+import type { BoardPrefixId } from '../utils/boardPrefixId';
 import LocalLoading from './LocalLoading';
 import "./BoardPrefixManagementModal.css";
 
 export interface BoardPrefix {
-  id: number;
+  id: BoardPrefixId;
   name: string;
   color: string;
   admin_only: boolean;
@@ -38,10 +40,11 @@ export default function BoardPrefixManagementModal({
   onClose,
   initialCategory
 }: BoardPrefixManagementModalProps) {
+  const { refreshData } = useBoardStaticData();
   const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<BoardPrefixId | null>(null);
 
   // Category State
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'free');
@@ -73,7 +76,7 @@ export default function BoardPrefixManagementModal({
       if (initialCategory && !selectedCategory) {
         setSelectedCategory(initialCategory);
       }
-      loadPrefixes();
+      void loadPrefixes();
       // Reset form when category changes
       setShowAddForm(false);
       setEditingId(null);
@@ -181,7 +184,7 @@ export default function BoardPrefixManagementModal({
       setNewPrefix({ name: '', color: '#3B82F6', admin_only: false });
       setShowAddForm(false);
       setEditingId(null);
-      loadPrefixes();
+      await Promise.all([loadPrefixes(), refreshData()]);
 
     } catch (error) {
       console.error('머릿말 저장 실패:', error);
@@ -201,7 +204,7 @@ export default function BoardPrefixManagementModal({
     setShowAddForm(true);
   };
 
-  const handleDeletePrefix = async (id: number, name: string) => {
+  const handleDeletePrefix = async (id: BoardPrefixId, name: string) => {
     if (!confirm(`"${name}" 머릿말을 삭제하시겠습니까?\n\n이 머릿말을 사용하는 게시글은 머릿말이 제거됩니다.`)) {
       return;
     }
@@ -215,7 +218,7 @@ export default function BoardPrefixManagementModal({
       if (error) throw error;
 
       alert('머릿말이 삭제되었습니다.');
-      loadPrefixes();
+      await Promise.all([loadPrefixes(), refreshData()]);
     } catch (error) {
       console.error('머릿말 삭제 실패:', error);
       alert('머릿말 삭제 중 오류가 발생했습니다.');
