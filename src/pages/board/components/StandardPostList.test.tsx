@@ -53,6 +53,8 @@ describe('StandardPostList free-board heading', () => {
         expect(mobileMain?.children[1]).toHaveClass('free-board-mobile-title-line');
         expect(mobileMain?.children[1]).toHaveTextContent('경성홀 입장료변경안내');
         expect(mobileMain?.querySelector('.free-board-mobile-title-line .free-board-prefix')).toBeNull();
+        expect(mobileMain?.querySelector('[aria-label="조회 1"]')).toHaveTextContent('1');
+        expect(mobileMain?.querySelector('[aria-label="댓글 0"]')).toHaveTextContent('0');
         expect(container.querySelector('.free-board-prefix-cell')).toBeNull();
         expect(container.querySelector('.free-board-thumb img[draggable="true"]')).toBeNull();
     });

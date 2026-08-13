@@ -878,22 +878,26 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 
 .free-board-badge-row,
 .free-board-mobile-badge-row {
+  position: absolute;
+  top: -10px;
+  left: -8px;
+  z-index: 2;
   display: flex;
   align-items: center;
-  gap: 6px;
   min-width: 0;
-  margin-bottom: 5px;
+  margin: 0;
+  pointer-events: none;
 }
 
 .free-board-prefix {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 30px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 5px;
-  font-size: 10px;
+  min-width: 24px;
+  height: 14px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 8px;
   font-weight: 800;
   line-height: 1;
   background: rgba(148, 163, 184, 0.12);
@@ -939,7 +943,9 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 }
 
 .free-board-main {
+  position: relative;
   min-width: 0;
+  padding-top: 3px;
 }
 
 .free-board-title-line {
@@ -1107,11 +1113,20 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   min-width: 0;
 }
 
-.free-board-meta span:first-child {
+.free-board-meta .free-board-author {
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.free-board-meta .board-hidden-badge {
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+.free-board-meta .board-hidden-badge + .free-board-author::before {
+  display: none;
 }
 
 .free-board-meta span + span::before {
@@ -1271,7 +1286,9 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   }
 
   .free-board-mobile-main {
+    position: relative;
     min-width: 0;
+    padding-top: 3px;
   }
 
   .free-board-mobile-title-line {
@@ -1294,15 +1311,11 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
     line-height: 1.38;
   }
 
-  .free-board-mobile-badge-row {
-    margin-bottom: 4px;
-  }
-
   .free-board-mobile-meta {
     display: flex;
     align-items: center;
     gap: 7px;
-    margin-top: 8px;
+    margin-top: 5px;
     padding-left: 0;
     color: var(--free-board-muted);
     font-size: 12px;
@@ -1313,20 +1326,27 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
     min-width: 0;
   }
 
-  .free-board-mobile-meta span:first-child {
+  .free-board-mobile-meta .free-board-author {
+    flex: 0 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
+  .free-board-mobile-meta .free-board-date {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .free-board-mobile-meta .board-hidden-badge {
     flex-shrink: 0;
+    margin-right: 0;
     color: #d8dee9 !important;
     background: rgba(100, 116, 139, 0.35) !important;
     font-size: 10px !important;
   }
 
-  .free-board-mobile-meta span:last-child {
+  .free-board-mobile-meta .free-board-mobile-stat {
     display: inline-flex;
     align-items: center;
     gap: 3px;

@@ -172,19 +172,19 @@ export default function StandardPostList({
             <div className="free-board-main">
                 <div className="free-board-badge-row">
                     {renderFreePrefix(post)}
-                    {post.is_hidden && (
-                        <span className="board-hidden-badge">
-                            <i className="ri-lock-line"></i> 비공개
-                        </span>
-                    )}
                 </div>
                 <div className="free-board-title-line">
                     <h3>{post.title}</h3>
                     {renderNewBadge(post)}
                 </div>
                 <div className="free-board-meta">
-                    <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
-                    <span>{formatDate(post.created_at)}</span>
+                    {post.is_hidden && (
+                        <span className="board-hidden-badge">
+                            <i className="ri-lock-line"></i> 비공개
+                        </span>
+                    )}
+                    <span className="free-board-author">{post.author_nickname || post.author_name || '알 수 없음'}</span>
+                    <span className="free-board-date">{formatDate(post.created_at)}</span>
                 </div>
             </div>
             <div className="free-board-stats">
@@ -208,20 +208,25 @@ export default function StandardPostList({
             <div className="free-board-mobile-main">
                 <div className="free-board-mobile-badge-row">
                     {renderFreePrefix(post)}
-                    {post.is_hidden && (
-                        <span className="board-hidden-badge">
-                            <i className="ri-lock-line"></i> 비공개
-                        </span>
-                    )}
                 </div>
                 <div className="free-board-mobile-title-line">
                     <h3>{post.title}</h3>
                     {renderNewBadge(post)}
                 </div>
                 <div className="free-board-mobile-meta">
-                    <span>{post.author_nickname || post.author_name || '알 수 없음'}</span>
-                    <span>{formatDate(post.created_at)}</span>
-                    <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>
+                    {post.is_hidden && (
+                        <span className="board-hidden-badge">
+                            <i className="ri-lock-line"></i> 비공개
+                        </span>
+                    )}
+                    <span className="free-board-author">{post.author_nickname || post.author_name || '알 수 없음'}</span>
+                    <span className="free-board-date">{formatDate(post.created_at)}</span>
+                    <span className="free-board-mobile-stat" aria-label={`조회 ${post.views || 0}`}>
+                        <i className="ri-eye-line"></i>{post.views || 0}
+                    </span>
+                    <span className="free-board-mobile-stat" aria-label={`댓글 ${post.comment_count || 0}`}>
+                        <i className="ri-chat-3-line"></i>{post.comment_count || 0}
+                    </span>
                 </div>
             </div>
             {post.image_thumbnail && (!post.is_hidden || canOpenPost(post)) && renderFreeThumbnail(post)}
