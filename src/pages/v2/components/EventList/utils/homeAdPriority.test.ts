@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Event } from "../../../utils/eventListUtils";
 import {
+    getHomeAdNearFutureEndDate,
     getHomeAdNextStartDate,
     getNextHomeAdAutoIndex,
     limitHomeAdOnePerAuthorVenue,
@@ -52,7 +53,7 @@ describe("home ad start-date priority", () => {
         expect(rankPastHomeAdEvents([event], defaultOptions.todayDateKey, defaultOptions.now)).toEqual([]);
     });
 
-    it("features one seeded today event, then recent registrations, then nearby future starts", () => {
+    it("features one seeded today event, then events through next week, then recent registrations", () => {
         const todayNewest = makeEvent(1, {
             date: "2026-08-11",
             start_date: "2026-08-11",
@@ -89,10 +90,50 @@ describe("home ad start-date priority", () => {
         })).toEqual([
             todayOlder,
             todayNewest,
-            recentFarFuture,
             olderNearFuture,
+            recentFarFuture,
             olderFarFuture,
         ]);
+    });
+
+    it("uses the end of next week as the inclusive near-future priority boundary", () => {
+        const nextSunday = makeEvent(1, {
+            date: "2026-08-23",
+            start_date: "2026-08-23",
+            created_at: "2026-07-01T00:00:00+09:00",
+        });
+        const followingMonday = makeEvent(2, {
+            date: "2026-08-24",
+            start_date: "2026-08-24",
+            created_at: "2026-08-14T10:50:00+09:00",
+        });
+
+        expect(getHomeAdNearFutureEndDate("2026-08-14")).toBe("2026-08-23");
+        expect(rankHomeAdEvents([followingMonday, nextSunday], {
+            ...defaultOptions,
+            todayDateKey: "2026-08-14",
+            now: new Date("2026-08-14T11:00:00+09:00"),
+        })).toEqual([nextSunday, followingMonday]);
+    });
+
+    it("keeps near-future priority events even when fallback filling is disabled", () => {
+        const nextWeek = makeEvent(1, {
+            date: "2026-08-20",
+            start_date: "2026-08-20",
+            created_at: "2026-07-01T00:00:00+09:00",
+        });
+        const oldFarFuture = makeEvent(2, {
+            date: "2026-09-20",
+            start_date: "2026-09-20",
+            created_at: "2026-07-01T00:00:00+09:00",
+        });
+
+        expect(rankHomeAdEvents([oldFarFuture, nextWeek], {
+            ...defaultOptions,
+            todayDateKey: "2026-08-14",
+            now: new Date("2026-08-14T11:00:00+09:00"),
+            useFallback: false,
+        })).toEqual([nextWeek]);
     });
 
     it("sorts past filler by the closest past start date", () => {

@@ -106,6 +106,18 @@ export const getHomeAdNextStartDate = (event: Event, todayDateKey: string) => {
     return getEventStartDates(event).find((date) => date >= todayDateKey) || null;
 };
 
+/** 오늘부터 다음 주 일요일까지를 가까운 미래 우선 노출 구간으로 계산한다. */
+export const getHomeAdNearFutureEndDate = (todayDateKey: string) => {
+    const normalizedToday = normalizeDateKey(todayDateKey);
+    if (!normalizedToday) return todayDateKey;
+
+    const [year, month, day] = normalizedToday.split("-").map(Number);
+    const today = new Date(Date.UTC(year, month - 1, day));
+    const daysUntilNextSunday = ((7 - today.getUTCDay()) % 7) + 7;
+    today.setUTCDate(today.getUTCDate() + daysUntilNextSunday);
+    return today.toISOString().slice(0, 10);
+};
+
 const getCreatedAt = (event: Event) => {
     if (!event.created_at) return null;
     const timestamp = new Date(event.created_at).getTime();
@@ -154,7 +166,8 @@ const featureOneTodayEvent = (
  *
  * 1. 이미 시작일이 지난 일정은 제외한다.
  * 2. 오늘 일정 중 한 건을 페이지 진입 시드로 선두에 고정한다.
- * 3. 나머지는 최근 등록 시각, 가까운 미래 시작일 순으로 채운다.
+ * 3. 오늘 이후 다음 주 일요일까지의 일정에 우선점을 준다.
+ * 4. 나머지는 최근 등록 시각, 가까운 미래 시작일 순으로 채운다.
  */
 export const rankHomeAdEvents = (
     events: Event[],
@@ -192,21 +205,29 @@ export const rankHomeAdEvents = (
         ].map(({ event }) => event);
     }
 
-    const recentlyRegistered = futureEvents
+    const nearFutureEndDate = getHomeAdNearFutureEndDate(todayDateKey);
+    const nearFutureEvents = futureEvents
+        .filter(({ nextStartDate }) => nextStartDate <= nearFutureEndDate)
+        .sort(compareUpcomingStart(nowTimestamp));
+    const laterFutureEvents = futureEvents
+        .filter(({ nextStartDate }) => nextStartDate > nearFutureEndDate);
+
+    const recentlyRegistered = laterFutureEvents
         .filter(({ createdAt }) => createdAt !== null && createdAt >= windowStart)
         .sort(compareRegistrationProximity(nowTimestamp));
 
     if (!useFallback) {
-        return [...todayEvents, ...recentlyRegistered].map(({ event }) => event);
+        return [...todayEvents, ...nearFutureEvents, ...recentlyRegistered].map(({ event }) => event);
     }
 
     const recentIds = new Set(recentlyRegistered.map(({ event }) => event.id));
-    const upcomingFallback = futureEvents
+    const upcomingFallback = laterFutureEvents
         .filter(({ event }) => !recentIds.has(event.id))
         .sort(compareUpcomingStart(nowTimestamp));
 
     return [
         ...todayEvents,
+        ...nearFutureEvents,
         ...recentlyRegistered,
         ...upcomingFallback,
     ].map(({ event }) => event);
