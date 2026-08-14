@@ -41,6 +41,18 @@
 - 관련 커밋: `71ee3bdb`, `fdc555bd`, `d1a150b2`, `ba5fa490`, `fc7bb9be`
 - 관련 파일: `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/auto-registration-report.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `server/cafe24/function-api.js`
 
+## 2026-08-14 키오스크 503 고정 화면 재발
+
+- 상태: 현장 화면 복구·자동 복구 감시 적용 및 검증 완료 (2026-08-14 21:22 KST)
+- 현상: 키오스크가 다시 다운된 것처럼 보였지만 Mini PC와 Chrome·디스플레이 서비스는 모두 실행 중이었다. 실제 Chrome 탭은 `https://swingenjoy.com/`에서 제목 `503 Service Unavailable`인 오류 화면에 고정돼 있었다.
+- 원인: 운영 사이트가 일시적으로 503을 반환한 뒤 정상화돼도 Chrome 프로세스 자체는 종료되지 않는다. 기존 systemd `Restart=always`는 프로세스 장애만 복구하므로 페이지 수준 오류를 감지하지 못했다.
+- 즉시 복구: 장애 로그와 탭 상태를 보존한 뒤 `kiosk-chrome.service`를 재시작했다. inactive이지만 enabled였던 legacy URL guard도 기본 운영 기준대로 disable했다.
+- 재발 방지: 1분 간격 watchdog이 Chrome DevTools의 실제 page target을 검사한다. 502·503·504·Chrome 네트워크 오류나 도메인 이탈을 감지하고 운영 `/kiosk`가 이미 HTTP 정상 상태일 때만 Chrome 서비스를 재시작한다. 운영 사이트가 장애 중이면 재시작하지 않는다.
+- 검증: 외부와 Mini PC 내부의 `/kiosk` 응답은 HTTP 200이었다. 복구 뒤 탭 URL은 `https://swingenjoy.com/`, 제목은 `댄스빌보드`이며 Chrome·display 서비스는 active, HDMI-1은 `1080x1920` right 회전 상태다. watchdog의 정상 탭 무동작과 모의 503 판정도 확인했다.
+- 관련 커밋: `a933beba`
+- 관련 결정: `docs/decisions/2026-08-14-kiosk-page-watchdog.md`
+- 관련 파일: `ops/kiosk/mini-pc/restore-mini-pc-kiosk.sh`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-local/bin/kiosk-page-watchdog.py`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.service`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.timer`
+
 ## 2026-08-13 자유게시판 일반 글의 비공개 선택 누락
 
 - 상태: 운영 배포·보안 검증 완료 (2026-08-13 14:50 KST)
