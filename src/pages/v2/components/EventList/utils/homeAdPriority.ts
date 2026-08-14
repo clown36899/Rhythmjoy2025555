@@ -19,11 +19,63 @@ interface RankedHomeAdEvent {
 
 export const HOME_AD_LOW_PRIORITY_AUTO_INTERVAL = 8;
 
+const GENERIC_HOME_AD_ORGANIZERS = new Set([
+    "swing enjoy",
+    "swingenjoy",
+    "익명",
+    "anonymous",
+    "unknown",
+]);
+
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const normalizeDateKey = (value?: string | null) => {
     const dateKey = value?.trim().slice(0, 10) || "";
     return DATE_KEY_PATTERN.test(dateKey) ? dateKey : null;
+};
+
+const normalizeHomeAdKeyPart = (value?: string | null) => (
+    value?.trim().replace(/\s+/g, " ").toLowerCase() || ""
+);
+
+const getHomeAdVenueKey = (event: Event) => {
+    const venueId = normalizeHomeAdKeyPart(event.venue_id);
+    if (venueId) return `venue:${venueId}`;
+
+    const venueName = normalizeHomeAdKeyPart(event.venue_name || event.location || event.place_name);
+    if (venueName) return `place:${venueName}`;
+
+    return "";
+};
+
+export const getHomeAdDedupeKey = (event: Event) => {
+    const userId = event.user_id?.trim();
+    const venueKey = getHomeAdVenueKey(event);
+    if (userId) return venueKey ? `user:${userId}|${venueKey}` : `user:${userId}`;
+
+    const organizerName = normalizeHomeAdKeyPart(event.organizer_name || event.organizer);
+    if (organizerName && !GENERIC_HOME_AD_ORGANIZERS.has(organizerName)) {
+        const organizerKey = `organizer:${organizerName}`;
+        return venueKey ? `${organizerKey}|${venueKey}` : organizerKey;
+    }
+
+    // 수집 기본값이나 익명 표시는 실제 작성자 식별자가 아니다. 이를 작성자로
+    // 묶으면 같은 장소의 서로 다른 행사까지 메인 광고에서 사라진다.
+    return `event:${event.id}`;
+};
+
+export const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
+    const seenKeys = new Set<string>();
+    const filtered: Event[] = [];
+
+    for (const event of events) {
+        const dedupeKey = getHomeAdDedupeKey(event);
+        if (seenKeys.has(dedupeKey)) continue;
+        seenKeys.add(dedupeKey);
+        filtered.push(event);
+    }
+
+    return filtered;
 };
 
 const getEventStartDates = (event: Event) => {

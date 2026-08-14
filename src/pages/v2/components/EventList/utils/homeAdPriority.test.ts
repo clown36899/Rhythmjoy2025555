@@ -3,6 +3,7 @@ import type { Event } from "../../../utils/eventListUtils";
 import {
     getHomeAdNextStartDate,
     getNextHomeAdAutoIndex,
+    limitHomeAdOnePerAuthorVenue,
     rankHomeAdEvents,
     rankPastHomeAdEvents,
 } from "./homeAdPriority";
@@ -120,5 +121,46 @@ describe("home ad low-priority auto rotation", () => {
         expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 8)).toBe(2);
         expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 16)).toBe(3);
         expect(lowPriorityIds.has(events[getNextHomeAdAutoIndex(events, lowPriorityIds, 9)].id)).toBe(false);
+    });
+});
+
+describe("home ad author and venue deduplication", () => {
+    it("keeps distinct ingested events when the organizer is the platform fallback", () => {
+        const beerParty = makeEvent(1, {
+            title: "경성홀 BEER PARTY",
+            organizer: "Swing Enjoy",
+            venue_id: "kyungsung-hall",
+        });
+        const championsCup = makeEvent(2, {
+            title: "챔피언스컵",
+            organizer: "Swing Enjoy",
+            venue_id: "kyungsung-hall",
+            genre: "대회",
+        });
+
+        expect(limitHomeAdOnePerAuthorVenue([beerParty, championsCup])).toEqual([
+            beerParty,
+            championsCup,
+        ]);
+    });
+
+    it("still limits a known author to one event per venue", () => {
+        const first = makeEvent(1, {
+            organizer: "real-organizer",
+            venue_id: "same-hall",
+        });
+        const second = makeEvent(2, {
+            organizer: "REAL-ORGANIZER",
+            venue_id: "same-hall",
+        });
+        const otherVenue = makeEvent(3, {
+            organizer: "real-organizer",
+            venue_id: "other-hall",
+        });
+
+        expect(limitHomeAdOnePerAuthorVenue([first, second, otherVenue])).toEqual([
+            first,
+            otherVenue,
+        ]);
     });
 });

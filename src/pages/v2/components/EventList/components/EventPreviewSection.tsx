@@ -22,6 +22,7 @@ import {
 } from "../../../../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
+import { limitHomeAdOnePerAuthorVenue } from "../utils/homeAdPriority";
 import {
     getTodaySchedulePlaceLabel,
     getTodaySchedulePrimaryText,
@@ -92,46 +93,6 @@ const mergeUniqueEvents = (...groups: Event[][]) => {
         merged.push(event);
     });
     return merged;
-};
-
-const normalizeHomeAdKeyPart = (value?: string | null) => value?.trim().replace(/\s+/g, " ").toLowerCase() || "";
-
-const getHomeAdVenueKey = (event: Event) => {
-    const venueId = normalizeHomeAdKeyPart(event.venue_id);
-    if (venueId) return `venue:${venueId}`;
-
-    const venueName = normalizeHomeAdKeyPart(event.venue_name || event.location || event.place_name);
-    if (venueName) return `place:${venueName}`;
-
-    return "";
-};
-
-const getHomeAdDedupeKey = (event: Event) => {
-    const userId = event.user_id?.trim();
-    const venueKey = getHomeAdVenueKey(event);
-    if (userId) return venueKey ? `user:${userId}|${venueKey}` : `user:${userId}`;
-
-    const organizerName = event.organizer_name?.trim() || event.organizer?.trim();
-    if (organizerName) {
-        const organizerKey = `organizer:${organizerName.toLowerCase()}`;
-        return venueKey ? `${organizerKey}|${venueKey}` : organizerKey;
-    }
-
-    return `event:${event.id}`;
-};
-
-const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
-    const seenKeys = new Set<string>();
-    const filtered: Event[] = [];
-
-    for (const event of events) {
-        const dedupeKey = getHomeAdDedupeKey(event);
-        if (seenKeys.has(dedupeKey)) continue;
-        seenKeys.add(dedupeKey);
-        filtered.push(event);
-    }
-
-    return filtered;
 };
 
 const getTodayMonthDayLabel = () => {

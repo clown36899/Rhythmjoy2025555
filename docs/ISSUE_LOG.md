@@ -22,6 +22,17 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-14 수집 행사 메인 광고 누락
+
+- 상태: 로컬 수정·검증 완료, 운영 미배포
+- 현상: 2026-08-17 `챔피언스컵`이 행사 `대회`로 정상 분류됐지만 홈 메인 광고에 표시되지 않았다.
+- 운영 근거: 해당 일정은 `category=event`, `genre=대회`, `dance_scope=swing`과 유효한 미래 시작일·이미지를 가지고 있어 장르 및 날짜 노출 조건을 통과했다. 그러나 광고 후보 중 같은 경성홀의 2026-08-16 `BEER PARTY`와 모두 작성자 대체값 `Swing Enjoy`를 사용했다.
+- 원인: 메인 광고의 작성자·장소별 1건 제한이 수집 시스템의 기본 작성자명 `Swing Enjoy`와 `익명`도 실제 작성자 식별자로 간주했다. 이 때문에 서로 다른 주최자의 별도 행사도 같은 플랫폼 작성자·장소 조합으로 중복 제거됐다.
+- 해결: 로그인 사용자 ID나 실제 주최자명이 있을 때만 작성자·장소 중복 제한을 적용한다. `Swing Enjoy`, `익명` 등 일반 대체값만 있는 수집 일정은 이벤트 ID별로 구분해 서로 다른 행사를 보존한다. 실제 작성자의 같은 장소 중복 제한은 유지한다.
+- 검증: 운영 이벤트 목록을 수정된 규칙으로 재계산했을 때 `챔피언스컵`이 최대 10개 광고 중 9번째 후보로 보존됐다. 메인 광고 우선순위·중복 제한 회귀 테스트 8개가 통과했다. 대상 ESLint 오류는 0개였고 기존 경고 11개만 유지됐으며, Cafe24 프로덕션 프런트엔드 빌드와 `git diff --check`가 통과했다.
+- 운영 영향: 이 작업에서는 운영 데이터 변경이나 배포를 실행하지 않았다.
+- 관련 파일: `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`
+
 ## 2026-08-13 자유게시판 일반 글의 비공개 선택 누락
 
 - 상태: 운영 배포·보안 검증 완료 (2026-08-13 14:50 KST)
