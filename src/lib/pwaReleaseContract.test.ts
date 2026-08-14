@@ -30,6 +30,19 @@ describe('PWA release overlap contract', () => {
     expect(deploy).not.toMatch(/rsync[^\n]*--delete[^\n]*dist\/[^-]/);
   });
 
+  it('restarts the server only for content changes, not checkout timestamp drift', () => {
+    const deploy = readFileSync(resolve(process.cwd(), 'scripts/deploy-cafe24.sh'), 'utf8');
+    const uploadLines = deploy.split('\n').filter((line) => line.startsWith('rsync '));
+    const functionUpload = uploadLines.find((line) => line.includes('dist-cafe24/')) || '';
+    const serverUpload = uploadLines.find((line) => line.includes('server/cafe24/')) || '';
+    const packageUpload = uploadLines.find((line) => line.includes('package.json package-lock.json')) || '';
+
+    expect(functionUpload).toContain('--checksum');
+    expect(serverUpload).toContain('--checksum');
+    expect(packageUpload).toContain('--checksum');
+    expect(deploy).toContain("if has_transfer_changes \"${functions_log}\" || has_transfer_changes \"${server_log}\" || has_transfer_changes \"${package_log}\"; then");
+  });
+
   it('terminates missing asset requests before the SPA HTML fallback', () => {
     const server = readFileSync(resolve(process.cwd(), 'server/cafe24/app.js'), 'utf8');
     const asset404 = "app.use('/assets', (_req, res) => {";

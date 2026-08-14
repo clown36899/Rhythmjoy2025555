@@ -19,8 +19,11 @@ Use a version-last frontend release contract:
 
 Publishing `version.json` last means clients cannot observe the new build until the backend and all frontend entry files are ready. The kiosk page watchdog remains a secondary recovery layer for unrelated browser or network failures.
 
+Server functions, server source files, and package manifests are compared with rsync checksums before deciding whether a restart is required. A clean deployment worktree can have different checkout timestamps even when file contents are identical; timestamp-only drift must not restart the single Node process.
+
 ## Consequences
 
 - Existing clients keep rendering the old application during the short single-process restart instead of intentionally navigating into it.
+- Frontend-only deployments do not restart Node merely because checkout timestamps differ.
 - A deployment that fails before server health leaves the old frontend version marker live.
 - This removes the observed update/reload race but does not make API requests zero-downtime. Full API zero-downtime would require a dual-process or blue-green server topology.
