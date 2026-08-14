@@ -7,6 +7,7 @@ This folder is a snapshot of the kiosk configuration currently installed on the 
 - Chrome kiosk systemd user service
 - Legacy external URL guard systemd user service and Python script
 - Display setup systemd user service and script
+- Browser error-page watchdog systemd user service, timer, and script
 - Legacy Kiosk Chrome extension files
 - Chrome managed policy for update UI, popups, and external protocol blocking
 - Status logs captured at backup time
@@ -59,8 +60,9 @@ The script may ask for the kiosk user's sudo password when installing the Chrome
 ## Quick Check After Restore
 
 ```bash
-ssh kiosk-j@172.30.1.13 'systemctl --user is-active kiosk-chrome.service kiosk-display.service; systemctl --user is-enabled kiosk-url-guard.service || true'
+ssh kiosk-j@kiosk-host.local 'systemctl --user is-active kiosk-chrome.service kiosk-display.service kiosk-page-watchdog.timer; systemctl --user is-enabled kiosk-page-watchdog.timer kiosk-url-guard.service || true'
 ```
 
 `kiosk-chrome.service` and `kiosk-display.service` should print `active`.
+`kiosk-page-watchdog.timer` should print `active` and `enabled`.
 `kiosk-url-guard.service` should be disabled unless intentionally using the legacy fallback.

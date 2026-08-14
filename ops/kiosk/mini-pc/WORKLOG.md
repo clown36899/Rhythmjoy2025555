@@ -405,6 +405,36 @@ ops/kiosk/mini-pc/status/
 - 키오스크에서 하단 메뉴가 내부 스크롤만 생기지 않고 위로 펼쳐지게 한다.
 - 키오스크 헤더 확대 때문에 장르 탭이 헤더에 가려지지 않게 홈 본문 시작 위치를 조금 내린다.
 
+## 2026-08-14 503 고정 화면 복구와 자동 감시
+
+현상:
+
+- Mini PC와 `kiosk-chrome.service`는 실행 중이었지만 실제 Chrome 탭 제목이 `503 Service Unavailable`인 채 고정됐다.
+- 외부 Mac과 Mini PC 자체에서 `https://swingenjoy.com/kiosk`는 모두 HTTP 200을 반환했다.
+- Chrome 프로세스가 종료되지 않았기 때문에 기존 `Restart=always` 정책은 오류 화면을 장애로 감지하지 못했다.
+
+즉시 복구:
+
+- 장애 시점의 서비스 상태와 Chrome journal을 확인한 뒤 `kiosk-chrome.service`만 재시작했다.
+- legacy `kiosk-url-guard.service`는 inactive였지만 enabled 상태여서 운영 기준대로 disable했다.
+- 복구 후 Chrome 탭은 `https://swingenjoy.com/`, 제목 `댄스빌보드`로 돌아왔다.
+- `kiosk-chrome.service`, `kiosk-display.service`는 active이고 HDMI-1은 `1080x1920`, right 회전 상태다.
+
+재발 방지:
+
+- `kiosk-page-watchdog.timer`가 1분마다 Chrome DevTools의 실제 page target을 확인한다.
+- 탭이 502·503·504, Chrome 네트워크 오류, 키오스크 도메인 이탈 상태일 때만 복구 대상으로 본다.
+- 운영 `/kiosk`가 HTTP 2xx/3xx로 회복된 경우에만 `kiosk-chrome.service`를 재시작한다. 운영 사이트가 아직 장애 중이면 화면을 반복 재시작하지 않는다.
+- 감시 스크립트 로그는 user journal의 `kiosk-page-watchdog.service`에서 확인한다.
+
+파일:
+
+```text
+/home/kiosk-j/.local/bin/kiosk-page-watchdog.py
+/home/kiosk-j/.config/systemd/user/kiosk-page-watchdog.service
+/home/kiosk-j/.config/systemd/user/kiosk-page-watchdog.timer
+```
+
 ## 복원 방법
 
 이 폴더에서:
@@ -422,10 +452,11 @@ SSH key 없이 기존 SSH 설정을 쓰려면:
 복원 후 확인:
 
 ```bash
-ssh kiosk-j@172.30.1.13 'systemctl --user is-active kiosk-chrome.service kiosk-display.service; systemctl --user is-enabled kiosk-url-guard.service || true'
+ssh kiosk-j@kiosk-host.local 'systemctl --user is-active kiosk-chrome.service kiosk-display.service kiosk-page-watchdog.timer; systemctl --user is-enabled kiosk-page-watchdog.timer kiosk-url-guard.service || true'
 ```
 
 `kiosk-chrome.service`, `kiosk-display.service`는 `active`가 나와야 한다.
+`kiosk-page-watchdog.timer`는 `active`, `enabled`가 나와야 한다.
 `kiosk-url-guard.service`는 legacy fallback이므로 기본은 `disabled`가 맞다.
 
 ## 다음 작업자가 조심할 점
@@ -433,6 +464,7 @@ ssh kiosk-j@172.30.1.13 'systemctl --user is-active kiosk-chrome.service kiosk-d
 - 사이트 프로젝트 파일을 수정할 작업과 키오스크 운영 설정 작업을 섞지 말 것.
 - 2026-06-15 이후 키오스크 CSS/외부 링크 제한은 사이트 `/kiosk` 라우트가 담당한다.
 - Mini PC extension 주입 방식은 legacy fallback으로만 다룰 것.
+- `kiosk-page-watchdog`는 운영 사이트가 정상일 때 오류 탭만 복구하며 서버 장애 자체를 복구하지 않는다.
 - Chrome profile, cookie, password, SSH private key는 repo에 넣지 말 것.
 - 외부 링크 관련 수정 후 반드시 아래 케이스를 다시 테스트할 것:
   - 일반 외부 링크

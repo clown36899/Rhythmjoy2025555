@@ -1,0 +1,8 @@
+[Unit]
+Description=Kiosk browser error-page watchdog
+After=network-online.target kiosk-chrome.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/kiosk-j/.local/bin/kiosk-page-watchdog.py
