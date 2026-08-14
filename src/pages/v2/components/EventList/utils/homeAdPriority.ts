@@ -48,6 +48,11 @@ const getHomeAdVenueKey = (event: Event) => {
     return "";
 };
 
+const getHomeAdSourceKey = (event: Event) => {
+    const sourceName = normalizeHomeAdKeyPart(event.link_name1);
+    return sourceName ? `source:${sourceName}` : "";
+};
+
 export const getHomeAdDedupeKey = (event: Event) => {
     const userId = event.user_id?.trim();
     const venueKey = getHomeAdVenueKey(event);
@@ -59,8 +64,12 @@ export const getHomeAdDedupeKey = (event: Event) => {
         return venueKey ? `${organizerKey}|${venueKey}` : organizerKey;
     }
 
-    // 수집 기본값이나 익명 표시는 실제 작성자 식별자가 아니다. 이를 작성자로
-    // 묶으면 같은 장소의 서로 다른 행사까지 메인 광고에서 사라진다.
+    // 수집 기본값이나 익명 표시는 실제 작성자 식별자가 아니다. 원문 출처가
+    // 있으면 그 출처를 작성자 대용으로 써 같은 출처·장소만 한 건으로 제한한다.
+    const sourceKey = getHomeAdSourceKey(event);
+    if (sourceKey) return venueKey ? `${sourceKey}|${venueKey}` : sourceKey;
+
+    // 실제 작성자와 원문 출처를 모두 알 수 없을 때는 별개 행사를 합치지 않는다.
     return `event:${event.id}`;
 };
 

@@ -125,23 +125,38 @@ describe("home ad low-priority auto rotation", () => {
 });
 
 describe("home ad author and venue deduplication", () => {
-    it("keeps distinct ingested events when the organizer is the platform fallback", () => {
+    it("uses the original source when the organizer is the platform fallback", () => {
         const beerParty = makeEvent(1, {
             title: "경성홀 BEER PARTY",
             organizer: "Swing Enjoy",
             venue_id: "kyungsung-hall",
+            link_name1: "경성홀",
         });
-        const championsCup = makeEvent(2, {
+        const holidayWorkshop = makeEvent(2, {
+            title: "광복절 특별 워크숍",
+            organizer: "Swing Enjoy",
+            venue_id: "kyungsung-hall",
+            link_name1: "경성홀",
+        });
+        const championsCup = makeEvent(3, {
             title: "챔피언스컵",
             organizer: "Swing Enjoy",
             venue_id: "kyungsung-hall",
             genre: "대회",
+            link_name1: "스윙패밀리 강습/행사",
         });
 
-        expect(limitHomeAdOnePerAuthorVenue([beerParty, championsCup])).toEqual([
+        expect(limitHomeAdOnePerAuthorVenue([beerParty, holidayWorkshop, championsCup])).toEqual([
             beerParty,
             championsCup,
         ]);
+    });
+
+    it("keeps source-less fallback-organizer events separate", () => {
+        const first = makeEvent(1, { organizer: "익명", venue_id: "same-hall" });
+        const second = makeEvent(2, { organizer: "익명", venue_id: "same-hall" });
+
+        expect(limitHomeAdOnePerAuthorVenue([first, second])).toEqual([first, second]);
     });
 
     it("still limits a known author to one event per venue", () => {
