@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Event } from "../../../utils/eventListUtils";
 import {
+    isHomeAdClubEvent,
+    isHomeAdCurrentMonthEvent,
+    isHomeAdExplicitEvent,
+    isHomeAdSocialEvent,
     getHomeAdNearFutureEndDate,
     getHomeAdNextStartDate,
     getNextHomeAdAutoIndex,
@@ -136,6 +140,53 @@ describe("home ad start-date priority", () => {
         })).toEqual([nextWeek]);
     });
 
+    it("guarantees this month's events before classes and pushes club schedules behind", () => {
+        const nearClass = makeEvent(1, {
+            date: "2026-08-15",
+            start_date: "2026-08-15",
+            category: "class",
+        });
+        const nearClub = makeEvent(2, {
+            date: "2026-08-12",
+            start_date: "2026-08-12",
+            category: "club",
+            genre: "팀원모집",
+        });
+        const monthEndCompetition = makeEvent(3, {
+            date: "2026-08-30",
+            start_date: "2026-08-30",
+            category: "event",
+            activity_type: "event",
+            genre: "대회",
+            created_at: "2026-07-01T00:00:00+09:00",
+        });
+
+        expect(rankHomeAdEvents([
+            nearClub,
+            nearClass,
+            monthEndCompetition,
+        ], defaultOptions)).toEqual([
+            monthEndCompetition,
+            nearClass,
+            nearClub,
+        ]);
+    });
+
+    it("keeps this month's explicit events when fallback filling is disabled", () => {
+        const monthEndEvent = makeEvent(1, {
+            date: "2026-08-30",
+            start_date: "2026-08-30",
+            category: "event",
+            activity_type: "event",
+            created_at: "2026-07-01T00:00:00+09:00",
+        });
+
+        expect(rankHomeAdEvents([monthEndEvent], {
+            ...defaultOptions,
+            useFallback: false,
+        })).toEqual([monthEndEvent]);
+    });
+
     it("sorts past filler by the closest past start date", () => {
         const older = makeEvent(1, { date: "2026-07-01", start_date: "2026-07-01" });
         const closer = makeEvent(2, { date: "2026-08-10", start_date: "2026-08-10" });
@@ -145,6 +196,35 @@ describe("home ad start-date priority", () => {
             defaultOptions.todayDateKey,
             defaultOptions.now,
         )).toEqual([closer, older]);
+    });
+});
+
+describe("home ad event classification", () => {
+    it("keeps a competition as an event even when DJ/social metadata conflicts", () => {
+        const competition = makeEvent(1, {
+            date: "2026-08-17",
+            start_date: "2026-08-17",
+            category: "event",
+            activity_type: "social",
+            genre: "대회,소셜",
+            dance_tags: ["battle", "dj"],
+        });
+
+        expect(isHomeAdExplicitEvent(competition)).toBe(true);
+        expect(isHomeAdSocialEvent(competition)).toBe(false);
+        expect(isHomeAdCurrentMonthEvent(competition, "2026-08-14")).toBe(true);
+    });
+
+    it("still excludes a genuine social and recognizes club/team schedules", () => {
+        expect(isHomeAdSocialEvent(makeEvent(1, {
+            category: "social",
+            activity_type: "social",
+            genre: "소셜",
+        }))).toBe(true);
+        expect(isHomeAdClubEvent(makeEvent(2, {
+            category: "class",
+            title: "공연팀 17시즌 안내",
+        }))).toBe(true);
     });
 });
 
@@ -177,18 +257,24 @@ describe("home ad author and venue deduplication", () => {
     it("uses the original source when the organizer is the platform fallback", () => {
         const beerParty = makeEvent(1, {
             title: "경성홀 BEER PARTY",
+            user_id: "automatic-ingestor",
+            organizer_name: "관리자",
             organizer: "Swing Enjoy",
             venue_id: "kyungsung-hall",
             link_name1: "경성홀",
         });
         const holidayWorkshop = makeEvent(2, {
             title: "광복절 특별 워크숍",
+            user_id: "automatic-ingestor",
+            organizer_name: "관리자",
             organizer: "Swing Enjoy",
             venue_id: "kyungsung-hall",
             link_name1: "경성홀",
         });
         const championsCup = makeEvent(3, {
             title: "챔피언스컵",
+            user_id: "automatic-ingestor",
+            organizer_name: "관리자",
             organizer: "Swing Enjoy",
             venue_id: "kyungsung-hall",
             genre: "대회",

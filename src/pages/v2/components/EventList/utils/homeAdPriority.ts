@@ -23,9 +23,28 @@ const GENERIC_HOME_AD_ORGANIZERS = new Set([
     "swing enjoy",
     "swingenjoy",
     "익명",
+    "관리자",
+    "admin",
+    "administrator",
     "anonymous",
     "unknown",
 ]);
+
+const HOME_AD_EVENT_CATEGORIES = new Set([
+    "event",
+    "competition",
+    "contest",
+    "festival",
+]);
+
+const HOME_AD_CLUB_CATEGORIES = new Set([
+    "club",
+    "club_lesson",
+    "club_regular",
+]);
+
+const HOME_AD_EVENT_GENRE_PATTERN = /(?:대회|경연|챔피언십|competition|championship|contest|\bcup\b|\bbattle\b)/i;
+const HOME_AD_CLUB_TITLE_PATTERN = /(?:동호회|공연팀|팀원\s*모집|시즌\s*(?:안내|모집))/i;
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -56,9 +75,18 @@ const getHomeAdSourceKey = (event: Event) => {
 export const getHomeAdDedupeKey = (event: Event) => {
     const userId = event.user_id?.trim();
     const venueKey = getHomeAdVenueKey(event);
+    const organizerName = normalizeHomeAdKeyPart(event.organizer_name || event.organizer);
+    const sourceKey = getHomeAdSourceKey(event);
+
+    // 자동수집 행사는 로그인 관리자에게만 공용 수집 user_id가 보일 수 있다.
+    // 플랫폼 기본 주최자와 원문 출처가 함께 있으면 user_id보다 원문 출처를
+    // 우선해 로그인 여부에 따라 중복 제거 결과가 달라지지 않게 한다.
+    if (organizerName && GENERIC_HOME_AD_ORGANIZERS.has(organizerName) && sourceKey) {
+        return venueKey ? `${sourceKey}|${venueKey}` : sourceKey;
+    }
+
     if (userId) return venueKey ? `user:${userId}|${venueKey}` : `user:${userId}`;
 
-    const organizerName = normalizeHomeAdKeyPart(event.organizer_name || event.organizer);
     if (organizerName && !GENERIC_HOME_AD_ORGANIZERS.has(organizerName)) {
         const organizerKey = `organizer:${organizerName}`;
         return venueKey ? `${organizerKey}|${venueKey}` : organizerKey;
@@ -66,11 +94,61 @@ export const getHomeAdDedupeKey = (event: Event) => {
 
     // 수집 기본값이나 익명 표시는 실제 작성자 식별자가 아니다. 원문 출처가
     // 있으면 그 출처를 작성자 대용으로 써 같은 출처·장소만 한 건으로 제한한다.
-    const sourceKey = getHomeAdSourceKey(event);
     if (sourceKey) return venueKey ? `${sourceKey}|${venueKey}` : sourceKey;
 
     // 실제 작성자와 원문 출처를 모두 알 수 없을 때는 별개 행사를 합치지 않는다.
     return `event:${event.id}`;
+};
+
+const getHomeAdClassificationText = (event: Event) => [
+    event.category,
+    (event as Event & { event_type?: string | null }).event_type,
+    event.genre,
+].map((value) => String(value || "").trim()).filter(Boolean).join(" ");
+
+export const isHomeAdExplicitEvent = (event: Event) => {
+    const category = String(event.category || "").trim().toLowerCase();
+    const activityType = String((event as Event & { activity_type?: string | null }).activity_type || "").trim().toLowerCase();
+    const classificationText = getHomeAdClassificationText(event);
+
+    return HOME_AD_EVENT_CATEGORIES.has(category)
+        || HOME_AD_EVENT_CATEGORIES.has(activityType)
+        || HOME_AD_EVENT_GENRE_PATTERN.test(classificationText);
+};
+
+export const isHomeAdSocialEvent = (event: Event) => {
+    // 행사/대회라는 구조화 신호가 있으면 DJ·소셜 문구가 함께 있어도
+    // 행사 광고로 유지한다.
+    if (isHomeAdExplicitEvent(event)) return false;
+
+    const category = String(event.category || "").trim().toLowerCase();
+    const activityType = String((event as Event & { activity_type?: string | null }).activity_type || "").trim().toLowerCase();
+    const genre = String(event.genre || "").trim().toLowerCase();
+
+    return category === "social"
+        || activityType === "social"
+        || genre.includes("소셜")
+        || genre.includes("social");
+};
+
+const normalizeHomeAdTags = (value: unknown) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") return value.split(",");
+    return [];
+};
+
+export const isHomeAdClubEvent = (event: Event) => {
+    const category = String(event.category || "").trim().toLowerCase();
+    const genre = String(event.genre || "").trim().toLowerCase();
+    const tags = [
+        ...normalizeHomeAdTags((event as Event & { dance_tags?: unknown }).dance_tags),
+        ...normalizeHomeAdTags((event as Event & { tags?: unknown }).tags),
+    ].map((value) => String(value || "").trim().toLowerCase());
+
+    return HOME_AD_CLUB_CATEGORIES.has(category)
+        || genre.includes("팀원모집")
+        || tags.some((tag) => tag === "team_recruit" || tag === "club" || tag === "club_lesson" || tag === "club_regular")
+        || HOME_AD_CLUB_TITLE_PATTERN.test(String(event.title || ""));
 };
 
 export const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
@@ -104,6 +182,18 @@ const getEventStartDates = (event: Event) => {
 
 export const getHomeAdNextStartDate = (event: Event, todayDateKey: string) => {
     return getEventStartDates(event).find((date) => date >= todayDateKey) || null;
+};
+
+export const isHomeAdCurrentMonthEvent = (event: Event, todayDateKey: string) => {
+    const normalizedToday = normalizeDateKey(todayDateKey);
+    const nextStartDate = normalizedToday ? getHomeAdNextStartDate(event, normalizedToday) : null;
+
+    return Boolean(
+        normalizedToday
+        && nextStartDate
+        && nextStartDate.slice(0, 7) === normalizedToday.slice(0, 7)
+        && isHomeAdExplicitEvent(event),
+    );
 };
 
 /** 오늘부터 다음 주 일요일까지를 가까운 미래 우선 노출 구간으로 계산한다. */
@@ -161,13 +251,21 @@ const featureOneTodayEvent = (
     return [featured, ...sorted];
 };
 
+const pushClubEventsBehind = (events: RankedHomeAdEvent[]) => {
+    const regularEvents = events.filter(({ event }) => !isHomeAdClubEvent(event));
+    const clubEvents = events.filter(({ event }) => isHomeAdClubEvent(event));
+    return [...regularEvents, ...clubEvents];
+};
+
 /**
  * 메인 신규 이벤트 광고 우선순위.
  *
  * 1. 이미 시작일이 지난 일정은 제외한다.
  * 2. 오늘 일정 중 한 건을 페이지 진입 시드로 선두에 고정한다.
- * 3. 오늘 이후 다음 주 일요일까지의 일정에 우선점을 준다.
- * 4. 나머지는 최근 등록 시각, 가까운 미래 시작일 순으로 채운다.
+ * 3. 이번 달 행사/대회를 먼저 보장한다.
+ * 4. 오늘 이후 다음 주 일요일까지의 일정에 우선점을 준다.
+ * 5. 나머지는 최근 등록 시각, 가까운 미래 시작일 순으로 채운다.
+ * 6. 동호회·팀원모집 일정은 같은 후보군의 뒤로 보낸다.
  */
 export const rankHomeAdEvents = (
     events: Event[],
@@ -198,18 +296,28 @@ export const rankHomeAdEvents = (
     );
     const futureEvents = candidates.filter((candidate) => candidate.nextStartDate > todayDateKey);
 
+    const currentMonthPrefix = todayDateKey.slice(0, 7);
+    const currentMonthEventCandidates = futureEvents
+        .filter(({ event, nextStartDate }) => (
+            nextStartDate.startsWith(currentMonthPrefix) && isHomeAdExplicitEvent(event)
+        ))
+        .sort(compareUpcomingStart(nowTimestamp));
+    const currentMonthEventIds = new Set(currentMonthEventCandidates.map(({ event }) => event.id));
+    const remainingFutureEvents = futureEvents.filter(({ event }) => !currentMonthEventIds.has(event.id));
+
     if (sortBy === "date") {
-        return [
+        return pushClubEventsBehind([
             ...todayEvents,
-            ...futureEvents.sort(compareUpcomingStart(nowTimestamp)),
-        ].map(({ event }) => event);
+            ...currentMonthEventCandidates,
+            ...remainingFutureEvents.sort(compareUpcomingStart(nowTimestamp)),
+        ]).map(({ event }) => event);
     }
 
     const nearFutureEndDate = getHomeAdNearFutureEndDate(todayDateKey);
-    const nearFutureEvents = futureEvents
+    const nearFutureEvents = remainingFutureEvents
         .filter(({ nextStartDate }) => nextStartDate <= nearFutureEndDate)
         .sort(compareUpcomingStart(nowTimestamp));
-    const laterFutureEvents = futureEvents
+    const laterFutureEvents = remainingFutureEvents
         .filter(({ nextStartDate }) => nextStartDate > nearFutureEndDate);
 
     const recentlyRegistered = laterFutureEvents
@@ -217,7 +325,12 @@ export const rankHomeAdEvents = (
         .sort(compareRegistrationProximity(nowTimestamp));
 
     if (!useFallback) {
-        return [...todayEvents, ...nearFutureEvents, ...recentlyRegistered].map(({ event }) => event);
+        return pushClubEventsBehind([
+            ...todayEvents,
+            ...currentMonthEventCandidates,
+            ...nearFutureEvents,
+            ...recentlyRegistered,
+        ]).map(({ event }) => event);
     }
 
     const recentIds = new Set(recentlyRegistered.map(({ event }) => event.id));
@@ -225,12 +338,13 @@ export const rankHomeAdEvents = (
         .filter(({ event }) => !recentIds.has(event.id))
         .sort(compareUpcomingStart(nowTimestamp));
 
-    return [
+    return pushClubEventsBehind([
         ...todayEvents,
+        ...currentMonthEventCandidates,
         ...nearFutureEvents,
         ...recentlyRegistered,
         ...upcomingFallback,
-    ].map(({ event }) => event);
+    ]).map(({ event }) => event);
 };
 
 /** 시작일이 지난 일정은 유효 일정만으로 광고 칸이 부족할 때 쓰는 보충 후보로만 반환한다. */

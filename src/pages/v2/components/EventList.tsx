@@ -38,7 +38,12 @@ import {
   sortEvents
 } from "../utils/eventListUtils";
 import type { Event } from "../utils/eventListUtils";
-import { rankHomeAdEvents, rankPastHomeAdEvents } from "./EventList/utils/homeAdPriority";
+import {
+  isHomeAdCurrentMonthEvent,
+  isHomeAdSocialEvent,
+  rankHomeAdEvents,
+  rankPastHomeAdEvents,
+} from "./EventList/utils/homeAdPriority";
 
 interface EventListProps {
   currentMonth?: Date;
@@ -52,19 +57,6 @@ interface EventListProps {
   onEventHover?: (event: Event | null) => void;
   onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
-
-const isMainAdSocialEvent = (event: Event) => {
-  const category = String(event.category || '').toLowerCase();
-  const activityType = String((event as Event & { activity_type?: string | null }).activity_type || '').toLowerCase();
-  const genre = String(event.genre || '').toLowerCase();
-
-  return (
-    category === 'social' ||
-    activityType === 'social' ||
-    genre.includes('소셜') ||
-    genre.includes('social')
-  );
-};
 
 const eventToScheduleItem = (event: Event): SocialSchedule => ({
   id: event.id,
@@ -195,13 +187,17 @@ const EventList: React.FC<EventListProps> = ({
     const todayStr = getCalendarTodayDateKey();
 
     const isEligible = (event: Event) => {
+      const isRequiredCurrentMonthEvent = isHomeAdCurrentMonthEvent(event, todayStr);
+
       // 장르 필터: 이벤트의 장르 중 하나라도 포함 장르 목록에 있으면 통과
       const eventGenres = (event.genre || '').split(',').map(g => g.trim()).filter(Boolean);
-      // 장르가 없는 이벤트는 제외
-      if (eventGenres.length === 0) return false;
-      if (!eventGenres.some(g => include_genres.includes(g))) return false;
+      // 이번 달 행사/대회는 운영 장르 필터와 무관하게 광고 후보로 보장한다.
+      if (!isRequiredCurrentMonthEvent) {
+        if (eventGenres.length === 0) return false;
+        if (!eventGenres.some(g => include_genres.includes(g))) return false;
+      }
 
-      if (isMainAdSocialEvent(event)) return false;
+      if (isHomeAdSocialEvent(event)) return false;
 
       return true;
     };
