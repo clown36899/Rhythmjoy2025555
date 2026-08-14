@@ -43,15 +43,25 @@
 
 ## 2026-08-14 키오스크 503 고정 화면 재발
 
-- 상태: 현장 화면 복구·자동 복구 감시 적용 및 검증 완료 (2026-08-14 21:22 KST)
+- 상태: 현장 복구·감시 적용·배포 경합 제거 및 운영 검증 완료 (2026-08-14 22:31 KST)
 - 현상: 키오스크가 다시 다운된 것처럼 보였지만 Mini PC와 Chrome·디스플레이 서비스는 모두 실행 중이었다. 실제 Chrome 탭은 `https://swingenjoy.com/`에서 제목 `503 Service Unavailable`인 오류 화면에 고정돼 있었다.
-- 원인: 운영 사이트가 일시적으로 503을 반환한 뒤 정상화돼도 Chrome 프로세스 자체는 종료되지 않는다. 기존 systemd `Restart=always`는 프로세스 장애만 복구하므로 페이지 수준 오류를 감지하지 못했다.
+- 원인:
+  - 기존 배포는 새 `version.json`을 서비스 재시작보다 먼저 공개했다. 1분 간격으로 버전을 확인하는 실행 중 앱이 변경을 감지해 1.5초 뒤 새로고침했고, 단일 Node 프로세스의 약 3~4초 재시작 구간과 겹치면 Apache 503 문서로 이동했다. 앱 JavaScript가 사라진 뒤에는 서버가 정상화돼도 스스로 복구할 수 없었다.
+  - 새 작업 트리의 체크아웃 시각 차이를 rsync가 서버 변경으로 계산해, 서버 내용이 같아도 Node를 불필요하게 재시작했다.
+  - Chrome 프로세스는 계속 살아 있어 기존 systemd `Restart=always`가 페이지 수준 오류를 감지하지 못했다.
 - 즉시 복구: 장애 로그와 탭 상태를 보존한 뒤 `kiosk-chrome.service`를 재시작했다. inactive이지만 enabled였던 legacy URL guard도 기본 운영 기준대로 disable했다.
-- 재발 방지: 1분 간격 watchdog이 Chrome DevTools의 실제 page target을 검사한다. 502·503·504·Chrome 네트워크 오류나 도메인 이탈을 감지하고 운영 `/kiosk`가 이미 HTTP 정상 상태일 때만 Chrome 서비스를 재시작한다. 운영 사이트가 장애 중이면 재시작하지 않는다.
-- 검증: 외부와 Mini PC 내부의 `/kiosk` 응답은 HTTP 200이었다. 복구 뒤 탭 URL은 `https://swingenjoy.com/`, 제목은 `댄스빌보드`이며 Chrome·display 서비스는 active, HDMI-1은 `1080x1920` right 회전 상태다. watchdog의 정상 탭 무동작과 모의 503 판정도 확인했다.
-- 관련 커밋: `a933beba`
-- 관련 결정: `docs/decisions/2026-08-14-kiosk-page-watchdog.md`
-- 관련 파일: `ops/kiosk/mini-pc/restore-mini-pc-kiosk.sh`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-local/bin/kiosk-page-watchdog.py`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.service`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.timer`
+- 재발 방지:
+  - 1분 간격 watchdog이 Chrome DevTools의 실제 page target을 검사한다. 502·503·504·Chrome 네트워크 오류나 도메인 이탈을 감지하고 운영 `/kiosk`가 이미 HTTP 정상 상태일 때만 Chrome 서비스를 재시작한다. 운영 사이트가 장애 중이면 재시작하지 않는다.
+  - 배포는 해시 자산을 먼저 전송하고 서버 재시작·헬스 통과 뒤 `index.html`, 서비스 워커, `version.json` 순서로 원자 교체한다. 클라이언트가 준비 완료 전에 새 버전을 감지하지 않도록 버전 표식을 마지막에 공개한다.
+  - 서버 파일과 패키지 manifest는 체크섬으로 비교해 내용 변경이 있을 때만 Node를 재시작한다.
+- 자원 측정: watchdog 1회 실행은 약 0.22초, 최대 RSS 약 22MB였고 60초 주기 평균 CPU는 한 코어의 약 0.3%다. 정상 상태에서는 Mini PC 내부 Chrome CDP만 조회하며 오류를 감지했을 때만 운영 HTTP 상태를 확인한다.
+- 검증:
+  - 실제 Node 재시작이 포함된 첫 배포에서는 약 4초간 서버 503이 있었지만 키오스크는 오류 문서로 이동하지 않았고, Chrome 시작 시각도 유지한 채 헬스 통과 뒤 새 자산을 로드했다.
+  - 체크섬 보강 뒤 두 번째 배포는 서버 재시작을 건너뛰었으며 0.25초 간격 연속 요청 246회가 모두 HTTP 200이었다. 공개 버전은 `1786714076368`, 루트는 HTTP 200, 서비스는 active다.
+  - 키오스크 탭은 `https://swingenjoy.com/`, 제목은 `댄스빌보드`이고 새 자산 `index-D6q_ZsJ7.js`를 로드했다. Chrome은 21:21:56 시작 상태를 유지했으며 watchdog timer는 enabled·active이고 배포 중과 이후 모두 healthy를 기록했다.
+- 관련 커밋: `a933beba`, `83049c4d`, `8bd57565`
+- 관련 결정: `docs/decisions/2026-08-14-kiosk-page-watchdog.md`, `docs/decisions/2026-08-14-version-last-deployment.md`
+- 관련 파일: `scripts/deploy-cafe24.sh`, `src/lib/pwaReleaseContract.test.ts`, `ops/kiosk/mini-pc/restore-mini-pc-kiosk.sh`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-local/bin/kiosk-page-watchdog.py`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.service`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.timer`
 
 ## 2026-08-13 자유게시판 일반 글의 비공개 선택 누락
 
