@@ -71,7 +71,29 @@ fi
 
 npm run build:cafe24
 
-ssh "${SSH_ARGS[@]}" "${TARGET}" "mkdir -p '${APP_DIR}/dist/assets' '${APP_DIR}/dist-cafe24' '${APP_DIR}/server/cafe24' '${APP_DIR}/scripts' '${APP_DIR}/deploy/cafe24/cron' /etc/cron.d"
+ENTRY_STAGE_FILES=(dist/index.html dist/service-worker.js dist/version.json)
+for entry_file in "${ENTRY_STAGE_FILES[@]}"; do
+  if [[ ! -s "${entry_file}" ]]; then
+    echo "Missing required frontend entry file: ${entry_file}" >&2
+    exit 2
+  fi
+done
+
+DEPLOY_BUILD_ID="$(node -e '
+  const fs = require("node:fs");
+  const version = JSON.parse(fs.readFileSync("dist/version.json", "utf8"));
+  if (!version.buildTime) process.exit(1);
+  process.stdout.write(String(version.buildTime));
+')"
+if [[ ! "${DEPLOY_BUILD_ID}" =~ ^[0-9A-Za-z._-]+$ ]]; then
+  echo "Invalid deploy build ID: ${DEPLOY_BUILD_ID}" >&2
+  exit 2
+fi
+REMOTE_ENTRY_DIR="${APP_DIR}/.deploy-entry-${DEPLOY_BUILD_ID}"
+
+ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
+mkdir -p '${APP_DIR}/dist/assets' '${APP_DIR}/dist-cafe24' '${APP_DIR}/server/cafe24' '${APP_DIR}/scripts' '${APP_DIR}/deploy/cafe24/cron' /etc/cron.d '${REMOTE_ENTRY_DIR}'
+rm -f '${REMOTE_ENTRY_DIR}/index.html' '${REMOTE_ENTRY_DIR}/service-worker.js' '${REMOTE_ENTRY_DIR}/version.json'"
 
 RSYNC_LOG_DIR="$(mktemp -d)"
 cleanup() {
@@ -87,10 +109,12 @@ package_log="${RSYNC_LOG_DIR}/package.log"
 apache_log="${RSYNC_LOG_DIR}/apache.log"
 cron_log="${RSYNC_LOG_DIR}/cron.log"
 
-# 새 해시 자산을 먼저 모두 올리고 진입 파일을 전환한다. 직전 클라이언트가
-# 열린 동안 요청할 수 있는 구 해시 자산은 즉시 삭제하지 않는다.
+# 새 해시 자산은 먼저 올리되, 자동 새로고침을 유발하는 진입 파일은 별도
+# 디렉터리에 staging한다. 서버가 정상화되기 전에는 기존 index, service worker,
+# version.json을 유지해 상시 실행 클라이언트가 재시작 공백을 밟지 않게 한다.
 rsync -azi --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/assets/ "${TARGET}:${APP_DIR}/dist/assets/" | tee "${dist_log}"
-rsync -azi --delay-updates --exclude 'assets/' --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/ "${TARGET}:${APP_DIR}/dist/" | tee -a "${dist_log}"
+rsync -azi --delay-updates --exclude 'assets/' --exclude 'index.html' --exclude 'service-worker.js' --exclude 'version.json' --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/ "${TARGET}:${APP_DIR}/dist/" | tee -a "${dist_log}"
+rsync -azi --delay-updates -e "${RSYNC_SSH}" "${ENTRY_STAGE_FILES[@]}" "${TARGET}:${REMOTE_ENTRY_DIR}/" | tee -a "${dist_log}"
 rsync -azi --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist-cafe24/ "${TARGET}:${APP_DIR}/dist-cafe24/" | tee "${functions_log}"
 rsync -azi --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" server/cafe24/ "${TARGET}:${APP_DIR}/server/cafe24/" | tee "${server_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/audit-analytics-admin-devices.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
@@ -251,5 +275,38 @@ install -m 0644 '${APP_DIR}/deploy/cafe24/cron/swingenjoy-notifications' /etc/cr
 chown root:root /etc/cron.d/swingenjoy-notifications
 systemctl reload crond || systemctl restart crond
 systemctl reload httpd || true
+systemctl is-active '${SERVICE}'"
+
+# 서버 헬스 확인이 끝난 뒤에만 새 frontend entry를 공개한다. index와 service
+# worker를 먼저 준비하고 version.json을 마지막 atomic rename으로 전환해야
+# 기존 클라이언트의 버전 감지 새로고침이 서버 재시작 구간과 겹치지 않는다.
+ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
+ENTRY_DIR='${REMOTE_ENTRY_DIR}'
+DIST_DIR='${APP_DIR}/dist'
+
+prepare_entry() {
+  entry_name=\"\$1\"
+  entry_source=\"\$ENTRY_DIR/\$entry_name\"
+  entry_temp=\"\$DIST_DIR/.\$entry_name.deploy-${DEPLOY_BUILD_ID}\"
+  test -s \"\$entry_source\"
+  install -m 0644 \"\$entry_source\" \"\$entry_temp\"
+}
+
+publish_entry() {
+  entry_name=\"\$1\"
+  entry_temp=\"\$DIST_DIR/.\$entry_name.deploy-${DEPLOY_BUILD_ID}\"
+  mv -f \"\$entry_temp\" \"\$DIST_DIR/\$entry_name\"
+}
+
+prepare_entry index.html
+prepare_entry service-worker.js
+prepare_entry version.json
+publish_entry index.html
+publish_entry service-worker.js
+publish_entry version.json
+
+rm -f \"\$ENTRY_DIR/index.html\" \"\$ENTRY_DIR/service-worker.js\" \"\$ENTRY_DIR/version.json\"
+rmdir \"\$ENTRY_DIR\" || true
+curl -fsS '${HEALTH_URL}' >/dev/null
 systemctl is-active '${SERVICE}'
-cat dist/version.json"
+cat \"\$DIST_DIR/version.json\""

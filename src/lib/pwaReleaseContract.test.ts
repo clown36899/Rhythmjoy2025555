@@ -3,14 +3,30 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('PWA release overlap contract', () => {
-  it('uploads new hashed assets before entry files and does not delete old client assets', () => {
+  it('publishes version.json only after server health and the other entry files', () => {
     const deploy = readFileSync(resolve(process.cwd(), 'scripts/deploy-cafe24.sh'), 'utf8');
     const assetUpload = 'dist/assets/ "${TARGET}:${APP_DIR}/dist/assets/"';
-    const entryUpload = 'dist/ "${TARGET}:${APP_DIR}/dist/"';
+    const staticUpload = 'dist/ "${TARGET}:${APP_DIR}/dist/"';
+    const stagedEntryUpload = '"${TARGET}:${REMOTE_ENTRY_DIR}/"';
+    const restart = "systemctl restart '${SERVICE}'";
+    const serverActive = "systemctl is-active '${SERVICE}'";
+    const prepareIndex = 'prepare_entry index.html';
+    const publishIndex = 'publish_entry index.html';
+    const publishWorker = 'publish_entry service-worker.js';
+    const publishVersion = 'publish_entry version.json';
 
     expect(deploy).toContain(assetUpload);
     expect(deploy).toContain("--exclude 'assets/'");
-    expect(deploy.indexOf(assetUpload)).toBeLessThan(deploy.indexOf(entryUpload));
+    expect(deploy).toContain("--exclude 'index.html'");
+    expect(deploy).toContain("--exclude 'service-worker.js'");
+    expect(deploy).toContain("--exclude 'version.json'");
+    expect(deploy).toContain(stagedEntryUpload);
+    expect(deploy.indexOf(assetUpload)).toBeLessThan(deploy.indexOf(staticUpload));
+    expect(deploy.indexOf(stagedEntryUpload)).toBeLessThan(deploy.indexOf(restart));
+    expect(deploy.indexOf(restart)).toBeLessThan(deploy.indexOf(prepareIndex));
+    expect(deploy.indexOf(serverActive)).toBeLessThan(deploy.indexOf(prepareIndex));
+    expect(deploy.indexOf(publishIndex)).toBeLessThan(deploy.indexOf(publishWorker));
+    expect(deploy.indexOf(publishWorker)).toBeLessThan(deploy.indexOf(publishVersion));
     expect(deploy).not.toMatch(/rsync[^\n]*--delete[^\n]*dist\/[^-]/);
   });
 
