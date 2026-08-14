@@ -158,6 +158,14 @@ describe("home ad low-priority auto rotation", () => {
         }
     });
 
+    it("moves forward through the ranked event order", () => {
+        expect(getNextHomeAdAutoIndex(events, new Set(), 1)).toBe(1);
+        expect(getNextHomeAdAutoIndex(events, new Set(), 2)).toBe(2);
+        expect(getNextHomeAdAutoIndex(events, new Set(), 4)).toBe(0);
+        expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 1)).toBe(1);
+        expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 2)).toBe(0);
+    });
+
     it("allows one rotating past filler on every eighth automatic transition", () => {
         expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 8)).toBe(2);
         expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 16)).toBe(3);

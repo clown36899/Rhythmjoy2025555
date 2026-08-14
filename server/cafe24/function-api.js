@@ -1106,6 +1106,15 @@ const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
   sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
 };
 
+const AUTOMATIC_EXPLICIT_EVENT_PATTERN = /행사|대회|컴피티션|챔피언십|챔피언스?\s*컵|competition|championship|tournament|contest|\bbattle\b|\bcup\b/i;
+
+function hasConflictingAutomaticSocialEventClassification(structured = {}, title = '') {
+  if (String(structured.category || '').trim().toLowerCase() === 'event') return true;
+  if (AUTOMATIC_EXPLICIT_EVENT_PATTERN.test(String(structured.event_type || ''))) return true;
+  if (AUTOMATIC_EXPLICIT_EVENT_PATTERN.test(String(structured.genre || ''))) return true;
+  return AUTOMATIC_EXPLICIT_EVENT_PATTERN.test(String(title || ''));
+}
+
 export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const structured = scrapedEvent?.structured_data || {};
   const readiness = scrapedEvent?.auto_registration || {};
@@ -1149,6 +1158,9 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   }
   if (activity !== 'social' && !scrapedEvent?.poster_url) reasons.push('poster image is required');
   if (activity === 'social' && djs.length === 0) reasons.push('social requires a DJ');
+  if (activity === 'social' && hasConflictingAutomaticSocialEventClassification(structured, title)) {
+    reasons.push('event/competition cannot be auto-registered as social');
+  }
   if (structured.times?.length || structured.time) reasons.push('time fields are not accepted');
   const evidenceQuotes = Array.isArray(structured.ai_evidence_quotes)
     ? structured.ai_evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)

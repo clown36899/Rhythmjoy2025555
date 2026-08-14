@@ -283,7 +283,7 @@ export const getNextHomeAdAutoIndex = (
         .map(({ index }) => index);
 
     if (regularIndices.length === 0 || lowPriorityIndices.length === 0) {
-        return (events.length - (autoStep % events.length)) % events.length;
+        return autoStep % events.length;
     }
 
     if (autoStep % HOME_AD_LOW_PRIORITY_AUTO_INTERVAL === 0) {
@@ -293,7 +293,5 @@ export const getNextHomeAdAutoIndex = (
 
     const completedLowPrioritySteps = Math.floor(autoStep / HOME_AD_LOW_PRIORITY_AUTO_INTERVAL);
     const regularStep = autoStep - completedLowPrioritySteps;
-    return regularIndices[
-        (regularIndices.length - (regularStep % regularIndices.length)) % regularIndices.length
-    ];
+    return regularIndices[regularStep % regularIndices.length];
 };

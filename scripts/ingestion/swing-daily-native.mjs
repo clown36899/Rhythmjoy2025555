@@ -49,6 +49,10 @@ import {
   saveIngestionProgress,
   selectUnseenInstagramPosts,
 } from './ingestion-progress.mjs';
+import {
+  formatAutoRegistrationTelegramLine,
+  toAutoRegistrationReportEntry,
+} from './auto-registration-report.mjs';
 
 chromium.use(stealthPlugin());
 
@@ -128,6 +132,7 @@ const result = {
   noContentSources: [],
   issues: [],
   candidates: [],
+  autoRegisteredEvents: [],
   deadlineReached: false,
   remainingSources: [],
   benefitSearchStats: [],
@@ -2296,6 +2301,11 @@ async function postCandidate(candidate) {
         result.issues.push(`auto-register ${savedCandidate.id}: HTTP ${autoResult.response.status}`);
         log(`auto-register blocked ${savedCandidate.id}: ${autoResult.response.status} ${autoResult.body.slice(0, 300)}`);
       } else {
+        if (autoBody?.event) {
+          result.autoRegisteredEvents.push(toAutoRegistrationReportEntry(autoBody.event, {
+            repaired: autoBody.repaired === true,
+          }));
+        }
         log(`auto-registered ${savedCandidate.id}`);
       }
     } catch (error) {
@@ -2762,6 +2772,7 @@ function printSummary() {
     noContentSources,
     issues,
     candidates: result.candidates.slice(0, exceptionBacktest ? 200 : 20),
+    autoRegisteredEvents: result.autoRegisteredEvents,
     deadlineReached: result.deadlineReached,
     remainingSources: result.remainingSources.slice(0, 20),
     remainingSourceCount: result.remainingSources.length,
@@ -2771,6 +2782,7 @@ function printSummary() {
   console.log('INGESTION_RESULT_JSON_END');
   console.log('==TELEGRAM_SUMMARY_START==');
   console.log(`신규: ${result.inserted}건`);
+  console.log(`자동등록: ${formatAutoRegistrationTelegramLine(result.autoRegisteredEvents)}`);
   console.log(`스킵: ${result.skipped}건`);
   console.log(`과거데이터삭제: ${cleanupCount}건`);
   console.log(`접근불가: ${accessFailures.length ? accessFailures.join(', ') : 'none'}`);

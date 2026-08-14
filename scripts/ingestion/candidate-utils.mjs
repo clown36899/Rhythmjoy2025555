@@ -903,8 +903,25 @@ function normalizeSiteCategory(value = '') {
   return '';
 }
 
+const explicitEventTypePattern = /행사|대회|컴피티션|챔피언십|챔피언스?\s*컵|파티|공연|페스티벌|festival|competition|championship|tournament|contest|battle/i;
+const explicitCompetitionTitlePattern = /대회|컴피티션|챔피언십|챔피언스?\s*컵|competition|championship|tournament|contest|\bbattle\b|\bcup\b/i;
+
+function hasExplicitEventClassification(candidate = {}) {
+  const sd = candidate.structured_data || {};
+  const heading = titleOf(candidate);
+  const category = normalizeSiteCategory(sd.category || candidate.category);
+  if (category === 'social' && /졸\s*공|졸업\s*(?:공연|파티)|graduation/i.test(heading)) return false;
+  if (category === 'event') return true;
+  if (explicitEventTypePattern.test(String(sd.event_type || candidate.event_type || ''))) return true;
+
+  const genre = [sd.genre, sd.subgenre, candidate.genre].filter(Boolean).join(' ');
+  if (/대회|컴피티션|competition|championship|tournament|contest|battle/i.test(genre)) return true;
+  return explicitCompetitionTitlePattern.test(heading);
+}
+
 function siteCategoryFromCandidate(candidate, taxonomy) {
   const sd = candidate.structured_data || {};
+  if (taxonomy.activity_type === 'event' && hasExplicitEventClassification(candidate)) return 'event';
   const explicit = normalizeSiteCategory(sd.category || candidate.category);
   if (explicit) return explicit;
 
@@ -1029,7 +1046,12 @@ export function inferCandidateTaxonomy(candidate) {
   const source = findSourceByUrl(candidate.source_url);
   const sd = candidate.structured_data || {};
   const text = textOf(candidate);
-  const activity = inferActivity(text, sd.activity_type, titleOf(candidate));
+  const inferredActivity = inferActivity(text, sd.activity_type, titleOf(candidate));
+  // DJ는 행사에도 포함될 수 있다. 이미 행사·대회로 명시된 후보는 DJ 단서만으로
+  // 소셜로 내리지 않고, 모집·강습·판매처럼 더 구체적인 다른 활동은 유지한다.
+  const activity = inferredActivity === 'social' && hasExplicitEventClassification(candidate)
+    ? 'event'
+    : inferredActivity;
   const inferredGenre = inferGenre(text);
   const danceGenre = sd.dance_genre || (inferredGenre.genre === 'unknown' ? source?.genre : inferredGenre.genre) || 'unknown';
   const genreFamily = sd.genre_family || (inferredGenre.family === 'unknown' ? source?.family : inferredGenre.family) || 'unknown';

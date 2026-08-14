@@ -258,6 +258,9 @@ function buildPrompt(candidate) {
 Judge only the supplied source text. Do not browse, infer a time, or use outside knowledge.
 The calendar stores dates only. Never output or reason from an event time.
 
+A DJ credit alone never makes an item a social. When the collector candidate or source explicitly
+identifies an event, competition, championship, cup, or battle, keep activity_type "event" even if a DJ is listed.
+
 Return "register" only when the text unambiguously supports exactly one event on the collector date,
 the activity type, venue, and (for a social) every DJ. If several dates or several DJ lineups are mixed
 and the supplied candidate is not clearly one date-specific section, return "review".
