@@ -24,14 +24,22 @@
 
 ## 2026-08-14 수집 행사 메인 광고 누락
 
-- 상태: 1차 배포 후 후속 원인 확인, 보완 수정·검증 완료 및 재배포 전
+- 상태: 운영 배포·로그인 관리자 화면 검증 완료 (2026-08-14 20:45 KST)
 - 현상: 2026-08-17 `챔피언스컵`이 행사 `대회`로 정상 분류됐지만 홈 메인 광고에 표시되지 않았다.
-- 운영 근거: 해당 일정은 `category=event`, `genre=대회`, `dance_scope=swing`과 유효한 미래 시작일·이미지를 가지고 있어 장르 및 날짜 노출 조건을 통과했다. 그러나 광고 후보 중 같은 경성홀의 2026-08-16 `BEER PARTY`와 모두 작성자 대체값 `Swing Enjoy`를 사용했다.
-- 원인: 메인 광고의 작성자·장소별 1건 제한이 수집 시스템의 기본 작성자명 `Swing Enjoy`와 `익명`도 실제 작성자 식별자로 간주했다. 이 때문에 서로 다른 원문 출처의 별도 행사도 같은 플랫폼 작성자·장소 조합으로 중복 제거됐다. 1차 수정에서 모든 대체 작성자를 이벤트 ID별로 분리하자 일정 자체는 보존됐지만 같은 원문 출처의 경성홀 일정도 각각 한 자리를 차지해, 최대 10개 제한에서 챔피언스컵은 11번째가 됐다.
-- 해결: 로그인 사용자 ID나 실제 주최자명이 있으면 기존 작성자·장소 제한을 유지한다. `Swing Enjoy`, `익명` 등 일반 대체값은 원문 출처명과 장소 조합으로 묶고, 출처명도 없을 때만 이벤트 ID별로 구분한다. 경성홀 자체 게시물은 한 건으로 제한하면서 다른 출처인 스윙패밀리의 챔피언스컵은 별도 행사로 보존한다.
-- 검증: 1차 운영 배포 뒤 공개 모바일 브라우저에서 새 자산 반영은 확인됐지만 챔피언스컵이 10개 슬라이드에 없음을 발견했다. 보완 규칙으로 운영 이벤트 목록을 다시 계산했을 때 챔피언스컵이 9번째 후보로 보존됐다. 메인 광고 우선순위·중복 제한 회귀 테스트 9개가 통과했다. 대상 ESLint 오류는 0개였고 기존 경고 11개만 유지됐으며, Cafe24 프로덕션 프런트엔드 빌드와 `git diff --check`가 통과했다.
-- 운영 영향: 1차 배포 버전 `1786705429505`는 서비스·헬스·자산 일치가 정상이지만 기능 검증에서 후속 원인이 확인됐다. 보완 수정은 아직 재배포 전이며 운영 데이터는 변경하지 않았다.
-- 관련 파일: `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`
+- 운영 근거: 운영 DB에서 해당 일정은 `category=event`, `activity_type=event`, `genre=대회`, `dance_scope=swing`과 유효한 미래 시작일·이미지를 가지고 있었다. 비로그인 계산에서는 15개 중 8번째였지만, 실제 로그인 관리자 화면의 15개에는 없었다.
+- 원인:
+  - 자동수집 행사는 원문 출처 외에 공용 수집 `user_id`, `organizer=Swing Enjoy`, `organizer_name=관리자`를 함께 가진다. 관리자 응답에만 보이는 `user_id`와 `organizer_name`을 실제 작성자로 먼저 사용하면서 같은 경성홀의 앞 일정과 중복 처리됐다. 비로그인 응답에서는 이 관리 필드가 숨겨져 결과가 달라졌다.
+  - 기존 광고 정렬은 가까운 강습·동호회 일정이 이번 달 행사보다 앞설 수 있었고, 자동 순환도 뒤쪽 순번부터 진행되는 문제가 있었다.
+- 해결:
+  - `Swing Enjoy`, `익명`, `관리자`, `admin` 등 수집 대체 작성자는 공용 사용자 ID보다 원문 출처·장소 조합을 우선해 로그인 여부와 무관한 중복 결과를 만든다. 경성홀 자체 게시물은 한 건으로 제한하면서 다른 출처인 챔피언스컵은 보존한다.
+  - 최대 노출 수를 15개로 유지하고, 이번 달 `행사/대회`는 장르 설정과 무관하게 먼저 보장한다. 다음 주 일요일까지의 가까운 일정에 이어 일반 일정을 배치하고 동호회·팀원모집 일정은 뒤로 보낸다. 자동 순환은 1→2→3 순서로 진행한다.
+  - 수집 분류에서는 명시적인 행사·대회·챔피언십 신호가 DJ 문구보다 우선한다. 서버도 행사 구조화 필드와 `social` 자동등록이 충돌하면 거절한다. 일일 자동수집 Telegram 요약에는 서버가 최종 저장한 날짜·제목·활동/분류 목록을 최대 15건까지 포함한다.
+- 검증:
+  - 메인 광고·NEB 회귀 테스트 17개, 자동등록 행사 분류·Telegram 보고 테스트 5개, 수집 표준 검사, 대상 ESLint(오류 0), Cafe24 프로덕션 빌드와 `git diff --check`가 통과했다.
+  - 배포 버전 `1786707906677`의 로그인 관리자 Chrome 화면에서 15개를 직접 읽어 `광복의 리듬`, `경성홀 BEER PARTY`, `챔피언스컵`, `대전 피버 토 졸파`가 1~4번에 배치된 것을 확인했다. 3번 인디케이터 선택 시 `챔피언스컵 / 3 / 15`가 활성화됐고 자동 순환은 1번에서 2번으로 진행됐으며 브라우저 오류는 0건이었다.
+  - 공개 버전·루트 HTTP 200, 서비스 `active`, 내부 헬스 `ok`를 확인했다. 운영 일정 데이터 자체는 수정하지 않았다.
+- 관련 커밋: `71ee3bdb`, `fdc555bd`, `d1a150b2`, `ba5fa490`, `fc7bb9be`
+- 관련 파일: `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/auto-registration-report.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `server/cafe24/function-api.js`
 
 ## 2026-08-13 자유게시판 일반 글의 비공개 선택 누락
 
