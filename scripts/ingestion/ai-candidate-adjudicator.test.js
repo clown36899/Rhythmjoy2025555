@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { shouldPersistBenefitAiOutcome, validateAiAdjudication, validateBenefitAiReview } from './ai-candidate-adjudicator.mjs';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import {
+  extractSocialScheduleWithAi,
+  shouldPersistBenefitAiOutcome,
+  validateAiAdjudication,
+  validateAiSocialExtraction,
+  validateBenefitAiReview,
+} from './ai-candidate-adjudicator.mjs';
 
 const candidate = {
   extracted_text: '7월 29일 경성홀 수요 소셜 DJ 뉴야',
@@ -251,6 +260,265 @@ describe('AI candidate adjudication grounding', () => {
       ],
     });
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('AI social extraction grounding', () => {
+  const sourceText = `■ 스윙타임빠 (8월 15,16일) 토,일 소셜 공지
+- 토요일
+DJ '이정' PM 8:15~10:15
+- 일요일
+1부 DJ '캐롤' PM 7:30~9:00
+■ 타임빠소셜 안내`;
+
+  it('accepts independently grounded sessions from a compact date heading', () => {
+    const result = validateAiSocialExtraction({ sourceText, today: '2026-08-14' }, {
+      decision: 'extract',
+      confidence: 0.99,
+      events: [
+        {
+          title: '스윙타임 토요 소셜',
+          event_date: '2026-08-15',
+          venue: '스윙타임',
+          djs: ['이정'],
+          evidence_quotes: ['스윙타임빠', '8월 15,16일', '토,일 소셜', "DJ '이정'"],
+        },
+        {
+          title: '스윙타임 일요 소셜',
+          event_date: '2026-08-16',
+          venue: '스윙타임',
+          djs: ['캐롤'],
+          evidence_quotes: ['스윙타임빠', '8월 15,16일', '토,일 소셜', "DJ '캐롤'"],
+        },
+      ],
+      reasons: [],
+    }, { today: '2026-08-14' });
+
+    expect(result.ok).toBe(true);
+    expect(result.events.map(({ event_date, djs }) => ({ event_date, djs }))).toEqual([
+      { event_date: '2026-08-15', djs: ['이정'] },
+      { event_date: '2026-08-16', djs: ['캐롤'] },
+    ]);
+  });
+
+  it('blocks a partial extraction when syntax-derived dates remain unexamined', () => {
+    const result = validateAiSocialExtraction({
+      sourceText,
+      dateHints: ['2026-08-15', '2026-08-16'],
+      today: '2026-08-14',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      events: [{
+        title: '스윙타임 토요 소셜',
+        event_date: '2026-08-15',
+        venue: '스윙타임',
+        djs: ['이정'],
+        evidence_quotes: ['스윙타임빠', '8월 15,16일', '토,일 소셜', "DJ '이정'"],
+      }],
+      reasons: [],
+    }, { today: '2026-08-14' });
+
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain('AI omitted collector date hints: 2026-08-16');
+  });
+
+  it('rejects an AI session whose DJ quote is absent from the source', () => {
+    const result = validateAiSocialExtraction({ sourceText, today: '2026-08-14' }, {
+      decision: 'extract',
+      confidence: 0.99,
+      events: [{
+        title: '스윙타임 토요 소셜',
+        event_date: '2026-08-15',
+        venue: '스윙타임',
+        djs: ['환각DJ'],
+        evidence_quotes: ['스윙타임빠', '8월 15,16일', '토,일 소셜', 'DJ 환각DJ'],
+      }],
+      reasons: [],
+    }, { today: '2026-08-14' });
+
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(' ')).toContain('exact substring');
+  });
+
+  it('accepts poster-only fields only when an original image was attached', () => {
+    const imageDataUrl = `data:image/png;base64,${Buffer.alloc(1200, 1).toString('base64')}`;
+    const extraction = {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '8월 15일 토정모 DJ 감자',
+      events: [{
+        title: '해피홀 토요 정모',
+        event_date: '2026-08-15',
+        venue: '해피홀',
+        djs: ['감자'],
+        poster_image_index: 1,
+        evidence_quotes: [
+          '8월 15일',
+          '토정모',
+          'DJ 감자',
+          '검증된 공식 수집원 고정 장소: 해피홀',
+        ],
+      }],
+      reasons: [],
+    };
+
+    expect(validateAiSocialExtraction({
+      sourceText: '토요일 정모 안내',
+      sourceVenue: '해피홀',
+      imageDataUrls: [imageDataUrl],
+      today: '2026-08-14',
+    }, extraction, { today: '2026-08-14' }).ok).toBe(true);
+
+    const withoutImage = validateAiSocialExtraction({
+      sourceText: '토요일 정모 안내',
+      sourceVenue: '해피홀',
+      today: '2026-08-14',
+    }, extraction, { today: '2026-08-14' });
+    expect(withoutImage.ok).toBe(false);
+    expect(withoutImage.reasons).toContain('AI poster text was returned without an attached source image');
+
+    const missingPosterIndex = validateAiSocialExtraction({
+      sourceText: '토요일 정모 안내',
+      sourceVenue: '해피홀',
+      imageDataUrls: [imageDataUrl],
+      today: '2026-08-14',
+    }, {
+      ...extraction,
+      events: extraction.events.map((event) => ({ ...event, poster_image_index: 0 })),
+    }, { today: '2026-08-14' });
+    expect(missingPosterIndex.ok).toBe(false);
+    expect(missingPosterIndex.reasons.join(' ')).toContain('poster evidence requires its source image index');
+  });
+
+  it('treats HAPPY HALL on an official poster as the canonical 해피홀 venue', () => {
+    const imageDataUrl = `data:image/jpeg;base64,${Buffer.alloc(1200, 3).toString('base64')}`;
+    const result = validateAiSocialExtraction({
+      sourceText: '★8/14(금햎+광복의리듬 ) /15일 토정모 안내★',
+      sourceVenue: '해피홀',
+      imageDataUrls: [imageDataUrl],
+      dateHints: ['2026-08-15'],
+      today: '2026-08-14',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '2026.08.15. HAPPY HALL SATURDAY SWING FRIENDS DJ 유광',
+      events: [{
+        title: '해피홀 토요 정모',
+        event_date: '2026-08-15',
+        venue: '해피홀',
+        djs: ['유광'],
+        poster_image_index: 1,
+        evidence_quotes: [
+          '★8/14(금햎+광복의리듬 ) /15일 토정모 안내★',
+          '2026.08.15.',
+          'HAPPY HALL',
+          'DJ 유광',
+        ],
+      }],
+      reasons: [],
+    }, { today: '2026-08-14' });
+
+    expect(result.ok).toBe(true);
+    expect(result.events[0].poster_image_index).toBe(1);
+  });
+
+  it('permits an explicitly announced DJ-less social only with an attached official poster', () => {
+    const imageDataUrl = `data:image/png;base64,${Buffer.alloc(1200, 2).toString('base64')}`;
+    const sourceText = '★8/14(금햎+광복의리듬 ) /15일 토정모 안내★';
+    const result = validateAiSocialExtraction({
+      sourceText,
+      sourceVenue: '해피홀',
+      imageDataUrls: [imageDataUrl],
+      today: '2026-08-14',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '',
+      events: [{
+        title: '해피홀 토요 정모',
+        event_date: '2026-08-15',
+        venue: '해피홀',
+        djs: [],
+        evidence_quotes: [sourceText, '토정모', '검증된 공식 수집원 고정 장소: 해피홀'],
+      }],
+      reasons: [],
+    }, { today: '2026-08-14' });
+
+    expect(result.ok).toBe(true);
+    expect(result.events[0].djs).toEqual([]);
+  });
+
+  it('rechecks only an omitted date and combines the independently grounded sessions', async () => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'rhythmjoy-ai-social-test-'));
+    const fakeCodex = path.join(workDir, 'fake-codex.cjs');
+    const broadExtraction = {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '',
+      events: [{
+        title: '스윙타임 토요 소셜',
+        event_date: '2026-08-15',
+        venue: '스윙타임',
+        djs: ['이정'],
+        poster_image_index: 0,
+        evidence_quotes: ['8월 15일', '스윙타임 소셜', 'DJ 이정'],
+      }],
+      reasons: [],
+    };
+    const focusedExtraction = {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '',
+      events: [{
+        title: '스윙타임 일요 소셜',
+        event_date: '2026-08-16',
+        venue: '스윙타임',
+        djs: ['캐롤'],
+        poster_image_index: 0,
+        evidence_quotes: ['8월 16일', '스윙타임 소셜', 'DJ 캐롤'],
+      }],
+      reasons: [],
+    };
+    const fakeCodexSource = `#!/usr/bin/env node
+const fs = require('node:fs');
+let prompt = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk) => { prompt += chunk; });
+process.stdin.on('end', () => {
+  const args = process.argv.slice(2);
+  const outputPath = args[args.indexOf('--output-last-message') + 1];
+  const focused = prompt.includes('FOCUS_DATE_HINTS:\\n2026-08-16');
+  fs.writeFileSync(outputPath, JSON.stringify(focused ? ${JSON.stringify(focusedExtraction)} : ${JSON.stringify(broadExtraction)}));
+});
+`;
+
+    try {
+      await writeFile(fakeCodex, fakeCodexSource, 'utf8');
+      await chmod(fakeCodex, 0o755);
+      const result = await extractSocialScheduleWithAi({
+        sourceName: '스윙타임',
+        sourceText: [
+          '스윙타임 8월 15,16일 소셜 공지',
+          '8월 15일 스윙타임 소셜 DJ 이정',
+          '8월 16일 스윙타임 소셜 DJ 캐롤',
+        ].join('\n'),
+        dateHints: ['2026-08-15', '2026-08-16'],
+        today: '2026-08-14',
+      }, {
+        codexPath: fakeCodex,
+        today: '2026-08-14',
+        timeoutMs: 10_000,
+      });
+
+      expect(result.approved).toBe(true);
+      expect(result.events.map((event) => [event.event_date, event.djs[0]])).toEqual([
+        ['2026-08-15', '이정'],
+        ['2026-08-16', '캐롤'],
+      ]);
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
   });
 });
 

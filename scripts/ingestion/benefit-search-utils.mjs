@@ -146,24 +146,96 @@ export function expectedInstagramHandleForSource(source = {}) {
   }
 }
 
-export function instagramPostMatchesExpectedHandle(url = '', expectedHandle = '') {
+export function isVerifiedInstagramFallbackProfile({
+  expectedHandle = '',
+  title = '',
+  bodyText = '',
+  url = '',
+} = {}) {
   const expected = String(expectedHandle || '').trim().replace(/^@/, '').toLowerCase();
-  if (!expected) return true;
+  if (!expected) return false;
+
+  try {
+    const parsed = new URL(url || '');
+    const [pathHandle = ''] = parsed.pathname.split('/').filter(Boolean);
+    if (!/(^|\.)imginn\.com$/i.test(parsed.hostname) || pathHandle.toLowerCase() !== expected) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
+  const pageText = `${title}\n${bodyText}`.normalize('NFKC').toLowerCase();
+  if (/content\s+not\s+found|page\s+not\s+found|profile\s+not\s+found|user\s+not\s+found|doesn['’]?t\s+exist|cloudflare|attention\s+required|captcha|blocked/i.test(pageText)) {
+    return false;
+  }
+  return pageText.includes(`@${expected}`) || pageText.includes(expected);
+}
+
+export function isDirectInstagramPostMediaUrl(value = '') {
+  const normalized = String(value || '').replace(/&amp;/gi, '&');
+  return /(?:[?&])ig_cache_key=[^&]+/i.test(normalized)
+    || /(?:[?&])_nc_sid=58cdad(?:&|$)/i.test(normalized);
+}
+
+export function isNaverScheduleOverviewText(value = '') {
+  const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+  return /(?:20\d{2}\s*년\s*)?\d{1,2}\s*월[^\n]{0,40}(?:월간\s*)?(?:전체\s*)?(?:일정|일정표|스케줄|운영\s*안내)/i.test(normalized)
+    || /(?:월간\s*)?(?:일정|일정표|스케줄)[^\n]{0,30}\d{1,2}\s*월/i.test(normalized);
+}
+
+export function isNaverAdministrativeNoticeText(value = '') {
+  const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+  if (isNaverScheduleOverviewText(normalized)) return false;
+  return /\[?운영진공지\]?|윤리위원회|강사\s*선정\s*발표|강사\s*모집\s*공고|강습\s*신청\s*및\s*입금\s*방법/i.test(normalized);
+}
+
+export function naverScheduleOverviewPriority(value = '', today = '') {
+  const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+  if (!isNaverScheduleOverviewText(normalized)) return 4;
+  const match = String(today || '').match(/^(20\d{2})-(\d{2})-\d{2}$/);
+  if (!match) return 3;
+  const [, year, monthText] = match;
+  const month = Number(monthText);
+  const currentYear = new RegExp(`${year}\\s*년`).test(normalized);
+  const currentMonth = new RegExp(`(?:^|[^0-9])${month}\\s*월`).test(normalized);
+  const mixedActivityCalendar = !/정규\s*강습\s*신청/i.test(normalized);
+  if (currentYear && currentMonth && mixedActivityCalendar) return 0;
+  if (currentYear && currentMonth) return 1;
+  if (currentMonth && mixedActivityCalendar) return 2;
+  return 3;
+}
+
+function normalizeExpectedInstagramHandles(...values) {
+  return [...new Set(values.flatMap((value) => (
+    Array.isArray(value) ? value : [value]
+  )).map((value) => String(value || '').trim().replace(/^@/, '').toLowerCase()).filter(Boolean))];
+}
+
+export function instagramPostMatchesExpectedHandle(url = '', expectedHandle = '') {
+  const expected = normalizeExpectedInstagramHandles(expectedHandle);
+  if (!expected.length) return true;
   try {
     const parsed = new URL(url, 'https://www.instagram.com/');
     if (!/(^|\.)instagram\.com$/i.test(parsed.hostname)) return false;
     const segments = parsed.pathname.split('/').filter(Boolean).map((segment) => segment.toLowerCase());
     if (/^(p|reel)$/.test(segments[0] || '') && segments[1]) return true;
-    if (segments.length >= 3 && /^(p|reel)$/.test(segments[1])) return segments[0] === expected;
+    if (segments.length >= 3 && /^(p|reel)$/.test(segments[1])) return expected.includes(segments[0]);
     return false;
   } catch {
     return false;
   }
 }
 
-export function instagramAuthorMatches({ expectedHandle = '', ogTitle = '', metaDescription = '', profileHrefs = [] } = {}) {
-  const expected = String(expectedHandle || '').trim().replace(/^@/, '').toLowerCase();
-  if (!expected) return true;
+export function instagramAuthorMatches({
+  expectedHandle = '',
+  expectedHandles = [],
+  ogTitle = '',
+  metaDescription = '',
+  profileHrefs = [],
+} = {}) {
+  const expected = normalizeExpectedInstagramHandles(expectedHandle, expectedHandles);
+  if (!expected.length) return true;
 
   const linkedHandles = [...new Set(profileHrefs.flatMap((href) => {
     try {
@@ -176,11 +248,11 @@ export function instagramAuthorMatches({ expectedHandle = '', ogTitle = '', meta
       return [];
     }
   }))];
-  if (linkedHandles.includes(expected)) return true;
+  if (expected.some((handle) => linkedHandles.includes(handle))) return true;
   if (linkedHandles.length > 0) return false;
 
   const metadata = `${ogTitle}\n${metaDescription}`.normalize('NFKC').toLowerCase();
-  return metadata.includes(`@${expected}`) || metadata.includes(expected);
+  return expected.some((handle) => metadata.includes(`@${handle}`) || metadata.includes(handle));
 }
 
 export function isStaleBenefitSourcePost({

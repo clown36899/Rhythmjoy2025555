@@ -20,24 +20,25 @@
 | 사보이 / 스윙스캔들 | `swingscandal-cafe` Naver Cafe, `swingscandal-littly` Littly | Daily Swing, Festivall | collectable, daily |
 | 해피홀 / 네오 | `happyhall2004` Instagram, `neoswing-daum` Daum Cafe | `neoswing-linktree`, Daily Swing | collectable, daily |
 | 타임 / 프렌즈 | `swingfriends-cafe`, `swing_friends`, `swingfriends-oneday-littly` | `swingfriends-site`, Facebook, Daily Swing | collectable + session-sensitive |
+| 해피홀 / 프렌즈 | `swingfriends-happyhall-cafe` (menu 305), `happyhall2004` | `swing_friends`, `swingfriends-site` | 해피홀 전용 게시판을 collectable origin으로 추가 |
 | 타임 / 스위티 | `sweetyswing-lessons` Daum Cafe, `swingtimebar` Instagram | `sweetyswing-instagram`, `sweetyswing-facebook`, Daily Swing | collectable + session-sensitive |
-| 봉천살롱 / 타운 | `swingtown-cafe`, `bongcheonsalon` | `swingfamily-cafe`, `swingfamily-linktree`, BongcheonSalon Linktree | collectable, daily |
+| 봉천살롱 / 타운 | `swingtown-cafe`, `bongcheonsalon` | `swingtown-schedule-cafe` (menu 233), `swingfamily-cafe`, `swingfamily-linktree`, BongcheonSalon Linktree | 소셜 게시판·Instagram은 자동등록 원본, 혼합 월간표는 수집 후 교차검증 전용 |
 | 봉천살롱 / 서울발보어클럽 | `bongcheonsalon` | BongcheonSalon Linktree | route confirmed, original post needed |
 | 루나 / 스윙캣츠클럽 | `luna_swingbar` | `swingcats-linktree`, `swingcats-inpock` | Instagram checked, link hub confirmed |
 | 루나 / 스윙캣츠클럽 | `swingcats20` | `swingcats-linktree` | collectable, daily |
 | 비밥바 / 하우스 | `bebopbar_swing`, `swinghouse-littly` | Daily Swing | collectable, daily |
 | 당산벙커 / 골든 | `goldenswing` Instagram, `goldenswing-littly` | `goldenswing-linktree`, `goldenswing-cafe`, Google Calendar | collectable + link hub |
-| 피에스타 / 키즈 | `fiesta_swingdance`, `swingkids_kr`, `swingkids-oneday-littly` | `swingkids-linktree`, `swingkids-cafe`, Daily Swing | collectable, daily |
+| 피에스타 / 키즈 | `fiesta_swingdance`, `swingkids_kr` → `@swingkids_`, `swingkids-oneday-littly` | `swingkids-linktree`, `swingkids-cafe`, Daily Swing | 잘못된 `@swingkids_kr` 대신 확인된 공식 핸들로 교정, daily |
 | 피에스타 / 발보아랜드 | `balboaland-instagram` | `balboaland-linktree`, `balboaland-cafe`, `balboaland-facebook` | collectable + session-sensitive |
 | 경성홀 / 올어스, 올스타 | `kyungsunghall` | `allaboutswing-linktree`, AllAboutSwing Location, Daily Swing | collectable venue source, club route directory |
 | 천안빅애플 / 천안올어스 | `allaboutswing_official`, AllAboutSwing 공식 홈 | `allaboutswing-linktree`, `bigapple-cheonan-cafe`, `swingkids-bigapple-cheonan`, `allaboutswing-cafe`, AllAboutSwing Location | 공식 경로 확인, 주간 DJ 원본 게시판은 추가 확인 필요 |
 | 대전 오나다 / 스윙유니버스 | `swinguniverse-linktree` | AllAboutSwing Location, Meroni reference | source route only, official post route still needed |
 | 스윙잇 / 피버 | `daejeon_swingfever`, `swingit_seoul` | `swingfever-linktree`, `swingfever-cafe`, Daily Swing | collectable + official link hub |
-| 인더무드신림 / 드림발, 박쥐 | `inthemood_sillim` | Festivall, Daily Swing | collectable venue source |
+| 인더무드신림 / 드림발, 박쥐 | `inthemood_sillim` → `@inthemoodsillim`, 공동 작성자 `@dreambal_balboa` | Festivall, Daily Swing | 밑줄 없는 공식 장소 계정과 검증된 드림발 공동게시물을 collectable origin으로 사용 |
 | Dialogue/KP댄스홀 / 스윙팝 | `swingpopseoul`, `dialogue_swing`, `kpdancehall` | `swingpopseoul-linktree`, `swingpopseoul-meetup`, `swingpopseoul-facebook`, Festivall | collectable + schedule hub |
 | 스파 / 파스텔, 청주블루스CJB, 스윙유니버스 | `spa_swingdance` | Festivall, Daily Swing | collectable venue source |
 | 아수라장 / 패션 | `asurajang_swing` | Festivall, Meroni reference | collectable venue source |
-| 243 / 부산프렌즈, 어반 | `swingfriends-cafe`, `swing_friends` | Festivall, Meroni reference | 243 자체 인스타 소스 미확정. 부산프렌즈는 스윙프렌즈 경로로 대조, 어반은 공식 원본 추가 조사 필요 |
+| 243 / 부산프렌즈, 어반 | `swingfriends-busan-cafe` (menu 284), `swing_friends` | `swingfriends-cafe`, Festivall | 부산프렌즈 전용 게시판은 collectable origin. 어반은 여전히 공식 원본 추가 조사 필요 |
 | 탐나홀 / 탐나 | `tamnahall` | Daily Swing | collectable venue source |
 | 마얀 / 홀릭 | `swingholic` | Meroni reference | collectable community source |
 | 강남웨스티스 / 웨스티, 웨코 | `gangnam_westies` | Daily Swing | collectable, daily |
@@ -62,6 +63,7 @@
 4. Instagram 계정은 비로그인 환경에서 `no post links`가 자주 난다. 이 경우 “포스트 없음”과 “봇/세션 때문에 목록 접근 불가”를 계속 분리해서 보고해야 한다.
 5. 소셜 지도 항목은 포스터가 없는 반복 일정이면 DB 후보로 넣지 않는다. 대신 `scripts/ingestion/audit-swing-social-map.mjs`로 매 실행마다 확인 상태를 남긴다.
 6. 네이버/다음 카페는 주간표·모집글 원본 후보, Instagram은 포스터 원본 후보, Facebook은 세션 민감 후보, Linktree/Littly는 원본으로 들어가는 라우터로 분류한다. 같은 장면이라도 채널 역할이 다르므로 실패 메시지도 채널별로 다르게 기록해야 한다.
+7. 2026-08-14 점검에서 스윙프렌즈 카페는 `타임바`(menu 85), `해피홀`(menu 305), `부산프렌즈`(menu 284)가 서로 다른 게시판임을 확인했다. 한 카페의 대표 메뉴만 수집하면 다른 장소 일정이 누락되므로 세 메뉴를 독립 원본으로 순회한다.
 
 ## Commands
 

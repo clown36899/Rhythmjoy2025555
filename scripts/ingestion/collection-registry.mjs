@@ -100,6 +100,8 @@ const source = ({
   allowedActivityTypes = [],
   allowedWeekdays = [],
   requiredEventPattern = null,
+  regularSocialExceptionSourceId = '',
+  instagramPostAuthorHandles = [],
 }) => {
   const effectiveQuery = type === 'benefit_search' ? normalizeBenefitSearchQuery(query) : query;
   const effectiveUrl = type === 'benefit_search' && effectiveQuery
@@ -132,6 +134,12 @@ const source = ({
     allowedActivityTypes,
     allowedWeekdays,
     requiredEventPattern,
+    regularSocialExceptionSourceId,
+    instagramPostAuthorHandles: [...new Set(
+      (Array.isArray(instagramPostAuthorHandles) ? instagramPostAuthorHandles : [instagramPostAuthorHandles])
+        .map((handle) => String(handle || '').trim().replace(/^@/, '').toLowerCase())
+        .filter(Boolean),
+    )],
   };
 };
 
@@ -182,10 +190,10 @@ export const collectionSources = [
   source({ id: 'neo_swing', name: '네오스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/neo_swing/', venue: '해피홀', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class'], priority: 1, notes: '공식 Instagram 원본만 사용한다. 날짜·활동·해피홀·(소셜이면) DJ가 원문에 명시되고 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
   source({ id: 'swingtimebar', name: '스윙타임', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingtimebar/', venue: '스윙타임', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social'], priority: 1, notes: '공식 단일 장소 계정이다. 소셜은 원문에서 미래 날짜와 날짜별 DJ가 명확하고 AI 98% 재검증을 통과하면 이미지 없이도 자동등록한다.' }),
   source({ id: 'fiesta_swingdance', name: '피에스타', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/fiesta_swingdance/', priority: 1 }),
-  source({ id: 'bongcheonsalon', name: '봉천살롱', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/bongcheonsalon/', priority: 1 }),
+  source({ id: 'bongcheonsalon', name: '봉천살롱', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/bongcheonsalon/', regularSocialExceptionSourceId: 'swingtown-cafe', priority: 1, notes: '봉천살롱 공식 휴무 공지는 같은 장소의 스윙타운 반복 소셜 규칙을 억제한다.' }),
   source({ id: 'bebopbar_swing', name: '비밥바', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/bebopbar_swing/', priority: 1 }),
   source({ id: 'luna_swingbar', name: '루나', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/luna_swingbar/', priority: 1 }),
-  source({ id: 'inthemood_sillim', name: '인더무드신림', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/inthemood_sillim/', priority: 1 }),
+  source({ id: 'inthemood_sillim', name: '인더무드신림', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/inthemoodsillim/', venue: '인더무드신림', instagramPostAuthorHandles: ['dreambal_balboa'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social'], priority: 1, notes: '공식 계정은 밑줄 없는 inthemoodsillim이다. 공식 프로필에 노출되는 드림발 공동게시물은 원 작성자 dreambal_balboa까지 허용하되 게시물 본문에서 미래 날짜·인더무드신림·DJ·소셜 근거를 모두 확인한다.' }),
   source({ id: 'dialogue_swing', name: 'Dialogue', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/dialogue_swing/', priority: 1 }),
   source({ id: 'swingpopseoul', name: '스윙팝', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingpopseoul/', priority: 1, notes: 'Dialogue 수요일 소셜/KP 강습 원본 후보. 날짜와 이미지가 있는 포스트만 저장' }),
   source({ id: 'asurajang_swing', name: '아수라장', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/asurajang_swing/', priority: 1 }),
@@ -202,10 +210,12 @@ export const collectionSources = [
   source({ id: 'gangnam_westies', name: '강남웨스티스', scope: 'swing', genre: 'wcs', type: 'instagram', url: 'https://www.instagram.com/gangnam_westies/', priority: 2 }),
   source({ id: 'allaboutswing_official', name: '올어바웃스윙 공식 인스타', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/allaboutswing_official/', priority: 2, notes: '천안올어스/경성홀/대전반 축을 보강하는 공식 SNS. /20 제외 규칙은 유지' }),
   source({ id: 'swingcats20', name: '스윙캣츠클럽', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingcats20/', priority: 2, notes: 'Linktree 기준 스윙캣츠 공식 인스타. 루나/대전·세종 소셜 원본 후보' }),
-  source({ id: 'swingkids_kr', name: '스윙키즈', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingkids_kr/', priority: 2 }),
+  source({ id: 'swingkids_kr', name: '스윙키즈', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingkids_/', priority: 2, notes: '기존 상태 키는 유지하되 공식 프로필에서 확인된 실제 Instagram 핸들 swingkids_를 사용한다.' }),
   source({ id: 'swingkids-linktree', name: '스윙키즈 Linktree', scope: 'swing', genre: 'swing', type: 'linktree', url: 'https://linktr.ee/swingkids_', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'link_hub', sceneRole: 'community_route_map', promotionPolicy: 'external_hub_only', notes: '검색 노출에서 공식 인스타/네이버카페/레벨별 신청 경로 확인. 저장은 연결된 원본 포스트에서만 수행' }),
   source({ id: 'balboaland-instagram', name: '발보아랜드 인스타그램', scope: 'swing', genre: 'balboa', type: 'instagram', url: 'https://www.instagram.com/balboa_land/', priority: 2, notes: '발보아랜드 Linktree에서 확인한 공식 인스타. 피에스타 토요일 발보아 소셜 원본 후보' }),
   source({ id: 'swingfriends-cafe', name: '스윙프렌즈 카페', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10026855/menus/85?viewType=L', venue: '스윙타임', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class', 'event', 'sale'], priority: 2, notes: '기본 장소는 스윙타임이다. 원문에 해피홀 등 다른 장소가 명시된 일정은 해당 장소의 별도 일정으로 우선 처리하고, 활동별 근거와 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
+  source({ id: 'swingfriends-happyhall-cafe', name: '스윙프렌즈 해피홀 게시판', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10026855/menus/305?viewType=L', venue: '해피홀', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'event'], priority: 2, runOrder: -0.35, notes: '스윙프렌즈 공식 카페의 해피홀 전용 게시판. 미래 날짜·활동·해피홀·발표된 전체 DJ의 원문 근거와 AI 98% 재검증을 모두 통과한 후보만 자동등록한다.' }),
+  source({ id: 'swingfriends-busan-cafe', name: '부산프렌즈 통합게시판', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10026855/menus/284?viewType=L', venue: '스윙243', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'event'], priority: 2, runOrder: -0.34, notes: '스윙프렌즈 공식 카페의 부산프렌즈 게시판. 스윙243의 미래 날짜·소셜·발표된 전체 DJ 원문 근거와 AI 98% 재검증을 모두 통과한 후보만 자동등록한다.' }),
   source({ id: 'swingfriends-site', name: '스윙프렌즈 공식 웹사이트', scope: 'swing', genre: 'swing', type: 'website', url: 'https://www.swingfriends.com/', priority: 3, discoveryOnly: true, phase: 'stable', sourceKind: 'official_site', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: 'Daily Swing에서 확인된 공식 사이트. 이미지 카드가 있으나 현 수집기는 웹사이트 카드 파서가 없어 우선 원본 경로/수동 확인용' }),
   source({ id: 'swing_friends', name: '스윙프렌즈 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swing_friends/', venue: '스윙타임', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class', 'event', 'sale'], priority: 2, notes: '기본 장소는 스윙타임이다. 원문에 해피홀 등 다른 장소가 명시된 일정은 해당 장소의 별도 일정으로 우선 처리하고, 활동별 근거와 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
   source({ id: 'neoswing-daum', name: '네오스윙 카페', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/neoswing', priority: 2, notes: '해피홀 네오 소셜/강습 원본 후보. 모바일 Daum 카페에서 글과 이미지가 확인될 때만 저장' }),
@@ -213,6 +223,7 @@ export const collectionSources = [
   source({ id: 'goldenswing', name: '골든스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/goldenswing2019/', priority: 2, notes: '골든스윙 Linktree에서 확인한 공식 인스타. 당산벙커/청주 골든 소셜 원본 후보' }),
   source({ id: 'swingfactory_kr', name: '스윙팩토리', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingfactory_kr/', priority: 2 }),
   source({ id: 'swingtown-cafe', name: '스윙타운', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/264?viewType=L', venue: '봉천살롱', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class', 'event'], priority: 2, runOrder: -0.45, notes: '스윙타운의 고정 장소는 봉천살롱이다. 원문에 다른 장소가 명시된 외부 강습·행사는 해당 장소를 우선하고, 활동 근거와 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
+  source({ id: 'swingtown-schedule-cafe', name: '스윙타운 월간 일정', scope: 'swing', genre: 'swing', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/10342583/menus/233?viewType=L', venue: '봉천살롱', autoRegistrationPolicy: 'manual', autoRegistrationAllowedActivityTypes: [], priority: 2, runOrder: -0.44, notes: '스윙타운 공식 카페의 강습일정/월간표 게시판. 휴강·강습·외부 행사가 섞인 교차검증 원문이므로 후보 발견에 사용하되 이 경로 단독으로 자동등록하지 않는다.' }),
   source({ id: 'sweetyswing-lessons', name: '스위티스윙 공지/신청', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sweetyswing/5ngW', autoRegistrationPolicy: 'manual', autoRegistrationVenuePolicy: 'explicit', autoRegistrationAllowedActivityTypes: [], priority: 2, notes: '수집 후보로만 저장하며 자동등록 대상에서는 제외한다.' }),
   source({ id: 'sweetyswing-timebar-pass', name: '스위티스윙 타임빠 정기권', scope: 'swing', genre: 'swing', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sweetyswing/5lqO/search?query=%EC%A0%95%EA%B8%B0%EA%B6%8C', match: /^https?:\/\/m\.cafe\.daum\.net\/sweetyswing\/5lqO\/\d+/i, benefitKind: 'season_pass', autoRegistrationPolicy: 'manual', autoRegistrationVenuePolicy: 'explicit', autoRegistrationAllowedActivityTypes: [], priority: 2, runOrder: -0.4, notes: '타임빠 통신 게시판의 정기권 검색 결과를 직접 순회한다. 검색엔진 발견 여부와 무관하게 실제 판매 원문을 후보로만 저장하고 자동등록하지 않는다.' }),
   source({ id: 'sweetyswing-instagram', name: '스위티스윙 Instagram', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/sweetyswing/', priority: 4, discoveryOnly: true, phase: 'stable', sourceKind: 'social_origin', sceneRole: 'community_route_map', promotionPolicy: 'verified_original_required', notes: '스위티스윙 채널 설명에서 확인된 인스타 원본 후보. 날짜와 이미지가 있는 포스트만 저장' }),
@@ -426,6 +437,55 @@ export function findSourceByUrl(url = '') {
   }) || null;
 }
 
+export function findSourceById(id = '') {
+  const normalized = String(id || '').trim();
+  return normalized ? collectionSources.find((item) => item.id === normalized) || null : null;
+}
+
+function instagramOwnerHandleFromUrl(url = '') {
+  try {
+    const parsed = new URL(url);
+    if (!/(^|\.)instagram\.com$/i.test(parsed.hostname)) return '';
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts.length === 1 && !/^(p|reel|explore|accounts|stories|search)$/i.test(parts[0])) {
+      return parts[0].toLowerCase();
+    }
+    if (parts.length >= 3 && /^(p|reel)$/i.test(parts[1])) return parts[0].toLowerCase();
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+function sourceInstagramAuthorHandles(sourceItem = {}) {
+  return new Set([
+    instagramOwnerHandleFromUrl(sourceItem.url),
+    ...(sourceItem.instagramPostAuthorHandles || []),
+  ].map((handle) => String(handle || '').trim().replace(/^@/, '').toLowerCase()).filter(Boolean));
+}
+
+export function findSourceForCandidate({ sourceId = '', url = '' } = {}) {
+  const declared = findSourceById(sourceId);
+  if (declared) {
+    const declaredCafe = getNaverCafeDescriptor(declared.url);
+    const candidateCafe = getNaverCafeDescriptor(url);
+    if (declaredCafe && candidateCafe && declaredCafe.cafeId === candidateCafe.cafeId) return declared;
+
+    const candidateInstagramOwner = instagramOwnerHandleFromUrl(url);
+    if (
+      declared.type === 'instagram'
+      && candidateInstagramOwner
+      && sourceInstagramAuthorHandles(declared).has(candidateInstagramOwner)
+    ) {
+      return declared;
+    }
+
+    const urlMatched = findSourceByUrl(url);
+    if (urlMatched?.id === declared.id) return declared;
+  }
+  return findSourceByUrl(url);
+}
+
 function getNaverCafeDescriptor(url = '') {
   try {
     const parsed = new URL(url);
@@ -473,5 +533,7 @@ export function getAutomationSourceList(profile = 'swing-daily') {
     allowedActivityTypes: item.allowedActivityTypes,
     allowedWeekdays: item.allowedWeekdays,
     requiredEventPattern: item.requiredEventPattern,
+    regularSocialExceptionSourceId: item.regularSocialExceptionSourceId,
+    instagramPostAuthorHandles: item.instagramPostAuthorHandles,
   }));
 }

@@ -74,6 +74,10 @@ export function mergeSeenInstagramPosts(seenPosts = [], completedPosts = [], max
   ])].slice(0, Math.max(1, Number(maxEntries) || 32));
 }
 
+export function shouldAdvanceInstagramCheckpoint(sourceIssues = []) {
+  return !sourceIssues.some((issue) => /^(?:post|auto-register)\s+/i.test(String(issue || '').trim()));
+}
+
 export function buildIngestionProgressState({
   remainingSources = [],
   lastCompletedAt = '',

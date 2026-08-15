@@ -7,11 +7,46 @@ import {
   findBlockingAutomaticRegistrationDuplicate,
   findOperationalDuplicateForScrapedItem,
   hasRegisteredEventLink,
+  inheritGeneratedRegularSocialVenueMetadata,
   isHighConfidenceSocialDuplicate,
+  evidenceExplicitlyContainsCandidateDate,
   validateAutomaticRegistrationCandidate,
 } from './function-api.js';
 
 describe('ingestor registration linkage', () => {
+  it('inherits map metadata when a grounded social replaces a generated regular social', () => {
+    const explicit = {
+      title: 'DJ 제이 | 인더무드신림 일요 소셜',
+      date: '2026-08-16',
+      start_date: '2026-08-16',
+      location: '인더무드신림',
+      venue_name: '인더무드신림',
+      category: 'social',
+      activity_type: 'social',
+      image: null,
+    };
+    const inherited = inheritGeneratedRegularSocialVenueMetadata(explicit, [{
+      id: 'regular-social:dreambal-sun:2026-08-16',
+      title: '드림발 일요 소셜',
+      date: '2026-08-16',
+      location: '인더무드신림',
+      venue_name: '인더무드신림',
+      address: '서울 관악구 남부순환로 1552 3층',
+      venue_id: 'venue-inthemood',
+      location_link: 'https://map.example.com/inthemood',
+      category: 'social',
+      activity_type: 'social',
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    }]);
+
+    expect(inherited).toMatchObject({
+      address: '서울 관악구 남부순환로 1552 3층',
+      venue_id: 'venue-inthemood',
+      location_link: 'https://map.example.com/inthemood',
+      image: null,
+    });
+  });
+
   it('marks a candidate collected only with its persisted event id', () => {
     const row = buildCollectedScrapedEventRow({
       scrapedEvent: { id: 'candidate-1', status: 'pending', structured_data: { date: '2026-08-01' } },
@@ -210,7 +245,13 @@ describe('ingestor registration linkage', () => {
     const corrected = {
       source_id: 'kyungsunghall',
       extracted_text: '7월 29일 경성홀 수요 소셜 DJ 뉴야',
-      auto_registration: { ready: true, mode: 'shadow', source_id: 'kyungsunghall' },
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'kyungsunghall',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
       structured_data: {
         title: '경성홀 수요 소셜',
         date: '2026-07-29',
@@ -219,6 +260,7 @@ describe('ingestor registration linkage', () => {
         venue_provenance: 'source_registry',
         djs: ['뉴야'],
         evidence_scope: 'date_scoped_social',
+        ai_evidence_quotes: ['7월 29일', '경성홀 수요 소셜', 'DJ 뉴야'],
       },
     };
     expect(canReopenGeneratedRegularSocialDuplicate(existing, corrected)).toBe(true);
@@ -343,6 +385,8 @@ describe('ingestor registration linkage', () => {
         ready: true,
         mode: 'shadow',
         source_id: 'kyungsunghall',
+        ai_verified: true,
+        ai_confidence: 0.99,
       },
       structured_data: {
         title: '경성홀 수요 소셜 DJ 뉴야',
@@ -353,6 +397,7 @@ describe('ingestor registration linkage', () => {
         venue_provenance: 'source_text',
         djs: ['뉴야'],
         evidence_scope: 'date_scoped_social',
+        ai_evidence_quotes: ['7월 29일', '경성홀 수요 소셜', 'DJ 뉴야'],
       },
     });
 
@@ -366,6 +411,39 @@ describe('ingestor registration linkage', () => {
       location: '경성홀',
     });
     expect(validation.eventData).not.toHaveProperty('time');
+  });
+
+  it('accepts either day from a compact multi-date source heading', () => {
+    expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-15')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-16')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('★8/14(금햎+광복의리듬 ) /15일 토정모 안내★', '2026-08-15')).toBe(true);
+
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'candidate-timebar-saturday',
+      status: 'pending',
+      source_id: 'swingfriends-cafe',
+      extracted_text: '스윙타임\n8월 15,16일\n토요일 소셜 DJ 이정',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingfriends-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '스윙프렌즈 카페 토요 소셜',
+        date: '2026-08-15',
+        activity_type: 'social',
+        event_type: '소셜',
+        venue_name: '스윙타임',
+        venue_provenance: 'source_text',
+        djs: ['이정'],
+        evidence_scope: 'date_scoped_social',
+        ai_evidence_quotes: ['스윙타임', '8월 15,16일', '토요일 소셜', 'DJ 이정'],
+      },
+    });
+
+    expect(validation.ok).toBe(true);
   });
 
   it('blocks a benefit-search discovery even when its original account is auto-enrolled', () => {
@@ -475,6 +553,116 @@ describe('ingestor registration linkage', () => {
     });
   });
 
+  it('accepts an image-less InTheMood social from its verified co-authored notice', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'inthemood-no-image',
+      status: 'pending',
+      source_id: 'inthemood_sillim',
+      source_url: 'https://www.instagram.com/dreambal_balboa/p/Db58GUYj0CS/',
+      extracted_text: '날짜 : 2026년 08월 16일 일요일\n장소 : 인더무드신림\n디제이 : 제이\n7:00 입장시작, 소셜 시작',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'inthemood_sillim',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '인더무드신림 일요 소셜',
+        date: '2026-08-16',
+        activity_type: 'social',
+        venue_name: '인더무드신림',
+        venue_provenance: 'source_registry',
+        djs: ['제이'],
+        ai_evidence_quotes: [
+          '날짜 : 2026년 08월 16일 일요일',
+          '장소 : 인더무드신림',
+          '디제이 : 제이',
+          '7:00 입장시작, 소셜 시작',
+        ],
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData).toMatchObject({
+      title: 'DJ 제이 | 인더무드신림 일요 소셜',
+      date: '2026-08-16',
+      location: '인더무드신림',
+      image: null,
+    });
+  });
+
+  it('accepts a DJ-less social only after poster-grounded double AI verification', () => {
+    const sourceTitle = '★8/14(금햎+광복의리듬 ) /15일 토정모 안내★';
+    const candidate = {
+      id: 'happyhall-djless-poster-social',
+      status: 'pending',
+      source_id: 'swingfriends-happyhall-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/56130',
+      poster_url: 'https://example.com/happyhall-poster.png',
+      extracted_text: sourceTitle,
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingfriends-happyhall-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '해피홀 토요 정모',
+        date: '2026-08-15',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        venue_provenance: 'source_registry',
+        djs: [],
+        evidence_scope: 'ai_grounded_social',
+        ai_missing_dj_verified: true,
+        ai_evidence_quotes: [sourceTitle, '토정모', '검증된 공식 수집원 고정 장소: 해피홀'],
+      },
+    };
+    const validation = validateAutomaticRegistrationCandidate(candidate);
+
+    expect(validation.ok).toBe(true);
+    const withoutPoster = validateAutomaticRegistrationCandidate({
+      ...candidate,
+      poster_url: '',
+    });
+    expect(withoutPoster.ok).toBe(false);
+  });
+
+  it('accepts an English HAPPY HALL poster as evidence for the canonical venue', () => {
+    const sourceTitle = '★8/14(금햎+광복의리듬 ) /15일 토정모 안내★';
+    const posterText = '2026.08.15. HAPPY HALL SATURDAY SWING FRIENDS DJ 유광';
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'happyhall-english-poster-social',
+      status: 'pending',
+      source_id: 'swingfriends-happyhall-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/56130',
+      poster_url: 'https://example.com/happyhall-poster.jpg',
+      extracted_text: `${sourceTitle}\n${posterText}`,
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingfriends-happyhall-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '해피홀 토요 정모',
+        date: '2026-08-15',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        venue_provenance: 'poster_text',
+        djs: ['유광'],
+        evidence_scope: 'ai_grounded_social',
+        ai_evidence_quotes: [sourceTitle, '2026.08.15.', 'HAPPY HALL', 'DJ 유광'],
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData.location).toBe('해피홀');
+  });
+
   it('accepts Swing Town and Swing Friends fixed venues plus an explicit Happy Hall override', () => {
     const buildCandidate = ({
       sourceId,
@@ -532,6 +720,24 @@ describe('ingestor registration linkage', () => {
     })).ok).toBe(true);
 
     expect(validateAutomaticRegistrationCandidate(buildCandidate({
+      sourceId: 'swingfriends-happyhall-cafe',
+      sourceUrl: 'https://cafe.naver.com/f-e/cafes/10026855/articles/56130',
+      date: '2026-08-15',
+      venue: '해피홀',
+      venueProvenance: 'source_registry',
+      trustedVenue: '해피홀',
+    })).ok).toBe(true);
+
+    expect(validateAutomaticRegistrationCandidate(buildCandidate({
+      sourceId: 'swingfriends-busan-cafe',
+      sourceUrl: 'https://cafe.naver.com/f-e/cafes/10026855/articles/56124',
+      date: '2026-08-15',
+      venue: '스윙243',
+      venueProvenance: 'source_registry',
+      trustedVenue: '스윙243',
+    })).ok).toBe(true);
+
+    expect(validateAutomaticRegistrationCandidate(buildCandidate({
       sourceId: 'swingfriends-cafe',
       sourceUrl: 'https://cafe.naver.com/f-e/cafes/10026855/articles/2',
       date: '2026-08-08',
@@ -564,7 +770,7 @@ describe('ingestor registration linkage', () => {
     expect(validation.ok).toBe(false);
     expect(validation.reasons).toEqual(expect.arrayContaining([
       'source/activity is not server-enrolled',
-      'social requires a DJ',
+      'social requires a DJ or double-verified poster evidence',
       'time fields are not accepted',
     ]));
   });

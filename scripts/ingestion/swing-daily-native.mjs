@@ -13,17 +13,21 @@ import {
   extractNeoWeeklySocialSchedule,
   extractSeasonPassEvidenceSections,
   getBlockedKeywordReason,
+  hasBadPosterUrl,
   isHighConfidenceDatedSocialSchedule,
   isInstagramCaptionClassHeadline,
   isCollectableDate,
   isEvergreenSeasonPassCandidate,
   keepFirstEventDateOnly,
+  mergeSocialScheduleFallbacks,
   normalizeSourceUrl,
   prepareCandidate,
   publicationDateKey,
+  selectSourceOrderedPosterUrls,
   stripNaverCafeMemberPrefix,
   stripRepeatedDjContext,
   todayISO,
+  toMapSafeVenueName,
 } from './candidate-utils.mjs';
 import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
 import {
@@ -35,10 +39,21 @@ import {
   extractInstagramProfileUrls,
   instagramAuthorMatches,
   instagramPostMatchesExpectedHandle,
+  isDirectInstagramPostMediaUrl,
+  isNaverAdministrativeNoticeText,
+  isNaverScheduleOverviewText,
+  isVerifiedInstagramFallbackProfile,
   isStaleBenefitSourcePost,
   mergeBenefitSearchTargets,
+  naverScheduleOverviewPriority,
+  normalizeInstagramPostUrl,
 } from './benefit-search-utils.mjs';
-import { adjudicateCandidateWithAi, reviewBenefitCandidateWithAi, shouldPersistBenefitAiOutcome } from './ai-candidate-adjudicator.mjs';
+import {
+  adjudicateCandidateWithAi,
+  extractSocialScheduleWithAi,
+  reviewBenefitCandidateWithAi,
+  shouldPersistBenefitAiOutcome,
+} from './ai-candidate-adjudicator.mjs';
 import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
@@ -48,6 +63,7 @@ import {
   reorderSourcesForResume,
   saveIngestionProgress,
   selectUnseenInstagramPosts,
+  shouldAdvanceInstagramCheckpoint,
 } from './ingestion-progress.mjs';
 import {
   formatAutoRegistrationTelegramLine,
@@ -69,6 +85,7 @@ const exceptionBacktest = process.env.INGESTION_EXCEPTION_BACKTEST === '1';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1' || exceptionBacktest;
 const diagnosticJson = dryRun && process.env.INGESTION_NATIVE_DIAGNOSTIC_JSON === '1';
 const aiAdjudicationEnabled = process.env.INGESTION_AI_ADJUDICATION !== '0';
+const aiSocialExtractionEnabled = aiAdjudicationEnabled && process.env.INGESTION_AI_SOCIAL_EXTRACTION !== '0';
 const benefitAiReviewDryRun = process.env.INGESTION_AI_REVIEW_DRY_RUN === '1';
 const exceptionLookbackDays = Math.max(
   1,
@@ -79,6 +96,10 @@ const sourceIds = (process.env.INGESTION_NATIVE_SOURCE_IDS || '')
   .split(',')
   .map((id) => id.trim())
   .filter(Boolean);
+const targetInstagramPostUrls = (process.env.INGESTION_NATIVE_POST_URLS || '')
+  .split(',')
+  .map((url) => normalizeInstagramPostUrl(url))
+  .filter((url) => /^https:\/\/(?:www\.)?instagram\.com\/[^/]+\/(?:p|reel)\/[A-Za-z0-9_-]+\/?$/i.test(url));
 const traceSourceIds = new Set((process.env.INGESTION_NATIVE_TRACE_SOURCE_IDS || '')
   .split(',')
   .map((id) => id.trim())
@@ -105,6 +126,7 @@ const sourceTimeoutMs = Number(process.env.INGESTION_NATIVE_SOURCE_TIMEOUT_MS ||
 const postTimeoutMs = Number(process.env.INGESTION_NATIVE_POST_TIMEOUT_MS || 28000);
 const postRequestTimeoutMs = Number(process.env.INGESTION_NATIVE_POST_REQUEST_TIMEOUT_MS || 20_000);
 const imageFetchTimeoutMs = Number(process.env.INGESTION_NATIVE_IMAGE_FETCH_TIMEOUT_MS || 12_000);
+const aiSocialExtractionTimeoutMs = Math.max(10_000, Number(process.env.INGESTION_AI_TIMEOUT_MS || 90_000));
 const runBudgetMs = Number(process.env.INGESTION_NATIVE_RUN_BUDGET_MS || 20 * 60_000);
 const cleanupCount = process.env.INGESTION_PRE_CLEANUP_COUNT || '0';
 const browserCdpUrl = process.env.INGESTION_BROWSER_CDP_URL || 'http://localhost:9222';
@@ -143,6 +165,12 @@ const result = {
     error: 0,
     unavailable: 0,
   },
+  socialAiExtractionStats: {
+    approved: 0,
+    review: 0,
+    error: 0,
+    unavailable: 0,
+  },
 };
 
 class RunBudgetReachedError extends Error {
@@ -176,7 +204,7 @@ const venueAliases = [
   [/비밥\s*바|bebop/i, '비밥바'],
   [/피에스타|fiesta/i, '피에스타'],
   [/루나|luna/i, '루나'],
-  [/인더무드|in\s*the\s*mood/i, '인더무드'],
+  [/인더무드|in\s*the\s*mood/i, '인더무드신림'],
   [/쏘셜\s*클럽|소셜\s*클럽|sosyal|social\s*club/i, '소셜클럽'],
   [/탐나홀|tamna/i, '탐나홀'],
   [/kp\s*댄스홀|kp\s*dance/i, 'KP댄스홀'],
@@ -191,7 +219,7 @@ const sourceSpecificVenue = new Map([
   ['bebopbar_swing', '비밥바'],
   ['luna_swingbar', '루나'],
   ['swingcats20', '루나'],
-  ['inthemood_sillim', '인더무드'],
+  ['inthemood_sillim', '인더무드신림'],
   ['kyungsunghall', '경성홀'],
   ['tamnahall', '탐나홀'],
   ['kpdancehall', 'KP댄스홀'],
@@ -201,7 +229,10 @@ const sourceSpecificVenue = new Map([
   ['swingscandal-cafe', '사보이볼룸'],
   ['swingscandal-littly', '사보이'],
   ['swingtown-cafe', '봉천살롱'],
+  ['swingtown-schedule-cafe', '봉천살롱'],
   ['swingfriends-cafe', '스윙타임'],
+  ['swingfriends-happyhall-cafe', '해피홀'],
+  ['swingfriends-busan-cafe', '스윙243'],
   ['swing_friends', '스윙타임'],
   ['balboaland-instagram', '피에스타'],
   ['swingkids-oneday-littly', '피에스타'],
@@ -578,6 +609,13 @@ function instagramHandleFromSource(source = {}) {
   }
 }
 
+function expectedInstagramHandlesForSource(source = {}) {
+  return unique([
+    expectedInstagramHandleForSource(source),
+    ...(source.instagramPostAuthorHandles || []),
+  ].map((handle) => String(handle || '').trim().replace(/^@/, '').toLowerCase()).filter(Boolean));
+}
+
 function instagramShortcodeFromUrl(url = '') {
   try {
     const parsed = new URL(url);
@@ -602,23 +640,37 @@ function sortInstagramShortcodesNewestFirst(values = []) {
   });
 }
 
-function estimatedInstagramSourceBudgetMs(postCount = 1) {
-  const safePostCount = Math.max(1, Number(postCount) || 1);
-  const profileBudgetMs = instagramSourceDelayMs + sourceTimeoutMs + instagramProfileWaitMs + 3_000;
-  return profileBudgetMs + estimatedInstagramPostScanBudgetMs(safePostCount);
+function socialAiStepAllowanceMs(source = {}) {
+  return aiSocialExtractionEnabled
+    && !exceptionBacktest
+    && source?.scope === 'swing'
+    && !source?.benefitKind
+    ? aiSocialExtractionTimeoutMs
+    : 0;
 }
 
-function estimatedInstagramPostScanBudgetMs(postCount = 1) {
+function candidatePostStepTimeoutMs(source = {}, extraMs = 8_000) {
+  return postTimeoutMs + extraMs + socialAiStepAllowanceMs(source);
+}
+
+function estimatedInstagramSourceBudgetMs(postCount = 1, source = {}) {
   const safePostCount = Math.max(1, Number(postCount) || 1);
-  const perPostBudgetMs = instagramPostDelayMs + postTimeoutMs + postRequestTimeoutMs + imageFetchTimeoutMs + 2_000;
+  const profileBudgetMs = instagramSourceDelayMs + sourceTimeoutMs + instagramProfileWaitMs + 3_000;
+  return profileBudgetMs + estimatedInstagramPostScanBudgetMs(safePostCount, source);
+}
+
+function estimatedInstagramPostScanBudgetMs(postCount = 1, source = {}) {
+  const safePostCount = Math.max(1, Number(postCount) || 1);
+  const perPostBudgetMs = instagramPostDelayMs + postTimeoutMs + postRequestTimeoutMs
+    + imageFetchTimeoutMs + socialAiStepAllowanceMs(source) + 2_000;
   return (safePostCount * perPostBudgetMs) + runDeadlineGuardMs();
 }
 
-function resolveInstagramPostLimit(linkCount = postLimit) {
+function resolveInstagramPostLimit(linkCount = postLimit, source = {}) {
   const maxPosts = Math.max(1, Math.min(postLimit, instagramSourcePostLimit, Number(linkCount) || 0));
   if (!runBudgetMs) return maxPosts;
   for (let count = maxPosts; count >= 1; count -= 1) {
-    if (runRemainingMs() >= estimatedInstagramPostScanBudgetMs(count)) return count;
+    if (runRemainingMs() >= estimatedInstagramPostScanBudgetMs(count, source)) return count;
   }
   return 0;
 }
@@ -695,6 +747,22 @@ function extractDates(text = '') {
     .sort();
 }
 
+function extractSocialDateHints(text = '') {
+  const value = compactText(text);
+  const dates = new Set(extractDates(value));
+  for (const match of value.matchAll(/(?<!\d)(\d{1,2})\s*[./]\s*(\d{1,2})[^\n]{0,80}(?:[/,，·ㆍ&]|및|와|과)\s*(\d{1,2})\s*일/g)) {
+    const month = Number(match[1]);
+    const firstDay = Number(match[2]);
+    const inheritedDay = Number(match[3]);
+    if (month < 1 || month > 12 || firstDay < 1 || firstDay > 31 || inheritedDay < 1 || inheritedDay > 31) continue;
+    for (const day of [firstDay, inheritedDay]) {
+      const date = isoDate(getYearForMonth(month), month, day);
+      if (isCollectableDate(date, { today })) dates.add(date);
+    }
+  }
+  return [...dates].sort();
+}
+
 function inferActivity(text = '', rawTitle = '') {
   if (/판매\s*이벤트|이벤트\s*판매|정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) {
     return { activity: 'sale', eventType: '판매이벤트' };
@@ -751,7 +819,9 @@ function inferVenueDetails(text = '', source) {
 
 function inferDjs(text = '') {
   const djs = [];
-  for (const match of text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J|디제이)\s*[:：]?\s*["'“”‘’]?\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)) {
+  const explicitLabelMatches = [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이))?\s*[:：]\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)];
+  const broadLabelMatches = explicitLabelMatches.length ? [] : [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이)(?=\s|[:：♥♡❤]))?\s*[:：]?\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)];
+  for (const match of explicitLabelMatches.length ? explicitLabelMatches : broadLabelMatches) {
     const value = stripRepeatedDjContext(stripNaverCafeMemberPrefix(compactText(match[1]))
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
       .replace(/\s*(?:application|registration|apply)\s*link\b.*$/i, '')
@@ -770,6 +840,7 @@ function inferDjs(text = '') {
     if (
       value
       && value.length <= 28
+      && !/(?:line[\s-]*up|라인업|social|소셜|\bD\s*J\b|디제이)/i.test(value)
       && !looksLikeNaverCafeChromeLine(value)
       && !leadingDateTitleRe.test(value)
     ) {
@@ -821,6 +892,7 @@ function extractSocialScheduleItems(text = '', source, title = '', publishedAt =
         aiEvidenceText: [
           item.venueEvidence,
           item.dateLabel,
+          item.normalizedDateEvidence,
           item.djLabel,
         ].filter(Boolean).join('\n'),
       }];
@@ -838,7 +910,11 @@ function extractSocialScheduleItems(text = '', source, title = '', publishedAt =
       djs: inferDjs(section.segment),
       fee: inferUnambiguousFee(section.segment),
       aiEvidenceText: [
+        source.venue && raw.includes(source.venue) ? source.venue : '',
+        section.titleEvidence || title,
         explicitDateListEvidence(raw, date),
+        section.normalizedDateEvidence,
+        section.dayLabel,
         section.segment,
       ].filter(Boolean).join('\n'),
     });
@@ -865,13 +941,9 @@ function extractSocialScheduleItems(text = '', source, title = '', publishedAt =
       fee: inferUnambiguousFee(segment),
     });
   }
+  const mergedItems = mergeSocialScheduleFallbacks(items, extractDatedDjSocialItems(raw, source, publishedAt));
+  items.splice(0, items.length, ...mergedItems);
   const seen = new Set(items.map((item) => `${item.date}:${item.djs.join(',')}`));
-  for (const item of extractDatedDjSocialItems(raw, source, publishedAt)) {
-    const key = `${item.date}:${item.djs.join(',')}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    items.push(item);
-  }
   for (const item of extractHappyHallWeeklySocialItems(raw, source, publishedAt)) {
     const key = `${item.date}:${item.djs.join(',')}`;
     if (seen.has(key)) continue;
@@ -984,9 +1056,14 @@ function pickPosterImage(images = []) {
 function pickInstagramPostImages(images = [], limit = 4) {
   const eligible = images.filter(isUsablePosterImage);
   if (!eligible.length) return [];
-  const maxRenderedArea = Math.max(0, ...eligible.map(imageRenderedArea));
-  const maxNaturalArea = Math.max(0, ...eligible.map(imageNaturalArea));
-  const primaryImages = eligible
+  const directPostMedia = eligible.filter((image) => isDirectInstagramPostMediaUrl(image.src));
+  // Current Instagram pages may omit an <article> wrapper and append equally large
+  // recommendation images below the post. Prefer URLs marked as the opened post's
+  // media; fall back only when Instagram did not expose those URL markers at all.
+  const scopedEligible = directPostMedia.length ? directPostMedia : eligible;
+  const maxRenderedArea = Math.max(0, ...scopedEligible.map(imageRenderedArea));
+  const maxNaturalArea = Math.max(0, ...scopedEligible.map(imageNaturalArea));
+  const primaryImages = scopedEligible
     .filter((image) => {
       const renderedArea = imageRenderedArea(image);
       const naturalArea = imageNaturalArea(image);
@@ -1110,12 +1187,15 @@ async function collectInstagramLinks(page, source) {
   }).catch(() => ({ links: [], bodyText: '', title: '', url: '' }));
 
   if (state.links.length) {
-    const expectedHandle = instagramHandleFromSource(source);
-    const scopedLinks = state.links.filter((url) => instagramPostMatchesExpectedHandle(url, expectedHandle));
+    const expectedHandles = expectedInstagramHandlesForSource(source);
+    const scopedLinks = state.links.filter((url) => instagramPostMatchesExpectedHandle(url, expectedHandles));
     if (scopedLinks.length) return scopedLinks;
   }
 
   const pageText = `${state.title}\n${state.bodyText}\n${state.url}`;
+  if (/sorry,?\s+this\s+page\s+isn['’]?t\s+available|page\s+isn['’]?t\s+available|페이지를\s*사용할\s*수\s*없습니다|링크가\s*잘못되었거나\s*페이지가\s*삭제/i.test(pageText)) {
+    throw new Error('instagram source page unavailable');
+  }
   const fallbackLinks = await collectInstagramLinksViaImginn(page, source);
   if (fallbackLinks.length) {
     log(`instagram profile fallback ${source.id}: imginn ${fallbackLinks.length} links`);
@@ -1207,12 +1287,19 @@ async function collectInstagramLinksViaImginn(page, source) {
     await page.waitForTimeout(2_500);
     const state = await page.evaluate(() => {
       const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 1200);
+      const title = document.title || '';
+      const url = window.location.href;
       const links = [...document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')]
         .map((a) => a.href)
         .filter(Boolean);
-      return { bodyText, links };
+      return { bodyText, title, url, links };
     });
-    if (/cloudflare|attention required|sorry, you have been blocked|captcha/i.test(state.bodyText || '')) {
+    if (!isVerifiedInstagramFallbackProfile({
+      expectedHandle: handle,
+      title: state.title,
+      bodyText: state.bodyText,
+      url: state.url,
+    })) {
       return [];
     }
     const urls = [...new Set(state.links
@@ -1274,15 +1361,15 @@ async function scrapeInstagramPost(page, url, source) {
   }
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
   if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
-  const expectedHandle = expectedInstagramHandleForSource(source);
+  const expectedHandles = expectedInstagramHandlesForSource(source);
   if (!instagramAuthorMatches({
-    expectedHandle,
+    expectedHandles,
     ogTitle: data.ogTitle,
     metaDescription: data.metaDescription.slice(0, 240),
     profileHrefs: data.profileHrefs,
   })) {
     result.skipped += 1;
-    log(`skip ${source.id}: instagram author mismatch (${expectedHandle})`);
+    log(`skip ${source.id}: instagram author mismatch (${expectedHandles.join(',')})`);
     return [];
   }
   const posterUrls = primaryImages.map((image) => image.src);
@@ -1306,16 +1393,13 @@ async function scrapeInstagramPost(page, url, source) {
 async function collectNaverArticleLinks(page, source) {
   await safeGoto(page, source.url);
   await page.waitForFunction(() => document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]').length > 0, null, { timeout: 9000 }).catch(() => {});
-  return await page.evaluate(() => {
+  const items = await page.evaluate(() => {
     const textOf = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
     const imageOf = (root) => {
       const img = root?.querySelector('img');
       return img?.currentSrc || img?.src || img?.getAttribute('data-src') || img?.getAttribute('data-lazysrc') || '';
     };
-    const isAdminNotice = (title) => /\[?운영진공지\]?|필독|윤리위원회|강사\s*선정\s*발표|강사\s*모집\s*공고|강습\s*신청\s*및\s*입금\s*방법/i.test(title);
-    const hasEventDate = (title) => /\b20\d{2}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2}|(?:^|\s)\d{1,2}[./월]\s*\d{1,2}(?:일|\b)/.test(title);
-    const hasGraduationEvent = (title) => /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(title);
-    const items = [...document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]')]
+    return [...document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]')]
       .map((anchor, index) => {
         const href = anchor.href.split('&commentFocus=')[0];
         const row = anchor.closest('tr, li, .ArticleListItem, .item, .board-list, .article-board, .article-list') || anchor.parentElement;
@@ -1330,19 +1414,29 @@ async function collectNaverArticleLinks(page, source) {
         };
       })
       .filter((item) => item.href && item.title && !/commentFocus=true/.test(item.href));
-
-    const deduped = [...new Map(items.map((item) => [item.href, item])).values()];
-    return deduped
-      .filter((item) => !isAdminNotice(`${item.title} ${item.rowText}`))
-      .sort((a, b) => {
-        const aGraduation = hasGraduationEvent(`${a.title} ${a.rowText}`) ? 0 : 1;
-        const bGraduation = hasGraduationEvent(`${b.title} ${b.rowText}`) ? 0 : 1;
-        const aDate = hasEventDate(a.title) ? 0 : 1;
-        const bDate = hasEventDate(b.title) ? 0 : 1;
-        return aGraduation - bGraduation || aDate - bDate || a.index - b.index;
-      })
-      .slice(0, 24);
   }).catch(() => []);
+
+  const hasEventDate = (title) => /\b20\d{2}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2}|(?:^|\s)\d{1,2}[./월]\s*\d{1,2}(?:일|\b)/.test(title);
+  const hasGraduationEvent = (title) => /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(title);
+  const deduped = [...new Map(items.map((item) => [item.href, item])).values()];
+  const ranked = deduped
+    .filter((item) => !isNaverAdministrativeNoticeText(`${item.title} ${item.rowText}`))
+    .sort((a, b) => {
+      const aText = `${a.title} ${a.rowText}`;
+      const bText = `${b.title} ${b.rowText}`;
+      const aSchedule = naverScheduleOverviewPriority(aText, today);
+      const bSchedule = naverScheduleOverviewPriority(bText, today);
+      const aGraduation = hasGraduationEvent(aText) ? 0 : 1;
+      const bGraduation = hasGraduationEvent(bText) ? 0 : 1;
+      const aDate = hasEventDate(a.title) ? 0 : 1;
+      const bDate = hasEventDate(b.title) ? 0 : 1;
+      return aSchedule - bSchedule || aGraduation - bGraduation || aDate - bDate || a.index - b.index;
+    })
+    .slice(0, 24);
+  if (traceSourceIds.has(source.id)) {
+    log(`trace ${source.id} naver links: ${JSON.stringify(ranked.slice(0, 12).map((item) => ({ title: item.title, href: item.href })))}`);
+  }
+  return ranked;
 }
 
 async function scrapeNaverArticle(page, link, source) {
@@ -1381,7 +1475,8 @@ async function scrapeNaverArticle(page, link, source) {
     return { title, text, images, publishedAt };
   });
 
-  const posterUrl = pickPosterImage(data.images);
+  const posterUrls = selectSourceOrderedPosterUrls(data.images, 3);
+  const posterUrl = posterUrls[0] || pickPosterImage(data.images);
   const title = cleanTitle(data.title || link.title);
   const text = stripNaverCafeChrome(`${data.title}\n${data.text}`);
   return buildCandidatesFromText({
@@ -1390,6 +1485,7 @@ async function scrapeNaverArticle(page, link, source) {
     text: `${title}\n${text}`,
     title: title || cleanTitle(link.title),
     posterUrl,
+    posterUrls,
     page,
     referer: 'https://cafe.naver.com/',
     publishedAt: data.publishedAt,
@@ -1707,6 +1803,7 @@ function buildExceptionBacktestCandidates({
   const djs = inferDjs(cleanText);
   const venueResolution = inferVenueDetails(cleanText, source);
   const venue = venueResolution.venue;
+  const exceptionSourceId = source.regularSocialExceptionSourceId || source.id;
   const sourceKey = Buffer.from(sourceUrl).toString('base64url').slice(-18);
   const candidates = [];
   for (const detection of detections) {
@@ -1715,7 +1812,9 @@ function buildExceptionBacktestCandidates({
       candidates.push({
         id: `exception-backtest:${source.id}:${detection.type}:${date || 'unknown'}:${sourceKey}`,
         keyword: source.name,
-        source_id: source.id,
+        source_id: exceptionSourceId,
+        discovery_source_id: source.id,
+        exception_origin_source_id: source.id,
         source_url: sourceUrl,
         poster_url: posterUrls[0] || posterUrl || '',
         published_at: publishedAt || '',
@@ -1741,6 +1840,130 @@ function buildExceptionBacktestCandidates({
     }
   }
   return candidates;
+}
+
+function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false) {
+  if (!aiSocialExtractionEnabled || exceptionBacktest || source?.benefitKind || source?.scope !== 'swing') return false;
+  const value = String(text || '').normalize('NFKC');
+  return /(?:소셜|social|정모)/i.test(value)
+    && (/(?:DJ|디제이)/i.test(value) || hasPoster)
+    && /(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*(?:[.\-/]|월)\s*\d{1,2}/i.test(value);
+}
+
+async function buildAiSocialFallbackCandidates({
+  source,
+  sourceUrl,
+  cleanText,
+  posterUrl = '',
+  posterUrls = [],
+  page,
+  referer = '',
+  publishedAt = '',
+}) {
+  const sourceImageUrls = unique([...posterUrls, posterUrl])
+    .filter((url) => url && !hasBadPosterUrl(url))
+    .slice(0, 3);
+  if (!shouldAttemptAiSocialExtraction(source, cleanText, sourceImageUrls.length > 0)) return [];
+
+  const sourceImages = [];
+  for (const imageUrl of sourceImageUrls) {
+    const dataUrl = await imageToDataUrl(page, imageUrl, referer || sourceUrl);
+    if (dataUrl) sourceImages.push({ url: imageUrl, dataUrl });
+  }
+
+  ensureRunBudgetOrThrow(`AI social extraction ${source.id}`, Math.min(95_000, Math.max(10_000, runDeadlineGuardMs())));
+  const aiResult = await extractSocialScheduleWithAi({
+    sourceName: source.name,
+    sourceUrl,
+    sourceText: cleanText,
+    sourceVenue: source.venue || '',
+    imageDataUrls: sourceImages.map((image) => image.dataUrl),
+    dateHints: extractSocialDateHints(cleanText),
+    today,
+  }, {
+    today,
+    timeoutMs: Math.max(10_000, Math.min(aiSocialExtractionTimeoutMs, runRemainingMs() - runDeadlineGuardMs())),
+  });
+  const outcome = aiResult.outcome || (aiResult.available === false ? 'unavailable' : 'error');
+  if (Object.hasOwn(result.socialAiExtractionStats, outcome)) result.socialAiExtractionStats[outcome] += 1;
+  if (!aiResult.approved || !aiResult.events?.length) {
+    log(`AI social extraction ${outcome} ${source.id}: ${(aiResult.reasons || []).join('; ') || 'no approved sessions'}`);
+    return [];
+  }
+
+  const posterText = String(aiResult.validation?.poster_text || '').trim();
+  const groundedSourceText = [cleanText.slice(0, 6000), posterText ? `[AI_POSTER_TRANSCRIPTION]\n${posterText}` : '']
+    .filter(Boolean)
+    .join('\n');
+  const candidates = [];
+  for (const event of aiResult.events) {
+    const evidenceQuotes = event.evidence_quotes || [];
+    const normalizedEventVenue = toMapSafeVenueName(event.venue) || source.venue || event.venue;
+    const normalizedEventTitle = `${normalizedEventVenue || source.name} ${socialDayTitle(dayLabelFromISO(event.event_date))} 소셜`
+      .replace(/\s+/g, ' ')
+      .trim();
+    const selectedSourceImage = sourceImages[Number(event.poster_image_index || 0) - 1]
+      || sourceImages[0]
+      || null;
+    const selectedPosterUrl = selectedSourceImage?.url || sourceImageUrls[0] || '';
+    const imageData = selectedSourceImage?.dataUrl || '';
+    const raw = {
+      source_id: source.id,
+      discovery_source_id: source.discovery_source_id || source.id,
+      discovery_source_type: source.discovery_source_type || source.type,
+      ...(publishedAt ? { published_at: publishedAt } : {}),
+      keyword: source.name,
+      source_url: sourceUrl,
+      ...(selectedPosterUrl ? { poster_url: selectedPosterUrl } : {}),
+      ...(imageData ? { imageData } : {}),
+      _ai_evidence_text: evidenceQuotes.join('\n'),
+      extracted_text: groundedSourceText,
+      structured_data: {
+        title: normalizedEventTitle,
+        date: event.event_date,
+        event_type: '소셜',
+        activity_type: 'social',
+        location: normalizedEventVenue,
+        venue_name: normalizedEventVenue,
+        venue_provenance: normalizedEvidenceIncludes(cleanText, event.venue)
+          || normalizedEvidenceIncludes(cleanText, normalizedEventVenue)
+          ? 'source_text'
+          : normalizedEvidenceIncludes(posterText, event.venue)
+            || normalizedEvidenceIncludes(posterText, normalizedEventVenue) ? 'poster_text' : 'source_registry',
+        dance_scope: source.scope,
+        genre_family: source.genre_family,
+        dance_genre: source.dance_genre,
+        djs: event.djs,
+        evidence_scope: 'ai_grounded_social',
+        ...(event.djs.length === 0 && sourceImages.length
+          ? { ai_missing_dj_verified: true }
+          : {}),
+        ai_evidence_quotes: evidenceQuotes,
+      },
+    };
+    const prepared = prepareCandidate(raw, { today });
+    if (!prepared.validation.ok) {
+      result.skipped += 1;
+      log(`skip AI social ${source.id} ${event.event_date}: ${prepared.validation.errors.join('; ')}`);
+      continue;
+    }
+    const payload = buildCafe24Payload(raw, { today });
+    payload.auto_registration = {
+      ...(payload.auto_registration || {}),
+      ai_verified: false,
+      ai_extraction_confidence: aiResult.validation?.confidence || aiResult.extraction?.confidence || 0,
+      reasons: [...(payload.auto_registration?.reasons || [])],
+    };
+    candidates.push(payload);
+  }
+  if (candidates.length) log(`AI social extraction approved ${source.id}: ${candidates.length} session(s)`);
+  return candidates;
+}
+
+function normalizedEvidenceIncludes(text = '', value = '') {
+  const normalize = (item) => String(item || '').normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
+  const needle = normalize(value);
+  return Boolean(needle) && normalize(text).includes(needle);
 }
 
 async function buildCandidatesFromText({
@@ -1850,11 +2073,14 @@ async function buildCandidatesFromText({
     ? extractNeoWeeklyClosureDates({ text: rawText, today })
     : [];
   const venueResolutionForClosure = inferVenueDetails(cleanText, source);
+  const exceptionSourceIdForClosure = source.regularSocialExceptionSourceId || source.id;
   const sourceKeyForClosure = Buffer.from(sourceUrl).toString('base64url').slice(-18);
   const neoMixedClosureCandidates = neoClosureDates.map((date) => ({
     id: `exception-backtest:${source.id}:closure:${date}:${sourceKeyForClosure}`,
     keyword: source.name,
-    source_id: source.id,
+    source_id: exceptionSourceIdForClosure,
+    discovery_source_id: source.id,
+    exception_origin_source_id: source.id,
     source_url: sourceUrl,
     poster_url: posterUrls[0] || posterUrl || '',
     published_at: publishedAt || '',
@@ -1912,9 +2138,41 @@ async function buildCandidatesFromText({
     return [];
   }
 
-  const posterUrlList = unique([...posterUrls, posterUrl].filter(Boolean));
+  const posterUrlList = unique([...posterUrls, posterUrl].filter(Boolean))
+    .filter((url) => !hasBadPosterUrl(url));
+  let aiSocialFallbackPromise;
+  const aiSocialFallback = () => {
+    aiSocialFallbackPromise ??= buildAiSocialFallbackCandidates({
+      source,
+      sourceUrl,
+      cleanText,
+      posterUrl,
+      posterUrls,
+      page,
+      referer,
+      publishedAt,
+    });
+    return aiSocialFallbackPromise;
+  };
   const inferredActivity = inferActivity(cleanText, title);
   const socialScheduleItems = preclassifiedSocialScheduleItems;
+  const socialScheduleDates = new Set(socialScheduleItems.map((item) => item.date).filter(Boolean));
+  const explicitScheduleDateCount = extractSocialDateHints(`${title}\n${cleanText}`).length;
+  if (
+    posterUrlList.length
+    && /(?:소셜|social|정모)/i.test(`${title}\n${cleanText}`)
+    && explicitScheduleDateCount > socialScheduleDates.size
+  ) {
+    const aiCandidates = await aiSocialFallback();
+    const aiDates = new Set(aiCandidates.map((candidate) => candidate.structured_data?.date).filter(Boolean));
+    if (
+      aiCandidates.length
+      && aiDates.size >= explicitScheduleDateCount
+      && [...socialScheduleDates].every((date) => aiDates.has(date))
+    ) {
+      return aiCandidates;
+    }
+  }
   const preferDatedSocialSchedule = isHighConfidenceDatedSocialSchedule(socialScheduleItems);
   const { activity, eventType } = preferDatedSocialSchedule
     ? { activity: 'social', eventType: '소셜' }
@@ -1922,6 +2180,8 @@ async function buildCandidatesFromText({
   const imageOptionalBenefit = source.benefitKind === 'season_pass'
     && /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(cleanText);
   if (!posterUrlList.length && activity !== 'social' && source.type !== 'benefit_search' && !imageOptionalBenefit) {
+    const aiCandidates = await aiSocialFallback();
+    if (aiCandidates.length) return aiCandidates;
     result.skipped += 1;
     result.issues.push(`${source.id}: poster missing`);
     return [];
@@ -1932,6 +2192,8 @@ async function buildCandidatesFromText({
   const candidateTitle = makeCandidateTitle({ source, rawTitle: title, rawText, cleanText, eventType, djs });
   const isOneDayCandidate = oneDayPattern.test(`${candidateTitle}\n${cleanText}`);
   if (!isOneDayCandidate && looksLikeBroadScheduleNotice(candidateTitle, cleanText)) {
+    const aiCandidates = await aiSocialFallback();
+    if (aiCandidates.length) return aiCandidates;
     result.skipped += 1;
     log(`skip ${source.id}: broad schedule notice (${candidateTitle})`);
     return [];
@@ -1943,6 +2205,8 @@ async function buildCandidatesFromText({
     && !hasCompleteDatedSocialIdentity
     && !(activity === 'social' && djs.length)
   ) {
+    const aiCandidates = await aiSocialFallback();
+    if (aiCandidates.length) return aiCandidates;
     result.skipped += 1;
     log(`skip ${source.id}: generic fallback title (${candidateTitle})`);
     return [];
@@ -2022,7 +2286,9 @@ async function buildCandidatesFromText({
       candidates.push(buildCafe24Payload(raw, { today }));
     }
 
-    return [...mixedClosureCandidates, ...candidates, ...focusedSeasonPassCandidates];
+    if (candidates.length) return [...mixedClosureCandidates, ...candidates, ...focusedSeasonPassCandidates];
+    const aiCandidates = await aiSocialFallback();
+    return [...mixedClosureCandidates, ...aiCandidates, ...focusedSeasonPassCandidates];
   }
 
   if (focusedSeasonPassCandidates.length) return focusedSeasonPassCandidates;
@@ -2059,6 +2325,8 @@ async function buildCandidatesFromText({
       publishedAt,
     );
   if (!dates.length) {
+    const aiCandidates = await aiSocialFallback();
+    if (aiCandidates.length) return aiCandidates;
     result.skipped += 1;
     if (oneDayPattern.test(cleanText)) {
       result.issues.push(`${source.id}: one-day info has no explicit future date`);
@@ -2135,7 +2403,8 @@ async function buildCandidatesFromText({
     candidates.push(buildCafe24Payload(raw, { today }));
   }
 
-  return candidates;
+  if (candidates.length) return candidates;
+  return aiSocialFallback();
 }
 
 async function postCandidate(candidate) {
@@ -2147,6 +2416,7 @@ async function postCandidate(candidate) {
 
   const {
     _ai_evidence_text: aiEvidenceText = '',
+    _ai_image_data_urls: aiImageDataUrls = [],
     _date_scoped_social_evidence: _dateScopedSocialEvidence = false,
     ...candidateForPost
   } = candidate;
@@ -2209,16 +2479,17 @@ async function postCandidate(candidate) {
     return;
   }
 
-  const hasDeterministicDatedSocialEvidence = candidateToPost.structured_data?.activity_type === 'social'
-    && candidateToPost.structured_data?.evidence_scope === 'date_scoped_social';
   if (
     aiAdjudicationEnabled
     && candidateToPost.auto_registration?.ready === true
-    && !hasDeterministicDatedSocialEvidence
+    && candidateToPost.auto_registration?.ai_verified !== true
   ) {
-    const aiResult = await adjudicateCandidateWithAi(aiEvidenceText
-      ? { ...candidateToPost, extracted_text: aiEvidenceText }
-      : candidateToPost);
+    const aiCandidate = {
+      ...candidateToPost,
+      ...(aiImageDataUrls.length ? { _ai_image_data_urls: aiImageDataUrls } : {}),
+      ...(aiEvidenceText ? { extracted_text: aiEvidenceText } : {}),
+    };
+    const aiResult = await adjudicateCandidateWithAi(aiCandidate);
     candidateToPost = {
       ...candidateToPost,
       structured_data: {
@@ -2470,20 +2741,31 @@ async function collectSource(page, source) {
   }
 
   if (source.type === 'instagram') {
-    ensureRunBudgetOrThrow(`instagram source ${source.id}`, estimatedInstagramSourceBudgetMs(1));
+    ensureRunBudgetOrThrow(`instagram source ${source.id}`, estimatedInstagramSourceBudgetMs(1, source));
     if (instagramCircuitOpen) {
       recordInstagramCircuitSkip(source);
       return [];
     }
-    await throttleInstagram(`profile ${source.id}`, instagramSourceDelayMs);
-    const links = await withBoundedStep(source.id, () => collectInstagramLinks(page, source), sourceTimeoutMs);
+    let links;
+    if (targetInstagramPostUrls.length) {
+      const expectedHandles = expectedInstagramHandlesForSource(source);
+      links = targetInstagramPostUrls.filter((url) => instagramPostMatchesExpectedHandle(url, expectedHandles));
+      log(`instagram targeted posts ${source.id}: ${links.length}/${targetInstagramPostUrls.length}`);
+    } else {
+      await throttleInstagram(`profile ${source.id}`, instagramSourceDelayMs);
+      links = await withBoundedStep(source.id, () => collectInstagramLinks(page, source), sourceTimeoutMs);
+    }
     if (!links.length) {
+      if (targetInstagramPostUrls.length) {
+        recordNoContent(source, 'no targeted post matches the configured source authors');
+        return [];
+      }
       if (hasAccessFailure(source.id)) return [];
       if (hasNoContent(source.id)) return [];
       recordAccessFailure(source, 'instagram post links unavailable or session required');
       return [];
     }
-    markInstagramProfileSuccess();
+    if (!targetInstagramPostUrls.length) markInstagramProfileSuccess();
     const candidates = [];
     const knownPosts = progressTrackingEnabled ? (instagramSeenPosts[source.id] || []) : [];
     const unseenLinks = progressTrackingEnabled
@@ -2493,7 +2775,7 @@ async function collectSource(page, source) {
       log(`instagram no new posts ${source.id}: ${links.length} visible post(s) already checked`);
       return [];
     }
-    const instagramPostLimit = resolveInstagramPostLimit(unseenLinks.length);
+    const instagramPostLimit = resolveInstagramPostLimit(unseenLinks.length, source);
     if (instagramPostLimit <= 0) {
       throw new RunBudgetReachedError(`instagram posts ${source.id}`);
     }
@@ -2504,7 +2786,11 @@ async function collectSource(page, source) {
     for (const url of unseenLinks.slice(0, instagramPostLimit)) {
       ensureRunBudgetOrThrow(`instagram post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       await throttleInstagram(`post ${source.id}`, instagramPostDelayMs);
-      const postCandidates = await withBoundedStep(`${source.id}:post`, () => scrapeInstagramPost(page, url, source), postTimeoutMs + 8000);
+      const postCandidates = await withBoundedStep(
+        `${source.id}:post`,
+        () => scrapeInstagramPost(page, url, source),
+        candidatePostStepTimeoutMs(source),
+      );
       if (!hasAccessFailure(`${source.id}:post`)) completedPosts.push(url);
       candidates.push(...postCandidates);
       if (hasAccessFailure(`${source.id}:post`)) break;
@@ -2525,7 +2811,11 @@ async function collectSource(page, source) {
     const candidates = [];
     for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
       ensureRunBudgetOrThrow(`naver article ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
-      const postCandidates = await withBoundedStep(`${source.id}:article`, () => scrapeNaverArticle(page, link, source), postTimeoutMs + 8000);
+      const postCandidates = await withBoundedStep(
+        `${source.id}:article`,
+        () => scrapeNaverArticle(page, link, source),
+        candidatePostStepTimeoutMs(source),
+      );
       candidates.push(...postCandidates);
       if (hasAccessFailure(`${source.id}:article`)) break;
     }
@@ -2542,7 +2832,11 @@ async function collectSource(page, source) {
     const candidates = [];
     for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
       ensureRunBudgetOrThrow(`daum article ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
-      const postCandidates = await withBoundedStep(`${source.id}:article`, () => scrapeDaumArticle(page, link, source), postTimeoutMs + 8000);
+      const postCandidates = await withBoundedStep(
+        `${source.id}:article`,
+        () => scrapeDaumArticle(page, link, source),
+        candidatePostStepTimeoutMs(source),
+      );
       candidates.push(...postCandidates);
       if (hasAccessFailure(`${source.id}:article`)) break;
     }
@@ -2559,7 +2853,11 @@ async function collectSource(page, source) {
     const candidates = [];
     for (const card of cards.slice(0, resolveSourceScanLimit(source, cards.length))) {
       ensureRunBudgetOrThrow(`littly card ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
-      const cardCandidates = await withBoundedStep(`${source.id}:card`, () => scrapeLittlyCard(page, card, source), postTimeoutMs + 5000);
+      const cardCandidates = await withBoundedStep(
+        `${source.id}:card`,
+        () => scrapeLittlyCard(page, card, source),
+        candidatePostStepTimeoutMs(source, 5_000),
+      );
       candidates.push(...cardCandidates);
       if (hasAccessFailure(`${source.id}:card`)) break;
     }
@@ -2612,6 +2910,9 @@ async function openBrowserContext() {
 async function main() {
   if (!['swing-daily', 'expanded-research', 'expanded-ingestion'].includes(profile)) {
     throw new Error(`unsupported native collector profile: ${profile}`);
+  }
+  if (targetInstagramPostUrls.length && sourceIds.length === 0) {
+    throw new Error('INGESTION_NATIVE_POST_URLS requires INGESTION_NATIVE_SOURCE_IDS');
   }
 
   let sources = getAutomationSourceList(profile)
@@ -2716,7 +3017,7 @@ async function main() {
         }
         if (
           progressTrackingEnabled
-          && result.issues.length === issueCountBeforeSource
+          && shouldAdvanceInstagramCheckpoint(result.issues.slice(issueCountBeforeSource))
           && instagramPendingSeenPosts[source.id]?.length
         ) {
           instagramSeenPosts[source.id] = mergeSeenInstagramPosts(
@@ -2778,6 +3079,7 @@ function printSummary() {
     remainingSourceCount: result.remainingSources.length,
     benefitSearchStats: result.benefitSearchStats,
     benefitAiReviewStats: result.benefitAiReviewStats,
+    socialAiExtractionStats: result.socialAiExtractionStats,
   }, null, 2));
   console.log('INGESTION_RESULT_JSON_END');
   console.log('==TELEGRAM_SUMMARY_START==');
@@ -2789,6 +3091,7 @@ function printSummary() {
   console.log(`인스타회로차단: ${instagramCircuitSkipsAll.length ? `${instagramCircuitSkipsAll.length}건 (${instagramCircuitSkips.join(', ')}${instagramCircuitSkipsAll.length > instagramCircuitSkips.length ? ', ...' : ''})` : 'none'}`);
   console.log(`수집대상없음: ${noContentSources.length ? noContentSources.join(', ') : 'none'}`);
   console.log(`AI혜택판정: 확인 ${result.benefitAiReviewStats.approved} / 재검토 ${result.benefitAiReviewStats.review} / 제외 ${result.benefitAiReviewStats.rejected} / 오류 ${result.benefitAiReviewStats.error + result.benefitAiReviewStats.unavailable}`);
+  console.log(`AI소셜추출: 확인 ${result.socialAiExtractionStats.approved} / 재검토 ${result.socialAiExtractionStats.review} / 오류 ${result.socialAiExtractionStats.error + result.socialAiExtractionStats.unavailable}`);
   console.log(`이슈: ${issues.length ? issues.join(' / ') : 'none'}`);
   console.log('==TELEGRAM_SUMMARY_END==');
 }

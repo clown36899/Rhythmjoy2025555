@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {
   allowedCollectionScopes,
-  findSourceByUrl,
+  findSourceForCandidate,
   getExcludedSourceReason,
 } from './collection-registry.mjs';
 import { getIngestionCandidateExclusionReason } from '../../server/cafe24/ingestion-candidate-policy.js';
@@ -268,10 +268,10 @@ const parenContentRe = /\s*[()（）][^()（）]{1,12}[()（）]\s*$/;
 
 const canonicalVenueAliases = [
   [/^경성홀(?:신촌)?$/i, '경성홀'],
-  [/^해피홀(?:신촌)?$/i, '해피홀'],
+  [/^(?:해피홀|happyhall)(?:신촌)?$/i, '해피홀'],
   [/^(?:소셜클럽|쏘셜클럽|sosyalclub)(?:합정)?$/i, '소셜클럽'],
   [/^스윙타임(?:바|빠)?(?:선릉)?$/i, '스윙타임'],
-  [/^인더무드(?:신림)?$/i, '인더무드'],
+  [/^인더무드(?:신림)?$/i, '인더무드신림'],
   [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
   [/^(?:사보이볼룸|사보이홀|사보이)(?:사당)?$/i, '사보이볼룸'],
 ];
@@ -381,6 +381,7 @@ export function stripRepeatedDjContext(value = '') {
       /^([A-Za-z0-9가-힣._&+\-/]{1,20})\s+스윙타운\s+(?:D\s*J|디제이)\s+\1(?:\s.*)?$/i,
       '$1',
     )
+    .replace(/\s+(?:balboa|ballba|lindy\s*hop|swing|slow)\s+social\b.*$/i, '')
     .trim();
 }
 
@@ -415,6 +416,29 @@ export function keepFirstEventDateOnly(values = [], dateSelector = (value) => va
     .filter((value) => String(dateSelector(value) || '').slice(0, 10))
     .sort((a, b) => String(dateSelector(a) || '').slice(0, 10).localeCompare(String(dateSelector(b) || '').slice(0, 10)))
     .slice(0, 1);
+}
+
+export function mergeSocialScheduleFallbacks(primaryItems = [], fallbackItems = []) {
+  const primary = Array.isArray(primaryItems) ? primaryItems : [];
+  const fallback = Array.isArray(fallbackItems) ? fallbackItems : [];
+  const coveredDates = new Set(primary.map((item) => String(item?.date || '').slice(0, 10)).filter(Boolean));
+  const seen = new Set(primary.map((item) => [
+    String(item?.date || '').slice(0, 10),
+    String(item?.day || ''),
+    Array.isArray(item?.djs) ? item.djs.join(',') : '',
+  ].join('|')));
+
+  return [
+    ...primary,
+    ...fallback.filter((item) => {
+      const date = String(item?.date || '').slice(0, 10);
+      if (!date || coveredDates.has(date)) return false;
+      const key = [date, String(item?.day || ''), Array.isArray(item?.djs) ? item.djs.join(',') : ''].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+  ];
 }
 
 function isoDateForIngestion(year, month, day) {
@@ -469,6 +493,7 @@ export function extractIndependentSocialDateSections({
   const sectionPattern = /(?:^|[\n\r]\s*|(?:^|\s)[-•▪■]\s*)((?:월|화|수|목|금|토|일)요일)\s*[:：-]?\s*([\s\S]*?)(?=(?:[\n\r]\s*|(?:^|\s)[-•▪■]\s*)((?:월|화|수|목|금|토|일)요일)\s*[:：-]?|$)/g;
   const sections = [...normalizedText.matchAll(sectionPattern)].map((match) => ({
     day: match[1].slice(0, 1),
+    dayLabel: match[1],
     segment: String(match[2] || '').trim(),
   }));
   if (sections.length < 2) return [];
@@ -480,9 +505,42 @@ export function extractIndependentSocialDateSections({
     if (!matchingDate) continue;
     usedDates.add(matchingDate);
     if (matchingDate < today) continue;
-    result.push({ date: matchingDate, day: section.day, segment: section.segment });
+    result.push({
+      date: matchingDate,
+      day: section.day,
+      dayLabel: section.dayLabel,
+      titleEvidence: normalizedTitle.trim(),
+      normalizedDateEvidence: `${Number(matchingDate.slice(0, 4))}년 ${Number(matchingDate.slice(5, 7))}월 ${Number(matchingDate.slice(8, 10))}일`,
+      segment: section.segment,
+    });
   }
   return result.length >= 1 && usedDates.size >= 2 ? result : [];
+}
+
+/**
+ * Keep multi-image source attachments in their authored order. Event notices
+ * commonly pair the first dated section with the first attachment, so sorting
+ * by pixel area can silently swap posters between dates.
+ */
+export function selectSourceOrderedPosterUrls(images = [], limit = 3) {
+  const seen = new Set();
+  const max = Math.max(0, Number(limit || 0));
+  return (Array.isArray(images) ? images : [])
+    .filter((image) => {
+      const src = String(image?.src || '');
+      const alt = String(image?.alt || '');
+      return src
+        && Number(image?.w || 0) >= 300
+        && Number(image?.h || 0) >= 300
+        && !/profile|avatar|emoji|emoticon|static\/cafe|btn_|logo/i.test(`${src} ${alt}`);
+    })
+    .map((image) => String(image.src))
+    .filter((src) => {
+      if (seen.has(src)) return false;
+      seen.add(src);
+      return true;
+    })
+    .slice(0, max);
 }
 
 /**
@@ -556,7 +614,7 @@ function parseNeoWeeklySchedule({
   const todayMonth = Number(String(today).slice(5, 7));
   const dates = [];
   const closureDates = new Set();
-  const dateSectionPattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
+  const dateSectionPattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*[\[【]?\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*[\[【]?\s*\d{1,2})|$)/gi;
 
   for (const match of raw.matchAll(dateSectionPattern)) {
     const month = Number(match[1]);
@@ -572,6 +630,7 @@ function parseNeoWeeklySchedule({
       date,
       day: match[3] || weekdayLabelForDate(date),
       dateLabel,
+      normalizedDateEvidence: `${year}년 ${month}월 ${day}일`,
     });
     if (/(?:강습|소셜|운영)[^.\n]{0,30}(?:쉬어\s*갑니다|쉽니다|쉬어요|휴무|없습니다|없어요|취소)/i.test(match[4] || '')) {
       closureDates.add(date);
@@ -782,9 +841,55 @@ function hasConcreteSocialOperatingEvidence(candidate) {
   const sd = candidate.structured_data || {};
   const djs = Array.isArray(sd.djs) ? sd.djs.map((value) => String(value || '').trim()).filter(Boolean) : [];
   if (djs.length > 0) return true;
+  if (isAiGroundedDjlessSocial(candidate)) return true;
 
   const text = textOf(candidate);
   return /(?:입장료|참가비|커버\s*차지|커버비|도어\s*오픈|오픈\s*시간|운영\s*시간|\d{1,2}\s*[:시]\s*\d{0,2}\s*(?:분)?\s*(?:부터|~|～|-)|\d[\d,]*\s*원|라이브\s*(?:밴드|연주)|밀롱가|프랙티카)/i.test(text);
+}
+
+function isVerifiedSourceDetailUrl(sourceUrl = '', source = {}) {
+  try {
+    const parsed = new URL(sourceUrl);
+    const path = parsed.pathname;
+    if (source.type === 'instagram') {
+      return /\/(?:[^/]+\/)?(?:p|reel)\/[A-Za-z0-9_-]+\/?$/i.test(path);
+    }
+    if (source.type === 'naver_cafe') {
+      return /\/articles\/\d+\/?$/i.test(path)
+        || /ArticleRead/i.test(path)
+        || parsed.searchParams.has('articleid');
+    }
+    if (source.type === 'daum_cafe') return /\/[^/]+\/[A-Za-z0-9]+\/\d+\/?$/i.test(path);
+    if (source.type === 'facebook') return /\/(?:posts\/|permalink\.php|story\.php)/i.test(`${path}${parsed.search}`);
+
+    const configuredUrl = normalizeSourceUrl(source.url || '');
+    return Boolean(configuredUrl && normalizeSourceUrl(sourceUrl) !== configuredUrl);
+  } catch {
+    return false;
+  }
+}
+
+function isImageOptionalNamedDjSocial(candidate, { source, date, today }) {
+  const sd = candidate.structured_data || {};
+  const venue = String(sd.venue_name || sd.location || '').trim();
+  const djs = Array.isArray(sd.djs) ? sd.djs.map((value) => String(value || '').trim()).filter(Boolean) : [];
+  return String(sd.activity_type || inferCandidateTaxonomy(candidate).activity_type || '').toLowerCase() === 'social'
+    && Boolean(source)
+    && source.discoveryOnly !== true
+    && source.type !== 'benefit_search'
+    && Boolean(venue)
+    && djs.length > 0
+    && !hasMalformedDj(candidate)
+    && isCollectableDate(date, { today })
+    && isVerifiedSourceDetailUrl(candidate.source_url, source);
+}
+
+function isAiGroundedDjlessSocial(candidate) {
+  const sd = candidate?.structured_data || {};
+  return sd.activity_type === 'social'
+    && sd.evidence_scope === 'ai_grounded_social'
+    && sd.ai_missing_dj_verified === true
+    && Boolean(candidate?.poster_url || candidate?.imageData);
 }
 
 const naverCafeChromeRe = /말머리|공지사항|필독|작성자|조회수?|댓글|목록|URL\s*복사|인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|채팅|좋아요|신고|게시글|멤버\s*리스트/i;
@@ -807,7 +912,7 @@ function hasMalformedDj(candidate) {
   const djs = candidate?.structured_data?.djs;
   if (!Array.isArray(djs)) return false;
   return djs.some((value) => (
-    /20\d{2}[.\-/년]|(?:\d{1,2}[.\-/월]){2}|소셜로\s*진행|강습|수업|모집|매니저|멤버|조회|채팅|application\s*link|registration\s*link|신청\s*링크|입금\s*계좌/i.test(String(value))
+    /^(?:는|은|가|이)$|20\d{2}[.\-/년]|(?:\d{1,2}[.\-/월]){2}|소셜로\s*진행|강습|수업|모집|매니저|멤버|조회|채팅|application\s*link|registration\s*link|신청\s*링크|입금\s*계좌/i.test(String(value).trim())
     || String(value).trim().length > 28
   ));
 }
@@ -1043,7 +1148,7 @@ function stripVirtualTaxonomyFields(structuredData = {}) {
 }
 
 export function inferCandidateTaxonomy(candidate) {
-  const source = findSourceByUrl(candidate.source_url);
+  const source = findSourceForCandidate({ sourceId: candidate.source_id, url: candidate.source_url });
   const sd = candidate.structured_data || {};
   const text = textOf(candidate);
   const inferredActivity = inferActivity(text, sd.activity_type, titleOf(candidate));
@@ -1074,7 +1179,26 @@ export function inferCandidateTaxonomy(candidate) {
 
 export function hasBadPosterUrl(url = '') {
   const value = String(url || '');
-  return /(?:p240x240|s240x240|s640x640|stp=c\d|\/s\d+x\d+\/)/i.test(value);
+  if (/(?:p240x240|s240x240|s640x640)/i.test(value)) return true;
+
+  const pathSize = value.match(/\/s(\d+)x(\d+)\//i);
+  if (pathSize) return Math.min(Number(pathSize[1]), Number(pathSize[2])) < 900;
+
+  let stp = '';
+  try {
+    stp = new URL(value).searchParams.get('stp') || '';
+  } catch {
+    stp = value.match(/[?&]stp=([^&]+)/i)?.[1] || '';
+  }
+  if (!stp) return false;
+
+  const renderedSize = stp.match(/(?:^|_)s(\d+)x(\d+)(?:_|$)/i);
+  if (renderedSize && Math.min(Number(renderedSize[1]), Number(renderedSize[2])) < 900) return true;
+
+  const cropSize = stp.match(/(?:^|_)c\d+\.\d+\.(\d+)\.(\d+)[a-z]?(?:_|$)/i);
+  if (cropSize) return Math.min(Number(cropSize[1]), Number(cropSize[2])) < 900;
+
+  return /(?:^|_)c\d/i.test(stp);
 }
 
 export function getCollectionExclusionReason(taxonomy) {
@@ -1096,7 +1220,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   const date = String(sd.date || candidate.date || '').slice(0, 10);
   const text = textOf(candidate);
   const taxonomy = inferCandidateTaxonomy(candidate);
-  const source = findSourceByUrl(sourceUrl);
+  const source = findSourceForCandidate({ sourceId: candidate.source_id, url: sourceUrl });
   const sourceExcludedReason = getExcludedSourceReason(sourceUrl);
   const retiredSourceIdentity = `${candidate.source_id || ''} ${candidate.keyword || ''} ${sd.title || ''}`;
   const scopeExcludedReason = getCollectionExclusionReason(taxonomy);
@@ -1104,6 +1228,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   const benefitValidityEndDate = sd.benefit_eligible === true
     ? extractBenefitValidityEndDate(text, { today })
     : '';
+  const imageOptionalNamedDjSocial = isImageOptionalNamedDjSocial(candidate, { source, date, today });
 
   if (!sourceUrl) errors.push('source_url required');
   if (sourceExcludedReason) errors.push(sourceExcludedReason);
@@ -1199,11 +1324,12 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (explicitActivity === 'social' && /(?:창립|오픈|개장)?\s*\d+\s*주년.{0,20}(?:파티|행사)|(?:파티|행사).{0,20}\d+\s*주년/i.test(text)) {
     errors.push('anniversary event is misclassified as a regular social');
   }
-  if (!candidate.poster_url && !candidate.imageData) {
+  if (!candidate.poster_url && !candidate.imageData && !imageOptionalNamedDjSocial) {
     errors.push('poster_url or imageData required');
   }
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) {
-    errors.push('poster_url looks cropped or thumbnail-sized');
+    if (imageOptionalNamedDjSocial) warnings.push('discard cropped or thumbnail-sized social poster and use venue map');
+    else errors.push('poster_url looks cropped or thumbnail-sized');
   }
   if (scopeExcludedReason) errors.push(scopeExcludedReason);
   if (looksLikeMixedArtOrCommercialPerformance(text, taxonomy)) {
@@ -1319,10 +1445,14 @@ export function prepareCandidate(rawCandidate, config = {}) {
   const date = String(structuredData.date || '').slice(0, 10);
   const identityDate = confirmedBenefit === 'season_pass' ? 'season-pass' : date;
   const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, identityDate, rawCandidate.id_suffix || '');
+  const shouldDiscardSocialPoster = taxonomy.activity_type === 'social'
+    && rawCandidate.poster_url
+    && hasBadPosterUrl(rawCandidate.poster_url);
   const candidate = {
     ...rawCandidate,
     id,
     source_url: normalizedSourceUrl,
+    ...(shouldDiscardSocialPoster ? { poster_url: '' } : {}),
     structured_data: structuredData,
     is_collected: rawCandidate.is_collected || false,
   };
@@ -1372,7 +1502,9 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   ) {
     reasons.push('source/activity is not enrolled for automatic registration');
   }
-  if (activity === 'social' && djs.length === 0) reasons.push('social auto-registration requires a DJ');
+  if (activity === 'social' && djs.length === 0 && !isAiGroundedDjlessSocial(candidate)) {
+    reasons.push('social auto-registration requires a DJ or double-verified poster evidence');
+  }
   if (activity === 'social' && hasMalformedDj(candidate)) {
     reasons.push('social auto-registration requires a clean DJ name');
   }

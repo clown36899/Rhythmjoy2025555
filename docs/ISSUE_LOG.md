@@ -22,6 +22,40 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-15 8월 16일 해피홀·인더무드신림 실제 소셜 미수집
+
+- 상태: 원인 확인 완료, 수집기 수정·운영 재수집 미실시
+- 현상: 공개 캘린더에는 2026-08-16 해피홀 `네오스윙 일요 소셜`과 인더무드신림 `드림발 일요 소셜`이 이미지와 DJ가 없는 정규 반복 일정으로만 남고, 공식 공지의 실제 DJ·포스터가 반영되지 않았다.
+- 해피홀 원인: 네오스윙 공식 8월 2주 공지에는 8월 16일 `일햅 DJ 익두`가 있었고 원문 게시물의 직접 이미지는 1440×1800이었다. 수집기는 해당 날짜 후보를 두 번 만들었지만 게시물 직접 이미지가 아닌 프로필 격자 크롭 URL을 `poster_url`로 선택했고, 이미지 품질 검사가 두 후보를 모두 `poster_url looks cropped or thumbnail-sized`로 거절했다. 따라서 후보 저장·자동등록 단계까지 도달하지 않았다.
+- 인더무드신림 원인: 공식 계정은 `inthemoodsillim`이지만 수집 레지스트리에는 존재하지 않는 `inthemood_sillim`이 등록돼 있다. 8월 15일 실행은 잘못된 경로를 Instagram 접근 실패로 기록했고, 앞선 실행의 대체 경로 결과도 예상 작성자 `inthemood_sillim`과 일치하지 않는다는 이유로 거절했다. 실제 공동 게시물에는 8월 16일 장소 `인더무드신림`, DJ `제이`, 소셜 시작이 명시돼 있다.
+- 운영 확인: 공개 일정 API의 두 일정은 각각 `regular-social:neo-sun:2026-08-16`, `regular-social:dreambal-sun:2026-08-16`이며 모두 `dj_name=미정`, `image` 없음 상태다. 공식 실제 소셜 후보나 일정은 이 조사에서 저장하지 않았다.
+- 후속 필요: 인더무드신림 공식 계정 경로와 작성자 검증 기준을 바로잡고, 드림발 공동 게시물 경로를 공식 수집원으로 보존한다. 네오스윙은 열린 게시물의 직접 원본 미디어만 후보에 전달하도록 수정한 뒤 두 원문을 공식 수집 API로 재수집해야 한다.
+- 관련 파일: `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `/Users/inteyeo/claude_ingestion.log`
+
+## 2026-08-15 일일 자동수집 2건의 캘린더 미반영
+
+- 상태: 수집기 수정·대상 원문 재수집·운영 일정 복구·재발 검증 완료, Instagram 릴스 예약 게시 재개 및 당일분 게시 완료
+- 현상: 2026-08-15 캘린더에서 스윙타임은 DJ가 없는 기본 정규 소셜로 남고, 휴무 공지가 나온 봉천살롱 정규 소셜도 계속 표시됐다.
+- 실행 확인: 08·09·10·11시 `swing-daily` 우선순위 작업은 모두 종료 코드 0으로 완료됐고 남은 소스도 0건이었다. 08시와 09시 작업이 신규 후보를 각각 1건씩 저장해 당일 신규는 총 2건이었지만 네 작업의 자동등록 합계는 0건이었다.
+- 원인:
+  - 봉천살롱 8월 15일 휴무 후보는 `source_id=bongcheonsalon`, `activity_type=social_exception`으로 저장됐다. 정규 소셜 조정기는 휴무 후보와 반복 규칙의 `sourceId`가 정확히 같을 때만 일정을 억제하는데 봉천살롱 토요 규칙은 `sourceId=swingtown-cafe`다. 같은 장소를 가리키는 두 소스의 연결 정보가 없어 `regular-social:swingtown-sat:2026-08-15`가 제거되지 않았다.
+  - 스윙프렌즈 카페 글은 제목에 `8월 15,16일`, 본문에 토요일 DJ 이정과 일요일 DJ 캐롤을 각각 안내하고 첨부도 같은 순서였다. 수집기가 첨부 이미지를 원문 순서가 아니라 면적순으로 다시 정렬해 15일 후보에는 캐롤 사진, 16일 후보에는 이정 포스터를 연결했고 독립 AI 검증이 두 후보를 모두 보류했다.
+  - 이미지 순서를 바로잡은 뒤에도 운영 서버의 구 날짜 검사는 축약 목록의 마지막 날짜인 16일만 인식하고 첫 날짜인 15일은 인식하지 못했다.
+- 해결:
+  - Naver 다중 첨부는 작성자가 올린 DOM 순서를 보존한다. 축약 날짜 공지는 제목·요일·해당 본문 구간을 회차별 근거로 보존하고, 확정한 각 날짜를 `YYYY년 M월 D일` 형태로 함께 기록해 안전 검사가 목록의 첫 날짜도 확인할 수 있게 했다.
+  - 봉천살롱 공식 Instagram의 휴무 후보는 원본 출처를 별도로 보존하면서 정규 소셜 예외용 `source_id`를 `swingtown-cafe`로 저장하도록 연결했다.
+  - 스윙프렌즈 카페와 봉천살롱만 공식 수집 API로 재수집했다. 운영 DB를 직접 수정하지 않았다.
+  - 사용자 지시에 따라 별도 기능인 Instagram 릴스 예약 게시 LaunchAgent를 일시적으로 `disabled`·`unloaded`로 전환했다. 일정 수집 LaunchAgent는 유지했으며, 휴무 반영을 확인한 뒤 후속 지시에 따라 릴스 예약 게시를 다시 활성화했다.
+- 운영 검증:
+  - 공개 일정 API에서 8월 15일 `DJ 이정 | 스윙프렌즈 카페 토요 소셜`과 8월 16일 `DJ 캐롤 | 스윙프렌즈 카페 일요 소셜`이 각 날짜의 올바른 저장 이미지로 등록된 것을 확인했다.
+  - 봉천살롱 휴무 후보 `exception-backtest:bongcheonsalon:closure:2026-08-15:*`의 `source_id=swingtown-cafe`와 원본 출처 `exception_origin_source_id=bongcheonsalon`을 확인했다. 정규 소셜 조정 실행은 잘못 재생성된 15일 항목 1건을 제거했다.
+  - 제거 뒤 운영 DB와 공개 API의 `regular-social:swingtown-sat:2026-08-15`가 모두 0건이다. 후속 건조 조정도 `creates=0`, `removes=0`이므로 새로고침이나 다음 조정에서 재생성할 대상이 아니다.
+  - 예약 시각이 지난 8월 15일 릴스를 수동 재실행해 `published` 상태를 기록했고 Instagram 프로필 게시물 수가 `20 → 21`로 증가한 것을 확인했다. 선택 음악은 `Like It Is — Erroll Garner`이며 LaunchAgent는 이후 예약을 위해 `enabled` 상태다.
+  - 수집 표준 검사, 수정 파일 문법 검사, AI 판정·서버 등록 링크 회귀 테스트 43개와 `git diff --check`가 통과했다.
+- 배포 영향: 애플리케이션 배포·커밋·푸시는 수행하지 않았다. 로컬 수집기 수정과 공식 운영 API 재수집·조정만 수행했다.
+- 관련 커밋: `pending`
+- 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `server/cafe24/regular-social-reconciler.js`
+
 ## 2026-08-14 수집 행사 메인 광고 누락
 
 - 상태: 운영 배포·로그인 관리자 화면 검증 완료 (2026-08-14 20:45 KST)
@@ -62,6 +96,42 @@
 - 관련 커밋: `a933beba`, `83049c4d`, `8bd57565`
 - 관련 결정: `docs/decisions/2026-08-14-kiosk-page-watchdog.md`, `docs/decisions/2026-08-14-version-last-deployment.md`
 - 관련 파일: `scripts/deploy-cafe24.sh`, `src/lib/pwaReleaseContract.test.ts`, `ops/kiosk/mini-pc/restore-mini-pc-kiosk.sh`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-local/bin/kiosk-page-watchdog.py`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.service`, `ops/kiosk/mini-pc/snapshot/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.timer`
+
+## 2026-08-14 주간 소셜 원문 존재 여부와 자동수집 누락 조사
+
+- 상태: 로컬 수정·원문 건조 실행 검증 완료, 운영 미배포
+- 현상: 2026-08-12~16 외부 소셜 목록에는 여러 일정이 있었지만 자동수집 결과와 차이가 났다. 외부 목록에 있다는 사실만으로는 공식 수집 경로에 원문이 있었는지, 원문은 있었지만 수집기가 놓쳤는지 구분할 수 없었다.
+- 원문이 있었는데 놓친 대표 사례:
+  - 스윙타임 8월 15일 `이정`, 16일 `캐롤`은 공식 원문에 있었지만 고해상도 크롭 이미지 제외, 여러 날짜의 DJ 병합, 축약 날짜 해석 실패가 겹쳤다.
+  - 봉천살롱 8월 15일 TC 워크숍·파티는 공식 Instagram 게시물에 있었지만 현재 게시물 대신 추천 게시물 이미지를 섞어 읽어 정기권과 8월 29일 일정으로 오인했다.
+  - 해피홀 8월 14일 `메이저`와 15일 `유광`은 스윙프렌즈 공식 카페 해피홀 게시판 원문에 함께 있었지만 메뉴 305가 수집 목록에 없었고, 수집기가 다중 첨부 중 한 장만 AI에 전달했다.
+  - 스윙243 8월 15일 부산프렌즈 `시니컬`은 공식 카페 메뉴 284 원문에 있었지만 해당 메뉴가 수집 목록에 없었다.
+  - Swing Kids 공식 Instagram 계정은 `swingkids_`인데 레지스트리에는 존재하지 않는 `swingkids_kr` 경로가 들어 있었다.
+  - 스윙타운 7·8월 일정은 카페 메뉴 233의 일정 공지에 있었지만 기존 메뉴 264만 확인했다.
+- 공식 경로에서 같은 내용을 확인하지 못했거나 충돌한 대표 사례:
+  - 봉천살롱 서울발보아클럽 공식 공지는 7·8월 휴식 후 9월 재개라고 안내해 외부 목록의 8월 13일 항목과 충돌했다.
+  - Swingpop 공식 8월 공지는 토요일 운영은 확인되지만 `감자` DJ 근거는 확인되지 않았다.
+  - Swing Fever의 8월 14일 `에릭`·15일 휴무와 스윙243의 8월 16일 어반 일정은 현재 등록된 공식 경로에서 같은 원문을 찾지 못했다. 외부 목록만 보고 자동등록하지 않는다.
+- 원인:
+  - 같은 Naver 카페의 게시판별 메뉴를 별도 수집원으로 보존하지 않았고, 정규화된 글 URL만으로 수집원을 다시 찾아 먼저 등록된 다른 메뉴 ID로 덮어썼다.
+  - Naver 글의 첨부 이미지를 한 장만 전달했고 Instagram은 현재 게시물과 추천 게시물의 대형 이미지를 구분하지 못했다.
+  - `8/14 … /15일`, `8월 15,16일` 같은 축약 날짜, `DJ는 ♥메이저♥`의 조사, 영문 `HAPPY HALL` 장소 표기를 결정 규칙만으로 안정적으로 해석하지 못했다.
+  - 일부 무해한 파서 이슈만 있어도 Instagram 체크포인트를 고정해 다음 게시물 탐색이 정체됐다.
+  - 포스터 의미 해석을 고정 정규식에만 맡기면 레이아웃·표현이 바뀔 때 계속 예외 규칙이 늘어나는 구조였다.
+- 해결:
+  - 해피홀 메뉴 305, 부산프렌즈 메뉴 284, 스윙타운 일정 메뉴 233을 독립 수집원으로 추가하고 Swing Kids 공식 계정 경로를 바로잡았다. 후보가 명시한 수집원 ID를 같은 카페의 일반 URL 매칭보다 우선한다.
+  - Naver 원문의 유효 첨부 이미지를 최대 3장 모두 보존하고 Instagram은 열린 게시물의 직접 미디어만 선택한다. 고해상도 크롭은 허용하며 저장·자동등록 실패가 아닌 파서 경고만으로 체크포인트를 막지 않는다.
+  - 결정 규칙은 날짜 후보·수집원·중복·금지 조건을 담당하고, 첫 이미지 AI가 원문과 포스터에서 세션을 구조화한다. 날짜 후보를 일부만 반환하면 누락 날짜만 상위 모델로 다시 검사한다.
+  - AI는 각 세션을 뒷받침하는 포스터 번호와 정확한 원문 인용을 반환한다. `HAPPY HALL` 같은 검증된 장소 별칭과 축약 날짜를 표준값으로 정규화하고, 세션별 포스터를 저장한다.
+  - 별도 2차 AI가 같은 원문·원본 포스터와 수집 후보를 독립 대조한다. 결정 규칙, 1차 추출, 2차 검증, 서버의 0.98 신뢰도·정확 인용 검사를 모두 통과해야 자동등록한다. 일부 날짜 누락, AI 불가, 근거 불일치는 자동등록하지 않는다.
+- 검증:
+  - 수집 표준 검사, AI 추출·자동등록 서버 회귀 테스트 43개, 수정 JavaScript 문법 검사와 `git diff --check`가 통과했다.
+  - 해피홀 공식 글 56130을 운영 저장 없이 건조 실행해 8월 14일 `메이저`, 15일 `유광` 두 후보와 각 날짜의 서로 다른 실제 포스터 URL, 표준 장소 `해피홀`, 접근 실패 0건을 확인했다.
+  - 같은 8월 15일 후보와 AI가 선택한 유광 포스터를 독립 2차 검증기에 직접 넣어 `register`, 신뢰도 `0.99`, 검증 오류 0건을 확인했다.
+  - 봉천살롱 건조 실행에서는 8월 15일 후보만 남고 추천 게시물의 정기권·8월 29일 오염이 사라졌으며, 새 해피홀·부산프렌즈 게시판과 스윙타운 일정 게시판의 원문 탐색도 확인했다.
+- 운영 영향: 이 작업에서는 운영 API에 후보를 저장하거나 일정을 등록하지 않았고 배포·커밋·푸시도 하지 않았다.
+- 관련 결정: `docs/decisions/2026-08-14-grounded-ai-social-ingestion.md`
+- 관련 파일: `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/ai-candidate-adjudicator.mjs`, `scripts/ingestion/ai-social-extraction.schema.json`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/ingestion-progress.mjs`, `server/cafe24/function-api.js`
 
 ## 2026-08-13 자유게시판 일반 글의 비공개 선택 누락
 

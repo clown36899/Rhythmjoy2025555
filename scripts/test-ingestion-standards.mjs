@@ -15,7 +15,9 @@ import {
   isCollectableDate,
   keepFirstEventDateOnly,
   makeDeterministicId,
+  mergeSocialScheduleFallbacks,
   prepareCandidate,
+  selectSourceOrderedPosterUrls,
   isEvergreenSeasonPassCandidate,
   isHighConfidenceDatedSocialSchedule,
   isInstagramCaptionClassHeadline,
@@ -25,7 +27,7 @@ import {
   validateCandidate,
   evaluateAutoRegistrationReadiness,
 } from './ingestion/candidate-utils.mjs';
-import { buildVenuePassSearchSources, dynamicSearchQueries, findSourceByUrl, getAutomationSourceList, getCollectionSources, getExcludedSourceReason, normalizeBenefitSearchQuery } from './ingestion/collection-registry.mjs';
+import { buildVenuePassSearchSources, dynamicSearchQueries, findSourceByUrl, findSourceForCandidate, getAutomationSourceList, getCollectionSources, getExcludedSourceReason, normalizeBenefitSearchQuery } from './ingestion/collection-registry.mjs';
 import {
   benefitSearchMatches,
   buildBenefitSearchUrls,
@@ -35,8 +37,13 @@ import {
   extractInstagramProfileUrls,
   instagramAuthorMatches,
   instagramPostMatchesExpectedHandle,
+  isDirectInstagramPostMediaUrl,
+  isNaverAdministrativeNoticeText,
+  isNaverScheduleOverviewText,
+  isVerifiedInstagramFallbackProfile,
   isStaleBenefitSourcePost,
   mergeBenefitSearchTargets,
+  naverScheduleOverviewPriority,
   normalizeInstagramPostUrl,
 } from './ingestion/benefit-search-utils.mjs';
 import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
@@ -59,6 +66,7 @@ import {
   mergeSeenInstagramPosts,
   reorderSourcesForResume,
   selectUnseenInstagramPosts,
+  shouldAdvanceInstagramCheckpoint,
 } from './ingestion/ingestion-progress.mjs';
 
 const TODAY = '2026-05-23';
@@ -82,6 +90,9 @@ assert.deepEqual(
   ['new', 'seen', 'old'],
   'completed Instagram posts must advance the per-source checkpoint without losing prior history',
 );
+assert.equal(shouldAdvanceInstagramCheckpoint(['swingpopseoul: one-day info has no explicit future date']), true, 'a handled parse miss must not freeze the whole Instagram source checkpoint');
+assert.equal(shouldAdvanceInstagramCheckpoint(['post candidate-id: HTTP 500']), false, 'a persistence failure must keep the Instagram post retryable');
+assert.equal(shouldAdvanceInstagramCheckpoint(['auto-register candidate-id: HTTP 422']), false, 'an automatic-registration failure must keep the Instagram post retryable');
 assert.deepEqual(
   alignYearlessDatesToPublication(
     ['2027-05-09', '2027-05-16'],
@@ -126,6 +137,64 @@ assert.equal(
   false,
   'recommended or linked posts from another handle must not consume the source post window',
 );
+assert.equal(
+  instagramPostMatchesExpectedHandle(
+    'https://www.instagram.com/dreambal_balboa/p/Db58GUYj0CS/',
+    ['inthemoodsillim', 'dreambal_balboa'],
+  ),
+  true,
+  'a specifically configured Instagram co-author must remain eligible from the official venue profile',
+);
+assert.equal(
+  instagramPostMatchesExpectedHandle(
+    'https://www.instagram.com/unrelated_account/p/Db58GUYj0CS/',
+    ['inthemoodsillim', 'dreambal_balboa'],
+  ),
+  false,
+  'unconfigured Instagram authors must remain excluded even when co-author support is enabled',
+);
+assert.equal(isVerifiedInstagramFallbackProfile({
+  expectedHandle: 'luna_swingbar',
+  title: 'Page Not Found - Imginn',
+  bodyText: 'Imginn Content Not Found Recommended posts',
+  url: 'https://imginn.com/luna_swingbar/',
+}), false, 'an Imginn not-found page must not turn unrelated recommendations into source posts');
+assert.equal(isVerifiedInstagramFallbackProfile({
+  expectedHandle: 'swingtimebar',
+  title: 'swingtimebar (@swingtimebar) photos',
+  bodyText: 'swingtimebar public posts',
+  url: 'https://imginn.com/swingtimebar/',
+}), true, 'an identity-matched fallback profile may expose source-owned post links');
+assert.equal(
+  isDirectInstagramPostMediaUrl('https://scontent.cdninstagram.com/image.jpg?_nc_sid=58cdad&ig_cache_key=direct'),
+  true,
+  'the opened Instagram post media marker must identify direct post images',
+);
+assert.equal(
+  isDirectInstagramPostMediaUrl('https://scontent.cdninstagram.com/recommendation.jpg?_nc_sid=18de74'),
+  false,
+  'Instagram recommendation images must not pollute the opened post evidence',
+);
+assert.equal(
+  isNaverScheduleOverviewText('필독 2026년 8월 스윙타운 전체 일정표'),
+  true,
+  'a pinned monthly schedule must be recognized as event-bearing source material',
+);
+assert.equal(
+  isNaverAdministrativeNoticeText('필독 2026년 8월 스윙타운 전체 일정표'),
+  false,
+  'a real monthly schedule must not be discarded only because it is pinned as 필독',
+);
+assert.equal(
+  isNaverAdministrativeNoticeText('[운영진공지] 강사 모집 공고'),
+  true,
+  'administrative notices must remain excluded from event scans',
+);
+assert.ok(
+  naverScheduleOverviewPriority('[공지] 스윙타운 2026년 7,8월 일정', '2026-08-14')
+    < naverScheduleOverviewPriority('[공지] 7/8월 정규 강습 신청 및 일정', '2026-08-14'),
+  'the current mixed monthly calendar must outrank a class-application schedule in the same menu',
+);
 
 assert.equal(
   stripRepeatedDjContext('안토니 스윙타운 DJ 안토니 20'),
@@ -138,6 +207,11 @@ assert.equal(
   'repeated Swingtown DJ context must collapse to the grounded DJ token',
 );
 assert.equal(stripRepeatedDjContext('뉴야'), '뉴야', 'ordinary DJ names must stay unchanged');
+assert.equal(
+  stripRepeatedDjContext('제이 Ballba Social 인더무드신림'),
+  '제이',
+  'poster OCR activity and venue text after a DJ name must not become part of the DJ name',
+);
 assert.equal(instagramAuthorMatches({
   expectedHandle: 'bongcheonsalon',
   ogTitle: '봉천살롱 • Instagram 사진 및 동영상',
@@ -150,6 +224,11 @@ assert.equal(instagramAuthorMatches({
   metaDescription: '다른 계정의 게시물',
   profileHrefs: ['/unrelated_account/'],
 }), false, 'a different visible Instagram author must remain blocked');
+assert.equal(instagramAuthorMatches({
+  expectedHandles: ['inthemoodsillim', 'dreambal_balboa'],
+  ogTitle: 'dreambal_balboa 및 inthemoodsillim • Instagram',
+  profileHrefs: ['/dreambal_balboa/', '/inthemoodsillim/', '/commenter/'],
+}), true, 'an explicitly configured official co-author must pass article author verification');
 
 const mixedTimebarSocialAndPassText = `■ 스윙타임빠 수요일 타임빠 정기권(7,8,9월)을 판매합니다.
 ■ 스윙타임빠 (7월 2일) 수 소셜 공지
@@ -197,6 +276,59 @@ DJ '이정' PM 8:15-10:15
     { date: '2026-07-26', day: '일' },
   ],
   'compact title dates with separate weekday sections must become two independent social sessions',
+);
+const orderedTimebarSections = extractIndependentSocialDateSections({
+  today: '2026-08-14',
+  title: '■ 스윙타임빠 (8월 15,16일) 토,일 소셜 공지',
+  text: "- 토요일\nDJ '이정' PM 8:15~10:15\n- 일요일\nDJ '캐롤' PM 7:30~10:30",
+});
+assert.deepEqual(
+  orderedTimebarSections.map(({ date, dayLabel, titleEvidence, normalizedDateEvidence }) => ({
+    date,
+    dayLabel,
+    titleEvidence,
+    normalizedDateEvidence,
+  })),
+  [
+    {
+      date: '2026-08-15',
+      dayLabel: '토요일',
+      titleEvidence: '■ 스윙타임빠 (8월 15,16일) 토,일 소셜 공지',
+      normalizedDateEvidence: '2026년 8월 15일',
+    },
+    {
+      date: '2026-08-16',
+      dayLabel: '일요일',
+      titleEvidence: '■ 스윙타임빠 (8월 15,16일) 토,일 소셜 공지',
+      normalizedDateEvidence: '2026년 8월 16일',
+    },
+  ],
+  'date-scoped evidence must retain the exact compact heading, weekday, and deterministic expanded date',
+);
+assert.deepEqual(
+  selectSourceOrderedPosterUrls([
+    { src: 'https://example.com/dj-ijeong.png', w: 1000, h: 1000 },
+    { src: 'https://example.com/dj-carol-portrait.jpg', w: 1441, h: 1440 },
+  ], 3),
+  [
+    'https://example.com/dj-ijeong.png',
+    'https://example.com/dj-carol-portrait.jpg',
+  ],
+  'multi-image source order must not be reversed by the larger later attachment',
+);
+assert.deepEqual(
+  mergeSocialScheduleFallbacks(
+    [
+      { date: '2026-08-15', day: '토', djs: ['이정'] },
+      { date: '2026-08-16', day: '일', djs: ['캐롤'] },
+    ],
+    [{ date: '2026-08-15', day: '토', djs: ['이정', '캐롤'] }],
+  ).map(({ date, djs }) => ({ date, djs })),
+  [
+    { date: '2026-08-15', djs: ['이정'] },
+    { date: '2026-08-16', djs: ['캐롤'] },
+  ],
+  'a broad fallback section must not merge the following day DJ into an already date-scoped session',
 );
 assert.deepEqual(
   extractIndependentSocialDateSections({
@@ -310,6 +442,19 @@ assert.deepEqual(
   }),
   ['2026-08-02'],
   'Neo weekly parsing must preserve the explicit closure date separately from active social sessions',
+);
+assert.deepEqual(
+  extractNeoWeeklySocialSchedule({
+    today: '2026-08-15',
+    text: `👒 8월 2주 위클리네오
+🎧 금햅 DJ 메이저
+🎧 일햅 DJ 익두
+[8월 14일 -금햅]
+[8월 [ 16일 일햅] ]
+해피홀 서울특별시 서대문구 명물길 37 지하`,
+  }).map(({ date, day, djs, normalizedDateEvidence }) => ({ date, day, djs, normalizedDateEvidence })),
+  [{ date: '2026-08-16', day: '일', djs: ['익두'], normalizedDateEvidence: '2026년 8월 16일' }],
+  'Neo weekly OCR must tolerate a bracket between the month and day and retain normalized date evidence',
 );
 
 assert.equal(classifyConfirmedBenefitEvent({
@@ -466,18 +611,58 @@ const imageOptionalDiscount = prepareCandidate({
 assert.equal(imageOptionalDiscount.validation.ok, false, 'confirmed discount candidates require an image before collection');
 assert.match(imageOptionalDiscount.validation.errors.join(' '), /poster_url or imageData required/, 'image-less discounts must fail closed');
 const imageOptionalSocial = prepareCandidate(baseCandidate({
+  source_id: 'swingtimebar',
   poster_url: '',
   imageData: '',
+  extracted_text: '2026년 8월 21일 스윙타임 금요 소셜 DJ Test',
   structured_data: {
     title: '금요 스윙 소셜',
     date: '2026-08-21',
-    location: '서울',
+    location: '스윙타임',
+    venue_name: '스윙타임',
+    venue_provenance: 'source_registry',
     event_type: '소셜',
     activity_type: 'social',
     djs: ['DJ Test'],
   },
 }), { today: TODAY });
-assert.equal(imageOptionalSocial.validation.ok, false, 'social candidates require an image before collection');
+assert.equal(imageOptionalSocial.validation.ok, true, 'a dated official social with a verified venue and DJ may use the venue map instead of a poster');
+assert.equal(
+  evaluateAutoRegistrationReadiness(imageOptionalSocial.candidate, { today: TODAY }).ready,
+  true,
+  'an image-less grounded social must remain eligible for automatic registration',
+);
+const thumbnailOptionalSocial = prepareCandidate(baseCandidate({
+  source_id: 'neo_swing',
+  source_url: 'https://www.instagram.com/neo_swing/p/Db445CCqdzm/',
+  poster_url: 'https://cdninstagram.com/photo.jpg?stp=c1.0.722.720a_dst-jpg_e35',
+  imageData: '',
+  extracted_text: '2026년 8월 16일 네오스윙 일햅 소셜 장소 해피홀 DJ 익두',
+  structured_data: {
+    title: '네오스윙 일요 소셜',
+    date: '2026-08-16',
+    location: '해피홀',
+    venue_name: '해피홀',
+    venue_provenance: 'source_registry',
+    event_type: '소셜',
+    activity_type: 'social',
+    djs: ['익두'],
+  },
+}), { today: TODAY });
+assert.equal(thumbnailOptionalSocial.validation.ok, true, 'a bad Instagram thumbnail must not block a date-and-DJ-grounded social');
+assert.equal(thumbnailOptionalSocial.candidate.poster_url, '', 'a cropped social thumbnail must be discarded before persistence so the venue map is used');
+assert.equal(
+  evaluateAutoRegistrationReadiness(thumbnailOptionalSocial.candidate, { today: TODAY }).ready,
+  true,
+  'discarding a bad thumbnail must preserve automatic-registration readiness for a grounded social',
+);
+const profileOnlyImageFreeSocial = prepareCandidate(baseCandidate({
+  source_id: 'swingtimebar',
+  source_url: 'https://www.instagram.com/swingtimebar/',
+  poster_url: '',
+  imageData: '',
+}), { today: TODAY });
+assert.equal(profileOnlyImageFreeSocial.validation.ok, false, 'image-free social registration still requires an actual source post URL');
 const imageOptionalFreeBenefit = prepareCandidate(baseCandidate({
   poster_url: '',
   imageData: '',
@@ -1108,6 +1293,19 @@ const malformedDj = prepareCandidate(baseCandidate({
 assert.equal(malformedDj.validation.ok, false);
 assert.ok(malformedDj.validation.errors.some((error) => error.includes('DJ value')));
 
+const koreanDjParticleMisparse = prepareCandidate(baseCandidate({
+  extracted_text: '8월 14일 해피홀 금요 소셜 DJ는 메이저님입니다',
+  structured_data: {
+    title: '해피홀 금요 소셜',
+    date: '2026-08-14',
+    location: '해피홀',
+    activity_type: 'social',
+    djs: ['는'],
+  },
+}), { today: '2026-08-14' });
+assert.equal(koreanDjParticleMisparse.validation.ok, false, 'a Korean topic particle after the DJ label must never become a DJ name');
+assert.ok(koreanDjParticleMisparse.validation.errors.some((error) => error.includes('DJ value')));
+
 const dateRangeCaptionFragment = prepareCandidate(baseCandidate({
   extracted_text: '일정 : 7/5~8/16 (6주) 매주 일요일, 8/23 졸업파티',
   structured_data: {
@@ -1167,7 +1365,14 @@ const swingFriendsCafeSource = getAutomationSourceList('swing-daily').find((item
 const swingFriendsInstagramSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swing_friends');
 const swingScandalSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingscandal-cafe');
 const swingtimeSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'swingtimebar');
+const bongcheonSalonSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'bongcheonsalon');
+const inTheMoodSource = getAutomationSourceList('swing-daily').find((item) => item.id === 'inthemood_sillim');
 assert.equal(swingtownSource?.venue, '봉천살롱');
+assert.equal(
+  bongcheonSalonSource?.regularSocialExceptionSourceId,
+  'swingtown-cafe',
+  'Bongcheon Salon closure notices must target the Swing Town recurring-social rule',
+);
 assert.equal(swingFriendsCafeSource?.venue, '스윙타임');
 assert.equal(swingFriendsInstagramSource?.venue, '스윙타임');
 assert.equal(swingScandalSource?.venue, '사보이볼룸');
@@ -1175,6 +1380,19 @@ assert.equal(swingScandalSource?.autoRegistrationPolicy, 'shadow');
 assert.equal(swingtimeSource?.venue, '스윙타임');
 assert.equal(swingtimeSource?.autoRegistrationPolicy, 'shadow');
 assert.deepEqual(swingtimeSource?.autoRegistrationAllowedActivityTypes, ['social']);
+assert.equal(inTheMoodSource?.url, 'https://www.instagram.com/inthemoodsillim/');
+assert.equal(inTheMoodSource?.venue, '인더무드신림');
+assert.equal(inTheMoodSource?.autoRegistrationPolicy, 'shadow');
+assert.deepEqual(inTheMoodSource?.autoRegistrationAllowedActivityTypes, ['social']);
+assert.deepEqual(inTheMoodSource?.instagramPostAuthorHandles, ['dreambal_balboa']);
+assert.equal(
+  findSourceForCandidate({
+    sourceId: 'inthemood_sillim',
+    url: 'https://www.instagram.com/dreambal_balboa/p/Db58GUYj0CS/',
+  })?.id,
+  'inthemood_sillim',
+  'the official DreamBal co-authored post must retain the InTheMood source policy',
+);
 assert.equal(
   getAutomationSourceList('swing-daily').find((item) => item.id === 'kyungsunghall')?.autoRegistrationPolicy,
   'shadow',
@@ -1278,6 +1496,15 @@ assert.equal(prepareCandidate(baseCandidate({
     djs: ['훔머'],
   },
 }), { today: TODAY }).candidate.structured_data.location, '스윙타임');
+assert.equal(prepareCandidate(baseCandidate({
+  structured_data: {
+    title: 'Swing Friends Saturday Social',
+    date: '2026-08-15',
+    location: 'HAPPY HALL',
+    activity_type: 'social',
+    djs: ['유광'],
+  },
+}), { today: TODAY }).candidate.structured_data.location, '해피홀');
 
 const autoReadyScandal = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/999001?menuid=501',
@@ -1309,7 +1536,7 @@ const autoReadySwingtimeWithoutImage = evaluateAutoRegistrationReadiness(baseCan
     djs: ['훔머'],
   },
 }), { today: TODAY });
-assert.equal(autoReadySwingtimeWithoutImage.ready, false, 'auto-registration must fail closed when no source image was captured');
+assert.equal(autoReadySwingtimeWithoutImage.ready, true, 'a named-DJ social from an actual official post may auto-register without an image and use the venue map');
 
 const autoBlockedGenericParty = evaluateAutoRegistrationReadiness(baseCandidate({
   source_url: 'https://www.instagram.com/kyungsunghall/p/GENERIC1/',
@@ -1479,6 +1706,9 @@ assert.equal(validateCandidate(baseCandidate({
 }), { today: TODAY }).ok, false, 'discovery-only hubs must not be saved directly');
 
 assert.equal(hasBadPosterUrl('https://cdn.example.com/post/p240x240/photo.jpg'), true);
+assert.equal(hasBadPosterUrl('https://cdninstagram.com/photo.jpg?stp=c0.0.1440.1440a_dst-jpg_e35_s1440x1440'), false, 'a 1440px Instagram rendition is not a thumbnail merely because its delivery URL carries crop coordinates');
+assert.equal(hasBadPosterUrl('https://cdninstagram.com/photo.jpg?stp=c0.0.1000.999a_dst-jpg_e35'), false, 'a near-1000px Instagram original rendition remains usable');
+assert.equal(hasBadPosterUrl('https://cdninstagram.com/photo.jpg?stp=c1.0.722.720a_dst-jpg_e35'), true, 'a sub-900px cropped rendition remains blocked');
 assert.equal(validateCandidate(baseCandidate({
   poster_url: 'https://cdn.example.com/post/p240x240/photo.jpg',
   extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',
@@ -1489,7 +1719,6 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: '2026년 6월 5일 무료 린디합 체험 강습',
   structured_data: { title: '무료 린디합 체험 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class', benefit_eligible: true, benefit_kind: 'free_event' },
 }), { today: TODAY }).ok, false, 'benefit candidates must reject thumbnail-only images');
-
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: '2026년 6월 5일 경성홀 토요 소셜에서 함께 즐겨보세요',
   structured_data: { title: '경성홀 토요 소셜', date: '2026-06-05', location: '경성홀', event_type: '소셜', activity_type: 'social', djs: [] },
@@ -1696,6 +1925,10 @@ assert.ok(priorityTwoRunOrder.indexOf('swingtown-cafe') < priorityTwoRunOrder.in
 assert.equal(getAutomationSourceList('swing-daily').some((source) => source.type === 'littly'), false, 'daily automation must exclude littly hubs');
 assert.equal(findSourceByUrl('https://www.instagram.com/happyhall2004/p/DZohigakR0I/')?.id, 'happyhall2004', 'instagram source matching should respect account path');
 assert.equal(findSourceByUrl('https://www.instagram.com/neo_swing/p/DXa57nvijUI/')?.id, 'neo_swing', 'neoswing instagram posts should not match the first instagram source by hostname only');
+assert.equal(findSourceForCandidate({
+  sourceId: 'swingfriends-happyhall-cafe',
+  url: 'https://cafe.naver.com/f-e/cafes/10026855/articles/56130',
+})?.id, 'swingfriends-happyhall-cafe', 'an explicit board source id must survive canonical Naver article URLs that omit the menu id');
 assert.equal(findSourceByUrl('https://m.cafe.daum.net/sweetyswing/5lqO/1759')?.id, 'sweetyswing-timebar-pass', 'timebar pass articles must map to the direct manual-review source');
 const timebarPassSource = getAutomationSourceList('swing-daily').find((source) => source.id === 'sweetyswing-timebar-pass');
 assert.equal(timebarPassSource?.type, 'daum_cafe');
@@ -1718,8 +1951,10 @@ const swingBenefitSources = getAutomationSourceList('swing-daily').filter((sourc
 const derivedVenuePassSources = buildVenuePassSearchSources(getCollectionSources('swing'));
 assert.equal(normalizeBenefitSearchQuery('site:instagram.com/swing_friends 정기권'), 'swing_friends 정기권');
 assert.ok(swingBenefitSources.every((source) => !/\bsite:instagram\.com\b/i.test(source.query)), 'all benefit searches must include indexed cafe/blog documents instead of being Instagram-only');
-assert.equal(derivedVenuePassSources.length, 6, 'known swing venues should generate six focused pass searches');
+assert.equal(derivedVenuePassSources.length, 8, 'known swing venues should generate eight focused pass searches');
 assert.ok(derivedVenuePassSources.some((source) => source.query === '스윙타임 정기권'), 'known venues must automatically produce a focused latest pass query');
+assert.ok(derivedVenuePassSources.some((source) => source.query === '스윙243 정기권'), 'a newly verified venue route must participate in focused benefit discovery');
+assert.ok(derivedVenuePassSources.some((source) => source.query === '인더무드신림 정기권'), 'the corrected InTheMood venue route must participate in focused benefit discovery');
 assert.ok(derivedVenuePassSources.every((source) => !source.query.startsWith('site:')), 'derived venue searches must include indexed cafe documents');
 assert.equal(swingBenefitSources.length, 16 + derivedVenuePassSources.length, 'benefit automation should include the base searches and generated venue searches');
 assert.equal(swingBenefitSources.filter((source) => source.priority === 3).length, 11 + derivedVenuePassSources.length, 'stage three should contain free and pass benefit searches');
