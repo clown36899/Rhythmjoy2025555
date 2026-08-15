@@ -24,13 +24,23 @@
 
 ## 2026-08-15 8월 16일 해피홀·인더무드신림 실제 소셜 미수집
 
-- 상태: 원인 확인 완료, 수집기 수정·운영 재수집 미실시
+- 상태: 수집기·서버 수정, 운영 배포, 대상 원문 재수집 및 일정 복구 완료
 - 현상: 공개 캘린더에는 2026-08-16 해피홀 `네오스윙 일요 소셜`과 인더무드신림 `드림발 일요 소셜`이 이미지와 DJ가 없는 정규 반복 일정으로만 남고, 공식 공지의 실제 DJ·포스터가 반영되지 않았다.
 - 해피홀 원인: 네오스윙 공식 8월 2주 공지에는 8월 16일 `일햅 DJ 익두`가 있었고 원문 게시물의 직접 이미지는 1440×1800이었다. 수집기는 해당 날짜 후보를 두 번 만들었지만 게시물 직접 이미지가 아닌 프로필 격자 크롭 URL을 `poster_url`로 선택했고, 이미지 품질 검사가 두 후보를 모두 `poster_url looks cropped or thumbnail-sized`로 거절했다. 따라서 후보 저장·자동등록 단계까지 도달하지 않았다.
 - 인더무드신림 원인: 공식 계정은 `inthemoodsillim`이지만 수집 레지스트리에는 존재하지 않는 `inthemood_sillim`이 등록돼 있다. 8월 15일 실행은 잘못된 경로를 Instagram 접근 실패로 기록했고, 앞선 실행의 대체 경로 결과도 예상 작성자 `inthemood_sillim`과 일치하지 않는다는 이유로 거절했다. 실제 공동 게시물에는 8월 16일 장소 `인더무드신림`, DJ `제이`, 소셜 시작이 명시돼 있다.
-- 운영 확인: 공개 일정 API의 두 일정은 각각 `regular-social:neo-sun:2026-08-16`, `regular-social:dreambal-sun:2026-08-16`이며 모두 `dj_name=미정`, `image` 없음 상태다. 공식 실제 소셜 후보나 일정은 이 조사에서 저장하지 않았다.
-- 후속 필요: 인더무드신림 공식 계정 경로와 작성자 검증 기준을 바로잡고, 드림발 공동 게시물 경로를 공식 수집원으로 보존한다. 네오스윙은 열린 게시물의 직접 원본 미디어만 후보에 전달하도록 수정한 뒤 두 원문을 공식 수집 API로 재수집해야 한다.
-- 관련 파일: `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `/Users/inteyeo/claude_ingestion.log`
+- 해결:
+  - 인더무드신림 공식 계정을 `inthemoodsillim`으로 바로잡고 공식 공동 작성자 `dreambal_balboa`를 허용했다. 기존 수집원 ID는 반복 규칙과 진행 상태의 연속성을 위해 유지했다.
+  - 이름이 있는 DJ 소셜은 공식 상세 원문에서 날짜·장소·DJ가 확정되면 이미지가 없어도 등록할 수 있게 했다. 잘못 선택된 격자 썸네일은 후보 전체를 거절하지 않고 제거하며, 명시 일정이 정기 일정을 대체할 때 주소·장소 ID·지도 링크를 상속한다.
+  - Instagram 상세 원문의 작성자 검증은 등록된 공식 계정과 공동 작성자만 허용한다. 네오스윙 주간 공지의 대괄호 OCR 날짜와 DJ 문맥 잔여 문구도 정규화했다.
+  - 점검·복구용 실행은 레지스트리에 있는 수집원과 해당 수집원의 명시적 게시물 URL만 받을 수 있도록 제한했다. 운영 DB를 직접 수정하지 않고 공식 수집 API로 두 게시물을 재수집했다.
+- 운영 검증:
+  - 실행 `20260815_162822_78693`은 신규 2건, 자동등록 2건, 스킵 0건, 접근 실패 0건으로 종료됐다.
+  - 공개 일정 API에서 `DJ 익두 | 네오스윙 일요 소셜`(`65bd114e-e852-47ff-83fe-11010b539528`)과 `DJ 제이 | 인더무드신림 일요 소셜`(`6b2cf698-c749-4474-a10e-2ce5a0e8051b`)을 2026-08-16 일정으로 확인했다. 두 일정 모두 공식 원문 링크, 주소, 장소 ID와 저장 이미지를 갖고 있다.
+  - 기존 `regular-social:neo-sun:2026-08-16`과 `regular-social:dreambal-sun:2026-08-16`은 명시 일정으로 대체돼 공개 응답에서 제거됐다.
+  - 수집 표준 검사, 대상 ESLint, Node 테스트 4개, 대상 Vitest 45개, 전체 Vitest 실제 테스트 407개, 프로덕션 빌드와 `git diff --check`가 통과했다. 전체 Vitest에서 `node:test` 형식 파일 2개는 발견 방식 차이로 별도 Node 러너에서 통과했다.
+  - 운영 배포 버전은 `1786778803122`이며 공개 `version.json`과 서비스 재시작 후 `active` 상태를 확인했다.
+- 관련 커밋: `fe2b77c6`
+- 관련 파일: `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/benefit-search-utils.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `server/cafe24/function-api.js`, `scripts/test-ingestion-standards.mjs`
 
 ## 2026-08-15 일일 자동수집 2건의 캘린더 미반영
 
