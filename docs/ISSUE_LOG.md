@@ -24,7 +24,7 @@
 
 ## 2026-08-18 수집 후보 자동등록 0건 개선
 
-- 상태: 로컬 수집기·서버 수정, 당일 봉천살롱 일정 복구 완료, 8월 22일 누락 복구용 운영 배포 대기
+- 상태: 수집기·서버 수정, 운영 배포, 자동등록 대상 누락 2건 복구 완료
 - 현상: 08시 실행은 신규 후보 1건, 09시 실행은 신규 후보 2건을 저장했지만 두 실행 모두 자동등록은 0건이었다. 작업 자체와 후보 저장 API는 오류 없이 종료됐다.
 - 원인:
   - 네오 141기 공지는 8월 18일을 신청 시작일로, 8월 30일 이후를 실제 강습일로 안내했지만 수집기가 신청일을 첫 행사일로 선택했다. 기존 마감일 방어는 날짜 주변에 `강습` 문구가 있다는 이유로 이 날짜를 통과시켰다.
@@ -50,7 +50,10 @@
   - 실제 일정 등록 뒤 기본 반복 일정 `regular-social:swingtown-tue:2026-08-18`은 공개 응답에서 제거돼 중복 노출되지 않는다.
   - 같은 실행에서 8월 22일 후보는 운영 서버의 저장 원문 근거 검사에서 HTTP 422로 보류됐다. 당일 봉천살롱 복구에는 영향이 없으며 별도 후속 검토 대상으로 남긴다.
   - 미래 대기 소셜 후보 전수 점검 결과 자동등록 준비·AI 검증을 모두 통과하고도 일정 연결이 없는 후보는 이 8월 22일 1건뿐이었다. 8월 25일 `미우`와 8월 29일 `후안` 후보는 교차검증 전용 월간표 출처라 현재 정책상 수동 보류이며, 날짜별 공식 소셜 공지가 올라오면 자동등록 대상이 된다.
-- 배포 영향: 수집기 수정은 로컬 예약 작업에 적용됐고, 서버 근거 규칙 수정은 Cafe24 운영 배포 대기 상태다.
+  - 서버 수정 배포 뒤 8월 22일 후보의 운영 건조 검증이 `wouldInsert=true`로 통과했고, 실제 일정 `DJ 조춘식이 | 봉천살롱 토요 소셜`(`86672fa8-dfce-4e90-bd43-bc4062110578`)을 자동등록했다. 공식 원문 링크와 저장 이미지가 연결됐고 이미지는 HTTP 200이다.
+  - 등록 후 기본 반복 일정 `regular-social:swingtown-sat:2026-08-22`은 공개 응답에서 제거됐다. 미래 소셜 후보를 다시 전수 확인해 자동등록 준비·AI 검증 완료 상태인데 일정 연결이 없는 후보가 0건임을 확인했다.
+- 배포 영향: 커밋 `a824013c`를 `origin/fix/sitewide-image-drag-integration-20260811`에 푸시하고 Cafe24 운영 버전 `1787051094438`을 배포했다. 공개 헬스 응답 `ok`, 서비스 `active`, 공개 버전 일치를 확인했다.
+- 관련 커밋: `a824013c`
 - 관련 결정: `docs/decisions/2026-07-28-ingestion-automatic-registration.md`
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/ai-candidate-adjudicator.mjs`, `scripts/ingestion/ai-candidate-adjudicator.test.js`, `scripts/test-ingestion-standards.mjs`, `server/cafe24/function-api.js`, `server/cafe24/ingestor-registration-link.test.js`
 
