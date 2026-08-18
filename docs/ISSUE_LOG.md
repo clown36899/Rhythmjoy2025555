@@ -22,6 +22,25 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-18 오후 게시된 익일 스윙타임 소셜 미수집
+
+- 상태: 대상 일정 복구 완료, 저녁 재수집 스케줄 반영 중
+- 현상: 2026-08-19 스윙타임 수요 소셜의 공식 공지가 있었지만 공개 캘린더에는 `DJ 미정` 정규 반복 일정만 표시됐고 운영 수집 후보는 없었다.
+- 원인:
+  - priority1·2 `swing-daily` LaunchAgent는 각각 08:00·09:00에만 실행됐다. 오전 실행 당시 스윙타임 Instagram은 새 게시물이 없었고 스윙프렌즈 Naver 카페 최신 글도 8월 15·16일 이전 일정뿐이었다.
+  - 20시대 재확인에서는 스윙타임 공식 Instagram과 스윙프렌즈 Naver 카페 양쪽에 8월 19일 `DJ 유광` 공지가 노출됐다. 수집·자동등록 판정은 모두 통과했으므로 파싱이나 서버 등록 오류가 아니라 오전 실행 뒤 게시된 공지를 다시 확인할 예약 실행이 없었던 운영 스케줄 공백이다.
+- 해결:
+  - 실제 공식 Instagram 원문을 `swing-daily` 수집 API 경로로 재처리해 후보를 저장하고 `DJ 유광 | 스윙타임 수요 소셜`을 자동등록했다. 운영 DB를 직접 수정하지 않았다.
+  - priority1 LaunchAgent에 20:30, priority2 LaunchAgent에 21:00 재실행을 추가한다. 오전 체크포인트와 동일한 `getAutomationSourceList('swing-daily')`·전역 실행 잠금·결정론 후보 ID를 그대로 사용해 새 게시물만 보강하고 중복 이벤트는 만들지 않는다.
+  - 혜택 검색 중심 priority3·4는 이번 익일 일정 누락과 무관하므로 기존 10:00·11:00 실행을 유지한다.
+- 운영 복구:
+  - 실행 `20260818_202809_87701`은 신규 1건, 자동등록 1건, 접근 실패 0건, 남은 소스 0건으로 종료됐다.
+  - 생성 일정은 `50bf473c-b621-4efe-9e2b-ca101db66c45`, 공식 원문은 `https://www.instagram.com/swingtimebar/p/DcLRUYAGvSI`다.
+- 검증: LaunchAgent plist 문법·설치 상태, 수집 표준 검사, 공개 일정·저장 이미지·정규 일정 대체 여부를 반영 뒤 확인한다.
+- 관련 결정: `docs/decisions/2026-08-18-evening-ingestion-catchup.md`
+- 관련 커밋: `pending`
+- 관련 파일: `scripts/com.rhythmjoy.codex-ingestion.plist`, `scripts/com.rhythmjoy.codex-ingestion-priority2.plist`
+
 ## 2026-08-18 수집 후보 자동등록 0건 개선
 
 - 상태: 수집기·서버 수정, 운영 배포, 자동등록 대상 누락 2건 복구 완료
