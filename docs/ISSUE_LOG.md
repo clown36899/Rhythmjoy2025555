@@ -24,7 +24,7 @@
 
 ## 2026-08-18 오후 게시된 익일 스윙타임 소셜 미수집
 
-- 상태: 대상 일정 복구 완료, 저녁 재수집 스케줄 반영 중
+- 상태: 대상 일정 복구 및 저녁 재수집 스케줄 운영 반영 완료
 - 현상: 2026-08-19 스윙타임 수요 소셜의 공식 공지가 있었지만 공개 캘린더에는 `DJ 미정` 정규 반복 일정만 표시됐고 운영 수집 후보는 없었다.
 - 원인:
   - priority1·2 `swing-daily` LaunchAgent는 각각 08:00·09:00에만 실행됐다. 오전 실행 당시 스윙타임 Instagram은 새 게시물이 없었고 스윙프렌즈 Naver 카페 최신 글도 8월 15·16일 이전 일정뿐이었다.
@@ -36,9 +36,13 @@
 - 운영 복구:
   - 실행 `20260818_202809_87701`은 신규 1건, 자동등록 1건, 접근 실패 0건, 남은 소스 0건으로 종료됐다.
   - 생성 일정은 `50bf473c-b621-4efe-9e2b-ca101db66c45`, 공식 원문은 `https://www.instagram.com/swingtimebar/p/DcLRUYAGvSI`다.
-- 검증: LaunchAgent plist 문법·설치 상태, 수집 표준 검사, 공개 일정·저장 이미지·정규 일정 대체 여부를 반영 뒤 확인한다.
+- 검증:
+  - 수집 표준 검사와 저장소·설치본 LaunchAgent plist 문법 검사가 통과했다.
+  - `launchctl print`에서 priority1의 `08:00·20:30`, priority2의 `09:00·21:00` 캘린더 트리거와 두 작업의 활성 상태를 확인했다.
+  - 운영 후보 `cc66005dc6ccbdd8`은 `status=collected`, `is_collected=true`, AI 검증 0.99, 등록 일정 `50bf473c-b621-4efe-9e2b-ca101db66c45` 연결 상태다.
+  - 공개 일정 API에는 실제 일정만 노출되고 `regular-social:swingtime-wed:2026-08-19`는 제거됐다. 저장 이미지 응답은 HTTP 200이다.
 - 관련 결정: `docs/decisions/2026-08-18-evening-ingestion-catchup.md`
-- 관련 커밋: `pending`
+- 관련 커밋: `bd0aebe8`
 - 관련 파일: `scripts/com.rhythmjoy.codex-ingestion.plist`, `scripts/com.rhythmjoy.codex-ingestion-priority2.plist`
 
 ## 2026-08-18 수집 후보 자동등록 0건 개선
