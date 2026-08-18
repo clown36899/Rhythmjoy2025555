@@ -118,6 +118,20 @@ function normalized(value) {
   return String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+function bareDjName(value = '') {
+  return stripNaverCafeMemberPrefix(String(value || '').trim())
+    .replace(/^(?:d\s*j|디제이)\s*[:：-]?\s*/i, '')
+    .trim();
+}
+
+function evidenceExplicitlyContainsDj(evidence = '', dj = '') {
+  const name = normalized(bareDjName(dj));
+  if (!name) return false;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}_])${escaped}(?=$|[^\\p{L}\\p{N}_])`, 'u')
+    .test(normalized(evidence));
+}
+
 function normalizedVenue(value) {
   return normalized(value)
     .replace(/happy\s*hall/g, '해피홀')
@@ -256,12 +270,15 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   const evidenceQuotes = Array.isArray(adjudication?.evidence_quotes)
     ? adjudication.evidence_quotes.map((quote) => String(quote || '').trim()).filter(Boolean)
     : [];
-  const candidateDjs = Array.isArray(sd.djs) ? sd.djs.map(normalized).filter(Boolean) : [];
+  const candidateDjs = Array.isArray(sd.djs) ? sd.djs.map((dj) => normalized(bareDjName(dj))).filter(Boolean) : [];
   const aiDjs = Array.isArray(adjudication?.djs)
-    ? adjudication.djs.map((dj) => normalized(stripNaverCafeMemberPrefix(dj))).filter(Boolean)
+    ? adjudication.djs.map((dj) => normalized(bareDjName(dj))).filter(Boolean)
     : [];
   const threshold = Number(config.minimumConfidence ?? minimumConfidence);
   const evidenceCorpus = normalized(evidenceQuotes.join(' '));
+  const djGroundingText = [candidate?.extracted_text || '', trustedSourceVenueContext(candidate)]
+    .filter(Boolean)
+    .join('\n');
   const candidateVenue = normalizedVenue(sd.venue_name || sd.location);
   const source = findSourceForCandidate({ sourceId: candidate?.source_id, url: candidate?.source_url });
   const hasAttachedOriginalPoster = [
@@ -295,7 +312,10 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   if (!exactEvidenceIsGrounded(evidenceQuotes, sourceText)) reasons.push('AI evidence is not an exact substring of source text');
   if (!evidenceMentionsDate(evidenceCorpus, sd.date)) reasons.push('AI evidence does not explicitly contain the candidate date');
   if (candidateVenue && !normalizedVenue(evidenceCorpus).includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
-  if (candidateDjs.some((dj) => !evidenceCorpus.includes(dj))) reasons.push('AI evidence does not explicitly contain every candidate DJ');
+  if (candidateDjs.some((dj) => (
+    !evidenceExplicitlyContainsDj(evidenceCorpus, dj)
+    || !evidenceExplicitlyContainsDj(djGroundingText, dj)
+  ))) reasons.push('AI evidence does not explicitly contain every candidate DJ');
   const activityPattern = ACTIVITY_EVIDENCE_PATTERNS[String(sd.activity_type || '')];
   if (!activityPattern || !activityPattern.test(evidenceCorpus)) {
     reasons.push(`AI evidence does not explicitly identify activity ${String(sd.activity_type || '')}`);
@@ -339,7 +359,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
     const date = String(event?.event_date || '').slice(0, 10);
     const venue = normalizedVenue(event?.venue || '');
     const djs = Array.isArray(event?.djs)
-      ? event.djs.map((dj) => stripNaverCafeMemberPrefix(String(dj || '').trim())).filter(Boolean)
+      ? event.djs.map((dj) => bareDjName(dj)).filter(Boolean)
       : [];
     const posterImageIndex = Number(event?.poster_image_index || 0);
     const evidenceQuotes = Array.isArray(event?.evidence_quotes)
@@ -365,7 +385,10 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
     }
     if (!djs.length && !hasAttachedImage) {
       eventReasons.push('AI social without a DJ requires an attached original poster');
-    } else if (djs.some((dj) => !normalized(evidenceCorpus).includes(normalized(dj)))) {
+    } else if (djs.some((dj) => (
+      !evidenceExplicitlyContainsDj(evidenceCorpus, dj)
+      || !evidenceExplicitlyContainsDj(groundedText, dj)
+    ))) {
       eventReasons.push('AI social evidence does not explicitly contain every DJ');
     }
     if (!ACTIVITY_EVIDENCE_PATTERNS.social.test(evidenceCorpus)) eventReasons.push('AI social evidence does not explicitly identify a social');
@@ -405,7 +428,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
   };
 }
 
-function buildPrompt(candidate) {
+export function buildAiAdjudicationPrompt(candidate) {
   const sd = candidate.structured_data || {};
   const trustedVenueContext = trustedSourceVenueContext(candidate);
   return `You are the second-stage verifier for a Korean swing-dance event calendar.
@@ -437,9 +460,11 @@ In Naver Cafe text, a prefix such as "57F 밍밍" before the actual DJ is a memb
 nickname, not part of the DJ name. Exclude that prefix and return only the collector-normalized DJ.
 Every evidence quote must be copied exactly from SOURCE_TEXT or TRUSTED_SOURCE_CONTEXT. Confidence >= 0.98 is reserved for
 fully explicit, internally consistent evidence. Otherwise return review or reject.
-When an original poster image is attached, independently compare the collector fields and any
-AI_POSTER_TRANSCRIPTION in SOURCE_TEXT against the visible image. Return review if the transcription,
-date, venue, activity, or any DJ does not visibly agree with the poster.
+When an original poster image is attached, use it to detect contradictions and to verify fields that
+claim poster evidence. A field already explicit in SOURCE_TEXT or TRUSTED_SOURCE_CONTEXT does not have
+to be repeated on the poster. In particular, an exact article date that is absent from an otherwise
+consistent poster is not a disagreement. Return review when the visible poster contradicts the
+collector/source evidence, or when a field relies on the poster but is not visibly supported there.
 For a social with an empty collector DJ list, return register only when ai_missing_dj_verified is true,
 an original poster is attached, and the source explicitly confirms the date, venue, and social marker.
 Do not invent a DJ merely to approve registration.
@@ -477,6 +502,8 @@ date, venue, and social marker are otherwise explicit. Attached images are origi
 may supply those fields. Extract all independently grounded sessions in the
 post. A compact heading such as "8월 15,16일" may be paired with separate Saturday/Sunday sections;
 keep only the DJ names inside each matching day section. Do not carry a DJ into another date.
+Return each bare DJ stage name exactly as written after the DJ label. Do not include the "DJ" label,
+and do not shorten a final Korean syllable merely because it could also look like a grammatical particle.
 In a heading such as "8/14 ... /15일", the second day inherits the explicitly written month.
 Resolve a missing year from TODAY_KST, but never invent a month or day. Do not output event times.
 
@@ -783,7 +810,7 @@ export async function adjudicateCandidateWithAi(candidate, config = {}) {
       '--output-schema', schemaPath,
       '--output-last-message', outputPath,
       '-',
-    ], buildPrompt(candidate), {
+    ], buildAiAdjudicationPrompt(candidate), {
       cwd: moduleDir,
       timeout: Number(config.timeoutMs || process.env.INGESTION_AI_TIMEOUT_MS || 90_000),
       maxBuffer: 2 * 1024 * 1024,

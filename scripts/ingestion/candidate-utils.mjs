@@ -301,6 +301,68 @@ export function toMapSafeVenueName(value = '') {
   return matched?.[1] || stripped;
 }
 
+function regexWithoutState(pattern) {
+  if (!(pattern instanceof RegExp)) return null;
+  return new RegExp(pattern.source, pattern.flags.replace(/[gy]/g, ''));
+}
+
+function venueAliasMatchesDj(pattern, djs = []) {
+  const matcher = regexWithoutState(pattern);
+  if (!matcher) return false;
+  return djs.some((dj) => {
+    const value = String(dj || '').trim();
+    const match = value.match(matcher);
+    return Boolean(match && match.index === 0 && match[0].length === value.length);
+  });
+}
+
+function hasExplicitVenueAliasContext(text = '', matchedAlias = '') {
+  const alias = String(matchedAlias || '').trim();
+  if (!alias) return false;
+  const escapedAlias = escapeRegex(alias);
+  return [
+    new RegExp(`(?:장소|venue|location|개최지|공간)\\s*[:：-]?\\s*${escapedAlias}`, 'i'),
+    new RegExp(`${escapedAlias}\\s*(?:스윙\\s*)?(?:홀|바|빠|bar|ballroom|salon)`, 'i'),
+  ].some((pattern) => pattern.test(String(text || '')));
+}
+
+const variableVenueEvidenceRe = /(?:장소|강습장|수업장)\s*[:：-]?\s*(?:강습|수업|클래스|프로그램)?\s*(?:별|마다)\s*(?:상이|다름|별도)|(?:강습|수업|클래스|프로그램)\s*(?:별|마다)\s*(?:장소|강습장|수업장)\s*(?:상이|다름|별도)|장소\s*(?:추후|별도)\s*(?:공지|안내)/i;
+
+export function resolveSourceVenueEvidence({
+  text = '',
+  sourceVenue = '',
+  mappedVenue = '',
+  aliases = [],
+  djs = [],
+} = {}) {
+  const value = String(text || '');
+  const configuredVenue = String(sourceVenue || mappedVenue || '').trim();
+  const matches = aliases
+    .map(([pattern, venue]) => {
+      const matcher = regexWithoutState(pattern);
+      const match = matcher ? value.match(matcher) : null;
+      return match ? { pattern, venue, matchedAlias: match[0] } : null;
+    })
+    .filter(Boolean);
+  const matched = matches.find((item) => {
+    const aliasIsDjOnly = venueAliasMatchesDj(item.pattern, djs)
+      && compactVenueText(configuredVenue) !== compactVenueText(item.venue)
+      && !hasExplicitVenueAliasContext(value, item.matchedAlias);
+    return !aliasIsDjOnly;
+  });
+
+  if (matched) {
+    return { venue: matched.venue, provenance: 'source_text' };
+  }
+
+  if (variableVenueEvidenceRe.test(value)) {
+    return { venue: '', provenance: 'explicit_variable' };
+  }
+  if (sourceVenue) return { venue: sourceVenue, provenance: 'source_registry' };
+  if (mappedVenue) return { venue: mappedVenue, provenance: 'source_registry' };
+  return { venue: '', provenance: 'unresolved' };
+}
+
 function normalizeCandidateVenueStructuredData(structuredData = {}) {
   const location = toMapSafeVenueName(structuredData.location || structuredData.venue_name || '');
   const venueName = toMapSafeVenueName(structuredData.venue_name || location);
@@ -753,15 +815,48 @@ function contextsAroundDate(text = '', date = '') {
   return contexts;
 }
 
-function looksLikeDeadlineOnlyDate(text = '', date = '', activity = '') {
+function contextContainsTargetDatePattern(context = '', date = '', patternBuilder) {
+  return dateVariants(date).some((variant) => patternBuilder(escapeRegex(variant)).test(context));
+}
+
+function hasStrongDeadlineDateContext(context = '', date = '') {
+  return contextContainsTargetDatePattern(context, date, (dateToken) => new RegExp(
+    `(?:신청|접수|등록|입금|결제|납부)(?:\\s*(?:방법|기간|일정|일시|오픈|시작|가능|마감))?\\s*[:：-]?\\s*${dateToken}(?:\\s*\\([^)]{0,12}\\))?(?:\\s*\\d{1,2}\\s*시)?(?:\\s*(?:부터|까지|마감|오픈))?`,
+    'i',
+  )) || contextContainsTargetDatePattern(context, date, (dateToken) => new RegExp(
+    `${dateToken}(?:\\s*\\([^)]{0,12}\\))?[^.!?\\n]{0,24}(?:신청|접수|등록|입금|결제|납부)(?:\\s*(?:시작|오픈|가능|마감|까지|부터))?`,
+    'i',
+  ));
+}
+
+function hasStrongEventDateContext(context = '', date = '') {
+  return contextContainsTargetDatePattern(context, date, (dateToken) => new RegExp(
+    `(?:행사\\s*일|이벤트\\s*일|일시|개강\\s*일?|시작\\s*일|첫\\s*수업|첫날|수업\\s*일|강습\\s*일|워크숍\\s*일|워크샵\\s*일|소셜\\s*일|파티\\s*일|일정|기간)\\s*[:：-]?\\s*${dateToken}`,
+    'i',
+  )) || contextContainsTargetDatePattern(context, date, (dateToken) => new RegExp(
+    `${dateToken}[^.!?\\n]{0,24}(?:개강|강습\\s*시작|수업\\s*시작|행사\\s*진행|소셜\\s*진행|파티\\s*진행|열립니다)`,
+    'i',
+  ));
+}
+
+export function isDeadlineOnlyEventDate(text = '', date = '', activity = '') {
   if (!date) return false;
   const contexts = contextsAroundDate(text, date);
   if (!contexts.length) return false;
   const deadlineRe = /마감|얼리\s*버드|얼리버드|입금|결제|할인|등록|신청|접수|납부|deadline|early\s*bird|payment/i;
   const eventDateRe = /일시|날짜|시작|개강|첫\s*수업|(강습|수업|워크샵|워크숍|원\s*데이|원데이|체험\s*클래스|오픈\s*클래스)\s*(시작|개강|진행|일시|날짜)|소셜|파티|행사|열립니다|진행|start|starts|class|lesson|workshop|one\s*day|oneday|open\s*class|social|party/i;
+  const hasStrongDeadlineContext = contexts.some((context) => hasStrongDeadlineDateContext(context, date));
+  const hasStrongEventContext = contexts.some((context) => hasStrongEventDateContext(context, date));
+  if (hasStrongDeadlineContext && !hasStrongEventContext) {
+    return ['class', 'event', 'recruit', 'social'].includes(activity);
+  }
   const hasDeadlineContext = contexts.some((context) => deadlineRe.test(context));
   const hasEventContext = contexts.some((context) => eventDateRe.test(context));
-  return hasDeadlineContext && !hasEventContext && ['class', 'event', 'recruit'].includes(activity);
+  return hasDeadlineContext && !hasEventContext && ['class', 'event', 'recruit', 'social'].includes(activity);
+}
+
+export function filterDeadlineOnlyEventDates(dates = [], text = '', activity = '') {
+  return dates.filter((date) => !isDeadlineOnlyEventDate(text, date, activity));
 }
 
 function textOf(candidate) {
@@ -1246,7 +1341,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (date && statedDay && statedDay !== weekdayLabelForDate(date)) {
     errors.push(`event weekday mismatch: ${date} is ${weekdayLabelForDate(date)}, not ${statedDay}`);
   }
-  if (looksLikeDeadlineOnlyDate(text, date, taxonomy.activity_type)) {
+  if (isDeadlineOnlyEventDate(text, date, taxonomy.activity_type)) {
     errors.push('event date looks like a deadline/registration/payment date, not an actual event date');
   }
   if (looksLikeDateFromNoticeOrBoardChrome(text, date, taxonomy.activity_type)) {

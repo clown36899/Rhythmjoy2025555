@@ -12,6 +12,7 @@ import {
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
   extractSeasonPassEvidenceSections,
+  filterDeadlineOnlyEventDates,
   getBlockedKeywordReason,
   hasBadPosterUrl,
   isHighConfidenceDatedSocialSchedule,
@@ -23,6 +24,7 @@ import {
   normalizeSourceUrl,
   prepareCandidate,
   publicationDateKey,
+  resolveSourceVenueEvidence,
   selectSourceOrderedPosterUrls,
   stripNaverCafeMemberPrefix,
   stripRepeatedDjContext,
@@ -445,13 +447,14 @@ function hasExplicitEventDateMention(text = '') {
 }
 
 function selectCandidateDates({ title, cleanText, activity }) {
-  const titleDates = extractDates(title);
+  const evidenceText = `${title}\n${cleanText}`;
+  const titleDates = filterDeadlineOnlyEventDates(extractDates(title), evidenceText, activity);
   if (titleDates.length) {
     if (activity === 'social') return titleDates;
     return keepFirstEventDateOnly(titleDates);
   }
   if (hasExplicitEventDateMention(title)) return [];
-  const sourceDates = extractDates(cleanText);
+  const sourceDates = filterDeadlineOnlyEventDates(extractDates(cleanText), evidenceText, activity);
   if (activity === 'social') return sourceDates;
   return keepFirstEventDateOnly(sourceDates);
 }
@@ -807,14 +810,18 @@ function selectSourceEvidenceText(text = '', source = {}) {
 }
 
 function inferVenueDetails(text = '', source) {
-  const textMatched = venueAliases.find(([pattern]) => pattern.test(text));
-  if (textMatched) return { venue: textMatched[1], provenance: 'source_text' };
-  if (source?.venue) return { venue: source.venue, provenance: 'source_registry' };
   const configured = sourceSpecificVenue.get(source?.id);
-  if (configured) return { venue: configured, provenance: 'source_registry' };
+  const resolved = resolveSourceVenueEvidence({
+    text,
+    sourceVenue: source?.venue || '',
+    mappedVenue: configured || '',
+    aliases: venueAliases,
+    djs: inferDjs(text),
+  });
+  if (resolved.venue || resolved.provenance === 'explicit_variable') return resolved;
   const sourceMatched = venueAliases.find(([pattern]) => pattern.test(`${source?.name || ''} ${source?.id || ''}`));
   if (sourceMatched) return { venue: sourceMatched[1], provenance: 'source_alias' };
-  return { venue: '', provenance: 'unresolved' };
+  return resolved;
 }
 
 function inferDjs(text = '') {

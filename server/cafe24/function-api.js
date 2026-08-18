@@ -1201,7 +1201,6 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     : [];
   const trustedVenueContext = (
     sourceRule?.trustedVenue
-    && String(structured.venue_provenance || '') === 'source_registry'
     && normalizeDuplicateText(sourceRule.trustedVenue) === normalizeDuplicateText(venue)
   )
     ? `검증된 공식 수집원 고정 장소: ${sourceRule.trustedVenue}`

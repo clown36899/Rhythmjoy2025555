@@ -3,6 +3,7 @@ import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+  buildAiAdjudicationPrompt,
   extractSocialScheduleWithAi,
   shouldPersistBenefitAiOutcome,
   validateAiAdjudication,
@@ -32,6 +33,26 @@ describe('benefit candidate persistence policy', () => {
 });
 
 describe('AI candidate adjudication grounding', () => {
+  it('treats an absent poster date as neutral when the exact article date is grounded', () => {
+    const prompt = buildAiAdjudicationPrompt({
+      source_id: 'swingtown-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156658',
+      extracted_text: '스윙타운 DJ 조춘식이 2026.08.22 봉천살롱 토요 소셜',
+      structured_data: {
+        title: '봉천살롱 토요 소셜',
+        date: '2026-08-22',
+        activity_type: 'social',
+        venue_name: '봉천살롱',
+        venue_provenance: 'source_registry',
+        djs: ['조춘식이'],
+      },
+    });
+
+    expect(prompt).toContain('does not have\nto be repeated on the poster');
+    expect(prompt).toContain('an exact article date that is absent from an otherwise\nconsistent poster is not a disagreement');
+    expect(prompt).toContain('when the visible poster contradicts');
+  });
+
   it('approves only a 0.98+ agreement grounded in exact source text', () => {
     const result = validateAiAdjudication(candidate, {
       decision: 'register',
@@ -270,6 +291,58 @@ DJ '이정' PM 8:15~10:15
 - 일요일
 1부 DJ '캐롤' PM 7:30~9:00
 ■ 타임빠소셜 안내`;
+
+  it('stores a bare DJ stage name when the model repeats the DJ label', () => {
+    const result = validateAiSocialExtraction({
+      sourceText: '2026.08.18 스윙타운 화요 소셜 DJ 루나',
+      sourceVenue: '봉천살롱',
+      today: '2026-08-18',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '',
+      events: [{
+        title: '봉천살롱 화요 소셜',
+        event_date: '2026-08-18',
+        venue: '봉천살롱',
+        djs: ['DJ 루나'],
+        poster_image_index: 0,
+        evidence_quotes: [
+          '2026.08.18',
+          '스윙타운 화요 소셜',
+          'DJ 루나',
+          '검증된 공식 수집원 고정 장소: 봉천살롱',
+        ],
+      }],
+      reasons: [],
+    }, { today: '2026-08-18' });
+
+    expect(result.ok).toBe(true);
+    expect(result.events[0].djs).toEqual(['루나']);
+  });
+
+  it('rejects a DJ name truncated inside a longer Korean stage name', () => {
+    const result = validateAiSocialExtraction({
+      sourceText: '2026.08.22 봉천살롱 토요 소셜 DJ 조춘식이',
+      today: '2026-08-18',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '',
+      events: [{
+        title: '봉천살롱 토요 소셜',
+        event_date: '2026-08-22',
+        venue: '봉천살롱',
+        djs: ['조춘식'],
+        poster_image_index: 0,
+        evidence_quotes: ['2026.08.22', '봉천살롱 토요 소셜', 'DJ 조춘식'],
+      }],
+      reasons: [],
+    }, { today: '2026-08-18' });
+
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(' ')).toContain('explicitly contain every DJ');
+  });
 
   it('accepts independently grounded sessions from a compact date heading', () => {
     const result = validateAiSocialExtraction({ sourceText, today: '2026-08-14' }, {

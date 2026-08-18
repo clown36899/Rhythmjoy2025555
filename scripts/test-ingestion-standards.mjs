@@ -11,12 +11,15 @@ import {
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
   extractSeasonPassEvidenceSections,
+  filterDeadlineOnlyEventDates,
   hasBadPosterUrl,
+  isDeadlineOnlyEventDate,
   isCollectableDate,
   keepFirstEventDateOnly,
   makeDeterministicId,
   mergeSocialScheduleFallbacks,
   prepareCandidate,
+  resolveSourceVenueEvidence,
   selectSourceOrderedPosterUrls,
   isEvergreenSeasonPassCandidate,
   isHighConfidenceDatedSocialSchedule,
@@ -1836,6 +1839,75 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'RSF 참가 신청 안내. 얼리버드 입금 마감 5/29. 실제 강습 일정은 추후 공지됩니다.',
   structured_data: { title: 'RSF 스윙 강습 신청 안내', date: '2026-05-29', event_type: '강습', activity_type: 'class' },
 }), { today: TODAY }).ok, false, 'deadline/payment dates must not be accepted as class event dates');
+const neoClassAnnouncement = [
+  '네오스윙 141기 강습안내',
+  '일정 : 8/30 ~ 10/18 (6주) 매주 일요일, 10/25 졸업파티',
+  '장소 : 강습별 상이 (신촌 일대)',
+  '신청 방법 : 8/18(화) 14시부터, 네오스윙 다음카페',
+].join('\n');
+assert.equal(
+  isDeadlineOnlyEventDate(neoClassAnnouncement, '2026-08-18', 'class'),
+  true,
+  'a labeled application-opening date must stay a registration date even when class words are nearby',
+);
+assert.equal(
+  isDeadlineOnlyEventDate(neoClassAnnouncement, '2026-08-30', 'class'),
+  false,
+  'the explicitly labeled class schedule start must remain an event date',
+);
+assert.deepEqual(
+  filterDeadlineOnlyEventDates(
+    ['2026-08-18', '2026-08-30', '2026-10-18', '2026-10-25'],
+    neoClassAnnouncement,
+    'class',
+  ),
+  ['2026-08-30', '2026-10-18', '2026-10-25'],
+  'candidate date selection must discard application dates before choosing the first class session',
+);
+const nativeVenueAliases = [
+  [/봉천\s*살롱|bongcheon/i, '봉천살롱'],
+  [/루나|luna/i, '루나'],
+  [/인더무드|in\s*the\s*mood/i, '인더무드신림'],
+];
+assert.deepEqual(
+  resolveSourceVenueEvidence({
+    text: '스윙타운 DJ 루나 2026.08.18. 스윙타운 소셜 DJ',
+    sourceVenue: '봉천살롱',
+    aliases: nativeVenueAliases,
+    djs: ['루나'],
+  }),
+  { venue: '봉천살롱', provenance: 'source_registry' },
+  'a DJ name that is also a venue alias must not override the official fixed venue',
+);
+assert.deepEqual(
+  resolveSourceVenueEvidence({
+    text: '2026.08.18 소셜 장소: 루나 DJ 루나',
+    sourceVenue: '봉천살롱',
+    aliases: nativeVenueAliases,
+    djs: ['루나'],
+  }),
+  { venue: '루나', provenance: 'source_text' },
+  'an explicitly labeled venue may still override the source default even when it matches the DJ name',
+);
+assert.deepEqual(
+  resolveSourceVenueEvidence({
+    text: 'DJ 루나와 함께하는 소셜 장소 인더무드',
+    sourceVenue: '봉천살롱',
+    aliases: nativeVenueAliases,
+    djs: ['루나'],
+  }),
+  { venue: '인더무드신림', provenance: 'source_text' },
+  'skipping a DJ-only alias must continue searching for a later explicit venue alias',
+);
+assert.deepEqual(
+  resolveSourceVenueEvidence({
+    text: '네오스윙 141기 장소 : 강습별 상이 (신촌 일대)',
+    sourceVenue: '해피홀',
+    aliases: nativeVenueAliases,
+  }),
+  { venue: '', provenance: 'explicit_variable' },
+  'a post that explicitly says venues vary must not inherit a fixed source venue',
+);
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: '스윙 입문 강습 시작일 6월 5일 금요일 20:00. 신청은 5월 29일까지.',
   structured_data: { title: '스윙 입문 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },

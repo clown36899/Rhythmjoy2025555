@@ -663,6 +663,46 @@ describe('ingestor registration linkage', () => {
     expect(validation.eventData.location).toBe('해피홀');
   });
 
+  it('accepts matching trusted-venue context when the same venue is also poster-grounded', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'swingtown-poster-grounded-fixed-venue',
+      status: 'pending',
+      source_id: 'swingtown-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156658',
+      poster_url: 'https://example.com/swingtown-poster.jpg',
+      extracted_text: [
+        '2026.08.22 스윙타운 DJ 조춘식이 소셜 DJ (화/토)',
+        '[AI_POSTER_TRANSCRIPTION]',
+        '봉천살롱',
+        'DJ 조춘식이',
+      ].join('\n'),
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtown-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        title: '봉천살롱 토요 소셜',
+        date: '2026-08-22',
+        activity_type: 'social',
+        venue_name: '봉천살롱',
+        venue_provenance: 'poster_text',
+        djs: ['조춘식이'],
+        ai_evidence_quotes: [
+          '2026.08.22',
+          '검증된 공식 수집원 고정 장소: 봉천살롱',
+          'DJ 조춘식이',
+          '2026.08.22 스윙타운 DJ 조춘식이 소셜 DJ (화/토)',
+        ],
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData.location).toBe('봉천살롱');
+  });
+
   it('accepts Swing Town and Swing Friends fixed venues plus an explicit Happy Hall override', () => {
     const buildCandidate = ({
       sourceId,
