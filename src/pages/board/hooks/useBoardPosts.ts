@@ -52,7 +52,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 prefix:board_prefixes(id, name, color, admin_only),
                 created_at, updated_at, category,
                 ${isFreeBoard ? '' : 'content,'}
-                image_thumbnail, ${isFreeBoard ? '' : 'image,'} is_hidden, comment_count,
+                image_thumbnail, ${isFreeBoard ? '' : 'image,'} is_hidden, is_anonymous, comment_count,
                 likes, favorites, dislikes, display_order
             `;
 
@@ -62,7 +62,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                         ? anonFields
                         : shouldProtectHiddenFreePosts
                             ? `
-                                id, is_hidden, created_at, is_notice, display_order, category,
+                                id, is_hidden, is_anonymous, created_at, is_notice, display_order, category,
                                 prefix_id, prefix:board_prefixes(id, name, color, admin_only),
                                 views, comment_count, likes, favorites, dislikes
                             `

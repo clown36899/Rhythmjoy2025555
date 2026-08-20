@@ -77,6 +77,7 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, curre
                     views,
                     is_notice,
                     is_hidden,
+                    is_anonymous,
                     prefix_id,
                     prefix:board_prefixes(id, name, color, admin_only),
                     created_at,

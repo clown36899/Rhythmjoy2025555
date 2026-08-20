@@ -58,4 +58,61 @@ describe('StandardPostList free-board heading', () => {
         expect(container.querySelector('.free-board-prefix-cell')).toBeNull();
         expect(container.querySelector('.free-board-thumb img[draggable="true"]')).toBeNull();
     });
+
+    it('masks a raw anonymous author for non-admin board views', () => {
+        const post = {
+            id: 'anonymous-post',
+            title: '익명 게시글',
+            content: '',
+            author_name: '실명 작성자',
+            author_nickname: '실제 닉네임',
+            author_profile_image: 'https://example.com/profile.jpg',
+            user_id: 'author-1',
+            views: 0,
+            created_at: '2026-08-21T00:00:00.000Z',
+            category: 'free',
+            is_anonymous: true,
+            is_hidden: false,
+        } as any;
+
+        const { container } = render(
+            <StandardPostList
+                posts={[post]}
+                onPostClick={vi.fn()}
+                category="free"
+                isAdmin={false}
+                currentUserId="other-user"
+            />,
+        );
+
+        expect(container).toHaveTextContent('익명');
+        expect(container).not.toHaveTextContent('실제 닉네임');
+        expect(container.querySelector('img[alt="author"]')).toBeNull();
+    });
+
+    it('keeps the stored anonymous author visible to administrators', () => {
+        const post = {
+            id: 'anonymous-post',
+            title: '익명 게시글',
+            author_name: '실명 작성자',
+            author_nickname: '실제 닉네임',
+            user_id: 'author-1',
+            views: 0,
+            created_at: '2026-08-21T00:00:00.000Z',
+            category: 'free',
+            is_anonymous: true,
+            is_hidden: false,
+        } as any;
+
+        const { container } = render(
+            <StandardPostList
+                posts={[post]}
+                onPostClick={vi.fn()}
+                category="free"
+                isAdmin={true}
+            />,
+        );
+
+        expect(container).toHaveTextContent('실제 닉네임');
+    });
 });

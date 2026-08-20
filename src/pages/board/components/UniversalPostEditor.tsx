@@ -68,6 +68,7 @@ export default function UniversalPostEditor({
         is_notice: false,
         prefix_id: null as BoardPrefixId | null,
         is_hidden: false,
+        is_anonymous: false,
         category: category
     });
 
@@ -89,13 +90,15 @@ export default function UniversalPostEditor({
 
             if (post) {
                 // Edit Mode
+                const isAnonymousPost = 'is_anonymous' in post && Boolean(post.is_anonymous);
                 setFormData({
                     title: post.title,
                     content: post.content || '',
-                    author_name: isAdmin ? "관리자" : post.author_name, // [UPDATED] Force admin name
+                    author_name: isAdmin && !isAnonymousPost ? "관리자" : post.author_name,
                     is_notice: post.is_notice || false,
                     prefix_id: (post as any).prefix_id || null, // [FIX] Cast to any
                     is_hidden: (post as any).is_hidden || false,
+                    is_anonymous: isAnonymousPost,
                     category: (post as any).category || 'free'
                 });
 
@@ -108,6 +111,7 @@ export default function UniversalPostEditor({
                     is_notice: false,
                     prefix_id: null,
                     is_hidden: preset?.defaultIsHidden || false,
+                    is_anonymous: false,
                     category: category
                 });
 
@@ -122,7 +126,7 @@ export default function UniversalPostEditor({
             pendingUploads.current.forEach((_, key) => URL.revokeObjectURL(key));
             pendingUploads.current.clear();
         };
-    }, [isOpen, post, user, category, preset?.defaultIsHidden]);
+    }, [isOpen, post, user, isAdmin, category, preset?.defaultIsHidden]);
 
     const loadBannedWords = async () => {
         try {
@@ -280,12 +284,14 @@ export default function UniversalPostEditor({
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
                     is_hidden: formData.is_hidden,
+                    is_anonymous: formData.is_anonymous,
                     category: formData.category,
                     updated_at: new Date().toISOString()
                 };
 
-                // [UPDATED] Force "관리자" for admin posts during update
-                if (isAdmin) {
+                // Preserve the stored writer when an admin edits an anonymous or formerly anonymous post.
+                const wasAnonymous = 'is_anonymous' in post && Boolean(post.is_anonymous);
+                if (isAdmin && !wasAnonymous && !formData.is_anonymous) {
                     updates.author_name = "관리자";
                     updates.author_nickname = "관리자";
                 }
@@ -332,6 +338,7 @@ export default function UniversalPostEditor({
                     prefix_id: formData.prefix_id,
                     category: formData.category,
                     is_hidden: formData.is_hidden,
+                    is_anonymous: formData.is_anonymous,
                     image: imageUrls.image,
                     image_thumbnail: imageUrls.image_thumbnail,
                     views: 0
@@ -371,35 +378,103 @@ export default function UniversalPostEditor({
 
     if (!isOpen) return null;
 
+    const showAnonymousOption = formData.category === 'free' || Boolean(post && formData.is_anonymous);
+    const showHiddenOption = formData.category === 'free' || Boolean(preset?.showHiddenOption) || Boolean(post && formData.is_hidden);
+    const showPostOptions = isAdmin || showAnonymousOption || showHiddenOption;
+
     const modalContent = (
         <div className="pem-modal-overlay">
-            <div className="pem-modal-container universal-editor-container" style={{ position: 'relative' }}>
+            <div className="pem-modal-container universal-editor-container">
                 <div className="pem-modal-header">
-                    <h2 className="pem-modal-title">
-                        {formData.category === 'market' ? '벼룩시장 글쓰기' : '글쓰기'}
-                    </h2>
-                    <button onClick={onClose} className="pem-close-btn">
+                    <button type="button" onClick={onClose} className="pem-close-btn" aria-label="글쓰기 닫기">
                         <i className="ri-arrow-left-line pem-close-icon"></i>
                     </button>
+                    <div className="pem-modal-heading">
+                        <h2 className="pem-modal-title">
+                            {post
+                                ? '게시글 수정'
+                                : formData.category === 'market'
+                                    ? '벼룩시장 글쓰기'
+                                    : '자유게시판 글쓰기'}
+                        </h2>
+                        <p className="pem-modal-subtitle">제목과 내용을 작성한 뒤 게시 옵션을 확인해주세요.</p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="pem-form">
                     <div className="pem-form-content">
-
                         <div className="pem-form-group">
+                            <label className="pem-label" htmlFor="board-post-title">제목</label>
                             <input
+                                id="board-post-title"
                                 type="text"
                                 name="title"
                                 value={formData.title}
                                 onChange={handleInputChange}
                                 required
                                 className="pem-input"
-                                placeholder="제목"
+                                placeholder="제목을 입력하세요"
                             />
                         </div>
 
-                        {/* [UPDATED] UniversalEditor Replaced Textarea */}
-                        <div className="pem-form-group" style={{ flex: 1, minHeight: '300px', display: 'flex', flexDirection: 'column' }}>
+                        <div className="pem-form-row">
+                            <div className="pem-form-group">
+                                <label className="pem-label" htmlFor="board-post-prefix">머릿말</label>
+                                <select
+                                    id="board-post-prefix"
+                                    value={formData.prefix_id || ''}
+                                    name="prefix_id"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
+                                    className="pem-select lang-ko-only"
+                                    disabled={formData.is_notice}
+                                >
+                                    <option value="">머릿말 없음</option>
+                                    {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    aria-label="Heading"
+                                    value={formData.prefix_id || ''}
+                                    name="prefix_id"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
+                                    className="pem-select lang-en-only"
+                                    disabled={formData.is_notice}
+                                >
+                                    <option value="">No heading</option>
+                                    {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name === '강습' ? 'Class' :
+                                                p.name === '건의/신청' ? 'Requests' :
+                                                    p.name === '잡담' ? 'General' :
+                                                        p.name === '행사' ? 'Event' :
+                                                            p.name === '후기' ? 'Review' :
+                                                                p.name === '토론' ? 'Discussion' :
+                                                                    p.name === '구인' ? 'Jobs' :
+                                                                        p.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {!post && (
+                                <div className="pem-form-group">
+                                    <label className="pem-label" htmlFor="board-post-author">작성자</label>
+                                    <input
+                                        id="board-post-author"
+                                        type="text"
+                                        name="author_name"
+                                        value={formData.author_name}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="pem-input"
+                                        placeholder="작성자 이름"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pem-form-group pem-editor-group">
+                            <label className="pem-label">내용</label>
                             <UniversalEditor
                                 content={formData.content}
                                 onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
@@ -408,98 +483,81 @@ export default function UniversalPostEditor({
                             />
                         </div>
 
-                        <div className="form-row">
-                            <select
-                                value={formData.prefix_id || ''}
-                                name="prefix_id"
-                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
-                                className="pem-select half-width lang-ko-only"
-                                disabled={formData.is_notice}
-                            >
-                                <option value="">머릿말 선택</option>
-                                {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={formData.prefix_id || ''}
-                                name="prefix_id"
-                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
-                                className="pem-select half-width lang-en-only"
-                                disabled={formData.is_notice}
-                            >
-                                <option value="">Select a heading</option>
-                                {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.name === '강습' ? 'Class' :
-                                            p.name === '건의/신청' ? 'Requests' :
-                                                p.name === '잡담' ? 'General' :
-                                                    p.name === '행사' ? 'Event' :
-                                                        p.name === '후기' ? 'Review' :
-                                                            p.name === '토론' ? 'Discussion' :
-                                                                p.name === '구인' ? 'Jobs' :
-                                                                    p.name}
-                                    </option>
-                                ))}
-                            </select>
-                            {!post && (
-                                <input
-                                    type="text"
-                                    name="author_name"
-                                    value={formData.author_name}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="pem-input half-width"
-                                    placeholder="작성자 이름"
-                                />
-                            )}
-                        </div>
+                        {showPostOptions && (
+                            <fieldset className="pem-options-group">
+                                <legend className="pem-options-title">게시 옵션</legend>
+                                <div className="pem-options-list">
+                                    {showAnonymousOption && (
+                                        <label className={`pem-option-card ${formData.is_anonymous ? 'is-selected' : ''}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.is_anonymous}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    is_anonymous: e.target.checked
+                                                }))}
+                                            />
+                                            <span className="pem-option-icon" aria-hidden="true">
+                                                <i className="ri-spy-line"></i>
+                                            </span>
+                                            <span className="pem-option-copy">
+                                                <span className="pem-option-name">익명으로 등록</span>
+                                                <span className="pem-option-description">글은 모두 볼 수 있고, 작성자 정보는 관리자만 확인할 수 있습니다.</span>
+                                            </span>
+                                            <span className="pem-option-check" aria-hidden="true">
+                                                <i className={formData.is_anonymous ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                            </span>
+                                        </label>
+                                    )}
 
+                                    {showHiddenOption && (
+                                        <label className={`pem-option-card ${formData.is_hidden ? 'is-selected' : ''}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.is_hidden}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    is_hidden: e.target.checked
+                                                }))}
+                                            />
+                                            <span className="pem-option-icon" aria-hidden="true">
+                                                <i className="ri-lock-line"></i>
+                                            </span>
+                                            <span className="pem-option-copy">
+                                                <span className="pem-option-name">비공개로 등록</span>
+                                                <span className="pem-option-description">글 내용까지 작성자와 관리자만 볼 수 있습니다.</span>
+                                            </span>
+                                            <span className="pem-option-check" aria-hidden="true">
+                                                <i className={formData.is_hidden ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                            </span>
+                                        </label>
+                                    )}
 
-
-                        {isAdmin && (
-                            <label className="pem-checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.is_notice}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        is_notice: e.target.checked,
-                                        prefix_id: e.target.checked ? 1 : prev.prefix_id
-                                    }))}
-                                />
-                                <span className="manual-label-wrapper">
-                                    <span className="translated-part">Register as Notice</span>
-                                    <span className="fixed-part ko" translate="no">공지사항으로 등록</span>
-                                    <span className="fixed-part en" translate="no">Register as Notice</span>
-                                </span>
-                            </label>
-                        )}
-
-                        {(formData.category === 'free' || preset?.showHiddenOption || (post && formData.is_hidden)) && (
-                            <label
-                                className="pem-checkbox-label pem-private-checkbox-label"
-                                title="작성자와 관리자만 이 글을 볼 수 있습니다."
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={formData.is_hidden}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        is_hidden: e.target.checked
-                                    }))}
-                                />
-                                <span className="manual-label-wrapper">
-                                    <span className="translated-part">Private post</span>
-                                    <span className="fixed-part ko" translate="no">비공개로 등록</span>
-                                    <span className="fixed-part en" translate="no">Private post</span>
-                                </span>
-                                <span className="pem-private-description manual-label-wrapper">
-                                    <span className="translated-part">Only you and admins can view it.</span>
-                                    <span className="fixed-part ko" translate="no">작성자와 관리자만 볼 수 있습니다.</span>
-                                    <span className="fixed-part en" translate="no">Only you and admins can view it.</span>
-                                </span>
-                            </label>
+                                    {isAdmin && (
+                                        <label className={`pem-option-card ${formData.is_notice ? 'is-selected' : ''}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.is_notice}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    is_notice: e.target.checked,
+                                                    prefix_id: e.target.checked ? 1 : prev.prefix_id
+                                                }))}
+                                            />
+                                            <span className="pem-option-icon" aria-hidden="true">
+                                                <i className="ri-megaphone-line"></i>
+                                            </span>
+                                            <span className="pem-option-copy">
+                                                <span className="pem-option-name">공지사항으로 등록</span>
+                                                <span className="pem-option-description">게시판 상단에 공지로 표시합니다.</span>
+                                            </span>
+                                            <span className="pem-option-check" aria-hidden="true">
+                                                <i className={formData.is_notice ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                            </span>
+                                        </label>
+                                    )}
+                                </div>
+                            </fieldset>
                         )}
 
                     </div>
@@ -511,7 +569,7 @@ export default function UniversalPostEditor({
                             disabled={isSubmitting}
                             className="pem-btn pem-btn-submit"
                         >
-                            {isSubmitting ? (loadingMessage || '저장 중...') : '등록하기'}
+                            {isSubmitting ? (loadingMessage || '저장 중...') : post ? '수정 완료' : '등록하기'}
                         </button>
                     </div>
                 </form>

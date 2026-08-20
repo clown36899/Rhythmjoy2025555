@@ -748,6 +748,27 @@
   filter: brightness(1.08);
 }
 
+.NEB-benefitEventsBadge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 3;
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #171719, 0 4px 10px rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+}
+
 .NEB-benefitEventsIcon {
   display: grid;
   place-items: center;

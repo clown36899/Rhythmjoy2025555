@@ -320,18 +320,6 @@
     animation: pem-slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Drag handle visual for better UX */
-  .pem-modal-container::before {
-    content: '';
-    display: block;
-    width: 40px;
-    height: 4px;
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    margin: 8px auto 0;
-    flex-shrink: 0;
-  }
-
   .pem-modal-header {
     padding: 1rem 1.25rem;
   }

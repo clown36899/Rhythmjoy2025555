@@ -6,6 +6,7 @@ import { useBoardDetail } from '../hooks/useBoardDetail';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { type UserData } from '../components/UserRegistrationModal';
 import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
+import { canShowBoardPostAuthorProfile, getBoardPostAuthorLabel } from '../../../utils/boardPostPrivacy';
 import ReadOnlyBoardContent from '../components/ReadOnlyBoardContent';
 import '../board.css';
 import './detail.css';
@@ -218,7 +219,7 @@ export default function BoardDetailPage() {
 
                     <div className="board-detail-meta">
                         <div className="board-detail-meta-item">
-                            {post.author_profile_image ? (
+                            {post.author_profile_image && canShowBoardPostAuthorProfile(post, isAdmin) ? (
                                 <img
                                     src={post.author_profile_image}
                                     alt="Profile"
@@ -229,7 +230,7 @@ export default function BoardDetailPage() {
                             ) : (
                                 <i className="ri-user-line"></i>
                             )}
-                            {post.author_nickname || post.author_name}
+                            {getBoardPostAuthorLabel(post, isAdmin)}
                         </div>
                         <div className="board-detail-meta-divider"></div>
                         <div className="board-detail-meta-item">

@@ -29,6 +29,7 @@ import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from "./utils/
 import {
     getExplicitCalendarTabFilter,
     getInitialCalendarTabFilter,
+    matchesCalendarTabFilter,
     resolveCalendarTabFilterOnNavigation,
     type CalendarTabFilter,
 } from "./utils/calendarTabFilter";
@@ -149,14 +150,6 @@ const getCalendarEventDateStrings = (event: any) => {
 
     addDate(startValue);
     return Array.from(dates);
-};
-
-const isCalendarEventInFilter = (event: any, filter: 'all' | 'social-events' | 'classes') => {
-    const category = String(event.category || '').toLowerCase();
-    const isClassLike = ['class', 'regular', 'club'].includes(category);
-    if (filter === 'social-events') return !isClassLike;
-    if (filter === 'classes') return isClassLike;
-    return true;
 };
 
 type CalendarDanceScope = Exclude<DanceScope, 'unknown'>;
@@ -397,7 +390,7 @@ export default function CalendarPage() {
         const rawEvents = [
             ...((calendarData?.events || []) as any[]),
             ...((calendarData?.socialSchedules || []) as any[]),
-        ].filter(event => isCalendarEventInFilter(event, tabFilter));
+        ].filter(event => matchesCalendarTabFilter(event, tabFilter));
 
         const todayEventIds = new Set<number | string>();
         const weekEventIds = new Set<number | string>();
@@ -691,13 +684,9 @@ export default function CalendarPage() {
             // [Logic Sync] 모든 행사를 통합 집계 (scope 필터 제거)
             localEventsToCount = [...allEvents, ...socialSchedules];
 
-            if (tabFilter === 'social-events') {
-                const isNotClass = (e: any) => !['class', 'regular', 'club'].includes(e.category?.toLowerCase());
-                localEventsToCount = localEventsToCount.filter(isNotClass);
-            } else if (tabFilter === 'classes') {
-                const isClass = (e: any) => ['class', 'regular', 'club'].includes(e.category?.toLowerCase());
-                localEventsToCount = localEventsToCount.filter(isClass);
-            }
+            localEventsToCount = localEventsToCount.filter(event => (
+                matchesCalendarTabFilter(event, tabFilter)
+            ));
         }
 
         const layoutMetrics = getCalendarLayoutMetrics(vw);
@@ -991,11 +980,11 @@ export default function CalendarPage() {
     }, [displayMode, moveCalendarToToday]);
 
     useEffect(() => {
-        const urlParams = new URLSearchParams(location.search);
+        // 보기 전환은 스크롤·재진입 부작용을 막기 위해 native replaceState를 쓴다.
+        // React Router의 location은 그 직후 이전 검색값일 수 있으므로 실제 주소를 기준으로 동기화한다.
+        const urlParams = new URLSearchParams(window.location.search);
         const nextMode = normalizeCalendarDisplayMode(urlParams.get('view'));
-        if (nextMode !== displayMode) {
-            setDisplayMode(nextMode);
-        }
+        setDisplayMode(currentMode => currentMode === nextMode ? currentMode : nextMode);
 
         if (urlParams.get('scrollToToday') !== 'true') {
             scrollToTodayConsumedRef.current = false;
@@ -1026,7 +1015,7 @@ export default function CalendarPage() {
     }, [moveToToday]);
 
     const handleTabClick = (filter: CalendarTabFilter) => {
-        if (displayMode === 'list') {
+        if (displayMode !== 'calendar') {
             setTabFilter(filter);
             return;
         }
@@ -1420,6 +1409,7 @@ export default function CalendarPage() {
                 {displayMode === 'map' && (
                     <CalendarMapView
                         danceScope={danceScope}
+                        tabFilter={tabFilter}
                         onEventClick={handleCalendarMapEventClick}
                     />
                 )}

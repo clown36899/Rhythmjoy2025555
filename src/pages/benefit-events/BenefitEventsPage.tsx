@@ -2,79 +2,17 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
-import { cafe24 } from '../../lib/cafe24Client';
+import { fetchActiveOneDayBenefitEvents } from '../../lib/benefitEventsData';
+import { useMarkBenefitEventsSeenOnVisit } from '../../hooks/useBenefitEventsUnreadCount';
+import {
+  getBenefitEventDisplayDate,
+  isBenefitEvent,
+  isPastBenefitEvent,
+} from '../../utils/benefitEventVisibility';
 import { getLocalDateString } from '../v2/utils/eventListUtils';
 import './BenefitEventsPage.css';
 
 const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v2';
-
-type OneDayBenefitLink = {
-  id: string;
-  community: string;
-  venue?: string | null;
-  region?: string | null;
-  area?: string | null;
-  url: string;
-  logo_micro?: string | null;
-  logo_thumbnail?: string | null;
-  logo_medium?: string | null;
-  logo_full?: string | null;
-  benefit_eligible?: boolean | null;
-  benefit_kind?: 'free_event' | 'discount_event' | null;
-  is_active?: boolean | null;
-};
-
-function oneDayLinkToBenefitEvent(link: OneDayBenefitLink): AppEvent {
-  return {
-    id: `oneday-${link.id}`,
-    title: `${link.community} 원데이 모집`,
-    time: '',
-    location: link.venue || link.area || link.region || '장소 미정',
-    category: 'class',
-    genre: '원데이모집',
-    price: link.benefit_kind === 'free_event' ? '무료' : '',
-    image: link.logo_full || link.logo_medium || link.logo_thumbnail || link.logo_micro || '',
-    image_micro: link.logo_micro || undefined,
-    image_thumbnail: link.logo_thumbnail || undefined,
-    image_medium: link.logo_medium || undefined,
-    image_full: link.logo_full || undefined,
-    description: '상시 원데이 모집 링크',
-    organizer: link.community,
-    link1: link.url,
-    link_name1: '모집 링크',
-    benefit_eligible: link.benefit_eligible === true,
-    benefit_kind: link.benefit_kind || null,
-  };
-}
-
-function normalizeDate(value: unknown) {
-  const date = String(value || '').slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '';
-}
-
-function getEventDateCandidates(event: AppEvent) {
-  return [
-    ...(Array.isArray(event.event_dates) ? event.event_dates : []),
-    event.start_date,
-    event.date,
-    event.end_date,
-  ]
-    .map(normalizeDate)
-    .filter(Boolean)
-    .sort();
-}
-
-function getDisplayDate(event: AppEvent, today = getLocalDateString()) {
-  const dates = getEventDateCandidates(event);
-  return dates.find((date) => date >= today) || dates[0] || '';
-}
-
-function isPastEvent(event: AppEvent, today = getLocalDateString()) {
-  const dates = getEventDateCandidates(event);
-  const endDate = normalizeDate(event.end_date);
-  const lastDate = [endDate, ...dates].filter(Boolean).sort().at(-1) || '';
-  return Boolean(lastDate && lastDate < today);
-}
 
 function getEventText(event: AppEvent) {
   return [
@@ -88,10 +26,6 @@ function getEventText(event: AppEvent) {
     event.link_name1,
     ...(Array.isArray(event.dance_tags) ? event.dance_tags : []),
   ].filter(Boolean).join(' ');
-}
-
-function isBenefitEvent(event: AppEvent) {
-  return (event as AppEvent & { benefit_eligible?: boolean }).benefit_eligible === true;
 }
 
 function getKindLabel(event: AppEvent) {
@@ -169,16 +103,9 @@ export default function BenefitEventsPage() {
     queryFn: async () => {
       const [eventRows, oneDayResult] = await Promise.all([
         fetchCafe24Events({ limit: 3000 }),
-        cafe24
-          .from('swing_oneday_recruit_links')
-          .select('id,community,venue,region,area,url,logo_micro,logo_thumbnail,logo_medium,logo_full,benefit_eligible,benefit_kind,is_active')
-          .eq('is_active', true),
+        fetchActiveOneDayBenefitEvents(),
       ]);
-      if (oneDayResult.error) throw oneDayResult.error;
-      const oneDayEvents = ((oneDayResult.data || []) as OneDayBenefitLink[])
-        .filter((link) => link.benefit_eligible === true)
-        .map(oneDayLinkToBenefitEvent);
-      return [...eventRows, ...oneDayEvents];
+      return [...eventRows, ...oneDayResult];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -187,11 +114,12 @@ export default function BenefitEventsPage() {
     return events
       .filter(isBenefitEvent)
       .sort((a, b) => {
-        const left = getDisplayDate(a, today);
-        const right = getDisplayDate(b, today);
+        const left = getBenefitEventDisplayDate(a, today);
+        const right = getBenefitEventDisplayDate(b, today);
         return left.localeCompare(right) || String(a.title || '').localeCompare(String(b.title || ''), 'ko');
       });
   }, [events, today]);
+  useMarkBenefitEventsSeenOnVisit(benefitEvents, !isLoading && !error);
   const selectedEventPoster = selectedEvent && !failedImageIds.has(String(selectedEvent.id || ''))
     ? getEventPoster(selectedEvent)
     : '';
@@ -209,7 +137,7 @@ export default function BenefitEventsPage() {
       </header>
 
       <section className="benefit-events-summary" aria-label="목록 요약">
-        <strong>{benefitEvents.filter((event) => !isPastEvent(event, today)).length}</strong>
+        <strong>{benefitEvents.filter((event) => !isPastBenefitEvent(event, today)).length}</strong>
         <span>오늘 이후</span>
         <em>{benefitEvents.length}개 수집</em>
       </section>
@@ -220,8 +148,8 @@ export default function BenefitEventsPage() {
       {!isLoading && !error && (
         <ol className="benefit-events-list">
           {benefitEvents.map((event, index) => {
-            const displayDate = getDisplayDate(event, today);
-            const isPast = isPastEvent(event, today);
+            const displayDate = getBenefitEventDisplayDate(event, today);
+            const isPast = isPastBenefitEvent(event, today);
             const thumbnail = failedImageIds.has(String(event.id || ''))
               ? ''
               : getBenefitEventThumbnail(event);

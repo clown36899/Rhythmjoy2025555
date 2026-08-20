@@ -30,6 +30,7 @@ export interface StandardBoardPost extends BaseBoardPost {
     likes_count?: number;
     favorites_count?: number;
     is_hidden?: boolean; // Private to the author/admin, or hidden by an admin
+    is_anonymous?: boolean; // Public content with author identity visible only to administrators
     // Standard specific fields
 }
 

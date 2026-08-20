@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Event as AppEvent } from '../../../lib/cafe24Client';
 import { fetchCalendarEvents } from '../../../hooks/queries/useCalendarEventsQuery';
 import { isEventInDanceScope, type DanceScope } from '../../../utils/danceTaxonomy';
+import { matchesCalendarTabFilter, type CalendarTabFilter } from '../utils/calendarTabFilter';
 import '../styles/CalendarMapView.css';
 
 declare global {
@@ -14,6 +15,7 @@ const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface Props {
     danceScope?: DanceScope | string;
+    tabFilter: CalendarTabFilter;
     onEventClick: (event: AppEvent) => void;
 }
 
@@ -56,7 +58,7 @@ const getVenueSearchText = (event: AppEvent) =>
         .filter(Boolean)
         .join(' ');
 
-export default function CalendarMapView({ danceScope = 'swing', onEventClick }: Props) {
+export default function CalendarMapView({ danceScope = 'swing', tabFilter, onEventClick }: Props) {
     const today = new Date();
     const initialMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const [currentMonth, setCurrentMonth] = useState(initialMonth);
@@ -101,7 +103,7 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
     // 날짜별 이벤트 맵
     const eventsByDate = useMemo(() => {
         const map: Record<string, AppEvent[]> = {};
-        allEvents.forEach(ev => {
+        allEvents.filter(event => matchesCalendarTabFilter(event, tabFilter)).forEach(ev => {
             const addTo = (dateStr: string | null) => {
                 if (!dateStr) return;
                 if (!map[dateStr]) map[dateStr] = [];
@@ -128,7 +130,7 @@ export default function CalendarMapView({ danceScope = 'swing', onEventClick }: 
             }
         });
         return map;
-    }, [allEvents]);
+    }, [allEvents, tabFilter]);
 
     // 선택된 날짜의 이벤트
     const selectedDateStr = selectedDate

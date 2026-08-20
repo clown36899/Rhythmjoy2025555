@@ -26,6 +26,11 @@ const HIDDEN_BOARD_POST_PLACEHOLDER_FIELDS = [
   'dislikes',
 ];
 
+const ANONYMOUS_BOARD_POST_AUTHOR_FIELDS = [
+  'author_profile_image',
+  'board_users',
+];
+
 function isTrue(value) {
   return value === true
     || value === 1
@@ -47,16 +52,26 @@ export function sanitizeBoardPostForViewer(post, user = null) {
   const next = { ...post };
   for (const field of NEVER_EXPOSE_BOARD_POST_FIELDS) delete next[field];
 
-  if (canViewHiddenBoardPost(next, user)) return next;
-
-  const placeholder = {};
-  for (const field of HIDDEN_BOARD_POST_PLACEHOLDER_FIELDS) {
-    if (Object.prototype.hasOwnProperty.call(next, field)) {
-      placeholder[field] = next[field];
+  if (!canViewHiddenBoardPost(next, user)) {
+    const placeholder = {};
+    for (const field of HIDDEN_BOARD_POST_PLACEHOLDER_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(next, field)) {
+        placeholder[field] = next[field];
+      }
     }
+    placeholder.is_hidden = true;
+    return placeholder;
   }
-  placeholder.is_hidden = true;
-  return placeholder;
+
+  if (isTrue(next.is_anonymous) && !isTrue(user?.is_admin)) {
+    const isAuthor = userMatchesId(user, next.user_id);
+    next.author_name = '익명';
+    next.author_nickname = '익명';
+    for (const field of ANONYMOUS_BOARD_POST_AUTHOR_FIELDS) delete next[field];
+    if (!isAuthor) delete next.user_id;
+  }
+
+  return next;
 }
 
 export function sanitizeBoardPostsForViewer(posts, user = null) {

@@ -45,6 +45,8 @@ interface EventPreviewSectionProps {
     newlyRegisteredEvents: Event[]; // 👈 신규 등록 이벤트 (24시간)
     homeAdCandidateEvents: Event[];
     homeAdMaxItems: number;
+    benefitEventUnreadCount: number;
+    onBenefitEventsOpen: () => void;
     favoriteEventsList: Event[];
     // events: Event[]; // Removed for BillboardSection
 
@@ -69,6 +71,8 @@ interface HomeNewEventsDesktopSplitProps {
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
     maxItems: number;
+    benefitEventUnreadCount: number;
+    onBenefitEventsOpen: () => void;
 }
 
 type HomeAdDanceScope = (typeof calendarDanceScopeOptions)[number]["key"];
@@ -151,6 +155,8 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     defaultThumbnailClass,
     defaultThumbnailEvent,
     maxItems,
+    benefitEventUnreadCount,
+    onBenefitEventsOpen,
 }) => {
     const { isAdmin } = useAuth();
     const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
@@ -266,6 +272,8 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                         onCurrentIndexChange={setActiveIndex}
                         lowPriorityEventIds={lowPriorityEventIds}
                         todaySchedules={todaySchedules}
+                        benefitEventUnreadCount={benefitEventUnreadCount}
+                        onBenefitEventsOpen={onBenefitEventsOpen}
                     />
                 </div>
 
@@ -300,6 +308,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     newlyRegisteredEvents,
     homeAdCandidateEvents,
     homeAdMaxItems,
+    benefitEventUnreadCount,
+    onBenefitEventsOpen,
     favoriteEventsList,
     // events, // Removed
     onEventClick,
@@ -325,6 +335,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     events={newlyRegisteredEvents}
                     fallbackEvents={homeAdCandidateEvents}
                     maxItems={homeAdMaxItems}
+                    benefitEventUnreadCount={benefitEventUnreadCount}
+                    onBenefitEventsOpen={onBenefitEventsOpen}
                     todaySchedules={todayCalendarSchedules}
                     onEventClick={onEventClick}
                     defaultThumbnailClass={defaultThumbnailClass}

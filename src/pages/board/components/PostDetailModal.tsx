@@ -3,6 +3,7 @@ import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { StandardBoardPost as BoardPost } from '../../../types/board';
 import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
+import { getBoardPostAuthorLabel } from '../../../utils/boardPostPrivacy';
 import ReadOnlyBoardContent from './ReadOnlyBoardContent';
 import './PostDetailModal.css';
 import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
@@ -124,7 +125,7 @@ export default function PostDetailModal({
             <div className="pdm-meta-info">
               <span className="pdm-meta-item">
                 <i className="ri-user-line"></i>
-                {post.author_nickname || post.author_name}
+                {getBoardPostAuthorLabel(post, isAdmin)}
               </span>
               <span className="pdm-meta-item">
                 <i className="ri-eye-line"></i>

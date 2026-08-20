@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { BENEFIT_EVENTS_SEEN_STORAGE_KEY } from '../../hooks/useBenefitEventsUnreadCount';
 import { getBenefitEventThumbnail } from './BenefitEventsPage';
 import BenefitEventsPage from './BenefitEventsPage';
 
@@ -20,6 +21,10 @@ vi.mock('../../lib/cafe24Client', () => ({
   },
 }));
 
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'benefit-page-user' } }),
+}));
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -34,6 +39,7 @@ function renderPage() {
 describe('benefit event images', () => {
   beforeEach(() => {
     fetchCafe24Events.mockReset();
+    window.localStorage.clear();
   });
 
   it('returns no image instead of a synthetic URL when an event has none', () => {
@@ -88,5 +94,23 @@ describe('benefit event images', () => {
 
     expect(card).toHaveClass('has-no-image');
     expect(card?.querySelector('img')).toBeNull();
+  });
+
+  it('marks current benefit events seen when the page is opened', async () => {
+    fetchCafe24Events.mockResolvedValue([{
+      id: 'new-benefit',
+      title: '새 무료 행사',
+      date: '2099-08-04',
+      benefit_eligible: true,
+      benefit_kind: 'free_event',
+    }]);
+
+    renderPage();
+
+    await screen.findByText('새 무료 행사');
+    await waitFor(() => {
+      const state = JSON.parse(window.localStorage.getItem(BENEFIT_EVENTS_SEEN_STORAGE_KEY) || '{}');
+      expect(state['user:benefit-page-user']).toContain('new-benefit');
+    });
   });
 });

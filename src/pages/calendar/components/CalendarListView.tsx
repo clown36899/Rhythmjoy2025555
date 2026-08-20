@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef } from "react";
 import type { Event as AppEvent } from "../../../lib/cafe24Client";
 import { getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { isEventInDanceScope, type DanceScope } from "../../../utils/danceTaxonomy";
+import { matchesCalendarTabFilter, type CalendarTabFilter } from "../utils/calendarTabFilter";
 
 interface CalendarListViewProps {
     events: AppEvent[];
     socialSchedules: any[];
-    tabFilter: 'all' | 'social-events' | 'classes';
+    tabFilter: CalendarTabFilter;
     danceScope?: DanceScope | string;
     onEventClick: (event: AppEvent) => void;
     isLoading?: boolean;
@@ -78,20 +79,17 @@ export default function CalendarListView({ events, socialSchedules, tabFilter, d
             const listDate = getEventListDate(e);
             if (!listDate || listDate < today) return;
             if (!isEventInDanceScope(e as any, danceScope)) return;
-            if (tabFilter === 'social-events' && ['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
-            if (tabFilter === 'classes' && !['class', 'regular', 'club'].includes(String(e.category).toLowerCase())) return;
+            if (!matchesCalendarTabFilter(e, tabFilter)) return;
             allItems.push(e);
         });
 
-        // 소셜 스케줄 (social-events 또는 all일 때만)
-        if (tabFilter !== 'classes') {
-            socialSchedules.forEach(s => {
-                const dateStr = s.date || s.start_date || "";
-                if (dateStr < today) return;
-                if (!isEventInDanceScope(s as any, danceScope)) return;
-                allItems.push({ ...s, _isSocial: true } as any);
-            });
-        }
+        socialSchedules.forEach(s => {
+            const dateStr = s.date || s.start_date || "";
+            if (dateStr < today) return;
+            if (!isEventInDanceScope(s as any, danceScope)) return;
+            if (!matchesCalendarTabFilter(s, tabFilter)) return;
+            allItems.push({ ...s, _isSocial: true } as any);
+        });
 
         // 날짜순 정렬
         return allItems.sort((a, b) => {

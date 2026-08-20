@@ -3,6 +3,7 @@
 import type { StandardBoardPost } from '../../../types/board';
 import { type BoardCategory } from './BoardTabBar';
 import type { BoardPrefixId } from '../../../utils/boardPrefixId';
+import { canShowBoardPostAuthorProfile, getBoardPostAuthorLabel } from '../../../utils/boardPostPrivacy';
 import './BoardPostList.css'; // Keep just in case, though board.css covers most
 import '../board.css'; // CRITICAL: Import main board styles for standard-view classes
 
@@ -103,6 +104,8 @@ export default function StandardPostList({
         !post.is_hidden || isAdmin || Boolean(currentUserId && post.user_id === currentUserId)
     );
 
+    const getAuthorLabel = (post: StandardBoardPost) => getBoardPostAuthorLabel(post, isAdmin);
+
     const formatDate = (value: string) => new Date(value).toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit',
@@ -183,7 +186,7 @@ export default function StandardPostList({
                             <i className="ri-lock-line"></i> 비공개
                         </span>
                     )}
-                    <span className="free-board-author">{post.author_nickname || post.author_name || '알 수 없음'}</span>
+                    <span className="free-board-author">{getAuthorLabel(post)}</span>
                     <span className="free-board-date">{formatDate(post.created_at)}</span>
                 </div>
             </div>
@@ -219,7 +222,7 @@ export default function StandardPostList({
                             <i className="ri-lock-line"></i> 비공개
                         </span>
                     )}
-                    <span className="free-board-author">{post.author_nickname || post.author_name || '알 수 없음'}</span>
+                    <span className="free-board-author">{getAuthorLabel(post)}</span>
                     <span className="free-board-date">{formatDate(post.created_at)}</span>
                     <span className="free-board-mobile-stat" aria-label={`조회 ${post.views || 0}`}>
                         <i className="ri-eye-line"></i>{post.views || 0}
@@ -304,19 +307,19 @@ export default function StandardPostList({
                         style={{
                             width: '16px', height: '16px', borderRadius: '50%', overflow: 'hidden',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px',
-                            ...getAvatarStyle(post.user_id, post.author_nickname || post.author_name)
+                            ...getAvatarStyle(post.user_id, getAuthorLabel(post))
                         }}
                     >
-                        {post.author_profile_image ? (
+                        {post.author_profile_image && canShowBoardPostAuthorProfile(post, isAdmin) ? (
                             <img src={post.author_profile_image} alt="author" className="board-post-author-avatar" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" loading="lazy" />
                         ) : (
                             <span style={{ fontSize: '10px', fontWeight: 'bold' }}>
-                                {(post.author_nickname || post.author_name || '?').charAt(0)}
+                                {getAuthorLabel(post).charAt(0)}
                             </span>
                         )}
                     </div>
                     <span className="board-post-meta-nickname">
-                        {post.author_nickname || post.author_name || '알 수 없음'}
+                        {getAuthorLabel(post)}
                     </span>
                     <span className="board-post-meta-separator">•</span>
                     <span className="board-post-meta-item">

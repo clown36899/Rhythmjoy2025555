@@ -373,6 +373,8 @@ interface NewEventsBannerProps {
     onCurrentIndexChange?: (index: number) => void;
     todaySchedules?: SocialSchedule[];
     lowPriorityEventIds?: ReadonlySet<number | string>;
+    benefitEventUnreadCount?: number;
+    onBenefitEventsOpen?: () => void;
 }
 
 export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
@@ -384,6 +386,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     onCurrentIndexChange,
     todaySchedules = [],
     lowPriorityEventIds = EMPTY_LOW_PRIORITY_EVENT_IDS,
+    benefitEventUnreadCount = 0,
+    onBenefitEventsOpen,
 }) => {
     const { openModal } = useModalContext();
     const navigate = useNavigate();
@@ -1439,9 +1443,12 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             className="NEB-benefitEventsBtn"
                             onClick={(event) => {
                                 event.stopPropagation();
+                                onBenefitEventsOpen?.();
                                 navigate('/benefit-events');
                             }}
-                            aria-label="무료, 할인 이벤트 보기"
+                            aria-label={benefitEventUnreadCount > 0
+                                ? `무료, 할인 이벤트 보기, 새 이벤트 ${benefitEventUnreadCount}개`
+                                : '무료, 할인 이벤트 보기'}
                         >
                             <span className="NEB-benefitEventsIcon" aria-hidden="true">
                                 <i className="ri-coupon-3-line" />
@@ -1450,6 +1457,11 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 <strong>무료, 할인 이벤트</strong>
                                 <small>혜택 모아보기</small>
                             </span>
+                            {benefitEventUnreadCount > 0 && (
+                                <span className="NEB-benefitEventsBadge" aria-hidden="true">
+                                    {benefitEventUnreadCount > 99 ? '99+' : benefitEventUnreadCount}
+                                </span>
+                            )}
                         </button>
 
                         <button
