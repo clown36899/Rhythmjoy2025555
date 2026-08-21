@@ -18,6 +18,7 @@ interface RankedHomeAdEvent {
 }
 
 export const HOME_AD_LOW_PRIORITY_AUTO_INTERVAL = 8;
+export const HOME_AD_MIN_DISPLAY_COUNT = 10;
 
 const GENERIC_HOME_AD_ORGANIZERS = new Set([
     "swing enjoy",
@@ -165,23 +166,49 @@ export const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
     return filtered;
 };
 
-const getEventStartDates = (event: Event) => {
-    const explicitDates = Array.from(new Set(
-        (event.event_dates || [])
-            .map(normalizeDateKey)
-            .filter((date): date is string => Boolean(date)),
-    )).sort((a, b) => a.localeCompare(b));
+interface SelectHomeAdDisplayEventsOptions {
+    primaryEvents: Event[];
+    fallbackEvents: Event[];
+    maxItems: number;
+    minimumItems?: number;
+}
 
-    if (explicitDates.length > 0) return explicitDates;
+/**
+ * 현재·미래 후보는 최대 개수까지 그대로 사용한다. 지난 시작일 후보는
+ * 현재·미래 후보가 최소 개수에 못 미칠 때만 필요한 수만 보충한다.
+ */
+export const selectHomeAdDisplayEvents = ({
+    primaryEvents,
+    fallbackEvents,
+    maxItems,
+    minimumItems = HOME_AD_MIN_DISPLAY_COUNT,
+}: SelectHomeAdDisplayEventsOptions) => {
+    const displayLimit = Math.max(0, Math.trunc(maxItems));
+    if (displayLimit === 0) return [];
 
-    // 시작일이 있으면 대표 날짜(date)보다 우선한다. 종료일은 메인 광고
-    // 노출 가능 여부를 연장하는 근거로 사용하지 않는다.
-    const startDate = normalizeDateKey(event.start_date) || normalizeDateKey(event.date);
-    return startDate ? [startDate] : [];
+    const primary = limitHomeAdOnePerAuthorVenue(primaryEvents).slice(0, displayLimit);
+    const minimumTarget = Math.min(displayLimit, Math.max(0, Math.trunc(minimumItems)));
+    if (primary.length >= minimumTarget) return primary;
+
+    return limitHomeAdOnePerAuthorVenue([...primaryEvents, ...fallbackEvents])
+        .slice(0, minimumTarget);
+};
+
+const getEventStartDate = (event: Event) => {
+    // 메인 광고는 일정 전체의 최초 시작일만 사용한다. 종료일이나 이후
+    // event_dates 회차는 이미 시작한 모집 광고를 미래 후보로 되돌리지 않는다.
+    const explicitStartDate = normalizeDateKey(event.start_date) || normalizeDateKey(event.date);
+    if (explicitStartDate) return explicitStartDate;
+
+    return (event.event_dates || [])
+        .map(normalizeDateKey)
+        .filter((date): date is string => Boolean(date))
+        .sort((a, b) => a.localeCompare(b))[0] || null;
 };
 
 export const getHomeAdNextStartDate = (event: Event, todayDateKey: string) => {
-    return getEventStartDates(event).find((date) => date >= todayDateKey) || null;
+    const startDate = getEventStartDate(event);
+    return startDate && startDate >= todayDateKey ? startDate : null;
 };
 
 export const isHomeAdCurrentMonthEvent = (event: Event, todayDateKey: string) => {
@@ -357,13 +384,12 @@ export const rankPastHomeAdEvents = (
 
     return events
         .reduce<RankedHomeAdEvent[]>((ranked, event) => {
-            const startDates = getEventStartDates(event);
-            const latestPastStart = [...startDates].reverse().find((date) => date < todayDateKey);
-            if (!latestPastStart || startDates.some((date) => date >= todayDateKey)) return ranked;
+            const startDate = getEventStartDate(event);
+            if (!startDate || startDate >= todayDateKey) return ranked;
 
             ranked.push({
                 event,
-                nextStartDate: latestPastStart,
+                nextStartDate: startDate,
                 createdAt: getCreatedAt(event),
             });
             return ranked;

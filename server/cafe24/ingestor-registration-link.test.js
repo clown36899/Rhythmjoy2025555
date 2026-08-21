@@ -651,6 +651,39 @@ describe('ingestor registration linkage', () => {
     });
   });
 
+  it('registers a poster-grounded InTheMood social without an AI dependency', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'inthemood-slow-social-2026-08-22',
+      status: 'pending',
+      source_id: 'inthemood_sillim',
+      source_url: 'https://www.instagram.com/inthemoodsillim/p/DcTBB0Zsngd/',
+      poster_url: 'https://example.com/inthemood-slow-social.webp',
+      extracted_text: 'Slow Social 2026.08.22(토) 인더무드신림 Lindyhop Social DJ 비비비',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'inthemood_sillim',
+      },
+      structured_data: {
+        title: 'Slow Social',
+        date: '2026-08-22',
+        activity_type: 'social',
+        event_type: '소셜',
+        venue_name: '인더무드신림',
+        venue_provenance: 'source_text',
+        djs: ['비비비'],
+        evidence_scope: 'date_scoped_social',
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData).toMatchObject({
+      title: 'DJ 비비비 | Slow Social',
+      date: '2026-08-22',
+      location: '인더무드신림',
+    });
+  });
+
   it('accepts a DJ-less social only after poster-grounded double AI verification', () => {
     const sourceTitle = '★8/14(금햎+광복의리듬 ) /15일 토정모 안내★';
     const candidate = {

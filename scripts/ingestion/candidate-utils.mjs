@@ -835,7 +835,7 @@ function hasStrongDeadlineDateContext(context = '', date = '') {
 
 function hasStrongEventDateContext(context = '', date = '') {
   return contextContainsTargetDatePattern(context, date, (dateToken) => new RegExp(
-    `(?:행사\\s*일|이벤트\\s*일|일시|개강\\s*일?|시작\\s*일|첫\\s*수업|첫날|수업\\s*일|강습\\s*일|워크숍\\s*일|워크샵\\s*일|소셜\\s*일|파티\\s*일|일정|기간)\\s*[:：-]?\\s*${dateToken}`,
+    `(?:행사\\s*일|이벤트\\s*일|일시|개강\\s*일?|시작\\s*일|첫\\s*수업|첫날|수업\\s*일|강습\\s*일|워크숍\\s*일|워크샵\\s*일|소셜(?:\\s*(?:일|일정|날짜))?|social(?:\\s*(?:date|schedule))?|파티(?:\\s*(?:일|일정|날짜))?|party(?:\\s*(?:date|schedule))?|일정|기간)\\s*[:：-]?\\s*(?:20\\d{2}\\s*[.\\-/년]\\s*)?${dateToken}`,
     'i',
   )) || contextContainsTargetDatePattern(context, date, (dateToken) => new RegExp(
     `${dateToken}[^.!?\\n]{0,24}(?:개강|강습\\s*시작|수업\\s*시작|행사\\s*진행|소셜\\s*진행|파티\\s*진행|열립니다)`,

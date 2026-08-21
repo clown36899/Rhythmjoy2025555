@@ -1937,6 +1937,21 @@ assert.deepEqual(
   ['2026-08-30', '2026-10-18', '2026-10-25'],
   'candidate date selection must discard application dates before choosing the first class session',
 );
+const inTheMoodSlowSocialNotice = [
+  'Slow Social 2026.08.22(토)',
+  '슬로우소셜 사전신청 https://litt.ly/sllim',
+  'Lindyhop Social DJ 비비비',
+].join('\n');
+assert.equal(
+  isDeadlineOnlyEventDate(inTheMoodSlowSocialNotice, '2026-08-22', 'social'),
+  false,
+  'a date directly labeled by Social must remain the event date even when an application link follows',
+);
+assert.deepEqual(
+  filterDeadlineOnlyEventDates(['2026-08-22'], inTheMoodSlowSocialNotice, 'social'),
+  ['2026-08-22'],
+  'the InTheMood social date must survive deadline filtering',
+);
 const nativeVenueAliases = [
   [/봉천\s*살롱|bongcheon/i, '봉천살롱'],
   [/루나|luna/i, '루나'],

@@ -22,7 +22,10 @@ import {
 } from "../../../../../utils/danceTaxonomy";
 import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
-import { limitHomeAdOnePerAuthorVenue } from "../utils/homeAdPriority";
+import {
+    limitHomeAdOnePerAuthorVenue,
+    selectHomeAdDisplayEvents,
+} from "../utils/homeAdPriority";
 import {
     getTodaySchedulePlaceLabel,
     getTodaySchedulePrimaryText,
@@ -184,26 +187,47 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         return fallbackEvents.filter((event) => getHomeAdEventScope(event) === "swing");
     }, [fallbackEvents, isAdmin]);
     const [headerScopeTarget, setHeaderScopeTarget] = useState<HTMLElement | null>(null);
-    const selectedScopeEvents = useMemo(() => {
-        const primarySelected = visibleEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
-        const fallbackSelected = visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope);
-        return mergeUniqueEvents(primarySelected, fallbackSelected);
-    }, [preferredScope, visibleEvents, visibleFallbackEvents]);
-    const selectedScopeAdEvents = useMemo(() => limitHomeAdOnePerAuthorVenue(selectedScopeEvents), [selectedScopeEvents]);
+    const selectedScopePrimaryEvents = useMemo(
+        () => visibleEvents.filter((event) => getHomeAdEventScope(event) === preferredScope),
+        [preferredScope, visibleEvents],
+    );
+    const selectedScopeFallbackEvents = useMemo(
+        () => visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope),
+        [preferredScope, visibleFallbackEvents],
+    );
+    const selectedScopePrimaryCount = useMemo(
+        () => limitHomeAdOnePerAuthorVenue(selectedScopePrimaryEvents).length,
+        [selectedScopePrimaryEvents],
+    );
+    const shouldMixOtherScopes = selectedScopePrimaryCount < HOME_AD_MIN_SELECTED_COUNT;
+    const primaryPool = useMemo(() => (
+        shouldMixOtherScopes
+            ? mergeUniqueEvents(
+                selectedScopePrimaryEvents,
+                visibleEvents.filter((event) => getHomeAdEventScope(event) !== preferredScope),
+            )
+            : selectedScopePrimaryEvents
+    ), [preferredScope, selectedScopePrimaryEvents, shouldMixOtherScopes, visibleEvents]);
+    const fallbackPool = useMemo(() => (
+        shouldMixOtherScopes
+            ? mergeUniqueEvents(
+                selectedScopeFallbackEvents,
+                visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) !== preferredScope),
+            )
+            : selectedScopeFallbackEvents
+    ), [preferredScope, selectedScopeFallbackEvents, shouldMixOtherScopes, visibleFallbackEvents]);
     const displayEvents = useMemo(() => {
-        const nextEvents = selectedScopeAdEvents.length >= HOME_AD_MIN_SELECTED_COUNT
-            ? selectedScopeAdEvents
-            : limitHomeAdOnePerAuthorVenue(mergeUniqueEvents(
-                selectedScopeAdEvents,
-                mergeUniqueEvents(visibleEvents, visibleFallbackEvents).filter((event) => getHomeAdEventScope(event) !== preferredScope),
-            ));
-        return nextEvents.slice(0, Math.min(maxItems, NEB_MAX_ITEMS));
-    }, [maxItems, preferredScope, selectedScopeAdEvents, visibleEvents, visibleFallbackEvents]);
+        return selectHomeAdDisplayEvents({
+            primaryEvents: primaryPool,
+            fallbackEvents: fallbackPool,
+            maxItems: Math.min(maxItems, NEB_MAX_ITEMS),
+        });
+    }, [fallbackPool, maxItems, primaryPool]);
     const lowPriorityEventIds = useMemo(
         () => new Set(visibleFallbackEvents.map((event) => event.id)),
         [visibleFallbackEvents],
     );
-    const isFallbackMixed = selectedScopeAdEvents.length < HOME_AD_MIN_SELECTED_COUNT && displayEvents.length > selectedScopeAdEvents.length;
+    const isFallbackMixed = displayEvents.some((event) => lowPriorityEventIds.has(event.id));
     const [activeIndex, setActiveIndex] = useState(0);
     const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
     useEffect(() => {

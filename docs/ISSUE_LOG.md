@@ -2107,3 +2107,14 @@
 - 검증: `node scripts/test-ingestion-standards.mjs`, 자동등록·정규 소셜 회귀 38개, 대상 ESLint와 프로덕션 빌드가 통과했다. 구현 커밋 `e38beda0`을 푸시하고 Cafe24에 배포했으며 서비스는 `active`, 공개 빌드는 `1787286775626` (`2026-08-21T04:32:58.862Z`)이다. AI를 끈 운영 재수집 `20260821_133535_69050`은 `발견 9 → 판별 9 → 분해 4 → 저장/갱신 4 → 자동등록 2 → 정책차단 1`을 기록했다. 공개 API에서 8월 21일 `DJ 테일 | 스윙프렌즈 해피홀 게시판 금요 소셜`(ID `73a4c5d8-31a5-435e-b933-2741fa971fba`)과 8월 25일 `DJ 미우 | 스윙타운 월간 일정 화요 소셜`(ID `167e07aa-bb51-4ca9-883c-80a46ed7e485`)을 확인했다. 스윙타운 8월 22일은 기존 개별 원문 일정과 같은 날짜·장소·DJ라 중복 차단됐고, 8월 29일 졸업파티는 후보만 갱신돼 공개 이벤트가 생성되지 않았다.
 - 관련 결정: `docs/decisions/2026-08-21-staged-social-ingestion-diagnostics.md`
 - 관련 파일: `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/collection-registry.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `server/cafe24/function-api.js`, `server/cafe24/ingestor-registration-link.test.js`
+
+## 2026-08-21 메인 광고 지난 시작일 과다 보충 및 인더무드 소셜 판별 누락
+
+- 상태: 근본 원인 수정·운영 배포 대기
+- 현상: 최초 시작일이 지난 다회차 강습이 뒤쪽 보충이 아니라 일반 미래 광고 후보로 남아 메인 광고에 반복 노출됐다. 인더무드신림의 2026-08-22 공식 `Slow Social` 게시물은 원문·포스터·날짜·장소·DJ가 모두 있었지만 수집 후보가 0건이었다.
+- 기존 보호 목적: 메인 광고는 장르·작성자/장소 중복을 제한하면서 가까운 행사와 미래 일정을 우선하고, 지난 일정은 광고가 부족할 때만 낮은 빈도로 보충한다. 수집 날짜 필터는 신청·접수·입금·마감일을 실제 행사일로 오등록하지 않는다.
+- 근본 원인: 광고 판정이 `start_date`보다 `event_dates`의 남은 회차를 우선해 최초 시작일이 지난 일정도 미래 후보로 되살렸고, 화면 조합은 미래 후보 수와 관계없이 지난 후보를 최대 설정 개수까지 합쳤다. 수집 날짜 검사는 `Slow Social 2026.08.22`의 연도와 월·일 사이를 강한 소셜 날짜 문맥으로 인식하지 못해 뒤의 `사전신청`만 강한 신청일 문맥으로 판정했다.
+- 수정: 광고는 `start_date → date → event_dates의 최초일` 순으로 단일 최초 시작일을 사용한다. 현재·미래 후보는 최대 15개까지 그대로 노출하고 10개 미만일 때만 최근 지난 시작일 후보를 필요한 수만 추가해 총 10개까지 채운다. 수집기는 소셜·파티 표지와 연도가 붙은 날짜를 강한 행사 날짜로 인정하고, 공식 원문에 날짜·소셜·장소·전체 DJ·포스터가 함께 있는 후보는 기존 `date_scoped_social` 서버 재검증을 재사용한다.
+- 유지한 불변조건: 광고의 장르·출처/장소 중복 제거와 관리자 최대 개수는 유지한다. 수집은 공식 출처·미래 날짜·이미지·DJ·검증 장소를 계속 요구하고, 신청일만 있는 공지·DJ 미확정·졸업파티/행사·비정형 후보는 기존 AI 또는 수동 검수 경계를 유지한다. 새 DB·큐·상태값은 추가하지 않았다.
+- 검증: 광고 시작일·10/15개 경계 회귀 22개와 설정 회귀 1개, 수집 표준 검사, 자동등록·정규 소셜 서버 회귀 38개가 통과했다. 실제 공식 원문 4개 소스를 무저장 실행해 스윙타운 8월 22·25일, 해피홀 8월 21일, 사보이 8월 22일 후보와 졸업파티 수동 차단을 확인했다. 수정 전 0건이던 인더무드신림 원문은 무저장 재검증에서 `발견 1 → 판별 1 → 분해 1`, 날짜 `2026-08-22`, 장소 `인더무드신림`, DJ `비비비`, 자동등록 준비 상태로 통과했다.
+- 관련 파일: `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/NewEventsBanner.tsx`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `server/cafe24/ingestor-registration-link.test.js`

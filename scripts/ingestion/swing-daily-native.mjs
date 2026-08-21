@@ -2407,6 +2407,16 @@ async function buildCandidatesFromText({
       `${candidateTitle}\n${cleanText}`,
       publishedAt,
     );
+  if (traceSourceIds.has(source.id)) {
+    log(`trace ${source.id} date selection: ${JSON.stringify({
+      activity,
+      eventType,
+      candidateTitle,
+      djs,
+      extractedDates: extractDates(`${candidateTitle}\n${cleanText}`),
+      selectedDates: dates,
+    })}`);
+  }
   if (!dates.length) {
     const aiCandidates = await aiSocialFallback();
     if (aiCandidates.length) return aiCandidates;
@@ -2434,10 +2444,23 @@ async function buildCandidatesFromText({
     }
     const candidatePosterUrl = posterUrlList[index] || posterUrlList[0] || '';
     const imageData = candidatePosterUrl ? await getImageData(candidatePosterUrl) : '';
+    const hasGroundedDateScopedSocial = activity === 'social'
+      && Boolean(candidatePosterUrl)
+      && djs.length > 0
+      && Boolean(venue)
+      && ['shadow', 'auto'].includes(String(source.autoRegistrationPolicy || ''))
+      && extractDates(`${candidateTitle}\n${cleanText}`).includes(date)
+      && /(?:소셜|social|정모|프랙티카|practica|밀롱가|milonga)/i.test(cleanText)
+      && djs.every((dj) => normalizedEvidenceIncludes(cleanText, dj))
+      && (
+        normalizedEvidenceIncludes(cleanText, venue)
+        || normalizeForCompare(source.venue) === normalizeForCompare(venue)
+      );
     const raw = {
       ...candidateProvenance,
       keyword: source.name,
       source_url: sourceUrl,
+      ...(hasGroundedDateScopedSocial ? { _date_scoped_social_evidence: true } : {}),
       ...(candidatePosterUrl || imageOptionalBenefit ? { poster_url: candidatePosterUrl } : {}),
       ...(imageData ? { imageData } : {}),
       extracted_text: cleanText.slice(0, 6000),
@@ -2451,6 +2474,7 @@ async function buildCandidatesFromText({
         genre_family: source.genre_family,
         dance_genre: source.dance_genre,
         ...(djs.length ? { djs } : {}),
+        ...(hasGroundedDateScopedSocial ? { evidence_scope: 'date_scoped_social' } : {}),
       },
     };
 
