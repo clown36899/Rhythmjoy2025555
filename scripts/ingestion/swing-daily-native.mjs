@@ -35,6 +35,7 @@ import { getAutomationSourceList, getExcludedSourceReason } from './collection-r
 import {
   benefitSearchMatches,
   buildBenefitSearchUrls,
+  classifyInstagramProfilePage,
   expectedInstagramHandleForSource,
   extractBenefitDocumentUrls,
   extractInstagramPostUrls,
@@ -49,6 +50,7 @@ import {
   mergeBenefitSearchTargets,
   naverScheduleOverviewPriority,
   normalizeInstagramPostUrl,
+  shouldOpenInstagramCircuit,
 } from './benefit-search-utils.mjs';
 import {
   adjudicateCandidateWithAi,
@@ -173,6 +175,14 @@ const result = {
     error: 0,
     unavailable: 0,
   },
+  pipeline: {
+    discovery: { documents: 0, failures: 0 },
+    classification: { documents: 0, matchedDocuments: 0, emptyDocuments: 0, candidates: 0, byActivity: {} },
+    decomposition: { candidates: 0 },
+    persistence: { attempted: 0, saved: 0, refreshed: 0, skipped: 0, failures: 0 },
+    registration: { attempted: 0, succeeded: 0, duplicates: 0, blocked: 0, notReady: 0 },
+    blockers: [],
+  },
 };
 
 class RunBudgetReachedError extends Error {
@@ -255,6 +265,48 @@ function log(message) {
   console.log(`[native-ingestion] ${message}`);
 }
 
+function recordPipelineBlocker(stage, {
+  sourceId = '',
+  sourceUrl = '',
+  candidateId = '',
+  reason = '',
+} = {}) {
+  const normalizedStage = String(stage || 'unknown');
+  const entry = {
+    stage: normalizedStage,
+    ...(sourceId ? { sourceId: String(sourceId) } : {}),
+    ...(sourceUrl ? { sourceUrl: normalizeSourceUrl(sourceUrl) } : {}),
+    ...(candidateId ? { candidateId: String(candidateId) } : {}),
+    reason: String(reason || 'unknown failure').slice(0, 500),
+  };
+  if (result.pipeline.blockers.length < 40) result.pipeline.blockers.push(entry);
+  if (normalizedStage === 'discovery' || normalizedStage === 'extraction') {
+    result.pipeline.discovery.failures += 1;
+  }
+  log(`pipeline blocked ${normalizedStage} ${entry.sourceId || entry.candidateId || 'unknown'}: ${entry.reason}`);
+}
+
+function recordPipelineDocument(source, candidateCount = 0) {
+  const count = Math.max(0, Number(candidateCount || 0));
+  result.pipeline.classification.documents += 1;
+  result.pipeline.classification.candidates += count;
+  if (count > 0) result.pipeline.classification.matchedDocuments += 1;
+  else result.pipeline.classification.emptyDocuments += 1;
+  if (traceSourceIds.has(source?.id)) {
+    log(`pipeline classified ${source.id}: ${count} candidate(s)`);
+  }
+}
+
+function recordRegistrationPolicyBlocker(candidate = {}) {
+  result.pipeline.registration.notReady += 1;
+  recordPipelineBlocker('registration-policy', {
+    sourceId: candidate.source_id,
+    sourceUrl: candidate.source_url,
+    candidateId: candidate.id,
+    reason: (candidate.auto_registration?.reasons || ['candidate requires manual review']).join('; '),
+  });
+}
+
 function recordNoContent(sourceOrLabel, reason) {
   const label = typeof sourceOrLabel === 'string' ? sourceOrLabel : sourceOrLabel.id;
   result.noContentSources.push(`${label}(${reason})`);
@@ -264,19 +316,31 @@ function recordNoContent(sourceOrLabel, reason) {
 function recordAccessFailure(sourceOrLabel, reason) {
   const label = typeof sourceOrLabel === 'string' ? sourceOrLabel : sourceOrLabel.id;
   result.accessFailures.push(`${label}(${reason})`);
+  recordPipelineBlocker(String(label).includes(':') ? 'extraction' : 'discovery', {
+    sourceId: String(label).split(':')[0],
+    reason,
+  });
   log(`access failure ${label}: ${reason}`);
   if (instagramSafeMode && !String(label).includes(':post') && /^instagram /.test(reason) && reason !== 'instagram safe circuit open') {
-    instagramProfileFailureStreak += 1;
-    if (instagramFailureCircuitThreshold > 0 && instagramProfileFailureStreak >= instagramFailureCircuitThreshold) {
-      instagramCircuitOpen = true;
-      log(`instagram safe circuit opened after ${instagramProfileFailureStreak} consecutive profile failures`);
+    if (shouldOpenInstagramCircuit(reason)) {
+      instagramProfileFailureStreak += 1;
+      if (instagramFailureCircuitThreshold > 0 && instagramProfileFailureStreak >= instagramFailureCircuitThreshold) {
+        instagramCircuitOpen = true;
+        log(`instagram safe circuit opened after ${instagramProfileFailureStreak} consecutive global block responses`);
+      }
+    } else {
+      instagramProfileFailureStreak = 0;
     }
   }
 }
 
 function recordInstagramCircuitSkip(source) {
   const label = typeof source === 'string' ? source : source.id;
+  if (result.instagramCircuitSkips.length === 0) {
+    result.issues.push('instagram global access circuit open; skipped sources will resume next run');
+  }
   result.instagramCircuitSkips.push(label);
+  if (!result.remainingSources.includes(label)) result.remainingSources.push(label);
   log(`instagram circuit skip ${label}`);
 }
 
@@ -559,15 +623,14 @@ function recordDeadlineReached(sources, startIndex) {
   if (result.deadlineReached) return;
   const remaining = sources.slice(startIndex).map((source) => source.id);
   result.deadlineReached = true;
-  result.remainingSources = remaining;
+  result.remainingSources = unique([...result.remainingSources, ...remaining]);
   result.issues.push(`run budget reached; remaining sources ${remaining.length}`);
   log(`run budget reached; remaining=${remaining.length}; remaining_ms=${runRemainingMs()}`);
 }
 
 function recordNetworkUnavailable(sources, startIndex, reason = 'network unavailable') {
-  if (result.remainingSources.length) return;
   const remaining = sources.slice(startIndex).map((source) => source.id);
-  result.remainingSources = remaining;
+  result.remainingSources = unique([...result.remainingSources, ...remaining]);
   result.issues.push(`${reason}; remaining sources ${remaining.length}`);
   log(`${reason}; remaining=${remaining.length}; remaining_ms=${runRemainingMs()}`);
 }
@@ -826,8 +889,8 @@ function inferVenueDetails(text = '', source) {
 
 function inferDjs(text = '') {
   const djs = [];
-  const explicitLabelMatches = [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이))?\s*[:：]\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)];
-  const broadLabelMatches = explicitLabelMatches.length ? [] : [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이)(?=\s|[:：♥♡❤]))?\s*[:：]?\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,28})/gi)];
+  const explicitLabelMatches = [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이))?\s*[:：]\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ★☆✦✧♥♡❤💙💛💜]{1,40})/gi)];
+  const broadLabelMatches = explicitLabelMatches.length ? [] : [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이)(?=\s|[:：♥♡❤]))?\s*[:：]?\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ★☆✦✧♥♡❤💙💛💜]{1,40})/gi)];
   for (const match of explicitLabelMatches.length ? explicitLabelMatches : broadLabelMatches) {
     const value = stripRepeatedDjContext(stripNaverCafeMemberPrefix(compactText(match[1]))
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
@@ -1016,6 +1079,11 @@ function extractHappyHallWeeklySocialItems(raw = '', source, publishedAt = '') {
       title: `${source.name} ${titleDay || ''} 소셜`.replace(/\s+/g, ' ').trim(),
       djs: [assignedDj],
       fee,
+      aiEvidenceText: [
+        source.venue && raw.includes(source.venue) ? source.venue : '',
+        explicitDateListEvidence(raw, date),
+        raw.slice(0, 3000),
+      ].filter(Boolean).join('\n'),
     });
   }
   return items;
@@ -1199,8 +1267,13 @@ async function collectInstagramLinks(page, source) {
     if (scopedLinks.length) return scopedLinks;
   }
 
-  const pageText = `${state.title}\n${state.bodyText}\n${state.url}`;
-  if (/sorry,?\s+this\s+page\s+isn['’]?t\s+available|page\s+isn['’]?t\s+available|페이지를\s*사용할\s*수\s*없습니다|링크가\s*잘못되었거나\s*페이지가\s*삭제/i.test(pageText)) {
+  const profilePageState = classifyInstagramProfilePage({
+    url: state.url,
+    title: state.title,
+    bodyText: state.bodyText,
+    linkCount: 0,
+  });
+  if (profilePageState === 'source_unavailable') {
     throw new Error('instagram source page unavailable');
   }
   const fallbackLinks = await collectInstagramLinksViaImginn(page, source);
@@ -1209,11 +1282,14 @@ async function collectInstagramLinks(page, source) {
     return fallbackLinks;
   }
 
-  if (/no\s+posts\s+yet|아직\s*게시물|게시물\s*없음/i.test(pageText)) {
+  if (profilePageState === 'no_content') {
     throw new Error('no content: instagram no posts yet');
   }
-  if (/accounts\/login|\/challenge\/|log\s*in|sign\s*up|login\s*to\s*instagram|로그인|가입하기|temporarily\s*blocked|please\s*wait|privacy\s*checks/i.test(pageText)) {
-    throw new Error('instagram access blocked or login required');
+  if (profilePageState === 'global_block') {
+    throw new Error('instagram global access blocked or challenge required');
+  }
+  if (profilePageState === 'login_wall') {
+    throw new Error('instagram login wall; public profile fallback unavailable');
   }
 
   throw new Error('instagram post list unavailable');
@@ -2483,6 +2559,9 @@ async function postCandidate(candidate) {
       structured_data: candidateToPost.structured_data,
       auto_registration: candidateToPost.auto_registration || null,
     } : `${candidateToPost.keyword}:${candidateToPost.structured_data?.date}:${candidateToPost.structured_data?.title}`);
+    if (candidateToPost.auto_registration?.ready !== true) {
+      recordRegistrationPolicyBlocker(candidateToPost);
+    }
     return;
   }
 
@@ -2490,6 +2569,11 @@ async function postCandidate(candidate) {
     aiAdjudicationEnabled
     && candidateToPost.auto_registration?.ready === true
     && candidateToPost.auto_registration?.ai_verified !== true
+    && !(
+      _dateScopedSocialEvidence === true
+      && candidateToPost.structured_data?.activity_type === 'social'
+      && candidateToPost.structured_data?.evidence_scope === 'date_scoped_social'
+    )
   ) {
     const aiCandidate = {
       ...candidateToPost,
@@ -2516,6 +2600,12 @@ async function postCandidate(candidate) {
       },
     };
     if (!aiResult.approved) {
+      recordPipelineBlocker('verification', {
+        sourceId: candidateToPost.source_id,
+        sourceUrl: candidateToPost.source_url,
+        candidateId: candidate.id,
+        reason: (aiResult.reasons || []).join('; ') || 'AI adjudication did not approve the candidate',
+      });
       log(`AI review required ${candidate.id}: ${(aiResult.reasons || []).join('; ')}`);
     }
   }
@@ -2524,6 +2614,7 @@ async function postCandidate(candidate) {
   let bodyText = '';
   const headers = { 'Content-Type': 'application/json' };
   if (ingestToken) headers['X-Ingestion-Token'] = ingestToken;
+  result.pipeline.persistence.attempted += 1;
   try {
     const postResult = await fetchWithTimeout(endpoint, {
       method: 'POST',
@@ -2535,6 +2626,13 @@ async function postCandidate(candidate) {
   } catch (error) {
     const message = error?.message || error?.name || 'post request failed';
     result.skipped += 1;
+    result.pipeline.persistence.failures += 1;
+    recordPipelineBlocker('persistence', {
+      sourceId: candidateToPost.source_id,
+      sourceUrl: candidateToPost.source_url,
+      candidateId: candidate.id,
+      reason: message,
+    });
     result.issues.push(`post ${candidate.id}: ${message}`);
     log(`post failed ${candidate.id}: ${message}`);
     return;
@@ -2545,6 +2643,13 @@ async function postCandidate(candidate) {
 
   if (!response.ok) {
     result.skipped += 1;
+    result.pipeline.persistence.failures += 1;
+    recordPipelineBlocker('persistence', {
+      sourceId: candidateToPost.source_id,
+      sourceUrl: candidateToPost.source_url,
+      candidateId: candidate.id,
+      reason: `HTTP ${response.status}`,
+    });
     result.issues.push(`post ${candidate.id}: HTTP ${response.status}`);
     log(`post failed ${candidate.id}: ${response.status} ${bodyText.slice(0, 300)}`);
     return;
@@ -2552,12 +2657,16 @@ async function postCandidate(candidate) {
 
   if (Array.isArray(body.skipped) && body.skipped.length) {
     result.skipped += body.skipped.length;
+    result.pipeline.persistence.skipped += body.skipped.length;
     result.candidates.push(`skip:${candidate.keyword}:${body.skipped[0].reason}`);
     return;
   }
 
   const savedCandidate = Array.isArray(body?.data) ? body.data[0] : body?.data || body;
+  result.pipeline.persistence.saved += Number(body.count || 0);
+  result.pipeline.persistence.refreshed += Number(body.refreshedCount || 0);
   if (candidateToPost.auto_registration?.ready === true && savedCandidate?.id && ingestToken) {
+    result.pipeline.registration.attempted += 1;
     try {
       const autoResult = await fetchWithTimeout(automaticRegistrationEndpoint, {
         method: 'POST',
@@ -2571,14 +2680,23 @@ async function postCandidate(candidate) {
       try { autoBody = JSON.parse(autoResult.body); } catch {}
       if (autoResult.response.status === 409 && autoBody?.duplicate) {
         result.skipped += 1;
+        result.pipeline.registration.duplicates += 1;
         result.candidates.push(`skip:${candidate.keyword}:${autoBody.duplicate.reason || 'operational duplicate'}`);
         log(`auto-register skipped duplicate ${savedCandidate.id}: ${autoBody.duplicate.reason || 'operational duplicate'}`);
         return;
       }
       if (!autoResult.response.ok) {
+        result.pipeline.registration.blocked += 1;
+        recordPipelineBlocker('registration', {
+          sourceId: candidateToPost.source_id,
+          sourceUrl: candidateToPost.source_url,
+          candidateId: savedCandidate.id,
+          reason: (autoBody?.reasons || [autoBody?.error || `HTTP ${autoResult.response.status}`]).join('; '),
+        });
         result.issues.push(`auto-register ${savedCandidate.id}: HTTP ${autoResult.response.status}`);
         log(`auto-register blocked ${savedCandidate.id}: ${autoResult.response.status} ${autoResult.body.slice(0, 300)}`);
       } else {
+        result.pipeline.registration.succeeded += 1;
         if (autoBody?.event) {
           result.autoRegisteredEvents.push(toAutoRegistrationReportEntry(autoBody.event, {
             repaired: autoBody.repaired === true,
@@ -2587,9 +2705,23 @@ async function postCandidate(candidate) {
         log(`auto-registered ${savedCandidate.id}`);
       }
     } catch (error) {
+      result.pipeline.registration.blocked += 1;
+      recordPipelineBlocker('registration', {
+        sourceId: candidateToPost.source_id,
+        sourceUrl: candidateToPost.source_url,
+        candidateId: savedCandidate.id,
+        reason: error?.message || error?.name || 'request failed',
+      });
       result.issues.push(`auto-register ${savedCandidate.id}: ${error?.message || error?.name || 'request failed'}`);
       log(`auto-register failed ${savedCandidate.id}: ${error?.message || error}`);
     }
+  }
+
+  if (candidateToPost.auto_registration?.ready !== true) {
+    recordRegistrationPolicyBlocker({
+      ...candidateToPost,
+      id: savedCandidate?.id || candidate.id,
+    });
   }
 
   if (Number(body.refreshedCount || 0) > 0) {
@@ -2790,7 +2922,9 @@ async function collectSource(page, source) {
       log(`instagram post scan capped ${source.id}: ${instagramPostLimit}/${unseenLinks.length} unseen remaining_ms=${runRemainingMs()}`);
     }
     const completedPosts = [];
-    for (const url of unseenLinks.slice(0, instagramPostLimit)) {
+    const selectedLinks = unseenLinks.slice(0, instagramPostLimit);
+    result.pipeline.discovery.documents += selectedLinks.length;
+    for (const url of selectedLinks) {
       ensureRunBudgetOrThrow(`instagram post ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       await throttleInstagram(`post ${source.id}`, instagramPostDelayMs);
       const postCandidates = await withBoundedStep(
@@ -2798,6 +2932,7 @@ async function collectSource(page, source) {
         () => scrapeInstagramPost(page, url, source),
         candidatePostStepTimeoutMs(source),
       );
+      recordPipelineDocument(source, postCandidates.length);
       if (!hasAccessFailure(`${source.id}:post`)) completedPosts.push(url);
       candidates.push(...postCandidates);
       if (hasAccessFailure(`${source.id}:post`)) break;
@@ -2816,13 +2951,16 @@ async function collectSource(page, source) {
       return [];
     }
     const candidates = [];
-    for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
+    const selectedLinks = links.slice(0, resolveSourceScanLimit(source, links.length));
+    result.pipeline.discovery.documents += selectedLinks.length;
+    for (const link of selectedLinks) {
       ensureRunBudgetOrThrow(`naver article ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       const postCandidates = await withBoundedStep(
         `${source.id}:article`,
         () => scrapeNaverArticle(page, link, source),
         candidatePostStepTimeoutMs(source),
       );
+      recordPipelineDocument(source, postCandidates.length);
       candidates.push(...postCandidates);
       if (hasAccessFailure(`${source.id}:article`)) break;
     }
@@ -2837,13 +2975,16 @@ async function collectSource(page, source) {
       return [];
     }
     const candidates = [];
-    for (const link of links.slice(0, resolveSourceScanLimit(source, links.length))) {
+    const selectedLinks = links.slice(0, resolveSourceScanLimit(source, links.length));
+    result.pipeline.discovery.documents += selectedLinks.length;
+    for (const link of selectedLinks) {
       ensureRunBudgetOrThrow(`daum article ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       const postCandidates = await withBoundedStep(
         `${source.id}:article`,
         () => scrapeDaumArticle(page, link, source),
         candidatePostStepTimeoutMs(source),
       );
+      recordPipelineDocument(source, postCandidates.length);
       candidates.push(...postCandidates);
       if (hasAccessFailure(`${source.id}:article`)) break;
     }
@@ -2858,13 +2999,16 @@ async function collectSource(page, source) {
       return [];
     }
     const candidates = [];
-    for (const card of cards.slice(0, resolveSourceScanLimit(source, cards.length))) {
+    const selectedCards = cards.slice(0, resolveSourceScanLimit(source, cards.length));
+    result.pipeline.discovery.documents += selectedCards.length;
+    for (const card of selectedCards) {
       ensureRunBudgetOrThrow(`littly card ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
       const cardCandidates = await withBoundedStep(
         `${source.id}:card`,
         () => scrapeLittlyCard(page, card, source),
         candidatePostStepTimeoutMs(source, 5_000),
       );
+      recordPipelineDocument(source, cardCandidates.length);
       candidates.push(...cardCandidates);
       if (hasAccessFailure(`${source.id}:card`)) break;
     }
@@ -2968,6 +3112,11 @@ async function main() {
     }));
   };
 
+  const checkpointRemainingSources = (futureSources = []) => unique([
+    ...result.remainingSources,
+    ...futureSources,
+  ]);
+
   log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
@@ -2985,7 +3134,7 @@ async function main() {
       if (excluded) {
         result.skipped += 1;
         log(`excluded source ${source.id}: ${excluded}`);
-        await checkpointProgress(sources.slice(sourceIndex + 1).map((item) => item.id));
+        await checkpointProgress(checkpointRemainingSources(sources.slice(sourceIndex + 1).map((item) => item.id)));
         continue;
       }
 
@@ -2999,6 +3148,11 @@ async function main() {
         const candidates = await collectSource(page, source);
         const mergedSocialVariants = collapseSocialCandidateVariants(candidates);
         const deduped = [...new Map(mergedSocialVariants.map((candidate) => [candidate.id, candidate])).values()];
+        result.pipeline.decomposition.candidates += deduped.length;
+        for (const candidate of deduped) {
+          const activity = String(candidate.structured_data?.activity_type || 'unknown');
+          result.pipeline.classification.byActivity[activity] = (result.pipeline.classification.byActivity[activity] || 0) + 1;
+        }
         for (const candidate of deduped) {
           ensureRunBudgetOrThrow(`post candidate ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
 
@@ -3049,7 +3203,7 @@ async function main() {
       }
 
       if (result.deadlineReached) break;
-      await checkpointProgress(sources.slice(sourceIndex + 1).map((item) => item.id));
+      await checkpointProgress(checkpointRemainingSources(sources.slice(sourceIndex + 1).map((item) => item.id)));
     }
   } finally {
     await settleWithin(browserSession.close(), 2_000);
@@ -3087,6 +3241,7 @@ function printSummary() {
     benefitSearchStats: result.benefitSearchStats,
     benefitAiReviewStats: result.benefitAiReviewStats,
     socialAiExtractionStats: result.socialAiExtractionStats,
+    pipeline: result.pipeline,
   }, null, 2));
   console.log('INGESTION_RESULT_JSON_END');
   console.log('==TELEGRAM_SUMMARY_START==');
@@ -3099,6 +3254,8 @@ function printSummary() {
   console.log(`수집대상없음: ${noContentSources.length ? noContentSources.join(', ') : 'none'}`);
   console.log(`AI혜택판정: 확인 ${result.benefitAiReviewStats.approved} / 재검토 ${result.benefitAiReviewStats.review} / 제외 ${result.benefitAiReviewStats.rejected} / 오류 ${result.benefitAiReviewStats.error + result.benefitAiReviewStats.unavailable}`);
   console.log(`AI소셜추출: 확인 ${result.socialAiExtractionStats.approved} / 재검토 ${result.socialAiExtractionStats.review} / 오류 ${result.socialAiExtractionStats.error + result.socialAiExtractionStats.unavailable}`);
+  console.log(`파이프라인: 발견 ${result.pipeline.discovery.documents} / 판별문서 ${result.pipeline.classification.documents} / 분해후보 ${result.pipeline.decomposition.candidates} / 저장 ${result.pipeline.persistence.saved + result.pipeline.persistence.refreshed} / 자동등록 ${result.pipeline.registration.succeeded} / 차단 ${result.pipeline.registration.blocked + result.pipeline.registration.notReady}`);
+  console.log(`단계차단: ${result.pipeline.blockers.length ? result.pipeline.blockers.slice(0, 5).map((item) => `${item.stage}:${item.sourceId || item.candidateId || 'unknown'}(${item.reason})`).join(' / ') : 'none'}`);
   console.log(`이슈: ${issues.length ? issues.join(' / ') : 'none'}`);
   console.log('==TELEGRAM_SUMMARY_END==');
 }

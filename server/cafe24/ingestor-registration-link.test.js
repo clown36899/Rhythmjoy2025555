@@ -413,6 +413,65 @@ describe('ingestor registration linkage', () => {
     expect(validation.eventData).not.toHaveProperty('time');
   });
 
+  it('registers an official date-scoped monthly social without depending on AI availability', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'swingtown-monthly-2026-08-25',
+      status: 'pending',
+      source_id: 'swingtown-schedule-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156478',
+      extracted_text: '봉천살롱 8월 25일 (화) 소셜 DJ 미우',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtown-schedule-cafe',
+      },
+      structured_data: {
+        title: '스윙타운 월간 일정 화요 소셜',
+        date: '2026-08-25',
+        activity_type: 'social',
+        event_type: '소셜',
+        venue_name: '봉천살롱',
+        venue_provenance: 'source_text',
+        djs: ['미우'],
+        evidence_scope: 'date_scoped_social',
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData).toMatchObject({
+      title: 'DJ 미우 | 스윙타운 월간 일정 화요 소셜',
+      date: '2026-08-25',
+      location: '봉천살롱',
+    });
+  });
+
+  it('keeps a graduation party out of the deterministic social path', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'swingtown-graduation-2026-08-29',
+      status: 'pending',
+      source_id: 'swingtown-schedule-cafe',
+      extracted_text: '봉천살롱 8월 29일 (토) DJ 후안 12회 졸업파티',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtown-schedule-cafe',
+      },
+      structured_data: {
+        title: '스윙타운 12회 졸업파티',
+        date: '2026-08-29',
+        activity_type: 'social',
+        event_type: '소셜',
+        venue_name: '봉천살롱',
+        venue_provenance: 'source_text',
+        djs: ['후안'],
+        evidence_scope: 'date_scoped_social',
+      },
+    });
+
+    expect(validation.ok).toBe(false);
+    expect(validation.reasons).toContain('event/competition cannot be auto-registered as social');
+  });
+
   it('accepts either day from a compact multi-date source heading', () => {
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-15')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-16')).toBe(true);

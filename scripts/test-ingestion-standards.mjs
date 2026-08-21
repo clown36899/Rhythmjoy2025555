@@ -34,6 +34,7 @@ import { buildVenuePassSearchSources, dynamicSearchQueries, findSourceByUrl, fin
 import {
   benefitSearchMatches,
   buildBenefitSearchUrls,
+  classifyInstagramProfilePage,
   expectedInstagramHandleForSource,
   extractBenefitDocumentUrls,
   extractInstagramPostUrls,
@@ -48,6 +49,7 @@ import {
   mergeBenefitSearchTargets,
   naverScheduleOverviewPriority,
   normalizeInstagramPostUrl,
+  shouldOpenInstagramCircuit,
 } from './ingestion/benefit-search-utils.mjs';
 import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
 import {
@@ -168,6 +170,18 @@ assert.equal(isVerifiedInstagramFallbackProfile({
   bodyText: 'swingtimebar public posts',
   url: 'https://imginn.com/swingtimebar/',
 }), true, 'an identity-matched fallback profile may expose source-owned post links');
+assert.equal(classifyInstagramProfilePage({
+  url: 'https://www.instagram.com/example/',
+  title: 'Instagram',
+  bodyText: 'Log in Sign up About Help Press API',
+}), 'login_wall', 'a normal anonymous Instagram login wall must not be treated as a global bot block');
+assert.equal(classifyInstagramProfilePage({
+  url: 'https://www.instagram.com/challenge/',
+  title: 'Instagram',
+  bodyText: 'Please wait a few minutes before you try again',
+}), 'global_block', 'an Instagram challenge response must remain eligible for the safety circuit');
+assert.equal(shouldOpenInstagramCircuit('instagram login wall; public profile fallback unavailable'), false, 'a source login wall must not cascade into skipping unrelated profiles');
+assert.equal(shouldOpenInstagramCircuit('instagram global access blocked or challenge required'), true, 'only a confirmed global block response may advance the Instagram circuit');
 assert.equal(
   isDirectInstagramPostMediaUrl('https://scontent.cdninstagram.com/image.jpg?_nc_sid=58cdad&ig_cache_key=direct'),
   true,
@@ -385,6 +399,65 @@ assert.equal(
   ]),
   true,
   'one complete date/DJ pair must be enough to isolate a social from an adjacent event notice',
+);
+assert.equal(
+  stripRepeatedDjContext('사보이지기 ★테일★님 입니다'),
+  '테일',
+  'a source operator role before a decorated DJ name must not replace the actual DJ',
+);
+const swingtownMonthlySections = extractDatedDjSections({
+  today: '2026-08-21',
+  text: `☀️스윙타운 2026년 7,8월 일정☀️
+[☀️8월 일정☀️]
+· 8월 22일 (토)
+→ DJ 조춘식이
+· 8월 25일 (화)
+→ DJ 미우
+· 8월 29일 (토)
+→ DJ 후안
+→ 12회 졸업파티`,
+});
+assert.deepEqual(
+  swingtownMonthlySections.map(({ date, segment }) => ({
+    date,
+    dj: segment.match(/DJ\s+([A-Za-z가-힣]+)/i)?.[1] || '',
+  })),
+  [
+    { date: '2026-08-22', dj: '조춘식이' },
+    { date: '2026-08-25', dj: '미우' },
+    { date: '2026-08-29', dj: '후안' },
+  ],
+  'the official Swing Town monthly format must split every future date and DJ',
+);
+const swingtownMonthlySource = findSourceForCandidate({
+  sourceId: 'swingtown-schedule-cafe',
+  url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156478',
+});
+assert.equal(swingtownMonthlySource?.autoRegistrationPolicy, 'shadow', 'the official Swing Town monthly source must use the existing shadow gate');
+assert.deepEqual(swingtownMonthlySource?.autoRegistrationAllowedActivityTypes, ['social'], 'only monthly schedule social sessions may enter automatic registration');
+const swingtownGraduationReadiness = evaluateAutoRegistrationReadiness({
+  source_id: 'swingtown-schedule-cafe',
+  source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156478',
+  _date_scoped_social_evidence: true,
+  extracted_text: '봉천살롱 8월 29일 DJ 후안 12회 졸업파티',
+  structured_data: {
+    title: '스윙타운 월간 일정 토요 소셜',
+    date: '2026-08-29',
+    day: '토',
+    event_type: '소셜',
+    activity_type: 'social',
+    location: '봉천살롱',
+    venue_name: '봉천살롱',
+    venue_provenance: 'source_text',
+    djs: ['후안'],
+    genre: '졸공',
+    evidence_scope: 'date_scoped_social',
+  },
+}, { today: '2026-08-21' });
+assert.equal(swingtownGraduationReadiness.ready, false, 'a monthly graduation party must remain a manual-review candidate');
+assert.ok(
+  swingtownGraduationReadiness.reasons.includes('special event classification requires manual review instead of social auto-registration'),
+  'the collector must expose the exact special-event policy blocker before calling registration',
 );
 const scopedMultiDateSocial = prepareCandidate(baseCandidate({
   _date_scoped_social_evidence: true,

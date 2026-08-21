@@ -440,6 +440,10 @@ export function stripNaverCafeMemberPrefix(value = '') {
 export function stripRepeatedDjContext(value = '') {
   return String(value || '')
     .replace(
+      /^(?:사보이\s*지기|운영진|관리자|매니저)\s*[★☆✦✧♥♡❤💙💛💜]+\s*([A-Za-z0-9가-힣._&+\-/]{1,20})\s*[★☆✦✧♥♡❤💙💛💜]+\s*(?:님)?(?:\s.*)?$/i,
+      '$1',
+    )
+    .replace(
       /^([A-Za-z0-9가-힣._&+\-/]{1,20})\s+스윙타운\s+(?:D\s*J|디제이)\s+\1(?:\s.*)?$/i,
       '$1',
     )
@@ -1602,6 +1606,17 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   }
   if (activity === 'social' && hasMalformedDj(candidate)) {
     reasons.push('social auto-registration requires a clean DJ name');
+  }
+  if (
+    activity === 'social'
+    && /행사|졸업\s*(?:공연|파티)|졸공|대회|컴피티션|챔피언십|competition|graduation\s*(?:show|party|performance)|championship|tournament|contest|\bbattle\b|\bcup\b/i.test([
+      sd.title,
+      sd.event_type,
+      sd.category,
+      sd.genre,
+    ].filter(Boolean).join(' '))
+  ) {
+    reasons.push('special event classification requires manual review instead of social auto-registration');
   }
 
   return {

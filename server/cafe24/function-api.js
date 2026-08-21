@@ -1098,6 +1098,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['swingfriends-busan-cafe', { activities: new Set(['social', 'event']), trustedVenue: '스윙243' }],
   ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
   ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), trustedVenue: '봉천살롱' }],
+  ['swingtown-schedule-cafe', { activities: new Set(['social']), trustedVenue: '봉천살롱' }],
   ['inthemood_sillim', { activities: new Set(['social']), trustedVenue: '인더무드신림' }],
 ]);
 
@@ -1109,7 +1110,7 @@ const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
   sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
 };
 
-const AUTOMATIC_EXPLICIT_EVENT_PATTERN = /행사|대회|컴피티션|챔피언십|챔피언스?\s*컵|competition|championship|tournament|contest|\bbattle\b|\bcup\b/i;
+const AUTOMATIC_EXPLICIT_EVENT_PATTERN = /행사|졸업\s*(?:공연|파티)|졸공|대회|컴피티션|챔피언십|챔피언스?\s*컵|competition|graduation\s*(?:show|party|performance)|championship|tournament|contest|\bbattle\b|\bcup\b/i;
 
 function hasConflictingAutomaticSocialEventClassification(structured = {}, title = '') {
   if (String(structured.category || '').trim().toLowerCase() === 'event') return true;
@@ -1156,6 +1157,9 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const date = String(structured.date || '').slice(0, 10);
   const venue = String(structured.venue_name || structured.location || '').trim();
   const djs = Array.isArray(structured.djs) ? structured.djs.map((dj) => String(dj || '').trim()).filter(Boolean) : [];
+  const deterministicDateScopedSocial = activity === 'social'
+    && String(structured.evidence_scope || '') === 'date_scoped_social'
+    && djs.length > 0;
   const aiGroundedDjlessSocial = activity === 'social'
     && structured.evidence_scope === 'ai_grounded_social'
     && structured.ai_missing_dj_verified === true
@@ -1163,8 +1167,8 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const reasons = [];
 
   if (readiness.ready !== true) reasons.push('candidate was not approved by the collector gate');
-  if (readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
-  if (Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
+  if (!deterministicDateScopedSocial && readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
+  if (!deterministicDateScopedSocial && Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
   if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
   if (discoverySourceType === 'benefit_search') reasons.push('benefit search candidates require manual approval');
   if (!sourceRule?.activities?.has(activity)) reasons.push('source/activity is not server-enrolled');
@@ -1210,17 +1214,20 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     title,
     trustedVenueContext,
   ].filter(Boolean).join('\n').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
-  if (
+  if (!deterministicDateScopedSocial && (
     !evidenceQuotes.length
     || evidenceQuotes.some((quote) => !normalizedSourceText.includes(
       quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
     ))
-  ) {
+  )) {
     reasons.push('AI evidence is not grounded in the stored source text');
   }
-  const normalizedEvidence = evidenceQuotes.join(' ').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
+  const normalizedEvidence = (deterministicDateScopedSocial
+    ? normalizedSourceText
+    : evidenceQuotes.join(' ')
+  ).normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
   if (/^\d{4}-\d{2}-\d{2}$/.test(date) && !evidenceExplicitlyContainsCandidateDate(normalizedEvidence, date)) {
-    reasons.push('AI evidence does not explicitly contain the candidate date');
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate date`);
   }
   const normalizeVenueEvidence = (value) => String(value || '')
     .normalize('NFKC')
@@ -1231,14 +1238,14 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
   const normalizedVenue = normalizeVenueEvidence(venue);
   if (normalizedVenue && !normalizeVenueEvidence(normalizedEvidence).includes(normalizedVenue)) {
-    reasons.push('AI evidence does not explicitly contain the candidate venue');
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate venue`);
   }
   if (djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
-    reasons.push('AI evidence does not explicitly contain every candidate DJ');
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain every candidate DJ`);
   }
   const activityPattern = AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS[activity];
   if (!activityPattern || !activityPattern.test(normalizedEvidence)) {
-    reasons.push(`AI evidence does not explicitly identify activity ${activity}`);
+    reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly identify activity ${activity}`);
   }
   const status = String(scrapedEvent?.status || 'pending').toLowerCase();
   if (status !== 'pending' || scrapedEvent?.is_collected) reasons.push('candidate is not pending');

@@ -1,5 +1,39 @@
 const instagramPostPattern = /^https:\/\/(?:www\.)?instagram\.com\/(?:[^/]+\/)?(?:p|reel)\/[A-Za-z0-9_-]+\/?$/i;
 
+export function classifyInstagramProfilePage({
+  url = '',
+  title = '',
+  bodyText = '',
+  linkCount = 0,
+} = {}) {
+  if (Number(linkCount) > 0) return 'content';
+
+  const pageText = `${title}\n${bodyText}\n${url}`.normalize('NFKC');
+  if (/sorry,?\s+this\s+page\s+isn['’]?t\s+available|page\s+isn['’]?t\s+available|페이지를\s*사용할\s*수\s*없습니다|링크가\s*잘못되었거나\s*페이지가\s*삭제/i.test(pageText)) {
+    return 'source_unavailable';
+  }
+  if (/no\s+posts\s+yet|아직\s*게시물|게시물\s*없음/i.test(pageText)) {
+    return 'no_content';
+  }
+  if (
+    /\/challenge\/|\/checkpoint\//i.test(url)
+    || /temporarily\s+blocked|try\s+again\s+later|please\s+wait\s+(?:a\s+)?few\s+minutes|we\s+restrict\s+certain\s+activity|automated\s+behavio(?:u)?r|privacy\s+checks|비정상적인\s*활동|잠시\s*후\s*다시\s*시도/i.test(pageText)
+  ) {
+    return 'global_block';
+  }
+  if (
+    /\/accounts\/login/i.test(url)
+    || /log\s*in|sign\s*up|login\s*to\s*instagram|로그인|가입하기/i.test(pageText)
+  ) {
+    return 'login_wall';
+  }
+  return 'post_list_unavailable';
+}
+
+export function shouldOpenInstagramCircuit(reason = '') {
+  return /^instagram global access blocked\b/i.test(String(reason || '').trim());
+}
+
 function unwrapSearchUrl(value = '', baseUrl = 'https://www.google.com/') {
   try {
     const parsed = new URL(value, baseUrl);
