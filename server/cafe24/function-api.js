@@ -1326,8 +1326,15 @@ export async function cafe24IngestorRegisterEvent(req, res) {
 
   const sourceUrl = String(scrapedEvent.source_url || eventData.link1 || '');
   const existingRows = await loadCafe24TableRows('events');
-  const existing = existingRows.find((row) => String(row.id) === String(body.existingEventId || ''))
+  let existing = existingRows.find((row) => String(row.id) === String(body.existingEventId || ''))
     || existingRows.find((row) => sourceUrl && row.link1 === sourceUrl && sameEventDate(row, date));
+  // A generated regular-social row is a placeholder, not an editable duplicate.
+  // Updating it in place keeps the automation marker, so the next reconciliation
+  // treats the administrator's event as generated and restores the placeholder.
+  const existingGeneratedReplacements = existing
+    ? findGeneratedRegularSocialReplacements([existing], eventData, scrapedEvent)
+    : [];
+  if (existingGeneratedReplacements.length) existing = null;
   if (automaticRequest && !existing) {
     eventData = inheritGeneratedRegularSocialVenueMetadata(eventData, existingRows, scrapedEvent);
   }

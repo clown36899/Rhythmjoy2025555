@@ -66,6 +66,29 @@ describe('regular social reconciliation', () => {
     expect(replacements).toEqual([generated]);
   });
 
+  it('classifies a generated duplicate target as a replaceable placeholder', () => {
+    const generated = {
+      id: 'regular-social:scandal-sat:2026-08-22',
+      date: '2026-08-22',
+      title: '스윙스캔들 토요 소셜',
+      location: '사보이볼룸',
+      category: 'social',
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    const replacements = findGeneratedRegularSocialReplacements(
+      [generated],
+      {
+        date: '2026-08-22',
+        title: '사보이볼룸 토요 소셜',
+        location: '사보이볼룸',
+        category: 'social',
+      },
+      { source_id: 'swingscandal-cafe' },
+    );
+
+    expect(replacements).toEqual([generated]);
+  });
+
   it('does not replace another venue or a different date', () => {
     const generated = {
       id: 'regular-social:swingtime-wed:2026-07-29',
