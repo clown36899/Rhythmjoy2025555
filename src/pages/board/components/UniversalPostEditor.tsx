@@ -33,6 +33,25 @@ export interface BoardEditorPreset {
     showHiddenOption?: boolean;
 }
 
+type BoardPostMode = 'standard' | 'anonymous' | 'hidden' | 'notice';
+
+const resolveBoardPostMode = ({
+    is_notice,
+    is_hidden,
+    is_anonymous,
+}: {
+    is_notice: boolean;
+    is_hidden: boolean;
+    is_anonymous: boolean;
+}): BoardPostMode => {
+    // Preserve the strongest visibility protection when opening legacy records
+    // that may contain more than one true flag.
+    if (is_hidden) return 'hidden';
+    if (is_notice) return 'notice';
+    if (is_anonymous) return 'anonymous';
+    return 'standard';
+};
+
 const findDefaultPrefixId = (prefixes: BoardPrefix[], prefixNames: string[] = []) => {
     if (prefixNames.length === 0) return null;
 
@@ -90,15 +109,21 @@ export default function UniversalPostEditor({
 
             if (post) {
                 // Edit Mode
-                const isAnonymousPost = 'is_anonymous' in post && Boolean(post.is_anonymous);
+                const storedIsAnonymous = 'is_anonymous' in post && Boolean(post.is_anonymous);
+                const storedPrefixId = (post as any).prefix_id || null;
+                const initialPostMode = resolveBoardPostMode({
+                    is_notice: Boolean(post.is_notice),
+                    is_hidden: Boolean((post as any).is_hidden),
+                    is_anonymous: storedIsAnonymous,
+                });
                 setFormData({
                     title: post.title,
                     content: post.content || '',
-                    author_name: isAdmin && !isAnonymousPost ? "관리자" : post.author_name,
-                    is_notice: post.is_notice || false,
-                    prefix_id: (post as any).prefix_id || null, // [FIX] Cast to any
-                    is_hidden: (post as any).is_hidden || false,
-                    is_anonymous: isAnonymousPost,
+                    author_name: isAdmin && !storedIsAnonymous ? "관리자" : post.author_name,
+                    is_notice: initialPostMode === 'notice',
+                    prefix_id: initialPostMode === 'notice' ? 1 : storedPrefixId === 1 ? null : storedPrefixId,
+                    is_hidden: initialPostMode === 'hidden',
+                    is_anonymous: initialPostMode === 'anonymous',
                     category: (post as any).category || 'free'
                 });
 
@@ -166,6 +191,23 @@ export default function UniversalPostEditor({
         }));
     };
 
+    const handlePostModeChange = (mode: BoardPostMode) => {
+        setFormData(prev => {
+            const previousMode = resolveBoardPostMode(prev);
+            return {
+                ...prev,
+                is_notice: mode === 'notice',
+                is_hidden: mode === 'hidden',
+                is_anonymous: mode === 'anonymous',
+                prefix_id: mode === 'notice'
+                    ? 1
+                    : previousMode === 'notice' && prev.prefix_id === 1
+                        ? null
+                        : prev.prefix_id,
+            };
+        });
+    };
+
 
 
     const checkBannedWords = (text: string) => {
@@ -185,6 +227,11 @@ export default function UniversalPostEditor({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const postMode = resolveBoardPostMode(formData);
+        const isNoticePost = postMode === 'notice';
+        const isHiddenPost = postMode === 'hidden';
+        const isAnonymousPost = postMode === 'anonymous';
 
         if (!formData.title.trim()) { alert('제목을 입력해주세요.'); return; }
         if (!formData.content.trim()) { alert('내용을 입력해주세요.'); return; }
@@ -281,17 +328,17 @@ export default function UniversalPostEditor({
                 const updates: any = {
                     title: formData.title,
                     content: finalContent, // Use processed content
-                    is_notice: formData.is_notice,
+                    is_notice: isNoticePost,
                     prefix_id: formData.prefix_id,
-                    is_hidden: formData.is_hidden,
-                    is_anonymous: formData.is_anonymous,
+                    is_hidden: isHiddenPost,
+                    is_anonymous: isAnonymousPost,
                     category: formData.category,
                     updated_at: new Date().toISOString()
                 };
 
                 // Preserve the stored writer when an admin edits an anonymous or formerly anonymous post.
                 const wasAnonymous = 'is_anonymous' in post && Boolean(post.is_anonymous);
-                if (isAdmin && !wasAnonymous && !formData.is_anonymous) {
+                if (isAdmin && !wasAnonymous && !isAnonymousPost) {
                     updates.author_name = "관리자";
                     updates.author_nickname = "관리자";
                 }
@@ -334,11 +381,11 @@ export default function UniversalPostEditor({
                     author_name: finalAuthorName,
                     author_nickname: finalNickname,
                     user_id: user?.id,
-                    is_notice: formData.is_notice,
+                    is_notice: isNoticePost,
                     prefix_id: formData.prefix_id,
                     category: formData.category,
-                    is_hidden: formData.is_hidden,
-                    is_anonymous: formData.is_anonymous,
+                    is_hidden: isHiddenPost,
+                    is_anonymous: isAnonymousPost,
                     image: imageUrls.image,
                     image_thumbnail: imageUrls.image_thumbnail,
                     views: 0
@@ -381,10 +428,11 @@ export default function UniversalPostEditor({
     const showAnonymousOption = formData.category === 'free' || Boolean(post && formData.is_anonymous);
     const showHiddenOption = formData.category === 'free' || Boolean(preset?.showHiddenOption) || Boolean(post && formData.is_hidden);
     const showPostOptions = isAdmin || showAnonymousOption || showHiddenOption;
+    const postMode = resolveBoardPostMode(formData);
 
     const modalContent = (
         <div className="pem-modal-overlay">
-            <div className="pem-modal-container universal-editor-container">
+            <div className="pem-modal-container universal-post-editor-container">
                 <div className="pem-modal-header">
                     <button type="button" onClick={onClose} className="pem-close-btn" aria-label="글쓰기 닫기">
                         <i className="ri-arrow-left-line pem-close-icon"></i>
@@ -426,7 +474,7 @@ export default function UniversalPostEditor({
                                     name="prefix_id"
                                     onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
                                     className="pem-select lang-ko-only"
-                                    disabled={formData.is_notice}
+                                    disabled={postMode === 'notice'}
                                 >
                                     <option value="">머릿말 없음</option>
                                     {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
@@ -439,7 +487,7 @@ export default function UniversalPostEditor({
                                     name="prefix_id"
                                     onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: parseBoardPrefixId(e.target.value) }))}
                                     className="pem-select lang-en-only"
-                                    disabled={formData.is_notice}
+                                    disabled={postMode === 'notice'}
                                 >
                                     <option value="">No heading</option>
                                     {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
@@ -485,17 +533,36 @@ export default function UniversalPostEditor({
 
                         {showPostOptions && (
                             <fieldset className="pem-options-group">
-                                <legend className="pem-options-title">게시 옵션</legend>
+                                <legend className="pem-options-title">게시 방식</legend>
                                 <div className="pem-options-list">
+                                    <label className={`pem-option-card ${postMode === 'standard' ? 'is-selected' : ''}`}>
+                                        <input
+                                            type="radio"
+                                            name="board-post-mode"
+                                            value="standard"
+                                            checked={postMode === 'standard'}
+                                            onChange={() => handlePostModeChange('standard')}
+                                        />
+                                        <span className="pem-option-icon" aria-hidden="true">
+                                            <i className="ri-global-line"></i>
+                                        </span>
+                                        <span className="pem-option-copy">
+                                            <span className="pem-option-name">일반 공개로 등록</span>
+                                            <span className="pem-option-description">글과 작성자 정보를 모두 공개합니다.</span>
+                                        </span>
+                                        <span className="pem-option-check" aria-hidden="true">
+                                            <i className={postMode === 'standard' ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                        </span>
+                                    </label>
+
                                     {showAnonymousOption && (
-                                        <label className={`pem-option-card ${formData.is_anonymous ? 'is-selected' : ''}`}>
+                                        <label className={`pem-option-card ${postMode === 'anonymous' ? 'is-selected' : ''}`}>
                                             <input
-                                                type="checkbox"
-                                                checked={formData.is_anonymous}
-                                                onChange={(e) => setFormData(prev => ({
-                                                    ...prev,
-                                                    is_anonymous: e.target.checked
-                                                }))}
+                                                type="radio"
+                                                name="board-post-mode"
+                                                value="anonymous"
+                                                checked={postMode === 'anonymous'}
+                                                onChange={() => handlePostModeChange('anonymous')}
                                             />
                                             <span className="pem-option-icon" aria-hidden="true">
                                                 <i className="ri-spy-line"></i>
@@ -505,20 +572,19 @@ export default function UniversalPostEditor({
                                                 <span className="pem-option-description">글은 모두 볼 수 있고, 작성자 정보는 관리자만 확인할 수 있습니다.</span>
                                             </span>
                                             <span className="pem-option-check" aria-hidden="true">
-                                                <i className={formData.is_anonymous ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                                <i className={postMode === 'anonymous' ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
                                             </span>
                                         </label>
                                     )}
 
                                     {showHiddenOption && (
-                                        <label className={`pem-option-card ${formData.is_hidden ? 'is-selected' : ''}`}>
+                                        <label className={`pem-option-card ${postMode === 'hidden' ? 'is-selected' : ''}`}>
                                             <input
-                                                type="checkbox"
-                                                checked={formData.is_hidden}
-                                                onChange={(e) => setFormData(prev => ({
-                                                    ...prev,
-                                                    is_hidden: e.target.checked
-                                                }))}
+                                                type="radio"
+                                                name="board-post-mode"
+                                                value="hidden"
+                                                checked={postMode === 'hidden'}
+                                                onChange={() => handlePostModeChange('hidden')}
                                             />
                                             <span className="pem-option-icon" aria-hidden="true">
                                                 <i className="ri-lock-line"></i>
@@ -528,21 +594,19 @@ export default function UniversalPostEditor({
                                                 <span className="pem-option-description">글 내용까지 작성자와 관리자만 볼 수 있습니다.</span>
                                             </span>
                                             <span className="pem-option-check" aria-hidden="true">
-                                                <i className={formData.is_hidden ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                                <i className={postMode === 'hidden' ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
                                             </span>
                                         </label>
                                     )}
 
                                     {isAdmin && (
-                                        <label className={`pem-option-card ${formData.is_notice ? 'is-selected' : ''}`}>
+                                        <label className={`pem-option-card ${postMode === 'notice' ? 'is-selected' : ''}`}>
                                             <input
-                                                type="checkbox"
-                                                checked={formData.is_notice}
-                                                onChange={(e) => setFormData(prev => ({
-                                                    ...prev,
-                                                    is_notice: e.target.checked,
-                                                    prefix_id: e.target.checked ? 1 : prev.prefix_id
-                                                }))}
+                                                type="radio"
+                                                name="board-post-mode"
+                                                value="notice"
+                                                checked={postMode === 'notice'}
+                                                onChange={() => handlePostModeChange('notice')}
                                             />
                                             <span className="pem-option-icon" aria-hidden="true">
                                                 <i className="ri-megaphone-line"></i>
@@ -552,7 +616,7 @@ export default function UniversalPostEditor({
                                                 <span className="pem-option-description">게시판 상단에 공지로 표시합니다.</span>
                                             </span>
                                             <span className="pem-option-check" aria-hidden="true">
-                                                <i className={formData.is_notice ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
+                                                <i className={postMode === 'notice' ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'}></i>
                                             </span>
                                         </label>
                                     )}
