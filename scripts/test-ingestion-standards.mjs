@@ -542,6 +542,10 @@ assert.equal(classifyConfirmedBenefitEvent({
   structured_data: { title: '금요 소셜' },
 }), null, 'negated free wording must not be benefit eligible');
 assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '이번주 DJ는 사보이지기 ★테일★님 입니다. 무료라인강습이 없는 날 입니다. 입장료는 별도입니다.',
+  structured_data: { title: 'DJ 테일 | 해피홀 금요 소셜' },
+}), null, 'attributive Korean free-class negation must not be benefit eligible');
+assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '7월 정기권 판매 오픈',
   structured_data: { title: '7월 정기권' },
 }), 'season_pass', 'explicit season-pass sales should be benefit eligible');

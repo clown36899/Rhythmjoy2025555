@@ -264,7 +264,7 @@ export default function BenefitEventsPage() {
             <dl>
               <div>
                 <dt>일정</dt>
-                <dd>{formatDateLabel(getDisplayDate(selectedEvent, today))}</dd>
+                <dd>{formatDateLabel(getBenefitEventDisplayDate(selectedEvent, today))}</dd>
               </div>
               <div>
                 <dt>장소</dt>

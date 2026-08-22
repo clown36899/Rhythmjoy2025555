@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BENEFIT_EVENTS_SEEN_STORAGE_KEY } from '../../hooks/useBenefitEventsUnreadCount';
 import { getBenefitEventThumbnail } from './BenefitEventsPage';
@@ -112,5 +112,25 @@ describe('benefit event images', () => {
       const state = JSON.parse(window.localStorage.getItem(BENEFIT_EVENTS_SEEN_STORAGE_KEY) || '{}');
       expect(state['user:benefit-page-user']).toContain('new-benefit');
     });
+  });
+
+  it('opens an event detail with the same display date used by the list', async () => {
+    fetchCafe24Events.mockResolvedValue([{
+      id: 'detail-benefit',
+      title: '상세 무료 행사',
+      date: '2099-08-04',
+      benefit_eligible: true,
+      benefit_kind: 'free_event',
+      location: '해피홀',
+    }]);
+
+    renderPage();
+
+    const title = await screen.findByText('상세 무료 행사');
+    fireEvent.click(title.closest('.benefit-event-item') as HTMLElement);
+
+    const dialog = screen.getByRole('dialog', { name: '상세 무료 행사' });
+    expect(within(dialog).getByText(/8월 4일/)).toBeInTheDocument();
+    expect(within(dialog).getByText('해피홀')).toBeInTheDocument();
   });
 });
