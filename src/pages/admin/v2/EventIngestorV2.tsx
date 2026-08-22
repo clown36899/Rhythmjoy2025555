@@ -985,6 +985,7 @@ const EventIngestorV2: React.FC = () => {
 
   const registerEventToProd = async (event: ScrapedEvent): Promise<string> => {
     const sd = event.structured_data;
+    const mapped = mapIngestorEvent(event, venues);
 
     // extracted_text는 목록 조회 시 제외되므로 등록 시 별도 조회
     let extractedText = event.extracted_text || '';
@@ -993,10 +994,9 @@ const EventIngestorV2: React.FC = () => {
       extractedText = (full as any)?.extracted_text || '';
     }
 
-    const formattedTitle = sd.djs?.length
-      ? `DJ ${sd.djs.join(', ')} | ${sd.title}`
+    const formattedTitle = mapped.djs.length
+      ? `DJ ${mapped.djs.join(', ')} | ${sd.title}`
       : sd.title;
-    const mapped = mapIngestorEvent(event, venues);
 
     const insertPayload = {
         title: formattedTitle,
@@ -1036,7 +1036,15 @@ const EventIngestorV2: React.FC = () => {
       body: JSON.stringify({
         scrapedEventId: event.id,
         eventData: insertPayload,
-        scrapedStructuredData: event.structured_data,
+        scrapedStructuredData: {
+          ...event.structured_data,
+          category: mapped.category,
+          genre: mapped.genre,
+          activity_type: mapped.activity_type,
+          event_type: mapped.activity_type === 'social' ? '소셜' : event.structured_data.event_type,
+          group_id: mapped.group_id,
+          djs: mapped.djs,
+        },
         existingEventId: duplicate?.id || null,
       }),
     });

@@ -19,6 +19,7 @@ import {
   toMapSafeVenueName,
   type VenueLike,
 } from '../../../../utils/venueNormalization';
+import { getGraduationEventMetadata } from '../../../../utils/graduationEvent.mjs';
 
 type EventType = '소셜' | '파티/행사' | '강습' | '판매이벤트';
 
@@ -42,6 +43,7 @@ export interface MappedIngestorEvent {
   venue_name: string | null;
   location_link: string | null;
   time: string;
+  djs: string[];
 }
 
 interface ScrapedLike {
@@ -66,6 +68,7 @@ interface ScrapedLike {
     venue_name?: string | null;
     location_link?: string | null;
     times?: string[];
+    djs?: string[];
   };
 }
 
@@ -308,14 +311,15 @@ function buildSiteGenre(event: ScrapedLike, category: MappedIngestorEvent['categ
 }
 
 export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): MappedIngestorEvent {
+  const graduation = getGraduationEventMetadata(event);
   const taxonomy = inferDanceTaxonomy(event);
   const recruitmentKind = getIngestorRecruitmentKind(event);
-  const activity = detectIngestorActivity(event);
+  const activity = graduation?.activity_type || detectIngestorActivity(event);
   const matchedVenue = matchVenue(event, venues);
   const sd = event.structured_data || {};
 
-  const category = getIngestorSiteCategory(event, activity);
-  const genre = buildSiteGenre(event, category);
+  const category = graduation?.category || getIngestorSiteCategory(event, activity);
+  const genre = graduation?.genre || buildSiteGenre(event, category);
   const location = toMapSafeVenueName(matchedVenue?.name || sd.location || sourceVenueHint(event.source_url, event.keyword) || '');
   const address = matchedVenue?.address || sd.address || '';
   const locationLink = sd.location_link || getVenueMapUrl(matchedVenue);
@@ -333,6 +337,7 @@ export function mapIngestorEvent(event: ScrapedLike, venues: VenueRecord[]): Map
     venue_name: location || null,
     location_link: locationLink || null,
     time: sd.times?.[0]?.split(/[~-]/)[0]?.trim() || '',
+    djs: graduation ? [graduation.displayDj] : (Array.isArray(sd.djs) ? sd.djs.filter(Boolean) : []),
   };
 }
 

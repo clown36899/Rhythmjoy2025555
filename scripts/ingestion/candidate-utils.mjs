@@ -5,6 +5,7 @@ import {
   getExcludedSourceReason,
 } from './collection-registry.mjs';
 import { getIngestionCandidateExclusionReason } from '../../server/cafe24/ingestion-candidate-policy.js';
+import { getGraduationEventMetadata } from '../../src/utils/graduationEvent.mjs';
 
 const activityLabels = {
   class: '강습',
@@ -1668,14 +1669,29 @@ export function collapseSocialCandidateVariants(candidates = []) {
 }
 
 export function prepareCandidate(rawCandidate, config = {}) {
-  const normalizedSourceUrl = normalizeSourceUrl(rawCandidate.source_url);
-  const taxonomy = inferCandidateTaxonomy({ ...rawCandidate, source_url: normalizedSourceUrl });
-  const siteEventFields = getSiteEventFields({ ...rawCandidate, source_url: normalizedSourceUrl }, taxonomy);
+  const graduation = getGraduationEventMetadata(rawCandidate);
+  const normalizedRawCandidate = graduation
+    ? {
+      ...rawCandidate,
+      structured_data: {
+        ...(rawCandidate.structured_data || {}),
+        category: graduation.category,
+        genre: graduation.genre,
+        activity_type: graduation.activity_type,
+        event_type: graduation.event_type,
+        group_id: graduation.group_id,
+        djs: [graduation.displayDj],
+      },
+    }
+    : rawCandidate;
+  const normalizedSourceUrl = normalizeSourceUrl(normalizedRawCandidate.source_url);
+  const taxonomy = inferCandidateTaxonomy({ ...normalizedRawCandidate, source_url: normalizedSourceUrl });
+  const siteEventFields = getSiteEventFields({ ...normalizedRawCandidate, source_url: normalizedSourceUrl }, taxonomy);
   const structuredData = normalizeCandidateVenueStructuredData({
-    ...stripVirtualTaxonomyFields(rawCandidate.structured_data || {}),
+    ...stripVirtualTaxonomyFields(normalizedRawCandidate.structured_data || {}),
     ...siteEventFields,
   });
-  const confirmedBenefit = classifyConfirmedBenefitEvent({ ...rawCandidate, structured_data: structuredData });
+  const confirmedBenefit = classifyConfirmedBenefitEvent({ ...normalizedRawCandidate, structured_data: structuredData });
   if (confirmedBenefit) {
     structuredData.benefit_eligible = true;
     structuredData.benefit_kind = confirmedBenefit;
@@ -1683,7 +1699,7 @@ export function prepareCandidate(rawCandidate, config = {}) {
     delete structuredData.benefit_eligible;
     delete structuredData.benefit_kind;
   }
-  const evergreenBenefit = isEvergreenBenefitCandidate({ ...rawCandidate, structured_data: structuredData }, config);
+  const evergreenBenefit = isEvergreenBenefitCandidate({ ...normalizedRawCandidate, structured_data: structuredData }, config);
   if (evergreenBenefit) {
     structuredData.ongoing_sale = true;
     structuredData.benefit_lifecycle = 'evergreen';
@@ -1696,17 +1712,17 @@ export function prepareCandidate(rawCandidate, config = {}) {
   }
   const date = String(structuredData.date || '').slice(0, 10);
   const identityDate = confirmedBenefit === 'season_pass' ? 'season-pass' : date;
-  const id = rawCandidate.id || makeDeterministicId(normalizedSourceUrl, identityDate, rawCandidate.id_suffix || '');
+  const id = normalizedRawCandidate.id || makeDeterministicId(normalizedSourceUrl, identityDate, normalizedRawCandidate.id_suffix || '');
   const shouldDiscardSocialPoster = taxonomy.activity_type === 'social'
-    && rawCandidate.poster_url
-    && hasBadPosterUrl(rawCandidate.poster_url);
+    && normalizedRawCandidate.poster_url
+    && hasBadPosterUrl(normalizedRawCandidate.poster_url);
   const candidate = {
-    ...rawCandidate,
+    ...normalizedRawCandidate,
     id,
     source_url: normalizedSourceUrl,
     ...(shouldDiscardSocialPoster ? { poster_url: '' } : {}),
     structured_data: structuredData,
-    is_collected: rawCandidate.is_collected || false,
+    is_collected: normalizedRawCandidate.is_collected || false,
   };
 
   return {

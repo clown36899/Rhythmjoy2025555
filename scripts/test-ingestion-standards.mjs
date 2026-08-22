@@ -53,6 +53,7 @@ import {
   shouldOpenInstagramCircuit,
 } from './ingestion/benefit-search-utils.mjs';
 import { benefitFieldsFromStructuredData } from '../server/cafe24/ingestion-benefit-fields.js';
+import { getGraduationEventMetadata } from '../src/utils/graduationEvent.mjs';
 import {
   collapseDateExpansionRows,
   dateExpansionSkipReason,
@@ -1050,6 +1051,61 @@ assert.equal(preparedSwing.candidate.structured_data.category, 'social');
 assert.equal(preparedSwing.candidate.structured_data.genre, '소셜');
 assert.equal(preparedSwing.candidate.structured_data.dance_scope, 'swing');
 assert.equal(preparedSwing.candidate.structured_data.activity_type, 'social');
+const normalizedGraduation = prepareCandidate(baseCandidate({
+  keyword: '올어바웃스윙 공식 인스타',
+  source_url: 'https://www.instagram.com/allaboutswing_official/p/DcPjIKwTWir/',
+  extracted_text: '98학기 SWING FESTIVAL 2026. 8. 22 마포구청 대강당 #졸업공연',
+  structured_data: {
+    title: '98학기 SWING FESTIVAL',
+    date: '2026-08-22',
+    location: '마포구청 대강당',
+    venue_name: '마포구청 대강당',
+    event_type: '행사',
+    activity_type: 'event',
+    genre: '기타',
+  },
+}), { today: TODAY });
+assert.equal(normalizedGraduation.validation.ok, true, 'a grounded graduation performance must remain a collectable manual-review candidate');
+assert.deepEqual(
+  {
+    category: normalizedGraduation.candidate.structured_data.category,
+    genre: normalizedGraduation.candidate.structured_data.genre,
+    activity_type: normalizedGraduation.candidate.structured_data.activity_type,
+    event_type: normalizedGraduation.candidate.structured_data.event_type,
+    group_id: normalizedGraduation.candidate.structured_data.group_id,
+    djs: normalizedGraduation.candidate.structured_data.djs,
+  },
+  {
+    category: 'social',
+    genre: '졸공',
+    activity_type: 'social',
+    event_type: '소셜',
+    group_id: 2,
+    djs: ['졸공 98회'],
+  },
+  'graduation events must use the social graduation lane and expose their grounded cohort as the calendar DJ label',
+);
+assert.equal(
+  evaluateAutoRegistrationReadiness(normalizedGraduation.candidate, { today: TODAY }).ready,
+  false,
+  'graduation normalization must not bypass the existing special-event manual-review gate',
+);
+assert.equal(
+  getGraduationEventMetadata({
+    extracted_text: 'DJ 후안과 함께하는 12회 졸업파티',
+    structured_data: { title: '스윙타운 졸업파티', djs: ['후안'] },
+  })?.displayDj,
+  '졸공 12회',
+  'an explicit graduation round must replace an ordinary DJ with the graduation display label',
+);
+assert.equal(
+  getGraduationEventMetadata({
+    extracted_text: '98학기 정규 강습 시간표',
+    structured_data: { title: '98학기 SWING FESTIVAL 준비반' },
+  }),
+  null,
+  'a cohort number without graduation evidence must not be reclassified',
+);
 const normalizedLegacySocialGenre = prepareCandidate(baseCandidate({
   structured_data: {
     title: '스윙타임 금요 소셜',
