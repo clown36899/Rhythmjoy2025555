@@ -108,7 +108,7 @@ describe('regular social reconciliation', () => {
     )).toEqual([]);
   });
 
-  it('suppresses a date when a closure exception was collected', () => {
+  it('materializes a linked closure occurrence when a closure exception was collected', () => {
     const generated = {
       id: 'regular-social:sample-fri:2026-07-31',
       date: '2026-07-31',
@@ -119,7 +119,91 @@ describe('regular social reconciliation', () => {
     const plan = planRegularSocialReconciliation({
       events: [generated],
       scrapedEvents: [{
+        id: 'sample-closure-20260731',
         source_id: 'sample',
+        source_url: 'https://example.com/social-closure',
+        exception_type: 'closure',
+        evidence: '7월 31일 금요 소셜은 내부 일정으로 휴무입니다.',
+        structured_data: {
+          date: '2026-07-31',
+          title: '샘플 금요 소셜 휴무',
+          location: '샘플홀',
+        },
+      }],
+      rules: [rule],
+      today: '2026-07-26',
+      horizonDays: 7,
+    });
+    expect(plan.removes).toEqual([generated]);
+    expect(plan.creates).toHaveLength(1);
+    expect(plan.creates[0]).toMatchObject({
+      id: generated.id,
+      title: '샘플 금요 소셜 휴무',
+      time: '',
+      location: '샘플홀',
+      dj_name: '휴무',
+      genre: '휴무',
+      link1: 'https://example.com/social-closure',
+      link_name1: '휴무 공지',
+      description: '7월 31일 금요 소셜은 내부 일정으로 휴무입니다.',
+      automation: {
+        generated_by: 'regular-social-rolling-v1',
+        exception_id: 'sample-closure-20260731',
+        exception_type: 'closure',
+      },
+    });
+  });
+
+  it('retains the same linked closure occurrence on reconciliation retry', () => {
+    const scrapedEvents = [{
+      id: 'sample-closure-20260731',
+      source_id: 'sample',
+      source_url: 'https://example.com/social-closure',
+      exception_type: 'closure',
+      evidence: '금요 소셜 휴무 공지',
+      structured_data: { date: '2026-07-31', title: '샘플 금요 소셜 휴무' },
+    }];
+    const first = planRegularSocialReconciliation({
+      events: [],
+      scrapedEvents,
+      rules: [rule],
+      today: '2026-07-26',
+      horizonDays: 7,
+    });
+    const second = planRegularSocialReconciliation({
+      events: first.creates,
+      scrapedEvents,
+      rules: [rule],
+      today: '2026-07-26',
+      horizonDays: 7,
+    });
+
+    expect(second.creates).toHaveLength(0);
+    expect(second.removes).toHaveLength(0);
+    expect(second.retained).toEqual(first.creates);
+  });
+
+  it('keeps an explicit social instead of adding a conflicting closure occurrence', () => {
+    const generated = {
+      id: 'regular-social:sample-fri:2026-07-31',
+      date: '2026-07-31',
+      title: rule.title,
+      location: rule.location,
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    const explicit = {
+      id: 'actual',
+      date: '2026-07-31',
+      title: 'DJ 메이저 샘플 소셜',
+      location: '샘플홀',
+      category: 'social',
+    };
+    const plan = planRegularSocialReconciliation({
+      events: [generated, explicit],
+      scrapedEvents: [{
+        id: 'stale-closure',
+        source_id: 'sample',
+        source_url: 'https://example.com/stale-closure',
         exception_type: 'closure',
         structured_data: { date: '2026-07-31' },
       }],
@@ -127,6 +211,7 @@ describe('regular social reconciliation', () => {
       today: '2026-07-26',
       horizonDays: 7,
     });
+
     expect(plan.creates).toHaveLength(0);
     expect(plan.removes).toEqual([generated]);
   });
@@ -173,6 +258,44 @@ describe('regular social reconciliation', () => {
     expect(plan.creates[0]).toMatchObject({
       dj_name: '메이저',
       description: 'DJ 메이저',
+    });
+  });
+
+  it('materializes an official closure with its announcement link', () => {
+    const officialRule = {
+      ...rule,
+      id: 'api:partner:friday',
+      officialApi: true,
+      sourceUrl: 'https://example.com/regular-social',
+    };
+    const plan = planRegularSocialReconciliation({
+      events: [],
+      rules: [],
+      officialRules: [officialRule],
+      officialExceptions: [{
+        ruleId: officialRule.id,
+        externalId: 'closed-20260731',
+        date: '2026-07-31',
+        type: 'closure',
+        sourceUrl: 'https://example.com/closed-20260731',
+        description: '내부 일정으로 휴무합니다.',
+      }],
+      today: '2026-07-26',
+      horizonDays: 7,
+    });
+
+    expect(plan.creates).toHaveLength(1);
+    expect(plan.creates[0]).toMatchObject({
+      title: '샘플 금요 소셜 휴무',
+      dj_name: '휴무',
+      genre: '휴무',
+      link1: 'https://example.com/closed-20260731',
+      link_name1: '휴무 공지',
+      description: '내부 일정으로 휴무합니다.',
+      automation: {
+        exception_id: 'closed-20260731',
+        exception_type: 'closure',
+      },
     });
   });
 

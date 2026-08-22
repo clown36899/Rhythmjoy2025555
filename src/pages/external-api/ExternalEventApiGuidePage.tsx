@@ -986,7 +986,7 @@ export default function ExternalEventApiGuidePage() {
                   <tr><td>모든 장르의 날짜가 정해진 일정</td><td><code>POST /events</code></td><td>해당 날짜의 개별 일정 등록</td></tr>
                   <tr><td>매주 반복하는 정규 소셜의 기본 일정</td><td><code>POST /regular-socials</code></td><td>앞으로 90일의 기본 일정 생성</td></tr>
                   <tr><td>특정 날짜의 DJ·시간·장소 변경</td><td><code>POST /regular-socials/{'{규칙 ID}'}/exceptions</code></td><td>해당 날짜만 <code>override</code></td></tr>
-                  <tr><td>특정 날짜 휴무·취소</td><td><code>POST /regular-socials/{'{규칙 ID}'}/exceptions</code></td><td>해당 날짜를 <code>closure</code>로 숨김</td></tr>
+                  <tr><td>특정 날짜 휴무·취소</td><td><code>POST /regular-socials/{'{규칙 ID}'}/exceptions</code></td><td>해당 날짜를 공지 링크가 있는 <code>휴무</code> 회차로 표시</td></tr>
                   <tr><td>포스터가 있는 한 회차·졸공·특별 소셜</td><td><code>POST /events</code></td><td>기본 일정 대신 공식 개별 일정 노출</td></tr>
                 </tbody>
               </table>
@@ -1029,7 +1029,7 @@ export default function ExternalEventApiGuidePage() {
 
             <h3 className="EAG-subheading">3단계 · 휴무는 해당 날짜를 closure</h3>
             <CodeBlock label="cURL · 8월 14일 휴무" code={regularSocialClosureExample} />
-            <p><code>date</code>에는 실제 반복 일정이 열릴 날짜를 넣습니다. <code>closure</code>가 등록되면 그 날짜의 기본 일정만 숨기고 다음 주 일정은 유지합니다.</p>
+            <p><code>date</code>에는 실제 반복 일정이 열릴 날짜를 넣습니다. <code>closure</code>가 등록되면 그 날짜는 캘린더와 리스트에 <code>휴무</code>로 남고 <code>source_url</code>은 상세 화면의 휴무 공지 링크가 됩니다. 다음 주 일정은 유지합니다.</p>
 
             <h3 className="EAG-subheading">4단계 · 포스터가 있는 회차는 기존 /events로 대체</h3>
             <CodeBlock label="cURL · DJ와 포스터가 확정된 한 회차" code={datedSocialWithPosterExample} />

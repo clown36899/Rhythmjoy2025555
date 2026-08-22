@@ -635,7 +635,7 @@ curl -X POST 'https://swingenjoy.com/api/external/v1/regular-socials/friday-soci
   }'
 ```
 
-해당 날짜의 기본 일정만 숨기며 다음 주 반복 일정은 유지합니다.
+해당 날짜는 캘린더와 리스트에서 사라지지 않고 `휴무` 회차로 표시됩니다. `source_url`은 상세 화면의 `휴무 공지` 링크로 연결되며 다음 주 반복 일정은 그대로 유지됩니다.
 
 ### 11.4 DJ와 포스터가 모두 확정된 한 회차
 

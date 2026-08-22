@@ -84,7 +84,29 @@ function exceptionInfo(row) {
   const date = String(structured.date || row?.date || '').slice(0, 10);
   const sourceId = String(row?.source_id || structured.source_id || '');
   if (!date || !['closure', 'recurring_closure'].includes(type)) return null;
-  return { date, sourceId };
+  return {
+    id: String(row?.id || ''),
+    date,
+    sourceId,
+    type,
+    title: structured.title || row?.title || null,
+    location: structured.location || row?.location || null,
+    venueName: structured.venue_name || row?.venue_name || null,
+    sourceUrl: row?.source_url || structured.source_url || null,
+    description: row?.evidence || structured.description || row?.description || null,
+    publishedAt: row?.published_at || null,
+    updatedAt: row?.updated_at || null,
+  };
+}
+
+function collectedClosureForRule(exceptions, date, sourceId) {
+  return exceptions
+    .filter((item) => item.date === date && item.sourceId === sourceId)
+    .sort((left, right) => {
+      const leftKey = `${left.updatedAt || ''}\0${left.publishedAt || ''}\0${left.id || ''}`;
+      const rightKey = `${right.updatedAt || ''}\0${right.publishedAt || ''}\0${right.id || ''}`;
+      return rightKey.localeCompare(leftKey);
+    })[0] || null;
 }
 
 function sameRegularSlot(left, right) {
@@ -150,19 +172,31 @@ export function planRegularSocialReconciliation({
       const id = `regular-social:${rule.id}:${key}`;
       consideredIds.add(id);
       const generated = existingGenerated.get(id);
-      const closed = exceptions.some((item) => item.date === key && item.sourceId === rule.sourceId);
+      const collectedClosure = collectedClosureForRule(exceptions, key, rule.sourceId);
       const apiException = apiExceptions.find((item) => item.date === key && item.ruleId === rule.id);
       const explicit = explicitEvents.some((event) => eventDate(event) === key && matchesRule(event, rule));
 
-      if (apiException?.type === 'closure' || closed || explicit) {
+      if (explicit) {
         if (generated) removes.push(generated);
         continue;
       }
-      const override = apiException?.type === 'override' ? apiException : null;
-      const desiredTitle = override?.title || rule.title;
-      const desiredTime = override?.time || rule.time;
-      const desiredLocation = override?.location || rule.location;
-      const desiredDjName = override?.djName || '미정';
+      const closure = apiException?.type === 'closure' ? apiException : collectedClosure;
+      const override = !closure && apiException?.type === 'override' ? apiException : null;
+      const desiredTitle = closure?.title || (closure ? `${rule.title} 휴무` : override?.title || rule.title);
+      const desiredTime = closure ? '' : override?.time || rule.time;
+      const desiredLocation = closure?.location || override?.location || rule.location;
+      const desiredVenueName = closure?.venueName || closure?.location
+        || override?.venueName || override?.location || rule.location;
+      const desiredDjName = closure ? '휴무' : override?.djName || '미정';
+      const desiredGenre = closure ? '휴무' : '소셜';
+      const desiredExceptionId = closure?.externalId || closure?.id || override?.externalId || '';
+      const desiredExceptionType = closure ? 'closure' : override ? 'override' : '';
+      const desiredSourceUrl = closure?.sourceUrl || override?.sourceUrl || rule.sourceUrl || '';
+      const desiredLinkName = desiredSourceUrl ? (closure ? '휴무 공지' : '공식 안내') : '';
+      const desiredDescription = closure
+        ? closure.description || `${key} ${rule.title} 휴무 공지입니다. 자세한 내용은 공식 안내를 확인해주세요.`
+        : override?.description
+          || (override?.djName ? `DJ ${override.djName}` : 'DJ 미정 · 정규 소셜 일정입니다. 공식 공지 확인 시 갱신됩니다.');
       const hasGeneratedPoster = Boolean(
         generated?.image
         || generated?.image_medium
@@ -173,8 +207,14 @@ export function planRegularSocialReconciliation({
         generated.title !== desiredTitle
         || generated.time !== desiredTime
         || generated.location !== desiredLocation
+        || generated.venue_name !== desiredVenueName
         || String(generated.dj_name || '') !== desiredDjName
-        || String(generated.automation?.exception_id || '') !== String(override?.externalId || '')
+        || String(generated.genre || '') !== desiredGenre
+        || String(generated.link1 || '') !== desiredSourceUrl
+        || String(generated.link_name1 || '') !== desiredLinkName
+        || String(generated.description || '') !== desiredDescription
+        || String(generated.automation?.exception_id || '') !== desiredExceptionId
+        || String(generated.automation?.exception_type || '') !== desiredExceptionType
         || hasGeneratedPoster
       );
       if (generated && !generatedNeedsUpdate) {
@@ -195,7 +235,7 @@ export function planRegularSocialReconciliation({
         event_dates: [key],
         time: desiredTime,
         location: desiredLocation,
-        venue_name: override?.venueName || override?.location || rule.location,
+        venue_name: desiredVenueName,
         address: venueTemplate?.address || desiredLocation,
         location_link: venueTemplate?.location_link || '',
         venue_id: venueTemplate?.venue_id || null,
@@ -203,22 +243,22 @@ export function planRegularSocialReconciliation({
         category: 'social',
         activity_type: 'social',
         dance_scope: 'swing',
-        genre: '소셜',
+        genre: desiredGenre,
         image: '',
         image_full: '',
         image_medium: '',
         image_thumbnail: '',
-        link1: override?.sourceUrl || rule.sourceUrl || '',
-        link_name1: override?.sourceUrl || rule.sourceUrl ? '공식 안내' : '',
-        description: override?.description
-          || (override?.djName ? `DJ ${override.djName}` : 'DJ 미정 · 정규 소셜 일정입니다. 공식 공지 확인 시 갱신됩니다.'),
+        link1: desiredSourceUrl,
+        link_name1: desiredLinkName,
+        description: desiredDescription,
         organizer: 'Swing Enjoy',
         automation: {
           generated_by: GENERATED_BY,
           rule_id: rule.id,
           source_id: rule.sourceId,
           official_api: Boolean(rule.officialApi),
-          exception_id: override?.externalId || null,
+          exception_id: desiredExceptionId || null,
+          exception_type: desiredExceptionType || null,
           generated_at: new Date().toISOString(),
         },
         created_at: new Date().toISOString(),

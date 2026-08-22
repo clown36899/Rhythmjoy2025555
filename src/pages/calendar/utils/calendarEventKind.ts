@@ -6,6 +6,7 @@ export type CalendarEventKindInput = {
   description?: string | null;
   category?: string | null;
   activity_type?: string | null;
+  event_type?: string | null;
   genre?: string | null;
   group_id?: string | number | null;
   extracted_text?: string | null;
@@ -13,6 +14,7 @@ export type CalendarEventKindInput = {
     title?: string | null;
     description?: string | null;
     event_type?: string | null;
+    exception_type?: string | null;
     category?: string | null;
     genre?: string | null;
     djs?: unknown;
@@ -20,6 +22,9 @@ export type CalendarEventKindInput = {
   djs?: unknown;
   dj_names?: unknown;
   dj_name?: unknown;
+  automation?: {
+    exception_type?: string | null;
+  } | null;
 };
 
 export const normalizeCalendarEventKindPart = (value?: string | null) => (
@@ -76,6 +81,27 @@ const getCalendarGraduationDisplayText = (event: CalendarEventKindInput) => {
   return graduation ? '졸공' : '';
 };
 
+const isCalendarSocialClosureEvent = (event: CalendarEventKindInput) => {
+  const values = [
+    event.automation?.exception_type,
+    event.structured_data?.exception_type,
+    event.structured_data?.event_type,
+    event.event_type,
+    event.genre,
+  ].map((value) => normalizeCalendarEventKindPart(value));
+
+  return values.some((value) => (
+    value === 'closure'
+    || value === 'recurring_closure'
+    || /^(?:소셜\s*)?(?:휴무|휴관|휴업)$/.test(value)
+  ));
+};
+
+export const getCalendarSocialSpecialLabel = (event: CalendarEventKindInput) => {
+  if (isCalendarSocialClosureEvent(event)) return '휴무';
+  return getCalendarGraduationDisplayText(event);
+};
+
 const getCalendarSocialDjText = (event: CalendarEventKindInput) => {
   const rawDjs = event.structured_data?.djs
     ?? event.djs
@@ -104,8 +130,8 @@ const getCalendarSocialDjText = (event: CalendarEventKindInput) => {
 };
 
 export const getCalendarSocialDisplayText = (event: CalendarEventKindInput) => {
-  const graduationText = getCalendarGraduationDisplayText(event);
-  if (graduationText) return graduationText;
+  const specialLabel = getCalendarSocialSpecialLabel(event);
+  if (specialLabel) return specialLabel;
 
   const djText = getCalendarSocialDjText(event);
   return djText ? `DJ ${djText}` : '';

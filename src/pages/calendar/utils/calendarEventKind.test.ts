@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getCalendarSocialDisplayText,
+  getCalendarSocialSpecialLabel,
   isCalendarClassLikeCategory,
   isCalendarSocialLikeEvent,
 } from './calendarEventKind';
@@ -61,6 +62,19 @@ describe('calendar event kind detection', () => {
       category: 'social',
       genre: '졸공',
     })).toBe('졸공');
+  });
+
+  it('shows social closures as a plain closure label without a DJ prefix', () => {
+    const closure = {
+      title: '경성홀 일요 소셜 휴무',
+      category: 'social',
+      genre: '휴무',
+      dj_name: '휴무',
+      automation: { exception_type: 'closure' },
+    };
+
+    expect(getCalendarSocialSpecialLabel(closure)).toBe('휴무');
+    expect(getCalendarSocialDisplayText(closure)).toBe('휴무');
   });
 
   it('preserves ordinary social DJs and keeps undetermined DJs hidden', () => {
