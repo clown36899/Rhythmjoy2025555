@@ -37,7 +37,7 @@ describe('calendar event kind detection', () => {
     expect(isCalendarClassLikeCategory('regular')).toBe(true);
   });
 
-  it('uses a stored graduation cohort in the calendar DJ slot', () => {
+  it('hides a stored graduation cohort in the calendar DJ slot', () => {
     expect(getCalendarSocialDisplayText({
       title: '네오 8/23 졸업파티',
       description: 'NEO SWING 140기 7/5~8/16 강습, 8/23 졸업파티',
@@ -45,7 +45,14 @@ describe('calendar event kind detection', () => {
       genre: '졸공',
       activity_type: 'social',
       group_id: 2,
-    })).toBe('졸공 140회');
+    })).toBe('졸공');
+
+    expect(getCalendarSocialDisplayText({
+      title: 'DJ 졸공 98회 | 98학기 SWING FESTIVAL',
+      category: 'social',
+      genre: '졸공',
+      djs: ['졸공 98회'],
+    })).toBe('졸공');
   });
 
   it('shows a graduation label even when a legacy event has no cohort', () => {

@@ -73,7 +73,7 @@ const getCalendarGraduationDisplayText = (event: CalendarEventKindInput) => {
       event.structured_data?.description,
     ].filter(Boolean).join('\n'),
   });
-  return graduation?.displayDj || '';
+  return graduation ? '졸공' : '';
 };
 
 const getCalendarSocialDjText = (event: CalendarEventKindInput) => {
