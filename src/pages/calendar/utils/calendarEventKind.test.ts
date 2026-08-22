@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from './calendarEventKind';
+import {
+  getCalendarSocialDisplayText,
+  isCalendarClassLikeCategory,
+  isCalendarSocialLikeEvent,
+} from './calendarEventKind';
 
 describe('calendar event kind detection', () => {
   it('lets an explicit class category override stale social fields', () => {
@@ -31,5 +35,36 @@ describe('calendar event kind detection', () => {
   it('treats club and regular lessons as class-like', () => {
     expect(isCalendarClassLikeCategory('club')).toBe(true);
     expect(isCalendarClassLikeCategory('regular')).toBe(true);
+  });
+
+  it('uses a stored graduation cohort in the calendar DJ slot', () => {
+    expect(getCalendarSocialDisplayText({
+      title: '네오 8/23 졸업파티',
+      description: 'NEO SWING 140기 7/5~8/16 강습, 8/23 졸업파티',
+      category: 'social',
+      genre: '졸공',
+      activity_type: 'social',
+      group_id: 2,
+    })).toBe('졸공 140회');
+  });
+
+  it('shows a graduation label even when a legacy event has no cohort', () => {
+    expect(getCalendarSocialDisplayText({
+      title: '여름 졸업공연',
+      category: 'social',
+      genre: '졸공',
+    })).toBe('졸공');
+  });
+
+  it('preserves ordinary social DJs and keeps undetermined DJs hidden', () => {
+    expect(getCalendarSocialDisplayText({
+      title: '경성홀 토요 소셜',
+      category: 'social',
+      djs: ['DJ 메이저', 'DJ 미정'],
+    })).toBe('DJ 메이저');
+    expect(getCalendarSocialDisplayText({
+      title: 'DJ 미정 | 해피홀 일요 소셜',
+      category: 'social',
+    })).toBe('');
   });
 });

@@ -18,6 +18,8 @@ import {
   getCalendarLayoutMetrics,
 } from "../utils/calendarLayoutMetrics";
 import {
+  cleanCalendarDisplayText,
+  getCalendarSocialDisplayText,
   isCalendarClassLikeCategory,
   isCalendarSocialLikeEvent,
   normalizeCalendarEventKindPart,
@@ -164,42 +166,6 @@ const getCalendarEventToneClass = (event: AppEvent) => {
         : 'calendar-event-tone-amber';
 };
 
-const cleanCalendarDisplayText = (value?: string | null) => (
-  value?.trim().replace(/\s+/g, " ") || ""
-);
-
-const isUndeterminedCalendarDj = (value: string) => (
-  /^(?:DJ\s*)?미정$/i.test(cleanCalendarDisplayText(value))
-);
-
-const getCalendarSocialDjText = (event: AppEvent) => {
-  const rawDjs = (event as any).structured_data?.djs
-    ?? (event as any).djs
-    ?? (event as any).dj_names
-    ?? (event as any).dj_name;
-
-  const djs = Array.isArray(rawDjs)
-    ? rawDjs
-    : typeof rawDjs === "string"
-      ? rawDjs.split(/[,/·ㆍ&]+/)
-      : [];
-  const cleanDjs = djs
-    .map((dj) => cleanCalendarDisplayText(String(dj)).replace(/^DJ\s*/i, ""))
-    .filter((dj) => Boolean(dj) && !isUndeterminedCalendarDj(dj));
-
-  if (cleanDjs.length > 0) return cleanDjs.join(", ");
-
-  const title = cleanCalendarDisplayText(event.title);
-  const match = title.match(/(?:^|[\s|·ㆍ•([{-])DJ\s*([^|•)\]}{}\n\r]+?)(?=\s*(?:[|•)\]}{}]|소셜|공지|$))/i)
-    || title.match(/DJ\s*([^|•)\]}{}\n\r]+?)(?=\s*(?:[|•)\]}{}]|소셜|공지|$))/i)
-    || title.match(/디제이\s*([^|•)\]}{}\n\r]+?)(?=\s*(?:[|•)\]}{}]|소셜|공지|$))/i);
-  const name = cleanCalendarDisplayText(match?.[1])
-    .replace(/^DJ\s*/i, "")
-    .replace(/\s*(월요|화요|수요|목요|금요|토요|일요)\s*$/g, "");
-
-  return name && !isUndeterminedCalendarDj(name) ? name : "";
-};
-
 const estimateCalendarSocialTextUnits = (value: string) => (
   Array.from(cleanCalendarDisplayText(value)).reduce((sum, char) => {
     if (/\s/.test(char)) return sum + 0.32;
@@ -315,8 +281,7 @@ const CalendarCell = memo(({
     const locationText = event.venue_name || event.place_name || event.location || '';
     const toneClass = getCalendarEventToneClass(event);
     const isLessonEvent = isCalendarClassLikeCategory(event.category);
-    const socialDjText = isSocialEvent ? getCalendarSocialDjText(event) : "";
-    const socialDjDisplayText = isSocialEvent && socialDjText ? `DJ ${socialDjText}` : "";
+    const socialDjDisplayText = isSocialEvent ? getCalendarSocialDisplayText(event) : "";
     const socialTextStyle = isSocialEvent
       ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
       : undefined;

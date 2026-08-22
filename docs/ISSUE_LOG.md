@@ -2173,3 +2173,15 @@
 - 검증: 광고의 `created_at`·`date` 두 정렬에서 오늘 정규강습도 일반 행사·원데이·동호회 뒤로 가고, 원데이는 정상 우선순위에 남는 회귀를 추가했다. 장르 저장 클릭이 상위 오버레이로 전파되지 않는 컴포넌트 회귀를 추가했다. 졸공 매핑·자동등록·정규 소셜 인접 회귀를 포함한 대상 Vitest 67건, 수집 표준 검사와 프로덕션 빌드가 통과했다. 커밋 `58e2caa8`을 푸시한 뒤 Cafe24 공개 빌드 `1787407034529` (`2026-08-22T13:57:17.907Z`)을 배포했고 외부 헬스가 정상이다. 운영 Chromium에서 전역 검색 입력값 `졸공`이 흰 배경과 짙은 글자·커서로 표시되고, 캘린더 검색의 졸공 결과 선택 뒤 URL이 `/calendar`에 남은 채 상세가 열리는 것을 확인했다. 운영 메인 광고 DOM은 12개 후보 중 명시적 정규강습 두 건을 11·12번째에 배치했다.
 - 관련 커밋: `58e2caa8`
 - 관련 파일: `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `src/pages/v2/components/EventDetailModal.tsx`, `src/pages/v2/components/EventEditBottomSheet.tsx`, `src/pages/v2/components/EventEditBottomSheet.test.tsx`, `src/pages/calendar/page.tsx`, `src/components/GlobalSearchModal.css`, `src/pages/v2/components/NewEventsBanner.tsx`
+
+## 2026-08-23 캘린더 졸공 DJ 슬롯 공백
+
+- 상태: 공통 표시 원인 수정·회귀 검증 완료, 운영 배포 준비
+- 현상: 2026-08-23 해피홀의 `네오 8/23 졸업파티`는 이미 자동등록됐고 운영 API도 `category=social`, `genre=졸공`, `group_id=2`를 반환했지만 월간 캘린더 카드에는 장소 `해피홀`만 보이고 그 아래 DJ 슬롯이 비었다.
+- 판정 경로: 운영 이벤트 조회 → `FullEventCalendar`의 소셜 카드 판정 → 구조화 `djs` 또는 제목의 `DJ ...`만 추출 → 과거 등록본에는 두 값이 없어 빈 문자열 생성 → 캘린더 두 번째 줄 공백이었다. 수집·후보 판정·자동등록 실패가 아니었다.
+- 기존 보호 목적: 일반 소셜은 구조화 DJ를 우선하고 제목을 레거시 보조 근거로 사용하며, `DJ 미정`은 캘린더에서 숨긴다. 졸공 공통 판정기는 명시적 졸업공연·졸업파티·졸공 근거가 있을 때만 회차를 `졸공 N회`로 만든다.
+- 근본 원인: 공통 졸공 판정기는 수집·관리자 등록 경로에만 연결돼 있었고 월간 캘린더 표시 경로는 이를 사용하지 않았다. 따라서 배포 전에 저장돼 `djs`가 없는 정상 졸공 일정은 장르가 정확해도 표시할 값이 없었다.
+- 수정: 기존 `calendarEventKind` 표시 책임에 소셜 두 번째 줄 계산을 모으고 기존 졸공 판정기를 재사용했다. 졸공은 저장된 설명에서 회차를 찾아 `졸공 N회`, 회차가 없으면 `졸공`을 반환하며 `DJ` 접두어를 붙이지 않는다. 일반 소셜만 기존처럼 `DJ 이름`으로 표시한다.
+- 유지한 불변조건: 수집 후보·자동등록·운영 이벤트 원장은 변경하지 않는다. 졸공이 아닌 일정은 회차 숫자가 있어도 바꾸지 않고, 일반 DJ 우선순위와 `DJ 미정` 숨김을 유지한다. 특정 이벤트 ID나 해피홀 전용 예외, 새 필드·테이블은 추가하지 않았다.
+- 검증: 실제 운영 데이터와 같은 `네오 8/23 졸업파티 / NEO SWING 140기 / social / 졸공`이 `졸공 140회`로 표시되고, 회차 없는 졸공은 `졸공`, 일반 소셜은 `DJ 메이저`, 미정은 공백으로 남는 회귀를 추가했다. 캘린더 종류·레이아웃 Vitest 10건, 대상 ESLint 오류 0건과 Cafe24 프로덕션 빌드가 통과했다.
+- 관련 파일: `src/pages/calendar/utils/calendarEventKind.ts`, `src/pages/calendar/utils/calendarEventKind.test.ts`, `src/pages/calendar/components/FullEventCalendar.tsx`
