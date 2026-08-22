@@ -92,7 +92,7 @@ fi
 REMOTE_ENTRY_DIR="${APP_DIR}/.deploy-entry-${DEPLOY_BUILD_ID}"
 
 ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
-mkdir -p '${APP_DIR}/dist/assets' '${APP_DIR}/dist-cafe24' '${APP_DIR}/server/cafe24' '${APP_DIR}/scripts' '${APP_DIR}/deploy/cafe24/cron' /etc/cron.d '${REMOTE_ENTRY_DIR}'
+mkdir -p '${APP_DIR}/dist/assets' '${APP_DIR}/dist-cafe24' '${APP_DIR}/server/cafe24' '${APP_DIR}/scripts' '${APP_DIR}/src/utils' '${APP_DIR}/deploy/cafe24/cron' /etc/cron.d '${REMOTE_ENTRY_DIR}'
 rm -f '${REMOTE_ENTRY_DIR}/index.html' '${REMOTE_ENTRY_DIR}/service-worker.js' '${REMOTE_ENTRY_DIR}/version.json'"
 
 RSYNC_LOG_DIR="$(mktemp -d)"
@@ -135,6 +135,7 @@ rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/seed-notification-reset-notice.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi --checksum --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" scripts/ingestion/ "${TARGET}:${APP_DIR}/scripts/ingestion/" | tee -a "${scripts_log}"
+rsync -azi --checksum -e "${RSYNC_SSH}" src/utils/graduationEvent.mjs "${TARGET}:${APP_DIR}/src/utils/" | tee -a "${scripts_log}"
 rsync -azi --checksum -e "${RSYNC_SSH}" package.json package-lock.json "${TARGET}:${APP_DIR}/" | tee "${package_log}"
 rsync -azi --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" deploy/cafe24/apache/ "${TARGET}:${APACHE_CONF_DIR}/" | tee "${apache_log}"
 rsync -azi -e "${RSYNC_SSH}" deploy/cafe24/cron/swingenjoy-notifications "${TARGET}:${APP_DIR}/deploy/cafe24/cron/" | tee "${cron_log}"
@@ -244,6 +245,7 @@ if [ \"\$installed_package_lock_hash\" != '${package_lock_hash}' ]; then
   printf '%s\n' '${package_lock_hash}' > .installed-package-lock.sha256
   package_changed=true
 fi
+'${NODE_BIN_DIR}/node' -e \"import('${APP_DIR}/scripts/ingestion/candidate-utils.mjs')\"
 if [ '${restart_required}' = 'true' ] || [ \"\${package_changed:-false}\" = 'true' ]; then
   echo 'Restarting ${SERVICE}: server-side files changed.'
   systemctl restart '${SERVICE}'
