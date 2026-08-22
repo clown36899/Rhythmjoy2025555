@@ -53,12 +53,19 @@ export function publicationDate(candidate = {}) {
   const labeledDate = normalizedPublicationDate(labeled);
   if (labeledDate) return labeledDate;
 
+  const platformLabeled = extractedText.match(
+    /(?:님의\s*게시물|게시물|posted\s+by).{0,240}?(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/is,
+  );
+  if (platformLabeled) {
+    return normalizedPublicationDate(`${platformLabeled[1]}-${platformLabeled[2]}-${platformLabeled[3]}`);
+  }
+
   // Facebook/Instagram text snapshots put the platform publication date in
   // the short account header before the post body. Restrict the fallback to
   // an early standalone line so event dates deeper in the body stay untouched.
   const header = extractedText.slice(0, 480);
   const platformHeaderDate = header.match(
-    /(?:^|\n)\s*(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일(?:\s*[·|]\s*)?(?=\n|$)/m,
+    /(?:^|\n)\s*(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/m,
   );
   return platformHeaderDate
     ? normalizedPublicationDate(`${platformHeaderDate[1]}-${platformHeaderDate[2]}-${platformHeaderDate[3]}`)

@@ -2047,6 +2047,15 @@ assert.equal(
 assert.equal(
   getIngestionCandidateExclusionReason({
     discovery_source_type: 'benefit_search',
+    extracted_text: 'SwingTime Bar 1/30 무료워크샵 로그인 SwingTime Bar님의 게시물 SwingTime Bar 2018년 1월 29일 · 1/30 무료워크샵',
+    structured_data: { title: 'SwingTime Bar (SwingDance Club)', date: '2027-01-01' },
+  }, { today: '2026-08-23' }),
+  'event date is implausibly far after source publication: 2018-01-29 -> 2027-01-01',
+  'collapsed Facebook text must retain its labeled platform publication date',
+);
+assert.equal(
+  getIngestionCandidateExclusionReason({
+    discovery_source_type: 'benefit_search',
     published_at: '26.07.23',
     structured_data: { title: '원데이 클래스', date: '2027-12-01' },
   }, { today: '2026-08-23' }),
