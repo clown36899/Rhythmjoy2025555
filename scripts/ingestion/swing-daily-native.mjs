@@ -889,8 +889,8 @@ function inferVenueDetails(text = '', source) {
 
 function inferDjs(text = '') {
   const djs = [];
-  const explicitLabelMatches = [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이))?\s*[:：]\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ★☆✦✧♥♡❤💙💛💜]{1,40})/gi)];
-  const broadLabelMatches = explicitLabelMatches.length ? [] : [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이)(?=\s|[:：♥♡❤]))?\s*[:：]?\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ★☆✦✧♥♡❤💙💛💜]{1,40})/gi)];
+  const explicitLabelMatches = [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이))?\s*[:：]\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,40})/gi)];
+  const broadLabelMatches = explicitLabelMatches.length ? [] : [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이)(?=\s|[:：♥♡❤]))?\s*[:：]?\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,40})/gi)];
   for (const match of explicitLabelMatches.length ? explicitLabelMatches : broadLabelMatches) {
     const value = stripRepeatedDjContext(stripNaverCafeMemberPrefix(compactText(match[1]))
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
@@ -2215,10 +2215,13 @@ async function buildCandidatesFromText({
     log(`mixed closure/social ${source.id}: preserving ${preclassifiedSocialScheduleItems.length} explicit dated DJ schedule(s)`);
   }
   const blockedKeywordReason = getBlockedKeywordReason(`${title}\n${cleanText}\n${sourceUrl}`);
-  if (blockedKeywordReason) {
+  if (blockedKeywordReason && !preclassifiedSocialScheduleItems.length) {
     result.skipped += 1;
     log(`skip ${source.id}: ${blockedKeywordReason}`);
     return [];
+  }
+  if (blockedKeywordReason) {
+    log(`mixed excluded/social ${source.id}: preserving ${preclassifiedSocialScheduleItems.length} explicit dated social schedule(s)`);
   }
 
   const posterUrlList = unique([...posterUrls, posterUrl].filter(Boolean))
@@ -2269,7 +2272,7 @@ async function buildCandidatesFromText({
     result.issues.push(`${source.id}: poster missing`);
     return [];
   }
-  const venueResolution = inferVenueDetails(cleanText, source);
+  const venueResolution = inferVenueDetails(rawText, source);
   const venue = venueResolution.venue;
   const djs = inferDjs(cleanText);
   const candidateTitle = makeCandidateTitle({ source, rawTitle: title, rawText, cleanText, eventType, djs });

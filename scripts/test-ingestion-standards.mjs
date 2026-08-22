@@ -393,6 +393,32 @@ assert.equal(
   true,
   'complete date/DJ pairs must take precedence over post-wide class wording',
 );
+const kyungsungMixedClosureSections = extractDatedDjSections({
+  today: '2026-08-22',
+  text: `This Week at Kyungsung Hall
+📅 8/22 (토)
+🎧 DJ : 제니스
+📅 8/25 (화)
+🎧 DJ : BBB
+📅 9/1 (화)
+🎧 DJ : 해림
+📌 휴관 안내
+8/29 (토) ~ 8/30 (일)
+올어바웃스윙 썸머 페스티벌 MT로 휴관합니다.`,
+});
+assert.deepEqual(
+  kyungsungMixedClosureSections.map(({ date, segment }) => ({
+    date,
+    dj: segment.match(/DJ\s*:\s*([A-Za-z가-힣]+)/i)?.[1] || '',
+    includesMtClosure: /\bMT\b/i.test(segment),
+  })),
+  [
+    { date: '2026-08-22', dj: '제니스', includesMtClosure: false },
+    { date: '2026-08-25', dj: 'BBB', includesMtClosure: false },
+    { date: '2026-09-01', dj: '해림', includesMtClosure: false },
+  ],
+  'a mixed closure notice must keep dated social sections scoped away from the later MT closure',
+);
 assert.equal(
   isHighConfidenceDatedSocialSchedule([
     { date: '2026-08-02', djs: ['훔머'] },
@@ -1373,6 +1399,19 @@ const malformedDj = prepareCandidate(baseCandidate({
 assert.equal(malformedDj.validation.ok, false);
 assert.ok(malformedDj.validation.errors.some((error) => error.includes('DJ value')));
 
+const malformedSurrogateDj = prepareCandidate(baseCandidate({
+  extracted_text: '8월 22일 경성홀 토요 소셜 DJ 제니스',
+  structured_data: {
+    title: '경성홀 토요 소셜',
+    date: '2026-08-22',
+    location: '경성홀',
+    activity_type: 'social',
+    djs: ['제니스 \uD83D'],
+  },
+}), { today: '2026-08-22' });
+assert.equal(malformedSurrogateDj.validation.ok, false, 'an incomplete emoji surrogate must never be persisted as part of a DJ name');
+assert.ok(malformedSurrogateDj.validation.errors.some((error) => error.includes('DJ value')));
+
 const koreanDjParticleMisparse = prepareCandidate(baseCandidate({
   extracted_text: '8월 14일 해피홀 금요 소셜 DJ는 메이저님입니다',
   structured_data: {
@@ -1999,6 +2038,24 @@ assert.deepEqual(
   }),
   { venue: '', provenance: 'explicit_variable' },
   'a post that explicitly says venues vary must not inherit a fixed source venue',
+);
+assert.deepEqual(
+  resolveSourceVenueEvidence({
+    text: '📅 2026. 8. 22 (토)\n📍 마포구청 대강당\n⏰ TIMETABLE',
+    sourceVenue: '',
+    aliases: nativeVenueAliases,
+  }),
+  { venue: '마포구청 대강당', provenance: 'source_text' },
+  'an explicitly pin-labeled venue must be retained even when it is not in the venue alias registry',
+);
+assert.deepEqual(
+  resolveSourceVenueEvidence({
+    text: '98학기 졸업공연\n장소: 마포구청 대강당',
+    sourceVenue: '경성홀',
+    aliases: nativeVenueAliases,
+  }),
+  { venue: '마포구청 대강당', provenance: 'source_text' },
+  'a post-level explicit venue must override an unrelated source default instead of silently inheriting it',
 );
 assert.equal(validateCandidate(baseCandidate({
   extracted_text: '스윙 입문 강습 시작일 6월 5일 금요일 20:00. 신청은 5월 29일까지.',

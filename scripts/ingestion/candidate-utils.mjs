@@ -328,6 +328,29 @@ function hasExplicitVenueAliasContext(text = '', matchedAlias = '') {
 
 const variableVenueEvidenceRe = /(?:장소|강습장|수업장)\s*[:：-]?\s*(?:강습|수업|클래스|프로그램)?\s*(?:별|마다)\s*(?:상이|다름|별도)|(?:강습|수업|클래스|프로그램)\s*(?:별|마다)\s*(?:장소|강습장|수업장)\s*(?:상이|다름|별도)|장소\s*(?:추후|별도)\s*(?:공지|안내)/i;
 
+function explicitVenueNameFromText(text = '') {
+  const value = String(text || '').normalize('NFKC');
+  const patterns = [
+    /(?:^|[\n\r])\s*(?:📍\s*)?(?:장소|강습장|수업장|개최지|venue|location)\s*[:：-]?\s*([^\n\r]{2,100})/gim,
+    /(?:^|[\n\r])\s*📍\s*([^\n\r]{2,100})/gm,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of value.matchAll(pattern)) {
+      const venue = String(match[1] || '')
+        .replace(/\s*(?:📅|⏰|📢|💰|🎧|☎|문의|신청|입장료|참가비|시간)[\s\S]*$/i, '')
+        .replace(/\s+#\S[\s\S]*$/, '')
+        .replace(/\s+(?:에서\s*(?:만나요|진행(?:됩니다|합니다)?|열립니다)|진행(?:됩니다|합니다)?)\s*[.!]?$/i, '')
+        .replace(/^[\s:：\-–—|]+|[\s,.;:：\-–—|]+$/g, '')
+        .trim();
+      if (!venue || venue.length > 64) continue;
+      if (/https?:\/\/|www\.|@|(?:추후|별도)\s*(?:공지|안내)|장소\s*미정|미정|강습별\s*상이|수업별\s*상이|DM\s*문의|프로필\s*링크/i.test(venue)) continue;
+      return toMapSafeVenueName(venue);
+    }
+  }
+  return '';
+}
+
 export function resolveSourceVenueEvidence({
   text = '',
   sourceVenue = '',
@@ -358,6 +381,8 @@ export function resolveSourceVenueEvidence({
   if (variableVenueEvidenceRe.test(value)) {
     return { venue: '', provenance: 'explicit_variable' };
   }
+  const explicitVenue = explicitVenueNameFromText(value);
+  if (explicitVenue) return { venue: explicitVenue, provenance: 'source_text' };
   if (sourceVenue) return { venue: sourceVenue, provenance: 'source_registry' };
   if (mappedVenue) return { venue: mappedVenue, provenance: 'source_registry' };
   return { venue: '', provenance: 'unresolved' };
@@ -1011,7 +1036,7 @@ function hasMalformedDj(candidate) {
   const djs = candidate?.structured_data?.djs;
   if (!Array.isArray(djs)) return false;
   return djs.some((value) => (
-    /^(?:는|은|가|이)$|20\d{2}[.\-/년]|(?:\d{1,2}[.\-/월]){2}|소셜로\s*진행|강습|수업|모집|매니저|멤버|조회|채팅|application\s*link|registration\s*link|신청\s*링크|입금\s*계좌/i.test(String(value).trim())
+    /[\uD800-\uDFFF]|^(?:는|은|가|이)$|20\d{2}[.\-/년]|(?:\d{1,2}[.\-/월]){2}|소셜로\s*진행|강습|수업|모집|매니저|멤버|조회|채팅|application\s*link|registration\s*link|신청\s*링크|입금\s*계좌/i.test(String(value).trim())
     || String(value).trim().length > 28
   ));
 }
