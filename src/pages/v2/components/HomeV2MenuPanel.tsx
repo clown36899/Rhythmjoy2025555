@@ -651,28 +651,6 @@ export const HomeV2MenuPanel: React.FC = () => {
         return normalizedSettings;
     }, [normalizeVisibleHomeMenuLayout, visibleHomeMenuItems]);
 
-    const resolvePreferredHomeMenuLayout = useCallback((
-        defaultSettings: HomeMenuLayoutSettings | null,
-        userSettings: HomeMenuLayoutSettings | null,
-    ) => {
-        if (!userSettings) return defaultSettings;
-
-        const normalizedUserSettings = normalizeVisibleHomeMenuLayout(userSettings);
-        const localFallbackSettings = normalizeVisibleHomeMenuLayout(null);
-        const normalizedDefaultSettings = defaultSettings
-            ? normalizeVisibleHomeMenuLayout(defaultSettings)
-            : null;
-
-        const matchesLocalFallback = areHomeMenuLayoutSettingsEqual(normalizedUserSettings, localFallbackSettings);
-        const matchesAdminDefault = normalizedDefaultSettings
-            ? areHomeMenuLayoutSettingsEqual(normalizedUserSettings, normalizedDefaultSettings)
-            : false;
-
-        return matchesLocalFallback || matchesAdminDefault
-            ? defaultSettings
-            : userSettings;
-    }, [normalizeVisibleHomeMenuLayout]);
-
     const persistMenuLayout = useCallback(async (settings: HomeMenuLayoutSettings) => {
         if (!user?.id) return;
 
@@ -1368,7 +1346,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                 }
 
                 if (isCancelled) return;
-                applyHomeMenuLayout(resolvePreferredHomeMenuLayout(defaultSettings, userSettings));
+                applyHomeMenuLayout(userSettings ?? defaultSettings);
                 setIsEditMode(false);
                 setIsExpanded(false);
                 editBaselineLayoutRef.current = null;
@@ -1392,7 +1370,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         return () => {
             isCancelled = true;
         };
-    }, [applyHomeMenuLayout, isTempoToolVisibilityLoading, resetPinnedDrag, resolvePreferredHomeMenuLayout, user?.id]);
+    }, [applyHomeMenuLayout, isTempoToolVisibilityLoading, resetPinnedDrag, user?.id]);
 
     useEffect(() => {
         const handleMediaPlayerBottomNav = (event: Event) => {
