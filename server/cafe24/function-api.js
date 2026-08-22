@@ -390,6 +390,22 @@ function rowActivityType(row) {
   return '';
 }
 
+function duplicateActivityGroup(row) {
+  const activity = rowActivityType(row);
+  return ['class', 'recruit'].includes(activity) ? 'class' : activity;
+}
+
+function rowSearchEvidence(row = {}) {
+  return [
+    rowTitle(row),
+    row.description,
+    row.content,
+    row.extracted_text,
+    row.structured_data?.description,
+    row.structured_data?.note,
+  ].filter(Boolean).join('\n');
+}
+
 function rowSourceUrl(row, target = 'scraped_events') {
   return String(target === 'events' ? row?.link1 : row?.source_url || '').trim();
 }
@@ -523,8 +539,8 @@ function sameExactEventOccurrence(row = {}, date = '') {
   if (!date) return false;
   const dates = explicitEventDates(row);
   if (dates.length) return dates.includes(date);
-  const directDate = String(row.date || '').slice(0, 10);
-  const startDate = String(row.start_date || '').slice(0, 10);
+  const directDate = String(row.structured_data?.date || row.date || '').slice(0, 10);
+  const startDate = String(row.structured_data?.start_date || row.start_date || '').slice(0, 10);
   return directDate === date || startDate === date;
 }
 
@@ -646,20 +662,44 @@ export function isHighConfidenceSocialDuplicate(existing = {}, candidate = {}) {
   );
 }
 
+export function isHighConfidenceContentDuplicate(existing = {}, candidate = {}) {
+  const date = scrapedRowDate(candidate);
+  const existingActivity = duplicateActivityGroup(existing);
+  const candidateActivity = duplicateActivityGroup(candidate);
+  const candidateTitle = normalizeDuplicateText(rowTitle(candidate));
+  const existingEvidence = normalizeDuplicateText(rowSearchEvidence(existing));
+  return Boolean(
+    date
+    && candidateTitle.length >= 12
+    && existingActivity
+    && existingActivity !== 'social'
+    && existingActivity === candidateActivity
+    && sameExactEventOccurrence(existing, date)
+    && sameVenue(rowLocation(existing), rowLocation(candidate))
+    && existingEvidence.includes(candidateTitle)
+  );
+}
+
 function duplicateMatch(row, candidate, target) {
   const date = scrapedRowDate(candidate);
   if (!date) return null;
   const existingSource = rowSourceUrl(row, target);
   const candidateSource = rowSourceUrl(candidate, 'scraped_events');
+  const matchesDate = target === 'events'
+    ? sameEventDate(row, date)
+    : scrapedRowDate(row) === date;
 
-  if (sameSourceUrl(existingSource, candidateSource) && sameEventDate(row, date)) {
+  if (sameSourceUrl(existingSource, candidateSource) && matchesDate) {
     return duplicateDescriptor(target, row, '같은 원본 URL과 날짜');
   }
 
-  if (!sameEventDate(row, date)) return null;
+  if (!matchesDate) return null;
   const titleScore = duplicateTextSimilarity(rowTitle(row), rowTitle(candidate));
   if (isHighConfidenceSocialDuplicate(row, candidate)) {
     return duplicateDescriptor(target, row, '같은 날짜·장소·활동·DJ의 소셜');
+  }
+  if (isHighConfidenceContentDuplicate(row, candidate)) {
+    return duplicateDescriptor(target, row, '같은 날짜·장소·활동의 상세 내용에 동일 제목');
   }
   if (
     target === 'events'
@@ -708,6 +748,21 @@ export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows 
     candidate,
     duplicate,
   ) ? null : duplicate;
+}
+
+export function findScrapedCandidateDuplicate(candidate, scrapedRows = []) {
+  for (const row of scrapedRows) {
+    if (String(row?.id || '') === String(candidate?.id || '')) continue;
+    if (['duplicate', 'excluded'].includes(String(row?.status || '').toLowerCase())) continue;
+    const match = duplicateMatch(row, candidate, 'scraped_events');
+    if (match) return match;
+  }
+  return null;
+}
+
+function findBlockingIngestionDuplicate(candidate, eventRows = [], scrapedRows = []) {
+  return findBlockingAutomaticRegistrationDuplicate(candidate, eventRows)
+    || findScrapedCandidateDuplicate(candidate, scrapedRows);
 }
 
 async function prepareScrapedItem(item) {
@@ -766,6 +821,60 @@ export function buildDuplicateScrapedEventRow({
   return row;
 }
 
+export function buildExcludedScrapedEventRow({
+  scrapedEvent = {},
+  reason = 'candidate policy exclusion',
+  stage = 'candidate_policy',
+  now = new Date().toISOString(),
+} = {}) {
+  const structuredData = {
+    ...(scrapedEvent.structured_data || {}),
+    _exclusion: {
+      reason,
+      stage,
+    },
+  };
+  delete structuredData.registered_event_id;
+  const row = {
+    ...scrapedEvent,
+    is_collected: false,
+    status: 'excluded',
+    structured_data: structuredData,
+    updated_at: now,
+  };
+  delete row.registered_event_id;
+  delete row.registered_at;
+  return row;
+}
+
+export function buildRefreshedScrapedEventRow({
+  existingRow = {},
+  incomingRow = {},
+  eventRows = [],
+  scrapedRows = [],
+  forcePending = false,
+  skipDuplicateCheck = false,
+  now = new Date().toISOString(),
+} = {}) {
+  const refreshedRow = {
+    ...existingRow,
+    ...incomingRow,
+    ...(forcePending ? { status: 'pending', is_collected: false } : {}),
+    display_no: existingRow.display_no ?? incomingRow.display_no,
+    created_at: existingRow.created_at || incomingRow.created_at,
+    updated_at: now,
+  };
+  const duplicate = !skipDuplicateCheck && !terminalScrapedStatus(existingRow)
+    ? findBlockingIngestionDuplicate(refreshedRow, eventRows, scrapedRows)
+    : null;
+  return {
+    row: duplicate
+      ? buildDuplicateScrapedEventRow({ scrapedEvent: refreshedRow, duplicate, now })
+      : refreshedRow,
+    duplicate,
+  };
+}
+
 function requestsCollectedStatus(item = {}) {
   return item.is_collected === true || String(item.status || '').toLowerCase() === 'collected';
 }
@@ -788,8 +897,24 @@ async function ingestScrapedItems(values) {
   const skipped = [];
 
   for (const value of sortDateExpansionInputs(values)) {
+    const existingInputRow = scrapedRows.find((item) => String(item?.id || '') === String(value?.id || ''));
     const policyExclusionReason = getIngestionCandidateExclusionReason(value, { today: kstToday() });
     if (policyExclusionReason) {
+      if (!existingInputRow || !terminalScrapedStatus(existingInputRow)) {
+        const preparedExcluded = await prepareScrapedItem({
+          ...(existingInputRow || {}),
+          ...value,
+          display_no: existingInputRow?.display_no ?? value?.display_no,
+          created_at: existingInputRow?.created_at || value?.created_at,
+        });
+        const excludedRow = await saveCafe24TableRow('scraped_events', buildExcludedScrapedEventRow({
+          scrapedEvent: preparedExcluded,
+          reason: policyExclusionReason,
+        }));
+        if (existingInputRow) refreshed.push(excludedRow);
+        else saved.push(excludedRow);
+        scrapedRows = replaceWorkingScrapedRow(scrapedRows, excludedRow);
+      }
       skipped.push({
         id: String(value?.id || ''),
         reason: policyExclusionReason,
@@ -829,39 +954,53 @@ async function ingestScrapedItems(values) {
 
     if (existingSameId) {
       const reopenGeneratedRegular = canReopenGeneratedRegularSocialDuplicate(existingSameId, row);
-      const refreshedRow = await saveCafe24TableRow('scraped_events', {
-        ...existingSameId,
-        ...row,
-        ...(reopenGeneratedRegular || reprocessCollectedAutomatic
-          ? { status: 'pending', is_collected: false }
-          : {}),
-        display_no: existingSameId.display_no ?? row.display_no,
-        created_at: existingSameId.created_at || row.created_at,
-        updated_at: new Date().toISOString(),
+      const refreshDecision = buildRefreshedScrapedEventRow({
+        existingRow: existingSameId,
+        incomingRow: row,
+        eventRows,
+        scrapedRows,
+        forcePending: reopenGeneratedRegular || reprocessCollectedAutomatic,
+        skipDuplicateCheck: reopenGeneratedRegular || reprocessCollectedAutomatic,
       });
+      const refreshedRow = await saveCafe24TableRow('scraped_events', refreshDecision.row);
       refreshed.push(refreshedRow);
       scrapedRows = replaceWorkingScrapedRow(scrapedRows, refreshedRow);
+      if (refreshDecision.duplicate) {
+        skipped.push({
+          id: refreshedRow.id,
+          reason: refreshDecision.duplicate.reason,
+          duplicate: refreshDecision.duplicate,
+        });
+      }
       continue;
     }
 
     const dateExpansion = shouldSkipDateExpansionCandidate(row, scrapedRows);
     if (dateExpansion.skip) {
+      const reason = dateExpansionSkipReason(dateExpansion.primary);
+      const excludedRow = await saveCafe24TableRow('scraped_events', buildExcludedScrapedEventRow({
+        scrapedEvent: row,
+        reason,
+        stage: 'date_expansion',
+      }));
+      saved.push(excludedRow);
+      scrapedRows = replaceWorkingScrapedRow(scrapedRows, excludedRow);
       skipped.push({
         id: row.id,
-        reason: dateExpansionSkipReason(dateExpansion.primary),
+        reason,
         duplicate: dateExpansion.primary ? {
           target: 'scraped_events',
           existingId: dateExpansion.primary.id || null,
           existingTitle: rowTitle(dateExpansion.primary) || null,
           existingDate: scrapedRowDate(dateExpansion.primary) || null,
           existingSourceUrl: rowSourceUrl(dateExpansion.primary, 'scraped_events') || null,
-          reason: dateExpansionSkipReason(dateExpansion.primary),
+          reason,
         } : null,
       });
       continue;
     }
 
-    const duplicate = findBlockingAutomaticRegistrationDuplicate(row, eventRows);
+    const duplicate = findBlockingIngestionDuplicate(row, eventRows, scrapedRows);
     if (duplicate) {
       const duplicateRow = buildDuplicateScrapedEventRow({
         scrapedEvent: row,
@@ -883,15 +1022,18 @@ async function ingestScrapedItems(values) {
     scrapedRows = replaceWorkingScrapedRow(scrapedRows, savedRow);
   }
 
-  const newCount = saved.filter((row) => String(row.status || '').toLowerCase() !== 'duplicate').length;
-  const duplicateCount = saved.length - newCount;
+  const processed = [...saved, ...refreshed];
+  const newCount = saved.filter((row) => !['duplicate', 'excluded'].includes(String(row.status || '').toLowerCase())).length;
+  const duplicateCount = processed.filter((row) => String(row.status || '').toLowerCase() === 'duplicate').length;
+  const excludedCount = processed.filter((row) => String(row.status || '').toLowerCase() === 'excluded').length;
   return {
-    data: [...saved, ...refreshed],
+    data: processed,
     count: newCount,
     refreshedCount: refreshed.length,
     duplicateCount,
+    excludedCount,
     skipped,
-    total: saved.length + refreshed.length,
+    total: processed.length,
   };
 }
 

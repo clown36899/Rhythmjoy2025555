@@ -1617,17 +1617,21 @@ async function collectDaumArticleLinks(page, source) {
 async function scrapeDaumArticle(page, link, source) {
   await safeGoto(page, link.href, postTimeoutMs);
   const data = await page.evaluate(() => {
-    const text = document.body.innerText || '';
+    const pageText = document.body.innerText || '';
+    const article = document.querySelector(
+      '#article.tx-content-container, #article, .tx-content-container, .view_info, .article_viewer, .article_view',
+    );
+    const text = article?.innerText || pageText;
     const title = document.querySelector('meta[property="og:title"]')?.getAttribute('content')
       || document.querySelector('.tit_subject, .article_title, .tit_view, h3, h2')?.textContent
       || '';
-    const visiblePublishedAt = text.match(/작성시간\s*((?:20)?\d{2}[.\-/]\d{1,2}[.\-/]\d{1,2})/)?.[1] || '';
+    const visiblePublishedAt = pageText.match(/작성시간\s*((?:20)?\d{2}[.\-/]\d{1,2}[.\-/]\d{1,2})/)?.[1] || '';
     const publishedAt = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')
       || document.querySelector('time[datetime]')?.getAttribute('datetime')
       || visiblePublishedAt
       || document.querySelector('.txt_date, .date, .info_date, [class*="date"]')?.textContent
       || '';
-    const images = [...document.querySelectorAll('img')]
+    const images = [...(article || document).querySelectorAll('img')]
       .map((img) => ({
         src: img.currentSrc || img.src,
         w: img.naturalWidth || img.width || 0,

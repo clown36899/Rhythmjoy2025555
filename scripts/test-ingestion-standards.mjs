@@ -2031,6 +2031,28 @@ assert.equal(
   'stale benefit source post: 2025-12-01',
   'old benefit-search sources must be rejected even when their candidate date is still in the future',
 );
+assert.equal(
+  getIngestionCandidateExclusionReason({
+    discovery_source_type: 'benefit_search',
+    extracted_text: [
+      'SwingTime Bar (SwingDance Club)',
+      '2018년 1월 29일 ·',
+      '1/30 화탐소셜과 함께하는 무료워크샵',
+    ].join('\n'),
+    structured_data: { title: 'SwingTime Bar (SwingDance Club)', date: '2027-01-01' },
+  }, { today: '2026-08-23' }),
+  'event date is implausibly far after source publication: 2018-01-29 -> 2027-01-01',
+  'an old platform-header publication date must block a yearless date rolled into the future',
+);
+assert.equal(
+  getIngestionCandidateExclusionReason({
+    discovery_source_type: 'benefit_search',
+    published_at: '26.07.23',
+    structured_data: { title: '원데이 클래스', date: '2027-12-01' },
+  }, { today: '2026-08-23' }),
+  'event date is implausibly far after source publication: 2026-07-23 -> 2027-12-01',
+  'two-digit Daum publication dates must use the same deterministic policy',
+);
 const reservableDanceEvent = baseCandidate({
   extracted_text: '2026년 6월 5일 경성홀 린디합 원데이 클래스, 사전 예약 가능',
   structured_data: {
@@ -2081,6 +2103,50 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: 'RSF 참가 신청 안내. 얼리버드 입금 마감 5/29. 실제 강습 일정은 추후 공지됩니다.',
   structured_data: { title: 'RSF 스윙 강습 신청 안내', date: '2026-05-29', event_type: '강습', activity_type: 'class' },
 }), { today: TODAY }).ok, false, 'deadline/payment dates must not be accepted as class event dates');
+const daumArticleWithBoardNavigation = [
+  '[원데이] 8/15 스윙댄스 원데이클래스 모집!!',
+  '안녕하세요. 스위티스윙입니다.',
+  '일자: 8월 15일(토)',
+  '장소: Swing Time Bar',
+  '댓글 리스트',
+  '(다른글)',
+  '현재페이지 1234',
+  '다음',
+  '[원데이] 9/13 지터벅 원데이 클래스 모집!!',
+].join('\n');
+const daumNavigationDate = validateCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/QtQr/96',
+  published_at: '26.07.23',
+  extracted_text: daumArticleWithBoardNavigation,
+  structured_data: {
+    title: '원데이 9/13 지터벅 클래스 모집',
+    date: '2026-09-13',
+    location: '스윙타임',
+    event_type: '강습',
+    activity_type: 'recruit',
+  },
+}), { today: '2026-08-19' });
+assert.ok(
+  daumNavigationDate.errors.includes('event date context looks like board chrome, notice, or non-event metadata'),
+  'a date found only after the Daum other-posts boundary must be rejected',
+);
+const daumArticleDate = validateCandidate(baseCandidate({
+  source_url: 'https://m.cafe.daum.net/sweetyswing/QtQr/96',
+  published_at: '26.07.23',
+  extracted_text: daumArticleWithBoardNavigation,
+  structured_data: {
+    title: '[원데이] 8/15 스윙댄스 원데이클래스 모집',
+    date: '2026-08-15',
+    location: '스윙타임',
+    event_type: '강습',
+    activity_type: 'recruit',
+  },
+}), { today: '2026-08-01' });
+assert.equal(
+  daumArticleDate.errors.includes('event date context looks like board chrome, notice, or non-event metadata'),
+  false,
+  'an article-body date must remain valid even when the board repeats it below the boundary',
+);
 const neoClassAnnouncement = [
   '네오스윙 141기 강습안내',
   '일정 : 8/30 ~ 10/18 (6주) 매주 일요일, 10/25 졸업파티',

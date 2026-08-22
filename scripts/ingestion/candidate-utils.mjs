@@ -1191,6 +1191,11 @@ function looksLikeDateFromNoticeOrBoardChrome(text = '', date = '', activity = '
   if (!date || !['class', 'event', 'recruit'].includes(activity)) return false;
   const contexts = contextsAroundDate(text, date);
   if (!contexts.length) return false;
+  const boardBoundary = String(text).search(/댓글\s*리스트|(?:^|\s)다른\s*글(?:\s|$)|현재\s*페이지\s*\d*/i);
+  if (boardBoundary >= 0) {
+    const articleContexts = contextsAroundDate(String(text).slice(0, boardBoundary), date);
+    if (articleContexts.length === 0) return true;
+  }
   const badRe = /작성일|수정일|조회|댓글|목록|URL\s*복사|공지사항|필독|말머리|마감|입금|신청\s*마감|등록\s*마감|접수\s*마감|납부|회비|deadline|payment/i;
   const goodRe = /일시|일정|날짜|기간|개강|시작|첫\s*수업|첫날|수업일|강습일|워크샵|워크숍|원\s*데이|원데이|체험\s*클래스|오픈\s*클래스|특강|소셜|파티|행사|공연|\bdj\b|열립니다|진행|start|starts|class|lesson|workshop|one\s*day|oneday|open\s*class|social|party/i;
   return contexts.some((context) => badRe.test(context) && !goodRe.test(context));

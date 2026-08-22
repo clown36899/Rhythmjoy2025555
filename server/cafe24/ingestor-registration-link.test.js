@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCollectedScrapedEventRow,
   buildDuplicateScrapedEventRow,
+  buildExcludedScrapedEventRow,
+  buildRefreshedScrapedEventRow,
   canReprocessCollectedAutomaticCandidate,
   canReopenGeneratedRegularSocialDuplicate,
   findBlockingAutomaticRegistrationDuplicate,
   findOperationalDuplicateForScrapedItem,
+  findScrapedCandidateDuplicate,
   hasRegisteredEventLink,
   inheritGeneratedRegularSocialVenueMetadata,
+  isHighConfidenceContentDuplicate,
   isHighConfidenceSocialDuplicate,
   evidenceExplicitlyContainsCandidateDate,
   validateAutomaticRegistrationCandidate,
@@ -115,6 +119,32 @@ describe('ingestor registration linkage', () => {
     expect(row.structured_data).not.toHaveProperty('registered_event_id');
   });
 
+  it('persists a policy-rejected candidate as an excluded ledger row', () => {
+    const row = buildExcludedScrapedEventRow({
+      scrapedEvent: {
+        id: 'candidate-old-post',
+        status: 'pending',
+        structured_data: { date: '2027-01-01' },
+      },
+      reason: 'stale benefit source post: 2018-01-29',
+      now: '2026-08-23T01:00:00.000Z',
+    });
+
+    expect(row).toMatchObject({
+      id: 'candidate-old-post',
+      status: 'excluded',
+      is_collected: false,
+      updated_at: '2026-08-23T01:00:00.000Z',
+      structured_data: {
+        date: '2027-01-01',
+        _exclusion: {
+          reason: 'stale benefit source post: 2018-01-29',
+          stage: 'candidate_policy',
+        },
+      },
+    });
+  });
+
   it('blocks the same social discovered from different sources when date, venue, activity, and DJ match', () => {
     const officialEvent = {
       id: 'event-swingtime-instagram',
@@ -176,6 +206,130 @@ describe('ingestor registration linkage', () => {
       { ...baseEvent, title: '스윙타임 수요 소셜', dj_name: '미정' },
       { ...candidate, structured_data: { ...candidate.structured_data, djs: ['미정'] } },
     )).toBe(false);
+  });
+
+  it('matches a non-social candidate when its distinctive title is already in the live event details', () => {
+    const liveWorkshop = {
+      id: 'event-swingfriends-workshop',
+      title: '2026년 스윙프렌즈 3학기 특별 워크샵 2탄',
+      date: '2026-08-23',
+      category: 'class',
+      location: '스윙타임',
+      description: '커리큘럼 🔫 미오새쎤의 냉정한 Killer Boogie 빠른 음악과 반복 패턴을 연습합니다.',
+    };
+    const candidate = {
+      id: 'candidate-killer-boogie',
+      source_url: 'https://www.instagram.com/swing_friends/p/DbnO3AKpGv9',
+      structured_data: {
+        title: '🔫 미오새쎤의 냉정한 Killer Boogie',
+        date: '2026-08-23',
+        activity_type: 'class',
+        venue_name: '스윙타임',
+      },
+    };
+
+    expect(isHighConfidenceContentDuplicate(liveWorkshop, candidate)).toBe(true);
+    expect(findOperationalDuplicateForScrapedItem(candidate, [liveWorkshop])).toMatchObject({
+      target: 'events',
+      existingId: 'event-swingfriends-workshop',
+      reason: '같은 날짜·장소·활동의 상세 내용에 동일 제목',
+    });
+    expect(isHighConfidenceContentDuplicate(liveWorkshop, {
+      ...candidate,
+      structured_data: { ...candidate.structured_data, title: '별도의 찰스턴 워크숍' },
+    })).toBe(false);
+  });
+
+  it('moves a refreshed pending candidate to duplicate instead of bypassing live-event adjudication', () => {
+    const sourceUrl = 'https://cafe.naver.com/f-e/cafes/10026855/articles/56132';
+    const decision = buildRefreshedScrapedEventRow({
+      existingRow: {
+        id: 'candidate-existing-pending',
+        status: 'pending',
+        created_at: '2026-08-10T00:00:00.000Z',
+        source_url: sourceUrl,
+        structured_data: { title: '스윙프렌즈 카페 토요 소셜', date: '2026-08-15', activity_type: 'social', venue_name: '스윙타임', djs: ['이정'] },
+      },
+      incomingRow: {
+        id: 'candidate-existing-pending',
+        source_url: sourceUrl,
+        updated_at: '2026-08-23T00:00:00.000Z',
+        structured_data: { title: '스윙프렌즈 카페 토요 소셜', date: '2026-08-15', activity_type: 'social', venue_name: '스윙타임', djs: ['이정'] },
+      },
+      eventRows: [{
+        id: 'event-already-registered',
+        title: 'DJ 이정 | 스윙프렌즈 카페 토요 소셜',
+        date: '2026-08-15',
+        category: 'social',
+        location: '스윙타임',
+        link1: sourceUrl,
+      }],
+      now: '2026-08-23T01:00:00.000Z',
+    });
+
+    expect(decision.duplicate).toMatchObject({ existingId: 'event-already-registered' });
+    expect(decision.row).toMatchObject({
+      id: 'candidate-existing-pending',
+      status: 'duplicate',
+      is_collected: false,
+      created_at: '2026-08-10T00:00:00.000Z',
+    });
+  });
+
+  it('places a cross-source candidate duplicate behind the earlier candidate ledger row', () => {
+    const existing = {
+      id: 'candidate-primary',
+      status: 'pending',
+      source_url: 'https://example.com/official/event-1',
+      structured_data: {
+        title: '리듬 풀 브레이크 원데이 워크숍',
+        date: '2026-09-01',
+        activity_type: 'class',
+        venue_name: '스윙타임',
+      },
+    };
+    const rediscovered = {
+      id: 'candidate-rediscovered',
+      source_url: 'https://example.net/repost/event-1',
+      structured_data: {
+        title: '리듬 풀 브레이크 원데이 워크숍',
+        date: '2026-09-01',
+        activity_type: 'class',
+        venue_name: '스윙타임',
+      },
+    };
+
+    expect(findScrapedCandidateDuplicate(rediscovered, [existing])).toMatchObject({
+      target: 'scraped_events',
+      existingId: 'candidate-primary',
+    });
+
+    expect(findScrapedCandidateDuplicate({
+      id: 'social-rediscovered',
+      source_url: 'https://example.net/social-repost',
+      structured_data: {
+        title: '스윙프렌즈 카페 일요 소셜',
+        date: '2026-09-06',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['호두'],
+      },
+    }, [{
+      id: 'social-primary',
+      status: 'collected',
+      source_url: 'https://example.com/social-official',
+      structured_data: {
+        title: 'DJ 호두 | 스윙타임 일요 소셜',
+        date: '2026-09-06',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['호두'],
+      },
+    }])).toMatchObject({
+      target: 'scraped_events',
+      existingId: 'social-primary',
+      reason: '같은 날짜·장소·활동·DJ의 소셜',
+    });
   });
 
   it('normalizes DJ lineup order without weakening date or activity boundaries', () => {

@@ -21,12 +21,16 @@ function candidateText(candidate = {}) {
   ].filter(Boolean).join('\n').normalize('NFKC');
 }
 
-function publicationDate(candidate = {}) {
-  const raw = String(candidate.published_at || candidate.publishedAt || '').trim();
+function normalizedPublicationDate(rawValue = '') {
+  const raw = String(rawValue || '').trim();
   if (!raw) return '';
   const explicit = raw.match(/(20\d{2})\D{0,3}(\d{1,2})\D{0,3}(\d{1,2})/);
   if (explicit) {
     return `${explicit[1]}-${String(explicit[2]).padStart(2, '0')}-${String(explicit[3]).padStart(2, '0')}`;
+  }
+  const short = raw.match(/(?:^|\D)(\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})(?:\D|$)/);
+  if (short) {
+    return `20${short[1]}-${String(short[2]).padStart(2, '0')}-${String(short[3]).padStart(2, '0')}`;
   }
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) return '';
@@ -36,6 +40,29 @@ function publicationDate(candidate = {}) {
     month: '2-digit',
     day: '2-digit',
   }).format(parsed);
+}
+
+export function publicationDate(candidate = {}) {
+  const explicitField = normalizedPublicationDate(candidate.published_at || candidate.publishedAt || '');
+  if (explicitField) return explicitField;
+
+  const extractedText = String(candidate.extracted_text || '').normalize('NFKC');
+  const labeled = extractedText.match(
+    /(?:작성\s*시간|작성일|게시일|게시\s*시간|등록일|published(?:\s+at)?)\s*[:：|]?\s*((?:20)?\d{2}[.\-/]\d{1,2}[.\-/]\d{1,2})/i,
+  )?.[1];
+  const labeledDate = normalizedPublicationDate(labeled);
+  if (labeledDate) return labeledDate;
+
+  // Facebook/Instagram text snapshots put the platform publication date in
+  // the short account header before the post body. Restrict the fallback to
+  // an early standalone line so event dates deeper in the body stay untouched.
+  const header = extractedText.slice(0, 480);
+  const platformHeaderDate = header.match(
+    /(?:^|\n)\s*(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일(?:\s*[·|]\s*)?(?=\n|$)/m,
+  );
+  return platformHeaderDate
+    ? normalizedPublicationDate(`${platformHeaderDate[1]}-${platformHeaderDate[2]}-${platformHeaderDate[3]}`)
+    : '';
 }
 
 const rentalSubjectPattern = /(?:대관|공간\s*(?:대여|렌탈)|홀\s*(?:대여|렌탈)|연습실\s*(?:대여|렌탈)|스튜디오\s*(?:대여|렌탈))/i;
