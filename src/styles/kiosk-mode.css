@@ -334,6 +334,30 @@ html.kiosk-link-router-active.v2-home-mode .home-v2-menu-panel.is-expanded .home
     height: 66px !important;
   }
 
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsBtn {
+    position: relative !important;
+    inset: auto !important;
+    width: 158px !important;
+    min-height: 48px !important;
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 6px 10px 6px 8px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsIcon {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 17px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsText strong {
+    font-size: 12px !important;
+  }
+
+  html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsText small {
+    font-size: 9px !important;
+  }
+
   html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitTicket {
     width: 100% !important;
     height: 100% !important;
@@ -1043,7 +1067,8 @@ html.kiosk-link-router-active.v2-home-mode .NEB-quickActions {
   width: 174px !important;
 }
 
-html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
+html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn,
+html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsBtn {
   position: relative !important;
   inset: auto !important;
   width: 174px !important;
@@ -1051,6 +1076,10 @@ html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
 
 html.kiosk-link-router-active.v2-home-mode .NEB-oneDayRecruitBtn {
   height: 70px !important;
+}
+
+html.kiosk-link-router-active.v2-home-mode .NEB-benefitEventsBtn {
+  min-height: 50px !important;
 }
 
 html.kiosk-link-router-active.v2-home-mode .NEB-activeSummaryCluster {
