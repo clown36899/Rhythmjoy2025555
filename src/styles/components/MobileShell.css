@@ -2801,8 +2801,7 @@ html.v2-home-mode #root {
     width: 140px !important;
   }
 
-  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-oneDayRecruitBtn,
-  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-benefitEventsBtn {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-oneDayRecruitBtn {
     grid-column: auto;
     grid-row: auto;
     width: 100% !important;

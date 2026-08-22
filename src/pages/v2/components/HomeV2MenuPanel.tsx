@@ -12,6 +12,7 @@ import {
     saveHomeMenuLayoutSettings,
     type HomeMenuLayoutSettings,
 } from "../../../hooks/useHomeMenuLayoutSettings";
+import { useBenefitEventsUnreadState } from "../../../hooks/useBenefitEventsUnreadCount";
 import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
 import {
     isTempoToolItemHidden,
@@ -318,6 +319,10 @@ export const HomeV2MenuPanel: React.FC = () => {
         saveSettings: saveTempoToolVisibilitySettings,
     } = useTempoToolVisibilitySettings();
     const { data: menuEvents = [] } = useEventsQuery();
+    const {
+        count: benefitEventUnreadCount,
+        markAllSeen: markBenefitEventsSeen,
+    } = useBenefitEventsUnreadState(menuEvents);
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
@@ -377,12 +382,10 @@ export const HomeV2MenuPanel: React.FC = () => {
             .map((id) => menuItemById.get(id))
             .filter((item): item is HomeMenuItem => Boolean(item));
     }, [menuItemById, pinnedMenuIds]);
-    const quickMenuItems = useMemo(() => {
-        const pinnedItems = pinnedMenuItems.slice(0, PINNED_MENU_LIMIT);
-        const benefitItem = menuItemById.get("benefits");
-        if (!benefitItem || pinnedItems.some((item) => item.id === benefitItem.id)) return pinnedItems;
-        return [...pinnedItems, benefitItem];
-    }, [menuItemById, pinnedMenuItems]);
+    const quickMenuItems = useMemo(
+        () => pinnedMenuItems.slice(0, PINNED_MENU_LIMIT),
+        [pinnedMenuItems],
+    );
     const orderedMenuItems = useMemo(() => {
         if (isEditMode) {
             return [...editPinnedMenuIds, ...editUnpinnedMenuIds]
@@ -589,6 +592,7 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const handleMenuItemClick = (item: HomeMenuItem) => {
         trackHomeMenuAppClick(item);
+        if (item.id === "benefits") markBenefitEventsSeen();
         if (item.to) handleNavigate(item.to);
     };
 
@@ -864,6 +868,31 @@ export const HomeV2MenuPanel: React.FC = () => {
         `home-v2-menu-status-badge ${isTempoToolItemHidden(tempoToolVisibilitySettings, item.id) ? "is-hidden" : ""}`.trim()
     ), [tempoToolVisibilitySettings]);
 
+    const getMenuItemUnreadCount = useCallback((item: HomeMenuItem) => {
+        if (item.id === "board") return freeBoardUnreadCount;
+        if (item.id === "benefits") return benefitEventUnreadCount;
+        return 0;
+    }, [benefitEventUnreadCount, freeBoardUnreadCount]);
+
+    const renderMenuItemUnreadBadge = useCallback((item: HomeMenuItem) => {
+        const unreadCount = getMenuItemUnreadCount(item);
+        if (unreadCount <= 0) return null;
+
+        return (
+            <span className="home-v2-menu-unread-badge">
+                {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+        );
+    }, [getMenuItemUnreadCount]);
+
+    const getMenuItemAriaLabel = useCallback((item: HomeMenuItem) => {
+        const label = t(item.shortLabel ?? item.label);
+        const unreadCount = getMenuItemUnreadCount(item);
+        return item.id === "benefits" && unreadCount > 0
+            ? `${label}, 새 이벤트 ${unreadCount}개`
+            : label;
+    }, [getMenuItemUnreadCount, t]);
+
     const renderExpandedMenuIcon = useCallback((item: HomeMenuItem, itemStatus?: string | null) => {
         const iconClassName = `home-v2-menu-icon home-v2-menu-icon--${item.theme} ${item.iconVariant ? `home-v2-menu-icon--${item.iconVariant}` : ""}`.trim();
 
@@ -872,9 +901,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                 <span className={iconClassName} aria-hidden="true">
                     <HomeV2MenuLessonStack cards={lessonCards} />
                     {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
-                    {item.id === "board" && freeBoardUnreadCount > 0 && (
-                        <span className="home-v2-menu-unread-badge">{freeBoardUnreadCount > 99 ? "99+" : freeBoardUnreadCount}</span>
-                    )}
+                    {renderMenuItemUnreadBadge(item)}
                 </span>
             );
         }
@@ -884,12 +911,10 @@ export const HomeV2MenuPanel: React.FC = () => {
                 <i className={item.icon} />
                 {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                 {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
-                {item.id === "board" && freeBoardUnreadCount > 0 && (
-                    <span className="home-v2-menu-unread-badge">{freeBoardUnreadCount > 99 ? "99+" : freeBoardUnreadCount}</span>
-                )}
+                {renderMenuItemUnreadBadge(item)}
             </span>
         );
-    }, [freeBoardUnreadCount, getMenuItemStatusClassName, lessonCards]);
+    }, [getMenuItemStatusClassName, lessonCards, renderMenuItemUnreadBadge]);
 
     const getMenuItemVisibilityLabel = useCallback((item: HomeMenuItem, hidden: boolean) => (
         hidden ? `${item.label} 공개` : `${item.label} 숨김`
@@ -1455,15 +1480,13 @@ export const HomeV2MenuPanel: React.FC = () => {
                                         }
                                         runMenuActionWithFeedback(itemKey, () => handleMenuItemClick(item));
                                     }}
-                                    aria-label={t(item.label)}
+                                    aria-label={getMenuItemAriaLabel(item)}
                                 >
                                     <span className={`home-v2-menu-quick-icon home-v2-menu-icon--${item.theme}`} aria-hidden="true">
                                         <i className={item.icon} />
                                         {item.auxIcon && <i className={`home-v2-menu-icon-aux ${item.auxIcon}`} />}
                                         {itemStatus && <span className={getMenuItemStatusClassName(item)}>{itemStatus}</span>}
-                                        {item.id === "board" && freeBoardUnreadCount > 0 && (
-                                            <span className="home-v2-menu-unread-badge">{freeBoardUnreadCount > 99 ? "99+" : freeBoardUnreadCount}</span>
-                                        )}
+                                        {renderMenuItemUnreadBadge(item)}
                                     </span>
                                     <span className={`home-v2-menu-quick-label ${item.id === "tempo-tool" ? "home-v2-menu-quick-label--tempo" : ""} ${item.id === "calendar" ? "home-v2-menu-quick-label--calendar" : ""}`}>
                                         {item.id === "tempo-tool" ? (
@@ -1621,6 +1644,7 @@ export const HomeV2MenuPanel: React.FC = () => {
                                             }
                                             runMenuActionWithFeedback(itemKey, () => handleMenuItemClick(item));
                                         }}
+                                        aria-label={getMenuItemAriaLabel(item)}
                                     >
                                         {renderExpandedMenuIcon(item, itemStatus)}
                                         <span className={`home-v2-menu-label ${item.id === "tempo-tool" ? "home-v2-menu-label--tempo" : ""} ${item.id === "calendar" ? "home-v2-menu-label--calendar" : ""}`}>

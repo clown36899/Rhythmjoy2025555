@@ -68,10 +68,6 @@
   background: var(--color-purple-500, #a779ff);
 }
 
-.HNBS-button--benefit .HNBS-bubble {
-  background: #f59e0b;
-}
-
 .HNBS-stack {
   position: relative;
   height: 136px;

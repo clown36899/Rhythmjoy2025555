@@ -43,10 +43,6 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
         navigate('/events?section=classes');
     };
 
-    const handleBenefitsClick = () => {
-        navigate('/benefit-events');
-    };
-
     // Default placeholders if data is missing
     const defaultSocialImages = [
         "https://images.unsplash.com/photo-1514525253361-bee873830dbb?w=200&h=250&fit=crop",
@@ -78,7 +74,7 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
 
 
     const renderNavCard = (
-        type: 'social' | 'event' | 'class' | 'benefit',
+        type: 'social' | 'event' | 'class',
         label: string,
         onClick: () => void,
         images: any[],
@@ -147,14 +143,6 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                     displayClassImages, 
                     '강습 전용 페이지로 이동', 
                     '/classes'
-                )}
-                {showEventsCards && renderNavCard(
-                    'benefit',
-                    '무료, 할인 이벤트',
-                    handleBenefitsClick,
-                    displayEventImages,
-                    '무료·할인·정기권 혜택 모아보기',
-                    '/benefit-events'
                 )}
             </div>
         </section>

@@ -9,7 +9,6 @@ import LocalLoading from "../../../components/LocalLoading";
 
 // Hooks
 import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
-import { useBenefitEventsUnreadState } from "../../../hooks/useBenefitEventsUnreadCount";
 // Removed useSocialSchedulesQuery
 import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
@@ -152,10 +151,6 @@ const EventList: React.FC<EventListProps> = ({
 
   // 1. Data Fetching Hook (TanStack Query)
   const { data: events = [], isLoading: loading, refetch: refetchEvents } = useEventsQuery();
-  const {
-    count: benefitEventUnreadCount,
-    markAllSeen: markBenefitEventsSeen,
-  } = useBenefitEventsUnreadState(events);
   const fetchEvents = useCallback(async () => {
     await refetchEvents();
   }, [refetchEvents]);
@@ -566,8 +561,6 @@ const EventList: React.FC<EventListProps> = ({
           newlyRegisteredEvents={newlyRegisteredEvents}
           homeAdCandidateEvents={homeAdCandidateEvents}
           homeAdMaxItems={homeAdDisplay.maxItems}
-          benefitEventUnreadCount={benefitEventUnreadCount}
-          onBenefitEventsOpen={markBenefitEventsSeen}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(Number(e.id)))}
           // events={events} // Removed
 

@@ -64,11 +64,8 @@ describe('NewEventsBanner translation refresh', () => {
         await waitFor(() => expect(requestGoogleTranslateRefresh).toHaveBeenCalled());
     });
 
-    it('shows the benefit unread count and clears it through the open action', async () => {
-        const user = userEvent.setup();
-        const onBenefitEventsOpen = vi.fn();
-
-        const { getByLabelText, getByText } = render(
+    it('does not create a standalone benefit shortcut outside the configured home menu', () => {
+        const { queryByRole } = render(
             <MemoryRouter>
                 <ModalProvider>
                     <NewEventsBanner
@@ -76,15 +73,11 @@ describe('NewEventsBanner translation refresh', () => {
                         onEventClick={vi.fn()}
                         defaultThumbnailClass="/class.png"
                         defaultThumbnailEvent="/event.png"
-                        benefitEventUnreadCount={3}
-                        onBenefitEventsOpen={onBenefitEventsOpen}
                     />
                 </ModalProvider>
             </MemoryRouter>
         );
 
-        expect(getByText('3', { selector: '.NEB-benefitEventsBadge' })).toBeInTheDocument();
-        await user.click(getByLabelText('무료, 할인 이벤트 보기, 새 이벤트 3개'));
-        expect(onBenefitEventsOpen).toHaveBeenCalledTimes(1);
+        expect(queryByRole('button', { name: /무료, 할인 이벤트/ })).not.toBeInTheDocument();
     });
 });

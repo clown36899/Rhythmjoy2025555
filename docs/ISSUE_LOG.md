@@ -22,6 +22,20 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-22 메인 무료·할인 진입점의 메뉴 고정 설정 예외
+
+- 상태: 공통 원인 수정·로컬 회귀검사 완료, 운영 배포 전
+- 현상: 관리자 메뉴 편집에서 `무료, 할인 이벤트`가 1~5번 고정 칸에 없어도 메인의 콤팩트 메뉴와 신규 이벤트 광고 옆 별도 바로가기에 계속 노출됐다. 편집 화면의 눈에 빗금 아이콘은 현재 숨김이 아니라 `누르면 숨김` 동작이고, 운영 `tempo_tool_visibility` 원장에도 `benefits` 숨김값은 없었다.
+- 실행 경로: 관리자/사용자의 `pinned_menu_ids`가 고정 메뉴를 결정해야 하지만 `HomeV2MenuPanel.quickMenuItems`가 고정 목록 뒤에 `benefits`를 강제로 덧붙였다. 동시에 `NewEventsBanner` 또한 메뉴 설정과 무관한 `NEB-benefitEventsBtn`을 항상 렌더했다. DB 원장은 바뀌지 않았지만 두 UI 부작용이 메인 노출 결과를 덮었다.
+- 기존 구현 판정: `일부 있음`. 전역·사용자 메뉴 고정/순서 원장, `benefits` 메뉴 ID·경로, 숨김 판정, 혜택 미확인 배지와 목록 진입 확인 처리가 이미 있었다. 정확한 빈틈은 2026-07-26 혜택 진입점을 추가하면서 이 원장을 재사용하지 않고 두 곳에 강제 노출을 추가한 것이다. 새 필드·테이블·상태값은 필요하지 않다.
+- 기존 보호 목적: 혜택 목록은 확장 메뉴에서 언제든 찾을 수 있고, 관리자가 고정하면 메인 컴팩트 메뉴에 놓을 수 있어야 한다. 새 혜택 수 배지와 혜택 목록 진입 시 확인 처리, 직접 URL 진입, 원데이·연습실 빠른 진입은 유지해야 한다.
+- 수정: 컴팩트 메뉴는 기존 `pinnedMenuIds`의 최대 5개만 렌더하고 `benefits` 강제 추가를 제거했다. 광고·레거시 홈 카드의 별도 혜택 진입점과 반응형·키오스크 잔존 스타일도 제거했다. 기존 미확인 계산은 메뉴 소유자인 `HomeV2MenuPanel`에 재연결해, 혜택을 실제로 고정했을 때만 메인 아이콘과 배지가 함께 보이고 누르면 기존처럼 확인 처리한다.
+- 유지한 불변조건: 고정하지 않은 메뉴는 확장 메뉴의 순서에만 남고 메인에 자동 승격하지 않는다. 최대 5개 고정, 사용자 별 레이아웃, 전역 숨김, 관리자 편집, 혜택 분류·목록·읽음 원장, 원데이·연습실·자유게시판 동작은 변경하지 않았다. 스키마·운영 데이터 쓰기·새 드래그 동작은 없다.
+- 검증: 고정 미포함·포함·배지 확인과 광고 영역 독립 진입점 미생성, 혜택 목록 직접 진입 확인 처리를 회귀검사로 확장했다. Vitest 제품 단언 447건과 Node 전용 4건, TypeScript 무출력 검사, 대상 ESLint 오류 0건, Cafe24 프로덕션 빌드, `git diff --check`가 통과했다. Node 기본 러너 파일 2개를 Vitest가 수집하는 기존 혼선은 해당 파일만 원래 러너로 분리해 실제 성공을 확인했고, 이 UI 변경과 무관해 설정 수정에서 제외했다. 운영 DB 연결 로컬의 390×844·1512×982에서 기본 고정 5개에만 메인 아이콘이 나오고, 별도 혜택 버튼 0개·확장 메뉴 혜택 1개·원데이 1개·연습실 1개·page error 0건을 확인했다. 쓰기 없는 고정 설정 응답 대체로 `benefits`를 고정한 경우에만 메인 아이콘·배지 `2`가 보이고 클릭 후 혜택 목록으로 이동하며 브라우저 오류가 없음을 확인했다.
+- 배포·데이터 영향: 배포 전. DB·스키마·메뉴 설정·일정 원장은 수정하지 않았다.
+- 관련 결정: `docs/decisions/2026-08-21-benefit-event-main-badge.md`
+- 관련 파일: `src/pages/v2/components/HomeV2MenuPanel.tsx`, `src/pages/v2/components/NewEventsBanner.tsx`, `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/HomeNavButtonsSection.tsx`
+
 ## 2026-08-22 무료·할인 상세 화면 중단 및 해피홀 일반 소셜 혜택 오분류
 
 - 상태: 근본 원인 수정·운영 데이터 교정·배포 검증 완료
