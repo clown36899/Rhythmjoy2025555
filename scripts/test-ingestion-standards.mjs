@@ -6,6 +6,7 @@ import {
   collapseSocialCandidateVariants,
   extractBenefitValidityEndDate,
   extractDatedDjSections,
+  extractExplicitClosureDates,
   extractIndependentSocialDateSections,
   extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
@@ -418,6 +419,75 @@ assert.deepEqual(
     { date: '2026-09-01', dj: '해림', includesMtClosure: false },
   ],
   'a mixed closure notice must keep dated social sections scoped away from the later MT closure',
+);
+const kyungsungClosureDates = extractExplicitClosureDates({
+  today: '2026-08-22',
+  publishedAt: '2026-08-19T01:06:09.000Z',
+  text: `This Week at Kyungsung Hall
+📅 8/22 (토)
+🎧 DJ : 제니스
+📅 8/25 (화)
+🎧 DJ : BBB
+📅 9/1 (화)
+🎧 DJ : 해림
+📌 휴관 안내
+8/23 (일)
+내부 사정으로 휴관합니다.
+8/29 (토) ~ 8/30 (일)
+올어바웃스윙 썸머 페스티벌 MT로 휴관합니다.`,
+});
+assert.deepEqual(
+  kyungsungClosureDates,
+  ['2026-08-23', '2026-08-29', '2026-08-30'],
+  'future closure dates and both endpoints of a closure range must be preserved without closing the preceding DJ social',
+);
+assert.deepEqual(
+  extractExplicitClosureDates({
+    today: '2026-06-01',
+    text: '6/6 소셜 취소, 6/13 정상 진행 DJ 메이저',
+  }),
+  ['2026-06-06'],
+  'a closure must remain scoped to its nearest date when a later date is explicitly normal',
+);
+assert.deepEqual(
+  extractExplicitClosureDates({
+    today: '2026-08-22',
+    text: '8/29 (토) ~ 8/31 (월) 내부 일정으로 휴관합니다.',
+  }),
+  ['2026-08-29', '2026-08-30', '2026-08-31'],
+  'every calendar date inside an explicit closure range must be suppressed',
+);
+assert.deepEqual(
+  extractExplicitClosureDates({
+    today: '2026-08-22',
+    backtest: true,
+    lookbackDays: 30,
+    text: '8/15 소셜은 휴무입니다. 8/29 소셜은 휴무입니다.',
+  }),
+  ['2026-08-15'],
+  'backtest mode must keep its historical window and must not absorb future closures',
+);
+assert.deepEqual(
+  extractExplicitClosureDates({
+    today: '2026-08-22',
+    text: '9/1 (화) DJ 해림\n📌 휴관 안내\n8/23 (일) 내부 사정으로 휴관합니다.',
+  }),
+  ['2026-08-23'],
+  'a closure heading before the next date must not close the preceding active social',
+);
+assert.deepEqual(
+  extractExplicitClosureDates({
+    today: '2026-08-22',
+    publishedAt: '2026-08-19T01:06:09.000Z',
+    text: `${`8/22 (토) DJ 제니스
+8/25 (화) DJ BBB
+9/1 (화) DJ 해림
+📌 휴관 안내
+8/23 (일) 내부 사정으로 휴관합니다.
+8/29 (토) ~ 8/30 (일) MT로 휴관합니다.`}\n${'8/22 (토) DJ 제니스 8/25 (화) DJ BBB 9/1 (화) DJ 해림 📌 휴관 안내 8/23 (일) 내부 사정으로 휴관합니다. 8/29 (토) ~ 8/30 (일) MT로 휴관합니다.'}`,
+  }),
+  ['2026-08-23', '2026-08-29', '2026-08-30'],
+  'a duplicated compact Instagram body must not spread a later closure heading to earlier active dates',
 );
 assert.equal(
   isHighConfidenceDatedSocialSchedule([

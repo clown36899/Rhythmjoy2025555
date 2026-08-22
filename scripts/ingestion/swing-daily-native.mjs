@@ -7,6 +7,7 @@ import {
   classifyConfirmedBenefitEvent,
   collapseSocialCandidateVariants,
   extractDatedDjSections,
+  extractExplicitClosureDates,
   extractIndependentSocialDateSections,
   extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
@@ -148,7 +149,7 @@ const today = dryRun && /^20\d{2}-\d{2}-\d{2}$/.test(dryRunReferenceDate)
 const runStartedAtMs = Date.now();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 const graduationEventPattern = /졸업\s*(?:공연|파티)|graduation\s*(?:show|party|performance)/i;
-const closureEventPattern = /(?:정기\s*)?휴무|휴업|쉬어\s*갑니다|쉽니다|쉬어요|(?:이번|금)\s*주[^.\n]{0,30}(?:쉽니다|쉬어요|휴무)|소셜[^.\n]{0,20}(?:없습니다|없어요|취소)|(?:행사|운영)[^.\n]{0,20}취소/i;
+const closureEventPattern = /(?:정기\s*)?휴관|(?:정기\s*)?휴무|휴업|쉬어\s*갑니다|쉽니다|쉬어요|(?:이번|금)\s*주[^.\n]{0,30}(?:쉽니다|쉬어요|휴관|휴무)|소셜[^.\n]{0,20}(?:없습니다|없어요|취소)|(?:행사|운영)[^.\n]{0,20}취소/i;
 
 const result = {
   inserted: 0,
@@ -1890,7 +1891,23 @@ function buildExceptionBacktestCandidates({
   const sourceKey = Buffer.from(sourceUrl).toString('base64url').slice(-18);
   const candidates = [];
   for (const detection of detections) {
-    const dateSelection = exceptionDates(cleanText, title, detection.pattern, publishedAt);
+    const explicitClosureDates = detection.type === 'closure' || detection.type === 'recurring_closure'
+      ? extractExplicitClosureDates({
+        text: `${title}\n${cleanText}`,
+        today,
+        publishedAt,
+        backtest: exceptionBacktest,
+        lookbackDays: exceptionLookbackDays,
+        maxFutureDays,
+      })
+      : [];
+    const dateSelection = explicitClosureDates.length
+      ? {
+        dates: explicitClosureDates,
+        allDates: explicitClosureDates,
+        ambiguous: false,
+      }
+      : exceptionDates(cleanText, title, detection.pattern, publishedAt);
     for (const date of dateSelection.dates) {
       candidates.push({
         id: `exception-backtest:${source.id}:${detection.type}:${date || 'unknown'}:${sourceKey}`,

@@ -678,6 +678,134 @@ export function extractDatedDjSections({
   return sections;
 }
 
+const explicitClosureActionPattern = /(?:휴관|휴무)(?!일)\s*(?:합니다|해요|입니다|예정(?:입니다)?|확정(?:입니다)?|함)|휴업\s*(?:합니다|해요|입니다|예정(?:입니다)?|함)?|쉬어\s*갑니다|쉽니다|쉬어요|(?:소셜|행사|운영)[^.\n]{0,30}(?:없습니다|없어요|취소(?:합니다|됐습니다|되었습니다|예정)?|중단(?:합니다|됩니다)?)|(?:소셜|행사|운영)\s*취소/i;
+const explicitClosureHeadingPattern = /(?:휴관|휴무|휴업)\s*(?:안내|공지)/i;
+
+function validCalendarDate(year, month, day) {
+  const value = new Date(Date.UTC(year, month - 1, day));
+  return value.getUTCFullYear() === year
+    && value.getUTCMonth() === month - 1
+    && value.getUTCDate() === day;
+}
+
+function resolveExplicitClosureDate({ year, month, day, today, publishedAt }) {
+  if (!validCalendarDate(Number(year || 0), month, day) && year) return '';
+  if (year) return isoDateForIngestion(year, month, day);
+
+  const referenceDate = publicationDateKey(publishedAt) || today;
+  const referenceYear = Number(referenceDate.slice(0, 4));
+  const referenceMs = Date.parse(`${referenceDate}T00:00:00+09:00`);
+  return [referenceYear - 1, referenceYear, referenceYear + 1]
+    .filter((candidateYear) => validCalendarDate(candidateYear, month, day))
+    .map((candidateYear) => isoDateForIngestion(candidateYear, month, day))
+    .sort((left, right) => (
+      Math.abs(Date.parse(`${left}T00:00:00+09:00`) - referenceMs)
+      - Math.abs(Date.parse(`${right}T00:00:00+09:00`) - referenceMs)
+    ))[0] || '';
+}
+
+function closureDateInsideWindow(date, {
+  today,
+  backtest,
+  lookbackDays,
+  maxFutureDays,
+}) {
+  const dateMs = Date.parse(`${date}T00:00:00+09:00`);
+  const todayMs = Date.parse(`${today}T00:00:00+09:00`);
+  if (!Number.isFinite(dateMs) || !Number.isFinite(todayMs)) return false;
+  if (backtest) {
+    return dateMs <= todayMs && dateMs >= todayMs - (lookbackDays * 86_400_000);
+  }
+  return dateMs >= todayMs && dateMs <= todayMs + (maxFutureDays * 86_400_000);
+}
+
+/**
+ * Extract date-scoped closures from a mixed schedule notice. A closure heading
+ * before the next date must not turn the preceding active social into a
+ * closure. Date ranges inherit the closure state of either range endpoint.
+ */
+export function extractExplicitClosureDates({
+  text = '',
+  today = todayISO(),
+  publishedAt = '',
+  backtest = false,
+  lookbackDays = 180,
+  maxFutureDays = 180,
+} = {}) {
+  const raw = String(text || '').normalize('NFKC');
+  const anchors = [];
+  const datePattern = /(?:(20\d{2})\s*(?:[.\-/]|년)\s*)?(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?/g;
+  for (const match of raw.matchAll(datePattern)) {
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+    const date = resolveExplicitClosureDate({
+      year: match[1] ? Number(match[1]) : 0,
+      month,
+      day,
+      today,
+      publishedAt,
+    });
+    if (!date || !closureDateInsideWindow(date, {
+      today,
+      backtest,
+      lookbackDays,
+      maxFutureDays,
+    })) continue;
+    anchors.push({ date, start: match.index, end: match.index + match[0].length });
+  }
+  if (!anchors.length) return [];
+
+  const closed = anchors.map((anchor, index) => {
+    const next = anchors[index + 1];
+    const section = raw.slice(anchor.start, next?.start ?? raw.length);
+    if (explicitClosureActionPattern.test(section)) return true;
+
+    const lineStart = raw.lastIndexOf('\n', anchor.start - 1) + 1;
+    const localDateHeading = section.slice(0, 80);
+    const headingMatch = localDateHeading.match(explicitClosureHeadingPattern);
+    if (headingMatch) {
+      const beforeHeading = localDateHeading.slice(0, headingMatch.index);
+      if (!/(?:DJ|디제이|정상\s*(?:진행|운영)|오픈|open)/i.test(beforeHeading)) return true;
+    }
+
+    const previousLineEnd = Math.max(0, lineStart - 1);
+    const previousLineStart = raw.lastIndexOf('\n', previousLineEnd - 1) + 1;
+    const previousLine = raw.slice(previousLineStart, previousLineEnd).trim();
+    return /^(?:📌|🚨)?\s*(?:휴관|휴무|휴업)\s*(?:안내|공지)?\s*$/i.test(previousLine);
+  });
+
+  for (let index = 0; index < anchors.length - 1; index += 1) {
+    const bridge = raw.slice(anchors[index].end, anchors[index + 1].start);
+    const isRange = /(?:~|〜|–|—|-|부터)/.test(bridge)
+      && !/\n/.test(bridge)
+      && /^[\s()[\]（）월화수목금토일요일.~〜–—-]*$/.test(bridge);
+    if (isRange && (closed[index] || closed[index + 1])) {
+      closed[index] = true;
+      closed[index + 1] = true;
+    }
+  }
+
+  const dates = new Set(anchors.filter((_, index) => closed[index]).map((anchor) => anchor.date));
+  for (let index = 0; index < anchors.length - 1; index += 1) {
+    if (!closed[index] || !closed[index + 1]) continue;
+    const bridge = raw.slice(anchors[index].end, anchors[index + 1].start);
+    const isRange = /(?:~|〜|–|—|-|부터)/.test(bridge)
+      && !/\n/.test(bridge)
+      && /^[\s()[\]（）월화수목금토일요일.~〜–—-]*$/.test(bridge);
+    if (!isRange) continue;
+    const startMs = Date.parse(`${anchors[index].date}T00:00:00+09:00`);
+    const endMs = Date.parse(`${anchors[index + 1].date}T00:00:00+09:00`);
+    const rangeDays = Math.round((endMs - startMs) / 86_400_000);
+    if (rangeDays < 1 || rangeDays > 31) continue;
+    for (let offset = 1; offset < rangeDays; offset += 1) {
+      dates.add(todayISO(new Date(startMs + (offset * 86_400_000))));
+    }
+  }
+
+  return [...dates].sort();
+}
+
 export function isHighConfidenceDatedSocialSchedule(items = []) {
   const validItems = (Array.isArray(items) ? items : []).filter((item) => (
     /^\d{4}-\d{2}-\d{2}$/.test(String(item?.date || ''))

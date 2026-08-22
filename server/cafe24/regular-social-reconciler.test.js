@@ -109,8 +109,15 @@ describe('regular social reconciliation', () => {
   });
 
   it('suppresses a date when a closure exception was collected', () => {
+    const generated = {
+      id: 'regular-social:sample-fri:2026-07-31',
+      date: '2026-07-31',
+      title: rule.title,
+      location: rule.location,
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
     const plan = planRegularSocialReconciliation({
-      events: [],
+      events: [generated],
       scrapedEvents: [{
         source_id: 'sample',
         exception_type: 'closure',
@@ -121,6 +128,7 @@ describe('regular social reconciliation', () => {
       horizonDays: 7,
     });
     expect(plan.creates).toHaveLength(0);
+    expect(plan.removes).toEqual([generated]);
   });
 
   it('uses an official recurring rule instead of the matching static fallback', () => {
