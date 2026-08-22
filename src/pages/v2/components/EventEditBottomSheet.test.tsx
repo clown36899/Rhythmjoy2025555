@@ -32,4 +32,33 @@ describe('EventEditBottomSheet benefit classification', () => {
 
         expect(onSave).toHaveBeenCalledWith(null, 'event');
     });
+
+    it('does not bubble a genre save into the parent detail/search overlay', () => {
+        const onSave = vi.fn();
+        const onParentOverlayClick = vi.fn();
+
+        render(
+            <div onClick={onParentOverlayClick}>
+                <EventEditBottomSheet
+                    activeField="genre"
+                    onClose={vi.fn()}
+                    initialValue={{
+                        category: 'club',
+                        genre: '린디합',
+                    }}
+                    onSave={onSave}
+                    isSaving={false}
+                    event={{}}
+                    structuredGenres={{ class: [], event: [] }}
+                    allHistoricalGenres={[]}
+                />
+            </div>,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: '정규강습' }));
+        fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+        expect(onSave).toHaveBeenCalledWith({ genre: '정규강습', scope: 'domestic' }, 'club');
+        expect(onParentOverlayClick).not.toHaveBeenCalled();
+    });
 });

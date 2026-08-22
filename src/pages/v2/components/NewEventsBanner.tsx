@@ -1562,6 +1562,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             <div className="neb-modal-content">
                                 <p className="neb-highlight">오늘 일정 중 한 건이 진입할 때마다 먼저 선택됩니다.<br />이후 최근 등록 일정, 시작일이 가까운 일정 순으로 노출됩니다.</p>
                                 <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 최초 시작일 기준으로 최대 15개를 노출합니다. 현재·미래 후보가 10개 미만일 때만 지난 시작일 후보를 뒤쪽에 보충해 총 10개까지 채웁니다.</p>
+                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 정규강습은 현재·미래 후보 안에서 최후순위로 편성됩니다.</p>
                                 <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 보충된 지난 일정의 자동 전면 노출은 8회 중 1회로 제한됩니다.</p>
                                 <ul className="neb-modal-list">
                                     <li>자동 슬라이드: 8초마다 전환</li>

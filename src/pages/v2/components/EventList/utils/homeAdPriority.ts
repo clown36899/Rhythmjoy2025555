@@ -44,8 +44,14 @@ const HOME_AD_CLUB_CATEGORIES = new Set([
     "club_regular",
 ]);
 
+const HOME_AD_REGULAR_CLASS_CATEGORIES = new Set([
+    "regular",
+    "club_regular",
+]);
+
 const HOME_AD_EVENT_GENRE_PATTERN = /(?:대회|경연|챔피언십|competition|championship|contest|\bcup\b|\bbattle\b)/i;
 const HOME_AD_CLUB_TITLE_PATTERN = /(?:동호회|공연팀|팀원\s*모집|시즌\s*(?:안내|모집))/i;
+const HOME_AD_REGULAR_CLASS_PATTERN = /(?:정규\s*(?:강습|수업|클래스|반)|regular\s*(?:class|lesson|course))/i;
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -150,6 +156,22 @@ export const isHomeAdClubEvent = (event: Event) => {
         || genre.includes("팀원모집")
         || tags.some((tag) => tag === "team_recruit" || tag === "club" || tag === "club_lesson" || tag === "club_regular")
         || HOME_AD_CLUB_TITLE_PATTERN.test(String(event.title || ""));
+};
+
+export const isHomeAdRegularClass = (event: Event) => {
+    const category = String(event.category || "").trim().toLowerCase();
+    const activityType = String((event as Event & { activity_type?: string | null }).activity_type || "").trim().toLowerCase();
+    const classificationText = getHomeAdClassificationText(event);
+    const tags = [
+        ...normalizeHomeAdTags((event as Event & { dance_tags?: unknown }).dance_tags),
+        ...normalizeHomeAdTags((event as Event & { tags?: unknown }).tags),
+    ].map((value) => String(value || "").trim().toLowerCase());
+
+    return HOME_AD_REGULAR_CLASS_CATEGORIES.has(category)
+        || HOME_AD_REGULAR_CLASS_CATEGORIES.has(activityType)
+        || tags.some((tag) => tag === "academy_regular" || tag === "club_regular" || tag === "regular_class" || tag === "regular_lesson")
+        || HOME_AD_REGULAR_CLASS_PATTERN.test(classificationText)
+        || HOME_AD_REGULAR_CLASS_PATTERN.test(String(event.title || ""));
 };
 
 export const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
@@ -278,10 +300,22 @@ const featureOneTodayEvent = (
     return [featured, ...sorted];
 };
 
-const pushClubEventsBehind = (events: RankedHomeAdEvent[]) => {
-    const regularEvents = events.filter(({ event }) => !isHomeAdClubEvent(event));
-    const clubEvents = events.filter(({ event }) => isHomeAdClubEvent(event));
-    return [...regularEvents, ...clubEvents];
+const pushLowPriorityEventsBehind = (events: RankedHomeAdEvent[]) => {
+    const standardEvents: RankedHomeAdEvent[] = [];
+    const clubEvents: RankedHomeAdEvent[] = [];
+    const regularClasses: RankedHomeAdEvent[] = [];
+
+    for (const candidate of events) {
+        if (isHomeAdRegularClass(candidate.event)) {
+            regularClasses.push(candidate);
+        } else if (isHomeAdClubEvent(candidate.event)) {
+            clubEvents.push(candidate);
+        } else {
+            standardEvents.push(candidate);
+        }
+    }
+
+    return [...standardEvents, ...clubEvents, ...regularClasses];
 };
 
 /**
@@ -293,6 +327,7 @@ const pushClubEventsBehind = (events: RankedHomeAdEvent[]) => {
  * 4. 오늘 이후 다음 주 일요일까지의 일정에 우선점을 준다.
  * 5. 나머지는 최근 등록 시각, 가까운 미래 시작일 순으로 채운다.
  * 6. 동호회·팀원모집 일정은 같은 후보군의 뒤로 보낸다.
+ * 7. 정규강습은 현재·미래 후보 중 가장 뒤로 보낸다.
  */
 export const rankHomeAdEvents = (
     events: Event[],
@@ -333,7 +368,7 @@ export const rankHomeAdEvents = (
     const remainingFutureEvents = futureEvents.filter(({ event }) => !currentMonthEventIds.has(event.id));
 
     if (sortBy === "date") {
-        return pushClubEventsBehind([
+        return pushLowPriorityEventsBehind([
             ...todayEvents,
             ...currentMonthEventCandidates,
             ...remainingFutureEvents.sort(compareUpcomingStart(nowTimestamp)),
@@ -352,7 +387,7 @@ export const rankHomeAdEvents = (
         .sort(compareRegistrationProximity(nowTimestamp));
 
     if (!useFallback) {
-        return pushClubEventsBehind([
+        return pushLowPriorityEventsBehind([
             ...todayEvents,
             ...currentMonthEventCandidates,
             ...nearFutureEvents,
@@ -365,7 +400,7 @@ export const rankHomeAdEvents = (
         .filter(({ event }) => !recentIds.has(event.id))
         .sort(compareUpcomingStart(nowTimestamp));
 
-    return pushClubEventsBehind([
+    return pushLowPriorityEventsBehind([
         ...todayEvents,
         ...currentMonthEventCandidates,
         ...nearFutureEvents,

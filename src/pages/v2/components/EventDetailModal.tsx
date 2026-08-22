@@ -1203,7 +1203,9 @@ export default function EventDetailModal({
         className="EventDetailModal EDM-overlay"
         role="dialog"
         aria-modal="true"
-        onClick={() => {
+        onClick={(event) => {
+          // 포털로 중첩된 검색/목록 모달까지 닫히지 않도록 상세 경계에서 종료한다.
+          event.stopPropagation();
           onClose();
         }}
       >

@@ -1668,6 +1668,7 @@ export default function CalendarPage() {
                                 const eventDate = new Date(event.start_date || event.date || new Date());
                                 handleMonthChange(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
                                 setHighlightedEventId(event.id);
+                                eventModal.setSelectedEvent(event);
                                 setTimeout(() => setHighlightedEventId(null), 3000);
                             }}
                         />

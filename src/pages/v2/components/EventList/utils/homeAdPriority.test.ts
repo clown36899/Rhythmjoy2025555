@@ -4,6 +4,7 @@ import {
     isHomeAdClubEvent,
     isHomeAdCurrentMonthEvent,
     isHomeAdExplicitEvent,
+    isHomeAdRegularClass,
     isHomeAdSocialEvent,
     getHomeAdNearFutureEndDate,
     getHomeAdNextStartDate,
@@ -183,6 +184,55 @@ describe("home ad start-date priority", () => {
         ]);
     });
 
+    it("keeps regular classes last among current and future candidates in both sort modes", () => {
+        const todayRegularClass = makeEvent(1, {
+            title: "린디합 정규 강습 12기",
+            date: "2026-08-11",
+            start_date: "2026-08-11",
+            category: "club",
+            genre: "정규강습",
+            created_at: "2026-08-11T10:55:00+09:00",
+        });
+        const nearOneDayClass = makeEvent(2, {
+            title: "린디합 원데이 워크샵",
+            date: "2026-08-12",
+            start_date: "2026-08-12",
+            category: "class",
+            genre: "린디합",
+        });
+        const clubRecruit = makeEvent(3, {
+            title: "공연팀 18시즌 모집",
+            date: "2026-08-13",
+            start_date: "2026-08-13",
+            category: "club",
+            genre: "팀원모집",
+        });
+        const monthEvent = makeEvent(4, {
+            title: "8월 스윙 대회",
+            date: "2026-08-30",
+            start_date: "2026-08-30",
+            category: "event",
+            genre: "대회",
+        });
+
+        const expected = [monthEvent, nearOneDayClass, clubRecruit, todayRegularClass];
+        expect(rankHomeAdEvents([
+            todayRegularClass,
+            clubRecruit,
+            nearOneDayClass,
+            monthEvent,
+        ], defaultOptions)).toEqual(expected);
+        expect(rankHomeAdEvents([
+            todayRegularClass,
+            clubRecruit,
+            nearOneDayClass,
+            monthEvent,
+        ], {
+            ...defaultOptions,
+            sortBy: "date",
+        })).toEqual(expected);
+    });
+
     it("keeps this month's explicit events when fallback filling is disabled", () => {
         const monthEndEvent = makeEvent(1, {
             date: "2026-08-30",
@@ -290,6 +340,27 @@ describe("home ad event classification", () => {
             category: "class",
             title: "공연팀 17시즌 안내",
         }))).toBe(true);
+    });
+
+    it("recognizes only regular-class evidence and leaves a one-day class at normal priority", () => {
+        expect(isHomeAdRegularClass(makeEvent(1, {
+            category: "club",
+            genre: "정규강습",
+        }))).toBe(true);
+        expect(isHomeAdRegularClass(makeEvent(2, {
+            category: "class",
+            genre: "린디합",
+            dance_tags: ["academy_regular"],
+        }))).toBe(true);
+        expect(isHomeAdRegularClass(makeEvent(3, {
+            category: "regular",
+            genre: "린디합",
+        }))).toBe(true);
+        expect(isHomeAdRegularClass(makeEvent(4, {
+            title: "린디합 원데이 워크샵",
+            category: "class",
+            genre: "린디합",
+        }))).toBe(false);
     });
 });
 

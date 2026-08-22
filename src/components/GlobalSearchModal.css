@@ -62,6 +62,14 @@
     box-sizing: border-box;
     font-size: 1rem;
     background: #f9fafb;
+    color: #111827;
+    caret-color: #111827;
+    -webkit-text-fill-color: #111827;
+}
+
+.search-input::placeholder {
+    color: #6b7280;
+    -webkit-text-fill-color: #6b7280;
 }
 
 .search-input:focus {

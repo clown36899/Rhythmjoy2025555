@@ -2160,3 +2160,15 @@
 - 검증: 수집 표준 회귀에서 혼합 공지의 세 소셜과 세 휴관일이 서로 오염 없이 분리되고 순수 MT와 과거 백테스트 경계는 계속 차단됨을 확인했다. 실제 원문 무저장 실행은 `8/23·8/29·8/30 휴관`, `8/22 제니스·8/25 BBB·9/1 해림` 정확히 6건이었다. 졸공 `98학기 → 졸공 98회`, 실제 DJ가 있는 `12회 졸업파티 → 졸공 12회`, 졸공 근거 없는 98학기 강습·일반 페스티벌 비변경을 추가했다. 수집 표준, 관리자 매핑 2건, 자동등록·정규 소셜 서버 회귀를 합친 Vitest 41건, 대상 ESLint와 프로덕션 빌드가 통과했다. 전체 `tsc -b`는 이 변경 파일 밖의 기존 보드·메트로놈 등 타입 오류로 실패했으며 변경한 졸공 매핑 줄의 신규 타입 오류는 없었다.
 - 관련 커밋: `133257c2`, `e7ccc0ef`
 - 관련 파일: `src/utils/graduationEvent.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/test-ingestion-standards.mjs`, `src/pages/admin/v2/utils/ingestorMapping.ts`, `src/pages/admin/v2/components/EventEditModal.tsx`, `src/pages/admin/v2/EventIngestorV2.tsx`
+
+## 2026-08-22 일정 상세 수정·캘린더 검색·메인 광고 우선순위 연결 오류
+
+- 상태: 공통 원인 수정 및 회귀 검증 완료, 운영 배포 준비
+- 현상: 검색에서 연 일정의 상세 수정 시 장르를 저장하면 상세와 검색 화면이 함께 닫힐 수 있었다. 캘린더 검색 결과는 선택해도 해당 월 이동과 카드 강조만 하고 상세를 열지 않았다. 밝은 전역 검색 입력창은 흰 글자를 상속해 검색어가 보이지 않았다. 메인 광고에서는 정규강습이 오늘 일정 또는 가까운 시작일 우선순위로 앞에 배치될 수 있었다.
+- 판정 경로: 장르 저장 버튼 클릭 → 포털 하단 시트의 클릭 전파 → 상위 검색 오버레이 `onClose` 실행 → 상세를 소유한 검색 모달 언마운트였다. 캘린더 검색은 `CalendarSearchModal.onSelectEvent` → 월 변경·강조까지만 연결되고 `useEventModal.selectedEvent` 갱신이 없었다. 검색 입력은 전역 다크 테마의 입력 글자색 → 밝은 `.search-input` 배경 조합이었다. 광고는 기존 `rankHomeAdEvents`의 오늘·이번 달·근미래 정렬 뒤 동호회만 후순위로 분할했다.
+- 기존 보호 목적: 검색 상세를 닫아도 검색 결과는 유지하고, 캘린더 검색 선택 시 목표 월과 카드를 함께 보여주며, 메인 광고는 시작일이 지난 일정을 현재·미래 후보가 10개 미만일 때만 최대 10개까지 보충한다. 이번 달 행사와 가까운 미래 일정, 동호회 후순위도 유지한다.
+- 근본 원인: 중첩 포털 모달의 이벤트 경계가 빠졌고, 캘린더 검색의 기존 선택 콜백에 상세 상태 연결이 누락됐다. 검색 입력은 배경만 지정하고 명시적 전경색을 두지 않았다. 광고 정렬은 정규강습을 식별할 구조화 분류·태그·명시 문구 판정과 별도 최후 그룹이 없었다.
+- 수정: 상세 오버레이와 하단 수정 시트에서 클릭 전파를 종료하고 저장 결과만 기존 `eventUpdated` 경로로 전달한다. 캘린더 검색 선택 시 월 이동·강조와 함께 같은 `useEventModal`의 선택 이벤트를 설정한다. 밝은 검색 입력에 글자·커서·WebKit 전경색을 명시한다. 기존 광고 정렬 함수 안에서 `regular`, `club_regular`, `정규강습`, `academy_regular` 등 명시적 정규강습 근거만 판정해 일반 후보, 동호회, 정규강습 순으로 안정 분할한다.
+- 유지한 불변조건: 원데이·워크샵과 일반 강습은 정규강습으로 낮추지 않는다. 현재·미래 후보의 기존 상대 순서와 작성자·장소 중복 제거, 최대 15개, 지난 시작일의 10개 미달 보충 및 8회 중 1회 자동 전면 제한을 유지한다. 새 모달·라우트·DB 필드·특정 일정 예외는 추가하지 않았다.
+- 검증: 광고의 `created_at`·`date` 두 정렬에서 오늘 정규강습도 일반 행사·원데이·동호회 뒤로 가고, 원데이는 정상 우선순위에 남는 회귀를 추가했다. 장르 저장 클릭이 상위 오버레이로 전파되지 않는 컴포넌트 회귀를 추가했다. 졸공 매핑·자동등록·정규 소셜 인접 회귀를 포함한 대상 Vitest 67건이 통과했다. 프로덕션 빌드와 운영 화면 검증은 배포 단계에서 기록한다.
+- 관련 파일: `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `src/pages/v2/components/EventDetailModal.tsx`, `src/pages/v2/components/EventEditBottomSheet.tsx`, `src/pages/v2/components/EventEditBottomSheet.test.tsx`, `src/pages/calendar/page.tsx`, `src/components/GlobalSearchModal.css`, `src/pages/v2/components/NewEventsBanner.tsx`

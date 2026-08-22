@@ -100,7 +100,10 @@ const EventEditBottomSheet = React.memo(({
     if (!activeField) return null;
 
     return createPortal(
-        <div className="EDM-bottomSheetPortal">
+        <div
+            className="EDM-bottomSheetPortal"
+            onClick={(event) => event.stopPropagation()}
+        >
             <div className="EDM-bottomSheetBackdrop" onClick={onClose} />
             <div className="EDM-bottomSheetContent">
                 <div className="EDM-bottomSheetHandle"></div>
