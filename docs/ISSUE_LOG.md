@@ -2214,3 +2214,16 @@
 - 배포 후속: 전체 수집 스크립트 배포 뒤 `candidate-utils.mjs`가 참조하는 공용 졸공 모듈이 운영 경로에 없는 패키징 누락을 드라이런이 DB 변경 전에 차단했다. 기존 `src/utils/graduationEvent.mjs`를 동일 경로에 배포하고 원격 import 검사를 배포 절차에 추가했다. 커밋 `b34a88b4`, `35b26777`, `b085fa78`, `019ca470`을 푸시했으며 공개 빌드 `1787426961067` (`2026-08-22T19:29:24.507Z`), 외부 헬스, 공용 모듈 로컬·운영 SHA-256 일치를 확인했다.
 - 관련 결정: `docs/decisions/2026-08-23-ingestion-ledger-adjudication.md`
 - 관련 파일: `server/cafe24/function-api.js`, `server/cafe24/ingestion-candidate-policy.js`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/reconcile-2026-08-23-ingestor-ledger.mjs`, `server/cafe24/ingestor-registration-link.test.js`, `scripts/test-ingestion-standards.mjs`
+
+## 2026-08-23 재사용 원본 링크와 게시판 발행물의 복합 중복 판정
+
+- 상태: 공통 원인 수정·운영 배포·원장 보정 완료
+- 현상: 원본 사이트가 한 게시물 URL에서 날짜별 일정을 계속 갱신할 수 있는데도 같은 URL·날짜를 절대 중복으로 취급해 서로 다른 내용을 덮거나 누락할 수 있었다. 반대로 이미 게시판에 발행된 `경성홀 입장료변경안내`는 이벤트 원장에 없다는 이유로 수집 관리자 `신규` 탭에 다시 나타났다.
+- 판정 경로: 수집 후보 생성 → 결정론 ID 및 배치 병합 → 운영 일정·후보 중복 판정 → 자동등록 대상 선택 → `scraped_events.status`와 관리자 탭이다. 기존 구현은 후보 ID, 같은 원본 URL·날짜, 같은 출처·날짜를 내용 충돌 확인 전에 종료 조건으로 사용했고, 게시판 원장은 중복 비교 대상에 포함하지 않았다.
+- 기존 보호 목적: 반복 실행이 등록 완료·제외·중복 같은 종결 상태를 다시 열지 않게 하고, 같은 원문에서 재발견한 동일 일정의 후보 ID와 등록 대상을 안정적으로 재사용한다. 날짜·장소·활동·DJ가 충돌하는 소셜은 합치지 않고 `registered_event_id` 연결은 자동 갱신보다 우선한다.
+- 근본 원인: 링크·ID 안정성과 이벤트 동일성이 하나의 규칙에 묶여 있었다. URL 재사용과 ID 충돌에서 제목·본문·장소·활동·시간·DJ의 호환성을 확인하지 않아 같은 링크의 다른 이벤트를 구분할 수 없었고, 이벤트가 아닌 운영 안내를 소유하는 `board_posts` 원장은 판정 경로에 연결되지 않았다.
+- 수정: 기존 원장과 상태값을 유지하고 공통 복합 식별자를 추가했다. 같은 URL·날짜라도 내용이 호환될 때만 중복이며, 내용이 다르면 콘텐츠 지문을 포함한 안정 ID로 별도 후보를 보존한다. 수집 배치·V3·서버 저장·자동등록·감사 스크립트가 같은 판정기를 사용한다. 게시판 중복은 가격·입장료 변경 같은 운영 안내에 한해 호환 제목과 로컬 이미지 시각 일치가 모두 있을 때만 `board_posts` 중복으로 연결한다.
+- 유지한 불변조건: 등록 완료 연결, 종결 상태 비재개방, 날짜별 후보 분리, 소셜 DJ·장소·활동 충돌 차단, 공식 API 우선순위와 수동·자동 등록 경계를 유지했다. 게시판 제목만 같거나 원격 이미지를 가져올 수 없는 경우에는 자동 중복 처리하지 않으며 새 테이블·큐·상태값과 특정 URL·이벤트 ID 예외를 추가하지 않았다.
+- 검증: URL 재사용의 동일/상이 내용, ID 충돌, DJ 충돌, 후보 배치 병합, V3, 등록 대상 선택, 게시판 안내의 제목·이미지 양쪽 근거와 일반 이벤트 비차단을 포함한 Vitest 80건, Node 4건, V3 안전성·수집 표준 검사, 대상 ESLint 오류 0건과 프로덕션 빌드가 통과했다. 커밋 `8c5d1a70`을 푸시하고 Cafe24 공개 빌드 `1787458336631` (`2026-08-23T04:12:20.020Z`)을 배포했으며 외부 헬스가 정상이다. 운영 dry-run은 pending 11건 중 `📢 입장료 변경 안내` 1건만 기존 게시판 글 `8ca978c6-cb7b-4ba9-aaac-bc8f11c9512f`의 중복으로 산출했다. 적용 전 원본은 `/opt/swingenjoy/backups/data-fixes/2026-08-23-ingestor-ledger-2026-08-23T04-15-25-936Z.json`에 보존했고, 후보 `cca4c0a0c0f35b1e`는 `duplicate/board_posts`로 저장됐다. 제목 유사도는 `0.86`, 이미지 평균 절대오차는 `2.175`였고 적용 후 재실행은 pending 10건·전환 0건·`alreadyReconciled=true`였다.
+- 관련 결정: `docs/decisions/2026-08-23-ingestion-composite-content-identity.md`
+- 관련 파일: `server/cafe24/ingestion-duplicate-identity.js`, `server/cafe24/function-api.js`, `server/cafe24/ingestor-v3-api.js`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/expanded-genre-native.mjs`, `scripts/ingestion/tango-scene-map.mjs`, `scripts/reconcile-2026-08-23-ingestor-ledger.mjs`, `src/pages/admin/v2/EventIngestorV2.tsx`
