@@ -74,6 +74,19 @@ function todayInKorea() {
   }).format(new Date());
 }
 
+export function canPublishReelDate({
+  date,
+  today,
+  dryRun = false,
+  allowNoncurrentDate = false,
+} = {}) {
+  return Boolean(
+    date
+    && today
+    && (date === today || dryRun || allowNoncurrentDate),
+  );
+}
+
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -185,8 +198,10 @@ async function notify(message, title) {
 
 async function main() {
   const args = parseArguments(process.argv.slice(2));
-  const date = typeof args.date === 'string' ? args.date : todayInKorea();
+  const today = todayInKorea();
+  const date = typeof args.date === 'string' ? args.date : today;
   const dryRun = Boolean(args['dry-run']);
+  const allowNoncurrentDate = Boolean(args['allow-noncurrent-date']);
   const environmentPath = process.env.RHYTHMJOY_SOCIAL_REEL_ENV
     || defaultEnvironmentPath;
   await loadShellCompatibleEnvironment(environmentPath);
@@ -199,6 +214,12 @@ async function main() {
   );
 
   try {
+    if (!canPublishReelDate({ date, today, dryRun, allowNoncurrentDate })) {
+      throw new Error(
+        `Refusing to publish non-current reel date ${date}; today in Korea is ${today}. `
+        + 'Use --dry-run to inspect it or --allow-noncurrent-date for an intentional override.',
+      );
+    }
     await run(process.execPath, [generatorRunner, `--date=${date}`]);
     const result = await publishWithSafeRetries(
       {

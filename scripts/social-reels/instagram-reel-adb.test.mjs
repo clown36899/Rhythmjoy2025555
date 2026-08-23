@@ -20,6 +20,7 @@ import {
 } from './instagram-reel-adb.mjs';
 import {
   buildPublicationProblemNotification,
+  canPublishReelDate,
   canRetryPublicationState,
   resolveShellDefaultExpression,
 } from './run-scheduled-social-reel.mjs';
@@ -280,6 +281,27 @@ test('publisher retries only failures known to occur before Share', () => {
   assert.equal(canRetryPublicationState({ status: 'failed-before-share' }), true);
   assert.equal(canRetryPublicationState({ status: 'verification-required' }), false);
   assert.equal(canRetryPublicationState({ status: 'published' }), false);
+});
+
+test('actual publishing rejects a non-current date unless explicitly overridden', () => {
+  assert.equal(canPublishReelDate({
+    date: '2026-08-23',
+    today: '2026-08-23',
+  }), true);
+  assert.equal(canPublishReelDate({
+    date: '2026-08-22',
+    today: '2026-08-23',
+  }), false);
+  assert.equal(canPublishReelDate({
+    date: '2026-08-22',
+    today: '2026-08-23',
+    dryRun: true,
+  }), true);
+  assert.equal(canPublishReelDate({
+    date: '2026-08-22',
+    today: '2026-08-23',
+    allowNoncurrentDate: true,
+  }), true);
 });
 
 test('post-share uncertainty is reported as confirmation pending instead of failure', () => {
