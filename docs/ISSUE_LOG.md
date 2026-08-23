@@ -2227,3 +2227,16 @@
 - 검증: URL 재사용의 동일/상이 내용, ID 충돌, DJ 충돌, 후보 배치 병합, V3, 등록 대상 선택, 게시판 안내의 제목·이미지 양쪽 근거와 일반 이벤트 비차단을 포함한 Vitest 80건, Node 4건, V3 안전성·수집 표준 검사, 대상 ESLint 오류 0건과 프로덕션 빌드가 통과했다. 커밋 `8c5d1a70`을 푸시하고 Cafe24 공개 빌드 `1787458336631` (`2026-08-23T04:12:20.020Z`)을 배포했으며 외부 헬스가 정상이다. 운영 dry-run은 pending 11건 중 `📢 입장료 변경 안내` 1건만 기존 게시판 글 `8ca978c6-cb7b-4ba9-aaac-bc8f11c9512f`의 중복으로 산출했다. 적용 전 원본은 `/opt/swingenjoy/backups/data-fixes/2026-08-23-ingestor-ledger-2026-08-23T04-15-25-936Z.json`에 보존했고, 후보 `cca4c0a0c0f35b1e`는 `duplicate/board_posts`로 저장됐다. 제목 유사도는 `0.86`, 이미지 평균 절대오차는 `2.175`였고 적용 후 재실행은 pending 10건·전환 0건·`alreadyReconciled=true`였다.
 - 관련 결정: `docs/decisions/2026-08-23-ingestion-composite-content-identity.md`
 - 관련 파일: `server/cafe24/ingestion-duplicate-identity.js`, `server/cafe24/function-api.js`, `server/cafe24/ingestor-v3-api.js`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `scripts/ingestion/expanded-genre-native.mjs`, `scripts/ingestion/tango-scene-map.mjs`, `scripts/reconcile-2026-08-23-ingestor-ledger.mjs`, `src/pages/admin/v2/EventIngestorV2.tsx`
+
+## 2026-08-23 Instagram 릴스 커버 편집 UI 변경으로 예약 게시 누락
+
+- 상태: 공통 UI 경로 수정·오늘 릴스 게시·재발 방지 완료
+- 현상: 2026-08-22 12:30 예약 실행은 4K 영상·커버 생성과 AVD·Instagram 검증을 마쳤지만 Share 전에 세 번 실패해 릴스가 올라가지 않았다. 같은 증상은 8월 20일에도 발생했다.
+- 판정 경로: LaunchAgent → 날짜별 영상 생성·검증 → `Medium_Phone` AVD·계정 확인 → 영상·음악 선택 → 커버 편집 → Share 상태 기록 → 프로필 게시물 수 확인이다. 8월 22일 원장은 `failed-before-share`였고 오류 화면에는 `Edit cover`, `Add from camera roll`, `Done`이 이미 표시됐지만 자동화는 과거 중간 오버레이 `clip_thumbnail_layout`만 기다렸다.
+- 기존 보호 목적: 정확한 AVD·계정·Instagram 설치를 Share 전에 확인하고, Share 이전 실패만 안전 재시도한다. Share 이후에는 프로필 게시물 수 증가가 확인되기 전까지 자동 재게시를 금지해 중복 게시를 막는다. 날짜별 영상·게시 상태와 음악 이력은 원자적으로 보존한다.
+- 근본 원인: Instagram이 커버 미리보기를 더블탭하면 중간 썸네일 오버레이를 거치지 않고 곧바로 전체 `Edit cover` 화면을 여는 UI로 변경했지만 자동화가 기존 오버레이 경로만 지원했다. 수동 복구에서도 과거 날짜를 명시하면 실제 게시를 허용해, 누락 원인 재현과 오늘 게시를 구분하지 못하는 운영 위험이 있었다.
+- 수정: 더블탭 뒤 `Add from camera roll`이 이미 보이면 편집기가 열린 것으로 판정하고 바로 4K 커버 선택을 진행하며, 기존 `clip_thumbnail_layout` 오버레이도 계속 지원한다. 실제 게시는 KST 오늘 날짜만 기본 허용하고 과거·미래 날짜는 드라이런 또는 명시적 `--allow-noncurrent-date`에서만 허용한다.
+- 유지한 불변조건: `Medium_Phone`·Package Manager 설치·계정 검증, Share 전/후 재시도 경계, 프로필 수 기반 게시 완료, 날짜별 잠금·상태, 4K 규격과 음악 순환은 유지했다. UI 변화가 있어도 계정 로그인이나 불확실한 Share를 추측해 진행하지 않는다.
+- 검증: 신규 직접 커버 편집·레거시 오버레이·현재 날짜 차단 경계를 포함한 소셜 릴스 Node 회귀 24건, 대상 구문·ESLint와 `git diff --check`가 통과했다. 2026-08-23 영상은 `23일 소셜`, 2160×3840, H.264, 30fps, 15초로 새로 생성했고 드라이런에서 4K 커버와 `Do What You Wanna — Ramsey Lewis`를 적용해 Share 직전까지 통과한 뒤 정상 폐기했다. 실제 게시 뒤 프로필 수가 `22 → 23`으로 증가했고 최신 게시물을 직접 열어 `23일 소셜` 화면과 해당 음악을 확인했다. 복구 중 명시적으로 게시된 22일 릴스는 사용자가 삭제했으며 22일 게시 원장은 `published`로 유지해 자동 재게시를 막았다.
+- 관련 커밋: `8386bb6f`, `2dfee0b7`
+- 관련 파일: `scripts/social-reels/instagram-reel-adb.mjs`, `scripts/social-reels/instagram-reel-adb.test.mjs`, `scripts/social-reels/run-scheduled-social-reel.mjs`
