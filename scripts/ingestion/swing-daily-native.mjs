@@ -6,6 +6,7 @@ import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
   collapseSocialCandidateVariants,
+  dedupeCandidatesByContentIdentity,
   extractDatedDjSections,
   extractExplicitClosureDates,
   extractIndependentSocialDateSections,
@@ -3195,7 +3196,7 @@ async function main() {
         const issueCountBeforeSource = result.issues.length;
         const candidates = await collectSource(page, source);
         const mergedSocialVariants = collapseSocialCandidateVariants(candidates);
-        const deduped = [...new Map(mergedSocialVariants.map((candidate) => [candidate.id, candidate])).values()];
+        const deduped = dedupeCandidatesByContentIdentity(mergedSocialVariants);
         result.pipeline.decomposition.candidates += deduped.length;
         for (const candidate of deduped) {
           const activity = String(candidate.structured_data?.activity_type || 'unknown');

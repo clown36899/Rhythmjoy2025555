@@ -4,6 +4,7 @@ import 'dotenv/config';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getCollectionSources } from './collection-registry.mjs';
+import { dedupeCandidatesByContentIdentity } from './candidate-utils.mjs';
 
 const TANGO_CALENDAR_API = 'https://tangocalendar.kr/api/events';
 const DEFAULT_OUTPUT_DATE = getKstDateString(new Date());
@@ -441,12 +442,9 @@ function buildTangoCandidate(event) {
 }
 
 function uniqueCandidates(candidates) {
-  const byId = new Map();
-  for (const candidate of candidates) {
-    if (!candidate.id || !candidate.structured_data.date) continue;
-    byId.set(candidate.id, candidate);
-  }
-  return [...byId.values()].sort((a, b) => {
+  return dedupeCandidatesByContentIdentity(
+    candidates.filter((candidate) => candidate.id && candidate.structured_data.date),
+  ).sort((a, b) => {
     const ad = `${a.structured_data.date} ${a.structured_data.time || ''}`;
     const bd = `${b.structured_data.date} ${b.structured_data.time || ''}`;
     return ad.localeCompare(bd) || a.structured_data.title.localeCompare(b.structured_data.title, 'ko');

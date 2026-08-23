@@ -4,6 +4,7 @@ import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
   collapseSocialCandidateVariants,
+  dedupeCandidatesByContentIdentity,
   extractBenefitValidityEndDate,
   extractDatedDjSections,
   extractExplicitClosureDates,
@@ -1988,6 +1989,43 @@ const collapsedSocialVariants = collapseSocialCandidateVariants([
   }),
 ]);
 assert.deepEqual(collapsedSocialVariants.map((candidate) => candidate.id), ['social-superset'], 'same-source social DJ subsets must collapse to the richer schedule row');
+
+const distinctSocialVariants = collapseSocialCandidateVariants([
+  baseCandidate({
+    id: 'social-dj-a',
+    structured_data: { title: '스윙타임 토요 소셜', date: '2026-06-06', location: '스윙타임', event_type: '소셜', activity_type: 'social', djs: ['비비비'] },
+  }),
+  baseCandidate({
+    id: 'social-dj-b',
+    structured_data: { title: '스윙타임 토요 소셜', date: '2026-06-06', location: '스윙타임', event_type: '소셜', activity_type: 'social', djs: ['메이져'] },
+  }),
+]);
+assert.deepEqual(
+  distinctSocialVariants.map((candidate) => candidate.id),
+  ['social-dj-a', 'social-dj-b'],
+  'same-link/date social rows with disjoint DJ evidence must remain separate occurrences',
+);
+
+const sharedSourceDateId = makeDeterministicId('https://example.com/reused-schedule', '2026-06-06');
+const contentIdentityRows = dedupeCandidatesByContentIdentity([
+  baseCandidate({
+    id: sharedSourceDateId,
+    source_url: 'https://example.com/reused-schedule',
+    structured_data: { title: '린디합 초급 원데이', date: '2026-06-06', location: '연습실 A', activity_type: 'class' },
+  }),
+  baseCandidate({
+    id: sharedSourceDateId,
+    source_url: 'https://example.com/reused-schedule',
+    structured_data: { title: '발보아 중급 원데이', date: '2026-06-06', location: '연습실 B', activity_type: 'class' },
+  }),
+]);
+assert.equal(contentIdentityRows.length, 2, 'same source URL/date with different event content must survive batch dedupe');
+assert.notEqual(contentIdentityRows[0].id, contentIdentityRows[1].id, 'content collisions must receive stable distinct candidate ids');
+assert.equal(
+  dedupeCandidatesByContentIdentity([contentIdentityRows[0], { ...contentIdentityRows[0] }]).length,
+  1,
+  'compatible rediscovery must still collapse to one candidate',
+);
 
 assert.equal(validateCandidate(baseCandidate({ structured_data: { title: '과거 이벤트', date: '2026-05-01' } }), { today: TODAY }).ok, false);
 const rentalAvailabilityNotice = baseCandidate({

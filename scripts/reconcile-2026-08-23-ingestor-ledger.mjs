@@ -58,6 +58,7 @@ const {
   buildDuplicateScrapedEventRow,
   buildExcludedScrapedEventRow,
   findBlockingAutomaticRegistrationDuplicate,
+  findPublishedBoardPostDuplicate,
   findScrapedCandidateDuplicate,
 } = await import('../server/cafe24/function-api.js');
 const { getIngestionCandidateExclusionReason } = await import('../server/cafe24/ingestion-candidate-policy.js');
@@ -82,11 +83,17 @@ try {
       WHERE table_name = 'scraped_events'${lockSuffix}`,
   );
   const [eventRecords] = await connection.execute('SELECT id, raw_json FROM events');
+  const [boardRecords] = await connection.execute(
+    `SELECT record_id, data_json
+       FROM generic_records
+      WHERE table_name = 'board_posts'`,
+  );
   const candidates = candidateRecords.map((record) => ({
     record,
     row: parseJson(record.data_json, `scraped_events/${record.record_id}`),
   }));
   const events = eventRecords.map((record) => parseJson(record.raw_json, `events/${record.id}`));
+  const boardPosts = boardRecords.map((record) => parseJson(record.data_json, `board_posts/${record.record_id}`));
   const pending = candidates
     .filter(({ row }) => isPending(row))
     .sort((left, right) => (
@@ -96,6 +103,7 @@ try {
     ));
   const candidatePrimaries = candidates.filter(({ row }) => isCollected(row)).map(({ row }) => row);
   const transitions = [];
+  const publishedImageCache = new Map();
   const now = new Date().toISOString();
 
   for (const item of pending) {
@@ -134,6 +142,19 @@ try {
         after: buildDuplicateScrapedEventRow({ scrapedEvent: row, duplicate: operationalDuplicate, now }),
         reason: operationalDuplicate.reason,
         match: operationalDuplicate,
+      });
+      continue;
+    }
+
+    const publishedDuplicate = await findPublishedBoardPostDuplicate(row, boardPosts, {
+      imageCache: publishedImageCache,
+    });
+    if (publishedDuplicate) {
+      transitions.push({
+        ...item,
+        after: buildDuplicateScrapedEventRow({ scrapedEvent: row, duplicate: publishedDuplicate, now }),
+        reason: publishedDuplicate.reason,
+        match: publishedDuplicate,
       });
       continue;
     }
@@ -185,7 +206,7 @@ try {
     );
     await fs.writeFile(backupPath, `${JSON.stringify({
       createdAt: now,
-      reason: '2026-08-23 pending ingestor policy and duplicate reconciliation',
+      reason: '2026-08-23 pending ingestor policy and composite duplicate reconciliation',
       today,
       records: transitions.map(({ record, row }) => ({ record, row })),
     }, null, 2)}\n`, { flag: 'wx', mode: 0o600 });

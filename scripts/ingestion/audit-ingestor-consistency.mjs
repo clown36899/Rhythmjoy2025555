@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { getMysqlPool } from '../../server/cafe24/mysql-pool.js';
 import { findGeneratedRegularSocialReplacements } from '../../server/cafe24/regular-social-reconciler.js';
+import { ingestionRowsContentCompatible } from '../../server/cafe24/ingestion-duplicate-identity.js';
 import {
   evaluateAutoRegistrationReadiness,
   prepareCandidate,
@@ -369,7 +370,10 @@ function hasExactLiveMatch(candidate, liveByUrlDate, liveById = new Map()) {
   const registeredEventId = String(candidate.registered_event_id || candidate.structured_data?.registered_event_id || '');
   if (registeredEventId && liveById.has(registeredEventId)) return true;
   const key = legacyCandidateKey(candidate);
-  return Boolean(key !== '|' && liveByUrlDate.has(key));
+  return Boolean(
+    key !== '|'
+    && (liveByUrlDate.get(key) || []).some((event) => ingestionRowsContentCompatible(event, candidate)),
+  );
 }
 
 function likelyLiveMatch(candidate, liveEvents) {
@@ -494,13 +498,27 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
     .filter((row) => statusOfLegacyCandidate(row) === 'duplicate' || row.structured_data?._duplicate)
     .filter((row) => !likelyLiveMatch(row, liveEvents));
 
-  const liveDuplicateGroups = [...liveByUrlDate.entries()]
-    .filter(([, rows]) => rows.length > 1)
-    .map(([key, rows]) => ({
+  const liveDuplicateGroups = [...liveByUrlDate.entries()].flatMap(([key, rows]) => {
+    if (rows.length < 2) return [];
+    const compatiblePairs = [];
+    for (let leftIndex = 0; leftIndex < rows.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < rows.length; rightIndex += 1) {
+        if (ingestionRowsContentCompatible(rows[leftIndex], rows[rightIndex])) {
+          compatiblePairs.push([rows[leftIndex], rows[rightIndex]]);
+        }
+      }
+    }
+    if (!compatiblePairs.length) return [];
+    const compatibleRows = [...new Map(
+      compatiblePairs.flat().map((row) => [String(row.id || JSON.stringify(compactRow(row))), row]),
+    ).values()];
+    return [{
       key,
-      count: rows.length,
-      rows: rows.slice(0, 5).map(compactRow),
-    }));
+      count: compatibleRows.length,
+      compatiblePairCount: compatiblePairs.length,
+      rows: compatibleRows.slice(0, 5).map(compactRow),
+    }];
+  });
 
   const collectedCandidates = legacyCandidates
     .filter((row) => statusOfLegacyCandidate(row) === 'collected' || row.is_collected === true);
@@ -522,6 +540,7 @@ function buildLegacyAudit({ today, liveEvents, legacyCandidates }) {
   for (const candidate of collectedCandidates) {
     if (candidateLiveMatches.has(String(candidate.id))) continue;
     const exactRows = (liveByUrlDate.get(legacyCandidateKey(candidate)) || [])
+      .filter((event) => ingestionRowsContentCompatible(event, candidate))
       .filter((event) => !usedLiveIds.has(liveMatchId(event)))
       .sort((a, b) => (
         textSimilarity(titleOfLegacyCandidate(candidate), b.title || '')

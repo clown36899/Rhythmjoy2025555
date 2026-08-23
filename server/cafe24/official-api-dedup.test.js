@@ -42,4 +42,35 @@ describe('official API event duplicate priority', () => {
     }]);
     expect(duplicate).toBeNull();
   });
+
+  it('does not treat a reused source URL and date as an absolute match', () => {
+    const sourceUrl = 'https://collector.example/monthly-schedule';
+    const liveEvent = {
+      id: 'class-a',
+      date: '2026-08-07',
+      title: '린디합 초급 원데이',
+      venue_name: '샘플홀 A',
+      category: 'class',
+      link1: sourceUrl,
+    };
+
+    expect(findLiveDuplicate({
+      event_date: '2026-08-07',
+      title: '린디합 초급 원데이',
+      venue_name: '샘플홀 A',
+      activity_type: 'class',
+      source_url: sourceUrl,
+    }, [liveEvent])).toMatchObject({
+      existingId: 'class-a',
+      reason: 'same source URL, date, and compatible event content',
+    });
+
+    expect(findLiveDuplicate({
+      event_date: '2026-08-07',
+      title: '발보아 중급 원데이',
+      venue_name: '샘플홀 B',
+      activity_type: 'class',
+      source_url: sourceUrl,
+    }, [liveEvent])).toBeNull();
+  });
 });

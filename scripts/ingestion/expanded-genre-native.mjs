@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import {
   buildCafe24Payload,
+  dedupeCandidatesByContentIdentity,
   normalizeSourceUrl,
   prepareCandidate,
 } from './candidate-utils.mjs';
@@ -505,7 +506,7 @@ async function main() {
         await sleep(waitMs);
       }
       const candidates = await collectSource(page, source);
-      const deduped = [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
+      const deduped = dedupeCandidatesByContentIdentity(candidates);
       for (const candidate of deduped) {
         await postCandidate(candidate);
       }

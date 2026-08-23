@@ -5,6 +5,10 @@ import {
   getExcludedSourceReason,
 } from './collection-registry.mjs';
 import { getIngestionCandidateExclusionReason } from '../../server/cafe24/ingestion-candidate-policy.js';
+import {
+  buildIngestionContentCollisionId,
+  ingestionRowsContentCompatible,
+} from '../../server/cafe24/ingestion-duplicate-identity.js';
 import { getGraduationEventMetadata } from '../../src/utils/graduationEvent.mjs';
 
 const activityLabels = {
@@ -1655,19 +1659,81 @@ export function collapseSocialCandidateVariants(candidates = []) {
       normalizeText(sd.venue_name || sd.location || ''),
       socialVariantBaseTitle(candidate),
     ].join('|');
-    const existingIndex = grouped.get(key);
-    if (existingIndex === undefined) {
-      grouped.set(key, output.length);
+    const existingIndexes = grouped.get(key) || [];
+    if (!existingIndexes.length) {
+      grouped.set(key, [output.length]);
       output.push(candidate);
       continue;
     }
 
-    const existing = output[existingIndex];
-    const existingDjs = socialVariantDjs(existing);
     const candidateDjs = socialVariantDjs(candidate);
-    const candidateIsRicher = candidateDjs.length > existingDjs.length
-      && existingDjs.every((dj) => candidateDjs.includes(dj));
-    if (candidateIsRicher) output[existingIndex] = candidate;
+    const supersededIndex = existingIndexes.find((index) => {
+      const existingDjs = socialVariantDjs(output[index]);
+      return candidateDjs.length > existingDjs.length
+        && existingDjs.every((dj) => candidateDjs.includes(dj));
+    });
+    if (supersededIndex !== undefined) {
+      output[supersededIndex] = candidate;
+      continue;
+    }
+    const coveredByExisting = existingIndexes.some((index) => {
+      const existingDjs = socialVariantDjs(output[index]);
+      return existingDjs.length >= candidateDjs.length
+        && candidateDjs.every((dj) => existingDjs.includes(dj));
+    });
+    if (coveredByExisting) continue;
+
+    existingIndexes.push(output.length);
+    grouped.set(key, existingIndexes);
+    output.push(candidate);
+  }
+
+  return output;
+}
+
+function candidateInformationScore(candidate = {}) {
+  const structuredData = candidate.structured_data || {};
+  return (candidate.poster_url || candidate.imageData ? 1000 : 0)
+    + (structuredData.djs?.length || 0) * 100
+    + Math.min(String(candidate.extracted_text || '').length, 6000)
+    + String(structuredData.title || candidate.title || '').length;
+}
+
+export function dedupeCandidatesByContentIdentity(candidates = []) {
+  const output = [];
+  const indexById = new Map();
+
+  for (const original of candidates) {
+    if (!original?.id) continue;
+    let candidate = { ...original };
+    let collisionAttempt = 0;
+
+    while (true) {
+      const existingIndex = indexById.get(String(candidate.id));
+      if (existingIndex === undefined) {
+        indexById.set(String(candidate.id), output.length);
+        output.push(candidate);
+        break;
+      }
+
+      const existing = output[existingIndex];
+      if (ingestionRowsContentCompatible(existing, candidate)) {
+        if (candidateInformationScore(candidate) > candidateInformationScore(existing)) {
+          output[existingIndex] = candidate;
+        }
+        break;
+      }
+
+      const contentId = buildIngestionContentCollisionId(candidate, {
+        sourceUrl: normalizeSourceUrl(candidate.source_url),
+        date: candidate.structured_data?.date || candidate.event_date || candidate.date,
+      });
+      const resolvedId = collisionAttempt === 0
+        ? contentId
+        : crypto.createHash('sha256').update(`${contentId}|${collisionAttempt}`).digest('hex').slice(0, 16);
+      candidate = { ...candidate, id: resolvedId };
+      collisionAttempt += 1;
+    }
   }
 
   return output;

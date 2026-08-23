@@ -24,6 +24,14 @@ import {
   getIngestionCandidateExclusionReason,
   isVenueRentalAvailabilityNotice,
 } from './ingestion-candidate-policy.js';
+import {
+  buildIngestionContentCollisionId,
+  ingestionIdentityTextSimilarity as duplicateTextSimilarity,
+  ingestionRowsContentCompatible,
+  ingestionTitleIdentityMatches,
+  looksLikeGenericIngestionIdentityTitle as looksLikeGenericIngestionTitle,
+  normalizeIngestionIdentityText as normalizeDuplicateText,
+} from './ingestion-duplicate-identity.js';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -407,40 +415,15 @@ function rowSearchEvidence(row = {}) {
 }
 
 function rowSourceUrl(row, target = 'scraped_events') {
-  return String(target === 'events' ? row?.link1 : row?.source_url || '').trim();
+  if (target === 'events') return String(row?.link1 || '').trim();
+  if (target === 'board_posts') {
+    return String(row?.source_url || row?.original_url || row?.link || '').trim();
+  }
+  return String(row?.source_url || '').trim();
 }
 
 function normalizeDuplicateUrl(value) {
   return normalizeDateExpansionUrl(value);
-}
-
-function normalizeDuplicateText(value) {
-  return String(value || '')
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/seoul/g, '서울')
-    .replace(/dj\s*/gi, '')
-    .replace(/[^\p{L}\p{N}가-힣]/gu, '');
-}
-
-function duplicateTextSimilarity(a, b) {
-  const left = normalizeDuplicateText(a);
-  const right = normalizeDuplicateText(b);
-  if (!left || !right) return 0;
-  if (left === right) return 1;
-  if (left.includes(right) || right.includes(left)) return 0.86;
-
-  const grams = (value) => {
-    if (value.length <= 2) return new Set([value]);
-    const result = new Set();
-    for (let i = 0; i <= value.length - 2; i += 1) result.add(value.slice(i, i + 2));
-    return result;
-  };
-  const leftGrams = grams(left);
-  const rightGrams = grams(right);
-  const intersection = [...leftGrams].filter((gram) => rightGrams.has(gram)).length;
-  const union = new Set([...leftGrams, ...rightGrams]).size;
-  return union ? intersection / union : 0;
 }
 
 function sameSourceUrl(left, right) {
@@ -564,15 +547,6 @@ function sameSourceIdentity(left, right) {
   return Boolean(a && b && a === b);
 }
 
-function looksLikeGenericIngestionTitle(value = '') {
-  const normalized = normalizeDuplicateText(value);
-  if (!normalized) return true;
-  if (normalized.length <= 6 && /강습|소셜|행사|파티|안내/.test(normalized)) return true;
-  if (/^(?:[가-힣a-z0-9]+)?(?:강습|소셜|행사|파티|이벤트)?안내$/.test(normalized)) return true;
-  if (/^(?:💜|💙|❤️|🧡|💛|💚|🩵|💖|✨)?강습안내(?:💜|💙|❤️|🧡|💛|💚|🩵|💖|✨)?$/.test(normalized)) return true;
-  return false;
-}
-
 function duplicateDescriptor(target, row, reason) {
   return {
     target,
@@ -580,7 +554,9 @@ function duplicateDescriptor(target, row, reason) {
     existingTitle: rowTitle(row) || null,
     existingDate: target === 'events'
       ? String(row?.start_date || row?.date || '').slice(0, 10)
-      : scrapedRowDate(row),
+      : target === 'board_posts'
+        ? String(row?.published_at || row?.created_at || '').slice(0, 10) || null
+        : scrapedRowDate(row),
     existingSourceUrl: rowSourceUrl(row, target) || null,
     reason,
   };
@@ -637,6 +613,7 @@ export function canReprocessCollectedAutomaticCandidate(existingRow = {}, incomi
   const exactOperationalMatches = eventRows.filter((event) => (
     sameSourceUrl(rowSourceUrl(event, 'events'), sourceUrl)
     && sameEventDate(event, date)
+    && sameSourceOccurrenceContent(event, incomingRow)
   ));
   return exactOperationalMatches.length === 1;
 }
@@ -680,6 +657,11 @@ export function isHighConfidenceContentDuplicate(existing = {}, candidate = {}) 
   );
 }
 
+function sameSourceOccurrenceContent(existing = {}, candidate = {}) {
+  return ingestionRowsContentCompatible(existing, candidate)
+    || isHighConfidenceSocialDuplicate(existing, candidate);
+}
+
 function duplicateMatch(row, candidate, target) {
   const date = scrapedRowDate(candidate);
   if (!date) return null;
@@ -689,8 +671,12 @@ function duplicateMatch(row, candidate, target) {
     ? sameEventDate(row, date)
     : scrapedRowDate(row) === date;
 
-  if (sameSourceUrl(existingSource, candidateSource) && matchesDate) {
-    return duplicateDescriptor(target, row, '같은 원본 URL과 날짜');
+  const exactSourceDate = sameSourceUrl(existingSource, candidateSource) && matchesDate;
+  if (exactSourceDate) {
+    if (sameSourceOccurrenceContent(row, candidate)) {
+      return duplicateDescriptor(target, row, '같은 원본 URL·날짜와 호환되는 이벤트 내용');
+    }
+    return null;
   }
 
   if (!matchesDate) return null;
@@ -763,6 +749,173 @@ export function findScrapedCandidateDuplicate(candidate, scrapedRows = []) {
 function findBlockingIngestionDuplicate(candidate, eventRows = [], scrapedRows = []) {
   return findBlockingAutomaticRegistrationDuplicate(candidate, eventRows)
     || findScrapedCandidateDuplicate(candidate, scrapedRows);
+}
+
+function publishedBoardImageSources(row = {}) {
+  const content = String(row?.content || '');
+  const htmlImage = content.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1]
+    ?.replace(/&amp;/g, '&');
+  return [...new Set([
+    row?.image_full,
+    row?.image,
+    row?.image_thumbnail,
+    htmlImage,
+  ].filter(Boolean).map((value) => String(value).trim()))];
+}
+
+function candidatePosterSources(row = {}) {
+  return [...new Set([
+    row?.poster_url,
+    row?.image_full,
+    row?.image,
+    row?.structured_data?.poster_url,
+  ].filter(Boolean).map((value) => String(value).trim()))];
+}
+
+function isComparablePublishedImageSource(value = '') {
+  const source = String(value || '').trim();
+  return source.startsWith('/uploads/') || source.startsWith('data:image');
+}
+
+async function publishedImageFingerprint(source, cache = new Map()) {
+  const key = String(source || '').trim();
+  if (!isComparablePublishedImageSource(key)) return null;
+  if (cache.has(key)) return cache.get(key);
+
+  const pending = (async () => {
+    try {
+      const imageSource = await readImageSourceBuffer(key);
+      if (!imageSource?.buffer?.length) return null;
+      const sharp = await loadSharp();
+      if (!sharp) return null;
+      const image = sharp(imageSource.buffer).rotate();
+      const metadata = await image.metadata();
+      const { data, info } = await image
+        .clone()
+        .resize(48, 48, { fit: 'fill' })
+        .flatten({ background: '#ffffff' })
+        .removeAlpha()
+        .toColourspace('srgb')
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      return {
+        pixels: data,
+        channels: info.channels,
+        aspectRatio: metadata.width && metadata.height ? metadata.width / metadata.height : null,
+      };
+    } catch (error) {
+      console.warn('[cafe24:function-api] published image duplicate fingerprint skipped:', error?.message || error);
+      return null;
+    }
+  })();
+  cache.set(key, pending);
+  return pending;
+}
+
+async function comparePublishedImages(leftSource, rightSource, cache) {
+  const [left, right] = await Promise.all([
+    publishedImageFingerprint(leftSource, cache),
+    publishedImageFingerprint(rightSource, cache),
+  ]);
+  if (!left || !right || left.pixels.length !== right.pixels.length) return null;
+  if (
+    left.aspectRatio
+    && right.aspectRatio
+    && Math.abs(left.aspectRatio - right.aspectRatio) / Math.max(left.aspectRatio, right.aspectRatio) > 0.08
+  ) return null;
+
+  let absoluteError = 0;
+  for (let index = 0; index < left.pixels.length; index += 1) {
+    absoluteError += Math.abs(left.pixels[index] - right.pixels[index]);
+  }
+  const meanAbsoluteError = absoluteError / left.pixels.length;
+  return {
+    matches: meanAbsoluteError <= 10,
+    meanAbsoluteError: Number(meanAbsoluteError.toFixed(3)),
+  };
+}
+
+function isPublishedOperationalNoticeCandidate(candidate = {}) {
+  const title = normalizeDuplicateText(rowTitle(candidate));
+  const priceNotice = /(?:입장료|이용료|참가비|가격|요금|회비).*(?:변경|인상|조정|개편|안내|업데이트)/.test(title)
+    || /(?:변경|인상|조정|개편|안내|업데이트).*(?:입장료|이용료|참가비|가격|요금|회비)/.test(title);
+  const concreteOccurrence = /소셜|파티|이벤트|행사|공연|졸공|졸업|강습|클래스|워크숍|워크샵|대회|컴피|잭앤질/.test(title);
+  return priceNotice && !concreteOccurrence && normalizedDjLineup(candidate).length === 0;
+}
+
+export async function findPublishedBoardPostDuplicate(candidate, boardRows = [], {
+  imageCache = new Map(),
+} = {}) {
+  if (!isPublishedOperationalNoticeCandidate(candidate)) return null;
+  const candidateImages = candidatePosterSources(candidate).filter(isComparablePublishedImageSource);
+  if (!candidateImages.length) return null;
+
+  for (const boardPost of boardRows) {
+    if (!ingestionTitleIdentityMatches(rowTitle(boardPost), rowTitle(candidate), {
+      allowGeneric: true,
+      minimumDistinctiveLength: 7,
+    })) continue;
+    const boardImages = publishedBoardImageSources(boardPost).filter(isComparablePublishedImageSource);
+    for (const candidateImage of candidateImages) {
+      for (const boardImage of boardImages) {
+        const visual = await comparePublishedImages(candidateImage, boardImage, imageCache);
+        if (!visual?.matches) continue;
+        return {
+          ...duplicateDescriptor('board_posts', boardPost, '게시판에 동일 제목·동일 시각 자료로 이미 발행된 운영 안내'),
+          evidence: {
+            titleSimilarity: Number(duplicateTextSimilarity(rowTitle(boardPost), rowTitle(candidate)).toFixed(3)),
+            imageMeanAbsoluteError: visual.meanAbsoluteError,
+          },
+        };
+      }
+    }
+  }
+  return null;
+}
+
+export function resolveScrapedCandidateIdentity(candidate = {}, scrapedRows = []) {
+  const baseId = String(candidate?.id || '');
+  const baseExisting = scrapedRows.find((row) => String(row?.id || '') === baseId) || null;
+  const sameCandidateSourceDate = (row) => sameSourceUrl(
+    rowSourceUrl(row, 'scraped_events'),
+    rowSourceUrl(candidate, 'scraped_events'),
+  ) && scrapedRowDate(row) === scrapedRowDate(candidate);
+  if (baseExisting && sameCandidateSourceDate(baseExisting) && sameSourceOccurrenceContent(baseExisting, candidate)) {
+    return { row: candidate, existingRow: baseExisting, collision: null };
+  }
+
+  const compatibleSibling = scrapedRows.find((row) => (
+    (!baseExisting || String(row?.id || '') !== baseId)
+    && sameCandidateSourceDate(row)
+    && sameSourceOccurrenceContent(row, candidate)
+  ));
+  if (compatibleSibling) {
+    return {
+      row: { ...candidate, id: String(compatibleSibling.id) },
+      existingRow: compatibleSibling,
+      collision: {
+        baseId,
+        resolvedId: String(compatibleSibling.id),
+        reason: '같은 원본 URL·날짜의 콘텐츠 ID 후보와 호환되어 기존 분리 ID 재사용',
+      },
+    };
+  }
+  if (!baseExisting) return { row: candidate, existingRow: null, collision: null };
+
+  const collisionId = buildIngestionContentCollisionId(candidate, {
+    sourceUrl: normalizeDuplicateUrl(rowSourceUrl(candidate, 'scraped_events')),
+    date: scrapedRowDate(candidate),
+  });
+  const row = { ...candidate, id: collisionId };
+  return {
+    row,
+    existingRow: scrapedRows.find((item) => String(item?.id || '') === collisionId) || null,
+    collision: {
+      baseId,
+      resolvedId: collisionId,
+      reason: '같은 후보 ID의 원본 URL·날짜는 같지만 이벤트 내용이 달라 콘텐츠 ID로 분리',
+    },
+  };
 }
 
 async function prepareScrapedItem(item) {
@@ -892,20 +1045,35 @@ function replaceWorkingScrapedRow(rows, saved) {
 async function ingestScrapedItems(values) {
   let scrapedRows = await loadCafe24TableRows('scraped_events');
   const eventRows = await loadCafe24TableRows('events');
+  const boardRows = await loadCafe24TableRows('board_posts');
+  const publishedImageCache = new Map();
   const saved = [];
   const refreshed = [];
   const skipped = [];
+  const identityCollisions = [];
 
   for (const value of sortDateExpansionInputs(values)) {
-    const existingInputRow = scrapedRows.find((item) => String(item?.id || '') === String(value?.id || ''));
-    const policyExclusionReason = getIngestionCandidateExclusionReason(value, { today: kstToday() });
+    const normalizedInput = {
+      ...(value || {}),
+      id: String(value?.id || crypto.randomUUID()),
+      structured_data: stripVirtualCandidateTaxonomy(value?.structured_data || {}),
+    };
+    const identityDecision = resolveScrapedCandidateIdentity(normalizedInput, scrapedRows);
+    const inputValue = identityDecision.row;
+    const existingInputRow = identityDecision.existingRow;
+    if (identityDecision.collision) {
+      identityCollisions.push(identityDecision.collision);
+      console.warn('[cafe24:function-api] ingestion candidate identity collision:', identityDecision.collision);
+    }
+
+    const policyExclusionReason = getIngestionCandidateExclusionReason(inputValue, { today: kstToday() });
     if (policyExclusionReason) {
       if (!existingInputRow || !terminalScrapedStatus(existingInputRow)) {
         const preparedExcluded = await prepareScrapedItem({
           ...(existingInputRow || {}),
-          ...value,
-          display_no: existingInputRow?.display_no ?? value?.display_no,
-          created_at: existingInputRow?.created_at || value?.created_at,
+          ...inputValue,
+          display_no: existingInputRow?.display_no ?? inputValue?.display_no,
+          created_at: existingInputRow?.created_at || inputValue?.created_at,
         });
         const excludedRow = await saveCafe24TableRow('scraped_events', buildExcludedScrapedEventRow({
           scrapedEvent: preparedExcluded,
@@ -916,12 +1084,12 @@ async function ingestScrapedItems(values) {
         scrapedRows = replaceWorkingScrapedRow(scrapedRows, excludedRow);
       }
       skipped.push({
-        id: String(value?.id || ''),
+        id: String(inputValue?.id || ''),
         reason: policyExclusionReason,
       });
       continue;
     }
-    const row = await prepareScrapedItem(value);
+    const row = await prepareScrapedItem(inputValue);
     const existingSameId = scrapedRows.find((item) => String(item?.id || '') === String(row.id));
     const reprocessCollectedAutomatic = existingSameId
       ? canReprocessCollectedAutomaticCandidate(existingSameId, row, eventRows)
@@ -954,14 +1122,29 @@ async function ingestScrapedItems(values) {
 
     if (existingSameId) {
       const reopenGeneratedRegular = canReopenGeneratedRegularSocialDuplicate(existingSameId, row);
-      const refreshDecision = buildRefreshedScrapedEventRow({
+      const skipDuplicateCheck = reopenGeneratedRegular || reprocessCollectedAutomatic;
+      let refreshDecision = buildRefreshedScrapedEventRow({
         existingRow: existingSameId,
         incomingRow: row,
         eventRows,
         scrapedRows,
         forcePending: reopenGeneratedRegular || reprocessCollectedAutomatic,
-        skipDuplicateCheck: reopenGeneratedRegular || reprocessCollectedAutomatic,
+        skipDuplicateCheck,
       });
+      if (!refreshDecision.duplicate && !skipDuplicateCheck && !terminalScrapedStatus(existingSameId)) {
+        const publishedDuplicate = await findPublishedBoardPostDuplicate(refreshDecision.row, boardRows, {
+          imageCache: publishedImageCache,
+        });
+        if (publishedDuplicate) {
+          refreshDecision = {
+            row: buildDuplicateScrapedEventRow({
+              scrapedEvent: refreshDecision.row,
+              duplicate: publishedDuplicate,
+            }),
+            duplicate: publishedDuplicate,
+          };
+        }
+      }
       const refreshedRow = await saveCafe24TableRow('scraped_events', refreshDecision.row);
       refreshed.push(refreshedRow);
       scrapedRows = replaceWorkingScrapedRow(scrapedRows, refreshedRow);
@@ -1000,7 +1183,12 @@ async function ingestScrapedItems(values) {
       continue;
     }
 
-    const duplicate = findBlockingIngestionDuplicate(row, eventRows, scrapedRows);
+    let duplicate = findBlockingIngestionDuplicate(row, eventRows, scrapedRows);
+    if (!duplicate) {
+      duplicate = await findPublishedBoardPostDuplicate(row, boardRows, {
+        imageCache: publishedImageCache,
+      });
+    }
     if (duplicate) {
       const duplicateRow = buildDuplicateScrapedEventRow({
         scrapedEvent: row,
@@ -1032,6 +1220,7 @@ async function ingestScrapedItems(values) {
     refreshedCount: refreshed.length,
     duplicateCount,
     excludedCount,
+    identityCollisions,
     skipped,
     total: processed.length,
   };
@@ -1475,8 +1664,21 @@ export async function cafe24IngestorRegisterEvent(req, res) {
 
   const sourceUrl = String(scrapedEvent.source_url || eventData.link1 || '');
   const existingRows = await loadCafe24TableRows('events');
+  const registrationCandidate = {
+    ...scrapedEvent,
+    ...eventData,
+    structured_data: {
+      ...(scrapedEvent.structured_data || {}),
+      ...eventData,
+    },
+  };
   let existing = existingRows.find((row) => String(row.id) === String(body.existingEventId || ''))
-    || existingRows.find((row) => sourceUrl && row.link1 === sourceUrl && sameEventDate(row, date));
+    || existingRows.find((row) => (
+      sourceUrl
+      && sameSourceUrl(row.link1, sourceUrl)
+      && sameEventDate(row, date)
+      && sameSourceOccurrenceContent(row, registrationCandidate)
+    ));
   // A generated regular-social row is a placeholder, not an editable duplicate.
   // Updating it in place keeps the automation marker, so the next reconciliation
   // treats the administrator's event as generated and restores the placeholder.
@@ -1490,15 +1692,22 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   const operationalDuplicate = automaticRequest && !existing
     ? findBlockingAutomaticRegistrationDuplicate(scrapedEvent, existingRows)
     : null;
+  const publishedDuplicate = automaticRequest && !existing && !operationalDuplicate
+    ? await findPublishedBoardPostDuplicate(
+      scrapedEvent,
+      await loadCafe24TableRows('board_posts'),
+    )
+    : null;
+  const blockingDuplicate = operationalDuplicate || publishedDuplicate;
 
-  if (operationalDuplicate) {
+  if (blockingDuplicate) {
     await saveCafe24TableRow('scraped_events', buildDuplicateScrapedEventRow({
       scrapedEvent,
-      duplicate: operationalDuplicate,
+      duplicate: blockingDuplicate,
     }));
     res.status(409).json({
-      error: '이미 등록된 동일 소셜이 있습니다.',
-      duplicate: operationalDuplicate,
+      error: '이미 등록되거나 발행된 동일 내용이 있습니다.',
+      duplicate: blockingDuplicate,
     });
     return;
   }

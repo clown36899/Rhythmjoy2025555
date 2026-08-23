@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import {
   buildCollectedScrapedEventRow,
   buildDuplicateScrapedEventRow,
@@ -8,11 +9,13 @@ import {
   canReopenGeneratedRegularSocialDuplicate,
   findBlockingAutomaticRegistrationDuplicate,
   findOperationalDuplicateForScrapedItem,
+  findPublishedBoardPostDuplicate,
   findScrapedCandidateDuplicate,
   hasRegisteredEventLink,
   inheritGeneratedRegularSocialVenueMetadata,
   isHighConfidenceContentDuplicate,
   isHighConfidenceSocialDuplicate,
+  resolveScrapedCandidateIdentity,
   evidenceExplicitlyContainsCandidateDate,
   validateAutomaticRegistrationCandidate,
 } from './function-api.js';
@@ -238,6 +241,146 @@ describe('ingestor registration linkage', () => {
       ...candidate,
       structured_data: { ...candidate.structured_data, title: '별도의 찰스턴 워크숍' },
     })).toBe(false);
+  });
+
+  it('uses a reused URL as evidence, not as an absolute duplicate key', () => {
+    const sourceUrl = 'https://example.com/reused-monthly-schedule';
+    const liveEvent = {
+      id: 'event-class-a',
+      title: '린디합 초급 원데이',
+      date: '2026-09-12',
+      category: 'class',
+      location: '연습실 A',
+      link1: sourceUrl,
+    };
+
+    expect(findOperationalDuplicateForScrapedItem({
+      source_url: sourceUrl,
+      structured_data: {
+        title: '린디합 초급 원데이',
+        date: '2026-09-12',
+        activity_type: 'class',
+        venue_name: '연습실 A',
+      },
+    }, [liveEvent])).toMatchObject({
+      existingId: 'event-class-a',
+      reason: '같은 원본 URL·날짜와 호환되는 이벤트 내용',
+    });
+
+    expect(findOperationalDuplicateForScrapedItem({
+      source_url: sourceUrl,
+      structured_data: {
+        title: '발보아 중급 원데이',
+        date: '2026-09-12',
+        activity_type: 'class',
+        venue_name: '연습실 B',
+      },
+    }, [liveEvent])).toBeNull();
+
+    const socialSourceUrl = 'https://example.com/reused-social-schedule';
+    expect(findOperationalDuplicateForScrapedItem({
+      source_url: socialSourceUrl,
+      structured_data: {
+        title: '스윙타임 토요 소셜',
+        date: '2026-09-12',
+        activity_type: 'social',
+        venue_name: '스윙타임',
+        djs: ['메이져'],
+      },
+    }, [{
+      id: 'social-dj-bbb',
+      title: '스윙타임 토요 소셜',
+      date: '2026-09-12',
+      category: 'social',
+      location: '스윙타임',
+      djs: ['비비비'],
+      link1: socialSourceUrl,
+    }])).toBeNull();
+  });
+
+  it('rekeys a same-id source/date collision when the event content is different', () => {
+    const sourceUrl = 'https://example.com/reused-monthly-schedule';
+    const existing = {
+      id: 'base-source-date-id',
+      status: 'collected',
+      source_url: sourceUrl,
+      structured_data: {
+        title: '린디합 초급 원데이',
+        date: '2026-09-12',
+        activity_type: 'class',
+        venue_name: '연습실 A',
+      },
+    };
+    const incoming = {
+      id: 'base-source-date-id',
+      source_url: sourceUrl,
+      structured_data: {
+        title: '발보아 중급 원데이',
+        date: '2026-09-12',
+        activity_type: 'class',
+        venue_name: '연습실 B',
+      },
+    };
+
+    const distinct = resolveScrapedCandidateIdentity(incoming, [existing]);
+    expect(distinct.collision).toMatchObject({ baseId: 'base-source-date-id' });
+    expect(distinct.row.id).not.toBe('base-source-date-id');
+    expect(distinct.existingRow).toBeNull();
+
+    const rediscovered = resolveScrapedCandidateIdentity({
+      ...incoming,
+      structured_data: { ...incoming.structured_data, title: '발보아 중급 원데이 클래스' },
+    }, [existing, distinct.row]);
+    expect(rediscovered.row.id).toBe(distinct.row.id);
+    expect(rediscovered.existingRow).toMatchObject({ id: distinct.row.id });
+  });
+
+  it('matches an already published operational notice only with title and visual evidence', async () => {
+    const posterSvg = Buffer.from(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000">
+        <rect width="800" height="1000" fill="#f7efe6"/>
+        <rect x="70" y="90" width="660" height="120" fill="#16233c"/>
+        <text x="100" y="170" font-size="58" fill="white">ADMISSION FEE</text>
+        <circle cx="400" cy="540" r="210" fill="#f05a47"/>
+        <text x="210" y="565" font-size="64" fill="white">UPDATE</text>
+      </svg>
+    `);
+    const boardImage = await sharp(posterSvg).resize(800, 1000).webp({ quality: 82 }).toBuffer();
+    const candidateImage = await sharp(posterSvg).resize(1350, 1688, { fit: 'fill' }).jpeg({ quality: 88 }).toBuffer();
+    const differentImage = await sharp({
+      create: { width: 1350, height: 1688, channels: 3, background: '#000000' },
+    }).jpeg().toBuffer();
+    const boardPost = {
+      id: 'board-fee-update',
+      title: '경성홀 입장료변경안내',
+      content: `<p><img src="data:image/webp;base64,${boardImage.toString('base64')}"></p>`,
+    };
+    const candidate = {
+      id: 'candidate-fee-update',
+      poster_url: `data:image/jpeg;base64,${candidateImage.toString('base64')}`,
+      structured_data: {
+        title: '📢 입장료 변경 안내',
+        date: '2026-09-19',
+        activity_type: 'social',
+      },
+    };
+
+    await expect(findPublishedBoardPostDuplicate(candidate, [boardPost])).resolves.toMatchObject({
+      target: 'board_posts',
+      existingId: 'board-fee-update',
+      reason: '게시판에 동일 제목·동일 시각 자료로 이미 발행된 운영 안내',
+    });
+    await expect(findPublishedBoardPostDuplicate({
+      ...candidate,
+      poster_url: `data:image/jpeg;base64,${differentImage.toString('base64')}`,
+    }, [boardPost])).resolves.toBeNull();
+    await expect(findPublishedBoardPostDuplicate({
+      ...candidate,
+      structured_data: {
+        ...candidate.structured_data,
+        title: '경성홀 토요 소셜 입장료 할인 이벤트',
+      },
+    }, [boardPost])).resolves.toBeNull();
   });
 
   it('moves a refreshed pending candidate to duplicate instead of bypassing live-event adjudication', () => {
@@ -516,7 +659,10 @@ describe('ingestor registration linkage', () => {
     };
     const exactEvent = {
       id: 'event-swingtown',
+      title: 'DJ 사복 | 스윙타운 토요소셜',
       date: '2026-08-01',
+      category: 'social',
+      location: '봉천살롱',
       link1: existing.source_url,
     };
 

@@ -74,8 +74,12 @@ interface ScrapedEvent {
       existingTitle?: string;
       existingDate?: string;
       existingSourceUrl?: string;
-      target?: 'scraped_events' | 'events';
+      target?: 'scraped_events' | 'events' | 'board_posts';
       detected_at?: string;
+      evidence?: {
+        titleSimilarity?: number;
+        imageMeanAbsoluteError?: number;
+      };
     };
   };
   is_collected?: boolean;
@@ -1673,7 +1677,9 @@ const EventIngestorV2: React.FC = () => {
                       <div className="duplicate-match-card">
                         <div className="duplicate-match-head">
                           <strong>중복 후보</strong>
-                          <span>{event.structured_data._duplicate.target === 'events' ? '캘린더 등록DB' : '수집DB'} #{event.structured_data._duplicate.existingId}</span>
+                          <span>{event.structured_data._duplicate.target === 'events'
+                            ? '캘린더 등록DB'
+                            : event.structured_data._duplicate.target === 'board_posts' ? '게시판' : '수집DB'} #{event.structured_data._duplicate.existingId}</span>
                         </div>
                         <div className="duplicate-match-title">
                           {event.structured_data._duplicate.existingTitle || '기존 제목 확인 필요'}

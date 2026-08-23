@@ -8,6 +8,12 @@ import {
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
+import {
+  buildIngestionContentCollisionId,
+  ingestionIdentityTextSimilarity as textSimilarity,
+  ingestionRowsContentCompatible,
+  normalizeIngestionIdentityText as normalizeText,
+} from './ingestion-duplicate-identity.js';
 
 const candidateStatuses = new Set(['new', 'needs_review', 'duplicate', 'excluded', 'registered', 'archived']);
 const automationTerminalStatuses = new Set(['duplicate', 'excluded', 'registered', 'archived']);
@@ -62,15 +68,6 @@ function sha256(value = '') {
   return crypto.createHash('sha256').update(String(value || '')).digest('hex');
 }
 
-function normalizeText(value = '') {
-  return String(value || '')
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/seoul/g, '서울')
-    .replace(/dj\s*/gi, '')
-    .replace(/[^\p{L}\p{N}가-힣]/gu, '');
-}
-
 function stripVirtualCandidateTaxonomy(structuredData = {}) {
   const {
     activity_label,
@@ -85,26 +82,6 @@ function stripVirtualCandidateTaxonomy(structuredData = {}) {
     ...siteStructuredData
   } = structuredData || {};
   return siteStructuredData;
-}
-
-function textSimilarity(a = '', b = '') {
-  const left = normalizeText(a);
-  const right = normalizeText(b);
-  if (!left || !right) return 0;
-  if (left === right) return 1;
-  if (left.includes(right) || right.includes(left)) return 0.86;
-
-  const grams = (value) => {
-    if (value.length <= 2) return new Set([value]);
-    const result = new Set();
-    for (let i = 0; i <= value.length - 2; i += 1) result.add(value.slice(i, i + 2));
-    return result;
-  };
-  const leftGrams = grams(left);
-  const rightGrams = grams(right);
-  const intersection = [...leftGrams].filter((gram) => rightGrams.has(gram)).length;
-  const union = new Set([...leftGrams, ...rightGrams]).size;
-  return union ? intersection / union : 0;
 }
 
 function eventDate(row = {}) {
@@ -156,8 +133,15 @@ export function findLiveDuplicate(candidate, liveEvents = []) {
 
   for (const event of liveEvents) {
     const eventSource = normalizeUrl(event.link1);
-    if (candidateSource && eventSource && candidateSource === eventSource && sameEventDate(event, candidateDate)) {
-      return duplicateDescriptor(event, 'same source URL and date', 1);
+    const exactSourceDate = candidateSource
+      && eventSource
+      && candidateSource === eventSource
+      && sameEventDate(event, candidateDate);
+    if (exactSourceDate) {
+      if (ingestionRowsContentCompatible(event, candidate)) {
+        return duplicateDescriptor(event, 'same source URL, date, and compatible event content', 1);
+      }
+      continue;
     }
 
     if (!sameEventDate(event, candidateDate)) continue;
@@ -273,6 +257,51 @@ async function loadExistingCandidate(pool, id) {
     [id],
   );
   return rows[0] || null;
+}
+
+async function resolveCandidateIdentityCollision(pool, candidate) {
+  const existing = await loadExistingCandidate(pool, candidate.id);
+  if (!existing || (
+    String(existing.source_url_hash || '') === String(candidate.source_url_hash || '')
+    && dateOnly(existing.event_date) === dateOnly(candidate.event_date)
+    && ingestionRowsContentCompatible(existing, candidate)
+  )) {
+    return { candidate, collision: null };
+  }
+  const [sameSourceDateRows] = await pool.execute(
+    `SELECT * FROM ingestion_candidates
+      WHERE source_url_hash = ? AND event_date = ?`,
+    [candidate.source_url_hash, candidate.event_date],
+  );
+  const compatibleSibling = sameSourceDateRows.find((row) => (
+    String(row.id) !== String(candidate.id)
+    && ingestionRowsContentCompatible(row, candidate)
+  ));
+  if (compatibleSibling) {
+    return {
+      candidate: { ...candidate, id: String(compatibleSibling.id) },
+      collision: { baseId: candidate.id, resolvedId: String(compatibleSibling.id), reused: true },
+    };
+  }
+  const resolvedId = buildIngestionContentCollisionId(candidate, {
+    sourceUrl: candidate.normalized_source_url || candidate.source_url,
+    date: candidate.event_date,
+  });
+  const warnings = parseJson(candidate.validation_warnings_json, []);
+  return {
+    candidate: {
+      ...candidate,
+      id: resolvedId,
+      validation_warnings_json: stringifyJson([
+        ...warnings,
+        `source/date identity collision with ${candidate.id}; content-derived id ${resolvedId} used`,
+      ]),
+    },
+    collision: {
+      baseId: candidate.id,
+      resolvedId,
+    },
+  };
 }
 
 async function loadDateExpansionCandidateRows(pool, candidate) {
@@ -510,7 +539,11 @@ async function postCandidates(req, res) {
   const skipped = [];
 
   const candidates = sortDateExpansionInputs(values.map((value) => normalizeCandidateInput(value)));
-  for (const candidate of candidates) {
+  const identityCollisions = [];
+  for (const normalizedCandidate of candidates) {
+    const identityDecision = await resolveCandidateIdentityCollision(pool, normalizedCandidate);
+    const candidate = identityDecision.candidate;
+    if (identityDecision.collision) identityCollisions.push(identityDecision.collision);
     if (!candidate.source_url || !candidate.event_date || !candidate.title) {
       skipped.push({
         id: candidate.id,
@@ -537,6 +570,7 @@ async function postCandidates(req, res) {
     data: saved,
     count: saved.filter((row) => row.status !== 'duplicate').length,
     duplicateCount: saved.filter((row) => row.status === 'duplicate').length,
+    identityCollisions,
     skipped,
     total: saved.length,
   });
