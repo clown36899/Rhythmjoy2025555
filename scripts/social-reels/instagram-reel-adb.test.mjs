@@ -15,6 +15,7 @@ import {
   profileRefreshSwipeArguments,
   publicationCountConfirmsSuccess,
   publicationNeedsReconciliation,
+  resolveCoverEditorTransition,
   selectTargetEmulatorSerial,
 } from './instagram-reel-adb.mjs';
 import {
@@ -41,6 +42,26 @@ test('UI XML parser decodes accessibility fields and bounds', () => {
     right: 413,
     bottom: 168,
   });
+});
+
+test('cover editor supports both direct camera-roll entry and the legacy overlay', () => {
+  const direct = resolveCoverEditorTransition([{
+    description: 'Add from camera roll',
+    resourceId: 'com.instagram.android:id/add_from_gallery',
+    clickable: true,
+    bounds: { left: 42, top: 2189, right: 1038, bottom: 2305 },
+  }]);
+  assert.equal(direct.mode, 'ready');
+  assert.equal(direct.node.resourceId, 'com.instagram.android:id/add_from_gallery');
+
+  const legacy = resolveCoverEditorTransition([{
+    description: '',
+    resourceId: 'com.instagram.android:id/clip_thumbnail_layout',
+    clickable: true,
+    bounds: { left: 50, top: 100, right: 250, bottom: 400 },
+  }]);
+  assert.equal(legacy.mode, 'tap-overlay');
+  assert.equal(resolveCoverEditorTransition([{ description: 'Edit cover' }]), null);
 });
 
 test('music rotation never repeats the previous successful track', () => {

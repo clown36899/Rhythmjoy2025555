@@ -366,6 +366,24 @@ function matches(node, selector) {
   return Boolean(node.bounds);
 }
 
+export function resolveCoverEditorTransition(nodes = []) {
+  const directEditor = nodes.find((node) => (
+    node.description === 'Add from camera roll'
+    && node.clickable
+    && node.bounds
+  ));
+  if (directEditor) return { mode: 'ready', node: directEditor };
+
+  const legacyOverlay = nodes.find((node) => (
+    String(node.resourceId || '').endsWith(':id/clip_thumbnail_layout')
+    && node.clickable
+    && node.bounds
+  ));
+  if (legacyOverlay) return { mode: 'tap-overlay', node: legacyOverlay };
+
+  return null;
+}
+
 async function waitForNode(selector, options = {}) {
   const timeout = options.timeout || normalTimeoutMs;
   const deadline = Date.now() + timeout;
@@ -813,11 +831,15 @@ async function setCoverAndReachShareScreen() {
   const editCover = coverEntry.node;
   if (editCover.description === 'Double tap to edit cover photo') {
     await doubleTapNode(editCover);
-    const { node: editCoverOverlay } = await waitForNode({
-      resourceIdEndsWith: ':id/clip_thumbnail_layout',
-      clickable: true,
-    });
-    await tapNode(editCoverOverlay);
+    const coverEditorEntry = await waitForAny([
+      { description: 'Add from camera roll', clickable: true },
+      { resourceIdEndsWith: ':id/clip_thumbnail_layout', clickable: true },
+    ]);
+    const transition = resolveCoverEditorTransition(coverEditorEntry.nodes);
+    if (!transition) {
+      throw new Error('Instagram cover editor opened without a supported entry control.');
+    }
+    if (transition.mode === 'tap-overlay') await tapNode(transition.node);
   } else {
     await tapNode(editCover);
   }
