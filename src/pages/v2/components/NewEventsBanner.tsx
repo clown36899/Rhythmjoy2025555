@@ -76,7 +76,6 @@ const getMainAdPreviewImage = (
     getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
 
 const DEFAULT_NEB_TODAY_SCHEDULES = 3;
-const EMPTY_LOW_PRIORITY_EVENT_IDS = new Set<number | string>();
 
 const getTodayMonthDayLabel = () => {
     const today = new Date();
@@ -372,7 +371,6 @@ interface NewEventsBannerProps {
     currentIndex?: number;
     onCurrentIndexChange?: (index: number) => void;
     todaySchedules?: SocialSchedule[];
-    lowPriorityEventIds?: ReadonlySet<number | string>;
     benefitEventUnreadCount?: number;
     onBenefitEventsOpen?: () => void;
 }
@@ -385,7 +383,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     currentIndex: controlledCurrentIndex,
     onCurrentIndexChange,
     todaySchedules = [],
-    lowPriorityEventIds = EMPTY_LOW_PRIORITY_EVENT_IDS,
     benefitEventUnreadCount = 0,
     onBenefitEventsOpen,
 }) => {
@@ -588,29 +585,25 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     };
 
     const eventRotationKey = useMemo(
-        () => events.map((event) => `${event.id}:${lowPriorityEventIds.has(event.id) ? 'low' : 'regular'}`).join('|'),
-        [events, lowPriorityEventIds],
+        () => events.map((event) => event.id).join('|'),
+        [events],
     );
     useEffect(() => {
         autoRotationStepRef.current = 0;
     }, [eventRotationKey]);
 
-    // 자동 슬라이드 (8초마다). 지난 일정 보충 카드는 8회 중 1회만 전면에 노출한다.
+    // 자동 슬라이드 (8초마다)
     useEffect(() => {
         if (events.length <= 1 || isPaused || isManualPaused) return;
 
         const interval = setInterval(() => {
             autoRotationStepRef.current += 1;
             markSlideMotion('forward');
-            setCurrentIndex(getNextHomeAdAutoIndex(
-                events,
-                lowPriorityEventIds,
-                autoRotationStepRef.current,
-            ));
+            setCurrentIndex(getNextHomeAdAutoIndex(events, autoRotationStepRef.current));
         }, 8000);
 
         return () => clearInterval(interval);
-    }, [events, isPaused, isManualPaused, lowPriorityEventIds, markSlideMotion, setCurrentIndex]);
+    }, [events, isPaused, isManualPaused, markSlideMotion, setCurrentIndex]);
 
     const goToSlide = useCallback((index: number) => {
         triggerManualPause();

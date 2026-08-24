@@ -46,7 +46,6 @@ interface EventPreviewSectionProps {
     clubLessons: Event[];
     clubRegularClasses: Event[];
     newlyRegisteredEvents: Event[]; // 👈 신규 등록 이벤트 (24시간)
-    homeAdCandidateEvents: Event[];
     homeAdMaxItems: number;
     benefitEventUnreadCount: number;
     onBenefitEventsOpen: () => void;
@@ -68,7 +67,6 @@ interface EventPreviewSectionProps {
 
 interface HomeNewEventsDesktopSplitProps {
     events: Event[];
-    fallbackEvents: Event[];
     todaySchedules: SocialSchedule[];
     onEventClick: (event: Event) => void;
     defaultThumbnailClass: string;
@@ -152,7 +150,6 @@ const HomeTodaySchedulePanel: React.FC<{
 
 const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     events,
-    fallbackEvents,
     todaySchedules,
     onEventClick,
     defaultThumbnailClass,
@@ -182,18 +179,10 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         if (isAdmin) return events;
         return events.filter((event) => getHomeAdEventScope(event) === "swing");
     }, [events, isAdmin]);
-    const visibleFallbackEvents = useMemo(() => {
-        if (isAdmin) return fallbackEvents;
-        return fallbackEvents.filter((event) => getHomeAdEventScope(event) === "swing");
-    }, [fallbackEvents, isAdmin]);
     const [headerScopeTarget, setHeaderScopeTarget] = useState<HTMLElement | null>(null);
     const selectedScopePrimaryEvents = useMemo(
         () => visibleEvents.filter((event) => getHomeAdEventScope(event) === preferredScope),
         [preferredScope, visibleEvents],
-    );
-    const selectedScopeFallbackEvents = useMemo(
-        () => visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) === preferredScope),
-        [preferredScope, visibleFallbackEvents],
     );
     const selectedScopePrimaryCount = useMemo(
         () => limitHomeAdOnePerAuthorVenue(selectedScopePrimaryEvents).length,
@@ -208,26 +197,13 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
             )
             : selectedScopePrimaryEvents
     ), [preferredScope, selectedScopePrimaryEvents, shouldMixOtherScopes, visibleEvents]);
-    const fallbackPool = useMemo(() => (
-        shouldMixOtherScopes
-            ? mergeUniqueEvents(
-                selectedScopeFallbackEvents,
-                visibleFallbackEvents.filter((event) => getHomeAdEventScope(event) !== preferredScope),
-            )
-            : selectedScopeFallbackEvents
-    ), [preferredScope, selectedScopeFallbackEvents, shouldMixOtherScopes, visibleFallbackEvents]);
     const displayEvents = useMemo(() => {
         return selectHomeAdDisplayEvents({
             primaryEvents: primaryPool,
-            fallbackEvents: fallbackPool,
             maxItems: Math.min(maxItems, NEB_MAX_ITEMS),
         });
-    }, [fallbackPool, maxItems, primaryPool]);
-    const lowPriorityEventIds = useMemo(
-        () => new Set(visibleFallbackEvents.map((event) => event.id)),
-        [visibleFallbackEvents],
-    );
-    const isFallbackMixed = displayEvents.some((event) => lowPriorityEventIds.has(event.id));
+    }, [maxItems, primaryPool]);
+    const isScopeMixed = displayEvents.some((event) => getHomeAdEventScope(event) !== preferredScope);
     const [activeIndex, setActiveIndex] = useState(0);
     const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
     useEffect(() => {
@@ -294,7 +270,6 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                         defaultThumbnailEvent={defaultThumbnailEvent}
                         currentIndex={safeActiveIndex}
                         onCurrentIndexChange={setActiveIndex}
-                        lowPriorityEventIds={lowPriorityEventIds}
                         todaySchedules={todaySchedules}
                         benefitEventUnreadCount={benefitEventUnreadCount}
                         onBenefitEventsOpen={onBenefitEventsOpen}
@@ -310,7 +285,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                     </aside>
                 )}
             </div>
-            {isAdmin && isFallbackMixed && (
+            {isAdmin && isScopeMixed && (
                 <p className="home-neb-admin-scope-note">
                     {getDanceScopeLabel(preferredScope)} 후보가 적어 다른 장르를 함께 노출 중
                 </p>
@@ -330,7 +305,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     clubLessons,
     clubRegularClasses,
     newlyRegisteredEvents,
-    homeAdCandidateEvents,
     homeAdMaxItems,
     benefitEventUnreadCount,
     onBenefitEventsOpen,
@@ -354,10 +328,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     return (
         <div className="ELS-section">
             {/* 1.5 Newly Registered Events Section (24 hours) */}
-            {vis.show_new_events_banner && (newlyRegisteredEvents.length > 0 || homeAdCandidateEvents.length > 0) && (
+            {vis.show_new_events_banner && newlyRegisteredEvents.length > 0 && (
                 <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
-                    fallbackEvents={homeAdCandidateEvents}
                     maxItems={homeAdMaxItems}
                     benefitEventUnreadCount={benefitEventUnreadCount}
                     onBenefitEventsOpen={onBenefitEventsOpen}

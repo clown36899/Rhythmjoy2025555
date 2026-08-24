@@ -11,7 +11,6 @@ import {
     getNextHomeAdAutoIndex,
     limitHomeAdOnePerAuthorVenue,
     rankHomeAdEvents,
-    rankPastHomeAdEvents,
     selectHomeAdDisplayEvents,
 } from "./homeAdPriority";
 
@@ -45,10 +44,9 @@ describe("home ad start-date priority", () => {
 
         expect(getHomeAdNextStartDate(event, "2026-08-11")).toBeNull();
         expect(rankHomeAdEvents([event], defaultOptions)).toEqual([]);
-        expect(rankPastHomeAdEvents([event], defaultOptions.todayDateKey, defaultOptions.now)).toEqual([event]);
     });
 
-    it("keeps a multi-date event in the past pool after its first start date", () => {
+    it("does not revive a multi-date event after its first start date", () => {
         const event = makeEvent(2, {
             start_date: "2026-08-01",
             event_dates: ["2026-08-03", "2026-08-15", "2026-08-22"],
@@ -56,7 +54,6 @@ describe("home ad start-date priority", () => {
 
         expect(getHomeAdNextStartDate(event, "2026-08-11")).toBeNull();
         expect(rankHomeAdEvents([event], defaultOptions)).toEqual([]);
-        expect(rankPastHomeAdEvents([event], defaultOptions.todayDateKey, defaultOptions.now)).toEqual([event]);
     });
 
     it("uses the earliest explicit event date only when start_date and date are absent", () => {
@@ -248,69 +245,32 @@ describe("home ad start-date priority", () => {
         })).toEqual([monthEndEvent]);
     });
 
-    it("sorts past filler by the closest past start date", () => {
-        const older = makeEvent(1, { date: "2026-07-01", start_date: "2026-07-01" });
-        const closer = makeEvent(2, { date: "2026-08-10", start_date: "2026-08-10" });
-
-        expect(rankPastHomeAdEvents(
-            [older, closer],
-            defaultOptions.todayDateKey,
-            defaultOptions.now,
-        )).toEqual([closer, older]);
-    });
 });
 
 describe("home ad display selection", () => {
     const futureEvents = Array.from({ length: 15 }, (_, index) => makeEvent(index + 1));
-    const pastEvents = Array.from({ length: 10 }, (_, index) => makeEvent(index + 101, {
-        date: `2026-08-${String(10 - index).padStart(2, "0")}`,
-        start_date: `2026-08-${String(10 - index).padStart(2, "0")}`,
-    }));
 
-    it("shows up to fifteen current or future candidates without past filler", () => {
+    it("shows up to fifteen current or future candidates", () => {
         expect(selectHomeAdDisplayEvents({
             primaryEvents: futureEvents,
-            fallbackEvents: pastEvents,
             maxItems: 15,
         })).toEqual(futureEvents);
     });
 
-    it("does not fill past candidates when ten or more primary candidates exist", () => {
-        const primary = futureEvents.slice(0, 12);
+    it("keeps fewer than ten candidates without filling past events", () => {
+        const primary = futureEvents.slice(0, 8);
 
         expect(selectHomeAdDisplayEvents({
             primaryEvents: primary,
-            fallbackEvents: pastEvents,
             maxItems: 15,
         })).toEqual(primary);
     });
 
-    it("fills only to ten when fewer than ten primary candidates exist", () => {
-        const primary = futureEvents.slice(0, 8);
-        const selected = selectHomeAdDisplayEvents({
-            primaryEvents: primary,
-            fallbackEvents: pastEvents,
-            maxItems: 15,
-        });
-
-        expect(selected).toEqual([...primary, ...pastEvents.slice(0, 2)]);
-        expect(selected).toHaveLength(10);
-    });
-
-    it("shows the available candidates when the combined pool has fewer than ten", () => {
+    it("preserves the configured maximum", () => {
         expect(selectHomeAdDisplayEvents({
-            primaryEvents: futureEvents.slice(0, 3),
-            fallbackEvents: pastEvents.slice(0, 2),
-            maxItems: 15,
-        })).toHaveLength(5);
-    });
-
-    it("preserves the configured maximum when it is below the normal minimum", () => {
-        expect(selectHomeAdDisplayEvents({
-            primaryEvents: futureEvents.slice(0, 3),
-            fallbackEvents: pastEvents,
+            primaryEvents: futureEvents,
             maxItems: 5,
-        })).toEqual([...futureEvents.slice(0, 3), ...pastEvents.slice(0, 2)]);
+        })).toEqual(futureEvents.slice(0, 5));
     });
 });
 
@@ -364,28 +324,13 @@ describe("home ad event classification", () => {
     });
 });
 
-describe("home ad low-priority auto rotation", () => {
+describe("home ad auto rotation", () => {
     const events = [makeEvent(1), makeEvent(2), makeEvent(3), makeEvent(4)];
-    const lowPriorityIds = new Set<number | string>([3, 4]);
 
-    it("keeps past filler out of the front for the first seven automatic transitions", () => {
-        for (let step = 1; step < 8; step += 1) {
-            expect(lowPriorityIds.has(events[getNextHomeAdAutoIndex(events, lowPriorityIds, step)].id)).toBe(false);
-        }
-    });
-
-    it("moves forward through the ranked event order", () => {
-        expect(getNextHomeAdAutoIndex(events, new Set(), 1)).toBe(1);
-        expect(getNextHomeAdAutoIndex(events, new Set(), 2)).toBe(2);
-        expect(getNextHomeAdAutoIndex(events, new Set(), 4)).toBe(0);
-        expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 1)).toBe(1);
-        expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 2)).toBe(0);
-    });
-
-    it("allows one rotating past filler on every eighth automatic transition", () => {
-        expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 8)).toBe(2);
-        expect(getNextHomeAdAutoIndex(events, lowPriorityIds, 16)).toBe(3);
-        expect(lowPriorityIds.has(events[getNextHomeAdAutoIndex(events, lowPriorityIds, 9)].id)).toBe(false);
+    it("moves through the current and future candidates in ranked order", () => {
+        expect(getNextHomeAdAutoIndex(events, 1)).toBe(1);
+        expect(getNextHomeAdAutoIndex(events, 2)).toBe(2);
+        expect(getNextHomeAdAutoIndex(events, 4)).toBe(0);
     });
 });
 

@@ -22,6 +22,16 @@
 - 사이트 리뷰 보고서: [../site_review_report_v2.md](../site_review_report_v2.md)
 - ESLint 유실 조사: [../eslint_final_investigation_report.md](../eslint_final_investigation_report.md)
 
+## 2026-08-25 메인 광고의 지난 일정 보충 노출
+
+- 상태: 공통 노출 정책 수정 완료, 배포 전
+- 증상: 2026-08-25 홈 메인 광고의 `10 / 10` 위치에 2026-08-23 `스윙프렌즈 3학기 특별 워크샵 2탄`이 전면 노출됐다.
+- 판정 경로: 운영 이벤트의 시작일·대표일·종료일은 모두 `2026-08-23`이라 날짜 판정에서는 정상적으로 지난 일정이었다. 현재·미래 후보가 작성자·장소 중복 제거 후 8개뿐이자 표시 단계가 최소 10개를 맞추기 위해 8월 24일과 23일 지난 후보를 추가했고, 자동 순환이 지난 후보도 전면에 올렸다. 원장 데이터·시간대·캐시는 원인이 아니었다.
+- 기존 보호 목적: 광고 카드 스택을 최소 10개로 유지하면서 현재·미래 일정을 우선하고, 부족분만 지난 일정으로 낮은 빈도 보충하려는 정책이었다.
+- 수정: 기존 최초 시작일 판정과 현재·미래 우선순위 함수를 유지하고, 지난 후보 생성·표시 전달·저빈도 자동 순환 경로를 제거했다. 현재·미래 후보가 10개 미만이면 있는 개수만 표시하며, 장르 필터·작성자/장소 중복 제거·최대 15개·오래 등록된 미래 일정 보충 설정은 유지한다. 새 함수·필드·테이블·큐·상태값은 추가하지 않았다.
+- 검증: 메인 광고 날짜·정렬·중복 제거·최대 개수·자동 순환 회귀와 배너 번역 회귀 21건이 통과했다. 대상 ESLint 오류 0건(기존 경고 17건)과 Cafe24 프로덕션 번들 빌드가 성공했다. 운영 공개 API 데이터를 2026-08-25 기준으로 같은 선택 함수에 넣은 결과 현재·미래 후보는 중복 제거 후 8개, 표시 8개, 지난 일정 0개였고 문제의 8월 23일 이벤트가 제외됐다.
+- 관련 파일: `src/pages/v2/components/EventList.tsx`, `src/pages/v2/components/EventList/components/EventPreviewSection.tsx`, `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `src/pages/v2/components/NewEventsBanner.tsx`, `CHANGELOG.md`
+
 ## 2026-08-22 하단 메뉴 혜택 아이콘 설정 예외·메인 독립 아이콘 오삭제
 
 - 상태: 공통 원인 수정·독립 아이콘 교정·운영 배포 검증 완료

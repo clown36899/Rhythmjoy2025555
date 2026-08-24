@@ -17,9 +17,6 @@ interface RankedHomeAdEvent {
     createdAt: number | null;
 }
 
-export const HOME_AD_LOW_PRIORITY_AUTO_INTERVAL = 8;
-export const HOME_AD_MIN_DISPLAY_COUNT = 10;
-
 const GENERIC_HOME_AD_ORGANIZERS = new Set([
     "swing enjoy",
     "swingenjoy",
@@ -190,30 +187,21 @@ export const limitHomeAdOnePerAuthorVenue = (events: Event[]) => {
 
 interface SelectHomeAdDisplayEventsOptions {
     primaryEvents: Event[];
-    fallbackEvents: Event[];
     maxItems: number;
-    minimumItems?: number;
 }
 
 /**
- * 현재·미래 후보는 최대 개수까지 그대로 사용한다. 지난 시작일 후보는
- * 현재·미래 후보가 최소 개수에 못 미칠 때만 필요한 수만 보충한다.
+ * 메인 광고에는 현재·미래 후보만 최대 개수까지 노출한다.
+ * 후보가 적더라도 지난 시작일 일정으로 보충하지 않는다.
  */
 export const selectHomeAdDisplayEvents = ({
     primaryEvents,
-    fallbackEvents,
     maxItems,
-    minimumItems = HOME_AD_MIN_DISPLAY_COUNT,
 }: SelectHomeAdDisplayEventsOptions) => {
     const displayLimit = Math.max(0, Math.trunc(maxItems));
     if (displayLimit === 0) return [];
 
-    const primary = limitHomeAdOnePerAuthorVenue(primaryEvents).slice(0, displayLimit);
-    const minimumTarget = Math.min(displayLimit, Math.max(0, Math.trunc(minimumItems)));
-    if (primary.length >= minimumTarget) return primary;
-
-    return limitHomeAdOnePerAuthorVenue([...primaryEvents, ...fallbackEvents])
-        .slice(0, minimumTarget);
+    return limitHomeAdOnePerAuthorVenue(primaryEvents).slice(0, displayLimit);
 };
 
 const getEventStartDate = (event: Event) => {
@@ -409,64 +397,11 @@ export const rankHomeAdEvents = (
     ]).map(({ event }) => event);
 };
 
-/** 시작일이 지난 일정은 유효 일정만으로 광고 칸이 부족할 때 쓰는 보충 후보로만 반환한다. */
-export const rankPastHomeAdEvents = (
-    events: Event[],
-    todayDateKey: string,
-    now: Date,
-) => {
-    const nowTimestamp = now.getTime();
-
-    return events
-        .reduce<RankedHomeAdEvent[]>((ranked, event) => {
-            const startDate = getEventStartDate(event);
-            if (!startDate || startDate >= todayDateKey) return ranked;
-
-            ranked.push({
-                event,
-                nextStartDate: startDate,
-                createdAt: getCreatedAt(event),
-            });
-            return ranked;
-        }, [])
-        .sort((a, b) => {
-            const dateOrder = b.nextStartDate.localeCompare(a.nextStartDate);
-            if (dateOrder !== 0) return dateOrder;
-            return compareRegistrationProximity(nowTimestamp)(a, b);
-        })
-        .map(({ event }) => event);
-};
-
-/**
- * 지난 일정 보충 카드는 배경 스택에는 유지하되 자동 전면 노출은 8회 중 1회로 제한한다.
- * 수동 인디케이터/스와이프 이동은 이 제한을 받지 않는다.
- */
+/** 현재·미래 광고를 정렬된 순서대로 자동 순환할 다음 인덱스를 반환한다. */
 export const getNextHomeAdAutoIndex = (
     events: Event[],
-    lowPriorityEventIds: ReadonlySet<number | string>,
     autoStep: number,
 ) => {
     if (events.length <= 1) return 0;
-
-    const regularIndices = events
-        .map((event, index) => ({ event, index }))
-        .filter(({ event }) => !lowPriorityEventIds.has(event.id))
-        .map(({ index }) => index);
-    const lowPriorityIndices = events
-        .map((event, index) => ({ event, index }))
-        .filter(({ event }) => lowPriorityEventIds.has(event.id))
-        .map(({ index }) => index);
-
-    if (regularIndices.length === 0 || lowPriorityIndices.length === 0) {
-        return autoStep % events.length;
-    }
-
-    if (autoStep % HOME_AD_LOW_PRIORITY_AUTO_INTERVAL === 0) {
-        const lowPriorityStep = Math.floor(autoStep / HOME_AD_LOW_PRIORITY_AUTO_INTERVAL) - 1;
-        return lowPriorityIndices[lowPriorityStep % lowPriorityIndices.length];
-    }
-
-    const completedLowPrioritySteps = Math.floor(autoStep / HOME_AD_LOW_PRIORITY_AUTO_INTERVAL);
-    const regularStep = autoStep - completedLowPrioritySteps;
-    return regularIndices[regularStep % regularIndices.length];
+    return autoStep % events.length;
 };

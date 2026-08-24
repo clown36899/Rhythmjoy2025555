@@ -43,7 +43,6 @@ import {
   isHomeAdCurrentMonthEvent,
   isHomeAdSocialEvent,
   rankHomeAdEvents,
-  rankPastHomeAdEvents,
 } from "./EventList/utils/homeAdPriority";
 
 interface EventListProps {
@@ -220,15 +219,11 @@ const EventList: React.FC<EventListProps> = ({
 
     return {
       events: activeEvents,
-      fallbackEvents: use_fallback
-        ? rankPastHomeAdEvents(eligibleEvents, todayStr, now)
-        : [],
       maxItems,
     };
   }, [events, nebFilterSettings, randomSeed]);
 
   const newlyRegisteredEvents = homeAdDisplay.events;
-  const homeAdCandidateEvents = homeAdDisplay.fallbackEvents;
 
   // 3.7 Realtime Subscription to sync data immediately
   useEffect(() => {
@@ -564,7 +559,6 @@ const EventList: React.FC<EventListProps> = ({
           clubLessons={randomizedClubLessons}
           clubRegularClasses={randomizedClubRegularClasses}
           newlyRegisteredEvents={newlyRegisteredEvents}
-          homeAdCandidateEvents={homeAdCandidateEvents}
           homeAdMaxItems={homeAdDisplay.maxItems}
           benefitEventUnreadCount={benefitEventUnreadCount}
           onBenefitEventsOpen={markBenefitEventsSeen}
