@@ -106,9 +106,6 @@ function getBestImage(item: Partial<NotificationDisplayItem>, preview?: EventPre
         preview?.image ||
         preview?.image_full ||
         preview?.image_micro ||
-        item.notification?.data?.image ||
-        item.notification?.image ||
-        item.notification?.icon ||
         null
     );
 }
@@ -176,7 +173,8 @@ export default function NotificationHistoryModal({
                         title: item.title || notification.title,
                         body: item.body || (kind === 'daily_schedule' ? '' : notification.body),
                         url,
-                        image: item.image || item.image_thumbnail || item.image_medium || item.icon || notification.data?.image,
+                        // notification.data.image is the digest hero and can belong to another item.
+                        image: item.image || item.image_thumbnail || item.image_medium || item.icon || null,
                         eventId,
                         category: item.category || notification.data?.category,
                         location: item.location,

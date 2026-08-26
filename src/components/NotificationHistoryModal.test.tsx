@@ -102,6 +102,71 @@ describe('NotificationHistoryModal route separation', () => {
         expect(screen.getByText(/다음 발송 설정에는 영향을 주지 않습니다/)).toBeInTheDocument();
     });
 
+    it('does not reuse the digest representative image for an item without its own image', () => {
+        const todayDateKey = getKstTodayKey();
+        render(
+            <MemoryRouter>
+                <NotificationHistoryModal
+                    isOpen
+                    onClose={vi.fn()}
+                    onRefresh={vi.fn()}
+                    notifications={[
+                        {
+                            ...common,
+                            id: 'server:daily-images',
+                            title: '오늘 일정 2개',
+                            body: '엘라스틴 외 1개',
+                            data: {
+                                notificationKind: 'daily_schedule',
+                                kind: 'daily_schedule_morning',
+                                date: todayDateKey,
+                                image: '/lindinit.jpg',
+                                items: [
+                                    { title: '엘라스틴', image: '/lindinit.jpg' },
+                                    { title: 'DJ 미우', image: null },
+                                ],
+                            },
+                        },
+                    ]}
+                />
+            </MemoryRouter>,
+        );
+
+        const firstCard = screen.getByText('엘라스틴').closest('button');
+        const imageLessCard = screen.getByText('DJ 미우').closest('button');
+
+        expect(firstCard?.querySelector('img')).toHaveAttribute('src', '/lindinit.jpg');
+        expect(imageLessCard?.querySelector('img')).toBeNull();
+        expect(imageLessCard?.querySelector('.nhm-item-icon')).toBeInTheDocument();
+    });
+
+    it('keeps the image owned by a standalone notification', () => {
+        render(
+            <MemoryRouter>
+                <NotificationHistoryModal
+                    isOpen
+                    onClose={vi.fn()}
+                    onRefresh={vi.fn()}
+                    notifications={[
+                        {
+                            ...common,
+                            id: 'server:new-image',
+                            title: '새 소셜 등록',
+                            body: 'DJ 소피아',
+                            data: {
+                                notificationKind: 'new_event',
+                                image: '/balboa.jpg',
+                            },
+                        },
+                    ]}
+                />
+            </MemoryRouter>,
+        );
+
+        const card = screen.getByText('새 소셜 등록').closest('button');
+        expect(card?.querySelector('img')).toHaveAttribute('src', '/balboa.jpg');
+    });
+
     it('keeps notification images scrollable instead of browser-draggable on mobile', async () => {
         const css = await fs.readFile(path.resolve(
             process.cwd(),
