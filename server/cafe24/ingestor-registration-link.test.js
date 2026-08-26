@@ -7,6 +7,7 @@ import {
   buildRefreshedScrapedEventRow,
   canReprocessCollectedAutomaticCandidate,
   canReopenGeneratedRegularSocialDuplicate,
+  canReopenScrapedCandidateDuplicate,
   findBlockingAutomaticRegistrationDuplicate,
   findOperationalDuplicateForScrapedItem,
   findPublishedBoardPostDuplicate,
@@ -209,6 +210,28 @@ describe('ingestor registration linkage', () => {
       { ...baseEvent, title: '스윙타임 수요 소셜', dj_name: '미정' },
       { ...candidate, structured_data: { ...candidate.structured_data, djs: ['미정'] } },
     )).toBe(false);
+
+    expect(findScrapedCandidateDuplicate({
+      id: 'verified-social',
+      source_url: 'https://example.net/official-social',
+      structured_data: {
+        title: '해피홀 금요 소셜',
+        date: '2026-08-28',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        djs: ['쓴귤'],
+      },
+    }, [{
+      id: 'manual-ocr-social',
+      source_url: 'https://example.com/manual-social',
+      structured_data: {
+        title: '해피홀 금요 소셜',
+        date: '2026-08-28',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        djs: ['쓴굴'],
+      },
+    }])).toBeNull();
   });
 
   it('matches a non-social candidate when its distinctive title is already in the live event details', () => {
@@ -570,6 +593,70 @@ describe('ingestor registration linkage', () => {
       ...existing,
       structured_data: { _duplicate: { target: 'events', existingId: 'manual-event-1' } },
     }, corrected)).toBe(false);
+  });
+
+  it('reopens a safe automatic candidate when its prior candidate duplicate no longer matches current DJ rules', () => {
+    const sourceUrl = 'https://cafe.naver.com/f-e/cafes/10026855/articles/56262';
+    const existingDuplicate = {
+      id: 'candidate-happyhall-official',
+      status: 'duplicate',
+      source_url: sourceUrl,
+      structured_data: {
+        title: '해피홀 금요 소셜',
+        date: '2026-08-28',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        djs: ['쓴귤'],
+        _duplicate: {
+          target: 'scraped_events',
+          existingId: 'candidate-manual-ocr',
+          reason: '같은 날짜, 유사 제목, 같은 장소',
+        },
+      },
+    };
+    const corrected = {
+      ...existingDuplicate,
+      status: 'pending',
+      source_id: 'swingfriends-happyhall-cafe',
+      poster_url: 'https://example.com/happyhall.jpg',
+      extracted_text: '★8월 28일 금햎 해피홀 DJ 쓴귤',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingfriends-happyhall-cafe',
+        ai_verified: true,
+        ai_confidence: 0.99,
+      },
+      structured_data: {
+        ...existingDuplicate.structured_data,
+        evidence_scope: 'ai_grounded_social',
+        venue_provenance: 'source_registry',
+        ai_evidence_quotes: ['8월 28일', '해피홀', '★8월 28일 금햎', 'DJ 쓴귤'],
+      },
+    };
+    const manualOcrCandidate = {
+      id: 'candidate-manual-ocr',
+      status: 'pending',
+      source_url: 'https://www.instagram.com/happyhall2004/p/example',
+      structured_data: {
+        title: '해피홀 금요 소셜',
+        date: '2026-08-28',
+        activity_type: 'social',
+        venue_name: '해피홀',
+        djs: ['쓴굴'],
+      },
+    };
+
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [manualOcrCandidate])).toBe(true);
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [{
+      ...manualOcrCandidate,
+      status: 'collected',
+      is_collected: true,
+    }])).toBe(false);
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, {
+      ...corrected,
+      structured_data: { ...corrected.structured_data, djs: ['쓴굴'] },
+    }, [manualOcrCandidate])).toBe(false);
   });
 
   it('reprocesses a corrected automatic candidate only when it already links to the same event source and date', () => {

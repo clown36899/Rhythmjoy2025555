@@ -505,6 +505,16 @@ function sameKnownDjLineup(left, right) {
     && leftDjs.every((dj, index) => dj === rightDjs[index]);
 }
 
+function hasConflictingKnownSocialDjLineup(left, right) {
+  const leftDjs = normalizedDjLineup(left);
+  const rightDjs = normalizedDjLineup(right);
+  return isSocialDuplicateRow(left)
+    && isSocialDuplicateRow(right)
+    && leftDjs.length > 0
+    && rightDjs.length > 0
+    && !sameKnownDjLineup(left, right);
+}
+
 function explicitEventDates(row = {}) {
   let values = row?.event_dates;
   if (typeof values === 'string') {
@@ -697,6 +707,9 @@ function duplicateMatch(row, candidate, target) {
   ) {
     return duplicateDescriptor(target, row, '같은 날짜·장소의 공식 API 소셜 우선');
   }
+  // Known, different DJ lineups identify different social evidence. Do not let
+  // the generic title/source fallbacks below undo the stricter social rule.
+  if (hasConflictingKnownSocialDjLineup(row, candidate)) return null;
   if (titleScore >= 0.88 && sameVenue(rowLocation(row), rowLocation(candidate))) {
     return duplicateDescriptor(target, row, '같은 날짜, 유사 제목, 같은 장소');
   }
@@ -745,6 +758,33 @@ export function findScrapedCandidateDuplicate(candidate, scrapedRows = []) {
     if (match) return match;
   }
   return null;
+}
+
+export function canReopenScrapedCandidateDuplicate(existingRow = {}, incomingRow = {}, scrapedRows = []) {
+  const priorDuplicate = existingRow?.structured_data?._duplicate;
+  if (
+    String(existingRow?.status || '').toLowerCase() !== 'duplicate'
+    || priorDuplicate?.target !== 'scraped_events'
+    || !sameSourceUrl(
+      rowSourceUrl(existingRow, 'scraped_events'),
+      rowSourceUrl(incomingRow, 'scraped_events'),
+    )
+    || scrapedRowDate(existingRow) !== scrapedRowDate(incomingRow)
+  ) {
+    return false;
+  }
+
+  const priorPrimary = scrapedRows.find((row) => (
+    String(row?.id || '') === String(priorDuplicate.existingId || '')
+  ));
+  if (!priorPrimary || terminalScrapedStatus(priorPrimary)) return false;
+
+  const validation = validateAutomaticRegistrationCandidate({
+    ...incomingRow,
+    status: 'pending',
+    is_collected: false,
+  });
+  return validation.ok && duplicateMatch(priorPrimary, incomingRow, 'scraped_events') === null;
 }
 
 function findBlockingIngestionDuplicate(candidate, eventRows = [], scrapedRows = []) {
@@ -1018,7 +1058,7 @@ export function buildRefreshedScrapedEventRow({
     created_at: existingRow.created_at || incomingRow.created_at,
     updated_at: now,
   };
-  const duplicate = !skipDuplicateCheck && !terminalScrapedStatus(existingRow)
+  const duplicate = !skipDuplicateCheck && (!terminalScrapedStatus(existingRow) || forcePending)
     ? findBlockingIngestionDuplicate(refreshedRow, eventRows, scrapedRows)
     : null;
   return {
@@ -1095,6 +1135,9 @@ async function ingestScrapedItems(values) {
     const reprocessCollectedAutomatic = existingSameId
       ? canReprocessCollectedAutomaticCandidate(existingSameId, row, eventRows)
       : false;
+    const reopenScrapedCandidateDuplicate = existingSameId
+      ? canReopenScrapedCandidateDuplicate(existingSameId, row, scrapedRows)
+      : false;
 
     if (String(existingSameId?.status || '').toLowerCase() === 'excluded') {
       const reason = '이미 제외 처리된 같은 후보';
@@ -1110,6 +1153,7 @@ async function ingestScrapedItems(values) {
       && terminalScrapedStatus(existingSameId)
       && !canReopenGeneratedRegularSocialDuplicate(existingSameId, row)
       && !reprocessCollectedAutomatic
+      && !reopenScrapedCandidateDuplicate
     ) {
       const reason = existingSameId.status === 'collected' || existingSameId.is_collected === true
         ? '이미 수집 완료된 같은 후보'
@@ -1129,7 +1173,7 @@ async function ingestScrapedItems(values) {
         incomingRow: row,
         eventRows,
         scrapedRows,
-        forcePending: reopenGeneratedRegular || reprocessCollectedAutomatic,
+        forcePending: reopenGeneratedRegular || reprocessCollectedAutomatic || reopenScrapedCandidateDuplicate,
         skipDuplicateCheck,
       });
       if (!refreshDecision.duplicate && !skipDuplicateCheck && !terminalScrapedStatus(existingSameId)) {
@@ -1435,7 +1479,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
 ]);
 
 const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
-  social: /(?:소셜|social|정모)/i,
+  social: /(?:소셜|social|정모|금햅|금햎|금해피|일햅|일햎|일해피)/i,
   class: /(?:강습|수업|클래스|class|워크숍|워크샵|workshop|레슨|lesson)/i,
   event: /(?:행사|이벤트|event|파티|party|공연|대회)/i,
   recruit: /(?:모집|신청|등록|recruit)/i,
