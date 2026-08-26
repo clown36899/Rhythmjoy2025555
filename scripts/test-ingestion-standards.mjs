@@ -21,6 +21,7 @@ import {
   makeDeterministicId,
   mergeSocialScheduleFallbacks,
   prepareCandidate,
+  requiresAutomaticRegistrationAiAdjudication,
   resolveSourceVenueEvidence,
   selectSourceOrderedPosterUrls,
   isEvergreenSeasonPassCandidate,
@@ -580,6 +581,32 @@ assert.equal(
   swingtownGraduationWithPosterReadiness.ready,
   true,
   'an official graduation social with an exact date, venue, and poster may use the existing automatic registration path',
+);
+assert.equal(
+  requiresAutomaticRegistrationAiAdjudication({
+    source_id: 'swingtown-cafe',
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156677',
+    poster_url: 'https://example.com/swingtown-graduation.jpg',
+    extracted_text: '봉천살롱 2026.08.29 졸업파티 DJ 후안',
+    structured_data: {
+      title: '스윙타운 졸업파티',
+      date: '2026-08-29',
+      event_type: '소셜',
+      activity_type: 'social',
+      genre: '졸공',
+      djs: ['졸공'],
+    },
+  }),
+  false,
+  'a grounded graduation display label must not be compared to a real DJ name by the generic social AI gate',
+);
+assert.equal(
+  requiresAutomaticRegistrationAiAdjudication({
+    extracted_text: '2026.08.29 일반 파티',
+    structured_data: { activity_type: 'social', genre: '소셜' },
+  }),
+  true,
+  'ordinary non-date-scoped socials must keep the generic AI adjudication gate',
 );
 const scopedMultiDateSocial = prepareCandidate(baseCandidate({
   _date_scoped_social_evidence: true,

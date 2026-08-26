@@ -26,6 +26,7 @@ import {
   normalizeSourceUrl,
   prepareCandidate,
   publicationDateKey,
+  requiresAutomaticRegistrationAiAdjudication,
   resolveSourceVenueEvidence,
   selectSourceOrderedPosterUrls,
   stripNaverCafeMemberPrefix,
@@ -2618,11 +2619,9 @@ async function postCandidate(candidate) {
     aiAdjudicationEnabled
     && candidateToPost.auto_registration?.ready === true
     && candidateToPost.auto_registration?.ai_verified !== true
-    && !(
-      _dateScopedSocialEvidence === true
-      && candidateToPost.structured_data?.activity_type === 'social'
-      && candidateToPost.structured_data?.evidence_scope === 'date_scoped_social'
-    )
+    && requiresAutomaticRegistrationAiAdjudication(candidateToPost, {
+      dateScopedSocialEvidence: _dateScopedSocialEvidence,
+    })
   ) {
     const aiCandidate = {
       ...candidateToPost,

@@ -1874,6 +1874,28 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   };
 }
 
+export function requiresAutomaticRegistrationAiAdjudication(candidate = {}, {
+  dateScopedSocialEvidence = false,
+} = {}) {
+  const structured = candidate.structured_data || {};
+  if (
+    dateScopedSocialEvidence === true
+    && structured.activity_type === 'social'
+    && structured.evidence_scope === 'date_scoped_social'
+  ) {
+    return false;
+  }
+  if (
+    structured.activity_type === 'social'
+    && structured.genre === '졸공'
+    && Boolean(candidate.poster_url || candidate.imageData)
+    && Boolean(getGraduationEventMetadata(candidate))
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function buildCafe24Payload(rawCandidate, config = {}) {
   const { candidate, validation } = prepareCandidate(rawCandidate, config);
   if (!validation.ok) {
