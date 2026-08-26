@@ -2185,6 +2185,18 @@
 - 관련 커밋: `58e2caa8`
 - 관련 파일: `src/pages/v2/components/EventList/utils/homeAdPriority.ts`, `src/pages/v2/components/EventList/utils/homeAdPriority.test.ts`, `src/pages/v2/components/EventDetailModal.tsx`, `src/pages/v2/components/EventEditBottomSheet.tsx`, `src/pages/v2/components/EventEditBottomSheet.test.tsx`, `src/pages/calendar/page.tsx`, `src/components/GlobalSearchModal.css`, `src/pages/v2/components/NewEventsBanner.tsx`
 
+## 2026-08-26 공식 졸업파티 후보 자동등록 단절
+
+- 상태: 근본 원인 수정·운영 배포·대상 후보 자동등록·공개 API 검증 완료
+- 현상: 09:00 `swing-daily` 실행이 공식 스윙타운 2026-08-29 졸업파티 후보를 정상 저장했지만 `special event classification requires manual review instead of social auto-registration`으로 차단해 등록 API를 호출하지 않았다.
+- 기존 보호 목적: 일반 행사·대회·근거가 불완전한 졸업파티를 소셜로 오등록하지 않고 후보 저장과 실제 일정 등록을 분리한다. 저장 직전 2차 AI는 비정형 소셜의 실제 DJ 명단을 독립 대조한다.
+- 근본 원인: 공통 졸공 정규화는 후보를 `social/졸공`, `group_id=2`, 표시값 `DJ 졸공`으로 정확히 변환했지만 자동등록 수집기와 서버가 모든 졸공을 다시 일괄 차단했다. 첫 수정 뒤에는 저장 직전 일반 소셜 AI가 분류 표시값 `졸공`과 원문 실제 DJ `후안`을 비교해 다시 준비 상태를 껐다.
+- 해결: 공식 자동등록 출처에서 정확한 미래 날짜, 검증 장소, 원본 이미지와 명시적 졸업파티 근거를 모두 갖춘 졸공만 기존 자동등록 API에 연결한다. 졸공 표시값은 실제 DJ 비교 AI에 넣지 않고 서버가 저장 원문에서 날짜·장소·이미지·졸공 근거를 재검증한다. 이미지 없는 졸공, 수동 출처, 일반 행사·대회는 기존 차단을 유지한다.
+- 검증: 수집 표준 검사, 자동등록 서버 회귀 36건, 대상 구문 검사, `git diff --check`, 프로덕션 빌드가 통과했다. 배포 빌드 `1787751550324`, 서비스 `active`를 확인했다. 공식 원문 재수집은 후보 `0f21a765d9766d25`를 갱신하고 이벤트 `30034f70-329c-4ac4-815d-7986aba344f8`을 자동등록했다. 공개 API에서 2026-08-29 `DJ 졸공 | 봉천살롱 토요 소셜`, `social/졸공`, `group_id=2`, 봉천살롱과 저장 이미지를 확인했다.
+- 관련 커밋: `278ad193`, `8a748f63`
+- 관련 결정: `docs/decisions/2026-08-26-grounded-graduation-social-registration.md`
+- 관련 파일: `src/utils/graduationEvent.mjs`, `scripts/ingestion/candidate-utils.mjs`, `scripts/ingestion/swing-daily-native.mjs`, `server/cafe24/function-api.js`, `scripts/test-ingestion-standards.mjs`, `server/cafe24/ingestor-registration-link.test.js`
+
 ## 2026-08-23 캘린더 졸공 DJ 슬롯 공백
 
 - 상태: 공통 표시 원인 수정·표시 정책 재조정·회귀 검증·운영 재배포 완료
