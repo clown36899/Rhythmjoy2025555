@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   buildAiAdjudicationPrompt,
+  buildSocialExtractionPrompt,
   extractSocialScheduleWithAi,
   shouldPersistBenefitAiOutcome,
   validateAiAdjudication,
@@ -282,6 +283,36 @@ describe('AI candidate adjudication grounding', () => {
     });
     expect(result.ok).toBe(true);
   });
+
+  it('accepts a normalized DJ name when exact source evidence adds the Korean honorific', () => {
+    const honorificCandidate = {
+      source_id: 'swingscandal-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/14933600/articles/102670',
+      extracted_text: '스윙스캔들 목요소셜 2026.08.27 목요일 디제이는 호두님입니다!!!!',
+      structured_data: {
+        title: '사보이볼룸 목요 소셜',
+        date: '2026-08-27',
+        activity_type: 'social',
+        venue_name: '사보이볼룸',
+        venue_provenance: 'source_registry',
+        djs: ['호두'],
+      },
+    };
+    const result = validateAiAdjudication(honorificCandidate, {
+      decision: 'register',
+      confidence: 0.99,
+      event_date: '2026-08-27',
+      activity_type: 'social',
+      venue: '사보이볼룸',
+      djs: ['호두'],
+      evidence_quotes: [
+        '스윙스캔들 목요소셜 2026.08.27',
+        '목요일 디제이는 호두님입니다!!!!',
+        '검증된 공식 수집원 고정 장소: 사보이볼룸',
+      ],
+    });
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe('AI social extraction grounding', () => {
@@ -291,6 +322,74 @@ DJ '이정' PM 8:15~10:15
 - 일요일
 1부 DJ '캐롤' PM 7:30~9:00
 ■ 타임빠소셜 안내`;
+
+  it('provides source-scoped historical DJ spellings only as poster OCR hints', () => {
+    const prompt = buildSocialExtractionPrompt({
+      sourceId: 'swingfriends-happyhall-cafe',
+      sourceName: '스윙프렌즈 해피홀 게시판',
+      sourceText: '★8월 28일 금햎 & ♥29일토 정모 쉽니다♥',
+      today: '2026-08-27',
+    });
+    expect(prompt).toContain('HISTORICAL_DJ_SPELLING_HINTS');
+    expect(prompt).toContain('쓴귤');
+    expect(prompt).toContain('not evidence');
+  });
+
+  it('accepts the established Happy Hall Friday-social name as explicit activity evidence', () => {
+    const result = validateAiSocialExtraction({
+      sourceText: '★8월 28일 금햎 & ♥29일토 정모 쉽니다♥',
+      sourceVenue: '해피홀',
+      imageDataUrls: [`data:image/jpeg;base64,${Buffer.alloc(1200, 4).toString('base64')}`],
+      dateHints: ['2026-08-28'],
+      closureDateHints: ['2026-08-29'],
+      today: '2026-08-27',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '08월 28일 금햅DJ를 소개합니다 DJ: 쓴귤',
+      events: [{
+        title: '해피홀 금요 소셜',
+        event_date: '2026-08-28',
+        venue: '해피홀',
+        djs: ['쓴귤'],
+        poster_image_index: 1,
+        evidence_quotes: [
+          '8월 28일 금햎',
+          '검증된 공식 수집원 고정 장소: 해피홀',
+          'DJ: 쓴귤',
+        ],
+      }],
+      reasons: [],
+    }, { today: '2026-08-27' });
+
+    expect(result.ok).toBe(true);
+    expect(result.events[0].djs).toEqual(['쓴귤']);
+  });
+
+  it('rejects a social extraction on a deterministically scoped closure date', () => {
+    const result = validateAiSocialExtraction({
+      sourceText: '★8월 28일 금햎 & ♥29일토 정모 쉽니다♥',
+      sourceVenue: '해피홀',
+      closureDateHints: ['2026-08-29'],
+      today: '2026-08-27',
+    }, {
+      decision: 'extract',
+      confidence: 0.99,
+      poster_text: '',
+      events: [{
+        title: '해피홀 토요 소셜',
+        event_date: '2026-08-29',
+        venue: '해피홀',
+        djs: [],
+        poster_image_index: 0,
+        evidence_quotes: ['29일토 정모 쉽니다', '검증된 공식 수집원 고정 장소: 해피홀'],
+      }],
+      reasons: [],
+    }, { today: '2026-08-27' });
+
+    expect(result.ok).toBe(false);
+    expect(result.reasons.join(' ')).toContain('AI returned a date scoped as a closure');
+  });
 
   it('stores a bare DJ stage name when the model repeats the DJ label', () => {
     const result = validateAiSocialExtraction({

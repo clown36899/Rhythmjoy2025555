@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSourceForCandidate } from './collection-registry.mjs';
 import { stripNaverCafeMemberPrefix } from './candidate-utils.mjs';
+import { getHistoricalDjNamesForRoute } from './swing-social-map.mjs';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
 const benefitReviewSchemaPath = path.join(moduleDir, 'ai-benefit-review.schema.json');
@@ -128,7 +129,7 @@ function evidenceExplicitlyContainsDj(evidence = '', dj = '') {
   const name = normalized(bareDjName(dj));
   if (!name) return false;
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(?:^|[^\\p{L}\\p{N}_])${escaped}(?=$|[^\\p{L}\\p{N}_])`, 'u')
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}_])${escaped}(?:님(?:입니다|이에요|이세요|께서|은|는|이|가)?)?(?=$|[^\\p{L}\\p{N}_])`, 'u')
     .test(normalized(evidence));
 }
 
@@ -186,7 +187,7 @@ function evidenceMentionsDate(evidence, isoDate) {
 }
 
 const ACTIVITY_EVIDENCE_PATTERNS = {
-  social: /(?:소셜|social|정모)/i,
+  social: /(?:소셜|social|정모|금\s*(?:햅|햎|해피)|일\s*(?:햅|햎|해피))/i,
   class: /(?:강습|수업|클래스|class|워크숍|워크샵|workshop|레슨|lesson)/i,
   event: /(?:행사|이벤트|event|파티|party|공연|대회)/i,
   recruit: /(?:모집|신청|등록|recruit)/i,
@@ -345,6 +346,9 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
   const today = String(config.today || input.today || '');
   const events = Array.isArray(extraction?.events) ? extraction.events : [];
   const dateHints = [...new Set((input.dateHints || []).map((date) => String(date || '').slice(0, 10)).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))];
+  const closureDateHints = new Set((input.closureDateHints || [])
+    .map((date) => String(date || '').slice(0, 10))
+    .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)));
   const reasons = [];
   const approvedEvents = [];
   const seenDates = new Set();
@@ -373,6 +377,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) eventReasons.push('AI social date is invalid');
     if (today && date < today) eventReasons.push('AI social date is already past');
+    if (closureDateHints.has(date)) eventReasons.push('AI returned a date scoped as a closure');
     if (seenDates.has(date)) eventReasons.push('AI returned duplicate social dates');
     if (!exactEvidenceIsGrounded(evidenceQuotes, groundedText)) eventReasons.push('AI social evidence is not an exact substring of source text or attached poster transcription');
     if (!evidenceMentionsDate(evidenceCorpus, date)) eventReasons.push('AI social evidence does not explicitly contain the event date');
@@ -431,6 +436,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
 export function buildAiAdjudicationPrompt(candidate) {
   const sd = candidate.structured_data || {};
   const trustedVenueContext = trustedSourceVenueContext(candidate);
+  const historicalDjNames = getHistoricalDjNamesForRoute(candidate.source_id);
   return `You are the second-stage verifier for a Korean swing-dance event calendar.
 Judge only the supplied source text. Do not browse, infer a time, or use outside knowledge.
 The calendar stores dates only. Never output or reason from an event time.
@@ -448,7 +454,8 @@ Dates explicitly labeled as advance-registration/payment deadlines are not compe
 Compact source headers such as "8월 1,2일" may support the collector date only when SOURCE_TEXT
 contains just the matching weekday/DJ section and no competing lineup.
 For every register decision, evidence_quotes must separately include the event date, venue, every DJ,
-and an activity marker. For a social, quote text containing "Social", "소셜", or "정모" (the event title
+and an activity marker. For a social, quote text containing "Social", "소셜", "정모", or the established
+Happy Hall social names "금햅/금햎/금해피/일햅/일햎/일해피" (the event title
 is valid activity evidence). When these fields are explicit, unique, and agree with the collector,
 return register with confidence 0.99.
 For venue agreement, treat these established spelling aliases as identical:
@@ -468,6 +475,9 @@ collector/source evidence, or when a field relies on the poster but is not visib
 For a social with an empty collector DJ list, return register only when ai_missing_dj_verified is true,
 an original poster is attached, and the source explicitly confirms the date, venue, and social marker.
 Do not invent a DJ merely to approve registration.
+HISTORICAL_DJ_SPELLING_HINTS are spelling references from earlier official schedules, not evidence for
+this event. Use them only to recheck ambiguous poster glyphs; the current source image must still visibly
+support the returned name. If the image and spelling hint do not agree clearly, return review.
 
 COLLECTOR_CANDIDATE:
 ${JSON.stringify({
@@ -485,10 +495,13 @@ SOURCE_TEXT:
 ${String(candidate.extracted_text || '').slice(0, 6000)}
 
 TRUSTED_SOURCE_CONTEXT:
-${trustedVenueContext || '(none)'}`;
+${trustedVenueContext || '(none)'}
+
+HISTORICAL_DJ_SPELLING_HINTS:
+${historicalDjNames.length ? historicalDjNames.join(', ') : '(none)'}`;
 }
 
-function buildSocialExtractionPrompt(input = {}) {
+export function buildSocialExtractionPrompt(input = {}) {
   const focusDateHints = [...new Set((input.focusDateHints || [])
     .map((date) => String(date || '').slice(0, 10))
     .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))];
@@ -505,12 +518,19 @@ keep only the DJ names inside each matching day section. Do not carry a DJ into 
 Return each bare DJ stage name exactly as written after the DJ label. Do not include the "DJ" label,
 and do not shorten a final Korean syllable merely because it could also look like a grammatical particle.
 In a heading such as "8/14 ... /15일", the second day inherits the explicitly written month.
+When COLLECTOR_CLOSURE_DATE_HINTS identifies that later inherited date as a closure, do not spread its
+closure wording backward onto an earlier poster-backed social in the same heading. Never extract a
+closure date as a social session.
 Resolve a missing year from TODAY_KST, but never invent a month or day. Do not output event times.
+HISTORICAL_DJ_SPELLING_HINTS are spelling references from earlier official schedules, not evidence for
+the current event. Use them only to recheck ambiguous poster glyphs; the current poster must still
+visibly support the returned name. If the glyphs and hint do not agree clearly, return review.
 
 If posters are attached, copy their relevant visible text exactly into poster_text; otherwise return an
 empty poster_text. Each event needs exact evidence_quotes copied from SOURCE_TEXT, poster_text, or
 TRUSTED_SOURCE_CONTEXT. Together those quotes must explicitly contain its month/day, venue, every DJ,
-and "소셜", "social", or "정모". TRUSTED_SOURCE_CONTEXT may be used only for venue evidence. If the venue is absent, dates conflict,
+and "소셜", "social", "정모", or the established Happy Hall social names
+"금햅/금햎/금해피/일햅/일햎/일해피". TRUSTED_SOURCE_CONTEXT may be used only for venue evidence. If the venue is absent, dates conflict,
 weekday mapping is uncertain, a DJ belongs to multiple possible dates, or any required evidence is
 implicit, return "review" with no events. Confidence >= 0.98 is reserved for fully explicit evidence.
 Set poster_image_index to the 1-based attached-image number that visibly supports that session, or 0
@@ -529,6 +549,9 @@ ${String(input.sourceName || '')}
 SOURCE_URL:
 ${String(input.sourceUrl || '')}
 
+HISTORICAL_DJ_SPELLING_HINTS:
+${getHistoricalDjNamesForRoute(input.sourceId).join(', ') || '(none)'}
+
 SOURCE_TEXT:
 ${String(input.sourceText || '').slice(0, 6000)}
 
@@ -541,7 +564,12 @@ ${(input.dateHints || []).length
     : '(none)'}
 
 FOCUS_DATE_HINTS:
-${focusDateHints.length ? focusDateHints.join(', ') : '(none)'}`;
+${focusDateHints.length ? focusDateHints.join(', ') : '(none)'}
+
+COLLECTOR_CLOSURE_DATE_HINTS:
+${(input.closureDateHints || []).length
+    ? `${(input.closureDateHints || []).join(', ')} (syntax-scoped closures; exclude these dates from social sessions)`
+    : '(none)'}`;
 }
 
 function buildBenefitReviewPrompt(candidate, today) {

@@ -1,9 +1,35 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  eventMatchesExpectedAutomaticSocial,
   formatAutoRegistrationTelegramLine,
   toAutoRegistrationReportEntry,
 } from './auto-registration-report.mjs';
+
+test('does not treat a DJ-less recurring placeholder as a verified official social', () => {
+  const expectation = {
+    date: '2026-08-28',
+    candidate: {
+      title: '스윙프렌즈 해피홀 게시판 금요 소셜',
+      venue: '해피홀',
+      djs: ['쓴귤'],
+    },
+  };
+  assert.equal(eventMatchesExpectedAutomaticSocial({
+    id: 'regular-social:neo-fri:2026-08-28',
+    start_date: '2026-08-28',
+    title: '네오스윙 금요 소셜',
+    location: '해피홀',
+    genre: '소셜',
+  }, expectation), false);
+  assert.equal(eventMatchesExpectedAutomaticSocial({
+    id: 'registered-happyhall-social',
+    start_date: '2026-08-28',
+    title: 'DJ 쓴귤 | 스윙프렌즈 해피홀 게시판 금요 소셜',
+    location: '해피홀',
+    genre: '소셜',
+  }, expectation), true);
+});
 
 test('reports the final automatic registration classification to Telegram', () => {
   const entry = toAutoRegistrationReportEntry({

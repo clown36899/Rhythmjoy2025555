@@ -9,6 +9,7 @@ import {
   dedupeCandidatesByContentIdentity,
   extractDatedDjSections,
   extractExplicitClosureDates,
+  extractExpectedAutomaticSocialDates,
   extractIndependentSocialDateSections,
   extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
@@ -73,6 +74,7 @@ import {
   shouldAdvanceInstagramCheckpoint,
 } from './ingestion-progress.mjs';
 import {
+  eventMatchesExpectedAutomaticSocial,
   formatAutoRegistrationTelegramLine,
   toAutoRegistrationReportEntry,
 } from './auto-registration-report.mjs';
@@ -87,6 +89,8 @@ const defaultEndpoint = process.env.INGESTOR_V3 === '1'
 const endpoint = process.env.CAFE24_INGEST_ENDPOINT || defaultEndpoint;
 const automaticRegistrationEndpoint = process.env.CAFE24_AUTO_REGISTER_ENDPOINT
   || new URL('/api/ingestor-register-event', endpoint).toString();
+const publicEventsEndpoint = process.env.CAFE24_PUBLIC_EVENTS_ENDPOINT
+  || new URL('/api/events', endpoint).toString();
 const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
 const exceptionBacktest = process.env.INGESTION_EXCEPTION_BACKTEST === '1';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1' || exceptionBacktest;
@@ -184,9 +188,12 @@ const result = {
     decomposition: { candidates: 0 },
     persistence: { attempted: 0, saved: 0, refreshed: 0, skipped: 0, failures: 0 },
     registration: { attempted: 0, succeeded: 0, duplicates: 0, blocked: 0, notReady: 0 },
+    reconciliation: { expected: 0, candidateReady: 0, publicVerified: 0, missing: 0, failures: [] },
     blockers: [],
   },
 };
+
+const expectedAutomaticSocials = [];
 
 class RunBudgetReachedError extends Error {
   constructor(label = '') {
@@ -307,6 +314,96 @@ function recordRegistrationPolicyBlocker(candidate = {}) {
     sourceUrl: candidate.source_url,
     candidateId: candidate.id,
     reason: (candidate.auto_registration?.reasons || ['candidate requires manual review']).join('; '),
+  });
+}
+
+function expectedSocialKey({ sourceUrl = '', date = '' } = {}) {
+  return `${normalizeSourceUrl(sourceUrl)}|${String(date).slice(0, 10)}`;
+}
+
+function recordExpectedAutomaticSocials({
+  source,
+  sourceUrl,
+  title,
+  text,
+  publishedAt,
+  hasPoster,
+}) {
+  if (!hasPoster || !['shadow', 'auto'].includes(String(source?.autoRegistrationPolicy || ''))) return;
+  const dates = extractExpectedAutomaticSocialDates({
+    title,
+    text,
+    today,
+    publishedAt,
+    maxFutureDays,
+  });
+  for (const date of dates) {
+    const expectation = {
+      key: expectedSocialKey({ sourceUrl, date }),
+      sourceId: source.id,
+      sourceUrl: normalizeSourceUrl(sourceUrl),
+      date,
+      title: cleanTitle(title || source.name),
+      candidateFound: false,
+      candidateReady: false,
+      candidate: null,
+      eventId: null,
+      outcome: 'expected',
+    };
+    if (!expectedAutomaticSocials.some((item) => item.key === expectation.key)) {
+      expectedAutomaticSocials.push(expectation);
+    }
+  }
+}
+
+function updateExpectedAutomaticSocial(candidate = {}, outcome = '', event = null) {
+  const structured = candidate.structured_data || {};
+  const baseKey = expectedSocialKey({ sourceUrl: candidate.source_url, date: structured.date });
+  const expectation = expectedAutomaticSocials.find((item) => (
+    item.candidateIdHint && String(item.candidateIdHint) === String(candidate.id)
+  )) || expectedAutomaticSocials.find((item) => item.key === baseKey && !item.candidateFound);
+  if (!expectation || structured.activity_type !== 'social') return;
+  expectation.candidateFound = true;
+  expectation.candidateReady = candidate.auto_registration?.ready === true;
+  expectation.candidate = {
+    id: candidate.id || null,
+    title: structured.title || '',
+    date: structured.date || '',
+    venue: structured.location || structured.venue_name || '',
+    djs: Array.isArray(structured.djs) ? structured.djs : [],
+  };
+  if (outcome) expectation.outcome = outcome;
+  if (event?.id) expectation.eventId = event.id;
+}
+
+function ensureExpectedAutomaticSocialCandidate(source, candidate = {}) {
+  const structured = candidate.structured_data || {};
+  if (
+    structured.activity_type !== 'social'
+    || !structured.date
+    || !candidate.poster_url
+    || !['shadow', 'auto'].includes(String(source?.autoRegistrationPolicy || ''))
+  ) return;
+  const key = expectedSocialKey({ sourceUrl: candidate.source_url, date: structured.date });
+  const unassignedExpectation = expectedAutomaticSocials.find((item) => (
+    item.key === key && !item.candidateIdHint && !item.candidateFound
+  ));
+  if (unassignedExpectation) {
+    unassignedExpectation.candidateIdHint = candidate.id || null;
+    return;
+  }
+  expectedAutomaticSocials.push({
+    key: `${key}|${candidate.id || expectedAutomaticSocials.length}`,
+    candidateIdHint: candidate.id || null,
+    sourceId: source.id,
+    sourceUrl: normalizeSourceUrl(candidate.source_url),
+    date: String(structured.date).slice(0, 10),
+    title: cleanTitle(structured.title || source.name),
+    candidateFound: false,
+    candidateReady: false,
+    candidate: null,
+    eventId: null,
+    outcome: 'extracted',
   });
 }
 
@@ -1979,12 +2076,19 @@ async function buildAiSocialFallbackCandidates({
 
   ensureRunBudgetOrThrow(`AI social extraction ${source.id}`, Math.min(95_000, Math.max(10_000, runDeadlineGuardMs())));
   const aiResult = await extractSocialScheduleWithAi({
+    sourceId: source.id,
     sourceName: source.name,
     sourceUrl,
     sourceText: cleanText,
     sourceVenue: source.venue || '',
     imageDataUrls: sourceImages.map((image) => image.dataUrl),
     dateHints: extractSocialDateHints(cleanText),
+    closureDateHints: extractExplicitClosureDates({
+      text: cleanText,
+      today,
+      publishedAt,
+      maxFutureDays,
+    }),
     today,
   }, {
     today,
@@ -2102,6 +2206,14 @@ async function buildCandidatesFromText({
     result.skipped += 1;
     return [];
   }
+  recordExpectedAutomaticSocials({
+    source,
+    sourceUrl,
+    title,
+    text: rawText,
+    publishedAt,
+    hasPoster: Boolean(posterUrls.length || posterUrl),
+  });
   if (exceptionBacktest) {
     const exceptions = buildExceptionBacktestCandidates({
       source,
@@ -2213,13 +2325,14 @@ async function buildCandidatesFromText({
     [...genericMixedClosureCandidates, ...neoMixedClosureCandidates]
       .map((candidate) => [candidate.id, candidate]),
   ).values()];
+  let unscopedClosureCandidates = [];
   if (closureEventPattern.test(cleanText) && !preclassifiedSocialScheduleItems.length) {
     if (!posterUrls.length && !posterUrl) {
       result.skipped += 1;
       log(`skip ${source.id}: closure notice without poster`);
       return [];
     }
-    const closures = buildExceptionBacktestCandidates({
+    unscopedClosureCandidates = buildExceptionBacktestCandidates({
       source,
       sourceUrl,
       cleanText,
@@ -2231,8 +2344,7 @@ async function buildCandidatesFromText({
       ['closure', 'recurring_closure'].includes(candidate.exception_type)
       && candidate.structured_data.date
     ));
-    if (!closures.length) result.skipped += 1;
-    return closures;
+    if (!unscopedClosureCandidates.length) result.skipped += 1;
   }
   if (closureEventPattern.test(cleanText) && preclassifiedSocialScheduleItems.length) {
     log(`mixed closure/social ${source.id}: preserving ${preclassifiedSocialScheduleItems.length} explicit dated DJ schedule(s)`);
@@ -2263,6 +2375,13 @@ async function buildCandidatesFromText({
     });
     return aiSocialFallbackPromise;
   };
+  if (unscopedClosureCandidates.length) {
+    const activeSocialCandidates = await aiSocialFallback();
+    if (activeSocialCandidates.length) {
+      log(`mixed closure/social ${source.id}: recovered ${activeSocialCandidates.length} active social(s) beside ${unscopedClosureCandidates.length} closure(s)`);
+    }
+    return [...unscopedClosureCandidates, ...activeSocialCandidates, ...focusedSeasonPassCandidates];
+  }
   const inferredActivity = inferActivity(cleanText, title);
   const socialScheduleItems = preclassifiedSocialScheduleItems;
   const socialScheduleDates = new Set(socialScheduleItems.map((item) => item.date).filter(Boolean));
@@ -2540,6 +2659,24 @@ async function buildCandidatesFromText({
   return aiSocialFallback();
 }
 
+function recordUnpersistedCandidate(candidate) {
+  updateExpectedAutomaticSocial(
+    candidate,
+    candidate.auto_registration?.ready === true ? 'candidate-ready' : 'candidate-not-ready',
+  );
+  result.inserted += 1;
+  result.candidates.push(diagnosticJson ? {
+    id: candidate.id,
+    keyword: candidate.keyword,
+    source_id: candidate.source_id || null,
+    source_url: candidate.source_url,
+    poster_url: candidate.poster_url || null,
+    structured_data: candidate.structured_data,
+    auto_registration: candidate.auto_registration || null,
+  } : `${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
+  if (candidate.auto_registration?.ready !== true) recordRegistrationPolicyBlocker(candidate);
+}
+
 async function postCandidate(candidate) {
   if (exceptionBacktest) {
     result.inserted += 1;
@@ -2598,20 +2735,8 @@ async function postCandidate(candidate) {
     }
   }
 
-  if (dryRun || profile === 'expanded-research') {
-    result.inserted += 1;
-    result.candidates.push(diagnosticJson ? {
-      id: candidateToPost.id,
-      keyword: candidateToPost.keyword,
-      source_id: candidateToPost.source_id || null,
-      source_url: candidateToPost.source_url,
-      poster_url: candidateToPost.poster_url || null,
-      structured_data: candidateToPost.structured_data,
-      auto_registration: candidateToPost.auto_registration || null,
-    } : `${candidateToPost.keyword}:${candidateToPost.structured_data?.date}:${candidateToPost.structured_data?.title}`);
-    if (candidateToPost.auto_registration?.ready !== true) {
-      recordRegistrationPolicyBlocker(candidateToPost);
-    }
+  if (profile === 'expanded-research') {
+    recordUnpersistedCandidate(candidateToPost);
     return;
   }
 
@@ -2658,6 +2783,16 @@ async function postCandidate(candidate) {
     }
   }
 
+  updateExpectedAutomaticSocial(
+    candidateToPost,
+    candidateToPost.auto_registration?.ready === true ? 'candidate-ready' : 'candidate-not-ready',
+  );
+
+  if (dryRun) {
+    recordUnpersistedCandidate(candidateToPost);
+    return;
+  }
+
   let response;
   let bodyText = '';
   const headers = { 'Content-Type': 'application/json' };
@@ -2682,6 +2817,7 @@ async function postCandidate(candidate) {
       reason: message,
     });
     result.issues.push(`post ${candidate.id}: ${message}`);
+    updateExpectedAutomaticSocial(candidateToPost, 'persistence-failed');
     log(`post failed ${candidate.id}: ${message}`);
     return;
   }
@@ -2699,6 +2835,7 @@ async function postCandidate(candidate) {
       reason: `HTTP ${response.status}`,
     });
     result.issues.push(`post ${candidate.id}: HTTP ${response.status}`);
+    updateExpectedAutomaticSocial(candidateToPost, 'persistence-failed');
     log(`post failed ${candidate.id}: ${response.status} ${bodyText.slice(0, 300)}`);
     return;
   }
@@ -2707,6 +2844,7 @@ async function postCandidate(candidate) {
     result.skipped += body.skipped.length;
     result.pipeline.persistence.skipped += body.skipped.length;
     result.candidates.push(`skip:${candidate.keyword}:${body.skipped[0].reason}`);
+    updateExpectedAutomaticSocial(candidateToPost, 'persistence-duplicate');
     return;
   }
 
@@ -2730,6 +2868,9 @@ async function postCandidate(candidate) {
         result.skipped += 1;
         result.pipeline.registration.duplicates += 1;
         result.candidates.push(`skip:${candidate.keyword}:${autoBody.duplicate.reason || 'operational duplicate'}`);
+        updateExpectedAutomaticSocial(candidateToPost, 'registration-duplicate', {
+          id: autoBody.duplicate.existingId || autoBody.duplicate.existingEventId || null,
+        });
         log(`auto-register skipped duplicate ${savedCandidate.id}: ${autoBody.duplicate.reason || 'operational duplicate'}`);
         return;
       }
@@ -2742,6 +2883,7 @@ async function postCandidate(candidate) {
           reason: (autoBody?.reasons || [autoBody?.error || `HTTP ${autoResult.response.status}`]).join('; '),
         });
         result.issues.push(`auto-register ${savedCandidate.id}: HTTP ${autoResult.response.status}`);
+        updateExpectedAutomaticSocial(candidateToPost, 'registration-blocked');
         log(`auto-register blocked ${savedCandidate.id}: ${autoResult.response.status} ${autoResult.body.slice(0, 300)}`);
       } else {
         result.pipeline.registration.succeeded += 1;
@@ -2750,6 +2892,7 @@ async function postCandidate(candidate) {
             repaired: autoBody.repaired === true,
           }));
         }
+        updateExpectedAutomaticSocial(candidateToPost, 'registered', autoBody?.event || null);
         log(`auto-registered ${savedCandidate.id}`);
       }
     } catch (error) {
@@ -2761,11 +2904,13 @@ async function postCandidate(candidate) {
         reason: error?.message || error?.name || 'request failed',
       });
       result.issues.push(`auto-register ${savedCandidate.id}: ${error?.message || error?.name || 'request failed'}`);
+      updateExpectedAutomaticSocial(candidateToPost, 'registration-failed');
       log(`auto-register failed ${savedCandidate.id}: ${error?.message || error}`);
     }
   }
 
   if (candidateToPost.auto_registration?.ready !== true) {
+    updateExpectedAutomaticSocial(candidateToPost, 'candidate-not-ready');
     recordRegistrationPolicyBlocker({
       ...candidateToPost,
       id: savedCandidate?.id || candidate.id,
@@ -2780,6 +2925,79 @@ async function postCandidate(candidate) {
 
   result.inserted += Number(body.count ?? 1);
   result.candidates.push(`${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
+}
+
+async function reconcileExpectedAutomaticSocials() {
+  const reconciliation = result.pipeline.reconciliation;
+  reconciliation.expected = expectedAutomaticSocials.length;
+  reconciliation.candidateReady = expectedAutomaticSocials.filter((item) => item.candidateReady).length;
+  if (!expectedAutomaticSocials.length) return;
+
+  let publicEvents = [];
+  if (!dryRun && profile !== 'expanded-research') {
+    const dates = expectedAutomaticSocials.map((item) => item.date).sort();
+    const url = new URL(publicEventsEndpoint);
+    url.searchParams.set('start', dates[0]);
+    url.searchParams.set('end', dates.at(-1));
+    try {
+      const response = await fetchWithTimeout(url.toString(), {
+        headers: { Accept: 'application/json' },
+      }, postRequestTimeoutMs);
+      if (!response.response.ok) throw new Error(`HTTP ${response.response.status}`);
+      const payload = JSON.parse(response.body || '[]');
+      publicEvents = Array.isArray(payload) ? payload : payload.data || payload.events || [];
+    } catch (error) {
+      const reason = `public event verification failed: ${error?.message || error}`;
+      for (const expectation of expectedAutomaticSocials) {
+        reconciliation.failures.push({
+          sourceId: expectation.sourceId,
+          sourceUrl: expectation.sourceUrl,
+          date: expectation.date,
+          reason,
+        });
+      }
+    }
+  }
+
+  for (const expectation of expectedAutomaticSocials) {
+    const publicMatch = publicEvents.find((event) => eventMatchesExpectedAutomaticSocial(event, expectation));
+    if (publicMatch) {
+      expectation.outcome = 'public-verified';
+      expectation.eventId = publicMatch.id || expectation.eventId;
+      reconciliation.publicVerified += 1;
+      continue;
+    }
+    if (dryRun && expectation.candidateReady) continue;
+    const reason = !expectation.candidateFound
+      ? 'official social occurrence did not produce a social candidate'
+      : !expectation.candidateReady
+        ? `official social candidate is not registration-ready (${expectation.outcome})`
+        : `registration outcome is not present in the public event API (${expectation.outcome})`;
+    if (!reconciliation.failures.some((item) => (
+      item.sourceUrl === expectation.sourceUrl && item.date === expectation.date
+    ))) {
+      reconciliation.failures.push({
+        sourceId: expectation.sourceId,
+        sourceUrl: expectation.sourceUrl,
+        date: expectation.date,
+        candidateId: expectation.candidate?.id || null,
+        reason,
+      });
+    }
+  }
+
+  reconciliation.missing = reconciliation.failures.length;
+  for (const failure of reconciliation.failures.slice(0, 20)) {
+    recordPipelineBlocker('registration-reconciliation', {
+      sourceId: failure.sourceId,
+      sourceUrl: failure.sourceUrl,
+      candidateId: failure.candidateId,
+      reason: `${failure.date}: ${failure.reason}`,
+    });
+  }
+  if (reconciliation.missing) {
+    result.issues.push(`automatic registration completeness failed for ${reconciliation.missing} official social occurrence(s)`);
+  }
 }
 
 async function withBoundedStep(label, fn, timeoutMs) {
@@ -3196,6 +3414,10 @@ async function main() {
         const candidates = await collectSource(page, source);
         const mergedSocialVariants = collapseSocialCandidateVariants(candidates);
         const deduped = dedupeCandidatesByContentIdentity(mergedSocialVariants);
+        for (const candidate of deduped) {
+          ensureExpectedAutomaticSocialCandidate(source, candidate);
+          updateExpectedAutomaticSocial(candidate, 'candidate-found');
+        }
         result.pipeline.decomposition.candidates += deduped.length;
         for (const candidate of deduped) {
           const activity = String(candidate.structured_data?.activity_type || 'unknown');
@@ -3260,6 +3482,8 @@ async function main() {
   const partialRun = result.deadlineReached || result.remainingSources.length > 0;
   await checkpointProgress(partialRun ? result.remainingSources : [], !partialRun);
 
+  await reconcileExpectedAutomaticSocials();
+
   printSummary();
 }
 
@@ -3303,6 +3527,7 @@ function printSummary() {
   console.log(`AI혜택판정: 확인 ${result.benefitAiReviewStats.approved} / 재검토 ${result.benefitAiReviewStats.review} / 제외 ${result.benefitAiReviewStats.rejected} / 오류 ${result.benefitAiReviewStats.error + result.benefitAiReviewStats.unavailable}`);
   console.log(`AI소셜추출: 확인 ${result.socialAiExtractionStats.approved} / 재검토 ${result.socialAiExtractionStats.review} / 오류 ${result.socialAiExtractionStats.error + result.socialAiExtractionStats.unavailable}`);
   console.log(`파이프라인: 발견 ${result.pipeline.discovery.documents} / 판별문서 ${result.pipeline.classification.documents} / 분해후보 ${result.pipeline.decomposition.candidates} / 저장 ${result.pipeline.persistence.saved + result.pipeline.persistence.refreshed} / 자동등록 ${result.pipeline.registration.succeeded} / 차단 ${result.pipeline.registration.blocked + result.pipeline.registration.notReady}`);
+  console.log(`등록완결성: 기대 ${result.pipeline.reconciliation.expected} / 준비 ${result.pipeline.reconciliation.candidateReady} / 공개확인 ${result.pipeline.reconciliation.publicVerified} / 누락 ${result.pipeline.reconciliation.missing}`);
   console.log(`단계차단: ${result.pipeline.blockers.length ? result.pipeline.blockers.slice(0, 5).map((item) => `${item.stage}:${item.sourceId || item.candidateId || 'unknown'}(${item.reason})`).join(' / ') : 'none'}`);
   console.log(`이슈: ${issues.length ? issues.join(' / ') : 'none'}`);
   console.log('==TELEGRAM_SUMMARY_END==');
@@ -3316,7 +3541,8 @@ async function flushAndExit(code) {
 
 main()
   .then(async () => {
-    await flushAndExit(result.deadlineReached || result.remainingSources.length ? 75 : 0);
+    const incompleteRegistration = !dryRun && result.pipeline.reconciliation.missing > 0;
+    await flushAndExit(result.deadlineReached || result.remainingSources.length ? 75 : incompleteRegistration ? 1 : 0);
   })
   .catch(async (error) => {
     result.issues.push(error.message);

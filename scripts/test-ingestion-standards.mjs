@@ -8,6 +8,7 @@ import {
   extractBenefitValidityEndDate,
   extractDatedDjSections,
   extractExplicitClosureDates,
+  extractExpectedAutomaticSocialDates,
   extractIndependentSocialDateSections,
   extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
@@ -451,6 +452,25 @@ assert.deepEqual(
   }),
   ['2026-06-06'],
   'a closure must remain scoped to its nearest date when a later date is explicitly normal',
+);
+assert.deepEqual(
+  extractExplicitClosureDates({
+    today: '2026-08-27',
+    publishedAt: '2026-08-25T09:49:00.000Z',
+    text: '★8월 28일 금햎 & ♥29일토 정모 쉽니다♥',
+  }),
+  ['2026-08-29'],
+  'an inherited same-month closure date must not close the preceding active social',
+);
+assert.deepEqual(
+  extractExpectedAutomaticSocialDates({
+    today: '2026-08-27',
+    publishedAt: '2026-08-25T09:49:00.000Z',
+    title: '★8월 28일 금햎 & ♥29일토 정모 쉽니다♥',
+    text: '★8월 28일 금햎 & ♥29일토 정모 쉽니다♥',
+  }),
+  ['2026-08-28'],
+  'a mixed official title must retain the active social as an automatic-registration expectation',
 );
 assert.deepEqual(
   extractExplicitClosureDates({

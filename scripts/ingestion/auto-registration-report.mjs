@@ -10,6 +10,33 @@ const clean = (value, maxLength = 80) => {
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1)}…` : normalized;
 };
 
+const comparable = (value = '') => String(value || '')
+  .normalize('NFKC')
+  .toLowerCase()
+  .replace(/d\s*j/gi, '')
+  .replace(/[^a-z0-9가-힣]/g, '');
+
+export function eventMatchesExpectedAutomaticSocial(event = {}, expectation = {}) {
+  if (expectation.eventId && String(event.id) === String(expectation.eventId)) return true;
+  const candidate = expectation.candidate;
+  const eventDate = String(event.start_date || event.date || '').slice(0, 10);
+  if (!candidate || eventDate !== expectation.date) return false;
+  const eventVenue = comparable(event.location || event.venue_name || '');
+  const candidateVenue = comparable(candidate.venue || '');
+  if (!candidateVenue || !eventVenue || eventVenue !== candidateVenue) return false;
+  const candidateDjs = (candidate.djs || []).map(comparable).filter(Boolean);
+  const eventEvidence = comparable([
+    event.title,
+    event.genre,
+    ...(Array.isArray(event.djs) ? event.djs : []),
+  ].filter(Boolean).join(' '));
+  if (candidateDjs.length) return candidateDjs.every((dj) => eventEvidence.includes(dj));
+  const eventTitle = comparable(event.title);
+  const candidateTitle = comparable(candidate.title);
+  return Boolean(eventTitle && candidateTitle)
+    && (eventTitle.includes(candidateTitle) || candidateTitle.includes(eventTitle));
+}
+
 export function toAutoRegistrationReportEntry(event = {}, options = {}) {
   const category = clean(event.category || event.activity_type || 'event', 24).toLowerCase();
   return {

@@ -724,23 +724,16 @@ function closureDateInsideWindow(date, {
   return dateMs >= todayMs && dateMs <= todayMs + (maxFutureDays * 86_400_000);
 }
 
-/**
- * Extract date-scoped closures from a mixed schedule notice. A closure heading
- * before the next date must not turn the preceding active social into a
- * closure. Date ranges inherit the closure state of either range endpoint.
- */
-export function extractExplicitClosureDates({
-  text = '',
-  today = todayISO(),
-  publishedAt = '',
+function collectScopedCalendarDateAnchors(raw, {
+  today,
+  publishedAt,
   backtest = false,
   lookbackDays = 180,
   maxFutureDays = 180,
 } = {}) {
-  const raw = String(text || '').normalize('NFKC');
   const anchors = [];
-  const datePattern = /(?:(20\d{2})\s*(?:[.\-/]|년)\s*)?(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?/g;
-  for (const match of raw.matchAll(datePattern)) {
+  const fullDatePattern = /(?:(20\d{2})\s*(?:[.\-/]|년)\s*)?(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?/g;
+  for (const match of raw.matchAll(fullDatePattern)) {
     const month = Number(match[2]);
     const day = Number(match[3]);
     if (month < 1 || month > 12 || day < 1 || day > 31) continue;
@@ -757,8 +750,69 @@ export function extractExplicitClosureDates({
       lookbackDays,
       maxFutureDays,
     })) continue;
-    anchors.push({ date, start: match.index, end: match.index + match[0].length });
+    anchors.push({
+      date,
+      start: match.index,
+      end: match.index + match[0].length,
+      month,
+      year: Number(date.slice(0, 4)),
+    });
   }
+
+  // Korean schedule titles commonly omit the repeated month, for example
+  // "8월 28일 금햅 & 29일 토정모 쉽니다". Keep that second day as its
+  // own anchor so the closure action cannot leak backwards onto the 28th.
+  for (const anchor of [...anchors]) {
+    const nextFullAnchor = anchors.find((candidate) => candidate.start > anchor.start);
+    const segmentEnd = nextFullAnchor?.start ?? raw.length;
+    const segment = raw.slice(anchor.end, segmentEnd);
+    const inheritedDayPattern = /(?:[/,，·ㆍ&]|및|와|과)\s*[♥♡❤💙💛💜★☆*\s]*(\d{1,2})\s*일/g;
+    for (const match of segment.matchAll(inheritedDayPattern)) {
+      const day = Number(match[1]);
+      if (day < 1 || day > 31 || !validCalendarDate(anchor.year, anchor.month, day)) continue;
+      const date = isoDateForIngestion(anchor.year, anchor.month, day);
+      if (!closureDateInsideWindow(date, {
+        today,
+        backtest,
+        lookbackDays,
+        maxFutureDays,
+      })) continue;
+      const dayOffset = match[0].lastIndexOf(match[1]);
+      const start = anchor.end + match.index + dayOffset;
+      anchors.push({
+        date,
+        start,
+        end: start + match[1].length + 1,
+        month: anchor.month,
+        year: anchor.year,
+      });
+    }
+  }
+
+  return anchors.sort((left, right) => left.start - right.start || left.end - right.end);
+}
+
+/**
+ * Extract date-scoped closures from a mixed schedule notice. A closure heading
+ * before the next date must not turn the preceding active social into a
+ * closure. Date ranges inherit the closure state of either range endpoint.
+ */
+export function extractExplicitClosureDates({
+  text = '',
+  today = todayISO(),
+  publishedAt = '',
+  backtest = false,
+  lookbackDays = 180,
+  maxFutureDays = 180,
+} = {}) {
+  const raw = String(text || '').normalize('NFKC');
+  const anchors = collectScopedCalendarDateAnchors(raw, {
+    today,
+    publishedAt,
+    backtest,
+    lookbackDays,
+    maxFutureDays,
+  });
   if (!anchors.length) return [];
 
   const closed = anchors.map((anchor, index) => {
@@ -809,6 +863,48 @@ export function extractExplicitClosureDates({
   }
 
   return [...dates].sort();
+}
+
+export function extractExpectedAutomaticSocialDates({
+  title = '',
+  text = '',
+  today = todayISO(),
+  publishedAt = '',
+  maxFutureDays = 180,
+} = {}) {
+  const rawTitle = String(title || '').normalize('NFKC');
+  const raw = `${rawTitle}\n${String(text || '').normalize('NFKC')}`;
+  const closureDates = new Set(extractExplicitClosureDates({
+    text: raw,
+    today,
+    publishedAt,
+    maxFutureDays,
+  }));
+  const socialPattern = /(?:금\s*(?:햅|햎|해피)|일\s*(?:햅|햎|해피)|정모|소셜|social|(?<![A-Za-z0-9가-힣])D\s*J(?![A-Za-z])|디제이)/i;
+  const deadlinePattern = /(?:신청|접수|입금|결제|등록|마감|티켓\s*오픈|deadline|registration)/i;
+  const dates = new Set();
+
+  const titleAnchors = collectScopedCalendarDateAnchors(rawTitle, {
+    today,
+    publishedAt,
+    maxFutureDays,
+  });
+  for (const anchor of titleAnchors) {
+    const next = titleAnchors.find((candidate) => candidate.start > anchor.start);
+    const section = rawTitle.slice(anchor.start, next?.start ?? rawTitle.length);
+    if (socialPattern.test(section) && !deadlinePattern.test(section)) dates.add(anchor.date);
+  }
+
+  for (const section of extractIndependentSocialDateSections({ title: rawTitle, text, today })) {
+    if (section.date) dates.add(section.date);
+  }
+  for (const section of extractDatedDjSections({ text: raw, today })) {
+    if (section.date) dates.add(section.date);
+  }
+
+  return [...dates]
+    .filter((date) => !closureDates.has(date))
+    .sort();
 }
 
 export function isHighConfidenceDatedSocialSchedule(items = []) {

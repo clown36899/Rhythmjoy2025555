@@ -600,3 +600,13 @@ export const referenceSwingSocialMap = [
 ];
 
 export const swingSocialMap = [...currentSwingSocialMap, ...referenceSwingSocialMap];
+
+export function getHistoricalDjNamesForRoute(routeId = '') {
+  const target = String(routeId || '').trim();
+  if (!target) return [];
+  return [...new Set(swingSocialMap
+    .filter((item) => item.routeIds.includes(target))
+    .flatMap((item) => String(item.dj || '').split(/\s*(?:\/|,|&|·|ㆍ)\s*/))
+    .map((name) => name.trim())
+    .filter((name) => name && !/휴무|미정/i.test(name)))];
+}
