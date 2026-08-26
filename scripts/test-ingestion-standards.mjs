@@ -557,6 +557,30 @@ assert.ok(
   swingtownGraduationReadiness.reasons.includes('special event classification requires manual review instead of social auto-registration'),
   'the collector must expose the exact special-event policy blocker before calling registration',
 );
+const swingtownGraduationWithPosterReadiness = evaluateAutoRegistrationReadiness({
+  source_id: 'swingtown-cafe',
+  source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156677',
+  poster_url: 'https://example.com/swingtown-graduation.jpg',
+  extracted_text: '봉천살롱 2026.08.29 졸업파티 DJ 후안',
+  structured_data: {
+    title: '스윙타운 졸업파티',
+    date: '2026-08-29',
+    day: '토',
+    event_type: '소셜',
+    activity_type: 'social',
+    location: '봉천살롱',
+    venue_name: '봉천살롱',
+    venue_provenance: 'source_text',
+    djs: ['졸공'],
+    genre: '졸공',
+    evidence_scope: 'ai_grounded_social',
+  },
+}, { today: '2026-08-21' });
+assert.equal(
+  swingtownGraduationWithPosterReadiness.ready,
+  true,
+  'an official graduation social with an exact date, venue, and poster may use the existing automatic registration path',
+);
 const scopedMultiDateSocial = prepareCandidate(baseCandidate({
   _date_scoped_social_evidence: true,
   extracted_text: `8월 1,2일\n일요일 소셜이 진행 됩니다. DJ '훔머'`,

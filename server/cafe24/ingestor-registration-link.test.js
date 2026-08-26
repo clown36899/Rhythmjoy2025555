@@ -772,6 +772,45 @@ describe('ingestor registration linkage', () => {
     expect(validation.reasons).toContain('event/competition cannot be auto-registered as social');
   });
 
+  it('registers a grounded official graduation social with a poster', () => {
+    const validation = validateAutomaticRegistrationCandidate({
+      id: 'swingtown-graduation-2026-08-29-grounded',
+      status: 'pending',
+      source_id: 'swingtown-cafe',
+      source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156677',
+      poster_url: 'https://example.com/swingtown-graduation.jpg',
+      extracted_text: '봉천살롱 2026.08.29 졸업파티 DJ 후안',
+      auto_registration: {
+        ready: true,
+        mode: 'shadow',
+        source_id: 'swingtown-cafe',
+      },
+      structured_data: {
+        title: '스윙타운 졸업파티',
+        date: '2026-08-29',
+        activity_type: 'social',
+        event_type: '소셜',
+        category: 'social',
+        genre: '졸공',
+        group_id: 2,
+        venue_name: '봉천살롱',
+        venue_provenance: 'source_registry',
+        djs: ['졸공'],
+        evidence_scope: 'ai_grounded_social',
+      },
+    });
+
+    expect(validation.ok).toBe(true);
+    expect(validation.eventData).toMatchObject({
+      title: 'DJ 졸공 | 스윙타운 졸업파티',
+      date: '2026-08-29',
+      category: 'social',
+      genre: '졸공',
+      group_id: 2,
+      location: '봉천살롱',
+    });
+  });
+
   it('accepts either day from a compact multi-date source heading', () => {
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-15')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-16')).toBe(true);

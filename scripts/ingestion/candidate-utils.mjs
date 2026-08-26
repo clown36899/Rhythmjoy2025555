@@ -1813,6 +1813,12 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   const djs = Array.isArray(sd.djs) ? sd.djs.filter(Boolean) : [];
   const venueProvenance = String(sd.venue_provenance || '').trim();
   const discoverySourceType = String(candidate.discovery_source_type || '').trim().toLowerCase();
+  const groundedGraduationSocial = Boolean(
+    getGraduationEventMetadata(candidate)
+    && activity === 'social'
+    && sd.genre === '졸공'
+    && (candidate.poster_url || candidate.imageData)
+  );
 
   if (source?.autoRegistrationPolicy !== 'shadow' && source?.autoRegistrationPolicy !== 'auto') {
     reasons.push('source is not enrolled in auto-registration shadow policy');
@@ -1849,6 +1855,7 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   }
   if (
     activity === 'social'
+    && !groundedGraduationSocial
     && /행사|졸업\s*(?:공연|파티)|졸공|대회|컴피티션|챔피언십|competition|graduation\s*(?:show|party|performance)|championship|tournament|contest|\bbattle\b|\bcup\b/i.test([
       sd.title,
       sd.event_type,

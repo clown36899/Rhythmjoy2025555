@@ -32,6 +32,7 @@ import {
   looksLikeGenericIngestionIdentityTitle as looksLikeGenericIngestionTitle,
   normalizeIngestionIdentityText as normalizeDuplicateText,
 } from './ingestion-duplicate-identity.js';
+import { getGraduationEventMetadata } from '../../src/utils/graduationEvent.mjs';
 
 const allowedScopes = new Set(['swing', 'salsa', 'bachata', 'tango', 'street']);
 const imageExtByMime = {
@@ -1491,6 +1492,10 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const deterministicDateScopedSocial = activity === 'social'
     && String(structured.evidence_scope || '') === 'date_scoped_social'
     && djs.length > 0;
+  const deterministicGraduationSocial = activity === 'social'
+    && structured.genre === '졸공'
+    && Boolean(scrapedEvent?.poster_url)
+    && Boolean(getGraduationEventMetadata(scrapedEvent));
   const aiGroundedDjlessSocial = activity === 'social'
     && structured.evidence_scope === 'ai_grounded_social'
     && structured.ai_missing_dj_verified === true
@@ -1498,8 +1503,8 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   const reasons = [];
 
   if (readiness.ready !== true) reasons.push('candidate was not approved by the collector gate');
-  if (!deterministicDateScopedSocial && readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
-  if (!deterministicDateScopedSocial && Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
+  if (!deterministicDateScopedSocial && !deterministicGraduationSocial && readiness.ai_verified !== true) reasons.push('candidate was not approved by AI adjudication');
+  if (!deterministicDateScopedSocial && !deterministicGraduationSocial && Number(readiness.ai_confidence || 0) < 0.98) reasons.push('AI confidence is below 0.98');
   if (readiness.mode !== 'shadow' && readiness.mode !== 'auto') reasons.push('source is not enrolled');
   if (discoverySourceType === 'benefit_search') reasons.push('benefit search candidates require manual approval');
   if (!sourceRule?.activities?.has(activity)) reasons.push('source/activity is not server-enrolled');
@@ -1527,7 +1532,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   if (activity === 'social' && djs.length === 0 && !aiGroundedDjlessSocial) {
     reasons.push('social requires a DJ or double-verified poster evidence');
   }
-  if (activity === 'social' && hasConflictingAutomaticSocialEventClassification(structured, title)) {
+  if (activity === 'social' && !deterministicGraduationSocial && hasConflictingAutomaticSocialEventClassification(structured, title)) {
     reasons.push('event/competition cannot be auto-registered as social');
   }
   if (structured.times?.length || structured.time) reasons.push('time fields are not accepted');
@@ -1545,7 +1550,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     title,
     trustedVenueContext,
   ].filter(Boolean).join('\n').normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
-  if (!deterministicDateScopedSocial && (
+  if (!deterministicDateScopedSocial && !deterministicGraduationSocial && (
     !evidenceQuotes.length
     || evidenceQuotes.some((quote) => !normalizedSourceText.includes(
       quote.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase(),
@@ -1553,7 +1558,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   )) {
     reasons.push('AI evidence is not grounded in the stored source text');
   }
-  const normalizedEvidence = (deterministicDateScopedSocial
+  const normalizedEvidence = (deterministicDateScopedSocial || deterministicGraduationSocial
     ? normalizedSourceText
     : evidenceQuotes.join(' ')
   ).normalize('NFKC').replace(/\s+/g, ' ').toLowerCase();
@@ -1571,11 +1576,14 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   if (normalizedVenue && !normalizeVenueEvidence(normalizedEvidence).includes(normalizedVenue)) {
     reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate venue`);
   }
-  if (djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
+  if (!deterministicGraduationSocial && djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
     reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain every candidate DJ`);
   }
   const activityPattern = AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS[activity];
-  if (!activityPattern || !activityPattern.test(normalizedEvidence)) {
+  if (
+    (!activityPattern || !activityPattern.test(normalizedEvidence))
+    && !(deterministicGraduationSocial && getGraduationEventMetadata(scrapedEvent))
+  ) {
     reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly identify activity ${activity}`);
   }
   const status = String(scrapedEvent?.status || 'pending').toLowerCase();
@@ -1602,6 +1610,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
       activity_type: activity,
       event_type: structured.event_type || (activity === 'social' ? '소셜' : '파티/행사'),
       genre: structured.genre || structured.dance_genre || '스윙댄스',
+      ...(structured.group_id ? { group_id: structured.group_id } : {}),
       dance_scope: structured.dance_scope || 'swing',
       description: String(scrapedEvent?.extracted_text || '').slice(0, 6000),
       image: scrapedEvent?.poster_url || null,
