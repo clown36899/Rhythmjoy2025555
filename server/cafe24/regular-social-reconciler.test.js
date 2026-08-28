@@ -108,6 +108,34 @@ describe('regular social reconciliation', () => {
     )).toEqual([]);
   });
 
+  it('removes a generated occurrence before the recurring rule valid-from boundary', () => {
+    const generated = {
+      id: 'regular-social:neo-sun:2026-08-30',
+      date: '2026-08-30',
+      title: '네오스윙 일요 소셜',
+      location: '해피홀',
+      category: 'social',
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    const plan = planRegularSocialReconciliation({
+      events: [generated],
+      rules: [{
+        id: 'neo-sun',
+        title: '네오스윙 일요 소셜',
+        weekday: 0,
+        location: '해피홀',
+        sourceId: 'neo_swing',
+        validFrom: '2026-09-06',
+      }],
+      today: '2026-08-28',
+      horizonDays: 14,
+    });
+
+    expect(plan.creates.map((event) => event.id)).toContain('regular-social:neo-sun:2026-09-06');
+    expect(plan.creates.map((event) => event.id)).not.toContain(generated.id);
+    expect(plan.removes).toEqual([generated]);
+  });
+
   it('materializes a linked closure occurrence when a closure exception was collected', () => {
     const generated = {
       id: 'regular-social:sample-fri:2026-07-31',
