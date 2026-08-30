@@ -12,6 +12,11 @@ import {
   protectedEventMetadataValue,
 } from './event-mutation-policy.js';
 import { preferOfficialApiEvents } from './official-event-priority.js';
+import {
+  getEventSearchTermKind,
+  getEventSearchTerms,
+  normalizeSearchText,
+} from './event-search.js';
 import crypto from 'node:crypto';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -396,7 +401,98 @@ export async function saveEvent(event, executor = getMysqlPool()) {
   );
 }
 
-function buildWhere({ start, end, cutoff, scope, id, q }) {
+const EVENT_SEARCH_CATEGORY_SQL = `CONCAT_WS('',
+  CASE WHEN LOWER(COALESCE(category, '')) = 'social' OR LOWER(COALESCE(activity_type, '')) = 'social' THEN '소셜' ELSE '' END,
+  CASE WHEN LOWER(COALESCE(category, '')) IN ('class', 'regular') OR LOWER(COALESCE(activity_type, '')) = 'class' THEN '강습 클래스' ELSE '' END,
+  CASE WHEN LOWER(COALESCE(category, '')) IN ('club', 'club_lesson', 'club_regular') THEN '동호회' ELSE '' END,
+  CASE WHEN LOWER(COALESCE(category, '')) = 'recruit' OR LOWER(COALESCE(activity_type, '')) = 'recruit' THEN '모집' ELSE '' END,
+  CASE WHEN LOWER(COALESCE(category, '')) = 'event' OR LOWER(COALESCE(activity_type, '')) = 'event' THEN '행사' ELSE '' END
+)`;
+
+const EVENT_SEARCH_TEXT_SOURCE_SQL = `CONCAT_WS('',
+  COALESCE(title, ''),
+  COALESCE(description, ''),
+  COALESCE(location, ''),
+  COALESCE(venue_name, '')
+)`;
+
+const EVENT_SEARCH_DATE_SOURCE_SQL = `CONCAT_WS('',
+  COALESCE(DATE_FORMAT(COALESCE(start_date, date_value), '%Y년%c월%e일'), ''),
+  COALESCE(DATE_FORMAT(COALESCE(end_date, start_date, date_value), '%Y년%c월%e일'), '')
+)`;
+
+const EVENT_SEARCH_SOURCE_SQL = `CONCAT_WS('',
+  ${EVENT_SEARCH_TEXT_SOURCE_SQL},
+  ${EVENT_SEARCH_DATE_SOURCE_SQL},
+  COALESCE(category, ''),
+  COALESCE(activity_type, ''),
+  ${EVENT_SEARCH_CATEGORY_SQL}
+)`;
+
+const compactEventSearchSql = (sourceSql) => [
+  [' ', ''],
+  ['-', ''],
+  ['_', ''],
+  ['/', ''],
+  ['·', ''],
+  ['.', ''],
+  [',', ''],
+  ['(', ''],
+  [')', ''],
+  ['[', ''],
+  [']', ''],
+  ['{', ''],
+  ['}', ''],
+  ['|', ''],
+  [':', ''],
+  [';', ''],
+  ['!', ''],
+  ['?', ''],
+  ['%', ''],
+  ['+', ''],
+  ['&', ''],
+].reduce((sql, [from, to]) => `REPLACE(${sql}, '${from}', '${to}')`, `LOWER(${sourceSql})`);
+
+const EVENT_SEARCH_COMPACT_SQL = compactEventSearchSql(EVENT_SEARCH_SOURCE_SQL);
+const EVENT_SEARCH_TEXT_COMPACT_SQL = compactEventSearchSql(EVENT_SEARCH_TEXT_SOURCE_SQL);
+const EVENT_SEARCH_DATE_COMPACT_SQL = compactEventSearchSql(EVENT_SEARCH_DATE_SOURCE_SQL);
+const EVENT_SEARCH_CATEGORY_COMPACT_SQL = compactEventSearchSql(EVENT_SEARCH_CATEGORY_SQL);
+
+function buildEventSearchWhere(q) {
+  const normalizedQuery = normalizeSearchText(q);
+  if (!normalizedQuery) return { sql: '', params: [] };
+
+  const terms = getEventSearchTerms(q);
+  const termKinds = terms.map(getEventSearchTermKind);
+  const isDateCategoryQuery = termKinds.includes('date') && termKinds.includes('category');
+
+  if (isDateCategoryQuery) {
+    const sqlByKind = {
+      text: EVENT_SEARCH_TEXT_COMPACT_SQL,
+      date: EVENT_SEARCH_DATE_COMPACT_SQL,
+      category: EVENT_SEARCH_CATEGORY_COMPACT_SQL,
+    };
+    return {
+      sql: `(${terms.map((_, index) => `${sqlByKind[termKinds[index]]} LIKE ?`).join(' AND ')})`,
+      params: terms.map((term) => `%${term}%`),
+    };
+  }
+
+  const alternatives = [`${EVENT_SEARCH_COMPACT_SQL} LIKE ?`];
+  const params = [`%${normalizedQuery}%`];
+
+  if (terms.length > 1) {
+    alternatives.push(`(${terms.map(() => `${EVENT_SEARCH_COMPACT_SQL} LIKE ?`).join(' AND ')})`);
+    params.push(...terms.map((term) => `%${term}%`));
+  }
+
+  return {
+    sql: `(${alternatives.join(' OR ')})`,
+    params,
+  };
+}
+
+export function buildWhere({ start, end, cutoff, scope, id, q }) {
   const where = [];
   const params = [];
 
@@ -427,9 +523,11 @@ function buildWhere({ start, end, cutoff, scope, id, q }) {
   }
 
   if (q) {
-    where.push('(title LIKE ? OR description LIKE ? OR location LIKE ? OR venue_name LIKE ?)');
-    const like = `%${q}%`;
-    params.push(like, like, like, like);
+    const search = buildEventSearchWhere(q);
+    if (search.sql) {
+      where.push(search.sql);
+      params.push(...search.params);
+    }
   }
 
   return {

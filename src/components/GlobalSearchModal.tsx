@@ -13,6 +13,11 @@ import { getOptimizedImageUrl } from '../utils/getEventThumbnail';
 import { useAuth } from '../contexts/AuthContext';
 import { useEventActions } from '../pages/v2/hooks/useEventActions';
 import { getEventMutation, sameEventId } from '../utils/eventMutationSync';
+import {
+    eventMatchesSearch,
+    getEventSearchTerms,
+    searchValuesMatch,
+} from '../../server/cafe24/event-search.js';
 import './GlobalSearchModal.css';
 
 interface SearchResult {
@@ -74,36 +79,16 @@ const dedupeRowsById = <T extends { id: string | number }>(rows: T[]) => {
     });
 };
 
-const getSearchTokens = (query: string) => (
-    query
-        .trim()
-        .toLowerCase()
-        .split(/\s+/)
-        .map(token => sanitizeSearchToken(token))
-        .filter(Boolean)
-);
-
-const sanitizeSearchToken = (token: string) => (
-    token.replace(/[(),]/g, ' ').trim()
-);
-
 const buildTextSearchFilter = (columns: string[], tokens: string[]) => (
     tokens
-        .map(sanitizeSearchToken)
         .filter(Boolean)
         .flatMap(token => columns.map(column => `${column}.ilike.%${token}%`))
         .join(',')
 );
 
-const rowMatchesSearch = (row: Record<string, unknown>, fields: string[], tokens: string[]) => {
-    const haystack = fields
-        .map(field => row[field])
-        .filter(value => value !== null && value !== undefined)
-        .join(' ')
-        .toLowerCase();
-
-    return tokens.every(token => haystack.includes(token));
-};
+const rowMatchesSearch = (row: Record<string, unknown>, fields: string[], query: string) => (
+    searchValuesMatch(fields.map(field => row[field]), query)
+);
 
 const sortEventSearchResults = (events: SearchResult[], mode: EventSortMode, includePast: boolean) => {
     const todayMs = getSearchDateMs(getLocalDateString());
@@ -237,7 +222,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
 
     const performSearch = async (query: string) => {
         setLoading(true);
-        const tokens = getSearchTokens(query);
+        const tokens = getEventSearchTerms(query);
         const today = getLocalDateString();
 
         if (tokens.length === 0) {
@@ -253,7 +238,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                 const buildEventQuery = (futureOnly: boolean, ascending: boolean, limit: number) => {
                     let q = cafe24
                         .from('events')
-                        .select('id, title, description, image_thumbnail, start_date, date, end_date, category')
+                        .select('id, title, description, image_thumbnail, start_date, date, end_date, event_dates, category, activity_type, event_type, location, venue_name')
                         .or(buildTextSearchFilter(['title', 'description'], tokens));
 
                     if (futureOnly) {
@@ -336,7 +321,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
             const [eventsRes, venuesRes, shoppingRes, boardRes] = await Promise.all(promises);
 
             const eventResults = (eventsRes.data || [])
-                .filter((e: any) => rowMatchesSearch(e, ['title', 'description'], tokens))
+                .filter((e: any) => eventMatchesSearch(e, query))
                 .map((e: any) => ({
                     id: e.id,
                     title: e.title,
@@ -350,7 +335,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
             setResults({
                 events: sortEventSearchResults(eventResults, eventSortMode, includePast),
                 venues: (venuesRes.data || [])
-                    .filter((p: any) => rowMatchesSearch(p, ['name', 'description', 'address'], tokens))
+                    .filter((p: any) => rowMatchesSearch(p, ['name', 'description', 'address'], query))
                     .map((p: any) => ({
                     id: String(p.id),
                     title: p.name,
@@ -359,7 +344,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     thumbnail: getOptimizedImageUrl(Array.isArray(p.images) ? p.images[0] : typeof p.images === 'string' ? JSON.parse(p.images)[0] : undefined, 100)
                 })),
                 shopping: (shoppingRes.data || [])
-                    .filter((s: any) => rowMatchesSearch(s, ['name', 'description'], tokens))
+                    .filter((s: any) => rowMatchesSearch(s, ['name', 'description'], query))
                     .map((s: any) => ({
                     id: String(s.id),
                     title: s.name,
@@ -368,7 +353,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery: i
                     thumbnail: s.logo_url
                 })),
                 board_posts: (boardRes.data || [])
-                    .filter((bp: any) => rowMatchesSearch(bp, ['title', 'content', 'author_nickname'], tokens))
+                    .filter((bp: any) => rowMatchesSearch(bp, ['title', 'content', 'author_nickname'], query))
                     .map((bp: any) => ({
                     id: String(bp.id),
                     title: bp.title,
