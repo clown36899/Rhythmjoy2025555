@@ -182,7 +182,7 @@ describe('regular social reconciliation', () => {
     });
   });
 
-  it('retains the same linked closure occurrence on reconciliation retry', () => {
+  it('retains the same linked closure occurrence on retry and after its date passes', () => {
     const scrapedEvents = [{
       id: 'sample-closure-20260731',
       source_id: 'sample',
@@ -205,10 +205,60 @@ describe('regular social reconciliation', () => {
       today: '2026-07-26',
       horizonDays: 7,
     });
+    const pastDefault = {
+      id: 'regular-social:sample-fri:2026-07-24',
+      date: '2026-07-24',
+      title: rule.title,
+      location: rule.location,
+      automation: { generated_by: 'regular-social-rolling-v1' },
+    };
+    const afterDatePassed = planRegularSocialReconciliation({
+      events: [...first.creates, pastDefault],
+      scrapedEvents,
+      rules: [rule],
+      today: '2026-08-01',
+      horizonDays: 7,
+    });
+    const afterClosureWasDeleted = planRegularSocialReconciliation({
+      events: [pastDefault],
+      scrapedEvents,
+      rules: [rule],
+      today: '2026-08-01',
+      horizonDays: 7,
+    });
+    const afterPastClosureWasCorrected = planRegularSocialReconciliation({
+      events: first.creates,
+      scrapedEvents: [{
+        ...scrapedEvents[0],
+        evidence: '정정된 금요 소셜 휴무 공지',
+      }],
+      rules: [rule],
+      today: '2026-08-01',
+      horizonDays: 7,
+    });
 
     expect(second.creates).toHaveLength(0);
     expect(second.removes).toHaveLength(0);
     expect(second.retained).toEqual(first.creates);
+    expect(afterDatePassed.creates.map((event) => event.id)).toEqual([
+      'regular-social:sample-fri:2026-08-07',
+    ]);
+    expect(afterDatePassed.removes).toEqual([pastDefault]);
+    expect(afterDatePassed.retained).toEqual(first.creates);
+    expect(afterClosureWasDeleted.creates.map((event) => ({
+      id: event.id,
+      genre: event.genre,
+    }))).toEqual([
+      { id: 'regular-social:sample-fri:2026-07-31', genre: '휴무' },
+      { id: 'regular-social:sample-fri:2026-08-07', genre: '소셜' },
+    ]);
+    expect(afterClosureWasDeleted.removes).toEqual([pastDefault]);
+    expect(afterPastClosureWasCorrected.removes).toEqual(first.creates);
+    expect(afterPastClosureWasCorrected.retained).toHaveLength(0);
+    expect(afterPastClosureWasCorrected.creates[0]).toMatchObject({
+      id: 'regular-social:sample-fri:2026-07-31',
+      description: '정정된 금요 소셜 휴무 공지',
+    });
   });
 
   it('keeps an explicit social instead of adding a conflicting closure occurrence', () => {
@@ -296,19 +346,28 @@ describe('regular social reconciliation', () => {
       officialApi: true,
       sourceUrl: 'https://example.com/regular-social',
     };
+    const officialExceptions = [{
+      ruleId: officialRule.id,
+      externalId: 'closed-20260731',
+      date: '2026-07-31',
+      type: 'closure',
+      sourceUrl: 'https://example.com/closed-20260731',
+      description: '내부 일정으로 휴무합니다.',
+    }];
     const plan = planRegularSocialReconciliation({
       events: [],
       rules: [],
       officialRules: [officialRule],
-      officialExceptions: [{
-        ruleId: officialRule.id,
-        externalId: 'closed-20260731',
-        date: '2026-07-31',
-        type: 'closure',
-        sourceUrl: 'https://example.com/closed-20260731',
-        description: '내부 일정으로 휴무합니다.',
-      }],
+      officialExceptions,
       today: '2026-07-26',
+      horizonDays: 7,
+    });
+    const afterDatePassed = planRegularSocialReconciliation({
+      events: [],
+      rules: [],
+      officialRules: [officialRule],
+      officialExceptions,
+      today: '2026-08-01',
       horizonDays: 7,
     });
 
@@ -325,6 +384,13 @@ describe('regular social reconciliation', () => {
         exception_type: 'closure',
       },
     });
+    expect(afterDatePassed.creates.map((event) => ({
+      id: event.id,
+      genre: event.genre,
+    }))).toEqual([
+      { id: 'regular-social:api:partner:friday:2026-07-31', genre: '휴무' },
+      { id: 'regular-social:api:partner:friday:2026-08-07', genre: '소셜' },
+    ]);
   });
 
   it('removes a borrowed poster from an existing default occurrence', () => {

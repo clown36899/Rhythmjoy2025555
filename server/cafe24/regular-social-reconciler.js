@@ -40,6 +40,10 @@ function isGenerated(event) {
     || String(event?.id || '').startsWith('regular-social:');
 }
 
+function isMaterializedClosure(event) {
+  return event?.automation?.exception_type === 'closure';
+}
+
 function recurringIdentity(value) {
   return normalize(value)
     .replace(/(?:월요일|화요일|수요일|목요일|금요일|토요일|일요일|월요|화요|수요|목요|금요|토요|일요)/g, '')
@@ -138,6 +142,35 @@ function officialExceptionInfo(row) {
   };
 }
 
+function reconciliationDatesForRule(rule, exceptions, apiExceptions, today, endMs) {
+  const dates = new Set();
+
+  for (let cursor = dateAtNoonKst(today).getTime(); cursor <= endMs; cursor += DAY_MS) {
+    const date = new Date(cursor);
+    if (date.getDay() === rule.weekday) dates.add(dateKey(date));
+  }
+  for (const exception of exceptions) {
+    if (
+      exception.date < today
+      && rule.sourceId
+      && exception.sourceId === rule.sourceId
+    ) {
+      dates.add(exception.date);
+    }
+  }
+  for (const exception of apiExceptions) {
+    if (
+      exception.type === 'closure'
+      && exception.date < today
+      && exception.ruleId === rule.id
+    ) {
+      dates.add(exception.date);
+    }
+  }
+
+  return [...dates].sort();
+}
+
 export function planRegularSocialReconciliation({
   events,
   scrapedEvents = [],
@@ -163,24 +196,25 @@ export function planRegularSocialReconciliation({
   const consideredIds = new Set();
 
   for (const rule of effectiveRules) {
-    for (let cursor = dateAtNoonKst(today).getTime(); cursor <= endMs; cursor += DAY_MS) {
-      const date = new Date(cursor);
+    const reconciliationDates = reconciliationDatesForRule(rule, exceptions, apiExceptions, today, endMs);
+    for (const key of reconciliationDates) {
+      const date = dateAtNoonKst(key);
       if (date.getDay() !== rule.weekday) continue;
-      const key = dateKey(date);
       if (rule.validFrom && key < rule.validFrom) continue;
       if (rule.validUntil && key > rule.validUntil) continue;
       const id = `regular-social:${rule.id}:${key}`;
-      consideredIds.add(id);
       const generated = existingGenerated.get(id);
       const collectedClosure = collectedClosureForRule(exceptions, key, rule.sourceId);
       const apiException = apiExceptions.find((item) => item.date === key && item.ruleId === rule.id);
+      const closure = apiException?.type === 'closure' ? apiException : collectedClosure;
       const explicit = explicitEvents.some((event) => eventDate(event) === key && matchesRule(event, rule));
 
       if (explicit) {
         if (generated) removes.push(generated);
         continue;
       }
-      const closure = apiException?.type === 'closure' ? apiException : collectedClosure;
+      if (key < today && !closure) continue;
+      consideredIds.add(id);
       const override = !closure && apiException?.type === 'override' ? apiException : null;
       const desiredTitle = closure?.title || (closure ? `${rule.title} 휴무` : override?.title || rule.title);
       const desiredTime = closure ? '' : override?.time || rule.time;
@@ -269,12 +303,26 @@ export function planRegularSocialReconciliation({
   }
 
   for (const generated of existingGenerated.values()) {
+    const alreadyRemoved = removes.some((item) => String(item.id) === String(generated.id));
+    if (
+      eventDate(generated) < today
+      && isMaterializedClosure(generated)
+      && consideredIds.has(String(generated.id))
+    ) {
+      if (
+        !alreadyRemoved
+        && !retained.some((item) => String(item.id) === String(generated.id))
+      ) {
+        retained.push(generated);
+      }
+      continue;
+    }
     if (
       eventDate(generated) < today
       || eventDate(generated) > dateKey(new Date(endMs))
       || !consideredIds.has(String(generated.id))
     ) {
-      if (!removes.some((item) => String(item.id) === String(generated.id))) removes.push(generated);
+      if (!alreadyRemoved) removes.push(generated);
     }
   }
 
@@ -296,7 +344,7 @@ async function loadOfficialRegularSocialData() {
               title, time_text, location, venue_name, dj_name, source_url, description,
               DATE_FORMAT(exception_date, '%Y-%m-%d') AS exception_date_text
          FROM external_regular_social_exceptions
-        WHERE exception_date >= CURDATE()`,
+        WHERE exception_date >= CURDATE() OR exception_type = 'closure'`,
     );
     return {
       rules: ruleRows.map((row) => ({
