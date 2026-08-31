@@ -781,13 +781,7 @@ export const MobileShell: React.FC = () => {
 
               <button
                 className="header-search-btn"
-                onClick={() => {
-                  if (isCalendarPage) {
-                    window.dispatchEvent(new CustomEvent('openCalendarSearch'));
-                  } else {
-                    globalSearchModal.open();
-                  }
-                }}
+                onClick={() => globalSearchModal.open()}
                 title="검색"
                 data-analytics-id="header_search"
                 data-analytics-type="action"
