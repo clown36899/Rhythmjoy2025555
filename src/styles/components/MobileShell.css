@@ -2979,3 +2979,10 @@ html.v2-home-mode #root {
     margin-left: calc(var(--neb-summary-left, 7%) - 8px) !important;
   }
 }
+
+@media (min-width: 761px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-quickActions {
+    justify-self: end;
+    transform: translateX(var(--neb-stage-left, 0px));
+  }
+}
