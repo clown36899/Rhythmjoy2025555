@@ -288,7 +288,7 @@ const VOICE_MODEL_EVIDENCE: Partial<Record<GrooveVoice, readonly (keyof typeof E
 };
 
 const GrooveLabPage: React.FC = () => {
-    const [presetId, setPresetId] = useState<GroovePresetId>('ride');
+    const [presetId, setPresetId] = useState<GroovePresetId>('swing-ensemble');
     const [feel, setFeel] = useState<GrooveFeel>('adaptive');
     const [bpm, setBpm] = useState(140);
     const [volume, setVolume] = useState(72);
@@ -535,7 +535,7 @@ const GrooveLabPage: React.FC = () => {
                     <div className="groove-lab-control-head">
                         <div>
                             <span>표현 방식</span>
-                            <strong>{preset.fixedTripletGrid || preset.timingLocked ? '프리셋 고정' : hasRatioControl ? '이 악기의 분할만 비교합니다' : '박·강세·발음으로 표현합니다'}</strong>
+                            <strong>{preset.fixedTripletGrid || preset.timingLocked ? '프리셋 고정' : preset.id === 'swing-ensemble' ? '앙상블의 라이드 분할만 비교합니다' : hasRatioControl ? '이 악기의 분할만 비교합니다' : '박·강세·발음으로 표현합니다'}</strong>
                         </div>
                         <label>
                             음량 {volume}%
@@ -570,7 +570,7 @@ const GrooveLabPage: React.FC = () => {
                             : !hasRatioControl
                                 ? '이 악기는 라이드의 롱–숏 비율을 적용하지 않습니다. 박의 위치, 강세와 발음 길이로 역할을 표현합니다.'
                             : feel === 'adaptive'
-                                ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 솔리스트의 비율과 같다는 뜻은 아닙니다.`
+                                ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 베이스와 기타의 네 박은 균등하게 유지하며, 솔리스트의 비율과 같다는 뜻은 아닙니다.`
                                 : feel === 'triplet'
                                     ? '첫 음 2칸 + 둘째 음 1칸의 정확한 2:1 해석입니다.'
                                     : '두 8분음표를 같은 길이로 재생합니다.'}

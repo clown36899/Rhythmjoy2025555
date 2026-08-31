@@ -13,6 +13,16 @@ import {
 } from './grooveEngine';
 
 describe('grooveEngine', () => {
+    it('opens jazz swing as an ensemble while keeping bass and guitar quarter notes even', () => {
+        const events = buildGrooveBar('swing-ensemble', 'adaptive', 140);
+        const voices = new Set(events.map((item) => item.voice));
+
+        expect(voices).toEqual(new Set(['ride', 'hat', 'bass', 'guitar']));
+        expect(events.filter((item) => item.voice === 'bass').map((item) => item.position)).toEqual([0, 1, 2, 3]);
+        expect(events.filter((item) => item.voice === 'guitar').map((item) => item.position)).toEqual([0, 1, 2, 3]);
+        expect(events.filter((item) => item.voice === 'ride').some((item) => !Number.isInteger(item.position))).toBe(true);
+    });
+
     it('uses a tempo-dependent ride ratio with the reported 2:1 landmark near 200 BPM', () => {
         expect(getAdaptiveSwingRatio(80)).toBeGreaterThan(getAdaptiveSwingRatio(160));
         expect(getAdaptiveSwingRatio(160)).toBeGreaterThan(getAdaptiveSwingRatio(240));
@@ -96,7 +106,7 @@ describe('grooveEngine', () => {
         const familyIds = new Set(GROOVE_FAMILIES.map((family) => family.id));
 
         expect(GROOVE_FAMILIES).toHaveLength(8);
-        expect(GROOVE_PRESETS).toHaveLength(28);
+        expect(GROOVE_PRESETS).toHaveLength(29);
 
         GROOVE_PRESETS.forEach((preset) => {
             expect(familyIds.has(preset.family)).toBe(true);

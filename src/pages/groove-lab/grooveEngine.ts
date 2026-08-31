@@ -1,4 +1,5 @@
 export type GroovePresetId =
+    | 'swing-ensemble'
     | 'ride'
     | 'bass'
     | 'piano'
@@ -96,6 +97,20 @@ export const GROOVE_FAMILIES: readonly { id: GrooveFamilyId; label: string; desc
 ] as const;
 
 export const GROOVE_PRESETS: readonly GroovePreset[] = [
+    {
+        id: 'swing-ensemble',
+        family: 'swing',
+        instrument: '리듬 섹션',
+        name: '재즈 스윙 앙상블',
+        shortName: 'Swing Ensemble',
+        icon: 'ri-group-line',
+        color: '#f59e0b',
+        pattern: '라이드·하이햇 + 워킹 베이스 + Four-to-bar',
+        explanation: '라이드의 롱–숏과 2·4 하이햇 위에 워킹 베이스와 리듬 기타의 안정된 네 박을 함께 놓아, 악기 사이 관계로 스윙의 추진력을 듣습니다.',
+        recommendedFeel: 'adaptive',
+        feelOptions: ['adaptive', 'triplet', 'straight'],
+        evidenceIds: ['friberg', 'butterfield', 'columbia', 'freddie'],
+    },
     {
         id: 'ride',
         family: 'swing',
@@ -564,6 +579,15 @@ export const buildGrooveBar = (
     const events: GrooveEvent[] = [];
 
     switch (presetId) {
+        case 'swing-ensemble': {
+            const layers: readonly GroovePresetId[] = ['ride', 'bass', 'guitar'];
+            layers.forEach((layerId) => {
+                buildGrooveBar(layerId, feel, bpm).forEach((layerEvent) => {
+                    events.push({ ...layerEvent, id: `${layerId}-${layerEvent.id}` });
+                });
+            });
+            break;
+        }
         case 'ride':
             for (let beat = 0; beat < 4; beat += 1) {
                 events.push(event(`ride-${beat}`, beat, 'ride', beat === 0 ? 1 : 0.82, beat));
@@ -780,7 +804,7 @@ export const buildGrooveBar = (
 };
 
 export const getFeelLabel = (feel: GrooveFeel) => {
-    if (feel === 'adaptive') return '라이드 스윙';
-    if (feel === 'triplet') return '2:1 3연';
+    if (feel === 'adaptive') return '연구 기반 라이드 비율';
+    if (feel === 'triplet') return '고정 2:1 셋잇단';
     return '스트레이트';
 };

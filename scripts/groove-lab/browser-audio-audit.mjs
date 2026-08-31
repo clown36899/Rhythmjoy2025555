@@ -8,6 +8,7 @@ try {
     const pageErrors = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle');
 
     const report = await page.evaluate(async () => {
         const audio = await import('/src/pages/groove-lab/grooveAudio.ts');
