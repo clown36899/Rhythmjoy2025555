@@ -2761,6 +2761,10 @@ html.v2-home-mode #root {
     gap: 24px !important;
   }
 
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid.home-neb-desktop-grid--single {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
   html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-container {
     display: grid;
     grid-template-columns: 146px minmax(0, 1fr);
@@ -2801,6 +2805,10 @@ html.v2-home-mode #root {
     width: 140px !important;
   }
 
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-quickActions {
+    align-self: center;
+  }
+
   html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-oneDayRecruitBtn,
   html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-quickActions .NEB-benefitEventsBtn {
     grid-column: auto;
@@ -2828,5 +2836,146 @@ html.v2-home-mode #root {
 
   html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryMeta {
     justify-content: center !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1199px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryCluster {
+    grid-column: 1 / -1;
+    width: var(--neb-card-width, 360px) !important;
+    max-width: var(--neb-card-width, 360px) !important;
+    margin-left: calc(var(--neb-active-left, 0px) - var(--neb-stage-left, 0px)) !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummary {
+    justify-items: center !important;
+    text-align: center !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummary strong {
+    width: 100%;
+    text-align: center !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryMeta {
+    justify-content: center !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-container {
+    display: grid;
+    grid-template-columns: 146px minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    column-gap: 18px;
+    align-items: start;
+    position: relative;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-header {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-indicators {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-slider {
+    grid-column: 2;
+    grid-row: 3;
+    min-width: 0;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-lowerDeck {
+    display: contents !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-quickActions {
+    position: relative !important;
+    inset: auto !important;
+    grid-column: 1;
+    grid-row: 3;
+    align-self: center;
+    width: 140px !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-quickActions > button {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-activeSummaryCluster {
+    grid-column: 2;
+    grid-row: 4;
+    width: var(--neb-card-width, 360px) !important;
+    max-width: var(--neb-card-width, 360px) !important;
+    margin: 16px 0 0 var(--neb-active-left, 0px) !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-activeSummary {
+    justify-items: center !important;
+    text-align: center !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-activeSummary strong {
+    width: 100%;
+    text-align: center !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-activeSummaryMeta {
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryCluster {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: var(--neb-summary-width, var(--neb-card-width, 86%)) !important;
+    max-width: var(--neb-summary-width, var(--neb-card-width, 86%)) !important;
+    margin-left: calc(var(--neb-summary-left, 7%) - clamp(10px, 3.8vw, 18px)) !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummary {
+    justify-items: center;
+    text-align: center;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummary strong {
+    width: 100%;
+    text-align: center;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryMeta {
+    justify-content: center;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-quickActions {
+    position: relative !important;
+    inset: auto !important;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    justify-self: stretch;
+    gap: 6px;
+    width: 100% !important;
+  }
+
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .home-neb-desktop-grid--single .NEB-quickActions > button {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-width: 0;
+    height: 56px;
+    min-height: 56px;
+  }
+}
+
+@media (max-width: 420px) {
+  html:not(.kiosk-link-router-active) body:not(.kiosk-link-router-active) .v2-home-shell .NEB-activeSummaryCluster {
+    margin-left: calc(var(--neb-summary-left, 7%) - 8px) !important;
   }
 }
