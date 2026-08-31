@@ -753,7 +753,10 @@ export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows 
 export function findScrapedCandidateDuplicate(candidate, scrapedRows = []) {
   for (const row of scrapedRows) {
     if (String(row?.id || '') === String(candidate?.id || '')) continue;
-    if (['duplicate', 'excluded'].includes(String(row?.status || '').toLowerCase())) continue;
+    // A duplicate row only points at another ledger row, so it must not become
+    // a second source of truth. An excluded row is the durable suppression
+    // ledger and must continue blocking the same content under a different ID.
+    if (String(row?.status || '').toLowerCase() === 'duplicate') continue;
     const match = duplicateMatch(row, candidate, 'scraped_events');
     if (match) return match;
   }

@@ -84,7 +84,7 @@ interface ScrapedEvent {
   };
   is_collected?: boolean;
   registered_event_id?: string | number | null;
-  status?: 'ignored' | 'collected' | 'pending' | 'duplicate';
+  status?: 'ignored' | 'collected' | 'pending' | 'duplicate' | 'excluded';
   display_no?: number | null;
   created_at?: string;
   updated_at?: string;
@@ -944,21 +944,57 @@ const EventIngestorV2: React.FC = () => {
     }
   };
 
+  const excludeScrapedEvent = async (id: string) => {
+    const target = scrapedEvents.find(event => event.id === id);
+    if (!target) throw new Error(`제외할 후보를 찾지 못했습니다. (${id})`);
+
+    const response = await fetch('/api/scraped-events', {
+      method: 'POST',
+      headers: await getAdminRequestHeaders(true),
+      body: JSON.stringify({
+        ...target,
+        is_collected: false,
+        status: 'excluded',
+        structured_data: {
+          ...target.structured_data,
+          _exclusion: {
+            reason: '관리자 수동 제외',
+            stage: 'admin_review',
+          },
+        },
+      }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || result?.status !== 'excluded') {
+      throw new Error(result?.error || `제외 상태 저장에 실패했습니다. (${response.status})`);
+    }
+    return result as ScrapedEvent;
+  };
+
   const handleBulkIgnore = async () => {
     if (!selectedIds.size) return;
-    if (!confirm(`${selectedIds.size}개를 삭제할까요?`)) return;
+    if (!confirm(`${selectedIds.size}개를 제외할까요?`)) return;
     setBulkProgress(`제외 처리 중... (0/${selectedIds.size})`);
     const ids = Array.from(selectedIds);
-    await fetch('/api/scraped-events', {
-      method: 'DELETE',
-      headers: await getAdminRequestHeaders(true),
-      body: JSON.stringify({ ids }),
-    });
-    setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
-    setSelectedIds(new Set());
-    setBulkProgress(null);
-    await fetchTabCounts();
-    await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
+    const excludedIds = new Set<string>();
+    try {
+      for (const [index, id] of ids.entries()) {
+        await excludeScrapedEvent(id);
+        excludedIds.add(id);
+        setBulkProgress(`제외 처리 중... (${index + 1}/${ids.length})`);
+      }
+      setScrapedEvents(prev => prev.filter(event => !excludedIds.has(event.id)));
+      setSelectedIds(new Set());
+      await fetchTabCounts();
+      await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
+    } catch (error) {
+      setScrapedEvents(prev => prev.filter(event => !excludedIds.has(event.id)));
+      setSelectedIds(prev => new Set(Array.from(prev).filter(id => !excludedIds.has(id))));
+      console.error(error);
+      alert(error instanceof Error ? error.message : '제외 처리 중 오류가 발생했습니다.');
+    } finally {
+      setBulkProgress(null);
+    }
   };
 
   const handleBulkCollect = async () => {
@@ -1735,21 +1771,22 @@ const EventIngestorV2: React.FC = () => {
                         <button className="btn-restore" onClick={() => handleRestoreDuplicate(event)}>신규전환</button>
                       )}
                       <button className="btn-dismiss" onClick={async () => {
-                        if (!confirm(`"${event.structured_data.title}" 을 삭제할까요?`)) return;
-                        await fetch('/api/scraped-events', {
-                          method: 'DELETE',
-                          headers: await getAdminRequestHeaders(true),
-                          body: JSON.stringify({ id: event.id }),
-                        });
-                        setScrapedEvents(prev => prev.filter(e => e.id !== event.id));
-                        setSelectedIds(prev => {
-                          if (!prev.has(event.id)) return prev;
-                          const next = new Set(prev);
-                          next.delete(event.id);
-                          return next;
-                        });
-                        await fetchTabCounts();
-                        await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
+                        if (!confirm(`"${event.structured_data.title}" 을 제외할까요?`)) return;
+                        try {
+                          await excludeScrapedEvent(event.id);
+                          setScrapedEvents(prev => prev.filter(e => e.id !== event.id));
+                          setSelectedIds(prev => {
+                            if (!prev.has(event.id)) return prev;
+                            const next = new Set(prev);
+                            next.delete(event.id);
+                            return next;
+                          });
+                          await fetchTabCounts();
+                          await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
+                        } catch (error) {
+                          console.error(error);
+                          alert(error instanceof Error ? error.message : '제외 처리 중 오류가 발생했습니다.');
+                        }
                       }}>제외</button>
                     </div>
                   </td>

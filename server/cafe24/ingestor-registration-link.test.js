@@ -470,6 +470,28 @@ describe('ingestor registration linkage', () => {
       existingId: 'candidate-primary',
     });
 
+    expect(findScrapedCandidateDuplicate(rediscovered, [{
+      ...existing,
+      id: 'candidate-excluded',
+      status: 'excluded',
+      structured_data: {
+        ...existing.structured_data,
+        _exclusion: {
+          reason: '관리자 수동 제외',
+          stage: 'admin_review',
+        },
+      },
+    }])).toMatchObject({
+      target: 'scraped_events',
+      existingId: 'candidate-excluded',
+    });
+
+    expect(findScrapedCandidateDuplicate(rediscovered, [{
+      ...existing,
+      id: 'candidate-duplicate-pointer',
+      status: 'duplicate',
+    }])).toBe(null);
+
     expect(findScrapedCandidateDuplicate({
       id: 'social-rediscovered',
       source_url: 'https://example.net/social-repost',
