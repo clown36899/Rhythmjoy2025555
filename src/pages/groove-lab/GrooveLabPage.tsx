@@ -33,33 +33,34 @@ const clampBpm = (value: number) => Math.round(Math.min(MAX_BPM, Math.max(MIN_BP
 
 type QueuedVisualEvent = { id: string; time: number; position: number };
 type PracticeMode = 'continuous' | 'listen-mute' | 'tempo-ladder';
-type SwingLayerId = 'guide' | 'drums' | 'bass' | 'piano' | 'guitar';
+type SwingLayerId = 'guide' | 'triplet' | 'drums' | 'bass' | 'piano';
 
 const SWING_LAYERS: readonly { id: SwingLayerId; label: string; detail: string }[] = [
     { id: 'guide', label: '스윙 핵심 가이드', detail: '매 박 ON/OFF + 2·4 백비트' },
+    { id: 'triplet', label: '균등 셋잇단 전자음', detail: '매 박 1-trip-let' },
     { id: 'drums', label: '드럼 시간축', detail: '라이드 1·2-&·3·4-&' },
     { id: 'bass', label: '워킹 베이스', detail: '피치카토 콘트라베이스' },
     { id: 'piano', label: '피아노 컴핑', detail: '선택 · Charleston' },
-    { id: 'guitar', label: '리듬 기타', detail: '선택 · Four-to-bar' },
 ] as const;
 
-const SWING_INSTRUMENT_LAYER_IDS: readonly SwingLayerId[] = ['drums', 'bass', 'piano', 'guitar'];
+const SWING_INSTRUMENT_LAYER_IDS: readonly SwingLayerId[] = ['drums', 'bass', 'piano'];
 
 const SWING_PRESET_LAYERS: Partial<Record<GroovePresetId, SwingLayerId>> = {
     ride: 'drums',
     bass: 'bass',
     piano: 'piano',
-    guitar: 'guitar',
 };
 
 const getSwingLayerId = (item: GrooveEvent): SwingLayerId | null => {
+    if (item.id.startsWith('swing-triplet-')) return 'triplet';
     if (item.id.startsWith('swing-guide-')) return 'guide';
     if (item.voice === 'ride' || item.voice === 'hat') return 'drums';
     if (item.voice === 'bass') return 'bass';
     if (item.voice === 'piano') return 'piano';
-    if (item.voice === 'guitar') return 'guitar';
     return null;
 };
+
+const isSwingTripletEvent = (item: GrooveEvent) => item.id.startsWith('swing-triplet-');
 
 const PRACTICE_MODES: readonly { id: PracticeMode; label: string; description: string }[] = [
     { id: 'continuous', label: '계속 듣기', description: '선택한 1~2마디 패턴을 끊김 없이 반복합니다.' },
@@ -338,10 +339,10 @@ const GrooveLabPage: React.FC = () => {
     const [activeRhythmPosition, setActiveRhythmPosition] = useState<number | null>(null);
     const [swingLayers, setSwingLayers] = useState<Record<SwingLayerId, boolean>>({
         guide: true,
+        triplet: false,
         drums: true,
         bass: true,
         piano: false,
-        guitar: false,
     });
     const [tapTimes, setTapTimes] = useState<number[]>([]);
 
@@ -380,30 +381,34 @@ const GrooveLabPage: React.FC = () => {
         });
         return Array.from(groups.values());
     }, [activeBarEvents]);
+    const swingRhythmEvents = useMemo(
+        () => activeBarEvents.filter((item) => !isSwingTripletEvent(item)),
+        [activeBarEvents],
+    );
     const ensembleRhythmBeats = useMemo(() => (
         Array.from({ length: loopBeats }, (_, beat) => {
-            const offbeatEvent = activeBarEvents.find((item) => (
+            const offbeatEvent = swingRhythmEvents.find((item) => (
                 Math.floor(item.position) === beat && item.position % 1 !== 0
             ));
             const offbeatFraction = offbeatEvent ? offbeatEvent.position - beat : null;
             return {
                 beat,
-                hasOnbeat: activeBarEvents.some((item) => item.position === beat),
+                hasOnbeat: swingRhythmEvents.some((item) => item.position === beat),
                 hasOffbeat: offbeatEvent !== undefined,
-                hasSubdivisionGuide: activeBarEvents.some((item) => (
+                hasSubdivisionGuide: swingRhythmEvents.some((item) => (
                     item.id.startsWith('swing-guide-')
                     && !item.id.startsWith('swing-guide-backbeat-')
                     && Math.floor(item.position) === beat
                 )),
-                hasGuideBackbeat: activeBarEvents.some((item) => item.id.startsWith('swing-guide-backbeat-') && item.position === beat),
-                backbeat: activeBarEvents.some((item) => item.voice === 'hat' && item.position === beat)
-                    || activeBarEvents.some((item) => item.id.startsWith('swing-guide-backbeat-') && item.position === beat),
+                hasGuideBackbeat: swingRhythmEvents.some((item) => item.id.startsWith('swing-guide-backbeat-') && item.position === beat),
+                backbeat: swingRhythmEvents.some((item) => item.voice === 'hat' && item.position === beat)
+                    || swingRhythmEvents.some((item) => item.id.startsWith('swing-guide-backbeat-') && item.position === beat),
                 splitRatio: offbeatFraction && offbeatFraction < 1 ? offbeatFraction / (1 - offbeatFraction) : 1,
                 offbeatPosition: offbeatFraction ?? 0.5,
                 isTripletOffbeat: offbeatFraction !== null && Math.abs(offbeatFraction - (2 / 3)) < 0.001,
             };
         })
-    ), [activeBarEvents, loopBeats]);
+    ), [loopBeats, swingRhythmEvents]);
     const selectedEvidence = useMemo(() => (
         Array.from(new Set([
             ...preset.evidenceIds,
@@ -681,7 +686,7 @@ const GrooveLabPage: React.FC = () => {
                             : !hasRatioControl
                                 ? '이 악기는 라이드의 롱–숏 비율을 적용하지 않습니다. 박의 위치, 강세와 발음 길이로 역할을 표현합니다.'
                             : feel === 'adaptive'
-                            ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 이 간격은 라이드와 설명 가이드의 OFF에만 적용하고 베이스와 기타의 네 박은 균등하게 유지하며, 솔리스트의 비율과 같다는 뜻은 아닙니다.`
+                            ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 이 간격은 라이드와 설명 가이드의 OFF에만 적용하고 베이스의 네 박은 균등하게 유지합니다. 셋잇단 전자음은 스윙과 비교하는 고정 3등분 기준선이며, 솔리스트의 비율과 같다는 뜻은 아닙니다.`
                                 : feel === 'triplet'
                                     ? '첫 음 2칸 + 둘째 음 1칸의 정확한 2:1 해석입니다.'
                                     : '두 8분음표를 같은 길이로 재생합니다.'}
@@ -727,11 +732,11 @@ const GrooveLabPage: React.FC = () => {
                             <div className="groove-lab-score-guide">
                                 <strong>
                                     {SWING_LAYERS
-                                        .filter((layer) => layer.id !== 'guide' && swingLayers[layer.id])
+                                        .filter((layer) => SWING_INSTRUMENT_LAYER_IDS.includes(layer.id) && swingLayers[layer.id])
                                         .map((layer) => layer.label)
                                         .join(' + ') || '선택 악기 없음'}
                                 </strong>
-                                <span><b>ON(약) → OFF(강)</b> · 핵심 가이드 {swingLayers.guide ? 'ON' : 'OFF'} · 라이드 {swingRatio.toFixed(2)}:1</span>
+                                <span><b>SWING ON(약) → OFF(강)</b> · 가이드 {swingLayers.guide ? 'ON' : 'OFF'} · 셋잇단 기준 {swingLayers.triplet ? 'ON' : 'OFF'} · 라이드 {swingRatio.toFixed(2)}:1</span>
                             </div>
                             <div
                                 className="groove-lab-score-bar"
@@ -775,10 +780,42 @@ const GrooveLabPage: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
+                            <div className={`groove-lab-triplet-reference ${swingLayers.triplet ? 'is-enabled' : 'is-muted'}`} aria-label={`균등 셋잇단 전자음 리듬 ${swingLayers.triplet ? '켜짐' : '꺼짐'}`}>
+                                <div className="groove-lab-triplet-reference-head">
+                                    <strong>균등 셋잇단 전자음</strong>
+                                    <span>한 박을 같은 세 칸으로 나눈 기준선 · 스윙 아님 · {swingLayers.triplet ? 'ON' : 'OFF'}</span>
+                                </div>
+                                <div className="groove-lab-triplet-score">
+                                    {Array.from({ length: 4 }, (_, beat) => (
+                                        <div className="groove-lab-triplet-beat" key={beat}>
+                                            <span className="groove-lab-triplet-group-mark" aria-hidden="true">3</span>
+                                            <div className="groove-lab-triplet-notes">
+                                                {['1', 'trip', 'let'].map((syllable, partial) => {
+                                                    const position = beat + (partial / 3);
+                                                    const isActive = swingLayers.triplet
+                                                        && activeRhythmPosition !== null
+                                                        && Math.abs(activeRhythmPosition - position) < 0.001;
+                                                    return (
+                                                        <span
+                                                            className={`groove-lab-triplet-note ${isActive ? 'active' : ''}`}
+                                                            key={syllable}
+                                                            aria-label={`${beat + 1}박 셋잇단 ${partial + 1}번째 전자음`}
+                                                        >
+                                                            ♪
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                            <span className="groove-lab-triplet-count"><b>{beat + 1}</b> trip let</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="groove-lab-rhythm-legend">
                                 <span><b>GUIDE</b> 매 박 ON/OFF + 2·4</span>
                                 <span><b>RIDE</b> 1 · 2-&amp; · 3 · 4-&amp;</span>
                                 <span><b>&gt; 2 · 4</b> 하이햇 백비트</span>
+                                <span><b>TRIPLET</b> 1-trip-let 균등 3분할</span>
                             </div>
                         </div>
                     ) : (
@@ -877,6 +914,21 @@ const GrooveLabPage: React.FC = () => {
                                         <strong>스윙 핵심 가이드</strong>
                                     </span>
                                     {swingLayers.guide && <i className="ri-check-line groove-lab-check" aria-hidden="true" />}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={swingLayers.triplet ? 'active' : ''}
+                                    onClick={() => toggleSwingLayer('triplet')}
+                                    aria-label={`균등 셋잇단 전자음 매 박 3분할 ${swingLayers.triplet ? '끄기' : '켜기'}`}
+                                    aria-pressed={swingLayers.triplet}
+                                    style={{ '--preset-color': '#fb7185' } as React.CSSProperties}
+                                >
+                                    <i className="ri-number-3" aria-hidden="true" />
+                                    <span>
+                                        <small>EQUAL 3 · {swingLayers.triplet ? 'ON' : 'OFF'}</small>
+                                        <strong>균등 셋잇단 전자음</strong>
+                                    </span>
+                                    {swingLayers.triplet && <i className="ri-check-line groove-lab-check" aria-hidden="true" />}
                                 </button>
                                 {familyPresets.filter((item) => item.id !== 'swing-ensemble').map((item) => {
                                     const layerId = SWING_PRESET_LAYERS[item.id];

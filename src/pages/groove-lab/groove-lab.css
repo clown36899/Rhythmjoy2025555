@@ -709,10 +709,132 @@
     opacity: 0.78;
 }
 
+.groove-lab-triplet-reference {
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, #fb7185 36%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, #fb7185 6%, var(--bg-surface-2));
+    transition: border-color 140ms ease, opacity 140ms ease;
+}
+
+.groove-lab-triplet-reference.is-muted {
+    border-color: rgba(148, 163, 184, 0.13);
+    opacity: 0.48;
+}
+
+.groove-lab-triplet-reference-head {
+    padding: 6px 8px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.groove-lab-triplet-reference-head strong {
+    color: #fb7185;
+    font-size: 0.6rem;
+    font-weight: 950;
+}
+
+.groove-lab-triplet-reference-head span {
+    color: var(--text-tertiary);
+    font-size: 0.5rem;
+    font-weight: 750;
+    text-align: right;
+}
+
+.groove-lab-triplet-score {
+    min-height: 55px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-left: 3px solid var(--text-secondary);
+    border-right: 3px solid var(--text-secondary);
+    background:
+        linear-gradient(180deg, transparent 46%, rgba(148, 163, 184, 0.16) 47%, transparent 49%),
+        var(--bg-surface-2);
+}
+
+.groove-lab-triplet-beat {
+    min-width: 0;
+    position: relative;
+    padding: 12px 2px 3px;
+    display: grid;
+    align-content: center;
+    gap: 1px;
+    border-left: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.groove-lab-triplet-beat:first-child {
+    border-left: 0;
+}
+
+.groove-lab-triplet-group-mark {
+    position: absolute;
+    top: 3px;
+    left: 10%;
+    right: 10%;
+    height: 7px;
+    border-top: 1px solid #fb7185;
+    color: #fb7185;
+    font-size: 0.48rem;
+    font-weight: 950;
+    line-height: 1;
+    text-align: center;
+}
+
+.groove-lab-triplet-group-mark::before,
+.groove-lab-triplet-group-mark::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    width: 1px;
+    height: 5px;
+    background: #fb7185;
+}
+
+.groove-lab-triplet-group-mark::before { left: 0; }
+.groove-lab-triplet-group-mark::after { right: 0; }
+
+.groove-lab-triplet-notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
+}
+
+.groove-lab-triplet-note {
+    color: #fb7185;
+    font-family: 'Apple Symbols', 'Noto Music', 'Bravura Text', Georgia, serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+    transition: color 100ms ease, filter 100ms ease, transform 100ms ease;
+}
+
+.groove-lab-triplet-note.active {
+    color: #fff;
+    filter: drop-shadow(0 0 7px #fb7185);
+    transform: scale(1.28);
+}
+
+.groove-lab-triplet-count {
+    color: var(--text-tertiary);
+    font-size: 0.45rem;
+    font-weight: 780;
+    letter-spacing: 0.01em;
+    text-align: center;
+}
+
+.groove-lab-triplet-count b {
+    color: #fb7185;
+    font-weight: 950;
+}
+
 .groove-lab-rhythm-legend {
     padding: 2px 3px 0;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
 }
 
@@ -1105,6 +1227,31 @@
 
     .groove-lab-rhythm-legend span {
         font-size: 0.54rem;
+    }
+
+    .groove-lab-rhythm-legend {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .groove-lab-triplet-reference-head {
+        display: grid;
+        gap: 1px;
+    }
+
+    .groove-lab-triplet-reference-head span {
+        text-align: left;
+    }
+
+    .groove-lab-triplet-score {
+        min-height: 62px;
+    }
+
+    .groove-lab-triplet-note {
+        font-size: 1.35rem;
+    }
+
+    .groove-lab-triplet-count {
+        font-size: 0.48rem;
     }
 
     .groove-lab-ensemble-lane {

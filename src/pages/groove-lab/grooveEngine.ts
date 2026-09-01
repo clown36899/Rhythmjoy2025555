@@ -3,7 +3,6 @@ export type GroovePresetId =
     | 'ride'
     | 'bass'
     | 'piano'
-    | 'guitar'
     | 'shuffle'
     | 'shuffle-bass'
     | 'boogie-piano'
@@ -105,11 +104,11 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         shortName: 'Rhythm Section',
         icon: 'ri-group-line',
         color: '#f59e0b',
-        pattern: '선택한 드럼 · 베이스 · 피아노 · 기타를 즉시 합주',
-        explanation: '상단 악기 카드에서 원하는 파트를 동시에 켜고 끕니다. 실제 라이드 패턴은 1·2-&·3·4-&를 유지하고, 스윙 가이드는 모든 박의 늦고 강한 OFF와 2·4 백비트를 함께 분리해 들려줍니다.',
+        pattern: '드럼 · 베이스 · 피아노 + 전자음 셋잇단 기준선',
+        explanation: '상단 카드에서 드럼·베이스·피아노를 합주하고 균등 셋잇단 전자음 기준선을 따로 비교합니다. 실제 라이드 패턴은 1·2-&·3·4-&를 유지하고, 스윙 가이드는 모든 박의 늦고 강한 OFF와 2·4 백비트를 함께 분리해 들려줍니다.',
         recommendedFeel: 'adaptive',
         feelOptions: ['adaptive', 'triplet', 'straight'],
-        evidenceIds: ['friberg', 'butterfield', 'carnegie-swing', 'columbia', 'freddie'],
+        evidenceIds: ['friberg', 'butterfield', 'carnegie-swing', 'columbia', 'triplet-definition'],
     },
     {
         id: 'ride',
@@ -151,19 +150,6 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         recommendedFeel: 'triplet',
         feelOptions: ['triplet', 'straight'],
         evidenceIds: ['comping', 'musicxml'],
-    },
-    {
-        id: 'guitar',
-        family: 'swing',
-        instrument: '리듬 기타',
-        name: 'Freddie Green 4비트',
-        shortName: 'Four-to-bar',
-        icon: 'ri-guitar-line',
-        color: '#34d399',
-        pattern: '착 · 착 · 착 · 착',
-        explanation: '매 박의 안정된 펄스 위에 한 음 중심의 보이스 리딩과 뮤트된 현의 짧은 타격감을 겹치는 빅밴드 리듬 기타 축약형입니다.',
-        recommendedFeel: 'straight',
-        evidenceIds: ['freddie'],
     },
     {
         id: 'triplet',
@@ -592,7 +578,10 @@ export const buildGrooveBar = (
                 ));
                 events.push(event(`swing-guide-off-${count}`, beat + offbeat, 'click', 0.42, 11));
             }
-            const layers: readonly GroovePresetId[] = ['ride', 'bass', 'piano', 'guitar'];
+            buildGrooveBar('triplet', 'triplet', bpm).forEach((tripletEvent) => {
+                events.push({ ...tripletEvent, id: `swing-triplet-${tripletEvent.id}` });
+            });
+            const layers: readonly GroovePresetId[] = ['ride', 'bass', 'piano'];
             layers.forEach((layerId) => {
                 const layerFeel = layerId === 'piano' ? 'triplet' : feel;
                 buildGrooveBar(layerId, layerFeel, bpm).forEach((layerEvent) => {
@@ -618,11 +607,6 @@ export const buildGrooveBar = (
         case 'piano':
             events.push(event('piano-1', 0, 'piano', 0.88, 0));
             events.push(event('piano-and-2', 1 + offbeat, 'piano', 0.72, 1));
-            break;
-        case 'guitar':
-            [0, 1, 2, 3].forEach((beat, index) => {
-                events.push(event(`guitar-${beat}`, beat, 'guitar', index % 2 === 1 ? 0.82 : 0.72, index));
-            });
             break;
         case 'triplet':
             for (let beat = 0; beat < 4; beat += 1) {

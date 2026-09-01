@@ -13,13 +13,13 @@ import {
 } from './grooveEngine';
 
 describe('grooveEngine', () => {
-    it('builds the selectable jazz section from canonical ride, guide, bass, piano, and guitar layers', () => {
+    it('builds the selectable jazz section from canonical ride, swing guide, equal triplets, bass, and piano', () => {
         const events = buildGrooveBar('swing-ensemble', 'adaptive', 140);
         const voices = new Set(events.map((item) => item.voice));
 
-        expect(voices).toEqual(new Set(['click', 'ride', 'hat', 'bass', 'piano', 'guitar']));
+        expect(voices).toEqual(new Set(['click', 'ride', 'hat', 'bass', 'piano']));
         expect(events.filter((item) => item.voice === 'bass').map((item) => item.position)).toEqual([0, 1, 2, 3]);
-        expect(events.filter((item) => item.voice === 'guitar').map((item) => item.position)).toEqual([0, 1, 2, 3]);
+        expect(events.some((item) => item.voice === 'guitar')).toBe(false);
         const offbeat = getOffbeatPosition(getAdaptiveSwingRatio(140));
         const guideEvents = events.filter((item) => item.id.startsWith('swing-guide-'));
         expect(guideEvents.map((item) => item.position)).toEqual([
@@ -41,6 +41,14 @@ describe('grooveEngine', () => {
         ]);
         expect(events.filter((item) => item.voice === 'hat').map((item) => item.position)).toEqual([1, 3]);
         expect(events.filter((item) => item.voice === 'piano').map((item) => item.position)).toEqual([0, 1 + (2 / 3)]);
+        const tripletEvents = events.filter((item) => item.id.startsWith('swing-triplet-'));
+        expect(tripletEvents.map((item) => item.position)).toEqual([
+            0, 1 / 3, 2 / 3,
+            1, 1 + (1 / 3), 1 + (2 / 3),
+            2, 2 + (1 / 3), 2 + (2 / 3),
+            3, 3 + (1 / 3), 3 + (2 / 3),
+        ]);
+        expect(tripletEvents.map((item) => item.variant)).toEqual([0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]);
     });
 
     it('uses a tempo-dependent ride ratio with the reported 2:1 landmark near 200 BPM', () => {
@@ -63,11 +71,10 @@ describe('grooveEngine', () => {
         expect(hatPositions).toEqual([1, 3]);
     });
 
-    it('keeps walking bass and rhythm guitar on four quarter-note pulses', () => {
-        for (const presetId of ['bass', 'guitar'] as const) {
-            expect(buildGrooveBar(presetId, 'adaptive', 92).map((item) => item.position)).toEqual([0, 1, 2, 3]);
-            expect(GROOVE_PRESETS.find((preset) => preset.id === presetId)?.feelOptions).toBeUndefined();
-        }
+    it('keeps walking bass on four quarter-note pulses and removes the redundant swing guitar preset', () => {
+        expect(buildGrooveBar('bass', 'adaptive', 92).map((item) => item.position)).toEqual([0, 1, 2, 3]);
+        expect(GROOVE_PRESETS.find((preset) => preset.id === 'bass')?.feelOptions).toBeUndefined();
+        expect(GROOVE_PRESETS.map((preset) => String(preset.id))).not.toContain('guitar');
     });
 
     it('does not expose the drummer ride curve as a universal instrument swing control', () => {
@@ -126,7 +133,7 @@ describe('grooveEngine', () => {
         const familyIds = new Set(GROOVE_FAMILIES.map((family) => family.id));
 
         expect(GROOVE_FAMILIES).toHaveLength(8);
-        expect(GROOVE_PRESETS).toHaveLength(29);
+        expect(GROOVE_PRESETS).toHaveLength(28);
 
         GROOVE_PRESETS.forEach((preset) => {
             expect(familyIds.has(preset.family)).toBe(true);
