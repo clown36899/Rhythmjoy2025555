@@ -128,6 +128,11 @@
     /* transform 및 box-shadow 제거 */
 }
 
+.top-action-btn.share:hover {
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.34);
+}
+
 .top-action-btn.delete:hover {
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.3);

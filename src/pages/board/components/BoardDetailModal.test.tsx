@@ -81,6 +81,8 @@ beforeEach(() => {
     mocks.deletePost.mockReset();
     mocks.toggleHidden.mockReset().mockResolvedValue(true);
     mocks.detailArgs = null;
+    mocks.auth.user = { id: 'admin-1' };
+    mocks.auth.isAdmin = true;
 });
 
 function renderModal(onPostChanged = vi.fn().mockResolvedValue(undefined), onClose = vi.fn()) {
@@ -97,6 +99,37 @@ function renderModal(onPostChanged = vi.fn().mockResolvedValue(undefined), onClo
 }
 
 describe('BoardDetailModal list synchronization', () => {
+    it('places share before edit and copies a deep link when native share is unavailable', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+        Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+        renderModal();
+
+        const shareButton = screen.getByRole('button', { name: '게시물 공유' });
+        const editButton = screen.getByRole('button', { name: '게시물 수정' });
+        expect(shareButton.compareDocumentPosition(editButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+        fireEvent.click(shareButton);
+        await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+        const sharedUrl = new URL(writeText.mock.calls[0][0]);
+        expect(sharedUrl.pathname).toBe('/board');
+        expect(sharedUrl.searchParams.get('category')).toBe('free');
+        expect(sharedUrl.searchParams.get('postId')).toBe('post-1');
+        alertSpy.mockRestore();
+    });
+
+    it('keeps share public while edit controls remain permission-gated', () => {
+        mocks.auth.user = { id: 'reader-1' };
+        mocks.auth.isAdmin = false;
+        renderModal();
+
+        expect(screen.getByRole('button', { name: '게시물 공유' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: '게시물 수정' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: '게시물 삭제' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: '게시물 숨기기' })).not.toBeInTheDocument();
+    });
+
     it('refreshes both detail and list after an edit is saved', async () => {
         const { onPostChanged } = renderModal();
 

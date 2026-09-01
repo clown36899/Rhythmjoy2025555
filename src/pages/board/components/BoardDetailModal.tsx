@@ -105,6 +105,35 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose, on
         if (changed) await onPostChanged?.();
     };
 
+    const handleShare = async () => {
+        if (!post) return;
+        const shareUrl = new URL('/board', window.location.origin);
+        shareUrl.searchParams.set('category', (post as any).category || category || 'free');
+        shareUrl.searchParams.set('postId', String(post.id));
+        const shareData = {
+            title: post.title,
+            text: `${post.title} | 댄스빌보드 자유게시판`,
+            url: shareUrl.toString(),
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                return;
+            }
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(shareData.url);
+                window.alert('게시글 링크를 복사했습니다.');
+                return;
+            }
+            window.prompt('게시글 링크를 복사해주세요.', shareData.url);
+        } catch (shareError) {
+            if (shareError instanceof Error && shareError.name === 'AbortError') return;
+            console.error('게시글 공유 실패:', shareError);
+            window.prompt('게시글 링크를 복사해주세요.', shareData.url);
+        }
+    };
+
     const formatDate = (dateString?: string) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -199,45 +228,63 @@ export default function BoardDetailModal({ postId, category, isOpen, onClose, on
                                     )}
                                 </div>
 
-                                {(isAdmin || (post as any).user_id === user?.id) && (
-                                    <div className="board-detail-top-actions">
-                                        <button 
-                                            onClick={handleEdit} 
-                                            className="top-action-btn edit" 
-                                            title="수정"
-                                            data-analytics-id="board_detail_edit"
-                                            data-analytics-type="action"
-                                            data-analytics-title="게시물 수정"
-                                            data-analytics-section="board_detail"
-                                        >
-                                            <i className="ri-edit-line"></i>
-                                        </button>
-                                        <button 
-                                            onClick={handleDelete} 
-                                            className="top-action-btn delete" 
-                                            title="삭제"
-                                            data-analytics-id="board_detail_delete"
-                                            data-analytics-type="action"
-                                            data-analytics-title="게시물 삭제"
-                                            data-analytics-section="board_detail"
-                                        >
-                                            <i className="ri-delete-bin-line"></i>
-                                        </button>
-                                        {isAdmin && (
+                                <div className="board-detail-top-actions">
+                                    <button
+                                        type="button"
+                                        onClick={handleShare}
+                                        className="top-action-btn share"
+                                        title="공유"
+                                        aria-label="게시물 공유"
+                                        data-analytics-id="board_detail_share"
+                                        data-analytics-type="action"
+                                        data-analytics-title="게시물 공유"
+                                        data-analytics-section="board_detail"
+                                    >
+                                        <i className="ri-share-line"></i>
+                                    </button>
+                                    {(isAdmin || (post as any).user_id === user?.id) && (
+                                        <>
                                             <button
-                                                onClick={handleHiddenToggle}
-                                                className={`top-action-btn ${post.is_hidden ? 'unhide' : 'hide'}`}
-                                                title={post.is_hidden ? '숨김 해제' : '숨기기'}
-                                                data-analytics-id="board_detail_toggle_hidden"
+                                                onClick={handleEdit}
+                                                className="top-action-btn edit"
+                                                title="수정"
+                                                aria-label="게시물 수정"
+                                                data-analytics-id="board_detail_edit"
                                                 data-analytics-type="action"
-                                                data-analytics-title={post.is_hidden ? "게시물 숨김 해제" : "게시물 숨기기"}
+                                                data-analytics-title="게시물 수정"
                                                 data-analytics-section="board_detail"
                                             >
-                                                <i className={`ri-${post.is_hidden ? 'eye-line' : 'eye-off-line'}`}></i>
+                                                <i className="ri-edit-line"></i>
                                             </button>
-                                        )}
-                                    </div>
-                                )}
+                                            <button
+                                                onClick={handleDelete}
+                                                className="top-action-btn delete"
+                                                title="삭제"
+                                                aria-label="게시물 삭제"
+                                                data-analytics-id="board_detail_delete"
+                                                data-analytics-type="action"
+                                                data-analytics-title="게시물 삭제"
+                                                data-analytics-section="board_detail"
+                                            >
+                                                <i className="ri-delete-bin-line"></i>
+                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={handleHiddenToggle}
+                                                    className={`top-action-btn ${post.is_hidden ? 'unhide' : 'hide'}`}
+                                                    title={post.is_hidden ? '숨김 해제' : '숨기기'}
+                                                    aria-label={post.is_hidden ? '게시물 숨김 해제' : '게시물 숨기기'}
+                                                    data-analytics-id="board_detail_toggle_hidden"
+                                                    data-analytics-type="action"
+                                                    data-analytics-title={post.is_hidden ? "게시물 숨김 해제" : "게시물 숨기기"}
+                                                    data-analytics-section="board_detail"
+                                                >
+                                                    <i className={`ri-${post.is_hidden ? 'eye-line' : 'eye-off-line'}`}></i>
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             <h1 className="board-detail-title" style={{ opacity: post.is_hidden ? 0.6 : 1 }}>
