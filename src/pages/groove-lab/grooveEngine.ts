@@ -101,15 +101,15 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         id: 'swing-ensemble',
         family: 'swing',
         instrument: '리듬 섹션',
-        name: '재즈 스윙 앙상블',
-        shortName: 'Swing Ensemble',
+        name: '재즈 스윙 리듬 섹션',
+        shortName: 'Rhythm Section',
         icon: 'ri-group-line',
         color: '#f59e0b',
-        pattern: '라이드·하이햇 + 워킹 베이스 + Four-to-bar',
-        explanation: '라이드의 롱–숏과 2·4 하이햇 위에 워킹 베이스와 리듬 기타의 안정된 네 박을 함께 놓아, 악기 사이 관계로 스윙의 추진력을 듣습니다.',
+        pattern: '선택한 드럼 · 베이스 · 피아노 · 기타를 즉시 합주',
+        explanation: '상단 악기 카드에서 원하는 파트를 동시에 켜고 끕니다. 실제 라이드 패턴은 1·2-&·3·4-&를 유지하고, 스윙 가이드는 모든 박의 늦고 강한 OFF와 2·4 백비트를 함께 분리해 들려줍니다.',
         recommendedFeel: 'adaptive',
         feelOptions: ['adaptive', 'triplet', 'straight'],
-        evidenceIds: ['friberg', 'butterfield', 'columbia', 'freddie'],
+        evidenceIds: ['friberg', 'butterfield', 'carnegie-swing', 'columbia', 'freddie'],
     },
     {
         id: 'ride',
@@ -142,7 +142,7 @@ export const GROOVE_PRESETS: readonly GroovePreset[] = [
         id: 'piano',
         family: 'swing',
         instrument: '피아노',
-        name: 'Charleston 컴핑',
+        name: 'Charleston 컴핑 예시',
         shortName: 'Charleston',
         icon: 'ri-keyboard-box-line',
         color: '#c084fc',
@@ -580,9 +580,22 @@ export const buildGrooveBar = (
 
     switch (presetId) {
         case 'swing-ensemble': {
-            const layers: readonly GroovePresetId[] = ['ride', 'bass', 'guitar'];
+            for (let beat = 0; beat < 4; beat += 1) {
+                const count = beat + 1;
+                const isBackbeat = count === 2 || count === 4;
+                events.push(event(
+                    isBackbeat ? `swing-guide-backbeat-${count}` : `swing-guide-on-${count}`,
+                    beat,
+                    'click',
+                    isBackbeat ? (count === 4 ? 0.54 : 0.5) : 0.22,
+                    isBackbeat ? 12 : 10,
+                ));
+                events.push(event(`swing-guide-off-${count}`, beat + offbeat, 'click', 0.42, 11));
+            }
+            const layers: readonly GroovePresetId[] = ['ride', 'bass', 'piano', 'guitar'];
             layers.forEach((layerId) => {
-                buildGrooveBar(layerId, feel, bpm).forEach((layerEvent) => {
+                const layerFeel = layerId === 'piano' ? 'triplet' : feel;
+                buildGrooveBar(layerId, layerFeel, bpm).forEach((layerEvent) => {
                     events.push({ ...layerEvent, id: `${layerId}-${layerEvent.id}` });
                 });
             });

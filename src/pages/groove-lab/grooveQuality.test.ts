@@ -7,8 +7,12 @@ import {
     getPickupPositionDelaySamples,
     getPluckPositionDelaySamples,
     getShuffleGuitarMultiples,
+    getUprightBassSampleSelection,
     GROOVE_AUDIO_VOICES,
     PANDEIRO_ARTICULATIONS,
+    resolveBassFrequency,
+    UPRIGHT_BASS_SAMPLE_MANIFEST,
+    UPRIGHT_BASS_WALKING_FREQUENCIES,
 } from './grooveAudio';
 import { buildGrooveBar, GROOVE_PRESETS } from './grooveEngine';
 import {
@@ -70,6 +74,21 @@ describe('groove audio quality', () => {
     it('uses two-note root-fifth and root-sixth guitar shuffle voicings', () => {
         expect(getShuffleGuitarMultiples(10)).toEqual([1, 1.5]);
         expect(getShuffleGuitarMultiples(11)).toEqual([1, 5 / 3]);
+    });
+
+    it('uses the double-bass E1–B1 register and alternates real pizzicato takes', () => {
+        expect([0, 1, 2, 3].map(resolveBassFrequency)).toEqual([...UPRIGHT_BASS_WALKING_FREQUENCIES]);
+        expect(UPRIGHT_BASS_SAMPLE_MANIFEST).toHaveLength(8);
+
+        for (const frequency of UPRIGHT_BASS_WALKING_FREQUENCIES) {
+            const first = getUprightBassSampleSelection(frequency, 0);
+            const second = getUprightBassSampleSelection(frequency, 1);
+            const cents = Math.abs(1200 * Math.log2(first.frequency / frequency));
+            expect(first.roundRobin).toBe(0);
+            expect(second.roundRobin).toBe(1);
+            expect(first.id).not.toBe(second.id);
+            expect(cents).toBeLessThanOrEqual(101);
+        }
     });
 
     it('uses one, two, and three near-unison piano strings across the register', () => {

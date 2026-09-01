@@ -5,6 +5,8 @@ type NoiseColor = 'white' | 'pink';
 export interface GrooveAudioRuntime {
     noiseBuffers: WeakMap<AudioContext, Map<NoiseColor, AudioBuffer>>;
     pluckBuffers: WeakMap<AudioContext, Map<string, AudioBuffer>>;
+    uprightBassBuffers: WeakMap<BaseAudioContext, Map<string, AudioBuffer>>;
+    uprightBassLoads: WeakMap<BaseAudioContext, Promise<boolean>>;
     sequence: number;
 }
 
@@ -27,8 +29,58 @@ export interface KarplusStrongOptions {
 export const createGrooveAudioRuntime = (): GrooveAudioRuntime => ({
     noiseBuffers: new WeakMap(),
     pluckBuffers: new WeakMap(),
+    uprightBassBuffers: new WeakMap(),
+    uprightBassLoads: new WeakMap(),
     sequence: 0,
 });
+
+export const UPRIGHT_BASS_WALKING_FREQUENCIES = [41.203, 48.999, 55, 61.735] as const;
+
+export const UPRIGHT_BASS_SAMPLE_MANIFEST = [
+    { id: 'E1-rr1', file: 'E0-rr1.mp3', frequency: 41.203, roundRobin: 0 },
+    { id: 'E1-rr2', file: 'E0-rr2.mp3', frequency: 41.203, roundRobin: 1 },
+    { id: 'G1-rr1', file: 'G0-rr1.mp3', frequency: 48.999, roundRobin: 0 },
+    { id: 'G1-rr2', file: 'G0-rr2.mp3', frequency: 48.999, roundRobin: 1 },
+    { id: 'Bb1-rr1', file: 'Asharp0-rr1.mp3', frequency: 58.27, roundRobin: 0 },
+    { id: 'Bb1-rr2', file: 'Asharp0-rr2.mp3', frequency: 58.27, roundRobin: 1 },
+    { id: 'C2-rr1', file: 'C1-rr1.mp3', frequency: 65.406, roundRobin: 0 },
+    { id: 'C2-rr2', file: 'C1-rr2.mp3', frequency: 65.406, roundRobin: 1 },
+] as const;
+
+const UPRIGHT_BASS_ASSET_PATH = 'audio/groove-lab/upright-bass';
+
+export const getUprightBassSampleSelection = (frequency: number, variation: number) => {
+    const roundRobin = Math.abs(Math.trunc(variation)) % 2;
+    const candidates = UPRIGHT_BASS_SAMPLE_MANIFEST.filter((sample) => sample.roundRobin === roundRobin);
+    return candidates.reduce((nearest, sample) => (
+        Math.abs(Math.log2(sample.frequency / frequency)) < Math.abs(Math.log2(nearest.frequency / frequency))
+            ? sample
+            : nearest
+    ));
+};
+
+export const preloadGrooveAudio = (
+    context: BaseAudioContext,
+    runtime: GrooveAudioRuntime,
+): Promise<boolean> => {
+    const cachedLoad = runtime.uprightBassLoads.get(context);
+    if (cachedLoad) return cachedLoad;
+
+    const load = Promise.allSettled(UPRIGHT_BASS_SAMPLE_MANIFEST.map(async (sample) => {
+        const response = await fetch(`${import.meta.env.BASE_URL}${UPRIGHT_BASS_ASSET_PATH}/${sample.file}`);
+        if (!response.ok) throw new Error(`upright bass sample ${response.status}`);
+        const decoded = await context.decodeAudioData(await response.arrayBuffer());
+        let buffers = runtime.uprightBassBuffers.get(context);
+        if (!buffers) {
+            buffers = new Map();
+            runtime.uprightBassBuffers.set(context, buffers);
+        }
+        buffers.set(sample.id, decoded);
+    })).then(() => runtime.uprightBassBuffers.get(context)?.size === UPRIGHT_BASS_SAMPLE_MANIFEST.length);
+
+    runtime.uprightBassLoads.set(context, load);
+    return load;
+};
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -374,6 +426,55 @@ const scheduleDualPluck = (
     });
 };
 
+const scheduleSampledUprightBass = (
+    context: AudioContext,
+    runtime: GrooveAudioRuntime,
+    time: number,
+    destination: AudioNode,
+    frequency: number,
+    variation: number,
+    durationSeconds?: number,
+) => {
+    const sample = getUprightBassSampleSelection(frequency, variation);
+    const buffer = runtime.uprightBassBuffers.get(context)?.get(sample.id);
+    if (!buffer) return false;
+
+    const source = context.createBufferSource();
+    const dcBlock = context.createBiquadFilter();
+    const body = context.createBiquadFilter();
+    const fingerNoiseLimit = context.createBiquadFilter();
+    const envelope = context.createGain();
+    const hold = clamp(durationSeconds ?? 0.42, 0.32, 0.82);
+    const release = 0.18;
+    const stopTime = time + hold + release + 0.03;
+
+    source.buffer = buffer;
+    source.playbackRate.setValueAtTime(frequency / sample.frequency, time);
+    dcBlock.type = 'highpass';
+    dcBlock.frequency.setValueAtTime(28, time);
+    dcBlock.Q.setValueAtTime(0.7, time);
+    body.type = 'peaking';
+    body.frequency.setValueAtTime(118, time);
+    body.Q.setValueAtTime(0.72, time);
+    body.gain.setValueAtTime(1.6, time);
+    fingerNoiseLimit.type = 'lowpass';
+    fingerNoiseLimit.frequency.setValueAtTime(4200, time);
+    fingerNoiseLimit.Q.setValueAtTime(0.55, time);
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.exponentialRampToValueAtTime(0.58, time + 0.004);
+    envelope.gain.setValueAtTime(0.58, time + hold);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, time + hold + release);
+
+    source.connect(dcBlock);
+    dcBlock.connect(body);
+    body.connect(fingerNoiseLimit);
+    fingerNoiseLimit.connect(envelope);
+    envelope.connect(destination);
+    source.start(time);
+    source.stop(Math.min(stopTime, time + (buffer.duration / source.playbackRate.value)));
+    return true;
+};
+
 const scheduleBendingPluck = (
     context: AudioContext,
     runtime: GrooveAudioRuntime,
@@ -473,13 +574,14 @@ export const createGrooveMasterOutput = (context: AudioContext, destination: Aud
 
 const BASS_FREQUENCIES = [65.41, 73.42, 82.41, 98, 110, 123.47];
 
-const resolveBassFrequency = (variant: number) => {
+export const resolveBassFrequency = (variant: number) => {
     if (variant >= 50) return [82.41, 82.41][variant % 2];
     if (variant >= 40) return [65.41, 82.41, 98][variant % 3];
     if (variant >= 30) return [82.41, 123.47][variant % 2];
     if (variant >= 20) return BASS_FREQUENCIES[variant % BASS_FREQUENCIES.length];
     if (variant >= 10) return [65.41, 98, 110][variant - 10] ?? 65.41;
-    return [82.41, 98, 110, 123.47][variant] ?? 82.41;
+    return UPRIGHT_BASS_WALKING_FREQUENCIES[variant % UPRIGHT_BASS_WALKING_FREQUENCIES.length]
+        ?? UPRIGHT_BASS_WALKING_FREQUENCIES[0];
 };
 
 export const scheduleGrooveVoice = (
@@ -536,17 +638,43 @@ export const scheduleGrooveVoice = (
             const isDead = isSlapFamily && variant % 4 === 2;
             const modeledDuration = isDead ? 0.075 : isMuted ? 0.14 : isSlapFamily ? 0.2 : isPicked ? 0.24 : isTumbao && variant === 41 ? 0.52 : 0.38;
             const duration = event.durationSeconds ?? modeledDuration;
+            if (isUpright) {
+                const sampled = scheduleSampledUprightBass(
+                    context,
+                    runtime,
+                    time,
+                    voiceOutput,
+                    frequency,
+                    variation,
+                    event.durationSeconds,
+                );
+                if (!sampled) {
+                    schedulePluck(context, runtime, time, voiceOutput, {
+                        key: 'upright-bass-fallback',
+                        frequency,
+                        gain: 0.24,
+                        duration: Math.max(duration, 0.5),
+                        damping: 0.9962,
+                        brightness: 0.34,
+                        seed: hashString(`bass:${variant}:${variation}`),
+                        lowpass: 1800,
+                        attack: 0.004,
+                        pluckPosition: 0.34,
+                    });
+                }
+                break;
+            }
             scheduleDualPluck(context, runtime, time, voiceOutput, {
-                key: isUpright ? 'upright-bass' : isSlapFamily ? 'slap-bass' : isPicked ? 'pick-bass' : 'finger-bass',
+                key: isSlapFamily ? 'slap-bass' : isPicked ? 'pick-bass' : 'finger-bass',
                 frequency, gain: isDead ? 0.13 : isPop ? 0.24 : 0.27, duration,
                 damping: isDead ? 0.968 : isMuted ? 0.982 : 0.9945,
-                brightness: isDead ? 0.2 : isPop ? 0.86 : isPicked ? 0.72 : isUpright ? 0.42 : 0.56,
+                brightness: isDead ? 0.2 : isPop ? 0.86 : isPicked ? 0.72 : 0.56,
                 seed: hashString(`bass:${variant}:${variation}`),
-                lowpass: isPop ? 4200 : isPicked ? 2600 : isUpright ? 1450 : 1900,
+                lowpass: isPop ? 4200 : isPicked ? 2600 : 1900,
                 attack: isSlapFamily ? 0.0015 : isPicked ? 0.0025 : 0.006,
-                pluckPosition: isPop ? 0.1 : isPicked ? 0.12 : isUpright ? 0.31 : 0.24,
-                pickupPosition: isUpright ? undefined : isPop ? 0.13 : isPicked ? 0.17 : 0.22,
-                polarization: isUpright ? 0.24 : 0.1,
+                pluckPosition: isPop ? 0.1 : isPicked ? 0.12 : 0.24,
+                pickupPosition: isPop ? 0.13 : isPicked ? 0.17 : 0.22,
+                polarization: 0.1,
             });
             if (isSlapFamily) {
                 scheduleNoise(context, runtime, time, voiceOutput, { frequency: isPop ? 3600 : 2300, gain: isDead ? 0.09 : 0.075, duration: isDead ? 0.035 : 0.024, type: 'bandpass', q: 0.75, seedKey: noiseKey });
@@ -677,7 +805,27 @@ export const scheduleGrooveVoice = (
             break;
         }
         case 'click':
-            scheduleOscillator(context, time, voiceOutput, { frequency: variant === 0 ? 1120 : 780, endFrequency: 610, gain: 0.16, duration: 0.035, type: 'square', attack: 0.001 });
+            if (variant === 12) {
+                scheduleNoise(context, runtime, time, voiceOutput, {
+                    frequency: 3100,
+                    gain: 0.14,
+                    duration: 0.028,
+                    type: 'bandpass',
+                    q: 0.72,
+                    seedKey: `${noiseKey}:guide-snap`,
+                });
+                scheduleOscillator(context, time, voiceOutput, {
+                    frequency: 1680,
+                    endFrequency: 980,
+                    gain: 0.07,
+                    duration: 0.024,
+                    type: 'triangle',
+                    attack: 0.001,
+                });
+            } else {
+                const frequency = variant === 10 ? 760 : variant === 11 ? 1180 : variant === 0 ? 1120 : 780;
+                scheduleOscillator(context, time, voiceOutput, { frequency, endFrequency: 610, gain: 0.16, duration: 0.035, type: 'square', attack: 0.001 });
+            }
             break;
     }
 

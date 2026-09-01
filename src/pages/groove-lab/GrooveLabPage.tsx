@@ -19,6 +19,7 @@ import {
 import {
     createGrooveAudioRuntime,
     createGrooveMasterOutput,
+    preloadGrooveAudio,
     scheduleGrooveVoice as scheduleHighQualityGrooveVoice,
 } from './grooveAudio';
 import { getModelProfilesForEvents } from './grooveModelProfiles';
@@ -30,8 +31,35 @@ const SCHEDULER_INTERVAL_MS = 25;
 
 const clampBpm = (value: number) => Math.round(Math.min(MAX_BPM, Math.max(MIN_BPM, value)));
 
-type QueuedVisualEvent = { id: string; time: number };
+type QueuedVisualEvent = { id: string; time: number; position: number };
 type PracticeMode = 'continuous' | 'listen-mute' | 'tempo-ladder';
+type SwingLayerId = 'guide' | 'drums' | 'bass' | 'piano' | 'guitar';
+
+const SWING_LAYERS: readonly { id: SwingLayerId; label: string; detail: string }[] = [
+    { id: 'guide', label: '스윙 핵심 가이드', detail: '매 박 ON/OFF + 2·4 백비트' },
+    { id: 'drums', label: '드럼 시간축', detail: '라이드 1·2-&·3·4-&' },
+    { id: 'bass', label: '워킹 베이스', detail: '피치카토 콘트라베이스' },
+    { id: 'piano', label: '피아노 컴핑', detail: '선택 · Charleston' },
+    { id: 'guitar', label: '리듬 기타', detail: '선택 · Four-to-bar' },
+] as const;
+
+const SWING_INSTRUMENT_LAYER_IDS: readonly SwingLayerId[] = ['drums', 'bass', 'piano', 'guitar'];
+
+const SWING_PRESET_LAYERS: Partial<Record<GroovePresetId, SwingLayerId>> = {
+    ride: 'drums',
+    bass: 'bass',
+    piano: 'piano',
+    guitar: 'guitar',
+};
+
+const getSwingLayerId = (item: GrooveEvent): SwingLayerId | null => {
+    if (item.id.startsWith('swing-guide-')) return 'guide';
+    if (item.voice === 'ride' || item.voice === 'hat') return 'drums';
+    if (item.voice === 'bass') return 'bass';
+    if (item.voice === 'piano') return 'piano';
+    if (item.voice === 'guitar') return 'guitar';
+    return null;
+};
 
 const PRACTICE_MODES: readonly { id: PracticeMode; label: string; description: string }[] = [
     { id: 'continuous', label: '계속 듣기', description: '선택한 1~2마디 패턴을 끊김 없이 반복합니다.' },
@@ -49,6 +77,11 @@ export const EVIDENCE = {
         title: 'Butterfield (2010), Music Theory Online',
         summary: '표준 라이드 패턴은 네 박의 라이드, 2·4박 하이햇, 그리고 2·4박 뒤의 짧은 라이드 탭으로 분석됩니다.',
         href: 'https://mtosmt.org/issues/mto.10.16.4/mto.10.16.4.butterfield.pdf',
+    },
+    'carnegie-swing': {
+        title: 'Carnegie Hall — Rhythms That Swing',
+        summary: '교육 과정은 스윙 8분음표의 긴 ON·짧은 OFF를 먼저 세고 치게 한 뒤, 2·4박 클랩/스냅과 드럼 라이드 패턴을 서로 다른 층으로 나눠 연습시킵니다. 앱의 1박 가이드는 이 구분을 따른 설명음이며 합주 악기가 아닙니다.',
+        href: 'https://www.carnegiehall.org/Education/Programs/Link-Up/National-Program/The-Orchestra-Swings/Rhythms-That-Swing',
     },
     columbia: {
         title: 'Columbia Center for Jazz Studies',
@@ -240,6 +273,11 @@ export const EVIDENCE = {
         summary: '슬랩과 팝의 타격성은 현과 프렛·넥 사이의 비선형 접촉에서 생깁니다. 앱은 짧은 대역 잡음으로 그 공격음을 근사하며 실제 충돌 해석은 아직 포함하지 않습니다.',
         href: 'https://doi.org/10.1016/j.apacoust.2017.07.021',
     },
+    'vsco-contrabass': {
+        title: 'VSCO 2 CE — 솔로 콘트라베이스 피치카토 실음',
+        summary: '워킹 베이스는 CC0로 공개된 실제 솔로 콘트라베이스 피치카토 녹음을 두 번갈이 타격으로 재생합니다. E1부터 시작하는 실제 저음역을 쓰며, 합성 몸통 공명으로 실물을 가장하지 않습니다.',
+        href: 'https://github.com/sgossner/VSCO-2-CE/tree/master/Strings/Solo%20Contrabass/Pizz',
+    },
     'piano-hammer': {
         title: 'DAFx — 비선형 피아노 해머·현 모델',
         summary: '피아노 발음은 해머–현의 비선형 힘, 뻣뻣한 현의 비정수 배음, 사운드보드 전달을 포함합니다. 앱은 해머 트랜지언트와 비정수 배음만 축약 구현합니다.',
@@ -277,7 +315,7 @@ const VOICE_MODEL_EVIDENCE: Partial<Record<GrooveVoice, readonly (keyof typeof E
     pandeiro: ['pandeiro-sounds', 'drum-modal-synthesis', 'faust-physical-models'],
     clave: ['drum-modal-synthesis', 'faust-physical-models'],
     conga: ['conga-tumbao-study', 'drum-modal-synthesis', 'faust-physical-models'],
-    bass: ['karplus-strong', 'stk-source', 'stk-pickup-source', 'faust-physical-models', 'guitar-pluck', 'bass-synthesis', 'bass-contact'],
+    bass: ['vsco-contrabass', 'karplus-strong', 'stk-source', 'stk-pickup-source', 'faust-physical-models', 'guitar-pluck', 'bass-synthesis', 'bass-contact'],
     guitar: ['karplus-strong', 'stk-source', 'stk-guitar-body-source', 'faust-physical-models', 'guitar-model', 'guitar-pluck', 'berklee-groove-guitar'],
     'bossa-guitar': ['karplus-strong', 'stk-source', 'stk-guitar-body-source', 'faust-physical-models', 'guitar-model', 'guitar-pluck'],
     clav: ['karplus-strong', 'stk-source', 'clavinet-model'],
@@ -297,6 +335,14 @@ const GrooveLabPage: React.FC = () => {
     const [practiceBar, setPracticeBar] = useState(0);
     const [practicePhase, setPracticePhase] = useState<'sound' | 'mute'>('sound');
     const [activeEventId, setActiveEventId] = useState<string | null>(null);
+    const [activeRhythmPosition, setActiveRhythmPosition] = useState<number | null>(null);
+    const [swingLayers, setSwingLayers] = useState<Record<SwingLayerId, boolean>>({
+        guide: true,
+        drums: true,
+        bass: true,
+        piano: false,
+        guitar: false,
+    });
     const [tapTimes, setTapTimes] = useState<number[]>([]);
 
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -318,28 +364,61 @@ const GrooveLabPage: React.FC = () => {
     const hasRatioControl = feelOptions.length > 1;
     const swingRatio = getSwingRatio(effectiveFeel, bpm);
     const barEvents = useMemo(() => buildGrooveBar(presetId, feel, bpm), [bpm, feel, presetId]);
+    const activeBarEvents = useMemo(() => (
+        presetId === 'swing-ensemble'
+            ? barEvents.filter((item) => {
+                const layerId = getSwingLayerId(item);
+                return layerId !== null && swingLayers[layerId];
+            })
+            : barEvents
+    ), [barEvents, presetId, swingLayers]);
     const timelinePoints = useMemo(() => {
         const groups = new Map<string, GrooveEvent[]>();
-        barEvents.forEach((item) => {
+        activeBarEvents.forEach((item) => {
             const key = item.position.toFixed(4);
             groups.set(key, [...(groups.get(key) ?? []), item]);
         });
         return Array.from(groups.values());
-    }, [barEvents]);
+    }, [activeBarEvents]);
+    const ensembleRhythmBeats = useMemo(() => (
+        Array.from({ length: loopBeats }, (_, beat) => {
+            const offbeatEvent = activeBarEvents.find((item) => (
+                Math.floor(item.position) === beat && item.position % 1 !== 0
+            ));
+            const offbeatFraction = offbeatEvent ? offbeatEvent.position - beat : null;
+            return {
+                beat,
+                hasOnbeat: activeBarEvents.some((item) => item.position === beat),
+                hasOffbeat: offbeatEvent !== undefined,
+                hasSubdivisionGuide: activeBarEvents.some((item) => (
+                    item.id.startsWith('swing-guide-')
+                    && !item.id.startsWith('swing-guide-backbeat-')
+                    && Math.floor(item.position) === beat
+                )),
+                hasGuideBackbeat: activeBarEvents.some((item) => item.id.startsWith('swing-guide-backbeat-') && item.position === beat),
+                backbeat: activeBarEvents.some((item) => item.voice === 'hat' && item.position === beat)
+                    || activeBarEvents.some((item) => item.id.startsWith('swing-guide-backbeat-') && item.position === beat),
+                splitRatio: offbeatFraction && offbeatFraction < 1 ? offbeatFraction / (1 - offbeatFraction) : 1,
+                offbeatPosition: offbeatFraction ?? 0.5,
+                isTripletOffbeat: offbeatFraction !== null && Math.abs(offbeatFraction - (2 / 3)) < 0.001,
+            };
+        })
+    ), [activeBarEvents, loopBeats]);
     const selectedEvidence = useMemo(() => (
         Array.from(new Set([
             ...preset.evidenceIds,
-            ...barEvents.flatMap((item) => VOICE_MODEL_EVIDENCE[item.voice] ?? []),
+            ...activeBarEvents.flatMap((item) => VOICE_MODEL_EVIDENCE[item.voice] ?? []),
             'webaudio-dynamics',
             ...PRACTICE_EVIDENCE,
         ]))
             .map((id) => EVIDENCE[id as keyof typeof EVIDENCE])
             .filter(Boolean)
-    ), [barEvents, preset.evidenceIds]);
-    const modelProfiles = useMemo(() => getModelProfilesForEvents(barEvents), [barEvents]);
+    ), [activeBarEvents, preset.evidenceIds]);
+    const modelProfiles = useMemo(() => getModelProfilesForEvents(activeBarEvents), [activeBarEvents]);
     const familyPresets = useMemo(() => (
         GROOVE_PRESETS.filter((item) => item.family === preset.family)
     ), [preset.family]);
+    const allSwingInstrumentsOn = SWING_INSTRUMENT_LAYER_IDS.every((layerId) => swingLayers[layerId]);
 
     useEffect(() => {
         volumeRef.current = volume;
@@ -358,6 +437,7 @@ const GrooveLabPage: React.FC = () => {
         if (audioContextRef.current.state === 'suspended') {
             await audioContextRef.current.resume();
         }
+        await preloadGrooveAudio(audioContextRef.current, audioRuntimeRef.current);
         return audioContextRef.current;
     }, []);
 
@@ -381,6 +461,7 @@ const GrooveLabPage: React.FC = () => {
         if (!isPlaying) {
             queuedEventsRef.current = [];
             setActiveEventId(null);
+            setActiveRhythmPosition(null);
             return undefined;
         }
 
@@ -399,18 +480,24 @@ const GrooveLabPage: React.FC = () => {
                 const isMuteBar = practiceMode === 'listen-mute' && barNumber % 4 >= 2;
                 const scheduledEvents = buildGrooveBar(presetId, feel, scheduledBpm);
                 if (!isMuteBar) {
-                    scheduledEvents.forEach((item) => {
-                        const eventTime = nextBarTimeRef.current + item.position * secondsPerBeat;
-                        scheduleHighQualityGrooveVoice(
-                            context,
-                            audioRuntimeRef.current,
-                            eventTime,
-                            item,
-                            volumeRef.current,
-                            runOutput.input,
-                        );
-                        queuedEventsRef.current.push({ id: item.id, time: eventTime });
-                    });
+                    scheduledEvents
+                        .filter((item) => {
+                            if (presetId !== 'swing-ensemble') return true;
+                            const layerId = getSwingLayerId(item);
+                            return layerId !== null && swingLayers[layerId];
+                        })
+                        .forEach((item) => {
+                            const eventTime = nextBarTimeRef.current + item.position * secondsPerBeat;
+                            scheduleHighQualityGrooveVoice(
+                                context,
+                                audioRuntimeRef.current,
+                                eventTime,
+                                item,
+                                volumeRef.current,
+                                runOutput.input,
+                            );
+                            queuedEventsRef.current.push({ id: item.id, time: eventTime, position: item.position });
+                        });
                 }
 
                 const phaseDelay = Math.max(0, (nextBarTimeRef.current - context.currentTime) * 1000);
@@ -435,6 +522,7 @@ const GrooveLabPage: React.FC = () => {
             queuedEventsRef.current = queuedEventsRef.current.filter((item) => item.time > now - 0.08);
             const current = queuedEventsRef.current.find((item) => Math.abs(item.time - now) < 0.055);
             setActiveEventId(current?.id ?? null);
+            setActiveRhythmPosition(current?.position ?? null);
             animationFrame = window.requestAnimationFrame(animate);
         };
 
@@ -450,7 +538,7 @@ const GrooveLabPage: React.FC = () => {
             nextBarTimeRef.current = context.currentTime + 0.07;
             runOutput.dispose();
         };
-    }, [feel, isPlaying, loopBars, loopBeats, practiceMode, presetId]);
+    }, [feel, isPlaying, loopBars, loopBeats, practiceMode, presetId, swingLayers]);
 
     useEffect(() => () => {
         if (tapResetTimerRef.current !== null) window.clearTimeout(tapResetTimerRef.current);
@@ -468,6 +556,29 @@ const GrooveLabPage: React.FC = () => {
         const nextPreset = getGroovePreset(nextPresetId);
         setPresetId(nextPresetId);
         setFeel(nextPreset.recommendedFeel);
+    };
+
+    const showSwingEnsemble = () => {
+        if (presetId === 'swing-ensemble') return;
+        const ensemble = getGroovePreset('swing-ensemble');
+        setPresetId(ensemble.id);
+        setFeel(ensemble.recommendedFeel);
+    };
+
+    const toggleSwingLayer = (layerId: SwingLayerId) => {
+        showSwingEnsemble();
+        setSwingLayers((current) => ({ ...current, [layerId]: !current[layerId] }));
+    };
+
+    const toggleAllSwingInstruments = () => {
+        showSwingEnsemble();
+        setSwingLayers((current) => {
+            const nextEnabled = !SWING_INSTRUMENT_LAYER_IDS.every((layerId) => current[layerId]);
+            return SWING_INSTRUMENT_LAYER_IDS.reduce(
+                (next, layerId) => ({ ...next, [layerId]: nextEnabled }),
+                { ...current },
+            );
+        });
     };
 
     const selectFamily = (familyId: GrooveFamilyId) => {
@@ -494,7 +605,7 @@ const GrooveLabPage: React.FC = () => {
             <div className="groove-lab-content">
                 <section className="groove-lab-intro" aria-labelledby="groove-lab-title">
                     <div>
-                        <span className="groove-lab-beta">MEASURED SYNTH · 17 VOICES · {GROOVE_PRESETS.length} PRESETS</span>
+                        <span className="groove-lab-beta">SAMPLED + MODELED · 17 VOICES · {GROOVE_PRESETS.length} PRESETS</span>
                         <h1 id="groove-lab-title">악기별 리듬 그루브 랩</h1>
                         <p>박자만 세지 않고, 리듬 계열마다 악기가 맡는 위치·강세·음높이 표현을 반복합니다.</p>
                     </div>
@@ -535,7 +646,7 @@ const GrooveLabPage: React.FC = () => {
                     <div className="groove-lab-control-head">
                         <div>
                             <span>표현 방식</span>
-                            <strong>{preset.fixedTripletGrid || preset.timingLocked ? '프리셋 고정' : preset.id === 'swing-ensemble' ? '앙상블의 라이드 분할만 비교합니다' : hasRatioControl ? '이 악기의 분할만 비교합니다' : '박·강세·발음으로 표현합니다'}</strong>
+                            <strong>{preset.fixedTripletGrid || preset.timingLocked ? '프리셋 고정' : preset.id === 'swing-ensemble' ? '라이드와 가이드의 분할을 비교합니다' : hasRatioControl ? '이 악기의 분할만 비교합니다' : '박·강세·발음으로 표현합니다'}</strong>
                         </div>
                         <label>
                             음량 {volume}%
@@ -570,7 +681,7 @@ const GrooveLabPage: React.FC = () => {
                             : !hasRatioControl
                                 ? '이 악기는 라이드의 롱–숏 비율을 적용하지 않습니다. 박의 위치, 강세와 발음 길이로 역할을 표현합니다.'
                             : feel === 'adaptive'
-                                ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 베이스와 기타의 네 박은 균등하게 유지하며, 솔리스트의 비율과 같다는 뜻은 아닙니다.`
+                            ? `드러머 라이드 측정 경향을 교육용으로 보간해 ${bpm} BPM에서 ${swingRatio.toFixed(2)}:1로 재생합니다. 이 간격은 라이드와 설명 가이드의 OFF에만 적용하고 베이스와 기타의 네 박은 균등하게 유지하며, 솔리스트의 비율과 같다는 뜻은 아닙니다.`
                                 : feel === 'triplet'
                                     ? '첫 음 2칸 + 둘째 음 1칸의 정확한 2:1 해석입니다.'
                                     : '두 8분음표를 같은 길이로 재생합니다.'}
@@ -611,34 +722,95 @@ const GrooveLabPage: React.FC = () => {
                         </div>
                         <code>{preset.pattern}</code>
                     </div>
-                    <div
-                        className="groove-lab-track"
-                        aria-hidden="true"
-                        style={{ '--beat-grid': `${100 / loopBeats}%` } as React.CSSProperties}
-                    >
-                        {Array.from({ length: loopBeats }, (_, beat) => beat).map((beat) => (
-                            <span
-                                key={beat}
-                                className={`groove-lab-beat-line ${beat > 0 && beat % beatsPerBar === 0 ? 'is-bar-start' : ''}`}
-                                style={{ left: `${(beat / loopBeats) * 100}%` }}
+                    {presetId === 'swing-ensemble' ? (
+                        <div className="groove-lab-ensemble groove-lab-rhythm-score" aria-label="재즈 스윙 4분의 4박자 리듬 악보">
+                            <div className="groove-lab-score-guide">
+                                <strong>
+                                    {SWING_LAYERS
+                                        .filter((layer) => layer.id !== 'guide' && swingLayers[layer.id])
+                                        .map((layer) => layer.label)
+                                        .join(' + ') || '선택 악기 없음'}
+                                </strong>
+                                <span><b>ON(약) → OFF(강)</b> · 핵심 가이드 {swingLayers.guide ? 'ON' : 'OFF'} · 라이드 {swingRatio.toFixed(2)}:1</span>
+                            </div>
+                            <div
+                                className="groove-lab-score-bar"
+                                style={{ '--lane-color': '#f59e0b' } as React.CSSProperties}
                             >
-                                <b>{(beat % beatsPerBar) + 1}</b>
-                            </span>
-                        ))}
-                        {timelinePoints.map((group) => {
-                            const first = group[0];
-                            const isActive = group.some((item) => item.id === activeEventId);
-                            return (
+                                {ensembleRhythmBeats.map(({ beat, hasOnbeat, hasOffbeat, hasSubdivisionGuide, hasGuideBackbeat, backbeat, splitRatio, offbeatPosition, isTripletOffbeat }) => (
+                                    <div
+                                        className={`groove-lab-score-beat ${backbeat ? 'is-backbeat' : ''} ${hasSubdivisionGuide ? 'is-guide' : ''}`}
+                                        key={beat}
+                                        style={{
+                                            '--swing-first': `${splitRatio}fr`,
+                                            '--offbeat-position': `${8 + (offbeatPosition * 84)}%`,
+                                        } as React.CSSProperties}
+                                    >
+                                        {backbeat && <span className="groove-lab-backbeat">BACKBEAT · &gt;</span>}
+                                        {hasSubdivisionGuide && !backbeat && <span className="groove-lab-guide-mark">ON/OFF</span>}
+                                        {hasOffbeat && isTripletOffbeat && <div className="groove-lab-triplet-bracket"><span>3</span></div>}
+                                        <div className={`groove-lab-swing-pair ${hasOffbeat ? '' : 'is-quarter'}`}>
+                                            {hasOnbeat ? (
+                                                <span
+                                                    className={`groove-lab-note is-onbeat ${activeRhythmPosition === beat ? 'active' : ''}`}
+                                                    aria-label={`${beat + 1}박 온비트${hasSubdivisionGuide ? ' 분할 가이드' : ''}${hasGuideBackbeat || backbeat ? ' 백비트 강세' : ''}`}
+                                                >
+                                                    ♪
+                                                </span>
+                                            ) : <span className="groove-lab-rest is-quarter">쉼</span>}
+                                            {hasOffbeat && (
+                                                <span
+                                                    className={`groove-lab-note is-offbeat ${activeRhythmPosition !== null && Math.floor(activeRhythmPosition) === beat && activeRhythmPosition % 1 !== 0 ? 'active' : ''}`}
+                                                    aria-label={`${beat + 1}박 ${hasSubdivisionGuide ? '강한 가이드' : '스윙'} 오프비트`}
+                                                >
+                                                    {hasSubdivisionGuide && <i aria-hidden="true">&gt;</i>}
+                                                    ♪
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className={`groove-lab-count ${hasOffbeat ? '' : 'is-quarter'}`}>
+                                            <b>{beat + 1}{hasOnbeat ? ' · ON' : ' · 쉼'}</b>
+                                            {hasOffbeat && <i>&amp; · OFF</i>}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="groove-lab-rhythm-legend">
+                                <span><b>GUIDE</b> 매 박 ON/OFF + 2·4</span>
+                                <span><b>RIDE</b> 1 · 2-&amp; · 3 · 4-&amp;</span>
+                                <span><b>&gt; 2 · 4</b> 하이햇 백비트</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div
+                            className="groove-lab-track"
+                            aria-hidden="true"
+                            style={{ '--beat-grid': `${100 / loopBeats}%` } as React.CSSProperties}
+                        >
+                            {Array.from({ length: loopBeats }, (_, beat) => beat).map((beat) => (
                                 <span
-                                    key={first.position}
-                                    className={`groove-lab-hit groove-lab-hit--${first.voice} ${isActive ? 'active' : ''}`}
-                                    style={{ left: `${(first.position / loopBeats) * 100}%`, '--hit-color': preset.color } as React.CSSProperties}
+                                    key={beat}
+                                    className={`groove-lab-beat-line ${beat > 0 && beat % beatsPerBar === 0 ? 'is-bar-start' : ''}`}
+                                    style={{ left: `${(beat / loopBeats) * 100}%` }}
                                 >
-                                    {group.length > 1 && <small>{group.length}</small>}
+                                    <b>{(beat % beatsPerBar) + 1}</b>
                                 </span>
-                            );
-                        })}
-                    </div>
+                            ))}
+                            {timelinePoints.map((group) => {
+                                const first = group[0];
+                                const isActive = group.some((item) => item.id === activeEventId);
+                                return (
+                                    <span
+                                        key={first.position}
+                                        className={`groove-lab-hit groove-lab-hit--${first.voice} ${isActive ? 'active' : ''}`}
+                                        style={{ left: `${(first.position / loopBeats) * 100}%`, '--hit-color': preset.color } as React.CSSProperties}
+                                    >
+                                        {group.length > 1 && <small>{group.length}</small>}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
                     <p>{preset.explanation}</p>
                 </section>
 
@@ -674,7 +846,63 @@ const GrooveLabPage: React.FC = () => {
                         </p>
                     )}
                     <div className="groove-lab-preset-grid">
-                        {familyPresets.map((item) => (
+                        {preset.family === 'swing' ? (
+                            <>
+                                <button
+                                    type="button"
+                                    className={`groove-lab-preset-master ${allSwingInstrumentsOn ? 'active' : ''}`}
+                                    onClick={toggleAllSwingInstruments}
+                                    aria-label={allSwingInstrumentsOn ? '스윙 악기 전체 끄기' : '스윙 악기 전체 켜기'}
+                                    aria-pressed={allSwingInstrumentsOn}
+                                    style={{ '--preset-color': '#f59e0b' } as React.CSSProperties}
+                                >
+                                    <i className="ri-group-line" aria-hidden="true" />
+                                    <span>
+                                        <small>합주 제어</small>
+                                        <strong>{allSwingInstrumentsOn ? '전체 끄기' : '전체 켜기'}</strong>
+                                    </span>
+                                    {allSwingInstrumentsOn && <i className="ri-check-line groove-lab-check" aria-hidden="true" />}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={swingLayers.guide ? 'active' : ''}
+                                    onClick={() => toggleSwingLayer('guide')}
+                                    aria-label={`스윙 핵심 가이드 매 박 ON/OFF와 2·4 백비트 ${swingLayers.guide ? '끄기' : '켜기'}`}
+                                    aria-pressed={swingLayers.guide}
+                                    style={{ '--preset-color': '#38bdf8' } as React.CSSProperties}
+                                >
+                                    <i className="ri-volume-up-line" aria-hidden="true" />
+                                    <span>
+                                        <small>ON/OFF + BACKBEAT · {swingLayers.guide ? 'ON' : 'OFF'}</small>
+                                        <strong>스윙 핵심 가이드</strong>
+                                    </span>
+                                    {swingLayers.guide && <i className="ri-check-line groove-lab-check" aria-hidden="true" />}
+                                </button>
+                                {familyPresets.filter((item) => item.id !== 'swing-ensemble').map((item) => {
+                                    const layerId = SWING_PRESET_LAYERS[item.id];
+                                    if (!layerId) return null;
+                                    const isActive = swingLayers[layerId];
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            className={isActive ? 'active' : ''}
+                                            onClick={() => toggleSwingLayer(layerId)}
+                                            aria-label={`${item.instrument} ${item.shortName} ${isActive ? '끄기' : '켜기'}`}
+                                            aria-pressed={isActive}
+                                            style={{ '--preset-color': item.color } as React.CSSProperties}
+                                        >
+                                            <i className={item.icon} aria-hidden="true" />
+                                            <span>
+                                                <small>{isActive ? 'ON' : 'OFF'} · {item.instrument}</small>
+                                                <strong>{item.shortName}</strong>
+                                            </span>
+                                            {isActive && <i className="ri-check-line groove-lab-check" aria-hidden="true" />}
+                                        </button>
+                                    );
+                                })}
+                            </>
+                        ) : familyPresets.map((item) => (
                             <button
                                 key={item.id}
                                 type="button"

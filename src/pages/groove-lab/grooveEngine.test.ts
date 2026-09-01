@@ -13,14 +13,34 @@ import {
 } from './grooveEngine';
 
 describe('grooveEngine', () => {
-    it('opens jazz swing as an ensemble while keeping bass and guitar quarter notes even', () => {
+    it('builds the selectable jazz section from canonical ride, guide, bass, piano, and guitar layers', () => {
         const events = buildGrooveBar('swing-ensemble', 'adaptive', 140);
         const voices = new Set(events.map((item) => item.voice));
 
-        expect(voices).toEqual(new Set(['ride', 'hat', 'bass', 'guitar']));
+        expect(voices).toEqual(new Set(['click', 'ride', 'hat', 'bass', 'piano', 'guitar']));
         expect(events.filter((item) => item.voice === 'bass').map((item) => item.position)).toEqual([0, 1, 2, 3]);
         expect(events.filter((item) => item.voice === 'guitar').map((item) => item.position)).toEqual([0, 1, 2, 3]);
-        expect(events.filter((item) => item.voice === 'ride').some((item) => !Number.isInteger(item.position))).toBe(true);
+        const offbeat = getOffbeatPosition(getAdaptiveSwingRatio(140));
+        const guideEvents = events.filter((item) => item.id.startsWith('swing-guide-'));
+        expect(guideEvents.map((item) => item.position)).toEqual([
+            0, offbeat,
+            1, 1 + offbeat,
+            2, 2 + offbeat,
+            3, 3 + offbeat,
+        ]);
+        expect(guideEvents.find((item) => item.id === 'swing-guide-off-1')?.gain)
+            .toBeGreaterThan(guideEvents.find((item) => item.id === 'swing-guide-on-1')?.gain ?? 0);
+        expect(guideEvents.filter((item) => item.id.startsWith('swing-guide-backbeat-')).map((item) => item.position)).toEqual([1, 3]);
+        expect(events.filter((item) => item.voice === 'ride').map((item) => item.position)).toEqual([
+            0,
+            1,
+            1 + offbeat,
+            2,
+            3,
+            3 + offbeat,
+        ]);
+        expect(events.filter((item) => item.voice === 'hat').map((item) => item.position)).toEqual([1, 3]);
+        expect(events.filter((item) => item.voice === 'piano').map((item) => item.position)).toEqual([0, 1 + (2 / 3)]);
     });
 
     it('uses a tempo-dependent ride ratio with the reported 2:1 landmark near 200 BPM', () => {

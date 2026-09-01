@@ -14,9 +14,9 @@ const STRING_MODEL_PROFILE: VoiceModelProfile = {
 
 export const MODEL_PROFILES: Partial<Record<GrooveVoice, VoiceModelProfile>> = {
     bass: {
-        label: '베이스 웨이브가이드 축약',
-        implemented: '현 지연선 · 플럭 위치 · 두 편극 · 전기형 픽업 위치 콤 · 주법별 공격/감쇠',
-        omitted: '특정 실물 픽업 치수 · 앰프/캐비닛 · 실제 프렛/손가락 비선형',
+        label: '실음 콘트라베이스 + 전기 베이스 축약',
+        implemented: 'CC0 콘트라베이스 피치카토 실음 · 저음 E1–B1 워킹 · 2회 반복 타격 · 전기 베이스 현/픽업 모델',
+        omitted: '연주자별 프레이징 · 전 음역·전 강도의 다중 샘플 · 전기 베이스의 실제 프렛/손가락 비선형',
     },
     guitar: STRING_MODEL_PROFILE,
     'bossa-guitar': STRING_MODEL_PROFILE,

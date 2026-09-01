@@ -67,6 +67,9 @@ try {
         for (const [voice, variant] of cases) {
             const context = new OfflineAudioContext(1, sampleRate, sampleRate);
             const runtime = audio.createGrooveAudioRuntime();
+            if (voice === 'bass' && variant < 10) {
+                await audio.preloadGrooveAudio(context, runtime);
+            }
             const master = audio.createGrooveMasterOutput(context, context.destination);
             audio.scheduleGrooveVoice(
                 context,

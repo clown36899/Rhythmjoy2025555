@@ -33,6 +33,7 @@ export const RELIABLE_AUTHORITIES: ReadonlySet<EvidenceAuthority> = new Set([
 export const GROOVE_EVIDENCE_QUALITY: Readonly<Record<string, EvidenceQuality>> = {
     friberg: { authority: 'peer-reviewed', scopes: ['timing'], direct: true },
     butterfield: { authority: 'peer-reviewed', scopes: ['pattern', 'instrument-technique'], direct: true },
+    'carnegie-swing': { authority: 'professional-education', scopes: ['timing', 'pattern'], direct: true },
     columbia: { authority: 'university-research', scopes: ['pattern', 'instrument-technique'], direct: true },
     comping: { authority: 'professional-education', scopes: ['pattern'], direct: true },
     freddie: { authority: 'graduate-thesis', scopes: ['pattern', 'instrument-technique'], direct: true },

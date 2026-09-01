@@ -422,6 +422,320 @@
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
 }
 
+.groove-lab-ensemble {
+    margin: 15px 0 10px;
+    padding: 9px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 15px;
+    background: var(--bg-surface-1);
+    display: grid;
+    gap: 5px;
+}
+
+.groove-lab-score-guide {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 1px 3px 7px;
+    color: var(--text-tertiary);
+    font-size: 0.6rem;
+    font-weight: 750;
+}
+
+.groove-lab-score-guide strong {
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+}
+
+.groove-lab-score-guide b {
+    color: #f59e0b;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.9rem;
+}
+
+.groove-lab-ensemble-lane {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 102px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.groove-lab-ensemble-label {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 7px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 7px;
+}
+
+.groove-lab-ensemble-label > span {
+    --lane-color: #38bdf8;
+    grid-row: 1 / span 2;
+    width: 7px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--lane-color);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--lane-color) 35%, transparent);
+}
+
+.groove-lab-ensemble-label strong {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.groove-lab-ensemble-label small {
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-size: 0.53rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.groove-lab-score-bar {
+    min-width: 0;
+    min-height: 52px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-left: 3px solid var(--text-secondary);
+    border-right: 3px solid var(--text-secondary);
+    border-radius: 4px;
+    background:
+        linear-gradient(180deg, transparent 34%, rgba(148, 163, 184, 0.16) 35%, transparent 37%, transparent 61%, rgba(148, 163, 184, 0.16) 62%, transparent 64%),
+        var(--bg-surface-2);
+}
+
+.groove-lab-score-beat {
+    min-width: 0;
+    position: relative;
+    display: grid;
+    place-items: center;
+    border-left: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.groove-lab-score-beat.is-backbeat {
+    background: color-mix(in srgb, var(--lane-color) 6%, transparent);
+}
+
+.groove-lab-score-beat.is-guide {
+    background: rgba(56, 189, 248, 0.07);
+}
+
+.groove-lab-backbeat {
+    position: absolute;
+    top: 1px;
+    left: 50%;
+    z-index: 2;
+    color: var(--lane-color);
+    font-size: 0.72rem;
+    font-weight: 950;
+    letter-spacing: 0.02em;
+    transform: translateX(-50%);
+}
+
+.groove-lab-guide-mark {
+    position: absolute;
+    top: 1px;
+    left: 50%;
+    z-index: 2;
+    color: #38bdf8;
+    font-size: 0.48rem;
+    font-weight: 950;
+    letter-spacing: 0.02em;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.groove-lab-triplet-bracket {
+    position: absolute;
+    top: 8px;
+    left: 12%;
+    right: 12%;
+    height: 7px;
+    border-top: 1px solid var(--text-tertiary);
+}
+
+.groove-lab-triplet-bracket::before,
+.groove-lab-triplet-bracket::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    width: 1px;
+    height: 5px;
+    background: var(--text-tertiary);
+}
+
+.groove-lab-triplet-bracket::before { left: 0; }
+.groove-lab-triplet-bracket::after { right: 0; }
+
+.groove-lab-triplet-bracket span {
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    padding: 0 3px;
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    font-size: 0.52rem;
+    font-weight: 900;
+    transform: translateX(-50%);
+}
+
+.groove-lab-score-beat:first-child {
+    border-left: 0;
+}
+
+.groove-lab-swing-pair {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    position: relative;
+    display: block;
+    margin: 7px 0 0;
+}
+
+.groove-lab-swing-pair.is-quarter {
+    width: 100%;
+}
+
+.groove-lab-note,
+.groove-lab-rest {
+    position: absolute;
+    top: 50%;
+    color: var(--lane-color);
+    font-family: 'Apple Symbols', 'Noto Music', 'Bravura Text', Georgia, serif;
+    font-size: 1.55rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 0 9px color-mix(in srgb, var(--lane-color) 18%, transparent);
+    transform: translate(-50%, -50%);
+    transition: color 120ms ease, filter 120ms ease, transform 120ms ease;
+}
+
+.groove-lab-note i {
+    position: absolute;
+    top: -0.42rem;
+    left: 50%;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    font-size: 0.58rem;
+    font-style: normal;
+    font-weight: 950;
+    transform: translateX(-50%);
+}
+
+.groove-lab-rest {
+    color: var(--text-tertiary);
+    font-family: inherit;
+    font-size: 0.48rem;
+    font-weight: 850;
+    opacity: 0.7;
+}
+
+.groove-lab-rest.is-quarter,
+.groove-lab-empty-subdivision {
+    grid-column: 1;
+}
+
+.groove-lab-rest.is-quarter {
+    left: 8%;
+}
+
+.groove-lab-rest.is-triplet-rest {
+    grid-column: 2;
+    font-size: 0.42rem;
+    opacity: 0.3;
+}
+
+.groove-lab-empty-subdivision {
+    grid-column: 3;
+}
+
+.groove-lab-note.is-onbeat {
+    left: 8%;
+}
+
+.groove-lab-note.is-offbeat {
+    left: var(--offbeat-position, 66.666%);
+}
+
+.groove-lab-note.active {
+    color: #fff;
+    filter: drop-shadow(0 0 7px var(--lane-color));
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.groove-lab-count {
+    position: absolute;
+    bottom: 1px;
+    left: 0;
+    width: 100%;
+    display: block;
+    color: var(--text-tertiary);
+    font-size: 0.5rem;
+    font-weight: 850;
+    text-align: center;
+}
+
+.groove-lab-count b,
+.groove-lab-count i {
+    position: absolute;
+    transform: translateX(-50%);
+    font-style: normal;
+    font-weight: 850;
+}
+
+.groove-lab-count b {
+    left: 8%;
+}
+
+.groove-lab-count i {
+    left: var(--offbeat-position, 64%);
+}
+
+.groove-lab-count.is-quarter {
+    display: block;
+}
+
+.groove-lab-count i {
+    color: #f59e0b;
+    opacity: 0.78;
+}
+
+.groove-lab-rhythm-legend {
+    padding: 2px 3px 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.groove-lab-rhythm-legend span {
+    min-width: 0;
+    padding: 6px 4px;
+    border-radius: 7px;
+    background: rgba(148, 163, 184, 0.07);
+    color: var(--text-tertiary);
+    font-size: 0.5rem;
+    font-weight: 750;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.groove-lab-rhythm-legend b {
+    display: block;
+    margin-bottom: 2px;
+    color: #f59e0b;
+    font-size: 0.56rem;
+    font-weight: 950;
+}
+
 .groove-lab-track::after {
     content: '';
     position: absolute;
@@ -637,6 +951,10 @@
     color: var(--preset-color);
 }
 
+.groove-lab-preset-grid button.active small {
+    color: color-mix(in srgb, var(--preset-color) 80%, var(--text-secondary));
+}
+
 .groove-lab-evidence {
     order: 7;
     overflow: hidden;
@@ -764,6 +1082,80 @@
 
     .groove-lab-transport {
         min-height: 220px;
+    }
+}
+
+@media (max-width: 699px) {
+    .groove-lab-score-guide {
+        padding: 1px 2px 8px;
+        display: grid;
+        gap: 2px;
+    }
+
+    .groove-lab-score-guide strong {
+        font-size: 0.7rem;
+    }
+
+    .groove-lab-score-guide span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.61rem;
+    }
+
+    .groove-lab-rhythm-legend span {
+        font-size: 0.54rem;
+    }
+
+    .groove-lab-ensemble-lane {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
+    }
+
+    .groove-lab-ensemble-label {
+        grid-template-columns: 5px auto minmax(0, 1fr);
+        column-gap: 6px;
+    }
+
+    .groove-lab-ensemble-label > span {
+        grid-row: auto;
+        width: 5px;
+        height: 16px;
+    }
+
+    .groove-lab-ensemble-label strong {
+        font-size: 0.68rem;
+    }
+
+    .groove-lab-ensemble-label small {
+        font-size: 0.55rem;
+    }
+
+    .groove-lab-score-bar {
+        min-height: 64px;
+    }
+
+    .groove-lab-note {
+        font-size: 1.8rem;
+    }
+
+    .groove-lab-rest {
+        font-size: 0.52rem;
+    }
+
+    .groove-lab-rest.is-triplet-rest {
+        font-size: 0.46rem;
+    }
+
+    .groove-lab-backbeat {
+        top: 2px;
+        font-size: 0.43rem;
+    }
+
+    .groove-lab-count {
+        bottom: 2px;
+        font-size: 0.54rem;
     }
 }
 
