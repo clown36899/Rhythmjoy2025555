@@ -542,7 +542,7 @@ export default function EventsInfoPage() {
   }, [interactions?.event_favorites]);
 
   const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
-  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), true);
+  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const selectedActivity = normalizeActivityFilter(searchParams.get('type'));
   const selectedTag = searchParams.get('tag');
 
@@ -811,10 +811,12 @@ export default function EventsInfoPage() {
               ].filter(Boolean).join(' ')}
               onClick={() => handleDanceScopeClick(option.key)}
               aria-pressed={selectedDanceScope === option.key}
+              disabled={!option.publicAvailable}
+              aria-label={option.publicAvailable ? option.label : `${option.label} 준비중`}
               draggable={false}
             >
               <strong>{option.label}</strong>
-              <span>{option.desc}</span>
+              <span>{option.publicAvailable ? option.desc : '준비중'}</span>
             </button>
           ))}
         </div>

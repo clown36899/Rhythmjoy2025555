@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { normalizeDanceScope } from '../../utils/danceTaxonomy';
+import { normalizeVisibleDanceScope } from '../../utils/danceTaxonomy';
 import { useAuth } from '../../contexts/AuthContext';
 import { cafe24 } from '../../lib/cafe24Client';
 import BenefitKindSelector, { type ManualBenefitKind } from '../../components/BenefitKindSelector';
@@ -210,7 +210,7 @@ export default function OneDayRecruitRegistrationModal({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const danceScope = normalizeDanceScope(searchParams.get('dance'));
+  const danceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [logoFile, setLogoFile] = useState<File | null>(null);

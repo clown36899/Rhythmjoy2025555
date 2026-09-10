@@ -194,7 +194,7 @@ export default function CalendarPage() {
     ));
     const [danceScope, setDanceScope] = useState<CalendarDanceScope>(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        return normalizeVisibleDanceScope(urlParams.get('dance'), true);
+        return normalizeVisibleDanceScope(urlParams.get('dance'));
     });
     const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1035,7 +1035,7 @@ export default function CalendarPage() {
     };
 
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
-        if (scope === danceScope) return;
+        if (normalizeVisibleDanceScope(scope) !== scope || scope === danceScope) return;
 
         setDanceScope(scope);
         setSelectedDate(null);
@@ -1060,7 +1060,7 @@ export default function CalendarPage() {
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
         const rawDanceScope = urlParams.get('dance');
-        const nextScope = normalizeVisibleDanceScope(rawDanceScope, true);
+        const nextScope = normalizeVisibleDanceScope(rawDanceScope);
         if (nextScope !== danceScope) {
             setDanceScope(nextScope);
             setSelectedDate(null);
@@ -1325,11 +1325,13 @@ export default function CalendarPage() {
                                 ].filter(Boolean).join(' ')}
                                 onClick={() => handleDanceScopeClick(option.key)}
                                 aria-pressed={danceScope === option.key}
+                                disabled={!option.publicAvailable}
+                                aria-label={option.publicAvailable ? option.label : `${option.label} 준비중`}
                                 draggable={false}
-                                title={option.desc}
+                                title={option.publicAvailable ? option.desc : `${option.label} 준비중`}
                             >
                                 <strong>{option.label}</strong>
-                                <span>{option.desc}</span>
+                                <span>{option.publicAvailable ? option.desc : '준비중'}</span>
                             </button>
                         ))}
                     </div>

@@ -151,7 +151,7 @@ const EventList: React.FC<EventListProps> = ({
 
   // 1. Data Fetching Hook (TanStack Query)
   const { data: allEvents = [], isLoading: loading, refetch: refetchEvents } = useEventsQuery();
-  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), true);
+  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const events = useMemo(() => allEvents.filter(event => isEventInDanceScope(event, selectedDanceScope)), [allEvents, selectedDanceScope]);
   const {
     count: benefitEventUnreadCount,

@@ -84,18 +84,18 @@ const danceScopeLabels: Record<DanceScope, string> = {
   unknown: '장르 미정',
 };
 
-export const calendarDanceScopeOptions: Array<{ key: Exclude<DanceScope, 'unknown'>; label: string; desc: string }> = [
-  { key: 'swing', label: '스윙', desc: '린디합, 솔로재즈, 발보아, 블루스' },
-  { key: 'salsa', label: '살사', desc: '살사 일정만' },
-  { key: 'bachata', label: '바차타', desc: '바차타 일정만' },
-  { key: 'tango', label: '탱고', desc: '탱고, 밀롱가, 프랙티카' },
-  { key: 'street', label: '스트릿', desc: '힙합, 왁킹, 팝핑, 락킹' },
+export const calendarDanceScopeOptions: Array<{ key: Exclude<DanceScope, 'unknown'>; label: string; desc: string; publicAvailable: boolean }> = [
+  { key: 'swing', publicAvailable: true, label: '스윙', desc: '린디합, 솔로재즈, 발보아, 블루스' },
+  { key: 'salsa', publicAvailable: true, label: '살사', desc: '살사 일정만' },
+  { key: 'bachata', publicAvailable: false, label: '바차타', desc: '바차타 일정만' },
+  { key: 'tango', publicAvailable: false, label: '탱고', desc: '탱고, 밀롱가, 프랙티카' },
+  { key: 'street', publicAvailable: false, label: '스트릿', desc: '힙합, 왁킹, 팝핑, 락킹' },
 ];
 
 export function getVisibleDanceScopeOptions(canViewExpandedScopes = false) {
   return canViewExpandedScopes
     ? calendarDanceScopeOptions
-    : calendarDanceScopeOptions.filter((option) => option.key === 'swing');
+    : calendarDanceScopeOptions.filter((option) => option.publicAvailable);
 }
 
 const collectionScopePartnerGenres = new Set([
@@ -572,7 +572,7 @@ export function normalizeDanceScope(value: string | null | undefined): Exclude<D
 
 export function normalizeVisibleDanceScope(value: string | null | undefined, canViewExpandedScopes = false): Exclude<DanceScope, 'unknown'> {
   const scope = normalizeDanceScope(value);
-  return canViewExpandedScopes || scope === 'swing' ? scope : 'swing';
+  return canViewExpandedScopes || calendarDanceScopeOptions.some((option) => option.key === scope && option.publicAvailable) ? scope : 'swing';
 }
 
 export function inferDanceScopeForEvent(event: {

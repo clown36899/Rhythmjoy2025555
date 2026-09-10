@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import { normalizeDanceScope } from "../../../utils/danceTaxonomy";
+import { normalizeVisibleDanceScope } from "../../../utils/danceTaxonomy";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
 import {
@@ -562,7 +562,7 @@ export const HomeV2MenuPanel: React.FC = () => {
         const target = new URL(to, window.location.origin);
         if (['/', '/v2', '/calendar', '/events', '/oneday-recruits', '/practice'].includes(target.pathname)) {
             const selectedScope = new URLSearchParams(location.search).get('dance');
-            if (selectedScope) target.searchParams.set('dance', normalizeDanceScope(selectedScope));
+            if (selectedScope) target.searchParams.set('dance', normalizeVisibleDanceScope(selectedScope));
         }
         if (target.pathname === '/calendar') target.searchParams.set('nav', String(Date.now()));
         navigate(`${target.pathname}${target.search}${target.hash}`);

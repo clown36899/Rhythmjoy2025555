@@ -171,9 +171,11 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                     ].filter(Boolean).join(" ")}
                     onClick={() => onDanceScopeChange(option.key)}
                     aria-pressed={danceScope === option.key}
+                    disabled={!option.publicAvailable}
+                    aria-label={option.publicAvailable ? option.label : `${option.label} 준비중`}
                     draggable={false}
                 >
-                    {option.label}
+                    {option.label}{!option.publicAvailable && <span className="home-neb-scope-pending"> 준비중</span>}
                 </button>
             ))}
         </div>
@@ -250,7 +252,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {vis.show_new_events_banner && (
                 <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
-                    danceScope={normalizeVisibleDanceScope(searchParams.get('dance'), true)}
+                    danceScope={normalizeVisibleDanceScope(searchParams.get('dance'))}
                     onDanceScopeChange={(scope) => {
                         const next = new URLSearchParams(searchParams);
                         next.set('dance', scope);

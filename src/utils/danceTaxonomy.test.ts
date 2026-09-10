@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDanceGenreOptions,
+  getVisibleDanceScopeOptions,
+  normalizeVisibleDanceScope,
   getDanceCollectionScopeExclusionReason,
   resolveDanceGenreInput,
   suggestDanceGenres,
@@ -72,5 +74,22 @@ describe('danceTaxonomy advanced inference and tags', () => {
   it('tags academy regular classes correctly', () => {
     const result = inferDanceTaxonomy({ extracted_text: '원밀리언 5월 정규 시간표 및 월정액 안내' });
     expect(result.tags).toContain('academy_regular');
+  });
+});
+
+
+describe('public dance availability', () => {
+  it('keeps Swing and Salsa active while retaining preparing genre buttons', () => {
+    expect(getVisibleDanceScopeOptions().map(({ key }) => key)).toEqual(['swing', 'salsa']);
+    expect(getVisibleDanceScopeOptions(true).filter(({ publicAvailable }) => !publicAvailable).map(({ key }) => key))
+      .toEqual(['bachata', 'tango', 'street']);
+    expect(normalizeVisibleDanceScope('salsa')).toBe('salsa');
+    expect(normalizeVisibleDanceScope(null)).toBe('swing');
+    expect(normalizeVisibleDanceScope('unknown')).toBe('swing');
+  });
+
+  it.each(['bachata', 'tango', 'street'])('blocks public %s URLs while preserving authorized taxonomy editing', (scope) => {
+    expect(normalizeVisibleDanceScope(scope)).toBe('swing');
+    expect(normalizeVisibleDanceScope(scope, true)).toBe(scope);
   });
 });

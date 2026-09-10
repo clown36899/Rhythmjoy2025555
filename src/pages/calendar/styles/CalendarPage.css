@@ -951,3 +951,11 @@ html {
 }
 
 /* All other multi-language logic is now centralized in base.css */
+
+.calendar-dance-scope-btn:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+.calendar-dance-scope-btn:disabled span {
+    display: block;
+}

@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
-import { getDanceScopeLabel, normalizeDanceScope } from '../../utils/danceTaxonomy';
+import { getDanceScopeLabel, normalizeDanceScope, normalizeVisibleDanceScope } from '../../utils/danceTaxonomy';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -467,7 +467,7 @@ function OneDayLinkCard({
 
 export default function OneDayRecruitPage() {
   const [searchParams] = useSearchParams();
-  const danceScope = normalizeDanceScope(searchParams.get('dance'));
+  const danceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const genreLabel = getDanceScopeLabel(danceScope);
   const { user, isAdmin } = useAuth();
   const [dbLinks, setDbLinks] = useState<SwingOneDayRecruitLink[]>([]);
