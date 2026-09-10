@@ -10,6 +10,7 @@
 - 검증 중 발견: 목차 클릭 → HTML base=/가 해시 링크를 홈 기준으로 해석 → /#scene-learning 이동 → 장르 안내가 사라짐. index.html:8의 기존 SPA 기준 경로(3d33d060)는 유지하고 DanceSceneGuide의 모든 목차에 현재 pathname/search를 포함하도록 수정했다. 단일 장르 예외가 아니다.
 - 검증: 관련 Vitest 18건 및 실제 DB 연결 Playwright 19건 통과. 데스크탑·390px/320px 모바일, 지역 필터, 고정 원본 링크, 드래그 금지, 직접 URL/뒤로가기, 스윙 리스트 복귀, 포스터/소셜 표시, 목차 이동 확인. 새 회귀검사는 실제 base=/ 환경의 모든 목차 링크를 검사한다. 일정 등록·수집 스케줄·DB는 변경하지 않아 운영 데이터 쓰기나 수집 실행 검사는 제외했다.
 - 중복 미발생: 안내 콘텐츠만 danceSceneGuides에 소유하고 수집 실행/저장 허용은 기존 레지스트리에 유지한다. 자세한 결정: docs/decisions/2026-09-10-shared-dance-scene-guide.md.
+- 배포 확인 (2026-09-10): a1c6af62를 origin/codex/social-retention-recovery-20260910에 먼저 푸시한 뒤 npm run deploy:cafe24 완료. 서비스 active, 공개 version.json buildTime=1789048747429 일치. 운영 사이트의 살사 고정 링크 12개·모바일 가로 넘침 없음·스윙 복귀 후 포스터 29개 및 소셜 그룹 30개·런타임 오류 0을 확인했다. 자동수집 프로필/DB 구조는 변경하지 않았다.
 
 
 ## 2026-09-10 미수집 소셜 자동 삭제와 예약 수집 누락
