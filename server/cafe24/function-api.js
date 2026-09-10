@@ -1678,7 +1678,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
       location_link: String(structured.location_link || ''),
       category: activity === 'social' ? 'social' : activity === 'class' ? 'class' : 'event',
       activity_type: activity,
-      event_type: structured.event_type || (activity === 'social' ? '소셜' : '파티/행사'),
+      event_type: structured.event_type || eventTypeFromEventData({ activity_type: activity }),
       genre: structured.genre || structured.dance_genre || '스윙댄스',
       ...(structured.group_id ? { group_id: structured.group_id } : {}),
       dance_scope: structured.dance_scope || 'swing',

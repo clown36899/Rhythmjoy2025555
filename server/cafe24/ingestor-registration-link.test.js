@@ -959,7 +959,7 @@ describe('ingestor registration linkage', () => {
     };
     const validation = validateAutomaticRegistrationCandidate(candidate);
     expect(validation.reasons).toEqual([]);
-    expect(validation.eventData).toMatchObject({ dance_scope: 'salsa', category: 'class', location: '라틴 연습실', image: null });
+    expect(validation.eventData).toMatchObject({ dance_scope: 'salsa', category: 'class', event_type: '강습', location: '라틴 연습실', image: null });
     expect(validateAutomaticRegistrationCandidate({ ...candidate, auto_registration: { ...candidate.auto_registration, ai_verified: false } }).ok).toBe(false);
     expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, venue_provenance: 'source_registry' } }).reasons).toContain('source requires a venue explicitly verified from the post');
     expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, date: '2026-09-29' } }).ok).toBe(false);

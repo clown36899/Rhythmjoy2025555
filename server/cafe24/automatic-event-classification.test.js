@@ -55,6 +55,8 @@ describe('poster-optional automatic classes', () => {
     expect(result.reasons).toEqual([]);
     expect(result.ok).toBe(true);
     expect(result.eventData.image).toBe(poster_url);
+    expect(result.eventData).toMatchObject({ category: 'class', activity_type: 'class', event_type: '강습' });
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, poster_url, structured_data: { ...candidate.structured_data, event_type: '강습' } }).eventData.event_type).toBe('강습');
   });
   it('still rejects unverified AI and unsupported source evidence', () => {
     expect(validateAutomaticRegistrationCandidate({ ...candidate, auto_registration: { ...candidate.auto_registration, ai_verified: false } }).ok).toBe(false);
