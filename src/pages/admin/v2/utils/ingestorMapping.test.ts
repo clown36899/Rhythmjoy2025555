@@ -46,4 +46,25 @@ describe('mapIngestorEvent graduation metadata', () => {
       djs: [],
     });
   });
+
+  it('does not turn a class start into a social because its schedule mentions a later graduation party', () => {
+    const mapped = mapIngestorEvent({
+      extracted_text: '강습기간 8/30~10/18 매주 일요일 / 10/25 졸업파티',
+      structured_data: {
+        title: '네오스윙 141기 린디합 입문',
+        event_type: '강습',
+        activity_type: 'class',
+        category: 'class',
+        genre: '린디합',
+        location: '시옷쓰기 연습실',
+      },
+    }, []);
+
+    expect(mapped).toMatchObject({
+      category: 'class',
+      activity_type: 'class',
+      djs: [],
+      location: '시옷쓰기 연습실',
+    });
+  });
 });

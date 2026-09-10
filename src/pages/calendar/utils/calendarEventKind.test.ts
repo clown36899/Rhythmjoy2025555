@@ -64,6 +64,16 @@ describe('calendar event kind detection', () => {
     })).toBe('졸공');
   });
 
+  it('does not show a graduation label on a class that only mentions its later graduation date', () => {
+    expect(getCalendarSocialDisplayText({
+      title: '네오스윙 141기 린디합 입문',
+      description: '8/30~10/18 강습, 10/25 졸업파티',
+      category: 'class',
+      genre: '린디합',
+      activity_type: 'class',
+    })).toBe('');
+  });
+
   it('shows social closures as a plain closure label without a DJ prefix', () => {
     const closure = {
       title: '경성홀 일요 소셜 휴무',

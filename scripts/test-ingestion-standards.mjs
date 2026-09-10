@@ -74,6 +74,7 @@ import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
   mergeSeenInstagramPosts,
+  reopenFailedInstagramPosts,
   reorderSourcesForResume,
   selectUnseenInstagramPosts,
   shouldAdvanceInstagramCheckpoint,
@@ -100,7 +101,27 @@ assert.deepEqual(
   ['new', 'seen', 'old'],
   'completed Instagram posts must advance the per-source checkpoint without losing prior history',
 );
+assert.deepEqual(
+  reopenFailedInstagramPosts({
+    neo_swing: [
+      'https://www.instagram.com/neo_swing/p/failed/',
+      'https://www.instagram.com/neo_swing/p/complete',
+    ],
+    inthemood_sillim: ['https://www.instagram.com/dreambal_balboa/p/complete'],
+  }, [{
+    sourceId: 'neo_swing',
+    sourceUrl: 'https://www.instagram.com/neo_swing/p/failed',
+    reason: 'registration outcome is not present in the public event API',
+  }]),
+  {
+    neo_swing: ['https://www.instagram.com/neo_swing/p/complete'],
+    inthemood_sillim: ['https://www.instagram.com/dreambal_balboa/p/complete'],
+  },
+  'only an Instagram post whose automatic registration reconciliation failed must reopen for the next run',
+);
 assert.equal(shouldAdvanceInstagramCheckpoint(['swingpopseoul: one-day info has no explicit future date']), true, 'a handled parse miss must not freeze the whole Instagram source checkpoint');
+assert.equal(shouldAdvanceInstagramCheckpoint([], true), false, 'an access failure must not mark the source posts as completed');
+assert.equal(shouldAdvanceInstagramCheckpoint([], false), true, 'successful sources still advance their checkpoint');
 assert.equal(shouldAdvanceInstagramCheckpoint(['post candidate-id: HTTP 500']), false, 'a persistence failure must keep the Instagram post retryable');
 assert.equal(shouldAdvanceInstagramCheckpoint(['auto-register candidate-id: HTTP 422']), false, 'an automatic-registration failure must keep the Instagram post retryable');
 assert.deepEqual(
@@ -136,6 +157,16 @@ assert.equal(
   isInstagramCaptionClassHeadline('Kyungsunghall_ 경성홀 on Instagram: "This Week at Kyungsung Hall\n토요 소셜 DJ 북실"'),
   false,
   'a weekly social headline must not become a class because of its body text',
+);
+assert.equal(
+  isInstagramCaptionClassHeadline('Instagram의 네오스윙 neoswing 스윙댄스 동호회님 : "💖 네오스윙 141기 린디합 입문\n강습기간 8/30 ~ 10/18 / 10/25 졸업파티"'),
+  true,
+  'a localized dance-level class headline must outrank a later graduation-party mention',
+);
+assert.equal(
+  isInstagramCaptionClassHeadline('Instagram의 네오스윙 neoswing 스윙댄스 동호회님 : "💖 네오스윙 141기 린디합 베이직\n강습기간 8/30 ~ 10/18 / 10/25 졸업파티"'),
+  true,
+  'a localized dance basic-course headline must remain a class headline',
 );
 assert.equal(
   instagramPostMatchesExpectedHandle('https://www.instagram.com/kyungsunghall/p/Dbu7wPmSv9d/', 'kyungsunghall'),
@@ -1177,6 +1208,49 @@ assert.equal(
   }),
   null,
   'a cohort number without graduation evidence must not be reclassified',
+);
+const neoWorkshopWithLaterGraduation = prepareCandidate({
+  keyword: '네오스윙 인스타그램',
+  source_id: 'neo_swing',
+  source_url: 'https://www.instagram.com/neo_swing/p/DchiYdOPwQM',
+  poster_url: 'https://example.com/neo-workshop.jpg',
+  extracted_text: [
+    '네오스윙 141기 린디합 워크숍',
+    '강습기간 : 8/30 ~ 10/11 (4주) 매주 일요일 / 10/25 졸업파티',
+    '강습장소 : 흐름스토디오, 바운스연습실',
+  ].join('\n'),
+  structured_data: {
+    title: '네오스윙 141기 린디합 워크숍',
+    date: '2026-08-30',
+    location: '흐름스토디오, 바운스연습실',
+    venue_name: '흐름스토디오, 바운스연습실',
+    venue_provenance: 'source_text',
+    event_type: '강습',
+    activity_type: 'class',
+    category: 'class',
+    genre: '린디합',
+    djs: [],
+  },
+}, { today: '2026-08-28' });
+assert.deepEqual(
+  {
+    category: neoWorkshopWithLaterGraduation.candidate.structured_data.category,
+    activity_type: neoWorkshopWithLaterGraduation.candidate.structured_data.activity_type,
+    event_type: neoWorkshopWithLaterGraduation.candidate.structured_data.event_type,
+    djs: neoWorkshopWithLaterGraduation.candidate.structured_data.djs,
+  },
+  {
+    category: 'class',
+    activity_type: 'class',
+    event_type: '강습',
+    djs: [],
+  },
+  'a later graduation party in a course schedule must not rewrite the course start as a graduation social',
+);
+assert.equal(
+  getGraduationEventMetadata(neoWorkshopWithLaterGraduation.candidate),
+  null,
+  'a class candidate must not qualify for the graduation auto-registration bypass from body text alone',
 );
 const normalizedLegacySocialGenre = prepareCandidate(baseCandidate({
   structured_data: {
@@ -2304,6 +2378,32 @@ assert.deepEqual(
   filterDeadlineOnlyEventDates(['2026-08-22'], inTheMoodSlowSocialNotice, 'social'),
   ['2026-08-22'],
   'the InTheMood social date must survive deadline filtering',
+);
+const inTheMoodOcrSocialSections = extractDatedDjSections({
+  text: '2026 8.28 FRI DJ 훔머 Balboa BalboaSocial Social DreamBal Friday Night',
+  today: '2026-08-28',
+});
+assert.deepEqual(
+  inTheMoodOcrSocialSections.map(({ date, segment }) => ({
+    date,
+    dj: stripRepeatedDjContext(segment.match(/DJ\s+(.+)$/i)?.[1] || ''),
+  })),
+  [{ date: '2026-08-28', dj: '훔머' }],
+  'an OCR poster date with a space after the year and duplicated BalboaSocial labels must retain its date and DJ',
+);
+assert.equal(
+  stripRepeatedDjContext('훔머 11시까지 소셜은 이어집니다'),
+  '훔머',
+  'a date-only event must not retain an operating-time phrase inside the DJ name',
+);
+assert.deepEqual(
+  alignYearlessDatesToPublication(
+    ['2026-08-28'],
+    '2026 8.28 FRI DJ 훔머',
+    '2025-08-26T00:00:00.000Z',
+  ),
+  ['2026-08-28'],
+  'a space-separated OCR year must still make the poster date explicit instead of rebasing it to the publication year',
 );
 const nativeVenueAliases = [
   [/봉천\s*살롱|bongcheon/i, '봉천살롱'],

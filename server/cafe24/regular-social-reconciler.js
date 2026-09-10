@@ -40,10 +40,6 @@ function isGenerated(event) {
     || String(event?.id || '').startsWith('regular-social:');
 }
 
-function isMaterializedClosure(event) {
-  return event?.automation?.exception_type === 'closure';
-}
-
 function recurringIdentity(value) {
   return normalize(value)
     .replace(/(?:월요일|화요일|수요일|목요일|금요일|토요일|일요일|월요|화요|수요|목요|금요|토요|일요)/g, '')
@@ -226,7 +222,7 @@ export function planRegularSocialReconciliation({
       const desiredExceptionId = closure?.externalId || closure?.id || override?.externalId || '';
       const desiredExceptionType = closure ? 'closure' : override ? 'override' : '';
       const desiredSourceUrl = closure?.sourceUrl || override?.sourceUrl || rule.sourceUrl || '';
-      const desiredLinkName = desiredSourceUrl ? (closure ? '휴무 공지' : '공식 안내') : '';
+      const desiredLinkName = desiredSourceUrl ? (closure ? '휴무 공지' : override?.sourceUrl || rule.officialApi ? '공식 안내' : '수집 위치 바로가기') : '';
       const desiredDescription = closure
         ? closure.description || `${key} ${rule.title} 휴무 공지입니다. 자세한 내용은 공식 안내를 확인해주세요.`
         : override?.description
@@ -306,20 +302,29 @@ export function planRegularSocialReconciliation({
     const alreadyRemoved = removes.some((item) => String(item.id) === String(generated.id));
     if (
       eventDate(generated) < today
-      && isMaterializedClosure(generated)
-      && consideredIds.has(String(generated.id))
     ) {
+      const explicit = explicitEvents.some((event) => eventDate(event) === eventDate(generated)
+        && matchesRule(event, { title: generated.title, location: generated.location || generated.venue_name }));
+      if (explicit && !alreadyRemoved) {
+        removes.push(generated);
+        continue;
+      }
       if (
         !alreadyRemoved
         && !retained.some((item) => String(item.id) === String(generated.id))
       ) {
-        retained.push(generated);
+        const rule = effectiveRules.find((item) => item.id === generated.automation?.rule_id
+          || String(generated.id) === `regular-social:${item.id}:${eventDate(generated)}`);
+        if (!generated.link1 && rule?.sourceUrl) {
+          creates.push({ ...generated, link1: rule.sourceUrl, link_name1: '수집 위치 바로가기' });
+        } else {
+          retained.push(generated);
+        }
       }
       continue;
     }
     if (
-      eventDate(generated) < today
-      || eventDate(generated) > dateKey(new Date(endMs))
+      eventDate(generated) > dateKey(new Date(endMs))
       || !consideredIds.has(String(generated.id))
     ) {
       if (!alreadyRemoved) removes.push(generated);
@@ -407,10 +412,13 @@ export async function runRegularSocialReconciliation({ horizonDays = 90, dryRun 
     horizonDays: Math.max(30, Math.min(120, Number(horizonDays || 90))),
   });
   if (!dryRun) {
-    if (plan.removes.length) await deleteCafe24TableRows('events', plan.removes);
+    // Replace the same deterministic ID by upsert, so a failed save cannot erase it.
     for (const event of plan.creates) {
       await saveCafe24TableRow('events', event, ['id']);
     }
+    const savedIds = new Set(plan.creates.map((event) => String(event.id)));
+    const obsolete = plan.removes.filter((event) => !savedIds.has(String(event.id)));
+    if (obsolete.length) await deleteCafe24TableRows('events', obsolete);
   }
   return {
     status: 'ok',

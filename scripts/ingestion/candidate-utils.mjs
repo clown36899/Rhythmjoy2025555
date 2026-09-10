@@ -9,7 +9,10 @@ import {
   buildIngestionContentCollisionId,
   ingestionRowsContentCompatible,
 } from '../../server/cafe24/ingestion-duplicate-identity.js';
-import { getGraduationEventMetadata } from '../../src/utils/graduationEvent.mjs';
+import {
+  getGraduationEventMetadata,
+  isClassLikeEventHeadline,
+} from '../../src/utils/graduationEvent.mjs';
 
 const activityLabels = {
   class: '강습',
@@ -443,7 +446,7 @@ export function alignYearlessDatesToPublication(dates = [], text = '', published
     const [candidate, year, month, day] = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/) || [];
     if (!month || !day) return date;
     const explicitCandidatePattern = new RegExp(
-      `${year}\\s*[.\\-/년]\\s*0?${Number(month)}\\s*[.\\-/월]\\s*0?${Number(day)}(?:\\s*일)?(?:\\D|$)`,
+      `${year}(?:\\s*[.\\-/년]\\s*|\\s+)0?${Number(month)}\\s*[.\\-/월]\\s*0?${Number(day)}(?:\\s*일)?(?:\\D|$)`,
     );
     if (explicitCandidatePattern.test(sourceText)) return candidate;
     return [publicationYear - 1, publicationYear, publicationYear + 1]
@@ -477,7 +480,8 @@ export function stripRepeatedDjContext(value = '') {
       /^([A-Za-z0-9가-힣._&+\-/]{1,20})\s+스윙타운\s+(?:D\s*J|디제이)\s+\1(?:\s.*)?$/i,
       '$1',
     )
-    .replace(/\s+(?:balboa|ballba|lindy\s*hop|swing|slow)\s+social\b.*$/i, '')
+    .replace(/\s+(?:balboa|ballba|lindy\s*hop|swing|slow)(?:\s+(?:balboa|ballba|lindy\s*hop|swing|slow))?\s*social\b.*$/i, '')
+    .replace(/\s+\d{1,2}\s*시(?:\s*\d{1,2}\s*분)?\s*(?:까지|부터)?.*$/i, '')
     .trim();
 }
 
@@ -1009,9 +1013,7 @@ export function extractInstagramCaptionHeadline(value = '') {
 }
 
 export function isInstagramCaptionClassHeadline(value = '') {
-  return /(?:워크샵|워크숍|특강|workshop|클래스|class|강습|수업|레슨)/i.test(
-    extractInstagramCaptionHeadline(value),
-  );
+  return isClassLikeEventHeadline(extractInstagramCaptionHeadline(value));
 }
 
 export function textSimilarity(a, b) {

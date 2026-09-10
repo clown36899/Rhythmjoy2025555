@@ -1942,6 +1942,7 @@ export default function EventDetailModal({
               {selectedEvent.link1 && (
                 <a
                   href={selectedEvent.link1}
+                  draggable={false}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="EDM-footerLink"

@@ -74,8 +74,29 @@ export function mergeSeenInstagramPosts(seenPosts = [], completedPosts = [], max
   ])].slice(0, Math.max(1, Number(maxEntries) || 32));
 }
 
-export function shouldAdvanceInstagramCheckpoint(sourceIssues = []) {
-  return !sourceIssues.some((issue) => /^(?:post|auto-register)\s+/i.test(String(issue || '').trim()));
+function comparableInstagramPostUrl(value = '') {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
+export function reopenFailedInstagramPosts(seenPostsBySource = {}, failures = []) {
+  const next = Object.fromEntries(Object.entries(seenPostsBySource || {}).map(([sourceId, urls]) => [
+    String(sourceId),
+    Array.isArray(urls) ? [...urls] : [],
+  ]));
+
+  for (const failure of failures || []) {
+    const sourceId = String(failure?.sourceId || '').trim();
+    const failedUrl = comparableInstagramPostUrl(failure?.sourceUrl);
+    if (!sourceId || !failedUrl || !Array.isArray(next[sourceId])) continue;
+    next[sourceId] = next[sourceId].filter((url) => comparableInstagramPostUrl(url) !== failedUrl);
+    if (next[sourceId].length === 0) delete next[sourceId];
+  }
+
+  return next;
+}
+
+export function shouldAdvanceInstagramCheckpoint(sourceIssues = [], accessFailed = false) {
+  return !accessFailed && !sourceIssues.some((issue) => /^(?:post|auto-register)\s+/i.test(String(issue || '').trim()));
 }
 
 export function buildIngestionProgressState({

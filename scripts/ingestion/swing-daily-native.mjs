@@ -68,6 +68,7 @@ import {
   loadIngestionProgress,
   mergeSeenInstagramPosts,
   progressFileForPriority,
+  reopenFailedInstagramPosts,
   reorderSourcesForResume,
   saveIngestionProgress,
   selectUnseenInstagramPosts,
@@ -416,6 +417,8 @@ function recordNoContent(sourceOrLabel, reason) {
 function recordAccessFailure(sourceOrLabel, reason) {
   const label = typeof sourceOrLabel === 'string' ? sourceOrLabel : sourceOrLabel.id;
   result.accessFailures.push(`${label}(${reason})`);
+  const sourceId = String(label).split(':')[0];
+  if (!result.remainingSources.includes(sourceId)) result.remainingSources.push(sourceId);
   recordPipelineBlocker(String(label).includes(':') ? 'extraction' : 'discovery', {
     sourceId: String(label).split(':')[0],
     reason,
@@ -605,7 +608,7 @@ function looksLikeBroadScheduleNotice(title = '', text = '') {
 
 function hasExplicitEventDateMention(text = '') {
   const raw = compactText(text);
-  return /20\d{2}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}/.test(raw)
+  return /20\d{2}(?:\s*[.\-/년]\s*|\s+)\d{1,2}\s*[.\-/월]\s*\d{1,2}/.test(raw)
     || /\d{1,2}\s*월\s*\d{1,2}/.test(raw)
     || /(?<!\d)\d{1,2}\s*[./]\s*\d{1,2}(?!\d)/.test(raw);
 }
@@ -881,7 +884,7 @@ function extractDates(text = '') {
       || /\d{1,2}\s*[:：]\s*\d{2}/.test(context);
   };
 
-  for (const match of raw.matchAll(/(20\d{2})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/g)) {
+  for (const match of raw.matchAll(/(20\d{2})(?:\s*[.\-/년]\s*|\s+)(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/g)) {
     dates.push(isoDate(match[1], match[2], match[3]));
   }
 
@@ -1543,7 +1546,9 @@ async function scrapeInstagramPost(page, url, source) {
     })}`);
   }
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
-  if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
+  if (quoted?.[1] && quoted[1].length > text.length / 2) {
+    text = [imageAltText, quoted[1]].filter(Boolean).join('\n');
+  }
   const expectedHandles = expectedInstagramHandlesForSource(source);
   if (!instagramAuthorMatches({
     expectedHandles,
@@ -2671,6 +2676,9 @@ function recordUnpersistedCandidate(candidate) {
     source_id: candidate.source_id || null,
     source_url: candidate.source_url,
     poster_url: candidate.poster_url || null,
+    extracted_text: candidate.extracted_text || '',
+    discovery_source_type: candidate.discovery_source_type || null,
+    published_at: candidate.published_at || null,
     structured_data: candidate.structured_data,
     auto_registration: candidate.auto_registration || null,
   } : `${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
@@ -3448,7 +3456,7 @@ async function main() {
         }
         if (
           progressTrackingEnabled
-          && shouldAdvanceInstagramCheckpoint(result.issues.slice(issueCountBeforeSource))
+          && shouldAdvanceInstagramCheckpoint(result.issues.slice(issueCountBeforeSource), hasAccessFailure(source.id))
           && instagramPendingSeenPosts[source.id]?.length
         ) {
           instagramSeenPosts[source.id] = mergeSeenInstagramPosts(
@@ -3479,10 +3487,17 @@ async function main() {
     await settleWithin(browserSession.close(), 2_000);
   }
 
+  await reconcileExpectedAutomaticSocials();
+  if (progressEnabled && result.pipeline.reconciliation.failures.length) {
+    instagramSeenPosts = reopenFailedInstagramPosts(
+      instagramSeenPosts,
+      result.pipeline.reconciliation.failures,
+    );
+    log(`instagram retry reopened ${result.pipeline.reconciliation.failures.length} automatic-registration failure(s)`);
+  }
+
   const partialRun = result.deadlineReached || result.remainingSources.length > 0;
   await checkpointProgress(partialRun ? result.remainingSources : [], !partialRun);
-
-  await reconcileExpectedAutomaticSocials();
 
   printSummary();
 }

@@ -1,3 +1,5 @@
+import { findSourceById } from '../../scripts/ingestion/collection-registry.mjs';
+
 export const REGULAR_SOCIAL_RULES = Object.freeze([
   { id: 'kyungsung-tue', title: '경성홀 화요 소셜', weekday: 2, time: '20:00', location: '경성홀', sourceId: 'kyungsunghall' },
   { id: 'kyungsung-sat', title: '경성홀 토요 소셜', weekday: 6, time: '19:30', location: '경성홀', sourceId: 'kyungsunghall' },
@@ -14,4 +16,4 @@ export const REGULAR_SOCIAL_RULES = Object.freeze([
   { id: 'dreambal-fri', title: '드림발 금요 소셜', weekday: 5, time: '19:30', location: '인더무드신림', sourceId: 'inthemood_sillim' },
   { id: 'dreambal-sun', title: '드림발 일요 소셜', weekday: 0, time: '19:00', location: '인더무드신림', sourceId: 'inthemood_sillim' },
   { id: 'socialclub-wed', title: 'Balboa in Social Club', weekday: 3, time: '20:00', location: '소셜클럽', sourceId: 'sosyalclub_swing' },
-]);
+].map((rule) => ({ ...rule, sourceUrl: findSourceById(rule.sourceId)?.url || '' })));
