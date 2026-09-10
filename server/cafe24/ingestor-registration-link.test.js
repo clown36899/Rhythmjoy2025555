@@ -946,6 +946,27 @@ describe('ingestor registration linkage', () => {
     }
   });
 
+  it.each(['sda-lessons-cafe', 'everlatin-lessons-cafe', 'suwon-cuba-lessons-cafe'])('registers verified salsa classes without requiring a poster: %s', (sourceId) => {
+    const candidate = {
+      status: 'pending', source_id: sourceId, poster_url: null,
+      extracted_text: '2026년 9월 15일 살사 초급 강습. 수업 장소: 라틴 연습실.',
+      auto_registration: { ready: true, mode: 'shadow', source_id: sourceId, ai_verified: true, ai_confidence: 0.99 },
+      structured_data: {
+        title: '살사 초급 강습', date: '2026-09-15', activity_type: 'class', dance_scope: 'salsa',
+        genre: '살사', venue_name: '라틴 연습실', venue_provenance: 'source_text',
+        ai_evidence_quotes: ['2026년 9월 15일', '살사 초급 강습', '라틴 연습실'],
+      },
+    };
+    const validation = validateAutomaticRegistrationCandidate(candidate);
+    expect(validation.reasons).toEqual([]);
+    expect(validation.eventData).toMatchObject({ dance_scope: 'salsa', category: 'class', location: '라틴 연습실', image: null });
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, auto_registration: { ...candidate.auto_registration, ai_verified: false } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, venue_provenance: 'source_registry' } }).reasons).toContain('source requires a venue explicitly verified from the post');
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, date: '2026-09-29' } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, activity_type: 'social' } }).reasons).toContain('source/activity is not server-enrolled');
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, status: 'collected', is_collected: true }).ok).toBe(false);
+  });
+
   it('accepts explicit dates without mistaking times for additional days', () => {
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-23')).toBe(false);
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-08')).toBe(true);

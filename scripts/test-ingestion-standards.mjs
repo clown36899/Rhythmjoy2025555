@@ -2680,4 +2680,24 @@ assert.ok(getAutomationSourceList('expanded-ingestion').some((source) => source.
 assert.ok(getAutomationSourceList('expanded-ingestion').filter((source) => source.discoveryOnly).every((source) => source.saveEnabled === false), 'discovery-only hubs should stay read-only even in expanded ingestion');
 assert.ok(getAutomationSourceList('expanded-ingestion').filter((source) => source.promotionPolicy === 'external_hub_only').every((source) => source.saveEnabled === false), 'external hubs should never become direct event rows');
 
+for (const [sourceId, url] of [
+  ['sda-lessons-cafe', 'https://m.cafe.daum.net/sdamu/Keq/2379'],
+  ['everlatin-lessons-cafe', 'https://cafe.naver.com/everlatin/2039'],
+  ['suwon-cuba-lessons-cafe', 'https://m.cafe.daum.net/salsadolce/ru8G/206'],
+]) {
+  const source = getAutomationSourceList('expanded-ingestion').find((item) => item.id === sourceId);
+  assert.equal(source?.saveEnabled, true);
+  assert.deepEqual(source?.autoRegistrationAllowedActivityTypes, ['class']);
+  assert.equal(findSourceByUrl(url)?.id, sourceId);
+  assert.equal(getAutomationSourceList('swing-daily').some((item) => item.id === sourceId), false);
+  const raw = { source_id: sourceId, source_url: url, poster_url: '', extracted_text: '2026년 9월 15일 살사 초급 강습. 장소 라틴 연습실.',
+    structured_data: { title: '살사 초급 강습', date: '2026-09-15', activity_type: 'class', dance_scope: 'salsa', location: '라틴 연습실', venue_provenance: 'source_text' } };
+  assert.equal(prepareCandidate(raw, { today: '2026-09-11' }).validation.ok, true);
+  assert.equal(evaluateAutoRegistrationReadiness(raw, { today: '2026-09-11' }).ready, true);
+  assert.equal(requiresAutomaticRegistrationAiAdjudication(raw), true);
+}
+assert.notEqual(findSourceByUrl('https://m.cafe.daum.net/sdamu/1nCx/1168')?.id, 'sda-lessons-cafe');
+assert.notEqual(findSourceByUrl('https://m.cafe.daum.net/salsadolce/jGg2/150')?.id, 'suwon-cuba-lessons-cafe');
+assert.equal(findSourceByUrl('https://cafe.naver.com/f-e/cafes/16855256/menus/1?viewType=L')?.id, 'everlatin-lessons-cafe');
+
 console.log('ingestion standards ok');
