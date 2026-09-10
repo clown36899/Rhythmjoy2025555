@@ -907,7 +907,7 @@ export function extractExpectedAutomaticSocialDates({
   }
 
   return [...dates]
-    .filter((date) => !closureDates.has(date))
+    .filter((date) => !closureDates.has(date) && !isDeadlineOnlyEventDate(raw, date, 'social'))
     .sort();
 }
 

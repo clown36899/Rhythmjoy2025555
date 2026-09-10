@@ -889,7 +889,7 @@ function extractDates(text = '') {
     dates.push(isoDate(match[1], match[2], match[3]));
   }
 
-  for (const match of raw.matchAll(/(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과|~|-)?\s*){1,8})/g)) {
+  for (const match of raw.matchAll(/(\d{1,2})\s*월\s*(\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과|~|-)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7})/g)) {
     const month = Number(match[1]);
     const year = getYearForMonth(month);
     const days = [...match[2].matchAll(/\d{1,2}/g)].map((day) => Number(day[0])).filter((day) => day >= 1 && day <= 31);
@@ -1042,7 +1042,7 @@ function explicitDateListEvidence(text = '', date = '') {
   if (!match) return '';
   const month = Number(match[1]);
   const day = Number(match[2]);
-  for (const dateList of String(text).matchAll(/\d{1,2}\s*월\s*(?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8}/g)) {
+  for (const dateList of String(text).matchAll(/\d{1,2}\s*월\s*\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7}/g)) {
     const value = dateList[0];
     const parsedMonth = Number(value.match(/^(\d{1,2})/)?.[1]);
     const days = [...value.replace(/^\d{1,2}\s*월/, '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));

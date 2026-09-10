@@ -921,6 +921,9 @@ describe('ingestor registration linkage', () => {
   });
 
   it('accepts either day from a compact multi-date source heading', () => {
+    expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-23')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-08')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('9월 8일, 23일 소셜', '2026-09-23')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-15')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-16')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('★8/14(금햎+광복의리듬 ) /15일 토정모 안내★', '2026-08-15')).toBe(true);

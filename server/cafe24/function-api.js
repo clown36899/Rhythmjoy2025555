@@ -1513,7 +1513,7 @@ export function evidenceExplicitlyContainsCandidateDate(evidence = '', date = ''
   ];
   if (directPatterns.some((pattern) => pattern.test(normalizedEvidence))) return true;
 
-  for (const match of normalizedEvidence.matchAll(/(?:^|\D)(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8})/g)) {
+  for (const match of normalizedEvidence.matchAll(/(?:^|\D)(\d{1,2})\s*월\s*(\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7})/g)) {
     if (Number(match[1]) !== month) continue;
     const listedDays = [...String(match[2] || '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));
     if (listedDays.includes(day)) return true;

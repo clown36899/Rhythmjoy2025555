@@ -444,6 +444,14 @@ DJ '이정' PM 8:15~10:15
   });
 
   it('accepts independently grounded sessions from a compact date heading', () => {
+    const deadlineText = '9월 9일 소셜클럽 소셜 DJ 쵸리 사전신청: 전일 9월 8일 23시까지';
+    const falseDate = validateAiSocialExtraction({ sourceText: deadlineText, today: '2026-09-07' }, {
+      decision: 'extract', confidence: 0.99,
+      events: [{ title: '소셜클럽 소셜', event_date: '2026-09-23', venue: '소셜클럽', djs: ['쵸리'], evidence_quotes: [deadlineText] }],
+      reasons: [],
+    }, { today: '2026-09-07' });
+    expect(falseDate.ok).toBe(false);
+
     const result = validateAiSocialExtraction({ sourceText, today: '2026-08-14' }, {
       decision: 'extract',
       confidence: 0.99,

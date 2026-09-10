@@ -2364,6 +2364,14 @@ assert.deepEqual(
   ['2026-08-30', '2026-10-18', '2026-10-25'],
   'candidate date selection must discard application dates before choosing the first class session',
 );
+assert.deepEqual(
+  extractExpectedAutomaticSocialDates({
+    today: '2026-09-07',
+    text: '날짜 : 9월 9일 소셜 DJ 쵸리\n사전신청 : 8,000원 (전일 9월 8일 23시까지(입금포함))\nSocial DJ 쵸리',
+  }),
+  ['2026-09-09'],
+  'completeness expectations must reuse deadline filtering even when the following section repeats Social DJ',
+);
 const inTheMoodSlowSocialNotice = [
   'Slow Social 2026.08.22(토)',
   '슬로우소셜 사전신청 https://litt.ly/sllim',

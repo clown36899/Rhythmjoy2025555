@@ -174,7 +174,7 @@ function evidenceMentionsDate(evidence, isoDate) {
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
   ].some((pattern) => pattern.test(evidence))) return true;
 
-  for (const list of String(evidence || '').matchAll(/(?:^|\D)(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8})/g)) {
+  for (const list of String(evidence || '').matchAll(/(?:^|\D)(\d{1,2})\s*월\s*(\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7})/g)) {
     if (Number(list[1]) !== Number(month)) continue;
     const listedDays = [...String(list[2] || '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));
     if (listedDays.includes(Number(day))) return true;
