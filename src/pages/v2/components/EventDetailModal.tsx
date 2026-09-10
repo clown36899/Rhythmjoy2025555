@@ -1,3 +1,4 @@
+import { getCalendarSocialDisplayText } from '../../calendar/utils/calendarEventKind';
 import { findSourceByUrl } from '../../../../scripts/ingestion/collection-registry.mjs';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -211,6 +212,13 @@ export default function EventDetailModal({
   const { showLoading, hideLoading } = useLoading();
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isDesktopDetail, setIsDesktopDetail] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => setIsDesktopDetail(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // View tracking Hook
   const eventId = event?.id ? String(event.id).replace('social-', '') : '';
@@ -1190,11 +1198,15 @@ export default function EventDetailModal({
   }
 
   const selectedEvent = draftEvent || event;
+  const socialDisplayText = isEventDetailSocialLikeEvent(selectedEvent) ? getCalendarSocialDisplayText(selectedEvent) : '';
+  const desktopTitle = socialDisplayText.startsWith('DJ ') && selectedEvent.title.startsWith(socialDisplayText + ' | ')
+    ? selectedEvent.title.slice(socialDisplayText.length + 3)
+    : selectedEvent.title;
   const collectionSource = isEventDetailSocialLikeEvent(selectedEvent)
     ? findSourceByUrl(selectedEvent.link1 || '')
     : null;
   const shortcutUrl = collectionSource?.url || selectedEvent.link1;
-  const shortcutLabel = collectionSource ? '수집 위치 바로가기' : (selectedEvent.link_name1 || '링크1');
+  const shortcutLabel = collectionSource ? (isDesktopDetail ? '소셜 게시판 바로가기' : '수집 위치 바로가기') : (selectedEvent.link_name1 || '링크1');
   const isSelectedEventOwner = Boolean(
     eventViewerUserId &&
     selectedEvent.user_id &&
@@ -1334,7 +1346,16 @@ export default function EventDetailModal({
                           />
                         )}
 
-                        <div className="EDM-imageWrapper">
+                        <div className="EDM-imageWrapper"
+                          role={isDesktopDetail && !isSelectionMode ? 'button' : undefined}
+                          tabIndex={isDesktopDetail && !isSelectionMode ? 0 : undefined}
+                          aria-label={isDesktopDetail && !isSelectionMode ? '포스터 크게 보기' : undefined}
+                          onClick={() => { if (isDesktopDetail && !isSelectionMode) setShowFullscreenImage(true); }}
+                          onKeyDown={(e) => {
+                            if (isDesktopDetail && !isSelectionMode && (e.key === 'Enter' || e.key === ' ')) {
+                              e.preventDefault(); setShowFullscreenImage(true);
+                            }
+                          }}>
                           <React.Fragment key="event-images">
                             {/* 1. Base Layer: Thumbnail */}
                             {thumbnailSrc && (
@@ -1386,7 +1407,7 @@ export default function EventDetailModal({
 
                             {/* Fallback if only HighRes exists and no thumbnail */}
                             {!thumbnailSrc && highResSrc && (
-                              <img
+                              <img draggable={false}
                                 src={highResSrc}
                                 alt={selectedEvent.title}
                                 className="EDM-imageContent"
@@ -1489,7 +1510,7 @@ export default function EventDetailModal({
                 >
                   <div className="EDM-titleGroup">
                     <h2 className="EDM-title">
-                      {selectedEvent.title}
+                      {isDesktopDetail && !isSelectionMode ? desktopTitle : selectedEvent.title}
                     </h2>
 
                     {isSelectionMode && (
@@ -1506,6 +1527,9 @@ export default function EventDetailModal({
                     )}
                   </div>
 
+                  {isDesktopDetail && socialDisplayText && !isSelectionMode && (
+                    <p className="EDM-djLine">{socialDisplayText}</p>
+                  )}
                   {/* 장르 표시 */}
                   {(() => {
                     const isSocial = isEventDetailSocialLikeEvent(selectedEvent);
@@ -1590,7 +1614,7 @@ export default function EventDetailModal({
                 {/* 세부 정보 */}
                 <div className="EDM-infoSection">
                   {(selectedEvent.location || isSelectionMode) && (
-                    <div className="EDM-infoItem">
+                    <div className="EDM-infoItem EDM-locationRow">
                       <i className="ri-map-pin-line EDM-infoIcon"></i>
                       <div className="EDM-infoContent-flex">
                         {(selectedEvent as any).venue_id ? (
@@ -1618,6 +1642,7 @@ export default function EventDetailModal({
                         )}
                         {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
                           <a
+                            draggable={false}
                             href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -1627,6 +1652,7 @@ export default function EventDetailModal({
                             <i className="ri-external-link-line"></i>
                           </a>
                         )}
+                        {isDesktopDetail && selectedEvent.address && <p className="EDM-venueAddress">{selectedEvent.address}</p>}
                         {isSelectionMode && (
                           <button
                             onClick={(e) => {
@@ -1643,7 +1669,7 @@ export default function EventDetailModal({
                     </div>
                   )}
 
-                  <div className="EDM-infoItem">
+                  <div className="EDM-infoItem EDM-dateRow">
                     <i className="ri-calendar-line EDM-infoIcon"></i>
                     <div className="EDM-infoContent-flex">
                       <span>
@@ -1809,6 +1835,7 @@ export default function EventDetailModal({
                                     if (part.match(/^https?:\/\//)) {
                                       return (
                                         <a
+                            draggable={false}
                                           key={idx}
                                           href={part}
                                           target="_blank"
@@ -1898,11 +1925,11 @@ export default function EventDetailModal({
                   {canViewAdminEventFields &&
                     (selectedEvent.organizer_name ||
                       selectedEvent.organizer_phone) && (
-                      <div className="EDM-adminSection">
-                        <div className="EDM-adminHeader">
+                      <details className="EDM-adminSection" open={!isDesktopDetail || isSelectionMode}>
+                        <summary className="EDM-adminHeader">
                           <i className="ri-admin-line"></i>
                           <span>등록자 정보 (관리자 전용)</span>
-                        </div>
+                        </summary>
                         {selectedEvent.organizer_name && (
                           <div className="EDM-adminItem">
                             <i className="ri-user-star-line"></i>
@@ -1915,7 +1942,7 @@ export default function EventDetailModal({
                             <span>{selectedEvent.organizer_phone}</span>
                           </div>
                         )}
-                      </div>
+                      </details>
                     )}
 
                   {/* Link section removed as per user request */}
@@ -1947,8 +1974,8 @@ export default function EventDetailModal({
             <div className="EDM-footerLinks">
               {shortcutUrl && (
                 <a
-                  href={shortcutUrl}
                   draggable={false}
+                  href={shortcutUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="EDM-footerLink"
@@ -1966,6 +1993,7 @@ export default function EventDetailModal({
               )}
               {selectedEvent.link2 && (
                 <a
+                  draggable={false}
                   href={selectedEvent.link2}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1984,6 +2012,7 @@ export default function EventDetailModal({
               )}
               {selectedEvent.link3 && (
                 <a
+                  draggable={false}
                   href={selectedEvent.link3}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -2018,6 +2047,11 @@ export default function EventDetailModal({
             </div>
 
             <div className="EDM-actionGroup">
+              {isDesktopDetail && onToggleFavorite && !isSelectionMode && (
+                <button className={`EDM-actionBtn EDM-desktopFavorite ${isFavorite ? 'is-active' : ''}`} title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}>
+                  <i className={`${isFavorite ? 'ri-star-fill' : 'ri-star-line'} EDM-actionIcon`} />
+                </button>
+              )}
               {!isSelectionMode && (
                 <button
                   onClick={async (e) => {
@@ -2193,7 +2227,7 @@ export default function EventDetailModal({
       </div>
 
       {showFullscreenImage &&
-        (selectedEvent.image_medium ||
+        (selectedEvent.image_full || selectedEvent.image_medium ||
           selectedEvent.image ||
           getEventThumbnail(
             selectedEvent,
@@ -2208,12 +2242,13 @@ export default function EventDetailModal({
               <button
                 onClick={() => setShowFullscreenImage(false)}
                 className="EDM-fullscreenCloseBtn"
+                aria-label="포스터 닫기"
               >
                 <i className="ri-close-line"></i>
               </button>
-              <img
+              <img draggable={false}
                 src={
-                  selectedEvent.image_medium ||
+                  selectedEvent.image_full || selectedEvent.image_medium ||
                   selectedEvent.image ||
                   getEventThumbnail(
                     selectedEvent,
