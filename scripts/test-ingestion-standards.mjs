@@ -1767,6 +1767,16 @@ assert.equal(
 assert.equal(swingFriendsCafeSource?.venue, '스윙타임');
 assert.equal(swingFriendsInstagramSource?.venue, '스윙타임');
 assert.equal(swingScandalSource?.venue, '사보이볼룸');
+assert.equal(
+  findSourceByUrl('https://cafe.naver.com/f-e/cafes/14933600/articles/102739')?.url,
+  'https://cafe.naver.com/f-e/cafes/14933600/menus/501?viewType=I',
+  'a Savoy social shortcut must resolve to the registered notice board, not its individual article',
+);
+assert.equal(
+  findSourceByUrl('https://www.instagram.com/thesocialcluba/p/Dc-fCifk6Aq')?.url,
+  'https://www.instagram.com/thesocialcluba/',
+  'an Instagram social shortcut must resolve to the registered account',
+);
 assert.equal(swingScandalSource?.autoRegistrationPolicy, 'shadow');
 assert.equal(swingtimeSource?.venue, '스윙타임');
 assert.equal(swingtimeSource?.autoRegistrationPolicy, 'shadow');

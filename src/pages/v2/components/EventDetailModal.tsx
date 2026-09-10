@@ -1,3 +1,4 @@
+import { findSourceByUrl } from '../../../../scripts/ingestion/collection-registry.mjs';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
@@ -1189,6 +1190,11 @@ export default function EventDetailModal({
   }
 
   const selectedEvent = draftEvent || event;
+  const collectionSource = isEventDetailSocialLikeEvent(selectedEvent)
+    ? findSourceByUrl(selectedEvent.link1 || '')
+    : null;
+  const shortcutUrl = collectionSource?.url || selectedEvent.link1;
+  const shortcutLabel = collectionSource ? '수집 위치 바로가기' : (selectedEvent.link_name1 || '링크1');
   const isSelectedEventOwner = Boolean(
     eventViewerUserId &&
     selectedEvent.user_id &&
@@ -1939,22 +1945,22 @@ export default function EventDetailModal({
 
           <div className="EDM-footer">
             <div className="EDM-footerLinks">
-              {selectedEvent.link1 && (
+              {shortcutUrl && (
                 <a
-                  href={selectedEvent.link1}
+                  href={shortcutUrl}
                   draggable={false}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="EDM-footerLink"
-                  title={selectedEvent.link_name1 || "바로가기 1"}
+                  title={shortcutLabel}
                   data-analytics-id={selectedEvent.id}
                   data-analytics-type="external_link"
-                  data-analytics-title={selectedEvent.link_name1 || "링크1"}
+                  data-analytics-title={shortcutLabel}
                   data-analytics-section="event_detail_footer"
                 >
                   <i className="ri-external-link-line EDM-footerLinkIcon"></i>
                   <span className="EDM-footerLinkText">
-                    {selectedEvent.link_name1 || "링크1"}
+                    {shortcutLabel}
                   </span>
                 </a>
               )}
