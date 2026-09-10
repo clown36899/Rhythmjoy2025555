@@ -1477,6 +1477,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['swingfriends-busan-cafe', { activities: new Set(['social', 'event']), trustedVenue: '스윙243' }],
   ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
   ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), trustedVenue: '봉천살롱' }],
+  ['swingtown-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
   ['swingtown-schedule-cafe', { activities: new Set(['social']), trustedVenue: '봉천살롱' }],
   ['inthemood_sillim', { activities: new Set(['social']), trustedVenue: '인더무드신림' }],
 ]);
@@ -1575,7 +1576,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
     if (!sourceRule.weekdays.has(weekday)) reasons.push('candidate weekday is not server-enrolled for source');
   }
-  if (activity !== 'social' && !scrapedEvent?.poster_url) reasons.push('poster image is required');
+  if (!['social', 'class'].includes(activity) && !scrapedEvent?.poster_url) reasons.push('poster image is required');
   if (activity === 'social' && djs.length === 0 && !aiGroundedDjlessSocial) {
     reasons.push('social requires a DJ or double-verified poster evidence');
   }

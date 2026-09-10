@@ -2391,7 +2391,7 @@ async function buildCandidatesFromText({
     : inferredActivity;
   const imageOptionalBenefit = source.benefitKind === 'season_pass'
     && /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(cleanText);
-  if (!posterUrlList.length && activity !== 'social' && source.type !== 'benefit_search' && !imageOptionalBenefit) {
+  if (!posterUrlList.length && !['social', 'class'].includes(activity) && source.type !== 'benefit_search' && !imageOptionalBenefit) {
     const aiCandidates = await aiSocialFallback();
     if (aiCandidates.length) return aiCandidates;
     result.skipped += 1;

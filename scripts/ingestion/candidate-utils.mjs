@@ -1684,7 +1684,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (explicitActivity === 'social' && /(?:창립|오픈|개장)?\s*\d+\s*주년.{0,20}(?:파티|행사)|(?:파티|행사).{0,20}\d+\s*주년/i.test(text)) {
     errors.push('anniversary event is misclassified as a regular social');
   }
-  if (!candidate.poster_url && !candidate.imageData && !imageOptionalNamedDjSocial) {
+  if (!candidate.poster_url && !candidate.imageData && taxonomy.activity_type !== 'class' && !imageOptionalNamedDjSocial) {
     errors.push('poster_url or imageData required');
   }
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) {
@@ -1924,7 +1924,7 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   if (source?.discoveryOnly || source?.type === 'benefit_search' || discoverySourceType === 'benefit_search') {
     reasons.push('search/discovery sources require manual approval');
   }
-  if (activity !== 'social' && !candidate.poster_url && !candidate.imageData) {
+  if (!['social', 'class'].includes(activity) && !candidate.poster_url && !candidate.imageData) {
     reasons.push('auto-registration requires an image');
   }
   if (!venue) reasons.push('auto-registration requires a verified venue');

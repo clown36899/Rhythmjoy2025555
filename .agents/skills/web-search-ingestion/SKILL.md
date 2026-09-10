@@ -11,8 +11,8 @@ description: 대한민국 스윙 및 확장 댄스 장르의 미래 데이터(�
 
 - `swing-daily` 자동 실행은 반드시 `getAutomationSourceList('swing-daily')`만 사용한다.
 - deprecated `event-ingestion`, `cafe-lesson-ingestion` 흐름은 절대 사용하지 않는다.
-- 실제 포스트 URL과 본문, 날짜, 이미지가 확인된 후보만 저장한다.
-- 이미지가 없으면 저장하지 않는다.
+- 실제 포스트 URL과 본문, 날짜가 확인된 후보만 저장한다. 강습은 포스터 없이도 저장·자동등록할 수 있다.
+- 강습은 이미지가 없어도 원문 근거·날짜·장소·AI 검증을 통과하면 자동등록한다. 그 외 유형은 기존 이미지 규칙을 따른다.
 - 로그인 유도, 권한 부족, 응답 중단이 발생한 소스는 즉시 스킵하고 접근불가에 기록한다.
 - 어떤 상황에서도 마지막에는 summary 블록을 stdout에 출력하고 종료한다.
 
@@ -72,7 +72,7 @@ node scripts/test-ingestion-standards.mjs
 최종 후보는 반드시 `prepareCandidate()` 또는 `buildCafe24Payload()`와 같은 기준을 따라야 한다.
 
 - 필수: `id`, `source_url`, `structured_data.date`, `activity_type`, `genre_family`, `dance_scope`, `dance_genre`
-- 이미지: `poster_url` 또는 `imageData` 중 하나는 반드시 포함
+- 이미지: 강습은 선택 항목이다. 있으면 `poster_url` 또는 `imageData`에 원본을 포함한다. 다른 유형은 기존 검증 기준을 따른다.
 - `poster_url`이 외부 원격 자산이면 서버가 로컬 업로드로 치환할 수 있으나, 가능하면 `imageData`까지 함께 보낸다.
 
 ```bash
@@ -84,7 +84,7 @@ node -e "import('./scripts/ingestion/candidate-utils.mjs').then(({ buildCafe24Pa
 - 썸네일, 정사각 크롭, 저해상도 이미지는 금지한다.
 - Instagram/Facebook 메타 이미지보다 실제 본문 이미지의 `currentSrc`, `naturalWidth`, `naturalHeight`를 우선한다.
 - 저장 전 `file` 또는 `sips`로 크기 확인이 가능하면 확인한다.
-- 원본급 이미지를 확보하지 못하면 저장하지 않는다.
+- 강습에 이미지가 없으면 빈 이미지로 등록하며 임의 이미지를 만들지 않는다. 원본 포스터가 있으면 확보해 보존한다. 다른 유형은 원본급 이미지를 확보하지 못하면 기존 검증 기준에 따른다.
 
 권장 방식:
 
@@ -129,7 +129,7 @@ curl -s -X POST "https://swingenjoy.com/api/scraped-events" \
 
 - `node scripts/test-ingestion-standards.mjs` 통과
 - 실제 포스트 본문 확인 완료
-- 이미지 확보 완료
+- 강습은 이미지 선택, 포스터가 있으면 원본 보존 확인
 - 날짜가 미래 일정으로 확인됨
 - `activity_type`, `genre_family`, `dance_scope`, `dance_genre`, `tags`가 본문 기준으로 채워짐
 - `swing-daily`는 summary-first 규칙을 지켰음

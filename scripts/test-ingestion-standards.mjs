@@ -961,7 +961,7 @@ const imageOptionalFreeBenefit = prepareCandidate(baseCandidate({
     activity_type: 'class',
   },
 }), { today: TODAY });
-assert.equal(imageOptionalFreeBenefit.validation.ok, false, 'free benefit candidates require an image before collection');
+assert.equal(imageOptionalFreeBenefit.validation.ok, true, 'free trial classes also allow text-only collection');
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
   { benefit_eligible: false, benefit_kind: null },
@@ -2277,7 +2277,7 @@ assert.equal(validateCandidate(baseCandidate({
   poster_url: '',
   extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',
   structured_data: { title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
-}), { today: TODAY }).ok, false, 'non-social candidates without a confirmed benefit still require an image');
+}), { today: TODAY }).ok, true, 'paid classes also allow text-only collection');
 assert.equal(isCollectableDate(TODAY, { today: TODAY }), true, 'same-day candidates are collectable without time evidence');
 assert.equal(isCollectableDate('2026-05-22', { today: TODAY }), false, 'past candidates remain excluded');
 assert.equal(isCollectableDate('2026-05-24', { today: TODAY }), true, 'future candidates remain collectable');
@@ -2562,6 +2562,19 @@ assert.equal(validateCandidate(baseCandidate({
   extracted_text: '린디합 베이직 강습 시작일 6월 5일 금요일. 장소 스윙타임. 신청은 5월 29일까지.',
   structured_data: { title: '린디합 베이직 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class', location: '스윙타임', venue_provenance: 'source_text' },
 }), { today: TODAY }).ok, true, 'active lesson board candidates with a real start date should pass while retired identity cases above stay blocked');
+const textOnlyLesson = baseCandidate({
+  source_id: 'swingtown-lessons-cafe', keyword: '스윙타운 외부 강습 원장',
+  source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156300?menuid=13',
+  poster_url: '', imageData: '',
+  extracted_text: '2026년 6월 5일 린디합 베이직 강습. 장소 스윙타임.',
+  structured_data: { title: '린디합 베이직 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class', location: '스윙타임', venue_provenance: 'source_text' },
+});
+assert.equal(prepareCandidate(textOnlyLesson, { today: TODAY }).validation.ok, true, 'text-only classes must pass collection');
+assert.equal(evaluateAutoRegistrationReadiness(textOnlyLesson, { today: TODAY }).ready, true, 'text-only classes must reach AI adjudication');
+assert.equal(requiresAutomaticRegistrationAiAdjudication(textOnlyLesson), true, 'posterless classes still require AI adjudication');
+assert.equal(evaluateAutoRegistrationReadiness({ ...textOnlyLesson, structured_data: { ...textOnlyLesson.structured_data, location: '', venue_name: '' } }, { today: TODAY }).ready, false, 'missing venue still blocks automatic registration');
+assert.equal(prepareCandidate({ ...textOnlyLesson, structured_data: { ...textOnlyLesson.structured_data, date: '2026-05-01' } }, { today: TODAY }).validation.ok, false, 'past classes remain blocked');
+assert.equal(prepareCandidate({ ...textOnlyLesson, poster_url: 'https://example.com/original.jpg' }, { today: TODAY }).candidate.poster_url, 'https://example.com/original.jpg', 'available posters remain preserved');
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'sweetyswing-lessons'), 'sweetyswing mobile cafe should be in stable registry');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'happyhall2004' && source.runOrder < 0), 'happyhall should run early enough to avoid daily budget starvation');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'neo_swing' && source.type === 'instagram' && source.saveEnabled), 'neoswing instagram should be part of daily automation');

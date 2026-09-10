@@ -343,15 +343,15 @@ async function scrapeDetailPage(page, link, source) {
   }
 
   const posterUrl = pickPosterImage(data.images);
-  if (!posterUrl) {
+  const activity = inferActivityForExpanded(text, source);
+  if (!posterUrl && activity !== 'class') {
     result.skipped += 1;
     result.candidates.push(`skip:${source.id}:no poster:${link.text}`);
     return [];
   }
 
-  const activity = inferActivityForExpanded(text, source);
   const venue = extractVenue(text, source);
-  const imageData = await imageToDataUrl(page, posterUrl, data.finalUrl);
+  const imageData = posterUrl ? await imageToDataUrl(page, posterUrl, data.finalUrl) : '';
   const title = pickTitle(data, source);
   const raw = {
     keyword: `${source.scope}:${source.id}`,
