@@ -655,7 +655,8 @@ export default function OneDayRecruitPage() {
       map.setDraggable(false);
       map.setZoomable(false);
     } else {
-      map.setCenter(new window.kakao.maps.LatLng(KOREA_CENTER.lat, KOREA_CENTER.lng));
+      const center = regionGroups[0]?.coordinates || KOREA_CENTER;
+      map.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
       map.setLevel(13);
     }
 
