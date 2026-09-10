@@ -12,7 +12,6 @@ import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import { useLoading } from '../contexts/LoadingContext';
 import { HomeV2MenuPanel } from '../pages/v2/components/HomeV2MenuPanel';
 import { isKioskModeEnabled, requestKioskMobileGuide } from '../lib/kioskMode';
-import { getCalendarGenrePage } from '../pages/calendar/utils/calendarGenrePage';
 import { getNotificationDisplayCount, NOTIFICATION_INBOX_EVENT, notificationStore } from '../lib/notificationStore';
 import {
   getUnreadSiteNotifications,
@@ -67,8 +66,7 @@ export const MobileShell: React.FC = () => {
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
-  const isDanceSceneGuide = currentPath === '/calendar' && getCalendarGenrePage(location.search).showGuide;
-  const isCalendarPage = currentPath === '/calendar' && !isDanceSceneGuide;
+  const isCalendarPage = currentPath === '/calendar';
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
   const isMetronomePage = currentPath === '/metronome';
   const isPlacesPage = currentPath === '/places';
@@ -349,8 +347,8 @@ export const MobileShell: React.FC = () => {
            currentPath.startsWith('/history') || 
            (currentPath === '/board' && category === 'history') ||
            isPlacesPage ||
-           isAdminV2Ingestor || isDanceSceneGuide;
-  }, [currentPath, location.search, isAdminV2Ingestor, isPlacesPage, isDanceSceneGuide]);
+           isAdminV2Ingestor;
+  }, [currentPath, location.search, isAdminV2Ingestor, isPlacesPage]);
 
   // Apply global layout class to html (to override index.css max-width constraint on html & body)
   useEffect(() => {

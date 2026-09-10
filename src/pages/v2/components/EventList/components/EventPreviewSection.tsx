@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAuth } from "../../../../../contexts/AuthContext";
 // Styles
 // Styles
 // import "../../../styles/EventListSections.css"; // Migrated to events.css
@@ -14,16 +13,11 @@ import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
 import {
     calendarDanceScopeOptions,
-    getDanceScopeLabel,
     getVisibleDanceScopeOptions,
-    inferDanceScopeForEvent,
-    normalizeDanceScope,
     normalizeVisibleDanceScope,
 } from "../../../../../utils/danceTaxonomy";
-import { showComingSoonNotice } from "../../../../../utils/appNotice";
 import { NEB_MAX_ITEMS } from "../hooks/useNebFilterSettings";
 import {
-    limitHomeAdOnePerAuthorVenue,
     selectHomeAdDisplayEvents,
 } from "../utils/homeAdPriority";
 import {
@@ -66,6 +60,8 @@ interface EventPreviewSectionProps {
 }
 
 interface HomeNewEventsDesktopSplitProps {
+    danceScope: HomeAdDanceScope;
+    onDanceScopeChange: (scope: HomeAdDanceScope) => void;
     events: Event[];
     todaySchedules: SocialSchedule[];
     onEventClick: (event: Event) => void;
@@ -77,28 +73,6 @@ interface HomeNewEventsDesktopSplitProps {
 }
 
 type HomeAdDanceScope = (typeof calendarDanceScopeOptions)[number]["key"];
-
-const HOME_AD_DANCE_SCOPE_KEY = "home_ad_dance_scope";
-const HOME_AD_MIN_SELECTED_COUNT = 2;
-
-const getHomeAdEventScope = (event: Event): HomeAdDanceScope => {
-    return normalizeDanceScope((event as Event & { dance_scope?: string | null }).dance_scope || inferDanceScopeForEvent(event as any));
-};
-
-const isHomeAdDanceScope = (value: string | null): value is HomeAdDanceScope => {
-    return calendarDanceScopeOptions.some((option) => option.key === value);
-};
-
-const mergeUniqueEvents = (...groups: Event[][]) => {
-    const seen = new Set<number | string>();
-    const merged: Event[] = [];
-    groups.flat().forEach((event) => {
-        if (seen.has(event.id)) return;
-        seen.add(event.id);
-        merged.push(event);
-    });
-    return merged;
-};
 
 const getTodayMonthDayLabel = () => {
     const today = new Date();
@@ -149,6 +123,8 @@ const HomeTodaySchedulePanel: React.FC<{
 };
 
 const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
+    danceScope,
+    onDanceScopeChange,
     events,
     todaySchedules,
     onEventClick,
@@ -158,74 +134,21 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
     benefitEventUnreadCount,
     onBenefitEventsOpen,
 }) => {
-    const { isAdmin } = useAuth();
     const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
-    const [preferredScope, setPreferredScope] = useState<HomeAdDanceScope>(() => {
-        if (typeof window === "undefined") return "swing";
-        const saved = window.localStorage.getItem(HOME_AD_DANCE_SCOPE_KEY);
-        return isHomeAdDanceScope(saved) ? normalizeVisibleDanceScope(saved, false) : "swing";
-    });
-    useEffect(() => {
-        if (preferredScope !== "swing") {
-            setPreferredScope("swing");
-        }
-    }, [preferredScope]);
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        const saved = window.localStorage.getItem(HOME_AD_DANCE_SCOPE_KEY);
-        if (isHomeAdDanceScope(saved) && saved === "swing") setPreferredScope(saved);
-    }, []);
-    const visibleEvents = useMemo(() => {
-        if (isAdmin) return events;
-        return events.filter((event) => getHomeAdEventScope(event) === "swing");
-    }, [events, isAdmin]);
     const [headerScopeTarget, setHeaderScopeTarget] = useState<HTMLElement | null>(null);
-    const selectedScopePrimaryEvents = useMemo(
-        () => visibleEvents.filter((event) => getHomeAdEventScope(event) === preferredScope),
-        [preferredScope, visibleEvents],
-    );
-    const selectedScopePrimaryCount = useMemo(
-        () => limitHomeAdOnePerAuthorVenue(selectedScopePrimaryEvents).length,
-        [selectedScopePrimaryEvents],
-    );
-    const shouldMixOtherScopes = selectedScopePrimaryCount < HOME_AD_MIN_SELECTED_COUNT;
-    const primaryPool = useMemo(() => (
-        shouldMixOtherScopes
-            ? mergeUniqueEvents(
-                selectedScopePrimaryEvents,
-                visibleEvents.filter((event) => getHomeAdEventScope(event) !== preferredScope),
-            )
-            : selectedScopePrimaryEvents
-    ), [preferredScope, selectedScopePrimaryEvents, shouldMixOtherScopes, visibleEvents]);
-    const displayEvents = useMemo(() => {
-        return selectHomeAdDisplayEvents({
-            primaryEvents: primaryPool,
-            maxItems: Math.min(maxItems, NEB_MAX_ITEMS),
-        });
-    }, [maxItems, primaryPool]);
-    const isScopeMixed = displayEvents.some((event) => getHomeAdEventScope(event) !== preferredScope);
+    const displayEvents = useMemo(() => selectHomeAdDisplayEvents({
+        primaryEvents: events,
+        maxItems: Math.min(maxItems, NEB_MAX_ITEMS),
+    }), [events, maxItems]);
     const [activeIndex, setActiveIndex] = useState(0);
     const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            window.localStorage.setItem(HOME_AD_DANCE_SCOPE_KEY, "swing");
-        }
-    }, [preferredScope]);
-    const handleScopeClick = (scope: HomeAdDanceScope) => {
-        if (scope !== "swing") {
-            showComingSoonNotice();
-            return;
-        }
-
-        setPreferredScope(scope);
-    };
     useEffect(() => {
         if (displayEvents.length === 0) {
             setActiveIndex(0);
             return;
         }
         setActiveIndex(0);
-    }, [displayEventKey, preferredScope, displayEvents.length]);
+    }, [displayEventKey, danceScope, displayEvents.length]);
     const safeActiveIndex = displayEvents.length > 0 ? activeIndex % displayEvents.length : 0;
     const shouldShowScopeStrip = visibleDanceScopeOptions.length > 1;
 
@@ -244,10 +167,11 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                     key={option.key}
                     type="button"
                     className={[
-                        preferredScope === option.key ? "is-active" : "",
-                        option.key !== "swing" ? "is-preparing" : "",
+                        danceScope === option.key ? "is-active" : "",
                     ].filter(Boolean).join(" ")}
-                    onClick={() => handleScopeClick(option.key)}
+                    onClick={() => onDanceScopeChange(option.key)}
+                    aria-pressed={danceScope === option.key}
+                    draggable={false}
                 >
                     {option.label}
                 </button>
@@ -255,7 +179,6 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         </div>
     );
 
-    if (displayEvents.length === 0) return null;
 
     return (
         <section className="home-neb-standard-layout" aria-label="신규 이벤트 광고">
@@ -265,6 +188,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                 <div className="home-neb-hero-pane">
                     <NewEventsBanner
                         events={displayEvents}
+                        danceScope={danceScope}
                         onEventClick={onEventClick}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
@@ -285,11 +209,6 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
                     </aside>
                 )}
             </div>
-            {isAdmin && isScopeMixed && (
-                <p className="home-neb-admin-scope-note">
-                    {getDanceScopeLabel(preferredScope)} 후보가 적어 다른 장르를 함께 노출 중
-                </p>
-            )}
         </section>
     );
 };
@@ -328,9 +247,16 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     return (
         <div className="ELS-section">
             {/* 1.5 Newly Registered Events Section (24 hours) */}
-            {vis.show_new_events_banner && newlyRegisteredEvents.length > 0 && (
+            {vis.show_new_events_banner && (
                 <HomeNewEventsDesktopSplit
                     events={newlyRegisteredEvents}
+                    danceScope={normalizeVisibleDanceScope(searchParams.get('dance'), true)}
+                    onDanceScopeChange={(scope) => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set('dance', scope);
+                        next.delete('id');
+                        setSearchParams(next);
+                    }}
                     maxItems={homeAdMaxItems}
                     benefitEventUnreadCount={benefitEventUnreadCount}
                     onBenefitEventsOpen={onBenefitEventsOpen}

@@ -43,8 +43,8 @@ export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCa
                 // Get unique categories from DB
                 const dbCategories = Array.from(new Set(data.map(v => v.category)));
 
-                // Ensure '연습실' and '스윙바' are always included
-                const defaultCategories = ['연습실', '스윙바'];
+                // Keep the standard venue categories available even before their first record.
+                const defaultCategories = ['연습실', '스윙바', '살사바'];
                 const mergedCategories = Array.from(new Set([...defaultCategories, ...dbCategories]));
 
                 // Map to UI format
@@ -61,7 +61,8 @@ export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCa
                 setCategories([
                     ...prefixCategories,
                     { id: '연습실', label: '연습실', icon: 'ri-music-2-line' },
-                    { id: '스윙바', label: '스윙바', icon: 'ri-goblet-line' }
+                    { id: '스윙바', label: '스윙바', icon: 'ri-goblet-line' },
+                    { id: '살사바', label: '살사바', icon: 'ri-goblet-line' }
                 ]);
             }
         } catch (error) {
@@ -70,7 +71,8 @@ export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCa
             setCategories([
                 ...prefixCategories,
                 { id: '연습실', label: '연습실', icon: 'ri-music-2-line' },
-                { id: '스윙바', label: '스윙바', icon: 'ri-goblet-line' }
+                { id: '스윙바', label: '스윙바', icon: 'ri-goblet-line' },
+                { id: '살사바', label: '살사바', icon: 'ri-goblet-line' }
             ]);
         } finally {
             setLoading(false);
@@ -80,7 +82,8 @@ export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCa
     const getIconForCategory = (category: string) => {
         switch (category) {
             case '연습실': return 'ri-music-2-line';
-            case '스윙바': return 'ri-goblet-line';
+            case '스윙바':
+            case '살사바': return 'ri-goblet-line';
             default: return 'ri-map-pin-line';
         }
     };
@@ -125,6 +128,7 @@ export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCa
                         className={`venue-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(cat.id as VenueCategory)}
                         role="tab"
+                        draggable={false}
                         aria-selected={activeCategory === cat.id}
                     >
                         <i className={`${cat.icon} venue-tab-icon`}></i>

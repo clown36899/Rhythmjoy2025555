@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getDanceScopeLabel, type DanceScope } from '../../../utils/danceTaxonomy';
 import { getEventThumbnail, getLightweightEventImage } from '../../../utils/getEventThumbnail';
 import { useModalContext } from '../../../contexts/ModalContext';
 import type { Event } from '../utils/eventListUtils';
@@ -364,6 +365,7 @@ const detectImageEdgeTone = (imageUrl: string): Promise<EdgeTone> => (
 );
 
 interface NewEventsBannerProps {
+    danceScope?: DanceScope;
     events: Event[];
     onEventClick: (event: Event) => void;
     defaultThumbnailClass: string;
@@ -377,6 +379,7 @@ interface NewEventsBannerProps {
 
 export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     events,
+    danceScope = 'swing',
     onEventClick,
     defaultThumbnailClass,
     defaultThumbnailEvent,
@@ -717,9 +720,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
             clearTimeout(oneDayRecruitPressTimeoutRef.current);
         }
         oneDayRecruitPressTimeoutRef.current = setTimeout(() => {
-            navigate('/oneday-recruits');
+            navigate(`/oneday-recruits?dance=${danceScope}`);
         }, 180);
-    }, [navigate]);
+    }, [navigate, danceScope]);
 
     const openEventDetail = useCallback((event: Event) => {
         if (dragStateRef.current.suppressClick) return;
@@ -1208,7 +1211,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
     // PWA 재개 시 refetch 중 currentEvent가 undefined일 수 있음. 모든 Hook 호출 뒤에
     // 반환해야 렌더 사이의 Hook 순서가 바뀌지 않는다.
-    if (events.length === 0 || !currentEvent) return null;
+    // Keep the existing frame and quick actions available for an empty genre.
 
     return (
         <>
@@ -1292,6 +1295,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 )}
 
                 <div className="NEB-slider">
+                    {!currentEvent && <div className="ELS-empty" role="status">등록된 {getDanceScopeLabel(danceScope)} 일정이 없습니다.</div>}
                     <div className="NEB-track">
                         {events.map((event, index) => {
                             const isActiveSlide = index === currentIndex;
@@ -1419,12 +1423,12 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     setIsOneDayRecruitPressed(true);
                                 }
                             }}
-                            aria-label="스윙 원데이 및 동호회 보기"
+                            aria-label={`${getDanceScopeLabel(danceScope)} 원데이 및 동호회 보기`}
                         >
                             <span className="NEB-oneDayRecruitTicket" aria-hidden="true">
                                 <span className="NEB-oneDayRecruitStub">OPEN</span>
                                 <span className="NEB-oneDayRecruitBody">
-                                    <span className="NEB-oneDayRecruitKicker">SWING CLASS</span>
+                                    <span className="NEB-oneDayRecruitKicker">{danceScope.toUpperCase()} CLASS</span>
                                     <span className="NEB-oneDayRecruitTitle">원데이&amp;동호회</span>
                                     <span className="NEB-oneDayRecruitMeta">바로가기</span>
                                 </span>
@@ -1462,7 +1466,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             className="NEB-practiceRoomsBtn"
                             onClick={(event) => {
                                 event.stopPropagation();
-                                navigate('/practice');
+                                navigate(`/practice?dance=${danceScope}`);
                             }}
                             aria-label="등록된 연습실 찾기"
                         >
@@ -1477,7 +1481,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         </button>
                     </div>
 
-                    <div className="NEB-activeSummaryCluster">
+                    {currentEvent && <div className="NEB-activeSummaryCluster">
                         <button
                             type="button"
                             className="NEB-activeSummary"
@@ -1493,7 +1497,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 </small>
                             </span>
                         </button>
-                    </div>
+                    </div>}
 
                     {visibleTodaySchedules.length > 0 && (
                         <aside className="NEB-todaySchedulePanel" aria-label="오늘 일정">

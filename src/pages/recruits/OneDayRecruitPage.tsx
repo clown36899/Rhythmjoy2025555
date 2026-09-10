@@ -1,8 +1,11 @@
+import { useSearchParams } from 'react-router-dom';
+import { getDanceScopeLabel, normalizeDanceScope } from '../../utils/danceTaxonomy';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   swingOneDayRecruitLinks,
+  selectOneDayRecruitLinks,
   type SwingOneDayRecruitLogo,
   type SwingOneDayRecruitLink,
 } from '../../data/swingOneDayRecruitLinks';
@@ -27,6 +30,7 @@ type OneDayLinkDraft = Pick<SwingOneDayRecruitLink, 'id' | 'community' | 'venue'
 type RegionScopedLink = SwingOneDayRecruitLink & { displayRegion: string };
 type PinDisplayOffset = { x: number; y: number };
 type OneDayRecruitLinkRow = {
+  dance_scope?: string;
   id: string;
   community: string;
   venue: string | null;
@@ -47,7 +51,7 @@ type OneDayRecruitLinkRow = {
 };
 
 const ONE_DAY_LINKS_TABLE = 'swing_oneday_recruit_links';
-const ONE_DAY_LINK_SELECT = 'id,community,venue,region,area,lat,lng,url,logo_source_url,logo_micro,logo_thumbnail,logo_medium,logo_full,logo_storage_path,logo_updated_at,sort_order,is_active';
+const ONE_DAY_LINK_SELECT = 'id,dance_scope,community,venue,region,area,lat,lng,url,logo_source_url,logo_micro,logo_thumbnail,logo_medium,logo_full,logo_storage_path,logo_updated_at,sort_order,is_active';
 const REGION_PIN_OFFSETS: Record<string, PinDisplayOffset> = {
   서울: { x: 36, y: -44 },
   인천: { x: -58, y: -18 },
@@ -309,6 +313,7 @@ function rowToRecruitLink(row: OneDayRecruitLinkRow): SwingOneDayRecruitLink {
 
   return normalizeRecruitLink({
     id: row.id,
+    dance_scope: normalizeDanceScope(row.dance_scope),
     community: row.community,
     venue: row.venue || '',
     region: row.region,
@@ -461,6 +466,9 @@ function OneDayLinkCard({
 }
 
 export default function OneDayRecruitPage() {
+  const [searchParams] = useSearchParams();
+  const danceScope = normalizeDanceScope(searchParams.get('dance'));
+  const genreLabel = getDanceScopeLabel(danceScope);
   const { user, isAdmin } = useAuth();
   const [dbLinks, setDbLinks] = useState<SwingOneDayRecruitLink[]>([]);
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
@@ -522,9 +530,9 @@ export default function OneDayRecruitPage() {
     };
   }, [linksReloadToken]);
 
-  const displayLinks = useMemo(() => (
-    dbLinks.length ? normalizeRecruitLinks(dbLinks) : normalizeRecruitLinks(swingOneDayRecruitLinks)
-  ), [dbLinks]);
+  const scopedDirectory = useMemo(() => selectOneDayRecruitLinks(dbLinks, danceScope), [dbLinks, danceScope]);
+  const usesLegacySwingFallback = scopedDirectory.usingLegacyFallback;
+  const displayLinks = useMemo(() => normalizeRecruitLinks(scopedDirectory.links), [scopedDirectory]);
 
   const regionGroups = useMemo<RegionGroup[]>(() => {
     const grouped = new Map<string, RegionGroup>();
@@ -872,11 +880,11 @@ export default function OneDayRecruitPage() {
     <main className="oneday-recruit-page">
       <section className="oneday-recruit-inner">
         <header className="oneday-recruit-hero">
-          <h1>스윙 원데이 모집</h1>
+          <h1>{genreLabel} 원데이 모집</h1>
         </header>
 
         <div className="oneday-recruit-toolbar">
-          <strong>일상의 취미생활 스윙댄스 체험</strong>
+          <strong>일상의 취미생활 {genreLabel}댄스 체험</strong>
           <span>지역별 원데이 모집 링크</span>
         </div>
 
@@ -884,9 +892,11 @@ export default function OneDayRecruitPage() {
           <div className="oneday-recruit-sync">원데이 링크 확인 중</div>
         ) : null}
 
-        {isUsingFallbackLinks ? (
+        {(isUsingFallbackLinks || usesLegacySwingFallback) && danceScope === 'swing' ? (
           <div className="oneday-recruit-sync">DB 연결 전 기본 링크로 표시 중</div>
         ) : null}
+
+        {!isLoadingLinks && displayLinks.length === 0 && <div className="oneday-recruit-sync">등록된 {genreLabel} 모집 링크가 없습니다.</div>}
 
         <section className="oneday-recruit-map-section" aria-label="지역별 원데이 모집 지도">
           <div className="oneday-recruit-kakao-map-wrap">

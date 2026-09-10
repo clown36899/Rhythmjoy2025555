@@ -16,7 +16,7 @@ interface VenueRegistrationModalProps {
 }
 
 interface VenueFormData {
-    category: "연습실" | "스윙바";
+    category: "연습실" | "스윙바" | "살사바";
     name: string;
     address: string;
     phone: string;
@@ -512,6 +512,12 @@ export default function VenueRegistrationModal({
                                 onClick={() => handleChange('category', '스윙바')}
                             >
                                 <i className="ri- goblet-line"></i> 스윙바
+                            </button>
+                            <button
+                                className={`vrm-radio-btn ${formData.category === '살사바' ? 'active' : ''}`}
+                                onClick={() => handleChange('category', '살사바')}
+                            >
+                                <i className="ri-goblet-line"></i> 살사바
                             </button>
                         </div>
                     </div>

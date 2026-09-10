@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Event } from "../../../utils/eventListUtils";
 import {
+    isHomeAdEligibleForScope,
     isHomeAdClubEvent,
     isHomeAdCurrentMonthEvent,
     isHomeAdExplicitEvent,
@@ -393,5 +394,20 @@ describe("home ad author and venue deduplication", () => {
             first,
             otherVenue,
         ]);
+    });
+});
+
+describe('home selected genre boundary', () => {
+    it('keeps legacy Swing style filters and never fills an empty Salsa pool with Swing', () => {
+        const swing = makeEvent(91, { category: 'class', genre: '린디합', dance_scope: 'swing' });
+        expect(isHomeAdEligibleForScope(swing, 'swing', ['린디합'], '2026-08-11')).toBe(true);
+        expect(isHomeAdEligibleForScope(swing, 'swing', ['발보아'], '2026-08-11')).toBe(false);
+        expect(isHomeAdEligibleForScope(swing, 'salsa', ['린디합'], '2026-08-11')).toBe(false);
+    });
+    it('allows a selected family class despite the legacy Swing-only style settings', () => {
+        const salsa = makeEvent(92, { category: 'class', genre: '살사', dance_scope: 'salsa' });
+        expect(isHomeAdEligibleForScope(salsa, 'salsa', ['린디합'], '2026-08-11')).toBe(true);
+        expect(isHomeAdEligibleForScope(salsa, 'swing', ['린디합'], '2026-08-11')).toBe(false);
+        expect(isHomeAdEligibleForScope({ ...salsa, category: 'social', genre: '소셜' }, 'salsa', [], '2026-08-11')).toBe(false);
     });
 });

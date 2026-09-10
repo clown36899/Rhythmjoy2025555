@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { normalizeDanceScope } from '../../utils/danceTaxonomy';
 import { useAuth } from '../../contexts/AuthContext';
 import { cafe24 } from '../../lib/cafe24Client';
 import BenefitKindSelector, { type ManualBenefitKind } from '../../components/BenefitKindSelector';
@@ -208,6 +209,8 @@ export default function OneDayRecruitRegistrationModal({
 }: OneDayRecruitRegistrationModalProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const danceScope = normalizeDanceScope(searchParams.get('dance'));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -293,6 +296,7 @@ export default function OneDayRecruitRegistrationModal({
       const sortOrder = Number((lastRow as { sort_order?: number } | null)?.sort_order || 0) + 10;
       const insertRow = {
         id: linkId,
+        dance_scope: danceScope,
         community,
         venue: form.venue.trim() || null,
         region: location.region,
@@ -326,7 +330,7 @@ export default function OneDayRecruitRegistrationModal({
 
       window.dispatchEvent(new CustomEvent('onedayRecruitLinksChanged'));
       onClose();
-      navigate('/oneday-recruits');
+      navigate(`/oneday-recruits?dance=${danceScope}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : '등록 실패';
       alert(`원데이 등록 실패: ${message}`);

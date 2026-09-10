@@ -1,3 +1,4 @@
+import { isEventInDanceScope, normalizeDanceScope } from '../../../../../utils/danceTaxonomy';
 import type { Event } from "../../../utils/eventListUtils";
 
 type HomeAdSortMode = "created_at" | "date";
@@ -404,4 +405,14 @@ export const getNextHomeAdAutoIndex = (
 ) => {
     if (events.length <= 1) return 0;
     return autoStep % events.length;
+};
+
+// The existing include_genres setting owns Swing's style preferences (Lindy,
+// Balboa, etc.). Other families use their own selected scope, not Swing's list.
+// Date priority, social exclusion, author/venue dedupe and limits stay shared.
+export const isHomeAdEligibleForScope = (event: Event, scope: string, includeGenres: string[], todayDateKey: string) => {
+    if (!isEventInDanceScope(event, scope) || isHomeAdSocialEvent(event)) return false;
+    if (normalizeDanceScope(scope) !== 'swing' || isHomeAdCurrentMonthEvent(event, todayDateKey)) return true;
+    return (event.genre || '').split(',').map(value => value.trim()).filter(Boolean)
+        .some(genre => includeGenres.includes(genre));
 };

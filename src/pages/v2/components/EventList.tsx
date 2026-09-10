@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { isEventInDanceScope, normalizeVisibleDanceScope } from "../../../utils/danceTaxonomy";
 import { useAuth } from "../../../contexts/AuthContext";
 import { cafe24 } from "../../../lib/cafe24Client";
 
@@ -40,8 +41,7 @@ import {
 } from "../utils/eventListUtils";
 import type { Event } from "../utils/eventListUtils";
 import {
-  isHomeAdCurrentMonthEvent,
-  isHomeAdSocialEvent,
+  isHomeAdEligibleForScope,
   rankHomeAdEvents,
 } from "./EventList/utils/homeAdPriority";
 
@@ -150,7 +150,9 @@ const EventList: React.FC<EventListProps> = ({
   const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
   // 1. Data Fetching Hook (TanStack Query)
-  const { data: events = [], isLoading: loading, refetch: refetchEvents } = useEventsQuery();
+  const { data: allEvents = [], isLoading: loading, refetch: refetchEvents } = useEventsQuery();
+  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), true);
+  const events = useMemo(() => allEvents.filter(event => isEventInDanceScope(event, selectedDanceScope)), [allEvents, selectedDanceScope]);
   const {
     count: benefitEventUnreadCount,
     markAllSeen: markBenefitEventsSeen,
@@ -190,23 +192,7 @@ const EventList: React.FC<EventListProps> = ({
     const maxItems = clampNebMaxItems(max_items);
     const todayStr = getCalendarTodayDateKey();
 
-    const isEligible = (event: Event) => {
-      const isRequiredCurrentMonthEvent = isHomeAdCurrentMonthEvent(event, todayStr);
-
-      // 장르 필터: 이벤트의 장르 중 하나라도 포함 장르 목록에 있으면 통과
-      const eventGenres = (event.genre || '').split(',').map(g => g.trim()).filter(Boolean);
-      // 이번 달 행사/대회는 운영 장르 필터와 무관하게 광고 후보로 보장한다.
-      if (!isRequiredCurrentMonthEvent) {
-        if (eventGenres.length === 0) return false;
-        if (!eventGenres.some(g => include_genres.includes(g))) return false;
-      }
-
-      if (isHomeAdSocialEvent(event)) return false;
-
-      return true;
-    };
-
-    const eligibleEvents = events.filter(isEligible);
+    const eligibleEvents = events.filter(event => isHomeAdEligibleForScope(event, selectedDanceScope, include_genres, todayStr));
     const now = new Date();
     const activeEvents = rankHomeAdEvents(eligibleEvents, {
       todayDateKey: todayStr,
@@ -221,7 +207,7 @@ const EventList: React.FC<EventListProps> = ({
       events: activeEvents,
       maxItems,
     };
-  }, [events, nebFilterSettings, randomSeed]);
+  }, [events, selectedDanceScope, nebFilterSettings, randomSeed]);
 
   const newlyRegisteredEvents = homeAdDisplay.events;
 
