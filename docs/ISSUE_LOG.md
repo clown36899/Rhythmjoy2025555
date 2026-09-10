@@ -15,6 +15,9 @@
 - 적용 한계: 로컬 수집 변경은 다음 실행부터 적용, 서버 정책·링크는 배포 전. 삭제된 과거 행의 추정 복원과 운영 쓰기는 하지 않았다.
 - 관련 결정: docs/decisions/2026-09-10-retain-uncollected-socials.md
 
+- Deployment follow-up (2026-09-10): user authorized deployment and recovery of Sep 7–10. Commit 10e7a762 was pushed before deployment; health/version 1789018114603 verified. Production reconciliation: creates=0, removes=0, retained=197. Two Sep 9 socials (Chori at Social Club, Yoonseul at Swingtime) restored through existing administrator candidate/registration APIs with official source images. Normal automatic future-only filtering remains unchanged.
+- Additional root cause: the legacy document fallback (71723533c) and direct-media URL preference (fe2b77c) admitted recommended post images and alt text. Moved the existing document reader to readInstagramPostDocument and excluded media linked to another post. Original media, hidden carousel slides and legacy article scope are preserved. Two DOM regression tests, ingestion standards and lint passed; the live Kyungsung post retained its original image and rejected six recommendations.
+
 ## 기록 원칙
 
 - 버그, 장애, 운영 문제, 데이터 손상 위험, 배포 문제, 장시간 조사, 재발 방지 조치가 있으면 항목을 남긴다.

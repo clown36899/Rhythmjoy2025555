@@ -47,6 +47,7 @@ import {
   instagramAuthorMatches,
   instagramPostMatchesExpectedHandle,
   isDirectInstagramPostMediaUrl,
+  readInstagramPostDocument,
   isNaverAdministrativeNoticeText,
   isNaverScheduleOverviewText,
   isVerifiedInstagramFallbackProfile,
@@ -1501,32 +1502,7 @@ async function collectInstagramLinksViaImginn(page, source) {
 async function scrapeInstagramPost(page, url, source) {
   await safeGoto(page, url, postTimeoutMs);
   await page.keyboard.press('Escape').catch(() => {});
-  const data = await page.evaluate(() => {
-    const metaDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
-    const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
-    const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
-    const twitterImage = document.querySelector('meta[name="twitter:image"], meta[property="twitter:image"]')?.getAttribute('content') || '';
-    const articleText = [...document.querySelectorAll('article span, h1, div[role="button"]')]
-      .map((node) => node.textContent || '')
-      .filter((text) => text.trim().length > 20)
-      .join('\n');
-    const article = document.querySelector('article') || document;
-    const images = [...article.querySelectorAll('img')]
-      .map((img) => ({
-        src: img.currentSrc || img.src,
-        alt: img.alt || '',
-        w: img.naturalWidth || img.width || 0,
-        h: img.naturalHeight || img.height || 0,
-        rectW: Math.round(img.getBoundingClientRect().width || 0),
-        rectH: Math.round(img.getBoundingClientRect().height || 0),
-      }));
-    const publishedAt = document.querySelector('time[datetime]')?.getAttribute('datetime') || '';
-    const profileHrefs = [...article.querySelectorAll('a[href]')]
-      .map((anchor) => anchor.href || anchor.getAttribute('href') || '')
-      .filter(Boolean)
-      .slice(0, 80);
-    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt, profileHrefs };
-  });
+  const data = await page.evaluate(readInstagramPostDocument);
 
   const primaryImages = pickInstagramPostImages(data.images, postLimit);
   const imageAltText = primaryImages

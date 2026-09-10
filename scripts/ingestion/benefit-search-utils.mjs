@@ -300,3 +300,37 @@ export function isStaleBenefitSourcePost({
   if (Number.isNaN(published.getTime()) || Number.isNaN(cutoff.getTime())) return false;
   return cutoff.getTime() - published.getTime() > maxAgeDays * 86_400_000;
 }
+
+// Runs inside the page; keep the legacy article layout and current unwrapped layout.
+export function readInstagramPostDocument() {
+    const metaDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
+    const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
+    const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+    const twitterImage = document.querySelector('meta[name="twitter:image"], meta[property="twitter:image"]')?.getAttribute('content') || '';
+    const articleText = [...document.querySelectorAll('article span, h1, div[role="button"]')]
+      .map((node) => node.textContent || '')
+      .filter((text) => text.trim().length > 20)
+      .join('\n');
+    const article = document.querySelector('article') || document;
+    const currentCode = window.location.pathname.match(/\/(?:p|reel)\/([^/]+)/)?.[1];
+    const images = [...article.querySelectorAll('img')]
+      .filter((img) => {
+        const linkedPost = img.closest('a[href]')?.getAttribute('href') || '';
+        const linkedCode = linkedPost.match(/\/(?:p|reel)\/([^/?#]+)/)?.[1];
+        return !linkedCode || linkedCode === currentCode;
+      })
+      .map((img) => ({
+        src: img.currentSrc || img.src,
+        alt: img.alt || '',
+        w: img.naturalWidth || img.width || 0,
+        h: img.naturalHeight || img.height || 0,
+        rectW: Math.round(img.getBoundingClientRect().width || 0),
+        rectH: Math.round(img.getBoundingClientRect().height || 0),
+      }));
+    const publishedAt = document.querySelector('time[datetime]')?.getAttribute('datetime') || '';
+    const profileHrefs = [...article.querySelectorAll('a[href]')]
+      .map((anchor) => anchor.href || anchor.getAttribute('href') || '')
+      .filter(Boolean)
+      .slice(0, 80);
+    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt, profileHrefs };
+}

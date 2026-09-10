@@ -21,3 +21,8 @@
 ## 검증
 
 정규 소셜·외부 API·저장 실패/건조 실행 회귀, 기존 수집 표준, Node 잠금·자동등록 보고 검사, Cafe24 빌드를 수행했다. 운영 공개 /api/events 응답 1,000건 중 정규 생성본 89건, 링크 없음 85건을 읽기 전용 확인했다. 응답에 한도가 있고 공식 예외 원장을 함께 읽지 않았으므로 전체 운영 조정 건수로 해석하지 않는다. 실수집 재실행·운영 DB 수정·과거 추정 복구·배포는 수행하지 않았다. Instagram 로그인 제한이나 PC 중단 자체는 이 변경으로 해소되지 않는다.
+
+## Deployment and recovery follow-up
+
+- Deployment follow-up (2026-09-10): user authorized deployment and recovery of Sep 7–10. Commit 10e7a762 was pushed before deployment; health/version 1789018114603 verified. Production reconciliation: creates=0, removes=0, retained=197. Two Sep 9 socials (Chori at Social Club, Yoonseul at Swingtime) restored through existing administrator candidate/registration APIs with official source images. Normal automatic future-only filtering remains unchanged.
+- Additional root cause: the legacy document fallback (71723533c) and direct-media URL preference (fe2b77c) admitted recommended post images and alt text. Moved the existing document reader to readInstagramPostDocument and excluded media linked to another post. Original media, hidden carousel slides and legacy article scope are preserved. Two DOM regression tests, ingestion standards and lint passed; the live Kyungsung post retained its original image and rejected six recommendations.
