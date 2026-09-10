@@ -2684,6 +2684,7 @@ for (const [sourceId, url] of [
   ['sda-lessons-cafe', 'https://m.cafe.daum.net/sdamu/Keq/2379'],
   ['everlatin-lessons-cafe', 'https://cafe.naver.com/everlatin/2039'],
   ['suwon-cuba-lessons-cafe', 'https://m.cafe.daum.net/salsadolce/ru8G/206'],
+  ['suradan-lessons-cafe', 'https://m.cafe.daum.net/dk2094/QdX3/754'],
 ]) {
   const source = getAutomationSourceList('expanded-ingestion').find((item) => item.id === sourceId);
   assert.equal(source?.saveEnabled, true);

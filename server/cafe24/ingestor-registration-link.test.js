@@ -946,7 +946,7 @@ describe('ingestor registration linkage', () => {
     }
   });
 
-  it.each(['sda-lessons-cafe', 'everlatin-lessons-cafe', 'suwon-cuba-lessons-cafe'])('registers verified salsa classes without requiring a poster: %s', (sourceId) => {
+  it.each(['sda-lessons-cafe', 'everlatin-lessons-cafe', 'suwon-cuba-lessons-cafe', 'suradan-lessons-cafe'])('registers verified salsa classes without requiring a poster: %s', (sourceId) => {
     const candidate = {
       status: 'pending', source_id: sourceId, poster_url: null,
       extracted_text: '2026년 9월 15일 살사 초급 강습. 수업 장소: 라틴 연습실.',

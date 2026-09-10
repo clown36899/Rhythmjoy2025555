@@ -379,8 +379,9 @@ export default memo(function EventRegistrationModal({
   }, [isOpen, selectedDate, editEventData, canUseExpandedDanceScopes, initialGroupId, initialDayOfWeek, initialCategory, initialGenre]);
 
   useEffect(() => {
-    if (!isOpen || canUseExpandedDanceScopes || danceScope === "swing") return;
-    setDanceScope("swing");
+    if (!isOpen) return;
+    const visibleScope = normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes);
+    if (visibleScope !== danceScope) setDanceScope(visibleScope);
   }, [canUseExpandedDanceScopes, danceScope, isOpen]);
 
   // Video URL Handler

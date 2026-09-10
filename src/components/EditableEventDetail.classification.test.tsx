@@ -99,7 +99,7 @@ describe('EditableEventDetail classification sheet', () => {
         expect(screen.getByRole('button', { name: '스윙', exact: true })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('clears a mismatched genre when the scope changes and saves a coherent non-swing choice', () => {
+    it.each([false, true])('saves a coherent Salsa choice for expanded permission=%s', (expandedPermission) => {
         const onUpdate = vi.fn();
         const onDanceScopeChange = vi.fn();
 
@@ -110,11 +110,14 @@ describe('EditableEventDetail classification sheet', () => {
                 onImageUpload={vi.fn()}
                 onDanceScopeChange={onDanceScopeChange}
                 danceScope="swing"
-                canUseExpandedDanceScopes
+                canUseExpandedDanceScopes={expandedPermission}
             />,
         );
 
         fireEvent.click(screen.getByRole('button', { name: '분류 및 장르 선택' }));
+        const bachataScope = screen.queryByRole('button', { name: /바차타 일정만/ });
+        if (expandedPermission) expect(bachataScope).toBeInTheDocument();
+        else expect(bachataScope).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /살사 일정만/ }));
 
         const saveButton = screen.getByRole('button', { name: '저장' });

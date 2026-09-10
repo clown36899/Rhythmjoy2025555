@@ -1483,6 +1483,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['sda-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
   ['everlatin-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
   ['suwon-cuba-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
+  ['suradan-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
   ['hongdae-bonita-kakao', { activities: new Set(['social']), trustedVenue: '홍대 보니따' }],
   ['dsn-crew-meetup', { activities: new Set(['social']), explicitVenue: true }],
 ]);
