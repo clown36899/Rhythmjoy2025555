@@ -224,9 +224,11 @@ export function isNaverAdministrativeNoticeText(value = '') {
   return /\[?운영진공지\]?|윤리위원회|강사\s*선정\s*발표|강사\s*모집\s*공고|강습\s*신청\s*및\s*입금\s*방법/i.test(normalized);
 }
 
-export function naverScheduleOverviewPriority(value = '', today = '') {
+export function naverScheduleOverviewPriority(value = '', today = '', { allowedActivityTypes = [] } = {}) {
   const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
   if (!isNaverScheduleOverviewText(normalized)) return 4;
+  // Class-only boards need individual start dates before mixed monthly notices.
+  if (allowedActivityTypes.length === 1 && allowedActivityTypes[0] === 'class') return 5;
   const match = String(today || '').match(/^(20\d{2})-(\d{2})-\d{2}$/);
   if (!match) return 3;
   const [, year, monthText] = match;

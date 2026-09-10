@@ -248,6 +248,12 @@ assert.ok(
     < naverScheduleOverviewPriority('[공지] 7/8월 정규 강습 신청 및 일정', '2026-08-14'),
   'the current mixed monthly calendar must outrank a class-application schedule in the same menu',
 );
+assert.ok(
+  naverScheduleOverviewPriority('9월 정규 강습 신청 및 일정', '2026-09-10', { allowedActivityTypes: ['class'] })
+    > naverScheduleOverviewPriority('린디합 베이직 9/17 시작', '2026-09-10', { allowedActivityTypes: ['class'] }),
+  'class-only sources must prioritize individual class posts over mixed schedule notices',
+);
+
 
 assert.equal(
   stripRepeatedDjContext('안토니 스윙타운 DJ 안토니 20'),
@@ -2541,10 +2547,21 @@ assert.equal(validateCandidate(baseCandidate({
 assert.ok(textSimilarity('국제 스윙 댄스 페스티벌', '스윙댄스 국제 페스티벌') >= 0.4);
 assert.ok(getCollectionSources('swing').length >= 20, 'swing sources should remain broad');
 assert.ok(!getCollectionSources('swing').some((source) => source.id.startsWith('swingfamily')), 'retired swingfamily sources must not remain in the registry');
-assert.match(
-  getExcludedSourceReason('https://cafe.naver.com/f-e/cafes/10342583/articles/156300?boardtype=L&menuid=13') || '',
-  /스윙패밀리/,
-);
+assert.ok(!getExcludedSourceReason('https://cafe.naver.com/f-e/cafes/10342583/articles/156300?boardtype=L&menuid=13'), 'active external lesson board must not inherit a retired community URL exclusion');
+assert.match(getExcludedSourceReason('https://linktr.ee/swingfamily') || '', /스윙패밀리/);
+const externalLessonSource = getAutomationSourceList('swing-daily').find(source => source.id === 'swingtown-lessons-cafe');
+assert.equal(externalLessonSource?.url, 'https://cafe.naver.com/f-e/cafes/10342583/menus/13?viewType=L');
+assert.equal(externalLessonSource?.saveEnabled, true);
+assert.equal(externalLessonSource?.autoRegistrationVenuePolicy, 'explicit');
+assert.equal(externalLessonSource?.venue, '');
+assert.deepEqual(externalLessonSource?.autoRegistrationAllowedActivityTypes, ['class']);
+assert.equal(findSourceByUrl(externalLessonSource.url)?.id, 'swingtown-lessons-cafe');
+assert.equal(validateCandidate(baseCandidate({
+  source_id: 'swingtown-lessons-cafe', keyword: '스윙타운 외부 강습 원장',
+  source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156300?menuid=13',
+  extracted_text: '린디합 베이직 강습 시작일 6월 5일 금요일. 장소 스윙타임. 신청은 5월 29일까지.',
+  structured_data: { title: '린디합 베이직 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class', location: '스윙타임', venue_provenance: 'source_text' },
+}), { today: TODAY }).ok, true, 'active lesson board candidates with a real start date should pass while retired identity cases above stay blocked');
 assert.ok(getCollectionSources('swing').some((source) => source.id === 'sweetyswing-lessons'), 'sweetyswing mobile cafe should be in stable registry');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'happyhall2004' && source.runOrder < 0), 'happyhall should run early enough to avoid daily budget starvation');
 assert.ok(getAutomationSourceList('swing-daily').some((source) => source.id === 'neo_swing' && source.type === 'instagram' && source.saveEnabled), 'neoswing instagram should be part of daily automation');

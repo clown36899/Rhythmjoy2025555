@@ -1588,13 +1588,15 @@ async function collectNaverArticleLinks(page, source) {
     .sort((a, b) => {
       const aText = `${a.title} ${a.rowText}`;
       const bText = `${b.title} ${b.rowText}`;
-      const aSchedule = naverScheduleOverviewPriority(aText, today);
-      const bSchedule = naverScheduleOverviewPriority(bText, today);
+      const aSchedule = naverScheduleOverviewPriority(aText, today, source);
+      const bSchedule = naverScheduleOverviewPriority(bText, today, source);
       const aGraduation = hasGraduationEvent(aText) ? 0 : 1;
       const bGraduation = hasGraduationEvent(bText) ? 0 : 1;
       const aDate = hasEventDate(a.title) ? 0 : 1;
       const bDate = hasEventDate(b.title) ? 0 : 1;
-      return aSchedule - bSchedule || aGraduation - bGraduation || aDate - bDate || a.index - b.index;
+      const classOnly = source.allowedActivityTypes?.length === 1 && source.allowedActivityTypes[0] === 'class';
+      // Lesson intake follows new posts; numeric titles must not pin old classes above them.
+      return aSchedule - bSchedule || (classOnly ? 0 : aGraduation - bGraduation || aDate - bDate) || a.index - b.index;
     })
     .slice(0, 24);
   if (traceSourceIds.has(source.id)) {
@@ -2028,6 +2030,7 @@ function buildExceptionBacktestCandidates({
 
 function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false) {
   if (!aiSocialExtractionEnabled || exceptionBacktest || source?.benefitKind || source?.scope !== 'swing') return false;
+  if (source?.allowedActivityTypes?.length && !source.allowedActivityTypes.includes('social')) return false;
   const value = String(text || '').normalize('NFKC');
   return /(?:소셜|social|정모)/i.test(value)
     && (/(?:DJ|디제이)/i.test(value) || hasPoster)
