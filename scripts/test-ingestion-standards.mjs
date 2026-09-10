@@ -925,7 +925,8 @@ for (const [sourceId, sourceUrl, venue, date, dj] of [
 ]) {
   const raw = { source_id: sourceId, source_url: sourceUrl, poster_url: '', extracted_text: `${date} ${venue} 살사 소셜 DJ ${dj}`, structured_data: { title: `${venue} 살사 소셜`, date, location: venue, venue_name: venue, venue_provenance: 'source_text', activity_type: 'social', dance_scope: 'salsa', dance_genre: 'salsa', genre_family: 'partner', djs: [dj] } };
   assert.equal(prepareCandidate(raw, { today: '2026-09-11' }).validation.ok, true, `${sourceId} official text-only social can be collected`);
-  assert.equal(evaluateAutoRegistrationReadiness(raw, { today: '2026-09-11' }).ready, false, 'collection enrollment must not enable automatic publication');
+  assert.equal(evaluateAutoRegistrationReadiness(raw, { today: '2026-09-11' }).ready, true, 'verified salsa socials use the existing automatic registration gate');
+  assert.equal(evaluateAutoRegistrationReadiness({ ...raw, structured_data: { ...raw.structured_data, activity_type: 'class', category: 'class' } }, { today: '2026-09-11' }).ready, false, 'social source enrollment must not authorize attached classes');
   assert.equal(prepareCandidate({ ...raw, source_url: 'https://pf.kakao.com/_unrelated/12345' }, { today: '2026-09-11' }).validation.ok, false, 'a declared source ID must not authorize another channel');
   assert.equal(prepareCandidate({ ...raw, structured_data: { ...raw.structured_data, djs: [] } }, { today: '2026-09-11' }).validation.ok, false, 'posterless socials still require a named DJ');
   assert.equal(getAutomationSourceList('swing-daily').some(item => item.id === sourceId), false, 'salsa must stay outside the swing scheduled run');

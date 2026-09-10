@@ -920,13 +920,47 @@ describe('ingestor registration linkage', () => {
     });
   });
 
-  it('accepts either day from a compact multi-date source heading', () => {
+  it.each([
+    ['hongdae-bonita-kakao', '2026-09-15', '홍대 보니따', '헤이즐', '📍9월15일(화) 홍대 보니따 메인홀 소셜 DJ 헤이즐'],
+    ['dsn-crew-meetup', '2026-09-17', '클럽 라틴', 'MAX', 'Thu, Sep 17 · 9:30 PM KST 클럽 라틴 DSN Social Night DJ MAX'],
+  ])('registers grounded salsa socials through the existing server gate: %s', (sourceId, date, venue, dj, text) => {
+    const candidate = {
+      status: 'pending', source_id: sourceId, poster_url: null, extracted_text: text,
+      auto_registration: { ready: true, mode: 'shadow', source_id: sourceId },
+      structured_data: {
+        title: '공식 라틴 소셜', date, activity_type: 'social', dance_scope: 'salsa',
+        genre: '소셜', venue_name: venue, venue_provenance: 'source_text',
+        djs: [dj], evidence_scope: 'date_scoped_social',
+      },
+    };
+    const validation = validateAutomaticRegistrationCandidate(candidate);
+    expect(validation.reasons).toEqual([]);
+    expect(validation.eventData).toMatchObject({ dance_scope: 'salsa', category: 'social', location: venue, image: null });
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, auto_registration: { ...candidate.auto_registration, ready: false } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, djs: ['원문에없는DJ'] } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, date: '2026-09-29' } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, activity_type: 'class' } }).reasons).toContain('source/activity is not server-enrolled');
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, status: 'collected', is_collected: true }).ok).toBe(false);
+    if (sourceId === 'dsn-crew-meetup') {
+      expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, venue_provenance: 'source_registry' } }).reasons).toContain('source requires a venue explicitly verified from the post');
+    }
+  });
+
+  it('accepts explicit dates without mistaking times for additional days', () => {
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-23')).toBe(false);
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-08')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일, 23일 소셜', '2026-09-23')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-15')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-16')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('★8/14(금햎+광복의리듬 ) /15일 토정모 안내★', '2026-08-15')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('Thu, Sep 17 · 9:30 PM KST', '2026-09-17')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('September 17, 2026', '2026-09-17')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('17 Sept. 2026', '2026-09-17')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('September 17, 2025', '2026-09-17')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('17 September 2025', '2026-09-17')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('Sep 17, 2026', '2026-09-01')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('Oct 17, 2026', '2026-09-17')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('Sep 17 · 9:30 PM', '2026-09-30')).toBe(false);
 
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-timebar-saturday',

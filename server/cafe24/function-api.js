@@ -1480,6 +1480,8 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['swingtown-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
   ['swingtown-schedule-cafe', { activities: new Set(['social']), trustedVenue: '봉천살롱' }],
   ['inthemood_sillim', { activities: new Set(['social']), trustedVenue: '인더무드신림' }],
+  ['hongdae-bonita-kakao', { activities: new Set(['social']), trustedVenue: '홍대 보니따' }],
+  ['dsn-crew-meetup', { activities: new Set(['social']), explicitVenue: true }],
 ]);
 
 const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
@@ -1513,6 +1515,22 @@ export function evidenceExplicitlyContainsCandidateDate(evidence = '', date = ''
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
   ];
   if (directPatterns.some((pattern) => pattern.test(normalizedEvidence))) return true;
+
+  // Public event pages also use month names. An explicit year must agree;
+  // a series description mentioning a different year is not date evidence.
+  const monthNames = [
+    'jan(?:uary)?', 'feb(?:ruary)?', 'mar(?:ch)?', 'apr(?:il)?', 'may', 'jun(?:e)?',
+    'jul(?:y)?', 'aug(?:ust)?', 'sep(?:t(?:ember)?)?', 'oct(?:ober)?', 'nov(?:ember)?', 'dec(?:ember)?',
+  ];
+  const monthName = monthNames[month - 1];
+  if (monthName) {
+    const englishPatterns = [
+      new RegExp(`\\b${monthName}\\.?\\s+0?${day}(?:st|nd|rd|th)?\\b(?:\\s*,?\\s*(\\d{4})(?!\\d))?`, 'g'),
+      new RegExp(`\\b0?${day}(?:st|nd|rd|th)?\\s+${monthName}\\b\\.?(?:\\s*,?\\s*(\\d{4})(?!\\d))?`, 'g'),
+    ];
+    if (englishPatterns.some((pattern) => [...normalizedEvidence.matchAll(pattern)]
+      .some((match) => !match[1] || match[1] === year))) return true;
+  }
 
   for (const match of normalizedEvidence.matchAll(/(?:^|\D)(\d{1,2})\s*월\s*(\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7})/g)) {
     if (Number(match[1]) !== month) continue;
