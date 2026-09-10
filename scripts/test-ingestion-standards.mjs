@@ -918,6 +918,23 @@ assert.equal(
   true,
   'an image-less grounded social must remain eligible for automatic registration',
 );
+// Salsa reuses the existing registered-source, date, venue and named-DJ gate.
+for (const [sourceId, sourceUrl, venue, date, dj] of [
+  ['hongdae-bonita-kakao', 'https://pf.kakao.com/_RIMtM/114513323', '홍대 보니따', '2026-09-15', '헤이즐'],
+  ['dsn-crew-meetup', 'https://www.meetup.com/ko-kr/dsn-crew/events/mmdjztyjcmbwb/', '클럽 라틴', '2026-09-17', 'MAX'],
+]) {
+  const raw = { source_id: sourceId, source_url: sourceUrl, poster_url: '', extracted_text: `${date} ${venue} 살사 소셜 DJ ${dj}`, structured_data: { title: `${venue} 살사 소셜`, date, location: venue, venue_name: venue, venue_provenance: 'source_text', activity_type: 'social', dance_scope: 'salsa', dance_genre: 'salsa', genre_family: 'partner', djs: [dj] } };
+  assert.equal(prepareCandidate(raw, { today: '2026-09-11' }).validation.ok, true, `${sourceId} official text-only social can be collected`);
+  assert.equal(evaluateAutoRegistrationReadiness(raw, { today: '2026-09-11' }).ready, false, 'collection enrollment must not enable automatic publication');
+  assert.equal(prepareCandidate({ ...raw, source_url: 'https://pf.kakao.com/_unrelated/12345' }, { today: '2026-09-11' }).validation.ok, false, 'a declared source ID must not authorize another channel');
+  assert.equal(prepareCandidate({ ...raw, structured_data: { ...raw.structured_data, djs: [] } }, { today: '2026-09-11' }).validation.ok, false, 'posterless socials still require a named DJ');
+  assert.equal(getAutomationSourceList('swing-daily').some(item => item.id === sourceId), false, 'salsa must stay outside the swing scheduled run');
+}
+assert.equal(findSourceForCandidate({ sourceId: 'dsn-crew-meetup', url: 'https://www.meetup.com/dsn-crew/' }), null, 'a group landing page must not count as a verified event detail');
+assert.equal(findSourceForCandidate({ sourceId: 'dsn-crew-meetup', url: 'https://www.meetup.com/dsn-crew/events/calendar/' }), null, 'the group calendar must not count as an event detail');
+assert.equal(findSourceForCandidate({ sourceId: 'dsn-crew-meetup', url: 'https://www.meetup.com/ko-kr/another-group/events/123/' }), null, 'Meetup group boundaries must remain exact');
+assert.equal(findSourceForCandidate({ sourceId: 'hongdae-bonita-kakao', url: 'https://pf.kakao.com/_RIMtM_other/123' }), null, 'a channel prefix must not match another channel');
+
 const thumbnailOptionalSocial = prepareCandidate(baseCandidate({
   source_id: 'neo_swing',
   source_url: 'https://www.instagram.com/neo_swing/p/Db445CCqdzm/',
