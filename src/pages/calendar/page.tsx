@@ -9,6 +9,9 @@ import { lazy, Suspense } from "react";
 import FullEventCalendar from "./components/FullEventCalendar";
 import CalendarListView from "./components/CalendarListView";
 import CalendarMapView from "./components/CalendarMapView";
+import CalendarDanceScopeSwitch from "./components/CalendarDanceScopeSwitch";
+import DanceSceneGuide from "./components/DanceSceneGuide";
+import { getCalendarGenrePage, getCalendarGenreSearch } from "./utils/calendarGenrePage";
 import "./styles/CalendarPage.css";
 import { useCalendarGesture } from "../v2/hooks/useCalendarGesture";
 import { useEventModal } from "../../hooks/useEventModal";
@@ -22,8 +25,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
-import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
-import { showComingSoonNotice } from "../../utils/appNotice";
+import { getDanceScopeLabel, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
 import { getCalendarLayoutMetrics } from "./utils/calendarLayoutMetrics";
 import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from "./utils/calendarEventKind";
 import {
@@ -174,6 +176,14 @@ const normalizeCalendarDisplayMode = (value: string | null): CalendarDisplayMode
 };
 
 export default function CalendarPage() {
+    const location = useLocation();
+    const { scope, showGuide } = getCalendarGenrePage(location.search);
+    return showGuide ? <DanceSceneGuide scope={scope} /> : <CalendarEventsPage />;
+}
+
+// Keep the existing event views and hooks together; a scene guide must not
+// mount calendar fetches, month gestures, or the event-registration action.
+function CalendarEventsPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
@@ -281,7 +291,6 @@ export default function CalendarPage() {
     // Auth
     const isAdmin = authIsAdmin || false;
     const [adminType] = useState<"super" | "sub" | null>(authIsAdmin ? "super" : null);
-    const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
 
     // [New] 데이터 훅을 부모로 끌어올림 (사전 높이 계산을 위함)
     const { data: calendarData, isLoading, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth, danceScope);
@@ -1037,7 +1046,7 @@ export default function CalendarPage() {
 
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
         if (scope !== 'swing') {
-            showComingSoonNotice();
+            navigate({ pathname: location.pathname, search: getCalendarGenreSearch(location.search, scope) });
             return;
         }
 
@@ -1318,24 +1327,11 @@ export default function CalendarPage() {
                         </div>
                     </header>
 
-                    <div className="calendar-dance-scope-switch" aria-label="장르 선택">
-                        {visibleDanceScopeOptions.map((option) => (
-                            <button
-                                key={option.key}
-                                type="button"
-                                className={[
-                                    'calendar-dance-scope-btn',
-                                    danceScope === option.key ? 'active' : '',
-                                    option.key !== 'swing' ? 'is-preparing' : '',
-                                ].filter(Boolean).join(' ')}
-                                onClick={() => handleDanceScopeClick(option.key)}
-                                title={option.desc}
-                            >
-                                <strong>{option.label}</strong>
-                                <span>{option.desc}</span>
-                            </button>
-                        ))}
-                    </div>
+                    <CalendarDanceScopeSwitch activeScope={danceScope} onSelect={handleDanceScopeClick} />
+                    <button type="button" className="calendar-scene-guide-link" draggable={false}
+                        onClick={() => navigate({ pathname: location.pathname, search: getCalendarGenreSearch(location.search, danceScope, true) })}>
+                        씬·수집처 안내 ↗
+                    </button>
 
                     <div className="calendar-filter-switch" aria-label="캘린더 필터">
                         <button

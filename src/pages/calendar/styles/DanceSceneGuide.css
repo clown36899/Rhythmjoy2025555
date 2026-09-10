@@ -1,0 +1,99 @@
+.dance-scene-guide {
+    --guide-accent: #f3ad83;
+    --guide-text: #f3f1ed;
+    --guide-muted: #b8b5b0;
+    --guide-line: #3c3b3b;
+    --cal-sample-border: #3c3b3b;
+    --cal-sample-control-bg: #242424;
+    --cal-sample-muted: #b8b5b0;
+    color: var(--guide-text);
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    padding: 20px 24px 32px;
+    box-sizing: border-box;
+    text-align: left;
+}
+.dance-scene-guide *, .dance-scene-guide a { -webkit-user-drag: none; box-sizing: border-box; }
+.dance-scene-guide button, .dance-scene-guide a { -webkit-tap-highlight-color: transparent; }
+.dance-scene-guide button { font: inherit; cursor: pointer; }
+.dance-scene-guide :is(button, a):focus-visible { outline: 2px solid var(--guide-accent); outline-offset: 4px; }
+.dance-scene-guide .calendar-dance-scope-switch { padding: 0; gap: 8px; }
+.dance-scene-guide .calendar-dance-scope-btn { min-height: 58px; padding: 10px 14px; flex-basis: 140px; }
+.dance-scene-guide .calendar-dance-scope-btn strong { font-size: 15px; font-weight: 750; }
+.dance-scene-guide .calendar-dance-scope-btn span { font-size: 11px; font-weight: 500; }
+.dance-scene-guide .calendar-dance-scope-btn.active { color: #ffe4d2; border-color: #c48967; background: #3b302a; box-shadow: none; }
+.dance-guide-hero { display: grid; grid-template-columns: minmax(0, 1fr) 265px; gap: 56px; padding: 56px 0 36px; align-items: center; }
+.dance-guide-eyebrow { font-size: 11px; font-weight: 750; letter-spacing: .12em; color: var(--guide-accent); }
+.dance-guide-eyebrow span { color: var(--guide-muted); letter-spacing: 0; margin-left: 8px; }
+.dance-guide-hero h1 { margin: 15px 0 18px; font-size: clamp(26px, 3.2vw, 38px); font-weight: 800; letter-spacing: -.055em; line-height: 1.3; word-break: keep-all; }
+.dance-guide-hero > div > p { font-size: 15px; color: var(--guide-muted); line-height: 1.8; margin: 0; word-break: keep-all; }
+.dance-guide-hero-note { padding-left: 24px; border-left: 1px solid var(--guide-line); }
+.dance-guide-hero-note i { display: block; color: var(--guide-accent); font-size: 24px; margin-bottom: 10px; }
+.dance-guide-hero-note strong { font-size: 14px; }
+.dance-guide-hero .dance-guide-hero-note p { font-size: 12px; line-height: 1.8; margin: 7px 0 12px; }
+.dance-guide-hero-note small { font-size: 11px; color: #a19e99; }
+.dance-guide-sections { display: flex; flex-wrap: wrap; gap: 8px 26px; border-block: 1px solid var(--guide-line); padding: 16px 0; }
+.dance-guide-sections a, .dance-guide-sections button { color: var(--guide-text); text-decoration: none; font-size: 13px; font-weight: 650; padding: 6px 0; border: 0; background: none; }
+.dance-guide-sections a span { margin-left: 5px; color: var(--guide-accent); font-size: 11px; }
+.dance-guide-section { margin-top: 46px; scroll-margin-top: 90px; }
+.dance-guide-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+.dance-guide-kicker { display: block; color: var(--guide-accent); font-size: 10px; font-weight: 700; letter-spacing: .1em; margin-bottom: 8px; }
+.dance-guide-section h2 { margin: 0; font-size: 24px; letter-spacing: -.035em; line-height: 1.4; word-break: keep-all; }
+.dance-guide-section-heading p { margin: 6px 0 0; color: var(--guide-muted); font-size: 13px; line-height: 1.6; }
+.dance-guide-area-filter { display: flex; gap: 4px; flex-shrink: 0; }
+.dance-guide-area-filter button { padding: 8px 14px; border: 1px solid transparent; border-radius: 7px; color: var(--guide-muted); background: transparent; font-size: 12px; }
+.dance-guide-area-filter button.active { background: #3b302a; color: #ffd9bf; border-color: #785b48; }
+.dance-guide-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.dance-guide-card { display: flex; flex-direction: column; min-width: 0; padding: 23px; border: 1px solid var(--guide-line); border-radius: 12px; background: #242424; }
+.dance-guide-card-meta { display: flex; gap: 10px; color: var(--guide-muted); font-size: 11px; align-items: center; }
+.dance-guide-card-meta span:first-child { padding: 3px 7px; color: #e2ddd6; background: #343333; border-radius: 4px; }
+.dance-guide-card h3 { margin: 16px 0 10px; font-size: 21px; font-weight: 750; letter-spacing: -.025em; line-height: 1.3; }
+.dance-guide-card p { margin: 0 0 18px; font-size: 13px; line-height: 1.8; color: #c4c1bc; word-break: keep-all; }
+.dance-guide-card small { display: block; font-size: 10px; line-height: 1.7; color: #aaa49c; margin-bottom: 16px; }
+.dance-guide-card a { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 15px; margin-top: auto; border-top: 1px solid var(--guide-line); color: var(--guide-accent); font-size: 12px; font-weight: 650; text-decoration: none; }
+.dance-guide-card a span { font-size: 19px; line-height: 1; }
+@media (hover: hover) { .dance-guide-card a:hover { color: #ffe0cb; } .dance-guide-sections a:hover { color: var(--guide-accent); } }
+.dance-guide-overview { padding: 30px; border-radius: 12px; background: #292624; }
+.dance-guide-overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.dance-guide-number { font-size: 12px; color: var(--guide-accent); font-weight: 700; }
+.dance-guide-overview-grid h3 { margin: 10px 0; font-size: 17px; }
+.dance-guide-overview-grid p { font-size: 13px; line-height: 1.85; color: var(--guide-muted); margin: 0; word-break: keep-all; }
+.dance-guide-discover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dance-guide-footer { display: flex; gap: 10px; border-top: 1px solid var(--guide-line); margin-top: 32px; padding-top: 20px; color: var(--guide-muted); }
+.dance-guide-footer p { font-size: 12px; line-height: 1.8; margin: 0; }
+.dance-guide-empty { text-align: center; padding: 60px 20px; border-block: 1px solid var(--guide-line); }
+.dance-guide-empty > i { font-size: 32px; color: var(--guide-accent); }
+.dance-guide-empty h2 { font-size: 21px; margin-top: 20px; }
+.dance-guide-empty p { font-size: 14px; line-height: 1.9; color: var(--guide-muted); }
+.dance-guide-empty > div { display: flex; gap: 10px; justify-content: center; margin-top: 24px; }
+.dance-guide-empty button { background: #3b302a; border: 1px solid #785b48; border-radius: 7px; color: #ffd9bf; padding: 11px 16px; font-size: 13px; }
+.calendar-scene-guide-link { display: block; margin: 5px 16px 0 auto; padding: 4px 0; border: 0; background: none; color: #b9c6dc; font: inherit; font-size: 11px; cursor: pointer; }
+@media (max-width: 800px) {
+    .dance-guide-hero { grid-template-columns: 1fr; gap: 0; padding: 36px 0 24px; }
+    .dance-guide-hero-note { border: 0; padding: 16px 0 0; }
+    .dance-guide-hero-note i, .dance-guide-hero-note strong, .dance-guide-hero-note p { display: none; }
+    .dance-guide-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dance-guide-overview { padding: 24px; }
+    .dance-guide-overview-grid { gap: 20px; }
+}
+@media (max-width: 540px) {
+    .dance-scene-guide { padding: 12px 18px 24px; }
+    .dance-scene-guide .calendar-dance-scope-switch { gap: 6px; margin-inline: -18px; padding-inline: 18px; }
+    .dance-scene-guide .calendar-dance-scope-btn { flex: 1 0 68px; min-width: 68px; min-height: 42px; padding: 10px 12px; text-align: center; }
+    .dance-scene-guide .calendar-dance-scope-btn span { display: none; }
+    .dance-scene-guide .calendar-dance-scope-btn strong { font-size: 13px; }
+    .dance-guide-hero h1 { font-size: 28px; }
+    .dance-guide-hero > div > p { font-size: 14px; }
+    .dance-guide-sections { gap: 5px 18px; padding: 10px 0; }
+    .dance-guide-sections a { font-size: 12px; }
+    .dance-guide-section { margin-top: 34px; }
+    .dance-guide-section h2 { font-size: 22px; }
+    .dance-guide-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+    .dance-guide-card-grid, .dance-guide-overview-grid { grid-template-columns: 1fr; gap: 12px; }
+    .dance-guide-card { padding: 22px; }
+    .dance-guide-card h3 { margin-top: 12px; }
+    .dance-guide-card p { font-size: 14px; }
+    .dance-guide-card a { min-height: 42px; font-size: 13px; }
+    .dance-guide-overview-grid { gap: 24px; }
+    .dance-guide-overview-grid p { font-size: 14px; }
+}
