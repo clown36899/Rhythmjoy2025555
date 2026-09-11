@@ -785,6 +785,27 @@ assert.equal(classifyConfirmedBenefitEvent({
   extracted_text: '첫 방문 무료 체험 클래스, 2026년 8월 2일',
   structured_data: { title: '바차타 입문 체험' },
 }), 'free_event', 'explicit free trial classes should classify across approved dance scopes');
+// The event itself must advertise a promotion; routine course pricing is not one.
+for (const dance of ['살사', '스윙']) {
+  for (const text of [
+    '강습비 8만원. 수료까지 재수강 무료. 2인 이상 동시 신청 시 합계 5천원 추가할인.',
+    '수강료 95,000원. 할인 안내: 최대 10,000원 중복 할인 가능. 선입금 할인 5,000원. 재수강 할인 5,000원. 동반 신청 할인 5,000원.',
+  ]) {
+    assert.equal(classifyConfirmedBenefitEvent({
+      extracted_text: text,
+      structured_data: { title: `${dance} 왕초보 개강`, activity_type: 'class' },
+    }), null, 'ordinary paid classes must not become benefit events from payment conditions');
+  }
+}
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '일반 강습비 8만원. 9월 한정 할인 이벤트: 신규 수강생 전원 20% 할인.',
+  structured_data: { title: '9월 살사 강습 안내', activity_type: 'class' },
+}), 'discount_event', 'a separately announced promotion in the body remains eligible');
+assert.equal(classifyConfirmedBenefitEvent({
+  extracted_text: '무료 체험 클래스에 누구나 참여할 수 있습니다. 정규반 강습비 8만원. 동반 신청 5천원 할인.',
+  structured_data: { title: '살사 무료 체험 클래스', activity_type: 'class' },
+}), 'free_event', 'routine tuition discounts must not override a genuine free trial');
+
 const benefitPhraseCases = [
   ['강습비 8만원. 수료할 때까지 재수강 무료.', null],
   ['강습비 8만원. 재수강료 무료.', null],
@@ -2302,11 +2323,19 @@ const reservableDanceEvent = baseCandidate({
 });
 assert.equal(isVenueRentalAvailabilityNotice(reservableDanceEvent), false, 'ordinary dance-event reservations must not be mistaken for venue rental availability');
 assert.equal(validateCandidate(reservableDanceEvent, { today: TODAY }).ok, true, 'a future reservable dance event must remain collectable');
-assert.equal(validateCandidate(baseCandidate({
+const ordinaryPaidClass = prepareCandidate(baseCandidate({
   poster_url: '',
-  extracted_text: '2026년 6월 5일 유료 린디합 정규 강습',
-  structured_data: { title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class' },
-}), { today: TODAY }).ok, true, 'paid classes also allow text-only collection');
+  extracted_text: '2026년 6월 5일 유료 린디합 정규 강습. 수강료 8만원. 동반 신청 5천원 할인.',
+  structured_data: {
+    title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class',
+    benefit_eligible: true, benefit_kind: 'discount_event', benefit_lifecycle: 'date_bound',
+  },
+}), { today: TODAY });
+assert.equal(ordinaryPaidClass.validation.ok, true, 'paid classes also allow text-only collection');
+assert.equal(ordinaryPaidClass.candidate.structured_data.category, 'class');
+for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle']) {
+  assert.equal(ordinaryPaidClass.candidate.structured_data[key], undefined, 'reprocessing ordinary tuition terms must clear stale benefit metadata');
+}
 assert.equal(isCollectableDate(TODAY, { today: TODAY }), true, 'same-day candidates are collectable without time evidence');
 assert.equal(isCollectableDate('2026-05-22', { today: TODAY }), false, 'past candidates remain excluded');
 assert.equal(isCollectableDate('2026-05-24', { today: TODAY }), true, 'future candidates remain collectable');

@@ -184,10 +184,14 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   if (/(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)[^.!?\n]{0,60}(?:판매|신청|모집|오픈|출시|구매|이벤트|가격|요금|안내)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)|(?:입장권|티켓)\s*\d+\s*(?:장|회)\s*(?:묶음|패키지)\s*(?:판매|구매|신청|오픈|가격|안내)/i.test(seasonPassText)) {
     return 'season_pass';
   }
+  // Ordinary tuition/payment conditions are not a separately advertised benefit event.
+  // A promotion must be the subject of the title or explicitly announced in the body.
+  const hasDiscountPromotion = /할인|특가|쿠폰|프로모션|\b(?:discount|promotion|coupon)\b/i.test(String(sd.title || ''))
+    || /할인\s*(?:이벤트|행사|캠페인)|(?:특가|쿠폰|프로모션)\s*(?:판매|이벤트|행사|진행|오픈|제공)|\b(?:discount\s+(?:event|campaign)|promotion|coupon)\b/i.test(text);
   const discountText = text
     .replace(/(?:할인|특가|얼리\s*버드|쿠폰|프로모션|혜택)[^.!?\n]{0,14}(?:없(?:음|습니다|다)|아님|제외|불가|종료|마감|소진)/gi, ' ')
     .replace(/\b(?:discount|promotion|early\s*bird|coupon)\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended|sold\s*out)\b/gi, ' ');
-  if (/(?:\d{1,2}\s*%|\d[\d,]*(?:\.\d+)?\s*(?:천|만)?\s*원)\s*(?:추가\s*|중복\s*)?할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록)[^.!?\n]{0,32}(?:할인|특가|혜택|\d{1,2}\s*%)|(?:할인|특가|혜택)[^.!?\n]{0,32}(?:얼리\s*버드|조기\s*등록)|(?:특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|coupon)\b/i.test(discountText)) {
+  if (hasDiscountPromotion && /(?:\d{1,2}\s*%|\d[\d,]*(?:\.\d+)?\s*(?:천|만)?\s*원)\s*(?:추가\s*|중복\s*)?할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록)[^.!?\n]{0,32}(?:할인|특가|혜택|\d{1,2}\s*%)|(?:할인|특가|혜택)[^.!?\n]{0,32}(?:얼리\s*버드|조기\s*등록)|(?:특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|coupon)\b/i.test(discountText)) {
     return 'discount_event';
   }
   const benefitText = text

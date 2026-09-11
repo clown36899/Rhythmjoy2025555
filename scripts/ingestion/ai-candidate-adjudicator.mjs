@@ -579,8 +579,15 @@ Judge only SOURCE_TEXT. Do not browse or use outside knowledge. TODAY_KST is ${t
 
 Decide whether the source explicitly offers a currently usable benefit:
 - free_event: a free class, admission, participation, or event;
-- discount_event: a real discount, coupon, early-bird price, or promotion;
+- discount_event: a separately advertised discount event, coupon campaign, or promotion;
 - season_pass: a season pass, membership, multi-use ticket, monthly pass, or recurring admission pass for sale.
+
+Ordinary paid-course terms (repeat enrollment, paired/group application, advance payment, or
+standard early/door prices) do not make the class a free or discount event. For discount_event,
+the promotion must be the subject of the announcement or explicitly advertised as a separate
+campaign in SOURCE_TEXT. Do not relabel a paid class as discounted just because its fee section
+mentions conditional savings. A genuinely free introductory/trial class remains free even when
+optional later courses are paid.
 
 Reject expired, ended, sold-out, negated, or merely historical offers. active_on_today means the
 candidate is still relevant as of TODAY_KST; an upcoming future free/discount event is true even though
