@@ -2325,7 +2325,7 @@ assert.equal(isVenueRentalAvailabilityNotice(reservableDanceEvent), false, 'ordi
 assert.equal(validateCandidate(reservableDanceEvent, { today: TODAY }).ok, true, 'a future reservable dance event must remain collectable');
 const ordinaryPaidClass = prepareCandidate(baseCandidate({
   poster_url: '',
-  extracted_text: '2026년 6월 5일 유료 린디합 정규 강습. 수강료 8만원. 동반 신청 5천원 할인.',
+  extracted_text: '2026년 6월 5일 개강, 매주 금요일 유료 린디합 정규 강습. 수강료 8만원. 동반 신청 5천원 할인.',
   structured_data: {
     title: '린디합 정규 강습', date: '2026-06-05', event_type: '강습', activity_type: 'class',
     benefit_eligible: true, benefit_kind: 'discount_event', benefit_lifecycle: 'date_bound',
