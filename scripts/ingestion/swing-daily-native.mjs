@@ -62,6 +62,7 @@ import {
   extractSocialScheduleWithAi,
   reviewBenefitCandidateWithAi,
   shouldPersistBenefitAiOutcome,
+  shouldAttemptAiSocialExtraction,
 } from './ai-candidate-adjudicator.mjs';
 import {
   buildIngestionProgressState,
@@ -2028,15 +2029,6 @@ function buildExceptionBacktestCandidates({
   return candidates;
 }
 
-function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false) {
-  if (!aiSocialExtractionEnabled || exceptionBacktest || source?.benefitKind || source?.scope !== 'swing') return false;
-  if (source?.allowedActivityTypes?.length && !source.allowedActivityTypes.includes('social')) return false;
-  const value = String(text || '').normalize('NFKC');
-  return /(?:소셜|social|정모)/i.test(value)
-    && (/(?:DJ|디제이)/i.test(value) || hasPoster)
-    && /(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*(?:[.\-/]|월)\s*\d{1,2}/i.test(value);
-}
-
 async function buildAiSocialFallbackCandidates({
   source,
   sourceUrl,
@@ -2050,7 +2042,9 @@ async function buildAiSocialFallbackCandidates({
   const sourceImageUrls = unique([...posterUrls, posterUrl])
     .filter((url) => url && !hasBadPosterUrl(url))
     .slice(0, 3);
-  if (!shouldAttemptAiSocialExtraction(source, cleanText, sourceImageUrls.length > 0)) return [];
+  if (!shouldAttemptAiSocialExtraction(source, cleanText, sourceImageUrls.length > 0, {
+    enabled: aiSocialExtractionEnabled && !exceptionBacktest,
+  })) return [];
 
   const sourceImages = [];
   for (const imageUrl of sourceImageUrls) {
@@ -2081,7 +2075,16 @@ async function buildAiSocialFallbackCandidates({
   const outcome = aiResult.outcome || (aiResult.available === false ? 'unavailable' : 'error');
   if (Object.hasOwn(result.socialAiExtractionStats, outcome)) result.socialAiExtractionStats[outcome] += 1;
   if (!aiResult.approved || !aiResult.events?.length) {
-    log(`AI social extraction ${outcome} ${source.id}: ${(aiResult.reasons || []).join('; ') || 'no approved sessions'}`);
+    const reason = (aiResult.reasons || []).join('; ') || 'no approved sessions';
+    log(`AI social extraction ${outcome} ${source.id}: ${reason}`);
+    // A confirmed absence is terminal; an unavailable or unresolved read is not.
+    if (!(aiResult.extraction?.decision === 'none'
+      && Number(aiResult.extraction.confidence) >= 0.98
+      && aiResult.extraction.events?.length === 0)) {
+      result.issues.push(`post ${source.id}: AI social extraction ${outcome}: ${reason}`);
+      if (!result.remainingSources.includes(source.id)) result.remainingSources.push(source.id);
+      recordPipelineBlocker('extraction', { sourceId: source.id, sourceUrl, reason });
+    }
     return [];
   }
 
@@ -3164,6 +3167,7 @@ async function collectSource(page, source) {
       ? selectUnseenInstagramPosts(links, knownPosts, links.length)
       : links;
     if (progressTrackingEnabled && unseenLinks.length === 0) {
+      result.remainingSources = result.remainingSources.filter((id) => id !== source.id);
       log(`instagram no new posts ${source.id}: ${links.length} visible post(s) already checked`);
       return [];
     }
@@ -3171,7 +3175,9 @@ async function collectSource(page, source) {
     if (instagramPostLimit <= 0) {
       throw new RunBudgetReachedError(`instagram posts ${source.id}`);
     }
+    result.remainingSources = result.remainingSources.filter((id) => id !== source.id);
     if (instagramPostLimit < unseenLinks.length) {
+      if (progressTrackingEnabled) result.remainingSources.push(source.id);
       log(`instagram post scan capped ${source.id}: ${instagramPostLimit}/${unseenLinks.length} unseen remaining_ms=${runRemainingMs()}`);
     }
     const completedPosts = [];
@@ -3442,6 +3448,14 @@ async function main() {
             instagramSeenPosts[source.id] || [],
             instagramPendingSeenPosts[source.id],
           );
+        }
+        // Keep the same bounded batch and give other sources a turn before draining unread posts.
+        // Only a committed successful batch can be retried within this run; failures wait for the next run.
+        if (progressTrackingEnabled
+          && result.remainingSources.includes(source.id)
+          && instagramPendingSeenPosts[source.id]?.length
+          && shouldAdvanceInstagramCheckpoint(result.issues.slice(issueCountBeforeSource), hasAccessFailure(source.id))) {
+          sources.push(source);
         }
         delete instagramPendingSeenPosts[source.id];
       } catch (error) {

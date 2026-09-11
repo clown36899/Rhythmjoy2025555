@@ -331,6 +331,18 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   };
 }
 
+// Discovery eligibility only. Registration still requires grounded dates, venue and social evidence.
+export function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false, { enabled = true } = {}) {
+  if (!enabled || source?.benefitKind || source?.scope !== 'swing') return false;
+  if (source?.allowedActivityTypes?.length && !source.allowedActivityTypes.includes('social')) return false;
+  const value = String(text || '').normalize('NFKC');
+  const hasSocial = ACTIVITY_EVIDENCE_PATTERNS.social.test(value);
+  const hasDj = /(?:DJ|디제이)/i.test(value);
+  const hasDate = /(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*(?:[.\-/]|월)\s*\d{1,2}/i.test(value);
+  // A DJ announcement may carry both the date and social label only in its original poster.
+  return (hasSocial && (hasDj || hasPoster) && (hasDate || hasPoster)) || (hasDj && hasPoster);
+}
+
 export function validateAiSocialExtraction(input = {}, extraction = {}, config = {}) {
   const sourceText = String(input.sourceText || '');
   const posterText = String(extraction?.poster_text || '').trim();

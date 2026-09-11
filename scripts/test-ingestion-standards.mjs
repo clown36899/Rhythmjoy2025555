@@ -122,6 +122,21 @@ assert.deepEqual(
 assert.equal(shouldAdvanceInstagramCheckpoint(['swingpopseoul: one-day info has no explicit future date']), true, 'a handled parse miss must not freeze the whole Instagram source checkpoint');
 assert.equal(shouldAdvanceInstagramCheckpoint([], true), false, 'an access failure must not mark the source posts as completed');
 assert.equal(shouldAdvanceInstagramCheckpoint([], false), true, 'successful sources still advance their checkpoint');
+assert.equal(shouldAdvanceInstagramCheckpoint(['post source-id: AI social extraction error: timed out']), false, 'unresolved poster extraction must remain retryable');
+const batchLinks = ['first', 'second', 'today-social', 'later-class', 'last'];
+let checkedBatchPosts = [];
+for (let batch = 0; batch < 3; batch += 1) {
+  const selected = selectUnseenInstagramPosts(batchLinks, checkedBatchPosts, 2);
+  assert.ok(selected.length <= 2, 'catch-up passes must preserve the per-source batch limit');
+  checkedBatchPosts = mergeSeenInstagramPosts(checkedBatchPosts, selected);
+}
+assert.deepEqual(selectUnseenInstagramPosts(batchLinks, checkedBatchPosts, 2), [], 'repeated bounded batches must drain the third and later unseen posts');
+const partialBatchState = buildIngestionProgressState({
+  remainingSources: ['inthemood'], instagramSeenPosts: { inthemood: ['first', 'second'] },
+  lastCompletedAt: '2026-09-10T00:00:00Z', completed: false,
+});
+assert.equal(partialBatchState.lastCompletedAt, '2026-09-10T00:00:00Z', 'unread backlog cannot advance the successful-run timestamp');
+assert.deepEqual(selectUnseenInstagramPosts(batchLinks, partialBatchState.instagramSeenPosts.inthemood, 2), ['today-social', 'later-class'], 'a stopped run resumes unread posts without rereading its completed batch');
 assert.equal(shouldAdvanceInstagramCheckpoint(['post candidate-id: HTTP 500']), false, 'a persistence failure must keep the Instagram post retryable');
 assert.equal(shouldAdvanceInstagramCheckpoint(['auto-register candidate-id: HTTP 422']), false, 'an automatic-registration failure must keep the Instagram post retryable');
 assert.deepEqual(

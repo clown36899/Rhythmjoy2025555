@@ -7,6 +7,7 @@ import {
   buildSocialExtractionPrompt,
   extractSocialScheduleWithAi,
   shouldPersistBenefitAiOutcome,
+  shouldAttemptAiSocialExtraction,
   validateAiAdjudication,
   validateAiSocialExtraction,
   validateBenefitAiReview,
@@ -30,6 +31,24 @@ describe('benefit candidate persistence policy', () => {
     expect(shouldPersistBenefitAiOutcome('rejected')).toBe(false);
     expect(shouldPersistBenefitAiOutcome('unavailable')).toBe(true);
     expect(shouldPersistBenefitAiOutcome('error')).toBe(true);
+  });
+});
+
+describe('social poster extraction eligibility', () => {
+  const source = { scope: 'swing' };
+  it('reads a dated text social and a weekly or DJ-only original poster', () => {
+    expect(shouldAttemptAiSocialExtraction(source, '9/11 금요 소셜 DJ 충하', false)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction(source, '9월 2주 위클리네오 금햅 DJ 쓴귤', true)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction(source, '이번주 디제이는 쓴귤님입니다', true)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction(source, '이번주 디제이는 쓴귤님입니다', false)).toBe(false);
+  });
+  it('preserves disabled, benefit, other-genre and class-only boundaries', () => {
+    const text = '9/11 소셜 DJ 충하';
+    expect(shouldAttemptAiSocialExtraction(source, text, true, { enabled: false })).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ ...source, benefitKind: 'free_event' }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ scope: 'salsa' }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ ...source, allowedActivityTypes: ['class'] }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction(source, '공식 프로필 운영 안내', true)).toBe(false);
   });
 });
 
