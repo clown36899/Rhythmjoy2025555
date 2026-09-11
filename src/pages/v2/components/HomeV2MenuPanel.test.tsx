@@ -104,8 +104,13 @@ describe('HomeV2MenuPanel configured quick items', () => {
         mocks.defaultLayout.pinnedMenuIds = ['home', 'benefits'];
         mocks.defaultLayout.menuOrderIds = ['home', 'benefits', 'calendar', 'board'];
 
+        function BenefitLocation() {
+            const location = useLocation();
+            return <output data-testid="benefit-location">{location.pathname}{location.search}</output>;
+        }
         render(
-            <MemoryRouter>
+            <MemoryRouter initialEntries={['/?dance=salsa']}>
+                <BenefitLocation />
                 <HomeV2MenuPanel />
             </MemoryRouter>,
         );
@@ -117,6 +122,7 @@ describe('HomeV2MenuPanel configured quick items', () => {
 
         await user.click(benefitButton);
         await waitFor(() => expect(mocks.markBenefitEventsSeen).toHaveBeenCalledTimes(1));
+        expect(screen.getByTestId('benefit-location')).toHaveTextContent('/benefit-events?dance=salsa');
     });
 
     it('uses the admin default when an authenticated member has no personal layout', async () => {

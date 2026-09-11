@@ -1,6 +1,6 @@
 import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ModalProvider } from '../../../contexts/ModalContext';
 import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
@@ -10,6 +10,11 @@ import { NewEventsBanner } from './NewEventsBanner';
 vi.mock('../../../utils/googleTranslateRefresh', () => ({
     requestGoogleTranslateRefresh: vi.fn(),
 }));
+
+function RouteLocation() {
+    const location = useLocation();
+    return <output data-testid="route-location">{location.pathname}{location.search}</output>;
+}
 
 const events = [
     {
@@ -68,11 +73,13 @@ describe('NewEventsBanner translation refresh', () => {
         const user = userEvent.setup();
         const onBenefitEventsOpen = vi.fn();
 
-        const { getByLabelText, getByText } = render(
-            <MemoryRouter>
+        const { getByLabelText, getByText, getByTestId } = render(
+            <MemoryRouter initialEntries={['/?dance=salsa']}>
+                <RouteLocation />
                 <ModalProvider>
                     <NewEventsBanner
                         events={events}
+                        danceScope="salsa"
                         onEventClick={vi.fn()}
                         defaultThumbnailClass="/class.png"
                         defaultThumbnailEvent="/event.png"
@@ -86,5 +93,6 @@ describe('NewEventsBanner translation refresh', () => {
         expect(getByText('3', { selector: '.NEB-benefitEventsBadge' })).toBeInTheDocument();
         await user.click(getByLabelText('무료, 할인 이벤트 보기, 새 이벤트 3개'));
         expect(onBenefitEventsOpen).toHaveBeenCalledTimes(1);
+        expect(getByTestId('route-location')).toHaveTextContent('/benefit-events?dance=salsa');
     });
 });

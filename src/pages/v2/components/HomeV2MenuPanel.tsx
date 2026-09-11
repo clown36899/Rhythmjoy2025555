@@ -323,7 +323,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const {
         count: benefitEventUnreadCount,
         markAllSeen: markBenefitEventsSeen,
-    } = useBenefitEventsUnreadState(menuEvents);
+    } = useBenefitEventsUnreadState(menuEvents, normalizeVisibleDanceScope(new URLSearchParams(location.search).get('dance')));
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
@@ -560,7 +560,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const handleNavigate = (to: string) => {
         setIsExpanded(false);
         const target = new URL(to, window.location.origin);
-        if (['/', '/v2', '/calendar', '/events', '/oneday-recruits', '/practice'].includes(target.pathname)) {
+        if (['/', '/v2', '/calendar', '/events', '/oneday-recruits', '/practice', '/benefit-events'].includes(target.pathname)) {
             const selectedScope = new URLSearchParams(location.search).get('dance');
             if (selectedScope) target.searchParams.set('dance', normalizeVisibleDanceScope(selectedScope));
         }

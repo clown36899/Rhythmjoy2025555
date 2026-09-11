@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { getVisibleDanceScopeOptions, isEventInDanceScope, normalizeVisibleDanceScope } from '../../utils/danceTaxonomy';
 import { useQuery } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
 import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
@@ -84,6 +86,8 @@ function formatDateLabel(date: string) {
 
 export default function BenefitEventsPage() {
   const today = getLocalDateString();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const danceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
   const [failedImageIds, setFailedImageIds] = useState<Set<string>>(() => new Set());
 
@@ -112,13 +116,13 @@ export default function BenefitEventsPage() {
 
   const benefitEvents = useMemo(() => {
     return events
-      .filter(isBenefitEvent)
+      .filter((event) => isBenefitEvent(event) && isEventInDanceScope(event, danceScope))
       .sort((a, b) => {
         const left = getBenefitEventDisplayDate(a, today);
         const right = getBenefitEventDisplayDate(b, today);
         return left.localeCompare(right) || String(a.title || '').localeCompare(String(b.title || ''), 'ko');
       });
-  }, [events, today]);
+  }, [events, today, danceScope]);
   useMarkBenefitEventsSeenOnVisit(benefitEvents, !isLoading && !error);
   const selectedEventPoster = selectedEvent && !failedImageIds.has(String(selectedEvent.id || ''))
     ? getEventPoster(selectedEvent)
@@ -127,7 +131,7 @@ export default function BenefitEventsPage() {
   return (
     <main className="benefit-events-page">
       <header className="benefit-events-header">
-        <a className="benefit-events-back" href="/" aria-label="메인으로 이동">
+        <a className="benefit-events-back" href={`/?dance=${danceScope}`} aria-label="메인으로 이동">
           <i className="ri-arrow-left-line" aria-hidden="true" />
         </a>
         <div>
@@ -135,6 +139,30 @@ export default function BenefitEventsPage() {
           <p>무료·할인 혜택과 정기권·시즌권·멤버십 판매</p>
         </div>
       </header>
+
+      <nav className="benefit-events-genres" aria-label="댄스 장르 선택">
+        {getVisibleDanceScopeOptions(true).map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            aria-pressed={danceScope === option.key}
+            aria-label={option.publicAvailable ? option.label : `${option.label} 준비중`}
+            disabled={!option.publicAvailable}
+            draggable={false}
+            onClick={() => {
+              setSelectedEvent(null);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                next.set('dance', option.key);
+                return next;
+              });
+            }}
+          >
+            {option.label}
+            {!option.publicAvailable && <small>준비중</small>}
+          </button>
+        ))}
+      </nav>
 
       <section className="benefit-events-summary" aria-label="목록 요약">
         <strong>{benefitEvents.filter((event) => !isPastBenefitEvent(event, today)).length}</strong>

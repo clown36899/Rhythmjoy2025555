@@ -786,6 +786,17 @@ assert.equal(classifyConfirmedBenefitEvent({
   structured_data: { title: '바차타 입문 체험' },
 }), 'free_event', 'explicit free trial classes should classify across approved dance scopes');
 const benefitPhraseCases = [
+  ['강습비 8만원. 수료할 때까지 재수강 무료.', null],
+  ['강습비 8만원. 재수강료 무료.', null],
+  ['입장료 2만원. 재입장 무료.', null],
+  ['강습비 8만원. 재수강 무료. 2인 이상 동시 신청 시 합계 5천원 추가할인.', 'discount_event'],
+  ['동시 신청 시 1만원 할인', 'discount_event'],
+  ['2인 신청 시 5천원 추가할인은 종료되었습니다.', null],
+  ['누구나 수강 무료. 교재 별도.', 'free_event'],
+  ['수강은 무료입니다.', 'free_event'],
+  ['입장료 2만원. 무료 라인강습 진행.', 'free_event'],
+  ['라인강습 무료', 'free_event'],
+  ['살사강습 무료', 'free_event'],
   ['입장은 무료, 음료는 별도 구매입니다.', 'free_event'],
   ['관람 무료 / 스트릿 배틀 참가비는 별도', 'free_event'],
   ['Admission: FREE · Salsa social', 'free_event'],

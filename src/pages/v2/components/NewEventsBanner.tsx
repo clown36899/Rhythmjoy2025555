@@ -1441,7 +1441,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             onClick={(event) => {
                                 event.stopPropagation();
                                 onBenefitEventsOpen?.();
-                                navigate('/benefit-events');
+                                navigate(`/benefit-events?dance=${danceScope}`);
                             }}
                             aria-label={benefitEventUnreadCount > 0
                                 ? `무료, 할인 이벤트 보기, 새 이벤트 ${benefitEventUnreadCount}개`

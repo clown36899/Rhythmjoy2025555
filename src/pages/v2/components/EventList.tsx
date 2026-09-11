@@ -156,7 +156,7 @@ const EventList: React.FC<EventListProps> = ({
   const {
     count: benefitEventUnreadCount,
     markAllSeen: markBenefitEventsSeen,
-  } = useBenefitEventsUnreadState(events);
+  } = useBenefitEventsUnreadState(events, selectedDanceScope);
   const fetchEvents = useCallback(async () => {
     await refetchEvents();
   }, [refetchEvents]);
