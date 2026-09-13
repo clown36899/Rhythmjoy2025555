@@ -1,4 +1,5 @@
 import { getMysqlPool } from './mysql-pool.js';
+import { assertEventNotAdminDeleted, deleteEventsAsAdmin, withEventMutationLock } from './admin-event-deletion.js';
 import { getCurrentUser, requireAdmin } from './auth-api.js';
 import { removeEventUploads } from './upload-cleanup.js';
 import { saveCafe24TableRow } from './generic-data-api.js';
@@ -335,7 +336,9 @@ async function requireEventOwnerOrAdmin(req, event) {
   throw error;
 }
 
-export async function saveEvent(event, executor = getMysqlPool()) {
+export async function saveEvent(event, executor = null) {
+  if (!executor) return withEventMutationLock((connection) => saveEvent(event, connection));
+  await assertEventNotAdminDeleted(event, executor);
   await executor.execute(
     `INSERT INTO ${tableName} (
        id, title, date_value, start_date, end_date, event_dates_json, time_text,
@@ -628,16 +631,22 @@ export async function deleteCafe24Event(req, res) {
     return;
   }
 
-  await requireEventOwnerOrAdmin(req, existing);
-  const imageCleanup = await removeEventUploads(existing);
-  const pool = getMysqlPool();
-  const [result] = await pool.execute(`DELETE FROM ${tableName} WHERE id = ?`, [String(req.params.id)]);
+  const user = await requireEventOwnerOrAdmin(req, existing);
+  let result;
+  if (user.is_admin) {
+    const deletion = await deleteEventsAsAdmin([existing], user, tableName);
+    result = { affectedRows: deletion.deleted };
+  } else {
+    const pool = getMysqlPool();
+    [result] = await pool.execute(`DELETE FROM ${tableName} WHERE id = ?`, [String(req.params.id)]);
+  }
 
   if (!result.affectedRows) {
     res.status(404).json({ error: 'event not found' });
     return;
   }
 
+  const imageCleanup = await removeEventUploads(existing);
   res.json({
     ok: true,
     id: String(req.params.id),

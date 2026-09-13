@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildAdminDeletedEventRow } from './admin-event-deletion.js';
 import {
   findGeneratedRegularSocialReplacements,
   planRegularSocialReconciliation,
@@ -7,6 +8,35 @@ import {
 const rule = { id: 'sample-fri', title: '샘플 금요 소셜', weekday: 5, time: '19:30', location: '샘플홀', sourceId: 'sample' };
 
 describe('regular social reconciliation', () => {
+  it('honors administrator deletion over fallback generation, closure and historical retention', () => {
+    const event = {
+      id: 'regular-social:sample-fri:2026-09-11', date: '2026-09-11',
+      title: rule.title, location: rule.location, category: 'social',
+    };
+    const deletion = buildAdminDeletedEventRow(event, { id: 'admin', is_admin: true });
+    const closure = {
+      id: 'closure', source_id: rule.sourceId, exception_type: 'closure',
+      structured_data: { date: event.date },
+    };
+    for (const today of ['2026-09-10', '2026-09-12']) {
+      const plan = planRegularSocialReconciliation({
+        events: [event], rules: [rule], scrapedEvents: [deletion, closure], today, horizonDays: 10,
+      });
+      expect(plan.removes).toEqual([event]);
+      expect(plan.creates.some((item) => item.date === event.date)).toBe(false);
+      expect(plan.creates.some((item) => item.date === '2026-09-18')).toBe(true);
+      const retry = planRegularSocialReconciliation({
+        events: [], rules: [rule], scrapedEvents: [deletion, closure], today, horizonDays: 10,
+      });
+      expect(retry.creates.some((item) => item.date === event.date)).toBe(false);
+    }
+    // Deleting the collected DJ event must also suppress its fallback ID.
+    const actualDeletion = buildAdminDeletedEventRow({ ...event, id: 'collected-dj' }, { id: 'admin' });
+    const plan = planRegularSocialReconciliation({
+      events: [], rules: [rule], scrapedEvents: [actualDeletion], today: '2026-09-10', horizonDays: 2,
+    });
+    expect(plan.creates).toEqual([]);
+  });
   it('links every built-in social to its collection source and remains idempotent', () => {
     const first = planRegularSocialReconciliation({ events: [], today: '2026-09-10', horizonDays: 7 });
     expect(first.creates.length).toBeGreaterThan(0);

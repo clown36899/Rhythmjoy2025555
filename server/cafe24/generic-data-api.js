@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getMysqlPool } from './mysql-pool.js';
+import { assertEventNotAdminDeleted, deleteEventsAsAdmin, withEventMutationLock } from './admin-event-deletion.js';
 import { getCurrentUser, requireAdmin } from './auth-api.js';
 import {
   attachEventAuthors,
@@ -1262,6 +1263,10 @@ async function saveGenericRow(table, row, conflictKeys = []) {
 }
 
 async function saveEventRow(row) {
+  return withEventMutationLock((connection) => saveEventRowWithConnection(row, connection));
+}
+
+async function saveEventRowWithConnection(row, pool) {
   const event = { ...(row || {}) };
   const now = new Date().toISOString();
   if (!event.id) event.id = crypto.randomUUID();
@@ -1275,7 +1280,7 @@ async function saveEventRow(row) {
   if (startDate) event.start_date = startDate;
   if (endDate) event.end_date = endDate;
 
-  const pool = getMysqlPool();
+  await assertEventNotAdminDeleted(event, pool);
   await pool.execute(
     `INSERT INTO events (
        id, title, date_value, start_date, end_date, event_dates_json, time_text,
@@ -3259,7 +3264,12 @@ export async function deleteRecords(req, res) {
   await requireGenericAccess(req, table, 'delete', req.body || {});
   const user = await getCurrentUser(req);
   const targets = await resolveMutationTargets(table, req.body?.filters || [], req.body?.orFilters || []);
-  await deleteRows(table, targets);
+  if (table === 'events' && user?.is_admin) {
+    await deleteEventsAsAdmin(targets, user);
+    await Promise.all(targets.map((row) => removeEventUploads(row)));
+  } else {
+    await deleteRows(table, targets);
+  }
   await recomputeCountSideEffects(table, targets);
   const responseData = table === 'events'
     ? sanitizeEventsForViewer(await attachEventAuthors(targets), user)

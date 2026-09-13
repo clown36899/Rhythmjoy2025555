@@ -96,12 +96,28 @@ const isSocialAdEvent = (event: Event) => {
     );
 };
 
-const hasCustomEventImage = (event: Event) => Boolean(
-    event.image_medium ||
-    event.image_thumbnail ||
-    event.image ||
-    event.image_full
-);
+const hasCustomEventImage = (event: Event) => [
+    event.image_medium, event.image_thumbnail, event.image_micro, event.image, event.image_full,
+].some((value) => typeof value === 'string' && value.trim() && !value.includes('/default-thumbnails/'));
+
+const getMainAdDescription = (description?: string | null) => {
+    if (!description) return '';
+    // The detached template is inert: use only its text, never render source HTML.
+    const template = document.createElement('template');
+    template.innerHTML = description.replace(/<br\s*\/?\s*>|<\/(?:p|div|li|h[1-6])>/gi, ' ');
+    template.content.querySelectorAll('script, style, iframe, noscript').forEach((node) => node.remove());
+    return (template.content.textContent || '').replace(/\s+/g, ' ').trim();
+};
+
+const getMainAdTypeLabel = (event: Event) => {
+    if (isSocialAdEvent(event)) return '소셜';
+    const category = event.activity_type || event.category;
+    if (category === 'class' || category === 'regular') return '강습';
+    if (category === 'club') return '동호회';
+    if (category === 'recruit') return '모집';
+    if (category === 'sale') return '판매 안내';
+    return '행사';
+};
 
 const getSocialImageUrlHint = (imageUrl: string): SocialAdImageAnalysis | null => {
     const normalizedUrl = imageUrl.toLowerCase();
@@ -797,6 +813,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         () => events.map((event) => getMainAdImage(event, defaultThumbnailClass, defaultThumbnailEvent)),
         [events, defaultThumbnailClass, defaultThumbnailEvent]
     );
+    const bannerDescriptions = useMemo(
+        () => events.map((event) => getMainAdDescription(event.description)),
+        [events]
+    );
     const indicatorImages = useMemo(
         () => events.map((event) => getMainAdIndicatorImage(event, defaultThumbnailClass, defaultThumbnailEvent)),
         [events, defaultThumbnailClass, defaultThumbnailEvent]
@@ -1281,13 +1301,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     onClick={() => goToSlide(index)}
                                     aria-label={`${index + 1}번째 이벤트 보기`}
                                 >
-                                    <img
+                                    {hasCustomEventImage(event) && !failedImageUrls[indicatorImage] ? <img
                                         src={indicatorImage}
                                         alt=""
                                         loading="lazy"
                                         decoding="async"
                                         draggable={false}
-                                    />
+                                    /> : <span className="NEB-indicatorText" aria-hidden="true">{event.title.slice(0, 2)}</span>}
                                 </button>
                             );
                         })}
@@ -1312,22 +1332,22 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 hasCustomEventImage(event) &&
                                 isSocialAdEvent(event) &&
                                 socialImageAnalysis.kind === 'photo';
-                            const isSocialImageFallback =
-                                isSocialAdEvent(event) &&
-                                (!hasCustomEventImage(event) || Boolean(failedImageUrls[eventThumbnail]));
+                            const isTextPoster = !hasCustomEventImage(event) || Boolean(failedImageUrls[eventThumbnail]);
                             const authorProfile = getAuthorProfile(event);
                             const timeLabel = getTimeLabel(event);
 
                             return (
                                 <div
                                     key={event.id}
-                                    className={`NEB-slide ${placement.className} ${edgeToneClass} ${isSocialPhotoAd || isSocialImageFallback ? 'is-social-photo-ad' : ''} ${isSocialImageFallback ? 'is-social-image-fallback' : ''}`}
+                                    className={`NEB-slide ${placement.className} ${edgeToneClass} ${isSocialPhotoAd || isTextPoster ? 'is-social-photo-ad' : ''} ${isTextPoster ? 'is-text-poster' : ''}`}
                                     style={placement.style}
+                                    draggable={false}
+                                    onDragStart={(dragEvent) => dragEvent.preventDefault()}
                                     onClick={() => openEventDetail(event)}
                                     aria-label={event.title}
                                 >
                                     <div className="NEB-imageWrapper">
-                                        <img
+                                        {!isTextPoster && <img
                                             src={eventThumbnail}
                                             alt={event.title}
                                             className="NEB-image"
@@ -1341,14 +1361,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 ensureSocialAdImageKind(eventThumbnail, event);
                                             }}
                                             onError={() => {
-                                                if (!isSocialAdEvent(event)) return;
                                                 setFailedImageUrls((previous) => (
                                                     previous[eventThumbnail]
                                                         ? previous
                                                         : { ...previous, [eventThumbnail]: true }
                                                 ));
                                             }}
-                                        />
+                                        />}
                                         {authorProfile.image && (
                                             <span
                                                 className="NEB-authorBadge"
@@ -1365,9 +1384,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 />
                                             </span>
                                         )}
-                                        {(isSocialPhotoAd || isSocialImageFallback) && (
-                                            <div className="NEB-socialPhotoPoster" aria-hidden="true">
-                                                {!isSocialImageFallback && (
+                                        {(isSocialPhotoAd || isTextPoster) && (
+                                            <div className="NEB-socialPhotoPoster" aria-hidden={!isTextPoster}>
+                                                {!isTextPoster && (
                                                     <span className="NEB-socialPhotoPortrait">
                                                         <img
                                                             src={eventThumbnail}
@@ -1381,14 +1400,17 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 <span className="NEB-socialPhotoCopy">
                                                     <span className="NEB-socialPhotoKicker">
                                                         <i className="ri-music-2-line" />
-                                                        SOCIAL
+                                                        {isTextPoster ? getMainAdTypeLabel(event) : 'SOCIAL'}
                                                     </span>
                                                     <strong>{event.title}</strong>
+                                                    {isTextPoster && bannerDescriptions[index] && (
+                                                        <span className="NEB-textPosterDescription">{bannerDescriptions[index]}</span>
+                                                    )}
                                                     <span className="NEB-socialPhotoMeta">
                                                         <i className="ri-calendar-line" />
                                                         {getDateLabel(event)}
                                                     </span>
-                                                    {timeLabel && (
+                                                    {!isTextPoster && timeLabel && (
                                                         <span className="NEB-socialPhotoMeta">
                                                             <i className="ri-time-line" />
                                                             {timeLabel}

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { findAdminDeletedEvent } from './admin-event-deletion.js';
 import {
   deleteCafe24TableRows,
   loadCafe24TableRows,
@@ -200,6 +201,10 @@ export function planRegularSocialReconciliation({
       if (rule.validUntil && key > rule.validUntil) continue;
       const id = `regular-social:${rule.id}:${key}`;
       const generated = existingGenerated.get(id);
+      if (findAdminDeletedEvent({ id, date: key, location: rule.location, category: 'social' }, scrapedEvents)) {
+        if (generated) removes.push(generated);
+        continue;
+      }
       const collectedClosure = collectedClosureForRule(exceptions, key, rule.sourceId);
       const apiException = apiExceptions.find((item) => item.date === key && item.ruleId === rule.id);
       const closure = apiException?.type === 'closure' ? apiException : collectedClosure;
@@ -300,6 +305,10 @@ export function planRegularSocialReconciliation({
 
   for (const generated of existingGenerated.values()) {
     const alreadyRemoved = removes.some((item) => String(item.id) === String(generated.id));
+    if (findAdminDeletedEvent(generated, scrapedEvents)) {
+      if (!alreadyRemoved) removes.push(generated);
+      continue;
+    }
     if (
       eventDate(generated) < today
     ) {

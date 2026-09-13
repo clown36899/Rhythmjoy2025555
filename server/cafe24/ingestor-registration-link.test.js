@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildAdminDeletedEventRow } from './admin-event-deletion.js';
 import sharp from 'sharp';
 import {
   buildCollectedScrapedEventRow,
@@ -22,6 +23,25 @@ import {
 } from './function-api.js';
 
 describe('ingestor registration linkage', () => {
+  it('keeps administrator-deleted socials excluded when new DJ evidence uses a new candidate ID', () => {
+    const deleted = buildAdminDeletedEventRow({
+      id: 'regular-social:sample:2026-09-13', title: '기본 소셜', date: '2026-09-13',
+      location: '샘플홀', category: 'social', link1: 'https://www.instagram.com/example/',
+    }, { id: 'admin' });
+    const candidate = {
+      id: 'new-post', source_url: 'https://www.instagram.com/p/new/',
+      structured_data: { title: 'DJ 새로운이름', date: '2026-09-13', location: '샘플홀', category: 'social' },
+    };
+    expect(findScrapedCandidateDuplicate(candidate, [deleted])?.existingId).toBe(deleted.id);
+    for (const patch of [
+      { date: '2026-09-20' }, { location: '다른홀' },
+      { category: 'event', title: 'RSF 행사' }, { category: 'class' }, { genre: '졸공' },
+    ]) {
+      expect(findScrapedCandidateDuplicate({
+        ...candidate, structured_data: { ...candidate.structured_data, ...patch },
+      }, [deleted])).toBeNull();
+    }
+  });
   it('inherits map metadata when a grounded social replaces a generated regular social', () => {
     const explicit = {
       title: 'DJ 제이 | 인더무드신림 일요 소셜',

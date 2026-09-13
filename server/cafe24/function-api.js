@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { deleteEventsAsAdmin, findAdminDeletedEvent } from './admin-event-deletion.js';
 import { benefitFieldsFromStructuredData } from './ingestion-benefit-fields.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -751,7 +752,10 @@ export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows 
 }
 
 export function findScrapedCandidateDuplicate(candidate, scrapedRows = []) {
+  const adminDeleted = findAdminDeletedEvent(candidate, scrapedRows);
+  if (adminDeleted) return duplicateDescriptor('scraped_events', adminDeleted, '관리자가 삭제한 일정: 자동 복원 금지');
   for (const row of scrapedRows) {
+    if (row.structured_data?._exclusion?.stage === 'admin_event_delete') continue;
     if (String(row?.id || '') === String(candidate?.id || '')) continue;
     // A duplicate row only points at another ledger row, so it must not become
     // a second source of truth. An excluded row is the durable suppression
@@ -1724,6 +1728,10 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     res.status(400).json({ error: '제외 처리된 후보는 등록할 수 없습니다.' });
     return;
   }
+  if (findAdminDeletedEvent(scrapedEvent, scrapedRows)) {
+    res.status(409).json({ error: '관리자가 삭제한 일정은 다시 등록할 수 없습니다.' });
+    return;
+  }
   const automaticValidation = automaticRequest
     ? validateAutomaticRegistrationCandidate(scrapedEvent)
     : null;
@@ -1930,8 +1938,12 @@ export async function cafe24DeleteEventFunction(req, res) {
     return;
   }
 
+  if (user?.is_admin) {
+    await deleteEventsAsAdmin([target], user);
+  } else {
+    await deleteCafe24TableRows('events', [target]);
+  }
   const imageCleanup = await removeEventUploads(target);
-  await deleteCafe24TableRows('events', [target]);
   res.json({
     success: true,
     deletedImages: imageCleanup.count,

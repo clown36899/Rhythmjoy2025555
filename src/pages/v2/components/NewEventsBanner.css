@@ -268,26 +268,82 @@
   transition: opacity 0.24s ease;
 }
 
-.NEB-slide.is-social-photo-ad:not(.is-active) .NEB-socialPhotoPoster {
+.NEB-slide.is-social-photo-ad:not(.is-active):not(.is-text-poster) .NEB-socialPhotoPoster {
   opacity: 0;
 }
 
-.NEB-slide.is-social-image-fallback .NEB-imageWrapper {
+.NEB-slide.is-text-poster .NEB-imageWrapper {
+  container-type: size;
   background:
     radial-gradient(circle at 82% 18%, rgba(83, 220, 169, 0.24), transparent 34%),
     linear-gradient(145deg, #11211f 0%, #172c27 48%, #0a1112 100%);
 }
 
-.NEB-slide.is-social-image-fallback .NEB-image {
-  opacity: 0;
+.NEB-slide.is-text-poster .NEB-socialPhotoPoster {
+  justify-content: center;
+  overflow: hidden;
 }
 
-.NEB-slide.is-social-image-fallback .NEB-socialPhotoPoster {
-  justify-content: flex-end;
+.NEB-slide.is-text-poster .NEB-socialPhotoCopy strong {
+  font-size: clamp(23px, 4.5vw, 36px);
+  line-height: 1.2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
-.NEB-slide.is-social-image-fallback .NEB-socialPhotoCopy strong {
-  font-size: clamp(24px, 5vw, 42px);
+.NEB-textPosterDescription {
+  display: -webkit-box;
+  flex: 1 0 100%;
+  overflow: hidden;
+  margin: 5px 0 10px;
+  color: #dce9e4;
+  font-size: clamp(13px, 2.8vw, 16px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.NEB-indicatorText {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: #19352c;
+  color: #b4ffdf;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@container (max-height: 250px) {
+  .NEB-slide.is-text-poster .NEB-socialPhotoPoster {
+    padding: 12px;
+  }
+
+  .NEB-slide.is-text-poster .NEB-socialPhotoCopy {
+    gap: 5px;
+  }
+
+  .NEB-slide.is-text-poster .NEB-socialPhotoCopy strong {
+    font-size: 20px;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .NEB-slide.is-text-poster .NEB-textPosterDescription {
+    margin: 3px 0 5px;
+    font-size: 12px;
+    line-height: 1.45;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .NEB-slide.is-text-poster .NEB-socialPhotoMeta,
+  .NEB-slide.is-text-poster .NEB-socialPhotoKicker {
+    min-height: 24px;
+    font-size: 11px;
+  }
 }
 
 .NEB-socialPhotoPortrait {

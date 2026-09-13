@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -43,6 +43,36 @@ describe('NewEventsBanner translation refresh', () => {
 
     afterEach(() => {
         randomSpy.mockRestore();
+    });
+
+    it('uses title and safe description for missing or failed posters across ad categories', () => {
+        const onEventClick = vi.fn();
+        const examples = [
+            { ...events[0], description: '<p>즐거운 &amp; 편안한 소셜</p><script>bad()</script>' },
+            { ...events[1], description: '처음 배우는 린디합 강습' },
+            { ...events[1], id: 3, category: 'event', image: '/poster.jpg', title: '포스터 행사' },
+            { ...events[1], id: 4, image: '/default-thumbnails/default_thumbnail.webp', title: '기본 이미지 강습' },
+        ] as Event[];
+        const { container } = render(
+            <MemoryRouter><ModalProvider>
+                <NewEventsBanner events={examples} onEventClick={onEventClick} />
+            </ModalProvider></MemoryRouter>
+        );
+        const slides = container.querySelectorAll('.NEB-slide');
+        expect(slides[0]).toHaveTextContent('즐거운 & 편안한 소셜');
+        expect(slides[0]).not.toHaveTextContent('bad()');
+        expect(slides[1]).toHaveTextContent('처음 배우는 린디합 강습');
+        expect(slides[1].querySelector('.NEB-image')).toBeNull();
+        expect(slides[3]).toHaveClass('is-text-poster');
+        expect(slides[2]).not.toHaveClass('is-text-poster');
+        fireEvent.error(slides[2].querySelector('.NEB-image')!);
+        expect(slides[2]).toHaveClass('is-text-poster');
+        expect(slides[2]).toHaveTextContent('포스터 행사');
+        expect(slides[2].querySelector('.NEB-image')).toBeNull();
+        expect(slides[0]).toHaveAttribute('draggable', 'false');
+        expect(fireEvent.dragStart(slides[0])).toBe(false);
+        fireEvent.click(slides[0]);
+        expect(onEventClick).toHaveBeenCalled();
     });
 
     it('requests Google Translate refresh when the active ad changes', async () => {
