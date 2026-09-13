@@ -60,11 +60,39 @@ export function catchupInstagramPostLimit(baseLimit, lastCompletedAt, now = new 
   return Math.min(8, Math.max(base, base + ((elapsedDays - 1) * 2)));
 }
 
-export function selectUnseenInstagramPosts(links = [], seenPosts = [], limit = 1) {
+export function selectUnseenInstagramPosts(links = [], seenPosts = [], limit = 1, recheckCount = 0) {
   const visible = [...new Set(links.map(String).filter(Boolean))];
   const seen = new Set(seenPosts.map(String).filter(Boolean));
   const unseen = visible.filter((url) => !seen.has(url));
-  return unseen.slice(0, Math.max(1, Number(limit) || 1));
+  const recheck = visible.filter((url) => seen.has(url)).slice(0, Math.max(0, Number(recheckCount) || 0));
+  return [...new Set([...recheck, ...unseen])].slice(0, Math.max(1, Number(limit) || 1));
+}
+
+// A generated, unconfirmed occurrence is an outstanding collection obligation.
+// Do not infer occurrences from rules here: absent administrator-deleted slots
+// and confirmed closures must never be reopened by a collector.
+export function findUnresolvedTodaySocialSources(events = [], sources = [], today = '') {
+  const day = (event) => String(event.date || event.start_date || '').slice(0, 10);
+  const generated = (event) => event.automation?.generated_by === 'regular-social-rolling-v1'
+    || String(event.id || '').startsWith('regular-social:');
+  const venue = (value) => String(value || '').normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+  const todayEvents = events.filter((event) => day(event) === today);
+  const unresolved = todayEvents.filter((event) => {
+    if (!generated(event) || event.automation?.exception_type || event.genre === '휴무' || event.dj_name === '휴무') return false;
+    if (event.dj_name && !/^(?:미정|DJ\s*미정|unknown|tbd)$/i.test(String(event.dj_name).trim())) return false;
+    const location = venue(event.location || event.venue_name);
+    return !todayEvents.some((actual) => actual !== event && !generated(actual)
+      && (actual.category === 'social' || actual.activity_type === 'social')
+      && location && venue(actual.location || actual.venue_name) === location);
+  });
+  return [...new Set(sources.filter((source) => {
+    if (source.type === 'benefit_search' || source.saveEnabled === false) return false;
+    if (source.allowedActivityTypes?.length && !source.allowedActivityTypes.includes('social')) return false;
+    const weekday = new Date(`${today}T12:00:00+09:00`).getUTCDay();
+    if (source.allowedWeekdays?.length && !source.allowedWeekdays.includes(weekday)) return false;
+    return unresolved.some((event) => event.automation?.source_id === source.id
+      || (source.venue && venue(source.venue) === venue(event.location || event.venue_name)));
+  }).map((source) => String(source.id)))];
 }
 
 export function mergeSeenInstagramPosts(seenPosts = [], completedPosts = [], maxEntries = 96) {

@@ -73,6 +73,7 @@ import {
 import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
+  findUnresolvedTodaySocialSources,
   mergeSeenInstagramPosts,
   reopenFailedInstagramPosts,
   reorderSourcesForResume,
@@ -101,6 +102,32 @@ assert.deepEqual(
   ['new', 'seen', 'old'],
   'completed Instagram posts must advance the per-source checkpoint without losing prior history',
 );
+assert.deepEqual(selectUnseenInstagramPosts(['weekly', 'weekly', 'pinned', 'new'], ['weekly', 'pinned'], 3, 2), ['weekly', 'pinned', 'new'], 'same-day recovery must reopen checked notices without discarding new posts or duplicating URLs');
+assert.deepEqual(selectUnseenInstagramPosts(['weekly', 'pinned', 'new'], ['weekly', 'pinned'], 2, 2), ['weekly', 'pinned'], 'recovery must preserve the existing per-source batch bound');
+const recoverySources = [
+  { id: 'official', type: 'instagram', venue: '해피홀' },
+  { id: 'alternate', type: 'naver_cafe', venue: '해피 홀', allowedActivityTypes: ['social'], allowedWeekdays: [0] },
+  { id: 'wrong-day', venue: '해피홀', allowedWeekdays: [3] },
+  { id: 'class-only', venue: '해피홀', allowedActivityTypes: ['class'] },
+  { id: 'disabled', venue: '해피홀', saveEnabled: false },
+  { id: 'benefits', venue: '해피홀', type: 'benefit_search' },
+  { id: 'other', venue: '다른 홀' },
+];
+const unresolvedSocial = { id: 'regular-social:official:2026-09-13', date: '2026-09-13', location: '해피홀', dj_name: '미정', automation: { generated_by: 'regular-social-rolling-v1', source_id: 'official' } };
+assert.deepEqual(findUnresolvedTodaySocialSources([unresolvedSocial], [...recoverySources, recoverySources[0]], '2026-09-13'), ['official', 'alternate'], 'only enabled same-day social sources and registered venue alternatives may be retried, once each');
+assert.deepEqual(findUnresolvedTodaySocialSources([], recoverySources, '2026-09-13'), [], 'an absent administrator-deleted slot must not be inferred from a source or rule');
+assert.deepEqual(findUnresolvedTodaySocialSources([unresolvedSocial], recoverySources, '2026-09-14'), [], 'past and future occurrences are not same-day recovery obligations');
+for (const change of [
+  { dj_name: '확정DJ' },
+  { dj_name: '휴무' },
+  { genre: '휴무' },
+  { automation: { ...unresolvedSocial.automation, exception_type: 'closure' } },
+  { automation: { ...unresolvedSocial.automation, exception_type: 'override' } },
+]) {
+  assert.deepEqual(findUnresolvedTodaySocialSources([{ ...unresolvedSocial, ...change }], recoverySources, '2026-09-13'), [], 'confirmed DJ, closure, or official override must not reopen collection');
+}
+assert.deepEqual(findUnresolvedTodaySocialSources([unresolvedSocial, { id: 'registered', date: '2026-09-13', location: '해피홀', category: 'social' }], recoverySources, '2026-09-13'), [], 'a real social already registered at the same date and venue satisfies collection');
+assert.deepEqual(findUnresolvedTodaySocialSources([unresolvedSocial, { id: 'class', date: '2026-09-13', location: '해피홀', category: 'class' }], recoverySources, '2026-09-13'), ['official', 'alternate'], 'an adjacent class must not disguise a missing social');
 assert.deepEqual(
   reopenFailedInstagramPosts({
     neo_swing: [

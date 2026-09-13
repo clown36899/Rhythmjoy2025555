@@ -67,6 +67,7 @@ import {
 import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
+  findUnresolvedTodaySocialSources,
   loadIngestionProgress,
   mergeSeenInstagramPosts,
   progressFileForPriority,
@@ -156,6 +157,8 @@ const today = dryRun && /^20\d{2}-\d{2}-\d{2}$/.test(dryRunReferenceDate)
   ? dryRunReferenceDate
   : todayISO();
 const runStartedAtMs = Date.now();
+const sameDayRecoverySources = new Set();
+const sameDayRecheckedSources = new Set();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 const graduationEventPattern = /졸업\s*(?:공연|파티)|graduation\s*(?:show|party|performance)/i;
 const closureEventPattern = /(?:정기\s*)?휴관|(?:정기\s*)?휴무|휴업|쉬어\s*갑니다|쉽니다|쉬어요|(?:이번|금)\s*주[^.\n]{0,30}(?:쉽니다|쉬어요|휴관|휴무)|소셜[^.\n]{0,20}(?:없습니다|없어요|취소)|(?:행사|운영)[^.\n]{0,20}취소/i;
@@ -2917,6 +2920,22 @@ async function postCandidate(candidate) {
   result.candidates.push(`${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
 }
 
+async function loadPublicEventsForDates(start, end) {
+  const url = new URL(publicEventsEndpoint);
+  url.searchParams.set('start', start);
+  url.searchParams.set('end', end);
+  url.searchParams.set('limit', '3000');
+  const response = await fetchWithTimeout(url.toString(), {
+    headers: { Accept: 'application/json' },
+  }, postRequestTimeoutMs);
+  if (!response.response.ok) throw new Error(`HTTP ${response.response.status}`);
+  const payload = JSON.parse(response.body || 'null');
+  const events = Array.isArray(payload) ? payload : payload?.data || payload?.events;
+  if (!Array.isArray(events)) throw new Error('public events response is not an array');
+  if (events.length >= 3000) throw new Error('public events response may be truncated');
+  return events;
+}
+
 async function reconcileExpectedAutomaticSocials() {
   const reconciliation = result.pipeline.reconciliation;
   reconciliation.expected = expectedAutomaticSocials.length;
@@ -2926,16 +2945,8 @@ async function reconcileExpectedAutomaticSocials() {
   let publicEvents = [];
   if (!dryRun && profile !== 'expanded-research') {
     const dates = expectedAutomaticSocials.map((item) => item.date).sort();
-    const url = new URL(publicEventsEndpoint);
-    url.searchParams.set('start', dates[0]);
-    url.searchParams.set('end', dates.at(-1));
     try {
-      const response = await fetchWithTimeout(url.toString(), {
-        headers: { Accept: 'application/json' },
-      }, postRequestTimeoutMs);
-      if (!response.response.ok) throw new Error(`HTTP ${response.response.status}`);
-      const payload = JSON.parse(response.body || '[]');
-      publicEvents = Array.isArray(payload) ? payload : payload.data || payload.events || [];
+      publicEvents = await loadPublicEventsForDates(dates[0], dates.at(-1));
     } catch (error) {
       const reason = `public event verification failed: ${error?.message || error}`;
       for (const expectation of expectedAutomaticSocials) {
@@ -3163,8 +3174,13 @@ async function collectSource(page, source) {
     if (!targetInstagramPostUrls.length) markInstagramProfileSuccess();
     const candidates = [];
     const knownPosts = progressTrackingEnabled ? (instagramSeenPosts[source.id] || []) : [];
+    const recheckCount = sameDayRecoverySources.has(source.id) && !sameDayRecheckedSources.has(source.id) ? 2 : 0;
+    if (recheckCount) {
+      sameDayRecheckedSources.add(source.id);
+      log(`same-day recovery ${source.id}: rechecking up to ${recheckCount} previously checked posts`);
+    }
     const unseenLinks = progressTrackingEnabled
-      ? selectUnseenInstagramPosts(links, knownPosts, links.length)
+      ? selectUnseenInstagramPosts(links, knownPosts, links.length, recheckCount)
       : links;
     if (progressTrackingEnabled && unseenLinks.length === 0) {
       result.remainingSources = result.remainingSources.filter((id) => id !== source.id);
@@ -3376,6 +3392,17 @@ async function main() {
     ...futureSources,
   ]);
 
+  if (profile === 'swing-daily' && !dryRun) {
+    try {
+      const pending = findUnresolvedTodaySocialSources(await loadPublicEventsForDates(today, today), sources, today);
+      pending.forEach((id) => sameDayRecoverySources.add(id));
+      sources = reorderSourcesForResume(sources, pending);
+      log(`same-day recovery start ${today}: ${pending.join(',') || 'none'}`);
+    } catch (error) {
+      result.issues.push(`same-day recovery verification failed: ${error.message}`);
+    }
+  }
+
   log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
@@ -3487,6 +3514,21 @@ async function main() {
       result.pipeline.reconciliation.failures,
     );
     log(`instagram retry reopened ${result.pipeline.reconciliation.failures.length} automatic-registration failure(s)`);
+    result.remainingSources = unique([...result.remainingSources, ...result.pipeline.reconciliation.failures.map((failure) => failure.sourceId).filter(Boolean)]);
+  }
+
+  if (profile === 'swing-daily' && !dryRun) {
+    try {
+      const pending = findUnresolvedTodaySocialSources(await loadPublicEventsForDates(today, today), sources, today);
+      result.remainingSources = unique([...result.remainingSources, ...pending]);
+      if (pending.length) result.issues.push(`same-day socials remain unconfirmed: ${pending.join(',')}`);
+      log(`same-day recovery finish ${today}: ${pending.join(',') || 'complete'}`);
+    } catch (error) {
+      // Unknown public state is not a successful reconciliation, even if the
+      // initial baseline also failed and could not identify missing sources.
+      result.remainingSources = unique([...result.remainingSources, ...sources.map((source) => source.id)]);
+      result.issues.push(`same-day recovery verification failed: ${error.message}`);
+    }
   }
 
   const partialRun = result.deadlineReached || result.remainingSources.length > 0;
