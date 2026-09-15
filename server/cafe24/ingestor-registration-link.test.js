@@ -988,6 +988,13 @@ describe('ingestor registration linkage', () => {
   });
 
   it('accepts explicit dates without mistaking times for additional days', () => {
+    for (const evidence of ['2026 09 15 (화)', '2026\n9\n15', '20260915(화)']) {
+      expect(evidenceExplicitlyContainsCandidateDate(evidence, '2026-09-15')).toBe(true);
+      expect(evidenceExplicitlyContainsCandidateDate(evidence, '2025-09-15')).toBe(false);
+    }
+    for (const evidence of ['09 15', '2026091500', 'X20260915', '2026 09 150']) {
+      expect(evidenceExplicitlyContainsCandidateDate(evidence, '2026-09-15')).toBe(false);
+    }
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-23')).toBe(false);
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-08')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('9월 8일, 23일 소셜', '2026-09-23')).toBe(true);

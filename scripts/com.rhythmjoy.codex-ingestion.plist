@@ -21,7 +21,43 @@
         </dict>
         <dict>
             <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>10</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>11</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
             <integer>12</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>13</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>14</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>15</integer>
             <key>Minute</key>
             <integer>30</integer>
         </dict>
@@ -33,7 +69,19 @@
         </dict>
         <dict>
             <key>Hour</key>
+            <integer>17</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
             <integer>18</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>19</integer>
             <key>Minute</key>
             <integer>30</integer>
         </dict>
@@ -56,6 +104,8 @@
         <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin</string>
         <key>HOME</key>
         <string>/Users/inteyeo</string>
+        <key>INGESTION_NATIVE_FULL_SCAN_HOURS</key>
+        <string>8,12,16,18,20</string>
         <key>INGESTION_NATIVE_SOURCE_PRIORITY</key>
         <string>1</string>
         <key>INGESTION_NATIVE_RUN_BUDGET_MS</key>

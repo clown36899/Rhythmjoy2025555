@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -718,6 +718,42 @@ process.stdin.on('end', () => {
     } finally {
       await rm(workDir, { recursive: true, force: true });
     }
+  });
+
+  it.each(['2026 09 15 (화)', '2026\n9\n15', '20260915(화)', '2025 09 15', '2026091500', '09 15'])(
+    'validates a full-year original poster date without changing its quote: %s', (dateQuote) => {
+      const sourceText = `${dateQuote} 경성홀 소셜 DJ Deniz`;
+      const result = validateAiSocialExtraction({sourceText, today:'2026-09-15'}, {
+        decision:'extract', confidence:0.99, poster_text:'', reasons:[],
+        events:[{event_date:'2026-09-15', venue:'경성홀', djs:['Deniz'], poster_image_index:0, evidence_quotes:[sourceText]}],
+      }, {today:'2026-09-15'});
+      expect(result.ok).toBe(['2026 09 15 (화)', '2026\n9\n15', '20260915(화)'].includes(dateQuote));
+    },
+  );
+
+  it.each([true, false])('rechecks failed evidence without collector date hints, without bypassing validation (%s)', async (corrected) => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'rhythmjoy-ai-evidence-test-'));
+    const fakeCodex = path.join(workDir, 'fake-codex.cjs');
+    const sourceText = '2026 09 15 (화) 경성홀 소셜 DJ Deniz';
+    const extraction = { decision:'extract', confidence:0.99, poster_text:'', reasons:[],
+      events:[{event_date:'2026-09-15', venue:'경성홀', djs:['Deniz'], poster_image_index:0, evidence_quotes:['경성홀 소셜 DJ Deniz']}],
+    };
+    const repaired = {...extraction, events:[{...extraction.events[0], evidence_quotes:[corrected ? sourceText : '2026 09 16 경성홀 소셜 DJ Deniz']}]};
+    try {
+      await writeFile(fakeCodex, `#!/usr/bin/env node
+const fs = require('node:fs'); let prompt='';
+process.stdin.on('data', c=>prompt+=c);
+process.stdin.on('end',()=>{
+ const args=process.argv; const retry=prompt.includes('A previous extraction failed validation:');
+ fs.appendFileSync(${JSON.stringify(path.join(workDir,'attempts'))}, retry?'retry\\n':'first\\n');
+ fs.writeFileSync(args[args.indexOf('--output-last-message')+1], JSON.stringify(retry?${JSON.stringify(repaired)}:${JSON.stringify(extraction)}));
+});
+`, 'utf8');
+      await chmod(fakeCodex, 0o755);
+      const result = await extractSocialScheduleWithAi({sourceText, dateHints:[], today:'2026-09-15'}, {codexPath:fakeCodex, today:'2026-09-15', timeoutMs:10000});
+      expect(result.approved).toBe(corrected);
+      expect(await readFile(path.join(workDir,'attempts'),'utf8')).toBe('first\nretry\n');
+    } finally { await rm(workDir,{recursive:true,force:true}); }
   });
 });
 

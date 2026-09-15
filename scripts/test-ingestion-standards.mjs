@@ -74,6 +74,7 @@ import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
   findUnresolvedTodaySocialSources,
+  isSupplementalRecoveryRun,
   mergeSeenInstagramPosts,
   reopenFailedInstagramPosts,
   reorderSourcesForResume,
@@ -82,6 +83,11 @@ import {
 } from './ingestion/ingestion-progress.mjs';
 
 const TODAY = '2026-05-23';
+
+assert.equal(isSupplementalRecoveryRun('8,12,16,18,20', new Date('2026-09-15T04:30:00Z')), true, '13:30 KST is a supplemental same-day retry');
+assert.equal(isSupplementalRecoveryRun('8,12,16,18,20', new Date('2026-09-15T03:35:00Z')), false, 'a delayed 12:30 full scan remains a full scan');
+assert.equal(isSupplementalRecoveryRun('', new Date('2026-09-15T04:30:00Z')), false, 'manual and legacy runs remain full scans without scheduler configuration');
+assert.equal(isSupplementalRecoveryRun('8,bad,24', new Date('2026-09-15T04:30:00Z')), false, 'invalid scheduler configuration must not silently narrow collection');
 
 assert.deepEqual(
   reorderSourcesForResume([{ id: 'done' }, { id: 'remaining-b' }, { id: 'remaining-a' }], ['remaining-a', 'remaining-b']).map((source) => source.id),

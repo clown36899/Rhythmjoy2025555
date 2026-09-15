@@ -169,6 +169,8 @@ function evidenceMentionsDate(evidence, isoDate) {
   const month = String(Number(monthPadded));
   const day = String(Number(dayPadded));
   if ([
+    new RegExp(`(?<![A-Za-z0-9])${year}\\s+0?${month}\\s+0?${day}(?![A-Za-z0-9])`),
+    new RegExp(`(?<![A-Za-z0-9])${year}${monthPadded}${dayPadded}(?![A-Za-z0-9])`),
     new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
     new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
@@ -555,6 +557,13 @@ FOCUS_DATE_HINTS. Do not copy fields from another date. A focus hint is not evid
 "review" when the source text or visible poster does not explicitly support it.`
     : ''}
 
+${input.validationFeedback?.length
+    ? `A previous extraction failed validation: ${input.validationFeedback.join('; ')}.
+Reinspect the original text and images and return a complete corrected extraction. Copy the whole
+visible calendar date into evidence_quotes, including a spaced year/month/day if printed that way.
+These validation messages are not source evidence. Never invent a date, quote, venue, or DJ.`
+    : ''}
+
 SOURCE_NAME:
 ${String(input.sourceName || '')}
 
@@ -782,12 +791,14 @@ export async function extractSocialScheduleWithAi(input = {}, config = {}) {
       }
     }
 
-    if (!validation.ok && dateHints.length && !focusedAttempted) {
+    if (!validation.ok && !focusedAttempted
+      && (dateHints.length || (extraction?.decision === 'extract' && extraction.events?.length))) {
       focusedAttempted = true;
       const focusedInput = {
         ...baseInput,
         dateHints,
         focusDateHints: dateHints,
+        validationFeedback: validation.reasons,
       };
       const focused = await runAttempt(
         focusedInput,

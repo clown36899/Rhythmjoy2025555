@@ -1518,6 +1518,8 @@ export function evidenceExplicitlyContainsCandidateDate(evidence = '', date = ''
   const month = Number(monthPadded);
   const day = Number(dayPadded);
   const directPatterns = [
+    new RegExp(`(?<![a-z0-9])${year}\\s+0?${month}\\s+0?${day}(?![a-z0-9])`),
+    new RegExp(`(?<![a-z0-9])${year}${monthPadded}${dayPadded}(?![a-z0-9])`),
     new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
     new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),

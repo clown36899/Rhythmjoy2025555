@@ -68,6 +68,7 @@ import {
   buildIngestionProgressState,
   catchupInstagramPostLimit,
   findUnresolvedTodaySocialSources,
+  isSupplementalRecoveryRun,
   loadIngestionProgress,
   mergeSeenInstagramPosts,
   progressFileForPriority,
@@ -888,6 +889,13 @@ function extractDates(text = '') {
       || /^\s*(?:시|:|\d{2}\b)/.test(context.slice(10))
       || /\d{1,2}\s*[:：]\s*\d{2}/.test(context);
   };
+
+  // Full-year poster dates only: do not interpret a time such as "09 15" as a date.
+  for (const match of raw.matchAll(/(?<![A-Za-z0-9])(20\d{2})(?:\s+(\d{1,2})\s+(\d{1,2})|(\d{2})(\d{2}))(?![A-Za-z0-9])/g)) {
+    const date = isoDate(match[1], match[2] || match[4], match[3] || match[5]);
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date) dates.push(date);
+  }
 
   for (const match of raw.matchAll(/(20\d{2})(?:\s*[.\-/년]\s*|\s+)(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/g)) {
     dates.push(isoDate(match[1], match[2], match[3]));
@@ -3359,6 +3367,7 @@ async function main() {
     && sourceLimit <= 0
     && !dryRun;
   progressTrackingEnabled = progressEnabled;
+  const recoveryOnly = progressEnabled && isSupplementalRecoveryRun(process.env.INGESTION_NATIVE_FULL_SCAN_HOURS);
   const progressFile = progressEnabled
     ? progressFileForPriority(sourcePriorities[0], process.env.INGESTION_PROGRESS_STATE_DIR || '')
     : '';
@@ -3369,7 +3378,7 @@ async function main() {
     instagramSeenPosts = { ...(progressState.instagramSeenPosts || {}) };
     sources = reorderSourcesForResume(sources, progressState.remainingSources);
     instagramSourcePostLimit = catchupInstagramPostLimit(instagramSourcePostLimit, progressState.lastCompletedAt);
-    await saveIngestionProgress(progressFile, buildIngestionProgressState({
+    if (!recoveryOnly) await saveIngestionProgress(progressFile, buildIngestionProgressState({
       remainingSources: sources.map((source) => source.id),
       lastCompletedAt: progressState.lastCompletedAt,
       instagramSeenPosts,
@@ -3377,12 +3386,13 @@ async function main() {
     log(`resume state=${progressFile} prior_remaining=${progressState.remainingSources.length} instagram_post_limit=${instagramSourcePostLimit}`);
   }
 
+  let untouchedRemainingSources = [];
   const checkpointProgress = async (remainingSources, completed = false) => {
     if (!progressEnabled) return;
     await saveIngestionProgress(progressFile, buildIngestionProgressState({
-      remainingSources,
+      remainingSources: unique([...untouchedRemainingSources, ...remainingSources]),
       lastCompletedAt: progressState.lastCompletedAt,
-      completed,
+      completed: completed && !recoveryOnly,
       instagramSeenPosts,
     }));
   };
@@ -3397,10 +3407,26 @@ async function main() {
       const pending = findUnresolvedTodaySocialSources(await loadPublicEventsForDates(today, today), sources, today);
       pending.forEach((id) => sameDayRecoverySources.add(id));
       sources = reorderSourcesForResume(sources, pending);
+      if (recoveryOnly) {
+        untouchedRemainingSources = progressState.remainingSources.filter((id) => !sameDayRecoverySources.has(id));
+        sources = sources.filter((source) => sameDayRecoverySources.has(source.id));
+      }
       log(`same-day recovery start ${today}: ${pending.join(',') || 'none'}`);
     } catch (error) {
       result.issues.push(`same-day recovery verification failed: ${error.message}`);
+      if (recoveryOnly) {
+        // Preserve the existing checkpoint untouched when the baseline is unknown.
+        result.remainingSources = progressState.remainingSources;
+        printSummary();
+        return;
+      }
     }
+  }
+
+  if (recoveryOnly && sources.length === 0) {
+    log('same-day recovery only: no unresolved socials; browser not opened');
+    printSummary();
+    return;
   }
 
   log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);

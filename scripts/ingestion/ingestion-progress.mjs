@@ -7,6 +7,16 @@ export function progressFileForPriority(priority, directory = '') {
   return path.join(baseDirectory, `swing-daily-priority-${Number(priority)}.json`);
 }
 
+// The existing LaunchAgent supplies its full-scan hours; intervening hourly
+// ticks reuse the same job/lock but only inspect unresolved same-day socials.
+export function isSupplementalRecoveryRun(fullScanHours = '', now = new Date()) {
+  if (!String(fullScanHours).trim()) return false;
+  const hours = String(fullScanHours).split(',').map((value) => value.trim());
+  if (hours.some((value) => !/^\d{1,2}$/.test(value) || Number(value) > 23)) return false;
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', hourCycle: 'h23' }).format(now));
+  return !hours.map(Number).includes(hour);
+}
+
 export async function loadIngestionProgress(filePath) {
   try {
     const parsed = JSON.parse(await fs.readFile(filePath, 'utf8'));
