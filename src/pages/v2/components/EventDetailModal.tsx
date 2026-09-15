@@ -1420,6 +1420,11 @@ export default function EventDetailModal({
                               />
                             )}
                           </React.Fragment>
+                          {isSocialDetail && !isSelectionMode && (
+                            <span className="EDM-imageZoomHint" aria-hidden="true">
+                              <i className="ri-zoom-in-line" /> 확대
+                            </span>
+                          )}
                         </div>
 
                         {/* Gradient Overlay */}
@@ -1514,7 +1519,27 @@ export default function EventDetailModal({
                 >
                   <div className="EDM-titleGroup">
                     <h2 className="EDM-title">
-                      {(isDesktopDetail || isSocialDetail) && !isSelectionMode ? desktopTitle : selectedEvent.title}
+                      {isSocialDetail && shortcutUrl && !isSelectionMode ? (
+                        <a
+                          className="EDM-sourceCard"
+                          href={shortcutUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          draggable={false}
+                          data-analytics-id={selectedEvent.id}
+                          data-analytics-type="external_link"
+                          data-analytics-title={shortcutLabel}
+                          data-analytics-section="event_detail_source"
+                        >
+                          <span>{desktopTitle}</span>
+                          <span className="EDM-sourceCaption">
+                            <span>수집 위치 바로가기</span>
+                            <i className="ri-arrow-right-up-line" aria-hidden="true" />
+                          </span>
+                        </a>
+                      ) : (
+                        (isDesktopDetail || isSocialDetail) && !isSelectionMode ? desktopTitle : selectedEvent.title
+                      )}
                     </h2>
 
                     {isSelectionMode && (
@@ -1614,34 +1639,6 @@ export default function EventDetailModal({
                     </div>
                   )}
                 </div>
-
-                {isSocialDetail && (
-                  <section className="EDM-sourceSection" aria-label="이벤트 수집 위치">
-                    <div className="EDM-sourceHeading">이벤트 수집 위치</div>
-                    {shortcutUrl ? (
-                      <a
-                        className="EDM-sourceCard"
-                        href={shortcutUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        draggable={false}
-                        data-analytics-id={selectedEvent.id}
-                        data-analytics-type="external_link"
-                        data-analytics-title={shortcutLabel}
-                        data-analytics-section="event_detail_source"
-                      >
-                        <i className={collectionSource?.type === 'instagram' ? 'ri-instagram-line' : 'ri-external-link-line'} aria-hidden="true" />
-                        <span className="EDM-sourceCopy">
-                          <strong>{collectionSource?.name || selectedEvent.link_name1 || '이벤트 출처'}</strong>
-                          <span>{collectionSource ? '수집 게시판 · 계정 바로가기' : '출처 링크 바로가기'}</span>
-                        </span>
-                        <i className="ri-arrow-right-up-line" aria-hidden="true" />
-                      </a>
-                    ) : (
-                      <p className="EDM-sourceEmpty">등록된 수집 위치가 없습니다.</p>
-                    )}
-                  </section>
-                )}
 
                 {/* 세부 정보 */}
                 <div className="EDM-infoSection">
