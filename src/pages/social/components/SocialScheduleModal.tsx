@@ -703,16 +703,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                         style={{ cursor: 'pointer' }}
                                     />
                                 </div>
-                                <div className="form-item">
-                                    <label>시작 시간</label>
-                                    <input
-                                        type="time"
-                                        value={time}
-                                        onChange={(e) => setTime(e.target.value)}
-                                        onClick={(e) => e.currentTarget.showPicker?.()}
-                                        style={{ cursor: 'pointer' }}
-                                    />
-                                </div>
                             </div>
 
                             <div className="form-section">
@@ -779,7 +769,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     rows={3}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="일정에 대한 상세 내용을 입력해주세요."
+                                    placeholder="일정 안내를 적어주세요. 시간 안내가 필요하면 설명에 함께 적어주세요."
                                 ></textarea>
                             </div>
 

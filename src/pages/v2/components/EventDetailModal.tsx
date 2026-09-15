@@ -1532,6 +1532,9 @@ export default function EventDetailModal({
                           data-analytics-section="event_detail_source"
                         >
                           <span>{desktopTitle}</span>
+                          {socialDisplayText && !desktopTitle.replace(/\s+/g, ' ').includes(socialDisplayText.replace(/\s+/g, ' ')) && (
+                            <span className="EDM-sourceDj">{socialDisplayText}</span>
+                          )}
                           <span className="EDM-sourceCaption">
                             <span>수집 위치 바로가기</span>
                             <i className="ri-arrow-right-up-line" aria-hidden="true" />
@@ -1556,7 +1559,7 @@ export default function EventDetailModal({
                     )}
                   </div>
 
-                  {(isDesktopDetail || isSocialDetail) && socialDisplayText && !isSelectionMode && (
+                  {(isDesktopDetail || isSocialDetail) && !(isSocialDetail && shortcutUrl) && socialDisplayText && !isSelectionMode && (
                     <p className="EDM-djLine">{socialDisplayText}</p>
                   )}
                   {/* 장르 표시 */}
@@ -1804,27 +1807,6 @@ export default function EventDetailModal({
                       )}
                     </div>
                   </div>
-
-                  {(selectedEvent.time || isSelectionMode) && (
-                    <div className="EDM-infoItem">
-                      <i className="ri-time-line EDM-infoIcon"></i>
-                      <div className="EDM-infoContent-flex">
-                        <span>{selectedEvent.time || "시간 미정"}</span>
-                        {isSelectionMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveEditField('time');
-                            }}
-                            className="EDM-editTrigger"
-                            title="시간 수정"
-                          >
-                            <i className="ri-pencil-line"></i>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
                   {/* 조회수 표시 */}
                   {selectedEvent.views !== undefined && selectedEvent.views !== null && (

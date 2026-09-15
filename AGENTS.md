@@ -29,3 +29,7 @@ The site notification channels do not provide time information. Do not show or i
 ## Calendar Event Visibility Policy
 
 The month calendar must render every event for each date directly in its date cell. Do not cap the number of visible events and do not add a `+N more` or equivalent collapsed-event control.
+
+## Event Time Information Policy
+
+Event registration, editing, and details must not expose separate start/end time inputs, time rows, or “time undecided” placeholders. Dates remain allowed. Time announcements may appear verbatim in free-text descriptions and source posters/images; never strip or rewrite these times. Preserve stored legacy time fields for compatibility, and do not extract standalone time information from descriptions.

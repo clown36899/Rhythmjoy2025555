@@ -62,3 +62,29 @@ describe('EventEditBottomSheet benefit classification', () => {
         expect(onParentOverlayClick).not.toHaveBeenCalled();
     });
 });
+
+
+describe('event time is free-text description only', () => {
+    const props = {
+        onClose: vi.fn(), isSaving: false, event: {},
+        structuredGenres: { class: [], event: [] }, allHistoricalGenres: [],
+    };
+
+    it('does not expose a standalone time editor for a legacy caller', () => {
+        const onSave = vi.fn();
+        render(<EventEditBottomSheet {...props} activeField="time"
+            initialValue={{ time: '19:30' }} onSave={onSave} />);
+        expect(document.querySelector('.EDM-bottomSheetPortal')).toBeNull();
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('preserves copied time announcements verbatim when editing the description', () => {
+        const description = '수요일 저녁 7시30분부터 소셜\nDJ 윤슬 PM 8:15~10:15';
+        const onSave = vi.fn();
+        render(<EventEditBottomSheet {...props} activeField="description"
+            initialValue={{ description }} onSave={onSave} />);
+        expect(screen.getByRole('textbox')).toHaveValue(description);
+        fireEvent.click(screen.getByRole('button', { name: '저장' }));
+        expect(onSave).toHaveBeenCalledWith(description, 'event');
+    });
+});
