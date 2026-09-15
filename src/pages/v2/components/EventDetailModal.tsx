@@ -1522,6 +1522,8 @@ export default function EventDetailModal({
                       {isSocialDetail && shortcutUrl && !isSelectionMode ? (
                         <a
                           className="EDM-sourceCard"
+                          title="수집 위치로 이동"
+                          aria-label={`${desktopTitle}, 수집 위치로 이동`}
                           href={shortcutUrl}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -1531,14 +1533,10 @@ export default function EventDetailModal({
                           data-analytics-title={shortcutLabel}
                           data-analytics-section="event_detail_source"
                         >
-                          <span>{desktopTitle}</span>
+                          <span className="EDM-sourceHeadline"><i className="ri-arrow-right-up-line" aria-hidden="true" />{desktopTitle}</span>
                           {socialDisplayText && !desktopTitle.replace(/\s+/g, ' ').includes(socialDisplayText.replace(/\s+/g, ' ')) && (
                             <span className="EDM-sourceDj">{socialDisplayText}</span>
                           )}
-                          <span className="EDM-sourceCaption">
-                            <span>수집 위치 바로가기</span>
-                            <i className="ri-arrow-right-up-line" aria-hidden="true" />
-                          </span>
                         </a>
                       ) : (
                         (isDesktopDetail || isSocialDetail) && !isSelectionMode ? desktopTitle : selectedEvent.title
