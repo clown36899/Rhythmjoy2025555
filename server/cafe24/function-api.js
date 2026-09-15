@@ -741,6 +741,41 @@ export function findOperationalDuplicateForScrapedItem(candidate, eventRows = []
   return null;
 }
 
+// A different/missing extracted DJ is not proof of another social occurrence.
+// Preserve strict duplicate identity, but require review before occupying a slot twice.
+export function findSocialOccurrenceConflict(candidate, eventRows = [], ignoreEventId = null) {
+  if (!isSocialDuplicateRow(candidate)) return null;
+  const date = scrapedRowDate(candidate);
+  const replacementIds = new Set(findGeneratedRegularSocialReplacements(
+    eventRows, { ...candidate, ...(candidate.structured_data || {}) }, candidate,
+  ).map((row) => String(row.id)));
+  const candidateVenueId = candidate.structured_data?.venue_id || candidate.venue_id;
+  const conflict = eventRows.find((row) => {
+    if (ignoreEventId != null && String(row.id) === String(ignoreEventId)) return false;
+    if (replacementIds.has(String(row.id))) return false;
+    if (!isSocialDuplicateRow(row) || !sameExactEventOccurrence(row, date)) return false;
+    if (candidateVenueId && row.venue_id) return String(candidateVenueId) === String(row.venue_id);
+    return sameVenue(rowLocation(row), rowLocation(candidate));
+  });
+  return conflict ? duplicateDescriptor('events', conflict,
+    '같은 날짜·장소에 소셜이 이미 등록되어 있습니다. 원문과 DJ를 재검토해주세요.') : null;
+}
+
+export function buildSocialConflictReviewRow(scrapedEvent, conflict, now = new Date().toISOString()) {
+  const reason = `${conflict.reason} 기존 일정: ${conflict.existingDate} ${conflict.existingTitle} (#${conflict.existingId})`;
+  return {
+    ...scrapedEvent,
+    status: 'pending',
+    is_collected: false,
+    auto_registration: {
+      ...(scrapedEvent.auto_registration || {}),
+      ready: false,
+      reasons: [...new Set([...(scrapedEvent.auto_registration?.reasons || []), reason])],
+    },
+    updated_at: now,
+  };
+}
+
 export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows = []) {
   const duplicate = findOperationalDuplicateForScrapedItem(candidate, eventRows);
   if (!duplicate) return null;
@@ -1801,6 +1836,37 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     return;
   }
 
+  const holdSocialConflict = async (conflict) => {
+    const reviewRow = buildSocialConflictReviewRow(scrapedEvent, conflict);
+    if (body.dryRun !== true) await saveCafe24TableRow('scraped_events', reviewRow);
+    res.status(422).json({
+      error: '같은 날짜·장소의 소셜 충돌: 재검토가 필요합니다.',
+      reasons: reviewRow.auto_registration.reasons,
+      conflict,
+    });
+  };
+  const socialConflict = automaticRequest
+    ? findSocialOccurrenceConflict(registrationCandidate, existingRows, existing?.id)
+    : null;
+  if (socialConflict) {
+    await holdSocialConflict(socialConflict);
+    return;
+  }
+  const automaticSaveOptions = automaticRequest && isSocialDuplicateRow(registrationCandidate) ? {
+    beforeEventSave: async (connection) => {
+      // Recheck under the existing event mutation lock after image/network work.
+      // This prevents two concurrent collectors from both observing an empty slot.
+      const currentEvents = await loadCafe24TableRows('events', connection);
+      const conflict = findSocialOccurrenceConflict(registrationCandidate, currentEvents, existing?.id);
+      if (conflict) {
+        const error = new Error(conflict.reason);
+        error.code = 'SOCIAL_OCCURRENCE_CONFLICT';
+        error.conflict = conflict;
+        throw error;
+      }
+    },
+  } : {};
+
   let imageFields = normalizeImageFields(eventData, scrapedEvent.poster_url || eventData.image || eventData.image_full || null);
   const folder = `images/ingestor-events/${safeSegment(scrapedEventId)}`;
   const generatedImageFields = await localizeEventImageVariants(
@@ -1830,14 +1896,21 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   }
 
   if (existing) {
-    const repaired = await saveCafe24TableRow('events', {
-      ...existing,
-      ...eventData,
-      ...imageFields,
-      ...(automaticRequest ? { time: null } : {}),
-      link1: existing.link1 || sourceUrl,
-      updated_at: new Date().toISOString(),
-    });
+    let repaired;
+    try {
+      repaired = await saveCafe24TableRow('events', {
+        ...existing,
+        ...eventData,
+        ...imageFields,
+        ...(automaticRequest ? { time: null } : {}),
+        link1: existing.link1 || sourceUrl,
+        updated_at: new Date().toISOString(),
+      }, [], automaticSaveOptions);
+    } catch (error) {
+      if (error.code !== 'SOCIAL_OCCURRENCE_CONFLICT') throw error;
+      await holdSocialConflict(error.conflict);
+      return;
+    }
     const replacedRegularSocials = findGeneratedRegularSocialReplacements(
       existingRows,
       { ...repaired, ...eventData },
@@ -1883,7 +1956,14 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     created_at: eventData.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const inserted = await saveCafe24TableRow('events', finalPayload);
+  let inserted;
+  try {
+    inserted = await saveCafe24TableRow('events', finalPayload, [], automaticSaveOptions);
+  } catch (error) {
+    if (error.code !== 'SOCIAL_OCCURRENCE_CONFLICT') throw error;
+    await holdSocialConflict(error.conflict);
+    return;
+  }
   await enqueueNewEventNotification(inserted);
   const replacedRegularSocials = findGeneratedRegularSocialReplacements(existingRows, inserted, scrapedEvent);
   if (replacedRegularSocials.length) {

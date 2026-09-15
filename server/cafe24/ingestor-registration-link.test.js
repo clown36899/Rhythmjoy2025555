@@ -3,6 +3,8 @@ import { buildAdminDeletedEventRow } from './admin-event-deletion.js';
 import sharp from 'sharp';
 import {
   buildCollectedScrapedEventRow,
+  buildSocialConflictReviewRow,
+  findSocialOccurrenceConflict,
   buildDuplicateScrapedEventRow,
   buildExcludedScrapedEventRow,
   buildRefreshedScrapedEventRow,
@@ -1523,5 +1525,44 @@ describe('ingestor registration linkage', () => {
 
     expect(validation.ok).toBe(false);
     expect(validation.reasons).toContain('candidate is not pending');
+  });
+});
+
+
+describe('social occurrence conflict review', () => {
+  const event = { id: 'live', title: 'DJ 하나 | 수요 소셜', category: 'social', date: '2026-09-16', location: '스윙타임' };
+  const candidate = { id: 'candidate', source_url: 'https://example.com/new', structured_data: {
+    date: '2026-09-16', venue_name: '스윙타임바', activity_type: 'social', title: '수요 소셜', djs: ['다른DJ'],
+  } };
+
+  it('requires review independent of source, title, and missing or conflicting DJ extraction', () => {
+    for (const djs of [['다른DJ'], ['PM8'], []]) {
+      const incoming = { ...candidate, structured_data: { ...candidate.structured_data, djs } };
+      const conflict = findSocialOccurrenceConflict(incoming, [event]);
+      expect(conflict).toMatchObject({ existingId: 'live', existingDate: '2026-09-16' });
+      const held = buildSocialConflictReviewRow({ ...incoming, auto_registration: { ready: true, mode: 'auto' } }, conflict);
+      expect(held).toMatchObject({ status: 'pending', is_collected: false, auto_registration: { ready: false, mode: 'auto' } });
+      expect(held.auto_registration.reasons.join(' ')).toContain('#live');
+      expect(held.structured_data).toEqual(incoming.structured_data);
+      expect(buildSocialConflictReviewRow(held, conflict).auto_registration.reasons).toHaveLength(1);
+    }
+  });
+
+  it('preserves different dates, venues, non-social events, and the existing self-update', () => {
+    for (const patch of [{ date: '2026-09-17' }, { location: '다른홀' }, { category: 'class' }, { category: 'event' }]) {
+      expect(findSocialOccurrenceConflict(candidate, [{ ...event, ...patch }])).toBeNull();
+    }
+    expect(findSocialOccurrenceConflict({ ...candidate, structured_data: { ...candidate.structured_data, activity_type: 'class' } }, [event])).toBeNull();
+    expect(findSocialOccurrenceConflict(candidate, [event], 'live')).toBeNull();
+    expect(findSocialOccurrenceConflict(candidate, [{ ...event, event_dates: ['2026-09-15', '2026-09-17'], end_date: '2026-09-17' }])).toBeNull();
+  });
+
+  it('uses venue ids when both are available and preserves generated placeholder replacement', () => {
+    const linked = { ...candidate, structured_data: { ...candidate.structured_data, venue_id: 'venue-1' } };
+    expect(findSocialOccurrenceConflict(linked, [{ ...event, venue_id: 'venue-1', location: '다른 표기' }])).not.toBeNull();
+    expect(findSocialOccurrenceConflict(linked, [{ ...event, venue_id: 'venue-2' }])).toBeNull();
+    const generated = { ...event, id: 'regular-social:test:2026-09-16', automation: { generated_by: 'regular-social-rolling-v1' } };
+    expect(findSocialOccurrenceConflict(candidate, [generated])).toBeNull();
+    expect(findSocialOccurrenceConflict(candidate, [generated, event])).not.toBeNull();
   });
 });

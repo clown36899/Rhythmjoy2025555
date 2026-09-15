@@ -995,14 +995,14 @@ function normalizedRowLimit(limit, fallback = 20, max = 20000) {
   return Math.max(1, Math.min(max, Math.floor(numeric)));
 }
 
-async function loadRows(table) {
+async function loadRows(table, executor = null) {
   assertTableName(table);
   if (cacheableRowsTables.has(table)) {
     const cached = getCachedValue(rowsCache, table);
     if (cached) return cached;
   }
 
-  const pool = getMysqlPool();
+  const pool = executor || getMysqlPool();
 
   if (table === 'events') {
     const [rows] = await pool.execute('SELECT raw_json FROM events');
@@ -1262,8 +1262,11 @@ async function saveGenericRow(table, row, conflictKeys = []) {
   return nextRow;
 }
 
-async function saveEventRow(row) {
-  return withEventMutationLock((connection) => saveEventRowWithConnection(row, connection));
+async function saveEventRow(row, { beforeEventSave } = {}) {
+  return withEventMutationLock(async (connection) => {
+    await beforeEventSave?.(connection);
+    return saveEventRowWithConnection(row, connection);
+  });
 }
 
 async function saveEventRowWithConnection(row, pool) {
@@ -1348,8 +1351,8 @@ async function saveEventRowWithConnection(row, pool) {
   return event;
 }
 
-async function saveRow(table, row, conflictKeys = []) {
-  if (table === 'events') return saveEventRow(row);
+async function saveRow(table, row, conflictKeys = [], options = {}) {
+  if (table === 'events') return saveEventRow(row, options);
   return saveGenericRow(table, row, conflictKeys);
 }
 

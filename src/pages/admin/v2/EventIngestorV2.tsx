@@ -82,6 +82,7 @@ interface ScrapedEvent {
       };
     };
   };
+  auto_registration?: { ready?: boolean; reasons?: string[] };
   is_collected?: boolean;
   registered_event_id?: string | number | null;
   status?: 'ignored' | 'collected' | 'pending' | 'duplicate' | 'excluded';
@@ -1709,6 +1710,12 @@ const EventIngestorV2: React.FC = () => {
                     <div className="row-taxonomy">
                       <span>{siteGenre}</span>
                     </div>
+                    {event.status === 'pending' && event.auto_registration?.ready === false && Boolean(event.auto_registration.reasons?.length) && (
+                      <div className="duplicate-match-card">
+                        <div className="duplicate-match-head"><strong>자동등록 보류 · 재검토 필요</strong></div>
+                        <div className="duplicate-match-meta">{event.auto_registration.reasons?.join(' · ')}</div>
+                      </div>
+                    )}
                     {activeTab === 'duplicate' && event.structured_data._duplicate && (
                       <div className="duplicate-match-card">
                         <div className="duplicate-match-head">
