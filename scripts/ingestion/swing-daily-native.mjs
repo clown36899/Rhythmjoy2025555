@@ -3617,7 +3617,8 @@ async function flushAndExit(code) {
 
 main()
   .then(async () => {
-    const incompleteRegistration = !dryRun && result.pipeline.reconciliation.missing > 0;
+    const incompleteRegistration = !dryRun && (result.pipeline.reconciliation.missing > 0
+      || result.issues.some((issue) => issue.startsWith('same-day recovery verification failed:')));
     await flushAndExit(result.deadlineReached || result.remainingSources.length ? 75 : incompleteRegistration ? 1 : 0);
   })
   .catch(async (error) => {
