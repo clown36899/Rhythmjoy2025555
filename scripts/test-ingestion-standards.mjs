@@ -31,6 +31,7 @@ import {
   stripNaverCafeMemberPrefix,
   stripRepeatedDjContext,
   textSimilarity,
+  toMapSafeVenueName,
   validateCandidate,
   evaluateAutoRegistrationReadiness,
 } from './ingestion/candidate-utils.mjs';
@@ -83,6 +84,12 @@ import {
 } from './ingestion/ingestion-progress.mjs';
 
 const TODAY = '2026-05-23';
+
+for (const alias of ['SAVOY BALLROOM', 'Savoy Ballroom Bar', '사보이홀', '사보이볼룸(사당)']) {
+  assert.equal(toMapSafeVenueName(alias), '사보이볼룸', 'collector and conflict checks must share one venue alias owner');
+}
+assert.equal(toMapSafeVenueName('SAVOY BALLROOM BUSAN'), 'SAVOY BALLROOM BUSAN', 'unknown branch names must not become known aliases');
+
 
 assert.equal(isSupplementalRecoveryRun('8,12,16,18,20', new Date('2026-09-15T04:30:00Z')), true, '13:30 KST is a supplemental same-day retry');
 assert.equal(isSupplementalRecoveryRun('8,12,16,18,20', new Date('2026-09-15T03:35:00Z')), false, 'a delayed 12:30 full scan remains a full scan');

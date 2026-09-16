@@ -31,6 +31,36 @@ it('persists a reviewable pending candidate and blocks event/notification side e
   expect(enqueueNewEventNotification).not.toHaveBeenCalled();
 });
 
+it.each([false, true])('holds a DJ-less English venue candidate including the final locked check (%s)', async (lateConflict) => {
+  const incoming = { ...candidate(), source_id: 'swingscandal-cafe',
+    source_url: 'https://example.com/savoy', poster_url: 'test-social-poster.webp',
+    extracted_text: '2026.09.19 SAVOY BALLROOM 토요 소셜',
+    auto_registration: { ready: true, mode: 'auto', source_id: 'swingscandal-cafe', ai_verified: true, ai_confidence: 0.99 },
+    structured_data: { title: 'SAVOY BALLROOM 토요 소셜', date: '2026-09-19', venue_name: 'SAVOY BALLROOM',
+      activity_type: 'social', djs: [], venue_provenance: 'poster_text', evidence_scope: 'ai_grounded_social',
+      ai_missing_dj_verified: true, ai_evidence_quotes: ['2026.09.19 SAVOY BALLROOM 토요 소셜'] },
+  };
+  const existing = { ...event, title: 'DJ 단미 | 사보이볼룸 토요 소셜', date: '2026-09-19', location: '사보이볼룸', link1: incoming.source_url };
+  events = lateConflict ? [] : [existing];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? [...events] : table === 'scraped_events' ? [incoming] : []);
+  saveCafe24TableRow.mockImplementation(async (table, row, _keys, options) => {
+    if (table === 'events') {
+      events = [existing];
+      await options.beforeEventSave({});
+      events.push(row);
+    }
+    return row;
+  });
+  const res = response();
+  await cafe24IngestorRegisterEvent(request(), res);
+  expect(res.status).toHaveBeenCalledWith(422);
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ conflict: expect.objectContaining({ existingId: 'live' }) }));
+  expect(saveCafe24TableRow).toHaveBeenCalledWith('scraped_events', expect.objectContaining({ status: 'pending',
+    auto_registration: expect.objectContaining({ ready: false, reasons: expect.arrayContaining([expect.stringContaining('#live')]) }) }));
+  expect(events).toEqual([existing]);
+  expect(enqueueNewEventNotification).not.toHaveBeenCalled();
+});
+
 it('leaves a dry-run conflict unchanged and retains the existing strict duplicate result', async () => {
   await cafe24IngestorRegisterEvent(request('candidate', { dryRun: true }), response());
   expect(saveCafe24TableRow).not.toHaveBeenCalled();

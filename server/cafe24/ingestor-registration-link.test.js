@@ -1548,6 +1548,21 @@ describe('social occurrence conflict review', () => {
     }
   });
 
+  it('resolves collector venue aliases on both sides without relying on source URL or DJ', () => {
+    for (const [canonical, alias] of [
+      ['사보이볼룸', 'SAVOY BALLROOM'], ['사보이볼룸(사당)', 'Savoy Ballroom Bar'],
+      ['해피홀', 'HAPPY HALL'], ['소셜클럽', 'SOSYAL CLUB'],
+    ]) {
+      for (const [existingVenue, incomingVenue] of [[canonical, alias], [alias, canonical]]) {
+        const incoming = { ...candidate, structured_data: { ...candidate.structured_data, venue_name: incomingVenue, djs: [] } };
+        expect(findSocialOccurrenceConflict(incoming, [{ ...event, location: existingVenue }])?.existingId).toBe('live');
+        expect(findSocialOccurrenceConflict(incoming, [{ ...event, location: '다른홀' }])).toBeNull();
+        expect(findSocialOccurrenceConflict({ ...incoming, structured_data: { ...incoming.structured_data, venue_id: 'other' } },
+          [{ ...event, location: existingVenue, venue_id: 'live-venue' }])).toBeNull();
+      }
+    }
+  });
+
   it('preserves different dates, venues, non-social events, and the existing self-update', () => {
     for (const patch of [{ date: '2026-09-17' }, { location: '다른홀' }, { category: 'class' }, { category: 'event' }]) {
       expect(findSocialOccurrenceConflict(candidate, [{ ...event, ...patch }])).toBeNull();

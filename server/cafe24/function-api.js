@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { toMapSafeVenueName } from '../../scripts/ingestion/candidate-utils.mjs';
 import { deleteEventsAsAdmin, findAdminDeletedEvent } from './admin-event-deletion.js';
 import { benefitFieldsFromStructuredData } from './ingestion-benefit-fields.js';
 import fs from 'node:fs/promises';
@@ -755,7 +756,8 @@ export function findSocialOccurrenceConflict(candidate, eventRows = [], ignoreEv
     if (replacementIds.has(String(row.id))) return false;
     if (!isSocialDuplicateRow(row) || !sameExactEventOccurrence(row, date)) return false;
     if (candidateVenueId && row.venue_id) return String(candidateVenueId) === String(row.venue_id);
-    return sameVenue(rowLocation(row), rowLocation(candidate));
+    // Reuse the collector alias owner for legacy and newly extracted venue spellings.
+    return sameVenue(toMapSafeVenueName(rowLocation(row)), toMapSafeVenueName(rowLocation(candidate)));
   });
   return conflict ? duplicateDescriptor('events', conflict,
     '같은 날짜·장소에 소셜이 이미 등록되어 있습니다. 원문과 DJ를 재검토해주세요.') : null;
