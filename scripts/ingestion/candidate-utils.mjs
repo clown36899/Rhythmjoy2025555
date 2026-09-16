@@ -1,3 +1,5 @@
+import { toMapSafeVenueName } from '../../src/utils/venueNormalization.mjs';
+export { toMapSafeVenueName } from '../../src/utils/venueNormalization.mjs';
 import crypto from 'node:crypto';
 import {
   allowedCollectionScopes,
@@ -275,42 +277,12 @@ const blockedKeywordRules = [
   ['엠티/MT', /엠\s*티|(?:^|[^A-Za-z])m\.?\s*t(?:[^A-Za-z]|$)/i],
 ];
 
-const regionSuffixRe = /\s*[()（）]\s*(신촌|합정|선릉|사당|강남|강북|홍대|상수|망원|연남|서교|마포|신림|봉천|건대|성수|이태원|서울|부산|대구|인천|대전|광주|수원|분당|판교)\s*[()（）]\s*$/i;
-const parenContentRe = /\s*[()（）][^()（）]{1,12}[()（）]\s*$/;
-
-const canonicalVenueAliases = [
-  [/^경성홀(?:신촌)?$/i, '경성홀'],
-  [/^(?:해피홀|happyhall)(?:신촌)?$/i, '해피홀'],
-  [/^(?:소셜클럽|쏘셜클럽|sosyalclub)(?:합정)?$/i, '소셜클럽'],
-  [/^스윙타임(?:바|빠)?(?:선릉)?$/i, '스윙타임'],
-  [/^인더무드(?:신림)?$/i, '인더무드신림'],
-  [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
-  [/^(?:사보이볼룸|사보이홀|사보이|savoyballroom(?:bar)?)(?:사당)?$/i, '사보이볼룸'],
-];
-
 function compactVenueText(value = '') {
   return String(value || '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
     .replace(/[()（）\-_.,·]/g, '');
-}
-
-function stripTrailingQualifier(value = '') {
-  return String(value || '')
-    .trim()
-    .replace(regionSuffixRe, '')
-    .replace(parenContentRe, '')
-    .trim();
-}
-
-export function toMapSafeVenueName(value = '') {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  const stripped = stripTrailingQualifier(raw) || raw;
-  const compact = compactVenueText(stripped);
-  const matched = canonicalVenueAliases.find(([pattern]) => pattern.test(compact));
-  return matched?.[1] || stripped;
 }
 
 function regexWithoutState(pattern) {

@@ -106,3 +106,18 @@ it('retains the same existing event ID on a compatible retry without sending ano
   expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ repaired: true, event: expect.objectContaining({ id: 'live' }) }));
   expect(enqueueNewEventNotification).not.toHaveBeenCalled();
 });
+
+
+it('connects automatic registration to the existing venue record and persists the same metadata to its ledger', async () => {
+  events = [];
+  const venue = { id: 'venue-swingtime', name: '스윙타임(선릉)', address: '서울 강남구 검증된 장소 주소',
+    map_url: JSON.stringify({ naver: 'https://naver.me/verified' }) };
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'venues' ? [venue] : table === 'scraped_events' ? [candidate()] : []);
+  const res = response();
+  await cafe24IngestorRegisterEvent(request(), res);
+  expect(res.status).toHaveBeenCalledWith(201);
+  const metadata = { venue_id: venue.id, venue_name: '스윙타임', address: venue.address, location_link: 'https://naver.me/verified' };
+  expect(saveCafe24TableRow).toHaveBeenCalledWith('events', expect.objectContaining(metadata), [], expect.any(Object));
+  expect(saveCafe24TableRow).toHaveBeenCalledWith('scraped_events', expect.objectContaining({ structured_data: expect.objectContaining(metadata) }));
+  expect(enqueueNewEventNotification).toHaveBeenCalledTimes(1);
+});

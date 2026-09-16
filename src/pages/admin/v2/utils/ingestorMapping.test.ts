@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mapIngestorEvent } from './ingestorMapping';
+import { matchVenueRecord, normalizeVenueStructuredData } from '../../../../utils/venueNormalization';
 
 describe('mapIngestorEvent graduation metadata', () => {
   it('maps a grounded cohort graduation performance to the social graduation lane', () => {
@@ -66,5 +67,34 @@ describe('mapIngestorEvent graduation metadata', () => {
       djs: [],
       location: '시옷쓰기 연습실',
     });
+  });
+});
+
+
+describe('shared automatic venue matching', () => {
+  const venues = [{ id: 'savoy', name: '사보이볼룸(사당)', address: '서울 관악구 남부순환로 2036',
+    map_url: JSON.stringify({ kakao: '', naver: 'https://naver.me/verified', google: '' }), is_active: true }];
+
+  it('links English extraction and manual mapping to the same registered venue', () => {
+    const sd = { venue_name: 'SAVOY BALLROOM', location: 'SAVOY BALLROOM', description: '19:30 원문', time: 'legacy' };
+    const normalized = normalizeVenueStructuredData(sd, venues, { strict: true });
+    expect(normalized).toMatchObject({ venue_id: 'savoy', venue_name: '사보이볼룸', address: venues[0].address,
+      location_link: 'https://naver.me/verified', description: sd.description, time: 'legacy' });
+    expect(mapIngestorEvent({ structured_data: { ...sd, activity_type: 'social' } }, venues)).toMatchObject({
+      venue_id: 'savoy', location_link: normalized.location_link,
+    });
+  });
+
+  it('requires a unique active record for automatic matching and preserves unmatched input', () => {
+    const input = { venue_name: '사보이볼룸', location_link: 'https://example.com/manual-map' };
+    expect(normalizeVenueStructuredData(input, venues, { strict: true }).location_link).toBe(input.location_link);
+    for (const rows of [[], [{ ...venues[0], is_active: false }], [...venues, { ...venues[0], id: 'other' }]]) {
+      expect(normalizeVenueStructuredData(input, rows, { strict: true })).toEqual(input);
+    }
+    expect(matchVenueRecord({ venue_id: 'missing', venue_name: '사보이볼룸' }, venues, { strict: true })).toBeNull();
+    expect(matchVenueRecord({ venue_name: '볼룸' }, venues, { strict: true })).toBeNull();
+    expect(matchVenueRecord({ venue_name: '볼룸' }, venues)?.id).toBe('savoy'); // reviewed manual legacy fuzzy search
+    expect(matchVenueRecord({ address: venues[0].address }, venues, { strict: true })?.id).toBe('savoy');
+    expect(matchVenueRecord({ venue_name: '다른홀' }, venues, { strict: true })).toBeNull();
   });
 });

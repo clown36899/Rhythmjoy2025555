@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { toMapSafeVenueName } from '../../scripts/ingestion/candidate-utils.mjs';
+import { toMapSafeVenueName, normalizeVenueStructuredData } from '../../src/utils/venueNormalization.mjs';
 import { deleteEventsAsAdmin, findAdminDeletedEvent } from './admin-event-deletion.js';
 import { benefitFieldsFromStructuredData } from './ingestion-benefit-fields.js';
 import fs from 'node:fs/promises';
@@ -1786,6 +1786,10 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   if (!eventData.title || !date) {
     res.status(400).json({ error: '이벤트 제목과 날짜가 필요합니다.' });
     return;
+  }
+
+  if (automaticRequest) {
+    eventData = normalizeVenueStructuredData(eventData, await loadCafe24TableRows('venues'), { strict: true });
   }
 
   const sourceUrl = String(scrapedEvent.source_url || eventData.link1 || '');
