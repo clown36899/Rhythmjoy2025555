@@ -50,7 +50,7 @@ const parseDateKey = (value: any) => {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CALENDAR_SPAN_LANE_STEP_PX = 20;
+const CALENDAR_SPAN_LANE_STEP_PX = 30;
 
 type CalendarSpanItem = {
   key: string;
@@ -1010,6 +1010,7 @@ export default memo(function FullEventCalendar({
     const titleSegments: Array<{
       spanKey: string;
       title: string;
+      location: string;
       lane: number;
       weekRow: number;
       startCol: number;
@@ -1046,6 +1047,7 @@ export default memo(function FullEventCalendar({
           titleSegments.push({
             spanKey: span.key,
             title: span.title,
+            location: (span.representativeEvent.venue_name || span.representativeEvent.place_name || span.representativeEvent.location || '').trim(),
             lane: laneInfo.lane,
             weekRow,
             startCol,
@@ -1072,6 +1074,8 @@ export default memo(function FullEventCalendar({
               '--calendar-span-tone-background': segment.toneColor,
             } as React.CSSProperties}
             role="button"
+            draggable={false}
+            title={[segment.location, segment.title].filter(Boolean).join(' · ')}
             tabIndex={0}
             onClick={(e) => {
               e.stopPropagation();
@@ -1086,6 +1090,9 @@ export default memo(function FullEventCalendar({
               onEventClick(segment.representativeEvent, segmentDate, getEventsForDate(segmentDate));
             }}
           >
+            {segment.location && (
+              <span className="calendar-overlay-location" draggable={false}>{segment.location}</span>
+            )}
             <span className="calendar-overlay-title">{segment.title}</span>
           </div>
         ))}

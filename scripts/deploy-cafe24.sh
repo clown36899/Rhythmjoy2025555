@@ -136,7 +136,7 @@ rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/seed-notification-reset-notice.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi --checksum --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" scripts/ingestion/ "${TARGET}:${APP_DIR}/scripts/ingestion/" | tee -a "${scripts_log}"
-rsync -azi --checksum -e "${RSYNC_SSH}" src/utils/graduationEvent.mjs src/utils/venueNormalization.mjs "${TARGET}:${APP_DIR}/src/utils/" | tee -a "${scripts_log}"
+rsync -azi --checksum -e "${RSYNC_SSH}" src/utils/graduationEvent.mjs src/utils/venueNormalization.mjs src/utils/freeBoardActivity.mjs "${TARGET}:${APP_DIR}/src/utils/" | tee -a "${scripts_log}"
 rsync -azi --checksum -e "${RSYNC_SSH}" package.json package-lock.json "${TARGET}:${APP_DIR}/" | tee "${package_log}"
 rsync -azi --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" deploy/cafe24/apache/ "${TARGET}:${APACHE_CONF_DIR}/" | tee "${apache_log}"
 rsync -azi -e "${RSYNC_SSH}" deploy/cafe24/cron/swingenjoy-notifications "${TARGET}:${APP_DIR}/deploy/cafe24/cron/" | tee "${cron_log}"
@@ -206,6 +206,12 @@ MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -u \"\${MYSQL_USER}\" \\
   \"\${MYSQL_DATABASE}\" \\
   < '${APP_DIR}/server/cafe24/migrations/2026-08-03-user-board-post-reads.sql'
+MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
+  -h \"\${MYSQL_HOST}\" \\
+  -P \"\${MYSQL_PORT:-3306}\" \\
+  -u \"\${MYSQL_USER}\" \\
+  \"\${MYSQL_DATABASE}\" \\
+  < '${APP_DIR}/server/cafe24/migrations/2026-09-19-board-comment-reads.sql'
 MYSQL_PWD=\"\${MYSQL_PASSWORD}\" mysql \\
   -h \"\${MYSQL_HOST}\" \\
   -P \"\${MYSQL_PORT:-3306}\" \\

@@ -1061,14 +1061,15 @@
 }
 
 .calendar-overlay-item {
+  position: relative;
   display: flex;
   align-items: center;
   align-self: start;
   min-width: 0;
   height: 18px;
-  margin-top: calc(24px + var(--lane-offset, 0px));
+  margin-top: calc(32px + var(--lane-offset, 0px));
   border-radius: 9999px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
   z-index: 45;
   pointer-events: auto;
@@ -1086,7 +1087,30 @@
   background: var(--calendar-span-tone-background);
 }
 
+.calendar-overlay-location {
+  position: absolute;
+  top: -8px;
+  left: 4px;
+  box-sizing: border-box;
+  height: 12px;
+  min-width: 0;
+  max-width: min(70%, 140px);
+  padding: 0 4px;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-user-drag: none;
+}
+
 .calendar-overlay-title {
+  flex: 1 1 0;
   font-size: 10px;
   font-weight: 800;
   color: #fff;
@@ -2283,14 +2307,13 @@
   .calendar-page-container .calendar-overlay-item {
     /*
      * Keep multi-day bars below the tallest mobile date badge (today is 20px).
-     * Each additional lane is still offset by 20px, so one and multiple lanes
-     * retain the same gap from the date header and the event cards below.
+     * Include the small venue badge above each bar in the reserved lane space.
      */
-    margin-top: calc(28px + var(--lane-offset, 0px));
+    margin-top: calc(36px + var(--lane-offset, 0px));
   }
 
   .calendar-page-container .calendar-overlay-first-week {
-    margin-top: calc(3px + var(--lane-offset, 0px));
+    margin-top: calc(11px + var(--lane-offset, 0px));
   }
 
   .calendar-page-container .calendar-grid-container>.calendar-cell-fullscreen:nth-child(n+8) {
@@ -2479,11 +2502,11 @@ html.kiosk-link-router-active .calendar-page-container .calendar-overlay-contain
 }
 
 html.kiosk-link-router-active .calendar-page-container .calendar-overlay-item {
-  margin-top: calc(28px + var(--lane-offset, 0px));
+  margin-top: calc(36px + var(--lane-offset, 0px));
 }
 
 html.kiosk-link-router-active .calendar-page-container .calendar-overlay-first-week {
-  margin-top: calc(3px + var(--lane-offset, 0px));
+  margin-top: calc(11px + var(--lane-offset, 0px));
 }
 
 html.kiosk-link-router-active .calendar-page-container .calendar-cell-fullscreen {

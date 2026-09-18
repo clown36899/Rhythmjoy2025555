@@ -30,7 +30,7 @@ describe('StandardPostList free-board heading', () => {
                     category: 'free',
                     image_thumbnail: null,
                     is_hidden: false,
-                    comment_count: 0,
+                    comment_count: 3,
                     likes: 0,
                     favorites: 0,
                     dislikes: 0,
@@ -39,6 +39,7 @@ describe('StandardPostList free-board heading', () => {
                 onPostClick={vi.fn()}
                 category="free"
                 isAdmin={true}
+                unreadCommentCounts={{ 'post-1': 2 }}
             />,
         );
 
@@ -54,7 +55,10 @@ describe('StandardPostList free-board heading', () => {
         expect(mobileMain?.children[1]).toHaveTextContent('경성홀 입장료변경안내');
         expect(mobileMain?.querySelector('.free-board-mobile-title-line .free-board-prefix')).toBeNull();
         expect(mobileMain?.querySelector('[aria-label="조회 1"]')).toHaveTextContent('1');
-        expect(mobileMain?.querySelector('[aria-label="댓글 0"]')).toHaveTextContent('0');
+        expect(mobileMain?.querySelector('[aria-label="댓글 3"]')).toHaveTextContent('3+2');
+        expect(container.querySelectorAll('[aria-label="새 댓글 2개"]')).toHaveLength(2);
+        expect(container.querySelector('.free-board-stats [aria-label="새 댓글 2개"]')).toHaveAttribute('draggable', 'false');
+        expect(container.querySelector('.free-board-title-line .free-board-new-badge')).toBeNull();
         expect(container.querySelector('.free-board-prefix-cell')).toBeNull();
         expect(container.querySelector('.free-board-thumb img[draggable="true"]')).toBeNull();
     });

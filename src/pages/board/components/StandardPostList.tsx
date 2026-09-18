@@ -41,6 +41,7 @@ interface StandardPostListProps {
     isAdmin: boolean;
     currentUserId?: string | null;
     unreadPostIds?: Set<string>;
+    unreadCommentCounts?: Record<string, number>;
     selectedPrefixId?: BoardPrefixId | null;
     onPrefixChange?: (prefixId: BoardPrefixId | null) => void;
 }
@@ -56,6 +57,7 @@ export default function StandardPostList({
     isAdmin,
     currentUserId,
     unreadPostIds,
+    unreadCommentCounts,
 }: StandardPostListProps) {
 
     const truncateText = (text: string, maxLength: number) => {
@@ -103,6 +105,13 @@ export default function StandardPostList({
     const canOpenPost = (post: StandardBoardPost) => (
         !post.is_hidden || isAdmin || Boolean(currentUserId && post.user_id === currentUserId)
     );
+
+    const renderNewCommentsBadge = (post: StandardBoardPost) => {
+        const count = unreadCommentCounts?.[String(post.id)] || 0;
+        return count > 0 && canOpenPost(post)
+            ? <span className="free-board-comment-new-badge" draggable={false} aria-label={`새 댓글 ${count}개`}>+{count}</span>
+            : null;
+    };
 
     const getAuthorLabel = (post: StandardBoardPost) => getBoardPostAuthorLabel(post, isAdmin);
 
@@ -194,7 +203,7 @@ export default function StandardPostList({
                 <span><i className="ri-eye-line"></i>{post.views || 0}</span>
                 {renderFavoriteButton(post)}
                 {renderLikeButton(post)}
-                <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}</span>
+                <span><i className="ri-chat-3-line"></i>{post.comment_count || 0}{renderNewCommentsBadge(post)}</span>
             </div>
             <div className="free-board-thumb-cell">
                 {(!post.is_hidden || canOpenPost(post)) && renderFreeThumbnail(post)}
@@ -229,6 +238,7 @@ export default function StandardPostList({
                     </span>
                     <span className="free-board-mobile-stat" aria-label={`댓글 ${post.comment_count || 0}`}>
                         <i className="ri-chat-3-line"></i>{post.comment_count || 0}
+                        {renderNewCommentsBadge(post)}
                     </span>
                 </div>
             </div>

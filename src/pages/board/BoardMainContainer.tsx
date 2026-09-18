@@ -52,7 +52,7 @@ export default function BoardMainContainer() {
     const selectedPostId = activePostId;
     const [postsPerPage] = useState(10);
     const [selectedPrefixId, setSelectedPrefixId] = useState<BoardPrefixId | null>(null);
-    const { unreadPostIds } = useFreeBoardUnreadState();
+    const { unreadPostIds, unreadCommentCounts } = useFreeBoardUnreadState();
 
     useEffect(() => {
         setActivePostId(urlPostId);
@@ -390,6 +390,7 @@ export default function BoardMainContainer() {
                         isAdmin={isRealAdmin}
                         currentUserId={user?.id || null}
                         unreadPostIds={unreadPostIds}
+                        unreadCommentCounts={unreadCommentCounts}
                         selectedPrefixId={selectedPrefixId}
                         onPrefixChange={handlePrefixChange}
                     />

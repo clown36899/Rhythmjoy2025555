@@ -869,6 +869,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const getMenuItemAriaLabel = useCallback((item: HomeMenuItem) => {
         const label = t(item.shortLabel ?? item.label);
         const unreadCount = getMenuItemUnreadCount(item);
+        if (item.id === "board" && unreadCount > 0) return `${label}, 새 글·댓글 ${unreadCount}개`;
         return item.id === "benefits" && unreadCount > 0
             ? `${label}, 새 이벤트 ${unreadCount}개`
             : label;

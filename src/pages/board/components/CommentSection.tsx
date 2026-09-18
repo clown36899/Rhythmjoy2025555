@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardComment } from '../../../lib/cafe24Client';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
 import LocalLoading from '../../../components/LocalLoading';
+import { useMarkFreeBoardPostRead } from '../../../hooks/useFreeBoardUnreadCount';
+import { isHiddenBoardActivity } from '../../../utils/freeBoardActivity.mjs';
 import './comment.css';
 
 interface CommentSectionProps {
@@ -17,11 +19,26 @@ export default function CommentSection({ postId, category, onPostChanged }: Comm
     const { user, isAdmin } = useAuth();
     const [comments, setComments] = useState<BoardComment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [editingComment, setEditingComment] = useState<BoardComment | null>(null);
     const [editPassword, setEditPassword] = useState<string>('');
+    const [loadedPostKey, setLoadedPostKey] = useState<string | null>(null);
+    const requestVersion = useRef(0);
+    const postKey = `${category}:${postId}`;
+    useMarkFreeBoardPostRead(postId, category, loadedPostKey === postKey && !loading,
+        comments.filter(comment => !isHiddenBoardActivity(comment.is_hidden)).map(comment => String(comment.id)));
 
     useEffect(() => {
         loadComments();
+        let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+        const refreshOnResume = () => {
+            if (category !== 'free' || document.visibilityState !== 'visible') return;
+            if (refreshTimer) clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => { void loadComments(true); }, 800);
+        };
+        window.addEventListener('focus', refreshOnResume);
+        window.addEventListener('online', refreshOnResume);
+        document.addEventListener('visibilitychange', refreshOnResume);
 
         const table = category === 'anonymous' ? 'board_anonymous_comments' : 'board_comments';
 
@@ -103,13 +120,20 @@ export default function CommentSection({ postId, category, onPostChanged }: Comm
             });
 
         return () => {
+            requestVersion.current += 1;
+            if (refreshTimer) clearTimeout(refreshTimer);
+            window.removeEventListener('focus', refreshOnResume);
+            window.removeEventListener('online', refreshOnResume);
+            document.removeEventListener('visibilitychange', refreshOnResume);
             cafe24.removeChannel(channel);
         };
     }, [postId, category]);
 
     const loadComments = async (silent = false) => {
+        const version = ++requestVersion.current;
         try {
             if (!silent) setLoading(true);
+            setLoadError(false);
 
             if (category === 'anonymous') {
                 const { data, error } = await cafe24
@@ -118,6 +142,7 @@ export default function CommentSection({ postId, category, onPostChanged }: Comm
                     .eq('post_id', postId)
                     .order('created_at', { ascending: true });
                 if (error) throw error;
+                if (version !== requestVersion.current) return;
                 setComments(data as BoardComment[]);
             } else {
                 const { data, error } = await cafe24
@@ -148,12 +173,16 @@ export default function CommentSection({ postId, category, onPostChanged }: Comm
                     ...comment,
                     author_profile_image: profileMap[comment.user_id] || null
                 }));
-                setComments(commentsWithProfiles as BoardComment[]);
+                if (version !== requestVersion.current) return;
+                setComments(commentsWithProfiles.filter(comment => !isHiddenBoardActivity(comment.is_hidden)) as BoardComment[]);
             }
+            setLoadedPostKey(postKey);
         } catch (error) {
+            if (version !== requestVersion.current) return;
+            setLoadError(true);
             console.error('댓글 로딩 실패:', error);
         } finally {
-            if (!silent) setLoading(false);
+            if (!silent && version === requestVersion.current) setLoading(false);
         }
     };
 
@@ -228,6 +257,14 @@ export default function CommentSection({ postId, category, onPostChanged }: Comm
 
             {/* Always show form for NEW comments at the top (disabled when editing) */}
             <div className="comment-list">
+                {loadError && (
+                    <div className="comment-empty" role="alert">
+                        <p>댓글을 불러오지 못했습니다.</p>
+                        <button type="button" className="board-detail-retry-btn" onClick={() => void loadComments()}>
+                            다시 시도
+                        </button>
+                    </div>
+                )}
                 {loading ? (
                     <div className="comment-loading">
                         <LocalLoading message="댓글을 불러오는 중..." size="md" />

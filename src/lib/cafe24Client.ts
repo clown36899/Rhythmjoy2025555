@@ -144,6 +144,7 @@ export interface BoardComment {
   password?: string;
   likes?: number;
   dislikes?: number;
+  is_hidden?: boolean;
 }
 
 export interface EventFavorite {
