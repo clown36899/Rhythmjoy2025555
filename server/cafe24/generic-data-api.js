@@ -1831,39 +1831,31 @@ function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = [], board
 }
 
 function buildAnalyticsAdminDeviceIds(rows = [], identity, adminUserIds) {
-  const sessionIds = new Set();
-  const fingerprints = new Set();
-  const networkDeviceIds = new Set();
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    for (const row of rows) {
-      const networkDeviceId = analyticsGuestNetworkIdentity(row);
-      const userIds = identity?.userIds(row) || new Set([analyticsUserId(row)].filter(Boolean));
-      const directAdmin = asAnalyticsBool(row?.is_admin)
-        || Array.from(userIds).some((userId) => adminUserIds.has(String(userId)));
-      const linkedAdminDevice = Boolean(
-        (row?.session_id && sessionIds.has(String(row.session_id))) ||
-        (row?.fingerprint && fingerprints.has(String(row.fingerprint))) ||
-        (networkDeviceId && networkDeviceIds.has(networkDeviceId))
-      );
-      if (!directAdmin && !linkedAdminDevice) continue;
-      if (row?.session_id && !sessionIds.has(String(row.session_id))) {
-        sessionIds.add(String(row.session_id));
-        changed = true;
-      }
-      if (row?.fingerprint && !fingerprints.has(String(row.fingerprint))) {
-        fingerprints.add(String(row.fingerprint));
-        changed = true;
-      }
-      if (networkDeviceId && !networkDeviceIds.has(networkDeviceId)) {
-        networkDeviceIds.add(networkDeviceId);
-        changed = true;
-      }
+  // Traverse each device link once. Repeated full scans depended on row order
+  // and became quadratic for long chains of browser/session identities.
+  const links = new Map();
+  const pending = [];
+  for (const row of rows) {
+    const network = analyticsGuestNetworkIdentity(row);
+    const keys = [row?.session_id && `s:${row.session_id}`, row?.fingerprint && `f:${row.fingerprint}`, network && `n:${network}`].filter(Boolean);
+    const userIds = identity?.userIds(row) || new Set([analyticsUserId(row)].filter(Boolean));
+    const admin = asAnalyticsBool(row?.is_admin) || Array.from(userIds).some(id => adminUserIds.has(String(id)));
+    for (const key of keys) {
+      if (!links.has(key)) links.set(key, new Set());
+      for (const other of keys) if (other !== key) links.get(key).add(other);
+      if (admin) pending.push(key);
     }
   }
-
+  const seen = new Set();
+  const sessionIds = new Set(), fingerprints = new Set(), networkDeviceIds = new Set();
+  for (let i = 0; i < pending.length; i += 1) {
+    const key = pending[i];
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const set = key.startsWith('s:') ? sessionIds : key.startsWith('f:') ? fingerprints : networkDeviceIds;
+    set.add(key.slice(2));
+    for (const next of links.get(key) || []) if (!seen.has(next)) pending.push(next);
+  }
   return { sessionIds, fingerprints, networkDeviceIds };
 }
 
@@ -3600,6 +3592,8 @@ export {
   ensureId as ensureCafe24RecordId,
   getRecordId as getCafe24RecordId,
   loadRows as loadCafe24TableRows,
+  loadRowsByRecordId as loadCafe24TableRowsByRecordId,
+  loadRowsByJsonField as loadCafe24TableRowsByJsonField,
   normalizeEventUpdateValues,
   normalizeEventUpsertValue,
   saveRow as saveCafe24TableRow,

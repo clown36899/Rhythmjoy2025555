@@ -64,24 +64,26 @@ console.log(JSON.stringify({ commit, modulePath, baseBuild: version.buildTime })
 
 // The production generic API also contains unrelated, already deployed changes.
 // Apply only this branch's analytics delta to that verified production baseline.
-const genericRelative = 'server/cafe24/generic-data-api.js';
-const genericBase = await readFile(path.join(baselineDir, 'generic-data-api.js'), 'utf8');
-if (sha256(genericBase) !== '5cb17bbef5c800f45815089cb5367764ae1b32b332de93d1bc470f8fe3e1e5e2') {
-    throw new Error('Production generic API changed. Review the scoped server patch before deployment.');
-}
 const runtimeDir = path.join(outputDir, 'runtime');
 await mkdir(path.join(runtimeDir, 'server/cafe24'), { recursive: true });
 await mkdir(path.join(runtimeDir, 'dist-cafe24'), { recursive: true });
 await mkdir(path.join(runtimeDir, 'scripts'), { recursive: true });
 await mkdir(path.join(runtimeDir, 'deploy/cafe24/cron'), { recursive: true });
-await writeFile(path.join(runtimeDir, genericRelative), genericBase);
-const patch = execFileSync('git', ['diff', '685164fa', '--', genericRelative], { encoding: 'utf8' });
-if (!patch.includes('getAnalyticsReport')) throw new Error('Missing scoped analytics API patch.');
-execFileSync('git', ['apply', '--unsafe-paths', '-'], { cwd: runtimeDir, input: patch });
+const serverHashes = {};
+for (const [file, expectedHash] of [
+    ['generic-data-api.js', 'cb70ebdb4ff4afafcbc21ab7f0f3bc49e304c27eb5b6a0ab3c1a5eba37d4d1e2'],
+    ['stats-api.js', '7c90f9b8d6db73ddab19ef6af004f3172e5edc1d41e7fabfb0fe79cfa87cf448'],
+]) {
+    const relative = `server/cafe24/${file}`;
+    const baseline = await readFile(path.join(baselineDir, file), 'utf8');
+    if (sha256(baseline) !== expectedHash) throw new Error(`Production ${file} changed. Review the scoped server patch before deployment.`);
+    await writeFile(path.join(runtimeDir, relative), baseline);
+    const patch = execFileSync('git', ['diff', '817e006f', '--', relative], { encoding: 'utf8' });
+    if (!patch) throw new Error(`Missing scoped analytics patch for ${file}.`);
+    execFileSync('git', ['apply', '--unsafe-paths', '-'], { cwd: runtimeDir, input: patch });
+    serverHashes[file] = { base: sha256(baseline), deployed: sha256(await readFile(path.join(runtimeDir, relative), 'utf8')) };
+}
 await copyFile('dist-cafe24/analytics-reports.mjs', path.join(runtimeDir, 'dist-cafe24/analytics-reports.mjs'));
 await copyFile('scripts/run-cafe24-cron-refresh-stats.mjs', path.join(runtimeDir, 'scripts/run-cafe24-cron-refresh-stats.mjs'));
 await copyFile('deploy/cafe24/cron/swingenjoy-stats', path.join(runtimeDir, 'deploy/cafe24/cron/swingenjoy-stats'));
-const genericPatched = await readFile(path.join(runtimeDir, genericRelative), 'utf8');
-await writeFile(path.join(outputDir, 'analytics-server-release.json'), JSON.stringify({
-    baseGenericSha256: sha256(genericBase), genericSha256: sha256(genericPatched), reportVersion: 2,
-}));
+await writeFile(path.join(outputDir, 'analytics-server-release.json'), JSON.stringify({ files: serverHashes, reportVersion: 2 }));

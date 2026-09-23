@@ -42,6 +42,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const [viewMode, setViewMode] = useState<'summary' | 'daily'>('daily');
     const [userList, setUserList] = useState<UserInfo[]>([]);
     const [guestList, setGuestList] = useState<GuestInfo[]>([]);
+    const [userCount, setUserCount] = useState(0);
+    const [guestCount, setGuestCount] = useState(0);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [detailError, setDetailError] = useState('');
+    const detailSequence = useRef(0);
+    const reportRange = useRef({ start: '', end: '' });
     const [showUserList, setShowUserList] = useState(false);
     const [showGuestList, setShowGuestList] = useState(false);
     // [PHASE 20] Type Detail Modal State
@@ -78,7 +84,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         if (isOpen) {
             fetchAnalytics();
         }
-        return () => { requestSequence.current += 1; };
+        return () => { requestSequence.current += 1; detailSequence.current += 1; };
     }, [isOpen, dateRange.start, dateRange.end, viewMode]);
 
     const setShortcutRange = (days: number) => {
@@ -119,6 +125,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         const requestId = ++requestSequence.current;
         const isCurrent = () => requestSequence.current === requestId;
         setLoading(true);
+        detailSequence.current += 1;
+        setShowUserList(false); setShowGuestList(false); setDetailLoading(false); setDetailError('');
         setSummary(null);
         setLoadError('');
         setReportNotice('');
@@ -149,6 +157,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return;
             }
             if (!data?.report) throw new Error('통계 응답이 없습니다.');
+            reportRange.current = { start: startStr, end: endStr };
+            setUserCount(data.userCount ?? data.report.users.length);
+            setGuestCount(data.guestCount ?? data.report.guests.length);
             setSummary(data.report.summary);
             setUserList(data.report.users);
             setGuestList(data.report.guests);
@@ -156,13 +167,37 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 ? '마감된 일별 통계 · 저장된 결과입니다.'
                 : data.source === 'saved_days'
                     ? '마감된 일별 자료를 합산한 기간 통계입니다.'
-                    : '오늘 기록과 마감된 일별 자료를 반영한 통계입니다.');
+                    : data.stale ? '오늘 통계 자동 갱신이 지연되고 있습니다. 마지막 저장 결과입니다.'
+                        : '오늘 통계는 서버에서 1분마다 갱신합니다.');
         } catch (err) {
             console.error('Failed to fetch analytics:', err);
             if (isCurrent()) setLoadError('통계를 불러오지 못했습니다. 다시 시도해 주세요.');
         } finally {
             if (isCurrent()) setLoading(false);
         }
+    };
+
+    const loadVisitorDetails = async (kind: 'users' | 'guests', more = false) => {
+        const sequence = ++detailSequence.current;
+        const offset = more ? (kind === 'users' ? userList.length : guestList.length) : 0;
+        if (kind === 'users') { setShowUserList(true); setShowGuestList(false); }
+        else { setShowGuestList(true); setShowUserList(false); }
+        setDetailLoading(true); setDetailError('');
+        try {
+            const range = reportRange.current;
+            const data = await loadAnalyticsReport(range.start, range.end, false, kind, offset);
+            if (detailSequence.current !== sequence) return;
+            if (data?.status !== 'ready' || !data.report) throw new Error('상세 준비 중');
+            if (kind === 'users') {
+                setUserList(list => more ? [...list, ...data.report.users] : data.report.users);
+                setUserCount(data.total);
+            } else {
+                setGuestList(list => more ? [...list, ...data.report.guests] : data.report.guests);
+                setGuestCount(data.total);
+            }
+        } catch {
+            if (detailSequence.current === sequence) setDetailError('상세 목록을 불러오지 못했습니다. 다시 시도해 주세요.');
+        } finally { if (detailSequence.current === sequence) setDetailLoading(false); }
     };
 
     // [PHASE 18] CSV Export 기능
@@ -466,9 +501,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     <i className="ri-download-line"></i>
                                 </button>
                             )}
-                            <button className="refresh-btn" onClick={() => fetchAnalytics(true)} disabled={loading} title="원본 기록으로 통계 다시 만들기" aria-label="원본 기록으로 통계 다시 만들기">
+                            <button className="refresh-btn" onClick={() => fetchAnalytics(true)} disabled={loading} title={viewMode === 'summary' || dateRange.end === getKRDateString(new Date()) ? '오늘 통계 즉시 갱신' : '원본 기록으로 통계 다시 만들기'} aria-label={viewMode === 'summary' || dateRange.end === getKRDateString(new Date()) ? '오늘 통계 즉시 갱신' : '원본 기록으로 통계 다시 만들기'}>
                                 <i className={loading ? "ri-refresh-line spinning" : "ri-refresh-line"}></i>
-                                <span style={{ fontSize: '0.75rem', marginLeft: 4, whiteSpace: 'nowrap' }}>통계 다시 만들기</span>
+                                <span style={{ fontSize: '0.75rem', marginLeft: 4, whiteSpace: 'nowrap' }}>{viewMode === 'summary' || dateRange.end === getKRDateString(new Date()) ? '오늘 통계 갱신' : '통계 다시 만들기'}</span>
                             </button>
                         </div>
                         <div className="view-mode-tabs">
@@ -578,12 +613,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     <div className="ratio-fill-user" style={{ width: `${((summary.user_clicks || 0) / ((summary.user_clicks || 0) + (summary.anon_clicks || 1)) * 100)}%` }}></div>
                                                 </div>
                                                 <div className="visitor-breakdown">
-                                                    <div className="breakdown-item clickable" onClick={() => userList.length > 0 && setShowUserList(true)}>
+                                                    <div className="breakdown-item clickable" onClick={() => userCount > 0 && loadVisitorDetails('users')}>
                                                         <span className="label"><i className="ri-user-smile-line"></i> 로그인</span>
                                                         <span className="value highlight-blue">{summary.user_clicks || 0}</span>
                                                     </div>
                                                     <div className="breakdown-separator"></div>
-                                                    <div className="breakdown-item clickable" onClick={() => guestList.length > 0 && setShowGuestList(true)}>
+                                                    <div className="breakdown-item clickable" onClick={() => guestCount > 0 && loadVisitorDetails('guests')}>
                                                         <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
                                                         <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
                                                     </div>
@@ -845,12 +880,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     <div className="ratio-fill-user" style={{ width: `${((summary.user_clicks || 0) / ((summary.user_clicks || 0) + (summary.anon_clicks || 1)) * 100)}%` }}></div>
                                                 </div>
                                                 <div className="visitor-breakdown">
-                                                    <div className="breakdown-item clickable" onClick={() => userList.length > 0 && setShowUserList(true)}>
+                                                    <div className="breakdown-item clickable" onClick={() => userCount > 0 && loadVisitorDetails('users')}>
                                                         <span className="label"><i className="ri-user-smile-line"></i> 로그인</span>
                                                         <span className="value highlight-blue">{summary.user_clicks || 0}</span>
                                                     </div>
                                                     <div className="breakdown-separator"></div>
-                                                    <div className="breakdown-item clickable" onClick={() => guestList.length > 0 && setShowGuestList(true)}>
+                                                    <div className="breakdown-item clickable" onClick={() => guestCount > 0 && loadVisitorDetails('guests')}>
                                                         <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
                                                         <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
                                                     </div>
@@ -1084,7 +1119,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     ? `${dateRange.start}`
                                                     : `${dateRange.start} ~ ${dateRange.end}`}
                                         </span>
-                                        로그인 사용자 목록 ({userList.length}명)
+                                        로그인 사용자 목록 ({userCount}명)
                                     </h3>
                                     <button onClick={() => setShowUserList(false)}><i className="ri-close-line"></i></button>
                                 </div>
@@ -1186,6 +1221,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             </div>
                                         );
                                     })}
+                                    {detailLoading && <p role="status">상세 목록 불러오는 중...</p>}
+                                    {detailError && <p role="alert">{detailError}</p>}
+                                    {!detailLoading && (detailError || userList.length < userCount) && (
+                                        <button onClick={() => loadVisitorDetails('users', userList.length > 0)}>
+                                            {detailError ? '다시 시도' : `더 보기 (${userList.length}/${userCount})`}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1204,7 +1246,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     ? `${dateRange.start}`
                                                     : `${dateRange.start} ~ ${dateRange.end}`}
                                         </span>
-                                        Guest 목록 ({guestList.length}명)
+                                        Guest 목록 ({guestCount}명)
                                     </h3>
                                     <button onClick={() => setShowGuestList(false)}><i className="ri-close-line"></i></button>
                                 </div>
@@ -1299,6 +1341,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             </div>
                                         </div>
                                     ))}
+                                    {detailLoading && <p role="status">상세 목록 불러오는 중...</p>}
+                                    {detailError && <p role="alert">{detailError}</p>}
+                                    {!detailLoading && (detailError || guestList.length < guestCount) && (
+                                        <button onClick={() => loadVisitorDetails('guests', guestList.length > 0)}>
+                                            {detailError ? '다시 시도' : `더 보기 (${guestList.length}/${guestCount})`}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

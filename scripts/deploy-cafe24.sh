@@ -81,7 +81,7 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
   trap 'rm -rf "${analytics_tmp}"' EXIT
   mkdir -p "${analytics_tmp}/baseline/assets" "${analytics_tmp}/staged"
   rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/index.html" "${TARGET}:${APP_DIR}/dist/version.json" "${analytics_tmp}/baseline/"
-  rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/server/cafe24/generic-data-api.js" "${analytics_tmp}/baseline/"
+  rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/server/cafe24/generic-data-api.js" "${TARGET}:${APP_DIR}/server/cafe24/stats-api.js" "${analytics_tmp}/baseline/"
   rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/assets/SiteAnalyticsModal-B0zRWyG2.js" "${TARGET}:${APP_DIR}/dist/assets/main-C2UW8TcE.js" "${analytics_tmp}/baseline/assets/"
   npm run build:cafe24:functions
   node scripts/build-cafe24-analytics.mjs "${analytics_tmp}/baseline" "${analytics_tmp}/staged"
@@ -89,6 +89,8 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
   analytics_module="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).modulePath' "${analytics_tmp}/staged/analytics-release.json")"
   analytics_base_hash="$(shasum -a 256 "${analytics_tmp}/baseline/index.html" | awk '{print $1}')"
   analytics_generic_base_hash="$(shasum -a 256 "${analytics_tmp}/baseline/generic-data-api.js" | awk '{print $1}')"
+  analytics_stats_base_hash="$(shasum -a 256 "${analytics_tmp}/baseline/stats-api.js" | awk '{print $1}')"
+  analytics_stats_hash="$(shasum -a 256 "${analytics_tmp}/staged/runtime/server/cafe24/stats-api.js" | awk '{print $1}')"
   analytics_generic_hash="$(shasum -a 256 "${analytics_tmp}/staged/runtime/server/cafe24/generic-data-api.js" | awk '{print $1}')"
   analytics_module_hash="$(shasum -a 256 "${analytics_tmp}/staged/${analytics_module}" | awk '{print $1}')"
   analytics_index_hash="$(shasum -a 256 "${analytics_tmp}/staged/index.html" | awk '{print $1}')"
@@ -100,10 +102,12 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
   ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
     test \"\$(sha256sum '${APP_DIR}/dist/index.html' | cut -d ' ' -f 1)\" = '${analytics_base_hash}'
     test \"\$(sha256sum '${APP_DIR}/server/cafe24/generic-data-api.js' | cut -d ' ' -f 1)\" = '${analytics_generic_base_hash}'
+    test \"\$(sha256sum '${APP_DIR}/server/cafe24/stats-api.js' | cut -d ' ' -f 1)\" = '${analytics_stats_base_hash}'
     test \"\$(sha256sum '${APP_DIR}/dist/${analytics_module}' | cut -d ' ' -f 1)\" = '${analytics_module_hash}'
     cp -p '${APP_DIR}/dist/index.html' '${analytics_remote_stage}/previous-index.html'
     cp -p '${APP_DIR}/dist/version.json' '${analytics_remote_stage}/previous-version.json'
     cp -p '${APP_DIR}/server/cafe24/generic-data-api.js' '${analytics_remote_stage}/previous-generic-data-api.js'
+    cp -p '${APP_DIR}/server/cafe24/stats-api.js' '${analytics_remote_stage}/previous-stats-api.js'
     if [ -f '${APP_DIR}/dist-cafe24/analytics-reports.mjs' ]; then cp -p '${APP_DIR}/dist-cafe24/analytics-reports.mjs' '${analytics_remote_stage}/previous-analytics-reports.mjs'; fi
     if [ -f '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs' ]; then cp -p '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs' '${analytics_remote_stage}/previous-stats-script.mjs'; fi
     if [ -f /etc/cron.d/swingenjoy-stats ]; then cp -p /etc/cron.d/swingenjoy-stats '${analytics_remote_stage}/previous-stats-cron'; fi
@@ -111,6 +115,7 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
       code=\$?
       if [ \"\$code\" -ne 0 ]; then
         cp -p '${analytics_remote_stage}/previous-generic-data-api.js' '${APP_DIR}/server/cafe24/generic-data-api.js'
+        cp -p '${analytics_remote_stage}/previous-stats-api.js' '${APP_DIR}/server/cafe24/stats-api.js'
         cp -p '${analytics_remote_stage}/previous-index.html' '${APP_DIR}/dist/index.html'
         cp -p '${analytics_remote_stage}/previous-version.json' '${APP_DIR}/dist/version.json'
         if [ -f '${analytics_remote_stage}/previous-analytics-reports.mjs' ]; then cp -p '${analytics_remote_stage}/previous-analytics-reports.mjs' '${APP_DIR}/dist-cafe24/analytics-reports.mjs'; else rm -f '${APP_DIR}/dist-cafe24/analytics-reports.mjs'; fi
@@ -123,8 +128,10 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
     trap rollback_analytics EXIT
     cp -p '${analytics_remote_stage}/runtime/dist-cafe24/analytics-reports.mjs' '${APP_DIR}/dist-cafe24/analytics-reports.mjs'
     cp -p '${analytics_remote_stage}/runtime/server/cafe24/generic-data-api.js' '${APP_DIR}/server/cafe24/generic-data-api.js'
+    cp -p '${analytics_remote_stage}/runtime/server/cafe24/stats-api.js' '${APP_DIR}/server/cafe24/stats-api.js'
     cp -p '${analytics_remote_stage}/runtime/scripts/run-cafe24-cron-refresh-stats.mjs' '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs'
     test \"\$(sha256sum '${APP_DIR}/server/cafe24/generic-data-api.js' | cut -d ' ' -f 1)\" = '${analytics_generic_hash}'
+    test \"\$(sha256sum '${APP_DIR}/server/cafe24/stats-api.js' | cut -d ' ' -f 1)\" = '${analytics_stats_hash}'
     systemctl restart '${SERVICE}'
     i=0
     until curl -fsS '${HEALTH_URL}' >/dev/null; do

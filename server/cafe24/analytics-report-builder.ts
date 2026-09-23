@@ -4,6 +4,7 @@ import type { AnalyticsSources } from './analytics-reports';
 const isLikelyBotTraffic = (ua: string, _legacyFlag = false) => isAnalyticsBotUserAgent(ua);
 const isInternalAnalyticsRoute = (path: string) => isAnalyticsInternalRouteRow({ page_url: path });
 const isAnalyticsDatacenterIp = (ip: string) => isAnalyticsDatacenterRow({ client_ip: ip });
+const dailyDateFormatter = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' });
 const getKRDateString = (date: Date) => new Date(date.getTime() + 9 * 3600000).toISOString().slice(0, 10);
 const getAnalyticsUserDisplayName = (userId: string | null | undefined, nickname?: string | null) =>
     nickname || (userId ? `회원 ${userId.substring(0, 8)}` : '회원');
@@ -919,12 +920,12 @@ export function buildAnalyticsReport(startStr: string, endStr: string, sources: 
     visitorPatternRows.forEach((row: any) => {
         const date = new Date(row.time);
         // Convert to KST for accurate weekday/hour
-        const kstDate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+        const kstDate = new Date(date.getTime() + 9 * 3600000);
 
-        weekdayCounts[kstDate.getDay()]++;
-        hourlyCounts[kstDate.getHours()]++;
+        weekdayCounts[kstDate.getUTCDay()]++;
+        hourlyCounts[kstDate.getUTCHours()]++;
 
-        const monthKey = `${kstDate.getFullYear()}.${String(kstDate.getMonth() + 1).padStart(2, '0')}`;
+        const monthKey = `${kstDate.getUTCFullYear()}.${String(kstDate.getUTCMonth() + 1).padStart(2, '0')}`;
         monthlyCountsMap.set(monthKey, (monthlyCountsMap.get(monthKey) || 0) + 1);
     });
 
@@ -1214,7 +1215,7 @@ export function buildAnalyticsReport(startStr: string, endStr: string, sources: 
         });
         return {
             date,
-            displayDate: new Date(date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }),
+            displayDate: dailyDateFormatter.format(new Date(date)),
             total: logs.length,
             user: dUser,
             guest: dGuest,
