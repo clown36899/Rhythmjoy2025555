@@ -15,7 +15,7 @@ describe('server-owned analytics report UI', () => {
     it('only reads the report RPC, including when moving to a previous day', async () => {
         const view = render(<SiteAnalyticsModal isOpen onClose={() => {}} />);
         await screen.findByText(/마감된 일별 통계/);
-        fireEvent.click(view.container.querySelector('.date-navigator button')!);
+        fireEvent.click(screen.getByRole('button', {name:'이전 날짜'}));
         await screen.findByText(/마감된 일별 통계/);
         expect(mocks.rpc).toHaveBeenCalledTimes(2);
         expect(mocks.rpc).toHaveBeenLastCalledWith('get_analytics_summary_v2', expect.objectContaining({ report: true }));
@@ -55,7 +55,7 @@ describe('server-owned analytics report UI', () => {
         let resolveOld!: (value: any) => void;
         mocks.rpc.mockReturnValueOnce(new Promise(resolve=>{resolveOld=resolve;}));
         const view=render(<SiteAnalyticsModal isOpen onClose={() => {}} />);
-        fireEvent.click(view.container.querySelector('.date-navigator button')!);
+        fireEvent.click(screen.getByRole('button', {name:'이전 날짜'}));
         await screen.findByText(/마감된 일별 통계/);
         await act(async()=>resolveOld(saved('live')));
         expect(screen.queryByText(/오늘 통계는 서버에서 1분마다 갱신/)).toBeNull();
@@ -75,7 +75,10 @@ describe('server-owned analytics report UI', () => {
         const view=render(<SiteAnalyticsModal isOpen onClose={() => {}} />);
         await screen.findByText(/마감된 일별 통계/);
         expect(mocks.rpc).toHaveBeenCalledTimes(1);
-        fireEvent.click(view.container.querySelector('.breakdown-item.clickable')!);
+        expect(screen.getByText('고유 방문자')).toBeTruthy();
+        expect(screen.getByText('방문 횟수')).toBeTruthy();
+        expect(screen.queryByText('회원 전환')).toBeNull();
+        fireEvent.click(screen.getByRole('button', {name:/로그인 30/}));
         await screen.findByText('Member 0');
         expect(mocks.rpc).toHaveBeenLastCalledWith('get_analytics_summary_v2',expect.objectContaining({report_part:'users',offset:0}));
         fireEvent.click(screen.getByRole('button',{name:'더 보기 (25/30)'}));
@@ -87,6 +90,29 @@ describe('server-owned analytics report UI', () => {
         render(<SiteAnalyticsModal isOpen onClose={() => {}} />);
         await screen.findByText(/오늘 통계 자동 갱신이 지연/);
         expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the displayed annual range for CSV and keeps date reads separate from rebuilding', async () => {
+        const result:any = saved();
+        result.data.report.summary.user_clicks = 1;
+        result.data.report.summary.daily_details = [{date:'2026-09-22',total:4,user:1,guest:3}];
+        mocks.rpc.mockResolvedValue(result);
+        render(<SiteAnalyticsModal isOpen onClose={() => {}} />);
+        await screen.findByText('고유 방문자');
+        expect(screen.getByRole('button',{name:'다음 날짜'}).hasAttribute('disabled')).toBe(true);
+        fireEvent.click(screen.getByRole('button',{name:'최근 1년'}));
+        await screen.findByText('고유 방문자');
+        const args = mocks.rpc.mock.calls.at(-1)![1];
+        const create = vi.fn(()=>'blob:analytics'); const revoke = vi.fn();
+        Object.defineProperty(URL, 'createObjectURL', {configurable:true,value:create});
+        Object.defineProperty(URL, 'revokeObjectURL', {configurable:true,value:revoke});
+        let filename = '';
+        const click = vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(function(this: HTMLAnchorElement){filename=this.download;});
+        fireEvent.click(screen.getByRole('button',{name:'일별 활동 CSV 다운로드'}));
+        expect(filename).toBe(`analytics-${args.start_date.slice(0,10)}-${args.end_date.slice(0,10)}.csv`);
+        expect(mocks.rpc.mock.calls.every(([name])=>name==='get_analytics_summary_v2')).toBe(true);
+        expect(revoke).toHaveBeenCalledWith('blob:analytics');
+        click.mockRestore();
     });
 
 });

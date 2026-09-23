@@ -38,8 +38,12 @@ const result = await build({
             builder.onResolve({ filter: /^(react|react\/jsx-runtime)$/ }, args => ({ path: args.path, namespace: 'published' }));
             builder.onResolve({ filter: /\/(cafe24Client|analyticsEngine|analyticsGuards)$/ }, args => ({ path: path.basename(args.path), namespace: 'published' }));
             builder.onResolve({ filter: /^\/assets\// }, args => ({ path: args.path, external: true }));
-            // The published app already loads this unchanged stylesheet with the modal.
-            builder.onLoad({ filter: /SiteAnalyticsModal\.css$/ }, () => ({ contents: '', loader: 'js' }));
+            // Carry the scoped visual revision with its module; the old lazy stylesheet may load later.
+            builder.onLoad({ filter: /SiteAnalyticsModal\.css$/ }, async args => {
+                const css = await readFile(args.path, 'utf8');
+                const id = `analytics-style-${sha256(css).slice(0, 16)}`;
+                return { contents: `if (!document.getElementById(${JSON.stringify(id)})) { const style = document.createElement('style'); style.id = ${JSON.stringify(id)}; style.textContent = ${JSON.stringify(css)}; document.head.appendChild(style); }`, loader: 'js' };
+            });
             builder.onLoad({ filter: /.*/, namespace: 'published' }, args => ({ contents: adapters[args.path], loader: 'js' }));
         },
     }],
@@ -71,14 +75,14 @@ await mkdir(path.join(runtimeDir, 'scripts'), { recursive: true });
 await mkdir(path.join(runtimeDir, 'deploy/cafe24/cron'), { recursive: true });
 const serverHashes = {};
 for (const [file, expectedHash] of [
-    ['generic-data-api.js', 'bb2e2eabcb5da44a1683bc97ff231f4325208b775454af27928816f3cda2ef0b'],
+    ['generic-data-api.js', 'b5b09007880eab36154fdd5cb4fefc984a534d3a47f05cd04fffd674610f2ed0'],
     ['stats-api.js', '06805c1180f3f5f6d79caf82c3f027ef2b170170352f016cc3d0268ef4c8bb94'],
 ]) {
     const relative = `server/cafe24/${file}`;
     const baseline = await readFile(path.join(baselineDir, file), 'utf8');
     if (sha256(baseline) !== expectedHash) throw new Error(`Production ${file} changed. Review the scoped server patch before deployment.`);
     await writeFile(path.join(runtimeDir, relative), baseline);
-    const patch = execFileSync('git', ['diff', '72be39c1', '--', relative], { encoding: 'utf8' });
+    const patch = execFileSync('git', ['diff', '638f4325', '--', relative], { encoding: 'utf8' });
     if (patch) execFileSync('git', ['apply', '--unsafe-paths', '-'], { cwd: runtimeDir, input: patch });
     serverHashes[file] = { base: sha256(baseline), deployed: sha256(await readFile(path.join(runtimeDir, relative), 'utf8')) };
 }

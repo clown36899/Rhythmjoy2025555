@@ -55,14 +55,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const requestSequence = useRef(0);
     const [reportNotice, setReportNotice] = useState('');
     const [loadError, setLoadError] = useState('');
-    // 데스크탑/모바일 레이아웃 분기 (JS 감지, CSS 반응형 사용하지 않음)
-    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-    useEffect(() => {
-        const handler = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handler);
-        return () => window.removeEventListener('resize', handler);
-    }, []);
-
     // Helper: Get YYYY-MM-DD in Korean Time (UTC+9)
     const getKRDateString = (date: Date) => {
         // Use Intl API for accurate timezone conversion
@@ -205,7 +197,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         if (!summary) return;
 
         const csv = [
-            ['날짜', '활동 로그', '회원 활동', 'Guest 활동'],
+            ['날짜', '활동 로그', '회원 활동', '비로그인 활동'],
             ...summary.daily_details.map(d => [
                 d.date,
                 d.total.toString(),
@@ -218,14 +210,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `analytics-${dateRange.start}-${dateRange.end}.csv`;
+        a.download = `analytics-${reportRange.current.start.slice(0, 10)}-${reportRange.current.end.slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
 
     // [PHASE 21] 트렌드 데이터 계산 (선택된 기간 전체 반영)
     const trendData = summary ? [...summary.daily_details].reverse() : [];
-    const maxDayClicks = trendData.length > 0 ? Math.max(...trendData.map(d => d.total)) : 0;
 
     const visitTrendData = summary && summary.daily_visit_trend ? [...summary.daily_visit_trend].reverse() : [];
     const maxVisitCount = visitTrendData.length > 0 ? Math.max(...visitTrendData.map(d => d.count)) : 0;
@@ -262,111 +253,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         );
     };
 
-    const renderQuickInsights = () => {
-        if (!summary) return null;
-
-        const totalVisitors = (summary.user_clicks || 0) + (summary.anon_clicks || 0);
-        const loginRatio = totalVisitors > 0 ? ((summary.user_clicks || 0) / totalVisitors) * 100 : 0;
-        const topType = summary.type_breakdown[0];
-        const topTypeShare = topType && summary.total_clicks > 0 ? (topType.count / summary.total_clicks) * 100 : 0;
-        const topReferrer = summary.referrer_stats?.[0];
-        const totalReferrerCount = (summary.referrer_stats || []).reduce((sum, ref) => sum + ref.count, 0);
-        const topReferrerShare = topReferrer && totalReferrerCount > 0 ? (topReferrer.count / totalReferrerCount) * 100 : 0;
-        const bounceRate = summary.session_stats?.bounce_rate ?? 0;
-        const engagementRate = summary.session_stats?.engagement_rate ?? Math.max(0, 100 - bounceRate);
-        const avgDuration = summary.session_stats?.avg_duration ?? 0;
-
-        return (
-            <div className="insight-panel">
-                <div className="insight-panel-title"><i className="ri-sparkling-line"></i> 운영 체크</div>
-                <div className="insight-grid">
-                    <div className="insight-card">
-                        <span className="insight-label">회원 전환</span>
-                        <strong>{loginRatio.toFixed(1)}%</strong>
-                        <small>{loginRatio >= 35 ? '로그인 방문 양호' : '비로그인 방문 중심'}</small>
-                        <div className="insight-meter"><span style={{ width: `${loginRatio}%` }}></span></div>
-                    </div>
-                    <div className="insight-card">
-                        <span className="insight-label">활동 집중도</span>
-                        <strong>{topType ? getTypeName(topType.type) : '-'}</strong>
-                        <small>{topType ? `${topType.count}회 · ${topTypeShare.toFixed(1)}%` : '데이터 없음'}</small>
-                    </div>
-                    <div className="insight-card">
-                        <span className="insight-label">유입 의존도</span>
-                        <strong>{topReferrer?.source || '-'}</strong>
-                        <small>{topReferrer ? `${topReferrer.count}회 · ${topReferrerShare.toFixed(1)}%` : '데이터 없음'}</small>
-                    </div>
-                    <div className="insight-card">
-                        <span className="insight-label">체류 품질</span>
-                        <strong>{Math.floor(avgDuration / 60)}분 {avgDuration % 60}초</strong>
-                        <small>참여율 {engagementRate.toFixed(1)}% · 이탈 {bounceRate.toFixed(1)}%</small>
-                        <div className="insight-meter"><span style={{ width: `${Math.min(engagementRate, 100)}%` }}></span></div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const renderSessionPwaPanel = (periodLabel?: string) => {
-        if (!summary?.session_stats && !summary?.pwa_stats) return null;
-
-        return (
-            <div className="analytics-section-group top-kpi-card session-pwa-section">
-                <div className="analytics-section-title">
-                    <i className="ri-dashboard-3-line"></i> 세션 & PWA
-                    {periodLabel && <span className="section-period">{periodLabel}</span>}
-                </div>
-                <div className="session-pwa-layout">
-                    {summary.session_stats && (
-                        <div className="session-panel">
-                            <div className="panel-kicker">세션 품질</div>
-                            <div className="session-main-number">
-                                {Math.floor(summary.session_stats.avg_duration / 60)}분 {summary.session_stats.avg_duration % 60}초
-                                <span>평균 활성 체류시간 · 30분 cap</span>
-                            </div>
-                            <div className="session-metric-row">
-                                <div>
-                                    <span>보정 세션</span>
-                                    <strong>{summary.session_stats.total_sessions}</strong>
-                                    {summary.session_stats.raw_sessions !== undefined && summary.session_stats.raw_sessions !== summary.session_stats.total_sessions && (
-                                        <small>원본 {summary.session_stats.raw_sessions}</small>
-                                    )}
-                                </div>
-                                <div>
-                                    <span>참여율</span>
-                                    <strong>{(summary.session_stats.engagement_rate ?? Math.max(0, 100 - summary.session_stats.bounce_rate)).toFixed(1)}%</strong>
-                                    <small>중앙값 {Math.floor((summary.session_stats.median_duration || 0) / 60)}분 {(summary.session_stats.median_duration || 0) % 60}초</small>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {summary.pwa_stats && (
-                        <div className="pwa-panel">
-                            <div className="panel-kicker">앱 사용 비율</div>
-                            <div className="pwa-donut-panel">
-                                <div className="pwa-donut" style={{ '--pwa-ratio': `${summary.pwa_stats.pwa_percentage * 3.6}deg` } as React.CSSProperties}>
-                                    <span>{summary.pwa_stats.pwa_percentage.toFixed(0)}%</span>
-                                </div>
-                                <div className="donut-legend">
-                                    <span><i className="legend-dot pwa"></i>PWA {summary.pwa_stats.pwa_sessions}</span>
-                                    <span><i className="legend-dot browser"></i>브라우저 {summary.pwa_stats.browser_sessions}</span>
-                                    <span><i className="legend-dot install"></i>설치 {summary.pwa_stats.total_installs}</span>
-                                </div>
-                            </div>
-                            <div className="pwa-duration-comparison compact">
-                                <div className="comparison-row"><span>PWA 체류</span><strong>{Math.floor(summary.pwa_stats.avg_pwa_duration / 60)}분 {summary.pwa_stats.avg_pwa_duration % 60}초</strong></div>
-                                <div className="comparison-row"><span>브라우저 체류</span><strong>{Math.floor(summary.pwa_stats.avg_browser_duration / 60)}분 {summary.pwa_stats.avg_browser_duration % 60}초</strong></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
     const formatDateTime = (value: string | null) => {
         if (!value) return '-';
         return new Date(value).toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -445,13 +335,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         const width = (app.count / maxClicks) * 100;
 
                         return (
-                            <details key={app.id} className="bottom-menu-app-row" open={index < 3}>
+                            <details key={app.id} className="bottom-menu-app-row" >
                                 <summary>
                                     <span className="item-rank">{index + 1}</span>
                                     <span className="bottom-menu-app-main">
                                         <strong>{app.title}</strong>
                                         <span>
-                                            {app.uniqueVisitors}명 · 회원 {app.memberClicks} / Guest {app.guestClicks}
+                                            {app.uniqueVisitors}명 · 로그인 클릭 {app.memberClicks}회 / 비로그인 클릭 {app.guestClicks}회
                                             {app.lastUsed && ` · 최근 ${formatDateTime(app.lastUsed)}`}
                                         </span>
                                         <span className="bottom-menu-app-meter">
@@ -470,7 +360,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             <div key={`${app.id}-${user.visitorKey}`} className="bottom-menu-user-row">
                                                 <span>
                                                     {user.label}
-                                                    {user.isGuest && <small>Guest</small>}
+                                                    {user.isGuest && <small>비로그인</small>}
                                                 </span>
                                                 <strong>{user.count}회</strong>
                                             </div>
@@ -490,15 +380,15 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     if (!isOpen) return null;
 
     return (
-        <div className="analytics-modal-overlay" onClick={onClose} onDragStart={event => event.preventDefault()}>
-            <div className="analytics-modal-content" translate="no" onClick={e => e.stopPropagation()}>
+        <div className="analytics-modal-overlay analytics-review" onClick={onClose} onDragStart={event => event.preventDefault()}>
+            <div className="analytics-modal-content" role="dialog" aria-modal="true" aria-label="방문 통계" translate="no" onClick={e => e.stopPropagation()}>
                 <div className="analytics-modal-header">
                     <div className="header-title-group">
                         <div className="title-left">
-                            <h2><i className="ri-bar-chart-2-line"></i> 운영 통계 리포트</h2>
+                            <h2><i className="ri-bar-chart-2-line"></i> 방문 통계</h2>
                             {summary && summary.daily_details.length > 0 && (
-                                <button className="analytics-export-btn-mini" onClick={exportToCSV} title="CSV로 내보내기">
-                                    <i className="ri-download-line"></i>
+                                <button className="analytics-export-btn-mini" onClick={exportToCSV} title="일별 활동 CSV 다운로드" aria-label="일별 활동 CSV 다운로드">
+                                    CSV
                                 </button>
                             )}
                             <button className="refresh-btn" onClick={() => fetchAnalytics(true)} disabled={loading} title={viewMode === 'summary' || dateRange.end === getKRDateString(new Date()) ? '오늘 통계 즉시 갱신' : '원본 기록으로 통계 다시 만들기'} aria-label={viewMode === 'summary' || dateRange.end === getKRDateString(new Date()) ? '오늘 통계 즉시 갱신' : '원본 기록으로 통계 다시 만들기'}>
@@ -507,8 +397,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                             </button>
                         </div>
                         <div className="view-mode-tabs">
-                            <button className={viewMode === 'summary' ? 'active' : ''} onClick={() => setViewMode('summary')}>전체 요약</button>
-                            <button className={viewMode === 'daily' ? 'active' : ''} onClick={() => setViewMode('daily')}>날짜별 상세</button>
+                            <button aria-pressed={viewMode === 'daily'} className={viewMode === 'daily' ? 'active' : ''} onClick={() => setViewMode('daily')}>기간 선택</button>
+                            <button aria-pressed={viewMode === 'summary'} className={viewMode === 'summary' ? 'active' : ''} onClick={() => setViewMode('summary')}>최근 1년</button>
                         </div>
                     </div>
 
@@ -517,15 +407,15 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         <div className="range-picker">
                             <div className="range-shortcuts">
                                 <div className="date-navigator">
-                                    <button onClick={() => {
+                                    <button aria-label="이전 날짜" onClick={() => {
                                         const base = new Date(`${dateRange.end}T00:00:00+09:00`);
                                         base.setDate(base.getDate() - 1);
                                         const newDate = getKRDateString(base);
                                         setDateRange({ start: newDate, end: newDate });
                                     }}>
-                                        <i className="ri-arrow-left-s-line"></i>
+                                        <span aria-hidden="true">‹</span>
                                     </button>
-                                    <span
+                                    <button
                                         className="current-date-display"
                                         onClick={() => setShortcutRange(0)}
                                         title="오늘로 이동"
@@ -548,555 +438,98 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             }
                                             return `${dateRange.start} ~ ${dateRange.end}`;
                                         })()}
-                                    </span>
-                                    <button onClick={() => {
+                                    </button>
+                                    <button aria-label="다음 날짜" disabled={dateRange.end >= getKRDateString(new Date())} onClick={() => {
                                         const base = new Date(`${dateRange.end}T00:00:00+09:00`);
                                         base.setDate(base.getDate() + 1);
                                         const newDate = getKRDateString(base);
                                         setDateRange({ start: newDate, end: newDate });
                                     }}>
-                                        <i className="ri-arrow-right-s-line"></i>
+                                        <span aria-hidden="true">›</span>
                                     </button>
                                 </div>
                                 <div className="period-buttons">
+                                    <button onClick={() => setShortcutRange(0)}>오늘</button>
+                                    <button onClick={() => setShortcutRange(1)}>어제</button>
                                     <button onClick={() => setShortcutRange(7)}>7일</button>
                                     <button onClick={() => setShortcutRange(30)}>30일</button>
                                 </div>
                             </div>
                             <div className="range-inputs">
                                 <div className="date-input-group">
-                                    <label>시작일</label>
-                                    <input type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
+                                    <label htmlFor="analytics-start">시작일</label>
+                                    <input id="analytics-start" type="date" max={getKRDateString(new Date())} value={dateRange.start} onChange={e => e.target.value && setDateRange(prev => ({ start: e.target.value, end: e.target.value > prev.end ? e.target.value : prev.end }))} />
                                 </div>
                                 <span>→</span>
                                 <div className="date-input-group">
-                                    <label>종료일</label>
-                                    <input type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                                    <label htmlFor="analytics-end">종료일</label>
+                                    <input id="analytics-end" type="date" min={dateRange.start} max={getKRDateString(new Date())} value={dateRange.end} onChange={e => e.target.value && setDateRange(prev => ({ start: e.target.value < prev.start ? e.target.value : prev.start, end: e.target.value }))} />
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <button className="analytics-close-btn" onClick={onClose}><i className="ri-close-line"></i></button>
+                    <button className="analytics-close-btn" aria-label="통계 닫기" onClick={onClose}><span aria-hidden="true">×</span></button>
                 </div>
 
                 <div className="analytics-modal-body">
-                    {!loading && reportNotice && <p className="no-data-msg" role="status">{reportNotice}</p>}
+                    {!loading && reportNotice && <p className="analytics-save-status" role="status">{reportNotice}</p>}
                     {loadError ? (
                         <div className="analytics-empty" role="alert">
                             <p>{loadError}</p>
                             <button onClick={() => fetchAnalytics()}>다시 시도</button>
                         </div>
                     ) : loading ? (
-                        <div className="analytics-loading">통계 불러오는 중...</div>
+                        <div className="analytics-loading" role="status">통계 불러오는 중...{(viewMode === 'summary' || dateRange.start !== dateRange.end) && <small className="analytics-loading-note">저장된 일별 자료를 합산하고 있습니다. 긴 기간은 잠시 걸릴 수 있습니다.</small>}</div>
                     ) : summary && (summary.total_clicks > 0 || (summary.user_clicks || 0) + (summary.anon_clicks || 0) > 0) ? (
-                        <div className="analytics-scroll-container">
-
-                            {/* ===== 전체 요약 탭 ===== */}
-                            {viewMode === 'summary' && (
-                                <div className={isMobile ? "summary-view-content" : "desktop-summary-content"}>
-
-                                    {/* S1: 방문자 현황 */}
-                                    <div className="analytics-section-group top-kpi-card">
-                                        <div className="analytics-section-title"><i className="ri-user-3-line"></i> 방문자 현황 <span className="section-period">최근 1년</span></div>
-                                        {(summary.user_clicks !== undefined || summary.anon_clicks !== undefined) && (
-                                            <div className="analytics-hero-card">
-                                                <h3 className="hero-title">
-                                                    고유 방문자
-                                                    <span className="hero-title-desc">회원 ID/기기 기준 중복 제외</span>
-                                                </h3>
-                                                <div className="hero-number">
-                                                    {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
-                                                    <span className="unit">명</span>
-                                                </div>
-                                                <div className="visitor-ratio-bar">
-                                                    <div className="ratio-fill-user" style={{ width: `${((summary.user_clicks || 0) / ((summary.user_clicks || 0) + (summary.anon_clicks || 1)) * 100)}%` }}></div>
-                                                </div>
-                                                <div className="visitor-breakdown">
-                                                    <div className="breakdown-item clickable" onClick={() => userCount > 0 && loadVisitorDetails('users')}>
-                                                        <span className="label"><i className="ri-user-smile-line"></i> 로그인</span>
-                                                        <span className="value highlight-blue">{summary.user_clicks || 0}</span>
-                                                    </div>
-                                                    <div className="breakdown-separator"></div>
-                                                    <div className="breakdown-item clickable" onClick={() => guestCount > 0 && loadVisitorDetails('guests')}>
-                                                        <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
-                                                        <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="analytics-sub-stats">
-                                            <div className="sub-stat-item">
-                                                <div className="label-group">
-                                                    <span className="label">보정 세션</span>
-                                                    <span className="label-desc">30분 내 조각 병합</span>
-                                                </div>
-                                                <span className="value">{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}</span>
-                                            </div>
-                                            <div className="sub-stat-item">
-                                                <div className="label-group">
-                                                    <span className="label">활동 로그</span>
-                                                    <span className="label-desc">클릭/링크 이벤트</span>
-                                                </div>
-                                                <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
-                                            </div>
-                                        </div>
+                        <div className="analytics-scroll-container analytics-overview">
+                            <div className="analytics-period-heading">
+                                <div><span>조회 기간 · 한국 날짜 기준</span><h3>{reportRange.current.start.slice(0, 10)}{reportRange.current.start.slice(0, 10) !== reportRange.current.end.slice(0, 10) && ` ~ ${reportRange.current.end.slice(0, 10)}`}</h3></div>
+                                <span className="analytics-period-badge">{reportRange.current.end.slice(0, 10) === getKRDateString(new Date()) ? '오늘 포함' : '마감된 기간'}</span>
+                            </div>
+                            <div className="analytics-key-metrics">
+                                <section className="analytics-metric analytics-metric-primary">
+                                    <h3>고유 방문자</h3><strong>{((summary.user_clicks || 0) + (summary.anon_clicks || 0)).toLocaleString()}<small>명</small></strong>
+                                    <p>선택한 기간 안에서 중복 제외</p>
+                                    <div className="analytics-visitor-actions">
+                                        <button className="breakdown-item clickable" disabled={!userCount} onClick={() => loadVisitorDetails('users')}>로그인 <b>{summary.user_clicks || 0}</b><span>명 ›</span></button>
+                                        <button className="breakdown-item clickable" disabled={!guestCount} onClick={() => loadVisitorDetails('guests')}>비로그인 <b>{summary.anon_clicks || 0}</b><span>명 ›</span></button>
                                     </div>
-
-                                    {renderSessionPwaPanel('최근 1년')}
-                                    {renderBottomMenuAppsPanel('최근 1년')}
-
-                                    {/* S4: 접속 패턴 분석 (요일/시간대/월별) */}
-                                    {summary.visitor_stats && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-pulse-line"></i> 접속 패턴 분석</div>
-                                            <div className="analytics-grid visitor-stats-grid">
-                                                <div className="grid-section full-width">
-                                                    <h3><i className="ri-calendar-event-line"></i> 요일별 방문 집중도</h3>
-                                                    <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', alignItems: 'flex-end' }}>
-                                                        {summary.visitor_stats.weekday.map((d, i) => (
-                                                            <div key={i} className="trend-bar-wrapper" style={{ flex: 1 }}>
-                                                                <div className="trend-bar-at-bottom">
-                                                                    <div className="trend-bar-fill" style={{ height: `${d.ratio}%`, backgroundColor: d.ratio > 80 ? '#fbbf24' : '#60a5fa' }}>
-                                                                        <span className="trend-tooltip">{d.count}회</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="trend-label">{d.day}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="grid-section full-width">
-                                                    <h3><i className="ri-time-line"></i> 시간대별 접속량 (Peak Time)</h3>
-                                                    <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', overflowX: 'auto' }}>
-                                                        {summary.visitor_stats.hourly.map((h, i) => (
-                                                            <div key={i} className="trend-bar-wrapper" style={{ minWidth: '30px', flex: 1 }}>
-                                                                <div className="trend-bar-at-bottom">
-                                                                    <div className="trend-bar-fill" style={{ height: `${h.ratio}%`, backgroundColor: h.ratio > 80 ? '#fbbf24' : '#a78bfa' }}>
-                                                                        <span className="trend-tooltip">{h.count}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="trend-label" style={{ fontSize: '0.7rem' }}>{h.hour}시</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="grid-section full-width">
-                                                    <h3><i className="ri-calendar-line"></i> 월별 보정 세션 추이</h3>
-                                                    <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
-                                                        {summary.visitor_stats.monthly.length === 0 ? (
-                                                            <div style={{ width: '100%', textAlign: 'center', color: '#666' }}>데이터 수집 중입니다...</div>
-                                                        ) : (
-                                                            summary.visitor_stats.monthly.map((m, i) => (
-                                                                <div key={i} className="trend-bar-wrapper" style={{ flex: 1, minWidth: '50px' }}>
-                                                                    <div className="trend-bar-at-bottom">
-                                                                        <div className="trend-bar-fill" style={{ height: `${m.ratio}%`, backgroundColor: '#34d399' }}>
-                                                                            <span className="trend-tooltip">{m.count}회</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <span className="trend-label">{m.month.split('.')[1]}월</span>
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* S4: 콘텐츠 분석 */}
-                                    <div className="analytics-section-group top-kpi-card">
-                                        <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
-                                        {renderTypeShareChart()}
-                                        <div className="analytics-grid" style={{ marginTop: '16px' }}>
-                                            <div className="grid-section popular-content-panel">
-                                                <h3><i className="ri-trophy-line"></i> 기간 통합 인기 콘텐츠 (Top 20)</h3>
-                                                <div className="ranking-list popular-ranking-list">
-                                                    {summary.total_top_items.length > 0 ? (
-                                                        summary.total_top_items.map((item, idx) => (
-                                                            <div key={idx} className="ranking-item">
-                                                                <span className="item-rank">{idx + 1}</span>
-                                                                <div className="item-info">
-                                                                    <span className="item-title" title={item.title}>{item.title}</span>
-                                                                    <span className="item-meta">{getTypeName(item.type)}</span>
-                                                                </div>
-                                                                <span className="item-count">{item.count}</span>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="no-data-msg">데이터가 없습니다.</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="grid-section section-breakdown-panel">
-                                                <h3><i className="ri-pie-chart-line"></i> 섹션별 유입 비중</h3>
-                                                <div className="section-breakdown">
-                                                    {summary.total_sections.map((sec, idx) => {
-                                                        const percent = Math.round((sec.count / summary.total_clicks) * 100);
-                                                        return (
-                                                            <div key={idx} className="breakdown-row">
-                                                                <div className="row-label">
-                                                                    <span>{sec.section}</span>
-                                                                    <span>{percent + '%'}</span>
-                                                                </div>
-                                                                <div className="row-bar-bg">
-                                                                    <div className="row-bar-fill" style={{ width: percent + '%' }}></div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* S5: 유입 & 행동 분석 */}
-                                    {((summary.referrer_stats && summary.referrer_stats.length > 0) || (summary.journey_patterns && summary.journey_patterns.length > 0)) && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-route-line"></i> 유입 & 행동 분석</div>
-                                            <div className="analytics-grid behavior-grid">
-                                                {summary.referrer_stats && summary.referrer_stats.length > 0 && (
-                                                    <div className="grid-section">
-                                                        <h3><i className="ri-links-line"></i> 유입 경로 분석</h3>
-                                                        <div className="ranking-list">
-                                                            {summary.referrer_stats.map((ref, idx) => (
-                                                                <div key={idx} className="ranking-item ranking-item-bar">
-                                                                    <span className="ranking-item-fill" style={{ width: `${(ref.count / Math.max(...summary.referrer_stats!.map(r => r.count), 1)) * 100}%` }}></span>
-                                                                    <span className="item-rank">{idx + 1}</span>
-                                                                    <div className="item-info"><span className="item-title">{ref.source}</span></div>
-                                                                    <span className="item-count">{ref.count}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {summary.journey_patterns && summary.journey_patterns.length > 0 && (
-                                                    <div className="grid-section">
-                                                        <h3><i className="ri-route-line"></i> 사용자 여정 패턴 (Top 10)</h3>
-                                                        <div className="journey-list">
-                                                            {summary.journey_patterns.map((pattern, idx) => (
-                                                                <div key={idx} className="journey-item" style={{ padding: '12px', borderBottom: '1px solid #333' }}>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                        <div style={{ flex: 1 }}>
-                                                                            <div style={{ fontSize: '0.9em', color: '#888', marginBottom: '4px' }}>패턴 #{idx + 1}</div>
-                                                                            <div style={{ fontSize: '0.95em' }}>{pattern.path.join(' → ')}</div>
-                                                                        </div>
-                                                                        <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginLeft: '16px' }}>{pattern.count}</div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {renderQuickInsights()}
-                                        </div>
-                                    )}
-
-                                    {/* S6 상세: PWA 접속/설치 로그 (Row 2 이후 별도 섹션) */}
-                                    {summary.pwa_stats && (summary.pwa_stats.recent_pwa_sessions?.length ?? 0) + summary.pwa_stats.recent_installs.length > 0 && (
-                                        <div className="analytics-section-group">
-                                            <div className="analytics-section-title"><i className="ri-smartphone-line"></i> PWA 접속 / 설치 로그</div>
-                                            {summary.pwa_stats.recent_pwa_sessions && summary.pwa_stats.recent_pwa_sessions.length > 0 && (
-                                                <div style={{ marginTop: '24px' }}>
-                                                    <h4 style={{ fontSize: '0.9em', marginBottom: '12px', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <i className="ri-user-follow-line"></i> 최근 PWA 접속 사용자
-                                                    </h4>
-                                                    <div className="recent-installs-list">
-                                                        {summary.pwa_stats.recent_pwa_sessions.map((session, idx) => (
-                                                            <div key={idx} className="install-item" style={{ padding: '10px 12px', borderBottom: '1px solid #27272a', fontSize: '0.85em', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: idx % 2 === 0 ? 'rgba(39,39,42,0.3)' : 'transparent', borderRadius: '4px' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                                    <div style={{ fontWeight: '600', color: '#f4f4f5' }}>{session.nickname || 'Guest'}</div>
-                                                                    <div style={{ color: '#71717a', fontSize: '0.75rem' }}>
-                                                                        {new Date(session.session_start).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                                                        {session.display_mode && ` · ${session.display_mode}`}
-                                                                    </div>
-                                                                </div>
-                                                                <div style={{ textAlign: 'right' }}>
-                                                                    {session.duration_seconds ? (
-                                                                        <span style={{ color: '#10b981', fontWeight: '500' }}>{Math.floor(session.duration_seconds / 60)}분 {session.duration_seconds % 60}초</span>
-                                                                    ) : (
-                                                                        (() => {
-                                                                            const isVeryRecent = (new Date().getTime() - new Date(session.session_start).getTime()) < 3600000;
-                                                                            return isVeryRecent
-                                                                                ? <span style={{ color: '#fbbf24', fontSize: '0.8em' }}>접속 중</span>
-                                                                                : <span style={{ color: '#3f3f46', fontSize: '0.8em' }}>-</span>;
-                                                                        })()
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {summary.pwa_stats.recent_installs.length > 0 && (
-                                                <div style={{ marginTop: '24px' }}>
-                                                    <h4 style={{ fontSize: '0.9em', marginBottom: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <i className="ri-download-line"></i> 최근 설치 내역
-                                                    </h4>
-                                                    <div className="recent-installs-list">
-                                                        {summary.pwa_stats.recent_installs.map((install, idx) => (
-                                                            <div key={idx} className="install-item" style={{ padding: '8px', borderBottom: '1px solid #333', fontSize: '0.85em' }}>
-                                                                <div>{new Date(install.installed_at).toLocaleString('ko-KR')}</div>
-                                                                <div style={{ color: '#e4e4e7', fontWeight: '500' }}>{install.nickname || (install.user_id ? '회원' : 'Guest')}</div>
-                                                                <div style={{ color: '#71717a', fontSize: '0.9em' }}>
-                                                                    {install.user_id ? (install.nickname ? `(${install.user_id.substring(0, 4)}..)` : `(${install.user_id.substring(0, 8)}..)`) : (install.fingerprint ? `Guest: ${install.fingerprint.substring(0, 8)}..` : '-')}
-                                                                    {install.display_mode && ` · ${install.display_mode}`}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    <div className="summary-exclusion-note">
-                                        * 관리자(Admin) 및 테스트용 계정은 제외됩니다. 고유 방문자는 회원 ID를 우선 적용하고, Guest는 같은 날짜의 IP hash/IP와 기기군이 같으면 fingerprint가 갈라져도 하나로 합산합니다. 세션은 같은 방문자의 30분 이내 조각을 병합하고 체류시간은 30분 상한으로 보정합니다.
-                                    </div>
+                                </section>
+                                <section className="analytics-metric"><h3>방문 횟수</h3><strong>{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}<small>회</small></strong><p>같은 방문자의 30분 이내 기록을 묶음</p></section>
+                                <section className="analytics-metric"><h3>사이트 활동</h3><strong>{summary.total_clicks.toLocaleString()}<small>회</small></strong><p>클릭·페이지 이동 등 수집된 활동</p></section>
+                                <section className="analytics-metric"><h3>평균 활성 체류</h3><strong className="analytics-duration">{summary.session_stats ? formatDuration(summary.session_stats.avg_duration) : '기록 없음'}</strong><p>체류 기록이 있는 방문 기준 · 최대 30분</p></section>
+                            </div>
+                            {visitTrendData.length > 1 && <section className="analytics-panel">
+                                <h3>일별 방문자 추이</h3><p>날짜마다 중복을 제외한 방문자입니다. 일별 합계는 기간 전체 방문자 수와 다를 수 있습니다.</p>
+                                <div className="analytics-daily-chart" tabIndex={0} aria-label="일별 고유 방문자 그래프. 좌우로 스크롤하여 확인할 수 있습니다.">
+                                    {visitTrendData.map(day => <div key={day.date} className="analytics-day" title={`${day.date} · ${day.count}명`}><span>{day.count}</span><div><i style={{height: `${maxVisitCount ? day.count / maxVisitCount * 100 : 0}%`}} /></div><small>{day.date.slice(5).replace('-', '/')}</small></div>)}
                                 </div>
-                            )}
-
-                            {/* ===== 날짜별 상세 탭 ===== */}
-                            {viewMode === 'daily' && (
-                                <div className={isMobile ? "daily-view-content" : "desktop-daily-content"}>
-
-                                    {/* D1: 방문자 현황 */}
-                                    <div className="analytics-section-group daily-visitor-section">
-                                        <div className="analytics-section-title"><i className="ri-user-3-line"></i> 방문자 현황</div>
-                                        {(summary.user_clicks !== undefined || summary.anon_clicks !== undefined) && (
-                                            <div className="analytics-hero-card">
-                                                <h3 className="hero-title">
-                                                    {dateRange.start === dateRange.end && dateRange.end === getKRDateString(new Date())
-                                                        ? '오늘의 고유 방문자'
-                                                        : '기간 내 고유 방문자'}
-                                                    <span className="hero-title-desc">회원 ID/기기 기준 중복 제외</span>
-                                                </h3>
-                                                <div className="hero-number">
-                                                    {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
-                                                    <span className="unit">명</span>
-                                                </div>
-                                                <div className="visitor-ratio-bar">
-                                                    <div className="ratio-fill-user" style={{ width: `${((summary.user_clicks || 0) / ((summary.user_clicks || 0) + (summary.anon_clicks || 1)) * 100)}%` }}></div>
-                                                </div>
-                                                <div className="visitor-breakdown">
-                                                    <div className="breakdown-item clickable" onClick={() => userCount > 0 && loadVisitorDetails('users')}>
-                                                        <span className="label"><i className="ri-user-smile-line"></i> 로그인</span>
-                                                        <span className="value highlight-blue">{summary.user_clicks || 0}</span>
-                                                    </div>
-                                                    <div className="breakdown-separator"></div>
-                                                    <div className="breakdown-item clickable" onClick={() => guestCount > 0 && loadVisitorDetails('guests')}>
-                                                        <span className="label" title="로그인하지 않은 기기 기준"><i className="ri-user-line"></i> Guest</span>
-                                                        <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="analytics-sub-stats">
-                                            <div className="sub-stat-item">
-                                                <div className="label-group">
-                                                    <span className="label">보정 세션</span>
-                                                    <span className="label-desc">30분 내 조각 병합</span>
-                                                </div>
-                                                <span className="value">{(summary.visitor_summary?.session_total ?? summary.session_stats?.total_sessions ?? 0).toLocaleString()}</span>
-                                            </div>
-                                            <div className="sub-stat-item">
-                                                <div className="label-group">
-                                                    <span className="label">활동 로그</span>
-                                                    <span className="label-desc">클릭/링크 이벤트</span>
-                                                </div>
-                                                <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {renderSessionPwaPanel()}
-                                    {renderBottomMenuAppsPanel()}
-
-                                    {/* D4: 클릭 & 방문자 트렌드 (다일 기간일 때만) */}
-                                    {dateRange.start !== dateRange.end && trendData.length > 1 && (
-                                        <div className="analytics-section-group analytics-trend-group">
-                                            <div className="analytics-section-title"><i className="ri-line-chart-line"></i> 클릭 & 방문자 트렌드</div>
-                                            <div className="analytics-trend-section">
-                                                <h3><i className="ri-mouse-line"></i> 클릭 트렌드 (Click)</h3>
-                                                <div className="trend-chart-container">
-                                                    {trendData.map((day, idx) => {
-                                                        const height = maxDayClicks > 0 ? (day.total / maxDayClicks) * 100 : 0;
-                                                        return (
-                                                            <div key={idx} className="trend-bar-wrapper">
-                                                                <div className="trend-bar-at-bottom">
-                                                                    <div className="trend-bar-fill" style={{ height: `${height}%` }}>
-                                                                        <span className="trend-tooltip">{day.total}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="trend-label">{day.date.split('-')[2]}일</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                            <div className="analytics-trend-section" style={{ marginTop: '24px' }}>
-                                                <h3><i className="ri-footprint-line"></i> 고유 방문자 트렌드</h3>
-                                                <div className="trend-chart-container">
-                                                    {visitTrendData.length === 0 ? (
-                                                        <div style={{ width: '100%', textAlign: 'center', color: '#666', fontSize: '0.9rem', padding: '20px' }}>데이터 수집 중</div>
-                                                    ) : (
-                                                        visitTrendData.map((day, idx) => {
-                                                            const height = maxVisitCount > 0 ? (day.count / maxVisitCount) * 100 : 0;
-                                                            return (
-                                                                <div key={idx} className="trend-bar-wrapper">
-                                                                    <div className="trend-bar-at-bottom">
-                                                                        <div className="trend-bar-fill" style={{ height: `${height}%`, backgroundColor: '#f472b6' }}>
-                                                                            <span className="trend-tooltip">{day.count}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <span className="trend-label">{day.date.split('-')[2]}일</span>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    )}
-                                                </div>
-                                                <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#71717a', textAlign: 'right' }}>
-                                                    * 세션과 활동 로그를 합쳐 회원 ID/기기 기준으로 중복 제외. 세션 수는 같은 방문자의 30분 이내 조각을 병합한 보정값입니다.
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* D4: 콘텐츠 분석 */}
-                                    <div className="analytics-section-group analytics-content-section">
-                                        <div className="analytics-section-title"><i className="ri-bar-chart-grouped-line"></i> 콘텐츠 분석</div>
-                                        {renderTypeShareChart()}
-                                        <div className="analytics-grid" style={{ marginTop: '16px' }}>
-                                            <div className="grid-section popular-content-panel">
-                                                <h3><i className="ri-trophy-line"></i> 인기 콘텐츠 (Top 20)</h3>
-                                                <div className="ranking-list popular-ranking-list">
-                                                    {summary.total_top_items.length > 0 ? (
-                                                        summary.total_top_items.map((item, idx) => (
-                                                            <div key={idx} className="ranking-item">
-                                                                <span className="item-rank">{idx + 1}</span>
-                                                                <div className="item-info">
-                                                                    <span className="item-title" title={item.title}>{item.title}</span>
-                                                                    <span className="item-meta">{getTypeName(item.type)}</span>
-                                                                </div>
-                                                                <span className="item-count">{item.count}</span>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="no-data-msg">데이터가 없습니다.</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {summary.total_sections.length > 0 && (
-                                                <div className="grid-section section-breakdown-panel">
-                                                    <h3><i className="ri-pie-chart-line"></i> 섹션별 비중</h3>
-                                                    <div className="section-breakdown">
-                                                        {summary.total_sections.map((sec, idx) => {
-                                                            const percent = Math.round((sec.count / summary.total_clicks) * 100);
-                                                            return (
-                                                                <div key={idx} className="breakdown-row">
-                                                                    <div className="row-label">
-                                                                        <span>{sec.section}</span>
-                                                                        <span>{percent + '%'}</span>
-                                                                    </div>
-                                                                    <div className="row-bar-bg">
-                                                                        <div className="row-bar-fill" style={{ width: percent + '%' }}></div>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* D5: 유입 & 행동 분석 */}
-                                    {((summary.referrer_stats && summary.referrer_stats.length > 0) || (summary.journey_patterns && summary.journey_patterns.length > 0)) && (
-                                        <div className="analytics-section-group analytics-behavior-section">
-                                            <div className="analytics-section-title"><i className="ri-route-line"></i> 유입 & 행동 분석</div>
-                                            <div className="analytics-grid behavior-grid">
-                                                {summary.referrer_stats && summary.referrer_stats.length > 0 && (
-                                                    <div className="grid-section">
-                                                        <h3><i className="ri-links-line"></i> 유입 경로</h3>
-                                                        <div className="ranking-list">
-                                                            {summary.referrer_stats.map((ref, idx) => (
-                                                                <div key={idx} className="ranking-item ranking-item-bar">
-                                                                    <span className="ranking-item-fill" style={{ width: `${(ref.count / Math.max(...summary.referrer_stats!.map(r => r.count), 1)) * 100}%` }}></span>
-                                                                    <span className="item-rank">{idx + 1}</span>
-                                                                    <div className="item-info"><span className="item-title">{ref.source}</span></div>
-                                                                    <span className="item-count">{ref.count}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {summary.journey_patterns && summary.journey_patterns.length > 0 && (
-                                                    <div className="grid-section">
-                                                        <h3><i className="ri-route-line"></i> 사용자 여정 패턴</h3>
-                                                        <div className="journey-list">
-                                                            {summary.journey_patterns.map((pattern, idx) => (
-                                                                <div key={idx} className="journey-item" style={{ padding: '12px', borderBottom: '1px solid #333' }}>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                        <div style={{ flex: 1 }}>
-                                                                            <div style={{ fontSize: '0.9em', color: '#888', marginBottom: '4px' }}>패턴 #{idx + 1}</div>
-                                                                            <div style={{ fontSize: '0.95em' }}>{pattern.path.join(' → ')}</div>
-                                                                        </div>
-                                                                        <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginLeft: '16px' }}>{pattern.count}</div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {renderQuickInsights()}
-                                        </div>
-                                    )}
-
-                                    {/* D6: 패턴 분석 (기간 2일 이상일 때만) */}
-                                    {dateRange.start !== dateRange.end && summary.visitor_stats && (
-                                        <div className="analytics-section-group analytics-pattern-section">
-                                            <div className="analytics-section-title"><i className="ri-pulse-line"></i> 접속 패턴 분석</div>
-                                            <div className="analytics-grid">
-                                                <div className="grid-section full-width">
-                                                    <h3><i className="ri-calendar-event-line"></i> 요일별 방문 집중도</h3>
-                                                    <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', alignItems: 'flex-end' }}>
-                                                        {summary.visitor_stats.weekday.map((d, i) => (
-                                                            <div key={i} className="trend-bar-wrapper" style={{ flex: 1 }}>
-                                                                <div className="trend-bar-at-bottom">
-                                                                    <div className="trend-bar-fill" style={{ height: `${d.ratio}%`, backgroundColor: d.ratio > 80 ? '#fbbf24' : '#60a5fa' }}>
-                                                                        <span className="trend-tooltip">{d.count}회</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="trend-label">{d.day}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="grid-section full-width">
-                                                    <h3><i className="ri-time-line"></i> 시간대별 접속량 (Peak Time)</h3>
-                                                    <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', overflowX: 'auto' }}>
-                                                        {summary.visitor_stats.hourly.map((h, i) => (
-                                                            <div key={i} className="trend-bar-wrapper" style={{ minWidth: '30px', flex: 1 }}>
-                                                                <div className="trend-bar-at-bottom">
-                                                                    <div className="trend-bar-fill" style={{ height: `${h.ratio}%`, backgroundColor: h.ratio > 80 ? '#fbbf24' : '#a78bfa' }}>
-                                                                        <span className="trend-tooltip">{h.count}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="trend-label" style={{ fontSize: '0.7rem' }}>{h.hour}시</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-
-                                </div>
-                            )}
-
+                                <details className="analytics-inline-details"><summary>일별 방문자·활동 수치 보기</summary><div className="analytics-table-wrap"><table><thead><tr><th>날짜</th><th>방문자</th><th>활동</th></tr></thead><tbody>{visitTrendData.map(day => <tr key={day.date}><td>{day.date}</td><td>{day.count.toLocaleString()}명</td><td>{(trendData.find(d => d.date === day.date)?.total ?? 0).toLocaleString()}회</td></tr>)}</tbody></table></div></details>
+                            </section>}
+                            <div className="analytics-content-grid">
+                                <section className="analytics-panel"><h3>많이 이용한 콘텐츠</h3><p>수집된 활동 횟수 기준 · 상위 20개</p><div className="ranking-list">
+                                    {summary.total_top_items.length ? summary.total_top_items.map((item, index) => <div className="ranking-item" key={`${item.type}-${index}`}><span className="item-rank">{index + 1}</span><div className="item-info"><span className="item-title">{item.title}</span><span className="item-meta">{getTypeName(item.type)}</span></div><span className="item-count">{item.count.toLocaleString()}회</span></div>) : <p>집계된 콘텐츠 활동이 없습니다.</p>}
+                                </div></section>
+                                <section className="analytics-panel"><h3>어디서 들어왔나요?</h3><p>방문 기록의 유입 경로 · 상위 10개</p><div className="ranking-list">
+                                    {summary.referrer_stats?.length ? summary.referrer_stats.map((ref, index) => <div className="ranking-item" key={ref.source}><span className="item-rank">{index + 1}</span><div className="item-info"><span className="item-title">{ref.source}</span></div><span className="item-count">{ref.count.toLocaleString()}회</span></div>) : <p>집계된 유입 기록이 없습니다.</p>}
+                                </div></section>
+                            </div>
+                            <details className="analytics-panel analytics-expanded"><summary>활동 종류·메뉴 이용 상세</summary><p>종류별 비율은 전체 활동 횟수 기준입니다. 항목을 누르면 상세 목록을 볼 수 있습니다.</p>{renderTypeShareChart()}{renderBottomMenuAppsPanel()}</details>
+                            <details className="analytics-panel analytics-expanded"><summary>접속 패턴·앱 이용 상세</summary>
+                                {summary.visitor_stats && <div className="analytics-content-grid">
+                                    <section><h3>요일별 방문 횟수</h3><div className="analytics-pattern-bars">{summary.visitor_stats.weekday.map(day => <div key={day.day}><span>{day.day}</span><meter min={0} max={Math.max(...summary.visitor_stats!.weekday.map(d => d.count), 1)} value={day.count} /><b>{day.count}회</b></div>)}</div></section>
+                                    <section><h3>시간대별 방문 횟수</h3><div className="analytics-daily-chart" tabIndex={0} aria-label="시간대별 방문 횟수"><>{summary.visitor_stats.hourly.map(hour => <div className="analytics-day" key={hour.hour} title={`${hour.hour}시 · ${hour.count}회`}><span>{hour.count}</span><div><i style={{height: `${hour.ratio}%`}} /></div><small>{hour.hour}시</small></div>)}</></div></section>
+                                </div>}
+                                {summary.pwa_stats && <section className="analytics-app-usage"><h3>설치형 앱으로 접속한 비율 <b>{summary.pwa_stats.pwa_percentage.toFixed(1)}%</b></h3><p>앱 접속 {summary.pwa_stats.pwa_sessions.toLocaleString()}회 · 브라우저 접속 {summary.pwa_stats.browser_sessions.toLocaleString()}회</p><p>접속 기록 기준이며, 설치한 사람 수나 현재 접속자 수를 뜻하지 않습니다.</p></section>}
+                            </details>
+                            <details className="analytics-panel analytics-expanded"><summary>숫자를 읽는 기준</summary><ul>
+                                <li>고유 방문자는 회원 ID와 기기 식별 정보를 기준으로 중복을 제외합니다. 실제 사람 수와는 차이가 있을 수 있습니다.</li>
+                                <li>방문 횟수는 같은 방문자의 30분 이내 기록을 합친 값입니다. 재방문하면 한 사람이 여러 번 집계될 수 있습니다.</li>
+                                <li>사이트 활동은 페이지 조회 수(PV)나 클릭 수만을 뜻하지 않습니다.</li>
+                                <li>관리자·봇·내부 경로 등 기존 제외 기준을 적용한 결과입니다.</li>
+                                <li>지난 날짜는 저장된 마감 결과를 읽습니다. 오늘은 서버에서 1분마다 갱신하며 이 화면에는 조회 시점의 저장 결과가 표시됩니다.</li>
+                            </ul></details>
                         </div>
                     ) : (
                         <div className="analytics-empty">
@@ -1121,7 +554,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         </span>
                                         로그인 사용자 목록 ({userCount}명)
                                     </h3>
-                                    <button onClick={() => setShowUserList(false)}><i className="ri-close-line"></i></button>
+                                    <button aria-label="로그인 목록 닫기" onClick={() => setShowUserList(false)}><span aria-hidden="true">×</span></button>
                                 </div>
                                 <div className="user-list-body">
                                     {userList.map((user, index) => {
@@ -1143,7 +576,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                     활동 {user.activityCount || 0}회 · 하단메뉴 {user.bottomMenuClicks || 0}회 · {user.pageViews || 0}PV · 최근 {user.lastPage || '-'}
                                                                 </span>
                                                             </span>
-                                                            <span className="user-id">{user.user_id.substring(0, 8)}...</span>
+
                                                             <i className="ri-arrow-down-s-line" style={{ marginLeft: 'auto', color: '#71717a' }}></i>
                                                         </summary>
 
@@ -1155,7 +588,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             <div className="guest-detail-grid">
                                                                 <div><span>계정 ID</span><strong>{user.user_id}</strong></div>
                                                                 <div><span>평균 체류</span><strong>{formatDuration(user.avgDuration || 0)}</strong></div>
-                                                                <div><span>보정 세션</span><strong>{user.visitCount}개</strong></div>
+                                                                <div><span>방문 횟수</span><strong>{user.visitCount}개</strong></div>
                                                                 <div><span>활동 로그</span><strong>{user.activityCount || 0}개</strong></div>
                                                                 <div><span>하단 메뉴</span><strong>{user.bottomMenuClicks || 0}회</strong></div>
                                                                 <div><span>페이지뷰</span><strong>{user.pageViews || 0}회</strong></div>
@@ -1164,7 +597,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                                                             {userSessions.length > 0 && (
                                                                 <div className="user-section-block">
-                                                                    <h4>방문 세션</h4>
+                                                                    <h4>최근 방문 기록 (최대 12개)</h4>
                                                                     <div className="guest-session-list">
                                                                         {userSessions.slice(0, 12).map((session, sessionIndex) => (
                                                                             <div key={`${session.session_id || sessionIndex}-${sessionIndex}`} className="guest-session-row">
@@ -1187,7 +620,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             )}
 
                                                             <div className="user-section-block">
-                                                                <h4>활동 타임라인</h4>
+                                                                <h4>최근 활동 기록 (최대 80개)</h4>
                                                                 {activityLogs.length > 0 ? (
                                                                     <div className="user-activity-timeline">
                                                                         {activityLogs.slice(0, 80).map((activity) => (
@@ -1233,7 +666,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         </div>
                     )}
 
-                    {/* Guest 목록 팝업 */}
+                    {/* 비로그인 방문자 목록 팝업 */}
                     {showGuestList && (
                         <div className="user-list-overlay" onClick={() => setShowGuestList(false)}>
                             <div className="user-list-modal guest-list-modal" onClick={e => e.stopPropagation()}>
@@ -1246,9 +679,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                     ? `${dateRange.start}`
                                                     : `${dateRange.start} ~ ${dateRange.end}`}
                                         </span>
-                                        Guest 목록 ({guestCount}명)
+                                        비로그인 방문자 목록 ({guestCount}명)
                                     </h3>
-                                    <button onClick={() => setShowGuestList(false)}><i className="ri-close-line"></i></button>
+                                    <button aria-label="비로그인 목록 닫기" onClick={() => setShowGuestList(false)}><span aria-hidden="true">×</span></button>
                                 </div>
                                 <div className="user-list-body">
                                     {guestList.map((guest, index) => (
@@ -1263,18 +696,18 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                 <span className="guest-count">({guest.visitCount}회)</span>
                                                             </span>
                                                             <span className="guest-subline">
-                                                                {getIpLabel(guest.clientIp)} · {getDeviceLabel(guest.platform, guest.userAgent)}
+                                                                {getDeviceLabel(guest.platform, guest.userAgent)} · 활동 {guest.clickCount}회
                                                             </span>
                                                         </span>
-                                                        <span className="guest-chip">{guest.isPwa ? 'PWA' : 'WEB'}</span>
+                                                        <span className="guest-chip">{guest.isPwa ? '앱' : '브라우저'}</span>
                                                         <i className="ri-arrow-down-s-line" style={{ marginLeft: 'auto', color: '#71717a' }}></i>
                                                     </summary>
                                                     <div className="guest-detail-panel">
                                                         <div className="guest-detail-grid">
-                                                            <div><span>IP</span><strong>{getIpLabel(guest.clientIp)}</strong></div>
-                                                            <div><span>IP Hash</span><strong>{guest.ipHash || '기록 없음'}</strong></div>
-                                                            <div><span>기기/OS</span><strong>{getDeviceLabel(guest.platform, guest.userAgent)} ({getPlatformRawLabel(guest.platform)})</strong></div>
-                                                            <div><span>Fingerprint</span><strong>{shortFingerprint(guest.fingerprint)}</strong></div>
+
+
+                                                            <div><span>기기/OS</span><strong>{getDeviceLabel(guest.platform, guest.userAgent)}</strong></div>
+
                                                             <div><span>최근 페이지</span><strong>{guest.lastPage || '-'}</strong></div>
                                                             <div><span>첫 방문</span><strong>{formatDateTime(guest.firstSeen)}</strong></div>
                                                             <div><span>최근 방문</span><strong>{formatDateTime(guest.lastSeen)}</strong></div>
@@ -1283,10 +716,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             <div><span>페이지뷰</span><strong>{guest.pageViews}회</strong></div>
                                                             <div><span>유입</span><strong>{guest.referrer || '직접/내부'}</strong></div>
                                                         </div>
-                                                        <div className="guest-user-agent">
-                                                            <span>User-Agent</span>
-                                                            <strong>{guest.userAgent || '기록 없음'}</strong>
-                                                        </div>
+                                                        <details className="analytics-inline-details"><summary>운영 확인용 기기 정보</summary><div className="guest-detail-grid">
+                                                            <div><span>IP</span><strong>{getIpLabel(guest.clientIp)}</strong></div>
+                                                            <div><span>IP Hash</span><strong>{guest.ipHash || '기록 없음'}</strong></div>
+                                                            <div><span>기기 식별값</span><strong>{shortFingerprint(guest.fingerprint)}</strong></div>
+                                                            <div><span>기기 원시값</span><strong>{getPlatformRawLabel(guest.platform)}</strong></div>
+                                                        </div><div className="guest-user-agent"><span>User-Agent</span><strong>{guest.userAgent || '기록 없음'}</strong></div></details>
                                                         {guest.sessions.length > 0 && (
                                                             <div className="guest-session-list">
                                                                 {guest.sessions.slice(0, 12).map((session, sessionIndex) => (
@@ -1308,7 +743,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                         )}
                                                         {guest.activityLogs && guest.activityLogs.length > 0 && (
                                                             <div className="user-section-block">
-                                                                <h4>활동 타임라인</h4>
+                                                                <h4>최근 활동 기록 (최대 80개)</h4>
                                                                 <div className="activity-privacy-note">
                                                                     운영/보안 목적의 사이트 활동 기록입니다. 비밀번호, 검색어 전문, 입력 중인 내용은 수집하지 않습니다.
                                                                 </div>
@@ -1359,7 +794,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                             <div className="user-list-modal" onClick={e => e.stopPropagation()}>
                                 <div className="user-list-header">
                                     <h3><i className="ri-list-check"></i> {selectedTypeDetail.type} 상세 통계</h3>
-                                    <button onClick={() => setSelectedTypeDetail(null)}><i className="ri-close-line"></i></button>
+                                    <button aria-label="활동 상세 닫기" onClick={() => setSelectedTypeDetail(null)}><span aria-hidden="true">×</span></button>
                                 </div>
                                 <div className="user-list-body">
                                     {selectedTypeDetail.items.map((item, index) => (

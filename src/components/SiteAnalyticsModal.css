@@ -2726,3 +2726,108 @@
         padding: 8px 6px;
     }
 }
+
+/* The review layout has one responsive owner for both date and annual reports. */
+.analytics-review .analytics-modal-content { max-width: 1180px; width: 100%; height: 94vh; max-height: 94vh; border: 1px solid #353943; border-radius: 18px; background: #11151d; color: #e9edf5; }
+.analytics-review .analytics-modal-header { padding: 20px 60px 18px 24px; gap: 16px; background: #171c26; border-bottom: 1px solid #303745; }
+.analytics-review .header-title-group { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.analytics-review .title-left { flex-wrap: wrap; gap: 12px; }
+.analytics-review .title-left h2 { font-size: 20px; margin: 0; }
+.analytics-review .view-mode-tabs { margin: 0; width: auto; }
+.analytics-review .view-mode-tabs button { padding: 9px 16px; font-size: 13px; }
+.analytics-review .refresh-btn { color: #b8c7dd; }
+.analytics-review .range-picker { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.analytics-review .range-shortcuts { display: flex; flex-wrap: wrap; gap: 12px; }
+.analytics-review .date-navigator { margin: 0; min-width: 150px; }
+.analytics-review .date-navigator .current-date-display { flex: 1; width: auto; font-size: 13px; white-space: nowrap; padding: 0 8px; }
+.analytics-review .period-buttons { display: flex; gap: 4px; }
+.analytics-review .period-buttons button { padding: 8px 10px; }
+.analytics-review .date-input-group label { display: block; font-size: 11px; color: #a8b4c8; margin-bottom: 4px; }
+.analytics-review .range-inputs { align-items: flex-end; gap: 8px; }
+.analytics-review .range-inputs input { min-width: 0; width: 132px; color-scheme: dark; }
+.analytics-review .analytics-close-btn { top: 18px; right: 16px; }
+.analytics-review .analytics-modal-body { display: block; overflow: auto; padding: 20px 24px 32px; min-height: 0; }
+.analytics-review .analytics-save-status { margin: 0 0 16px; padding: 10px 14px; border: 1px solid #2a4657; background: #15242f; border-radius: 8px; color: #abd5e7; font-size: 13px; line-height: 1.6; }
+.analytics-review .analytics-overview { display: flex; flex-direction: column; gap: 20px; overflow: visible; padding: 0; }
+.analytics-review .analytics-period-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.analytics-review .analytics-period-heading span { color: #a8b4c8; font-size: 12px; }
+.analytics-review .analytics-period-heading h3 { font-size: 18px; margin: 6px 0 0; }
+.analytics-review .analytics-period-badge { white-space: nowrap; padding: 6px 10px; border: 1px solid #354454; border-radius: 20px; }
+.analytics-review .analytics-key-metrics { display: grid; grid-template-columns: 1.35fr 1fr 1fr 1.15fr; gap: 12px; }
+.analytics-review .analytics-metric { min-width: 0; padding: 20px; background: #1a202c; border: 1px solid #323b4a; border-radius: 12px; }
+.analytics-review .analytics-metric-primary { background: #172b3e; border-color: #335776; }
+.analytics-review .analytics-metric h3 { color: #b9c6d9; font-size: 13px; font-weight: 500; margin: 0 0 12px; }
+.analytics-review .analytics-metric > strong { display: block; font-size: 34px; line-height: 1.2; letter-spacing: -1px; color: #f5f8ff; }
+.analytics-review .analytics-metric > strong small { font-size: 14px; margin-left: 6px; color: #b9c6d9; font-weight: 400; }
+.analytics-review .analytics-metric > .analytics-duration { font-size: 27px; line-height: 1.5; }
+.analytics-review .analytics-metric p, .analytics-review .analytics-panel p { font-size: 12px; color: #a8b4c8; line-height: 1.7; margin: 10px 0 0; }
+.analytics-review .analytics-visitor-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px; }
+.analytics-review .analytics-visitor-actions .breakdown-item { display: flex; flex-direction: row; flex: 1; justify-content: center; align-items: center; gap: 5px; padding: 7px 6px; border-radius: 6px; border: 1px solid #3c5770; color: #d8eaff; background: #20374e; font-size: 11px; white-space: nowrap; }
+.analytics-review .analytics-content-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+.analytics-review .analytics-panel { padding: 20px; border: 1px solid #303948; border-radius: 12px; background: #171d28; min-width: 0; }
+.analytics-review .analytics-panel h3 { font-size: 15px; color: #e9edf5; margin: 0; }
+.analytics-review .ranking-list { margin-top: 12px; max-height: 370px; overflow-y: auto; }
+.analytics-review .ranking-item { gap: 10px; min-height: 52px; padding: 10px 0; border-bottom: 1px solid #2c3442; }
+.analytics-review .item-info { min-width: 0; flex: 1; }
+.analytics-review .item-title { white-space: normal; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5; -webkit-line-clamp: unset; }
+.analytics-review .item-meta { font-size: 11px; color: #98a9c0; }
+.analytics-review .item-count { font-size: 13px; white-space: nowrap; color: #acd5ff; }
+.analytics-review .analytics-expanded > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: #d9e4f5; }
+.analytics-review .analytics-expanded[open] > summary { margin-bottom: 20px; }
+.analytics-review .analytics-expanded ul { color: #aebcd0; font-size: 13px; line-height: 1.8; padding-left: 20px; }
+.analytics-review .analytics-expanded li + li { margin-top: 8px; }
+.analytics-review .analytics-expanded .analytics-section-group { margin: 20px 0 0; box-shadow: none; }
+.analytics-review .analytics-daily-chart { display: flex; gap: 8px; overflow-x: auto; padding: 20px 0 8px; }
+.analytics-review .analytics-day { flex: 1; min-width: 38px; max-width: 80px; text-align: center; font-size: 11px; color: #b4c4db; }
+.analytics-review .analytics-day > div { height: 104px; display: flex; align-items: flex-end; justify-content: center; margin: 8px 0; }
+.analytics-review .analytics-day i { display: block; width: 65%; background: #70aff4; border-radius: 4px 4px 0 0; }
+.analytics-review .analytics-inline-details { margin-top: 12px; font-size: 12px; color: #a8ccef; }
+.analytics-review .analytics-inline-details summary { cursor: pointer; }
+.analytics-review .analytics-table-wrap { max-height: 280px; overflow: auto; margin-top: 12px; }
+.analytics-review table { width: 100%; border-collapse: collapse; font-size: 12px; color: #d3deee; }
+.analytics-review th, .analytics-review td { text-align: right; padding: 10px; border-bottom: 1px solid #303948; }
+.analytics-review th:first-child, .analytics-review td:first-child { text-align: left; }
+.analytics-review .analytics-pattern-bars { margin-top: 16px; }
+.analytics-review .analytics-pattern-bars > div { display: flex; align-items: center; gap: 12px; font-size: 12px; margin: 12px 0; }
+.analytics-review .analytics-pattern-bars meter { flex: 1; min-width: 0; }
+.analytics-review .analytics-pattern-bars b { min-width: 48px; text-align: right; }
+.analytics-review .analytics-app-usage { border-top: 1px solid #303948; padding-top: 20px; margin-top: 20px; }
+.analytics-review .analytics-app-usage h3 b { color: #91caff; margin-left: 10px; }
+.analytics-review button:disabled { cursor: default; opacity: .45; }
+.analytics-review button:focus-visible, .analytics-review summary:focus-visible, .analytics-review [tabindex]:focus-visible { outline: 2px solid #8bc4ff; outline-offset: 3px; }
+.analytics-review img { -webkit-user-drag: none; }
+@media (max-width: 800px) {
+    .analytics-review .analytics-key-metrics { grid-template-columns: 1fr 1fr; }
+    .analytics-review .analytics-content-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+    .analytics-modal-overlay.analytics-review { padding: 0; }
+    .analytics-review .analytics-modal-content { height: 100dvh; max-height: 100dvh; max-width: 100%; border-radius: 0; border: 0; }
+    .analytics-review .analytics-modal-header { padding: 16px 16px 14px; gap: 12px; }
+    .analytics-review .header-title-group { padding-right: 30px; }
+    .analytics-review .title-left { gap: 8px; }
+    .analytics-review .title-left h2 { font-size: 18px; }
+    .analytics-review .view-mode-tabs { width: 100%; }
+    .analytics-review .range-picker, .analytics-review .range-shortcuts { gap: 10px; }
+    .analytics-review .date-navigator { min-width: 134px; }
+    .analytics-review .period-buttons button { padding: 8px; font-size: 12px; }
+    .analytics-review .range-inputs { width: 100%; }
+    .analytics-review .date-input-group { flex: 1; min-width: 0; }
+    .analytics-review .range-inputs input { width: 100%; box-sizing: border-box; font-size: 12px; }
+    .analytics-review .analytics-modal-body { padding: 14px 14px 24px; }
+    .analytics-review .analytics-key-metrics { gap: 8px; }
+    .analytics-review .analytics-metric { padding: 14px 12px; }
+    .analytics-review .analytics-metric > strong { font-size: 29px; }
+    .analytics-review .analytics-metric > .analytics-duration { font-size: 23px; }
+    .analytics-review .analytics-panel { padding: 16px; }
+    .analytics-review .analytics-period-heading h3 { font-size: 14px; }
+    .analytics-review .analytics-period-badge { font-size: 10px; padding: 5px 8px; }
+    .analytics-review .analytics-visitor-actions .breakdown-item { flex: auto; }
+}
+
+.analytics-review .range-shortcuts { flex-direction: row; align-items: center; }
+.analytics-review .date-navigator > button { min-width: 28px; min-height: 32px; font-size: 22px; }
+.analytics-review .analytics-close-btn { font-size: 26px; }
+.analytics-review .analytics-loading-note { display: block; margin-top: 12px; font-size: 13px; color: #a8b4c8; line-height: 1.7; }
+.analytics-review .analytics-export-btn-mini { font-size: 11px; width: auto; padding: 6px; }
+.analytics-review .analytics-content-grid > * { min-width: 0; }
