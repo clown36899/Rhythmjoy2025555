@@ -33,3 +33,16 @@ await build({
 });
 
 console.log(`[cafe24] Built ${functionFiles.length} function bundles into ${path.relative(rootDir, outdir)}`);
+
+// Server-owned analytics reports share the presentation calculator with the API
+// and scheduled closing job. Generic persistence stays in its existing module.
+await build({
+  entryPoints: [path.join(rootDir, 'server/cafe24/analytics-reports.ts')],
+  outfile: path.join(rootDir, 'dist-cafe24/analytics-reports.mjs'),
+  bundle: true, platform: 'node', format: 'esm', target: 'node20', legalComments: 'none',
+  plugins: [{ name: 'analytics-runtime-owners', setup(builder) {
+    builder.onResolve({ filter: /^\.\/(generic-data-api|mysql-pool)\.js$/ }, args => ({
+      path: `../server/cafe24/${path.basename(args.path)}`, external: true,
+    }));
+  } }],
+});

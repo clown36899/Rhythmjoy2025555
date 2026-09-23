@@ -1690,7 +1690,7 @@ function analyticsConfiguredAdminEmails() {
     .filter(Boolean);
 }
 
-async function loadAnalyticsUsers() {
+export async function loadAnalyticsUsers() {
   const pool = getMysqlPool();
   const [rows] = await pool.execute('SELECT id, email, nickname, is_admin FROM users');
   return rows.map((row) => ({
@@ -1986,14 +1986,14 @@ function analyticsDateRange(args = {}) {
   };
 }
 
-async function getAnalyticsSummaryV2(args = {}) {
+export async function getAnalyticsSummaryV2(args = {}, sources = null) {
   const excludedPrefix = '91b04b25';
   const { startMs, endMs } = analyticsDateRange(args);
-  const logs = await loadRows('site_analytics_logs');
-  const sessions = await loadRows('session_logs');
-  const boardUsers = await loadRows('board_users');
-  const boardAdmins = await loadRows('board_admins');
-  const analyticsUsers = await loadAnalyticsUsers();
+  const logs = sources?.logs ?? await loadRows('site_analytics_logs');
+  const sessions = sources?.sessions ?? await loadRows('session_logs');
+  const boardUsers = sources?.boardUsers ?? await loadRows('board_users');
+  const boardAdmins = sources?.boardAdmins ?? await loadRows('board_admins');
+  const analyticsUsers = sources?.analyticsUsers ?? await loadAnalyticsUsers();
   const canonicalizeUserId = buildAnalyticsUserCanonicalizer(boardUsers, analyticsUsers);
   const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers, boardUsers, canonicalizeUserId);
   const nicknameByUser = buildAnalyticsNicknameMap(boardUsers, analyticsUsers, canonicalizeUserId);
@@ -2238,6 +2238,19 @@ async function getAnalyticsSummaryV2(args = {}) {
     .sort((a, b) => b.visitCount - a.visitCount);
 
   return {
+    // Internal snapshot preparation captures global admin exclusions and canonical
+    // identities before the daily source is detached from the mutable raw ledger.
+    ...(sources ? { report_rows: {
+      logs: rawActivityRows.map(({ row }) => ({ ...row,
+        user_id: identity.userId(row) || row.user_id || null,
+        analytics_excluded: !shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds),
+      })),
+      sessions: rawSessionRows.map(({ row }) => ({ ...row,
+        session_start: row.session_start || row.created_at,
+        user_id: identity.userId(row) || row.user_id || null,
+        analytics_excluded: !shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds),
+      })),
+    } } : {}),
     total_visits: visitorIdentityMap.size,
     logged_in_visits: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'user').length,
     anonymous_visits: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'guest').length,
@@ -3321,6 +3334,11 @@ export async function callRpc(req, res) {
   user = await loadUser();
 
   if (name === 'create_usage_snapshot') {
+    if (args.report === true) {
+      const { getAnalyticsReport } = await import('../../dist-cafe24/analytics-reports.mjs');
+      res.json(responsePayload({ data: await getAnalyticsReport({ ...args, force_refresh: true }) }));
+      return;
+    }
     await createUsageSnapshot(args);
     res.json(responsePayload({ data: true }));
     return;
@@ -3489,7 +3507,10 @@ export async function callRpc(req, res) {
   }
 
   if (name === 'get_analytics_summary_v2') {
-    res.json(responsePayload({ data: await getAnalyticsSummaryV2(args) }));
+    const data = args.report === true
+      ? await (await import('../../dist-cafe24/analytics-reports.mjs')).getAnalyticsReport({ ...args, force_refresh: false })
+      : await getAnalyticsSummaryV2(args);
+    res.json(responsePayload({ data }));
     return;
   }
 

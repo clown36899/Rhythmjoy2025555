@@ -81,28 +81,66 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
   trap 'rm -rf "${analytics_tmp}"' EXIT
   mkdir -p "${analytics_tmp}/baseline/assets" "${analytics_tmp}/staged"
   rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/index.html" "${TARGET}:${APP_DIR}/dist/version.json" "${analytics_tmp}/baseline/"
+  rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/server/cafe24/generic-data-api.js" "${analytics_tmp}/baseline/"
   rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/assets/SiteAnalyticsModal-B0zRWyG2.js" "${TARGET}:${APP_DIR}/dist/assets/main-C2UW8TcE.js" "${analytics_tmp}/baseline/assets/"
+  npm run build:cafe24:functions
   node scripts/build-cafe24-analytics.mjs "${analytics_tmp}/baseline" "${analytics_tmp}/staged"
   analytics_commit="$(git rev-parse HEAD)"
   analytics_module="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).modulePath' "${analytics_tmp}/staged/analytics-release.json")"
   analytics_base_hash="$(shasum -a 256 "${analytics_tmp}/baseline/index.html" | awk '{print $1}')"
+  analytics_generic_base_hash="$(shasum -a 256 "${analytics_tmp}/baseline/generic-data-api.js" | awk '{print $1}')"
+  analytics_generic_hash="$(shasum -a 256 "${analytics_tmp}/staged/runtime/server/cafe24/generic-data-api.js" | awk '{print $1}')"
   analytics_module_hash="$(shasum -a 256 "${analytics_tmp}/staged/${analytics_module}" | awk '{print $1}')"
   analytics_index_hash="$(shasum -a 256 "${analytics_tmp}/staged/index.html" | awk '{print $1}')"
   analytics_remote_stage="${APP_DIR}/.deploy-analytics-${analytics_commit}"
   ssh "${SSH_ARGS[@]}" "${TARGET}" "mkdir -p '${analytics_remote_stage}'"
   rsync -az -e "${RSYNC_SSH}" "${analytics_tmp}/staged/assets/" "${TARGET}:${APP_DIR}/dist/assets/"
+  rsync -az -e "${RSYNC_SSH}" "${analytics_tmp}/staged/runtime/" "${TARGET}:${analytics_remote_stage}/runtime/"
   rsync -az -e "${RSYNC_SSH}" "${analytics_tmp}/staged/index.html" "${analytics_tmp}/staged/version.json" "${TARGET}:${analytics_remote_stage}/"
   ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
     test \"\$(sha256sum '${APP_DIR}/dist/index.html' | cut -d ' ' -f 1)\" = '${analytics_base_hash}'
+    test \"\$(sha256sum '${APP_DIR}/server/cafe24/generic-data-api.js' | cut -d ' ' -f 1)\" = '${analytics_generic_base_hash}'
     test \"\$(sha256sum '${APP_DIR}/dist/${analytics_module}' | cut -d ' ' -f 1)\" = '${analytics_module_hash}'
-    curl -fsS '${HEALTH_URL}' >/dev/null
     cp -p '${APP_DIR}/dist/index.html' '${analytics_remote_stage}/previous-index.html'
     cp -p '${APP_DIR}/dist/version.json' '${analytics_remote_stage}/previous-version.json'
+    cp -p '${APP_DIR}/server/cafe24/generic-data-api.js' '${analytics_remote_stage}/previous-generic-data-api.js'
+    if [ -f '${APP_DIR}/dist-cafe24/analytics-reports.mjs' ]; then cp -p '${APP_DIR}/dist-cafe24/analytics-reports.mjs' '${analytics_remote_stage}/previous-analytics-reports.mjs'; fi
+    if [ -f '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs' ]; then cp -p '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs' '${analytics_remote_stage}/previous-stats-script.mjs'; fi
+    if [ -f /etc/cron.d/swingenjoy-stats ]; then cp -p /etc/cron.d/swingenjoy-stats '${analytics_remote_stage}/previous-stats-cron'; fi
+    rollback_analytics() {
+      code=\$?
+      if [ \"\$code\" -ne 0 ]; then
+        cp -p '${analytics_remote_stage}/previous-generic-data-api.js' '${APP_DIR}/server/cafe24/generic-data-api.js'
+        cp -p '${analytics_remote_stage}/previous-index.html' '${APP_DIR}/dist/index.html'
+        cp -p '${analytics_remote_stage}/previous-version.json' '${APP_DIR}/dist/version.json'
+        if [ -f '${analytics_remote_stage}/previous-analytics-reports.mjs' ]; then cp -p '${analytics_remote_stage}/previous-analytics-reports.mjs' '${APP_DIR}/dist-cafe24/analytics-reports.mjs'; else rm -f '${APP_DIR}/dist-cafe24/analytics-reports.mjs'; fi
+        if [ -f '${analytics_remote_stage}/previous-stats-cron' ]; then cp -p '${analytics_remote_stage}/previous-stats-cron' /etc/cron.d/swingenjoy-stats; else rm -f /etc/cron.d/swingenjoy-stats; fi
+        if [ -f '${analytics_remote_stage}/previous-stats-script.mjs' ]; then cp -p '${analytics_remote_stage}/previous-stats-script.mjs' '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs'; else rm -f '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs'; fi
+        systemctl restart '${SERVICE}'
+      fi
+      return \"\$code\"
+    }
+    trap rollback_analytics EXIT
+    cp -p '${analytics_remote_stage}/runtime/dist-cafe24/analytics-reports.mjs' '${APP_DIR}/dist-cafe24/analytics-reports.mjs'
+    cp -p '${analytics_remote_stage}/runtime/server/cafe24/generic-data-api.js' '${APP_DIR}/server/cafe24/generic-data-api.js'
+    cp -p '${analytics_remote_stage}/runtime/scripts/run-cafe24-cron-refresh-stats.mjs' '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs'
+    test \"\$(sha256sum '${APP_DIR}/server/cafe24/generic-data-api.js' | cut -d ' ' -f 1)\" = '${analytics_generic_hash}'
+    systemctl restart '${SERVICE}'
+    i=0
+    until curl -fsS '${HEALTH_URL}' >/dev/null; do
+      i=\$((i+1)); test \"\$i\" -lt 30; sleep 1
+    done
+    cd '${APP_DIR}'
+    set -a; . ./.env; set +a
+    '${NODE_BIN_DIR}/node' scripts/run-cafe24-cron-refresh-stats.mjs
+    install -m 0644 '${analytics_remote_stage}/runtime/deploy/cafe24/cron/swingenjoy-stats' /etc/cron.d/swingenjoy-stats
+    systemctl reload crond || systemctl restart crond
     mv '${analytics_remote_stage}/index.html' '${APP_DIR}/dist/index.html'
     mv '${analytics_remote_stage}/version.json' '${APP_DIR}/dist/version.json'
     test \"\$(sha256sum '${APP_DIR}/dist/index.html' | cut -d ' ' -f 1)\" = '${analytics_index_hash}'
     cat '${APP_DIR}/dist/version.json'
-    curl -fsS '${HEALTH_URL}'"
+    curl -fsS '${HEALTH_URL}'
+    trap - EXIT"
   echo "Analytics-only deployment complete: ${analytics_commit} (${analytics_module})"
   exit 0
 fi
@@ -170,12 +208,14 @@ rsync -azi -e "${RSYNC_SSH}" scripts/reconcile-2026-08-23-ingestor-ledger.mjs "$
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-2026-08-13-prefix-and-benefit.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-2026-08-22-happyhall-benefit.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/repair-session-log-duplicates.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
+rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-refresh-stats.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/run-cafe24-cron-notifications.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/seed-notification-reset-notice.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
 rsync -azi --checksum --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" scripts/ingestion/ "${TARGET}:${APP_DIR}/scripts/ingestion/" | tee -a "${scripts_log}"
 rsync -azi --checksum -e "${RSYNC_SSH}" src/utils/graduationEvent.mjs "${TARGET}:${APP_DIR}/src/utils/" | tee -a "${scripts_log}"
 rsync -azi --checksum -e "${RSYNC_SSH}" package.json package-lock.json "${TARGET}:${APP_DIR}/" | tee "${package_log}"
 rsync -azi --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" deploy/cafe24/apache/ "${TARGET}:${APACHE_CONF_DIR}/" | tee "${apache_log}"
+rsync -azi -e "${RSYNC_SSH}" deploy/cafe24/cron/swingenjoy-stats "${TARGET}:${APP_DIR}/deploy/cafe24/cron/" | tee -a "${cron_log}"
 rsync -azi -e "${RSYNC_SSH}" deploy/cafe24/cron/swingenjoy-notifications "${TARGET}:${APP_DIR}/deploy/cafe24/cron/" | tee "${cron_log}"
 
 has_transfer_changes() {
@@ -314,6 +354,8 @@ else
     done
   fi
 fi
+'${NODE_BIN_DIR}/node' '${APP_DIR}/scripts/run-cafe24-cron-refresh-stats.mjs'
+install -m 0644 '${APP_DIR}/deploy/cafe24/cron/swingenjoy-stats' /etc/cron.d/swingenjoy-stats
 install -m 0644 '${APP_DIR}/deploy/cafe24/cron/swingenjoy-notifications' /etc/cron.d/swingenjoy-notifications
 chown root:root /etc/cron.d/swingenjoy-notifications
 systemctl reload crond || systemctl restart crond

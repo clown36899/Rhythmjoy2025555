@@ -3,7 +3,7 @@
 // unfinished work. A different production bundle must be reviewed before reuse.
 import { build } from 'esbuild';
 import { createHash } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -58,6 +58,30 @@ if (!cleanHtml.includes(moduleTag)) throw new Error('No module entry in producti
 await writeFile(path.join(outputDir, 'index.html'), cleanHtml.replace(moduleTag, injection + moduleTag));
 // Preserve the app build ID: changing it without rebuilding the app would trigger
 // the bootstrap's stale-build reload guard. The scoped module has its own revision.
-await writeFile(path.join(outputDir, 'version.json'), JSON.stringify({ ...version, analyticsReportCommit: commit, analyticsReportModule: modulePath }));
+await writeFile(path.join(outputDir, 'version.json'), JSON.stringify({ ...version, analyticsReportCommit: commit, analyticsReportModule: modulePath, analyticsReportVersion: 2 }));
 await writeFile(path.join(outputDir, 'analytics-release.json'), JSON.stringify({ commit, modulePath, baseIndexSha256: sha256(html), moduleSha256: sha256(code) }));
 console.log(JSON.stringify({ commit, modulePath, baseBuild: version.buildTime }));
+
+// The production generic API also contains unrelated, already deployed changes.
+// Apply only this branch's analytics delta to that verified production baseline.
+const genericRelative = 'server/cafe24/generic-data-api.js';
+const genericBase = await readFile(path.join(baselineDir, 'generic-data-api.js'), 'utf8');
+if (sha256(genericBase) !== '5cb17bbef5c800f45815089cb5367764ae1b32b332de93d1bc470f8fe3e1e5e2') {
+    throw new Error('Production generic API changed. Review the scoped server patch before deployment.');
+}
+const runtimeDir = path.join(outputDir, 'runtime');
+await mkdir(path.join(runtimeDir, 'server/cafe24'), { recursive: true });
+await mkdir(path.join(runtimeDir, 'dist-cafe24'), { recursive: true });
+await mkdir(path.join(runtimeDir, 'scripts'), { recursive: true });
+await mkdir(path.join(runtimeDir, 'deploy/cafe24/cron'), { recursive: true });
+await writeFile(path.join(runtimeDir, genericRelative), genericBase);
+const patch = execFileSync('git', ['diff', '685164fa', '--', genericRelative], { encoding: 'utf8' });
+if (!patch.includes('getAnalyticsReport')) throw new Error('Missing scoped analytics API patch.');
+execFileSync('git', ['apply', '--unsafe-paths', '-'], { cwd: runtimeDir, input: patch });
+await copyFile('dist-cafe24/analytics-reports.mjs', path.join(runtimeDir, 'dist-cafe24/analytics-reports.mjs'));
+await copyFile('scripts/run-cafe24-cron-refresh-stats.mjs', path.join(runtimeDir, 'scripts/run-cafe24-cron-refresh-stats.mjs'));
+await copyFile('deploy/cafe24/cron/swingenjoy-stats', path.join(runtimeDir, 'deploy/cafe24/cron/swingenjoy-stats'));
+const genericPatched = await readFile(path.join(runtimeDir, genericRelative), 'utf8');
+await writeFile(path.join(outputDir, 'analytics-server-release.json'), JSON.stringify({
+    baseGenericSha256: sha256(genericBase), genericSha256: sha256(genericPatched), reportVersion: 2,
+}));
