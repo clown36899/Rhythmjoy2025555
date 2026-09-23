@@ -1899,9 +1899,16 @@ function isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds = null)
   );
 }
 
-function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null) {
+function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null, networkCache = null) {
   if (asAnalyticsBool(row?.analytics_excluded)) return false;
-  if (isAnalyticsBotRow(row) || isAnalyticsDatacenterRow(row) || isAnalyticsExcludedIpRow(row) || isAnalyticsInternalRouteRow(row)) return false;
+  if (isAnalyticsBotRow(row) || isAnalyticsInternalRouteRow(row)) return false;
+  const networkKey = JSON.stringify([analyticsClientIp(row), row.ip_hash || row.ipHash || null]);
+  let excludedNetwork = networkCache?.get(networkKey);
+  if (excludedNetwork === undefined) {
+    excludedNetwork = isAnalyticsDatacenterRow(row) || isAnalyticsExcludedIpRow(row);
+    networkCache?.set(networkKey, excludedNetwork);
+  }
+  if (excludedNetwork) return false;
   if (isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds)) return false;
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (!userId && !hasAnalyticsIdentityEvidence(row)) return false;
@@ -1980,6 +1987,7 @@ function analyticsDateRange(args = {}) {
 
 export async function getAnalyticsSummaryV2(args = {}, sources = null) {
   const excludedPrefix = '91b04b25';
+  const networkCache = new Map();
   const { startMs, endMs } = analyticsDateRange(args);
   const logs = sources?.logs ?? await loadRows('site_analytics_logs');
   const sessions = sources?.sessions ?? await loadRows('session_logs');
@@ -2016,22 +2024,34 @@ export async function getAnalyticsSummaryV2(args = {}, sources = null) {
   const globalAdminIdentity = buildAnalyticsIdentityResolver(allAnalyticsRows, canonicalizeUserId);
   const adminDeviceIds = buildAnalyticsAdminDeviceIds(allAnalyticsRows, globalAdminIdentity, adminUserIds);
 
+  const inclusion = new WeakMap();
+  const include = (row) => {
+    if (!inclusion.has(row)) inclusion.set(row, shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds, networkCache));
+    return inclusion.get(row);
+  };
   const activityRows = rawActivityRows
-    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
+    .filter(({ row }) => include(row));
   const sessionRows = rawSessionRows
-    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
+    .filter(({ row }) => include(row));
   const guestNetworkBridge = buildAnalyticsGuestNetworkBridge([
     ...activityRows.map((item) => item.row),
     ...sessionRows.map((item) => item.row),
   ], identity);
+  const identifiers = new WeakMap();
+  const identify = (row, fallback) => {
+    if (identifiers.has(row)) return identifiers.get(row);
+    const key = analyticsIdentifier(row, fallback, identity, guestNetworkBridge);
+    if (!key.startsWith('unknown:')) identifiers.set(row, key);
+    return key;
+  };
   const sessionSummary = buildAnalyticsSessionSummary(
     sessionRows.map((item) => item.row),
-    (row, index) => analyticsIdentifier(row, index, identity, guestNetworkBridge),
+    (row, index) => identify(row, index),
   );
 
   const dedupedByBucket = new Map();
   for (const item of activityRows) {
-    const identifier = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
+    const identifier = identify(item.row, item.index);
     const bucket = Math.floor(item.ms / (6 * 60 * 60 * 1000));
     const key = `${identifier}:${bucket}`;
     const existing = dedupedByBucket.get(key);
@@ -2042,7 +2062,7 @@ export async function getAnalyticsSummaryV2(args = {}, sources = null) {
   const visitorIdentityMap = new Map();
   const addVisitorIdentity = (item, timeValue) => {
     if (!timeValue) return;
-    const key = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
+    const key = identify(item.row, item.index);
     const time = new Date(timeValue).getTime();
     if (!Number.isFinite(time)) return;
     const current = visitorIdentityMap.get(key) || {
@@ -2062,7 +2082,7 @@ export async function getAnalyticsSummaryV2(args = {}, sources = null) {
   const getAnalyticsPage = (row = {}) => row.page_url || row.entry_page || row.exit_page || row.route || null;
   const getAnalyticsReferrer = (row = {}) => row.referrer || null;
   const addGuestRow = (item, timeValue, kind) => {
-    const key = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
+    const key = identify(item.row, item.index);
     if (identity.userId(item.row)) return;
     const time = new Date(timeValue || item.row.created_at || item.row.session_start).getTime();
     if (!Number.isFinite(time)) return;
@@ -2235,12 +2255,12 @@ export async function getAnalyticsSummaryV2(args = {}, sources = null) {
     ...(sources ? { report_rows: {
       logs: rawActivityRows.map(({ row }) => ({ ...row,
         user_id: identity.userId(row) || row.user_id || null,
-        analytics_excluded: !shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds),
+        analytics_excluded: !include(row),
       })),
       sessions: rawSessionRows.map(({ row }) => ({ ...row,
         session_start: row.session_start || row.created_at,
         user_id: identity.userId(row) || row.user_id || null,
-        analytics_excluded: !shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds),
+        analytics_excluded: !include(row),
       })),
     } } : {}),
     total_visits: visitorIdentityMap.size,

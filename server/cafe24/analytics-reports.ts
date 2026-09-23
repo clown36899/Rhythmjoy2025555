@@ -161,8 +161,20 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
             });
             if (!done) return { status: 'pending', missingDays: closed };
         }
-        const rows = (await deps.readDays(closed, end === today)).map(decodeAnalyticsSnapshot);
-        const byId = new Map(rows.map((row: any) => [row.id, row]));
+        const rawRows = await deps.readDays(closed, end === today);
+        const byId = new Map<string, any>();
+        const completed = new Set<string>();
+        for (const raw of rawRows) {
+            const row = decodeAnalyticsSnapshot(raw);
+            const day = row.id === LIVE_ID ? today : String(row.id).split(':').at(-1)!;
+            if (days.length > 1 && isComplete(row, day) && (day === today || row.finalized !== false)) {
+                completed.add(day);
+                // A period needs frozen inputs, not hundreds of already-rendered
+                // daily detail reports. Release those before decoding the next day.
+                const { report: _report, ...inputsOnly } = row;
+                byId.set(row.id, inputsOnly);
+            } else byId.set(row.id, row);
+        }
         if (end === today && byId.has(LIVE_ID)) byId.set(idFor(today), byId.get(LIVE_ID));
         const coverage: any = byId.get(`analytics-report:v${VERSION}:coverage`);
         if (coverage?.first_day) {
@@ -173,7 +185,7 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
                 byId.set(idFor(day), { id: idFor(day), report_version: VERSION, ...empty });
             }
         }
-        const missing = days.filter(day => !isComplete(byId.get(idFor(day)), day)
+        const missing = days.filter(day => (!completed.has(day) && !isComplete(byId.get(idFor(day)), day))
             || (day < today && (byId.get(idFor(day)) as any)?.finalized === false));
         if (missing.length) return { status: 'pending', missingDays: missing }; // A read never becomes a backfill.
         if (days.length === 1 && end < today) {
@@ -197,7 +209,7 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
         return { status: 'ready', source: end === today ? 'live_snapshot' : 'saved_days',
             generatedAt: current?.updated_at, stale: current ? now.getTime() - Date.parse(current.updated_at) > 120000 : false, report: combined.report };
     };
-    // Keep a few period calculations briefly so opening/paging detail lists does
+    // Keep the latest period calculation briefly so opening/paging detail lists does
     // not recalculate the same range. Single-day reads stay direct DB reads.
     const ranges = new Map<string, { expires: number; value: Promise<any> }>();
     const getReport = async (args: any, now = new Date()) => {
@@ -210,7 +222,7 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
                 const value = readReport(args, now);
                 cached = { value, expires: now.getTime() + 60000 };
                 ranges.set(key, cached);
-                if (ranges.size > 3) ranges.delete(ranges.keys().next().value!);
+                if (ranges.size > 1) ranges.delete(ranges.keys().next().value!);
                 value.then(result => { if (result.status !== 'ready' && ranges.get(key)?.value === value) ranges.delete(key); }, () => { if (ranges.get(key)?.value === value) ranges.delete(key); });
             }
             result = await cached.value;

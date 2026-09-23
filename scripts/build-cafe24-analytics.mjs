@@ -71,16 +71,15 @@ await mkdir(path.join(runtimeDir, 'scripts'), { recursive: true });
 await mkdir(path.join(runtimeDir, 'deploy/cafe24/cron'), { recursive: true });
 const serverHashes = {};
 for (const [file, expectedHash] of [
-    ['generic-data-api.js', 'cb70ebdb4ff4afafcbc21ab7f0f3bc49e304c27eb5b6a0ab3c1a5eba37d4d1e2'],
-    ['stats-api.js', '7c90f9b8d6db73ddab19ef6af004f3172e5edc1d41e7fabfb0fe79cfa87cf448'],
+    ['generic-data-api.js', 'bb2e2eabcb5da44a1683bc97ff231f4325208b775454af27928816f3cda2ef0b'],
+    ['stats-api.js', '06805c1180f3f5f6d79caf82c3f027ef2b170170352f016cc3d0268ef4c8bb94'],
 ]) {
     const relative = `server/cafe24/${file}`;
     const baseline = await readFile(path.join(baselineDir, file), 'utf8');
     if (sha256(baseline) !== expectedHash) throw new Error(`Production ${file} changed. Review the scoped server patch before deployment.`);
     await writeFile(path.join(runtimeDir, relative), baseline);
-    const patch = execFileSync('git', ['diff', '817e006f', '--', relative], { encoding: 'utf8' });
-    if (!patch) throw new Error(`Missing scoped analytics patch for ${file}.`);
-    execFileSync('git', ['apply', '--unsafe-paths', '-'], { cwd: runtimeDir, input: patch });
+    const patch = execFileSync('git', ['diff', '72be39c1', '--', relative], { encoding: 'utf8' });
+    if (patch) execFileSync('git', ['apply', '--unsafe-paths', '-'], { cwd: runtimeDir, input: patch });
     serverHashes[file] = { base: sha256(baseline), deployed: sha256(await readFile(path.join(runtimeDir, relative), 'utf8')) };
 }
 await copyFile('dist-cafe24/analytics-reports.mjs', path.join(runtimeDir, 'dist-cafe24/analytics-reports.mjs'));

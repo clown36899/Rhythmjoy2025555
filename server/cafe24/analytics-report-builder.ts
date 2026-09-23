@@ -203,7 +203,12 @@ export function buildAnalyticsReport(startStr: string, endStr: string, sources: 
         if (!network) return null;
         return `${String(network)}:${getFilterGuestDeviceIdentity(row)}`;
     };
-    const isDatacenterAnalyticsRow = (row: any) => isAnalyticsDatacenterIp(getFilterClientIp(row));
+    const datacenterByIp = new Map<string, boolean>();
+    const isDatacenterAnalyticsRow = (row: any) => {
+        const ip = getFilterClientIp(row) || '';
+        if (!datacenterByIp.has(ip)) datacenterByIp.set(ip, isAnalyticsDatacenterIp(ip));
+        return datacenterByIp.get(ip)!;
+    };
 
     const botSessionIds = new Set<string>();
     const botFingerprints = new Set<string>();
@@ -430,7 +435,7 @@ export function buildAnalyticsReport(startStr: string, endStr: string, sources: 
         return { buckets, getBucketKey };
     })();
 
-    const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
+    const resolveVisitorKey = (row: any, fallbackId?: string | number | null) => {
         const userId = resolveVisitorUserId(row);
         if (userId) return `user:${userId}`;
         const guestNetworkIdentity = getGuestNetworkIdentity(row);
@@ -447,6 +452,16 @@ export function buildAnalyticsReport(startStr: string, endStr: string, sources: 
         if (guestNetworkIdentity) return `guest:${guestNetworkIdentity}`;
         if (fallbackId) return `guest_session:${String(fallbackId)}`;
         return 'guest:unknown';
+    };
+
+    const visitorKeys = new WeakMap<object, string>();
+    const getVisitorKey = (row: any, fallbackId?: string | number | null) => {
+        const cached = visitorKeys.get(row);
+        if (cached) return cached;
+        const key = resolveVisitorKey(row, fallbackId);
+        // Weak fallback identifiers depend on the caller and must not be cached.
+        if (!key.startsWith('guest_session:') && key !== 'guest:unknown') visitorKeys.set(row, key);
+        return key;
     };
 
     const getCappedDuration = (row: any) => {
