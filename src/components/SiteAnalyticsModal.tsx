@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { closedAnalyticsReportId, readAnalyticsReport, writeAnalyticsReport } from '../utils/analyticsReportCache';
 import { cafe24 } from '../lib/cafe24Client';
 import { isInternalAnalyticsRoute, isLikelyBotTraffic } from '../utils/analyticsEngine';
 import { isAnalyticsDatacenterIp } from '../utils/analyticsGuards';
@@ -280,8 +281,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const [showGuestList, setShowGuestList] = useState(false);
     // [PHASE 20] Type Detail Modal State
     const [selectedTypeDetail, setSelectedTypeDetail] = useState<{ type: string; items: { title: string; count: number; url?: string }[] } | null>(null);
-    // [PHASE 18] 캐싱
-    const [_cache, setCache] = useState<Map<string, AnalyticsSummary>>(new Map());
+    const requestSequence = useRef(0);
+    const [reportNotice, setReportNotice] = useState('');
+    const [loadError, setLoadError] = useState('');
     // 데스크탑/모바일 레이아웃 분기 (JS 감지, CSS 반응형 사용하지 않음)
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
     useEffect(() => {
@@ -311,6 +313,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         if (isOpen) {
             fetchAnalytics();
         }
+        return () => { requestSequence.current += 1; };
     }, [isOpen, dateRange.start, dateRange.end, viewMode]);
 
     const setShortcutRange = (days: number) => {
@@ -347,8 +350,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         });
     };
 
-    const fetchAnalytics = async (_forceRefresh = false) => {
+    const fetchAnalytics = async (forceRefresh = false) => {
+        const requestId = ++requestSequence.current;
+        const isCurrent = () => requestSequence.current === requestId;
         setLoading(true);
+        setSummary(null);
+        setLoadError('');
+        setReportNotice('');
         setUserList([]);
         setGuestList([]);
         let localUserList: UserInfo[] = [];
@@ -368,6 +376,23 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 endStr = dateRange.end + 'T23:59:59.999+09:00';
             }
 
+            if (!Number.isFinite(Date.parse(startStr)) || !Number.isFinite(Date.parse(endStr)) || startStr > endStr) {
+                throw new Error('조회 날짜를 확인해 주세요.');
+            }
+            // Decide before fetching: a report begun while its last day is still open must not be frozen.
+            const reportId = closedAnalyticsReportId(startStr.slice(0, 10), endStr.slice(0, 10));
+            if (reportId && !forceRefresh) {
+                const saved = await readAnalyticsReport(reportId);
+                if (!isCurrent()) return;
+                if (saved) {
+                    setSummary(saved.summary);
+                    setUserList(saved.users);
+                    setGuestList(saved.guests);
+                    setReportNotice('저장된 과거 통계 · 원본 기록을 다시 계산하지 않았습니다.');
+                    return;
+                }
+            }
+
             // RPC Call
             const { data: rpcData, error: rpcError } = await cafe24
                 .rpc('get_analytics_summary_v2', {
@@ -381,8 +406,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             let rpcSessionSummary: any = null;
             let rpcGuestList: GuestInfo[] | null = null;
 
+            if (!rpcData && !rpcError) throw new Error('통계 응답이 없습니다.');
             if (rpcError) {
-                console.error('[Analytics] RPC Call Failed:', rpcError);
+                throw rpcError;
             } else if (rpcData) {
                 const stats = rpcData as any;
                 rpcVisitorSummary = stats.visitor_summary || null;
@@ -398,7 +424,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     avgDuration: u.avgDuration || 0
                 })).filter((u: any) => !u.user_id.startsWith('91b04b25')); // [FIX] Exclude test account from list
 
-                setUserList(localUserList);
+
                 rpcGuestList = Array.isArray(stats.guest_list)
                     ? stats.guest_list.map((guest: any) => ({
                         key: String(guest.key),
@@ -436,7 +462,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .select('user_id,email,admin_email');
 
             if (adminRowsError) {
-                console.warn('[Analytics] Failed to fetch admin identities:', adminRowsError);
+                throw adminRowsError;
             } else {
                 (adminRows || []).forEach((row: any) => {
                     if (row.user_id) adminUserIds.add(String(row.user_id));
@@ -451,7 +477,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             ]);
 
             if (analyticsUsersError) {
-                console.warn('[Analytics] Failed to fetch analytics user admin identities:', analyticsUsersError);
+                throw analyticsUsersError;
             } else {
                 (analyticsUsers || []).forEach((row: any) => {
                     const email = normalizeAnalyticsEmail(row.email);
@@ -462,7 +488,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             }
 
             if (boardUsersForAdminError) {
-                console.warn('[Analytics] Failed to fetch board user admin identities:', boardUsersForAdminError);
+                throw boardUsersForAdminError;
             } else {
                 (boardUsersForAdmin || []).forEach((row: any) => {
                     const email = normalizeAnalyticsEmail(row.email || row.admin_email);
@@ -499,7 +525,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 } else {
                     hasMore = false;
                 }
-                if (allLogs.length > 300000) break; // Safety brake
+                if (hasMore && allLogs.length >= 300000) throw new Error('조회 범위가 너무 큽니다. 기간을 줄여 주세요.');
             }
             const data = allLogs;
             const getAnalyticsRowPath = (row: any) => row.page_url || row.route || row.entry_page || row.exit_page || row.path || row.target_id || '';
@@ -564,8 +590,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
                 if (sError) {
-                    console.error('Session fetch error:', sError);
-                    break;
+                    throw sError;
                 }
 
                 if (sChunk && sChunk.length > 0) {
@@ -578,7 +603,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 } else {
                     hasMore = false;
                 }
-                if (allSessions.length > 50000) break;
+                if (hasMore && allSessions.length >= 50000) throw new Error('조회 범위가 너무 큽니다. 기간을 줄여 주세요.');
             }
             const rawSessionIdToUser = new Map<string, Set<string>>();
             const rawFingerprintToUser = new Map<string, Set<string>>();
@@ -1048,7 +1073,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     .in('user_id', sessionUserIds);
 
                 if (sessionUsersError) {
-                    console.warn('[Analytics] Failed to fetch session user nicknames:', sessionUsersError);
+                    throw sessionUsersError;
                 } else {
                     (sessionUsers || []).forEach((u: any) => nicknameMap.set(u.user_id, u.nickname));
                 }
@@ -1078,7 +1103,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             if (sessionUserList.length > 0) {
                 localUserList = sessionUserList;
-                setUserList(sessionUserList);
             }
 
             const guestMap = new Map<string, GuestInfo & { seenMs: number[]; sessionClickCount: number; activityEventCount: number }>();
@@ -1208,7 +1232,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .sort((a, b) => new Date(b.lastSeen || 0).getTime() - new Date(a.lastSeen || 0).getTime())
                 .map((guest, index) => ({ ...guest, label: `Guest ${index + 1}` }));
 
-            setGuestList(rpcGuestList || nextGuestList);
+            const completeGuestList = rpcGuestList || nextGuestList;
 
             const guestLabelMap = new Map<string, string>(
                 nextGuestList.map((guest) => [guest.key, guest.label])
@@ -1369,7 +1393,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .lte('installed_at', endStr)
                 .order('installed_at', { ascending: false });
 
-            if (!installError && installData) {
+            if (installError) throw installError;
+            if (installData) {
                 const filteredInstallData = installData.filter((inst: any) => {
                     const userId = resolveAnalyticsUserId(inst);
                     return (
@@ -1406,20 +1431,16 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
                 const installUserMap = new Map<string, string>();
                 if (installUserIds.length > 0) {
-                    try {
-                        const uniqueIds = Array.from(new Set(installUserIds));
-                        const { data: uData, error: uError } = await cafe24
-                            .from('board_users')
-                            .select('user_id, nickname')
-                            .in('user_id', uniqueIds);
+                    const uniqueIds = Array.from(new Set(installUserIds));
+                    const { data: uData, error: uError } = await cafe24
+                        .from('board_users')
+                        .select('user_id, nickname')
+                        .in('user_id', uniqueIds);
 
-                        if (uError) {
-                            console.warn('[Analytics] Failed to fetch nicknames:', uError);
-                        } else if (uData) {
-                            uData.forEach((u: any) => installUserMap.set(u.user_id, u.nickname));
-                        }
-                    } catch (err) {
-                        console.error('[Analytics] Error resolving nicknames:', err);
+                    if (uError) {
+                        throw uError;
+                    } else if (uData) {
+                        uData.forEach((u: any) => installUserMap.set(u.user_id, u.nickname));
                     }
                 }
 
@@ -1671,14 +1692,27 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 bottom_menu_apps: bottomMenuAppStats
             };
 
+            if (!isCurrent()) return;
+            if (reportId) {
+                try {
+                    await writeAnalyticsReport(reportId, endStr.slice(0, 10), {
+                        summary: newSummary, users: localUserList, guests: completeGuestList,
+                    });
+                    if (!isCurrent()) return;
+                    setReportNotice('과거 통계 저장 완료 · 다음 조회부터 저장된 결과를 표시합니다.');
+                } catch {
+                    if (!isCurrent()) return;
+                    setReportNotice('계산은 완료했지만 저장에 실패했습니다. 다음 조회에서 다시 계산합니다.');
+                }
+            } else {
+                setReportNotice('오늘이 포함된 기간은 최신 기록으로 계산합니다.');
+            }
             setSummary(newSummary as any);
-
-            // Cache
-            const cacheKey = `${viewMode}-${dateRange.start}-${dateRange.end}`;
-            setCache(prev => new Map(prev.set(cacheKey, newSummary as any)));
+            setUserList(localUserList);
+            setGuestList(completeGuestList);
 
             // Auto Snapshot
-            if (dateRange.end === getKRDateString(new Date())) {
+            if (viewMode === 'daily' && dateRange.start === dateRange.end && dateRange.end === getKRDateString(new Date())) {
                 checkAndAutoSnapshot({
                     user_clicks: displayLoggedInVisits,
                     anon_clicks: displayAnonVisits,
@@ -1687,8 +1721,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             }
         } catch (err) {
             console.error('Failed to fetch analytics:', err);
+            if (isCurrent()) setLoadError('통계를 불러오지 못했습니다. 다시 시도해 주세요.');
         } finally {
-            setLoading(false);
+            if (isCurrent()) setLoading(false);
         }
     };
 
@@ -2010,7 +2045,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     if (!isOpen) return null;
 
     return (
-        <div className="analytics-modal-overlay" onClick={onClose}>
+        <div className="analytics-modal-overlay" onClick={onClose} onDragStart={event => event.preventDefault()}>
             <div className="analytics-modal-content" translate="no" onClick={e => e.stopPropagation()}>
                 <div className="analytics-modal-header">
                     <div className="header-title-group">
@@ -2021,8 +2056,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     <i className="ri-download-line"></i>
                                 </button>
                             )}
-                            <button className="refresh-btn" onClick={() => fetchAnalytics(true)} disabled={loading} title="새로고침">
+                            <button className="refresh-btn" onClick={() => fetchAnalytics(true)} disabled={loading} title="원본 기록으로 다시 계산" aria-label="원본 기록으로 다시 계산">
                                 <i className={loading ? "ri-refresh-line spinning" : "ri-refresh-line"}></i>
+                                <span style={{ fontSize: '0.75rem', marginLeft: 4, whiteSpace: 'nowrap' }}>다시 계산</span>
                             </button>
                         </div>
                         <div className="view-mode-tabs">
@@ -2100,7 +2136,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 </div>
 
                 <div className="analytics-modal-body">
-                    {loading ? (
+                    {!loading && reportNotice && <p className="no-data-msg" role="status">{reportNotice}</p>}
+                    {loadError ? (
+                        <div className="analytics-empty" role="alert">
+                            <p>{loadError}</p>
+                            <button onClick={() => fetchAnalytics()}>다시 시도</button>
+                        </div>
+                    ) : loading ? (
                         <div className="analytics-loading">데이터 분석 중...</div>
                     ) : summary && (summary.total_clicks > 0 || (summary.user_clicks || 0) + (summary.anon_clicks || 0) > 0) ? (
                         <div className="analytics-scroll-container">
@@ -2614,6 +2656,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     ) : (
                         <div className="analytics-empty">
                             <i className="ri-inbox-line"></i>
+                            <p>선택한 기간에 집계 대상 방문 기록이 없습니다.</p>
                         </div>
                     )}
 

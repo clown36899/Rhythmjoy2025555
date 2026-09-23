@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -n "${1:-}" && "${1}" != "--analytics-only" ]]; then
+  echo "Usage: $0 [--analytics-only]" >&2
+  exit 2
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY_TARGET_FILE="${CAFE24_DEPLOY_TARGET_FILE:-${ROOT_DIR}/deploy/cafe24/production-target.env}"
 
@@ -67,6 +72,39 @@ if [[ "${REMOTE_HOSTNAME}" != "${EXPECTED_HOSTNAME}" ]]; then
   echo "Refusing to deploy to unexpected Cafe24 host '${REMOTE_HOSTNAME}'." >&2
   echo "Expected host: '${EXPECTED_HOSTNAME}'." >&2
   exit 2
+fi
+
+# A scoped analytics release reuses the published application's dependencies and
+# entry. It must never upload this checkout's unrelated frontend or server files.
+if [[ "${1:-}" == "--analytics-only" ]]; then
+  analytics_tmp="$(mktemp -d)"
+  trap 'rm -rf "${analytics_tmp}"' EXIT
+  mkdir -p "${analytics_tmp}/baseline/assets" "${analytics_tmp}/staged"
+  rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/index.html" "${TARGET}:${APP_DIR}/dist/version.json" "${analytics_tmp}/baseline/"
+  rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/assets/SiteAnalyticsModal-B0zRWyG2.js" "${TARGET}:${APP_DIR}/dist/assets/main-C2UW8TcE.js" "${analytics_tmp}/baseline/assets/"
+  node scripts/build-cafe24-analytics.mjs "${analytics_tmp}/baseline" "${analytics_tmp}/staged"
+  analytics_commit="$(git rev-parse HEAD)"
+  analytics_module="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).modulePath' "${analytics_tmp}/staged/analytics-release.json")"
+  analytics_base_hash="$(shasum -a 256 "${analytics_tmp}/baseline/index.html" | awk '{print $1}')"
+  analytics_module_hash="$(shasum -a 256 "${analytics_tmp}/staged/${analytics_module}" | awk '{print $1}')"
+  analytics_index_hash="$(shasum -a 256 "${analytics_tmp}/staged/index.html" | awk '{print $1}')"
+  analytics_remote_stage="${APP_DIR}/.deploy-analytics-${analytics_commit}"
+  ssh "${SSH_ARGS[@]}" "${TARGET}" "mkdir -p '${analytics_remote_stage}'"
+  rsync -az -e "${RSYNC_SSH}" "${analytics_tmp}/staged/assets/" "${TARGET}:${APP_DIR}/dist/assets/"
+  rsync -az -e "${RSYNC_SSH}" "${analytics_tmp}/staged/index.html" "${analytics_tmp}/staged/version.json" "${TARGET}:${analytics_remote_stage}/"
+  ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
+    test \"\$(sha256sum '${APP_DIR}/dist/index.html' | cut -d ' ' -f 1)\" = '${analytics_base_hash}'
+    test \"\$(sha256sum '${APP_DIR}/dist/${analytics_module}' | cut -d ' ' -f 1)\" = '${analytics_module_hash}'
+    curl -fsS '${HEALTH_URL}' >/dev/null
+    cp -p '${APP_DIR}/dist/index.html' '${analytics_remote_stage}/previous-index.html'
+    cp -p '${APP_DIR}/dist/version.json' '${analytics_remote_stage}/previous-version.json'
+    mv '${analytics_remote_stage}/index.html' '${APP_DIR}/dist/index.html'
+    mv '${analytics_remote_stage}/version.json' '${APP_DIR}/dist/version.json'
+    test \"\$(sha256sum '${APP_DIR}/dist/index.html' | cut -d ' ' -f 1)\" = '${analytics_index_hash}'
+    cat '${APP_DIR}/dist/version.json'
+    curl -fsS '${HEALTH_URL}'"
+  echo "Analytics-only deployment complete: ${analytics_commit} (${analytics_module})"
+  exit 0
 fi
 
 npm run build:cafe24
