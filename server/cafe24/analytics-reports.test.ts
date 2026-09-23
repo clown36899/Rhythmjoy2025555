@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAnalyticsReportService, type AnalyticsSources } from './analytics-reports';
+import { createAnalyticsReportService, encodeAnalyticsSnapshot, decodeAnalyticsSnapshot, type AnalyticsSources } from './analytics-reports';
 import { getAnalyticsSummaryV2 } from './generic-data-api.js';
 const now = new Date('2026-09-23T03:00:00Z');
 const id = (day: string) => `analytics-report:v2:${day}:${day}`;
@@ -27,8 +27,8 @@ describe('server-owned finalized analytics', () => {
         expect(await service.getReport(args('2026-09-22'), now)).toMatchObject({status:'pending'});
         expect(deps.loadSources).not.toHaveBeenCalled();
         await service.refreshClosed(now);
-        expect(rows.get(id('2026-09-22')).report.summary.user_clicks).toBe(1);
-        expect(rows.get(id('2026-09-20')).report.summary.user_clicks).toBe(0);
+        expect(decodeAnalyticsSnapshot(rows.get(id('2026-09-22'))).report.summary.user_clicks).toBe(1);
+        expect(decodeAnalyticsSnapshot(rows.get(id('2026-09-20'))).report.summary.user_clicks).toBe(0);
         deps.loadSources.mockClear(); deps.summarize.mockClear(); deps.saveRow.mockClear();
         expect(await service.getReport(args('2026-09-22'), now)).toMatchObject({status:'ready',source:'daily_snapshot'});
         expect(deps.loadSources).not.toHaveBeenCalled(); expect(deps.summarize).not.toHaveBeenCalled(); expect(deps.saveRow).not.toHaveBeenCalled();
@@ -41,7 +41,7 @@ describe('server-owned finalized analytics', () => {
         expect(await service.refreshClosed(now)).toMatchObject({finalized:1});
         expect(rows.get(id('2026-09-22'))).toEqual(previous);
         await service.getReport({...args('2026-09-22'),force_refresh:true},now);
-        expect(rows.get(id('2026-09-22')).report.summary.user_clicks).toBe(2);
+        expect(decodeAnalyticsSnapshot(rows.get(id('2026-09-22'))).report.summary.user_clicks).toBe(2);
     });
     it('waits for the KST session closing boundary and never freezes today', async () => {
         await service.refreshClosed(new Date('2026-09-22T15:34:59Z'));
@@ -99,6 +99,26 @@ describe('server-owned finalized analytics', () => {
     it('uses a shared lock for scheduler and explicit rebuilds', async () => {
         const results = await Promise.all([service.refreshClosed(now),service.refreshClosed(now)]);
         expect(results.filter(result=>result===null)).toHaveLength(1);
+    });
+    it('stores large reports below the legacy MySQL packet boundary and round-trips every detail', () => {
+        const row = { id: id('2026-09-22'), report_version: 2, report: { summary: { total_clicks: 2000 }, users: [], guests: [] }, inputs: { ...sources, logs: Array.from({length: 2000}, (_,i)=>log('2026-09-22', `member-${i}`, {target_title:'Repeated navigation and activity details '.repeat(10)})) } };
+        expect(Buffer.byteLength(JSON.stringify(row))).toBeGreaterThan(1048576);
+        const encoded = encodeAnalyticsSnapshot(row);
+        expect(Buffer.byteLength(JSON.stringify(encoded))).toBeLessThan(1048576);
+        expect(decodeAnalyticsSnapshot(encoded)).toMatchObject(row);
+    });
+    it('accepts already saved uncompressed v2 days and repairs malformed compressed rows', async () => {
+        await service.refreshClosed(now);
+        const existing=decodeAnalyticsSnapshot(rows.get(id('2026-09-22')));
+        delete existing.report_encoding;
+        rows.set(id('2026-09-22'),existing);
+        deps.summarize.mockClear();
+        expect(await service.getReport(args('2026-09-22'),now)).toMatchObject({status:'ready'});
+        expect(deps.summarize).not.toHaveBeenCalled();
+        rows.set(id('2026-09-22'),{...existing,report_encoding:'gzip-base64-v1',report:'invalid'});
+        expect(await service.getReport(args('2026-09-22'),now)).toMatchObject({status:'pending'});
+        expect(await service.refreshClosed(now)).toMatchObject({finalized:1});
+        expect(await service.getReport(args('2026-09-22'),now)).toMatchObject({status:'ready'});
     });
     it('distinguishes empty dates before recorded history from missing dates within history', async () => {
         await service.refreshClosed(now); deps.loadSources.mockClear();

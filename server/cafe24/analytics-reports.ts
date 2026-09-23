@@ -1,3 +1,4 @@
+import { gzipSync, gunzipSync } from 'node:zlib';
 import { getAnalyticsSummaryV2, loadAnalyticsUsers, loadCafe24TableRows, saveCafe24TableRow } from './generic-data-api.js';
 import { getMysqlPool } from './mysql-pool.js';
 import { buildAnalyticsReport } from './analytics-report-builder';
@@ -23,6 +24,25 @@ const inRange = (value: unknown, start: number, end: number) => {
     const ms = new Date(String(value || '')).getTime();
     return Number.isFinite(ms) && ms >= start && ms <= end;
 };
+
+// Snapshot storage can exceed the legacy MySQL packet limit when both report
+// details and merge inputs are retained. Compress all days, not selected dates.
+export function encodeAnalyticsSnapshot(row: any) {
+    const { report, inputs, ...metadata } = row;
+    return { ...metadata, report_encoding: 'gzip-base64-v1',
+        report: gzipSync(Buffer.from(JSON.stringify({ report, inputs }))).toString('base64') };
+}
+export function decodeAnalyticsSnapshot(row: any) {
+    if (row?.report_encoding !== 'gzip-base64-v1') return row;
+    try {
+        const payload = JSON.parse(gunzipSync(Buffer.from(row.report, 'base64')).toString('utf8'));
+        return { ...row, report: payload.report, inputs: payload.inputs };
+    } catch {
+        // Incomplete/corrupted derived data is pending until the scheduler repairs
+        // it; reading it must not trigger a raw-ledger rebuild in the request.
+        return { ...row, report: null, inputs: null };
+    }
+}
 
 async function loadSources(): Promise<AnalyticsSources> {
     const [logs, sessions, boardUsers, boardAdmins, analyticsUsers, pwaInstalls] = await Promise.all([
@@ -55,7 +75,9 @@ async function withLock<T>(run: () => Promise<T>): Promise<T | null> {
 export function createAnalyticsReportService(deps = { loadSources, readDays, saveRow: saveCafe24TableRow, withLock, summarize: getAnalyticsSummaryV2 }) {
     const isComplete = (row: any, day: string) => row?.id === idFor(day) && row.report_version === VERSION
         && row.report?.summary && Array.isArray(row.report.users) && Array.isArray(row.report.guests)
-        && row.inputs && Array.isArray(row.inputs.logs) && Array.isArray(row.inputs.sessions);
+        && Number.isFinite(row.report.summary.total_clicks)
+        && ['daily_details', 'total_top_items', 'total_sections', 'type_breakdown'].every(key => Array.isArray(row.report.summary[key]))
+        && row.inputs && Object.keys(emptySources()).every(key => Array.isArray(row.inputs[key]));
     const calculate = async (start: string, end: string, sources: AnalyticsSources) => {
         const args = { start_date: `${start}T00:00:00+09:00`, end_date: `${end}T23:59:59.999+09:00` };
         const core: any = await deps.summarize(args, sources);
@@ -80,7 +102,7 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
         const result = await calculate(day, day, sources);
         const row = { id: idFor(day), report_version: VERSION, ...result,
             snapshot_time: `${day}T23:59:59.999+09:00`, updated_at: new Date().toISOString() };
-        await deps.saveRow('site_usage_stats', row, ['id']);
+        await deps.saveRow('site_usage_stats', encodeAnalyticsSnapshot(row), ['id']);
         return row;
     };
     const refreshClosed = async (now = new Date()) => deps.withLock(async () => {
@@ -96,7 +118,7 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
         let finalized = 0;
         for (let offset = 0; offset < days.length; offset += 366) {
             const chunk = days.slice(offset, offset + 366);
-            const rows = await deps.readDays(chunk);
+            const rows = (await deps.readDays(chunk)).map(decodeAnalyticsSnapshot);
             const existing = new Map(rows.map((row: any) => [row.id, row]));
             for (const day of chunk) {
                 if (isComplete(existing.get(idFor(day)), day)) continue;
@@ -120,7 +142,7 @@ export function createAnalyticsReportService(deps = { loadSources, readDays, sav
             });
             if (!done) return { status: 'pending', missingDays: closed };
         }
-        const rows = await deps.readDays(closed);
+        const rows = (await deps.readDays(closed)).map(decodeAnalyticsSnapshot);
         const byId = new Map(rows.map((row: any) => [row.id, row]));
         const coverage: any = byId.get(`analytics-report:v${VERSION}:coverage`);
         if (coverage?.first_day) {
