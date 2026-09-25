@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSourceForCandidate } from './collection-registry.mjs';
 import { stripNaverCafeMemberPrefix } from './candidate-utils.mjs';
+import { toMapSafeVenueName, venueEvidenceIncludes } from '../../src/utils/venueNormalization.mjs';
 import { getHistoricalDjNamesForRoute } from './swing-social-map.mjs';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
@@ -134,11 +135,7 @@ function evidenceExplicitlyContainsDj(evidence = '', dj = '') {
 }
 
 function normalizedVenue(value) {
-  return normalized(value)
-    .replace(/happy\s*hall/g, '해피홀')
-    .replace(/쏘셜클럽/g, '소셜클럽')
-    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸')
-    .replace(/스윙타임(?:빠|바)?/g, '스윙타임');
+  return normalized(toMapSafeVenueName(value));
 }
 
 function trustedSourceVenueContext(candidate = {}) {
@@ -314,7 +311,7 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   }
   if (!exactEvidenceIsGrounded(evidenceQuotes, sourceText)) reasons.push('AI evidence is not an exact substring of source text');
   if (!evidenceMentionsDate(evidenceCorpus, sd.date)) reasons.push('AI evidence does not explicitly contain the candidate date');
-  if (candidateVenue && !normalizedVenue(evidenceCorpus).includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
+  if (candidateVenue && !venueEvidenceIncludes(evidenceCorpus, candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
   if (candidateDjs.some((dj) => (
     !evidenceExplicitlyContainsDj(evidenceCorpus, dj)
     || !evidenceExplicitlyContainsDj(djGroundingText, dj)
@@ -335,7 +332,7 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
 
 // Discovery eligibility only. Registration still requires grounded dates, venue and social evidence.
 export function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false, { enabled = true } = {}) {
-  if (!enabled || source?.benefitKind || source?.scope !== 'swing') return false;
+  if (!enabled || source?.benefitKind || !['swing', 'salsa'].includes(source?.scope)) return false;
   if (source?.allowedActivityTypes?.length && !source.allowedActivityTypes.includes('social')) return false;
   const value = String(text || '').normalize('NFKC');
   const hasSocial = ACTIVITY_EVIDENCE_PATTERNS.social.test(value);
@@ -395,7 +392,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
     if (seenDates.has(date)) eventReasons.push('AI returned duplicate social dates');
     if (!exactEvidenceIsGrounded(evidenceQuotes, groundedText)) eventReasons.push('AI social evidence is not an exact substring of source text or attached poster transcription');
     if (!evidenceMentionsDate(evidenceCorpus, date)) eventReasons.push('AI social evidence does not explicitly contain the event date');
-    if (!venue || !normalizedVenue(evidenceCorpus).includes(venue)) eventReasons.push('AI social evidence does not explicitly contain the venue');
+    if (!venue || !venueEvidenceIncludes(evidenceCorpus, venue)) eventReasons.push('AI social evidence does not explicitly contain the venue');
     if (!Number.isInteger(posterImageIndex) || posterImageIndex < 0 || posterImageIndex > attachedImageCount) {
       eventReasons.push('AI social poster image index is invalid');
     }
@@ -411,6 +408,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
       eventReasons.push('AI social evidence does not explicitly contain every DJ');
     }
     if (!ACTIVITY_EVIDENCE_PATTERNS.social.test(evidenceCorpus)) eventReasons.push('AI social evidence does not explicitly identify a social');
+    if (input.sourceScope === 'salsa' && !/salsa|살사/i.test(evidenceCorpus)) eventReasons.push('AI social evidence does not explicitly identify salsa in this session');
 
     if (eventReasons.length) {
       reasons.push(`${date || 'unknown date'}: ${eventReasons.join('; ')}`);
@@ -519,7 +517,8 @@ export function buildSocialExtractionPrompt(input = {}) {
   const focusDateHints = [...new Set((input.focusDateHints || [])
     .map((date) => String(date || '').slice(0, 10))
     .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))];
-  return `You extract today-or-later Korean swing-dance social sessions from one official source post.
+  return `You extract today-or-later Korean ${input.sourceScope === 'salsa' ? 'salsa' : 'swing'}-dance social sessions from one official source post.
+${input.sourceScope === 'salsa' ? 'Each session must explicitly include salsa/살사 in its own evidence_quotes. Exclude bachata-only or kizomba-only sessions. Keep each date and room with its own DJs; do not attach the bachata or kizomba room DJ to the salsa room. A mixed room is allowed only with explicit salsa music. Lessons and attached socials are separate activities.' : ''}
 Judge only SOURCE_TEXT. Do not browse or use outside knowledge. TODAY_KST is ${input.today}.
 
 Use decision "extract" only when every returned session has an explicit today-or-later calendar date, venue,

@@ -1369,6 +1369,18 @@ export default function CalendarPage() {
                         </button>
                     </div>
 
+                    {tabFilter !== 'classes' && (
+                        <aside className="calendar-official-notice" aria-label="소셜 이용 안내">
+                            <div className="calendar-source-heading">
+                                <strong>소셜 일정</strong><span>자동 수집</span>
+                            </div>
+                            <p>장소를 누르면 <b>공식 공지</b>로 연결됩니다 <i className="ri-arrow-right-up-line" aria-hidden="true" /></p>
+                            <div className="calendar-schedule-legend" aria-label="일정 표시 안내">
+                                <span>등록 일정</span><span>정규 요일 참고</span><span>휴무</span>
+                            </div>
+                        </aside>
+                    )}
+
                     {displayMode === 'calendar' && (
                         <div className="calendar-sticky-weekdays" aria-hidden="true">
                             {CALENDAR_WEEKDAY_LABELS.map((dayLabel, index) => (
@@ -1385,6 +1397,7 @@ export default function CalendarPage() {
                         </div>
                     )}
                 </div>
+
 
                 <section className="calendar-page-overview" aria-label="캘린더 요약">
                     <div className="calendar-page-overview-card">

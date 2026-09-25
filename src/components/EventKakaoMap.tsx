@@ -30,7 +30,7 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!address || typeof window.kakao === 'undefined' || !mapContainerRef.current) return;
+        if (!address || typeof window.kakao?.maps?.load !== 'function' || !mapContainerRef.current) return;
 
         // 기존 맵 초기화 (DOM 꼬임 방지)
         mapContainerRef.current.innerHTML = '';

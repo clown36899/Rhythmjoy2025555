@@ -692,6 +692,22 @@ describe('ingestor registration linkage', () => {
     };
 
     expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [manualOcrCandidate])).toBe(true);
+    const englishEvidence = { ...corrected, extracted_text: '8월 28일 HAPPY HALL 금요 소셜 DJ 쓴귤',
+      structured_data: { ...corrected.structured_data, venue_provenance: 'source_text', ai_evidence_quotes: ['8월 28일 HAPPY HALL 금요 소셜 DJ 쓴귤'] } };
+    expect(validateAutomaticRegistrationCandidate(englishEvidence).ok).toBe(true);
+    const savoyEvidence = { ...englishEvidence, source_id: 'swingscandal-cafe',
+      auto_registration: { ...englishEvidence.auto_registration, source_id: 'swingscandal-cafe' },
+      extracted_text: '8월 28일 SAVOY BALLROOM BAR 금요 소셜 DJ 쓴귤',
+      structured_data: { ...englishEvidence.structured_data, venue_name: '사보이볼룸',
+        ai_evidence_quotes: ['8월 28일 SAVOY BALLROOM BAR 금요 소셜 DJ 쓴귤'] } };
+    expect(validateAutomaticRegistrationCandidate(savoyEvidence).ok).toBe(true);
+    expect(validateAutomaticRegistrationCandidate({ ...savoyEvidence, structured_data: { ...savoyEvidence.structured_data,
+      ai_evidence_quotes: ['8월 28일', '금요 소셜 DJ 쓴귤'] } }).ok).toBe(false);
+    const unknownPrimary = { ...manualOcrCandidate, structured_data: { ...manualOcrCandidate.structured_data, djs: [] } };
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [unknownPrimary])).toBe(true);
+    expect(findScrapedCandidateDuplicate(corrected, [unknownPrimary])).toBeNull();
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, { ...corrected, auto_registration: { ready: false } }, [unknownPrimary])).toBe(false);
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [{ ...unknownPrimary, status: 'excluded' }])).toBe(false);
     expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [{
       ...manualOcrCandidate,
       status: 'collected',
@@ -1418,12 +1434,12 @@ describe('ingestor registration linkage', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-unsafe',
       status: 'pending',
-      source_id: 'happyhall2004',
+      source_id: 'unenrolled-test-source',
       poster_url: 'https://example.com/poster.jpg',
       auto_registration: {
         ready: true,
         mode: 'shadow',
-        source_id: 'happyhall2004',
+        source_id: 'unenrolled-test-source',
       },
       structured_data: {
         title: '스윙타운 소셜',

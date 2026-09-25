@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { publicPublicationDate, publicScheduleRows, supportsPublicScheduleSource } from './ingestion/public-schedule-sources.mjs';
 import {
   alignYearlessDatesToPublication,
   buildCafe24Payload,
@@ -10,11 +11,13 @@ import {
   extractExplicitClosureDates,
   extractExpectedAutomaticSocialDates,
   extractIndependentSocialDateSections,
+  extractIndependentClassNoticeSections,
   extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
   extractSeasonPassEvidenceSections,
   filterDeadlineOnlyEventDates,
+  getBlockedKeywordReason,
   hasBadPosterUrl,
   isDeadlineOnlyEventDate,
   isCollectableDate,
@@ -25,6 +28,7 @@ import {
   requiresAutomaticRegistrationAiAdjudication,
   resolveSourceVenueEvidence,
   selectSourceOrderedPosterUrls,
+  selectClassNoticeEvidenceText,
   isEvergreenSeasonPassCandidate,
   isHighConfidenceDatedSocialSchedule,
   isInstagramCaptionClassHeadline,
@@ -77,6 +81,7 @@ import {
   findUnresolvedTodaySocialSources,
   isSupplementalRecoveryRun,
   mergeSeenInstagramPosts,
+  progressFileForPriority,
   reopenFailedInstagramPosts,
   reorderSourcesForResume,
   selectUnseenInstagramPosts,
@@ -84,6 +89,9 @@ import {
 } from './ingestion/ingestion-progress.mjs';
 
 const TODAY = '2026-05-23';
+assert.match(progressFileForPriority(2, '/tmp/ingestion-state'), /swing-daily-priority-2\.json$/);
+assert.notEqual(progressFileForPriority(2, '/tmp/ingestion-state'), progressFileForPriority(2, '/tmp/ingestion-state', 'expanded-ingestion-salsa'), 'salsa must never reuse the swing resume/checkpoint file');
+assert.throws(() => progressFileForPriority(2, '/tmp/ingestion-state', '../swing-daily'));
 
 for (const alias of ['SAVOY BALLROOM', 'Savoy Ballroom Bar', '사보이홀', '사보이볼룸(사당)']) {
   assert.equal(toMapSafeVenueName(alias), '사보이볼룸', 'collector and conflict checks must share one venue alias owner');
@@ -95,6 +103,11 @@ assert.equal(isSupplementalRecoveryRun('8,12,16,18,20', new Date('2026-09-15T04:
 assert.equal(isSupplementalRecoveryRun('8,12,16,18,20', new Date('2026-09-15T03:35:00Z')), false, 'a delayed 12:30 full scan remains a full scan');
 assert.equal(isSupplementalRecoveryRun('', new Date('2026-09-15T04:30:00Z')), false, 'manual and legacy runs remain full scans without scheduler configuration');
 assert.equal(isSupplementalRecoveryRun('8,bad,24', new Date('2026-09-15T04:30:00Z')), false, 'invalid scheduler configuration must not silently narrow collection');
+assert.deepEqual(
+  reorderSourcesForResume([{ id: 'done' }, { id: 'failed' }, { id: 'today-unconfirmed' }], ['today-unconfirmed', 'failed', 'removed-source'], true).map(source => source.id),
+  ['today-unconfirmed', 'failed'], 'supplemental retries exclude completed sources and never invent removed sources',
+);
+assert.deepEqual(reorderSourcesForResume([{ id: 'done' }], [], true), [], 'no outstanding work must not reopen all sources');
 
 assert.deepEqual(
   reorderSourcesForResume([{ id: 'done' }, { id: 'remaining-b' }, { id: 'remaining-a' }], ['remaining-a', 'remaining-b']).map((source) => source.id),
@@ -365,6 +378,12 @@ const mixedTimebarSocialSections = extractDatedDjSections({
   text: mixedTimebarSocialAndPassText,
   today: '2026-06-30',
 });
+for (const [date, dj] of [['16', 'Benny'], ['23', '쓴귤']]) {
+  const sections = extractDatedDjSections({ today: '2026-09-13',
+    text: `2026. 9. ${date} BALBOA SOCIAL IN CLUB DJ. 현장 :10000원 [Balboa in Social club] 날짜 : 9월 ${date}일 (매주 수요일) 장소 : 쏘셜클럽 D J : ${dj} 사전신청 : 8,000원 (전일 9월 ${Number(date)-1}일 23시까지)` });
+  assert.ok(sections.some(section => section.date === `2026-09-${date}` && section.segment.includes(`D J : ${dj}`)
+    && section.segment.includes('장소 : 쏘셜클럽')), 'spaced DJ labels retain the actual caption, venue and artist after OCR repeats the date');
+}
 assert.deepEqual(
   mixedTimebarSocialSections.map(({ date }) => date),
   ['2026-07-02'],
@@ -532,6 +551,20 @@ const kyungsungClosureDates = extractExplicitClosureDates({
 8/29 (토) ~ 8/30 (일)
 올어바웃스윙 썸머 페스티벌 MT로 휴관합니다.`,
 });
+for (const [text, publishedAt, today, expected] of [
+  ['9월 4주 위클리네오\n이번주 금햅, 일햅은 추석연휴로 쉬어갑니다!\n입문, 베이직 클래스 강습 진행됩니다.', '2026-09-22T00:20:34.000Z', '2026-09-25', ['2026-09-25', '2026-09-27']],
+  ['9월 4주차 이번주 금요일, 일요일 소셜 쉽니다', '2026-09-27T03:00:00Z', '2026-09-21', ['2026-09-25', '2026-09-27']],
+  ['이번주 금요일 소셜 쉽니다', '2026-12-29T00:00:00Z', '2026-12-29', ['2027-01-01']],
+  ['이번주 금요일 소셜 쉽니다', '2026-09-20T23:00:00Z', '2026-09-21', ['2026-09-25']],
+  ['이번주 금햅, 일햅은 쉽니다', '', '2026-09-25', []],
+  ['9월 4주차 휴무입니다', '', '2026-09-01', []],
+  ['이번주 금요일 강습은 쉬어갑니다. 소셜은 정상 진행', '2026-09-22', '2026-09-25', []],
+  ['이번주 금햅 DJ 쓴귤, 일햅은 쉬어갑니다', '2026-09-22', '2026-09-25', []],
+  ['이번주 금햅, 일햅은 쉽니다', '2026-09-22', '2026-09-28', []],
+]) {
+  assert.deepEqual(extractExplicitClosureDates({ text, publishedAt, today }), expected,
+    'weekly closures require a publication week and scoped weekday evidence; never turn week numbers/classes into social closures');
+}
 assert.deepEqual(
   kyungsungClosureDates,
   ['2026-08-23', '2026-08-29', '2026-08-30'],
@@ -1023,6 +1056,55 @@ assert.equal(findSourceForCandidate({ sourceId: 'dsn-crew-meetup', url: 'https:/
 assert.equal(findSourceForCandidate({ sourceId: 'dsn-crew-meetup', url: 'https://www.meetup.com/ko-kr/another-group/events/123/' }), null, 'Meetup group boundaries must remain exact');
 assert.equal(findSourceForCandidate({ sourceId: 'hongdae-bonita-kakao', url: 'https://pf.kakao.com/_RIMtM_other/123' }), null, 'a channel prefix must not match another channel');
 
+// Public weekly notices and dated Meetup cards feed the same validation gate.
+{
+  const source = getAutomationSourceList('expanded-ingestion').find(s => s.id === 'hongdae-bonita-kakao');
+  assert.equal(supportsPublicScheduleSource(source), true);
+  const document = { kind: 'kakao', sourceUrl: 'https://pf.kakao.com/_RIMtM/114598795', publishedAt: '7일 전', text: [
+    '📍9월20일(일) 소셜 DJ 리키 살:바 3:3',
+    '📍9월21일(월) 수업만 진행 소셜휴무',
+    '📍9월22일(화) 살.바.키 3콤보',
+    '메인홀 (살:바 3:3) – DJ 길거리',
+    '키좀바홀 (올키좀바) – DJ 뮤짱',
+    '*9/23일 부속 강습 안내',
+  ].join('\n') };
+  const { rows } = publicScheduleRows(document, source, { today: '2026-09-22' });
+  assert.deepEqual(rows.map(r => r.date), ['2026-09-22'], 'no past, closed or incidental workshop occurrence');
+  assert.match(rows[0].djText, /DJ 길거리/);
+  assert.doesNotMatch(rows[0].djText, /DJ 뮤짱/, 'a different genre hall cannot supply the salsa DJ');
+  assert.match(rows[0].text, /키좀바홀/, 'keep the original mixed program in the description');
+  assert.equal(publicScheduleRows({ ...document, publishedAt: '2025.09.15.' }, source, { today: '2026-09-22' }).rows.length, 0, 'old yearless schedules never roll into next year');
+  assert.equal(publicScheduleRows({ ...document, publishedAt: '' }, source, { today: '2026-09-22' }).rows.length, 0, 'unknown publication year is not inferred from collection date');
+  assert.equal(publicScheduleRows({ ...document, text: document.text.replace('22일(화)', '22일(금)') }, source, { today: '2026-09-22' }).rows.length, 0, 'weekday conflicts are held');
+  assert.equal(publicPublicationDate('2일 전', '2027-01-01'), '2026-12-30');
+  assert.equal(supportsPublicScheduleSource({ ...source, discoveryOnly: true }), false);
+
+  const meetup = getAutomationSourceList('expanded-ingestion').find(s => s.id === 'dsn-crew-meetup');
+  const card = { kind: 'meetup', sourceUrl: 'https://www.meetup.com/dsn-crew/events/316416509/', title: 'DSN LATIN CLUB PARTY', date: '2026-09-24T21:30:00+09:00[Asia/Seoul]', dateLabel: 'Thu, Sep 24', venue: '클럽 라틴', text: 'Salsa & Bachata\nLegendary DJ MAX Returns — MAX NIGHT\nEvery Thursday, starting July 16, 2026\n### Detailed Event Schedule\nSalsa class at another studio, signup closes July 15\nContact: DJ OTHER' };
+  const social = publicScheduleRows(card, meetup, { today: '2026-09-22' }).rows;
+  assert.deepEqual(social.map(r => r.date), ['2026-09-24'], 'use only the actual occurrence date; no recurring expansion or deadline');
+  assert.doesNotMatch(social[0].djText, /DJ OTHER|another studio/);
+  assert.equal(publicScheduleRows({ ...card, cancelled: true }, meetup, { today: '2026-09-22' }).rows.length, 0);
+  assert.equal(publicScheduleRows({ ...card, title: 'Salsa on1 Open class' }, meetup, { today: '2026-09-22' }).rows.length, 0);
+  assert.equal(publicScheduleRows({ ...card, text: 'Salsa social\n### Crew Recruitment\nDJ MAX contact' }, meetup, { today: '2026-09-22' }).rows.length, 0, 'a contact is not a performing DJ');
+  assert.equal(publicScheduleRows({ ...card, text: 'Bachata only\nDJ MAX' }, meetup, { today: '2026-09-22' }).rows.length, 0);
+  const lessonSource = getAutomationSourceList('expanded-ingestion').find(s => s.id === 'jdc-lessons-meetup');
+  const lessonCard = { ...card, title: 'SATURDAY SALSA & BACHATA', date: '2026-09-26T15:00:00+09:00', venue: 'JDC Studio, Gangnam, Seoul', text: 'Latin Dance Classes for beginners\nThe Schedule\n🔹TUESDAY\nSalsa class\n🔹SATURDAY\nSalsa LA Style On1\nSocial dance after class\n🔹MONDAY\nSalsa class\nLocation: Songdo' };
+  const lessonRows = publicScheduleRows(lessonCard, lessonSource, { today: '2026-09-22' }).rows;
+  assert.equal(lessonRows.length, 1);
+  assert.equal(lessonRows[0].activity, 'class');
+  assert.doesNotMatch(lessonRows[0].text, /TUESDAY|MONDAY|Songdo/);
+  assert.equal(publicScheduleRows({ ...lessonCard, date: '2026-09-28' }, lessonSource, { today: '2026-09-22' }).rows.length, 0, 'a competing weekday venue is not silently assigned the card venue');
+  assert.equal(publicScheduleRows({ ...lessonCard, text: lessonCard.text.replace('Salsa LA Style On1', 'Bachata only') }, lessonSource, { today: '2026-09-22' }).rows.length, 0, 'a mixed community does not make a bachata-only class salsa');
+  const regional = ['rueda_busan', 'latinclub_baya', 'daejeonlatinclub', 'mayan_dance_official', 'latin.blossom', 'gumi.arte', 'sunladan_salsa_bachata'];
+  for (const id of regional) {
+    assert.ok(getAutomationSourceList('expanded-ingestion').some(s => s.id === id && s.saveEnabled && s.autoRegistrationPolicy === 'manual'));
+    assert.ok(!getAutomationSourceList('swing-daily').some(s => s.id === id));
+  }
+  assert.equal(getAutomationSourceList('expanded-ingestion').find(s => s.id === 'latin-in-seoul').saveEnabled, false);
+  assert.equal(new Set(getCollectionSources().map(s => s.id)).size, getCollectionSources().length, 'no duplicate source owners');
+}
+
 const thumbnailOptionalSocial = prepareCandidate(baseCandidate({
   source_id: 'neo_swing',
   source_url: 'https://www.instagram.com/neo_swing/p/Db445CCqdzm/',
@@ -1116,6 +1198,11 @@ function assertNoVirtualGenreFields(structuredData) {
 
 const id1 = makeDeterministicId('https://example.com/post?utm_source=x#top', '2026-06-01');
 const id2 = makeDeterministicId('https://example.com/post', '2026-06-01');
+assert.equal(
+  makeDeterministicId('https://www.meetup.com/ko-KR/dsn-crew/events/316416509/?eventOrigin=group_events_list', '2026-09-24'),
+  makeDeterministicId('https://www.meetup.com/dsn-crew/events/316416509/', '2026-09-24'),
+  'Meetup locale and navigation tracking do not create another candidate',
+);
 assert.equal(id1, id2, 'utm/hash normalized deterministic ID');
 assert.notEqual(id1, makeDeterministicId('https://example.com/post', '2026-06-02'), 'date changes deterministic ID');
 assert.equal(
@@ -2796,4 +2883,61 @@ assert.notEqual(findSourceByUrl('https://m.cafe.daum.net/sdamu/1nCx/1168')?.id, 
 assert.notEqual(findSourceByUrl('https://m.cafe.daum.net/salsadolce/jGg2/150')?.id, 'suwon-cuba-lessons-cafe');
 assert.equal(findSourceByUrl('https://cafe.naver.com/f-e/cafes/16855256/menus/1?viewType=L')?.id, 'everlatin-lessons-cafe');
 
+const classNoticeTitle = '강남역 살사댄스 왕초보 속성반 모집중 9월 15일 17일 19일 20일 개강 - 에버라틴댄스';
+const classNoticeSection = `** 강습공지
+- 강습 일정
+*강남역 화요반
+9월 15일부터 5주간
+/ pm 7시 30분 ~ 9시 30분 (강남역 라틴바)
+*강남역 목요반 :
+9월 17일부터 5주간
+/ pm 7시 30분 ~ 9시 30분 (강남역 라틴바)
+*강남역 토요반 :
+9월 19일부터 5주간
+/ pm 6시~ 8시 (강남역 라틴바)
+*강남역 일요반
+: 9월 20일부터 5주간
+/ pm 6시~ 8시 (강남역 라틴바)`;
+const mixedClassNotice = `에버라틴은 아카데미형 동호회입니다.\n기수MT & 소셜 파티!\n${classNoticeSection}`;
+const classEvidenceOptions = { title: classNoticeTitle, allowedActivityTypes: ['class'] };
+const focusedClassNotice = selectClassNoticeEvidenceText(mixedClassNotice, classEvidenceOptions);
+const classSections = extractIndependentClassNoticeSections(focusedClassNotice, classEvidenceOptions);
+assert.deepEqual(classSections.map(row => row.openingText), ['9월 15일', '9월 17일', '9월 19일', '9월 20일']);
+assert.equal(classSections.every(row => !row.text.includes('MT')), true);
+assert.equal(extractIndependentClassNoticeSections(`${classNoticeSection}\n*** 위 수업 중 하나만 신청해도 중복수강과 교차수강이 가능합니다.`, classEvidenceOptions).every(row => row.text.includes('교차수강')), true, 'shared enrollment terms remain attached to every independent opening');
+assert.equal(extractIndependentClassNoticeSections(classNoticeSection, { allowedActivityTypes: ['social'] }).length, 0);
+assert.equal(extractIndependentClassNoticeSections('화요반\n9월 15일부터 5주간\n9월 22일 2주차\n9월 29일 3주차', classEvidenceOptions).length, 0, 'one course meeting weekly is not three separate openings');
+assert.equal(extractIndependentClassNoticeSections(classNoticeSection.replace('9월 17일부터', '날짜 미정'), classEvidenceOptions).length, 0, 'do not inherit a neighboring cohort date');
+assert.equal(extractIndependentClassNoticeSections(mixedClassNotice, classEvidenceOptions).length, 0, 'class section extraction cannot bypass MT exclusion');
+assert.deepEqual(alignYearlessDatesToPublication(['2026-09-15'], classNoticeSection, '2026.01.06.'), ['2026-09-15'], 'weekday evidence identifies the edited notice year inside the publication window');
+assert.deepEqual(alignYearlessDatesToPublication(['2032-09-15'], classNoticeSection, '2026.01.06.'), ['2026-09-15'], 'collection year cannot move an old notice into the future');
+assert.deepEqual(alignYearlessDatesToPublication(['2026-09-15'], '9월 15일 강습 공지', '2026.01.06.'), ['2025-09-15'], 'without weekday or explicit year keep publication anchoring');
+assert.equal(focusedClassNotice, `${classNoticeTitle}\n${classNoticeSection}`);
+assert.match(getBlockedKeywordReason(mixedClassNotice), /MT/);
+assert.equal(getBlockedKeywordReason(focusedClassNotice), null);
+// The common validator still owns dates and exclusions after evidence selection.
+const scopedClassCandidate = { source_id: 'everlatin-lessons-cafe', source_url: 'https://cafe.naver.com/everlatin/2039',
+  extracted_text: focusedClassNotice, structured_data: { title: classNoticeTitle, date: '2026-09-15',
+    activity_type: 'class', dance_scope: 'salsa', location: '강남역 라틴바', venue_provenance: 'source_text' } };
+assert.equal(prepareCandidate(scopedClassCandidate, { today: '2026-09-11' }).validation.ok, true);
+assert.equal(prepareCandidate(scopedClassCandidate, { today: '2026-09-23' }).validation.ok, false, 'past opening dates stay excluded');
+assert.equal(selectClassNoticeEvidenceText(mixedClassNotice, { ...classEvidenceOptions, title: '살사 강습 MT 안내' }), mixedClassNotice);
+assert.equal(selectClassNoticeEvidenceText(mixedClassNotice, { ...classEvidenceOptions, allowedActivityTypes: ['social', 'class'] }), mixedClassNotice);
+for (const ambiguous of [
+  mixedClassNotice.replace('** 강습공지', '소개'),
+  `${mixedClassNotice}\n수업 안에 기수MT 포함`,
+  `${mixedClassNotice}\n** 수업안내\n10월 1일 개강`,
+  mixedClassNotice.replace(/9월 \d+일/g, '날짜 미정'),
+]) assert.equal(selectClassNoticeEvidenceText(ambiguous, classEvidenceOptions), ambiguous);
+const otherClassNotice = '모임은 MT도 합니다.\n■ 수업 안내\n10월 1일부터 린디합 초급 강습, 장소 스윙타임';
+assert.equal(getBlockedKeywordReason(selectClassNoticeEvidenceText(otherClassNotice, { title: '린디합 초급 개강', allowedActivityTypes: ['class'] })), null, 'selection must not depend on an Everlatin identifier');
+
+for (const menu of [12, 81, 82, 83, 84, 91]) {
+  const route = getAutomationSourceList('expanded-ingestion').find(s => s.id === `everlatin-lessons-${menu}`);
+  assert.equal(route.saveEnabled, true);
+  assert.equal(findSourceByUrl(`https://cafe.naver.com/f-e/cafes/16855256/articles/5000?menuid=${menu}`).id, route.id);
+  assert.equal(getAutomationSourceList('swing-daily').some(s => s.id === route.id), false);
+}
+assert.equal(findSourceByUrl('https://www.instagram.com/clublatin_everlatin/p/example/').id, 'clublatin_everlatin');
+assert.ok(naverScheduleOverviewPriority('살사 초급 10월 1일 개강 모집중', '2026-09-23', {allowedActivityTypes:['class']}) < naverScheduleOverviewPriority('112기 발표회 공지', '2026-09-23', {allowedActivityTypes:['class']}));
 console.log('ingestion standards ok');

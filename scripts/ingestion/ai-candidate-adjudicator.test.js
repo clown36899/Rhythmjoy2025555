@@ -46,7 +46,8 @@ describe('social poster extraction eligibility', () => {
     const text = '9/11 소셜 DJ 충하';
     expect(shouldAttemptAiSocialExtraction(source, text, true, { enabled: false })).toBe(false);
     expect(shouldAttemptAiSocialExtraction({ ...source, benefitKind: 'free_event' }, text, true)).toBe(false);
-    expect(shouldAttemptAiSocialExtraction({ scope: 'salsa' }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ scope: 'salsa' }, text, true)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction({ scope: 'tango' }, text, true)).toBe(false);
     expect(shouldAttemptAiSocialExtraction({ ...source, allowedActivityTypes: ['class'] }, text, true)).toBe(false);
     expect(shouldAttemptAiSocialExtraction(source, '공식 프로필 운영 안내', true)).toBe(false);
   });
@@ -187,6 +188,22 @@ describe('AI candidate adjudication grounding', () => {
       djs: ['멍군'],
       evidence_quotes: ['Balboa in Social club', '날짜 : 7월 29일', '장소 : 쏘셜클럽', 'D J : 멍군'],
     }).ok).toBe(true);
+  });
+
+  it('uses the shared venue aliases for exact English poster quotes without accepting missing or different venue evidence', () => {
+    const original = '2026.09.24 목요 소셜 DJ 해림 SAVOY BALLROOM BAR';
+    const input = { extracted_text: original, structured_data: {
+      title: '목요 소셜', date: '2026-09-24', activity_type: 'social', venue_name: '사보이볼룸', djs: ['해림'],
+    } };
+    const judgment = { decision: 'register', confidence: 0.99, event_date: '2026-09-24', activity_type: 'social',
+      venue: 'SAVOY BALLROOM BAR', djs: ['해림'], evidence_quotes: [original] };
+    expect(validateAiAdjudication(input, judgment).ok).toBe(true);
+    expect(validateAiAdjudication(input, { ...judgment, evidence_quotes: ['2026.09.24 목요 소셜 DJ 해림'] }).ok).toBe(false);
+    expect(validateAiAdjudication(input, { ...judgment, venue: '해피홀' }).ok).toBe(false);
+    expect(validateAiAdjudication({ ...input, extracted_text: original.replace('SAVOY BALLROOM BAR', '해피홀') }, judgment).ok).toBe(false);
+    const extraction = { decision: 'extract', confidence: 0.99, events: [{ event_date: '2026-09-24', venue: '사보이볼룸',
+      djs: ['해림'], poster_image_index: 0, evidence_quotes: [original] }] };
+    expect(validateAiSocialExtraction({ sourceText: original, today: '2026-09-24' }, extraction).ok).toBe(true);
   });
 
   it('accepts fixed venue evidence from a verified single-venue official source', () => {
@@ -842,5 +859,20 @@ describe('AI benefit candidate review', () => {
 
     expect(result.outcome).toBe('review');
     expect(result.reasons).toContain('AI category disagrees with collector category');
+  });
+});
+
+
+describe('salsa source social evidence', () => {
+  it('requires salsa in the individual session evidence while preserving swing validation', () => {
+    const sourceText = '9월 25일 라틴 소셜 DJ 리키 Salsa';
+    const event = {title:'라틴 소셜', event_date:'2026-09-25', venue:'라틴', djs:['리키'], poster_image_index:0, evidence_quotes:[sourceText]};
+    const extraction={decision:'extract',confidence:0.99,poster_text:'',events:[event],reasons:[]};
+    expect(validateAiSocialExtraction({sourceScope:'salsa', sourceText, today:'2026-09-23'},extraction).ok).toBe(true);
+    const bachataText = sourceText.replace('Salsa','Bachata');
+    const bachata = {...extraction,events:[{...event,evidence_quotes:[bachataText]}]};
+    expect(validateAiSocialExtraction({sourceScope:'salsa',sourceText:bachataText,today:'2026-09-23'},bachata).ok).toBe(false);
+    expect(buildSocialExtractionPrompt({sourceScope:'salsa'})).toContain('salsa-dance');
+    expect(buildSocialExtractionPrompt({})).toContain('swing-dance');
   });
 });

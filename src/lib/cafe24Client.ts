@@ -28,6 +28,13 @@ export interface Event {
   location: string;
   location_link?: string;
   category: string;
+  structured_data?: { djs?: unknown; [key: string]: unknown } | null;
+  automation?: {
+    generated_by?: string | null;
+    source_id?: string | null;
+    exception_id?: string | null;
+    exception_type?: string | null;
+  } | null;
   genre?: string | null; // [New] 장르 추가
   dance_scope?: 'swing' | 'salsa' | 'bachata' | 'tango' | 'street' | 'unknown' | string | null;
   dance_genre?: string | null;

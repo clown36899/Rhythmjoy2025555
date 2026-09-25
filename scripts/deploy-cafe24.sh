@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -n "${1:-}" && "${1}" != "--analytics-only" ]]; then
-  echo "Usage: $0 [--analytics-only]" >&2
+if [[ -n "${1:-}" && "${1}" != "--analytics-only" && "${1}" != "--frontend-only" ]]; then
+  echo "Usage: $0 [--analytics-only|--frontend-only]" >&2
   exit 2
 fi
 
@@ -152,7 +152,11 @@ if [[ "${1:-}" == "--analytics-only" ]]; then
   exit 0
 fi
 
-npm run build:cafe24
+if [[ "${1:-}" == "--frontend-only" ]]; then
+  npm run build:only
+else
+  npm run build:cafe24
+fi
 
 ENTRY_STAGE_FILES=(dist/index.html dist/service-worker.js dist/version.json)
 for entry_file in "${ENTRY_STAGE_FILES[@]}"; do
@@ -198,6 +202,9 @@ cron_log="${RSYNC_LOG_DIR}/cron.log"
 rsync -azi --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/assets/ "${TARGET}:${APP_DIR}/dist/assets/" | tee "${dist_log}"
 rsync -azi --delay-updates --exclude 'assets/' --exclude 'index.html' --exclude 'service-worker.js' --exclude 'version.json' --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist/ "${TARGET}:${APP_DIR}/dist/" | tee -a "${dist_log}"
 rsync -azi --delay-updates -e "${RSYNC_SSH}" "${ENTRY_STAGE_FILES[@]}" "${TARGET}:${REMOTE_ENTRY_DIR}/" | tee -a "${dist_log}"
+# The public UI can be released independently of the already-running collector
+# and API. Reuse asset staging/version-last publication; skip all backend writes.
+if [[ "${1:-}" != "--frontend-only" ]]; then
 rsync -azi --checksum --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" dist-cafe24/ "${TARGET}:${APP_DIR}/dist-cafe24/" | tee "${functions_log}"
 rsync -azi --checksum --delete --delay-updates --exclude '.DS_Store' --exclude '._*' -e "${RSYNC_SSH}" server/cafe24/ "${TARGET}:${APP_DIR}/server/cafe24/" | tee "${server_log}"
 rsync -azi -e "${RSYNC_SSH}" scripts/audit-analytics-admin-devices.mjs "${TARGET}:${APP_DIR}/scripts/" | tee -a "${scripts_log}"
@@ -375,6 +382,10 @@ chown root:root /etc/cron.d/swingenjoy-notifications
 systemctl reload crond || systemctl restart crond
 systemctl reload httpd || true
 systemctl is-active '${SERVICE}'"
+
+else
+  ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e; curl -fsS '${HEALTH_URL}' >/dev/null; systemctl is-active '${SERVICE}'"
+fi
 
 # 서버 헬스 확인이 끝난 뒤에만 새 frontend entry를 공개한다. index와 service
 # worker를 먼저 준비하고 version.json을 마지막 atomic rename으로 전환해야

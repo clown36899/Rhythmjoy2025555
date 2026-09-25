@@ -8,6 +8,7 @@ import {
 import {
   getAutomationSourceList,
   getExcludedSourceReason,
+  isAutomaticCollectionActivityEnabled,
 } from './collection-registry.mjs';
 
 const profile = process.env.INGESTION_PROFILE || 'expanded-ingestion';
@@ -344,6 +345,7 @@ async function scrapeDetailPage(page, link, source) {
 
   const posterUrl = pickPosterImage(data.images);
   const activity = inferActivityForExpanded(text, source);
+  if (!isAutomaticCollectionActivityEnabled(activity)) return [];
   if (!posterUrl && activity !== 'class') {
     result.skipped += 1;
     result.candidates.push(`skip:${source.id}:no poster:${link.text}`);
@@ -394,6 +396,7 @@ async function scrapeDetailPage(page, link, source) {
 }
 
 async function postCandidate(candidate) {
+  if (!isAutomaticCollectionActivityEnabled(candidate.structured_data?.activity_type)) return;
   result.validated += 1;
   if (dryRun) {
     result.candidates.push(`dry-run:${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
@@ -475,6 +478,8 @@ async function main() {
 
   const sources = getAutomationSourceList(profile)
     .filter((source) => source.saveEnabled && !source.discoveryOnly && source.scope !== 'swing')
+    .filter((source) => !source.allowedActivityTypes?.length
+      || source.allowedActivityTypes.some(isAutomaticCollectionActivityEnabled))
     .filter((source) => ['website', 'directory'].includes(source.type))
     .filter((source) => sourceIds.length === 0 || sourceIds.includes(source.id))
     .sort((a, b) => a.priority - b.priority || a.scope.localeCompare(b.scope) || a.name.localeCompare(b.name, 'ko'))

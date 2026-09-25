@@ -226,6 +226,10 @@ export function isNaverAdministrativeNoticeText(value = '') {
 
 export function naverScheduleOverviewPriority(value = '', today = '', { allowedActivityTypes = [] } = {}) {
   const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+  const classOnly = allowedActivityTypes.length === 1 && allowedActivityTypes[0] === 'class';
+  if (classOnly && /강습|수업|클래스|살사|바차타|린디|발보아/.test(normalized)
+    && /개강|모집|시작/.test(normalized) && /\d{1,2}\s*(?:월|[./])\s*\d{1,2}/.test(normalized)
+    && !/발표회|수료식|엠티|\bMT\b/i.test(normalized)) return 0;
   if (!isNaverScheduleOverviewText(normalized)) return 4;
   // Class-only boards need individual start dates before mixed monthly notices.
   if (allowedActivityTypes.length === 1 && allowedActivityTypes[0] === 'class') return 5;
@@ -303,8 +307,94 @@ export function isStaleBenefitSourcePost({
   return cutoff.getTime() - published.getTime() > maxAgeDays * 86_400_000;
 }
 
+// The existing profile ordering must read icon labels as well as legacy text.
+// Pinned posts remain available after recent posts for monthly schedules.
+export function readInstagramProfileDocument() {
+    const links = [...document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')]
+      .map((a, index) => ({
+        href: a.href ? a.href.split('?')[0] : '',
+        pinned: /고정|pinned/i.test([a.textContent || '', ...Array.from(a.querySelectorAll('[aria-label], [title], img[alt]'), node => [node.getAttribute('aria-label'), node.getAttribute('title'), node.getAttribute('alt')].filter(Boolean).join(' '))].join(' ')),
+        index,
+      }))
+      .filter((item) => item.href)
+      .sort((a, b) => {
+        const aPinned = a.pinned ? 1 : 0;
+        const bPinned = b.pinned ? 1 : 0;
+        return aPinned - bPinned || a.index - b.index;
+      });
+    const seen = new Set();
+    const dedupedLinks = [];
+    for (const item of links) {
+      if (seen.has(item.href)) continue;
+      seen.add(item.href);
+      dedupedLinks.push(item.href);
+    }
+    const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 3000);
+    const title = document.title || '';
+    const url = window.location.href;
+    return { links: dedupedLinks.slice(0, 48), bodyText, title, url };
+}
+
+// Read each rendered carousel page through its public Next button. This owns only
+// discovery; the existing candidate validator and publication policy still apply.
+export async function readInstagramCarouselDocument(page, { maxSlides = 8, budgetMs = 10000, readinessMs = 8000, expectedUrl = page.url() } = {}) {
+  const originalPath = new URL(page.url()).pathname;
+  const requestedCode = new URL(expectedUrl).pathname.match(/\/(?:p|reel)\/([^/]+)/)?.[1];
+  const actualCode = originalPath.match(/\/(?:p|reel)\/([^/]+)/)?.[1];
+  if (requestedCode && requestedCode !== actualCode && !/\/accounts\/login|\/challenge\/|\/checkpoint\//i.test(page.url())) {
+    throw new Error(`Instagram post URL mismatch: requested=${expectedUrl} final=${page.url()}`);
+  }
+  const readPost = async () => {
+    const readyDeadline = Date.now() + readinessMs;
+    for (;;) {
+      const data = await page.evaluate(readInstagramPostDocument);
+      const state = classifyInstagramProfilePage({ url: page.url(), bodyText: data.accessDialogText || '' });
+      if (state === 'login_wall') throw new Error(`instagram post login required: requested=${expectedUrl} final=${page.url()}`);
+      if (state === 'global_block') throw new Error('instagram global access blocked');
+      if (state === 'source_unavailable') throw new Error('instagram source unavailable');
+      // Header/footer rendering is not a loaded post and must not complete it.
+      if (data.articleText || (data.metaDescription && data.images?.some(image => image.w >= 300 && image.h >= 300))) return data;
+      if (Date.now() >= readyDeadline) throw new Error(`Instagram post content not ready: requested=${expectedUrl} final=${page.url()}`);
+      await page.waitForTimeout(250);
+    }
+  };
+  const first = await readPost();
+  const images = new Map(first.images.map(image => [image.src, image]));
+  const texts = new Set([first.articleText].filter(Boolean));
+  const deadline = Date.now() + budgetMs;
+  let carouselError = '';
+  for (let slide = 1; slide < maxSlides && Date.now() < deadline; slide += 1) {
+    const next = page.getByRole('button', { name: /^(다음|Next)$/ });
+    if (await next.count() !== 1 || !await next.isVisible()) break;
+    try {
+      await next.click({ timeout: Math.min(1500, Math.max(1, deadline - Date.now())) });
+    } catch {
+      await readPost(); // A newly shown access wall must stop the source immediately.
+      // Preserve already read evidence and report incompleteness; never force
+      // through login overlays or mark this post fully scanned.
+      carouselError = 'carousel Next control unavailable';
+      break;
+    }
+    await page.waitForTimeout(250);
+    if (new URL(page.url()).pathname !== originalPath) throw new Error('Instagram carousel left the source post');
+    const current = await readPost();
+    for (const image of current.images) if (image.src) images.set(image.src, image);
+    if (current.articleText) texts.add(current.articleText);
+  }
+  const remainingNext = page.getByRole('button', { name: /^(다음|Next)$/ });
+  const carouselIncomplete = Boolean(carouselError) || (await remainingNext.count() === 1 && await remainingNext.isVisible());
+  return { ...first, images: [...images.values()], articleText: [...texts].join('\n'), carouselIncomplete, carouselError };
+}
+
 // Runs inside the page; keep the legacy article layout and current unwrapped layout.
 export function readInstagramPostDocument() {
+    const accessDialogText = [...document.querySelectorAll('[role="dialog"]')]
+      .filter((node) => !node.hidden && node.getAttribute('aria-hidden') !== 'true'
+        && getComputedStyle(node).display !== 'none' && getComputedStyle(node).visibility !== 'hidden')
+      .map((node) => node.textContent || '')
+      // A login link in the ordinary post footer is not an access wall.
+      .filter((text) => /게시물을\s*놓치지|Instagram에\s*가입|log\s*in\s*to\s*(?:see|continue)|log\s*into\s*instagram|sign\s*up\s*to\s*see|see\s*more\s*from|temporarily\s*blocked|try\s*again\s*later|잠시\s*후\s*다시\s*시도/i.test(text))
+      .join('\n');
     const metaDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
     const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
     const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
@@ -334,5 +424,56 @@ export function readInstagramPostDocument() {
       .map((anchor) => anchor.href || anchor.getAttribute('href') || '')
       .filter(Boolean)
       .slice(0, 80);
-    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt, profileHrefs };
+    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt, profileHrefs, accessDialogText };
+}
+
+// Browser-serializable reader shared by readiness and extraction. A comma-joined
+// selector selects DOM order, so an outer ArticleContentBox can win over its
+// actual article_viewer and mix the author/comments into event evidence.
+export function readNaverArticleDocument({ readyOnly = false } = {}) {
+  const first = (selectors) => selectors.map(selector => document.querySelector(selector)).find(Boolean);
+  const viewer = first([
+    '.article_viewer', '.se-main-container', '.ContentRenderer', '#tbody',
+    '.NHN_Writeform_Main', '.post_ct', '.se-viewer', '.article-content',
+  ]);
+  const text = viewer?.innerText ?? viewer?.textContent ?? '';
+  const images = [...(viewer?.querySelectorAll('img') || [])].map(img => ({
+    src: img.currentSrc || img.src || img.getAttribute('data-src') || img.getAttribute('data-lazysrc') || img.getAttribute('data-original') || img.getAttribute('data-url') || '',
+    w: img.naturalWidth || img.width || 0,
+    h: img.naturalHeight || img.height || 0,
+  })).filter(img => img.src);
+  if (readyOnly) return Boolean(text.trim() || images.length);
+  const badTitleRe = /인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|작성자|조회수?|댓글|목록|URL\s*복사|좋아요|신고|게시글/i;
+  const title = [...document.querySelectorAll('.title_text, .tit_area .tit')]
+    .map(node => (node.textContent || '').replace(/\s+/g, ' ').trim())
+    .find(value => value && !badTitleRe.test(value)) || '';
+  const publishedAt = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')
+    || document.querySelector('time[datetime]')?.getAttribute('datetime')
+    || first(['.ArticleWriter .date', '.article_info .date', '.date'])?.textContent || '';
+  return { title, text, images, publishedAt };
+}
+
+// Public cafe links only; comment navigation must never overwrite article titles.
+export function readNaverArticleListDocument() {
+    const textOf = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
+    const imageOf = (root) => {
+      const img = root?.querySelector('img');
+      return img?.currentSrc || img?.src || img?.getAttribute('data-src') || img?.getAttribute('data-lazysrc') || '';
+    };
+    return [...document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]')]
+      .filter((anchor) => !/[?&]commentFocus=true(?:&|$)/i.test(anchor.href))
+      .map((anchor, index) => {
+        const href = anchor.href;
+        const row = anchor.closest('tr, li, .ArticleListItem, .item, .board-list, .article-board, .article-list') || anchor.parentElement;
+        const rowTitle = textOf(row?.querySelector('a.tit, a.article, .tit, .article, strong, .title'));
+        const title = textOf(anchor) || rowTitle;
+        return {
+          href,
+          title,
+          rowText: textOf(row),
+          posterUrl: imageOf(row),
+          index,
+        };
+      })
+      .filter((item) => item.href && item.title && !/commentFocus=true/.test(item.href));
 }

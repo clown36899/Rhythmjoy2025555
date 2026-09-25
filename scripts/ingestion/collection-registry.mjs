@@ -1,5 +1,13 @@
 export const allowedCollectionScopes = ['swing', 'salsa', 'bachata', 'tango', 'street'];
 
+// Collect grounded social schedules and keep official notices directly linked.
+// The shared switch also governs intake and automatic registration.
+export const automaticSocialCollectionEnabled = true;
+export function isAutomaticCollectionActivityEnabled(activity = '') {
+  return automaticSocialCollectionEnabled
+    || !['social', 'social_exception', 'closure', 'recurring_closure'].includes(String(activity).trim().toLowerCase());
+}
+
 export const excludedSourceRules = [
   {
     id: 'retired-swingfamily',
@@ -186,7 +194,7 @@ export const collectionSources = [
     runOrder: 0,
     notes: '확장 장르 혜택 검색. 원본 게시물의 장르·미래 날짜·원본 이미지·명시적 무료/정기권 표현을 모두 재검증한다.',
   })),
-  source({ id: 'happyhall2004', name: '해피홀', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/happyhall2004/', priority: 1, runOrder: -1.0 }),
+  source({ id: 'happyhall2004', name: '해피홀', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/happyhall2004/', venue: '해피홀', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class'], priority: 1, runOrder: -1.0, notes: '해피홀 공식 계정. 날짜·활동·장소를 원문과 원본 포스터로 확인하고 기존 AI 재검증·동일 장소 충돌 심사를 통과한 후보만 자동등록한다.' }),
   source({ id: 'neo_swing', name: '네오스윙 인스타그램', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/neo_swing/', venue: '해피홀', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social', 'class'], priority: 1, notes: '공식 Instagram 원본만 사용한다. 날짜·활동·해피홀·(소셜이면) DJ가 원문에 명시되고 AI 98% 재검증을 통과한 후보만 자동등록한다.' }),
   source({ id: 'swingtimebar', name: '스윙타임', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/swingtimebar/', venue: '스윙타임', autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social'], priority: 1, notes: '공식 단일 장소 계정이다. 소셜은 원문에서 미래 날짜와 날짜별 DJ가 명확하고 AI 98% 재검증을 통과하면 이미지 없이도 자동등록한다.' }),
   source({ id: 'fiesta_swingdance', name: '피에스타', scope: 'swing', genre: 'swing', type: 'instagram', url: 'https://www.instagram.com/fiesta_swingdance/', priority: 1 }),
@@ -281,13 +289,23 @@ export const collectionSources = [
 
   source({ id: 'sda-lessons-cafe', name: 'SDA 살사 강습 게시판', scope: 'salsa', genre: 'salsa', type: 'daum_cafe', url: 'https://m.cafe.daum.net/sdamu/Keq', match: /^https:\/\/(?:m\.)?cafe\.daum\.net\/sdamu\/Keq(?:\/\d+)?\/?(?:[?#].*)?$/i, priority: 1, allowedActivityTypes: ['class'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['class'], autoRegistrationVenuePolicy: 'explicit', notes: '공식 강습 게시판. 첫 개강일·실제 수업장소·활동 근거와 AI 검증을 통과한 강습만 등록. 휴강·입금마감·회원 댓글을 개강으로 오인하지 않으며 포스터는 선택 항목.' }),
   source({ id: 'everlatin-lessons-cafe', name: '에버라틴 살사 왕초보 신청 게시판', scope: 'salsa', genre: 'salsa', type: 'naver_cafe', url: 'https://cafe.naver.com/f-e/cafes/16855256/menus/1?viewType=L', match: /^https:\/\/(?:m\.)?cafe\.naver\.com\/(?:everlatin(?:\/\d+)?|(?:f-e|ca-fe\/web)\/cafes\/16855256\/(?:articles\/\d+|menus\/1))\/?(?:[?#].*)?$/i, priority: 1, allowedActivityTypes: ['class'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['class'], autoRegistrationVenuePolicy: 'explicit', notes: '운영자 이전 안내와 실제 메뉴 1 확인. 고정 모집 글 본문이 새 개강일로 수정되므로 작성일만으로 제외하지 않는다. 회원 개인 신청은 일정으로 등록하지 않는다. 요일별 개강반과 교차 수강 관계를 보존하고 충돌하는 종료일을 추정하지 않는다.' }),
+  // Verified current lesson boards; per-board ownership reuses the Naver registry path.
+  ...[[12, '초급'], [81, '초중급'], [82, '준중급'], [83, '준중플'], [84, '준중플 발표'], [91, '멀티살사']].map(([menu, level]) => source({
+    id: `everlatin-lessons-${menu}`, name: `에버라틴 살사 ${level}`, scope: 'salsa', genre: 'salsa', type: 'naver_cafe',
+    url: `https://cafe.naver.com/f-e/cafes/16855256/menus/${menu}?viewType=L`, priority: 1,
+    allowedActivityTypes: ['class'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['class'], autoRegistrationVenuePolicy: 'explicit',
+    notes: '2026-09-23 공식 메뉴와 실제 모집 공지 확인. 전체 공지·회원 신청과 개강 모집을 구별한다. 지난 개강을 회차로 복제하지 않으며 강사 변경 공지를 대조한다. 혼합 공지는 과정별 근거 검수 필요.',
+  })),
+  source({ id: 'clublatin_everlatin', name: '에버라틴 공식 Instagram', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/clublatin_everlatin/', priority: 2,
+    notes: '2026-09-23 네이버 카페 공식 링크와 프로필 역링크 확인. 수업·소셜 원문 경로. 공동 장소 운영자 latin_gangnam과 날짜·장소 중복을 대조하며 바차타/키좀바 전용 일정은 살사로 등록하지 않는다.' }),
   source({ id: 'suwon-cuba-lessons-cafe', name: '수원 쿠바 연간 강습 게시판', scope: 'salsa', genre: 'salsa', type: 'daum_cafe', url: 'https://m.cafe.daum.net/salsadolce/ru8G', match: /^https:\/\/(?:m\.)?cafe\.daum\.net\/salsadolce\/ru8G(?:\/\d+)?\/?(?:[?#].*)?$/i, priority: 1, allowedActivityTypes: ['class'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['class'], autoRegistrationVenuePolicy: 'explicit', notes: '수원 돌체비타/쿠바라틴의 2026 강습 원장. 실제 살사 과정만 수집하고 바차타 단독 과정은 살사로 등록하지 않는다. 본문 날짜·요일 충돌과 공개되지 않은 상세주소는 추정하지 않는다.' }),
   source({ id: 'suradan-lessons-cafe', name: '수라댄 살사 반곡반·특강 게시판', scope: 'salsa', genre: 'salsa', type: 'daum_cafe', url: 'https://m.cafe.daum.net/dk2094/QdX3', match: /^https:\/\/(?:m\.)?cafe\.daum\.net\/dk2094\/QdX3(?:\/\d+)?\/?(?:[?#].*)?$/i, priority: 1, allowedActivityTypes: ['class'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['class'], autoRegistrationVenuePolicy: 'explicit', notes: '수라댄 공개 강습 원장. 이미지 본문 공지는 원본 포스터에서 개강일·수업장소를 확인한다. 제목의 기수와 포스터가 다르면 기수를 추정하지 않으며 정모 게시판·회원 신청을 새 강습으로 등록하지 않는다. 포스터 자체는 필수가 아니지만 날짜·장소 근거는 필수.' }),
 
   source({ id: 'hongdae-bonita-kakao', name: '홍대보니따 공식 카카오 채널', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://pf.kakao.com/_RIMtM', match: /^https:\/\/pf\.kakao\.com\/_RIMtM(?:\/\d+)?\/?(?:[?#].*)?$/, priority: 1, venue: '홍대 보니따', allowedActivityTypes: ['social'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social'], notes: '공식 주간 원문을 날짜별로 분리해 날짜·해당 홀·명시 DJ가 확인된 소셜만 기존 서버 자동등록 경로로 보낸다. 휴무·미확정 DJ는 생성하지 않으며 다른 홀의 DJ를 합치지 않는다. 출처의 예약 수집 실행 여부와 등록 정책은 별개다.' }),
+  source({ id: 'jdc-lessons-meetup', name: 'JDC 살사·바차타 공개 강습', scope: 'salsa', genre: 'salsa', type: 'meetup', url: 'https://www.meetup.com/seoul-latin-dance-salsa-bachata-jhonatan-jimenez/', match: /^https:\/\/(?:www\.)?meetup\.com\/(?:[a-z]{2}-[a-z]{2}\/)?seoul-latin-dance-salsa-bachata-jhonatan-jimenez\/events\/(?!calendar(?:\/|[?#]|$))[a-z0-9]+\/?(?:[?#].*)?$/i, priority: 1, allowedActivityTypes: ['class'], autoRegistrationPolicy: 'manual', autoRegistrationVenuePolicy: 'explicit', notes: '2026-09-22 공식 예정 카드·강습 원문 확인. 게시된 개별 회차의 날짜·장소와 해당 요일 수업만 후보 저장. 다른 요일/송도 장소/부속 소셜을 별도 일정으로 생성하지 않는다. 수동 검수 유지.' }),
   source({ id: 'dsn-crew-meetup', name: 'DSN Crew 공식 Meetup 소셜', scope: 'salsa', genre: 'salsa', type: 'meetup', url: 'https://www.meetup.com/ko-kr/dsn-crew/', match: /^https:\/\/(?:www\.)?meetup\.com\/(?:[a-z]{2}-[a-z]{2}\/)?dsn-crew\/events\/(?!calendar(?:\/|[?#]|$))[a-z0-9]+\/?(?:[?#].*)?$/i, priority: 1, allowedActivityTypes: ['social'], autoRegistrationPolicy: 'shadow', autoRegistrationAllowedActivityTypes: ['social'], autoRegistrationVenuePolicy: 'explicit', notes: '실제 게시된 회차 날짜·명시된 DJ·원문 장소가 확인된 소셜만 서버 자동등록한다. 수요/목요의 장소가 다르므로 고정 장소를 대입하지 않는다. 취소 회차·오래된 부속 강습·DJ 미확인은 제외한다. 출처의 예약 수집 실행 여부와 등록 정책은 별개다.' }),
 
-  source({ id: 'latin-in-seoul', name: 'Latin in Seoul', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://salsa.atoo.kr/', priority: 1, notes: '살사/바차타 혼합 공지는 본문 기준으로 scope를 재판정' }),
+  source({ id: 'latin-in-seoul', name: 'Latin in Seoul', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://salsa.atoo.kr/', priority: 1, discoveryOnly: true, notes: '주간 장소·DJ 발견용. 공식 장소 원문을 추적하며 허브의 반복표를 미래 일정으로 복제하지 않는다.' }),
   source({ id: 'latin-in-seoul-weekly', name: 'Latin in Seoul Weekly Info', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://salsa.atoo.kr/category/weekly-info/', priority: 1, discoveryOnly: true, notes: '서울 라틴 주간 현황판. 반복 venue와 DJ/비율 파악용이며 venue 공식 원본 확인 후 저장' }),
   source({ id: 'place-ocean', name: 'Place Ocean', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://www.placeocean.kr/', priority: 2 }),
   source({ id: 'salsavida-seoul', name: 'SalsaVida Seoul', scope: 'salsa', genre: 'salsa', type: 'website', url: 'https://www.salsavida.com/guides/south-korea/seoul/socials/', priority: 2, discoveryOnly: true, notes: '서울 살사 소셜 캘린더. recurring venue/event 발견용이며 저장은 공식 venue/원본 포스터 확인 후만 허용' }),
@@ -303,10 +321,35 @@ export const collectionSources = [
   source({ id: 'bsbachata', name: 'BS Bachata', scope: 'bachata', genre: 'bachata', type: 'website', url: 'https://bsbachata.com/', priority: 2 }),
   source({ id: 'social-dance-today', name: 'Social Dance Today', scope: 'bachata', genre: 'bachata', type: 'website', url: 'https://social-dance.today/', priority: 3, discoveryOnly: true, notes: '글로벌 소셜댄스 검색. 서울 라틴 이벤트 발견용이며 자체 정보만으로 저장 금지' }),
   source({ id: 'flowdat-korea', name: 'Flowdat Korea Search', scope: 'bachata', genre: 'bachata', type: 'website', url: 'https://flowdat.co/', priority: 3, discoveryOnly: true, notes: '글로벌 댄스 이벤트 플랫폼. 한국 이벤트 원본 Instagram/공식 페이지 확인 전 저장 금지' }),
-  source({ id: 'turn_latin_bar', name: '턴라틴바', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/turn_latin_bar/', priority: 2 }),
-  source({ id: 'bonitasalsabar', name: '보니따살사', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/bonitasalsabar/', priority: 2 }),
-  source({ id: 'latin_in_seoul', name: '라틴인서울', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/latin_in_seoul/', priority: 2 }),
+  source({ id: 'turn_latin_bar', name: '강남 턴라틴클럽', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/turn_latinclub_no.1/', priority: 2, notes: '2026-09-22 현행 지역 디렉터리와 Latin in Seoul 공식 연결 대조. 기존 source ID는 보존한다.' }),
+  source({ id: 'bonitasalsabar', name: '홍대 보니따', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/jessica_latinclub_bonita/', priority: 2, notes: '현행 공식 채널로 연결. 카카오 주간 소셜과 교차 출처 중복 방지 적용.' }),
+  source({ id: 'bachata_salsa_hongturn', name: '홍대 홍턴 라틴클럽', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/bachata_salsa_hongturn/', priority: 2, notes: '2026-09-22 운영자 추석 공지 원문·포스터 대조. 강남 턴과 다른 장소다. 날짜별 음악 구성을 확인하며 키좀바 전용일은 살사에서 제외한다.' }),
+  source({ id: 'babaru_latinclub', name: '대구 바바루 라틴클럽', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/babaru_latinclub/', priority: 2, notes: '2026-09-22 살사드라마·LY 공동 공지에서 운영자 원문 확인. 추석 날짜별 DJ·소셜 입장료·주소를 원본 포스터와 대조. 강습 장르와 소셜 운영을 구별한다.' }),
+  source({ id: 'latin_in_seoul', name: '라틴인서울', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/latin_in_seoul/', priority: 2, discoveryOnly: true, notes: '주간 현황판의 공식 출처 발견용. 장소 운영자의 원문으로 이동한 뒤 저장한다.' }),
   source({ id: 'caribe0804', name: '까리베', scope: 'salsa', genre: 'salsa', type: 'instagram', url: 'https://www.instagram.com/caribe0804/', priority: 3 }),
+  // Owner routes discovered from the rendered Korea Latin Dance Hub cards.
+  // Manual remains the default; every dated post still needs original evidence.
+  ...[
+    ['latin_gangnam', '서울 강남 라틴'],
+    ['buenabar7', '서울 홍대 부에나'],
+    ['felizclub0701', '서울 홍대 펠리즈'],
+    ['lastdance_people', '서울 라스트댄스'],
+    ['salsadanceacademy.sda', '서울 SDA'],
+    ['rueda_busan', '부산 루에다'],
+    ['salsafitkorea', '부산 살사핏'],
+    ['largoysl_korea', '부산·울산 LY Dance'],
+    ['latinclub_baya', '대구 바야'],
+    ['salsadrama2010', '대구 살사드라마'],
+    ['daejeonlatinclub', '대전 대라클'],
+    ['mayan_dance_official', '광주 마얀'],
+    ['latin.blossom', '창원 라틴블라썸'],
+    ['gumi.arte', '구미 아르떼'],
+    ['sunladan_salsa_bachata', '순천 라틴댄스'],
+  ].map(([handle, name]) => source({
+    id: handle, name, scope: 'salsa', genre: 'salsa', type: 'instagram',
+    url: `https://www.instagram.com/${handle}/`, priority: 2,
+    notes: '2026-09-22 씬 조사로 발견한 공식 원문 경로. 공개 원문·미래 날짜·실제 장소·살사 프로그램을 확인한 후보만 저장. 바차타 전용 글은 살사로 등록하지 않는다. 로그인 차단은 접근불가로 보고하며 자동공개 승격하지 않는다.',
+  })),
 
   source({ id: 'freezekr-stage', name: 'Freeze KR', scope: 'street', genre: 'street', type: 'website', url: 'https://www.freezekr.com/stage', priority: 1 }),
   source({ id: 'dancecode', name: 'DanceCode', scope: 'street', genre: 'street', type: 'website', url: 'https://www.dancecode.kr/', priority: 1 }),
@@ -338,6 +381,17 @@ export const dynamicSearchQueries = {
     '스윙댄스 원데이 클래스 서울 2026',
   ],
   salsa: [
+    '살사 부산 루에다 살사핏 LY 정모 개강 파티',
+    '살사 대구 바야 살사드라마 정모 개강 파티',
+    '살사 대전 대라클 라틴팩토리 정모 강습',
+    '살사 광주 마얀 모두의라틴 정모 워크숍',
+    '살사 인천 수원 제주 창원 구미 순천 정모 개강',
+    '살사 BSBF 부산 페스티벌 아시아 오픈 라틴 챔피언십',
+    '살사 SIDF 제주 라틴 컬처 페스티벌 공식 일정',
+    'site:cafe.daum.net 살사 개강 정모',
+    'site:cafe.naver.com 살사 모집 개강',
+    'site:pf.kakao.com 살사 주간 일정 DJ',
+    'site:meetup.com salsa Korea social',
     'site:instagram.com 서울 살사 소셜 DJ',
     'site:instagram.com 홍대 살사 바차타 소셜',
     'site:instagram.com 서울 살사 무료 클래스 무료 입장',

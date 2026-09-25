@@ -41,6 +41,24 @@ export function toMapSafeVenueName(value) {
   return canonicalVenueAlias(stripped) || stripped;
 }
 
+// Evidence is a sentence or a poster quote, not a standalone venue name. Reuse
+// the same aliases for bounded phrases without maintaining another alias table
+// in each ingestion validator. Literal quoted-text grounding is checked there.
+export function venueEvidenceIncludes(evidence, venue) {
+  const expected = compactVenueText(toMapSafeVenueName(venue));
+  if (!expected) return false;
+  const raw = String(evidence || '').normalize('NFKC');
+  if (compactVenueText(raw).includes(expected)) return true;
+  const words = raw.split(/[^\p{L}\p{N}()（）._-]+/u).filter(Boolean);
+  for (let start = 0; start < words.length; start += 1) {
+    for (let length = 1; length <= 5 && start + length <= words.length; length += 1) {
+      const alias = canonicalVenueAlias(words.slice(start, start + length).join(' '));
+      if (alias && compactVenueText(alias) === expected) return true;
+    }
+  }
+  return false;
+}
+
 export function normalizeVenueName(value) {
   const safe = toMapSafeVenueName(value);
   return compactVenueText(safe)

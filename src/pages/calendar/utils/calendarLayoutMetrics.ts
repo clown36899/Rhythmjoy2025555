@@ -1,10 +1,8 @@
 const CALENDAR_MOBILE_LAYOUT_MAX_WIDTH = 720;
 const CALENDAR_COMPACT_LAYOUT_MAX_WIDTH = 430;
 
-export const CALENDAR_SPAN_TITLE_FONT_SIZE = 10;
-export const CALENDAR_SOCIAL_MIN_FONT_SIZE = 4.8;
-export const CALENDAR_SOCIAL_CARD_HEIGHT = 28;
-export const CALENDAR_SOCIAL_CARD_VERTICAL_PADDING = 3;
+export const CALENDAR_SOCIAL_CARD_HEIGHT = 64;
+export const CALENDAR_SOCIAL_CARD_VERTICAL_PADDING = 6;
 
 const getSafeViewportWidth = (viewportWidth: number) => (
     Number.isFinite(viewportWidth) && viewportWidth > 0 ? viewportWidth : 390

@@ -959,3 +959,24 @@ html {
 .calendar-dance-scope-btn:disabled span {
     display: block;
 }
+/* Compact source guidance; the calendar keeps the room needed for readable cards. */
+.calendar-page-container .calendar-official-notice {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+    margin: 0;
+    padding: 10px 12px;
+    border-top: 1px solid #353a42;
+    background: #20262d;
+}
+.calendar-source-heading { display: flex; align-items: center; gap: 8px; }
+.calendar-source-heading strong { color: #fff; font-size: 17px; line-height: 1.4; }
+.calendar-source-heading > span { padding: 2px 6px; border-radius: 4px; color: #95c8ff; background: #293c52; font-size: 11px; line-height: 1.5; }
+.calendar-official-notice p { grid-column: 1 / -1; grid-row: 2; margin: 0; color: #d0d7df; font-size: 13px; line-height: 1.5; }
+.calendar-official-notice p b { color: #fff; font-weight: 650; }
+.calendar-official-notice p i { color: #91c2ff; }
+.calendar-schedule-legend { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; line-height: 1.5; color: #c7cfd8; }
+.calendar-schedule-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.calendar-schedule-legend span::before { content: ''; width: 3px; height: 10px; border-radius: 2px; background: #70d4b0; }
+.calendar-schedule-legend span:nth-child(2)::before { background: #75818b; }
+.calendar-schedule-legend span:nth-child(3)::before { background: #e99b92; }

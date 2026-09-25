@@ -1,4 +1,5 @@
 import { getGraduationEventMetadata } from '../../../utils/graduationEvent.mjs';
+import { findSourceById, findSourceForCandidate } from '../../../../scripts/ingestion/collection-registry.mjs';
 
 export type CalendarEventKindInput = {
   id?: string | number | null;
@@ -22,7 +23,13 @@ export type CalendarEventKindInput = {
   djs?: unknown;
   dj_names?: unknown;
   dj_name?: unknown;
+  link1?: string | null;
+  organizer?: string | null;
+  organizer_name?: string | null;
   automation?: {
+    generated_by?: string | null;
+    source_id?: string | null;
+    exception_id?: string | null;
     exception_type?: string | null;
   } | null;
 };
@@ -102,20 +109,22 @@ export const getCalendarSocialSpecialLabel = (event: CalendarEventKindInput) => 
   return getCalendarGraduationDisplayText(event);
 };
 
-const getCalendarSocialDjText = (event: CalendarEventKindInput) => {
-  const rawDjs = event.structured_data?.djs
-    ?? event.djs
-    ?? event.dj_names
-    ?? event.dj_name;
+export const normalizeCalendarSocialDjs = (rawDjs: unknown): string[] => {
   const djs = Array.isArray(rawDjs)
     ? rawDjs
     : typeof rawDjs === 'string'
       ? rawDjs.split(/[,/·ㆍ&]+/)
       : [];
-  const cleanDjs = djs
-    .map((dj) => cleanCalendarDisplayText(String(dj)).replace(/^DJ\s*/i, ''))
+  return djs
+    .map((dj) => cleanCalendarDisplayText(String(dj)).replace(/^DJ\s*/i, '').trim())
     .filter((dj) => Boolean(dj) && !isUndeterminedCalendarDj(dj));
+};
 
+export const getCalendarSocialDjText = (event: CalendarEventKindInput) => {
+  const cleanDjs = normalizeCalendarSocialDjs(event.structured_data?.djs
+    ?? event.djs
+    ?? event.dj_names
+    ?? event.dj_name);
   if (cleanDjs.length > 0) return cleanDjs.join(', ');
 
   const title = cleanCalendarDisplayText(event.title);
@@ -134,5 +143,41 @@ export const getCalendarSocialDisplayText = (event: CalendarEventKindInput) => {
   if (specialLabel) return specialLabel;
 
   const djText = getCalendarSocialDjText(event);
-  return djText ? `DJ ${djText}` : '';
+  if (isCalendarRegularSocialGuide(event)) return '정규 요일';
+  return djText ? `DJ ${djText}` : isCalendarSocialLikeEvent(event) ? '소셜' : '';
+};
+
+// A generated slot is a recurring-day guide, not proof of that day's operation.
+// Existing closure/official overrides remain explicit records.
+export const isCalendarRegularSocialGuide = (event: CalendarEventKindInput) => (
+  isCalendarSocialLikeEvent(event)
+  && (event.automation?.generated_by === 'regular-social-rolling-v1'
+    || String(event.id || '').startsWith('regular-social:'))
+  && !event.automation?.exception_id
+  && !event.automation?.exception_type
+  && !getCalendarSocialSpecialLabel(event)
+  && !getCalendarSocialDjText(event)
+);
+
+const safeCalendarSourceUrl = (value?: string | null) => {
+  try {
+    const url = new URL(value || '');
+    return ['https:', 'http:'].includes(url.protocol) ? url : null;
+  } catch { return null; }
+};
+
+export const getCalendarSocialSourceInfo = (event: CalendarEventKindInput) => {
+  const original = safeCalendarSourceUrl(event.link1);
+  const sourceId = event.automation?.source_id || event.organizer_name || event.organizer || '';
+  const source = findSourceForCandidate({ sourceId, url: original?.href || '' })
+    || (isCalendarRegularSocialGuide(event) ? findSourceById(event.automation?.source_id || '') : null);
+  const official = safeCalendarSourceUrl(source?.url);
+  const samePage = original && official
+    && original.hostname.replace(/^www\./, '') === official.hostname.replace(/^www\./, '')
+    && original.pathname.replace(/\/+$/, '') === official.pathname.replace(/\/+$/, '');
+  return {
+    originalUrl: original && !samePage ? original.href : null,
+    officialUrl: official?.href || null,
+    sourceName: source?.name || '',
+  };
 };
