@@ -1,3 +1,11 @@
+## 2026-09-29 — 행사 상세 날짜의 캘린더 이동 연결
+
+- 상태: 로컬 수정·빌드·인접 회귀검사 완료. 운영 배포본 `0167f039` 기준 별도 작업본에서 날짜 연결 변경만 커밋·푸시 후 `--frontend-only` 배포 예정.
+- 경로/기준: 상세 날짜 텍스트 클릭 → 연결 핸들러 없음 → 이동 없음. 변경 후 선택 행사 ID·장르 → 기존 `/calendar?id=…&highlightOnly=true` 진입 → 기존 읽기 API·월 선택·행사 강조. DB·외부 쓰기 추가 없음.
+- 기존 구현 판정: 일부 있음. `SideDrawer`의 강조 전용 링크, `CalendarPage`의 딥링크/날짜 해석, `inferDanceScopeForEvent`를 재사용. 빈틈은 상세 날짜의 이동 연결과 딥링크 월 계산의 `event_dates` 누락이었다. 직접 이력 `3d33d060`의 날짜 형식 보호·강조 전용 진입, `0960c01c`의 Cafe24 읽기 호환, `6af8e3ca`의 상세 열기 레거시 플래그 제거 목적을 확인했다.
+- 수정/불변조건: `EventDetailModal`의 날짜 텍스트를 비드래그 버튼으로 연결하고 기존 닫기·라우터를 사용. 단일/기간/개별 날짜 표시와 날짜 수정 버튼을 보존. `CalendarPage`는 이미 소유한 `getCalendarEventDateStrings`·`parseCalendarDateKey`를 사용해 첫 날짜의 월을 선택한다. 새로운 날짜 해석 함수·API·스키마·상태 소유자는 추가하지 않았다. 시간 필드 노출 없음.
+- 검증: `npm run build:only` 성공, 기존 `calendarTabFilter`·`calendarEventKind`·`EventEditBottomSheet` 3파일 29개 통과, 변경 소스 `git diff --check` 통과. UI 연결과 기존 날짜 선택에 한정되어 운영 데이터 쓰기·수집/등록 경로 검사는 제외. 브라우저 클릭 실측은 수행하지 않음.
+
 ## 2026-09-25 — 소셜 달력·상세 가독성 개선 및 공개 배포
 
 - 상태: 커밋·푸시 후 공개 UI 배포 완료. 실제 공개 사이트의 320/390/1440px 검증 통과.

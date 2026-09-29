@@ -1109,7 +1109,7 @@ export default function CalendarPage() {
                             }
                         }
 
-                        const eventDate = new Date(data.date || data.start_date || new Date());
+                        const eventDate = parseCalendarDateKey(getCalendarEventDateStrings(data)[0]) || new Date();
                         const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
                         handleMonthChange(targetMonth);
 

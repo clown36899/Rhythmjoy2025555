@@ -621,6 +621,25 @@
     flex: 1;
 }
 
+.EDM-dateLink {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-blue-400);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-user-drag: none;
+}
+
+.EDM-dateLink > i { flex-shrink: 0; }
+.EDM-dateLink:hover { text-decoration: underline; }
+.EDM-dateLink:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
 .EDM-venueLink {
     color: var(--color-blue-400);
     font-weight: 700;

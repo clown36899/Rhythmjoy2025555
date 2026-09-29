@@ -1,6 +1,7 @@
 import { getCalendarSocialDisplayText, getCalendarSocialSourceInfo, isCalendarRegularSocialGuide } from '../../calendar/utils/calendarEventKind';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { fetchCafe24EventById, isCafe24EventsBackendEnabled, updateCafe24EventById } from '../../../lib/cafe24EventsApi';
 import type { Event as BaseEvent } from '../../../lib/cafe24Client';
@@ -28,6 +29,7 @@ import EventEditBottomSheet from './EventEditBottomSheet';
 import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
 import { addClientLog } from '../../../utils/clientLogBuffer';
 import { getActivityTypeForCategory } from '../../events/eventsInfoCategory';
+import { inferDanceScopeForEvent } from '../../../utils/danceTaxonomy';
 import {
   eventBenefitFields,
   getEventBenefitKindLabel,
@@ -208,6 +210,7 @@ export default function EventDetailModal({
 
   const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
   const { openModal } = useModalActions();
+  const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading();
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -1691,7 +1694,23 @@ export default function EventDetailModal({
                   <div className="EDM-infoItem EDM-dateRow">
                     <i className="ri-calendar-line EDM-infoIcon"></i>
                     <div className="EDM-infoContent-flex">
-                      <span>
+                      <button
+                        type="button"
+                        className="EDM-dateLink"
+                        title="캘린더에서 보기"
+                        draggable={false}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const params = new URLSearchParams({
+                            id: String(selectedEvent.id),
+                            highlightOnly: 'true',
+                            view: 'calendar',
+                            dance: inferDanceScopeForEvent(selectedEvent),
+                          });
+                          onClose();
+                          navigate(`/calendar?${params.toString()}`);
+                        }}
+                      >
                         {(() => {
                           // Helper for safe date parsing
                           const safeDate = (d: string | null | undefined) => {
@@ -1778,7 +1797,8 @@ export default function EventDetailModal({
 
                           return `${startYear}년 ${startMonth} ${startDay}일 (${startDow})`;
                         })()}
-                      </span>
+                        <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+                      </button>
                       {isSelectionMode && (
                         <button
                           onClick={(e) => {
