@@ -254,6 +254,12 @@ export default function CalendarPage() {
         eventModal.setSelectedEvent(event as any);
     }, [eventModal.setSelectedEvent]);
     const [highlightedEventId, setHighlightedEventId] = useState<number | string | null>(null);
+    // One expiry owner prevents an earlier highlight from clearing a newer one.
+    useEffect(() => {
+        if (highlightedEventId === null) return;
+        const timer = setTimeout(() => setHighlightedEventId(null), 3500);
+        return () => clearTimeout(timer);
+    }, [highlightedEventId]);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
     const [showCalendarNavigator, setShowCalendarNavigator] = useState(false);
@@ -419,7 +425,7 @@ export default function CalendarPage() {
     const shouldScrollToTodayRef = useRef(false);
     const initialJumpDoneRef = useRef(false);
     const todayScrollRunIdRef = useRef(0);
-    const pendingNavigationDateRef = useRef<string | null>(null);
+    const pendingNavigationRef = useRef<{ date: string; eventId: number | string | null } | null>(null);
     const mountTimeRef = useRef(Date.now());
     const lastCalendarEntryKeyRef = useRef<string | null>(null);
     const calendarWheelSnapTimerRef = useRef<number | null>(null);
@@ -470,12 +476,13 @@ export default function CalendarPage() {
 
     // Date navigation uses the already-known occurrence, without fetching the event again.
     useLayoutEffect(() => {
-        pendingNavigationDateRef.current = null;
+        pendingNavigationRef.current = null;
+        setHighlightedEventId(null);
         ++todayScrollRunIdRef.current;
         const params = new URLSearchParams(location.search);
         const date = parseCalendarDateKey(params.get('date'));
         if (!date || params.get('scrollToToday') === 'true') return;
-        pendingNavigationDateRef.current = getCalendarLocalDateString(date);
+        pendingNavigationRef.current = { date: getCalendarLocalDateString(date), eventId: params.get('highlight') };
         shouldScrollToTodayRef.current = false;
         initialJumpDoneRef.current = true;
         setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
@@ -895,7 +902,7 @@ export default function CalendarPage() {
     useLayoutEffect(() => {
         // [Modal Guard] 모달 열림 상태에서는 body가 position:fixed이므로 워프 스킵
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
-        if (isAnyModalOpen || pendingNavigationDateRef.current) {
+        if (isAnyModalOpen || pendingNavigationRef.current) {
             if (containerRef.current) containerRef.current.style.visibility = 'visible';
             return;
         }
@@ -938,7 +945,8 @@ export default function CalendarPage() {
     }, [currentMonth]);
 
     const handleMonthChange = useCallback((newMonth: Date) => {
-        pendingNavigationDateRef.current = null;
+        pendingNavigationRef.current = null;
+        setHighlightedEventId(null);
         ++todayScrollRunIdRef.current;
         userInteractedRef.current = false;
         const today = new Date();
@@ -1036,6 +1044,7 @@ export default function CalendarPage() {
         nextParams.delete('id');
         nextParams.delete('date');
         nextParams.delete('highlightOnly');
+        nextParams.delete('highlight');
         nextParams.delete('category');
         nextParams.delete('section');
         navigate({ pathname: location.pathname, search: nextParams.toString() }, { replace: false });
@@ -1068,7 +1077,6 @@ export default function CalendarPage() {
         const eventId = params.get('id');
         if (!eventId) return;
         let cancelled = false;
-        let highlightTimer: ReturnType<typeof setTimeout> | undefined;
         const fetchEvent = async () => {
             try {
                 const data = isCafe24EventsBackendEnabled
@@ -1081,7 +1089,7 @@ export default function CalendarPage() {
                 if (cancelled || !data) return;
                 const eventDate = parseCalendarDateKey(params.get('date')) || parseCalendarDateKey(getCalendarEventDateStrings(data)[0]);
                 if (eventDate) {
-                    pendingNavigationDateRef.current = getCalendarLocalDateString(eventDate);
+                    pendingNavigationRef.current = { date: getCalendarLocalDateString(eventDate), eventId: data.id };
                     ++todayScrollRunIdRef.current;
                     shouldScrollToTodayRef.current = false;
                     initialJumpDoneRef.current = true;
@@ -1089,8 +1097,7 @@ export default function CalendarPage() {
                     setSelectedDate(eventDate);
                 }
                 if (params.get('highlightOnly') !== 'true') eventModal.setSelectedEvent(data);
-                setHighlightedEventId(data.id);
-                highlightTimer = setTimeout(() => setHighlightedEventId(null), 3500);
+                if (!eventDate) setHighlightedEventId(data.id);
             } catch (error) {
                 if (!cancelled) console.error('Deep link failed:', error);
             }
@@ -1098,12 +1105,12 @@ export default function CalendarPage() {
         fetchEvent();
         return () => {
             cancelled = true;
-            if (highlightTimer) clearTimeout(highlightTimer);
         };
     }, [location.key, location.search, eventModal.setSelectedEvent]);
 
     const handleCalendarDataLoaded = useCallback(() => {
-        const date = pendingNavigationDateRef.current;
+        const navigation = pendingNavigationRef.current;
+        const date = navigation?.date;
         if (!date || isLoading || !calendarData || displayMode !== 'calendar' || eventModal.selectedEvent) return;
         if (!date.startsWith(`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-`)) return;
         const cell = containerRef.current?.querySelector(`.calendar-cell-fullscreen[data-date="${date}"]`);
@@ -1111,12 +1118,13 @@ export default function CalendarPage() {
         if (!rect || rect.height <= 0) return;
         const headerBottom = getSafeRect(document.querySelector('.calendar-sticky-weekdays'))?.bottom
             ?? getSafeRect(document.querySelector('.calendar-live-sticky-controls'))?.bottom ?? 0;
-        pendingNavigationDateRef.current = null;
+        pendingNavigationRef.current = null;
         shouldScrollToTodayRef.current = false;
         initialJumpDoneRef.current = true;
         ++todayScrollRunIdRef.current;
         if (containerRef.current) containerRef.current.style.visibility = 'visible';
         window.scrollTo({ top: Math.max(0, rect.top + window.scrollY - headerBottom - getCalendarContentAnchorGap()), behavior: 'instant' });
+        setHighlightedEventId(navigation?.eventId ?? null);
     }, [calendarData, currentMonth, displayMode, eventModal.selectedEvent, isLoading, location.key, selectedDate]);
 
     const handleNavigateMonth = useCallback((direction: "prev" | "next") => {
@@ -1148,9 +1156,6 @@ export default function CalendarPage() {
         handleMonthChange(targetMonth);
         if (eventId) {
             setHighlightedEventId(eventId);
-            setTimeout(() => {
-                setHighlightedEventId(null);
-            }, 3000);
         }
     }, [handleMonthChange]);
 
@@ -1617,7 +1622,6 @@ export default function CalendarPage() {
                                 handleMonthChange(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
                                 setHighlightedEventId(event.id);
                                 eventModal.setSelectedEvent(event);
-                                setTimeout(() => setHighlightedEventId(null), 3000);
                             }}
                         />
                     </Suspense>

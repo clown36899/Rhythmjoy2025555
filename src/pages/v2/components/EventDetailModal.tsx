@@ -1708,6 +1708,7 @@ export default function EventDetailModal({
                           if (!calendarDate) return;
                           const params = new URLSearchParams({
                             date: calendarDate,
+                            highlight: String(selectedEvent.id),
                             category: 'all',
                             view: 'calendar',
                             dance: inferDanceScopeForEvent(selectedEvent),

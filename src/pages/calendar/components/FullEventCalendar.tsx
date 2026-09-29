@@ -272,6 +272,7 @@ const CalendarCell = memo(({
   const nonSocialEvents = visibleEvents.filter((event) => !isCalendarSocialEvent(event));
 
   const renderEventCard = (event: AppEvent) => {
+    const isHighlighted = highlightedEventId !== null && String(highlightedEventId) === String(event.id);
     const thumbnailUrl = getLightweightEventImage(event, ['image_micro', 'image_thumbnail', 'image_medium'])
       || event.image
       || event.image_full;
@@ -315,7 +316,7 @@ const CalendarCell = memo(({
         {isSocialEvent ? (
           <>
             <div
-              className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
+              className={`calendar-social-text-card-body ${isHighlighted ? 'calendar-event-highlighted' : ''}`}
               style={socialTextStyle}
             >
               <div className="calendar-social-place">{locationText || "장소 미정"}</div>
@@ -328,7 +329,7 @@ const CalendarCell = memo(({
           <>
             <div className="calendar-fullscreen-card-inner">
               {thumbnailUrl ? (
-                <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                <div className={`calendar-fullscreen-image-container ${isHighlighted ? 'calendar-event-highlighted' : ''}`}>
                   <picture>
                     {desktopThumbnailUrl && (
                       <source media="(min-width: 1024px)" srcSet={desktopThumbnailUrl} />
@@ -349,7 +350,7 @@ const CalendarCell = memo(({
                   )}
                 </div>
               ) : (
-                <div className={`calendar-fullscreen-placeholder ${toneClass} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                <div className={`calendar-fullscreen-placeholder ${toneClass} ${isHighlighted ? 'calendar-event-highlighted' : ''}`}>
                   <span className="calendar-placeholder-text">
                     {event.title.charAt(0)}
                   </span>
@@ -989,6 +990,7 @@ export default memo(function FullEventCalendar({
     const weekCount = Math.ceil(days.length / 7);
     const titleSegments: Array<{
       spanKey: string;
+      isHighlighted: boolean;
       title: string;
       location: string;
       lane: number;
@@ -1026,6 +1028,7 @@ export default memo(function FullEventCalendar({
 
           titleSegments.push({
             spanKey: span.key,
+            isHighlighted: highlightedEventId !== null && span.eventIds.some(id => String(id) === String(highlightedEventId)),
             title: span.title,
             location: (span.representativeEvent.venue_name || span.representativeEvent.place_name || span.representativeEvent.location || '').trim(),
             lane: laneInfo.lane,
@@ -1046,7 +1049,7 @@ export default memo(function FullEventCalendar({
         {titleSegments.map((segment) => (
           <div
             key={`${segment.spanKey}-${segment.weekRow}`}
-            className={`calendar-overlay-item calendar-span-tone ${segment.weekRow === 0 ? 'calendar-overlay-first-week' : ''}`}
+            className={`calendar-overlay-item calendar-span-tone ${segment.isHighlighted ? 'calendar-event-highlighted' : ''} ${segment.weekRow === 0 ? 'calendar-overlay-first-week' : ''}`}
             style={{
               gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
               gridRow: segment.weekRow + 1,
