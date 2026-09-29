@@ -204,7 +204,7 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
 
                 <button
                     className="all-social-calendar-btn"
-                    onClick={() => window.location.href = '/calendar?category=social'}
+                    onClick={() => window.location.href = '/calendar?category=all'}
                     title="전체달력 바로가기"
                     data-analytics-id="home_weekly_calendar_shortcut"
                     data-analytics-type="button"

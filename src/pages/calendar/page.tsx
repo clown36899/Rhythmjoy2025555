@@ -24,12 +24,9 @@ import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
 import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
 import { getCalendarLayoutMetrics } from "./utils/calendarLayoutMetrics";
-import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from "./utils/calendarEventKind";
+import { isCalendarSocialLikeEvent } from "./utils/calendarEventKind";
 import {
-    getExplicitCalendarTabFilter,
-    getInitialCalendarTabFilter,
     matchesCalendarTabFilter,
-    resolveCalendarTabFilterOnNavigation,
     type CalendarTabFilter,
 } from "./utils/calendarTabFilter";
 
@@ -176,7 +173,6 @@ export default function CalendarPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
-    const lastHandledEventIdRef = useRef<string | null>(null);
     const scrollToTodayConsumedRef = useRef(false);
     const { user, signInWithKakao, isAdmin: authIsAdmin, isAuthCheckComplete } = useAuth();
     const { openModal, closeModal } = useModalActions();
@@ -189,9 +185,8 @@ export default function CalendarPage() {
     // [Fix] 랜덤 시드 고정
     const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
-    const [tabFilter, setTabFilter] = useState<CalendarTabFilter>(() => (
-        getInitialCalendarTabFilter(window.location.search)
-    ));
+    // Legacy category URLs remain valid, but every calendar view now shows all kinds.
+    const tabFilter: CalendarTabFilter = 'all';
     const [danceScope, setDanceScope] = useState<CalendarDanceScope>(() => {
         const urlParams = new URLSearchParams(window.location.search);
         return normalizeVisibleDanceScope(urlParams.get('dance'));
@@ -202,15 +197,6 @@ export default function CalendarPage() {
     });
     const [scrollWeekDateLabels, setScrollWeekDateLabels] = useState<CalendarStickyWeekDateLabel[]>(createEmptyStickyWeekDateLabels);
     const [listTodayScrollSignal, setListTodayScrollSignal] = useState(0);
-
-    // 같은 캘린더 컴포넌트가 유지된 채 알림 URL로 다시 이동해도 URL의
-    // 명시적 필터가 이전 탭 상태를 덮어쓰도록 한다. 일반 탭 클릭은 URL
-    // 이동이 아니므로 사용자가 고른 상태를 그대로 유지한다.
-    useEffect(() => {
-        setTabFilter(currentFilter => (
-            resolveCalendarTabFilterOnNavigation(location.search, currentFilter)
-        ));
-    }, [location.key, location.search]);
 
     const handleSetDisplayMode = useCallback((mode: CalendarDisplayMode) => {
         setDisplayMode(mode);
@@ -433,6 +419,7 @@ export default function CalendarPage() {
     const shouldScrollToTodayRef = useRef(false);
     const initialJumpDoneRef = useRef(false);
     const todayScrollRunIdRef = useRef(0);
+    const pendingNavigationDateRef = useRef<string | null>(null);
     const mountTimeRef = useRef(Date.now());
     const lastCalendarEntryKeyRef = useRef<string | null>(null);
     const calendarWheelSnapTimerRef = useRef<number | null>(null);
@@ -453,6 +440,8 @@ export default function CalendarPage() {
             location.pathname,
             params.get('nav') || '',
             params.get('scrollToToday') === 'true' ? 'today' : '',
+            location.key,
+            params.get('date') || '',
             params.get('id') || '',
             params.get('highlightOnly') || '',
         ].join('|');
@@ -477,7 +466,22 @@ export default function CalendarPage() {
 
         // React state 배치로 인해 state 대신 ref로 직접 DOM 숨김
         if (containerRef.current) containerRef.current.style.visibility = 'hidden';
-    }, [displayMode, location.pathname, location.search]);
+    }, [displayMode, location.key, location.pathname, location.search]);
+
+    // Date navigation uses the already-known occurrence, without fetching the event again.
+    useLayoutEffect(() => {
+        pendingNavigationDateRef.current = null;
+        ++todayScrollRunIdRef.current;
+        const params = new URLSearchParams(location.search);
+        const date = parseCalendarDateKey(params.get('date'));
+        if (!date || params.get('scrollToToday') === 'true') return;
+        pendingNavigationDateRef.current = getCalendarLocalDateString(date);
+        shouldScrollToTodayRef.current = false;
+        initialJumpDoneRef.current = true;
+        setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+        setSelectedDate(date);
+        if (containerRef.current) containerRef.current.style.visibility = 'visible';
+    }, [location.key, location.search]);
 
     useEffect(() => {
         const handleInteraction = (e: Event) => {
@@ -582,7 +586,7 @@ export default function CalendarPage() {
             const calendarPage = target.closest('.calendar-page-container');
             if (!calendarPage) return false;
 
-            const horizontalScrollable = target.closest<HTMLElement>('.calendar-dance-scope-switch, .calendar-filter-switch');
+            const horizontalScrollable = target.closest<HTMLElement>('.calendar-dance-scope-switch');
             if (horizontalScrollable && horizontalScrollable.scrollWidth > horizontalScrollable.clientWidth + 2) {
                 return false;
             }
@@ -891,7 +895,10 @@ export default function CalendarPage() {
     useLayoutEffect(() => {
         // [Modal Guard] 모달 열림 상태에서는 body가 position:fixed이므로 워프 스킵
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
-        if (isAnyModalOpen) return;
+        if (isAnyModalOpen || pendingNavigationDateRef.current) {
+            if (containerRef.current) containerRef.current.style.visibility = 'visible';
+            return;
+        }
 
         // 리스트/지도 모드는 오늘 위치 워프 대상이 아니므로 숨김 상태만 즉시 해제한다.
         if (displayMode !== 'calendar') {
@@ -931,6 +938,8 @@ export default function CalendarPage() {
     }, [currentMonth]);
 
     const handleMonthChange = useCallback((newMonth: Date) => {
+        pendingNavigationDateRef.current = null;
+        ++todayScrollRunIdRef.current;
         userInteractedRef.current = false;
         const today = new Date();
         const isSameMonth = newMonth.getFullYear() === today.getFullYear() &&
@@ -1013,27 +1022,6 @@ export default function CalendarPage() {
         moveToToday();
     }, [moveToToday]);
 
-    const handleTabClick = (filter: CalendarTabFilter) => {
-        if (displayMode !== 'calendar') {
-            setTabFilter(filter);
-            return;
-        }
-
-        const today = new Date();
-        const isTodayMonth = currentMonth.getFullYear() === today.getFullYear() &&
-            currentMonth.getMonth() === today.getMonth();
-
-        if (isTodayMonth) {
-            shouldScrollToTodayRef.current = true;
-            userInteractedRef.current = false;
-        }
-        setTabFilter(filter);
-
-        if (isTodayMonth && tabFilter === filter) {
-            handleScrollToToday('instant', true);
-        }
-    };
-
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
         if (normalizeVisibleDanceScope(scope) !== scope || scope === danceScope) return;
 
@@ -1046,6 +1034,9 @@ export default function CalendarPage() {
         nextParams.delete('scrollToToday');
         nextParams.delete('nav');
         nextParams.delete('id');
+        nextParams.delete('date');
+        nextParams.delete('highlightOnly');
+        nextParams.delete('category');
         nextParams.delete('section');
         navigate({ pathname: location.pathname, search: nextParams.toString() }, { replace: false });
 
@@ -1071,69 +1062,62 @@ export default function CalendarPage() {
         }
     }, [danceScope, isAuthCheckComplete, location.pathname, location.search, navigate]);
 
+    // Keep published id-based links working, and discard responses from an older navigation.
     useEffect(() => {
-        const urlParams = new URLSearchParams(location.search);
-        const eventId = urlParams.get('id');
-
-        if (eventId && eventId !== lastHandledEventIdRef.current) {
-            lastHandledEventIdRef.current = eventId;
-            const fetchEvent = async () => {
-                try {
-                    const data = isCafe24EventsBackendEnabled
-                        ? await fetchCafe24EventById(eventId)
-                        : await (async () => {
-                            const { data, error } = await cafe24
-                                .from('events')
-                                .select('*')
-                                .eq('id', eventId)
-                                .maybeSingle();
-
-                            if (error) throw error;
-                            return data;
-                        })();
-
-                    if (data) {
-                        const isSocial = isCalendarSocialLikeEvent(data);
-                        const isLesson = isCalendarClassLikeCategory(data.category);
-
-                        // 오늘 일정 알림의 category=all은 이벤트 상세 자동 선택보다
-                        // 우선한다. 신규 등록 등 category가 없는 기존 링크는 이전처럼
-                        // 해당 이벤트가 보이는 탭을 자동 선택한다.
-                        if (getExplicitCalendarTabFilter(location.search) !== 'all') {
-                            if (isSocial) {
-                                setTabFilter('social-events');
-                            } else if (isLesson) {
-                                setTabFilter('classes');
-                            } else {
-                                setTabFilter('social-events');
-                            }
-                        }
-
-                        const eventDate = parseCalendarDateKey(getCalendarEventDateStrings(data)[0]) || new Date();
-                        const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
-                        handleMonthChange(targetMonth);
-
-                        setTimeout(() => {
-                            const eventToSet = data;
-                            const highlightOnly = urlParams.get('highlightOnly') === 'true';
-                            if (!highlightOnly) {
-                                eventModal.setSelectedEvent(eventToSet);
-                            }
-                            setHighlightedEventId(eventToSet.id);
-                        }, 100);
-
-                        setTimeout(() => {
-                            setHighlightedEventId(null);
-                        }, 3500);
-                    }
-                } catch (err) {
-                    console.error('Deep link failed:', err);
+        const params = new URLSearchParams(location.search);
+        const eventId = params.get('id');
+        if (!eventId) return;
+        let cancelled = false;
+        let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+        const fetchEvent = async () => {
+            try {
+                const data = isCafe24EventsBackendEnabled
+                    ? await fetchCafe24EventById(eventId)
+                    : await (async () => {
+                        const { data, error } = await cafe24.from('events').select('*').eq('id', eventId).maybeSingle();
+                        if (error) throw error;
+                        return data;
+                    })();
+                if (cancelled || !data) return;
+                const eventDate = parseCalendarDateKey(params.get('date')) || parseCalendarDateKey(getCalendarEventDateStrings(data)[0]);
+                if (eventDate) {
+                    pendingNavigationDateRef.current = getCalendarLocalDateString(eventDate);
+                    ++todayScrollRunIdRef.current;
+                    shouldScrollToTodayRef.current = false;
+                    initialJumpDoneRef.current = true;
+                    setCurrentMonth(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
+                    setSelectedDate(eventDate);
                 }
-            };
-            fetchEvent();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.search, handleMonthChange]);
+                if (params.get('highlightOnly') !== 'true') eventModal.setSelectedEvent(data);
+                setHighlightedEventId(data.id);
+                highlightTimer = setTimeout(() => setHighlightedEventId(null), 3500);
+            } catch (error) {
+                if (!cancelled) console.error('Deep link failed:', error);
+            }
+        };
+        fetchEvent();
+        return () => {
+            cancelled = true;
+            if (highlightTimer) clearTimeout(highlightTimer);
+        };
+    }, [location.key, location.search, eventModal.setSelectedEvent]);
+
+    const handleCalendarDataLoaded = useCallback(() => {
+        const date = pendingNavigationDateRef.current;
+        if (!date || isLoading || !calendarData || displayMode !== 'calendar' || eventModal.selectedEvent) return;
+        if (!date.startsWith(`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-`)) return;
+        const cell = containerRef.current?.querySelector(`.calendar-cell-fullscreen[data-date="${date}"]`);
+        const rect = getCalendarCellScrollAnchorRect(cell);
+        if (!rect || rect.height <= 0) return;
+        const headerBottom = getSafeRect(document.querySelector('.calendar-sticky-weekdays'))?.bottom
+            ?? getSafeRect(document.querySelector('.calendar-live-sticky-controls'))?.bottom ?? 0;
+        pendingNavigationDateRef.current = null;
+        shouldScrollToTodayRef.current = false;
+        initialJumpDoneRef.current = true;
+        ++todayScrollRunIdRef.current;
+        if (containerRef.current) containerRef.current.style.visibility = 'visible';
+        window.scrollTo({ top: Math.max(0, rect.top + window.scrollY - headerBottom - getCalendarContentAnchorGap()), behavior: 'instant' });
+    }, [calendarData, currentMonth, displayMode, eventModal.selectedEvent, isLoading, location.key, selectedDate]);
 
     const handleNavigateMonth = useCallback((direction: "prev" | "next") => {
         const newMonth = new Date(currentMonth);
@@ -1336,39 +1320,6 @@ export default function CalendarPage() {
                         ))}
                     </div>
 
-                    <div className="calendar-filter-switch" aria-label="캘린더 필터">
-                        <button
-                            className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => handleTabClick('all')}
-                        >
-                            <div className="tab-label-wrapper">
-                                <span className="translated-part">{t('all')}</span>
-                                <span className="fixed-part ko" translate="no">전체</span>
-                                <span className="fixed-part en" translate="no">ALL</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
-                            onClick={() => handleTabClick('social-events')}
-                        >
-                            <div className="tab-label-wrapper">
-                                <span className="translated-part">{t('socialEvents')}</span>
-                                <span className="fixed-part ko" translate="no">소셜&행사</span>
-                                <span className="fixed-part en" translate="no">Social & event</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
-                            onClick={() => handleTabClick('classes')}
-                        >
-                            <div className="tab-label-wrapper">
-                                <span className="translated-part">{t('classes')}</span>
-                                <span className="fixed-part ko" translate="no">강습</span>
-                                <span className="fixed-part en" translate="no">Class</span>
-                            </div>
-                        </button>
-                    </div>
-
                     {displayMode === 'calendar' && (
                         <div className="calendar-sticky-weekdays" aria-hidden="true">
                             {CALENDAR_WEEKDAY_LABELS.map((dayLabel, index) => (
@@ -1401,7 +1352,7 @@ export default function CalendarPage() {
                     </div>
                     <div className="calendar-page-overview-card">
                         <span>필터</span>
-                        <strong>{getDanceScopeLabel(danceScope)} · {tabFilter === 'all' ? '전체' : tabFilter === 'social-events' ? '소셜&행사' : '강습'}</strong>
+                        <strong>{getDanceScopeLabel(danceScope)} · 전체</strong>
                     </div>
                 </section>
 
@@ -1439,9 +1390,7 @@ export default function CalendarPage() {
                         calendarData={calendarData}
                         isLoading={isLoading}
                         refetchCalendarData={refetchCalendarData}
-                        onDataLoaded={useCallback(() => {
-                            debugCalendarPage('[CalendarPage] Data and Layout ready.');
-                        }, [])}
+                        onDataLoaded={handleCalendarDataLoaded}
                         viewMode={viewMode}
                         onViewModeChange={setViewMode}
                         calendarHeightPx={window.innerHeight - 100}

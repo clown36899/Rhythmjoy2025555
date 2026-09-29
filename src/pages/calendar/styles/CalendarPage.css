@@ -186,12 +186,6 @@ html {
     background: var(--cal-sample-control-bg);
 }
 
-.calendar-filter-switch {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    padding: 8px 16px 0;
-}
 
 .calendar-dance-scope-switch {
     display: flex;
@@ -711,36 +705,9 @@ html {
         display: none;
     }
 
-    .calendar-filter-switch {
-        display: flex;
-        gap: 5px;
-        overflow-x: auto;
-        padding: 5px 6px 4px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        scrollbar-width: none;
-    }
 
-    .calendar-filter-switch::-webkit-scrollbar {
-        display: none;
-    }
 
-    .calendar-filter-switch .calendar-tab-btn {
-        flex: 0 0 auto;
-        min-height: 30px;
-        padding: 0 12px;
-        border: 1px solid transparent;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--cal-sample-muted);
-        font-size: 13px;
-    }
 
-    .calendar-filter-switch .calendar-tab-btn.active {
-        border-color: var(--cal-sample-lower-active-border);
-        background: var(--cal-sample-lower-active-bg);
-        color: var(--cal-sample-lower-active-text);
-        box-shadow: none;
-    }
 
     .calendar-page-overview {
         display: none;

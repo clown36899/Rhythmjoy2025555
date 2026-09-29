@@ -342,7 +342,7 @@ const routePreviewSamples: RoutePreviewSample[] = [
     key: 'social',
     label: '소셜정보',
     count: 17,
-    target: '/calendar?category=social&scrollToToday=true',
+    target: '/calendar?category=all&scrollToToday=true',
     behavior: '달력의 소셜 탭으로 바로 이동',
     source: 'HomeNavButtonsSection.handleSocialClick',
     events: socialPreviewEvents,

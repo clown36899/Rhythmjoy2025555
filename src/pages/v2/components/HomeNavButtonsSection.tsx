@@ -32,7 +32,7 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
     const showEventsCards = isMenuItemVisible('events');
 
     const handleSocialClick = () => {
-        navigate('/calendar?category=social&scrollToToday=true');
+        navigate('/calendar?category=all&scrollToToday=true');
     };
 
     const handleEventsClick = () => {
@@ -126,7 +126,7 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                     handleSocialClick, 
                     displaySocialData, 
                     '달력의 소셜 탭으로 바로 이동', 
-                    '/calendar?category=social'
+                    '/calendar?category=all'
                 )}
                 {showEventsCards && renderNavCard(
                     'event', 

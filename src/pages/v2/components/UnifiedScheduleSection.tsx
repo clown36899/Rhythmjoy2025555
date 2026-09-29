@@ -170,7 +170,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                     <button
                         className="USS-viewAllBtn manual-label-wrapper"
                         onClick={() => {
-                            navigate('/calendar?category=social&scrollToToday=true');
+                            navigate('/calendar?category=all&scrollToToday=true');
                         }}
                     >
                         <span className="translated-part">View All</span>

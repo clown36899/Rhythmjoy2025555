@@ -30,6 +30,7 @@ import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
 import { addClientLog } from '../../../utils/clientLogBuffer';
 import { getActivityTypeForCategory } from '../../events/eventsInfoCategory';
 import { inferDanceScopeForEvent } from '../../../utils/danceTaxonomy';
+import { getCalendarDateKey, getCalendarEventDateKeys } from '../../../utils/calendarEventVisibility';
 import {
   eventBenefitFields,
   getEventBenefitKindLabel,
@@ -1200,6 +1201,8 @@ export default function EventDetailModal({
   }
 
   const selectedEvent = draftEvent || event;
+  const calendarDate = getCalendarEventDateKeys(selectedEvent)[0]
+    || getCalendarDateKey(selectedEvent.start_date || selectedEvent.date);
   const isSocialDetail = isEventDetailSocialLikeEvent(selectedEvent);
   const socialDisplayText = isSocialDetail ? getCalendarSocialDisplayText(selectedEvent) : '';
   const desktopTitle = socialDisplayText.startsWith('DJ ') && selectedEvent.title.startsWith(socialDisplayText + ' | ')
@@ -1698,12 +1701,14 @@ export default function EventDetailModal({
                         type="button"
                         className="EDM-dateLink"
                         title="캘린더에서 보기"
+                        disabled={!calendarDate}
                         draggable={false}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!calendarDate) return;
                           const params = new URLSearchParams({
-                            id: String(selectedEvent.id),
-                            highlightOnly: 'true',
+                            date: calendarDate,
+                            category: 'all',
                             view: 'calendar',
                             dance: inferDanceScopeForEvent(selectedEvent),
                           });

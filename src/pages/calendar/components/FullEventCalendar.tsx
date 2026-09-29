@@ -816,42 +816,13 @@ export default memo(function FullEventCalendar({
     if (refetchCalendarData) refetchCalendarData();
   }, [refetchCalendarData]);
 
-  // [Pure Fix] 데이터 로딩 완료 및 레이아웃(높이)이 DOM에 실제 반영된 시점 감지
+  // Notify the page only after this month's data has reached the rendered layout.
   useLayoutEffect(() => {
-    // 1. 로딩이 끝났고
-    // 2. 데이터가 있으며
-    // 3. 실제 측정된 높이가 0보다 클 때 (레이아웃 완료)
-    if (!isLoading && calendarData && containerHeight && containerHeight > 0) {
-      // 브라우저가 이번 레이아웃을 완전히 마친 직후에 실행
-      requestAnimationFrame(() => {
-        if (onDataLoaded) {
-          onDataLoaded();
-        }
-      });
-    }
-  }, [isLoading, !!calendarData, containerHeight, onDataLoaded]);
-
-  // 하이라이트된 이벤트로 스크롤 (setTimeout 대신 RAF 사용 검토 가능하나 일단 유지/최적화)
-  useEffect(() => {
-    if (highlightedEventId) {
-      requestAnimationFrame(() => {
-        const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
-        if (eventCard && eventCard.isConnected) {
-          // Custom scroll logic to center the element reliably
-          const elementRect = getSafeRect(eventCard);
-          if (!elementRect) return;
-          const absoluteElementTop = elementRect.top + window.scrollY;
-          const middleOfScreen = window.innerHeight / 2;
-          const scrollTarget = absoluteElementTop - middleOfScreen + (elementRect.height / 2);
-
-          window.scrollTo({
-            top: Math.max(0, scrollTarget),
-            behavior: 'smooth'
-          });
-        }
-      });
-    }
-  }, [highlightedEventId]);
+    if (isLoading || !calendarData || !containerHeight || containerHeight <= 0
+      || events !== calendarData.events || socialSchedules !== calendarData.socialSchedules) return;
+    const frame = requestAnimationFrame(() => onDataLoaded?.());
+    return () => cancelAnimationFrame(frame);
+  }, [isLoading, calendarData, events, socialSchedules, containerHeight, currentMonth, onDataLoaded]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();

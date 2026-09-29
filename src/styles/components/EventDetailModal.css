@@ -636,6 +636,7 @@
     -webkit-user-drag: none;
 }
 
+.EDM-dateLink:disabled { color: inherit; cursor: default; }
 .EDM-dateLink > i { flex-shrink: 0; }
 .EDM-dateLink:hover { text-decoration: underline; }
 .EDM-dateLink:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
