@@ -3,6 +3,7 @@ import {
     ANALYTICS_ADMIN_DEVICE_KEY,
     ANALYTICS_ADMIN_SHIELD_KEY,
     isAdminAnalyticsShielded,
+    isInternalAnalyticsContext,
     isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
@@ -82,6 +83,7 @@ const isInternalRoute = () => {
  */
 const isAllowedEnvironment = () => {
     if (typeof window === 'undefined') return false;
+    if (isInternalAnalyticsContext()) return false;
 
     // 1. 봇 트래킹 체크
     if (isBot()) {

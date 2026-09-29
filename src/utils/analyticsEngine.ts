@@ -3,6 +3,7 @@ import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { generateUUID } from './uuid';
 import {
     isAdminAnalyticsShielded,
+    isInternalAnalyticsContext,
     isAndroidInAppAnalyticsHandoff,
     isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
@@ -73,6 +74,7 @@ const SESSION_STORAGE_KEYS = {
 const ANALYTICS_FINGERPRINT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365 * 2;
 
 const shouldAllowAnalyticsTransport = () => SITE_ANALYTICS_CONFIG.ENABLED
+    && !isInternalAnalyticsContext()
     && !isLocalAnalyticsHost()
     && !isLikelyBotTraffic()
     && !isInternalAnalyticsRoute()
@@ -606,6 +608,7 @@ export const trackEvent = (log: AnalyticsLog) => {
 
 
     const performUpload = async () => {
+        if (!shouldTrackAnalytics()) return;
         try {
             if (CAFE24_ANALYTICS_ENABLED) {
                 const response = await fetch('/api/analytics/session', {

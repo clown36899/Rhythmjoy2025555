@@ -1,9 +1,57 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     addInAppHandoffAttribution,
     getAnalyticsInAppSource,
     isAndroidInAppAnalyticsHandoff,
 } from './analyticsGuards';
+
+describe('managed browser analytics exclusion', () => {
+    beforeEach(() => {
+        vi.resetModules();
+        sessionStorage.clear();
+        localStorage.clear();
+        window.history.replaceState({}, '', '/');
+    });
+    afterEach(() => {
+        vi.restoreAllMocks();
+        sessionStorage.clear();
+        window.history.replaceState({}, '', '/');
+    });
+
+    it('keeps ordinary visitors and unrelated query parameters enabled', async () => {
+        const { isInternalAnalyticsContext } = await import('./analyticsGuards');
+        expect(isInternalAnalyticsContext()).toBe(false);
+        window.history.replaceState({}, '', '/?analytics=external&admin=true');
+        expect(isInternalAnalyticsContext()).toBe(false);
+    });
+
+    it('preserves explicit exclusion across navigation and reload without an admin device marker', async () => {
+        window.history.replaceState({}, '', '/?analytics=internal');
+        let guards = await import('./analyticsGuards');
+        expect(guards.isInternalAnalyticsContext()).toBe(true);
+        window.history.replaceState({}, '', '/calendar');
+        expect(guards.isInternalAnalyticsContext()).toBe(true);
+        vi.resetModules();
+        guards = await import('./analyticsGuards');
+        expect(guards.isInternalAnalyticsContext()).toBe(true);
+        expect(guards.isAdminAnalyticsShielded()).toBe(false);
+        expect(localStorage.length).toBe(0);
+        sessionStorage.clear();
+        vi.resetModules();
+        expect((await import('./analyticsGuards')).isInternalAnalyticsContext()).toBe(false);
+    });
+
+    it('keeps this document excluded when session storage is unavailable', async () => {
+        const guards = await import('./analyticsGuards');
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+        vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+        expect(guards.isInternalAnalyticsContext()).toBe(false);
+        window.history.replaceState({}, '', '/?analytics=internal');
+        expect(guards.isInternalAnalyticsContext()).toBe(true);
+        window.history.replaceState({}, '', '/calendar');
+        expect(guards.isInternalAnalyticsContext()).toBe(true);
+    });
+});
 
 describe('analytics in-app handoff guard', () => {
     it('identifies supported in-app sources', () => {

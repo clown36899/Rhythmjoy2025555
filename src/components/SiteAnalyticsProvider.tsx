@@ -5,7 +5,7 @@ import { initializeFingerprint, isInternalAnalyticsRoute, isKioskAnalyticsContex
 import type { AnalyticsLog } from '../utils/analyticsEngine';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import { perfInfo, perfMs, perfNow } from '../utils/perfTrace';
-import { isAndroidInAppAnalyticsHandoff } from '../utils/analyticsGuards';
+import { isAndroidInAppAnalyticsHandoff, isInternalAnalyticsContext } from '../utils/analyticsGuards';
 
 /**
  * 전역 사이트 분석 프로바이더
@@ -24,6 +24,7 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // [INTERNAL EXCLUSION] 관리자/테스트/빌보드/키오스크는 순수 방문자 통계에서 제외
         if (
+            isInternalAnalyticsContext() ||
             location.pathname.startsWith('/billboard') ||
             isInternalAnalyticsRoute(location.pathname) ||
             isKioskAnalyticsContext(location.pathname, location.search) ||

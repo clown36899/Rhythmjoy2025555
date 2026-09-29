@@ -1,5 +1,9 @@
 # Codex Project Instructions
 
+## Internal Browser Verification
+
+For AI-assisted browser checks of this site's public pages, start the browser context at `https://swingenjoy.com/?analytics=internal` (or add `analytics=internal` to the target URL). Keep that context for subsequent navigation. This opts the tab out of analytics without granting admin access. Do not add the parameter to public/share links. To verify ordinary visitor analytics, use an isolated browser context and intercept analytics writes so test visits never reach production records. See [the internal browser decision](docs/decisions/2026-09-29-internal-browser-analytics.md).
+
 ## Deployment Workflow
 
 When the user asks to deploy this project, treat the request as including the full publish workflow:

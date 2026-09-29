@@ -3,6 +3,7 @@ import { cafe24 } from '../lib/cafe24Client';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 import {
     isAdminAnalyticsShielded,
+    isInternalAnalyticsContext,
     isKioskAnalyticsContext,
     isInternalAnalyticsRoute,
     isLikelyBotTraffic,
@@ -29,6 +30,7 @@ const getOrCreateViewFingerprint = () => {
 
 const shouldSkipViewTracking = () => (
     typeof window === 'undefined' ||
+    isInternalAnalyticsContext() ||
     isLocalAnalyticsHost() ||
     isLikelyBotTraffic() ||
     isInternalAnalyticsRoute() ||
@@ -65,6 +67,7 @@ export async function incrementTrackedView(
                 : itemId;
 
         // 3. RPC 호출
+        if (shouldSkipViewTracking()) return false;
         const { data: wasIncremented, error } = await cafe24.rpc('increment_item_views', {
             p_item_id: normalizedItemId,
             p_item_type: itemType,

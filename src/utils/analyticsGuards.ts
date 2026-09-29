@@ -1,5 +1,28 @@
 export const ANALYTICS_ADMIN_SHIELD_KEY = 'ga-admin-shield';
 export const ANALYTICS_ADMIN_DEVICE_KEY = 'ga-admin-device-shield';
+export const ANALYTICS_INTERNAL_SESSION_KEY = 'rhythmjoy:analytics-internal';
+
+let internalSession = false;
+
+// Explicit opt-out for managed browser work. This grants no authentication or
+// admin rights and stays in this tab, unlike the persistent admin device shield.
+export const isInternalAnalyticsContext = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    if (new URLSearchParams(window.location.search).get('analytics') === 'internal') {
+        internalSession = true;
+        try {
+            window.sessionStorage.setItem(ANALYTICS_INTERNAL_SESSION_KEY, 'true');
+        } catch {
+            // Keep the current document excluded when browser storage is blocked.
+        }
+    }
+    if (internalSession) return true;
+    try {
+        return window.sessionStorage.getItem(ANALYTICS_INTERNAL_SESSION_KEY) === 'true';
+    } catch {
+        return false;
+    }
+};
 
 export const ANALYTICS_BOT_UA_PATTERN = /bot|crawler|spider|preview|facebookexternalhit|twitterbot|slackbot|discordbot|kakaotalk-scrap|naverbot|googlebot|bingbot|yeti|daumoa|lighthouse|headless|phantom|puppeteer|playwright|selenium|webdriver|curl|wget|python-requests|gptbot|chatgpt|oai-searchbot|openai|claude|anthropic|perplexity|bytespider|ccbot|googleother|google-extended|cohere|mistralai|amazonbot|applebot-extended/i;
 export const ANALYTICS_KIOSK_ROUTE_PATTERN = /^\/(?:kiosk|키오스크)(?:\/|$)/i;
