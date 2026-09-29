@@ -185,7 +185,7 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                                 </span>
                             )}
                             {item.path === '/forum' && freeBoardUnreadCount > 0 && (
-                                <span className="bottom-nav-badge" aria-label={`자유게시판 새 글 ${freeBoardUnreadCount}개`}>
+                                <span className="bottom-nav-badge" aria-label={`자유게시판 새 글·댓글 ${freeBoardUnreadCount}개`}>
                                     {freeBoardUnreadCount > 99 ? '99+' : freeBoardUnreadCount}
                                 </span>
                             )}

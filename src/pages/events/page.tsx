@@ -18,7 +18,6 @@ import {
   isEventInDanceScope,
   normalizeVisibleDanceScope,
 } from '../../utils/danceTaxonomy';
-import { showComingSoonNotice } from '../../utils/appNotice';
 import { getLocalDateString, seededRandom } from '../v2/utils/eventListUtils';
 import { useEventActions } from '../v2/hooks/useEventActions';
 import type { Event } from '../v2/utils/eventListUtils';
@@ -521,7 +520,7 @@ function EventsInfoSection({
 export default function EventsInfoPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAdmin, isAuthCheckComplete, signInWithKakao } = useAuth();
+  const { user, isAdmin, signInWithKakao } = useAuth();
   const { openModal, closeModal, updateModalProps } = useModalActions();
   const { data: events = [], isLoading, refetch } = useEventsQuery();
   const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
@@ -543,7 +542,7 @@ export default function EventsInfoPage() {
   }, [interactions?.event_favorites]);
 
   const visibleDanceScopeOptions = useMemo(() => getVisibleDanceScopeOptions(true), []);
-  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'), false);
+  const selectedDanceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const selectedActivity = normalizeActivityFilter(searchParams.get('type'));
   const selectedTag = searchParams.get('tag');
 
@@ -551,14 +550,9 @@ export default function EventsInfoPage() {
     return events.filter(isFutureEvent);
   }, [events]);
 
-  const visibleFutureEvents = useMemo(() => {
-    if (isAdmin) return futureEvents;
-    return futureEvents.filter((event) => isEventInDanceScope(event, 'swing'));
-  }, [futureEvents, isAdmin]);
-
   const danceScopedEvents = useMemo(() => {
-    return visibleFutureEvents.filter((event) => isEventInDanceScope(event, selectedDanceScope));
-  }, [selectedDanceScope, visibleFutureEvents]);
+    return futureEvents.filter((event) => isEventInDanceScope(event, selectedDanceScope));
+  }, [selectedDanceScope, futureEvents]);
 
   const primaryScopedEvents = useMemo(() => {
     return danceScopedEvents.filter((event) => {
@@ -601,20 +595,8 @@ export default function EventsInfoPage() {
   }, [searchParams, setSearchParams]);
 
   const handleDanceScopeClick = useCallback((scope: typeof visibleDanceScopeOptions[number]['key']) => {
-    if (scope !== 'swing') {
-      showComingSoonNotice();
-      return;
-    }
-
     setFilterParam('dance', scope === 'swing' ? null : scope);
   }, [setFilterParam]);
-
-  useEffect(() => {
-    if (!isAuthCheckComplete || !searchParams.has('dance')) return;
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete('dance');
-    setSearchParams(nextParams, { replace: true });
-  }, [isAuthCheckComplete, searchParams, setSearchParams]);
 
   const eventItems = useMemo(() => {
     const filtered = scopedEvents.filter((event) => getEventsInfoCategory(event) === 'event');
@@ -826,12 +808,15 @@ export default function EventsInfoPage() {
               type="button"
               className={[
                 selectedDanceScope === option.key ? 'is-active' : '',
-                option.key !== 'swing' ? 'is-preparing' : '',
               ].filter(Boolean).join(' ')}
               onClick={() => handleDanceScopeClick(option.key)}
+              aria-pressed={selectedDanceScope === option.key}
+              disabled={!option.publicAvailable}
+              aria-label={option.publicAvailable ? option.label : `${option.label} 준비중`}
+              draggable={false}
             >
               <strong>{option.label}</strong>
-              <span>{option.desc}</span>
+              <span>{option.publicAvailable ? option.desc : '준비중'}</span>
             </button>
           ))}
         </div>

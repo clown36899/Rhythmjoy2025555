@@ -78,6 +78,7 @@ export interface SocialSchedule {
     nickname: string;
   };
   category?: string;
+  structured_data?: { djs?: unknown; [key: string]: unknown } | null;
   genre?: string;
   v2_genre?: string; // Legacy
   v2_category?: string; // Legacy

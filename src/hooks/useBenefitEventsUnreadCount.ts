@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { cafe24, type Event as AppEvent } from '../lib/cafe24Client';
 import { fetchActiveOneDayBenefitEvents } from '../lib/benefitEventsData';
 import { getLocalDateString } from '../pages/v2/utils/eventListUtils';
+import { isEventInDanceScope, type DanceScope } from '../utils/danceTaxonomy';
 import { getCurrentBenefitEventIds } from '../utils/benefitEventVisibility';
 
 export const BENEFIT_EVENTS_SEEN_EVENT = 'swingenjoy:benefit-events-seen';
@@ -71,7 +72,7 @@ export function markBenefitEventsSeen(eventIds: string[], userId?: string | null
     }));
 }
 
-export function useBenefitEventsUnreadState(events: AppEvent[]) {
+export function useBenefitEventsUnreadState(events: AppEvent[], danceScope: DanceScope = 'swing') {
     const { user } = useAuth();
     const userId = user?.id ? String(user.id) : null;
     const scope = getViewerScope(userId);
@@ -86,7 +87,9 @@ export function useBenefitEventsUnreadState(events: AppEvent[]) {
         }
     }, []);
 
-    const currentEventIds = useCurrentBenefitEventIds([...events, ...oneDayEvents]);
+    const currentEventIds = useCurrentBenefitEventIds(
+        [...events, ...oneDayEvents].filter((event) => isEventInDanceScope(event, danceScope)),
+    );
 
     const refreshUnread = useCallback(() => {
         const seen = getSeenEventIds(scope);

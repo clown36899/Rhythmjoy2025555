@@ -915,6 +915,10 @@
   --icon-rgb: 56, 189, 248;
 }
 
+.home-v2-menu-icon--stem-lab {
+  --icon-rgb: 45, 212, 191;
+}
+
 .home-v2-menu-icon--shopping {
   --icon-rgb: 246, 202, 75;
 }

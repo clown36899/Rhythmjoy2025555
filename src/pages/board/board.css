@@ -842,7 +842,7 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 .free-board-row {
   position: relative;
   display: grid;
-  grid-template-columns: 4px minmax(0, 1fr) 168px 60px;
+  grid-template-columns: 4px minmax(0, 1fr) minmax(168px, max-content) 60px;
   align-items: center;
   column-gap: 16px;
   min-height: 78px;
@@ -1146,6 +1146,11 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
   color: var(--free-board-muted);
   font-size: 13px;
   white-space: nowrap;
+}
+
+.free-board-stats > span,
+.free-board-stats > .free-board-stat-btn {
+  flex-shrink: 0;
 }
 
 .free-board-stats span,
@@ -1638,4 +1643,26 @@ body .board-posts-container.is-anonymous-board .board-post-card:hover {
 .standard-mode .board-post-heart-btn:not(.active) {
   color: var(--text-tertiary);
   /* Gray-400 */
+}
+
+/* A comment update stays separate from the post's NEW label. */
+.free-board-stats .free-board-comment-new-badge,
+.free-board-mobile-meta .free-board-comment-new-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  margin-left: 3px;
+  min-width: 0;
+  gap: 0;
+  justify-content: center;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-drag: none;
 }

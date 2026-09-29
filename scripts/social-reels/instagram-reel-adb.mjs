@@ -26,7 +26,11 @@ const avdName = process.env.ANDROID_AVD_NAME || 'Medium_Phone';
 const pollIntervalMs = 700;
 const normalTimeoutMs = 30_000;
 const lockMaxAgeMs = 30 * 60 * 1000;
+const remoteMediaHeadroomBytes = 64 * 1024 * 1024;
+const remoteVideoDirectory = '/sdcard/Movies/Rhythmjoy';
+const remoteCoverDirectory = '/sdcard/Pictures/Rhythmjoy';
 let activeAdbSerial = process.env.ANDROID_SERIAL || '';
+let publisherStartedEmulator = false;
 
 export const JAZZ_TRACKS = Object.freeze([
   { title: 'Take Five', artist: 'Dave Brubeck' },
@@ -106,6 +110,79 @@ export function chooseNextTrack(history, tracks = JAZZ_TRACKS) {
   );
   const startIndex = lastIndex >= 0 ? (lastIndex + 1) % tracks.length : 0;
   return tracks.map((_, offset) => tracks[(startIndex + offset) % tracks.length]);
+}
+
+export function selectManagedRemoteMediaPaths(paths = []) {
+  return paths
+    .map((value) => String(value).trim())
+    .filter((value) => {
+      const directory = path.posix.dirname(value);
+      const basename = path.posix.basename(value);
+      if (directory === remoteVideoDirectory) {
+        return /^RHYTHMJOY-\d{4}-\d{2}-\d{2}-AUTO\.mp4$/.test(basename);
+      }
+      if (directory === remoteCoverDirectory) {
+        return /^RHYTHMJOY-\d{4}-\d{2}-\d{2}-COVER-AUTO\.jpg$/.test(basename);
+      }
+      return false;
+    });
+}
+
+export function parseAvailableStorageBytes(output = '') {
+  const lines = String(output)
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const headerIndex = lines.findIndex((line) => /^Filesystem\s+/i.test(line));
+  if (headerIndex < 0 || !lines[headerIndex + 1]) return null;
+  const headings = lines[headerIndex].split(/\s+/);
+  const availableIndex = headings.findIndex((heading) => /^(Avail|Available)$/i.test(heading));
+  if (availableIndex < 0) return null;
+  const fields = lines[headerIndex + 1].split(/\s+/);
+  const availableKilobytes = Number(fields[availableIndex]);
+  if (!Number.isFinite(availableKilobytes) || availableKilobytes < 0) return null;
+  return availableKilobytes * 1024;
+}
+
+export function requiredRemoteStorageBytes(
+  mediaSizes = [],
+  headroomBytes = remoteMediaHeadroomBytes,
+) {
+  const sizes = [...mediaSizes, headroomBytes];
+  if (sizes.some((value) => !Number.isFinite(value) || value < 0)) {
+    throw new Error('Remote media sizes and headroom must be non-negative numbers.');
+  }
+  return mediaSizes.reduce((total, value) => total + value, 0) + headroomBytes;
+}
+
+export function publishedLocalArtifactPaths(artifactDirectory, date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error(`Cannot clean generated Reel artifacts for invalid date: ${date}`);
+  }
+  const directory = path.resolve(artifactDirectory);
+  return [
+    `${date}-social-reel-4k.mp4`,
+    `${date}-social-reel-cover-4k.jpg`,
+    `${date}-social-reel-midpoint-4k.jpg`,
+    'calendar-raw@4x.png',
+    'calendar-2160x3840.png',
+    'label-overlay-4k.png',
+    'arrow-overlay-4k.png',
+  ].map((basename) => path.join(directory, basename));
+}
+
+export async function removePublishedLocalArtifacts(artifactDirectory, date) {
+  const removedPaths = [];
+  for (const artifactPath of publishedLocalArtifactPaths(artifactDirectory, date)) {
+    try {
+      await unlink(artifactPath);
+      removedPaths.push(artifactPath);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+  return removedPaths;
 }
 
 async function run(command, args, options = {}) {
@@ -274,6 +351,7 @@ async function ensureEmulator() {
       stdio: 'ignore',
     });
     child.unref();
+    publisherStartedEmulator = true;
 
     const deviceDeadline = Date.now() + 120_000;
     while (Date.now() < deviceDeadline && !activeAdbSerial) {
@@ -322,6 +400,17 @@ async function ensureEmulator() {
   await adbShell('input', 'keyevent', 'KEYCODE_WAKEUP');
   await adbShell('wm', 'dismiss-keyguard').catch(() => {});
   return health;
+}
+
+export async function shutdownPublisherOwnedEmulator() {
+  if (!publisherStartedEmulator || !activeAdbSerial) return false;
+  try {
+    await adb(['emu', 'kill'], { timeout: 10_000 });
+    return true;
+  } finally {
+    publisherStartedEmulator = false;
+    activeAdbSerial = '';
+  }
 }
 
 async function dumpUi() {
@@ -450,6 +539,120 @@ async function screenshot(filePath) {
     { encoding: 'buffer', maxBuffer: 20 * 1024 * 1024 },
   );
   await writeFile(filePath, stdout);
+}
+
+async function readAvailableRemoteStorageBytes() {
+  const { stdout } = await adbShell('df', '-k', '/data');
+  const availableBytes = parseAvailableStorageBytes(stdout);
+  if (!Number.isFinite(availableBytes)) {
+    throw new Error(`Could not read Android free storage from df: ${stdout.trim()}`);
+  }
+  return availableBytes;
+}
+
+async function removeManagedRemoteMedia() {
+  const candidates = [];
+  for (const directory of [remoteVideoDirectory, remoteCoverDirectory]) {
+    await adbShell('mkdir', '-p', directory);
+    const { stdout } = await adbShell(
+      'find',
+      directory,
+      '-maxdepth',
+      '1',
+      '-type',
+      'f',
+    );
+    candidates.push(...stdout.split(/\r?\n/));
+  }
+
+  const managedPaths = selectManagedRemoteMediaPaths(candidates);
+  for (const mediaPath of managedPaths) {
+    await adbShell('rm', '-f', mediaPath);
+    await adbShell(
+      'am',
+      'broadcast',
+      '-a',
+      'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
+      '-d',
+      `file://${mediaPath}`,
+    );
+  }
+  return managedPaths;
+}
+
+async function ensureRemoteStorageForMedia(localPaths) {
+  const mediaStats = await Promise.all(localPaths.map((localPath) => stat(localPath)));
+  const requiredBytes = requiredRemoteStorageBytes(mediaStats.map(({ size }) => size));
+  const availableBeforeBytes = await readAvailableRemoteStorageBytes();
+  const removedPaths = await removeManagedRemoteMedia();
+  let availableAfterBytes = await readAvailableRemoteStorageBytes();
+  let cacheTrimAttempted = false;
+
+  if (availableAfterBytes < requiredBytes) {
+    cacheTrimAttempted = true;
+    await adbShell('pm', 'trim-caches', String(requiredBytes)).catch((error) => {
+      console.warn(`Android cache trim failed: ${error.message}`);
+    });
+    availableAfterBytes = await readAvailableRemoteStorageBytes();
+  }
+
+  const storageState = {
+    status: 'instagram-emulator-storage-ready',
+    availableBeforeBytes,
+    availableAfterBytes,
+    requiredBytes,
+    headroomBytes: remoteMediaHeadroomBytes,
+    removedManagedMedia: removedPaths.map((mediaPath) => path.posix.basename(mediaPath)),
+    cacheTrimAttempted,
+  };
+  console.log(JSON.stringify(storageState));
+
+  if (availableAfterBytes < requiredBytes) {
+    throw new Error(
+      `Android emulator storage is too low after scoped cleanup: `
+      + `${availableAfterBytes} bytes available, ${requiredBytes} bytes required. `
+      + 'Instagram app data and login were preserved.',
+    );
+  }
+  return storageState;
+}
+
+async function recordPublishedArtifactCleanup({
+  artifactDirectory,
+  date,
+  publicationStatePath,
+  state,
+}) {
+  const errors = [];
+  let removedRemoteMedia = [];
+  let removedLocalArtifacts = [];
+  let availableAfterBytes = null;
+
+  try {
+    removedRemoteMedia = await removeManagedRemoteMedia();
+    availableAfterBytes = await readAvailableRemoteStorageBytes();
+  } catch (error) {
+    errors.push(`Android media cleanup failed: ${error.message}`);
+  }
+
+  try {
+    removedLocalArtifacts = await removePublishedLocalArtifacts(artifactDirectory, date);
+  } catch (error) {
+    errors.push(`Local artifact cleanup failed: ${error.message}`);
+  }
+
+  const cleanupState = {
+    status: errors.length ? 'pending' : 'complete',
+    checkedAt: new Date().toISOString(),
+    removedRemoteMedia: removedRemoteMedia.map((mediaPath) => path.posix.basename(mediaPath)),
+    removedLocalArtifacts: removedLocalArtifacts.map((artifactPath) => path.basename(artifactPath)),
+    availableAfterBytes,
+    ...(errors.length ? { errors } : {}),
+  };
+  const updatedState = { ...state, artifactCleanup: cleanupState };
+  await writeJsonAtomically(publicationStatePath, updatedState);
+  for (const error of errors) console.warn(error);
+  return updatedState;
 }
 
 async function pushMedia(localPath, remotePath) {
@@ -948,16 +1151,29 @@ export async function publishInstagramReel(options = {}) {
   const historyPath = path.join(artifactRoot, 'music-history.json');
   const lockPath = path.join(artifactRoot, '.instagram-publisher.lock');
 
-  await Promise.all([stat(videoPath), stat(coverPath)]);
   await mkdir(artifactDirectory, { recursive: true });
   const previousState = await readJson(publicationStatePath, {});
-  if (previousState.status === 'published') {
-    return { status: 'already-published', state: previousState };
-  }
 
   const lockHandle = await acquireLock(lockPath);
   const startedAt = new Date();
   try {
+    if (previousState.status === 'published') {
+      if (previousState.artifactCleanup?.status === 'complete') {
+        await removePublishedLocalArtifacts(artifactDirectory, date);
+        return { status: 'already-published', state: previousState };
+      }
+      await ensureEmulator();
+      const cleanedState = await recordPublishedArtifactCleanup({
+        artifactDirectory,
+        date,
+        publicationStatePath,
+        state: previousState,
+      });
+      return { status: 'already-published', state: cleanedState };
+    }
+
+    await Promise.all([stat(videoPath), stat(coverPath)]);
+
     if (publicationNeedsReconciliation(previousState)) {
       await ensureEmulator();
       const currentCount = await readExpectedProfilePostCountForVerification(
@@ -995,7 +1211,12 @@ export async function publishInstagramReel(options = {}) {
             });
           }
         }
-        return recoveredState;
+        return recordPublishedArtifactCleanup({
+          artifactDirectory,
+          date,
+          publicationStatePath,
+          state: recoveredState,
+        });
       }
       if (!options.forceRecovery) {
         throw new Error(
@@ -1012,8 +1233,9 @@ export async function publishInstagramReel(options = {}) {
       startedAt: startedAt.toISOString(),
     });
     await ensureEmulator();
-    const remoteVideo = `/sdcard/Movies/Rhythmjoy/RHYTHMJOY-${date}-AUTO.mp4`;
-    const remoteCover = `/sdcard/Pictures/Rhythmjoy/RHYTHMJOY-${date}-COVER-AUTO.jpg`;
+    const remoteVideo = `${remoteVideoDirectory}/RHYTHMJOY-${date}-AUTO.mp4`;
+    const remoteCover = `${remoteCoverDirectory}/RHYTHMJOY-${date}-COVER-AUTO.jpg`;
+    await ensureRemoteStorageForMedia([videoPath, coverPath]);
     await pushMedia(videoPath, remoteVideo);
     const postCountBefore = await openInstagramProfile();
     await openNewestVideo();
@@ -1097,10 +1319,15 @@ export async function publishInstagramReel(options = {}) {
         },
       ].slice(-50),
     });
-    return publishedState;
+    return recordPublishedArtifactCleanup({
+      artifactDirectory,
+      date,
+      publicationStatePath,
+      state: publishedState,
+    });
   } catch (error) {
     const currentState = await readJson(publicationStatePath, {});
-    if (!['sharing', 'verification-required'].includes(currentState.status)) {
+    if (!['sharing', 'verification-required', 'published'].includes(currentState.status)) {
       await writeJsonAtomically(publicationStatePath, {
         ...currentState,
         status: 'failed-before-share',

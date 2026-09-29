@@ -1,3 +1,5 @@
+import { normalizeDanceScope, type DanceScope } from '../utils/danceTaxonomy';
+
 export interface SwingOneDayRecruitLogo {
   sourceUrl?: string;
   micro?: string;
@@ -9,6 +11,7 @@ export interface SwingOneDayRecruitLogo {
 }
 
 export interface SwingOneDayRecruitLink {
+  dance_scope?: DanceScope;
   id: string;
   community: string;
   venue?: string;
@@ -165,3 +168,11 @@ export const swingOneDayRecruitLinks: SwingOneDayRecruitLink[] = [
     logoSourceUrl: 'https://ugc.production.linktr.ee/gdUXlMqnTg6QiVZK7V66_qIy9sDf6yGbajCy5',
   },
 ].sort((a, b) => a.region.localeCompare(b.region, 'ko') || a.community.localeCompare(b.community, 'ko'));
+
+// The legacy directory had no genre field. Keep its Swing fallback, but never
+// substitute that directory for a genuinely empty expanded genre.
+export function selectOneDayRecruitLinks(links: SwingOneDayRecruitLink[], scope: string) {
+  const selected = links.filter(link => normalizeDanceScope(link.dance_scope) === normalizeDanceScope(scope));
+  const usingLegacyFallback = normalizeDanceScope(scope) === 'swing' && selected.length === 0;
+  return { links: usingLegacyFallback ? swingOneDayRecruitLinks : selected, usingLegacyFallback };
+}

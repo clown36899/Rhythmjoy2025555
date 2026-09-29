@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { cafe24 } from '../../../lib/cafe24Client';
 import type { StandardBoardPost, AnonymousBoardPost } from '../../../types/board';
 import { perfInfo, perfMs, perfNow } from '../../../utils/perfTrace';
@@ -22,9 +22,11 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const [error, setError] = useState<any>(null);
+    const requestVersion = useRef(0);
 
     const loadPosts = useCallback(async () => {
         if (!isAdminChecked) return;
+        const version = ++requestVersion.current;
 
         const startedAt = perfNow();
         perfInfo('board.posts.start', {
@@ -110,7 +112,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             }, isRealAdmin);
 
             if (error) throw error;
-            setTotalCount(count || 0);
+            if (version !== requestVersion.current) return;
 
             let pageData = data || [];
             if (shouldProtectHiddenFreePosts && pageData.length > 0) {
@@ -188,6 +190,8 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 };
             });
 
+            if (version !== requestVersion.current) return;
+            setTotalCount(count || 0);
             setPosts(normalizedPosts as BoardPost[]);
             perfInfo('board.posts.done', {
                 category,
@@ -197,6 +201,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                 totalCount: count || 0,
             }, isRealAdmin);
         } catch (err) {
+            if (version !== requestVersion.current) return;
             console.error('게시글 로딩 실패:', err);
             perfInfo('board.posts.error', {
                 category,
@@ -208,13 +213,14 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             setPosts([]);
             setTotalCount(0);
         } finally {
-            setLoading(false);
+            if (version === requestVersion.current) setLoading(false);
         }
     }, [category, currentPage, currentUserId, isAdminChecked, isRealAdmin, postsPerPage, prefixId]);
 
     // Initial load
     useEffect(() => {
         loadPosts();
+        return () => { requestVersion.current += 1; };
     }, [loadPosts]);
 
     // Realtime subscription
@@ -224,6 +230,14 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         const isAnon = category === 'anonymous';
         const table = isAnon ? 'board_anonymous_posts' : 'board_posts';
         let realtimeReloadTimer: ReturnType<typeof setTimeout> | null = null;
+        const refreshOnResume = () => {
+            if (category !== 'free' || document.visibilityState !== 'visible') return;
+            if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+            realtimeReloadTimer = setTimeout(() => { void loadPosts(); }, 800);
+        };
+        window.addEventListener('focus', refreshOnResume);
+        window.addEventListener('online', refreshOnResume);
+        document.addEventListener('visibilitychange', refreshOnResume);
 
         // console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
 
@@ -261,6 +275,9 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         return () => {
             // console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
             if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+            window.removeEventListener('focus', refreshOnResume);
+            window.removeEventListener('online', refreshOnResume);
+            document.removeEventListener('visibilitychange', refreshOnResume);
             cafe24.removeChannel(channel);
         };
     }, [category, isAdminChecked, loadPosts]);

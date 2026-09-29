@@ -27,7 +27,7 @@ const isSeoulAddress = (address?: string | null) => (
 
 export default function PracticeRoomsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState("연습실");
+  const activeCategory = searchParams.get("category") || "연습실";
   const [rooms, setRooms] = useState<PracticeRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -172,7 +172,12 @@ export default function PracticeRoomsPage() {
             {!loading && <span className="practice-result-count">{visibleRooms.length}곳</span>}
           </div>
 
-          <VenueTabBar activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+          <VenueTabBar activeCategory={activeCategory} onCategoryChange={(category) => {
+            const next = new URLSearchParams(searchParams);
+            next.set('category', category);
+            next.delete('id');
+            setSearchParams(next);
+          }} />
 
           <label className="practice-search-box">
             <i className="ri-search-line" aria-hidden="true" />

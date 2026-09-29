@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
@@ -7,6 +7,7 @@ import {
   buildSocialExtractionPrompt,
   extractSocialScheduleWithAi,
   shouldPersistBenefitAiOutcome,
+  shouldAttemptAiSocialExtraction,
   validateAiAdjudication,
   validateAiSocialExtraction,
   validateBenefitAiReview,
@@ -30,6 +31,25 @@ describe('benefit candidate persistence policy', () => {
     expect(shouldPersistBenefitAiOutcome('rejected')).toBe(false);
     expect(shouldPersistBenefitAiOutcome('unavailable')).toBe(true);
     expect(shouldPersistBenefitAiOutcome('error')).toBe(true);
+  });
+});
+
+describe('social poster extraction eligibility', () => {
+  const source = { scope: 'swing' };
+  it('reads a dated text social and a weekly or DJ-only original poster', () => {
+    expect(shouldAttemptAiSocialExtraction(source, '9/11 금요 소셜 DJ 충하', false)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction(source, '9월 2주 위클리네오 금햅 DJ 쓴귤', true)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction(source, '이번주 디제이는 쓴귤님입니다', true)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction(source, '이번주 디제이는 쓴귤님입니다', false)).toBe(false);
+  });
+  it('preserves disabled, benefit, other-genre and class-only boundaries', () => {
+    const text = '9/11 소셜 DJ 충하';
+    expect(shouldAttemptAiSocialExtraction(source, text, true, { enabled: false })).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ ...source, benefitKind: 'free_event' }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ scope: 'salsa' }, text, true)).toBe(true);
+    expect(shouldAttemptAiSocialExtraction({ scope: 'tango' }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction({ ...source, allowedActivityTypes: ['class'] }, text, true)).toBe(false);
+    expect(shouldAttemptAiSocialExtraction(source, '공식 프로필 운영 안내', true)).toBe(false);
   });
 });
 
@@ -168,6 +188,22 @@ describe('AI candidate adjudication grounding', () => {
       djs: ['멍군'],
       evidence_quotes: ['Balboa in Social club', '날짜 : 7월 29일', '장소 : 쏘셜클럽', 'D J : 멍군'],
     }).ok).toBe(true);
+  });
+
+  it('uses the shared venue aliases for exact English poster quotes without accepting missing or different venue evidence', () => {
+    const original = '2026.09.24 목요 소셜 DJ 해림 SAVOY BALLROOM BAR';
+    const input = { extracted_text: original, structured_data: {
+      title: '목요 소셜', date: '2026-09-24', activity_type: 'social', venue_name: '사보이볼룸', djs: ['해림'],
+    } };
+    const judgment = { decision: 'register', confidence: 0.99, event_date: '2026-09-24', activity_type: 'social',
+      venue: 'SAVOY BALLROOM BAR', djs: ['해림'], evidence_quotes: [original] };
+    expect(validateAiAdjudication(input, judgment).ok).toBe(true);
+    expect(validateAiAdjudication(input, { ...judgment, evidence_quotes: ['2026.09.24 목요 소셜 DJ 해림'] }).ok).toBe(false);
+    expect(validateAiAdjudication(input, { ...judgment, venue: '해피홀' }).ok).toBe(false);
+    expect(validateAiAdjudication({ ...input, extracted_text: original.replace('SAVOY BALLROOM BAR', '해피홀') }, judgment).ok).toBe(false);
+    const extraction = { decision: 'extract', confidence: 0.99, events: [{ event_date: '2026-09-24', venue: '사보이볼룸',
+      djs: ['해림'], poster_image_index: 0, evidence_quotes: [original] }] };
+    expect(validateAiSocialExtraction({ sourceText: original, today: '2026-09-24' }, extraction).ok).toBe(true);
   });
 
   it('accepts fixed venue evidence from a verified single-venue official source', () => {
@@ -444,6 +480,14 @@ DJ '이정' PM 8:15~10:15
   });
 
   it('accepts independently grounded sessions from a compact date heading', () => {
+    const deadlineText = '9월 9일 소셜클럽 소셜 DJ 쵸리 사전신청: 전일 9월 8일 23시까지';
+    const falseDate = validateAiSocialExtraction({ sourceText: deadlineText, today: '2026-09-07' }, {
+      decision: 'extract', confidence: 0.99,
+      events: [{ title: '소셜클럽 소셜', event_date: '2026-09-23', venue: '소셜클럽', djs: ['쵸리'], evidence_quotes: [deadlineText] }],
+      reasons: [],
+    }, { today: '2026-09-07' });
+    expect(falseDate.ok).toBe(false);
+
     const result = validateAiSocialExtraction({ sourceText, today: '2026-08-14' }, {
       decision: 'extract',
       confidence: 0.99,
@@ -692,6 +736,42 @@ process.stdin.on('end', () => {
       await rm(workDir, { recursive: true, force: true });
     }
   });
+
+  it.each(['2026 09 15 (화)', '2026\n9\n15', '20260915(화)', '2025 09 15', '2026091500', '09 15'])(
+    'validates a full-year original poster date without changing its quote: %s', (dateQuote) => {
+      const sourceText = `${dateQuote} 경성홀 소셜 DJ Deniz`;
+      const result = validateAiSocialExtraction({sourceText, today:'2026-09-15'}, {
+        decision:'extract', confidence:0.99, poster_text:'', reasons:[],
+        events:[{event_date:'2026-09-15', venue:'경성홀', djs:['Deniz'], poster_image_index:0, evidence_quotes:[sourceText]}],
+      }, {today:'2026-09-15'});
+      expect(result.ok).toBe(['2026 09 15 (화)', '2026\n9\n15', '20260915(화)'].includes(dateQuote));
+    },
+  );
+
+  it.each([true, false])('rechecks failed evidence without collector date hints, without bypassing validation (%s)', async (corrected) => {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'rhythmjoy-ai-evidence-test-'));
+    const fakeCodex = path.join(workDir, 'fake-codex.cjs');
+    const sourceText = '2026 09 15 (화) 경성홀 소셜 DJ Deniz';
+    const extraction = { decision:'extract', confidence:0.99, poster_text:'', reasons:[],
+      events:[{event_date:'2026-09-15', venue:'경성홀', djs:['Deniz'], poster_image_index:0, evidence_quotes:['경성홀 소셜 DJ Deniz']}],
+    };
+    const repaired = {...extraction, events:[{...extraction.events[0], evidence_quotes:[corrected ? sourceText : '2026 09 16 경성홀 소셜 DJ Deniz']}]};
+    try {
+      await writeFile(fakeCodex, `#!/usr/bin/env node
+const fs = require('node:fs'); let prompt='';
+process.stdin.on('data', c=>prompt+=c);
+process.stdin.on('end',()=>{
+ const args=process.argv; const retry=prompt.includes('A previous extraction failed validation:');
+ fs.appendFileSync(${JSON.stringify(path.join(workDir,'attempts'))}, retry?'retry\\n':'first\\n');
+ fs.writeFileSync(args[args.indexOf('--output-last-message')+1], JSON.stringify(retry?${JSON.stringify(repaired)}:${JSON.stringify(extraction)}));
+});
+`, 'utf8');
+      await chmod(fakeCodex, 0o755);
+      const result = await extractSocialScheduleWithAi({sourceText, dateHints:[], today:'2026-09-15'}, {codexPath:fakeCodex, today:'2026-09-15', timeoutMs:10000});
+      expect(result.approved).toBe(corrected);
+      expect(await readFile(path.join(workDir,'attempts'),'utf8')).toBe('first\nretry\n');
+    } finally { await rm(workDir,{recursive:true,force:true}); }
+  });
 });
 
 describe('AI benefit candidate review', () => {
@@ -779,5 +859,20 @@ describe('AI benefit candidate review', () => {
 
     expect(result.outcome).toBe('review');
     expect(result.reasons).toContain('AI category disagrees with collector category');
+  });
+});
+
+
+describe('salsa source social evidence', () => {
+  it('requires salsa in the individual session evidence while preserving swing validation', () => {
+    const sourceText = '9월 25일 라틴 소셜 DJ 리키 Salsa';
+    const event = {title:'라틴 소셜', event_date:'2026-09-25', venue:'라틴', djs:['리키'], poster_image_index:0, evidence_quotes:[sourceText]};
+    const extraction={decision:'extract',confidence:0.99,poster_text:'',events:[event],reasons:[]};
+    expect(validateAiSocialExtraction({sourceScope:'salsa', sourceText, today:'2026-09-23'},extraction).ok).toBe(true);
+    const bachataText = sourceText.replace('Salsa','Bachata');
+    const bachata = {...extraction,events:[{...event,evidence_quotes:[bachataText]}]};
+    expect(validateAiSocialExtraction({sourceScope:'salsa',sourceText:bachataText,today:'2026-09-23'},bachata).ok).toBe(false);
+    expect(buildSocialExtractionPrompt({sourceScope:'salsa'})).toContain('salsa-dance');
+    expect(buildSocialExtractionPrompt({})).toContain('swing-dance');
   });
 });

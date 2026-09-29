@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -99,13 +99,33 @@ describe('HomeV2MenuPanel configured quick items', () => {
         expect(screen.queryByRole('button', { name: /무료,\s*할인 이벤트/ })).not.toBeInTheDocument();
     });
 
+    it('shows the stem sample only inside the expanded MENU by default', async () => {
+        const user = userEvent.setup();
+        render(
+            <MemoryRouter>
+                <HomeV2MenuPanel />
+            </MemoryRouter>,
+        );
+
+        const menuButton = await screen.findByRole('button', { name: 'MENU' });
+        expect(screen.queryByRole('button', { name: '악기 분리' })).not.toBeInTheDocument();
+
+        await user.click(menuButton);
+        expect(await screen.findByRole('button', { name: '악기 분리' })).toBeInTheDocument();
+    });
+
     it('shows the benefit item and its unread count only when it is pinned', async () => {
         const user = userEvent.setup();
         mocks.defaultLayout.pinnedMenuIds = ['home', 'benefits'];
         mocks.defaultLayout.menuOrderIds = ['home', 'benefits', 'calendar', 'board'];
 
+        function BenefitLocation() {
+            const location = useLocation();
+            return <output data-testid="benefit-location">{location.pathname}{location.search}</output>;
+        }
         render(
-            <MemoryRouter>
+            <MemoryRouter initialEntries={['/?dance=salsa']}>
+                <BenefitLocation />
                 <HomeV2MenuPanel />
             </MemoryRouter>,
         );
@@ -117,6 +137,7 @@ describe('HomeV2MenuPanel configured quick items', () => {
 
         await user.click(benefitButton);
         await waitFor(() => expect(mocks.markBenefitEventsSeen).toHaveBeenCalledTimes(1));
+        expect(screen.getByTestId('benefit-location')).toHaveTextContent('/benefit-events?dance=salsa');
     });
 
     it('uses the admin default when an authenticated member has no personal layout', async () => {
@@ -154,4 +175,21 @@ describe('HomeV2MenuPanel configured quick items', () => {
         expect(screen.queryByRole('button', { name: /무료,\s*할인 이벤트/ })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: '홈' })).not.toBeInTheDocument();
     });
+});
+
+function CurrentRoute() {
+    const location = useLocation();
+    return <output data-testid="genre-route">{location.pathname}{location.search}</output>;
+}
+
+it('keeps the selected genre when moving between the existing home and calendar menu items', async () => {
+    mocks.auth.user = null;
+    mocks.userLayout = null;
+    mocks.defaultLayout.pinnedMenuIds = ['home', 'calendar'];
+    render(<MemoryRouter initialEntries={['/?dance=salsa']}><HomeV2MenuPanel /><CurrentRoute /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole('button', { name: /댄스이벤트/ }));
+    await waitFor(() => expect(screen.getByTestId('genre-route').textContent).toContain('/calendar?'));
+    expect(screen.getByTestId('genre-route').textContent).toContain('dance=salsa');
+    await userEvent.click(screen.getByRole('button', { name: '홈' }));
+    await waitFor(() => expect(screen.getByTestId('genre-route').textContent).toBe('/?dance=salsa'));
 });

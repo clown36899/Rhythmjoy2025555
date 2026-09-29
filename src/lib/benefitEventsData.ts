@@ -3,6 +3,7 @@ import { cafe24, type Event } from './cafe24Client';
 export type OneDayBenefitLink = {
     id: string;
     community: string;
+    dance_scope?: Event['dance_scope'];
     venue?: string | null;
     region?: string | null;
     area?: string | null;
@@ -24,6 +25,7 @@ export function oneDayLinkToBenefitEvent(link: OneDayBenefitLink): Event {
         location: link.venue || link.area || link.region || '장소 미정',
         category: 'class',
         genre: '원데이모집',
+        dance_scope: link.dance_scope,
         price: link.benefit_kind === 'free_event' ? '무료' : '',
         image: link.logo_full || link.logo_medium || link.logo_thumbnail || link.logo_micro || '',
         image_micro: link.logo_micro || undefined,
@@ -42,7 +44,7 @@ export function oneDayLinkToBenefitEvent(link: OneDayBenefitLink): Event {
 export async function fetchActiveOneDayBenefitEvents() {
     const { data, error } = await cafe24
         .from('swing_oneday_recruit_links')
-        .select('id,community,venue,region,area,url,logo_micro,logo_thumbnail,logo_medium,logo_full,benefit_eligible,benefit_kind,is_active')
+        .select('id,dance_scope,community,venue,region,area,url,logo_micro,logo_thumbnail,logo_medium,logo_full,benefit_eligible,benefit_kind,is_active')
         .eq('is_active', true);
 
     if (error) throw error;

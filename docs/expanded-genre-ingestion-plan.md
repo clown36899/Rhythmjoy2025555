@@ -36,7 +36,7 @@
 | `expanded-research` | 살사/바차타/탱고/스트릿 소스 조사 | 금지 |
 | `expanded-ingestion` | 검증 완료된 타장르 후보 수집 | 허용 |
 
-자동 실행 기본값은 반드시 `swing-daily`다. 타장르는 사용자가 명시적으로 요청한 수동 작업에서만 `expanded-research` 또는 `expanded-ingestion`을 쓴다.
+자동 실행 기본값은 반드시 `swing-daily`다. 2026-09-22 살사 수집 개선 요청에 따라 살사에는 `expanded-ingestion` + `INGESTION_NATIVE_SCOPES=salsa`로 범위를 고정한 별도 예약 실행을 연결했다. 기존 스윙 작업의 출처 목록과 체크포인트는 공유하지 않으며 저장·등록 검증과 실행 잠금은 재사용한다. 다른 타장르는 사용자가 명시적으로 요청한 수동 작업에서만 확장 프로필을 쓴다. 근거와 운영 범위는 [살사 수집 결정](decisions/2026-09-22-salsa-collection-coverage.md)을 따른다.
 
 ### 2026-05-28 안정화 업데이트
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HOST="${1:-kiosk-j@172.30.1.13}"
+HOST="${1:-kiosk-j@kiosk-host.local}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SNAPSHOT_DIR="${SCRIPT_DIR}/snapshot"
 
@@ -24,6 +24,7 @@ need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-chrome.ser
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-url-guard.service"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-local/bin/kiosk-display-setup.sh"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-display.service"
+need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/monitors.xml"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-local/bin/kiosk-page-watchdog.py"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.service"
 need_file "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/systemd/user/kiosk-page-watchdog.timer"
@@ -46,6 +47,10 @@ scp "${SCP_ARGS[@]}" \
   "${HOST}:/home/kiosk-j/.config/systemd/user/"
 
 scp "${SCP_ARGS[@]}" \
+  "${SNAPSHOT_DIR}/home/kiosk-j/dot-config/monitors.xml" \
+  "${HOST}:/home/kiosk-j/.config/monitors.xml"
+
+scp "${SCP_ARGS[@]}" \
   "${SNAPSHOT_DIR}/home/kiosk-j/dot-local/share/kiosk-domain-guard/"* \
   "${HOST}:/home/kiosk-j/.local/share/kiosk-domain-guard/"
 
@@ -56,6 +61,7 @@ scp "${SCP_ARGS[@]}" \
 ssh "${SSH_ARGS[@]}" "${HOST}" '
   chmod 700 ~/.local/bin
   chmod 755 ~/.local/bin/kiosk-url-guard.py ~/.local/bin/kiosk-display-setup.sh ~/.local/bin/kiosk-page-watchdog.py
+  chmod 644 ~/.config/monitors.xml
   systemctl --user daemon-reload
   systemctl --user disable --now kiosk-url-guard.service || true
   systemctl --user enable --now kiosk-display.service kiosk-chrome.service kiosk-page-watchdog.timer

@@ -49,10 +49,49 @@
   font-weight: 800;
 }
 
+.benefit-events-genres,
 .benefit-events-summary,
 .benefit-events-list {
   width: min(100%, 860px);
   margin-inline: auto;
+}
+
+.benefit-events-genres {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.benefit-events-genres button {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.benefit-events-genres button[aria-pressed="true"] {
+  border-color: #60a5fa;
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.benefit-events-genres button:disabled {
+  color: #94a3b8;
+  cursor: default;
+}
+
+.benefit-events-genres small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 400;
 }
 
 .benefit-events-summary {

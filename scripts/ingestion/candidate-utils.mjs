@@ -1,3 +1,5 @@
+import { toMapSafeVenueName } from '../../src/utils/venueNormalization.mjs';
+export { toMapSafeVenueName } from '../../src/utils/venueNormalization.mjs';
 import crypto from 'node:crypto';
 import {
   allowedCollectionScopes,
@@ -9,7 +11,10 @@ import {
   buildIngestionContentCollisionId,
   ingestionRowsContentCompatible,
 } from '../../server/cafe24/ingestion-duplicate-identity.js';
-import { getGraduationEventMetadata } from '../../src/utils/graduationEvent.mjs';
+import {
+  getGraduationEventMetadata,
+  isClassLikeEventHeadline,
+} from '../../src/utils/graduationEvent.mjs';
 
 const activityLabels = {
   class: '강습',
@@ -181,17 +186,21 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   if (/(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)[^.!?\n]{0,60}(?:판매|신청|모집|오픈|출시|구매|이벤트|가격|요금|안내)|(?:판매|신청|구매)\s*(?:가능한\s*)?(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)|(?:입장권|티켓)\s*\d+\s*(?:장|회)\s*(?:묶음|패키지)\s*(?:판매|구매|신청|오픈|가격|안내)/i.test(seasonPassText)) {
     return 'season_pass';
   }
+  // Ordinary tuition/payment conditions are not a separately advertised benefit event.
+  // A promotion must be the subject of the title or explicitly announced in the body.
+  const hasDiscountPromotion = /할인|특가|쿠폰|프로모션|\b(?:discount|promotion|coupon)\b/i.test(String(sd.title || ''))
+    || /할인\s*(?:이벤트|행사|캠페인)|(?:특가|쿠폰|프로모션)\s*(?:판매|이벤트|행사|진행|오픈|제공)|\b(?:discount\s+(?:event|campaign)|promotion|coupon)\b/i.test(text);
   const discountText = text
     .replace(/(?:할인|특가|얼리\s*버드|쿠폰|프로모션|혜택)[^.!?\n]{0,14}(?:없(?:음|습니다|다)|아님|제외|불가|종료|마감|소진)/gi, ' ')
     .replace(/\b(?:discount|promotion|early\s*bird|coupon)\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended|sold\s*out)\b/gi, ' ');
-  if (/(?:\d{1,2}\s*%|\d[\d,]*\s*원)\s*할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록)[^.!?\n]{0,32}(?:할인|특가|혜택|\d{1,2}\s*%)|(?:할인|특가|혜택)[^.!?\n]{0,32}(?:얼리\s*버드|조기\s*등록)|(?:특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|coupon)\b/i.test(discountText)) {
+  if (hasDiscountPromotion && /(?:\d{1,2}\s*%|\d[\d,]*(?:\.\d+)?\s*(?:천|만)?\s*원)\s*(?:추가\s*|중복\s*)?할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록)[^.!?\n]{0,32}(?:할인|특가|혜택|\d{1,2}\s*%)|(?:할인|특가|혜택)[^.!?\n]{0,32}(?:얼리\s*버드|조기\s*등록)|(?:특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|coupon)\b/i.test(discountText)) {
     return 'discount_event';
   }
   const benefitText = text
     .replace(/무료\s*(?:라인\s*)?(?:강습|클래스|수업|체험|입장|행사|이벤트|파티)?\s*(?:은|는|이|가)?\s*(?:없(?:음|습니다|다|는)|아님|제외|불가|종료|마감)/gi, ' ')
     .replace(/\bfree\s+(?:class|lesson|event|party|admission)?\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended)\b/gi, ' ')
     .replace(/무료\s*(?:혜택|제공|증정|체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|주차|음료|물|락커|보관|상담|와이파이|wifi|대여|대관)?\s*(?:은|는|이|가)?\s*(?:종료|마감|소진)/gi, ' ');
-  if (/(?:참가비|입장료|수강료|이용료|가격|비용|금액)\s*[:：]?\s*(?:완전\s*)?(?:0\s*원|무료)|(?:누구나|모두|전원|참여|참가|입장|관람|수강)\s*(?:은|는|이|가|가능)?\s*무료|무료\s*(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습(?!권)|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)|(?:체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)\s*(?:은|는|이|가)?\s*무료|\bfree\s+(?:class|lesson|event|party|admission|entry|workshop|participation)\b|(?:admission|entry|class|lesson|event|party|workshop|participation)\s*[:：-]?\s*free\b/i.test(benefitText)) {
+  if (/(?<![가-힣])(?:참가비|입장료|수강료|이용료|가격|비용|금액)\s*[:：]?\s*(?:완전\s*)?(?:0\s*원|무료)|(?<![가-힣])(?:누구나|모두|전원|참여|참가|입장|관람|수강)\s*(?:은|는|이|가|가능)?\s*무료|무료\s*(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습(?!권)|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)|(?<![가-힣])(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)\s*(?:은|는|이|가)?\s*무료|\bfree\s+(?:class|lesson|event|party|admission|entry|workshop|participation)\b|(?:admission|entry|class|lesson|event|party|workshop|participation)\s*[:：-]?\s*free\b/i.test(benefitText)) {
     return 'free_event';
   }
   return null;
@@ -268,42 +277,12 @@ const blockedKeywordRules = [
   ['엠티/MT', /엠\s*티|(?:^|[^A-Za-z])m\.?\s*t(?:[^A-Za-z]|$)/i],
 ];
 
-const regionSuffixRe = /\s*[()（）]\s*(신촌|합정|선릉|사당|강남|강북|홍대|상수|망원|연남|서교|마포|신림|봉천|건대|성수|이태원|서울|부산|대구|인천|대전|광주|수원|분당|판교)\s*[()（）]\s*$/i;
-const parenContentRe = /\s*[()（）][^()（）]{1,12}[()（）]\s*$/;
-
-const canonicalVenueAliases = [
-  [/^경성홀(?:신촌)?$/i, '경성홀'],
-  [/^(?:해피홀|happyhall)(?:신촌)?$/i, '해피홀'],
-  [/^(?:소셜클럽|쏘셜클럽|sosyalclub)(?:합정)?$/i, '소셜클럽'],
-  [/^스윙타임(?:바|빠)?(?:선릉)?$/i, '스윙타임'],
-  [/^인더무드(?:신림)?$/i, '인더무드신림'],
-  [/^봉천살롱(?:봉천)?$/i, '봉천살롱'],
-  [/^(?:사보이볼룸|사보이홀|사보이)(?:사당)?$/i, '사보이볼룸'],
-];
-
 function compactVenueText(value = '') {
   return String(value || '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
     .replace(/[()（）\-_.,·]/g, '');
-}
-
-function stripTrailingQualifier(value = '') {
-  return String(value || '')
-    .trim()
-    .replace(regionSuffixRe, '')
-    .replace(parenContentRe, '')
-    .trim();
-}
-
-export function toMapSafeVenueName(value = '') {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  const stripped = stripTrailingQualifier(raw) || raw;
-  const compact = compactVenueText(stripped);
-  const matched = canonicalVenueAliases.find(([pattern]) => pattern.test(compact));
-  return matched?.[1] || stripped;
 }
 
 function regexWithoutState(pattern) {
@@ -414,6 +393,11 @@ export function todayISO(now = new Date()) {
 
 export function publicationDateKey(value = '') {
   const raw = String(value || '').trim();
+  if (/T\d{2}:\d{2}.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw)) {
+    const timestamp = new Date(raw);
+    if (!Number.isFinite(timestamp.getTime())) return '';
+    return todayISO(timestamp);
+  }
   const explicit = raw.match(/(20\d{2})\D{0,3}(\d{1,2})\D{0,3}(\d{1,2})/);
   if (explicit) return isoDateForIngestion(explicit[1], explicit[2], explicit[3]);
   const short = raw.match(/(?:^|\D)(\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})(?:\D|$)/);
@@ -443,11 +427,19 @@ export function alignYearlessDatesToPublication(dates = [], text = '', published
     const [candidate, year, month, day] = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/) || [];
     if (!month || !day) return date;
     const explicitCandidatePattern = new RegExp(
-      `${year}\\s*[.\\-/년]\\s*0?${Number(month)}\\s*[.\\-/월]\\s*0?${Number(day)}(?:\\s*일)?(?:\\D|$)`,
+      `${year}(?:\\s*[.\\-/년]\\s*|\\s+)0?${Number(month)}\\s*[.\\-/월]\\s*0?${Number(day)}(?:\\s*일)?(?:\\D|$)`,
     );
     if (explicitCandidatePattern.test(sourceText)) return candidate;
-    return [publicationYear - 1, publicationYear, publicationYear + 1]
-      .map((year) => isoDateForIngestion(year, month, day))
+    const nearbyDates = [publicationYear - 1, publicationYear, publicationYear + 1]
+      .map((year) => isoDateForIngestion(year, month, day));
+    // Reused class notices have explicit weekday-cohort opening statements.
+    // Ordinary social weekday labels must keep the legacy publication anchor.
+    const statedDay = sourceText.match(new RegExp(
+      `([월화수목금토일])요(?:일)?반\\s*[:：]?\\s*0?${Number(month)}\\s*월\\s*0?${Number(day)}\\s*일\\s*(?:부터|개강|시작)`,
+    ))?.[1] || '';
+    const weekdayMatches = statedDay ? nearbyDates.filter((item) => weekdayLabelForDate(item) === statedDay) : [];
+    if (weekdayMatches.length === 1) return weekdayMatches[0];
+    return nearbyDates
       .sort((left, right) => (
         Math.abs(Date.parse(`${left}T00:00:00+09:00`) - publicationMs)
         - Math.abs(Date.parse(`${right}T00:00:00+09:00`) - publicationMs)
@@ -477,7 +469,8 @@ export function stripRepeatedDjContext(value = '') {
       /^([A-Za-z0-9가-힣._&+\-/]{1,20})\s+스윙타운\s+(?:D\s*J|디제이)\s+\1(?:\s.*)?$/i,
       '$1',
     )
-    .replace(/\s+(?:balboa|ballba|lindy\s*hop|swing|slow)\s+social\b.*$/i, '')
+    .replace(/\s+(?:balboa|ballba|lindy\s*hop|swing|slow)(?:\s+(?:balboa|ballba|lindy\s*hop|swing|slow))?\s*social\b.*$/i, '')
+    .replace(/\s+\d{1,2}\s*시(?:\s*\d{1,2}\s*분)?\s*(?:까지|부터)?.*$/i, '')
     .trim();
 }
 
@@ -492,6 +485,12 @@ export function normalizeSourceUrl(url = '') {
       parsed.search = '';
       parsed.hash = '';
       return parsed.toString();
+    }
+    if (/^(?:www\.)?meetup\.com$/i.test(parsed.hostname)
+      && /^\/(?:[a-z]{2}-[a-z]{2}\/)?[^/]+\/events\/[a-z0-9]+\/?$/i.test(parsed.pathname)) {
+      parsed.hostname = 'www.meetup.com';
+      parsed.pathname = parsed.pathname.replace(/^\/[a-z]{2}-[a-z]{2}\//i, '/');
+      parsed.search = '';
     }
     ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'igsh', 'igshid'].forEach((key) => parsed.searchParams.delete(key));
     parsed.hash = '';
@@ -556,6 +555,7 @@ function explicitWeekdayForCandidateDate(text = '', date = '') {
   const patterns = [
     new RegExp(`${escapedMonth}\\s*월\\s*${escapedDay}\\s*일?\\s*[()（）\\[\\]\\s,./-]{1,8}([월화수목금토일])(?:요일|요)?`),
     new RegExp(`${escapedMonth}\\s*[./-]\\s*${escapedDay}\\s*[()（）\\[\\]\\s,./-]{1,8}([월화수목금토일])(?:요일|요)?`),
+    new RegExp(`([월화수목금토일])요(?:일)?반\\s*[:：]?\\s*${escapedMonth}\\s*월\\s*${escapedDay}\\s*일`),
   ];
   return patterns.map((pattern) => String(text).match(pattern)?.[1] || '').find(Boolean) || '';
 }
@@ -651,12 +651,12 @@ export function extractDatedDjSections({
     .normalize('NFKC')
     .replace(/\s+/g, ' ')
     .trim();
-  if (!/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)/i.test(raw)) return [];
+  if (!/(?<![A-Za-z0-9가-힣])(?:D\s*J|디제이)/i.test(raw)) return [];
 
   const todayYear = Number(String(today).slice(0, 4));
   const todayMonth = Number(String(today).slice(5, 7));
   const sections = [];
-  const pattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
+  const pattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})(?!\d|\s*주)\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*\d{1,2})|$)/gi;
 
   for (const match of raw.matchAll(pattern)) {
     const month = Number(match[1]);
@@ -668,7 +668,7 @@ export function extractDatedDjSections({
     if (!isCollectableDate(date, { today })) continue;
 
     const segment = String(match[4] || '').trim();
-    if (!/(?<![A-Za-z0-9가-힣])(?:DJ|디제이)/i.test(segment)) continue;
+    if (!/(?<![A-Za-z0-9가-힣])(?:D\s*J|디제이)/i.test(segment)) continue;
     const dateLabel = String(match[0] || '')
       .slice(0, Math.max(0, String(match[0] || '').length - String(match[4] || '').length))
       .trim();
@@ -732,7 +732,7 @@ function collectScopedCalendarDateAnchors(raw, {
   maxFutureDays = 180,
 } = {}) {
   const anchors = [];
-  const fullDatePattern = /(?:(20\d{2})\s*(?:[.\-/]|년)\s*)?(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})\s*(?:일)?/g;
+  const fullDatePattern = /(?:(20\d{2})\s*(?:[.\-/]|년)\s*)?(\d{1,2})\s*(?:[./]|월)\s*(\d{1,2})(?!\d|\s*주)\s*(?:일)?/g;
   for (const match of raw.matchAll(fullDatePattern)) {
     const month = Number(match[2]);
     const day = Number(match[3]);
@@ -813,8 +813,6 @@ export function extractExplicitClosureDates({
     lookbackDays,
     maxFutureDays,
   });
-  if (!anchors.length) return [];
-
   const closed = anchors.map((anchor, index) => {
     const next = anchors[index + 1];
     const section = raw.slice(anchor.start, next?.start ?? raw.length);
@@ -846,6 +844,25 @@ export function extractExplicitClosureDates({
   }
 
   const dates = new Set(anchors.filter((_, index) => closed[index]).map((anchor) => anchor.date));
+  // Resolve an explicitly grouped weekday closure from the publication week,
+  // never from the day the collector happens to run. Week numbers are not dates.
+  const publicationDate = publicationDateKey(publishedAt);
+  if (publicationDate) {
+    const reference = new Date(`${publicationDate}T12:00:00+09:00`);
+    const mondayOffset = (reference.getUTCDay() + 6) % 7;
+    const weekdayToken = '(?:[월화수목금토일]요일|[월화수목금토일]요\\s*(?:소셜|정모)|[금일]\\s*(?:햅|햎|해피))';
+    const groupedWeekdays = new RegExp(`(?:이번|금)\\s*주\\s*(${weekdayToken}(?:\\s*(?:[,，·ㆍ/&]|및|와|과)\\s*${weekdayToken}){0,6})([^.!?\\n]{0,45})`, 'g');
+    for (const match of raw.matchAll(groupedWeekdays)) {
+      // A separate class cancellation or a subsequent normal/DJ section cannot
+      // establish a social closure for the preceding weekday group.
+      if (!explicitClosureActionPattern.test(match[2]) || /강습|클래스|수업|DJ|디제이|정상|다음\s*주/i.test(match[2])) continue;
+      for (const dayMatch of match[1].matchAll(new RegExp(weekdayToken, 'g'))) {
+        const offset = '월화수목금토일'.indexOf(dayMatch[0][0]);
+        const date = todayISO(new Date(reference.getTime() + (offset - mondayOffset) * 86_400_000));
+        if (closureDateInsideWindow(date, { today, backtest, lookbackDays, maxFutureDays })) dates.add(date);
+      }
+    }
+  }
   for (let index = 0; index < anchors.length - 1; index += 1) {
     if (!closed[index] || !closed[index + 1]) continue;
     const bridge = raw.slice(anchors[index].end, anchors[index + 1].start);
@@ -903,7 +920,7 @@ export function extractExpectedAutomaticSocialDates({
   }
 
   return [...dates]
-    .filter((date) => !closureDates.has(date))
+    .filter((date) => !closureDates.has(date) && !isDeadlineOnlyEventDate(raw, date, 'social'))
     .sort();
 }
 
@@ -934,7 +951,7 @@ function parseNeoWeeklySchedule({
   const todayMonth = Number(String(today).slice(5, 7));
   const dates = [];
   const closureDates = new Set();
-  const dateSectionPattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*[\[【]?\s*(\d{1,2})\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*[\[【]?\s*\d{1,2})|$)/gi;
+  const dateSectionPattern = /(?:^|[\s[(（])(\d{1,2})\s*(?:[./]|월)\s*[\[【]?\s*(\d{1,2})(?!\d|\s*주)\s*(?:일)?\s*(?:\(\s*([월화수목금토일])\s*\))?\s*([\s\S]{0,900}?)(?=(?:[\s[(（]\d{1,2}\s*(?:[./]|월)\s*[\[【]?\s*\d{1,2})|$)/gi;
 
   for (const match of raw.matchAll(dateSectionPattern)) {
     const month = Number(match[1]);
@@ -1009,9 +1026,7 @@ export function extractInstagramCaptionHeadline(value = '') {
 }
 
 export function isInstagramCaptionClassHeadline(value = '') {
-  return /(?:워크샵|워크숍|특강|workshop|클래스|class|강습|수업|레슨)/i.test(
-    extractInstagramCaptionHeadline(value),
-  );
+  return isClassLikeEventHeadline(extractInstagramCaptionHeadline(value));
 }
 
 export function textSimilarity(a, b) {
@@ -1305,6 +1320,44 @@ export function getBlockedKeywordReason(text = '') {
   const value = String(text || '').normalize('NFKC');
   const matched = blockedKeywordRules.find(([, pattern]) => pattern.test(value));
   return matched ? `수집 금지 키워드: ${matched[0]}` : null;
+}
+
+// Class boards can prepend club introductions (including MT) to a standalone
+// lesson notice. Use that original notice as evidence, never remove keywords
+// from within a lesson or weaken the common exclusion validator.
+export function selectClassNoticeEvidenceText(text = '', { title = '', allowedActivityTypes = [] } = {}) {
+  const raw = String(text || '');
+  if (allowedActivityTypes.length !== 1 || allowedActivityTypes[0] !== 'class'
+    || !isClassLikeEventHeadline(title) || getBlockedKeywordReason(title)
+    || !getBlockedKeywordReason(raw)) return raw;
+
+  const headings = [...raw.matchAll(/^[ \t*#■▪●◆◇□▶▣-]*(?:강습|수업|클래스|레슨)\s*(?:공지|안내)[ \t:：*]*$/gm)];
+  if (headings.length !== 1) return raw;
+  const section = raw.slice(headings[0].index).trim();
+  if (getBlockedKeywordReason(section)
+    || !/\d{1,2}\s*(?:월|[./])\s*\d{1,2}/.test(section)
+    || !/개강|부터|시작|첫\s*수업|(?:강습|수업)\s*일정/.test(section)) return raw;
+  return `${title}\n${section}`;
+}
+
+// Separate explicitly labelled weekday cohorts, not the weekly meetings of one
+// course. Every returned block must carry its own first-date statement.
+export function extractIndependentClassNoticeSections(text = '', { allowedActivityTypes = [] } = {}) {
+  const raw = String(text || '');
+  if (allowedActivityTypes.length !== 1 || allowedActivityTypes[0] !== 'class'
+    || getBlockedKeywordReason(raw)) return [];
+  const headings = [...raw.matchAll(/^[ \t*#■▪●◆◇□▶▣-]*([^\n:：]{0,40}[월화수목금토일]요(?:일)?반)[ \t:：]*$/gm)];
+  if (headings.length < 2 || headings.length > 7) return [];
+  const lastBlock = raw.slice(headings.at(-1).index);
+  const sharedStart = lastBlock.search(/^[ \t*#■▪●◆◇□▶▣-]*(?:위\s*(?:수업|강습)|강습비|수강료|신청\s*방법|강습\s*대상)/m);
+  const sharedText = sharedStart >= 0 ? lastBlock.slice(sharedStart).trim() : '';
+  const sections = headings.map((match, index) => {
+    const end = headings[index + 1]?.index ?? (sharedText ? headings.at(-1).index + sharedStart : raw.length);
+    const section = raw.slice(match.index, end).trim();
+    const opening = section.match(/(\d{1,2}\s*월\s*\d{1,2}\s*일)\s*(?:부터|개강|시작)/);
+    return opening ? { heading: match[1].trim(), openingText: opening[1], text: [section, sharedText].filter(Boolean).join('\n') } : null;
+  });
+  return sections.every(Boolean) ? sections : [];
 }
 
 function looksLikeMixedArtOrCommercialPerformance(text = '', taxonomy = {}) {
@@ -1682,7 +1735,7 @@ export function validateCandidate(candidate, { today = todayISO() } = {}) {
   if (explicitActivity === 'social' && /(?:창립|오픈|개장)?\s*\d+\s*주년.{0,20}(?:파티|행사)|(?:파티|행사).{0,20}\d+\s*주년/i.test(text)) {
     errors.push('anniversary event is misclassified as a regular social');
   }
-  if (!candidate.poster_url && !candidate.imageData && !imageOptionalNamedDjSocial) {
+  if (!candidate.poster_url && !candidate.imageData && taxonomy.activity_type !== 'class' && !imageOptionalNamedDjSocial) {
     errors.push('poster_url or imageData required');
   }
   if (candidate.poster_url && hasBadPosterUrl(candidate.poster_url)) {
@@ -1922,7 +1975,7 @@ export function evaluateAutoRegistrationReadiness(rawCandidate, config = {}) {
   if (source?.discoveryOnly || source?.type === 'benefit_search' || discoverySourceType === 'benefit_search') {
     reasons.push('search/discovery sources require manual approval');
   }
-  if (activity !== 'social' && !candidate.poster_url && !candidate.imageData) {
+  if (!['social', 'class'].includes(activity) && !candidate.poster_url && !candidate.imageData) {
     reasons.push('auto-registration requires an image');
   }
   if (!venue) reasons.push('auto-registration requires a verified venue');

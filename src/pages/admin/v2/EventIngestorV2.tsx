@@ -82,6 +82,7 @@ interface ScrapedEvent {
       };
     };
   };
+  auto_registration?: { ready?: boolean; reasons?: string[] };
   is_collected?: boolean;
   registered_event_id?: string | number | null;
   status?: 'ignored' | 'collected' | 'pending' | 'duplicate' | 'excluded';
@@ -203,7 +204,7 @@ const OPERATIONAL_ASSET_ORIGIN = 'https://swingenjoy.com';
 const CALENDAR_TAB_LABELS: Record<CalendarItemKind, string> = {
   new: '신규',
   free: '무료, 할인 이벤트',
-  collected: '완료',
+  collected: '이미 등록',
   duplicate: '중복',
   db: '운영DB',
 };
@@ -384,6 +385,7 @@ const EventIngestorV2: React.FC = () => {
   const [cropKey, setCropKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRequestSeq = useRef(0);
+  const tabCountsRequestSeq = useRef(0);
   const candidateListRef = useRef<HTMLElement>(null);
   const localIngestorBypass = isLocalIngestorBypass();
   const canAccessIngestor = isAdmin || localIngestorBypass;
@@ -413,14 +415,14 @@ const EventIngestorV2: React.FC = () => {
     setActivityFilter('전체');
   };
 
-  const buildScrapedEventsUrl = (page: number, tab: TabKey, scope: ScopeFilter, pageSize?: number) => {
+  const buildScrapedEventsUrl = useCallback((page: number, tab: TabKey, scope: ScopeFilter, pageSize?: number) => {
     const params = new URLSearchParams({ page: String(page), tab });
     if (pageSize) params.set('pageSize', String(pageSize));
     if (scope !== 'all') params.set('scope', scope);
     return `/api/scraped-events?${params.toString()}`;
-  };
+  }, []);
 
-  const fetchScrapedEvents = async (page = 1, tab = activeTab, scope = scopeFilter) => {
+  const fetchScrapedEvents = useCallback(async (page = 1, tab = activeTab, scope = scopeFilter, background = false) => {
     if (!isIngestorAuthReady || !canAccessIngestor) {
       setLoading(false);
       return;
@@ -430,7 +432,7 @@ const EventIngestorV2: React.FC = () => {
     listRequestSeq.current = requestSeq;
 
     try {
-      setLoading(true);
+      if (!background) setLoading(true);
       setListError(null);
       const res = await fetch(buildScrapedEventsUrl(page, tab, scope), {
         headers: await getAdminRequestHeaders(),
@@ -442,22 +444,27 @@ const EventIngestorV2: React.FC = () => {
       }
       const json = await res.json();
       if (requestSeq !== listRequestSeq.current) return;
-      setScrapedEvents(json.data || json);
+      const rows: ScrapedEvent[] = json.data || json;
+      setScrapedEvents(rows);
+      setSelectedIds(previous => new Set([...previous].filter(id => rows.some(row => row.id === id))));
       setTotalCount(json.total || 0);
       setCurrentPage(page);
     } catch (err) {
       console.error(err);
       if (requestSeq === listRequestSeq.current) {
-        setScrapedEvents([]);
-        setTotalCount(0);
+        if (!background) {
+          setScrapedEvents([]);
+          setTotalCount(0);
+        }
         setListError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
       }
     } finally {
-      if (requestSeq === listRequestSeq.current) setLoading(false);
+      if (!background && requestSeq === listRequestSeq.current) setLoading(false);
     }
-  };
+  }, [activeTab, scopeFilter, isIngestorAuthReady, canAccessIngestor, buildScrapedEventsUrl, getAdminRequestHeaders]);
 
-  const fetchTabCounts = async (scope = scopeFilter) => {
+  const fetchTabCounts = useCallback(async (scope = scopeFilter) => {
+    const requestSeq = ++tabCountsRequestSeq.current;
     if (!isIngestorAuthReady || !canAccessIngestor) {
       setTabCounts({ new: 0, free: 0, collected: 0, duplicate: 0 });
       return;
@@ -472,12 +479,16 @@ const EventIngestorV2: React.FC = () => {
         fetch(`/api/scraped-events?page=1&tab=collected${scopeQuery}`, { headers, cache: 'no-store' }),
         fetch(`/api/scraped-events?page=1&tab=duplicate${scopeQuery}`, { headers, cache: 'no-store' }),
       ]);
+      if ([resNew, resFree, resCollected, resDuplicate].some(res => !res.ok)) {
+        throw new Error('탭 건수를 불러오지 못했습니다.');
+      }
       const [jsonNew, jsonFree, jsonCollected, jsonDuplicate] = await Promise.all([resNew.json(), resFree.json(), resCollected.json(), resDuplicate.json()]);
+      if (requestSeq !== tabCountsRequestSeq.current) return;
       setTabCounts({ new: jsonNew.total || 0, free: jsonFree.total || 0, collected: jsonCollected.total || 0, duplicate: jsonDuplicate.total || 0 });
     } catch (err) {
       console.error('탭 카운트 로드 실패:', err);
     }
-  };
+  }, [scopeFilter, isIngestorAuthReady, canAccessIngestor, getAdminRequestHeaders]);
 
   const handleTabChange = (tab: TabKey) => {
     setViewMode('list');
@@ -535,7 +546,7 @@ const EventIngestorV2: React.FC = () => {
     } while (all.length < total);
 
     return all;
-  }, []);
+  }, [buildScrapedEventsUrl]);
 
   const fetchOperationalCalendarEvents = useCallback(async (scope: ScopeFilter, month: Date) => {
     const days = getCalendarMonthDays(month);
@@ -604,7 +615,34 @@ const EventIngestorV2: React.FC = () => {
     if (!isIngestorAuthReady || !canAccessIngestor) return;
     fetchScrapedEvents(1, activeTab, scopeFilter);
     fetchTabCounts(scopeFilter);
-  }, [activeTab, scopeFilter, canAccessIngestor, isIngestorAuthReady]);
+  }, [activeTab, scopeFilter, canAccessIngestor, isIngestorAuthReady, fetchScrapedEvents, fetchTabCounts]);
+
+  useEffect(() => {
+    if (!isIngestorAuthReady || !canAccessIngestor || loading || selectedEvent || isVenueModalOpen || processingId || bulkProgress) return;
+    let refreshing = false;
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible' || refreshing) return;
+      refreshing = true;
+      try {
+        await Promise.all([
+          fetchScrapedEvents(currentPage, activeTab, scopeFilter, true),
+          fetchTabCounts(scopeFilter),
+          ...(viewMode === 'calendar' ? [refreshCalendarEvents(), refreshOperationalEvents()] : []),
+        ]);
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [isIngestorAuthReady, canAccessIngestor, loading, selectedEvent, isVenueModalOpen, processingId, bulkProgress,
+    currentPage, activeTab, scopeFilter, viewMode, fetchScrapedEvents, fetchTabCounts, refreshCalendarEvents, refreshOperationalEvents]);
 
   useEffect(() => {
     if (viewMode !== 'calendar') return;
@@ -1166,7 +1204,7 @@ const EventIngestorV2: React.FC = () => {
     setIsEditModalOpen(false);
     setSelectedEvent(null);
     await fetchScrapedEvents();
-    await Promise.all([refreshCalendarEvents(), refreshOperationalEvents()]);
+    await Promise.all([fetchTabCounts(), refreshCalendarEvents(), refreshOperationalEvents()]);
   };
 
   if (!isIngestorAuthReady) {
@@ -1190,7 +1228,7 @@ const EventIngestorV2: React.FC = () => {
         <h1>수집 데이터 센터 V2 (Data-Centric)</h1>
         <div className="tab-group">
           <button className={activeTab === 'new' ? 'active' : ''} onClick={() => handleTabChange('new')}>신규 {tabCounts.new > 0 && <span className="tab-badge">{tabCounts.new}</span>}</button>
-          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => handleTabChange('collected')}>완료 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
+          <button className={activeTab === 'collected' ? 'active' : ''} onClick={() => handleTabChange('collected')}>이미 등록 {tabCounts.collected > 0 && <span className="tab-badge">{tabCounts.collected}</span>}</button>
           <button className={activeTab === 'duplicate' ? 'active' : ''} onClick={() => handleTabChange('duplicate')}>중복 {tabCounts.duplicate > 0 && <span className="tab-badge">{tabCounts.duplicate}</span>}</button>
           <button className={activeTab === 'free' ? 'active benefit-tab' : 'benefit-tab'} onClick={() => handleTabChange('free')}>무료, 할인 이벤트 {tabCounts.free > 0 && <span className="tab-badge">{tabCounts.free}</span>}</button>
         </div>
@@ -1613,7 +1651,7 @@ const EventIngestorV2: React.FC = () => {
                     현재
                   </button>
                 )}
-                <button type="button" className="candidate-list-refresh" onClick={() => fetchScrapedEvents(1, activeTab, scopeFilter)}>
+                <button type="button" className="candidate-list-refresh" onClick={() => { void fetchScrapedEvents(1, activeTab, scopeFilter); void fetchTabCounts(scopeFilter); }}>
                   <i className="ri-refresh-line" aria-hidden="true"></i>
                   새로고침
                 </button>
@@ -1709,6 +1747,12 @@ const EventIngestorV2: React.FC = () => {
                     <div className="row-taxonomy">
                       <span>{siteGenre}</span>
                     </div>
+                    {event.status === 'pending' && event.auto_registration?.ready === false && Boolean(event.auto_registration.reasons?.length) && (
+                      <div className="duplicate-match-card">
+                        <div className="duplicate-match-head"><strong>자동등록 보류 · 재검토 필요</strong></div>
+                        <div className="duplicate-match-meta">{event.auto_registration.reasons?.join(' · ')}</div>
+                      </div>
+                    )}
                     {activeTab === 'duplicate' && event.structured_data._duplicate && (
                       <div className="duplicate-match-card">
                         <div className="duplicate-match-head">

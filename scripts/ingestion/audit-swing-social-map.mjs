@@ -1,8 +1,16 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { collectionSources } from './collection-registry.mjs';
+import { collectionSources, automaticSocialCollectionEnabled } from './collection-registry.mjs';
 import { currentSwingSocialMap, swingSocialSourceRoutes } from './swing-social-map.mjs';
+
+if (!automaticSocialCollectionEnabled) {
+  console.log('==SWING_SOCIAL_MAP_SUMMARY_START==');
+  console.log('소셜 자동수집 중단: 공식 공지 직접 연결');
+  console.log('주의필요: none');
+  console.log('==SWING_SOCIAL_MAP_SUMMARY_END==');
+  process.exit(0);
+}
 
 const args = new Map();
 for (let index = 2; index < process.argv.length; index += 1) {

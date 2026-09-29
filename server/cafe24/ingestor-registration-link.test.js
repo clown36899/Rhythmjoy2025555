@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { buildAdminDeletedEventRow } from './admin-event-deletion.js';
 import sharp from 'sharp';
 import {
   buildCollectedScrapedEventRow,
+  buildSocialConflictReviewRow,
+  findSocialOccurrenceConflict,
   buildDuplicateScrapedEventRow,
   buildExcludedScrapedEventRow,
   buildRefreshedScrapedEventRow,
@@ -22,6 +25,25 @@ import {
 } from './function-api.js';
 
 describe('ingestor registration linkage', () => {
+  it('keeps administrator-deleted socials excluded when new DJ evidence uses a new candidate ID', () => {
+    const deleted = buildAdminDeletedEventRow({
+      id: 'regular-social:sample:2026-09-13', title: '기본 소셜', date: '2026-09-13',
+      location: '샘플홀', category: 'social', link1: 'https://www.instagram.com/example/',
+    }, { id: 'admin' });
+    const candidate = {
+      id: 'new-post', source_url: 'https://www.instagram.com/p/new/',
+      structured_data: { title: 'DJ 새로운이름', date: '2026-09-13', location: '샘플홀', category: 'social' },
+    };
+    expect(findScrapedCandidateDuplicate(candidate, [deleted])?.existingId).toBe(deleted.id);
+    for (const patch of [
+      { date: '2026-09-20' }, { location: '다른홀' },
+      { category: 'event', title: 'RSF 행사' }, { category: 'class' }, { genre: '졸공' },
+    ]) {
+      expect(findScrapedCandidateDuplicate({
+        ...candidate, structured_data: { ...candidate.structured_data, ...patch },
+      }, [deleted])).toBeNull();
+    }
+  });
   it('inherits map metadata when a grounded social replaces a generated regular social', () => {
     const explicit = {
       title: 'DJ 제이 | 인더무드신림 일요 소셜',
@@ -670,6 +692,22 @@ describe('ingestor registration linkage', () => {
     };
 
     expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [manualOcrCandidate])).toBe(true);
+    const englishEvidence = { ...corrected, extracted_text: '8월 28일 HAPPY HALL 금요 소셜 DJ 쓴귤',
+      structured_data: { ...corrected.structured_data, venue_provenance: 'source_text', ai_evidence_quotes: ['8월 28일 HAPPY HALL 금요 소셜 DJ 쓴귤'] } };
+    expect(validateAutomaticRegistrationCandidate(englishEvidence).ok).toBe(true);
+    const savoyEvidence = { ...englishEvidence, source_id: 'swingscandal-cafe',
+      auto_registration: { ...englishEvidence.auto_registration, source_id: 'swingscandal-cafe' },
+      extracted_text: '8월 28일 SAVOY BALLROOM BAR 금요 소셜 DJ 쓴귤',
+      structured_data: { ...englishEvidence.structured_data, venue_name: '사보이볼룸',
+        ai_evidence_quotes: ['8월 28일 SAVOY BALLROOM BAR 금요 소셜 DJ 쓴귤'] } };
+    expect(validateAutomaticRegistrationCandidate(savoyEvidence).ok).toBe(true);
+    expect(validateAutomaticRegistrationCandidate({ ...savoyEvidence, structured_data: { ...savoyEvidence.structured_data,
+      ai_evidence_quotes: ['8월 28일', '금요 소셜 DJ 쓴귤'] } }).ok).toBe(false);
+    const unknownPrimary = { ...manualOcrCandidate, structured_data: { ...manualOcrCandidate.structured_data, djs: [] } };
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [unknownPrimary])).toBe(true);
+    expect(findScrapedCandidateDuplicate(corrected, [unknownPrimary])).toBeNull();
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, { ...corrected, auto_registration: { ready: false } }, [unknownPrimary])).toBe(false);
+    expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [{ ...unknownPrimary, status: 'excluded' }])).toBe(false);
     expect(canReopenScrapedCandidateDuplicate(existingDuplicate, corrected, [{
       ...manualOcrCandidate,
       status: 'collected',
@@ -920,10 +958,75 @@ describe('ingestor registration linkage', () => {
     });
   });
 
-  it('accepts either day from a compact multi-date source heading', () => {
+  it.each([
+    ['hongdae-bonita-kakao', '2026-09-15', '홍대 보니따', '헤이즐', '📍9월15일(화) 홍대 보니따 메인홀 소셜 DJ 헤이즐'],
+    ['dsn-crew-meetup', '2026-09-17', '클럽 라틴', 'MAX', 'Thu, Sep 17 · 9:30 PM KST 클럽 라틴 DSN Social Night DJ MAX'],
+  ])('registers grounded salsa socials through the existing server gate: %s', (sourceId, date, venue, dj, text) => {
+    const candidate = {
+      status: 'pending', source_id: sourceId, poster_url: null, extracted_text: text,
+      auto_registration: { ready: true, mode: 'shadow', source_id: sourceId },
+      structured_data: {
+        title: '공식 라틴 소셜', date, activity_type: 'social', dance_scope: 'salsa',
+        genre: '소셜', venue_name: venue, venue_provenance: 'source_text',
+        djs: [dj], evidence_scope: 'date_scoped_social',
+      },
+    };
+    const validation = validateAutomaticRegistrationCandidate(candidate);
+    expect(validation.reasons).toEqual([]);
+    expect(validation.eventData).toMatchObject({ dance_scope: 'salsa', category: 'social', location: venue, image: null });
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, auto_registration: { ...candidate.auto_registration, ready: false } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, djs: ['원문에없는DJ'] } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, date: '2026-09-29' } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, activity_type: 'class' } }).reasons).toContain('source/activity is not server-enrolled');
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, status: 'collected', is_collected: true }).ok).toBe(false);
+    if (sourceId === 'dsn-crew-meetup') {
+      expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, venue_provenance: 'source_registry' } }).reasons).toContain('source requires a venue explicitly verified from the post');
+    }
+  });
+
+  it.each(['sda-lessons-cafe', 'everlatin-lessons-cafe', 'suwon-cuba-lessons-cafe', 'suradan-lessons-cafe'])('registers verified salsa classes without requiring a poster: %s', (sourceId) => {
+    const candidate = {
+      status: 'pending', source_id: sourceId, poster_url: null,
+      extracted_text: '2026년 9월 15일 살사 초급 강습. 수업 장소: 라틴 연습실.',
+      auto_registration: { ready: true, mode: 'shadow', source_id: sourceId, ai_verified: true, ai_confidence: 0.99 },
+      structured_data: {
+        title: '살사 초급 강습', date: '2026-09-15', activity_type: 'class', dance_scope: 'salsa',
+        genre: '살사', venue_name: '라틴 연습실', venue_provenance: 'source_text',
+        ai_evidence_quotes: ['2026년 9월 15일', '살사 초급 강습', '라틴 연습실'],
+      },
+    };
+    const validation = validateAutomaticRegistrationCandidate(candidate);
+    expect(validation.reasons).toEqual([]);
+    expect(validation.eventData).toMatchObject({ dance_scope: 'salsa', category: 'class', event_type: '강습', location: '라틴 연습실', image: null });
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, auto_registration: { ...candidate.auto_registration, ai_verified: false } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, venue_provenance: 'source_registry' } }).reasons).toContain('source requires a venue explicitly verified from the post');
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, date: '2026-09-29' } }).ok).toBe(false);
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, structured_data: { ...candidate.structured_data, activity_type: 'social' } }).reasons).toContain('source/activity is not server-enrolled');
+    expect(validateAutomaticRegistrationCandidate({ ...candidate, status: 'collected', is_collected: true }).ok).toBe(false);
+  });
+
+  it('accepts explicit dates without mistaking times for additional days', () => {
+    for (const evidence of ['2026 09 15 (화)', '2026\n9\n15', '20260915(화)']) {
+      expect(evidenceExplicitlyContainsCandidateDate(evidence, '2026-09-15')).toBe(true);
+      expect(evidenceExplicitlyContainsCandidateDate(evidence, '2025-09-15')).toBe(false);
+    }
+    for (const evidence of ['09 15', '2026091500', 'X20260915', '2026 09 150']) {
+      expect(evidenceExplicitlyContainsCandidateDate(evidence, '2026-09-15')).toBe(false);
+    }
+    expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-23')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('9월 8일 23시까지', '2026-09-08')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('9월 8일, 23일 소셜', '2026-09-23')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-15')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('스윙타임빠 8월 15,16일 토,일 소셜', '2026-08-16')).toBe(true);
     expect(evidenceExplicitlyContainsCandidateDate('★8/14(금햎+광복의리듬 ) /15일 토정모 안내★', '2026-08-15')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('Thu, Sep 17 · 9:30 PM KST', '2026-09-17')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('September 17, 2026', '2026-09-17')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('17 Sept. 2026', '2026-09-17')).toBe(true);
+    expect(evidenceExplicitlyContainsCandidateDate('September 17, 2025', '2026-09-17')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('17 September 2025', '2026-09-17')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('Sep 17, 2026', '2026-09-01')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('Oct 17, 2026', '2026-09-17')).toBe(false);
+    expect(evidenceExplicitlyContainsCandidateDate('Sep 17 · 9:30 PM', '2026-09-30')).toBe(false);
 
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-timebar-saturday',
@@ -1331,12 +1434,12 @@ describe('ingestor registration linkage', () => {
     const validation = validateAutomaticRegistrationCandidate({
       id: 'candidate-unsafe',
       status: 'pending',
-      source_id: 'happyhall2004',
+      source_id: 'unenrolled-test-source',
       poster_url: 'https://example.com/poster.jpg',
       auto_registration: {
         ready: true,
         mode: 'shadow',
-        source_id: 'happyhall2004',
+        source_id: 'unenrolled-test-source',
       },
       structured_data: {
         title: '스윙타운 소셜',
@@ -1438,5 +1541,59 @@ describe('ingestor registration linkage', () => {
 
     expect(validation.ok).toBe(false);
     expect(validation.reasons).toContain('candidate is not pending');
+  });
+});
+
+
+describe('social occurrence conflict review', () => {
+  const event = { id: 'live', title: 'DJ 하나 | 수요 소셜', category: 'social', date: '2026-09-16', location: '스윙타임' };
+  const candidate = { id: 'candidate', source_url: 'https://example.com/new', structured_data: {
+    date: '2026-09-16', venue_name: '스윙타임바', activity_type: 'social', title: '수요 소셜', djs: ['다른DJ'],
+  } };
+
+  it('requires review independent of source, title, and missing or conflicting DJ extraction', () => {
+    for (const djs of [['다른DJ'], ['PM8'], []]) {
+      const incoming = { ...candidate, structured_data: { ...candidate.structured_data, djs } };
+      const conflict = findSocialOccurrenceConflict(incoming, [event]);
+      expect(conflict).toMatchObject({ existingId: 'live', existingDate: '2026-09-16' });
+      const held = buildSocialConflictReviewRow({ ...incoming, auto_registration: { ready: true, mode: 'auto' } }, conflict);
+      expect(held).toMatchObject({ status: 'pending', is_collected: false, auto_registration: { ready: false, mode: 'auto' } });
+      expect(held.auto_registration.reasons.join(' ')).toContain('#live');
+      expect(held.structured_data).toEqual(incoming.structured_data);
+      expect(buildSocialConflictReviewRow(held, conflict).auto_registration.reasons).toHaveLength(1);
+    }
+  });
+
+  it('resolves collector venue aliases on both sides without relying on source URL or DJ', () => {
+    for (const [canonical, alias] of [
+      ['사보이볼룸', 'SAVOY BALLROOM'], ['사보이볼룸(사당)', 'Savoy Ballroom Bar'],
+      ['해피홀', 'HAPPY HALL'], ['소셜클럽', 'SOSYAL CLUB'],
+    ]) {
+      for (const [existingVenue, incomingVenue] of [[canonical, alias], [alias, canonical]]) {
+        const incoming = { ...candidate, structured_data: { ...candidate.structured_data, venue_name: incomingVenue, djs: [] } };
+        expect(findSocialOccurrenceConflict(incoming, [{ ...event, location: existingVenue }])?.existingId).toBe('live');
+        expect(findSocialOccurrenceConflict(incoming, [{ ...event, location: '다른홀' }])).toBeNull();
+        expect(findSocialOccurrenceConflict({ ...incoming, structured_data: { ...incoming.structured_data, venue_id: 'other' } },
+          [{ ...event, location: existingVenue, venue_id: 'live-venue' }])).toBeNull();
+      }
+    }
+  });
+
+  it('preserves different dates, venues, non-social events, and the existing self-update', () => {
+    for (const patch of [{ date: '2026-09-17' }, { location: '다른홀' }, { category: 'class' }, { category: 'event' }]) {
+      expect(findSocialOccurrenceConflict(candidate, [{ ...event, ...patch }])).toBeNull();
+    }
+    expect(findSocialOccurrenceConflict({ ...candidate, structured_data: { ...candidate.structured_data, activity_type: 'class' } }, [event])).toBeNull();
+    expect(findSocialOccurrenceConflict(candidate, [event], 'live')).toBeNull();
+    expect(findSocialOccurrenceConflict(candidate, [{ ...event, event_dates: ['2026-09-15', '2026-09-17'], end_date: '2026-09-17' }])).toBeNull();
+  });
+
+  it('uses venue ids when both are available and preserves generated placeholder replacement', () => {
+    const linked = { ...candidate, structured_data: { ...candidate.structured_data, venue_id: 'venue-1' } };
+    expect(findSocialOccurrenceConflict(linked, [{ ...event, venue_id: 'venue-1', location: '다른 표기' }])).not.toBeNull();
+    expect(findSocialOccurrenceConflict(linked, [{ ...event, venue_id: 'venue-2' }])).toBeNull();
+    const generated = { ...event, id: 'regular-social:test:2026-09-16', automation: { generated_by: 'regular-social-rolling-v1' } };
+    expect(findSocialOccurrenceConflict(candidate, [generated])).toBeNull();
+    expect(findSocialOccurrenceConflict(candidate, [generated, event])).not.toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 # Mini PC Kiosk Worklog
 
-최종 업데이트: 2026-06-15
+최종 업데이트: 2026-08-19
 
 ## 목적
 
@@ -44,6 +44,10 @@ ops/kiosk/mini-pc/snapshot/
 /home/kiosk-j/.config/systemd/user/kiosk-chrome.service
 /home/kiosk-j/.config/systemd/user/kiosk-url-guard.service
 /home/kiosk-j/.config/systemd/user/kiosk-display.service
+/home/kiosk-j/.config/monitors.xml
+/home/kiosk-j/.local/bin/kiosk-page-watchdog.py
+/home/kiosk-j/.config/systemd/user/kiosk-page-watchdog.service
+/home/kiosk-j/.config/systemd/user/kiosk-page-watchdog.timer
 /etc/opt/chrome/policies/managed/kiosk-suppress-update-ui.json
 ```
 
@@ -110,11 +114,18 @@ Script:
 /home/kiosk-j/.local/bin/kiosk-display-setup.sh
 ```
 
+Persistent GNOME monitor config:
+
+```text
+/home/kiosk-j/.config/monitors.xml
+```
+
 목표 상태:
 
 - TV/모니터 native `1920x1080`
 - 화면 회전 right
 - 논리 사용감은 세로 `1080x1920`
+- 서비스가 10초마다 실제 X11 상태를 확인하고 값이 달라졌을 때만 목표 상태를 재적용
 
 ### Chrome update and popup hardening
 
@@ -435,18 +446,48 @@ ops/kiosk/mini-pc/status/
 /home/kiosk-j/.config/systemd/user/kiosk-page-watchdog.timer
 ```
 
+## 2026-08-19 HDMI 재인식 후 가로 화면 복귀와 상시 복구
+
+현상:
+
+- 세로로 설치한 화면에 사이트 전체가 옆으로 누운 가로 화면으로 표시됐다.
+- 실장비 `xrandr` 값은 기대 상태 `1080x1920/right`가 아니라 `1280x720/normal`이었다.
+- `kiosk-display.service`는 `active (exited)`여서 정상처럼 보였지만 2026-08-11 부팅 때 한 번 실행된 뒤 화면 상태를 다시 확인하지 않았다.
+
+원인:
+
+- 2026-08-18 04:12 KST에 HDMI EDID를 연속 재인식한 로그와 GNOME 화면 재할당 로그가 남아 있었다.
+- GNOME의 2025-11-20 설정 파일은 같은 `HDMI-1 / HKC Google TV`를 `1280x720` 및 회전 없음으로 보존하고 있었다.
+- 모니터 전원·입력 전환 또는 HDMI 신호 재협상 뒤 GNOME이 이 오래된 가로 설정을 복원했지만, 기존 oneshot 화면 서비스는 다시 실행되지 않았다.
+- 사이트 코드와 저장소의 세로 설정 파일은 변경되지 않았으며 2026-08-14 키오스크 page watchdog 변경도 화면 방향을 다루지 않았다.
+
+조치:
+
+- `/home/kiosk-j/.config/monitors.xml`을 native `1920x1080`, `right` 회전으로 교정했다.
+- `kiosk-display.service`를 oneshot에서 장기 실행 reconciler로 전환했다.
+- 화면 스크립트는 10초마다 X11 상태를 읽고 이미 `1080x1920/right`이면 아무 작업도 하지 않으며, 값이 달라졌을 때만 세로 설정을 재적용한다.
+- 적용 전 원격 스크립트·서비스·GNOME 설정은 각각 `.bak-20260819`로 보존했다.
+- 저장소 스냅샷과 복원 스크립트에도 GNOME 설정과 상시 유지 동작을 반영했다.
+
+검증:
+
+- 적용 직후 `HDMI-1 connected primary 1080x1920+0+0 right`를 확인했다.
+- 화면·Chrome·page watchdog 서비스는 모두 active/enabled이고 Chrome target은 제목 `댄스빌보드`, URL `https://swingenjoy.com/`였다.
+- 실장비를 의도적으로 `1280x720/normal`로 바꾼 뒤 같은 display service PID가 10초 안에 `1080x1920/right`로 되돌리는 회귀 시험을 통과했다.
+- X11 루트 화면 캡처는 실제 `1080x1920`이며 키오스크 홈이 세로 방향으로 정상 렌더링됐다.
+
 ## 복원 방법
 
 이 폴더에서:
 
 ```bash
-SSH_KEY=/path/to/ssh/key ./restore-mini-pc-kiosk.sh kiosk-j@172.30.1.13
+SSH_KEY=/path/to/ssh/key ./restore-mini-pc-kiosk.sh kiosk-j@kiosk-host.local
 ```
 
 SSH key 없이 기존 SSH 설정을 쓰려면:
 
 ```bash
-./restore-mini-pc-kiosk.sh kiosk-j@172.30.1.13
+./restore-mini-pc-kiosk.sh kiosk-j@kiosk-host.local
 ```
 
 복원 후 확인:
@@ -455,7 +496,7 @@ SSH key 없이 기존 SSH 설정을 쓰려면:
 ssh kiosk-j@kiosk-host.local 'systemctl --user is-active kiosk-chrome.service kiosk-display.service kiosk-page-watchdog.timer; systemctl --user is-enabled kiosk-page-watchdog.timer kiosk-url-guard.service || true'
 ```
 
-`kiosk-chrome.service`, `kiosk-display.service`는 `active`가 나와야 한다.
+`kiosk-chrome.service`, `kiosk-display.service`는 `active`가 나와야 하며 display service는 상시 유지 프로세스이므로 `active (running)`이 정상이다.
 `kiosk-page-watchdog.timer`는 `active`, `enabled`가 나와야 한다.
 `kiosk-url-guard.service`는 legacy fallback이므로 기본은 `disabled`가 맞다.
 

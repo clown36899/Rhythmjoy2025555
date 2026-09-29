@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+const storage = vi.hoisted(() => ({ execute: vi.fn(), release: vi.fn() }));
+vi.mock('./mysql-pool.js', () => ({ getMysqlPool: () => ({ getConnection: async () => storage }) }));
 import {
+  saveCafe24TableRow,
+  loadCafe24TableRows,
   normalizeEventUpdateValues,
   normalizeEventUpsertValue,
 } from './generic-data-api.js';
@@ -82,4 +86,21 @@ describe('Cafe24 generic event metadata writes', () => {
       updated_at: expect.any(String),
     });
   });
+});
+
+
+it('runs the ingestion guard under the existing lock and releases without writing on rejection', async () => {
+  storage.execute.mockReset(); storage.release.mockReset();
+  storage.execute.mockImplementation(async sql => sql.includes('GET_LOCK') ? [[{ acquired: 1 }]] : [[]]);
+  const beforeEventSave = vi.fn(async connection => {
+    expect(connection).toBe(storage);
+    expect(storage.execute.mock.calls[0][0]).toContain('GET_LOCK');
+    await loadCafe24TableRows('events', connection);
+    throw new Error('social conflict');
+  });
+  await expect(saveCafe24TableRow('events', { title: 'test' }, [], { beforeEventSave })).rejects.toThrow('social conflict');
+  expect(storage.execute.mock.calls.some(([sql]) => sql.includes('SELECT raw_json FROM events'))).toBe(true);
+  expect(storage.execute.mock.calls.some(([sql]) => sql.includes('INSERT'))).toBe(false);
+  expect(storage.execute.mock.calls.at(-1)[0]).toContain('RELEASE_LOCK');
+  expect(storage.release).toHaveBeenCalledOnce();
 });

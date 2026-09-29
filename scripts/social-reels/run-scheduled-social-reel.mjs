@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import {
   publicationNeedsReconciliation,
   publishInstagramReel,
+  shutdownPublisherOwnedEmulator,
 } from './instagram-reel-adb.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -93,6 +94,10 @@ function wait(milliseconds) {
 
 export function canRetryPublicationState(state = {}) {
   return state.status === 'failed-before-share';
+}
+
+export function publicationStateRequiresGeneration(state = {}) {
+  return state.status !== 'published';
 }
 
 export function buildPublicationProblemNotification({
@@ -220,7 +225,12 @@ async function main() {
         + 'Use --dry-run to inspect it or --allow-noncurrent-date for an intentional override.',
       );
     }
-    await run(process.execPath, [generatorRunner, `--date=${date}`]);
+    const existingPublicationState = JSON.parse(
+      await readFile(publicationStatePath, 'utf8').catch(() => '{}'),
+    );
+    if (publicationStateRequiresGeneration(existingPublicationState)) {
+      await run(process.execPath, [generatorRunner, `--date=${date}`]);
+    }
     const result = await publishWithSafeRetries(
       {
         date,
@@ -258,6 +268,15 @@ async function main() {
     });
     await notify(notification.message, notification.title);
     throw error;
+  } finally {
+    const finalState = JSON.parse(
+      await readFile(publicationStatePath, 'utf8').catch(() => '{}'),
+    );
+    if (!publicationNeedsReconciliation(finalState)) {
+      await shutdownPublisherOwnedEmulator().catch((error) => {
+        console.warn(`Publisher-owned emulator shutdown failed: ${error.message}`);
+      });
+    }
   }
 }
 

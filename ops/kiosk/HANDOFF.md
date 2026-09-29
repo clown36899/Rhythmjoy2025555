@@ -11,7 +11,7 @@
 ## 현재 관리 대상
 
 - Mini PC Ubuntu 키오스크
-- Mini PC의 Chrome 키오스크 실행과 세로 화면
+- Mini PC의 Chrome 키오스크 실행과 `1080x1920/right` 세로 화면 상시 유지
 - 사이트 `/kiosk` 라우트의 TV 전용 CSS, 외부 링크 가드, QR 안내
 - Android TV의 키오스크 방해 요소 차단 메모
 
@@ -36,3 +36,9 @@ ops/kiosk/mini-pc/
 ```
 
 이 폴더는 `git add ops/kiosk/mini-pc ops/kiosk/HANDOFF.md ops/kiosk/android-tv`로 커밋 대상에 포함하면 된다.
+
+## 2026-09-23 자동 수집 운영 추가
+
+같은 Mini PC에서 별도 수집 서비스도 실행한다. 운영/복구 기준은
+`../ingestion/mini-pc/README.md`이며, 키오스크 Chrome(9222)과 수집 프로필(9224)은
+분리되어 있다. 수집을 점검하면서 키오스크·예약 동기화 서비스를 재시작하지 않는다.

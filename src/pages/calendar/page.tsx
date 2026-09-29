@@ -23,7 +23,6 @@ import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useModalActions } from "../../contexts/ModalContext";
 import { getDanceScopeLabel, getVisibleDanceScopeOptions, normalizeVisibleDanceScope, type DanceScope } from "../../utils/danceTaxonomy";
-import { showComingSoonNotice } from "../../utils/appNotice";
 import { getCalendarLayoutMetrics } from "./utils/calendarLayoutMetrics";
 import { isCalendarClassLikeCategory, isCalendarSocialLikeEvent } from "./utils/calendarEventKind";
 import {
@@ -195,7 +194,7 @@ export default function CalendarPage() {
     ));
     const [danceScope, setDanceScope] = useState<CalendarDanceScope>(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        return normalizeVisibleDanceScope(urlParams.get('dance'), false);
+        return normalizeVisibleDanceScope(urlParams.get('dance'));
     });
     const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1036,12 +1035,7 @@ export default function CalendarPage() {
     };
 
     const handleDanceScopeClick = (scope: CalendarDanceScope) => {
-        if (scope !== 'swing') {
-            showComingSoonNotice();
-            return;
-        }
-
-        if (scope === danceScope) return;
+        if (normalizeVisibleDanceScope(scope) !== scope || scope === danceScope) return;
 
         setDanceScope(scope);
         setSelectedDate(null);
@@ -1051,6 +1045,8 @@ export default function CalendarPage() {
         nextParams.set('view', displayMode);
         nextParams.delete('scrollToToday');
         nextParams.delete('nav');
+        nextParams.delete('id');
+        nextParams.delete('section');
         navigate({ pathname: location.pathname, search: nextParams.toString() }, { replace: false });
 
         if (displayMode === 'calendar') {
@@ -1064,13 +1060,13 @@ export default function CalendarPage() {
     useEffect(() => {
         const urlParams = new URLSearchParams(location.search);
         const rawDanceScope = urlParams.get('dance');
-        const nextScope = normalizeVisibleDanceScope(rawDanceScope, false);
+        const nextScope = normalizeVisibleDanceScope(rawDanceScope);
         if (nextScope !== danceScope) {
             setDanceScope(nextScope);
             setSelectedDate(null);
         }
-        if (isAuthCheckComplete && rawDanceScope && rawDanceScope !== 'swing') {
-            urlParams.delete('dance');
+        if (isAuthCheckComplete && rawDanceScope && rawDanceScope !== nextScope) {
+            urlParams.set('dance', nextScope);
             navigate({ pathname: location.pathname, search: urlParams.toString() }, { replace: true });
         }
     }, [danceScope, isAuthCheckComplete, location.pathname, location.search, navigate]);
@@ -1113,7 +1109,7 @@ export default function CalendarPage() {
                             }
                         }
 
-                        const eventDate = new Date(data.date || data.start_date || new Date());
+                        const eventDate = parseCalendarDateKey(getCalendarEventDateStrings(data)[0]) || new Date();
                         const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
                         handleMonthChange(targetMonth);
 
@@ -1326,13 +1322,16 @@ export default function CalendarPage() {
                                 className={[
                                     'calendar-dance-scope-btn',
                                     danceScope === option.key ? 'active' : '',
-                                    option.key !== 'swing' ? 'is-preparing' : '',
                                 ].filter(Boolean).join(' ')}
                                 onClick={() => handleDanceScopeClick(option.key)}
-                                title={option.desc}
+                                aria-pressed={danceScope === option.key}
+                                disabled={!option.publicAvailable}
+                                aria-label={option.publicAvailable ? option.label : `${option.label} 준비중`}
+                                draggable={false}
+                                title={option.publicAvailable ? option.desc : `${option.label} 준비중`}
                             >
                                 <strong>{option.label}</strong>
-                                <span>{option.desc}</span>
+                                <span>{option.publicAvailable ? option.desc : '준비중'}</span>
                             </button>
                         ))}
                     </div>
@@ -1370,6 +1369,18 @@ export default function CalendarPage() {
                         </button>
                     </div>
 
+                    {tabFilter !== 'classes' && (
+                        <aside className="calendar-official-notice" aria-label="소셜 이용 안내">
+                            <div className="calendar-source-heading">
+                                <strong>소셜 일정</strong><span>자동 수집</span>
+                            </div>
+                            <p>장소를 누르면 <b>공식 공지</b>로 연결됩니다 <i className="ri-arrow-right-up-line" aria-hidden="true" /></p>
+                            <div className="calendar-schedule-legend" aria-label="일정 표시 안내">
+                                <span>등록 일정</span><span>정규 요일 참고</span><span>휴무</span>
+                            </div>
+                        </aside>
+                    )}
+
                     {displayMode === 'calendar' && (
                         <div className="calendar-sticky-weekdays" aria-hidden="true">
                             {CALENDAR_WEEKDAY_LABELS.map((dayLabel, index) => (
@@ -1386,6 +1397,7 @@ export default function CalendarPage() {
                         </div>
                     )}
                 </div>
+
 
                 <section className="calendar-page-overview" aria-label="캘린더 요약">
                     <div className="calendar-page-overview-card">

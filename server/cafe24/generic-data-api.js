@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getMysqlPool } from './mysql-pool.js';
+import { assertEventNotAdminDeleted, deleteEventsAsAdmin, withEventMutationLock } from './admin-event-deletion.js';
 import { getCurrentUser, requireAdmin } from './auth-api.js';
 import {
   attachEventAuthors,
@@ -994,14 +995,14 @@ function normalizedRowLimit(limit, fallback = 20, max = 20000) {
   return Math.max(1, Math.min(max, Math.floor(numeric)));
 }
 
-async function loadRows(table) {
+async function loadRows(table, executor = null) {
   assertTableName(table);
   if (cacheableRowsTables.has(table)) {
     const cached = getCachedValue(rowsCache, table);
     if (cached) return cached;
   }
 
-  const pool = getMysqlPool();
+  const pool = executor || getMysqlPool();
 
   if (table === 'events') {
     const [rows] = await pool.execute('SELECT raw_json FROM events');
@@ -1261,7 +1262,14 @@ async function saveGenericRow(table, row, conflictKeys = []) {
   return nextRow;
 }
 
-async function saveEventRow(row) {
+async function saveEventRow(row, { beforeEventSave } = {}) {
+  return withEventMutationLock(async (connection) => {
+    await beforeEventSave?.(connection);
+    return saveEventRowWithConnection(row, connection);
+  });
+}
+
+async function saveEventRowWithConnection(row, pool) {
   const event = { ...(row || {}) };
   const now = new Date().toISOString();
   if (!event.id) event.id = crypto.randomUUID();
@@ -1275,7 +1283,7 @@ async function saveEventRow(row) {
   if (startDate) event.start_date = startDate;
   if (endDate) event.end_date = endDate;
 
-  const pool = getMysqlPool();
+  await assertEventNotAdminDeleted(event, pool);
   await pool.execute(
     `INSERT INTO events (
        id, title, date_value, start_date, end_date, event_dates_json, time_text,
@@ -1343,8 +1351,8 @@ async function saveEventRow(row) {
   return event;
 }
 
-async function saveRow(table, row, conflictKeys = []) {
-  if (table === 'events') return saveEventRow(row);
+async function saveRow(table, row, conflictKeys = [], options = {}) {
+  if (table === 'events') return saveEventRow(row, options);
   return saveGenericRow(table, row, conflictKeys);
 }
 
@@ -1690,7 +1698,7 @@ function analyticsConfiguredAdminEmails() {
     .filter(Boolean);
 }
 
-async function loadAnalyticsUsers() {
+export async function loadAnalyticsUsers() {
   const pool = getMysqlPool();
   const [rows] = await pool.execute('SELECT id, email, nickname, is_admin FROM users');
   return rows.map((row) => ({
@@ -1831,39 +1839,31 @@ function buildAnalyticsAdminUserIds(boardAdmins = [], analyticsUsers = [], board
 }
 
 function buildAnalyticsAdminDeviceIds(rows = [], identity, adminUserIds) {
-  const sessionIds = new Set();
-  const fingerprints = new Set();
-  const networkDeviceIds = new Set();
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-    for (const row of rows) {
-      const networkDeviceId = analyticsGuestNetworkIdentity(row);
-      const userIds = identity?.userIds(row) || new Set([analyticsUserId(row)].filter(Boolean));
-      const directAdmin = asAnalyticsBool(row?.is_admin)
-        || Array.from(userIds).some((userId) => adminUserIds.has(String(userId)));
-      const linkedAdminDevice = Boolean(
-        (row?.session_id && sessionIds.has(String(row.session_id))) ||
-        (row?.fingerprint && fingerprints.has(String(row.fingerprint))) ||
-        (networkDeviceId && networkDeviceIds.has(networkDeviceId))
-      );
-      if (!directAdmin && !linkedAdminDevice) continue;
-      if (row?.session_id && !sessionIds.has(String(row.session_id))) {
-        sessionIds.add(String(row.session_id));
-        changed = true;
-      }
-      if (row?.fingerprint && !fingerprints.has(String(row.fingerprint))) {
-        fingerprints.add(String(row.fingerprint));
-        changed = true;
-      }
-      if (networkDeviceId && !networkDeviceIds.has(networkDeviceId)) {
-        networkDeviceIds.add(networkDeviceId);
-        changed = true;
-      }
+  // Traverse each device link once. Repeated full scans depended on row order
+  // and became quadratic for long chains of browser/session identities.
+  const links = new Map();
+  const pending = [];
+  for (const row of rows) {
+    const network = analyticsGuestNetworkIdentity(row);
+    const keys = [row?.session_id && `s:${row.session_id}`, row?.fingerprint && `f:${row.fingerprint}`, network && `n:${network}`].filter(Boolean);
+    const userIds = identity?.userIds(row) || new Set([analyticsUserId(row)].filter(Boolean));
+    const admin = asAnalyticsBool(row?.is_admin) || Array.from(userIds).some(id => adminUserIds.has(String(id)));
+    for (const key of keys) {
+      if (!links.has(key)) links.set(key, new Set());
+      for (const other of keys) if (other !== key) links.get(key).add(other);
+      if (admin) pending.push(key);
     }
   }
-
+  const seen = new Set();
+  const sessionIds = new Set(), fingerprints = new Set(), networkDeviceIds = new Set();
+  for (let i = 0; i < pending.length; i += 1) {
+    const key = pending[i];
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const set = key.startsWith('s:') ? sessionIds : key.startsWith('f:') ? fingerprints : networkDeviceIds;
+    set.add(key.slice(2));
+    for (const next of links.get(key) || []) if (!seen.has(next)) pending.push(next);
+  }
   return { sessionIds, fingerprints, networkDeviceIds };
 }
 
@@ -1907,9 +1907,16 @@ function isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds = null)
   );
 }
 
-function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null) {
+function shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix = '', adminDeviceIds = null, networkCache = null) {
   if (asAnalyticsBool(row?.analytics_excluded)) return false;
-  if (isAnalyticsBotRow(row) || isAnalyticsDatacenterRow(row) || isAnalyticsExcludedIpRow(row) || isAnalyticsInternalRouteRow(row)) return false;
+  if (isAnalyticsBotRow(row) || isAnalyticsInternalRouteRow(row)) return false;
+  const networkKey = JSON.stringify([analyticsClientIp(row), row.ip_hash || row.ipHash || null]);
+  let excludedNetwork = networkCache?.get(networkKey);
+  if (excludedNetwork === undefined) {
+    excludedNetwork = isAnalyticsDatacenterRow(row) || isAnalyticsExcludedIpRow(row);
+    networkCache?.set(networkKey, excludedNetwork);
+  }
+  if (excludedNetwork) return false;
   if (isAnalyticsAdminRow(row, identity, adminUserIds, adminDeviceIds)) return false;
   const userId = identity?.userId(row) || analyticsUserId(row);
   if (!userId && !hasAnalyticsIdentityEvidence(row)) return false;
@@ -1986,14 +1993,15 @@ function analyticsDateRange(args = {}) {
   };
 }
 
-async function getAnalyticsSummaryV2(args = {}) {
+export async function getAnalyticsSummaryV2(args = {}, sources = null) {
   const excludedPrefix = '91b04b25';
+  const networkCache = new Map();
   const { startMs, endMs } = analyticsDateRange(args);
-  const logs = await loadRows('site_analytics_logs');
-  const sessions = await loadRows('session_logs');
-  const boardUsers = await loadRows('board_users');
-  const boardAdmins = await loadRows('board_admins');
-  const analyticsUsers = await loadAnalyticsUsers();
+  const logs = sources?.logs ?? await loadRows('site_analytics_logs');
+  const sessions = sources?.sessions ?? await loadRows('session_logs');
+  const boardUsers = sources?.boardUsers ?? await loadRows('board_users');
+  const boardAdmins = sources?.boardAdmins ?? await loadRows('board_admins');
+  const analyticsUsers = sources?.analyticsUsers ?? await loadAnalyticsUsers();
   const canonicalizeUserId = buildAnalyticsUserCanonicalizer(boardUsers, analyticsUsers);
   const adminUserIds = buildAnalyticsAdminUserIds(boardAdmins, analyticsUsers, boardUsers, canonicalizeUserId);
   const nicknameByUser = buildAnalyticsNicknameMap(boardUsers, analyticsUsers, canonicalizeUserId);
@@ -2024,22 +2032,34 @@ async function getAnalyticsSummaryV2(args = {}) {
   const globalAdminIdentity = buildAnalyticsIdentityResolver(allAnalyticsRows, canonicalizeUserId);
   const adminDeviceIds = buildAnalyticsAdminDeviceIds(allAnalyticsRows, globalAdminIdentity, adminUserIds);
 
+  const inclusion = new WeakMap();
+  const include = (row) => {
+    if (!inclusion.has(row)) inclusion.set(row, shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds, networkCache));
+    return inclusion.get(row);
+  };
   const activityRows = rawActivityRows
-    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
+    .filter(({ row }) => include(row));
   const sessionRows = rawSessionRows
-    .filter(({ row }) => shouldIncludeAnalyticsRow(row, identity, adminUserIds, excludedPrefix, adminDeviceIds));
+    .filter(({ row }) => include(row));
   const guestNetworkBridge = buildAnalyticsGuestNetworkBridge([
     ...activityRows.map((item) => item.row),
     ...sessionRows.map((item) => item.row),
   ], identity);
+  const identifiers = new WeakMap();
+  const identify = (row, fallback) => {
+    if (identifiers.has(row)) return identifiers.get(row);
+    const key = analyticsIdentifier(row, fallback, identity, guestNetworkBridge);
+    if (!key.startsWith('unknown:')) identifiers.set(row, key);
+    return key;
+  };
   const sessionSummary = buildAnalyticsSessionSummary(
     sessionRows.map((item) => item.row),
-    (row, index) => analyticsIdentifier(row, index, identity, guestNetworkBridge),
+    (row, index) => identify(row, index),
   );
 
   const dedupedByBucket = new Map();
   for (const item of activityRows) {
-    const identifier = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
+    const identifier = identify(item.row, item.index);
     const bucket = Math.floor(item.ms / (6 * 60 * 60 * 1000));
     const key = `${identifier}:${bucket}`;
     const existing = dedupedByBucket.get(key);
@@ -2050,7 +2070,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const visitorIdentityMap = new Map();
   const addVisitorIdentity = (item, timeValue) => {
     if (!timeValue) return;
-    const key = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
+    const key = identify(item.row, item.index);
     const time = new Date(timeValue).getTime();
     if (!Number.isFinite(time)) return;
     const current = visitorIdentityMap.get(key) || {
@@ -2070,7 +2090,7 @@ async function getAnalyticsSummaryV2(args = {}) {
   const getAnalyticsPage = (row = {}) => row.page_url || row.entry_page || row.exit_page || row.route || null;
   const getAnalyticsReferrer = (row = {}) => row.referrer || null;
   const addGuestRow = (item, timeValue, kind) => {
-    const key = analyticsIdentifier(item.row, item.index, identity, guestNetworkBridge);
+    const key = identify(item.row, item.index);
     if (identity.userId(item.row)) return;
     const time = new Date(timeValue || item.row.created_at || item.row.session_start).getTime();
     if (!Number.isFinite(time)) return;
@@ -2238,6 +2258,19 @@ async function getAnalyticsSummaryV2(args = {}) {
     .sort((a, b) => b.visitCount - a.visitCount);
 
   return {
+    // Internal snapshot preparation captures global admin exclusions and canonical
+    // identities before the daily source is detached from the mutable raw ledger.
+    ...(sources ? { report_rows: {
+      logs: rawActivityRows.map(({ row }) => ({ ...row,
+        user_id: identity.userId(row) || row.user_id || null,
+        analytics_excluded: !include(row),
+      })),
+      sessions: rawSessionRows.map(({ row }) => ({ ...row,
+        session_start: row.session_start || row.created_at,
+        user_id: identity.userId(row) || row.user_id || null,
+        analytics_excluded: !include(row),
+      })),
+    } } : {}),
     total_visits: visitorIdentityMap.size,
     logged_in_visits: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'user').length,
     anonymous_visits: Array.from(visitorIdentityMap.values()).filter((item) => item.type === 'guest').length,
@@ -3259,7 +3292,12 @@ export async function deleteRecords(req, res) {
   await requireGenericAccess(req, table, 'delete', req.body || {});
   const user = await getCurrentUser(req);
   const targets = await resolveMutationTargets(table, req.body?.filters || [], req.body?.orFilters || []);
-  await deleteRows(table, targets);
+  if (table === 'events' && user?.is_admin) {
+    await deleteEventsAsAdmin(targets, user);
+    await Promise.all(targets.map((row) => removeEventUploads(row)));
+  } else {
+    await deleteRows(table, targets);
+  }
   await recomputeCountSideEffects(table, targets);
   const responseData = table === 'events'
     ? sanitizeEventsForViewer(await attachEventAuthors(targets), user)
@@ -3321,6 +3359,11 @@ export async function callRpc(req, res) {
   user = await loadUser();
 
   if (name === 'create_usage_snapshot') {
+    if (args.report === true) {
+      const { getAnalyticsReport } = await import('../../dist-cafe24/analytics-reports.mjs');
+      res.json(responsePayload({ data: await getAnalyticsReport({ ...args, force_refresh: true }) }));
+      return;
+    }
     await createUsageSnapshot(args);
     res.json(responsePayload({ data: true }));
     return;
@@ -3489,7 +3532,10 @@ export async function callRpc(req, res) {
   }
 
   if (name === 'get_analytics_summary_v2') {
-    res.json(responsePayload({ data: await getAnalyticsSummaryV2(args) }));
+    const data = args.report === true
+      ? await (await import('../../dist-cafe24/analytics-reports.mjs')).getAnalyticsReport({ ...args, force_refresh: false })
+      : await getAnalyticsSummaryV2(args);
+    res.json(responsePayload({ data }));
     return;
   }
 
@@ -3579,6 +3625,8 @@ export {
   ensureId as ensureCafe24RecordId,
   getRecordId as getCafe24RecordId,
   loadRows as loadCafe24TableRows,
+  loadRowsByRecordId as loadCafe24TableRowsByRecordId,
+  loadRowsByJsonField as loadCafe24TableRowsByJsonField,
   normalizeEventUpdateValues,
   normalizeEventUpsertValue,
   saveRow as saveCafe24TableRow,

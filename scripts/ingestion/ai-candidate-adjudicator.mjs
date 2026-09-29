@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSourceForCandidate } from './collection-registry.mjs';
 import { stripNaverCafeMemberPrefix } from './candidate-utils.mjs';
+import { toMapSafeVenueName, venueEvidenceIncludes } from '../../src/utils/venueNormalization.mjs';
 import { getHistoricalDjNamesForRoute } from './swing-social-map.mjs';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(moduleDir, 'ai-adjudication.schema.json');
@@ -134,11 +135,7 @@ function evidenceExplicitlyContainsDj(evidence = '', dj = '') {
 }
 
 function normalizedVenue(value) {
-  return normalized(value)
-    .replace(/happy\s*hall/g, '해피홀')
-    .replace(/쏘셜클럽/g, '소셜클럽')
-    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸')
-    .replace(/스윙타임(?:빠|바)?/g, '스윙타임');
+  return normalized(toMapSafeVenueName(value));
 }
 
 function trustedSourceVenueContext(candidate = {}) {
@@ -169,12 +166,14 @@ function evidenceMentionsDate(evidence, isoDate) {
   const month = String(Number(monthPadded));
   const day = String(Number(dayPadded));
   if ([
+    new RegExp(`(?<![A-Za-z0-9])${year}\\s+0?${month}\\s+0?${day}(?![A-Za-z0-9])`),
+    new RegExp(`(?<![A-Za-z0-9])${year}${monthPadded}${dayPadded}(?![A-Za-z0-9])`),
     new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
     new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
   ].some((pattern) => pattern.test(evidence))) return true;
 
-  for (const list of String(evidence || '').matchAll(/(?:^|\D)(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8})/g)) {
+  for (const list of String(evidence || '').matchAll(/(?:^|\D)(\d{1,2})\s*월\s*(\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7})/g)) {
     if (Number(list[1]) !== Number(month)) continue;
     const listedDays = [...String(list[2] || '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));
     if (listedDays.includes(Number(day))) return true;
@@ -312,7 +311,7 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
   }
   if (!exactEvidenceIsGrounded(evidenceQuotes, sourceText)) reasons.push('AI evidence is not an exact substring of source text');
   if (!evidenceMentionsDate(evidenceCorpus, sd.date)) reasons.push('AI evidence does not explicitly contain the candidate date');
-  if (candidateVenue && !normalizedVenue(evidenceCorpus).includes(candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
+  if (candidateVenue && !venueEvidenceIncludes(evidenceCorpus, candidateVenue)) reasons.push('AI evidence does not explicitly contain the candidate venue');
   if (candidateDjs.some((dj) => (
     !evidenceExplicitlyContainsDj(evidenceCorpus, dj)
     || !evidenceExplicitlyContainsDj(djGroundingText, dj)
@@ -329,6 +328,18 @@ export function validateAiAdjudication(candidate, adjudication, config = {}) {
     confidence: Number(adjudication?.confidence || 0),
     evidence_quotes: evidenceQuotes,
   };
+}
+
+// Discovery eligibility only. Registration still requires grounded dates, venue and social evidence.
+export function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false, { enabled = true } = {}) {
+  if (!enabled || source?.benefitKind || !['swing', 'salsa'].includes(source?.scope)) return false;
+  if (source?.allowedActivityTypes?.length && !source.allowedActivityTypes.includes('social')) return false;
+  const value = String(text || '').normalize('NFKC');
+  const hasSocial = ACTIVITY_EVIDENCE_PATTERNS.social.test(value);
+  const hasDj = /(?:DJ|디제이)/i.test(value);
+  const hasDate = /(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*(?:[.\-/]|월)\s*\d{1,2}/i.test(value);
+  // A DJ announcement may carry both the date and social label only in its original poster.
+  return (hasSocial && (hasDj || hasPoster) && (hasDate || hasPoster)) || (hasDj && hasPoster);
 }
 
 export function validateAiSocialExtraction(input = {}, extraction = {}, config = {}) {
@@ -381,7 +392,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
     if (seenDates.has(date)) eventReasons.push('AI returned duplicate social dates');
     if (!exactEvidenceIsGrounded(evidenceQuotes, groundedText)) eventReasons.push('AI social evidence is not an exact substring of source text or attached poster transcription');
     if (!evidenceMentionsDate(evidenceCorpus, date)) eventReasons.push('AI social evidence does not explicitly contain the event date');
-    if (!venue || !normalizedVenue(evidenceCorpus).includes(venue)) eventReasons.push('AI social evidence does not explicitly contain the venue');
+    if (!venue || !venueEvidenceIncludes(evidenceCorpus, venue)) eventReasons.push('AI social evidence does not explicitly contain the venue');
     if (!Number.isInteger(posterImageIndex) || posterImageIndex < 0 || posterImageIndex > attachedImageCount) {
       eventReasons.push('AI social poster image index is invalid');
     }
@@ -397,6 +408,7 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
       eventReasons.push('AI social evidence does not explicitly contain every DJ');
     }
     if (!ACTIVITY_EVIDENCE_PATTERNS.social.test(evidenceCorpus)) eventReasons.push('AI social evidence does not explicitly identify a social');
+    if (input.sourceScope === 'salsa' && !/salsa|살사/i.test(evidenceCorpus)) eventReasons.push('AI social evidence does not explicitly identify salsa in this session');
 
     if (eventReasons.length) {
       reasons.push(`${date || 'unknown date'}: ${eventReasons.join('; ')}`);
@@ -505,7 +517,8 @@ export function buildSocialExtractionPrompt(input = {}) {
   const focusDateHints = [...new Set((input.focusDateHints || [])
     .map((date) => String(date || '').slice(0, 10))
     .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))];
-  return `You extract today-or-later Korean swing-dance social sessions from one official source post.
+  return `You extract today-or-later Korean ${input.sourceScope === 'salsa' ? 'salsa' : 'swing'}-dance social sessions from one official source post.
+${input.sourceScope === 'salsa' ? 'Each session must explicitly include salsa/살사 in its own evidence_quotes. Exclude bachata-only or kizomba-only sessions. Keep each date and room with its own DJs; do not attach the bachata or kizomba room DJ to the salsa room. A mixed room is allowed only with explicit salsa music. Lessons and attached socials are separate activities.' : ''}
 Judge only SOURCE_TEXT. Do not browse or use outside knowledge. TODAY_KST is ${input.today}.
 
 Use decision "extract" only when every returned session has an explicit today-or-later calendar date, venue,
@@ -541,6 +554,13 @@ ${focusDateHints.length
 attached source image, including later images, and return only independently supported sessions for
 FOCUS_DATE_HINTS. Do not copy fields from another date. A focus hint is not evidence by itself; return
 "review" when the source text or visible poster does not explicitly support it.`
+    : ''}
+
+${input.validationFeedback?.length
+    ? `A previous extraction failed validation: ${input.validationFeedback.join('; ')}.
+Reinspect the original text and images and return a complete corrected extraction. Copy the whole
+visible calendar date into evidence_quotes, including a spaced year/month/day if printed that way.
+These validation messages are not source evidence. Never invent a date, quote, venue, or DJ.`
     : ''}
 
 SOURCE_NAME:
@@ -579,8 +599,15 @@ Judge only SOURCE_TEXT. Do not browse or use outside knowledge. TODAY_KST is ${t
 
 Decide whether the source explicitly offers a currently usable benefit:
 - free_event: a free class, admission, participation, or event;
-- discount_event: a real discount, coupon, early-bird price, or promotion;
+- discount_event: a separately advertised discount event, coupon campaign, or promotion;
 - season_pass: a season pass, membership, multi-use ticket, monthly pass, or recurring admission pass for sale.
+
+Ordinary paid-course terms (repeat enrollment, paired/group application, advance payment, or
+standard early/door prices) do not make the class a free or discount event. For discount_event,
+the promotion must be the subject of the announcement or explicitly advertised as a separate
+campaign in SOURCE_TEXT. Do not relabel a paid class as discounted just because its fee section
+mentions conditional savings. A genuinely free introductory/trial class remains free even when
+optional later courses are paid.
 
 Reject expired, ended, sold-out, negated, or merely historical offers. active_on_today means the
 candidate is still relevant as of TODAY_KST; an upcoming future free/discount event is true even though
@@ -763,12 +790,14 @@ export async function extractSocialScheduleWithAi(input = {}, config = {}) {
       }
     }
 
-    if (!validation.ok && dateHints.length && !focusedAttempted) {
+    if (!validation.ok && !focusedAttempted
+      && (dateHints.length || (extraction?.decision === 'extract' && extraction.events?.length))) {
       focusedAttempted = true;
       const focusedInput = {
         ...baseInput,
         dateHints,
         focusDateHints: dateHints,
+        validationFeedback: validation.reasons,
       };
       const focused = await runAttempt(
         focusedInput,

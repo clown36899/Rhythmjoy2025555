@@ -1,3 +1,4 @@
+import { getCalendarSocialDjText, normalizeCalendarSocialDjs } from '../../calendar/utils/calendarEventKind';
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from "react-datepicker";
@@ -41,8 +42,8 @@ const EventEditBottomSheet = React.memo(({
     });
 
     useEffect(() => {
+        if (activeField === 'djs') setEditValue(getCalendarSocialDjText(initialValue));
         if (activeField === 'title') setEditValue(initialValue.title);
-        if (activeField === 'time') setEditValue(initialValue.time || '');
         if (activeField === 'genre') {
             setEditValue(initialValue.genre || '');
             setEditScope(initialValue.scope || 'domestic');
@@ -97,7 +98,8 @@ const EventEditBottomSheet = React.memo(({
         return ['워크샵', '파티', '대회', '라이브밴드', '기타'];
     }, [editCategory]);
 
-    if (!activeField) return null;
+    // Legacy callers must not reopen the retired standalone time editor.
+    if (!activeField || activeField === 'time') return null;
 
     return createPortal(
         <div
@@ -108,9 +110,9 @@ const EventEditBottomSheet = React.memo(({
             <div className="EDM-bottomSheetContent">
                 <div className="EDM-bottomSheetHandle"></div>
                 <h3 className="EDM-bottomSheetHeader">
+                    {activeField === 'djs' && <><i className="ri-music-2-line"></i>DJ명 수정</>}
                     {activeField === 'title' && <><i className="ri-text"></i>제목 수정</>}
                     {activeField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
-                    {activeField === 'time' && <><i className="ri-time-line"></i>시간 수정</>}
                     {activeField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
                     {activeField === 'links' && <><i className="ri-link"></i>링크 수정</>}
                     {activeField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
@@ -120,7 +122,15 @@ const EventEditBottomSheet = React.memo(({
 
                 <div className="EDM-bottomSheetBody">
                     <div className="EDM-bottomSheetInputGroup">
-                        {activeField === 'date' ? (
+                        {activeField === 'djs' ? (
+                            <div className="EDM-inputGroup-v">
+                                <label className="EDM-inputLabel" htmlFor="event-dj-names">DJ명 (선택)</label>
+                                <input id="event-dj-names" type="text" className="EDM-bottomSheetInput"
+                                    value={editValue} onChange={(e) => setEditValue(e.target.value)}
+                                    placeholder="예: BLAKE, 홍길동" autoFocus />
+                                <p className="EDM-genreHint">여러 명은 쉼표로 구분해 주세요.</p>
+                            </div>
+                        ) : activeField === 'date' ? (
                             <div className="EDM-dateEditContainer">
                                 <div className="EDM-dateModeToggle">
                                     <button onClick={() => { setDateMode('single'); setEditValue(''); }} className={`EDM-dateModeBtn ${dateMode === 'single' ? 'is-active' : ''}`}>하루</button>
@@ -186,16 +196,6 @@ const EventEditBottomSheet = React.memo(({
                                     <input type="text" className="EDM-bottomSheetInput" value={linkEditValues.link_name1} onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })} placeholder="링크 이름 (예: 신청하기)" />
                                     <input type="text" className="EDM-bottomSheetInput" value={linkEditValues.link1} onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })} placeholder="URL (https://...)" />
                                 </div>
-                            </div>
-                        ) : activeField === 'time' ? (
-                            <div className="EDM-timeEditContainer">
-                                <label className="EDM-inputLabel">시작 시간</label>
-                                <input
-                                    type="time"
-                                    className="EDM-bottomSheetInput"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                />
                             </div>
                         ) : activeField === 'mainAdImageKind' ? (
                             <div className="EDM-mainAdKindEditContainer">
@@ -332,7 +332,9 @@ const EventEditBottomSheet = React.memo(({
                 <div className="EDM-bottomSheetFooter">
                     <button
                         onClick={() => {
-                            if (activeField === 'links') {
+                            if (activeField === 'djs') {
+                                onSave({ ...initialValue.structured_data, djs: normalizeCalendarSocialDjs(editValue) });
+                            } else if (activeField === 'links') {
                                 onSave(linkEditValues, editCategory);
                             } else if (activeField === 'genre') {
                                 onSave({ genre: editValue, scope: editScope }, editCategory);

@@ -1,5 +1,7 @@
+import { getCalendarSocialDisplayText, getCalendarSocialDjText, getCalendarSocialSourceInfo, isCalendarRegularSocialGuide } from '../../calendar/utils/calendarEventKind';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { cafe24 } from '../../../lib/cafe24Client';
 import { fetchCafe24EventById, isCafe24EventsBackendEnabled, updateCafe24EventById } from '../../../lib/cafe24EventsApi';
 import type { Event as BaseEvent } from '../../../lib/cafe24Client';
@@ -27,6 +29,7 @@ import EventEditBottomSheet from './EventEditBottomSheet';
 import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
 import { addClientLog } from '../../../utils/clientLogBuffer';
 import { getActivityTypeForCategory } from '../../events/eventsInfoCategory';
+import { inferDanceScopeForEvent } from '../../../utils/danceTaxonomy';
 import {
   eventBenefitFields,
   getEventBenefitKindLabel,
@@ -207,9 +210,17 @@ export default function EventDetailModal({
 
   const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
   const { openModal } = useModalActions();
+  const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading();
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isDesktopDetail, setIsDesktopDetail] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => setIsDesktopDetail(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // View tracking Hook
   const eventId = event?.id ? String(event.id).replace('social-', '') : '';
@@ -764,6 +775,7 @@ export default function EventDetailModal({
 
     const updates: Partial<Event> = {};
 
+    if (activeEditField === 'djs') updates.structured_data = value;
     if (activeEditField === 'title') updates.title = value;
     if (activeEditField === 'genre') {
       if (typeof value === 'object' && value !== null) {
@@ -839,7 +851,7 @@ export default function EventDetailModal({
       'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category', 'activity_type', 'group_id',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
       'date', 'start_date', 'end_date', 'event_dates', 'time', 'main_ad_image_kind',
-      'benefit_eligible', 'benefit_kind'
+      'benefit_eligible', 'benefit_kind', 'structured_data'
     ];
 
     if (EVENT_DETAIL_DEBUG) console.debug('[hasChanges] Checking for changes...');
@@ -876,6 +888,7 @@ export default function EventDetailModal({
       // Initialize updates with current draft state
       const updates: any = {
         title: draftEvent.title,
+        structured_data: draftEvent.structured_data,
         genre: draftEvent.genre,
         category: draftEvent.category,
         activity_type: activityTypeForEventDetailCategory(draftEvent.category, draftEvent.activity_type),
@@ -1189,6 +1202,22 @@ export default function EventDetailModal({
   }
 
   const selectedEvent = draftEvent || event;
+  const isSocialDetail = isEventDetailSocialLikeEvent(selectedEvent);
+  const socialDisplayText = isSocialDetail ? getCalendarSocialDisplayText(selectedEvent) : '';
+  const desktopTitle = socialDisplayText.startsWith('DJ ') && selectedEvent.title.startsWith(socialDisplayText + ' | ')
+    ? selectedEvent.title.slice(socialDisplayText.length + 3)
+    : selectedEvent.title;
+  const socialSource = isSocialDetail ? getCalendarSocialSourceInfo(selectedEvent)
+    : { originalUrl: null, officialUrl: null, sourceName: '' };
+  const isRegularGuide = isSocialDetail && isCalendarRegularSocialGuide(selectedEvent);
+  const DescriptionContainer = isSocialDetail && !isSelectionMode ? 'details' : 'div';
+  // Evidence markers remain in storage/admin edits; public copy uses a plain label.
+  const descriptionText = isSocialDetail && !isSelectionMode
+    ? selectedEvent.description?.replace(/\[AI_POSTER_TRANSCRIPTION\]/g, '포스터 안내')
+    : selectedEvent.description;
+  const shortcutUrl = selectedEvent.link1;
+  const shortcutLabel = selectedEvent.link_name1 || '링크1';
+  const socialVenueName = selectedEvent.venue_name || selectedEvent.location || selectedEvent.location_name;
   const isSelectedEventOwner = Boolean(
     eventViewerUserId &&
     selectedEvent.user_id &&
@@ -1200,9 +1229,11 @@ export default function EventDetailModal({
   return (
     <>
       <div
-        className="EventDetailModal EDM-overlay"
+        className={`EventDetailModal EDM-overlay ${isSocialDetail ? 'EDM-socialDetail' : ''} ${isSocialDetail && !thumbnailSrc && !highResSrc && !isSelectionMode ? 'EDM-withoutPoster' : ''}`}
         role="dialog"
         aria-modal="true"
+        aria-label={selectedEvent.title}
+        onDragStart={isSocialDetail ? (e) => e.preventDefault() : undefined}
         onClick={(event) => {
           // 포털로 중첩된 검색/목록 모달까지 닫히지 않도록 상세 경계에서 종료한다.
           event.stopPropagation();
@@ -1328,7 +1359,16 @@ export default function EventDetailModal({
                           />
                         )}
 
-                        <div className="EDM-imageWrapper">
+                        <div className="EDM-imageWrapper"
+                          role={(isDesktopDetail || isSocialDetail) && !isSelectionMode ? 'button' : undefined}
+                          tabIndex={(isDesktopDetail || isSocialDetail) && !isSelectionMode ? 0 : undefined}
+                          aria-label={(isDesktopDetail || isSocialDetail) && !isSelectionMode ? '포스터 크게 보기' : undefined}
+                          onClick={() => { if ((isDesktopDetail || isSocialDetail) && !isSelectionMode) setShowFullscreenImage(true); }}
+                          onKeyDown={(e) => {
+                            if ((isDesktopDetail || isSocialDetail) && !isSelectionMode && (e.key === 'Enter' || e.key === ' ')) {
+                              e.preventDefault(); setShowFullscreenImage(true);
+                            }
+                          }}>
                           <React.Fragment key="event-images">
                             {/* 1. Base Layer: Thumbnail */}
                             {thumbnailSrc && (
@@ -1380,7 +1420,7 @@ export default function EventDetailModal({
 
                             {/* Fallback if only HighRes exists and no thumbnail */}
                             {!thumbnailSrc && highResSrc && (
-                              <img
+                              <img draggable={false}
                                 src={highResSrc}
                                 alt={selectedEvent.title}
                                 className="EDM-imageContent"
@@ -1389,6 +1429,11 @@ export default function EventDetailModal({
                               />
                             )}
                           </React.Fragment>
+                          {isSocialDetail && !isSelectionMode && (
+                            <span className="EDM-imageZoomHint" aria-hidden="true">
+                              <i className="ri-zoom-in-line" /> 확대
+                            </span>
+                          )}
                         </div>
 
                         {/* Gradient Overlay */}
@@ -1427,7 +1472,7 @@ export default function EventDetailModal({
 
 
                         {/* 즐겨찾기 버튼 (이미지 좌측 하단 - 원본 위치 복구) */}
-                        {onToggleFavorite && (
+                        {onToggleFavorite && !isSocialDetail && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1483,7 +1528,7 @@ export default function EventDetailModal({
                 >
                   <div className="EDM-titleGroup">
                     <h2 className="EDM-title">
-                      {selectedEvent.title}
+                      {(isDesktopDetail || isSocialDetail) && !isSelectionMode ? desktopTitle : selectedEvent.title}
                     </h2>
 
                     {isSelectionMode && (
@@ -1500,6 +1545,18 @@ export default function EventDetailModal({
                     )}
                   </div>
 
+                  {(isDesktopDetail || isSocialDetail) && socialDisplayText.startsWith('DJ ') && !isSelectionMode && (
+                    <p className="EDM-djLine">{socialDisplayText}</p>
+                  )}
+                  {isSelectionMode && isSocialDetail && (
+                    <div className="EDM-genreGroup">
+                      <span className="EDM-djLine">DJ명: {getCalendarSocialDjText(selectedEvent) || '미입력'}</span>
+                      <button className="EDM-editTrigger" title="DJ명 수정"
+                        onClick={(e) => { e.stopPropagation(); setActiveEditField('djs'); }}>
+                        <i className="ri-pencil-line"></i>
+                      </button>
+                    </div>
+                  )}
                   {/* 장르 표시 */}
                   {(() => {
                     const isSocial = isEventDetailSocialLikeEvent(selectedEvent);
@@ -1522,6 +1579,11 @@ export default function EventDetailModal({
                           </p>
                         ) : (
                           <span className="EDM-noInfo">장르 미지정</span>
+                        )}
+                        {isSocialDetail && !isSelectionMode && (
+                          <span className={`EDM-scheduleKind ${isRegularGuide ? 'is-regular' : socialDisplayText === '휴무' ? 'is-closed' : ''}`}>
+                            {isRegularGuide ? '정규 요일' : socialDisplayText === '휴무' ? '휴무 안내' : '등록된 일정'}
+                          </span>
                         )}
                         {isSelectionMode && (
                           <button
@@ -1583,10 +1645,11 @@ export default function EventDetailModal({
 
                 {/* 세부 정보 */}
                 <div className="EDM-infoSection">
-                  {(selectedEvent.location || isSelectionMode) && (
-                    <div className="EDM-infoItem">
+                  {(selectedEvent.location || (isSocialDetail && (socialVenueName || selectedEvent.address)) || isSelectionMode) && (
+                    <div className="EDM-infoItem EDM-locationRow">
                       <i className="ri-map-pin-line EDM-infoIcon"></i>
                       <div className="EDM-infoContent-flex">
+                        {isSocialDetail && <span className="EDM-placeLabel">장소</span>}
                         {(selectedEvent as any).venue_id ? (
                           <button
                             onClick={(e) => {
@@ -1604,14 +1667,15 @@ export default function EventDetailModal({
                             className="EDM-venueLink"
                             style={{ position: 'relative', zIndex: 10 }}
                           >
-                            <span>{selectedEvent.location}</span>
+                            <span>{isSocialDetail ? socialVenueName || '장소 상세보기' : selectedEvent.location}</span>
                             <i className="ri-arrow-right-s-line"></i>
                           </button>
                         ) : (
-                          <span>{selectedEvent.location || "장소 미정"}</span>
+                          <span>{(isSocialDetail ? socialVenueName : selectedEvent.location) || "장소 미정"}</span>
                         )}
                         {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
                           <a
+                            draggable={false}
                             href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -1621,6 +1685,7 @@ export default function EventDetailModal({
                             <i className="ri-external-link-line"></i>
                           </a>
                         )}
+                        {(isDesktopDetail || isSocialDetail) && selectedEvent.address && <p className="EDM-venueAddress">{selectedEvent.address}</p>}
                         {isSelectionMode && (
                           <button
                             onClick={(e) => {
@@ -1637,10 +1702,26 @@ export default function EventDetailModal({
                     </div>
                   )}
 
-                  <div className="EDM-infoItem">
+                  <div className="EDM-infoItem EDM-dateRow">
                     <i className="ri-calendar-line EDM-infoIcon"></i>
                     <div className="EDM-infoContent-flex">
-                      <span>
+                      <button
+                        type="button"
+                        className="EDM-dateLink"
+                        title="캘린더에서 보기"
+                        draggable={false}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const params = new URLSearchParams({
+                            id: String(selectedEvent.id),
+                            highlightOnly: 'true',
+                            view: 'calendar',
+                            dance: inferDanceScopeForEvent(selectedEvent),
+                          });
+                          onClose();
+                          navigate(`/calendar?${params.toString()}`);
+                        }}
+                      >
                         {(() => {
                           // Helper for safe date parsing
                           const safeDate = (d: string | null | undefined) => {
@@ -1727,7 +1808,8 @@ export default function EventDetailModal({
 
                           return `${startYear}년 ${startMonth} ${startDay}일 (${startDow})`;
                         })()}
-                      </span>
+                        <i className="ri-arrow-right-s-line" aria-hidden="true"></i>
+                      </button>
                       {isSelectionMode && (
                         <button
                           onClick={(e) => {
@@ -1743,25 +1825,33 @@ export default function EventDetailModal({
                     </div>
                   </div>
 
-                  {(selectedEvent.time || isSelectionMode) && (
-                    <div className="EDM-infoItem">
-                      <i className="ri-time-line EDM-infoIcon"></i>
-                      <div className="EDM-infoContent-flex">
-                        <span>{selectedEvent.time || "시간 미정"}</span>
-                        {isSelectionMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveEditField('time');
-                            }}
-                            className="EDM-editTrigger"
-                            title="시간 수정"
-                          >
-                            <i className="ri-pencil-line"></i>
-                          </button>
+                  {isSocialDetail && !isSelectionMode && (
+                    <section className="EDM-officialNotice" aria-label="소셜 공식 공지 안내">
+                      <div className="EDM-officialNoticeLinks">
+                        {socialSource.officialUrl && (
+                          <a className="EDM-officialNoticePrimary" href={socialSource.officialUrl}
+                            target="_blank" rel="noopener noreferrer" draggable={false}
+                            data-analytics-id={selectedEvent.id} data-analytics-type="external_link"
+                            data-analytics-title="공식 공지 확인" data-analytics-section="event_detail_source">
+                            <i className="ri-external-link-line" aria-hidden="true" />
+                            <span><strong>공식 공지 열기</strong><small>{socialSource.sourceName}</small></span>
+                            <i className="ri-arrow-right-up-line" aria-hidden="true" />
+                          </a>
+                        )}
+                        {socialSource.originalUrl && (
+                          <a className="EDM-officialNoticeOriginal" href={socialSource.originalUrl}
+                            target="_blank" rel="noopener noreferrer" draggable={false}>
+                            이 일정의 원문 보기 <i className="ri-arrow-right-up-line" aria-hidden="true" />
+                          </a>
+                        )}
+                        {!socialSource.officialUrl && !socialSource.originalUrl && (
+                          <span className="EDM-officialNoticeMissing">연결된 공지가 없습니다. 주최 측에 운영 여부를 확인해 주세요.</span>
                         )}
                       </div>
-                    </div>
+                      <p>{isRegularGuide
+                        ? '정규 요일 안내입니다. 방문 전 실제 운영 공지를 확인하세요.'
+                        : '소셜 공지를 자동 수집합니다. 최신 변경은 공식 공지에서 확인하세요.'}</p>
+                    </section>
                   )}
 
                   {/* 조회수 표시 */}
@@ -1774,13 +1864,16 @@ export default function EventDetailModal({
                     </div>
                   )}
 
-                  {(selectedEvent.description || isSelectionMode) && (
-                    <div className="EDM-divider">
+                  {((!isRegularGuide && selectedEvent.description) || isSelectionMode) && (
+                    <DescriptionContainer className="EDM-divider EDM-description">
+                      {isSocialDetail && !isSelectionMode && (
+                        <summary>공지 내용 보기 <i className="ri-arrow-down-s-line" aria-hidden="true" /></summary>
+                      )}
                       <div className="EDM-infoItem">
                         <i className="ri-file-text-line EDM-infoIcon"></i>
                         <div className="EDM-infoItemContent">
                           <div className="EDM-descHeader">
-                            <span className="EDM-sectionLabel">내용</span>
+                            <span className="EDM-sectionLabel">{isSocialDetail ? '상세 설명' : '내용'}</span>
                             {isSelectionMode && (
                               <button
                                 onClick={(e) => {
@@ -1796,13 +1889,14 @@ export default function EventDetailModal({
                           </div>
                           <div className="EDM-descWrapper">
                             <p>
-                              {selectedEvent.description ? (
-                                selectedEvent.description
+                              {descriptionText ? (
+                                descriptionText
                                   .split(/(\bhttps?:\/\/[^\s]+)/g)
                                   .map((part: string, idx: number) => {
                                     if (part.match(/^https?:\/\//)) {
                                       return (
                                         <a
+                            draggable={false}
                                           key={idx}
                                           href={part}
                                           target="_blank"
@@ -1827,7 +1921,7 @@ export default function EventDetailModal({
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </DescriptionContainer>
                   )}
 
                   {selectedEvent.contact &&
@@ -1892,11 +1986,11 @@ export default function EventDetailModal({
                   {canViewAdminEventFields &&
                     (selectedEvent.organizer_name ||
                       selectedEvent.organizer_phone) && (
-                      <div className="EDM-adminSection">
-                        <div className="EDM-adminHeader">
+                      <details className="EDM-adminSection" open={!isDesktopDetail || isSelectionMode}>
+                        <summary className="EDM-adminHeader">
                           <i className="ri-admin-line"></i>
                           <span>등록자 정보 (관리자 전용)</span>
-                        </div>
+                        </summary>
                         {selectedEvent.organizer_name && (
                           <div className="EDM-adminItem">
                             <i className="ri-user-star-line"></i>
@@ -1909,7 +2003,7 @@ export default function EventDetailModal({
                             <span>{selectedEvent.organizer_phone}</span>
                           </div>
                         )}
-                      </div>
+                      </details>
                     )}
 
                   {/* Link section removed as per user request */}
@@ -1939,26 +2033,28 @@ export default function EventDetailModal({
 
           <div className="EDM-footer">
             <div className="EDM-footerLinks">
-              {selectedEvent.link1 && (
+              {shortcutUrl && !isSocialDetail && (
                 <a
-                  href={selectedEvent.link1}
+                  draggable={false}
+                  href={shortcutUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="EDM-footerLink"
-                  title={selectedEvent.link_name1 || "바로가기 1"}
+                  title={shortcutLabel}
                   data-analytics-id={selectedEvent.id}
                   data-analytics-type="external_link"
-                  data-analytics-title={selectedEvent.link_name1 || "링크1"}
+                  data-analytics-title={shortcutLabel}
                   data-analytics-section="event_detail_footer"
                 >
                   <i className="ri-external-link-line EDM-footerLinkIcon"></i>
                   <span className="EDM-footerLinkText">
-                    {selectedEvent.link_name1 || "링크1"}
+                    {shortcutLabel}
                   </span>
                 </a>
               )}
               {selectedEvent.link2 && (
                 <a
+                  draggable={false}
                   href={selectedEvent.link2}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1977,6 +2073,7 @@ export default function EventDetailModal({
               )}
               {selectedEvent.link3 && (
                 <a
+                  draggable={false}
                   href={selectedEvent.link3}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -2011,6 +2108,27 @@ export default function EventDetailModal({
             </div>
 
             <div className="EDM-actionGroup">
+              {isSocialDetail && !isSelectionMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    openModal('weeklySocial');
+                  }}
+                  className="EDM-actionBtn EDM-registerBtn"
+                  title="소셜 일정 등록"
+                  draggable={false}
+                >
+                  <i className="ri-add-line EDM-actionIcon" />
+                  <span className="EDM-actionLabel">등록</span>
+                </button>
+              )}
+              {(isDesktopDetail || isSocialDetail) && onToggleFavorite && !isSelectionMode && (
+                <button className={`EDM-actionBtn EDM-desktopFavorite ${isFavorite ? 'is-active' : ''}`} title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(e); }}>
+                  <i className={`${isFavorite ? 'ri-star-fill' : 'ri-star-line'} EDM-actionIcon`} />
+                  {isSocialDetail && <span className="EDM-actionLabel">관심</span>}
+                </button>
+              )}
               {!isSelectionMode && (
                 <button
                   onClick={async (e) => {
@@ -2062,6 +2180,7 @@ export default function EventDetailModal({
                   data-analytics-section="event_detail_footer"
                 >
                   <i className="ri-share-line EDM-actionIcon"></i>
+                  {isSocialDetail && <span className="EDM-actionLabel">공유</span>}
                 </button>
               )}
 
@@ -2125,6 +2244,7 @@ export default function EventDetailModal({
                   disabled={effectiveIsDeleting}
                 >
                   {effectiveIsDeleting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-delete-bin-line EDM-actionIcon"></i>}
+                  {isSocialDetail && <span className="EDM-actionLabel">삭제</span>}
                 </button>
               )}
 
@@ -2165,6 +2285,7 @@ export default function EventDetailModal({
                   title={isSelectionMode ? "수정 완료" : "이벤트 수정"}
                 >
                   <i className={`ri-${isSelectionMode ? 'check-line' : 'edit-line'} EDM-actionIcon`}></i>
+                  {isSocialDetail && <span className="EDM-actionLabel">{isSelectionMode ? '완료' : '수정'}</span>}
                 </button>
               )}
 
@@ -2179,6 +2300,7 @@ export default function EventDetailModal({
                 title="닫기"
               >
                 <i className="ri-close-line EDM-actionIcon"></i>
+                {isSocialDetail && <span className="EDM-actionLabel">닫기</span>}
               </button>
             </div>
           </div>
@@ -2186,7 +2308,7 @@ export default function EventDetailModal({
       </div>
 
       {showFullscreenImage &&
-        (selectedEvent.image_medium ||
+        (selectedEvent.image_full || selectedEvent.image_medium ||
           selectedEvent.image ||
           getEventThumbnail(
             selectedEvent,
@@ -2201,12 +2323,13 @@ export default function EventDetailModal({
               <button
                 onClick={() => setShowFullscreenImage(false)}
                 className="EDM-fullscreenCloseBtn"
+                aria-label="포스터 닫기"
               >
                 <i className="ri-close-line"></i>
               </button>
-              <img
+              <img draggable={false}
                 src={
-                  selectedEvent.image_medium ||
+                  selectedEvent.image_full || selectedEvent.image_medium ||
                   selectedEvent.image ||
                   getEventThumbnail(
                     selectedEvent,

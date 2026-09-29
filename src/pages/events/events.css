@@ -589,3 +589,13 @@
     flex-basis: clamp(120px, 32vw, 136px);
   }
 }
+
+.events-info-scope-tabs button:disabled {
+  cursor: default;
+  align-content: center;
+  gap: 5px;
+}
+.events-info-scope-tabs button:disabled span {
+  display: block;
+  font-size: 10px;
+}

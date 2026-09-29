@@ -43,6 +43,10 @@ artifacts/social-reels/YYYY-MM-DD/instagram-share-ready.png
 artifacts/social-reels/YYYY-MM-DD/publication-state.json
 ```
 
+MP4·커버·렌더링 중간 이미지는 게시 성공이 프로필 게시물 수 증가로 확인되면
+삭제한다. `run-state.json`, `publication-state.json`, Share 직전 화면과 게시 확인
+스크린샷은 생성·게시·중복 방지 근거로 유지한다.
+
 배치 로직만 날짜별로 확인할 때는 다음처럼 실행한다.
 
 ```bash
@@ -78,6 +82,8 @@ npm run test:social-reel
 - 출력은 BT.709 limited, yuv420p, H.264 High Profile CRF 16으로 만든다.
 - Instagram 계정은 게시 시작 전에 `korea_swing_social`인지 확인한다.
 - 영상과 커버는 실행 날짜가 포함된 전용 Android 경로에 복사한 뒤 최신 미디어인지 확인하고 선택한다.
+- 복사 전에는 전용 경로의 `RHYTHMJOY-*-AUTO` 영상·커버만 정리하고, 입력 파일 크기 외에 최소 64MiB 여유 공간을 확인한다. 부족하면 앱 데이터와 로그인을 보존하는 Android 캐시 정리까지만 시도하며 여전히 부족하면 Share 전에 중단한다.
+- 프로필 게시물 수 증가로 `published`가 확정된 뒤에만 Android 전송본과 해당 날짜의 로컬 MP4·커버·중간 프레임·렌더링 PNG를 삭제한다. Share 전 실패와 `sharing`·`verification-required` 상태에서는 재시도·중복 방지 근거를 보존한다.
 - 음악은 Instagram 안에서 검색하고 제목과 아티스트가 모두 정확히 일치하는 곡만 선택한다.
 - 재즈 목록은 `Take Five`, `Like It Is`, `Teo`, `Sunday`, `Do What You Wanna`, `So What` 순환이며, 직전 게시 곡은 반복하지 않는다.
 - 커버는 `Add from camera roll`에서 생성된 4K JPG를 선택하고 `Crop profile image`에는 들어가지 않는다.
@@ -100,11 +106,12 @@ npm run test:social-reel
 - Mac이 잠자기, 종료 또는 네트워크 단절 상태면 로컬 예약 실행은 동작하지 않는다. 설치된 LaunchAgent는 실행 동안 `caffeinate -dimsu`로 잠자기를 막는다.
 - 예약 실행은 로그인된 Mac 사용자 세션의 LaunchAgent
   `com.rhythmjoy.social-reel-publish`가 화·목·토 12:30 KST에 호출한다.
-- 에뮬레이터가 꺼져 있으면 `Medium_Phone` AVD를 자동 시작하고 부팅 완료까지 기다린다. 이미 실행 중이면 재시작하지 않는다.
+- 에뮬레이터가 꺼져 있으면 `Medium_Phone` AVD를 자동 시작하고 부팅 완료까지 기다린다. 자동화가 시작한 AVD는 `published`·드라이런·Share 전 실패처럼 결과 경계가 확정된 뒤 정상 종료한다. 사용자가 미리 실행한 AVD는 종료하지 않으며, `sharing`·`verification-required` 상태에서는 진행 중 업로드를 방해하지 않도록 자동 종료하지 않는다.
 - 실행 잠금으로 중복 실행을 차단하고, 네트워크·페이지 로드·인코딩 실패 시 최대 3회 다시 시도한다.
 - 생성된 MP4의 H.264, 2160×3840, 30fps, 15초, yuv420p, BT.709와 커버 크기를 `ffprobe`로 검사한다.
-- `artifacts/social-reels/YYYY-MM-DD/run-state.json`에 생성 성공, 재시도 또는 실패 상태를 남긴다. 검증된 같은 날짜 결과는 재사용한다.
+- `artifacts/social-reels/YYYY-MM-DD/run-state.json`에 생성 성공, 재시도 또는 실패 상태를 남긴다. Share 전 재시도에서는 검증된 같은 날짜 결과를 재사용하고, `publication-state.json`이 이미 `published`이면 생성기를 실행하지 않는다.
 - `publication-state.json`에 게시 전·공유 시작·검증 완료 상태를 원자적으로 기록한다.
+- 성공 후 생성물 정리 결과도 `publication-state.json`의 `artifactCleanup`에 남긴다. 정리 실패는 게시 성공을 Share 전 실패로 되돌리지 않고 `pending`으로 기록해 다음 동일 날짜 실행에서 재시도한다.
 - `Share` 이전 실패는 다음 예약이나 수동 실행에서 안전하게 다시 시작할 수 있다.
 - `Share`를 누른 뒤에는 업로드가 백그라운드 작업으로 넘어갈 시간을 둔 다음 해당 계정 프로필 딥링크를 다시 연다. 표시된 게시물 수가 공유 전과 같으면 프로필을 실제로 아래로 당겨 새로고침한 뒤 다시 읽는다. 새 릴스 화면, 게시 직후 권한창, 프로필의 캐시된 게시물 수를 게시 실패로 오판하지 않는다.
 - 강제 새로고침 후에도 프로필 게시물 수 증가를 확인하지 못하면 `verification-required`로 멈추고 자동 재게시를 금지한다. 알림은 실패가 아니라 `공유 완료 · 게시 확인 대기`로 구분한다. 다음 실행은 먼저 기존 기준 게시물 수와 현재 게시물 수를 같은 방식으로 대조해 이미 게시된 건이면 `published`로 복구하며, 증가가 없을 때만 계속 차단한다. 이는 중복 게시 방지 규칙이다.
@@ -130,8 +137,8 @@ npm run test:social-reel
 
 ## 최적화 원칙
 
-- 같은 날짜의 검증된 4K 파일은 재생성하지 않는다.
-- 실행 중인 에뮬레이터를 재사용한다.
+- Share 전 재시도는 같은 날짜의 검증된 4K 파일을 재사용하고, 게시가 확인된 날짜는 생성 자체를 건너뛴다.
+- 사용자가 실행 중인 에뮬레이터는 재사용하되 자동화가 시작한 에뮬레이터는 결과 확정 뒤 종료해 장시간 유휴 상태의 임시 데이터 누적을 막는다.
 - UI는 긴 고정 대기 대신 접근성 ID가 나타나는 즉시 다음 단계로 진행한다.
 - Android UI 덤프 일시 실패는 짧은 간격으로 최대 3회 복구한다.
 - 5MB 안팎의 최종 MP4와 커버만 에뮬레이터로 전송한다.

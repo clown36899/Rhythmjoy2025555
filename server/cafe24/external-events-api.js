@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { acquireEventMutationLock, releaseEventMutationLock } from './admin-event-deletion.js';
 import dns from 'node:dns/promises';
 import { isIP } from 'node:net';
 import fs from 'node:fs/promises';
@@ -913,7 +914,10 @@ export async function createExternalEvent(req, res) {
     };
     const event = normalizeEventPayload(normalized.event, null, partnerUser);
     const connection = await pool.getConnection();
+    let eventLocked = false;
     try {
+      await acquireEventMutationLock(connection);
+      eventLocked = true;
       await connection.beginTransaction();
       await saveEvent(event, connection);
       await connection.execute(
@@ -938,7 +942,8 @@ export async function createExternalEvent(req, res) {
       }
       throw error;
     } finally {
-      connection.release();
+      try { if (eventLocked) await releaseEventMutationLock(connection); }
+      finally { connection.release(); }
     }
 
     await enqueueNewEventNotification(event);
@@ -1031,7 +1036,10 @@ export async function updateExternalEvent(req, res) {
     id: owned.eventId,
   }, { ...owned.existing, id: owned.eventId }, partnerUser);
   const connection = await pool.getConnection();
+  let eventLocked = false;
   try {
+    await acquireEventMutationLock(connection);
+    eventLocked = true;
     await connection.beginTransaction();
     await saveEvent(event, connection);
     await connection.execute(
@@ -1043,7 +1051,8 @@ export async function updateExternalEvent(req, res) {
     await connection.rollback();
     throw error;
   } finally {
-    connection.release();
+    try { if (eventLocked) await releaseEventMutationLock(connection); }
+    finally { connection.release(); }
   }
   const previousImage = String(owned.existing.image_full || owned.existing.image || '');
   const nextImage = String(event.image_full || event.image || '');

@@ -255,8 +255,9 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     );
     const allowedGenreOptions = React.useMemo(() => {
         if (canUseExpandedDanceScopes) return genreOptions;
-        return genreOptions.filter((option) => option.scope === 'swing' || option.scope === 'unknown');
-    }, [canUseExpandedDanceScopes, genreOptions]);
+        return genreOptions.filter((option) => option.scope === 'unknown'
+            || scopeOptions.some((scopeOption) => scopeOption.key === option.scope));
+    }, [canUseExpandedDanceScopes, genreOptions, scopeOptions]);
     const visibleGenreOptions = React.useMemo(() => {
         return allowedGenreOptions.filter((option) => (
             option.scope === draftDanceScope

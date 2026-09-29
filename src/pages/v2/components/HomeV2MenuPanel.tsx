@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { normalizeVisibleDanceScope } from "../../../utils/danceTaxonomy";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useModalContext } from "../../../contexts/ModalContext";
 import {
@@ -58,6 +59,7 @@ const HOME_MENU_ITEMS: HomeMenuItem[] = [
     { id: "metronome", label: "메트로놈", icon: "ri-timer-flash-line", theme: "metronome", to: "/metronome" },
     { id: "tempo-tool", label: "BPM 측정기/메트로놈", shortLabel: "BPM/메트로놈", icon: "ri-speed-up-line", theme: "tempo", to: "/tempo-tool" },
     { id: "groove-lab", label: "개발중", shortLabel: "개발중", icon: "ri-flask-line", theme: "groove-lab", to: "/groove-lab", status: "BETA" },
+    { id: "stem-lab", label: "악기 분리", icon: "ri-sound-module-line", theme: "stem-lab", to: "/stem-lab", status: "SAMPLE" },
     { id: "shopping", label: "쇼핑", icon: "ri-shopping-bag-3-line", theme: "shopping", to: "/shopping" },
     { id: "guide", label: "안내", icon: "ri-compass-3-line", theme: "guide", to: "/guide" },
 ];
@@ -322,7 +324,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const {
         count: benefitEventUnreadCount,
         markAllSeen: markBenefitEventsSeen,
-    } = useBenefitEventsUnreadState(menuEvents);
+    } = useBenefitEventsUnreadState(menuEvents, normalizeVisibleDanceScope(new URLSearchParams(location.search).get('dance')));
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [pressedMenuKey, setPressedMenuKey] = useState<string | null>(null);
@@ -558,11 +560,13 @@ export const HomeV2MenuPanel: React.FC = () => {
 
     const handleNavigate = (to: string) => {
         setIsExpanded(false);
-        if (to.startsWith("/calendar")) {
-            navigate(`${to}&nav=${Date.now()}`);
-            return;
+        const target = new URL(to, window.location.origin);
+        if (['/', '/v2', '/calendar', '/events', '/oneday-recruits', '/practice', '/benefit-events'].includes(target.pathname)) {
+            const selectedScope = new URLSearchParams(location.search).get('dance');
+            if (selectedScope) target.searchParams.set('dance', normalizeVisibleDanceScope(selectedScope));
         }
-        navigate(to);
+        if (target.pathname === '/calendar') target.searchParams.set('nav', String(Date.now()));
+        navigate(`${target.pathname}${target.search}${target.hash}`);
     };
 
     const isMenuItemActive = (item: HomeMenuItem) => {
@@ -866,6 +870,7 @@ export const HomeV2MenuPanel: React.FC = () => {
     const getMenuItemAriaLabel = useCallback((item: HomeMenuItem) => {
         const label = t(item.shortLabel ?? item.label);
         const unreadCount = getMenuItemUnreadCount(item);
+        if (item.id === "board" && unreadCount > 0) return `${label}, 새 글·댓글 ${unreadCount}개`;
         return item.id === "benefits" && unreadCount > 0
             ? `${label}, 새 이벤트 ${unreadCount}개`
             : label;

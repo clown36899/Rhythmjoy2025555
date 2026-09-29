@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.rhythmjoy.codex-ingestion-salsa-regional</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/caffeinate</string>
+		<string>-dimsu</string>
+		<string>/bin/bash</string>
+		<string>/Users/inteyeo/scripts/run-ingestion.sh</string>
+	</array>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Hour</key>
+			<integer>14</integer>
+			<key>Minute</key>
+			<integer>10</integer>
+		</dict>
+	</array>
+	<key>ExitTimeOut</key>
+	<integer>15</integer>
+	<key>StandardOutPath</key>
+	<string>/Users/inteyeo/claude_ingestion.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/inteyeo/claude_ingestion.log</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin</string>
+		<key>PROJECT_ROOT</key>
+		<string>/Users/inteyeo/Rhythmjoy2025555-5</string>
+		<key>INGESTION_PROFILE</key>
+		<string>expanded-ingestion</string>
+		<key>INGESTION_ENGINE</key>
+		<string>native</string>
+		<key>INGESTION_NATIVE_SCOPES</key>
+		<string>salsa</string>
+		<key>INGESTION_SKIP_CLEANUP</key>
+		<string>1</string>
+		<key>INGESTION_NATIVE_RUN_BUDGET_MS</key>
+		<string>1200000</string>
+		<key>INGESTION_NATIVE_SOURCE_TIMEOUT_MS</key>
+		<string>45000</string>
+		<key>INGESTION_NATIVE_POST_LIMIT</key>
+		<string>4</string>
+		<key>INGESTION_NATIVE_INSTAGRAM_POST_LIMIT</key>
+		<string>2</string>
+		<key>INGESTION_NATIVE_DAUM_POST_LIMIT</key>
+		<string>3</string>
+		<key>INGESTION_NATIVE_NAVER_POST_LIMIT</key>
+		<string>3</string>
+		<key>TELEGRAM_DRY_RUN</key>
+		<string>1</string>
+		<key>INGESTION_NATIVE_SOURCE_PRIORITY</key>
+		<string>2</string>
+		<key>INGESTION_NATIVE_SOURCE_TYPES</key>
+		<string>instagram</string>
+	</dict>
+</dict>
+</plist>

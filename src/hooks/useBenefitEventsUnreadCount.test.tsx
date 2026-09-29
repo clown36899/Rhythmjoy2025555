@@ -90,4 +90,24 @@ describe('useBenefitEventsUnreadState', () => {
 
         await waitFor(() => expect(result.current.unreadEventIds).toEqual(['oneday-new']));
     });
+    it('keeps unread and seen IDs separate across genres including one-day links', async () => {
+        const events = [event({ id: 'legacy' }), event({ id: 'salsa', dance_scope: 'salsa' })];
+        mocks.fetchActiveOneDayBenefitEvents.mockResolvedValue([
+            event({ id: 'oneday-swing', date: undefined }),
+            event({ id: 'oneday-salsa', date: undefined, dance_scope: 'salsa' }),
+        ]);
+        const { result, rerender } = renderHook(
+            ({ scope }: { scope: 'swing' | 'salsa' }) => useBenefitEventsUnreadState(events, scope),
+            { initialProps: { scope: 'salsa' } },
+        );
+        await waitFor(() => expect(result.current.unreadEventIds).toEqual(['oneday-salsa', 'salsa']));
+        act(() => result.current.markAllSeen());
+        const seen = JSON.parse(window.localStorage.getItem(BENEFIT_EVENTS_SEEN_STORAGE_KEY) || '{}');
+        expect(seen['user:benefit-user']).toEqual(['oneday-salsa', 'salsa']);
+        rerender({ scope: 'swing' });
+        await waitFor(() => expect(result.current.unreadEventIds).toEqual(['legacy', 'oneday-swing']));
+        rerender({ scope: 'salsa' });
+        await waitFor(() => expect(result.current.count).toBe(0));
+    });
+
 });

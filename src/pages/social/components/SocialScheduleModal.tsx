@@ -9,6 +9,7 @@ import ImageCropModal from '../../../components/ImageCropModal';
 import BenefitKindSelector, { type ManualBenefitKind } from '../../../components/BenefitKindSelector';
 const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 
+import { getCalendarSocialDjText, normalizeCalendarSocialDjs } from '../../calendar/utils/calendarEventKind';
 import type { SocialScheduleModalProps } from '../types';
 import '../styles/SocialScheduleModal.css';
 
@@ -41,6 +42,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [link, setLink] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('social');
+    const [djNames, setDjNames] = useState('');
     const [socialGenre, setSocialGenre] = useState<'DJ' | '라이브밴드' | null>(null);
     const [benefitKind, setBenefitKind] = useState<ManualBenefitKind>(null);
 
@@ -82,6 +84,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 if (source) {
                     return (
                         title !== (source.title || '') ||
+                        djNames !== getCalendarSocialDjText(source) ||
                         date !== (source.date || source.start_date || '') ||
                         time !== (source.time || source.start_time || '') ||
                         location !== (source.location || source.place_name || '') ||
@@ -97,6 +100,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 } else {
                     return (
                         title.trim() !== '' ||
+                        djNames.trim() !== '' ||
                         date !== defaultDate ||
                         time !== '' ||
                         location !== '' ||
@@ -121,7 +125,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setIsDirty(hasChanges());
     }, [
         isOpen, activeTab, title, date, time, location, address, description,
-        category, imageFile, link, linkName, benefitKind, recruitContent, recruitContact,
+        category, djNames, imageFile, link, linkName, benefitKind, recruitContent, recruitContact,
         recruitLink, recruitImageFile, editSchedule, initialData, initialDate
     ]);
 
@@ -152,6 +156,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             if (source) {
                 // 수정 또는 복사
                 setTitle(source.title || '');
+                setDjNames(getCalendarSocialDjText(source));
                 const d = source.date || source.start_date || '';
                 setDate(d);
                 setTime(source.time || source.start_time || '');
@@ -188,6 +193,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 // Don't reset everything if tab changes, only on open? 
                 // InitialDate logic
                 setTitle('');
+                setDjNames('');
                 setDate(initialDate ? initialDate.toISOString().split('T')[0] : '');
                 setTime('');
                 setLocation('');
@@ -422,6 +428,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     user_id: user.id,
                     category: dbCategory,
                     genre: genre,
+                    ...(dbCategory === 'social' ? {
+                        structured_data: {
+                            ...(editSchedule || initialData)?.structured_data,
+                            djs: normalizeCalendarSocialDjs(djNames),
+                        },
+                    } : {}),
                     benefit_eligible: benefitKind !== null,
                     benefit_kind: benefitKind,
                 };
@@ -680,6 +692,20 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 </div>
                             )}
 
+                            {category === 'social' && (
+                                <div className="form-section">
+                                    <label htmlFor="social-dj-names">DJ명 (선택)</label>
+                                    <input
+                                        id="social-dj-names"
+                                        type="text"
+                                        value={djNames}
+                                        onChange={(e) => setDjNames(e.target.value)}
+                                        placeholder="예: BLAKE, 홍길동"
+                                    />
+                                    <p className="info-box-helper">여러 명은 쉼표로 구분해 주세요.</p>
+                                </div>
+                            )}
+
                             <div className="form-section">
                                 <label>일정 제목 *</label>
                                 <input
@@ -699,16 +725,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
                                         required
-                                        onClick={(e) => e.currentTarget.showPicker?.()}
-                                        style={{ cursor: 'pointer' }}
-                                    />
-                                </div>
-                                <div className="form-item">
-                                    <label>시작 시간</label>
-                                    <input
-                                        type="time"
-                                        value={time}
-                                        onChange={(e) => setTime(e.target.value)}
                                         onClick={(e) => e.currentTarget.showPicker?.()}
                                         style={{ cursor: 'pointer' }}
                                     />
@@ -779,7 +795,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     rows={3}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="일정에 대한 상세 내용을 입력해주세요."
+                                    placeholder="일정 안내를 적어주세요. 시간 안내가 필요하면 설명에 함께 적어주세요."
                                 ></textarea>
                             </div>
 

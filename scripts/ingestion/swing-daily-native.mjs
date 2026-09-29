@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { isClassLikeEventHeadline } from '../../src/utils/graduationEvent.mjs';
 import {
   alignYearlessDatesToPublication,
   buildCafe24Payload,
@@ -11,12 +12,14 @@ import {
   extractExplicitClosureDates,
   extractExpectedAutomaticSocialDates,
   extractIndependentSocialDateSections,
+  extractIndependentClassNoticeSections,
   extractInstagramCaptionHeadline,
   extractNeoWeeklyClosureDates,
   extractNeoWeeklySocialSchedule,
   extractSeasonPassEvidenceSections,
   filterDeadlineOnlyEventDates,
   getBlockedKeywordReason,
+  selectClassNoticeEvidenceText,
   hasBadPosterUrl,
   isHighConfidenceDatedSocialSchedule,
   isInstagramCaptionClassHeadline,
@@ -35,7 +38,8 @@ import {
   todayISO,
   toMapSafeVenueName,
 } from './candidate-utils.mjs';
-import { getAutomationSourceList, getExcludedSourceReason } from './collection-registry.mjs';
+import { getAutomationSourceList, getExcludedSourceReason, automaticSocialCollectionEnabled, isAutomaticCollectionActivityEnabled } from './collection-registry.mjs';
+import { collectPublicScheduleDocuments, publicScheduleRows, supportsPublicScheduleSource } from './public-schedule-sources.mjs';
 import {
   benefitSearchMatches,
   buildBenefitSearchUrls,
@@ -47,6 +51,10 @@ import {
   instagramAuthorMatches,
   instagramPostMatchesExpectedHandle,
   isDirectInstagramPostMediaUrl,
+  readInstagramCarouselDocument,
+  readNaverArticleListDocument,
+  readNaverArticleDocument,
+  readInstagramProfileDocument,
   isNaverAdministrativeNoticeText,
   isNaverScheduleOverviewText,
   isVerifiedInstagramFallbackProfile,
@@ -61,13 +69,20 @@ import {
   extractSocialScheduleWithAi,
   reviewBenefitCandidateWithAi,
   shouldPersistBenefitAiOutcome,
+  shouldAttemptAiSocialExtraction,
 } from './ai-candidate-adjudicator.mjs';
 import {
   buildIngestionProgressState,
+  ingestionItemKey,
+  completedDocumentKeys,
+  reopenFailedIngestionItems,
   catchupInstagramPostLimit,
+  findUnresolvedTodaySocialSources,
+  isSupplementalRecoveryRun,
   loadIngestionProgress,
   mergeSeenInstagramPosts,
   progressFileForPriority,
+  reopenFailedInstagramPosts,
   reorderSourcesForResume,
   saveIngestionProgress,
   selectUnseenInstagramPosts,
@@ -125,6 +140,7 @@ const sourceTypes = (process.env.INGESTION_NATIVE_SOURCE_TYPES || '')
   .split(',')
   .map((type) => type.trim())
   .filter(Boolean);
+const sourceScopes = (process.env.INGESTION_NATIVE_SCOPES || '').split(',').map(value => value.trim()).filter(Boolean);
 const sourceBatchTotal = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_TOTAL || 0));
 const sourceBatchIndex = Math.max(0, Number(process.env.INGESTION_NATIVE_SOURCE_BATCH_INDEX || 0));
 const postLimit = Number(process.env.INGESTION_NATIVE_POST_LIMIT || 4);
@@ -153,6 +169,7 @@ const today = dryRun && /^20\d{2}-\d{2}-\d{2}$/.test(dryRunReferenceDate)
   ? dryRunReferenceDate
   : todayISO();
 const runStartedAtMs = Date.now();
+const sameDayRecoverySources = new Set();
 const oneDayPattern = /원\s*데이|원데이|\b1\s*day\b|\bone\s*day\b|\boneday\b|일일\s*(?:클래스|강습|수업|체험)|하루(?:만|짜리)?\s*(?:클래스|강습|수업|체험|배워)|체험\s*(?:클래스|강습|수업)|오픈\s*클래스|open\s*class/i;
 const graduationEventPattern = /졸업\s*(?:공연|파티)|graduation\s*(?:show|party|performance)/i;
 const closureEventPattern = /(?:정기\s*)?휴관|(?:정기\s*)?휴무|휴업|쉬어\s*갑니다|쉽니다|쉬어요|(?:이번|금)\s*주[^.\n]{0,30}(?:쉽니다|쉬어요|휴관|휴무)|소셜[^.\n]{0,20}(?:없습니다|없어요|취소)|(?:행사|운영)[^.\n]{0,20}취소/i;
@@ -219,6 +236,7 @@ const sourceTypeWeight = new Map([
 ]);
 
 const venueAliases = [
+  [/강남(?:역)?\s*라틴(?:바|클럽)|클럽\s*라틴|강남\s*라틴\s*클럽/i, '클럽 라틴'],
   [/경성홀|kyungsung/i, '경성홀'],
   [/해피홀|happy\s*hall/i, '해피홀'],
   [/스윙\s*타임|swing\s*time/i, '스윙타임'],
@@ -269,6 +287,9 @@ let instagramProfileFailureStreak = 0;
 let instagramCircuitOpen = false;
 let instagramSeenPosts = {};
 let instagramPendingSeenPosts = {};
+let completedItems = {};
+let deferredItems = {};
+let pendingDocuments = {};
 let progressTrackingEnabled = false;
 
 function log(message) {
@@ -308,6 +329,9 @@ function recordPipelineDocument(source, candidateCount = 0) {
 }
 
 function recordRegistrationPolicyBlocker(candidate = {}) {
+  // These are applied to regular occurrences during intake, not registered as
+  // ordinary social events. Persistence/public failures have their own checks.
+  if (['closure', 'recurring_closure'].includes(candidate.exception_type)) return;
   result.pipeline.registration.notReady += 1;
   recordPipelineBlocker('registration-policy', {
     sourceId: candidate.source_id,
@@ -329,6 +353,7 @@ function recordExpectedAutomaticSocials({
   publishedAt,
   hasPoster,
 }) {
+  if (!automaticSocialCollectionEnabled) return;
   if (!hasPoster || !['shadow', 'auto'].includes(String(source?.autoRegistrationPolicy || ''))) return;
   const dates = extractExpectedAutomaticSocialDates({
     title,
@@ -416,6 +441,8 @@ function recordNoContent(sourceOrLabel, reason) {
 function recordAccessFailure(sourceOrLabel, reason) {
   const label = typeof sourceOrLabel === 'string' ? sourceOrLabel : sourceOrLabel.id;
   result.accessFailures.push(`${label}(${reason})`);
+  const sourceId = String(label).split(':')[0];
+  if (!result.remainingSources.includes(sourceId)) result.remainingSources.push(sourceId);
   recordPipelineBlocker(String(label).includes(':') ? 'extraction' : 'discovery', {
     sourceId: String(label).split(':')[0],
     reason,
@@ -571,6 +598,8 @@ function makeCandidateTitle({ source, rawTitle, rawText = '', cleanText, eventTy
 
   const cleaned = cleanTitle(rawTitle || '');
   const looksGeneratedByPlatform = /on\s+Instagram|Instagram\s+photos|네이버\s*카페|Daum\s*카페|강습일정\s*필독말머리/i.test(rawTitle || '');
+  if (source.allowedActivityTypes?.length === 1 && source.allowedActivityTypes[0] === 'class'
+    && isClassLikeEventHeadline(cleaned) && cleaned.length <= 120 && !looksGeneratedByPlatform) return cleaned;
   if (cleaned && cleaned.length <= 64 && !looksGeneratedByPlatform && !looksLikeNonTitleLine(cleaned) && !looksLikeCaptionFragmentTitle(cleaned)) return cleaned;
 
   const posterTitle = pickPosterTitleLine(rawText, eventType, djs);
@@ -605,8 +634,8 @@ function looksLikeBroadScheduleNotice(title = '', text = '') {
 
 function hasExplicitEventDateMention(text = '') {
   const raw = compactText(text);
-  return /20\d{2}\s*[.\-/년]\s*\d{1,2}\s*[.\-/월]\s*\d{1,2}/.test(raw)
-    || /\d{1,2}\s*월\s*\d{1,2}/.test(raw)
+  return /20\d{2}(?:\s*[.\-/년]\s*|\s+)\d{1,2}\s*[.\-/월]\s*\d{1,2}(?!\d|\s*주)/.test(raw)
+    || /\d{1,2}\s*월\s*\d{1,2}(?!\d|\s*주)/.test(raw)
     || /(?<!\d)\d{1,2}\s*[./]\s*\d{1,2}(?!\d)/.test(raw);
 }
 
@@ -881,11 +910,18 @@ function extractDates(text = '') {
       || /\d{1,2}\s*[:：]\s*\d{2}/.test(context);
   };
 
-  for (const match of raw.matchAll(/(20\d{2})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/g)) {
+  // Full-year poster dates only: do not interpret a time such as "09 15" as a date.
+  for (const match of raw.matchAll(/(?<![A-Za-z0-9])(20\d{2})(?:\s+(\d{1,2})\s+(\d{1,2})|(\d{2})(\d{2}))(?![A-Za-z0-9])/g)) {
+    const date = isoDate(match[1], match[2] || match[4], match[3] || match[5]);
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date) dates.push(date);
+  }
+
+  for (const match of raw.matchAll(/(20\d{2})(?:\s*[.\-/년]\s*|\s+)(\d{1,2})\s*[.\-/월]\s*(\d{1,2})(?!\d|\s*주)/g)) {
     dates.push(isoDate(match[1], match[2], match[3]));
   }
 
-  for (const match of raw.matchAll(/(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과|~|-)?\s*){1,8})/g)) {
+  for (const match of raw.matchAll(/(\d{1,2})\s*월\s*(\d{1,2}(?!\d|\s*주)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과|~|-)\s*\d{1,2}(?!\d|\s*주)\s*(?:일)?){0,7})/g)) {
     const month = Number(match[1]);
     const year = getYearForMonth(month);
     const days = [...match[2].matchAll(/\d{1,2}/g)].map((day) => Number(day[0])).filter((day) => day >= 1 && day <= 31);
@@ -929,7 +965,7 @@ function extractSocialDateHints(text = '') {
   return [...dates].sort();
 }
 
-function inferActivity(text = '', rawTitle = '') {
+function inferActivity(text = '', rawTitle = '', source = {}) {
   if (/판매\s*이벤트|이벤트\s*판매|정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십|membership|\bpass\b|\bsale\b|\bpromotion\b/i.test(text)) {
     return { activity: 'sale', eventType: '판매이벤트' };
   }
@@ -937,6 +973,9 @@ function inferActivity(text = '', rawTitle = '') {
     return { activity: 'event', eventType: '행사' };
   }
   if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
+  if (source.allowedActivityTypes?.length === 1 && source.allowedActivityTypes[0] === 'class'
+    && isClassLikeEventHeadline(rawTitle) && /개강|첫\s*수업/.test(rawTitle)
+    && hasExplicitEventDateMention(rawTitle)) return { activity: 'class', eventType: '강습' };
   if (/(?:강습|클래스|원\s*데이|원데이).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(text)) {
     return { activity: 'recruit', eventType: '모집' };
   }
@@ -995,6 +1034,7 @@ function inferDjs(text = '') {
     const value = stripRepeatedDjContext(stripNaverCafeMemberPrefix(compactText(match[1]))
       .replace(/\s*(?:DJ\s*)?time\b.*$/i, '')
       .replace(/\s*(?:application|registration|apply)\s*link\b.*$/i, '')
+      .replace(/\s*(?:현장|사전)\s*[:：].*$/i, '')
       .replace(/\s*(?:사전\s*신청|현장\s*신청|신청|등록|입금|계좌|문의)\s*(?:링크|방법|안내)?.*$/i, '')
       .replace(/\s+20\d{2}[.\-/년].*$/i, '')
       .replace(/^(?:인기\s*멤버\s*)?(?:\d+\s*F\s*)?스칼라\s+(?:부\s*매니저\s*\d*\s*)?/i, '')
@@ -1002,6 +1042,7 @@ function inferDjs(text = '') {
       .replace(/\s*(?:소셜은|소셜\s*은|참석|되시며|됩니다|문의|입장|현금|카드|제로페이).*$/i, '')
       .replace(/\s*(?:月|월|생일|잼서클|라인\s*강습|있어요|쉬어요|\d+\s*기|지터벅|확정|환영).*$/i, '')
       .replace(/\s*(?:AM|PM|오전|오후)\b.*$/i, '')
+      .replace(/\s+(?:returns|from|has|presents)\b.*$/i, '')
       .replace(/\s*\d{1,2}[:：]\d{2}.*$/, '')
       .replace(/^[._\-\s]+/, '')
       .replace(/\b([A-Za-z가-힣._-]{1,12})\s+\1\b/i, '$1')
@@ -1013,6 +1054,7 @@ function inferDjs(text = '') {
       && !/(?:line[\s-]*up|라인업|social|소셜|\bD\s*J\b|디제이)/i.test(value)
       && !looksLikeNaverCafeChromeLine(value)
       && !leadingDateTitleRe.test(value)
+      && !/^(?:현장|사전|주차비|입장료)$/.test(value)
     ) {
       djs.push(value);
     }
@@ -1038,7 +1080,7 @@ function explicitDateListEvidence(text = '', date = '') {
   if (!match) return '';
   const month = Number(match[1]);
   const day = Number(match[2]);
-  for (const dateList of String(text).matchAll(/\d{1,2}\s*월\s*(?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8}/g)) {
+  for (const dateList of String(text).matchAll(/\d{1,2}\s*월\s*\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7}/g)) {
     const value = dateList[0];
     const parsedMonth = Number(value.match(/^(\d{1,2})/)?.[1]);
     const days = [...value.replace(/^\d{1,2}\s*월/, '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));
@@ -1335,31 +1377,8 @@ async function collectInstagramLinks(page, source) {
   await safeGoto(page, instagramProfileUrl(source.url));
   await page.waitForTimeout(instagramProfileWaitMs);
   await page.keyboard.press('Escape').catch(() => {});
-  const state = await page.evaluate(() => {
-    const links = [...document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')]
-      .map((a, index) => ({
-        href: a.href ? a.href.split('?')[0] : '',
-        text: (a.textContent || '').replace(/\s+/g, ' ').trim(),
-        index,
-      }))
-      .filter((item) => item.href)
-      .sort((a, b) => {
-        const aPinned = /고정|pinned/i.test(a.text) ? 1 : 0;
-        const bPinned = /고정|pinned/i.test(b.text) ? 1 : 0;
-        return aPinned - bPinned || a.index - b.index;
-      });
-    const seen = new Set();
-    const dedupedLinks = [];
-    for (const item of links) {
-      if (seen.has(item.href)) continue;
-      seen.add(item.href);
-      dedupedLinks.push(item.href);
-    }
-    const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 3000);
-    const title = document.title || '';
-    const url = window.location.href;
-    return { links: dedupedLinks.slice(0, 48), bodyText, title, url };
-  }).catch(() => ({ links: [], bodyText: '', title: '', url: '' }));
+  const state = await page.evaluate(readInstagramProfileDocument)
+    .catch(() => ({ links: [], bodyText: '', title: '', url: '' }));
 
   if (state.links.length) {
     const expectedHandles = expectedInstagramHandlesForSource(source);
@@ -1497,35 +1516,15 @@ async function collectInstagramLinksViaImginn(page, source) {
 
 async function scrapeInstagramPost(page, url, source) {
   await safeGoto(page, url, postTimeoutMs);
-  await page.keyboard.press('Escape').catch(() => {});
-  const data = await page.evaluate(() => {
-    const metaDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '';
-    const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '';
-    const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
-    const twitterImage = document.querySelector('meta[name="twitter:image"], meta[property="twitter:image"]')?.getAttribute('content') || '';
-    const articleText = [...document.querySelectorAll('article span, h1, div[role="button"]')]
-      .map((node) => node.textContent || '')
-      .filter((text) => text.trim().length > 20)
-      .join('\n');
-    const article = document.querySelector('article') || document;
-    const images = [...article.querySelectorAll('img')]
-      .map((img) => ({
-        src: img.currentSrc || img.src,
-        alt: img.alt || '',
-        w: img.naturalWidth || img.width || 0,
-        h: img.naturalHeight || img.height || 0,
-        rectW: Math.round(img.getBoundingClientRect().width || 0),
-        rectH: Math.round(img.getBoundingClientRect().height || 0),
-      }));
-    const publishedAt = document.querySelector('time[datetime]')?.getAttribute('datetime') || '';
-    const profileHrefs = [...article.querySelectorAll('a[href]')]
-      .map((anchor) => anchor.href || anchor.getAttribute('href') || '')
-      .filter(Boolean)
-      .slice(0, 80);
-    return { metaDescription, ogTitle, ogImage, twitterImage, articleText, images, publishedAt, profileHrefs };
-  });
+  const data = await readInstagramCarouselDocument(page, { expectedUrl: url });
+  if (data.carouselIncomplete) {
+    const reason = data.carouselError || 'carousel scan reached its bounded slide/time limit';
+    result.issues.push(`post ${source.id}: ${reason}`);
+    if (!result.remainingSources.includes(source.id)) result.remainingSources.push(source.id);
+    recordPipelineBlocker('extraction', { sourceId: source.id, sourceUrl: url, reason });
+  }
 
-  const primaryImages = pickInstagramPostImages(data.images, postLimit);
+  const primaryImages = pickInstagramPostImages(data.images, 8);
   const imageAltText = primaryImages
     .map((image) => cleanInstagramImageAlt(image.alt || ''))
     .filter(Boolean)
@@ -1543,7 +1542,9 @@ async function scrapeInstagramPost(page, url, source) {
     })}`);
   }
   const quoted = data.metaDescription.match(/:\s*"([\s\S]*?)(?:"$|$)/);
-  if (quoted?.[1] && quoted[1].length > text.length / 2) text = quoted[1];
+  if (quoted?.[1] && quoted[1].length > text.length / 2) {
+    text = [imageAltText, quoted[1]].filter(Boolean).join('\n');
+  }
   const expectedHandles = expectedInstagramHandlesForSource(source);
   if (!instagramAuthorMatches({
     expectedHandles,
@@ -1575,29 +1576,13 @@ async function scrapeInstagramPost(page, url, source) {
 
 async function collectNaverArticleLinks(page, source) {
   await safeGoto(page, source.url);
+  const hideNotices = page.getByRole('checkbox', { name: '공지 숨기기', exact: true });
+  if (await hideNotices.count() === 1 && await hideNotices.isChecked()) {
+    await hideNotices.uncheck({ timeout: 2000 });
+    await page.waitForTimeout(500);
+  }
   await page.waitForFunction(() => document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]').length > 0, null, { timeout: 9000 }).catch(() => {});
-  const items = await page.evaluate(() => {
-    const textOf = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
-    const imageOf = (root) => {
-      const img = root?.querySelector('img');
-      return img?.currentSrc || img?.src || img?.getAttribute('data-src') || img?.getAttribute('data-lazysrc') || '';
-    };
-    return [...document.querySelectorAll('a[href*="/articles/"], a[href*="ArticleRead"], a[href*="articleid"]')]
-      .map((anchor, index) => {
-        const href = anchor.href.split('&commentFocus=')[0];
-        const row = anchor.closest('tr, li, .ArticleListItem, .item, .board-list, .article-board, .article-list') || anchor.parentElement;
-        const rowTitle = textOf(row?.querySelector('a.tit, a.article, .tit, .article, strong, .title'));
-        const title = textOf(anchor) || rowTitle;
-        return {
-          href,
-          title,
-          rowText: textOf(row),
-          posterUrl: imageOf(row),
-          index,
-        };
-      })
-      .filter((item) => item.href && item.title && !/commentFocus=true/.test(item.href));
-  }).catch(() => []);
+  const items = await page.evaluate(readNaverArticleListDocument).catch(() => []);
 
   const hasEventDate = (title) => /\b20\d{2}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2}|(?:^|\s)\d{1,2}[./월]\s*\d{1,2}(?:일|\b)/.test(title);
   const hasGraduationEvent = (title) => /졸업\s*(공연|파티)|graduation\s*(show|party|performance)/i.test(title);
@@ -1607,13 +1592,15 @@ async function collectNaverArticleLinks(page, source) {
     .sort((a, b) => {
       const aText = `${a.title} ${a.rowText}`;
       const bText = `${b.title} ${b.rowText}`;
-      const aSchedule = naverScheduleOverviewPriority(aText, today);
-      const bSchedule = naverScheduleOverviewPriority(bText, today);
+      const aSchedule = naverScheduleOverviewPriority(aText, today, source);
+      const bSchedule = naverScheduleOverviewPriority(bText, today, source);
       const aGraduation = hasGraduationEvent(aText) ? 0 : 1;
       const bGraduation = hasGraduationEvent(bText) ? 0 : 1;
       const aDate = hasEventDate(a.title) ? 0 : 1;
       const bDate = hasEventDate(b.title) ? 0 : 1;
-      return aSchedule - bSchedule || aGraduation - bGraduation || aDate - bDate || a.index - b.index;
+      const classOnly = source.allowedActivityTypes?.length === 1 && source.allowedActivityTypes[0] === 'class';
+      // Lesson intake follows new posts; numeric titles must not pin old classes above them.
+      return aSchedule - bSchedule || (classOnly ? 0 : aGraduation - bGraduation || aDate - bDate) || a.index - b.index;
     })
     .slice(0, 24);
   if (traceSourceIds.has(source.id)) {
@@ -1625,48 +1612,24 @@ async function collectNaverArticleLinks(page, source) {
 async function scrapeNaverArticle(page, link, source) {
   await safeGoto(page, link.href, postTimeoutMs);
   const frame = page.frames().find((item) => item.name() === 'cafe_main') || page.mainFrame();
+  await frame.waitForFunction(readNaverArticleDocument, { readyOnly: true }, { timeout: 8000 });
   await frame.evaluate(() => window.scrollTo(0, Math.floor(document.body.scrollHeight / 2))).catch(() => {});
   await page.waitForTimeout(700);
   await frame.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
   await page.waitForTimeout(700);
-  const data = await frame.evaluate(() => {
-    const badTitleRe = /인기\s*멤버|새싹\s*멤버|멤버\s*등급|부\s*매니저|매니저|스탭|운영진|1\s*:\s*1\s*채팅|작성자|조회수?|댓글|목록|URL\s*복사|좋아요|신고|게시글/i;
-    const titleSelectors = [
-      '.title_text',
-      'h3.title_text',
-      '.ArticleTitle .title_text',
-      '.article_header .title_text',
-      '.tit_area .tit',
-    ].join(',');
-    const title = [...document.querySelectorAll(titleSelectors)]
-      .map((node) => (node.textContent || '').replace(/\s+/g, ' ').trim())
-      .find((value) => value && !badTitleRe.test(value)) || '';
-    const viewer = document.querySelector('.article_viewer, .se-main-container, .ContentRenderer, .ArticleContentBox, #tbody, .NHN_Writeform_Main, .post_ct, .se-viewer, .article_container, .article-content, .content-area');
-    const text = viewer?.innerText || '';
-    const publishedAt = document.querySelector('meta[property="article:published_time"]')?.getAttribute('content')
-      || document.querySelector('time[datetime]')?.getAttribute('datetime')
-      || document.querySelector('.date, .article_info .date, .ArticleWriter .date, [class*="date"]')?.textContent
-      || '';
-    const imageRoot = viewer || document;
-    const images = [...imageRoot.querySelectorAll('img[src*="postfiles"], img[src*="cafeptthumb"], .se-image-resource, img')]
-      .map((img) => ({
-        src: img.currentSrc || img.src || img.getAttribute('data-src') || img.getAttribute('data-lazysrc') || img.getAttribute('data-original') || img.getAttribute('data-url') || '',
-        w: img.naturalWidth || img.width || 0,
-        h: img.naturalHeight || img.height || 0,
-      }))
-      .filter((img) => img.src);
-    return { title, text, images, publishedAt };
-  });
+  const data = await frame.evaluate(readNaverArticleDocument);
 
   const posterUrls = selectSourceOrderedPosterUrls(data.images, 3);
   const posterUrl = posterUrls[0] || pickPosterImage(data.images);
-  const title = cleanTitle(data.title || link.title);
+  // Keep the dated source headline until evidence selection. Display-title
+  // cleanup removes leading dates and must not run before the date guards.
+  const title = compactText(data.title || link.title);
   const text = stripNaverCafeChrome(`${data.title}\n${data.text}`);
   return buildCandidatesFromText({
     source,
     sourceUrl: normalizeSourceUrl(link.href),
     text: `${title}\n${text}`,
-    title: title || cleanTitle(link.title),
+    title,
     posterUrl,
     posterUrls,
     page,
@@ -1904,7 +1867,7 @@ function relativeWeekdayDate(text = '', publishedAt = '') {
 function nearestExplicitDateBefore(text = '', signalIndex = -1) {
   if (signalIndex < 0) return '';
   const prefix = text.slice(Math.max(0, signalIndex - 80), signalIndex);
-  const matches = [...prefix.matchAll(/(?:(20\d{2})[.\-/년]\s*)?(\d{1,2})[.\-/월]\s*(\d{1,2})(?:일)?/g)];
+  const matches = [...prefix.matchAll(/(?:(20\d{2})[.\-/년]\s*)?(\d{1,2})[.\-/월]\s*(\d{1,2})(?!\d|\s*주)(?:일)?/g)];
   const match = matches.at(-1);
   if (!match) return '';
   const year = Number(match[1] || getYearForMonth(Number(match[2])));
@@ -1942,7 +1905,8 @@ function exceptionDates(text = '', title = '', pattern, publishedAt = '') {
       const todayMs = Date.parse(`${today}T00:00:00+09:00`);
       const dateMs = Date.parse(`${explicitBefore}T00:00:00+09:00`);
       const lookbackStartMs = todayMs - exceptionLookbackDays * 86400000;
-      if (dateMs > todayMs || dateMs < lookbackStartMs) {
+      if (exceptionBacktest ? dateMs > todayMs || dateMs < lookbackStartMs
+        : dateMs < todayMs || dateMs > todayMs + maxFutureDays * 86400000) {
         return { dates: [], allDates, ambiguous: false };
       }
       return { dates: [explicitBefore], allDates, ambiguous: false };
@@ -1970,6 +1934,7 @@ function buildExceptionBacktestCandidates({
   posterUrls = [],
   publishedAt = '',
 }) {
+  if (!automaticSocialCollectionEnabled) return [];
   const detections = [];
   if (closureEventPattern.test(cleanText)) {
     detections.push({
@@ -2045,28 +2010,39 @@ function buildExceptionBacktestCandidates({
   return candidates;
 }
 
-function shouldAttemptAiSocialExtraction(source, text = '', hasPoster = false) {
-  if (!aiSocialExtractionEnabled || exceptionBacktest || source?.benefitKind || source?.scope !== 'swing') return false;
-  const value = String(text || '').normalize('NFKC');
-  return /(?:소셜|social|정모)/i.test(value)
-    && (/(?:DJ|디제이)/i.test(value) || hasPoster)
-    && /(?:20\d{2}\s*[.\-/년]\s*)?\d{1,2}\s*(?:[.\-/]|월)\s*\d{1,2}/i.test(value);
-}
-
 async function buildAiSocialFallbackCandidates({
   source,
   sourceUrl,
   cleanText,
+  title = '',
   posterUrl = '',
   posterUrls = [],
   page,
   referer = '',
   publishedAt = '',
 }) {
+  if (!automaticSocialCollectionEnabled) return [];
+  // Apply the same article-title authority as deterministic extraction before
+  // spending AI resources. Model-transcribed poster dates cannot revive old posts.
+  const titleDates = hasExplicitEventDateMention(title)
+    ? selectCandidateDates({ title, cleanText, activity: 'social' }) : null;
+  if (titleDates && !titleDates.length) return [];
   const sourceImageUrls = unique([...posterUrls, posterUrl])
     .filter((url) => url && !hasBadPosterUrl(url))
-    .slice(0, 3);
-  if (!shouldAttemptAiSocialExtraction(source, cleanText, sourceImageUrls.length > 0)) return [];
+    .slice(0, 8);
+  // Keep the model's established three-image payload bound, while visiting
+  // every discovered poster. IDs and final de-duplication remain shared.
+  if (sourceImageUrls.length > 3) {
+    const batches = [];
+    for (let offset = 0; offset < sourceImageUrls.length; offset += 3) {
+      batches.push(...await buildAiSocialFallbackCandidates({ source, sourceUrl, cleanText, title,
+        posterUrls: sourceImageUrls.slice(offset, offset + 3), page, referer, publishedAt }));
+    }
+    return [...new Map(batches.map(candidate => [candidate.id, candidate])).values()];
+  }
+  if (!shouldAttemptAiSocialExtraction(source, cleanText, sourceImageUrls.length > 0, {
+    enabled: aiSocialExtractionEnabled && !exceptionBacktest,
+  })) return [];
 
   const sourceImages = [];
   for (const imageUrl of sourceImageUrls) {
@@ -2078,11 +2054,12 @@ async function buildAiSocialFallbackCandidates({
   const aiResult = await extractSocialScheduleWithAi({
     sourceId: source.id,
     sourceName: source.name,
+    sourceScope: source.scope,
     sourceUrl,
     sourceText: cleanText,
     sourceVenue: source.venue || '',
     imageDataUrls: sourceImages.map((image) => image.dataUrl),
-    dateHints: extractSocialDateHints(cleanText),
+    dateHints: titleDates || extractSocialDateHints(cleanText),
     closureDateHints: extractExplicitClosureDates({
       text: cleanText,
       today,
@@ -2097,7 +2074,25 @@ async function buildAiSocialFallbackCandidates({
   const outcome = aiResult.outcome || (aiResult.available === false ? 'unavailable' : 'error');
   if (Object.hasOwn(result.socialAiExtractionStats, outcome)) result.socialAiExtractionStats[outcome] += 1;
   if (!aiResult.approved || !aiResult.events?.length) {
-    log(`AI social extraction ${outcome} ${source.id}: ${(aiResult.reasons || []).join('; ') || 'no approved sessions'}`);
+    const reason = (aiResult.reasons || []).join('; ') || 'no approved sessions';
+    log(`AI social extraction ${outcome} ${source.id}: ${reason}`);
+    // A confirmed absence is terminal; an unavailable or unresolved read is not.
+    if (!(aiResult.extraction?.decision === 'none'
+      && Number(aiResult.extraction.confidence) >= 0.98
+      && aiResult.extraction.events?.length === 0)) {
+      result.issues.push(`post ${source.id}: AI social extraction ${outcome}: ${reason}`);
+      if (!result.remainingSources.includes(source.id)) result.remainingSources.push(source.id);
+      recordPipelineBlocker('extraction', { sourceId: source.id, sourceUrl, reason });
+    }
+    return [];
+  }
+
+  if (titleDates && aiResult.events.some(event => !titleDates.includes(event.event_date))) {
+    const reason = `AI social dates conflict with explicit article title dates: ${titleDates.join(', ')}`;
+    result.issues.push(`post ${source.id}: ${reason}`);
+    if (!result.remainingSources.includes(source.id)) result.remainingSources.push(source.id);
+    recordPipelineBlocker('extraction', { sourceId: source.id, sourceUrl, reason });
+    log(`AI social extraction blocked ${source.id}: ${reason}`);
     return [];
   }
 
@@ -2176,7 +2171,47 @@ function normalizedEvidenceIncludes(text = '', value = '') {
   return Boolean(needle) && normalize(text).includes(needle);
 }
 
-async function buildCandidatesFromText({
+function candidateCompletionKey(candidate) {
+  const sd = candidate.structured_data || {};
+  return ingestionItemKey(`candidate:${candidate.id}`, normalizeSourceUrl(candidate.source_url), {
+    date: sd.date, title: sd.title, activity_type: sd.activity_type,
+    category: sd.category, genre: sd.genre, dance_scope: sd.dance_scope, dance_genre: sd.dance_genre,
+    location: sd.location || sd.venue_name, djs: sd.djs,
+    benefit_eligible: sd.benefit_eligible, benefit_kind: sd.benefit_kind,
+    extracted_text: candidate.extracted_text,
+    poster_url: candidate.poster_url,
+  });
+}
+
+async function buildCandidatesFromText(input) {
+  const { source, sourceUrl, text, title, posterUrl, posterUrls, publishedAt } = input;
+  const key = ingestionItemKey('document', normalizeSourceUrl(sourceUrl), { source, text, title, posterUrl, posterUrls, publishedAt });
+  if (progressTrackingEnabled && deferredItems[source.id]?.[key]?.length && !deferredItems[source.id][key].includes(today)) {
+    log(`defer unchanged document ${source.id}: not an occurrence day (${sourceUrl})`);
+    return [];
+  }
+  if (progressTrackingEnabled && completedItems[source.id]?.includes(key)) {
+    (pendingDocuments[source.id] ||= []).push({ key, url: normalizeSourceUrl(sourceUrl), candidateKeys: [], failed: false });
+    result.skipped += 1;
+    log(`skip completed document ${source.id}: ${sourceUrl}`);
+    return [];
+  }
+  const issueStart = result.issues.length;
+  const failureStart = result.accessFailures.length;
+  const candidates = (await extractCandidatesFromText(input))
+    .filter(candidate => isAutomaticCollectionActivityEnabled(candidate.structured_data?.activity_type));
+  if (progressTrackingEnabled) {
+    (pendingDocuments[source.id] ||= []).push({ key, url: normalizeSourceUrl(sourceUrl),
+      candidateKeys: candidates.map(candidateCompletionKey),
+      candidateDates: Object.fromEntries(candidates.map(candidate => [candidateCompletionKey(candidate),
+        candidate.structured_data?.activity_type === 'social' || ['closure', 'recurring_closure'].includes(candidate.exception_type)
+          ? candidate.structured_data.date : undefined])),
+      failed: !shouldAdvanceInstagramCheckpoint(result.issues.slice(issueStart), result.accessFailures.length > failureStart) });
+  }
+  return candidates;
+}
+
+async function extractCandidatesFromText({
   source,
   sourceUrl,
   text,
@@ -2200,10 +2235,40 @@ async function buildCandidatesFromText({
     return [];
   }
 
-  const rawText = selectSourceEvidenceText(text, source);
+  const rawText = selectClassNoticeEvidenceText(selectSourceEvidenceText(text, source), {
+    title,
+    allowedActivityTypes: source.allowedActivityTypes,
+  });
+  const classSections = isClassLikeEventHeadline(title)
+    && (source.scope !== 'salsa' || /살사|\bsalsa\b/i.test(title))
+    ? extractIndependentClassNoticeSections(rawText, source) : [];
+  if (traceSourceIds.has(source.id) && source.allowedActivityTypes?.includes('class')) {
+    log(`trace ${source.id} class evidence: ${JSON.stringify({ title, focused: rawText !== text,
+      sections: classSections.length, exclusion: getBlockedKeywordReason(rawText) })}`);
+  }
+  if (classSections.length) {
+    const candidates = [];
+    for (const section of classSections) {
+      candidates.push(...await buildCandidatesFromText({
+        source, sourceUrl, text: section.text,
+        title: `${source.name.replace(/\s*(?:신청\s*)?게시판$/, '')} ${section.heading} ${section.openingText} 개강`,
+        posterUrl, posterUrls, page, referer, publishedAt,
+      }));
+    }
+    return candidates;
+  }
   const cleanText = compactText(rawText);
   if (!cleanText || cleanText.length < 20) {
     result.skipped += 1;
+    return [];
+  }
+  if (source.scope === 'salsa' && !/살사|\bsalsa\b|살\s*[:：]\s*바|바\s*[:：]\s*살/i.test(`${title}\n${rawText}`)) {
+    const imageCandidates = await buildAiSocialFallbackCandidates({
+      source, sourceUrl, cleanText, title, posterUrl, posterUrls, page, referer, publishedAt,
+    });
+    if (imageCandidates.length) return imageCandidates;
+    result.skipped += 1;
+    log(`skip ${source.id}: salsa program not present in original text`);
     return [];
   }
   recordExpectedAutomaticSocials({
@@ -2266,12 +2331,12 @@ async function buildCandidatesFromText({
     !/정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(line)
   )).join('\n');
   const socialExtractionTitle = source.benefitKind === 'season_pass' ? '' : title;
-  const preclassifiedSocialScheduleItems = extractSocialScheduleItems(
+  const preclassifiedSocialScheduleItems = (automaticSocialCollectionEnabled ? extractSocialScheduleItems(
     socialEvidenceText,
     socialExtractionSource,
     socialExtractionTitle,
     publishedAt,
-  )
+  ) : [])
     .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
   const genericMixedClosureCandidates = closureEventPattern.test(cleanText) && preclassifiedSocialScheduleItems.length
     ? buildExceptionBacktestCandidates({
@@ -2287,7 +2352,7 @@ async function buildCandidatesFromText({
       && candidate.structured_data.date
     ))
     : [];
-  const neoClosureDates = source.id === 'neo_swing'
+  const neoClosureDates = automaticSocialCollectionEnabled && source.id === 'neo_swing'
     ? extractNeoWeeklyClosureDates({ text: rawText, today })
     : [];
   const venueResolutionForClosure = inferVenueDetails(cleanText, source);
@@ -2326,7 +2391,7 @@ async function buildCandidatesFromText({
       .map((candidate) => [candidate.id, candidate]),
   ).values()];
   let unscopedClosureCandidates = [];
-  if (closureEventPattern.test(cleanText) && !preclassifiedSocialScheduleItems.length) {
+  if (automaticSocialCollectionEnabled && closureEventPattern.test(cleanText) && !preclassifiedSocialScheduleItems.length) {
     if (!posterUrls.length && !posterUrl) {
       result.skipped += 1;
       log(`skip ${source.id}: closure notice without poster`);
@@ -2367,6 +2432,7 @@ async function buildCandidatesFromText({
       source,
       sourceUrl,
       cleanText,
+      title,
       posterUrl,
       posterUrls,
       page,
@@ -2382,7 +2448,7 @@ async function buildCandidatesFromText({
     }
     return [...unscopedClosureCandidates, ...activeSocialCandidates, ...focusedSeasonPassCandidates];
   }
-  const inferredActivity = inferActivity(cleanText, title);
+  const inferredActivity = inferActivity(cleanText, title, source);
   const socialScheduleItems = preclassifiedSocialScheduleItems;
   const socialScheduleDates = new Set(socialScheduleItems.map((item) => item.date).filter(Boolean));
   const explicitScheduleDateCount = extractSocialDateHints(`${title}\n${cleanText}`).length;
@@ -2405,9 +2471,14 @@ async function buildCandidatesFromText({
   const { activity, eventType } = preferDatedSocialSchedule
     ? { activity: 'social', eventType: '소셜' }
     : inferredActivity;
+  if (!isAutomaticCollectionActivityEnabled(activity)) {
+    result.skipped += 1;
+    log(`skip ${source.id}: social notices are linked directly`);
+    return focusedSeasonPassCandidates;
+  }
   const imageOptionalBenefit = source.benefitKind === 'season_pass'
     && /정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십/i.test(cleanText);
-  if (!posterUrlList.length && activity !== 'social' && source.type !== 'benefit_search' && !imageOptionalBenefit) {
+  if (!posterUrlList.length && !['social', 'class'].includes(activity) && source.type !== 'benefit_search' && !imageOptionalBenefit) {
     const aiCandidates = await aiSocialFallback();
     if (aiCandidates.length) return aiCandidates;
     result.skipped += 1;
@@ -2548,7 +2619,7 @@ async function buildCandidatesFromText({
   const dates = isEvergreenSeasonPass
     ? [publicationDate || today]
     : alignYearlessDatesToPublication(
-      selectCandidateDates({ title: candidateTitle, cleanText, activity }),
+      selectCandidateDates({ title: hasExplicitEventDateMention(title) ? title : candidateTitle, cleanText, activity }),
       `${candidateTitle}\n${cleanText}`,
       publishedAt,
     );
@@ -2671,6 +2742,9 @@ function recordUnpersistedCandidate(candidate) {
     source_id: candidate.source_id || null,
     source_url: candidate.source_url,
     poster_url: candidate.poster_url || null,
+    extracted_text: candidate.extracted_text || '',
+    discovery_source_type: candidate.discovery_source_type || null,
+    published_at: candidate.published_at || null,
     structured_data: candidate.structured_data,
     auto_registration: candidate.auto_registration || null,
   } : `${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
@@ -2678,6 +2752,30 @@ function recordUnpersistedCandidate(candidate) {
 }
 
 async function postCandidate(candidate) {
+  if (!isAutomaticCollectionActivityEnabled(candidate.structured_data?.activity_type)) return;
+  const key = candidateCompletionKey(candidate);
+  if (progressTrackingEnabled && completedItems[candidate.source_id]?.includes(key)) {
+    result.skipped += 1;
+    log(`skip completed candidate ${candidate.id}`);
+    updateExpectedAutomaticSocial(candidate, 'checkpoint-completed');
+    return;
+  }
+  if (progressTrackingEnabled && deferredItems[candidate.source_id]?.[key]?.length
+    && !deferredItems[candidate.source_id][key].includes(today)) {
+    log(`defer failed candidate ${candidate.id}: occurrence day only`);
+    return;
+  }
+  const completed = await persistCandidate(candidate);
+  if (progressTrackingEnabled && completed) {
+    completedItems[candidate.source_id] = unique([...(completedItems[candidate.source_id] || []), key]);
+    if (deferredItems[candidate.source_id]) delete deferredItems[candidate.source_id][key];
+  } else if (progressTrackingEnabled && candidate.structured_data?.activity_type === 'social'
+    && /^\d{4}-\d{2}-\d{2}$/.test(candidate.structured_data?.date || '')) {
+    (deferredItems[candidate.source_id] ||= {})[key] = [candidate.structured_data.date];
+  }
+}
+
+async function persistCandidate(candidate) {
   if (exceptionBacktest) {
     result.inserted += 1;
     result.candidates.push(candidate);
@@ -2691,6 +2789,7 @@ async function postCandidate(candidate) {
     ...candidateForPost
   } = candidate;
   let candidateToPost = candidateForPost;
+  let registrationCompleted = true;
   const isBenefitCandidate = candidate.structured_data?.benefit_eligible === true;
   const shouldRunBenefitAiReview = aiAdjudicationEnabled
     && isBenefitCandidate
@@ -2845,10 +2944,11 @@ async function postCandidate(candidate) {
     result.pipeline.persistence.skipped += body.skipped.length;
     result.candidates.push(`skip:${candidate.keyword}:${body.skipped[0].reason}`);
     updateExpectedAutomaticSocial(candidateToPost, 'persistence-duplicate');
-    return;
+    return true;
   }
 
   const savedCandidate = Array.isArray(body?.data) ? body.data[0] : body?.data || body;
+  registrationCompleted = Boolean(savedCandidate?.id);
   result.pipeline.persistence.saved += Number(body.count || 0);
   result.pipeline.persistence.refreshed += Number(body.refreshedCount || 0);
   if (candidateToPost.auto_registration?.ready === true && savedCandidate?.id && ingestToken) {
@@ -2872,7 +2972,7 @@ async function postCandidate(candidate) {
           id: autoBody.duplicate.existingId || autoBody.duplicate.existingEventId || null,
         });
         log(`auto-register skipped duplicate ${savedCandidate.id}: ${autoBody.duplicate.reason || 'operational duplicate'}`);
-        return;
+        return true;
       }
       if (!autoResult.response.ok) {
         result.pipeline.registration.blocked += 1;
@@ -2885,6 +2985,7 @@ async function postCandidate(candidate) {
         result.issues.push(`auto-register ${savedCandidate.id}: HTTP ${autoResult.response.status}`);
         updateExpectedAutomaticSocial(candidateToPost, 'registration-blocked');
         log(`auto-register blocked ${savedCandidate.id}: ${autoResult.response.status} ${autoResult.body.slice(0, 300)}`);
+        registrationCompleted = false;
       } else {
         result.pipeline.registration.succeeded += 1;
         if (autoBody?.event) {
@@ -2906,6 +3007,7 @@ async function postCandidate(candidate) {
       result.issues.push(`auto-register ${savedCandidate.id}: ${error?.message || error?.name || 'request failed'}`);
       updateExpectedAutomaticSocial(candidateToPost, 'registration-failed');
       log(`auto-register failed ${savedCandidate.id}: ${error?.message || error}`);
+      registrationCompleted = false;
     }
   }
 
@@ -2920,11 +3022,28 @@ async function postCandidate(candidate) {
   if (Number(body.refreshedCount || 0) > 0) {
     log(`refreshed ${candidate.id}`);
     result.candidates.push(`refresh:${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
-    return;
+    return registrationCompleted;
   }
 
   result.inserted += Number(body.count ?? 1);
   result.candidates.push(`${candidate.keyword}:${candidate.structured_data?.date}:${candidate.structured_data?.title}`);
+  return registrationCompleted;
+}
+
+async function loadPublicEventsForDates(start, end) {
+  const url = new URL(publicEventsEndpoint);
+  url.searchParams.set('start', start);
+  url.searchParams.set('end', end);
+  url.searchParams.set('limit', '3000');
+  const response = await fetchWithTimeout(url.toString(), {
+    headers: { Accept: 'application/json' },
+  }, postRequestTimeoutMs);
+  if (!response.response.ok) throw new Error(`HTTP ${response.response.status}`);
+  const payload = JSON.parse(response.body || 'null');
+  const events = Array.isArray(payload) ? payload : payload?.data || payload?.events;
+  if (!Array.isArray(events)) throw new Error('public events response is not an array');
+  if (events.length >= 3000) throw new Error('public events response may be truncated');
+  return events;
 }
 
 async function reconcileExpectedAutomaticSocials() {
@@ -2936,16 +3055,8 @@ async function reconcileExpectedAutomaticSocials() {
   let publicEvents = [];
   if (!dryRun && profile !== 'expanded-research') {
     const dates = expectedAutomaticSocials.map((item) => item.date).sort();
-    const url = new URL(publicEventsEndpoint);
-    url.searchParams.set('start', dates[0]);
-    url.searchParams.set('end', dates.at(-1));
     try {
-      const response = await fetchWithTimeout(url.toString(), {
-        headers: { Accept: 'application/json' },
-      }, postRequestTimeoutMs);
-      if (!response.response.ok) throw new Error(`HTTP ${response.response.status}`);
-      const payload = JSON.parse(response.body || '[]');
-      publicEvents = Array.isArray(payload) ? payload : payload.data || payload.events || [];
+      publicEvents = await loadPublicEventsForDates(dates[0], dates.at(-1));
     } catch (error) {
       const reason = `public event verification failed: ${error?.message || error}`;
       for (const expectation of expectedAutomaticSocials) {
@@ -3043,6 +3154,71 @@ function hasNoContent(label) {
 
 async function collectSource(page, source) {
   ensureRunBudgetOrThrow(`source ${source.id}`, runDeadlineGuardMs());
+
+  if (supportsPublicScheduleSource(source)) {
+    const collected = await withBoundedStep(source.id, () => collectPublicScheduleDocuments(page, source, {
+      limit: source.type === 'meetup' ? 90 : postLimit,
+      timeoutMs: Math.min(sourceTimeoutMs, 60_000),
+    }), Math.min(sourceTimeoutMs, 60_000));
+    if (!collected?.documents) return [];
+    result.pipeline.discovery.documents += collected.discovered;
+    if (collected.remaining) {
+      result.remainingSources.push(source.id);
+      result.issues.push(`${source.id}: ${collected.remaining} unread public schedule documents`);
+    }
+    const candidates = [];
+    for (const document of collected.documents) {
+      const key = ingestionItemKey('document', normalizeSourceUrl(document.sourceUrl), { source, document });
+      if (progressTrackingEnabled && deferredItems[source.id]?.[key]?.length && !deferredItems[source.id][key].includes(today)) continue;
+      if (progressTrackingEnabled && completedItems[source.id]?.includes(key)) {
+        result.skipped += 1;
+        log(`skip completed document ${source.id}: ${document.sourceUrl}`);
+        continue;
+      }
+      const candidateStart = candidates.length;
+      const { rows, issues } = publicScheduleRows(document, source, { today });
+      for (const reason of issues) {
+        log(`skip ${source.id}: ${reason}`);
+        result.skipped += 1;
+      }
+      let count = 0;
+      for (const row of rows) {
+        if ((Date.parse(`${row.date}T00:00:00+09:00`) - Date.parse(`${today}T00:00:00+09:00`)) / 86400000 > maxFutureDays) continue;
+        const activity = row.activity || 'social';
+        if (!isAutomaticCollectionActivityEnabled(activity)) continue;
+        const djs = inferDjs(row.djText);
+        if (activity === 'social' && !djs.length) {
+          result.skipped += 1;
+          continue;
+        }
+        const raw = {
+          source_id: source.id, discovery_source_id: source.id, discovery_source_type: source.type,
+          keyword: source.name, source_url: row.sourceUrl, published_at: row.publishedAt,
+          extracted_text: row.text,
+          structured_data: {
+            title: row.title, date: row.date, activity_type: activity, event_type: activity === 'class' ? '강습' : '소셜',
+            dance_scope: source.scope, dance_genre: source.dance_genre, genre_family: source.genre_family,
+            location: row.venue, venue_name: row.venue, venue_provenance: row.venueProvenance,
+            ...(row.address ? { address: row.address } : {}),
+            djs, description: row.text, source_profile: profile,
+          },
+        };
+        const prepared = prepareCandidate(raw, { today });
+        if (!prepared.validation.ok) {
+          result.skipped += 1;
+          log(`skip ${source.id} ${row.date}: ${prepared.validation.errors.join('; ')}`);
+          continue;
+        }
+        candidates.push(buildCafe24Payload(raw, { today }));
+        count += 1;
+      }
+      recordPipelineDocument(source, count);
+      if (progressTrackingEnabled) (pendingDocuments[source.id] ||= []).push({ key,
+        url: normalizeSourceUrl(document.sourceUrl), candidateKeys: candidates.slice(candidateStart).map(candidateCompletionKey),
+        candidateDates: Object.fromEntries(candidates.slice(candidateStart).map(candidate => [candidateCompletionKey(candidate), candidate.structured_data?.activity_type === 'social' ? candidate.structured_data.date : undefined])), failed: issues.length > 0 });
+    }
+    return candidates;
+  }
 
   if (source.type === 'benefit_search') {
     const targetResult = await withBoundedStep(source.id, () => collectBenefitSearchLinks(page, source), sourceTimeoutMs);
@@ -3174,9 +3350,14 @@ async function collectSource(page, source) {
     const candidates = [];
     const knownPosts = progressTrackingEnabled ? (instagramSeenPosts[source.id] || []) : [];
     const unseenLinks = progressTrackingEnabled
-      ? selectUnseenInstagramPosts(links, knownPosts, links.length)
+      ? selectUnseenInstagramPosts(links, knownPosts, links.length, sameDayRecoverySources.has(source.id) ? 2 : 0,
+        completedItems[source.id] || [])
       : links;
+    // Read recent evidence at most once per run for an unresolved occurrence.
+    // Unchanged completed documents still bypass extraction and persistence.
+    sameDayRecoverySources.delete(source.id);
     if (progressTrackingEnabled && unseenLinks.length === 0) {
+      result.remainingSources = result.remainingSources.filter((id) => id !== source.id);
       log(`instagram no new posts ${source.id}: ${links.length} visible post(s) already checked`);
       return [];
     }
@@ -3184,7 +3365,9 @@ async function collectSource(page, source) {
     if (instagramPostLimit <= 0) {
       throw new RunBudgetReachedError(`instagram posts ${source.id}`);
     }
+    result.remainingSources = result.remainingSources.filter((id) => id !== source.id);
     if (instagramPostLimit < unseenLinks.length) {
+      if (progressTrackingEnabled) result.remainingSources.push(source.id);
       log(`instagram post scan capped ${source.id}: ${instagramPostLimit}/${unseenLinks.length} unseen remaining_ms=${runRemainingMs()}`);
     }
     const completedPosts = [];
@@ -3334,6 +3517,9 @@ async function main() {
 
   let sources = getAutomationSourceList(profile)
     .filter((source) => profile === 'expanded-research' || source.saveEnabled)
+    .filter((source) => !source.allowedActivityTypes?.length
+      || source.allowedActivityTypes.some(isAutomaticCollectionActivityEnabled))
+    .filter((source) => sourceScopes.length === 0 || sourceScopes.includes(source.scope))
     .filter((source) => sourcePriorities.length === 0 || sourcePriorities.includes(Number(source.priority)))
     .filter((source) => sourceTypes.length === 0 || sourceTypes.includes(source.type))
     .filter((source) => sourceIds.length === 0 || sourceIds.includes(source.id))
@@ -3343,7 +3529,7 @@ async function main() {
     .filter((source, index) => sourceBatchTotal > 1 ? index % sourceBatchTotal === sourceBatchIndex : true)
     .slice(0, sourceLimit > 0 ? sourceLimit : undefined);
 
-  const progressEnabled = profile === 'swing-daily'
+  const progressEnabled = (profile === 'swing-daily' || (profile === 'expanded-ingestion' && sourceScopes.length === 1))
     && sourcePriorities.length === 1
     && sourceIds.length === 0
     && sourceBatchTotal <= 1
@@ -3351,30 +3537,48 @@ async function main() {
     && !dryRun;
   progressTrackingEnabled = progressEnabled;
   const progressFile = progressEnabled
-    ? progressFileForPriority(sourcePriorities[0], process.env.INGESTION_PROGRESS_STATE_DIR || '')
+    ? progressFileForPriority(sourcePriorities[0], process.env.INGESTION_PROGRESS_STATE_DIR || '',
+      profile === 'swing-daily' ? profile : `${profile}-${sourceScopes[0]}`)
     : '';
   const progressState = progressEnabled
     ? await loadIngestionProgress(progressFile)
     : { remainingSources: [], lastCompletedAt: '', updatedAt: '', instagramSeenPosts: {} };
+  const recoveryOnly = profile === 'swing-daily' && progressEnabled
+    && isSupplementalRecoveryRun(process.env.INGESTION_NATIVE_FULL_SCAN_HOURS, new Date(), progressState.lastDiscoveryAt || '');
+  if (recoveryOnly && !automaticSocialCollectionEnabled) {
+    log('social collection disabled: official links only; supplemental retry and browser skipped');
+    printSummary();
+    return;
+  }
+  const lastDiscoveryAt = recoveryOnly ? progressState.lastDiscoveryAt || '' : new Date().toISOString();
   if (progressEnabled) {
     instagramSeenPosts = { ...(progressState.instagramSeenPosts || {}) };
+    completedItems = { ...(progressState.completedItems || {}) };
+    deferredItems = { ...(progressState.deferredItems || {}) };
     sources = reorderSourcesForResume(sources, progressState.remainingSources);
-    instagramSourcePostLimit = catchupInstagramPostLimit(instagramSourcePostLimit, progressState.lastCompletedAt);
-    await saveIngestionProgress(progressFile, buildIngestionProgressState({
+    if (!recoveryOnly) instagramSourcePostLimit = catchupInstagramPostLimit(instagramSourcePostLimit, progressState.lastCompletedAt);
+    if (!recoveryOnly) await saveIngestionProgress(progressFile, buildIngestionProgressState({
       remainingSources: sources.map((source) => source.id),
       lastCompletedAt: progressState.lastCompletedAt,
+      lastDiscoveryAt,
       instagramSeenPosts,
+      completedItems,
+      deferredItems,
     }));
     log(`resume state=${progressFile} prior_remaining=${progressState.remainingSources.length} instagram_post_limit=${instagramSourcePostLimit}`);
   }
 
+  let untouchedRemainingSources = [];
   const checkpointProgress = async (remainingSources, completed = false) => {
     if (!progressEnabled) return;
     await saveIngestionProgress(progressFile, buildIngestionProgressState({
-      remainingSources,
+      remainingSources: unique([...untouchedRemainingSources, ...remainingSources]),
       lastCompletedAt: progressState.lastCompletedAt,
-      completed,
+      lastDiscoveryAt,
+      completed: completed && !recoveryOnly,
       instagramSeenPosts,
+      completedItems,
+      deferredItems,
     }));
   };
 
@@ -3383,7 +3587,45 @@ async function main() {
     ...futureSources,
   ]);
 
-  log(`start profile=${profile} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
+  if (automaticSocialCollectionEnabled && profile === 'swing-daily' && !dryRun) {
+    // This is the existing selector's observed result, not another retry queue.
+    // Document failures and today's uncollected occurrences have different scopes.
+    result.pipeline.reconciliation.sameDayRetry = {
+      date: today, verified: false, selectedSources: [], pendingSources: [],
+    };
+    try {
+      const pending = findUnresolvedTodaySocialSources(await loadPublicEventsForDates(today, today), sources, today);
+      Object.assign(result.pipeline.reconciliation.sameDayRetry, {
+        verified: true, selectedSources: [...pending], pendingSources: [...pending],
+      });
+      pending.forEach((id) => sameDayRecoverySources.add(id));
+      sources = reorderSourcesForResume(sources, pending);
+      if (recoveryOnly) {
+        sources = reorderSourcesForResume(sources, pending, true);
+        const selectedIds = new Set(sources.map(source => String(source.id)));
+        untouchedRemainingSources = progressState.remainingSources.filter(id => !selectedIds.has(id));
+        log(`same-day retry selected=${sources.length}; other unfinished sources deferred to discovery`);
+      }
+      log(`same-day recovery start ${today}: ${pending.join(',') || 'none'}`);
+    } catch (error) {
+      result.issues.push(`same-day recovery verification failed: ${error.message}`);
+      if (recoveryOnly) {
+        // Preserve the existing checkpoint untouched when the baseline is unknown.
+        result.remainingSources = progressState.remainingSources;
+        printSummary();
+        return;
+      }
+    }
+  }
+
+  if (sources.length === 0) {
+    log(recoveryOnly ? 'same-day retry: no unresolved regular socials today; browser not opened'
+      : 'no eligible collection sources; browser not opened');
+    printSummary();
+    return;
+  }
+
+  log(`start profile=${profile} mode=${recoveryOnly ? 'today-only-retry' : 'new-discovery'} sources=${sources.length} today=${today} dryRun=${dryRun} exception_backtest=${exceptionBacktest} lookback_days=${exceptionLookbackDays} priorities=${sourcePriorities.join(',') || 'all'} batch=${sourceBatchTotal > 1 ? `${sourceBatchIndex}/${sourceBatchTotal}` : 'all'} budget_ms=${runBudgetMs} post_timeout_ms=${postRequestTimeoutMs} image_timeout_ms=${imageFetchTimeoutMs}`);
   const browserSession = await openBrowserContext();
   const { context } = browserSession;
 
@@ -3391,6 +3633,25 @@ async function main() {
     const seenRunKeys = new Set();
     for (let sourceIndex = 0; sourceIndex < sources.length; sourceIndex += 1) {
       const source = sources[sourceIndex];
+      if (recoveryOnly) {
+        if (todayISO() !== today) {
+          log('same-day retry expired at KST date boundary');
+          break;
+        }
+        try {
+          const pendingNow = findUnresolvedTodaySocialSources(await loadPublicEventsForDates(today, today), [source], today);
+          if (!pendingNow.includes(source.id)) {
+            log(`same-day retry satisfied ${source.id}; source not reopened`);
+            await checkpointProgress(checkpointRemainingSources(sources.slice(sourceIndex + 1).map(item => item.id)));
+            continue;
+          }
+        } catch (error) {
+          result.pipeline.reconciliation.sameDayRetry.verified = false;
+          result.issues.push(`same-day recovery verification failed: ${error.message}`);
+          result.remainingSources = checkpointRemainingSources(sources.slice(sourceIndex).map(item => item.id));
+          break;
+        }
+      }
       if (!hasRunBudget(runDeadlineGuardMs())) {
         recordDeadlineReached(sources, sourceIndex);
         break;
@@ -3409,11 +3670,20 @@ async function main() {
       await page.setViewportSize({ width: 1600, height: 1200 }).catch(() => {});
       page.setDefaultTimeout(12000);
       page.setDefaultNavigationTimeout(18000);
+      let completedBatch = false;
       try {
         const issueCountBeforeSource = result.issues.length;
         const candidates = await collectSource(page, source);
         const mergedSocialVariants = collapseSocialCandidateVariants(candidates);
-        const deduped = dedupeCandidatesByContentIdentity(mergedSocialVariants);
+        const deduped = dedupeCandidatesByContentIdentity(mergedSocialVariants).filter(candidate => !recoveryOnly
+          || (String(candidate.structured_data?.date || '').slice(0, 10) === today
+            && (candidate.structured_data?.activity_type === 'social'
+              || ['closure', 'recurring_closure'].includes(candidate.exception_type))));
+        if (recoveryOnly) {
+          for (let i = expectedAutomaticSocials.length - 1; i >= 0; i -= 1) {
+            if (expectedAutomaticSocials[i].date !== today) expectedAutomaticSocials.splice(i, 1);
+          }
+        }
         for (const candidate of deduped) {
           ensureExpectedAutomaticSocialCandidate(source, candidate);
           updateExpectedAutomaticSocial(candidate, 'candidate-found');
@@ -3424,6 +3694,7 @@ async function main() {
           result.pipeline.classification.byActivity[activity] = (result.pipeline.classification.byActivity[activity] || 0) + 1;
         }
         for (const candidate of deduped) {
+          if (recoveryOnly && todayISO() !== today) break;
           ensureRunBudgetOrThrow(`post candidate ${source.id}`, Math.min(10_000, runDeadlineGuardMs()));
 
           const sd = candidate.structured_data || {};
@@ -3445,19 +3716,47 @@ async function main() {
           }
           seenRunKeys.add(runKey);
           await postCandidate(candidate);
+          // Persist each successful child before another child can fail or time out.
+          await checkpointProgress(checkpointRemainingSources(sources.slice(sourceIndex).map(item => item.id)));
         }
-        if (
-          progressTrackingEnabled
-          && shouldAdvanceInstagramCheckpoint(result.issues.slice(issueCountBeforeSource))
-          && instagramPendingSeenPosts[source.id]?.length
-        ) {
+        if (progressTrackingEnabled) {
+          const documents = pendingDocuments[source.id] || [];
+          const keys = completedDocumentKeys(documents, completedItems[source.id] || []);
+          completedBatch = documents.length > 0 && documents.every(document => keys.includes(document.key));
+          completedItems[source.id] = unique([...(completedItems[source.id] || []), ...keys]);
+          for (const document of documents) {
+            if (keys.includes(document.key)) {
+              if (deferredItems[source.id]) delete deferredItems[source.id][document.key];
+              continue;
+            }
+            const unfinished = document.candidateKeys.filter(key => !completedItems[source.id].includes(key));
+            if (!document.failed && unfinished.length && unfinished.every(key => /^\d{4}-\d{2}-\d{2}$/.test(document.candidateDates?.[key] || ''))) {
+              (deferredItems[source.id] ||= {})[document.key] = unique(unfinished.map(key => document.candidateDates[key]));
+            }
+          }
+          const completeUrls = new Set(documents.filter(document => keys.includes(document.key)).map(document => document.url));
           instagramSeenPosts[source.id] = mergeSeenInstagramPosts(
             instagramSeenPosts[source.id] || [],
-            instagramPendingSeenPosts[source.id],
+            (instagramPendingSeenPosts[source.id] || []).filter(url => completeUrls.has(normalizeSourceUrl(url))),
           );
+          if (documents.some(document => !keys.includes(document.key))) {
+            result.remainingSources = unique([...result.remainingSources, source.id]);
+          }
+        }
+        delete pendingDocuments[source.id];
+        // Keep the same bounded batch and give other sources a turn before draining unread posts.
+        // Only a committed successful batch can be retried within this run; failures wait for the next run.
+        if (progressTrackingEnabled
+          && !recoveryOnly
+          && completedBatch
+          && result.remainingSources.includes(source.id)
+          && instagramPendingSeenPosts[source.id]?.length
+          && shouldAdvanceInstagramCheckpoint(result.issues.slice(issueCountBeforeSource), hasAccessFailure(source.id))) {
+          sources.push(source);
         }
         delete instagramPendingSeenPosts[source.id];
       } catch (error) {
+        delete pendingDocuments[source.id];
         delete instagramPendingSeenPosts[source.id];
         if (error instanceof RunBudgetReachedError) {
           recordDeadlineReached(sources, sourceIndex);
@@ -3479,10 +3778,35 @@ async function main() {
     await settleWithin(browserSession.close(), 2_000);
   }
 
+  await reconcileExpectedAutomaticSocials();
+  if (progressEnabled && result.pipeline.reconciliation.failures.length) {
+    instagramSeenPosts = reopenFailedInstagramPosts(
+      instagramSeenPosts,
+      result.pipeline.reconciliation.failures,
+    );
+    completedItems = reopenFailedIngestionItems(completedItems, result.pipeline.reconciliation.failures);
+    log(`instagram retry reopened ${result.pipeline.reconciliation.failures.length} automatic-registration failure(s)`);
+    result.remainingSources = unique([...result.remainingSources, ...result.pipeline.reconciliation.failures.map((failure) => failure.sourceId).filter(Boolean)]);
+  }
+
+  if (automaticSocialCollectionEnabled && profile === 'swing-daily' && !dryRun) {
+    try {
+      const pending = findUnresolvedTodaySocialSources(await loadPublicEventsForDates(today, today), sources, today);
+      Object.assign(result.pipeline.reconciliation.sameDayRetry, { verified: true, pendingSources: [...pending] });
+      result.remainingSources = unique([...result.remainingSources, ...pending]);
+      if (pending.length) result.issues.push(`same-day socials remain unconfirmed: ${pending.join(',')}`);
+      log(`same-day recovery finish ${today}: ${pending.join(',') || 'complete'}`);
+    } catch (error) {
+      result.pipeline.reconciliation.sameDayRetry.verified = false;
+      // Unknown public state is not a successful reconciliation, even if the
+      // initial baseline also failed and could not identify missing sources.
+      result.remainingSources = unique([...result.remainingSources, ...sources.map((source) => source.id)]);
+      result.issues.push(`same-day recovery verification failed: ${error.message}`);
+    }
+  }
+
   const partialRun = result.deadlineReached || result.remainingSources.length > 0;
   await checkpointProgress(partialRun ? result.remainingSources : [], !partialRun);
-
-  await reconcileExpectedAutomaticSocials();
 
   printSummary();
 }
@@ -3528,6 +3852,12 @@ function printSummary() {
   console.log(`AI소셜추출: 확인 ${result.socialAiExtractionStats.approved} / 재검토 ${result.socialAiExtractionStats.review} / 오류 ${result.socialAiExtractionStats.error + result.socialAiExtractionStats.unavailable}`);
   console.log(`파이프라인: 발견 ${result.pipeline.discovery.documents} / 판별문서 ${result.pipeline.classification.documents} / 분해후보 ${result.pipeline.decomposition.candidates} / 저장 ${result.pipeline.persistence.saved + result.pipeline.persistence.refreshed} / 자동등록 ${result.pipeline.registration.succeeded} / 차단 ${result.pipeline.registration.blocked + result.pipeline.registration.notReady}`);
   console.log(`등록완결성: 기대 ${result.pipeline.reconciliation.expected} / 준비 ${result.pipeline.reconciliation.candidateReady} / 공개확인 ${result.pipeline.reconciliation.publicVerified} / 누락 ${result.pipeline.reconciliation.missing}`);
+  const retry = result.pipeline.reconciliation.sameDayRetry;
+  if (retry) console.log(`당일 재시도(${retry.date}, 이번 수집 범위): ${!retry.verified
+    ? '공개 일정 확인 실패; 완료 판정 보류'
+    : retry.pendingSources.length
+      ? `미확정 ${retry.pendingSources.length}곳 (${retry.pendingSources.join(', ')}); 오늘 남은 예약에서 재확인`
+      : '대상 없음; 오늘 회차 재수집 중단, 다른 게시글 오류는 별도'}`);
   console.log(`단계차단: ${result.pipeline.blockers.length ? result.pipeline.blockers.slice(0, 5).map((item) => `${item.stage}:${item.sourceId || item.candidateId || 'unknown'}(${item.reason})`).join(' / ') : 'none'}`);
   console.log(`이슈: ${issues.length ? issues.join(' / ') : 'none'}`);
   console.log('==TELEGRAM_SUMMARY_END==');
@@ -3541,7 +3871,8 @@ async function flushAndExit(code) {
 
 main()
   .then(async () => {
-    const incompleteRegistration = !dryRun && result.pipeline.reconciliation.missing > 0;
+    const incompleteRegistration = !dryRun && (result.pipeline.reconciliation.missing > 0
+      || result.issues.some((issue) => issue.startsWith('same-day recovery verification failed:')));
     await flushAndExit(result.deadlineReached || result.remainingSources.length ? 75 : incompleteRegistration ? 1 : 0);
   })
   .catch(async (error) => {

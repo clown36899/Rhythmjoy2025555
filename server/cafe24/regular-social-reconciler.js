@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { findAdminDeletedEvent } from './admin-event-deletion.js';
 import {
   deleteCafe24TableRows,
   loadCafe24TableRows,
@@ -38,10 +39,6 @@ function isSocial(event) {
 function isGenerated(event) {
   return event?.automation?.generated_by === GENERATED_BY
     || String(event?.id || '').startsWith('regular-social:');
-}
-
-function isMaterializedClosure(event) {
-  return event?.automation?.exception_type === 'closure';
 }
 
 function recurringIdentity(value) {
@@ -204,6 +201,10 @@ export function planRegularSocialReconciliation({
       if (rule.validUntil && key > rule.validUntil) continue;
       const id = `regular-social:${rule.id}:${key}`;
       const generated = existingGenerated.get(id);
+      if (findAdminDeletedEvent({ id, date: key, location: rule.location, category: 'social' }, scrapedEvents)) {
+        if (generated) removes.push(generated);
+        continue;
+      }
       const collectedClosure = collectedClosureForRule(exceptions, key, rule.sourceId);
       const apiException = apiExceptions.find((item) => item.date === key && item.ruleId === rule.id);
       const closure = apiException?.type === 'closure' ? apiException : collectedClosure;
@@ -226,7 +227,7 @@ export function planRegularSocialReconciliation({
       const desiredExceptionId = closure?.externalId || closure?.id || override?.externalId || '';
       const desiredExceptionType = closure ? 'closure' : override ? 'override' : '';
       const desiredSourceUrl = closure?.sourceUrl || override?.sourceUrl || rule.sourceUrl || '';
-      const desiredLinkName = desiredSourceUrl ? (closure ? '휴무 공지' : '공식 안내') : '';
+      const desiredLinkName = desiredSourceUrl ? (closure ? '휴무 공지' : override?.sourceUrl || rule.officialApi ? '공식 안내' : '수집 위치 바로가기') : '';
       const desiredDescription = closure
         ? closure.description || `${key} ${rule.title} 휴무 공지입니다. 자세한 내용은 공식 안내를 확인해주세요.`
         : override?.description
@@ -304,22 +305,35 @@ export function planRegularSocialReconciliation({
 
   for (const generated of existingGenerated.values()) {
     const alreadyRemoved = removes.some((item) => String(item.id) === String(generated.id));
-    if (
-      eventDate(generated) < today
-      && isMaterializedClosure(generated)
-      && consideredIds.has(String(generated.id))
-    ) {
-      if (
-        !alreadyRemoved
-        && !retained.some((item) => String(item.id) === String(generated.id))
-      ) {
-        retained.push(generated);
-      }
+    if (findAdminDeletedEvent(generated, scrapedEvents)) {
+      if (!alreadyRemoved) removes.push(generated);
       continue;
     }
     if (
       eventDate(generated) < today
-      || eventDate(generated) > dateKey(new Date(endMs))
+    ) {
+      const explicit = explicitEvents.some((event) => eventDate(event) === eventDate(generated)
+        && matchesRule(event, { title: generated.title, location: generated.location || generated.venue_name }));
+      if (explicit && !alreadyRemoved) {
+        removes.push(generated);
+        continue;
+      }
+      if (
+        !alreadyRemoved
+        && !retained.some((item) => String(item.id) === String(generated.id))
+      ) {
+        const rule = effectiveRules.find((item) => item.id === generated.automation?.rule_id
+          || String(generated.id) === `regular-social:${item.id}:${eventDate(generated)}`);
+        if (!generated.link1 && rule?.sourceUrl) {
+          creates.push({ ...generated, link1: rule.sourceUrl, link_name1: '수집 위치 바로가기' });
+        } else {
+          retained.push(generated);
+        }
+      }
+      continue;
+    }
+    if (
+      eventDate(generated) > dateKey(new Date(endMs))
       || !consideredIds.has(String(generated.id))
     ) {
       if (!alreadyRemoved) removes.push(generated);
@@ -407,10 +421,13 @@ export async function runRegularSocialReconciliation({ horizonDays = 90, dryRun 
     horizonDays: Math.max(30, Math.min(120, Number(horizonDays || 90))),
   });
   if (!dryRun) {
-    if (plan.removes.length) await deleteCafe24TableRows('events', plan.removes);
+    // Replace the same deterministic ID by upsert, so a failed save cannot erase it.
     for (const event of plan.creates) {
       await saveCafe24TableRow('events', event, ['id']);
     }
+    const savedIds = new Set(plan.creates.map((event) => String(event.id)));
+    const obsolete = plan.removes.filter((event) => !savedIds.has(String(event.id)));
+    if (obsolete.length) await deleteCafe24TableRows('events', obsolete);
   }
   return {
     status: 'ok',

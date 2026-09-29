@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import { getMysqlPool } from './mysql-pool.js';
 import {
   loadCafe24TableRows,
+  loadCafe24TableRowsByRecordId,
+  loadCafe24TableRowsByJsonField,
   saveCafe24TableRow,
 } from './generic-data-api.js';
 import {
@@ -372,8 +374,13 @@ function eventPath(body) {
 
 async function findSessionLog(sessionId) {
   if (!sessionId) return null;
-  const rows = await loadCafe24TableRows('session_logs');
-  return rows.find((row) => String(row.session_id || '') === String(sessionId)) || null;
+  const rows = await loadCafe24TableRowsByRecordId('session_logs', sessionId);
+  const current = rows.find(row => String(row.session_id || '') === String(sessionId));
+  if (current) return current;
+  // Imported sessions may still have a UUID record key. Use the existing
+  // JSON-field lookup (including its old-MySQL fallback), never load all sessions.
+  const legacy = await loadCafe24TableRowsByJsonField('session_logs', 'session_id', sessionId);
+  return legacy[0] || null;
 }
 
 function invalidateAnalyticsAdminIdentityCache() {

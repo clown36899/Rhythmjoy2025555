@@ -6,7 +6,8 @@ This folder is a snapshot of the kiosk configuration currently installed on the 
 
 - Chrome kiosk systemd user service
 - Legacy external URL guard systemd user service and Python script
-- Display setup systemd user service and script
+- Persistent GNOME portrait monitor configuration
+- Continuously reconciling display systemd user service and script
 - Browser error-page watchdog systemd user service, timer, and script
 - Legacy Kiosk Chrome extension files
 - Chrome managed policy for update UI, popups, and external protocol blocking
@@ -24,6 +25,11 @@ https://swingenjoy.com/kiosk
 That route enables kiosk mode in the web app, then redirects to `/`.
 Kiosk CSS, QR external-link guidance, and carousel controls now live in the site code.
 The old mini PC URL guard and Chrome extension files are kept only as a legacy fallback.
+
+The display service keeps `HDMI-1` at native `1920x1080` with `right` rotation,
+which produces the portrait `1080x1920` desktop. It checks the live X11 state
+every 10 seconds and reapplies the portrait mode only when HDMI detection or a
+monitor/input power cycle resets the output.
 
 Latest verified production deploy:
 
@@ -51,7 +57,7 @@ The restore script maps them back to `.local` and `.config` on the mini PC.
 From this folder:
 
 ```bash
-SSH_KEY=/path/to/ssh/key ./restore-mini-pc-kiosk.sh kiosk-j@172.30.1.13
+SSH_KEY=/path/to/ssh/key ./restore-mini-pc-kiosk.sh kiosk-j@kiosk-host.local
 ```
 
 If `SSH_KEY` is omitted, the script uses normal SSH authentication.
@@ -63,6 +69,7 @@ The script may ask for the kiosk user's sudo password when installing the Chrome
 ssh kiosk-j@kiosk-host.local 'systemctl --user is-active kiosk-chrome.service kiosk-display.service kiosk-page-watchdog.timer; systemctl --user is-enabled kiosk-page-watchdog.timer kiosk-url-guard.service || true'
 ```
 
-`kiosk-chrome.service` and `kiosk-display.service` should print `active`.
+`kiosk-chrome.service` and `kiosk-display.service` should print `active`;
+the display service should specifically remain `active (running)` as the portrait reconciler.
 `kiosk-page-watchdog.timer` should print `active` and `enabled`.
 `kiosk-url-guard.service` should be disabled unless intentionally using the legacy fallback.

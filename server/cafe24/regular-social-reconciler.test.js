@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildAdminDeletedEventRow } from './admin-event-deletion.js';
 import {
   findGeneratedRegularSocialReplacements,
   planRegularSocialReconciliation,
@@ -7,6 +8,67 @@ import {
 const rule = { id: 'sample-fri', title: '샘플 금요 소셜', weekday: 5, time: '19:30', location: '샘플홀', sourceId: 'sample' };
 
 describe('regular social reconciliation', () => {
+  it('honors administrator deletion over fallback generation, closure and historical retention', () => {
+    const event = {
+      id: 'regular-social:sample-fri:2026-09-11', date: '2026-09-11',
+      title: rule.title, location: rule.location, category: 'social',
+    };
+    const deletion = buildAdminDeletedEventRow(event, { id: 'admin', is_admin: true });
+    const closure = {
+      id: 'closure', source_id: rule.sourceId, exception_type: 'closure',
+      structured_data: { date: event.date },
+    };
+    for (const today of ['2026-09-10', '2026-09-12']) {
+      const plan = planRegularSocialReconciliation({
+        events: [event], rules: [rule], scrapedEvents: [deletion, closure], today, horizonDays: 10,
+      });
+      expect(plan.removes).toEqual([event]);
+      expect(plan.creates.some((item) => item.date === event.date)).toBe(false);
+      expect(plan.creates.some((item) => item.date === '2026-09-18')).toBe(true);
+      const retry = planRegularSocialReconciliation({
+        events: [], rules: [rule], scrapedEvents: [deletion, closure], today, horizonDays: 10,
+      });
+      expect(retry.creates.some((item) => item.date === event.date)).toBe(false);
+    }
+    // Deleting the collected DJ event must also suppress its fallback ID.
+    const actualDeletion = buildAdminDeletedEventRow({ ...event, id: 'collected-dj' }, { id: 'admin' });
+    const plan = planRegularSocialReconciliation({
+      events: [], rules: [rule], scrapedEvents: [actualDeletion], today: '2026-09-10', horizonDays: 2,
+    });
+    expect(plan.creates).toEqual([]);
+  });
+  it('links every built-in social to its collection source and remains idempotent', () => {
+    const first = planRegularSocialReconciliation({ events: [], today: '2026-09-10', horizonDays: 7 });
+    expect(first.creates.length).toBeGreaterThan(0);
+    for (const event of first.creates) {
+      expect(event.link1).toMatch(/^https:\/\/(www\.instagram\.com|cafe\.naver\.com)\//);
+      expect(event.link_name1).toBe('수집 위치 바로가기');
+    }
+    const second = planRegularSocialReconciliation({ events: first.creates, today: '2026-09-10', horizonDays: 7 });
+    expect(second.creates).toEqual([]);
+    expect(second.removes).toEqual([]);
+  });
+
+  it('preserves past defaults even after a rule is retired, but lets explicit socials replace them', () => {
+    const past = { id: 'regular-social:sample-fri:2026-07-24', date: '2026-07-24', title: rule.title, location: rule.location };
+    const retained = planRegularSocialReconciliation({ events: [past], rules: [], today: '2026-09-10' });
+    expect(retained.removes).toEqual([]);
+    expect(retained.retained).toEqual([past]);
+    const actual = { ...past, id: 'manual', category: 'social' };
+    const replaced = planRegularSocialReconciliation({ events: [past, actual], rules: [], today: '2026-09-10' });
+    expect(replaced.removes).toEqual([past]);
+  });
+
+  it('backfills a missing source link on a past occurrence without changing its historical details', () => {
+    const past = { id: 'regular-social:sample-fri:2026-07-24', date: '2026-07-24', title: '기존 제목', location: rule.location, dj_name: '미정' };
+    const plan = planRegularSocialReconciliation({ events: [past], rules: [{ ...rule, sourceUrl: 'https://example.com/source' }], today: '2026-09-10', horizonDays: 0 });
+    expect(plan.removes).toEqual([]);
+    expect(plan.creates).toEqual([{ ...past, link1: 'https://example.com/source', link_name1: '수집 위치 바로가기' }]);
+    const again = planRegularSocialReconciliation({ events: plan.creates, rules: [rule], today: '2026-09-10', horizonDays: 0 });
+    expect(again.creates).toEqual([]);
+    expect(again.removes).toEqual([]);
+  });
+
   it('materializes only matching weekdays inside the rolling window', () => {
     const plan = planRegularSocialReconciliation({
       events: [],
@@ -243,8 +305,8 @@ describe('regular social reconciliation', () => {
     expect(afterDatePassed.creates.map((event) => event.id)).toEqual([
       'regular-social:sample-fri:2026-08-07',
     ]);
-    expect(afterDatePassed.removes).toEqual([pastDefault]);
-    expect(afterDatePassed.retained).toEqual(first.creates);
+    expect(afterDatePassed.removes).toEqual([]);
+    expect(afterDatePassed.retained).toEqual([...first.creates, pastDefault]);
     expect(afterClosureWasDeleted.creates.map((event) => ({
       id: event.id,
       genre: event.genre,
@@ -252,7 +314,8 @@ describe('regular social reconciliation', () => {
       { id: 'regular-social:sample-fri:2026-07-31', genre: '휴무' },
       { id: 'regular-social:sample-fri:2026-08-07', genre: '소셜' },
     ]);
-    expect(afterClosureWasDeleted.removes).toEqual([pastDefault]);
+    expect(afterClosureWasDeleted.removes).toEqual([]);
+    expect(afterClosureWasDeleted.retained).toEqual([pastDefault]);
     expect(afterPastClosureWasCorrected.removes).toEqual(first.creates);
     expect(afterPastClosureWasCorrected.retained).toHaveLength(0);
     expect(afterPastClosureWasCorrected.creates[0]).toMatchObject({

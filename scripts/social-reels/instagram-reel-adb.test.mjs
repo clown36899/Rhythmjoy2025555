@@ -1,4 +1,12 @@
 import assert from 'node:assert/strict';
+import {
+  mkdtemp,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -10,18 +18,24 @@ import {
   isInstalledPackagePath,
   parseAndroidDisplaySize,
   parseAdbDevices,
+  parseAvailableStorageBytes,
   parseInstagramPostCount,
   parseUiNodes,
   profileRefreshSwipeArguments,
+  publishedLocalArtifactPaths,
   publicationCountConfirmsSuccess,
   publicationNeedsReconciliation,
+  removePublishedLocalArtifacts,
+  requiredRemoteStorageBytes,
   resolveCoverEditorTransition,
   selectTargetEmulatorSerial,
+  selectManagedRemoteMediaPaths,
 } from './instagram-reel-adb.mjs';
 import {
   buildPublicationProblemNotification,
   canPublishReelDate,
   canRetryPublicationState,
+  publicationStateRequiresGeneration,
   resolveShellDefaultExpression,
 } from './run-scheduled-social-reel.mjs';
 
@@ -76,6 +90,76 @@ test('music rotation never repeats the previous successful track', () => {
 test('unknown history safely starts from the first configured jazz track', () => {
   const candidates = chooseNextTrack([{ title: 'Unknown', artist: 'Unknown' }]);
   assert.deepEqual(candidates[0], JAZZ_TRACKS[0]);
+});
+
+test('remote media cleanup is restricted to publisher-owned dated files', () => {
+  assert.deepEqual(
+    selectManagedRemoteMediaPaths([
+      '/sdcard/Movies/Rhythmjoy/RHYTHMJOY-2026-08-23-AUTO.mp4',
+      '/sdcard/Pictures/Rhythmjoy/RHYTHMJOY-2026-08-23-COVER-AUTO.jpg',
+      '/sdcard/Movies/Rhythmjoy/family-video.mp4',
+      '/sdcard/Pictures/Rhythmjoy/RHYTHMJOY-logo.jpg',
+      '/sdcard/DCIM/RHYTHMJOY-2026-08-23-AUTO.mp4',
+      '/sdcard/Movies/Rhythmjoy/RHYTHMJOY-2026-08-23-AUTO.mp4.bak',
+    ]),
+    [
+      '/sdcard/Movies/Rhythmjoy/RHYTHMJOY-2026-08-23-AUTO.mp4',
+      '/sdcard/Pictures/Rhythmjoy/RHYTHMJOY-2026-08-23-COVER-AUTO.jpg',
+    ],
+  );
+});
+
+test('confirmed publication cleanup removes only generated local media', async (context) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'rhythmjoy-reel-cleanup-'));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const date = '2026-08-27';
+  const generatedPaths = publishedLocalArtifactPaths(directory, date);
+  assert.deepEqual(generatedPaths.map((filePath) => path.basename(filePath)), [
+    `${date}-social-reel-4k.mp4`,
+    `${date}-social-reel-cover-4k.jpg`,
+    `${date}-social-reel-midpoint-4k.jpg`,
+    'calendar-raw@4x.png',
+    'calendar-2160x3840.png',
+    'label-overlay-4k.png',
+    'arrow-overlay-4k.png',
+  ]);
+  assert.throws(
+    () => publishedLocalArtifactPaths(directory, '../../unsafe'),
+    /invalid date/,
+  );
+
+  await Promise.all(generatedPaths.map((filePath) => writeFile(filePath, 'generated')));
+  await Promise.all([
+    writeFile(path.join(directory, 'publication-state.json'), '{}'),
+    writeFile(path.join(directory, 'instagram-share-ready.png'), 'proof'),
+  ]);
+
+  const removedPaths = await removePublishedLocalArtifacts(directory, date);
+  assert.deepEqual(removedPaths, generatedPaths);
+  assert.deepEqual(
+    (await readdir(directory)).sort(),
+    ['instagram-share-ready.png', 'publication-state.json'],
+  );
+  assert.deepEqual(await removePublishedLocalArtifacts(directory, date), []);
+});
+
+test('Android df output and media headroom produce a byte-accurate storage gate', () => {
+  assert.equal(
+    parseAvailableStorageBytes([
+      'Filesystem     1K-blocks    Used Available Use% Mounted on',
+      '/dev/block/dm-53  6082144 5951072    131072  98% /data/user/0',
+    ].join('\n')),
+    128 * 1024 * 1024,
+  );
+  assert.equal(parseAvailableStorageBytes('Data-Free: unknown'), null);
+  assert.equal(
+    requiredRemoteStorageBytes([4 * 1024 * 1024, 1 * 1024 * 1024], 64 * 1024 * 1024),
+    69 * 1024 * 1024,
+  );
+  assert.throws(
+    () => requiredRemoteStorageBytes([-1], 64 * 1024 * 1024),
+    /non-negative/,
+  );
 });
 
 test('ADB device parsing keeps serial and state so publishing can target one emulator', () => {
@@ -281,6 +365,13 @@ test('publisher retries only failures known to occur before Share', () => {
   assert.equal(canRetryPublicationState({ status: 'failed-before-share' }), true);
   assert.equal(canRetryPublicationState({ status: 'verification-required' }), false);
   assert.equal(canRetryPublicationState({ status: 'published' }), false);
+});
+
+test('a confirmed publication skips media regeneration while retryable states keep it', () => {
+  assert.equal(publicationStateRequiresGeneration({ status: 'published' }), false);
+  assert.equal(publicationStateRequiresGeneration({ status: 'failed-before-share' }), true);
+  assert.equal(publicationStateRequiresGeneration({ status: 'verification-required' }), true);
+  assert.equal(publicationStateRequiresGeneration({}), true);
 });
 
 test('actual publishing rejects a non-current date unless explicitly overridden', () => {

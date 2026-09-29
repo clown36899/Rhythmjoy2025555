@@ -1,4 +1,7 @@
 import crypto from 'node:crypto';
+import { isAutomaticCollectionActivityEnabled } from '../../scripts/ingestion/collection-registry.mjs';
+import { toMapSafeVenueName, normalizeVenueStructuredData, venueEvidenceIncludes } from '../../src/utils/venueNormalization.mjs';
+import { deleteEventsAsAdmin, findAdminDeletedEvent } from './admin-event-deletion.js';
 import { benefitFieldsFromStructuredData } from './ingestion-benefit-fields.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -19,7 +22,7 @@ import {
   shouldSkipDateExpansionCandidate,
   sortDateExpansionInputs,
 } from './ingestion-date-expansion.js';
-import { findGeneratedRegularSocialReplacements } from './regular-social-reconciler.js';
+import { findGeneratedRegularSocialReplacements, runRegularSocialReconciliation } from './regular-social-reconciler.js';
 import {
   getIngestionCandidateExclusionReason,
   isVenueRentalAvailabilityNotice,
@@ -353,10 +356,10 @@ function filterScrapedRows(rows, req) {
     if (shouldHidePastCandidate(row, { today, tab })) return false;
     if (tab !== 'collected' && isVenueRentalAvailabilityNotice(row)) return false;
 
-    if (tab === 'collected') {
-      return (row.is_collected === true || row.status === 'collected')
-        && sd.benefit_eligible !== true;
-    }
+    const collected = row.is_collected === true || row.status === 'collected';
+    if (tab === 'collected') return collected;
+    // Completion takes precedence over benefit classification and old duplicate evidence.
+    if (collected && ['new', 'free', 'duplicate'].includes(tab)) return false;
     if (tab === 'duplicate') return row.status === 'duplicate' || Boolean(sd._duplicate);
     if (tab === 'free') {
       return sd.benefit_eligible === true
@@ -503,16 +506,6 @@ function sameKnownDjLineup(left, right) {
   return leftDjs.length > 0
     && leftDjs.length === rightDjs.length
     && leftDjs.every((dj, index) => dj === rightDjs[index]);
-}
-
-function hasConflictingKnownSocialDjLineup(left, right) {
-  const leftDjs = normalizedDjLineup(left);
-  const rightDjs = normalizedDjLineup(right);
-  return isSocialDuplicateRow(left)
-    && isSocialDuplicateRow(right)
-    && leftDjs.length > 0
-    && rightDjs.length > 0
-    && !sameKnownDjLineup(left, right);
 }
 
 function explicitEventDates(row = {}) {
@@ -707,9 +700,10 @@ function duplicateMatch(row, candidate, target) {
   ) {
     return duplicateDescriptor(target, row, '같은 날짜·장소의 공식 API 소셜 우선');
   }
-  // Known, different DJ lineups identify different social evidence. Do not let
-  // the generic title/source fallbacks below undo the stricter social rule.
-  if (hasConflictingKnownSocialDjLineup(row, candidate)) return null;
+  // Social identity is established above, never by a generic weekday title.
+  // Missing or differing DJs remain ambiguous. Published same-venue occurrences
+  // are held by findSocialOccurrenceConflict, including under the write lock.
+  if (isSocialDuplicateRow(row) && isSocialDuplicateRow(candidate)) return null;
   if (titleScore >= 0.88 && sameVenue(rowLocation(row), rowLocation(candidate))) {
     return duplicateDescriptor(target, row, '같은 날짜, 유사 제목, 같은 장소');
   }
@@ -740,6 +734,42 @@ export function findOperationalDuplicateForScrapedItem(candidate, eventRows = []
   return null;
 }
 
+// A different/missing extracted DJ is not proof of another social occurrence.
+// Preserve strict duplicate identity, but require review before occupying a slot twice.
+export function findSocialOccurrenceConflict(candidate, eventRows = [], ignoreEventId = null) {
+  if (!isSocialDuplicateRow(candidate)) return null;
+  const date = scrapedRowDate(candidate);
+  const replacementIds = new Set(findGeneratedRegularSocialReplacements(
+    eventRows, { ...candidate, ...(candidate.structured_data || {}) }, candidate,
+  ).map((row) => String(row.id)));
+  const candidateVenueId = candidate.structured_data?.venue_id || candidate.venue_id;
+  const conflict = eventRows.find((row) => {
+    if (ignoreEventId != null && String(row.id) === String(ignoreEventId)) return false;
+    if (replacementIds.has(String(row.id))) return false;
+    if (!isSocialDuplicateRow(row) || !sameExactEventOccurrence(row, date)) return false;
+    if (candidateVenueId && row.venue_id) return String(candidateVenueId) === String(row.venue_id);
+    // Reuse the collector alias owner for legacy and newly extracted venue spellings.
+    return sameVenue(toMapSafeVenueName(rowLocation(row)), toMapSafeVenueName(rowLocation(candidate)));
+  });
+  return conflict ? duplicateDescriptor('events', conflict,
+    '같은 날짜·장소에 소셜이 이미 등록되어 있습니다. 원문과 DJ를 재검토해주세요.') : null;
+}
+
+export function buildSocialConflictReviewRow(scrapedEvent, conflict, now = new Date().toISOString()) {
+  const reason = `${conflict.reason} 기존 일정: ${conflict.existingDate} ${conflict.existingTitle} (#${conflict.existingId})`;
+  return {
+    ...scrapedEvent,
+    status: 'pending',
+    is_collected: false,
+    auto_registration: {
+      ...(scrapedEvent.auto_registration || {}),
+      ready: false,
+      reasons: [...new Set([...(scrapedEvent.auto_registration?.reasons || []), reason])],
+    },
+    updated_at: now,
+  };
+}
+
 export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows = []) {
   const duplicate = findOperationalDuplicateForScrapedItem(candidate, eventRows);
   if (!duplicate) return null;
@@ -751,7 +781,10 @@ export function findBlockingAutomaticRegistrationDuplicate(candidate, eventRows 
 }
 
 export function findScrapedCandidateDuplicate(candidate, scrapedRows = []) {
+  const adminDeleted = findAdminDeletedEvent(candidate, scrapedRows);
+  if (adminDeleted) return duplicateDescriptor('scraped_events', adminDeleted, '관리자가 삭제한 일정: 자동 복원 금지');
   for (const row of scrapedRows) {
+    if (row.structured_data?._exclusion?.stage === 'admin_event_delete') continue;
     if (String(row?.id || '') === String(candidate?.id || '')) continue;
     // A duplicate row only points at another ledger row, so it must not become
     // a second source of truth. An excluded row is the durable suppression
@@ -1097,6 +1130,12 @@ async function ingestScrapedItems(values) {
   const identityCollisions = [];
 
   for (const value of sortDateExpansionInputs(values)) {
+    if (!isAutomaticCollectionActivityEnabled(rowActivityType(value))
+      || !isAutomaticCollectionActivityEnabled(value?.structured_data?.activity_type)
+      || !isAutomaticCollectionActivityEnabled(value?.exception_type)) {
+      skipped.push({ id: value?.id || null, reason: '소셜은 자동 수집하지 않고 공식 공지로 연결합니다.' });
+      continue;
+    }
     const normalizedInput = {
       ...(value || {}),
       id: String(value?.id || crypto.randomUUID()),
@@ -1262,6 +1301,17 @@ async function ingestScrapedItems(values) {
   const newCount = saved.filter((row) => !['duplicate', 'excluded'].includes(String(row.status || '').toLowerCase())).length;
   const duplicateCount = processed.filter((row) => String(row.status || '').toLowerCase() === 'duplicate').length;
   const excludedCount = processed.filter((row) => String(row.status || '').toLowerCase() === 'excluded').length;
+  // Closure intake uses the existing regular-social reconciler, not ordinary
+  // event registration. A successful save must not wait for tomorrow's timer.
+  // Include an already saved exception on retry after a reconciliation failure.
+  const inputIds = new Set(values.filter(value => isAutomaticCollectionActivityEnabled(rowActivityType(value))
+    && isAutomaticCollectionActivityEnabled(value?.structured_data?.activity_type)
+    && isAutomaticCollectionActivityEnabled(value?.exception_type)).map(value => String(value?.id || '')));
+  if (scrapedRows.some(row => inputIds.has(String(row.id))
+    && ['closure', 'recurring_closure'].includes(row.exception_type)
+    && String(row.structured_data?.date || '').slice(0, 10) >= kstToday())) {
+    await runRegularSocialReconciliation();
+  }
   return {
     data: processed,
     count: newCount,
@@ -1470,6 +1520,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['kyungsunghall', { activities: new Set(['social']), trustedVenue: '경성홀' }],
   ['swingscandal-cafe', { activities: new Set(['social']), trustedVenue: '사보이볼룸' }],
   ['neo_swing', { activities: new Set(['social', 'class']), trustedVenue: '해피홀' }],
+  ['happyhall2004', { activities: new Set(['social', 'class']), trustedVenue: '해피홀' }],
   ['sosyalclub_swing', { activities: new Set(['social']), weekdays: new Set([3]) }],
   ['swingtimebar', { activities: new Set(['social']), trustedVenue: '스윙타임' }],
   ['swingfriends-cafe', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
@@ -1477,8 +1528,15 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
   ['swingfriends-busan-cafe', { activities: new Set(['social', 'event']), trustedVenue: '스윙243' }],
   ['swing_friends', { activities: new Set(['social', 'class', 'event', 'sale']), trustedVenue: '스윙타임' }],
   ['swingtown-cafe', { activities: new Set(['social', 'class', 'event']), trustedVenue: '봉천살롱' }],
+  ['swingtown-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
   ['swingtown-schedule-cafe', { activities: new Set(['social']), trustedVenue: '봉천살롱' }],
   ['inthemood_sillim', { activities: new Set(['social']), trustedVenue: '인더무드신림' }],
+  ['sda-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
+  ['everlatin-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
+  ['suwon-cuba-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
+  ['suradan-lessons-cafe', { activities: new Set(['class']), explicitVenue: true }],
+  ['hongdae-bonita-kakao', { activities: new Set(['social']), trustedVenue: '홍대 보니따' }],
+  ['dsn-crew-meetup', { activities: new Set(['social']), explicitVenue: true }],
 ]);
 
 const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
@@ -1507,13 +1565,31 @@ export function evidenceExplicitlyContainsCandidateDate(evidence = '', date = ''
   const month = Number(monthPadded);
   const day = Number(dayPadded);
   const directPatterns = [
+    new RegExp(`(?<![a-z0-9])${year}\\s+0?${month}\\s+0?${day}(?![a-z0-9])`),
+    new RegExp(`(?<![a-z0-9])${year}${monthPadded}${dayPadded}(?![a-z0-9])`),
     new RegExp(`${year}\\s*[.\\-/년]\\s*0?${month}\\s*[.\\-/월]\\s*0?${day}(?:\\s*일)?`),
     new RegExp(`(?:^|\\D)0?${month}\\s*월\\s*0?${day}\\s*일`),
     new RegExp(`(?:^|\\D)0?${month}\\s*[./-]\\s*0?${day}(?:\\D|$)`),
   ];
   if (directPatterns.some((pattern) => pattern.test(normalizedEvidence))) return true;
 
-  for (const match of normalizedEvidence.matchAll(/(?:^|\D)(\d{1,2})\s*월\s*((?:\d{1,2}\s*(?:일)?\s*(?:[,，·ㆍ/&]|및|와|과)?\s*){1,8})/g)) {
+  // Public event pages also use month names. An explicit year must agree;
+  // a series description mentioning a different year is not date evidence.
+  const monthNames = [
+    'jan(?:uary)?', 'feb(?:ruary)?', 'mar(?:ch)?', 'apr(?:il)?', 'may', 'jun(?:e)?',
+    'jul(?:y)?', 'aug(?:ust)?', 'sep(?:t(?:ember)?)?', 'oct(?:ober)?', 'nov(?:ember)?', 'dec(?:ember)?',
+  ];
+  const monthName = monthNames[month - 1];
+  if (monthName) {
+    const englishPatterns = [
+      new RegExp(`\\b${monthName}\\.?\\s+0?${day}(?:st|nd|rd|th)?\\b(?:\\s*,?\\s*(\\d{4})(?!\\d))?`, 'g'),
+      new RegExp(`\\b0?${day}(?:st|nd|rd|th)?\\s+${monthName}\\b\\.?(?:\\s*,?\\s*(\\d{4})(?!\\d))?`, 'g'),
+    ];
+    if (englishPatterns.some((pattern) => [...normalizedEvidence.matchAll(pattern)]
+      .some((match) => !match[1] || match[1] === year))) return true;
+  }
+
+  for (const match of normalizedEvidence.matchAll(/(?:^|\D)(\d{1,2})\s*월\s*(\d{1,2}(?!\d)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과)\s*\d{1,2}(?!\d)\s*(?:일)?){0,7})/g)) {
     if (Number(match[1]) !== month) continue;
     const listedDays = [...String(match[2] || '').matchAll(/\d{1,2}/g)].map((item) => Number(item[0]));
     if (listedDays.includes(day)) return true;
@@ -1575,7 +1651,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
     if (!sourceRule.weekdays.has(weekday)) reasons.push('candidate weekday is not server-enrolled for source');
   }
-  if (activity !== 'social' && !scrapedEvent?.poster_url) reasons.push('poster image is required');
+  if (!['social', 'class'].includes(activity) && !scrapedEvent?.poster_url) reasons.push('poster image is required');
   if (activity === 'social' && djs.length === 0 && !aiGroundedDjlessSocial) {
     reasons.push('social requires a DJ or double-verified poster evidence');
   }
@@ -1612,15 +1688,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(date) && !evidenceExplicitlyContainsCandidateDate(normalizedEvidence, date)) {
     reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate date`);
   }
-  const normalizeVenueEvidence = (value) => String(value || '')
-    .normalize('NFKC')
-    .replace(/\s+/g, ' ')
-    .toLowerCase()
-    .replace(/happy\s*hall/g, '해피홀')
-    .replace(/쏘셜클럽/g, '소셜클럽')
-    .replace(/사보이홀|사보이볼룸\s*\(\s*사당\s*\)|사보이/g, '사보이볼룸');
-  const normalizedVenue = normalizeVenueEvidence(venue);
-  if (normalizedVenue && !normalizeVenueEvidence(normalizedEvidence).includes(normalizedVenue)) {
+  if (venue && !venueEvidenceIncludes(normalizedEvidence, venue)) {
     reasons.push(`${deterministicDateScopedSocial ? 'stored source' : 'AI evidence'} does not explicitly contain the candidate venue`);
   }
   if (!deterministicGraduationSocial && djs.some((dj) => !normalizedEvidence.includes(dj.normalize('NFKC').replace(/\s+/g, ' ').toLowerCase()))) {
@@ -1655,7 +1723,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
       location_link: String(structured.location_link || ''),
       category: activity === 'social' ? 'social' : activity === 'class' ? 'class' : 'event',
       activity_type: activity,
-      event_type: structured.event_type || (activity === 'social' ? '소셜' : '파티/행사'),
+      event_type: structured.event_type || eventTypeFromEventData({ activity_type: activity }),
       genre: structured.genre || structured.dance_genre || '스윙댄스',
       ...(structured.group_id ? { group_id: structured.group_id } : {}),
       dance_scope: structured.dance_scope || 'swing',
@@ -1701,6 +1769,16 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     res.status(400).json({ error: '제외 처리된 후보는 등록할 수 없습니다.' });
     return;
   }
+  if (findAdminDeletedEvent(scrapedEvent, scrapedRows)) {
+    res.status(409).json({ error: '관리자가 삭제한 일정은 다시 등록할 수 없습니다.' });
+    return;
+  }
+  if (automaticRequest && (!isAutomaticCollectionActivityEnabled(rowActivityType(scrapedEvent))
+    || !isAutomaticCollectionActivityEnabled(scrapedEvent.structured_data?.activity_type)
+    || !isAutomaticCollectionActivityEnabled(scrapedEvent.exception_type))) {
+    res.status(422).json({ error: '소셜 자동등록은 중단되었습니다. 공식 공지를 직접 확인해 주세요.' });
+    return;
+  }
   const automaticValidation = automaticRequest
     ? validateAutomaticRegistrationCandidate(scrapedEvent)
     : null;
@@ -1716,6 +1794,10 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   if (!eventData.title || !date) {
     res.status(400).json({ error: '이벤트 제목과 날짜가 필요합니다.' });
     return;
+  }
+
+  if (automaticRequest) {
+    eventData = normalizeVenueStructuredData(eventData, await loadCafe24TableRows('venues'), { strict: true });
   }
 
   const sourceUrl = String(scrapedEvent.source_url || eventData.link1 || '');
@@ -1768,6 +1850,37 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     return;
   }
 
+  const holdSocialConflict = async (conflict) => {
+    const reviewRow = buildSocialConflictReviewRow(scrapedEvent, conflict);
+    if (body.dryRun !== true) await saveCafe24TableRow('scraped_events', reviewRow);
+    res.status(422).json({
+      error: '같은 날짜·장소의 소셜 충돌: 재검토가 필요합니다.',
+      reasons: reviewRow.auto_registration.reasons,
+      conflict,
+    });
+  };
+  const socialConflict = automaticRequest
+    ? findSocialOccurrenceConflict(registrationCandidate, existingRows, existing?.id)
+    : null;
+  if (socialConflict) {
+    await holdSocialConflict(socialConflict);
+    return;
+  }
+  const automaticSaveOptions = automaticRequest && isSocialDuplicateRow(registrationCandidate) ? {
+    beforeEventSave: async (connection) => {
+      // Recheck under the existing event mutation lock after image/network work.
+      // This prevents two concurrent collectors from both observing an empty slot.
+      const currentEvents = await loadCafe24TableRows('events', connection);
+      const conflict = findSocialOccurrenceConflict(registrationCandidate, currentEvents, existing?.id);
+      if (conflict) {
+        const error = new Error(conflict.reason);
+        error.code = 'SOCIAL_OCCURRENCE_CONFLICT';
+        error.conflict = conflict;
+        throw error;
+      }
+    },
+  } : {};
+
   let imageFields = normalizeImageFields(eventData, scrapedEvent.poster_url || eventData.image || eventData.image_full || null);
   const folder = `images/ingestor-events/${safeSegment(scrapedEventId)}`;
   const generatedImageFields = await localizeEventImageVariants(
@@ -1797,14 +1910,21 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   }
 
   if (existing) {
-    const repaired = await saveCafe24TableRow('events', {
-      ...existing,
-      ...eventData,
-      ...imageFields,
-      ...(automaticRequest ? { time: null } : {}),
-      link1: existing.link1 || sourceUrl,
-      updated_at: new Date().toISOString(),
-    });
+    let repaired;
+    try {
+      repaired = await saveCafe24TableRow('events', {
+        ...existing,
+        ...eventData,
+        ...imageFields,
+        ...(automaticRequest ? { time: null } : {}),
+        link1: existing.link1 || sourceUrl,
+        updated_at: new Date().toISOString(),
+      }, [], automaticSaveOptions);
+    } catch (error) {
+      if (error.code !== 'SOCIAL_OCCURRENCE_CONFLICT') throw error;
+      await holdSocialConflict(error.conflict);
+      return;
+    }
     const replacedRegularSocials = findGeneratedRegularSocialReplacements(
       existingRows,
       { ...repaired, ...eventData },
@@ -1850,7 +1970,14 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     created_at: eventData.created_at || new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const inserted = await saveCafe24TableRow('events', finalPayload);
+  let inserted;
+  try {
+    inserted = await saveCafe24TableRow('events', finalPayload, [], automaticSaveOptions);
+  } catch (error) {
+    if (error.code !== 'SOCIAL_OCCURRENCE_CONFLICT') throw error;
+    await holdSocialConflict(error.conflict);
+    return;
+  }
   await enqueueNewEventNotification(inserted);
   const replacedRegularSocials = findGeneratedRegularSocialReplacements(existingRows, inserted, scrapedEvent);
   if (replacedRegularSocials.length) {
@@ -1907,8 +2034,12 @@ export async function cafe24DeleteEventFunction(req, res) {
     return;
   }
 
+  if (user?.is_admin) {
+    await deleteEventsAsAdmin([target], user);
+  } else {
+    await deleteCafe24TableRows('events', [target]);
+  }
   const imageCleanup = await removeEventUploads(target);
-  await deleteCafe24TableRows('events', [target]);
   res.json({
     success: true,
     deletedImages: imageCleanup.count,
