@@ -12,12 +12,14 @@ import {
   getCalendarTodayDateKey,
 } from "../../../utils/calendarEventVisibility";
 import {
+  CALENDAR_SOCIAL_MIN_FONT_SIZE,
+  CALENDAR_SPAN_TITLE_FONT_SIZE,
   getCalendarLayoutCssVars,
   getCalendarLayoutMetrics,
 } from "../utils/calendarLayoutMetrics";
 import {
+  cleanCalendarDisplayText,
   getCalendarSocialDisplayText,
-  isCalendarRegularSocialGuide,
   isCalendarClassLikeCategory,
   isCalendarSocialLikeEvent,
   normalizeCalendarEventKindPart,
@@ -164,6 +166,29 @@ const getCalendarEventToneClass = (event: AppEvent) => {
         : 'calendar-event-tone-amber';
 };
 
+const estimateCalendarSocialTextUnits = (value: string) => (
+  Array.from(cleanCalendarDisplayText(value)).reduce((sum, char) => {
+    if (/\s/.test(char)) return sum + 0.32;
+    if (/[A-Za-z0-9]/.test(char)) return sum + 0.56;
+    if (/[()[\]{}.,:;|/\\\-_'"]/u.test(char)) return sum + 0.38;
+    return sum + 1;
+  }, 0)
+);
+
+const getCalendarSocialFitFontSize = (value: string, maxSize: number, minSize: number) => {
+  const units = estimateCalendarSocialTextUnits(value);
+  if (units <= 0) return maxSize;
+
+  const targetWidth = 48;
+  const fittedSize = targetWidth / units;
+  return Math.max(minSize, Math.min(maxSize, fittedSize));
+};
+
+const getCalendarSocialTextStyle = (locationText: string, djText: string) => ({
+  '--calendar-social-place-font-size': `${getCalendarSocialFitFontSize(locationText, CALENDAR_SPAN_TITLE_FONT_SIZE, CALENDAR_SOCIAL_MIN_FONT_SIZE).toFixed(2)}px`,
+  '--calendar-social-dj-font-size': `${getCalendarSocialFitFontSize(djText, CALENDAR_SPAN_TITLE_FONT_SIZE, CALENDAR_SOCIAL_MIN_FONT_SIZE).toFixed(2)}px`,
+} as React.CSSProperties);
+
 interface FullEventCalendarProps {
   currentMonth: Date;
   selectedDate: Date | null;
@@ -257,7 +282,9 @@ const CalendarCell = memo(({
     const toneClass = getCalendarEventToneClass(event);
     const isLessonEvent = isCalendarClassLikeCategory(event.category);
     const socialDjDisplayText = isSocialEvent ? getCalendarSocialDisplayText(event) : "";
-    const isRegularGuide = isSocialEvent && isCalendarRegularSocialGuide(event);
+    const socialTextStyle = isSocialEvent
+      ? getCalendarSocialTextStyle(locationText || "장소 미정", socialDjDisplayText)
+      : undefined;
 
     const eStart = (event.start_date || event.date || '').substring(0, 10);
     const eEnd = (event.end_date || event.date || '').substring(0, 10);
@@ -268,7 +295,7 @@ const CalendarCell = memo(({
     return (
       <div
         key={event.id}
-        className={`calendar-fullscreen-event-card ${toneClass} ${isSocialEvent ? 'calendar-social-text-card' : ''} ${isRegularGuide ? 'is-regular-guide' : ''} ${socialDjDisplayText === '휴무' ? 'is-social-closed' : ''} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
+        className={`calendar-fullscreen-event-card ${toneClass} ${isSocialEvent ? 'calendar-social-text-card' : ''} ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
         data-event-id={event.id}
         role="button"
         draggable={false}
@@ -289,6 +316,7 @@ const CalendarCell = memo(({
           <>
             <div
               className={`calendar-social-text-card-body ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}
+              style={socialTextStyle}
             >
               <div className="calendar-social-place">{locationText || "장소 미정"}</div>
               <div className="calendar-social-dj">
