@@ -140,16 +140,7 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
         primaryEvents: events,
         maxItems: Math.min(maxItems, NEB_MAX_ITEMS),
     }), [events, maxItems]);
-    const [activeIndex, setActiveIndex] = useState(0);
     const displayEventKey = useMemo(() => displayEvents.map((event) => event.id).join("|"), [displayEvents]);
-    useEffect(() => {
-        if (displayEvents.length === 0) {
-            setActiveIndex(0);
-            return;
-        }
-        setActiveIndex(0);
-    }, [displayEventKey, danceScope, displayEvents.length]);
-    const safeActiveIndex = displayEvents.length > 0 ? activeIndex % displayEvents.length : 0;
     const shouldShowScopeStrip = visibleDanceScopeOptions.length > 1;
 
     useEffect(() => {
@@ -189,13 +180,12 @@ const HomeNewEventsDesktopSplit: React.FC<HomeNewEventsDesktopSplitProps> = ({
             <div className={`home-neb-desktop-grid ${todaySchedules.length > 0 ? "" : "home-neb-desktop-grid--single"}`}>
                 <div className="home-neb-hero-pane">
                     <NewEventsBanner
+                        key={`${danceScope}:${displayEventKey}`}
                         events={displayEvents}
                         danceScope={danceScope}
                         onEventClick={onEventClick}
                         defaultThumbnailClass={defaultThumbnailClass}
                         defaultThumbnailEvent={defaultThumbnailEvent}
-                        currentIndex={safeActiveIndex}
-                        onCurrentIndexChange={setActiveIndex}
                         todaySchedules={todaySchedules}
                         benefitEventUnreadCount={benefitEventUnreadCount}
                         onBenefitEventsOpen={onBenefitEventsOpen}

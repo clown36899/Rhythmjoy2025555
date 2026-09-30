@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -6,6 +6,7 @@ import { ModalProvider } from '../../../contexts/ModalContext';
 import { requestGoogleTranslateRefresh } from '../../../utils/googleTranslateRefresh';
 import type { Event } from '../utils/eventListUtils';
 import { NewEventsBanner } from './NewEventsBanner';
+import { EventPreviewSection } from './EventList/components/EventPreviewSection';
 
 vi.mock('../../../utils/googleTranslateRefresh', () => ({
     requestGoogleTranslateRefresh: vi.fn(),
@@ -43,6 +44,67 @@ describe('NewEventsBanner translation refresh', () => {
 
     afterEach(() => {
         randomSpy.mockRestore();
+        vi.useRealTimers();
+    });
+
+    it('starts the home ad randomly after loading and preserves selection on ordinary refresh', () => {
+        randomSpy.mockReturnValue(0.75);
+        const home = (ads: Event[], scope = 'swing') => (
+            <MemoryRouter><ModalProvider>
+                <EventPreviewSection
+                    isSocialSchedulesLoading={false}
+                    todayCalendarSchedules={[]} todaySocialSchedules={[]} thisWeekSocialSchedules={[]}
+                    refreshSocialSchedules={async () => {}}
+                    futureEvents={[]} regularClasses={[]} clubLessons={[]} clubRegularClasses={[]}
+                    newlyRegisteredEvents={ads} homeAdMaxItems={15}
+                    benefitEventUnreadCount={0} onBenefitEventsOpen={vi.fn()}
+                    favoriteEventsList={[]} onEventClick={vi.fn()} highlightEvent={null}
+                    defaultThumbnailClass="/class.png" defaultThumbnailEvent="/event.png"
+                    effectiveFavoriteIds={new Set()} handleToggleFavorite={vi.fn()}
+                    searchParams={new URLSearchParams({ dance: scope })} setSearchParams={vi.fn()}
+                />
+            </ModalProvider></MemoryRouter>
+        );
+        const { container, rerender, unmount } = render(home([]));
+        expect(container.querySelector('.NEB-slide.is-active')).toBeNull();
+        rerender(home(events));
+        expect(container.querySelector('.NEB-slide.is-active')).toHaveTextContent('두번째 광고');
+
+        randomSpy.mockReturnValue(0);
+        rerender(home(events.map(event => ({ ...event }))));
+        expect(container.querySelector('.NEB-slide.is-active')).toHaveTextContent('두번째 광고');
+        rerender(home(events, 'salsa'));
+        expect(container.querySelector('.NEB-slide.is-active')).toHaveTextContent('첫번째 광고');
+        rerender(home([events[0]], 'salsa'));
+        expect(container.querySelectorAll('.NEB-slide')).toHaveLength(1);
+        expect(container.querySelector('.NEB-slide.is-active')).toHaveTextContent('첫번째 광고');
+
+        unmount();
+        const nextVisit = render(home(events));
+        expect(nextVisit.container.querySelector('.NEB-slide.is-active')).toHaveTextContent('첫번째 광고');
+    });
+
+    it('continues auto rotation from the random start and from a manual selection', () => {
+        vi.useFakeTimers();
+        randomSpy.mockReturnValue(0.5);
+        const ads = [...events, { ...events[1], id: 3, title: '세번째 광고' }];
+        const { container, getByLabelText } = render(
+            <MemoryRouter><ModalProvider>
+                <NewEventsBanner events={ads} onEventClick={vi.fn()}
+                    defaultThumbnailClass="/class.png" defaultThumbnailEvent="/event.png" />
+            </ModalProvider></MemoryRouter>
+        );
+        const active = () => container.querySelector('.NEB-slide.is-active');
+        expect(active()).toHaveTextContent('두번째 광고');
+        act(() => vi.advanceTimersByTime(8000));
+        expect(active()).toHaveTextContent('세번째 광고');
+        act(() => vi.advanceTimersByTime(8000));
+        expect(active()).toHaveTextContent('첫번째 광고');
+        fireEvent.click(getByLabelText('3번째 이벤트 보기'));
+        act(() => vi.advanceTimersByTime(8000));
+        expect(active()).toHaveTextContent('세번째 광고');
+        act(() => vi.advanceTimersByTime(8000));
+        expect(active()).toHaveTextContent('첫번째 광고');
     });
 
     it('uses title and safe description for missing or failed posters across ad categories', () => {

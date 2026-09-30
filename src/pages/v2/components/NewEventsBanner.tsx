@@ -436,7 +436,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     const manualPauseTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const slideMotionTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const oneDayRecruitPressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-    const autoRotationStepRef = React.useRef(0);
     const todayScheduleListRef = React.useRef<HTMLDivElement | null>(null);
     const pendingEdgeToneUrlsRef = React.useRef<Set<string>>(new Set());
     const pendingSocialImageKindUrlsRef = React.useRef<Set<string>>(new Set());
@@ -603,22 +602,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         setTouchEnd(null);
     };
 
-    const eventRotationKey = useMemo(
-        () => events.map((event) => event.id).join('|'),
-        [events],
-    );
-    useEffect(() => {
-        autoRotationStepRef.current = 0;
-    }, [eventRotationKey]);
-
     // 자동 슬라이드 (8초마다)
     useEffect(() => {
         if (events.length <= 1 || isPaused || isManualPaused) return;
 
         const interval = setInterval(() => {
-            autoRotationStepRef.current += 1;
             markSlideMotion('forward');
-            setCurrentIndex(getNextHomeAdAutoIndex(events, autoRotationStepRef.current));
+            setCurrentIndex((index) => getNextHomeAdAutoIndex(events, index + 1));
         }, 8000);
 
         return () => clearInterval(interval);
@@ -1579,10 +1569,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         <div className="neb-modal" onClick={e => e.stopPropagation()}>
                             <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
                             <div className="neb-modal-content">
-                                <p className="neb-highlight">오늘 일정 중 한 건이 진입할 때마다 먼저 선택됩니다.<br />이후 최근 등록 일정, 시작일이 가까운 일정 순으로 노출됩니다.</p>
-                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 최초 시작일 기준으로 최대 15개를 노출합니다. 현재·미래 후보가 10개 미만일 때만 지난 시작일 후보를 뒤쪽에 보충해 총 10개까지 채웁니다.</p>
-                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 정규강습은 현재·미래 후보 안에서 최후순위로 편성됩니다.</p>
-                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 보충된 지난 일정의 자동 전면 노출은 8회 중 1회로 제한됩니다.</p>
+                                <p className="neb-highlight">노출 대상으로 선정된 광고 중 한 건이 진입할 때마다 무작위로 먼저 선택됩니다.<br />이후 선택된 위치부터 순서대로 순환합니다.</p>
+                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 최초 시작일이 오늘 이후인 일정만 최대 15개까지 노출합니다. 지난 일정은 보충하지 않습니다.</p>
+                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 정규강습은 노출 후보 선정 시 최후순위로 편성됩니다.</p>
                                 <ul className="neb-modal-list">
                                     <li>자동 슬라이드: 8초마다 전환</li>
                                     <li>마우스 호버 시 일시정지</li>
