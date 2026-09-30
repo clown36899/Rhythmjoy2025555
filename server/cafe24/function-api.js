@@ -10,9 +10,11 @@ import {
   deleteCafe24TableRows,
   loadCafe24TableRows,
   saveCafe24TableRow,
+  requireLoggedInMutationUser,
 } from './generic-data-api.js';
 import { canManageEvent, userMatchesId } from './event-security.js';
 import { enqueueNewEventNotification } from './events-api.js';
+import { normalizeExternalImage } from './external-events-api.js';
 import { removeEventUploads as removeEventUploadFiles } from './upload-cleanup.js';
 import {
   collapseDateExpansionRows,
@@ -2223,9 +2225,13 @@ function logoFromUrl(url, sourceUrl = '') {
 }
 
 export async function cafe24OneDayRecruitLogo(req, res) {
-  await requireAdmin(req);
   const body = req.body || {};
   const action = body.action;
+  if (action === 'uploadLogo' || action === 'discoverAndSave') {
+    await requireLoggedInMutationUser(req);
+  } else {
+    await requireAdmin(req);
+  }
   const linkId = String(body.linkId || '').trim();
   if (!linkId) {
     res.status(400).json({ error: '유효하지 않은 원데이 링크 ID입니다.' });
@@ -2262,8 +2268,9 @@ export async function cafe24OneDayRecruitLogo(req, res) {
       return;
     }
     const { buffer } = decodeBase64Payload(body.imageBase64);
-    const filename = `${safeSegment(body.fileName || 'logo')}-${Date.now()}${extensionFrom(body.fileName, body.contentType)}`;
-    sourceUrl = await writeUploadFile(`images/oneday-recruit-logos/${safeSegment(linkId)}`, filename, buffer);
+    const image = await normalizeExternalImage(buffer);
+    const filename = `${safeSegment(body.fileName || 'logo')}-${Date.now()}.webp`;
+    sourceUrl = await writeUploadFile(`images/oneday-recruit-logos/${safeSegment(linkId)}`, filename, image);
   } else if (action === 'discoverAndSave') {
     const discovered = await discoverImageUrl(String(body.linkUrl || link.url || '')).catch(() => '');
     sourceUrl = discovered

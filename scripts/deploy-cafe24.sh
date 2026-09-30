@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -n "${1:-}" && "${1}" != "--analytics-only" && "${1}" != "--frontend-only" ]]; then
-  echo "Usage: $0 [--analytics-only|--frontend-only]" >&2
+if [[ -n "${1:-}" && "${1}" != "--analytics-only" && "${1}" != "--frontend-only" && "${1}" != "--server-patch" ]]; then
+  echo "Usage: $0 [--analytics-only|--frontend-only|--server-patch <base-ref>]" >&2
   exit 2
 fi
 
@@ -72,6 +72,81 @@ if [[ "${REMOTE_HOSTNAME}" != "${EXPECTED_HOSTNAME}" ]]; then
   echo "Refusing to deploy to unexpected Cafe24 host '${REMOTE_HOSTNAME}'." >&2
   echo "Expected host: '${EXPECTED_HOSTNAME}'." >&2
   exit 2
+fi
+
+# Patch existing backend modules against the deployed files, preserving changes
+# shipped independently of this checkout. New modules/dependencies need a full release.
+if [[ "${1:-}" == "--server-patch" ]]; then
+  patch_base="${2:?A base Git ref is required for --server-patch}"
+  git merge-base --is-ancestor "${patch_base}" HEAD
+  patch_files=()
+  while IFS= read -r file; do
+    [[ -n "${file}" ]] || continue
+    [[ "${file}" =~ ^server/cafe24/[a-zA-Z0-9_-]+\.js$ ]] || { echo "Unsupported backend patch path: ${file}" >&2; exit 2; }
+    git cat-file -e "${patch_base}:${file}"
+    test -f "${file}"
+    patch_files+=("${file}")
+  done < <(git diff --name-only "${patch_base}" HEAD -- 'server/cafe24/*.js' ':!server/cafe24/*.test.js')
+  [[ "${#patch_files[@]}" -gt 0 ]] || { echo 'No existing backend modules to patch.' >&2; exit 2; }
+  patch_tmp="$(mktemp -d)"
+  trap 'rm -rf "${patch_tmp}"' EXIT
+  mkdir -p "${patch_tmp}/baseline/dist" "${patch_tmp}/staged"
+  for file in "${patch_files[@]}"; do
+    mkdir -p "${patch_tmp}/baseline/$(dirname "${file}")"
+    rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/${file}" "${patch_tmp}/baseline/${file}"
+  done
+  rsync -az -e "${RSYNC_SSH}" "${TARGET}:${APP_DIR}/dist/version.json" "${patch_tmp}/baseline/dist/version.json"
+  cp -R "${patch_tmp}/baseline/." "${patch_tmp}/staged/"
+  git diff "${patch_base}" HEAD -- "${patch_files[@]}" > "${patch_tmp}/changes.patch"
+  patch --batch --forward --fuzz=0 -p1 -d "${patch_tmp}/staged" < "${patch_tmp}/changes.patch"
+  for file in "${patch_files[@]}"; do node --check "${patch_tmp}/staged/${file}"; done
+  patch_commit="$(git rev-parse HEAD)"
+  node --input-type=module - "${patch_tmp}/staged/dist/version.json" "${patch_commit}" <<'NODE'
+import fs from 'node:fs';
+const [file, commit] = process.argv.slice(2);
+const version = JSON.parse(fs.readFileSync(file, 'utf8'));
+version.serverPatchCommit = commit;
+version.serverPatchDate = new Date().toISOString();
+fs.writeFileSync(file, JSON.stringify(version));
+NODE
+  printf '%s\n' "${patch_files[@]}" dist/version.json > "${patch_tmp}/files.txt"
+  (cd "${patch_tmp}/baseline" && shasum -a 256 "${patch_files[@]}" dist/version.json) > "${patch_tmp}/baseline.sha256"
+  (cd "${patch_tmp}/staged" && shasum -a 256 "${patch_files[@]}" dist/version.json) > "${patch_tmp}/staged.sha256"
+  patch_remote="${APP_DIR}/.deploy-server-${patch_commit}-$(date +%s)"
+  ssh "${SSH_ARGS[@]}" "${TARGET}" "mkdir -p '${patch_remote}/staged'"
+  rsync -az -e "${RSYNC_SSH}" "${patch_tmp}/staged/" "${TARGET}:${patch_remote}/staged/"
+  rsync -az -e "${RSYNC_SSH}" "${patch_tmp}/files.txt" "${patch_tmp}/baseline.sha256" "${patch_tmp}/staged.sha256" "${TARGET}:${patch_remote}/"
+  ssh "${SSH_ARGS[@]}" "${TARGET}" "set -e
+    cd '${APP_DIR}'
+    sha256sum -c '${patch_remote}/baseline.sha256'
+    (cd '${patch_remote}/staged' && sha256sum -c '../staged.sha256')
+    while IFS= read -r file; do
+      mkdir -p \"${patch_remote}/previous/\$(dirname \"\$file\")\"
+      cp -p \"\$file\" \"${patch_remote}/previous/\$file\"
+      case \"\$file\" in *.js) '${NODE_BIN_DIR}/node' --check \"${patch_remote}/staged/\$file\";; esac
+    done < '${patch_remote}/files.txt'
+    rollback_server_patch() {
+      code=\$?
+      if [ \"\$code\" -ne 0 ]; then
+        while IFS= read -r file; do cp -p \"${patch_remote}/previous/\$file\" \"\$file\"; done < '${patch_remote}/files.txt'
+        systemctl restart '${SERVICE}'
+      fi
+      return \"\$code\"
+    }
+    trap rollback_server_patch EXIT
+    while IFS= read -r file; do
+      [ \"\$file\" = dist/version.json ] || cp -p \"${patch_remote}/staged/\$file\" \"\$file\"
+    done < '${patch_remote}/files.txt'
+    systemctl restart '${SERVICE}'
+    i=0
+    until curl -fsS '${HEALTH_URL}' >/dev/null; do i=\$((i+1)); test \"\$i\" -lt 30; sleep 1; done
+    mv '${patch_remote}/staged/dist/version.json' dist/version.json
+    sha256sum -c '${patch_remote}/staged.sha256'
+    systemctl is-active '${SERVICE}'
+    cat dist/version.json
+    trap - EXIT"
+  echo "Backend patch deployment complete: ${patch_commit}; backup: ${patch_remote}/previous"
+  exit 0
 fi
 
 # A scoped analytics release reuses the published application's dependencies and

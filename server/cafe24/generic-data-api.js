@@ -544,7 +544,7 @@ async function filterSnsMediaPlaylistsForViewer(rows = [], user, body = {}) {
   return scopedRows.filter((row) => visibleIds.has(String(row.id || '')));
 }
 
-async function requireLoggedInMutationUser(req) {
+export async function requireLoggedInMutationUser(req) {
   const user = await getCurrentUser(req);
   if (!user) throw httpError('로그인이 필요합니다.', 401);
   return user;
@@ -587,6 +587,29 @@ async function requireBoardUserMutationAccess(req, action = 'query', body = {}) 
 
 async function requireGenericAccess(req, table, action = 'query', body = {}) {
   const isMutation = ['insert', 'update', 'upsert', 'delete'].includes(action);
+
+  // The directory is collaboratively maintained by signed-in members. Keep
+  // replacement/upsert and deletion behind the existing administrator gate.
+  if (table === 'swing_oneday_recruit_links' && ['insert', 'update'].includes(action)) {
+    const user = await requireLoggedInMutationUser(req);
+    if (user.is_admin) return;
+    const fields = new Set(['community', 'venue', 'region', 'area', 'url', 'lat', 'lng', 'dance_scope', 'benefit_eligible', 'benefit_kind']);
+    if (action === 'insert') ['id', 'sort_order', 'is_active'].forEach((field) => fields.add(field));
+    for (const value of getBodyValues(body)) {
+      if (Object.keys(value).some((field) => !fields.has(field)) || (value.is_active !== undefined && value.is_active !== true)) {
+        throw httpError('관리자만 수정할 수 있는 필드입니다.', 403);
+      }
+      if (value.url !== undefined) {
+        let url;
+        try { url = new URL(value.url); } catch { /* rejected below */ }
+        if (!url || !['http:', 'https:'].includes(url.protocol)) throw httpError('유효한 http 또는 https 링크가 필요합니다.', 400);
+      }
+    }
+    if (action === 'update' && (!body.filters?.some((filter) => filter.field === 'id' && filter.op === 'eq' && filter.value) || body.orFilters?.length)) {
+      throw httpError('수정할 원데이 링크 ID가 필요합니다.', 400);
+    }
+    return;
+  }
 
   if (anonymousContentTables.has(table) && action === 'insert') return;
   if (anonymousContentTables.has(table) && ['update', 'upsert', 'delete'].includes(action)) {
@@ -1233,7 +1256,7 @@ async function loadRowsForQuery(table, body = {}) {
   return loadRows(table);
 }
 
-async function saveGenericRow(table, row, conflictKeys = []) {
+async function saveGenericRow(table, row, conflictKeys = [], { insertOnly = false } = {}) {
   assertTableName(table);
   invalidateGenericRowsCache(table);
   const { row: nextRow, recordId } = ensureId(row, conflictKeys, table);
@@ -1245,11 +1268,11 @@ async function saveGenericRow(table, row, conflictKeys = []) {
   await pool.execute(
     `INSERT INTO generic_records (table_name, record_id, data_json, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
+     ${insertOnly ? '' : `ON DUPLICATE KEY UPDATE
        data_json = VALUES(data_json),
        created_at = VALUES(created_at),
        updated_at = VALUES(updated_at),
-       imported_at = CURRENT_TIMESTAMP`,
+       imported_at = CURRENT_TIMESTAMP`}`,
     [
       table,
       recordId,
@@ -1257,7 +1280,10 @@ async function saveGenericRow(table, row, conflictKeys = []) {
       toDateTimeOrNull(nextRow.created_at),
       toDateTimeOrNull(nextRow.updated_at),
     ],
-  );
+  ).catch((error) => {
+    if (insertOnly && error.code === 'ER_DUP_ENTRY') throw httpError('이미 등록된 원데이 링크입니다. 수정 기능을 이용해주세요.', 409);
+    throw error;
+  });
 
   return nextRow;
 }
@@ -1353,7 +1379,7 @@ async function saveEventRowWithConnection(row, pool) {
 
 async function saveRow(table, row, conflictKeys = [], options = {}) {
   if (table === 'events') return saveEventRow(row, options);
-  return saveGenericRow(table, row, conflictKeys);
+  return saveGenericRow(table, row, conflictKeys, options);
 }
 
 async function deleteRows(table, rows) {
@@ -3222,7 +3248,9 @@ export async function insertRecords(req, res) {
     }
   }
   const data = [];
-  for (const value of values) data.push(await saveRow(table, value, conflictKeys));
+  for (const value of values) data.push(await saveRow(table, value, conflictKeys, {
+    insertOnly: table === 'swing_oneday_recruit_links' && !user?.is_admin,
+  }));
   await recomputeCountSideEffects(table, data);
   const responseData = await eventMutationResponseData(table, data, user, req.body?.select || '');
   res.status(201).json(responsePayload({ data: req.body?.single || req.body?.maybeSingle ? responseData[0] || null : responseData, status: 201 }));
