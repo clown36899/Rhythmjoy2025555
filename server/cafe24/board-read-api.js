@@ -22,7 +22,8 @@ export async function listUnreadFreeBoardPosts(req, res) {
     return;
   }
 
-  const posts = (await loadCafe24TableRows('board_posts')).filter(post => post.category === 'free' && !isHiddenBoardActivity(post.is_hidden));
+  const canViewPost = post => canViewHiddenBoardPost(post, user);
+  const posts = (await loadCafe24TableRows('board_posts')).filter(post => post.category === 'free' && canViewPost(post));
   if (posts.length === 0) {
     res.json({ count: 0, unreadPostIds: [], unreadCommentCounts: {} });
     return;
@@ -40,7 +41,7 @@ export async function listUnreadFreeBoardPosts(req, res) {
   const readIds = new Set(readRows.map((row) => String(row.post_id)));
   const comments = await loadCafe24TableRows('board_comments');
   const readCommentIds = new Set(readRows.flatMap(row => savedCommentIds(row, comments)));
-  res.json(getFreeBoardUnreadActivity(posts, comments, readIds, readCommentIds, [...userIdentitySet(user)]));
+  res.json(getFreeBoardUnreadActivity(posts, comments, readIds, readCommentIds, [...userIdentitySet(user)], Date.now(), canViewPost));
 }
 
 export async function markFreeBoardPostRead(req, res) {

@@ -6,6 +6,16 @@ import StandardPostList from './StandardPostList';
 afterEach(() => cleanup());
 
 describe('StandardPostList free-board heading', () => {
+    it('shows NEW for an unread private post visible to an administrator and removes it after reading', () => {
+        const post = { id: 'private-post', title: '비공개 문의', content: '', category: 'free', is_hidden: true,
+            user_id: 'other-member', author_name: '회원', created_at: new Date().toISOString(), views: 0 } as any;
+        const props = { posts: [post], onPostClick: vi.fn(), category: 'free', isAdmin: true };
+        const { container, rerender } = render(<StandardPostList {...props} unreadPostIds={new Set(['private-post'])} />);
+        expect(container.querySelectorAll('[aria-label="아직 읽지 않은 새 글"]')).toHaveLength(2);
+        rerender(<StandardPostList {...props} unreadPostIds={new Set()} />);
+        expect(container.querySelector('[aria-label="아직 읽지 않은 새 글"]')).toBeNull();
+    });
+
     it('renders the prefix as a compact row above the mobile title', () => {
         const { container } = render(
             <StandardPostList

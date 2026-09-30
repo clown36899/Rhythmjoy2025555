@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
     },
     userLayout: null as { pinnedMenuIds: string[]; menuOrderIds: string[] } | null,
     markBenefitEventsSeen: vi.fn(),
+    freeBoardUnreadCount: 0,
     translate: (value: string) => value,
     modalContext: {
         openModal: vi.fn(),
@@ -68,7 +69,7 @@ vi.mock('../../../hooks/useTempoToolVisibilitySettings', () => ({
 }));
 
 vi.mock('../../../hooks/useFreeBoardUnreadCount', () => ({
-    useFreeBoardUnreadCount: () => 0,
+    useFreeBoardUnreadCount: () => mocks.freeBoardUnreadCount,
 }));
 
 vi.mock('../../../utils/analyticsEvents', () => ({
@@ -85,6 +86,19 @@ describe('HomeV2MenuPanel configured quick items', () => {
         mocks.defaultLayout.menuOrderIds = ['home', 'calendar', 'benefits', 'board'];
         mocks.userLayout = null;
         mocks.markBenefitEventsSeen.mockClear();
+        mocks.freeBoardUnreadCount = 0;
+    });
+
+    it('shows a readable private post in the board badge and clears it when the read count changes', async () => {
+        mocks.auth = { user: { id: 'admin-reader' }, isAdmin: true };
+        mocks.defaultLayout.pinnedMenuIds = ['home', 'board'];
+        mocks.freeBoardUnreadCount = 1;
+        const { rerender } = render(<MemoryRouter><HomeV2MenuPanel /></MemoryRouter>);
+        const boardButton = await screen.findByRole('button', { name: /새 글·댓글 1개/ });
+        expect(boardButton.querySelector('.home-v2-menu-unread-badge')).toHaveTextContent('1');
+        mocks.freeBoardUnreadCount = 0;
+        rerender(<MemoryRouter><HomeV2MenuPanel /></MemoryRouter>);
+        expect(boardButton.querySelector('.home-v2-menu-unread-badge')).toBeNull();
     });
 
     it('does not force an unpinned benefit item into the compact home menu', async () => {

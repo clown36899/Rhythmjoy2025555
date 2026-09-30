@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getFreeBoardUnreadActivity } from '../../src/utils/freeBoardActivity.mjs';
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(), loadCafe24TableRows: vi.fn(), execute: vi.fn(),
@@ -36,6 +37,67 @@ describe('free board per-user read state', () => {
     const res = response();
     await listUnreadFreeBoardPosts({}, res);
     expect(res.json).toHaveBeenCalledWith({ count: 1, unreadPostIds: ['post-unread'], unreadCommentCounts: {} });
+  });
+
+  it.each([true, 1, '1', 'true'])('counts an unread private post for an administrator (%s)', async isHidden => {
+    mocks.getCurrentUser.mockResolvedValue({ id: 'reader-a', is_admin: true });
+    posts = [{ ...posts[3], is_hidden: isHidden }];
+    const { listUnreadFreeBoardPosts } = await import('./board-read-api.js');
+    const res = response();
+    await listUnreadFreeBoardPosts({}, res);
+    expect(res.json).toHaveBeenCalledWith({ count: 1, unreadPostIds: ['post-hidden'], unreadCommentCounts: {} });
+    expect(mocks.getConnection).not.toHaveBeenCalled();
+    expect(posts[0].is_hidden).toBe(isHidden);
+  });
+
+  it('removes a private post badge only after the administrator reads its detail', async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: 'reader-a', is_admin: true });
+    posts = [posts[3]];
+    const { listUnreadFreeBoardPosts, markFreeBoardPostRead } = await import('./board-read-api.js');
+    await markFreeBoardPostRead({ body: { postId: 'post-hidden' } }, response());
+    expect(mocks.txExecute).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO user_board_post_reads'), ['reader-a', 'post-hidden']);
+    mocks.execute.mockResolvedValue([[{ post_id: 'post-hidden', read_comment_ids: '[]' }]]);
+    const res = response();
+    await listUnreadFreeBoardPosts({}, res);
+    expect(res.json).toHaveBeenCalledWith({ count: 0, unreadPostIds: [], unreadCommentCounts: {} });
+  });
+
+  it.each([false, true])('counts only unread public replies on a readable private parent (legacy owner: %s)', async legacyOwner => {
+    mocks.getCurrentUser.mockResolvedValue(legacyOwner
+      ? { id: 'reader-a', legacy_user_ids: ['author-c'] }
+      : { id: 'reader-a', is_admin: true });
+    posts = [{ ...posts[3], created_at: '2020-01-01' }];
+    comments = [
+      { id: 'reply', post_id: 'post-hidden', user_id: 'someone-else', created_at: recent() },
+      { id: 'seen', post_id: 'post-hidden', user_id: 'someone-else', created_at: recent() },
+      { id: 'own', post_id: 'post-hidden', user_id: 'reader-a', created_at: recent() },
+      { id: 'hidden', post_id: 'post-hidden', is_hidden: true, created_at: recent() },
+    ];
+    mocks.execute.mockResolvedValue([[{ post_id: 'post-hidden', read_comment_ids: '["seen"]' }]]);
+    const { listUnreadFreeBoardPosts } = await import('./board-read-api.js');
+    const res = response();
+    await listUnreadFreeBoardPosts({}, res);
+    expect(res.json).toHaveBeenCalledWith({ count: 1, unreadPostIds: [], unreadCommentCounts: { 'post-hidden': 1 } });
+  });
+
+  it('keeps private posts and their replies out of unauthorized member and guest counts', async () => {
+    posts = [posts[3]];
+    comments = [{ id: 'reply', post_id: 'post-hidden', created_at: recent() }];
+    const { listUnreadFreeBoardPosts } = await import('./board-read-api.js');
+    const res = response();
+    await listUnreadFreeBoardPosts({}, res);
+    expect(res.json).toHaveBeenCalledWith({ count: 0, unreadPostIds: [], unreadCommentCounts: {} });
+    expect(mocks.execute).not.toHaveBeenCalled();
+    expect(getFreeBoardUnreadActivity(posts, comments, new Set(), new Set())).toEqual({ count: 0, unreadPostIds: [], unreadCommentCounts: {} });
+  });
+
+  it('still excludes an administrator’s own private post and expired private posts', async () => {
+    mocks.getCurrentUser.mockResolvedValue({ id: 'reader-a', is_admin: true });
+    posts = [{ ...posts[2], is_hidden: true }, { ...posts[3], created_at: '2020-01-01' }];
+    const { listUnreadFreeBoardPosts } = await import('./board-read-api.js');
+    const res = response();
+    await listUnreadFreeBoardPosts({}, res);
+    expect(res.json).toHaveBeenCalledWith({ count: 0, unreadPostIds: [], unreadCommentCounts: {} });
   });
 
   it('marks a post read only for the signed-in user without consuming unseen comments', async () => {

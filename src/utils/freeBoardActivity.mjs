@@ -1,4 +1,4 @@
-// Shared by the member API and guest UI so both count the same public activity.
+// Shared counting rules; the member API supplies its existing visibility policy.
 export const FREE_BOARD_RECENT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 export function isHiddenBoardActivity(value) {
@@ -14,14 +14,14 @@ export function parseReadCommentIds(value) {
     }
 }
 
-export function getFreeBoardUnreadActivity(posts, comments, readPostIds, readCommentIds, userIds = [], now = Date.now()) {
+export function getFreeBoardUnreadActivity(posts, comments, readPostIds, readCommentIds, userIds = [], now = Date.now(), canViewPost = post => !isHiddenBoardActivity(post.is_hidden)) {
     const ownIds = new Set(userIds.map(String));
     const cutoff = now - FREE_BOARD_RECENT_WINDOW_MS;
     const isRecent = row => {
         const created = Date.parse(row.created_at || '');
         return Number.isFinite(created) && created >= cutoff && created <= now;
     };
-    const visiblePosts = posts.filter(post => post.category === 'free' && !isHiddenBoardActivity(post.is_hidden));
+    const visiblePosts = posts.filter(post => post.category === 'free' && canViewPost(post));
     const visiblePostIds = new Set(visiblePosts.map(post => String(post.id)));
     const unreadPostIds = visiblePosts.filter(post => isRecent(post)
         && !ownIds.has(String(post.user_id)) && !readPostIds.has(String(post.id))).map(post => String(post.id));

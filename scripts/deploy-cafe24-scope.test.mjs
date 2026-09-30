@@ -9,7 +9,7 @@ import { spawnSync } from 'node:child_process';
 async function runRelease(mode, dirty = false, conflictingBaseline = false) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'cafe24-release-scope-'));
   try {
-    for (const dir of ['scripts', 'dist/assets', 'bin', 'server/cafe24']) await fs.mkdir(path.join(root, dir), { recursive: true });
+    for (const dir of ['scripts', 'dist/assets', 'bin', 'server/cafe24', 'src/utils']) await fs.mkdir(path.join(root, dir), { recursive: true });
     await fs.copyFile(new URL('./deploy-cafe24.sh', import.meta.url), path.join(root, 'scripts/deploy-cafe24.sh'));
     await fs.writeFile(path.join(root, 'dist/index.html'), '<html>release</html>');
     await fs.writeFile(path.join(root, 'dist/service-worker.js'), '// worker');
@@ -17,15 +17,18 @@ async function runRelease(mode, dirty = false, conflictingBaseline = false) {
     await fs.writeFile(path.join(root, 'package-lock.json'), '{}');
     await fs.writeFile(path.join(root, 'server/cafe24/example.js'), 'export const value = 2;\n');
     await fs.writeFile(path.join(root, 'server.patch'), 'diff --git a/server/cafe24/example.js b/server/cafe24/example.js\n--- a/server/cafe24/example.js\n+++ b/server/cafe24/example.js\n@@ -1 +1 @@\n-export const value = 1;\n+export const value = 2;\n');
+    await fs.writeFile(path.join(root, 'src/utils/example.mjs'), 'export const shared = 2;\n');
+    await fs.appendFile(path.join(root, 'server.patch'), 'diff --git a/src/utils/example.mjs b/src/utils/example.mjs\n--- a/src/utils/example.mjs\n+++ b/src/utils/example.mjs\n@@ -1 +1 @@\n-export const shared = 1;\n+export const shared = 2;\n');
     const commands = {
-      git: `case "$*" in\n 'status --porcelain --untracked-files=all') [ "$REVIEW_DIRTY" = 0 ] || echo ' M unrelated';;\n 'rev-parse --abbrev-ref --symbolic-full-name @{upstream}') echo origin/test;;\n 'diff --name-only base HEAD -- server/cafe24/*.js :!server/cafe24/*.test.js') echo server/cafe24/example.js;;\n 'diff base HEAD -- server/cafe24/example.js') cat server.patch;;\n 'rev-parse HEAD'|'rev-parse origin/test') echo verified-commit;;\n esac`,
+      git: `case "$*" in\n 'status --porcelain --untracked-files=all') [ "$REVIEW_DIRTY" = 0 ] || echo ' M unrelated';;\n 'rev-parse --abbrev-ref --symbolic-full-name @{upstream}') echo origin/test;;\n 'diff --name-only base HEAD -- server/cafe24/*.js src/utils/*.mjs :!**/*.test.js :!**/*.test.mjs') printf '%s\\n' server/cafe24/example.js src/utils/example.mjs;;\n 'diff base HEAD -- server/cafe24/example.js src/utils/example.mjs') cat server.patch;;\n 'rev-parse HEAD'|'rev-parse origin/test') echo verified-commit;;\n esac`,
       ssh: `printf 'SSH %s\\n' "$*" >> "$REVIEW_COMMAND_LOG"\n case "$*" in *' hostname') echo clown313python.cafe24.com;; esac`,
       rsync: `printf 'RSYNC %s\\n' "$*" >> "$REVIEW_COMMAND_LOG"
 for last; do :; done
 case "$*" in
  *':/opt/swingenjoy/server/cafe24/example.js '*) printf 'export const value = %s;\\n// independent production change\\n' "$REVIEW_BASELINE_VALUE" > "$last";;
+ *':/opt/swingenjoy/src/utils/example.mjs '*) printf 'export const shared = 1;\\n' > "$last";;
  *':/opt/swingenjoy/dist/version.json '*) cp dist/version.json "$last";;
- *'/staged/ '*':/opt/'*) for arg; do case "$arg" in */staged/) cat "$arg/server/cafe24/example.js" >> "$REVIEW_COMMAND_LOG";; esac; done;;
+ *'/staged/ '*':/opt/'*) for arg; do case "$arg" in */staged/) cat "$arg/server/cafe24/example.js" "$arg/src/utils/example.mjs" >> "$REVIEW_COMMAND_LOG";; esac; done;;
 esac`,
       npm: `printf 'NPM %s\\n' "$*" >> "$REVIEW_COMMAND_LOG"`,
     };
@@ -72,6 +75,7 @@ test('server patches preserve independent production changes and retain checks, 
   const result = await runRelease(['--server-patch', 'base']);
   assert.equal(result.status, 0, result.output);
   assert.match(result.commands, /export const value = 2;/);
+  assert.match(result.commands, /export const shared = 2;/);
   assert.match(result.commands, /independent production change/);
   assert.match(result.commands, /sha256sum -c .*baseline.sha256/);
   assert.match(result.commands, /rollback_server_patch/);
