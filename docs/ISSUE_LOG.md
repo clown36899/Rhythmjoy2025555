@@ -1,6 +1,6 @@
 ## 2026-09-30 — 메인 광고 첫 진입 무작위 선택 복원
 
-- 상태: 수정·회귀 검증 완료, 프런트 배포 예정.
+- 상태: 수정·회귀 검증·운영 배포 완료. 구현 e05928ee를 origin/codex/home-ad-random-start에 먼저 푸시한 뒤 npm run deploy:cafe24 -- --frontend-only 실행.
 - 증상 → 판정 → 부작용 → 결과: 기존 장르/날짜 필터·rankHomeAdEvents → selectHomeAdDisplayEvents의 작성자·장소 중복 제거와 최대 개수 → 상위 HomeNewEventsDesktopSplit이 currentIndex=0을 강제 → NewEventsBanner의 무작위 초기값이 무시돼 같은 광고가 첫 화면에 반복 노출. DB/작업 큐/외부 쓰기는 없는 화면 상태 문제다.
 - 기존 구현 판정: 일부 있음. NewEventsBanner의 무작위 초기 선택과 getNextHomeAdAutoIndex를 재사용한다. 직접 이력 96b5d13b의 목록/장르 변경 시 초기화, bfd54fc9의 초기값 0 변경, 291d636d의 지난 보충 광고 저빈도 순환, c9035490의 지난 광고 제외 전환을 확인했다. 별도 자동 회차가 0에서 시작해 무작위 시작 후에도 1번으로 되돌아가는 연결 누락도 재현했다.
 - 기존 보호 목적: 광고 소스 우선순위·중복 제한, 목록/장르 변경 시 유효 인덱스, 지난 일정의 과도한 노출 방지. 과거 저빈도 회차는 지난 일정 제외 이후 필요하지 않으며 현재 선정된 후보는 전부 노출 가능한 광고다.
@@ -8,6 +8,7 @@
 - 유지 조건: 선정 소스·날짜/장르·이번 달 행사 우선·동호회/정규강습 후순위·작성자/장소 중복 제거·최대 개수·지난 일정 제외·이미지 비드래그는 유지. 새 함수·필드·스키마·큐·상태 소유자 없음. 기존 부모 상태와 자동 회차만 제거해 중복 소유를 줄였다.
 - 검증: 기존 배너 테스트에 실제 홈 호출부/비동기 데이터·새 진입·장르 변경·동일 목록 갱신·0/1개·무작위 첫 광고·자동 순환/끝→처음·수동 선택/일시정지 사례를 확장해 수정 전 2개 실패, 수정 후 후보 선정 21개와 배너 5개 총 26개 통과. 대상 ESLint 오류 0(기존 경고 10), diff 검사 통과. 데이터 선정은 기존 회귀를 재사용하며 DB·수집·알림 생성/전송은 변경하지 않아 운영 데이터 쓰기/전체 서버 검사는 제외한다.
 - 배포 경계: 운영 프런트 e2246a28과 이후 서버 패치가 포함된 origin/codex/board-unread-private의 8064890f에서 별도 작업 공간 생성. 광고 관련 3파일과 본 기록만 커밋·푸시한 뒤 기존 deploy:cafe24 -- --frontend-only 사용. 원 작업 폴더의 미커밋 변경은 포함하지 않는다.
+- 운영 검증: 빌드 1790766648486 (2026-09-30 20:10 KST), 공개 health ok·서비스 active. 로컬/운영 index·service-worker·version SHA-256 일치. 내부 통계 제외 컨텍스트에서 390px/1440px 각각 3회 진입: 11개 후보 중 첫 위치 3·9·2 / 1·3·5, 5종의 서로 다른 첫 광고 확인. 양쪽 8초 자동 전환·이미지 비드래그 정상, 페이지 오류 0. 기존 서버 패치 관련 4개 모듈 해시 불변. 이전 프런트 진입 파일은 /opt/swingenjoy/.deploy-backup-home-ad-e05928ee에 보존.
 - 관련 파일: src/pages/v2/components/EventList/components/EventPreviewSection.tsx, src/pages/v2/components/NewEventsBanner.tsx, src/pages/v2/components/NewEventsBanner.translation.test.tsx.
 
 ## 2026-09-30 — 열람 가능한 비공개 글의 새 글 숫자 누락
