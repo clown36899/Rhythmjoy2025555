@@ -82,11 +82,11 @@ if [[ "${1:-}" == "--server-patch" ]]; then
   patch_files=()
   while IFS= read -r file; do
     [[ -n "${file}" ]] || continue
-    [[ "${file}" =~ ^server/cafe24/[a-zA-Z0-9_-]+\.js$ || "${file}" =~ ^src/utils/[a-zA-Z0-9_-]+\.mjs$ ]] || { echo "Unsupported backend patch path: ${file}" >&2; exit 2; }
+    [[ "${file}" =~ ^server/cafe24/[a-zA-Z0-9_-]+\.js$ || "${file}" =~ ^src/utils/[a-zA-Z0-9_-]+\.mjs$ || "${file}" =~ ^scripts/ingestion/[a-zA-Z0-9_-]+\.mjs$ ]] || { echo "Unsupported backend patch path: ${file}" >&2; exit 2; }
     git cat-file -e "${patch_base}:${file}"
     test -f "${file}"
     patch_files+=("${file}")
-  done < <(git diff --name-only "${patch_base}" HEAD -- 'server/cafe24/*.js' 'src/utils/*.mjs' ':!**/*.test.js' ':!**/*.test.mjs')
+  done < <(git diff --name-only "${patch_base}" HEAD -- 'server/cafe24/*.js' 'src/utils/*.mjs' 'scripts/ingestion/*.mjs' ':!**/*.test.js' ':!**/*.test.mjs')
   [[ "${#patch_files[@]}" -gt 0 ]] || { echo 'No existing backend modules to patch.' >&2; exit 2; }
   patch_tmp="$(mktemp -d)"
   trap 'rm -rf "${patch_tmp}"' EXIT

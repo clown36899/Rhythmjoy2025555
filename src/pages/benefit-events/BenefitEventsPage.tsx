@@ -31,7 +31,7 @@ function getEventText(event: AppEvent) {
 }
 
 function getKindLabel(event: AppEvent) {
-  if (event.benefit_kind === 'free_event') return '무료';
+  if (event.benefit_kind === 'free_event') return '무료 혜택';
   if (event.benefit_kind === 'discount_event') return '할인';
   if (event.benefit_kind === 'season_pass') return '정기권';
   const activityType = String(event.activity_type || '').toLowerCase();
@@ -39,7 +39,7 @@ function getKindLabel(event: AppEvent) {
   const text = getEventText(event);
 
   if (tags.includes('season_pass') || /정기권|시즌권|월정액|멤버십|membership|\bpass\b/i.test(text)) return '정기권';
-  if (tags.includes('free_event') || /무료|free/i.test(text)) return '무료';
+  if (tags.includes('free_event') || /무료|free/i.test(text)) return '무료 혜택';
   if (tags.includes('discount_event') || /할인|특가|얼리\s*버드|쿠폰|프로모션|discount|promotion/i.test(text)) return '할인';
   if (activityType === 'sale' || tags.includes('sale_event') || /판매\s*이벤트|이벤트\s*판매|\bsale\b/i.test(text)) return '판매이벤트';
   return '혜택';
@@ -116,7 +116,7 @@ export default function BenefitEventsPage() {
 
   const benefitEvents = useMemo(() => {
     return events
-      .filter((event) => isBenefitEvent(event) && isEventInDanceScope(event, danceScope))
+      .filter((event) => isBenefitEvent(event) && !isPastBenefitEvent(event, today) && isEventInDanceScope(event, danceScope))
       .sort((a, b) => {
         const left = getBenefitEventDisplayDate(a, today);
         const right = getBenefitEventDisplayDate(b, today);
@@ -131,7 +131,7 @@ export default function BenefitEventsPage() {
   return (
     <main className="benefit-events-page">
       <header className="benefit-events-header">
-        <a className="benefit-events-back" href={`/?dance=${danceScope}`} aria-label="메인으로 이동">
+        <a draggable={false} className="benefit-events-back" href={`/?dance=${danceScope}`} aria-label="메인으로 이동">
           <i className="ri-arrow-left-line" aria-hidden="true" />
         </a>
         <div>
@@ -213,7 +213,6 @@ export default function BenefitEventsPage() {
                 <div className="benefit-event-content">
                   <div className="benefit-event-kicker">
                     <span>{getKindLabel(event)}</span>
-                    {event.time && <em>{event.time}</em>}
                   </div>
                   <h2>{event.title}</h2>
                   <p>
@@ -223,6 +222,7 @@ export default function BenefitEventsPage() {
                   {event.description && <small>{event.description}</small>}
                   {event.link1 && (
                     <a
+                draggable={false}
                       href={event.link1}
                       target="_blank"
                       rel="noreferrer"
@@ -266,11 +266,11 @@ export default function BenefitEventsPage() {
             </button>
             <div className="benefit-event-kicker">
               <span>{getKindLabel(selectedEvent)}</span>
-              {selectedEvent.time && <em>{selectedEvent.time}</em>}
             </div>
             <h2 id="benefit-event-modal-title">{selectedEvent.title}</h2>
             {selectedEventPoster && (
               <a
+                draggable={false}
                 className="benefit-event-modal-poster"
                 href={selectedEventPoster}
                 target="_blank"
@@ -301,7 +301,7 @@ export default function BenefitEventsPage() {
             </dl>
             <p>{selectedEvent.description || '등록된 상세 설명이 없습니다.'}</p>
             {selectedEvent.link1 && (
-              <a href={selectedEvent.link1} target="_blank" rel="noreferrer">
+              <a draggable={false} href={selectedEvent.link1} target="_blank" rel="noreferrer">
                 원본 링크
                 <i className="ri-external-link-line" aria-hidden="true" />
               </a>

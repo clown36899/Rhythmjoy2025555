@@ -166,4 +166,40 @@ describe('benefit event images', () => {
     expect(within(dialog).getByText(/8월 4일/)).toBeInTheDocument();
     expect(within(dialog).getByText('해피홀')).toBeInTheDocument();
   });
+  it('hides ended benefits but preserves today, remaining occurrences and undated offers', async () => {
+    const today = new Date().toLocaleDateString('en-CA');
+    fetchCafe24Events.mockResolvedValue([
+      { id: 'past', title: '종료된 무료', date: '2000-01-01', benefit_eligible: true, benefit_kind: 'free_event' },
+      { id: 'today', title: '오늘 무료', date: today, benefit_eligible: true, benefit_kind: 'free_event' },
+      { id: 'multi', title: '남은 회차', date: '2000-01-01', event_dates: ['2000-01-01', '2099-08-04'], benefit_eligible: true },
+      { id: 'ongoing', title: '상시 혜택', benefit_eligible: true },
+    ]);
+    renderPage();
+    await screen.findByText('오늘 무료');
+    expect(screen.queryByText('종료된 무료')).not.toBeInTheDocument();
+    expect(screen.getByText('남은 회차')).toBeInTheDocument();
+    expect(screen.getByText('상시 혜택')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '목록 요약' })).toHaveTextContent('3개 수집');
+  });
+
+  it('shows the free lesson scope in list and detail without a separate time or draggable image', async () => {
+    const description = '강습만 무료 · 소셜 입장료 별도 (원문 요금 안내 확인)';
+    fetchCafe24Events.mockResolvedValue([{
+      id: 'partial', title: '유료 소셜', date: '2099-08-04', activity_type: 'social',
+      benefit_eligible: true, benefit_kind: 'free_event', description,
+      time: '19:40', image_thumbnail: '/poster.webp', image_full: '/poster.webp', link1: 'https://example.com/post',
+    }]);
+    renderPage();
+    const title = await screen.findByText('유료 소셜');
+    expect(screen.getByText(description)).toBeInTheDocument();
+    expect(screen.getByText('무료 혜택')).toBeInTheDocument();
+    expect(screen.queryByText('19:40')).not.toBeInTheDocument();
+    expect(document.querySelector('img')).toHaveAttribute('draggable', 'false');
+    fireEvent.click(title.closest('.benefit-event-item') as HTMLElement);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText(description)).toBeInTheDocument();
+    expect(within(dialog).queryByText('19:40')).not.toBeInTheDocument();
+    for (const anchor of document.querySelectorAll('a')) expect(anchor).toHaveAttribute('draggable', 'false');
+  });
+
 });

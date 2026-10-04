@@ -616,6 +616,11 @@ event date. For season_pass, compare an explicit validity end date with TODAY_KS
 explicit end date but the text clearly says it is currently sold or available, active_on_today may be true;
 otherwise use null and decision review. Never turn an old single event into an evergreen offer.
 
+Judge benefits only for the candidate occurrence date. A free lesson on another date in the
+same weekly notice is not a benefit for this candidate. When a social includes a free lesson,
+the benefit covers that lesson only, not social admission; keep the underlying social category
+and activity_type. Only explicit free admission or participation supports free social entry.
+
 Independently identify the underlying category. A pass for social admission is category social while
 activity_type remains sale. A class pass is category class. Do not force every sale into category event.
 Return accept only when benefit kind, current validity, title, category/activity, and venue are explicit

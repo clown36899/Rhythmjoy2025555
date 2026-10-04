@@ -1729,7 +1729,7 @@ export function validateAutomaticRegistrationCandidate(scrapedEvent) {
       genre: structured.genre || structured.dance_genre || '스윙댄스',
       ...(structured.group_id ? { group_id: structured.group_id } : {}),
       dance_scope: structured.dance_scope || 'swing',
-      description: String(scrapedEvent?.extracted_text || '').slice(0, 6000),
+      description: String(structured.description || scrapedEvent?.extracted_text || '').slice(0, 6000),
       image: scrapedEvent?.poster_url || null,
       image_full: scrapedEvent?.poster_url || null,
       organizer: structured.organizer || sourceId,

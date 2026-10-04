@@ -172,14 +172,38 @@ export function extractSeasonPassEvidenceSections(text = '') {
   });
 }
 
+// Scope benefit evidence to the occurrence, not the entire weekly source post.
+// Reuse the same date/DJ parsers used by social collection; retain the raw source.
+function getBenefitEvidenceText(candidate = {}) {
+  const sd = candidate.structured_data || {};
+  const text = [sd.title, candidate.extracted_text, sd.description, sd.price]
+    .filter(Boolean).join(' ').normalize('NFKC');
+  const date = String(sd.date || '').slice(0, 10);
+  const social = (sd.activity_type || candidate.activity_type || sd.category) === 'social';
+  if (!social || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return text;
+  const sourceText = candidate.extracted_text || sd.description || '';
+  // Include earlier occurrences in the same notice even on a later retry day.
+  const options = { text: sourceText, today: `${date.slice(0, 4)}-01-01` };
+  const dated = extractDatedDjSections(options);
+  const weekly = extractNeoWeeklySocialSchedule(options);
+  const sections = [...dated, ...weekly];
+  if (new Set(sections.map((item) => item.date)).size < 2) return text;
+  return sections.filter((item) => item.date === date).map((item) => item.segment || '').join(' ');
+}
+
+export function getCandidateBenefitDescription(candidate = {}) {
+  const sd = candidate.structured_data || {};
+  const description = String(sd.description || candidate.extracted_text || '').trim();
+  const social = (sd.activity_type || candidate.activity_type || sd.category) === 'social';
+  if (!social || classifyConfirmedBenefitEvent(candidate) !== 'free_event'
+    || getConfirmedFreeBenefitScope(getBenefitEvidenceText(candidate)) !== 'class') return description;
+  const notice = '강습만 무료 · 소셜 입장료 별도 (원문 요금 안내 확인)';
+  return description.startsWith(notice) ? description : `${notice}\n\n${description}`.trim();
+}
+
 export function classifyConfirmedBenefitEvent(candidate = {}) {
   const sd = candidate.structured_data || {};
-  const text = [
-    sd.title,
-    candidate.extracted_text,
-    sd.description,
-    sd.price,
-  ].filter(Boolean).join(' ').normalize('NFKC');
+  const text = getBenefitEvidenceText(candidate);
   const seasonPassText = text
     .replace(/(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)[^.!?\n]{0,40}(?:판매|구매|신청|운영)?\s*(?:하지\s*않|안\s*함|없(?:음|습니다|다)|불가|종료|마감|중단|폐지|품절)/gi, ' ')
     .replace(/(?:판매|구매|신청|운영)\s*(?:하지\s*않|안\s*함|없(?:음|습니다|다)|불가|종료|마감|중단|폐지|품절)[^.!?\n]{0,20}(?:정기\s*(?:할인)?권|시즌\s*(?:권|패스)|월(?:간)?\s*(?:권|정액)|다회권|\d+\s*회권|프리\s*패스|티켓\s*북|패키지\s*권|멤버십)/gi, ' ');
@@ -196,12 +220,19 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   if (hasDiscountPromotion && /(?:\d{1,2}\s*%|\d[\d,]*(?:\.\d+)?\s*(?:천|만)?\s*원)\s*(?:추가\s*|중복\s*)?할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록)[^.!?\n]{0,32}(?:할인|특가|혜택|\d{1,2}\s*%)|(?:할인|특가|혜택)[^.!?\n]{0,32}(?:얼리\s*버드|조기\s*등록)|(?:특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|coupon)\b/i.test(discountText)) {
     return 'discount_event';
   }
+  return getConfirmedFreeBenefitScope(text) ? 'free_event' : null;
+}
+
+function getConfirmedFreeBenefitScope(text) {
   const benefitText = text
     .replace(/무료\s*(?:라인\s*)?(?:강습|클래스|수업|체험|입장|행사|이벤트|파티)?\s*(?:은|는|이|가)?\s*(?:없(?:음|습니다|다|는)|아님|제외|불가|종료|마감)/gi, ' ')
     .replace(/\bfree\s+(?:class|lesson|event|party|admission)?\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended)\b/gi, ' ')
     .replace(/무료\s*(?:혜택|제공|증정|체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|주차|음료|물|락커|보관|상담|와이파이|wifi|대여|대관)?\s*(?:은|는|이|가)?\s*(?:종료|마감|소진)/gi, ' ');
-  if (/(?<![가-힣])(?:참가비|입장료|수강료|이용료|가격|비용|금액)\s*[:：]?\s*(?:완전\s*)?(?:0\s*원|무료)|(?<![가-힣])(?:누구나|모두|전원|참여|참가|입장|관람|수강)\s*(?:은|는|이|가|가능)?\s*무료|무료\s*(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습(?!권)|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)|(?<![가-힣])(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)\s*(?:은|는|이|가)?\s*무료|\bfree\s+(?:class|lesson|event|party|admission|entry|workshop|participation)\b|(?:admission|entry|class|lesson|event|party|workshop|participation)\s*[:：-]?\s*free\b/i.test(benefitText)) {
-    return 'free_event';
+  const evidence = [...benefitText.matchAll(/(?<![가-힣])(?:참가비|입장료|수강료|이용료|가격|비용|금액)\s*[:：]?\s*(?:완전\s*)?(?:0\s*원|무료)|(?<![가-힣])(?:누구나|모두|전원|참여|참가|입장|관람|수강)\s*(?:은|는|이|가|가능)?\s*무료|무료\s*(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습(?!권)|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)|(?<![가-힣])(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)\s*(?:은|는|이|가)?\s*무료|\bfree\s+(?:class|lesson|event|party|admission|entry|workshop|participation)\b|(?:admission|entry|class|lesson|event|party|workshop|participation)\s*[:：-]?\s*free\b/gi)];
+  if (evidence.length) {
+    // All matched free offers must concern lessons before narrowing the label.
+    return evidence.every(([quote]) => /강습|클래스|수업|체험|수강|워크숍|워크샵|class|lesson|workshop/i.test(quote))
+      ? 'class' : 'participation';
   }
   return null;
 }
@@ -976,7 +1007,8 @@ function parseNeoWeeklySchedule({
 
   const uniqueDates = [...new Map(dates.map((item) => [item.date, item])).values()];
   const items = [];
-  for (const match of raw.matchAll(/(?:🎧\s*)?([금일])\s*햅\s*(?:D\s*J|디제이)\s*[:：]?\s*([A-Za-z0-9가-힣._&+\-/]{1,28})/gi)) {
+  const djMatches = [...raw.matchAll(/(?:🎧\s*)?([금일])\s*햅\s*(?:D\s*J|디제이)\s*[:：]?\s*([A-Za-z0-9가-힣._&+\-/]{1,28})/gi)];
+  for (const [index, match] of djMatches.entries()) {
     const day = match[1];
     const dateItem = uniqueDates.find((item) => item.day === day && !closureDates.has(item.date));
     if (!dateItem || items.some((item) => item.date === dateItem.date)) continue;
@@ -984,6 +1016,11 @@ function parseNeoWeeklySchedule({
       ...dateItem,
       djs: [match[2]],
       djLabel: String(match[0] || '').trim(),
+      segment: raw.slice(match.index, Math.min(
+        djMatches[index + 1]?.index ?? raw.length,
+        raw.indexOf('[AI_POSTER_TRANSCRIPTION]', match.index) < 0
+          ? raw.length : raw.indexOf('[AI_POSTER_TRANSCRIPTION]', match.index),
+      )).trim(),
       venueEvidence: raw.includes('해피홀') ? '해피홀' : '',
     });
   }
@@ -1915,6 +1952,9 @@ export function prepareCandidate(rawCandidate, config = {}) {
   if (confirmedBenefit) {
     structuredData.benefit_eligible = true;
     structuredData.benefit_kind = confirmedBenefit;
+    if (confirmedBenefit === 'free_event') {
+      structuredData.description = getCandidateBenefitDescription({ ...normalizedRawCandidate, structured_data: structuredData });
+    }
   } else {
     delete structuredData.benefit_eligible;
     delete structuredData.benefit_kind;

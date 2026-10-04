@@ -4,6 +4,7 @@ import {
   alignYearlessDatesToPublication,
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
+  getCandidateBenefitDescription,
   collapseSocialCandidateVariants,
   dedupeCandidatesByContentIdentity,
   extractBenefitValidityEndDate,
@@ -2940,4 +2941,42 @@ for (const menu of [12, 81, 82, 83, 84, 91]) {
 }
 assert.equal(findSourceByUrl('https://www.instagram.com/clublatin_everlatin/p/example/').id, 'clublatin_everlatin');
 assert.ok(naverScheduleOverviewPriority('살사 초급 10월 1일 개강 모집중', '2026-09-23', {allowedActivityTypes:['class']}) < naverScheduleOverviewPriority('112기 발표회 공지', '2026-09-23', {allowedActivityTypes:['class']}));
+
+// A weekly source must not lend Friday's benefit to Sunday's independent social.
+const weeklyBenefitText = `10월 1주 위클리네오 🎧 금햅 DJ 테일 🪩 무료라인강습 : 고민중독
+🎧 일햅 DJ 꼬냥이 141기 마지막 원데이클래스
+[AI_POSTER_TRANSCRIPTION]
+10.02.(금) DJ 테일 고민중독
+10.04.(일) DJ 꼬냥이 마지막 원데이클래스 해피홀`;
+const weeklyBenefitCandidate = (date) => ({
+  extracted_text: weeklyBenefitText,
+  structured_data: { title: '해피홀 소셜', date, activity_type: 'social' },
+});
+assert.equal(classifyConfirmedBenefitEvent(weeklyBenefitCandidate('2026-10-02')), 'free_event');
+assert.equal(classifyConfirmedBenefitEvent(weeklyBenefitCandidate('2026-10-04')), null);
+assert.match(getCandidateBenefitDescription(weeklyBenefitCandidate('2026-10-02')), /^강습만 무료 · 소셜 입장료 별도/);
+for (const body of ['입장료 12,000원. 무료 라인강습 진행.', 'FREE WORKSHOP before social. Entry 12000 KRW.']) {
+  const candidate = { extracted_text: body, structured_data: { activity_type: 'social' } };
+  const description = getCandidateBenefitDescription(candidate);
+  assert.match(description, /^강습만 무료/);
+  assert.equal(getCandidateBenefitDescription({ ...candidate, structured_data: { ...candidate.structured_data, description } }), description);
+}
+for (const body of ['무료 강습. 누구나 무료!', '무료 강습. 입장료 무료.', '무료 라인강습은 없습니다. 입장료 12,000원.']) {
+  const candidate = { extracted_text: body, structured_data: { activity_type: 'social' } };
+  assert.equal(getCandidateBenefitDescription(candidate), body);
+}
+assert.equal(classifyConfirmedBenefitEvent({ extracted_text: '10.02.(금) DJ 테일 무료 입장 10.04.(일) DJ 꼬냥이 입장료 12000원', structured_data: { date: '2026-10-04', activity_type: 'social' } }), null);
+
+for (const date of ['2026-10-02', '2026-10-04']) {
+  const raw = baseCandidate({ ...weeklyBenefitCandidate(date), structured_data: {
+    ...weeklyBenefitCandidate(date).structured_data, location: '해피홀', djs: [date.endsWith('02') ? '테일' : '꼬냥이'],
+    benefit_eligible: true, benefit_kind: 'free_event', benefit_lifecycle: 'date_bound',
+  }});
+  const prepared = prepareCandidate(raw, { today: date });
+  if (date.endsWith('02')) assert.match(prepared.candidate.structured_data.description, /^강습만 무료/);
+  else for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle']) {
+    assert.equal(prepared.candidate.structured_data[key], undefined);
+  }
+}
+
 console.log('ingestion standards ok');
