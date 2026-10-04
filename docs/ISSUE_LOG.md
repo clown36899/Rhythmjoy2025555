@@ -3048,7 +3048,7 @@
 
 ## 2026-10-04 무료 혜택 대상·회차 혼합 및 지난 혜택 목록 노출
 
-- 상태: 공통 코드 수정·관련 검사 완료, 운영 후보 3건과 연결 이벤트 2건 정정 완료. 화면·수집 코드 배포는 수행하지 않음.
+- 상태: 공통 코드 수정·관련 검사 및 운영 배포 완료. 운영 후보 3건과 연결 이벤트 2건 정정 완료. 배포 상세는 아래 후속 기록 참조.
 - 경로/기준 데이터: 10/2 해피홀 원문 포스터의 입장료 12,000원·무료라인강습 및 주간 공지의 금요일 무료강습 → `classifyConfirmedBenefitEvent`가 후보 날짜와 무관하게 원문 전체를 판정 → 자동등록이 원문 전체 설명과 혜택 필드를 공개 일정에 전달 → 10/2 소셜 전체가 무료처럼 표시되고 10/4 일요 소셜에도 금요일 혜택이 전파됨. 목록은 `isPastBenefitEvent`를 숫자·스타일에만 사용하고 필터에 연결하지 않아 지난 혜택도 표시.
 - 직접 근거: happyhall2004/p/Dd3woRZhyrj 및 neo_swing/p/Dd3pFibK1Ik 공개 브라우저 본문/포스터와 저장 후보·공개 API 대조. Instagram 가입 안내가 보였으나 확인 가능한 공개 내용만 사용했으며 로그인/권한 우회·재수집은 하지 않음. 같은 주간 공지의 10/2 후보 12afcbc71e400519는 공식 10/2 이벤트와 중복 연결, 10/4 후보 2e530aeabb01ab3a는 collected 연결. 실제 무료 참여인 부산 발보아 4건과 DDPlay의 기존 공개 본문도 변경 전후 분류를 대조해 free_event 보존 확인.
 - 기존 구현 판정: 일부 있음. f6711d21d의 명시 혜택 분류, 43965c42c의 무료 부정형 보호, 7aab99d6의 일반 강습 조건 제외, e3a069f30의 날짜 공통화 및 8/13·8/22·9/11 이슈 기록을 재조사. 기존 날짜/DJ·주간 공지 분리, description, 혜택 종류, 원장 복구 도구와 이벤트 변경 잠금을 재사용. 새 테이블·필드·큐·상태값 없음.
@@ -3061,3 +3061,7 @@
 
 - 배포 준비: 최신 운영 프런트 기준 4177191d 위에 이번 수정만 적용한 별도 worktree/브랜치 codex/free-benefit-scope 사용. 기존 서버 부분 배포(3cfb316f/58ac782c)는 수집 .mjs 경로만 빠져 있어 동일 경로의 patch·충돌 검사·백업·롤백 대상에 연결하고 기존 배포 스코프 테스트를 확장. 새 배포 도구나 전체 서버 덮어쓰기 없음. Mini PC 관련 두 파일은 배포 기준본 해시와 동일, 실행 중 수집 없음 확인. 원래 작업 폴더의 다른 수정은 포함하지 않음.
 - 분리 배포본 검증: 수집 표준·배포 스코프/충돌/중단 6건·혜택 목록/읽음 12건·서버 등록 64건·AI 40건 통과, 프런트 빌드 성공. 새 worktree에는 함수 빌드 산출물이 없어 서버 테스트 import가 처음 실패했으며 기존 build:cafe24:functions 실행 후 해당 48건 통과. Mini PC staged runtime dry-run은 이번 수집 파일 2개와 표준 검사 파일만 차이, 의존성·기타 런타임 파일 차이 없음.
+
+- 배포 완료: 구현 b1ecce89c341f61588c78442a2ccbe49bcf9a71b를 origin/codex/free-benefit-scope에 먼저 커밋·푸시한 뒤 기존 `npm run deploy:cafe24 -- --server-patch 4177191d`와 `--frontend-only` 실행 성공. 공개 version 1791082564635 (2026-10-04 11:56 KST), __health ok, swingenjoy active. 프런트 entry 3파일의 로컬/운영 SHA-256 일치 및 프런트 배포 전후 서버·수집 대상 4파일 해시 불변 확인. 서버 백업 `.deploy-server-b1ecce89c341f61588c78442a2ccbe49bcf9a71b-1791082514/previous`, 프런트 백업 `.deploy-backup-free-benefit-b1ecce89` 보존.
+- 실제 수집기 반영: Mini PC에서 기존 타이머 6개 일시 중지·실행 작업 없음 확인·설치 런타임 백업 후 기존 staged runtime 동기화. 변경은 candidate-utils/ai-candidate-adjudicator와 표준 검사 파일 3개뿐이며 원장·브라우저·의존성 변경 없음. Mini PC 수집 표준 통과, 관련 두 모듈 SHA-256이 배포본과 일치, 타이머 6개 재가동 및 kiosk-chrome/kiosk-display active 확인. 백업 `~/.local/share/rhythmjoy-ingestion/backups/free-benefit-b1ecce89.tar`. 임의 수집·알림 전송은 실행하지 않음.
+- 운영 화면 검증: analytics=internal 컨텍스트에서 혜택 목록의 지난 무료·만료 정기권 및 잘못 분류됐던 10/4 일요 소셜 제외 확인. 미래 DDPlay 1건과 `무료 혜택` 배지, 상세 클릭 후 날짜·장소·원문 설명 표시 정상 확인. 실제 무료 행사 및 기존 데이터 정정은 유지됨.
