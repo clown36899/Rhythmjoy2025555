@@ -71,7 +71,7 @@ it('stops at a login wall even when the underlying post contains images', async 
   let clicks=0;
   const page={url:()=> 'https://www.instagram.com/owner/p/current/',
     evaluate:async()=>({images:[{src:'poster'}],accessDialogText:'Instagram에 가입 로그인'}),
-    getByRole:()=>({count:async()=>1,isVisible:async()=>true,click:async()=>{clicks+=1;}})};
+    getByRole:(role)=>role === 'dialog' ? {getByRole:()=>({count:async()=>0})} : ({count:async()=>1,isVisible:async()=>true,click:async()=>{clicks+=1;}})};
   await expect(readInstagramCarouselDocument(page)).rejects.toThrow('login required');
   expect(clicks).toBe(0);
 });
@@ -80,7 +80,7 @@ it('stops and keeps the post retryable if an access wall appears during carousel
   let clicks=0;
   const page={url:()=> 'https://www.instagram.com/owner/p/current/',
     evaluate:async()=>({images:[{src:'poster'}],articleText:'original caption',accessDialogText:clicks?'Instagram에 가입 로그인':''}),
-    getByRole:()=>({count:async()=>1,isVisible:async()=>true,click:async()=>{clicks+=1;throw new Error('overlay');}})};
+    getByRole:(role)=>role === 'dialog' ? {getByRole:()=>({count:async()=>0})} : ({count:async()=>1,isVisible:async()=>true,click:async()=>{clicks+=1;throw new Error('overlay');}})};
   await expect(readInstagramCarouselDocument(page)).rejects.toThrow('login required');
   expect(clicks).toBe(1);
 });
@@ -102,3 +102,22 @@ it('rejects a redirected profile or other post while permitting canonical URLs f
   page.url = ()=> 'https://www.instagram.com/p/current/';
   expect((await readInstagramCarouselDocument(page,{expectedUrl:'https://www.instagram.com/owner/p/current/'})).articleText).toBe('unrelated profile');
 });
+
+for (const outcome of ['closed', 'still-visible', 'click-failed', 'login-redirect', 'challenge']) {
+  it(`uses only a dismissible public signup prompt and rechecks access: ${outcome}`, async () => {
+    let clicks = 0;
+    const page = {
+      url: () => outcome === 'login-redirect' ? 'https://www.instagram.com/accounts/login/'
+        : outcome === 'challenge' ? 'https://www.instagram.com/challenge/' : 'https://www.instagram.com/owner/p/current/',
+      evaluate: async () => ({ images: [{ src: 'poster' }], articleText: 'dated official caption',
+        accessDialogText: clicks && outcome === 'closed' ? '' : 'Instagram에 가입 로그인' }),
+      getByRole: (role) => role === 'dialog' ? { getByRole: () => ({
+        count: async () => 1, isVisible: async () => true,
+        click: async () => { clicks += 1; if (outcome === 'click-failed') throw new Error('obstructed'); },
+      }) } : { count: async () => 0 },
+    };
+    if (outcome === 'closed') expect((await readInstagramCarouselDocument(page)).articleText).toBe('dated official caption');
+    else await expect(readInstagramCarouselDocument(page)).rejects.toThrow(/login required|global access blocked/);
+    expect(clicks).toBe(['login-redirect', 'challenge'].includes(outcome) ? 0 : 1);
+  });
+}

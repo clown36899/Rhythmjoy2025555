@@ -344,11 +344,26 @@ export async function readInstagramCarouselDocument(page, { maxSlides = 8, budge
   if (requestedCode && requestedCode !== actualCode && !/\/accounts\/login|\/challenge\/|\/checkpoint\//i.test(page.url())) {
     throw new Error(`Instagram post URL mismatch: requested=${expectedUrl} final=${page.url()}`);
   }
+  let dismissedSignupPrompt = false;
   const readPost = async () => {
     const readyDeadline = Date.now() + readinessMs;
     for (;;) {
       const data = await page.evaluate(readInstagramPostDocument);
       const state = classifyInstagramProfilePage({ url: page.url(), bodyText: data.accessDialogText || '' });
+      if (state === 'login_wall' && data.accessDialogText && !dismissedSignupPrompt
+        && !/\/accounts\/login|\/challenge\/|\/checkpoint\//i.test(page.url())) {
+        dismissedSignupPrompt = true;
+        // A public, dismissible signup prompt is not an authentication gate.
+        // Use its own normal Close control once, then re-read; never force it.
+        const close = page.getByRole('dialog').getByRole('button', { name: /^(닫기|Close)$/i });
+        if (await close.count() === 1 && await close.isVisible()) {
+          try {
+            await close.click({ timeout: 1500 });
+            if (new URL(page.url()).pathname !== originalPath) throw new Error('Instagram post URL changed');
+            continue;
+          } catch { /* A prompt that cannot close remains an access wall. */ }
+        }
+      }
       if (state === 'login_wall') throw new Error(`instagram post login required: requested=${expectedUrl} final=${page.url()}`);
       if (state === 'global_block') throw new Error('instagram global access blocked');
       if (state === 'source_unavailable') throw new Error('instagram source unavailable');
