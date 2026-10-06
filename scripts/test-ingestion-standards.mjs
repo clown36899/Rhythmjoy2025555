@@ -285,6 +285,14 @@ assert.equal(classifyInstagramProfilePage({
   title: 'Instagram',
   bodyText: 'Please wait a few minutes before you try again',
 }), 'global_block', 'an Instagram challenge response must remain eligible for the safety circuit');
+for (const bodyText of [
+  'Profile을(를) 이용할 수 없습니다 링크가 잘못되었거나 프로필이 삭제되었을 수 있습니다. 로그인 가입하기',
+  '프로필을 이용할 수 없습니다 로그인',
+  '페이지를 사용할 수 없습니다 로그인',
+]) {
+  assert.equal(classifyInstagramProfilePage({ bodyText }), 'source_unavailable', 'unavailable profiles must not be mislabeled by incidental login links');
+  assert.equal(classifyInstagramProfilePage({ bodyText, linkCount: 1 }), 'content', 'verified source post links retain priority over page chrome');
+}
 assert.equal(shouldOpenInstagramCircuit('instagram login wall; public profile fallback unavailable'), false, 'a source login wall must not cascade into skipping unrelated profiles');
 assert.equal(shouldOpenInstagramCircuit('instagram global access blocked or challenge required'), true, 'only a confirmed global block response may advance the Instagram circuit');
 assert.equal(

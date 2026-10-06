@@ -9,7 +9,7 @@ export function classifyInstagramProfilePage({
   if (Number(linkCount) > 0) return 'content';
 
   const pageText = `${title}\n${bodyText}\n${url}`.normalize('NFKC');
-  if (/sorry,?\s+this\s+page\s+isn['’]?t\s+available|page\s+isn['’]?t\s+available|페이지를\s*사용할\s*수\s*없습니다|링크가\s*잘못되었거나\s*페이지가\s*삭제/i.test(pageText)) {
+  if (/sorry,?\s+this\s+page\s+isn['’]?t\s+available|page\s+isn['’]?t\s+available|페이지를\s*사용할\s*수\s*없습니다|(?:profile|프로필)(?:을\(를\)|을|를)?\s*이용할\s*수\s*없습니다|링크가\s*잘못되었거나\s*(?:페이지|프로필)이?가?\s*삭제/i.test(pageText)) {
     return 'source_unavailable';
   }
   if (/no\s+posts\s+yet|아직\s*게시물|게시물\s*없음/i.test(pageText)) {
