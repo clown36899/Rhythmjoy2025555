@@ -1018,7 +1018,9 @@ function inferVenueDetails(text = '', source) {
     sourceVenue: source?.venue || '',
     mappedVenue: configured || '',
     aliases: venueAliases,
-    djs: inferDjs(text),
+    // Venue disambiguation must see every DJ in a weekly/monthly notice,
+    // including names beyond the per-candidate display limit.
+    djs: inferDjs(text, { limit: Infinity }),
   });
   if (resolved.venue || resolved.provenance === 'explicit_variable') return resolved;
   const sourceMatched = venueAliases.find(([pattern]) => pattern.test(`${source?.name || ''} ${source?.id || ''}`));
@@ -1026,7 +1028,7 @@ function inferVenueDetails(text = '', source) {
   return resolved;
 }
 
-function inferDjs(text = '') {
+function inferDjs(text = '', { limit = 5 } = {}) {
   const djs = [];
   const explicitLabelMatches = [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이))?\s*[:：]\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,40})/gi)];
   const broadLabelMatches = explicitLabelMatches.length ? [] : [...text.matchAll(/(?<![A-Za-z0-9가-힣])(?:D\s*J(?![A-Za-z])|디제이(?![A-Za-z0-9가-힣]))(?:\s*(?:는|은|가|이)(?=\s|[:：♥♡❤]))?\s*[:：]?\s*["'“”‘’♥♡❤💙💛💜]*\s*([A-Za-z0-9가-힣._&+\-/ ]{1,40})/gi)];
@@ -1059,7 +1061,7 @@ function inferDjs(text = '') {
       djs.push(value);
     }
   }
-  return unique(djs).slice(0, 5);
+  return unique(djs).slice(0, limit);
 }
 
 function inferFee(text = '') {

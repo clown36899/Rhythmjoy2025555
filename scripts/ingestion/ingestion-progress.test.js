@@ -6,7 +6,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
 import { automaticSocialCollectionEnabled, isAutomaticCollectionActivityEnabled } from './collection-registry.mjs';
-import { stripRepeatedDjContext, stripNaverCafeMemberPrefix, filterDeadlineOnlyEventDates, prepareCandidate, buildCafe24Payload, toMapSafeVenueName, extractExplicitClosureDates } from './candidate-utils.mjs';
+import { stripRepeatedDjContext, stripNaverCafeMemberPrefix, filterDeadlineOnlyEventDates, prepareCandidate, buildCafe24Payload, toMapSafeVenueName, extractExplicitClosureDates, resolveSourceVenueEvidence } from './candidate-utils.mjs';
 import {
   buildIngestionProgressState, completedDocumentKeys, ingestionItemKey,
   loadIngestionProgress, reopenFailedIngestionItems, saveIngestionProgress,
@@ -108,6 +108,15 @@ it('reads the last successful and current social DJs without accepting OCR fee h
   expect(h.inferDjs('BALBOA SOCIAL IN CLUB DJ. 현장 :1000원 사전신청:8000원')).toEqual([]);
   expect(h.inferDjs('장소 : 쏘셜클럽 D J : 쓴귤 사전신청 : 8,000원')).toEqual(['쓴귤']);
   expect(h.inferDjs('장소 : 쏘셜클럽 D J : Benny 사전신청 : 8,000원')).toEqual(['Benny']);
+  Object.assign(h, { resolveSourceVenueEvidence, sourceSpecificVenue: new Map(),
+    venueAliases: [[/루나|luna/i, '루나'], [/봉천\s*살롱/i, '봉천살롱']] });
+  vm.runInContext(functions(['inferVenueDetails']), h);
+  const monthly = '9월 일정\nDJ 포비\nDJ 투자\nDJ 안토니\nDJ 스밤\nDJ 미우\nDJ 후안\n9월 29일 (화)\nDJ 루나\n10월 6일 (화)\nDJ 후안\n10월 27일 (화)\nDJ 루나';
+  const source = { id: 'official-monthly', venue: '봉천살롱' };
+  expect(h.inferDjs(monthly)).toEqual(['포비', '투자', '안토니', '스밤', '미우']);
+  expect(h.inferVenueDetails(monthly, source)).toEqual({ venue: '봉천살롱', provenance: 'source_registry' });
+  expect(h.inferDjs('10월 6일 (화)\nDJ 후안')).toEqual(['후안']);
+  expect(h.inferVenueDetails(`${monthly}\n장소: 루나`, source)).toEqual({ venue: '루나', provenance: 'source_text' });
 });
 afterEach(async () => { await Promise.all(directories.splice(0).map(directory => fs.rm(directory, { recursive: true, force: true }))); });
 

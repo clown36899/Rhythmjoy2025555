@@ -3065,3 +3065,11 @@
 - 배포 완료: 구현 b1ecce89c341f61588c78442a2ccbe49bcf9a71b를 origin/codex/free-benefit-scope에 먼저 커밋·푸시한 뒤 기존 `npm run deploy:cafe24 -- --server-patch 4177191d`와 `--frontend-only` 실행 성공. 공개 version 1791082564635 (2026-10-04 11:56 KST), __health ok, swingenjoy active. 프런트 entry 3파일의 로컬/운영 SHA-256 일치 및 프런트 배포 전후 서버·수집 대상 4파일 해시 불변 확인. 서버 백업 `.deploy-server-b1ecce89c341f61588c78442a2ccbe49bcf9a71b-1791082514/previous`, 프런트 백업 `.deploy-backup-free-benefit-b1ecce89` 보존.
 - 실제 수집기 반영: Mini PC에서 기존 타이머 6개 일시 중지·실행 작업 없음 확인·설치 런타임 백업 후 기존 staged runtime 동기화. 변경은 candidate-utils/ai-candidate-adjudicator와 표준 검사 파일 3개뿐이며 원장·브라우저·의존성 변경 없음. Mini PC 수집 표준 통과, 관련 두 모듈 SHA-256이 배포본과 일치, 타이머 6개 재가동 및 kiosk-chrome/kiosk-display active 확인. 백업 `~/.local/share/rhythmjoy-ingestion/backups/free-benefit-b1ecce89.tar`. 임의 수집·알림 전송은 실행하지 않음.
 - 운영 화면 검증: analytics=internal 컨텍스트에서 혜택 목록의 지난 무료·만료 정기권 및 잘못 분류됐던 10/4 일요 소셜 제외 확인. 미래 DDPlay 1건과 `무료 혜택` 배지, 상세 클릭 후 날짜·장소·원문 설명 표시 정상 확인. 실제 무료 행사 및 기존 데이터 정정은 유지됨.
+
+## 2026-10-06 당일 소셜 누락 조사·재수집
+
+- 상태: 원인 확인, 수정 검증 완료, 운영 재수집 진행 중.
+- 경로: 공식 게시글 → 날짜별 후보/장소 판정 → 후보 저장·자동등록 → 공개 일정/당일 재시도. 오늘 스윙타운 후보 `6b059f32ef5b924b`는 원문 156744의 10/6 DJ 후안을 읽었으나 장소를 루나로 저장해 서버의 원문 장소 검증에서 422로 차단됐다. 원문의 이전 등록 회차 9/29와 10/27도 루나 장소로 연결된 것을 확인했다. 08시 탐색의 Instagram 7개 로그인 차단과 이 등록 실패는 별개다.
+- 기존 구현 판정: 일부 있음. a824013ce의 `resolveSourceVenueEvidence`는 DJ와 장소 별칭 충돌을 막고 명시 장소의 우선권을 보존한다. 직접 호출부 `inferVenueDetails`가 후보용 `inferDjs`의 앞 5명 제한을 그대로 사용해 월간 공지 뒤쪽 DJ 루나가 보호 목록에서 누락됐다. 기존 함수에 제한 옵션을 연결해 장소 구분만 전체 DJ를 사용하고 개별 후보 제한은 유지한다. 새 함수·필드·테이블·큐·상태값은 없다.
+- 원문 대조: Naver 156744의 10/6 DJ 후안, 10/27 DJ 루나를 확인. 보니따 카카오 114733457의 10/6 메인홀 DJ 길거리와 별도 키좀바홀 DJ 아이린, 당일 포스터의 SOCIAL NIGHT/SALSA를 확인했다. 보니따 9/22 등록 후보와 오늘 보류 후보 모두 AI가 다른 홀 DJ를 요구했고 포스터에 있는 소셜 문구를 텍스트에서 찾지 못했다. 이전 공개 등록만으로 자동검수가 성공했다고 해석하지 않는다.
+- 보호/검증: 공식 고정 장소, 명시된 다른 장소 우선, 개별 날짜 DJ, 원문 근거·중복·휴무·관리자 삭제·완료 항목 보호를 유지한다. 기존 native 호출부 회귀를 확장해 6명 초과 월간 공지/명시 장소/당일 DJ를 검증. 당일 진행·AI 근거·등록 연계 121개 및 ingestion standards 통과. UI·DB 스키마·인증 정책·예약 주기는 변경하지 않아 전체 UI/스키마 검사는 제외한다.
