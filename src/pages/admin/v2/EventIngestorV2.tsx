@@ -49,7 +49,8 @@ interface ScrapedEvent {
     dance_genre_label?: string;
     tags?: string[];
     tag_labels?: string[];
-    benefit_eligible?: boolean;
+    benefit_details?: { title: string; description: string } | null;
+  benefit_eligible?: boolean;
     benefit_kind?: 'free_event' | 'discount_event' | 'season_pass' | null;
     benefit_lifecycle?: 'date_bound' | 'evergreen' | null;
     ongoing_sale?: boolean;
@@ -1068,6 +1069,7 @@ const EventIngestorV2: React.FC = () => {
         group_id: mapped.group_id,
         benefit_eligible: sd.benefit_eligible === true,
         benefit_kind: sd.benefit_eligible === true ? sd.benefit_kind || null : null,
+        benefit_details: sd.benefit_eligible === true ? sd.benefit_details || null : null,
       } as any;
 
     const duplicate = await findRegisteredDuplicate(event, formattedTitle, mapped);
@@ -1706,7 +1708,8 @@ const EventIngestorV2: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="row-title">{event.structured_data.title}</div>
+                    <div className="row-title">{activeTab === 'free' ? event.structured_data.benefit_details?.title || event.structured_data.title : event.structured_data.title}</div>
+                    {activeTab === 'free' && event.structured_data.benefit_details && <p>{event.structured_data.benefit_details.description}</p>}
                     <div className="row-taxonomy">
                       <span>{siteGenre}</span>
                     </div>

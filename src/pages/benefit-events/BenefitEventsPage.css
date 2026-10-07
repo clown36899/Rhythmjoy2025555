@@ -525,3 +525,12 @@
     max-height: 48dvh;
   }
 }
+
+/* The offer and its conditions must remain visible on narrow screens. */
+.benefit-event-content small.benefit-event-offer {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  white-space: pre-line;
+  color: rgba(226, 232, 240, 0.9);
+}

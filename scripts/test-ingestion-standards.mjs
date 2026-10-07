@@ -5,6 +5,7 @@ import {
   buildCafe24Payload,
   classifyConfirmedBenefitEvent,
   getCandidateBenefitDescription,
+  getCandidateBenefitDetails,
   collapseSocialCandidateVariants,
   dedupeCandidatesByContentIdentity,
   extractBenefitValidityEndDate,
@@ -1003,12 +1004,12 @@ assert.deepEqual(
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'free_event' }),
-  { benefit_eligible: true, benefit_kind: 'free_event' },
+  { benefit_eligible: true, benefit_kind: 'free_event', benefit_details: null },
   'confirmed free-event metadata must survive candidate approval into the public event row',
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'discount_event' }),
-  { benefit_eligible: true, benefit_kind: 'discount_event' },
+  { benefit_eligible: true, benefit_kind: 'discount_event', benefit_details: null },
   'confirmed discount metadata must survive candidate approval into the public event row',
 );
 const imageOptionalDiscount = prepareCandidate({
@@ -1160,12 +1161,12 @@ const imageOptionalFreeBenefit = prepareCandidate(baseCandidate({
 assert.equal(imageOptionalFreeBenefit.validation.ok, true, 'free trial classes also allow text-only collection');
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: true, benefit_kind: 'unexpected' }),
-  { benefit_eligible: false, benefit_kind: null },
+  { benefit_eligible: false, benefit_kind: null, benefit_details: null },
   'unknown benefit kinds must fail closed during public event registration',
 );
 assert.deepEqual(
   benefitFieldsFromStructuredData({ benefit_eligible: false, benefit_kind: 'season_pass' }),
-  { benefit_eligible: false, benefit_kind: null },
+  { benefit_eligible: false, benefit_kind: null, benefit_details: null },
   'a benefit kind without explicit eligibility must not become publicly visible',
 );
 
@@ -2484,7 +2485,7 @@ const ordinaryPaidClass = prepareCandidate(baseCandidate({
 }), { today: TODAY });
 assert.equal(ordinaryPaidClass.validation.ok, true, 'paid classes also allow text-only collection');
 assert.equal(ordinaryPaidClass.candidate.structured_data.category, 'class');
-for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle']) {
+for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle', 'benefit_details']) {
   assert.equal(ordinaryPaidClass.candidate.structured_data[key], undefined, 'reprocessing ordinary tuition terms must clear stale benefit metadata');
 }
 assert.equal(isCollectableDate(TODAY, { today: TODAY }), true, 'same-day candidates are collectable without time evidence');
@@ -2978,13 +2979,26 @@ assert.equal(classifyConfirmedBenefitEvent({ extracted_text: '10.02.(금) DJ 테
 for (const date of ['2026-10-02', '2026-10-04']) {
   const raw = baseCandidate({ ...weeklyBenefitCandidate(date), structured_data: {
     ...weeklyBenefitCandidate(date).structured_data, location: '해피홀', djs: [date.endsWith('02') ? '테일' : '꼬냥이'],
-    benefit_eligible: true, benefit_kind: 'free_event', benefit_lifecycle: 'date_bound',
+    benefit_eligible: true, benefit_kind: 'free_event', benefit_lifecycle: 'date_bound', benefit_details: {title:'stale',description:'stale'},
   }});
   const prepared = prepareCandidate(raw, { today: date });
   if (date.endsWith('02')) assert.match(prepared.candidate.structured_data.description, /^강습만 무료/);
-  else for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle']) {
+  else for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle', 'benefit_details']) {
     assert.equal(prepared.candidate.structured_data[key], undefined);
   }
 }
 
+const actualMixedBenefit = {
+  extracted_text: '10월 2주 위클리네오 🎧 금햅 DJ 쓴귤 🪩 무료라인강습 : 심샘(세인트루이스) - 리베 🕐 19:40 ~ 20:20 🎧 일햅 DJ 로젤\n[AI_POSTER_TRANSCRIPTION]\n10.09.(금) DJ 쓴귤\n10.11.(일) DJ 로젤',
+  structured_data: { title: 'DJ 쓴귤 | 해피홀 금요 소셜', date: '2026-10-09', activity_type: 'social' },
+};
+const mixedOffer = getCandidateBenefitDetails(actualMixedBenefit);
+assert.equal(mixedOffer.title, '무료 라인강습: 심샘(세인트루이스) - 리베');
+assert.doesNotMatch(mixedOffer.description, /쓴귤|로젤|10.11|19:40/);
+assert.match(mixedOffer.description, /강습만 무료/);
+assert.equal(getCandidateBenefitDetails({...actualMixedBenefit, structured_data:{...actualMixedBenefit.structured_data,date:'2026-10-11'}}), null);
+assert.equal(getCandidateBenefitDetails({extracted_text:'무료 강습. 누구나 무료!',structured_data:{activity_type:'social'}}), null);
+assert.equal(getCandidateBenefitDetails({extracted_text:'무료 라인강습은 없습니다. 입장료 12000원',structured_data:{activity_type:'social'}}), null);
+assert.deepEqual(benefitFieldsFromStructuredData({benefit_eligible:true,benefit_kind:'free_event',benefit_details:mixedOffer}).benefit_details, mixedOffer);
+assert.equal(benefitFieldsFromStructuredData({benefit_eligible:false,benefit_kind:'free_event',benefit_details:mixedOffer}).benefit_details, null);
 console.log('ingestion standards ok');

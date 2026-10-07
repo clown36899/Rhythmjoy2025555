@@ -183,21 +183,26 @@ describe('benefit event images', () => {
   });
 
   it('shows the free lesson scope in list and detail without a separate time or draggable image', async () => {
-    const description = '강습만 무료 · 소셜 입장료 별도 (원문 요금 안내 확인)';
+    const description = '무료 라인강습: 심샘(세인트루이스) - 리베\n강습만 무료 · 소셜 입장료 별도';
+    const offerTitle = '무료 라인강습: 심샘(세인트루이스) - 리베';
     fetchCafe24Events.mockResolvedValue([{
       id: 'partial', title: '유료 소셜', date: '2099-08-04', activity_type: 'social',
-      benefit_eligible: true, benefit_kind: 'free_event', description,
+      benefit_eligible: true, benefit_kind: 'free_event', description: '다른 회차 DJ 로젤 소셜 안내',
+      benefit_details: {title: offerTitle, description},
       time: '19:40', image_thumbnail: '/poster.webp', image_full: '/poster.webp', link1: 'https://example.com/post',
     }]);
     renderPage();
-    const title = await screen.findByText('유료 소셜');
-    expect(screen.getByText(description)).toBeInTheDocument();
+    const title = await screen.findByRole('heading', {name: offerTitle});
+    expect(screen.queryByText('유료 소셜')).not.toBeInTheDocument();
+    expect(screen.queryByText('다른 회차 DJ 로젤 소셜 안내')).not.toBeInTheDocument();
+    expect(document.querySelector('.benefit-event-offer')?.textContent).toBe(description);
     expect(screen.getByText('무료 혜택')).toBeInTheDocument();
     expect(screen.queryByText('19:40')).not.toBeInTheDocument();
     expect(document.querySelector('img')).toHaveAttribute('draggable', 'false');
     fireEvent.click(title.closest('.benefit-event-item') as HTMLElement);
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText(description)).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', {name: offerTitle})).toBeInTheDocument();
+    expect(dialog.querySelector('p')?.textContent).toBe(description);
     expect(within(dialog).queryByText('19:40')).not.toBeInTheDocument();
     for (const anchor of document.querySelectorAll('a')) expect(anchor).toHaveAttribute('draggable', 'false');
   });

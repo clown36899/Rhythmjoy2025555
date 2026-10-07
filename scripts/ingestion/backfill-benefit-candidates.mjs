@@ -9,6 +9,7 @@ import { getMysqlPool } from '../../server/cafe24/mysql-pool.js';
 import {
   classifyConfirmedBenefitEvent,
   getCandidateBenefitDescription,
+  getCandidateBenefitDetails,
   isEvergreenBenefitCandidate,
 } from './candidate-utils.mjs';
 
@@ -32,6 +33,9 @@ function classifyRow(row) {
   const structuredData = { ...(row.structured_data || {}) };
   const candidate = { ...row, structured_data: structuredData };
   const benefitKind = classifyConfirmedBenefitEvent(candidate);
+  const details = getCandidateBenefitDetails(candidate);
+  if (details) structuredData.benefit_details = details;
+  else delete structuredData.benefit_details;
   const evergreen = Boolean(benefitKind) && isEvergreenBenefitCandidate(candidate);
 
   if (benefitKind) {
@@ -61,6 +65,7 @@ function changed(before, after) {
   const right = after.structured_data || {};
   return JSON.stringify({
     description: left.description,
+    benefit_details: left.benefit_details,
     benefit_eligible: left.benefit_eligible,
     benefit_kind: left.benefit_kind,
     benefit_lifecycle: left.benefit_lifecycle,
@@ -68,6 +73,7 @@ function changed(before, after) {
     source_post_date: left.source_post_date,
   }) !== JSON.stringify({
     description: right.description,
+    benefit_details: right.benefit_details,
     benefit_eligible: right.benefit_eligible,
     benefit_kind: right.benefit_kind,
     benefit_lifecycle: right.benefit_lifecycle,

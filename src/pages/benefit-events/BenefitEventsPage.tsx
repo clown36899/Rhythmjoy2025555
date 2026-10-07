@@ -14,7 +14,7 @@ import {
 import { getLocalDateString } from '../v2/utils/eventListUtils';
 import './BenefitEventsPage.css';
 
-const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v2';
+const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v3';
 
 function getEventText(event: AppEvent) {
   return [
@@ -214,12 +214,14 @@ export default function BenefitEventsPage() {
                   <div className="benefit-event-kicker">
                     <span>{getKindLabel(event)}</span>
                   </div>
-                  <h2>{event.title}</h2>
+                  <h2>{event.benefit_details?.title || event.title}</h2>
                   <p>
                     <i className="ri-map-pin-line" aria-hidden="true" />
                     {getPlaceLabel(event)}
                   </p>
-                  {event.description && <small>{event.description}</small>}
+                  {event.benefit_details ? (
+                    <small className="benefit-event-offer">{event.benefit_details.description}</small>
+                  ) : event.description && <small>{event.description}</small>}
                   {event.link1 && (
                     <a
                 draggable={false}
@@ -267,7 +269,7 @@ export default function BenefitEventsPage() {
             <div className="benefit-event-kicker">
               <span>{getKindLabel(selectedEvent)}</span>
             </div>
-            <h2 id="benefit-event-modal-title">{selectedEvent.title}</h2>
+            <h2 id="benefit-event-modal-title">{selectedEvent.benefit_details?.title || selectedEvent.title}</h2>
             {selectedEventPoster && (
               <a
                 draggable={false}
@@ -299,7 +301,7 @@ export default function BenefitEventsPage() {
                 <dd>{getPlaceLabel(selectedEvent)}</dd>
               </div>
             </dl>
-            <p>{selectedEvent.description || '등록된 상세 설명이 없습니다.'}</p>
+            <p>{selectedEvent.benefit_details?.description || selectedEvent.description || '등록된 상세 설명이 없습니다.'}</p>
             {selectedEvent.link1 && (
               <a draggable={false} href={selectedEvent.link1} target="_blank" rel="noreferrer">
                 원본 링크

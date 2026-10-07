@@ -196,9 +196,33 @@ export function getCandidateBenefitDescription(candidate = {}) {
   const description = String(sd.description || candidate.extracted_text || '').trim();
   const social = (sd.activity_type || candidate.activity_type || sd.category) === 'social';
   if (!social || classifyConfirmedBenefitEvent(candidate) !== 'free_event'
-    || getConfirmedFreeBenefitScope(getBenefitEvidenceText(candidate)) !== 'class') return description;
+    || getConfirmedFreeBenefitEvidence(getBenefitEvidenceText(candidate))?.scope !== 'class') return description;
   const notice = '강습만 무료 · 소셜 입장료 별도 (원문 요금 안내 확인)';
   return description.startsWith(notice) ? description : `${notice}\n\n${description}`.trim();
+}
+
+// Benefit-only copy lives beside the existing evidence classifier. The parent
+// social title/description and original source remain owned by the event.
+export function getCandidateBenefitDetails(candidate = {}) {
+  const sd = candidate.structured_data || {};
+  if ((sd.activity_type || candidate.activity_type || sd.category) !== 'social'
+    || classifyConfirmedBenefitEvent(candidate) !== 'free_event') return null;
+  const confirmed = getConfirmedFreeBenefitEvidence(getBenefitEvidenceText(candidate));
+  if (confirmed?.scope !== 'class') return null;
+  const offers = confirmed.evidence.map(match => {
+    const label = match[0].replace(/무료\s*/g, '무료 ').trim();
+    // Only an explicit colon introduces a lesson name/teacher. Stop before the
+    // next programme, icon or time; do not borrow a social DJ or another date.
+    const tail = confirmed.text.slice(match.index + match[0].length);
+    const named = tail.match(/^\s*[:：]\s*([^\n.!?。]+)/)?.[1]
+      ?.split(/\p{Extended_Pictographic}|[⊹⋆₊]|\b\d{1,2}:\d{2}\b|\bDJ\b|입장료|소셜|social/iu)[0];
+    return `${label}${named?.trim() ? `: ${named.trim().slice(0, 120)}` : ''}`;
+  });
+  const unique = [...new Set(offers)];
+  return {
+    title: unique[0],
+    description: `${unique.join(' · ')}\n강습만 무료입니다. 소셜 무료 입장 혜택은 포함되지 않습니다. 소셜 요금과 참여 조건은 원문을 확인해 주세요.`,
+  };
 }
 
 export function classifyConfirmedBenefitEvent(candidate = {}) {
@@ -220,10 +244,10 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
   if (hasDiscountPromotion && /(?:\d{1,2}\s*%|\d[\d,]*(?:\.\d+)?\s*(?:천|만)?\s*원)\s*(?:추가\s*|중복\s*)?할인|할인\s*(?:판매|이벤트|행사|쿠폰|코드|혜택|가격|가|적용|중|제공)|(?:얼리\s*버드|조기\s*등록)[^.!?\n]{0,32}(?:할인|특가|혜택|\d{1,2}\s*%)|(?:할인|특가|혜택)[^.!?\n]{0,32}(?:얼리\s*버드|조기\s*등록)|(?:특가|쿠폰|프로모션)\s*(?:할인|판매|이벤트|가격|혜택|오픈|중)?|(?:회원|첫\s*방문|단체|학생)\s*(?:은|는|이|가|대상)?\s*\d{1,2}\s*%\s*할인|\b(?:discount|promotion|coupon)\b/i.test(discountText)) {
     return 'discount_event';
   }
-  return getConfirmedFreeBenefitScope(text) ? 'free_event' : null;
+  return getConfirmedFreeBenefitEvidence(text) ? 'free_event' : null;
 }
 
-function getConfirmedFreeBenefitScope(text) {
+function getConfirmedFreeBenefitEvidence(text) {
   const benefitText = text
     .replace(/무료\s*(?:라인\s*)?(?:강습|클래스|수업|체험|입장|행사|이벤트|파티)?\s*(?:은|는|이|가)?\s*(?:없(?:음|습니다|다|는)|아님|제외|불가|종료|마감)/gi, ' ')
     .replace(/\bfree\s+(?:class|lesson|event|party|admission)?\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended)\b/gi, ' ')
@@ -231,8 +255,8 @@ function getConfirmedFreeBenefitScope(text) {
   const evidence = [...benefitText.matchAll(/(?<![가-힣])(?:참가비|입장료|수강료|이용료|가격|비용|금액)\s*[:：]?\s*(?:완전\s*)?(?:0\s*원|무료)|(?<![가-힣])(?:누구나|모두|전원|참여|참가|입장|관람|수강)\s*(?:은|는|이|가|가능)?\s*무료|무료\s*(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습(?!권)|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)|(?<![가-힣])(?:(?:스윙\s*댄스|스윙|린디합|발보아|블루스|솔로\s*재즈|살사|바차타|탱고|스트릿\s*댄스|원\s*데이|맛보기|라인)\s*){0,2}(?:체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|참가|참여|워크숍|워크샵)\s*(?:은|는|이|가)?\s*무료|\bfree\s+(?:class|lesson|event|party|admission|entry|workshop|participation)\b|(?:admission|entry|class|lesson|event|party|workshop|participation)\s*[:：-]?\s*free\b/gi)];
   if (evidence.length) {
     // All matched free offers must concern lessons before narrowing the label.
-    return evidence.every(([quote]) => /강습|클래스|수업|체험|수강|워크숍|워크샵|class|lesson|workshop/i.test(quote))
-      ? 'class' : 'participation';
+    return { scope: evidence.every(([quote]) => /강습|클래스|수업|체험|수강|워크숍|워크샵|class|lesson|workshop/i.test(quote))
+      ? 'class' : 'participation', evidence, text: benefitText };
   }
   return null;
 }
@@ -1949,6 +1973,9 @@ export function prepareCandidate(rawCandidate, config = {}) {
     ...siteEventFields,
   });
   const confirmedBenefit = classifyConfirmedBenefitEvent({ ...normalizedRawCandidate, structured_data: structuredData });
+  const benefitDetails = getCandidateBenefitDetails({ ...normalizedRawCandidate, structured_data: structuredData });
+  if (benefitDetails) structuredData.benefit_details = benefitDetails;
+  else delete structuredData.benefit_details;
   if (confirmedBenefit) {
     structuredData.benefit_eligible = true;
     structuredData.benefit_kind = confirmedBenefit;

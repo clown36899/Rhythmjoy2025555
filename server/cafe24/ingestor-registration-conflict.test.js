@@ -173,7 +173,7 @@ it.each([true, false])('moves a successful registration exclusively to collected
   vi.setSystemTime(new Date('2026-09-16T03:00:00Z'));
   events = [];
   let row = candidate();
-  row.structured_data = { ...row.structured_data, benefit_eligible: true, benefit_kind: 'free_event', description: '강습만 무료 · 소셜 입장료 별도' };
+  row.structured_data = { ...row.structured_data, benefit_eligible: true, benefit_kind: 'free_event', benefit_details: {title:'무료 라인강습',description:'강습만 무료'}, description: '강습만 무료 · 소셜 입장료 별도' };
   loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'scraped_events' ? [row] : []);
   saveCafe24TableRow.mockImplementation(async (table, saved) => {
     if (table === 'events') events.push(saved);
@@ -193,6 +193,8 @@ it.each([true, false])('moves a successful registration exclusively to collected
   }, res);
   expect(res.status).toHaveBeenCalledWith(201);
   expect(row.registered_event_id).toBe(events[0].id);
+  expect(events[0].benefit_details).toEqual({title:'무료 라인강습',description:'강습만 무료'});
+  expect(events[0].title).not.toBe('무료 라인강습');
   if (automatic) expect(events[0].description).toBe('강습만 무료 · 소셜 입장료 별도');
   for (const tab of ['new', 'free', 'duplicate']) expect((await list(tab)).total).toBe(0);
   expect((await list('collected')).data).toEqual([row]);
