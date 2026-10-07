@@ -50,7 +50,7 @@ interface ScrapedEvent {
     tags?: string[];
     tag_labels?: string[];
     benefit_details?: { title: string; description: string } | null;
-  benefit_eligible?: boolean;
+    benefit_eligible?: boolean;
     benefit_kind?: 'free_event' | 'discount_event' | 'season_pass' | null;
     benefit_lifecycle?: 'date_bound' | 'evergreen' | null;
     ongoing_sale?: boolean;
