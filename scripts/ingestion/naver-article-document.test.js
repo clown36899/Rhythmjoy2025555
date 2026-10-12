@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it } from 'vitest';
-import { readNaverArticleDocument, readNaverArticleListDocument, naverScheduleOverviewPriority } from './benefit-search-utils.mjs';
+import { afterEach, expect, it, vi } from 'vitest';
+import { readNaverArticleDocument, readNaverArticleListDocument, waitForNaverArticleFrame, naverScheduleOverviewPriority } from './benefit-search-utils.mjs';
 afterEach(() => { document.body.innerHTML = ''; });
 
 it('reads the article body without author, comments or their images from the outer wrapper', () => {
@@ -49,4 +49,31 @@ it('keeps legacy article links and original poster information', () => {
   expect(link.title).toBe('9월 30일 소셜 DJ 나리');
   expect(link.href).toContain('ArticleRead.nhn?clubid=123&articleid=456');
   expect(link.posterUrl).toContain('/poster.jpg');
+});
+
+
+it('selects a late cafe_main frame instead of permanently waiting in the outer page', async () => {
+  const outer = { name: () => '', evaluate: vi.fn(async () => false) };
+  const article = { name: () => 'cafe_main', evaluate: vi.fn(async () => true) };
+  let attached = false;
+  const page = { mainFrame: () => outer, frames: () => attached ? [outer, article] : [outer],
+    waitForTimeout: vi.fn(async () => { attached = true; }) };
+  expect(await waitForNaverArticleFrame(page, 8000)).toBe(article);
+  expect(article.evaluate).toHaveBeenCalledWith(readNaverArticleDocument, { readyOnly: true });
+});
+
+it('records sticky notices without confusing them with ordinary course posts', () => {
+  document.body.innerHTML = `<table><tr class="board-notice type_main"><td><a href="https://cafe.naver.com/f-e/cafes/10342583/articles/1">운영 공지</a></td></tr>
+    <tr><td><a href="https://cafe.naver.com/f-e/cafes/10342583/articles/2">10/26 신규 강습</a></td></tr></table>`;
+  expect(readNaverArticleListDocument().map(row => row.isNotice)).toEqual([true, false]);
+});
+
+
+it('reads the original editor body before the cafe-wide board rules', () => {
+  document.body.innerHTML = `<div class="article_viewer"><div class="FormNoticeContent">게시판 규정: 정모와 겹치는 홍보 금지<img src="/guide.jpg"></div>
+    <div class="se-main-container">송송이&amp;레드홍 Blues Dance Workshop\n●장소\n사당 연습실\n2026년 11월 1일 첫 수업<img src="/original.jpg"></div></div>`;
+  const article = readNaverArticleDocument();
+  expect(article.text).not.toContain('게시판 규정');
+  expect(article.text).toContain('●장소');
+  expect(article.images.map(image => image.src)).toEqual([expect.stringContaining('/original.jpg')]);
 });

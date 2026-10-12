@@ -1,5 +1,6 @@
 import { getCalendarSocialDjText, normalizeCalendarSocialDjs } from '../../calendar/utils/calendarEventKind';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { eventGenreOptions, toggleEventGenre } from '../../../lib/eventRegistrationRules';
 import { createPortal } from 'react-dom';
 import DatePicker from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
@@ -84,19 +85,7 @@ const EventEditBottomSheet = React.memo(({
         }
     }, [activeField, initialValue]);
 
-    const uniqueGenres = useMemo(() => {
-        if (editCategory === 'social') {
-            return ['소셜', '졸공'];
-        }
-        if (editCategory === 'club') {
-            return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-        }
-        if (editCategory === 'class') {
-            return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-        }
-        // 행사 (event) - 사용자 요청 원상 복구
-        return ['워크샵', '파티', '대회', '라이브밴드', '기타'];
-    }, [editCategory]);
+    const uniqueGenres = eventGenreOptions[editCategory];
 
     // Legacy callers must not reopen the retired standalone time editor.
     if (!activeField || activeField === 'time') return null;
@@ -277,29 +266,8 @@ const EventEditBottomSheet = React.memo(({
                                         return (
                                             <button key={genre} onClick={(e) => {
                                                 e.preventDefault(); e.stopPropagation();
-                                                let newGenres: string[];
-                                                // 강습, 동호회, 소셜은 단일 선택 모드
-                                                if (editCategory === 'class' || editCategory === 'club' || editCategory === 'social') {
-                                                    newGenres = isActive ? [] : [genre];
-                                                } else {
-                                                    if (isActive) newGenres = currentList.filter(g => g !== genre);
-                                                    else {
-                                                        let temp = [...currentList];
-                                                        // '기타' 선택 시 다른 모든 장르 해제
-                                                        if (genre === '기타') {
-                                                            temp = ['기타'];
-                                                        } else {
-                                                            // 다른 장르 선택 시 '기타' 해제
-                                                            temp = temp.filter(g => g !== '기타');
-                                                            if (genre === '파티') temp = temp.filter(g => g !== '대회');
-                                                            else if (genre === '대회') temp = temp.filter(g => g !== '파티');
-                                                            temp = [...temp, genre];
-                                                        }
-                                                        newGenres = temp;
-                                                    }
-                                                }
-                                                setEditValue(newGenres.join(','));
-                                            }} className={`EDM-genreChip ${isActive ? 'is-active' : ''} ${editCategory === 'club' && isActive ? 'is-club' : ''}`}>{genre}</button>
+                                                setEditValue(toggleEventGenre(editCategory, editValue, genre));
+                                            }} aria-pressed={isActive} className={`EDM-genreChip ${isActive ? 'is-active' : ''} ${editCategory === 'club' && isActive ? 'is-club' : ''}`}>{genre}</button>
                                         );
                                     })}
                                 </div>

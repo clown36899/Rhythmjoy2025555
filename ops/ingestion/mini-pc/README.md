@@ -13,6 +13,11 @@ A delayed start catches the current discovery window once, without replaying mis
 windows. Existing six timers, progress files, and source directory remain owners.
 See `docs/decisions/2026-09-25-social-discovery-windows.md`.
 
+If mDNS/direct LAN SSH is unavailable, the existing production server reverse SSH
+listener at `127.0.0.1:22013` provides access to the same Mini PC. Use the existing
+SSH identities, `HostKeyAlias=kiosk-host.local`, and a `ProxyCommand` through the
+production server; validate the known Mini PC host key. Do not create another tunnel.
+
 ## Installed locations
 
 - Code: `~/.local/share/rhythmjoy-ingestion/runtime`

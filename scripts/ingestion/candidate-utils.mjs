@@ -315,7 +315,7 @@ const variableVenueEvidenceRe = /(?:장소|강습장|수업장)\s*[:：-]?\s*(?:
 function explicitVenueNameFromText(text = '') {
   const value = String(text || '').normalize('NFKC');
   const patterns = [
-    /(?:^|[\n\r])\s*(?:📍\s*)?(?:장소|강습장|수업장|개최지|venue|location)\s*[:：-]?\s*([^\n\r]{2,100})/gim,
+    /(?:^|[\n\r])[ \t▶●▪■◆◇□*-]*(?:📍\s*)?(?:장소(?:\s*[&·/]\s*시간)?|강습장|수업장|개최지|venue|location)\s*[:：-]?\s*([^\n\r]{2,100})/gim,
     /(?:^|[\n\r])\s*📍\s*([^\n\r]{2,100})/gm,
   ];
 

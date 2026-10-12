@@ -29,12 +29,11 @@ import {
   inferDanceTaxonomy,
   normalizeVisibleDanceScope,
   resolveRecruitmentKind,
-  resolveDanceGenreInput,
   type DanceScope,
 } from "../utils/danceTaxonomy";
 import { queryClient } from "../lib/queryClient";
 import { applyEventMutationToQueryCache } from "../utils/eventMutationSync";
-import { isEventRegistrationImageRequired } from "../lib/eventRegistrationRules";
+import { isEventRegistrationImageRequired, resolveEventRegistrationGenre } from "../lib/eventRegistrationRules";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -133,11 +132,11 @@ export default memo(function EventRegistrationModal({
   const [address, setAddress] = useState("");
   const [locationLink, setLocationLink] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<"class" | "event" | "club" | "">("");
+  const [category, setCategory] = useState<"class" | "event" | "club" | "social" | "">("");
   const [genre, setGenre] = useState("");
   const [danceScope, setDanceScope] = useState<DanceScope>("swing");
   const [benefitKind, setBenefitKind] = useState<'free_event' | 'discount_event' | null>(null);
-  const scope = "domestic"; // 통합 이후 기본값으로 고정
+  const [scope, setScope] = useState<"domestic" | "overseas">("domestic");
   // Password state removed - using RLS-based ownership
 
   const [link1, setLink1] = useState("");
@@ -314,7 +313,8 @@ export default memo(function EventRegistrationModal({
         setVenueName((editEventData as any).venue_name || "");
         setVenueCustomLink((editEventData as any).venue_custom_link || "");
         setDescription(editEventData.description || "");
-        setCategory((editEventData.category as "class" | "event" | "club") || "event");
+        setCategory((editEventData.category as "class" | "event" | "club" | "social") || "event");
+        setScope(editEventData.scope === "overseas" ? "overseas" : "domestic");
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
         setDanceScope(normalizeVisibleDanceScope(inferDanceScopeForEvent(editEventData as any), canUseExpandedDanceScopes));
@@ -356,6 +356,7 @@ export default memo(function EventRegistrationModal({
         setLocationLink("");
         setDescription("");
         setCategory(initialCategory || "");
+        setScope("domestic");
         setGenre(initialGenre);
         setDanceScope("swing");
         setBenefitKind(null);
@@ -730,15 +731,13 @@ export default memo(function EventRegistrationModal({
             ? sortedDates[sortedDates.length - 1]
             : (endDate ? formatDateForInput(endDate) : null);
 
-          const activityType = category === 'class' || category === 'club' ? 'class' : 'event';
+          const activityType = category === 'class' || category === 'club' ? 'class' : category === 'social' ? 'social' : 'event';
           const genreOptions = buildDanceGenreOptions(allGenres);
-          const resolvedGenre = resolveDanceGenreInput(genre, {
-            options: genreOptions,
-            fallbackScope: normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes),
-          });
+          const resolvedGenre = resolveEventRegistrationGenre(genre, genreOptions,
+            normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes));
           const recruitmentKind = resolveRecruitmentKind(genre || resolvedGenre.label);
           const recruitmentLabel = getRecruitmentKindLabel(recruitmentKind);
-          const effectiveActivityType: 'class' | 'event' | 'recruit' = recruitmentKind ? 'recruit' : activityType;
+          const effectiveActivityType: 'class' | 'event' | 'social' | 'recruit' = recruitmentKind ? 'recruit' : activityType;
           const effectiveCategory = recruitmentKind ? 'event' : category;
           const effectiveGenreLabel = recruitmentLabel || resolvedGenre.label || genre || undefined;
           const effectiveDanceGenre = recruitmentKind ? normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes) : resolvedGenre.key;
@@ -747,7 +746,7 @@ export default memo(function EventRegistrationModal({
             extracted_text: [title, description, location, link1, effectiveGenreLabel].filter(Boolean).join(' '),
             structured_data: {
               title,
-              event_type: effectiveActivityType === 'class' ? '강습' : effectiveActivityType === 'recruit' ? '모집' : '행사',
+              event_type: effectiveActivityType === 'class' ? '강습' : effectiveActivityType === 'recruit' ? '모집' : effectiveActivityType === 'social' ? '소셜' : '행사',
               dance_scope: resolvedDanceScope,
               dance_genre: effectiveDanceGenre,
               activity_type: effectiveActivityType,
@@ -1013,6 +1012,7 @@ export default memo(function EventRegistrationModal({
     description: description,
     category: previewRecruitmentKind ? 'event' : category,
     genre: genre,
+    scope,
     dance_scope: danceScope,
     dance_genre: previewRecruitmentKind ? danceScope : undefined,
     activity_type: previewRecruitmentKind ? 'recruit' : undefined,
@@ -1048,16 +1048,17 @@ export default memo(function EventRegistrationModal({
           console.debug(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
         }
         {
-          const resolved = resolveDanceGenreInput(String(value || ''), {
-            options: buildDanceGenreOptions(allGenres),
-            fallbackScope: normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes),
-          });
+          const resolved = resolveEventRegistrationGenre(String(value || ''), buildDanceGenreOptions(allGenres),
+            normalizeVisibleDanceScope(danceScope, canUseExpandedDanceScopes));
           const nextGenre = resolved.label || value;
           const nextRecruitmentKind = resolveRecruitmentKind(nextGenre);
           setGenre(nextGenre);
           if (nextRecruitmentKind) setCategory('event');
           if (resolved.scope !== 'unknown') setDanceScope(normalizeVisibleDanceScope(resolved.scope, canUseExpandedDanceScopes));
         }
+        break;
+      case 'scope':
+        setScope(value === 'overseas' ? 'overseas' : 'domestic');
         break;
       case 'dance_scope':
         setDanceScope(normalizeVisibleDanceScope(value || 'swing', canUseExpandedDanceScopes));
@@ -1214,6 +1215,7 @@ export default memo(function EventRegistrationModal({
               </div>
             ) : previewEvent.image ? (
               <img
+                draggable={false}
                 src={previewEvent.image}
                 alt="preview"
                 className="ERM-billboardImage"

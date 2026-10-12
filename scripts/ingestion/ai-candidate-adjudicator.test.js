@@ -147,11 +147,11 @@ describe('AI candidate adjudication grounding', () => {
     ]));
   });
 
-  it('requires an explicit class marker for class registration', () => {
+  it.each(['강습', '특강'])('requires an explicit class marker for class registration (%s)', marker => {
     const classCandidate = {
-      extracted_text: '8월 3일 해피홀 네오스윙 입문 강습',
+      extracted_text: `8월 3일 해피홀 네오스윙 입문 ${marker}`,
       structured_data: {
-        title: '네오스윙 입문 강습',
+        title: `네오스윙 입문 ${marker}`,
         date: '2026-08-03',
         activity_type: 'class',
         venue_name: '해피홀',
@@ -164,7 +164,7 @@ describe('AI candidate adjudication grounding', () => {
       activity_type: 'class',
       venue: '해피홀',
       djs: [],
-      evidence_quotes: ['8월 3일', '해피홀', '입문 강습'],
+      evidence_quotes: ['8월 3일', '해피홀', `입문 ${marker}`],
     }).ok).toBe(true);
   });
 

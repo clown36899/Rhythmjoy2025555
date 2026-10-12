@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { isClassLikeEventHeadline } from '../../src/utils/graduationEvent.mjs';
 import { automaticSocialCollectionEnabled, isAutomaticCollectionActivityEnabled } from './collection-registry.mjs';
 import { stripRepeatedDjContext, stripNaverCafeMemberPrefix, filterDeadlineOnlyEventDates, prepareCandidate, buildCafe24Payload, toMapSafeVenueName, extractExplicitClosureDates } from './candidate-utils.mjs';
 import {
@@ -23,7 +24,7 @@ const input = (url, text = '본문') => ({ source: { id: 'source' }, sourceUrl: 
 const directories = [];
 // Exercise the active policy by default; paused-policy cases override it explicitly.
 const nativeContext = values => vm.createContext({ automaticSocialCollectionEnabled,
-  isAutomaticCollectionActivityEnabled, ...values });
+  isAutomaticCollectionActivityEnabled, suppressNotifications: false, ...values });
 it('applies the existing article-date boundary to AI without trusting a fabricated poster date', async () => {
   const h = nativeContext({
     today: '2026-09-24', maxFutureDays: 60, exceptionBacktest: false, exceptionLookbackDays: 0,
@@ -50,7 +51,7 @@ it('applies the existing article-date boundary to AI without trusting a fabricat
   // discard the leading date before either deterministic or AI date selection.
   const frame = { name: () => 'cafe_main', waitForFunction: vi.fn(async () => true),
     evaluate: vi.fn(async fn => fn === h.readNaverArticleDocument ? { title: input.title, text: '몽룡님입니다', images: [], publishedAt: '2026.09.14' } : undefined) };
-  Object.assign(h, { safeGoto: async () => {}, postTimeoutMs: 100, readNaverArticleDocument: () => {},
+  Object.assign(h, { waitForNaverArticleFrame: vi.fn(async () => frame), safeGoto: async () => {}, postTimeoutMs: 100, readNaverArticleDocument: () => {},
     selectSourceOrderedPosterUrls: () => [input.posterUrl], pickPosterImage: () => input.posterUrl,
     cleanTitle: value => value.replace(/^2026\.09\.17\s*/, ''), stripNaverCafeChrome: value => value,
     normalizeSourceUrl: value => value,
@@ -559,4 +560,33 @@ it('skips social AI and closure extraction before downloading posters', async ()
   vm.runInContext(functions(['buildAiSocialFallbackCandidates', 'buildExceptionBacktestCandidates']), h);
   expect(await h.buildAiSocialFallbackCandidates({})).toEqual([]);
   expect(h.buildExceptionBacktestCandidates({})).toEqual([]);
+});
+
+
+it('preserves October–December opening dates and filters dotted clock values only at their own boundaries', () => {
+  const h = nativeContext({ today: '2026-10-12', exceptionBacktest: false, maxFutureDays: 180, exceptionLookbackDays: 180,
+    getYearForMonth: () => 2026, unique: values => [...new Set(values)], filterDeadlineOnlyEventDates, keepFirstEventDateOnly: dates => dates.slice(0, 1) });
+  vm.runInContext(functions(['compactText', 'isoDate', 'extractDates', 'hasExplicitEventDateMention', 'selectCandidateDates']), h);
+  for (const [title, expected] of [['문탄+이화 Monthly Jazz Special (10/26 시작)', '2026-10-26'],
+      ["견우&뽈의 린디합 프라이빗 클리닉 (10/12~)", '2026-10-12'],
+      ['린디합 강습 11/02 시작', '2026-11-02'], ['블루스 강습 12/14 시작', '2026-12-14']]) {
+    expect(h.selectCandidateDates({ title, cleanText: `${title} 장소: 테스트홀`, activity: 'class' })).toEqual([expected]);
+  }
+  expect(h.extractDates('강습 일정: 10/26, 11/2 PM 8:30')).toEqual(['2026-10-26', '2026-11-02']);
+  expect(h.extractDates('시작 시간 오후 10.26시')).toEqual([]);
+  expect(h.extractDates('2026년 11월 1일 ~ 12월 6일')).toEqual(['2026-11-01', '2026-12-06']);
+  expect(h.selectCandidateDates({ title: '블루스 6주 강습', cleanText: '일정 9월 28일부터 11월 2일까지 6주 강습', activity: 'class' })).toEqual([]);
+  expect(h.selectCandidateDates({title:'린디합 10/8 시작',cleanText:'10/15 두 번째 수업',activity:'class'})).toEqual([]);
+  expect(h.selectCandidateDates({title:'린디합 10/26 입금 마감',cleanText:'10/26 입금 마감',activity:'class'})).toEqual([]);
+});
+
+
+it('classifies a grounded course headline as a lesson when its description also mentions socials', () => {
+  const h = nativeContext({ isClassLikeEventHeadline, graduationEventPattern: /졸공|졸업파티/, isInstagramCaptionClassHeadline: () => false,
+    hasExplicitEventDateMention: () => true });
+  vm.runInContext(functions(['inferActivity']), h);
+  const source = { scope: 'swing', allowedActivityTypes: ['class'] };
+  expect(h.inferActivity('Blues Starter 입문반 (2주특강)', '강습 후 소셜 입장 가능합니다.', source)).toEqual({ activity: 'class', eventType: '강습' });
+  expect(h.inferActivity('Social Party', '소셜 DJ 신지', source).activity).toBe('social');
+  expect(h.inferActivity('강사 모집 안내', '강사 모집', source).activity).toBe('recruit');
 });

@@ -2941,3 +2941,9 @@ for (const menu of [12, 81, 82, 83, 84, 91]) {
 assert.equal(findSourceByUrl('https://www.instagram.com/clublatin_everlatin/p/example/').id, 'clublatin_everlatin');
 assert.ok(naverScheduleOverviewPriority('살사 초급 10월 1일 개강 모집중', '2026-09-23', {allowedActivityTypes:['class']}) < naverScheduleOverviewPriority('112기 발표회 공지', '2026-09-23', {allowedActivityTypes:['class']}));
 console.log('ingestion standards ok');
+
+for (const [text, venue] of [['▶ 장소 : 사당 그라운즈 연습실 D홀', '사당 그라운즈 연습실 D홀'],
+  ['●장소\n\n사당 연습실', '사당 연습실'], ['장소&시간\n[사당] 올웨이즈 연습실 A홀\nGX TIME : 8-10시', '[사당] 올웨이즈 연습실 A홀']]) {
+  assert.deepEqual(resolveSourceVenueEvidence({ text }), { venue, provenance: 'source_text' });
+}
+assert.deepEqual(resolveSourceVenueEvidence({ text: '문의: 강사 장소 소개 없이 신청 링크만 있습니다.' }), { venue: '', provenance: 'unresolved' });

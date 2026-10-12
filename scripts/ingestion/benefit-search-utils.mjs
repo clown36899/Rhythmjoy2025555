@@ -436,8 +436,9 @@ export function readNaverArticleDocument({ readyOnly = false } = {}) {
     '.article_viewer', '.se-main-container', '.ContentRenderer', '#tbody',
     '.NHN_Writeform_Main', '.post_ct', '.se-viewer', '.article-content',
   ]);
-  const text = viewer?.innerText ?? viewer?.textContent ?? '';
-  const images = [...(viewer?.querySelectorAll('img') || [])].map(img => ({
+  const content = viewer?.querySelector('.se-main-container, .ContentRenderer, .se-viewer') || viewer;
+  const text = content?.innerText ?? content?.textContent ?? '';
+  const images = [...(content?.querySelectorAll('img') || [])].map(img => ({
     src: img.currentSrc || img.src || img.getAttribute('data-src') || img.getAttribute('data-lazysrc') || img.getAttribute('data-original') || img.getAttribute('data-url') || '',
     w: img.naturalWidth || img.width || 0,
     h: img.naturalHeight || img.height || 0,
@@ -451,6 +452,23 @@ export function readNaverArticleDocument({ readyOnly = false } = {}) {
     || document.querySelector('time[datetime]')?.getAttribute('datetime')
     || first(['.ArticleWriter .date', '.article_info .date', '.date'])?.textContent || '';
   return { title, text, images, publishedAt };
+}
+
+// The article iframe attaches after outer navigation. Select the document only
+// after its own body is ready, including current unframed article pages.
+export async function waitForNaverArticleFrame(page, timeoutMs = 8000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    for (const frame of page.frames().filter(frame => frame.name() === 'cafe_main' || frame === page.mainFrame())) {
+      try {
+        if (await frame.evaluate(readNaverArticleDocument, { readyOnly: true })) return frame;
+      } catch (error) {
+        if (!/detached|destroyed|navigation|closed/i.test(error.message || '')) throw error;
+      }
+    }
+    await page.waitForTimeout(Math.min(100, Math.max(1, deadline - Date.now())));
+  }
+  throw new Error(`Naver article body not ready within ${timeoutMs}ms`);
 }
 
 // Public cafe links only; comment navigation must never overwrite article titles.
@@ -471,6 +489,7 @@ export function readNaverArticleListDocument() {
           href,
           title,
           rowText: textOf(row),
+          isNotice: Boolean(anchor.closest('.board-notice')),
           posterUrl: imageOf(row),
           index,
         };

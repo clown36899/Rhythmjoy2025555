@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 
@@ -35,7 +35,7 @@ const makeEvent = (overrides: Partial<EditableEvent> = {}): EditableEvent => ({
 }) as EditableEvent;
 
 describe('EditableEventDetail classification sheet', () => {
-    it('keeps the full preset list visible and applies the draft only through Save', () => {
+    it('uses the detail editor category list and applies the draft only through Save', () => {
         const onUpdate = vi.fn();
         const onDanceScopeChange = vi.fn();
 
@@ -58,8 +58,8 @@ describe('EditableEventDetail classification sheet', () => {
         const saveButton = screen.getByRole('button', { name: '저장' });
         expect(saveButton).toBeDisabled();
 
-        fireEvent.click(screen.getByRole('button', { name: '외강' }));
-        fireEvent.click(screen.getByRole('button', { name: '스윙', exact: true }));
+        fireEvent.click(screen.getByRole('button', { name: '강습' }));
+        fireEvent.click(screen.getByRole('button', { name: '린디합', exact: true }));
 
         expect(screen.getByRole('button', { name: '린디합' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: '솔로재즈' })).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('EditableEventDetail classification sheet', () => {
         fireEvent.click(saveButton);
 
         expect(onUpdate).toHaveBeenNthCalledWith(1, 'category', 'class');
-        expect(onUpdate).toHaveBeenNthCalledWith(2, 'genre', '스윙');
+        expect(onUpdate).toHaveBeenNthCalledWith(2, 'genre', '린디합');
         expect(onDanceScopeChange).toHaveBeenCalledWith('swing');
         expect(screen.queryByRole('dialog', { name: '분류 및 장르 선택' })).not.toBeInTheDocument();
     });
@@ -80,7 +80,7 @@ describe('EditableEventDetail classification sheet', () => {
 
         render(
             <EditableEventDetail
-                event={makeEvent({ category: 'event', genre: '스윙' })}
+                event={makeEvent({ category: 'event', genre: '파티' })}
                 onUpdate={onUpdate}
                 onImageUpload={vi.fn()}
                 danceScope="swing"
@@ -96,7 +96,7 @@ describe('EditableEventDetail classification sheet', () => {
 
         fireEvent.click(screen.getByRole('button', { name: '분류 및 장르 선택' }));
         expect(screen.getByRole('button', { name: '행사' })).toHaveAttribute('aria-pressed', 'true');
-        expect(screen.getByRole('button', { name: '스윙', exact: true })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: '파티', exact: true })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it.each([false, true])('saves a coherent Salsa choice for expanded permission=%s', (expandedPermission) => {
@@ -105,7 +105,7 @@ describe('EditableEventDetail classification sheet', () => {
 
         render(
             <EditableEventDetail
-                event={makeEvent({ category: 'event', genre: '스윙' })}
+                event={makeEvent({ category: 'event', genre: '파티' })}
                 onUpdate={onUpdate}
                 onImageUpload={vi.fn()}
                 onDanceScopeChange={onDanceScopeChange}
@@ -121,14 +121,14 @@ describe('EditableEventDetail classification sheet', () => {
         fireEvent.click(screen.getByRole('button', { name: /살사 일정만/ }));
 
         const saveButton = screen.getByRole('button', { name: '저장' });
-        expect(saveButton).toBeDisabled();
+        expect(saveButton).toBeEnabled();
         expect(screen.queryByRole('button', { name: '린디합' })).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: '살사', exact: true }));
+        fireEvent.click(screen.getByRole('button', { name: '라이브밴드', exact: true }));
         expect(saveButton).toBeEnabled();
         fireEvent.click(saveButton);
 
-        expect(onUpdate).toHaveBeenCalledWith('genre', '살사');
+        expect(onUpdate).toHaveBeenCalledWith('genre', '파티,라이브밴드');
         expect(onDanceScopeChange).toHaveBeenCalledWith('salsa');
     });
 
@@ -149,14 +149,14 @@ describe('EditableEventDetail classification sheet', () => {
         expect(screen.getByRole('dialog', { name: '분류 및 장르 선택' })).toBeInTheDocument();
     });
 
-    it('normalizes a legacy alias to the visible canonical option without a correction prompt', () => {
+    it.each([false, true])('normalizes a legacy alias without expanding public scopes (%s)', permission => {
         render(
             <EditableEventDetail
                 event={makeEvent({ category: 'event', genre: 'Salsa' })}
                 onUpdate={vi.fn()}
                 onImageUpload={vi.fn()}
                 danceScope="salsa"
-                canUseExpandedDanceScopes
+                canUseExpandedDanceScopes={permission}
             />,
         );
 
@@ -164,5 +164,47 @@ describe('EditableEventDetail classification sheet', () => {
 
         expect(screen.getByRole('button', { name: '살사', exact: true })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.queryByText(/혹시 .*인가요/)).not.toBeInTheDocument();
+    });
+});
+
+
+describe('registration preserves existing detail selection rules', () => {
+    it('applies event exclusions and region only on Save', () => {
+        const onUpdate = vi.fn();
+        render(<EditableEventDetail event={makeEvent({ category: 'event', genre: '워크샵,파티' })} onUpdate={onUpdate} onImageUpload={vi.fn()} />);
+        fireEvent.click(screen.getByRole('button', { name: '분류 및 장르 선택' }));
+        const sheet = within(screen.getByRole('dialog'));
+        expect(sheet.getByRole('button', { name: '워크샵' })).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(sheet.getByRole('button', { name: '대회' }));
+        expect(sheet.getByRole('button', { name: '파티' })).toHaveAttribute('aria-pressed', 'false');
+        expect(sheet.getByRole('button', { name: '워크샵' })).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(sheet.getByRole('button', { name: '기타' }));
+        expect(sheet.getByRole('button', { name: '대회' })).toHaveAttribute('aria-pressed', 'false');
+        fireEvent.click(sheet.getByRole('button', { name: '라이브밴드' }));
+        expect(sheet.getByRole('button', { name: '기타' })).toHaveAttribute('aria-pressed', 'false');
+        fireEvent.click(sheet.getByRole('button', { name: /해외/ }));
+        expect(onUpdate).not.toHaveBeenCalled();
+        fireEvent.click(sheet.getByRole('button', { name: '저장' }));
+        expect(onUpdate).toHaveBeenCalledWith('genre', '라이브밴드');
+        expect(onUpdate).toHaveBeenCalledWith('scope', 'overseas');
+    });
+
+    it.each([
+        ['event', '행사', ['워크샵', '파티', '대회', '라이브밴드', '기타']],
+        ['class', '강습', ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타']],
+        ['club', '동호회', ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타']],
+        ['social', '소셜', ['소셜', '졸공']],
+    ] as const)('offers exactly the existing %s options and resets category changes', (_category, label, expected) => {
+        render(<EditableEventDetail event={makeEvent()} onUpdate={vi.fn()} onImageUpload={vi.fn()} />);
+        fireEvent.click(screen.getByRole('button', { name: '분류 및 장르 선택' }));
+        fireEvent.click(screen.getByRole('button', { name: label, exact: true }));
+        const options = document.querySelectorAll('.EED-genreBtn');
+        expect(Array.from(options, item => item.textContent)).toEqual(expected);
+        if (_category !== 'event') {
+            if (_category !== 'social') fireEvent.click(options[0]);
+            fireEvent.click(options[1]);
+            expect(options[0]).toHaveAttribute('aria-pressed', 'false');
+            expect(options[1]).toHaveAttribute('aria-pressed', 'true');
+        }
     });
 });

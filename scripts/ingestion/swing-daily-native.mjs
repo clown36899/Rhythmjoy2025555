@@ -54,6 +54,7 @@ import {
   readInstagramCarouselDocument,
   readNaverArticleListDocument,
   readNaverArticleDocument,
+  waitForNaverArticleFrame,
   readInstagramProfileDocument,
   isNaverAdministrativeNoticeText,
   isNaverScheduleOverviewText,
@@ -109,6 +110,7 @@ const publicEventsEndpoint = process.env.CAFE24_PUBLIC_EVENTS_ENDPOINT
 const ingestToken = process.env.SCRAPED_EVENTS_INGEST_TOKEN || process.env.CAFE24_INGEST_TOKEN || '';
 const exceptionBacktest = process.env.INGESTION_EXCEPTION_BACKTEST === '1';
 const dryRun = process.env.INGESTION_NATIVE_DRY_RUN === '1' || exceptionBacktest;
+const suppressNotifications = process.env.INGESTION_SUPPRESS_NOTIFICATIONS === '1';
 const diagnosticJson = dryRun && process.env.INGESTION_NATIVE_DIAGNOSTIC_JSON === '1';
 const aiAdjudicationEnabled = process.env.INGESTION_AI_ADJUDICATION !== '0';
 const aiSocialExtractionEnabled = aiAdjudicationEnabled && process.env.INGESTION_AI_SOCIAL_EXTRACTION !== '0';
@@ -647,8 +649,9 @@ function selectCandidateDates({ title, cleanText, activity }) {
     return keepFirstEventDateOnly(titleDates);
   }
   if (hasExplicitEventDateMention(title)) return [];
-  const sourceDates = filterDeadlineOnlyEventDates(extractDates(cleanText), evidenceText, activity);
+  const sourceDates = filterDeadlineOnlyEventDates(extractDates(cleanText, { includePast: activity === 'class' }), evidenceText, activity);
   if (activity === 'social') return sourceDates;
+  if (activity === 'class' && sourceDates[0] < today) return [];
   return keepFirstEventDateOnly(sourceDates);
 }
 
@@ -900,14 +903,14 @@ function markInstagramProfileSuccess() {
   instagramProfileFailureStreak = 0;
 }
 
-function extractDates(text = '') {
+function extractDates(text = '', { includePast = false } = {}) {
   const raw = compactText(text);
   const dates = [];
   const isTimeContext = (index, length) => {
-    const context = raw.slice(Math.max(0, index - 10), Math.min(raw.length, index + length + 10));
-    return /(?:오전|오후|저녁|am|pm)\s*$/i.test(context.slice(0, 10))
-      || /^\s*(?:시|:|\d{2}\b)/.test(context.slice(10))
-      || /\d{1,2}\s*[:：]\s*\d{2}/.test(context);
+    const before = raw.slice(Math.max(0, index - 10), index);
+    const after = raw.slice(index + length, index + length + 10);
+    return /(?:오전|오후|저녁|am|pm)\s*$/i.test(before)
+      || /^\s*(?:시(?!작)|[:：]\s*\d{2})/.test(after);
   };
 
   // Full-year poster dates only: do not interpret a time such as "09 15" as a date.
@@ -921,7 +924,7 @@ function extractDates(text = '') {
     dates.push(isoDate(match[1], match[2], match[3]));
   }
 
-  for (const match of raw.matchAll(/(\d{1,2})\s*월\s*(\d{1,2}(?!\d|\s*주)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과|~|-)\s*\d{1,2}(?!\d|\s*주)\s*(?:일)?){0,7})/g)) {
+  for (const match of raw.matchAll(/(\d{1,2})\s*월\s*(\d{1,2}(?!\d|\s*주|\s*월)\s*(?:일)?(?:\s*(?:[,，·ㆍ/&]|및|와|과|~|-)\s*\d{1,2}(?!\d|\s*주|\s*월)\s*(?:일)?){0,7})/g)) {
     const month = Number(match[1]);
     const year = getYearForMonth(month);
     const days = [...match[2].matchAll(/\d{1,2}/g)].map((day) => Number(day[0])).filter((day) => day >= 1 && day <= 31);
@@ -944,7 +947,7 @@ function extractDates(text = '') {
       const dateMs = Date.parse(`${date}T00:00:00+09:00`);
       if (!Number.isFinite(dateMs)) return false;
       if (exceptionBacktest) return dateMs >= lookbackStartMs && dateMs <= todayMs;
-      return date >= today && (dateMs - todayMs) / 86400000 <= maxFutureDays;
+      return (date >= today || (includePast && dateMs >= lookbackStartMs)) && (dateMs - todayMs) / 86400000 <= maxFutureDays;
     })
     .sort();
 }
@@ -974,8 +977,7 @@ function inferActivity(text = '', rawTitle = '', source = {}) {
   }
   if (/(참가자|팀원|크루|멤버|강사|댄서|출연진)\s*모집|오디션/i.test(text)) return { activity: 'recruit', eventType: '모집' };
   if (source.allowedActivityTypes?.length === 1 && source.allowedActivityTypes[0] === 'class'
-    && isClassLikeEventHeadline(rawTitle) && /개강|첫\s*수업/.test(rawTitle)
-    && hasExplicitEventDateMention(rawTitle)) return { activity: 'class', eventType: '강습' };
+    && isClassLikeEventHeadline(rawTitle) && !graduationEventPattern.test(rawTitle)) return { activity: 'class', eventType: '강습' };
   if (/(?:강습|클래스|원\s*데이|원데이).{0,40}(?:신청\s*링크|신청서|접수|모집)|(?:신청\s*링크|신청서|접수|모집).{0,40}(?:강습|클래스|원\s*데이|원데이)/i.test(text)) {
     return { activity: 'recruit', eventType: '모집' };
   }
@@ -1599,7 +1601,9 @@ async function collectNaverArticleLinks(page, source) {
       const aDate = hasEventDate(a.title) ? 0 : 1;
       const bDate = hasEventDate(b.title) ? 0 : 1;
       const classOnly = source.allowedActivityTypes?.length === 1 && source.allowedActivityTypes[0] === 'class';
-      // Lesson intake follows new posts; numeric titles must not pin old classes above them.
+      // Swing lesson boards follow new external notices before sticky cafe-wide
+      // notices. Salsa application boards retain their dated-course priority.
+      if (classOnly && source.scope === 'swing') return Number(a.isNotice) - Number(b.isNotice) || a.index - b.index;
       return aSchedule - bSchedule || (classOnly ? 0 : aGraduation - bGraduation || aDate - bDate) || a.index - b.index;
     })
     .slice(0, 24);
@@ -1611,8 +1615,7 @@ async function collectNaverArticleLinks(page, source) {
 
 async function scrapeNaverArticle(page, link, source) {
   await safeGoto(page, link.href, postTimeoutMs);
-  const frame = page.frames().find((item) => item.name() === 'cafe_main') || page.mainFrame();
-  await frame.waitForFunction(readNaverArticleDocument, { readyOnly: true }, { timeout: 8000 });
+  const frame = await waitForNaverArticleFrame(page, 8000);
   await frame.evaluate(() => window.scrollTo(0, Math.floor(document.body.scrollHeight / 2))).catch(() => {});
   await page.waitForTimeout(700);
   await frame.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
@@ -2959,6 +2962,7 @@ async function persistCandidate(candidate) {
         headers,
         body: JSON.stringify({
           automatic: true,
+          suppressNotifications,
           scrapedEventId: savedCandidate.id,
         }),
       }, postRequestTimeoutMs);

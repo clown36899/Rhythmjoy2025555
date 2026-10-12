@@ -22,6 +22,8 @@ vi.mock('./EditableEventDetail', () => ({ default: React.forwardRef<unknown, Com
     <output data-testid="scope">{props.danceScope}</output>
     <button onClick={() => { props.onUpdate('title', '살사 체험 강습'); props.onUpdate('link1', 'https://example.com/course'); props.onBenefitKindChange?.('free_event'); }}>필수 입력</button>
     <button onClick={() => { props.onUpdate('genre', '살사'); props.onDanceScopeChange?.('salsa'); }}>살사 선택</button>
+    <button onClick={() => { props.onUpdate('genre', '워크샵,파티'); props.onUpdate('scope', 'overseas'); }}>행사 선택</button>
+    <button onClick={() => { props.onUpdate('category', 'social'); props.onUpdate('genre', '졸공'); }}>졸공 선택</button>
     {['event', 'class', 'club'].map(category => <button key={category} onClick={() => props.onUpdate('category', category)}>{category}</button>)}
     <button onClick={props.onRegister}>등록</button>
   </div>
@@ -75,4 +77,16 @@ describe('member event registration dance scope', () => {
     fireEvent.click(screen.getByText('등록', { exact: true }));
     expect(mocks.writes).toHaveLength(0);
   });
+});
+
+
+it.each([['행사 선택', 'event', '워크샵,파티', 'event', 'overseas'], ['졸공 선택', 'social', '졸공', 'social', 'domestic']])('persists the editor selection from %s without fuzzy replacement', async (button, category, genre, activity_type, scope) => {
+  const onClose = vi.fn();
+  render(<EventRegistrationModal isOpen onClose={onClose} selectedDate={selectedDate} />);
+  fireEvent.click(screen.getByText('필수 입력'));
+  fireEvent.click(screen.getByText('event', { exact: true }));
+  fireEvent.click(screen.getByText(button));
+  fireEvent.click(screen.getByText('등록', { exact: true }));
+  await waitFor(() => expect(onClose).toHaveBeenCalled());
+  expect(mocks.writes[0].data).toMatchObject({ genre, category, activity_type, scope, dance_scope: 'swing' });
 });

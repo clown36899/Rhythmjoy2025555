@@ -187,7 +187,7 @@ function evidenceMentionsDate(evidence, isoDate) {
 
 const ACTIVITY_EVIDENCE_PATTERNS = {
   social: /(?:소셜|social|정모|금\s*(?:햅|햎|해피)|일\s*(?:햅|햎|해피))/i,
-  class: /(?:강습|수업|클래스|class|워크숍|워크샵|workshop|레슨|lesson)/i,
+  class: /(?:강습|수업|클래스|특강|class|워크숍|워크샵|workshop|레슨|lesson)/i,
   event: /(?:행사|이벤트|event|파티|party|공연|대회)/i,
   recruit: /(?:모집|신청|등록|recruit)/i,
   sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
@@ -445,23 +445,31 @@ export function validateAiSocialExtraction(input = {}, extraction = {}, config =
   };
 }
 
-export function buildAiAdjudicationPrompt(candidate) {
+export function buildAiAdjudicationPrompt(candidate, { today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) } = {}) {
   const sd = candidate.structured_data || {};
   const trustedVenueContext = trustedSourceVenueContext(candidate);
   const historicalDjNames = getHistoricalDjNamesForRoute(candidate.source_id);
   return `You are the second-stage verifier for a Korean swing-dance event calendar.
 Judge only the supplied source text. Do not browse, infer a time, or use outside knowledge.
 The calendar stores dates only. Never output or reason from an event time.
+TODAY_KST: ${today}
 
 A DJ credit alone never makes an item a social. When the collector candidate or source explicitly
 identifies an event, competition, championship, cup, or battle, keep activity_type "event" even if a DJ is listed.
 
 Return "register" only when the text unambiguously supports exactly one event on the collector date,
-the activity type, venue, and (for a social) every DJ. If several dates or several DJ lineups are mixed
-and the supplied candidate is not clearly one date-specific section, return "review".
+the activity type, venue, and (for a social) every DJ. For a class, one explicitly described
+course with several session dates is one class event: the collector date must be its first
+session/opening date, on or after TODAY_KST. Later sessions of that same course are not
+competing events. Quote the course schedule/start date, actual teaching venue, and class marker.
+Never register a later session of a course that already began, and never invent a venue from
+an area name alone (for example "신촌" or "사당"). Distinct courses, levels, instructors or
+venues in a combined notice still require separate, unambiguous course sections; otherwise review.
+For socials/events, if several dates or several DJ lineups are mixed and the supplied candidate
+is not clearly one date-specific section, return "review".
 The collector resolves the year from the collection date. When SOURCE_TEXT explicitly contains the
 same month and day but omits the year, return the collector ISO event_date; an explicit source year
-is not required. Never do this when a conflicting event month/day remains in SOURCE_TEXT.
+is not required. Never do this when a conflicting independent event/course month/day remains in SOURCE_TEXT.
 Dates explicitly labeled as advance-registration/payment deadlines are not competing event dates.
 Compact source headers such as "8월 1,2일" may support the collector date only when SOURCE_TEXT
 contains just the matching weekday/DJ section and no competing lineup.
@@ -867,7 +875,7 @@ export async function adjudicateCandidateWithAi(candidate, config = {}) {
       '--output-schema', schemaPath,
       '--output-last-message', outputPath,
       '-',
-    ], buildAiAdjudicationPrompt(candidate), {
+    ], buildAiAdjudicationPrompt(candidate, { today: config.today }), {
       cwd: moduleDir,
       timeout: Number(config.timeoutMs || process.env.INGESTION_AI_TIMEOUT_MS || 90_000),
       maxBuffer: 2 * 1024 * 1024,
