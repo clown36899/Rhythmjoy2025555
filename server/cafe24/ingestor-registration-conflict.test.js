@@ -218,6 +218,7 @@ it('keeps completed legacy rows out of review tabs while retaining pending and g
 
 it('retains the same existing event ID on a compatible retry without sending another notification', async () => {
   events = [{ ...event, title: 'DJ 초리 | 스윙타임 수요 소셜', link1: 'https://example.com/candidate' }];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'scraped_events' ? [{ ...candidate(), registered_event_id: event.id }] : []);
   const res = response();
   await cafe24IngestorRegisterEvent(request(), res);
   expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ repaired: true, event: expect.objectContaining({ id: 'live' }) }));
@@ -260,4 +261,100 @@ it('blocks social automatic intake and backlog registration while leaving explic
   const manual = response();
   await cafe24IngestorRegisterEvent(request('candidate', { automatic: false, eventData: { ...event, id: undefined } }), manual);
   expect(manual.status).toHaveBeenCalledWith(201);
+});
+
+
+const lessonCandidate = () => {
+  const title = '문탄·이화 Monthly Jazz Special';
+  const text = `${title}\n2026년 10월 26일 첫 수업\n장소: 사당 그라운즈 연습실 D홀\n강사: 문탄·이화\n린디합 강습`;
+  return { id: 'lesson-candidate', status: 'pending', source_id: 'swingtown-lessons-cafe',
+    source_url: 'https://cafe.naver.com/f-e/cafes/10342583/articles/156849', extracted_text: text,
+    auto_registration: { ready: true, mode: 'auto', source_id: 'swingtown-lessons-cafe', ai_verified: true, ai_confidence: 0.99 },
+    structured_data: { title, date: '2026-10-26', activity_type: 'class', event_type: '강습',
+      location: '사당 그라운즈 연습실 D홀', venue_name: '사당 그라운즈 연습실 D홀', venue_provenance: 'source_text',
+      dance_scope: 'swing', dance_genre: 'lindyhop', genre_family: 'partner',
+      ai_evidence_quotes: [title, '2026년 10월 26일 첫 수업', '장소: 사당 그라운즈 연습실 D홀', '린디합 강습'],
+      ai_adjudication: { decision: 'register', confidence: 0.99, event_date: '2026-10-26', activity_type: 'class', venue: '사당 그라운즈 연습실 D홀',
+        djs: [], evidence_quotes: [title, '2026년 10월 26일 첫 수업', '장소: 사당 그라운즈 연습실 D홀', '린디합 강습'], reasons: [] } } };
+};
+
+it('holds a same-date same-venue lesson with matching instructors despite a different title and link', async () => {
+  const row = lessonCandidate();
+  events = [{ id: 'member-lesson', title: '문탄 이화 피드백 클래스', category: 'class', date: '2026-10-26',
+    location: row.structured_data.location, description: '강사 문탄·이화', link1: 'https://example.com/member', user_id: 'member' }];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'scraped_events' ? [row] : []);
+  const res = response();
+  await cafe24IngestorRegisterEvent(request(row.id), res);
+  expect(res.status).toHaveBeenCalledWith(422);
+  expect(saveCafe24TableRow).toHaveBeenCalledWith('scraped_events', expect.objectContaining({ status: 'pending',
+    auto_registration: expect.objectContaining({ ready: false, reasons: expect.arrayContaining([expect.stringContaining('강습')]) }) }));
+  expect(saveCafe24TableRow.mock.calls.some(([table]) => table === 'events')).toBe(false);
+  expect(enqueueNewEventNotification).not.toHaveBeenCalled();
+});
+
+it('does not overwrite a member registration at the same source URL', async () => {
+  const row = lessonCandidate();
+  events = [{ id: 'member-original', title: row.structured_data.title, category: 'class', date: row.structured_data.date,
+    location: row.structured_data.location, description: row.extracted_text, link1: row.source_url, user_id: 'member' }];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'scraped_events' ? [row] : []);
+  const res = response();
+  await cafe24IngestorRegisterEvent(request(row.id), res);
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ duplicate: expect.objectContaining({ existingId: 'member-original' }) }));
+  expect(saveCafe24TableRow.mock.calls.some(([table]) => table === 'events')).toBe(false);
+  expect(enqueueNewEventNotification).not.toHaveBeenCalled();
+});
+
+it.each([true, false])('registers a new verified lesson with notification suppression=%s', async suppressNotifications => {
+  const row = lessonCandidate(); events = [];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? [...events] : table === 'scraped_events' ? [row] : []);
+  saveCafe24TableRow.mockImplementation(async (table, value, _filters, options) => {
+    if (table === 'events') { await options?.beforeEventSave?.({}); events.push(value); }
+    return value;
+  });
+  const res = response();
+  await cafe24IngestorRegisterEvent(request(row.id, { suppressNotifications }), res);
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(events).toHaveLength(1);
+  expect(events[0]).toMatchObject({ category: 'class', date: '2026-10-26' });
+  expect(enqueueNewEventNotification).toHaveBeenCalledTimes(suppressNotifications ? 0 : 1);
+  expect(saveCafe24TableRow).toHaveBeenCalledWith('scraped_events', expect.objectContaining({ status: 'collected', registered_event_id: events[0].id }));
+});
+
+it('rechecks a competing lesson inside the mutation lock before storing or sending notifications', async () => {
+  const row = lessonCandidate(); events = [];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? [...events] : table === 'scraped_events' ? [row] : []);
+  saveCafe24TableRow.mockImplementation(async (table, value, _filters, options) => {
+    if (table === 'events') {
+      events.push({ id: 'concurrent-member', title: '문탄·이화 피드백 강습', category: 'class', date: row.structured_data.date, location: row.structured_data.location });
+      await options.beforeEventSave({});
+    }
+    return value;
+  });
+  const res = response(); await cafe24IngestorRegisterEvent(request(row.id), res);
+  expect(res.status).toHaveBeenCalledWith(422);
+  expect(events).toHaveLength(1);
+  expect(enqueueNewEventNotification).not.toHaveBeenCalled();
+});
+
+
+it('holds an already member-registered lesson when its application link matches despite a different venue spelling', async () => {
+  const row = lessonCandidate(); row.extracted_text += '\n신청 https://forms.gle/uniqueApplication';
+  events = [{ id: 'member-application', title: '문탄·이화 피드백 집중 강습', date: row.structured_data.date,
+    category: 'class', location: '올드스쿨연습실', link2: 'https://forms.gle/uniqueApplication', user_id: 'member' }];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'scraped_events' ? [row] : []);
+  const res = response(); await cafe24IngestorRegisterEvent(request(row.id), res);
+  expect(res.status).toHaveBeenCalledWith(422);
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ conflict: expect.objectContaining({ existingId: 'member-application' }) }));
+  expect(saveCafe24TableRow.mock.calls.some(([table]) => table === 'events')).toBe(false);
+  expect(enqueueNewEventNotification).not.toHaveBeenCalled();
+});
+
+it('keeps a duplicate preflight read-only', async () => {
+  const row = lessonCandidate(); events = [{ id: 'member-original', title: row.structured_data.title,
+    category: 'class', date: row.structured_data.date, location: row.structured_data.location, link1: row.source_url }];
+  loadCafe24TableRows.mockImplementation(async table => table === 'events' ? events : table === 'scraped_events' ? [row] : []);
+  const res = response(); await cafe24IngestorRegisterEvent(request(row.id, { dryRun: true }), res);
+  expect(res.status).toHaveBeenCalledWith(409);
+  expect(saveCafe24TableRow).not.toHaveBeenCalled();
+  expect(enqueueNewEventNotification).not.toHaveBeenCalled();
 });

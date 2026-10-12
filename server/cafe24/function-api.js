@@ -736,24 +736,39 @@ export function findOperationalDuplicateForScrapedItem(candidate, eventRows = []
 
 // A different/missing extracted DJ is not proof of another social occurrence.
 // Preserve strict duplicate identity, but require review before occupying a slot twice.
-export function findSocialOccurrenceConflict(candidate, eventRows = [], ignoreEventId = null) {
-  if (!isSocialDuplicateRow(candidate)) return null;
+export function findAutomaticOccurrenceConflict(candidate, eventRows = [], ignoreEventId = null) {
+  const activity = duplicateActivityGroup(candidate);
+  if (!['social', 'class', 'event'].includes(activity)) return null;
   const date = scrapedRowDate(candidate);
   const replacementIds = new Set(findGeneratedRegularSocialReplacements(
     eventRows, { ...candidate, ...(candidate.structured_data || {}) }, candidate,
   ).map((row) => String(row.id)));
   const candidateVenueId = candidate.structured_data?.venue_id || candidate.venue_id;
+  const evidenceLinks = new Set([
+    candidate.source_url, candidate.link1, candidate.link2, candidate.link3,
+    ...(rowSearchEvidence(candidate).match(/https?:\/\/[^\s<>"']+/gi) || []),
+  ].filter(Boolean).map(value => normalizeDuplicateUrl(String(value).replace(/[),.;]+$/, ''))));
+  let sharedApplicationLink = false;
   const conflict = eventRows.find((row) => {
     if (ignoreEventId != null && String(row.id) === String(ignoreEventId)) return false;
     if (replacementIds.has(String(row.id))) return false;
-    if (!isSocialDuplicateRow(row) || !sameExactEventOccurrence(row, date)) return false;
+    if (duplicateActivityGroup(row) !== activity || !sameExactEventOccurrence(row, date)) return false;
+    if (activity !== 'social'
+      && [row.link1, row.link2, row.link3].filter(Boolean).some(url => evidenceLinks.has(normalizeDuplicateUrl(url)))) {
+      sharedApplicationLink = true;
+      return true;
+    }
     if (candidateVenueId && row.venue_id) return String(candidateVenueId) === String(row.venue_id);
     // Reuse the collector alias owner for legacy and newly extracted venue spellings.
     return sameVenue(toMapSafeVenueName(rowLocation(row)), toMapSafeVenueName(rowLocation(candidate)));
   });
   return conflict ? duplicateDescriptor('events', conflict,
-    '같은 날짜·장소에 소셜이 이미 등록되어 있습니다. 원문과 DJ를 재검토해주세요.') : null;
+    sharedApplicationLink ? '같은 날짜의 기존 일정과 신청·원문 링크가 일치합니다. 제목·강사·장소를 재검토해주세요.'
+      : `같은 날짜·장소에 ${activity === 'social' ? '소셜' : activity === 'class' ? '강습' : '행사'}이 이미 등록되어 있습니다. 원문과 DJ·강사를 재검토해주세요.`) : null;
 }
+
+// Compatibility export for existing social-only callers; the matcher has one owner.
+export { findAutomaticOccurrenceConflict as findSocialOccurrenceConflict };
 
 export function buildSocialConflictReviewRow(scrapedEvent, conflict, now = new Date().toISOString()) {
   const reason = `${conflict.reason} 기존 일정: ${conflict.existingDate} ${conflict.existingTitle} (#${conflict.existingId})`;
@@ -1541,7 +1556,7 @@ const AUTOMATIC_REGISTRATION_SOURCE_RULES = new Map([
 
 const AUTOMATIC_ACTIVITY_EVIDENCE_PATTERNS = {
   social: /(?:소셜|social|정모|금햅|금햎|금해피|일햅|일햎|일해피)/i,
-  class: /(?:강습|수업|클래스|class|워크숍|워크샵|workshop|레슨|lesson)/i,
+  class: /(?:강습|수업|클래스|특강|class|워크숍|워크샵|workshop|레슨|lesson)/i,
   event: /(?:행사|이벤트|event|파티|party|공연|대회)/i,
   recruit: /(?:모집|신청|등록|recruit)/i,
   sale: /(?:판매|정기권|정기\s*할인권|할인권|다회권|\d+\s*회권|패스|pass|티켓|ticket|월정액|멤버십)/i,
@@ -1827,7 +1842,8 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   if (automaticRequest && !existing) {
     eventData = inheritGeneratedRegularSocialVenueMetadata(eventData, existingRows, scrapedEvent);
   }
-  const operationalDuplicate = automaticRequest && !existing
+  const linkedEventId = scrapedEvent.registered_event_id || scrapedEvent.structured_data?.registered_event_id;
+  const operationalDuplicate = automaticRequest && (!existing || String(linkedEventId || '') !== String(existing.id))
     ? findBlockingAutomaticRegistrationDuplicate(scrapedEvent, existingRows)
     : null;
   const publishedDuplicate = automaticRequest && !existing && !operationalDuplicate
@@ -1839,7 +1855,7 @@ export async function cafe24IngestorRegisterEvent(req, res) {
   const blockingDuplicate = operationalDuplicate || publishedDuplicate;
 
   if (blockingDuplicate) {
-    await saveCafe24TableRow('scraped_events', buildDuplicateScrapedEventRow({
+    if (body.dryRun !== true) await saveCafe24TableRow('scraped_events', buildDuplicateScrapedEventRow({
       scrapedEvent,
       duplicate: blockingDuplicate,
     }));
@@ -1860,18 +1876,18 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     });
   };
   const socialConflict = automaticRequest
-    ? findSocialOccurrenceConflict(registrationCandidate, existingRows, existing?.id)
+    ? findAutomaticOccurrenceConflict(registrationCandidate, existingRows, existing?.id)
     : null;
   if (socialConflict) {
     await holdSocialConflict(socialConflict);
     return;
   }
-  const automaticSaveOptions = automaticRequest && isSocialDuplicateRow(registrationCandidate) ? {
+  const automaticSaveOptions = automaticRequest && ['social', 'class', 'event'].includes(duplicateActivityGroup(registrationCandidate)) ? {
     beforeEventSave: async (connection) => {
       // Recheck under the existing event mutation lock after image/network work.
       // This prevents two concurrent collectors from both observing an empty slot.
       const currentEvents = await loadCafe24TableRows('events', connection);
-      const conflict = findSocialOccurrenceConflict(registrationCandidate, currentEvents, existing?.id);
+      const conflict = findAutomaticOccurrenceConflict(registrationCandidate, currentEvents, existing?.id);
       if (conflict) {
         const error = new Error(conflict.reason);
         error.code = 'SOCIAL_OCCURRENCE_CONFLICT';
@@ -1978,7 +1994,7 @@ export async function cafe24IngestorRegisterEvent(req, res) {
     await holdSocialConflict(error.conflict);
     return;
   }
-  await enqueueNewEventNotification(inserted);
+  if (body.suppressNotifications !== true) await enqueueNewEventNotification(inserted);
   const replacedRegularSocials = findGeneratedRegularSocialReplacements(existingRows, inserted, scrapedEvent);
   if (replacedRegularSocials.length) {
     await deleteCafe24TableRows('events', replacedRegularSocials);
