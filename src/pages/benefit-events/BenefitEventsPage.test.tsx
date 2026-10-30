@@ -178,11 +178,14 @@ describe('benefit event images', () => {
     ['일반', null], ['할인 이벤트', 'discount_event'], ['정기권', 'season_pass'],
   ])('lets an administrator save %s in the existing benefit editor and immediately updates the list', async (label, kind) => {
     isAdmin = true;
-    const event = { id: 'editable', title: '유료 워크숍', date: '2099-11-05', benefit_eligible: true, benefit_kind: 'free_event' };
+    const event = {
+      id: 'editable', title: '유료 워크숍', date: '2099-11-05', benefit_eligible: true, benefit_kind: 'free_event',
+      benefit_details: { title: '무료 강습 안내', description: '무료 강습에만 해당하는 안내' },
+    };
     fetchCafe24Events.mockResolvedValue([event]);
     updateCafe24EventById.mockResolvedValue({ ...event, benefit_eligible: kind !== null, benefit_kind: kind });
     renderPage();
-    fireEvent.click((await screen.findByText(event.title)).closest('.benefit-event-item') as HTMLElement);
+    fireEvent.click((await screen.findByText(event.benefit_details.title)).closest('.benefit-event-item') as HTMLElement);
     fireEvent.click(screen.getByRole('button', { name: '혜택 분류 수정' }));
     const options = await screen.findByRole('group', { name: '혜택 분류' });
     fireEvent.click(within(options).getByRole('button', { name: label }));
@@ -196,6 +199,9 @@ describe('benefit event images', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     } else {
       expect(screen.getByRole('dialog')).toHaveTextContent(kind === 'season_pass' ? '정기권' : '할인');
+      expect(screen.getByRole('dialog')).toHaveTextContent(event.title);
+      expect(screen.queryByText(event.benefit_details.title)).not.toBeInTheDocument();
+      expect(screen.queryByText(event.benefit_details.description)).not.toBeInTheDocument();
     }
   });
 

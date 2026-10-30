@@ -166,6 +166,7 @@ export default function BenefitEventsPage() {
   const selectedEventPoster = selectedEvent && !failedImageIds.has(String(selectedEvent.id || ''))
     ? getEventPoster(selectedEvent)
     : '';
+  const selectedBenefitDetails = selectedEvent?.benefit_kind === 'free_event' ? selectedEvent.benefit_details : null;
 
   return (
     <main className="benefit-events-page">
@@ -215,6 +216,7 @@ export default function BenefitEventsPage() {
       {!isLoading && !error && (
         <ol className="benefit-events-list">
           {benefitEvents.map((event, index) => {
+            const benefitDetails = event.benefit_kind === 'free_event' ? event.benefit_details : null;
             const displayDate = getBenefitEventDisplayDate(event, today);
             const isPast = isPastBenefitEvent(event, today);
             const thumbnail = failedImageIds.has(String(event.id || ''))
@@ -253,13 +255,13 @@ export default function BenefitEventsPage() {
                   <div className="benefit-event-kicker">
                     <span>{getKindLabel(event)}</span>
                   </div>
-                  <h2>{event.benefit_details?.title || event.title}</h2>
+                  <h2>{benefitDetails?.title || event.title}</h2>
                   <p>
                     <i className="ri-map-pin-line" aria-hidden="true" />
                     {getPlaceLabel(event)}
                   </p>
-                  {event.benefit_details ? (
-                    <small className="benefit-event-offer">{event.benefit_details.description}</small>
+                  {benefitDetails ? (
+                    <small className="benefit-event-offer">{benefitDetails.description}</small>
                   ) : event.description && <small>{event.description}</small>}
                   {event.link1 && (
                     <a
@@ -309,7 +311,7 @@ export default function BenefitEventsPage() {
             <div className="benefit-event-kicker">
               <span>{getKindLabel(selectedEvent)}</span>
             </div>
-            <h2 id="benefit-event-modal-title">{selectedEvent.benefit_details?.title || selectedEvent.title}</h2>
+            <h2 id="benefit-event-modal-title">{selectedBenefitDetails?.title || selectedEvent.title}</h2>
             {isAdmin && (
               <div className="benefit-event-admin-actions">
                 {String(selectedEvent.id).startsWith('oneday-') ? (
@@ -358,7 +360,7 @@ export default function BenefitEventsPage() {
                 <dd>{getPlaceLabel(selectedEvent)}</dd>
               </div>
             </dl>
-            <p>{selectedEvent.benefit_details?.description || selectedEvent.description || '등록된 상세 설명이 없습니다.'}</p>
+            <p>{selectedBenefitDetails?.description || selectedEvent.description || '등록된 상세 설명이 없습니다.'}</p>
             {selectedEvent.link1 && (
               <a draggable={false} href={selectedEvent.link1} target="_blank" rel="noreferrer">
                 원본 링크
