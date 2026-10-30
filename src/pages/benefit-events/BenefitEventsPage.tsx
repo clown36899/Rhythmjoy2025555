@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getVisibleDanceScopeOptions, isEventInDanceScope, normalizeVisibleDanceScope } from '../../utils/danceTaxonomy';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Event as AppEvent } from '../../lib/cafe24Client';
-import { fetchCafe24Events } from '../../lib/cafe24EventsApi';
+import { fetchCafe24Events, updateCafe24EventById } from '../../lib/cafe24EventsApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { eventBenefitFields } from '../../utils/eventBenefitKind';
+import { applyEventMutationToQueryCache } from '../../utils/eventMutationSync';
 import { fetchActiveOneDayBenefitEvents } from '../../lib/benefitEventsData';
 import { useMarkBenefitEventsSeenOnVisit } from '../../hooks/useBenefitEventsUnreadCount';
 import {
@@ -13,6 +17,9 @@ import {
 } from '../../utils/benefitEventVisibility';
 import { getLocalDateString } from '../v2/utils/eventListUtils';
 import './BenefitEventsPage.css';
+import '../../styles/components/EventDetailModal.css';
+
+const EventEditBottomSheet = lazy(() => import('../v2/components/EventEditBottomSheet'));
 
 const BENEFIT_EVENT_QUERY_VERSION = 'benefit-events-v3';
 
@@ -85,11 +92,43 @@ function formatDateLabel(date: string) {
 }
 
 export default function BenefitEventsPage() {
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const today = getLocalDateString();
   const [searchParams, setSearchParams] = useSearchParams();
   const danceScope = normalizeVisibleDanceScope(searchParams.get('dance'));
   const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
+  const [isEditingBenefit, setIsEditingBenefit] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [failedImageIds, setFailedImageIds] = useState<Set<string>>(() => new Set());
+
+  const closeDetail = () => {
+    if (isSaving) return;
+    setSelectedEvent(null);
+    setIsEditingBenefit(false);
+    setSaveError('');
+  };
+
+  const saveBenefit = async (value: unknown) => {
+    if (!isAdmin || !selectedEvent || isSaving || String(selectedEvent.id).startsWith('oneday-')) return;
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      const updated = await updateCafe24EventById(selectedEvent.id, eventBenefitFields(value));
+      if (!updated) throw new Error('저장 결과가 없습니다.');
+      const detail = { id: updated.id, event: updated };
+      applyEventMutationToQueryCache(queryClient, detail, 'updated');
+      window.dispatchEvent(new CustomEvent('eventUpdated', { detail }));
+      setSelectedEvent(updated.benefit_eligible ? updated : null);
+      setIsEditingBenefit(false);
+    } catch {
+      setIsEditingBenefit(false);
+      setSaveError('혜택 분류를 저장하지 못했습니다. 다시 시도해 주세요.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const markImageFailed = (eventId: AppEvent['id']) => {
     const id = String(eventId || '');
@@ -224,7 +263,7 @@ export default function BenefitEventsPage() {
                   ) : event.description && <small>{event.description}</small>}
                   {event.link1 && (
                     <a
-                draggable={false}
+                      draggable={false}
                       href={event.link1}
                       target="_blank"
                       rel="noreferrer"
@@ -244,12 +283,12 @@ export default function BenefitEventsPage() {
         </ol>
       )}
 
-      {selectedEvent && (
+      {selectedEvent && createPortal(
         <div
           className="benefit-event-modal-backdrop"
           role="presentation"
           onMouseDown={(mouseEvent) => {
-            if (mouseEvent.target === mouseEvent.currentTarget) setSelectedEvent(null);
+            if (mouseEvent.target === mouseEvent.currentTarget) closeDetail();
           }}
         >
           <section
@@ -261,7 +300,8 @@ export default function BenefitEventsPage() {
             <button
               type="button"
               className="benefit-event-modal-close"
-              onClick={() => setSelectedEvent(null)}
+              onClick={closeDetail}
+              disabled={isSaving}
               aria-label="상세창 닫기"
             >
               <i className="ri-close-line" aria-hidden="true" />
@@ -270,6 +310,23 @@ export default function BenefitEventsPage() {
               <span>{getKindLabel(selectedEvent)}</span>
             </div>
             <h2 id="benefit-event-modal-title">{selectedEvent.benefit_details?.title || selectedEvent.title}</h2>
+            {isAdmin && (
+              <div className="benefit-event-admin-actions">
+                {String(selectedEvent.id).startsWith('oneday-') ? (
+                  <Link draggable={false} to={`/oneday-recruits?dance=${danceScope}`}>원데이 모집 수정</Link>
+                ) : (
+                  <>
+                    <button type="button" draggable={false} onClick={() => setIsEditingBenefit(true)}>
+                      혜택 분류 수정
+                    </button>
+                    <Link draggable={false} to={`/calendar?id=${encodeURIComponent(String(selectedEvent.id))}&dance=${danceScope}`}>
+                      일정 수정 화면
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+            {saveError && <p role="alert">{saveError}</p>}
             {selectedEventPoster && (
               <a
                 draggable={false}
@@ -309,7 +366,22 @@ export default function BenefitEventsPage() {
               </a>
             )}
           </section>
-        </div>
+        </div>,
+        document.body,
+      )}
+      {isAdmin && selectedEvent && isEditingBenefit && (
+        <Suspense fallback={<p role="status">수정 화면 불러오는 중...</p>}>
+          <EventEditBottomSheet
+            activeField="benefitKind"
+            initialValue={selectedEvent}
+            event={selectedEvent}
+            onClose={() => { if (!isSaving) setIsEditingBenefit(false); }}
+            onSave={saveBenefit}
+            isSaving={isSaving}
+            structuredGenres={{ class: [], event: [] }}
+            allHistoricalGenres={[]}
+          />
+        </Suspense>
       )}
     </main>
   );

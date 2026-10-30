@@ -303,7 +303,7 @@
 .benefit-event-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal, 10000);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -313,6 +313,7 @@
 
 .benefit-event-modal {
   position: relative;
+  box-sizing: border-box;
   display: grid;
   gap: 16px;
   width: min(100%, 600px);
@@ -327,6 +328,24 @@
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62);
   overscroll-behavior: contain;
   scrollbar-width: thin;
+}
+
+.benefit-event-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.benefit-event-admin-actions button,
+.benefit-event-admin-actions a {
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: #292c33;
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .benefit-event-modal h2,
@@ -506,13 +525,13 @@
 
   .benefit-event-modal-backdrop {
     place-items: end center;
-    padding: 12px 10px calc(82px + env(safe-area-inset-bottom));
+    padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom));
   }
 
   .benefit-event-modal {
     gap: 13px;
     width: 100%;
-    max-height: calc(100dvh - 112px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     padding: 20px 18px 22px;
     border-radius: 20px;
   }

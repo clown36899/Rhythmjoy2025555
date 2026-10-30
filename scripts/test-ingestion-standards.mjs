@@ -905,6 +905,11 @@ assert.equal(classifyConfirmedBenefitEvent({
 }), 'free_event', 'routine tuition discounts must not override a genuine free trial');
 
 const benefitPhraseCases = [
+  ['발보아 워크숍. 특별 혜택 참가자 전원 금요일 드림발 소셜 무료 입장. 참가비 60,000원 (입장료 8천원 별도)', null],
+  ['발보아 워크숍\n참가자 전원\n✨ 금요일 소셜 무료 입장\n■ 참가비 60,000원', null],
+  ['유료 살사 클래스. 수강료 6만원. 수강생은 다음 주 파티 입장 무료.', null],
+  ['무료 체험 클래스. 참가자 전원 다음 주 소셜 무료 입장. 정규반 강습비 8만원.', 'free_event'],
+  ['스윙 클래스 수강료 0원. 참가자 전원 금요일 소셜 무료 입장.', 'free_event'],
   ['강습비 8만원. 수료할 때까지 재수강 무료.', null],
   ['강습비 8만원. 재수강료 무료.', null],
   ['입장료 2만원. 재입장 무료.', null],
@@ -2950,6 +2955,19 @@ for (const menu of [12, 81, 82, 83, 84, 91]) {
 }
 assert.equal(findSourceByUrl('https://www.instagram.com/clublatin_everlatin/p/example/').id, 'clublatin_everlatin');
 assert.ok(naverScheduleOverviewPriority('살사 초급 10월 1일 개강 모집중', '2026-09-23', {allowedActivityTypes:['class']}) < naverScheduleOverviewPriority('112기 발표회 공지', '2026-09-23', {allowedActivityTypes:['class']}));
+
+// Reprocessing a paid course must remove the stale bonus-based free classification.
+const paidBonusCandidate = prepareCandidate(baseCandidate({
+  extracted_text: '발보아 워크숍. 참가자 전원 금요일 소셜 무료 입장. 참가비 60,000원.',
+  structured_data: {
+    title: '팔로워 발보아 워크숍', date: '2026-11-05', location: '인더무드신림',
+    activity_type: 'social', category: 'social',
+    benefit_eligible: true, benefit_kind: 'free_event', benefit_lifecycle: 'date_bound',
+  },
+}), { today: '2026-10-30' });
+for (const key of ['benefit_eligible', 'benefit_kind', 'benefit_lifecycle']) {
+  assert.equal(paidBonusCandidate.candidate.structured_data[key], undefined);
+}
 
 // A weekly source must not lend Friday's benefit to Sunday's independent social.
 const weeklyBenefitText = `10월 1주 위클리네오 🎧 금햅 DJ 테일 🪩 무료라인강습 : 고민중독

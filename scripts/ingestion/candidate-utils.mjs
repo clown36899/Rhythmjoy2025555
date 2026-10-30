@@ -248,7 +248,15 @@ export function classifyConfirmedBenefitEvent(candidate = {}) {
 }
 
 function getConfirmedFreeBenefitEvidence(text) {
-  const benefitText = text
+  // A paid course's complimentary admission to another event is not a free course.
+  // Remove only that conditional offer; independent free trials/lessons stay eligible.
+  const hasPaidCourse = /강습|수업|클래스|워크숍|워크샵|course|workshop/i.test(text)
+    && [...text.matchAll(/(?:참가비|수강료|강습비|수업료)\s*[:：]?\s*(\d[\d,.]*)\s*(?:천|만)?\s*원/g)]
+      .some((match) => Number(match[1].replace(/,/g, '')) > 0);
+  const scopedText = hasPaidCourse
+    ? text.replace(/(?:참가자|참여자|수강생|수강자|등록자|신청자|수료자|이수자|구매자)(?:\s*전원)?[^.!?■]{0,80}?(?:소셜|파티|행사)[^.!?■]{0,30}?(?:무료\s*입장|입장\s*(?:은|는|이|가)?\s*무료)/gi, ' ')
+    : text;
+  const benefitText = scopedText
     .replace(/무료\s*(?:라인\s*)?(?:강습|클래스|수업|체험|입장|행사|이벤트|파티)?\s*(?:은|는|이|가)?\s*(?:없(?:음|습니다|다|는)|아님|제외|불가|종료|마감)/gi, ' ')
     .replace(/\bfree\s+(?:class|lesson|event|party|admission)?\s*(?:is\s+)?(?:not|unavailable|excluded|closed|ended)\b/gi, ' ')
     .replace(/무료\s*(?:혜택|제공|증정|체험|입장|관람|강습|클래스|수업|이벤트|행사|파티|주차|음료|물|락커|보관|상담|와이파이|wifi|대여|대관)?\s*(?:은|는|이|가)?\s*(?:종료|마감|소진)/gi, ' ');

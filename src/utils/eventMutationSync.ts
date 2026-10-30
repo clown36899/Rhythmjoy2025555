@@ -149,6 +149,7 @@ export function applyEventMutationToQueryCache(
   action: 'created' | 'updated' | 'deleted',
 ) {
   queryClient.setQueriesData({ queryKey: ['events'] }, (oldData) => patchEventListData(oldData, detail, action));
+  queryClient.setQueriesData({ queryKey: ['benefit-events'] }, (oldData) => patchEventListData(oldData, detail, action));
   queryClient.setQueriesData({ queryKey: ['list-view-events'] }, (oldData) => patchEventListData(oldData, detail, action));
 
   queryClient.getQueryCache().findAll({ queryKey: ['calendar-events'] }).forEach((query) => {

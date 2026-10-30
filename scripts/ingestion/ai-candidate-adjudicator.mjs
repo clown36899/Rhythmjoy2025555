@@ -609,6 +609,10 @@ campaign in SOURCE_TEXT. Do not relabel a paid class as discounted just because 
 mentions conditional savings. A genuinely free introductory/trial class remains free even when
 optional later courses are paid.
 
+A paid course is not free because enrolled participants receive complimentary admission to
+a separate social/party. That admission is an enrollment bonus, not free participation in
+the candidate course. Preserve independent free trials and free lessons within paid socials.
+
 Reject expired, ended, sold-out, negated, or merely historical offers. active_on_today means the
 candidate is still relevant as of TODAY_KST; an upcoming future free/discount event is true even though
 the event does not happen today. A source post date is not an

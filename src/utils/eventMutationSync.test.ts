@@ -12,13 +12,19 @@ describe('eventMutationSync', () => {
     queryClient.setQueryData(['events', 'test'], [
       { id: 1, title: 'old title', date: '2026-06-20' },
     ]);
+    queryClient.setQueryData(['benefit-events', 'test'], [
+      { id: 1, title: 'old title', benefit_eligible: true, benefit_kind: 'free_event' },
+    ]);
 
     applyEventMutationToQueryCache(queryClient, {
       id: 1,
-      event: { id: 1, title: 'new title', date: '2026-06-20' },
+      event: { id: 1, title: 'new title', date: '2026-06-20', benefit_eligible: false, benefit_kind: null },
     }, 'updated');
 
     expect(queryClient.getQueryData<any[]>(['events', 'test'])?.[0].title).toBe('new title');
+    expect(queryClient.getQueryData<any[]>(['benefit-events', 'test'])?.[0]).toMatchObject({
+      title: 'new title', benefit_eligible: false, benefit_kind: null,
+    });
   });
 
   it('removes calendar cached events when an update moves them out of range', () => {

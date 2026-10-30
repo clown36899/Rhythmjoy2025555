@@ -7,10 +7,13 @@ import { getBenefitEventThumbnail } from './BenefitEventsPage';
 import BenefitEventsPage from './BenefitEventsPage';
 
 const fetchCafe24Events = vi.fn();
+const updateCafe24EventById = vi.fn();
 const fetchOneDayLinks = vi.fn();
+let isAdmin = false;
 
 vi.mock('../../lib/cafe24EventsApi', () => ({
   fetchCafe24Events: (...args: unknown[]) => fetchCafe24Events(...args),
+  updateCafe24EventById: (...args: unknown[]) => updateCafe24EventById(...args),
 }));
 
 vi.mock('../../lib/cafe24Client', () => ({
@@ -24,7 +27,7 @@ vi.mock('../../lib/cafe24Client', () => ({
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'benefit-page-user' } }),
+  useAuth: () => ({ user: { id: 'benefit-page-user' }, isAdmin }),
 }));
 
 function renderPage(url = '/benefit-events') {
@@ -41,6 +44,8 @@ function renderPage(url = '/benefit-events') {
 describe('benefit event images', () => {
   beforeEach(() => {
     fetchCafe24Events.mockReset();
+    updateCafe24EventById.mockReset();
+    isAdmin = false;
     fetchOneDayLinks.mockReturnValue([]);
     window.localStorage.clear();
   });
@@ -165,6 +170,65 @@ describe('benefit event images', () => {
     const dialog = screen.getByRole('dialog', { name: '상세 무료 행사' });
     expect(within(dialog).getByText(/8월 4일/)).toBeInTheDocument();
     expect(within(dialog).getByText('해피홀')).toBeInTheDocument();
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
+    expect(within(dialog).queryByRole('button', { name: '혜택 분류 수정' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['일반', null], ['할인 이벤트', 'discount_event'], ['정기권', 'season_pass'],
+  ])('lets an administrator save %s in the existing benefit editor and immediately updates the list', async (label, kind) => {
+    isAdmin = true;
+    const event = { id: 'editable', title: '유료 워크숍', date: '2099-11-05', benefit_eligible: true, benefit_kind: 'free_event' };
+    fetchCafe24Events.mockResolvedValue([event]);
+    updateCafe24EventById.mockResolvedValue({ ...event, benefit_eligible: kind !== null, benefit_kind: kind });
+    renderPage();
+    fireEvent.click((await screen.findByText(event.title)).closest('.benefit-event-item') as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: '혜택 분류 수정' }));
+    const options = await screen.findByRole('group', { name: '혜택 분류' });
+    fireEvent.click(within(options).getByRole('button', { name: label }));
+    fireEvent.click(screen.getByRole('button', { name: '저장', exact: true }));
+    await waitFor(() => expect(updateCafe24EventById).toHaveBeenCalledWith('editable', {
+      benefit_eligible: kind !== null, benefit_kind: kind,
+    }));
+    await waitFor(() => expect(screen.queryByRole('group', { name: '혜택 분류' })).not.toBeInTheDocument());
+    if (kind === null) {
+      expect(screen.queryByText(event.title)).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByRole('dialog')).toHaveTextContent(kind === 'season_pass' ? '정기권' : '할인');
+    }
+  });
+
+  it('keeps the event and allows a retry when saving fails', async () => {
+    isAdmin = true;
+    fetchCafe24Events.mockResolvedValue([{ id: 'retry', title: '실패 후 재시도', date: '2099-11-05', benefit_eligible: true, benefit_kind: 'free_event' }]);
+    updateCafe24EventById.mockRejectedValueOnce(new Error('403')).mockResolvedValueOnce({ id: 'retry', title: '실패 후 재시도', benefit_eligible: false, benefit_kind: null });
+    renderPage();
+    fireEvent.click((await screen.findByText('실패 후 재시도')).closest('.benefit-event-item') as HTMLElement);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      fireEvent.click(screen.getByRole('button', { name: '혜택 분류 수정' }));
+      const options = await screen.findByRole('group', { name: '혜택 분류' });
+      fireEvent.click(within(options).getByRole('button', { name: '일반', exact: true }));
+      fireEvent.click(screen.getByRole('button', { name: '저장', exact: true }));
+      if (attempt === 0) {
+        expect(await screen.findByRole('alert')).toHaveTextContent('저장하지 못했습니다');
+        expect(screen.getByRole('dialog')).toHaveTextContent('무료 혜택');
+      }
+    }
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(updateCafe24EventById).toHaveBeenCalledTimes(2);
+  });
+
+  it('routes synthetic one-day links to their existing owner instead of the events API', async () => {
+    isAdmin = true;
+    fetchCafe24Events.mockResolvedValue([]);
+    fetchOneDayLinks.mockReturnValue([{ id: 'community', community: '동호회', benefit_eligible: true, benefit_kind: 'free_event', url: 'https://example.com' }]);
+    renderPage();
+    fireEvent.click((await screen.findByText('동호회 원데이 모집')).closest('.benefit-event-item') as HTMLElement);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('link', { name: '원데이 모집 수정' })).toHaveAttribute('href', '/oneday-recruits?dance=swing');
+    expect(within(dialog).queryByRole('button', { name: '혜택 분류 수정' })).not.toBeInTheDocument();
+    expect(updateCafe24EventById).not.toHaveBeenCalled();
   });
   it('hides ended benefits but preserves today, remaining occurrences and undated offers', async () => {
     const today = new Date().toLocaleDateString('en-CA');
