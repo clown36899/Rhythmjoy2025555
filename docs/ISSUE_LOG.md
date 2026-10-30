@@ -1,6 +1,6 @@
 ## 2026-10-30 — 유료 워크숍의 별도 소셜 보너스 무료 오분류·혜택 관리자 편집 누락·하단 가림
 
-- 상태: 대상 운영 데이터 교정 완료. 운영 프런트 기준에서 이번 변경만 분리해 검증·커밋·푸시 후 배포 준비.
+- 상태: 대상 운영 데이터 교정·분리본 검증·커밋·푸시·웹/실제 수집기 배포·운영 화면 검증 완료.
 - 증상 → 판정 → 실행 → 결과: `깽이발 | Follower Solo Balboa`가 무료 혜택에 표시 → 후보 본문의 `참가자 전원 금요일 드림발 소셜 무료 입장`을 주 행사 무료로 판정 → 수동 등록이 후보 혜택 필드를 공개 일정에 전달 → 11/5 유료 워크숍이 무료로 노출. 무료 페이지는 별도 읽기 전용 상세만 사용해 기존 관리자 혜택 편집기에 진입할 수 없었고, 상세 z-index 1000보다 공통 하단 메뉴 1002가 높아 하단이 가렸다.
 - 기준 데이터: 후보 `e3b5e58cfd2f13f2`, 이벤트 `03b4d246-d439-4bc2-94b3-8b5a504accb6`, 원문 `https://www.instagram.com/inthemoodsillim/p/DehBeiDsSAl`. 저장 원문에 워크숍 참가비 60,000원·입장료 8천원 별도와 금요일 별도 소셜 보너스가 함께 있다. AI 검토도 category/activity 불일치 및 confidence 0.96으로 review였다. 원문 재접속은 throttled여서 새 공개 본문을 확보하지 못했으며, 사용자 정정·저장된 원문·공개 API·수집 원장으로 판단했다. 자동등록 장애나 재시도 누락으로 판단하지 않았다.
 - 기존 구현 판정: 일부 있음. `f6711d21d`의 명시 무료 근거, `43965c42c`의 부정문 보호, `7aab99d6e`의 일반 강습 요금조건 제외, 기존 8/13·9/11·10/4 이슈와 결정, `a4457e418`/`79ba6ff49`의 혜택 상세·스크롤 의도 조사. `classifyConfirmedBenefitEvent`/`getConfirmedFreeBenefitScope`, `EventEditBottomSheet`, `eventBenefitFields`, `updateCafe24EventById`, `applyEventMutationToQueryCache`, 기존 `events.raw_json`/`scraped_events.structured_data` 소유 및 `backfill-benefit-candidates.mjs`를 재사용했다. 빈틈은 유료 수강에 딸린 별도 행사 입장 혜택의 범위, 무료 상세의 편집 연결, 공통 모달 레이어 연결이었다. 새 테이블·필드·큐·상태값·별도 교정기 없음.
@@ -13,6 +13,10 @@
 - 배포 준비: 현재 공개 프런트의 10/7 계열 `6b1946ed`를 기준으로 `codex/benefit-admin-modal-20261030`에 이번 차이만 분리. 이후 운영의 benefit_details 제목/조건 표시·query v3·무료 날짜 보호를 보존했다. 수집기는 실제 설치본에 두 모듈/기존 표준 검사 차이만 fuzz=0으로 적용해 이후의 강습·DJ·원문 접근 수정을 유지한다. 분리본 기존 UI/캐시/읽음/AI/서버 71건 및 함수 산출물 생성 후 자동분류 6건, 배포 경계 6건·수집 표준·프런트 빌드 통과. 새 worktree의 함수 산출물 누락으로 서버 스위트 import가 처음 실패한 뒤 기존 빌드로 해결했으며 코드 문제와 구분한다. 웹은 기존 server-patch와 frontend-only, Mini PC는 기존 런타임 백업·변경 확인·6타이머 정지/복귀 절차를 재사용한다. 미배포 다른 변경·서버 전체 덮어쓰기·의존성/원장/브라우저 변경 없음.
 
 - 배포 통합 점검: 기존 무료강습 전용 benefit_details는 free_event 표시에서만 사용하도록 연결했다. 관리자가 할인/정기권으로 바꿔도 저장된 무료 안내가 새 종류의 제목·본문으로 재사용되지 않으며 원본 메타데이터는 보존한다. 기존 관리자 저장 매개변수 검사에 실제 benefit_details 보유 사례를 확장했고 14건 재통과했다.
+
+- 배포 완료: 구현 `d93164a5b9f361611b60b87f8f6adf1d7536a96b`, 무료 안내 표시 보완 `27e0e6aa`를 `origin/codex/benefit-admin-modal-20261030`에 각각 선푸시한 뒤 기존 `npm run deploy:cafe24 -- --server-patch 6b1946ed`와 `--frontend-only`로 반영. 공개 version `1793335893785`(2026-10-30 13:51 KST), index/service-worker/version의 로컬·공개 SHA-256 일치, 내/외부 health ok·service active. 서버 패치는 수집 모듈 2개만 변경했고 프런트 전후 function-api 및 두 수집 모듈 해시는 불변. 기존 10/12 등록 충돌 보호도 유지. 서버 백업 `.deploy-server-d93164a5b9f361611b60b87f8f6adf1d7536a96b-1793335794/previous`, 프런트 진입 파일 백업 `.deploy-backup-benefit-admin-d93164a5` 보존.
+- 실제 수집기 완료: Mini PC 설치본에 Git 차이를 정확 적용한 임시 런타임에서 표준 검사 통과 → 6타이머 중지·작업 없음 확인 → 원본 3파일 SHA 비교·전체 소스 백업 → candidate-utils/ai-candidate-adjudicator/기존 표준 검사 3파일만 교체 → 설치본 SHA·수집 표준 통과 → 동일 6타이머 active. 백업 `~/.local/share/rhythmjoy-ingestion/backups/benefit-admin-d93164a5.tar.gz`. 키오스크 두 PID(3192273/1145182)와 active 상태 보존, 의존성 설치·진행 원장·프로필·예약/키오스크 변경·실제 수집 실행 없음. 웹 설치본의 실제 분류 함수에서도 유료 보너스 null/독립 무료 체험 free_event 확인.
+- 공개 화면 최종 검증: analytics=internal에서 일반 방문과 격리된 관리자 UI 모의 표시를 각각 1440×900/390×844/390×568로 확인. 잘못된 워크숍 목록 제외, 관리자 전용 편집 진입·4선택, modal 10000>하단 1002·viewport 내 표시·마지막 내용 클릭/스크롤·body portal·비드래그 이미지 확인. 페이지 오류/외부 쓰기 시도 0. 실제 관리자 자격으로 운영 저장을 수행했다고 주장하지 않으며 저장·실패/재시도·종류 변경 시 기존 무료 설명 미상속은 기존 UI 회귀검사 14건으로 검증. 관련 분리본 총 77건·배포 경계 6건·수집 표준·빌드 통과. 원래 작업 폴더의 무관한 변경은 보존했다.
 
 ## 2026-09-30 — 메인 광고 첫 진입 무작위 선택 복원
 
